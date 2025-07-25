@@ -134,6 +134,24 @@
                        <input type="text" id="endDate"   placeholder="End Date (optional)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                      <p class="text-gray-400 text-sm mt-2">Generates natal charts and transits for the date range, always calculated for the birth location.</p>
+                     <div class="mt-4 bg-gray-700/50 p-4 rounded-md">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="relocationToggle" class="form-checkbox h-5 w-5 text-teal-400">
+                            <span class="ml-3 text-white font-medium">Add Relocation Overlay (Optional)</span>
+                        </label>
+                        <div id="relocationFields" class="hidden mt-3">
+                            <p class="text-sm text-gray-400 mb-2">Enter coordinates (e.g., <b>30°10′N, 85°40′W</b>) to see a side-by-side comparison of how transits fall in the relocated house system.</p>
+                            <input type="text"
+                                   id="relocationCoords"
+                                   placeholder="30°10′N, 85°40′W"
+                                   class="w-full bg-gray-800 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                                   value="30°10′N, 85°40′W">
+                            <div id="relocationError" class="text-red-500 text-xs mt-1 hidden"></div>
+                            <p class="text-xs text-gray-500 italic text-right pr-1 pt-1">
+                                You can also paste decimal degrees (e.g., 30.1588, -85.6602).
+                            </p>
+                        </div>
+                    </div>
                      <button id="generate-btn" class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 disabled:bg-indigo-400 disabled:cursor-not-allowed">
                         Generate Full Report
                     </button>
@@ -183,6 +201,7 @@
         </main>
     </div>
 
+    <script src="config.js"></script>
     <script>
         // --- DOM Elements ---
         const generateBtn = document.getElementById('generate-btn');
@@ -198,13 +217,17 @@
         const endDateInput = document.getElementById('endDate');
         const weatherStartDateInput = document.getElementById('weatherStartDate');
         const weatherEndDateInput = document.getElementById('weatherEndDate');
+        const relocationToggle = document.getElementById('relocationToggle');
+        const relocationFields = document.getElementById('relocationFields');
+        const relocationCoordsInput = document.getElementById('relocationCoords');
+        const relocationError = document.getElementById('relocationError');
 
         // --- Global State ---
         let fullReportData = {};
         let markdownReport = '';
 
         // --- API & LOCAL ENGINE CONFIG ---
-        const API_KEY = "40889e2cf0msh5573bf5995e3376p19ffcfjsn815e8406eee3";
+        const API_KEY = window.RAPIDAPI_KEY || '';
         const API_HOST = "astrologer.p.rapidapi.com";
         const API_BASE_URL = "https://astrologer.p.rapidapi.com/api/";
         const ORBS = { "conjunction": 8, "opposition": 8, "square": 5, "trine": 6, "sextile": 4 };
@@ -221,22 +244,45 @@
             setTimeout(() => { messageBox.classList.add('hidden'); messageBox.classList.remove('animate-fade-in-out'); }, 7900);
         };
 
-        const parseCoordinate = (s) => {
-            s = String(s).trim().toUpperCase();
-            const match = s.match(/(\d+)[°]\s*(\d+)[\'’]?\s*([NSEW])/);
-            if (match) {
-                const [, d, mn, he] = match;
-                const val = parseFloat(d) + parseFloat(mn) / 60;
-                return (he === "S" || he === "W") ? -val : val;
+        // Parse a single latitude or longitude string.
+        // Supports decimal degrees, D°M', or D°M'S" with optional hemisphere.
+        const parseCoordinate = (input) => {
+            let s = String(input).trim();
+            // Determine hemisphere sign
+            let sign = /[SW]/i.test(s) ? -1 : 1;
+            // Remove hemisphere letters
+            s = s.replace(/[NSEW]/ig, '');
+            // Handle explicit minus sign
+            if (s.startsWith('-')) { sign = -1; s = s.slice(1); }
+            // Replace degree, minute, second symbols with spaces
+            s = s.replace(/[°º]/g, ' ').replace(/[\'′’]/g, ' ').replace(/[\"″]/g, ' ');
+            const parts = s.trim().split(/\s+/).filter(Boolean);
+            if (parts.length === 0) throw new Error(`Invalid coordinate format for "${input}".`);
+
+            const deg = parseFloat(parts[0]);
+            if (isNaN(deg)) throw new Error(`Invalid degrees in coordinate "${input}".`);
+            const min = parts[1] ? parseFloat(parts[1]) : 0;
+            const sec = parts[2] ? parseFloat(parts[2]) : 0;
+            if ((parts[1] && isNaN(min)) || (parts[2] && isNaN(sec))) {
+                throw new Error(`Invalid minutes or seconds in coordinate "${input}".`);
             }
-            try { const num = parseFloat(s); if (isNaN(num)) throw new Error(); return num; } 
-            catch (e) { throw new Error(`Invalid coordinate format for "${s}".`); }
+            const val = Math.abs(deg) + (min / 60) + (sec / 3600);
+            return sign * val;
         };
 
+        // Parse "lat, lon" combined field. Works with either commas or space separation.
         const parseCombinedCoords = (txt) => {
-            const parts = txt.match(/(\d+[°]\s*\d+[\'’]?\s*[NS]).*?(\d+[°]\s*\d+[\'’]?\s*[EW])/i);
-            if (!parts || parts.length < 3) throw new Error("Invalid combined coordinate format.");
-            return { lat: parseCoordinate(parts[1]), lon: parseCoordinate(parts[2]) };
+            // Try explicit comma separation first
+            let parts = txt.split(',');
+            if (parts.length >= 2) {
+                const lat = parseCoordinate(parts[0]);
+                const lon = parseCoordinate(parts.slice(1).join(','));
+                return { lat, lon };
+            }
+            // Fallback: look for N/S and E/W markers
+            const match = txt.match(/([\d°º'"′″\.\s+-]+[NS])[^\dA-Z+-]*([\d°º'"′″\.\s+-]+[EW])/i);
+            if (match) return { lat: parseCoordinate(match[1]), lon: parseCoordinate(match[2]) };
+            throw new Error('Invalid combined coordinate format.');
         };
 
         const getSubjectData = (personPrefix) => {
@@ -396,13 +442,19 @@
             return report.join('\n');
         };
         
-        const formatMdTransit = (transitData, personData) => {
+        const formatMdTransit = (transitData, personData, isRelocated) => {
             const chart = transitData.chart.data.subject;
             const aspects = transitData.aspects;
             const degToDMS = (deg) => `${Math.floor(deg)}°${Math.round((deg % 1) * 60).toString().padStart(2, '0')}'`;
-            
-            let report = [`\n## Transits for ${transitData.date}`];
-             report.push(`*Transits calculated for birth location: ${personData.details.city}, ${personData.details.state}, ${personData.details.nation}.*`);
+
+            let report = [];
+            if (isRelocated) {
+                report.push(`\n### Relocation Overlay for ${transitData.date}`);
+                report.push(`*Houses & Angles recalculated for ${chart.latitude.toFixed(4)}, ${chart.longitude.toFixed(4)}*`);
+            } else {
+                report.push(`\n## Transits for ${transitData.date}`);
+                report.push(`*Transits calculated for birth location: ${personData.details.city}, ${personData.details.state}, ${personData.details.nation}.*`);
+            }
             let planetTable = '| Planet | AEL | Sign | Pos | 29° |\n|---|---|---|---|---|\n';
             chart.planets_names_list.forEach(pName => {
                 const p = chart[pName.toLowerCase()];
@@ -493,6 +545,10 @@
 
                 fullReportData.transits = [];
 
+                const relocationChecked = relocationToggle.checked;
+                let relocationCoords = getRelocationLatLonOrNull();
+                if (relocationChecked && !relocationCoords) throw new Error("Relocation coordinates are invalid.");
+
                 for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
                     const ds = (d.getUTCMonth()+1).toString().padStart(2,'0') + '-' +
                                 d.getUTCDate().toString().padStart(2,'0') + '-' +
@@ -507,10 +563,11 @@
                     const transitChartA = transitApiResponseA.data.subject;
                     const entryA = {
                         person: 'a', date: ds, chart: transitApiResponseA,
-                        aspects: calculateAspects(transitChartA, chartA)
+                        aspects: calculateAspects(transitChartA, chartA),
+                        location_type: 'birth'
                     };
                     fullReportData.transits.push(entryA);
-                    markdownParts.push(formatMdTransit(entryA, fullReportData.person_a));
+                    markdownParts.push(formatMdTransit(entryA, fullReportData.person_a, false));
 
                     if (personBData && chartB) {
                          const transitSubjectB = { 
@@ -522,10 +579,50 @@
                         const transitChartB = transitApiResponseB.data.subject;
                         const entryB = {
                             person: 'b', date: ds, chart: transitApiResponseB,
-                            aspects: calculateAspects(transitChartB, chartB)
+                            aspects: calculateAspects(transitChartB, chartB),
+                            location_type: 'birth'
                         };
                         fullReportData.transits.push(entryB);
-                        markdownParts.push(formatMdTransit(entryB, fullReportData.person_b));
+                        markdownParts.push(formatMdTransit(entryB, fullReportData.person_b, false));
+                    }
+
+                    // Relocation overlay for this date (optional)
+                    if (relocationChecked && relocationCoords) {
+                        const relocationSubjectA = {
+                            ...personAData,
+                            year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
+                            name: `Relocated Transit ${ds}`,
+                            lat: relocationCoords.lat, lon: relocationCoords.lon,
+                            city: 'Relocated', state: '', nation: ''
+                        };
+                        const relocationApiResponseA = await getChartDataFromApi(relocationSubjectA);
+                        const relocationChartA = relocationApiResponseA.data.subject;
+                        const entryRelocA = {
+                            person: 'a', date: ds, chart: relocationApiResponseA,
+                            aspects: calculateAspects(relocationChartA, chartA),
+                            location_type: 'relocated'
+                        };
+                        fullReportData.transits.push(entryRelocA);
+                        markdownParts.push(formatMdTransit(entryRelocA, fullReportData.person_a, true));
+
+                        if (personBData && chartB) {
+                            const relocationSubjectB = {
+                                ...personBData,
+                                year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
+                                name: `Relocated Transit ${ds}`,
+                                lat: relocationCoords.lat, lon: relocationCoords.lon,
+                                city: 'Relocated', state: '', nation: ''
+                            };
+                            const relocationApiResponseB = await getChartDataFromApi(relocationSubjectB);
+                            const relocationChartB = relocationApiResponseB.data.subject;
+                            const entryRelocB = {
+                                person: 'b', date: ds, chart: relocationApiResponseB,
+                                aspects: calculateAspects(relocationChartB, chartB),
+                                location_type: 'relocated'
+                            };
+                            fullReportData.transits.push(entryRelocB);
+                            markdownParts.push(formatMdTransit(entryRelocB, fullReportData.person_b, true));
+                        }
                     }
                 }
                 
@@ -681,6 +778,32 @@
                 document.getElementById(`manualCoords${personPrefix}`).style.display = isCombined ? 'none' : 'grid';
             });
         });
+
+        // Show or hide relocation inputs when checkbox toggled
+        relocationToggle.addEventListener('change', () => {
+            relocationFields.style.display = relocationToggle.checked ? 'block' : 'none';
+        });
+
+        // Validate relocation coordinates as user types
+        relocationCoordsInput.addEventListener('input', () => {
+            if (relocationToggle.checked) {
+                getRelocationLatLonOrNull();
+            }
+        });
+
+        // Helper to read relocation coordinates or return null if invalid
+        function getRelocationLatLonOrNull() {
+            if (!relocationToggle.checked) return null;
+            try {
+                const coords = parseCombinedCoords(relocationCoordsInput.value);
+                relocationError.classList.add('hidden');
+                return coords;
+            } catch (e) {
+                relocationError.textContent = e.message;
+                relocationError.classList.remove('hidden');
+                return null;
+            }
+        }
 
     </script>
 </body>
