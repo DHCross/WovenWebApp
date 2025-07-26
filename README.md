@@ -26,7 +26,7 @@ A web application for generating natal charts and transit reports using the Astr
 
 ## Usage
 
-1. Enter birth information for **Person A**. **Person B** is optional.
+1. Enter birth information for **Person A**.
 2. In **Step 1**, choose the date range for transits. Tick **Add Relocation Overlay** to calculate a second set of transits for another location without altering the natal data.
 3. Click **Generate Full Report** to produce a Markdown report. Both natal-location transits and relocation overlays (if enabled) appear side by side.
 4. In **Step 2** you can generate a standalone sky chart for any location and date range.
