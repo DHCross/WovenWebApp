@@ -84,75 +84,6 @@
                     </div>
                 </div>
 
-<!-- Person B Card -->
-<div id="personB-card" class="bg-gray-800 p-6 rounded-lg shadow-lg">
-  <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">
-    Person B (Optional)
-  </h2>
-  <div class="space-y-4">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <input type="text" id="nameB" placeholder="Name"
-             class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-             value="">
-      <input type="text" id="cityB" placeholder="Birth City"
-             class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-             value="">
-      <input type="text" id="stateB" placeholder="Birth State/Prov"
-             class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-             value="">
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <input type="text" id="dateB" placeholder="Date (MM-DD-YYYY)"
-             class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-             value="">
-      <input type="text" id="timeB" placeholder="Time (24h HH:MM)"
-             class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-             value="">
-      <select id="offsetB"
-              class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-        <option value="America/New_York">Eastern (New York)</option>
-        <option value="America/Chicago">Central (Chicago)</option>
-        <option value="America/Denver">Mountain (Denver)</option>
-        <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
-        <option value="America/Anchorage">Alaska (Anchorage)</option>
-        <option value="Pacific/Honolulu">Hawaii (Honolulu)</option>
-      </select>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <input type="text" id="nationB" placeholder="Country"
-             class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-             value="">
-      <select id="zodiacB"
-              class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-        <option value="Tropic">Tropic</option>
-        <option value="Sidereal">Sidereal</option>
-      </select>
-    </div>
-    <div class="flex items-center space-x-4 pt-2">
-      <label class="flex items-center">
-        <input type="radio" name="coordModeB" value="combined"
-               class="form-radio h-4 w-4 text-indigo-600" checked>
-        <span class="ml-2 text-gray-300">Combined</span>
-      </label>
-      <label class="flex items-center">
-        <input type="radio" name="coordModeB" value="manual"
-               class="form-radio h-4 w-4 text-indigo-600">
-        <span class="ml-2 text-gray-300">Manual</span>
-      </label>
-    </div>
-    <div id="combinedCoordsB">
-      <input type="text" id="astroB" placeholder="Birth Coordinates"
-             class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-             value="">
-    </div>
-    <div id="manualCoordsB" class="hidden grid-cols-1 md:grid-cols-2 gap-4">
-      <input type="text" id="latB" placeholder="Latitude"
-             class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-      <input type="text" id="lonB" placeholder="Longitude"
-             class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-    </div>
-  </div>
-</div>
 
             
             <!-- Report Type Selection -->
@@ -317,7 +248,10 @@
         };
 
         const getSubjectData = (personPrefix) => {
-            const name = document.getElementById(`name${personPrefix}`).value;
+            const nameEl = document.getElementById(`name${personPrefix}`);
+            if (!nameEl) return null;
+
+            const name = nameEl.value;
             const city = document.getElementById(`city${personPrefix}`).value;
             const state = document.getElementById(`state${personPrefix}`).value;
             const date = document.getElementById(`date${personPrefix}`).value;
