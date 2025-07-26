@@ -14,12 +14,15 @@ A web application for generating natal charts and transit reports using the Astr
    cp .env.example .env
    # Edit .env and set RAPIDAPI_KEY
    ```
-2. Copy `config.example.js` to `config.js` and insert the same key:
+2. Create a file named `config.js` and define your API key:
+   ```javascript
+   // config.js
+   window.RAPIDAPI_KEY = "YOUR_RAPIDAPI_KEY_HERE";
    ```
-   cp config.example.js config.js
-   # Edit config.js and replace the placeholder with your key
-   ```
-3. Open `Woven Map Math Brain.html` in your browser.
+3. Open `wovenmap/index.html` in your browser. The root `index.html` now
+   acts as a minimalist landing page describing Woven Map and linking to the
+   application. You can visit the landing page first or navigate directly to
+   `wovenmap/index.html` to start using the generator.
 
 ## Usage
 
