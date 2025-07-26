@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Woven Map Report Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Simple scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2d3748;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a5568;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #718096;
+        }
+        /* Animation for the message box */
+        .animate-fade-in-out {
+            animation: fadeInOut 8s ease-in-out forwards;
+        }
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; transform: translateY(-20px); }
+            10%, 90% { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white">Woven Map Report Generator</h1>
+            <p class="text-gray-400 mt-2">Local Aspect Engine</p>
+        </header>
+
+        <main>
+            <!-- Input Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <!-- Person A Card -->
+                <div id="personA-card" class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Person A / Natal Chart</h2>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <input type="text" id="nameA" placeholder="Name" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="DH Cross">
+                            <input type="text" id="cityA" placeholder="Birth City" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="Bryn Mawr">
+                             <input type="text" id="stateA" placeholder="Birth State/Prov" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="PA">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <input type="text" id="dateA" placeholder="Date (MM-DD-YYYY)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="07-24-1973">
+                            <input type="text" id="timeA" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="14:30">
+                            <select id="offsetA" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <option value="America/New_York">Eastern (New York)</option>
+                                <option value="America/Chicago">Central (Chicago)</option>
+                                <option value="America/Denver">Mountain (Denver)</option>
+                                <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
+                                <option value="America/Anchorage">Alaska (Anchorage)</option>
+                                <option value="Pacific/Honolulu">Hawaii (Honolulu)</option>
+                            </select>
+                        </div>
+                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" id="nationA" placeholder="Country" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="US">
+                            <select id="zodiacA" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <option value="Tropic">Tropic</option>
+                                <option value="Sidereal">Sidereal</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center space-x-4 pt-2">
+                           <label class="flex items-center"><input type="radio" name="coordModeA" value="combined" class="form-radio h-4 w-4 text-indigo-600" checked><span class="ml-2 text-gray-300">Combined</span></label>
+                           <label class="flex items-center"><input type="radio" name="coordModeA" value="manual" class="form-radio h-4 w-4 text-indigo-600"><span class="ml-2 text-gray-300">Manual</span></label>
+                        </div>
+                        <div id="combinedCoordsA"><input type="text" id="astroA" placeholder="Birth Coordinates" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="40°1'N, 75°19'W"></div>
+                        <div id="manualCoordsA" class="hidden grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" id="latA" placeholder="Latitude" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none"><input type="text" id="lonA" placeholder="Longitude" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Person B Card -->
+                <div id="personB-card" class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Person B (Optional)</h2>
+                    <div class="space-y-4">
+                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <input type="text" id="nameB" placeholder="Name" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="Stephie">
+                            <input type="text" id="cityB" placeholder="Birth City" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="Albany">
+                            <input type="text" id="stateB" placeholder="Birth State/Prov" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="GA">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <input type="text" id="dateB" placeholder="Date (MM-DD-YYYY)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="04-18-1965">
+                            <input type="text" id="timeB" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="18:37">
+                             <select id="offsetB" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <option value="America/New_York">Eastern (New York)</option>
+                                <option value="America/Chicago">Central (Chicago)</option>
+                                <option value="America/Denver">Mountain (Denver)</option>
+                                <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
+                                <option value="America/Anchorage">Alaska (Anchorage)</option>
+                                <option value="Pacific/Honolulu">Hawaii (Honolulu)</option>
+                            </select>
+                        </div>
+                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" id="nationB" placeholder="Country" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="US">
+                            <select id="zodiacB" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <option value="Tropic">Tropic</option>
+                                <option value="Sidereal">Sidereal</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center space-x-4 pt-2">
+                           <label class="flex items-center"><input type="radio" name="coordModeB" value="combined" class="form-radio h-4 w-4 text-indigo-600" checked><span class="ml-2 text-gray-300">Combined</span></label>
+                           <label class="flex items-center"><input type="radio" name="coordModeB" value="manual" class="form-radio h-4 w-4 text-indigo-600"><span class="ml-2 text-gray-300">Manual</span></label>
+                        </div>
+                        <div id="combinedCoordsB"><input type="text" id="astroB" placeholder="Birth Coordinates" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="31°35'N, 84°9'W"></div>
+                        <div id="manualCoordsB" class="hidden grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" id="latB" placeholder="Latitude" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none"><input type="text" id="lonB" placeholder="Longitude" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Report Type Selection -->
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
+                <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Step 1: Generate Natal & Transit Data</h2>
+                <div>
+                     <label class="text-lg text-gray-200">Date Range (Defaults to Today)</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                       <input type="text" id="startDate" placeholder="Start Date (MM-DD-YYYY)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                       <input type="text" id="endDate"   placeholder="End Date (optional)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                     <p class="text-gray-400 text-sm mt-2">Generates natal charts and transits for the date range, always calculated for the birth location.</p>
+                     <div class="mt-4 bg-gray-700/50 p-4 rounded-md">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="relocationToggle" class="form-checkbox h-5 w-5 text-teal-400">
+                            <span class="ml-3 text-white font-medium">Add Relocation Overlay (Optional)</span>
+                        </label>
+                        <div id="relocationFields" class="hidden mt-3">
+                            <p class="text-sm text-gray-400 mb-2">Enter coordinates (e.g., <b>30°10′N, 85°40′W</b>) to see a side-by-side comparison of how transits fall in the relocated house system.</p>
+                            <input type="text"
+                                   id="relocationCoords"
+                                   placeholder="30°10′N, 85°40′W"
+                                   class="w-full bg-gray-800 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                                   value="30°10′N, 85°40′W">
+                            <div id="relocationError" class="text-red-500 text-xs mt-1 hidden"></div>
+                            <p class="text-xs text-gray-500 italic text-right pr-1 pt-1">
+                                You can also paste decimal degrees (e.g., 30.1588, -85.6602).
+                            </p>
+                        </div>
+                    </div>
+                     <button id="generate-btn" class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 disabled:bg-indigo-400 disabled:cursor-not-allowed">
+                        Generate Full Report
+                    </button>
+                </div>
+            </div>
+             <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
+                 <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Step 2 (Optional): Get Local Astrological Forecast</h2>
+                 <p class="text-gray-400 text-sm mb-4 italic">This generates a standalone chart of the sky for a specific location and time, which can be used as a contextual overlay. For a full transit analysis, provide this data to your Poetic Brain along with the main report.</p>
+                 <p class="text-gray-400 text-sm mb-4 italic font-semibold">Note: This app is built to generate input for astrology AI apps (GPTs). If you only generate the astrological weather (Step 2) without a natal chart, it won’t connect to personal dynamics and will be symbolically meaningless.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <label class="text-lg text-gray-200">Location</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                           <input type="text" id="weatherLat" placeholder="Latitude (e.g. 30.1588)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="30.1588">
+                           <input type="text" id="weatherLon" placeholder="Longitude (e.g. -85.6602)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="-85.6602">
+                        </div>
+                        <p class="text-xs text-gray-500 italic text-right pr-1 pt-1">Find coordinates with a web search, e.g., "coordinates for Panama City, FL".</p>
+                    </div>
+                    <div>
+                        <label class="text-lg text-gray-200">Date Range (Defaults to Today)</label>
+                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                           <input type="text" id="weatherStartDate" placeholder="Start Date (MM-DD-YYYY)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                           <input type="text" id="weatherEndDate"   placeholder="End Date (optional)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+                <button id="getWeatherBtn" class="mt-4 w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                    Get Forecast
+                </button>
+            </div>
+
+
+            <!-- Output Section -->
+            <div id="output-section" class="bg-gray-800 p-6 rounded-lg shadow-lg hidden">
+                 <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                    <h2 id="report-title" class="text-2xl font-semibold text-white">Generated Report</h2>
+                    <div class="flex space-x-2">
+                        <button id="copy-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">Copy Markdown</button>
+                        <button id="save-md-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">Save Markdown</button>
+                        <button id="save-json-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">Save JSON</button>
+                    </div>
+                </div>
+                <pre id="report-output" class="w-full h-96 bg-gray-900 text-gray-300 rounded-md p-4 overflow-auto font-mono text-sm whitespace-pre-wrap"></pre>
+            </div>
+             <!-- Message Box -->
+            <div id="message-box" class="fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg hidden"></div>
+        </main>
+    </div>
+
+    <script src="../config.js"></script>
+    <script>
+        // --- DOM Elements ---
+        const generateBtn = document.getElementById('generate-btn');
+        const getWeatherBtn = document.getElementById('getWeatherBtn');
+        const outputSection = document.getElementById('output-section');
+        const reportOutput = document.getElementById('report-output');
+        const reportTitle = document.getElementById('report-title');
+        const copyBtn = document.getElementById('copy-btn');
+        const saveJsonBtn = document.getElementById('save-json-btn');
+        const saveMdBtn = document.getElementById('save-md-btn');
+        const messageBox = document.getElementById('message-box');
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        const weatherStartDateInput = document.getElementById('weatherStartDate');
+        const weatherEndDateInput = document.getElementById('weatherEndDate');
+        const relocationToggle = document.getElementById('relocationToggle');
+        const relocationFields = document.getElementById('relocationFields');
+        const relocationCoordsInput = document.getElementById('relocationCoords');
+        const relocationError = document.getElementById('relocationError');
+
+        // --- Global State ---
+        let fullReportData = {};
+        let markdownReport = '';
+
+        // --- API & LOCAL ENGINE CONFIG ---
+        const API_KEY = window.RAPIDAPI_KEY || '';
+        const API_HOST = "astrologer.p.rapidapi.com";
+        const API_BASE_URL = "https://astrologer.p.rapidapi.com/api/";
+        const ORBS = { "conjunction": 8, "opposition": 8, "square": 5, "trine": 6, "sextile": 4 };
+        const ASPECT_DEGREES = { "conjunction": 0, "opposition": 180, "square": 90, "trine": 120, "sextile": 60 };
+        const HOUSE_NAMES = ["First_House", "Second_House", "Third_House", "Fourth_House", "Fifth_House", "Sixth_House", "Seventh_House", "Eighth_House", "Ninth_House", "Tenth_House", "Eleventh_House", "Twelfth_House"];
+        const SYMBOLS = {"conjunction": "☌", "opposition": "☍", "square": "□", "trine": "△", "sextile": "✶"};
+        
+        // --- HELPER FUNCTIONS ---
+        const showMessage = (message, type = 'error') => {
+            messageBox.textContent = message;
+            messageBox.className = `fixed top-5 right-5 text-white py-2 px-4 rounded-lg shadow-lg ${type === 'error' ? 'bg-red-600' : 'bg-green-600'}`;
+            messageBox.classList.remove('hidden');
+            messageBox.classList.add('animate-fade-in-out');
+            setTimeout(() => { messageBox.classList.add('hidden'); messageBox.classList.remove('animate-fade-in-out'); }, 7900);
+        };
+
+        // Parse a single latitude or longitude string.
+        // Supports decimal degrees, D°M', or D°M'S" with optional hemisphere.
+        const parseCoordinate = (input) => {
+            let s = String(input).trim();
+            // Determine hemisphere sign
+            let sign = /[SW]/i.test(s) ? -1 : 1;
+            // Remove hemisphere letters
+            s = s.replace(/[NSEW]/ig, '');
+            // Handle explicit minus sign
+            if (s.startsWith('-')) { sign = -1; s = s.slice(1); }
+            // Replace degree, minute, second symbols with spaces
+            s = s.replace(/[°º]/g, ' ').replace(/[\'′’]/g, ' ').replace(/[\"″]/g, ' ');
+            const parts = s.trim().split(/\s+/).filter(Boolean);
+            if (parts.length === 0) throw new Error(`Invalid coordinate format for "${input}".`);
+
+            const deg = parseFloat(parts[0]);
+            if (isNaN(deg)) throw new Error(`Invalid degrees in coordinate "${input}".`);
+            const min = parts[1] ? parseFloat(parts[1]) : 0;
+            const sec = parts[2] ? parseFloat(parts[2]) : 0;
+            if ((parts[1] && isNaN(min)) || (parts[2] && isNaN(sec))) {
+                throw new Error(`Invalid minutes or seconds in coordinate "${input}".`);
+            }
+            const val = Math.abs(deg) + (min / 60) + (sec / 3600);
+            return sign * val;
+        };
+
+        // Parse "lat, lon" combined field. Works with either commas or space separation.
+        const parseCombinedCoords = (txt) => {
+            // Try explicit comma separation first
+            let parts = txt.split(',');
+            if (parts.length >= 2) {
+                const lat = parseCoordinate(parts[0]);
+                const lon = parseCoordinate(parts.slice(1).join(','));
+                return { lat, lon };
+            }
+            // Fallback: look for N/S and E/W markers
+            const match = txt.match(/([\d°º'"′″\.\s+-]+[NS])[^\dA-Z+-]*([\d°º'"′″\.\s+-]+[EW])/i);
+            if (match) return { lat: parseCoordinate(match[1]), lon: parseCoordinate(match[2]) };
+            throw new Error('Invalid combined coordinate format.');
+        };
+
+        const getSubjectData = (personPrefix) => {
+            const name = document.getElementById(`name${personPrefix}`).value;
+            const city = document.getElementById(`city${personPrefix}`).value;
+            const state = document.getElementById(`state${personPrefix}`).value;
+            const date = document.getElementById(`date${personPrefix}`).value;
+            const time = document.getElementById(`time${personPrefix}`).value;
+            const timezone = document.getElementById(`offset${personPrefix}`).value;
+            const nation = document.getElementById(`nation${personPrefix}`).value;
+            const zodiac_type = document.getElementById(`zodiac${personPrefix}`).value;
+
+            if (!name || !city || !date || !time || !timezone || !nation) return null;
+            
+            let lat, lon;
+            const coordMode = document.querySelector(`input[name="coordMode${personPrefix}"]:checked`).value;
+            if (coordMode === 'combined') {
+                const coords = parseCombinedCoords(document.getElementById(`astro${personPrefix}`).value);
+                lat = coords.lat;
+                lon = coords.lon;
+            } else {
+                lat = parseCoordinate(document.getElementById(`lat${personPrefix}`).value);
+                lon = parseCoordinate(document.getElementById(`lon${personPrefix}`).value);
+            }
+             if (isNaN(lat) || isNaN(lon)) throw new Error(`Invalid manual coordinates for Person ${personPrefix}.`);
+
+            const [month, day, year] = date.split('-').map(Number);
+            const [hour, minute] = time.split(':').map(Number);
+
+            return { name, city, state, date, time, timezone, lat, lon, year, month, day, hour, minute, nation, zodiac_type };
+        };
+        
+        // --- API CALL ---
+        const getChartDataFromApi = async (subjectData) => {
+             const body = {
+                subject: { 
+                    year: subjectData.year, month: subjectData.month, day: subjectData.day, 
+                    hour: subjectData.hour, minute: subjectData.minute, 
+                    longitude: subjectData.lon, latitude: subjectData.lat, 
+                    city: subjectData.city, state: subjectData.state, nation: subjectData.nation, 
+                    timezone: subjectData.timezone, name: subjectData.name, 
+                    zodiac_type: subjectData.zodiac_type 
+                }
+            };
+            const options = {
+                method: 'POST',
+                headers: { 'content-type': 'application/json', 'X-RapidAPI-Key': API_KEY, 'X-RapidAPI-Host': API_HOST },
+                body: JSON.stringify(body)
+            };
+            const response = await fetch(API_BASE_URL + 'v4/natal-aspects-data', options);
+            
+            const apiData = await response.json();
+            if (!response.ok) {
+                const msg = Array.isArray(apiData.detail)
+                    ? apiData.detail.map(e => `${e.loc.join('.')} – ${e.msg}`).join('\n')
+                    : JSON.stringify(apiData.detail) || `HTTP Error: ${response.status}`;
+                throw new Error(msg);
+            }
+            return apiData;
+        };
+        
+        // --- LOCAL ASPECT/OVERLAY ENGINE ---
+        const calculateAspects = (chartA, chartB) => {
+            const aspects = [];
+            const planetsA = chartA.planets_names_list;
+            const planetsB = chartB.planets_names_list;
+
+            for (const p1Name of planetsA) {
+                const p1 = chartA[p1Name.toLowerCase()];
+                if (!p1) continue;
+                for (const p2Name of planetsB) {
+                    const p2 = chartB[p2Name.toLowerCase()];
+                    if (!p2) continue;
+
+                    const diff = Math.abs((p1.abs_pos - p2.abs_pos + 180) % 360 - 180);
+                    for (const [aspectName, aspectDeg] of Object.entries(ASPECT_DEGREES)) {
+                        const orb = Math.abs(diff - aspectDeg);
+                        if (orb < ORBS[aspectName]) {
+                            aspects.push({
+                                p1_name: p1.name,
+                                p2_name: p2.name,
+                                aspect: aspectName,
+                                orb: parseFloat(orb.toFixed(2))
+                            });
+                        }
+                    }
+                }
+            }
+            return aspects;
+        };
+
+        const calculateHouseOverlays = (planetsChart, housesChart) => {
+            const overlays = {};
+            const houseCusps = HOUSE_NAMES.map(name => housesChart[name.toLowerCase()].abs_pos);
+            
+            for (const planetName of planetsChart.planets_names_list) {
+                const planet = planetsChart[planetName.toLowerCase()];
+                if (!planet) continue;
+
+                for (let i = 0; i < 12; i++) {
+                    const cuspStart = houseCusps[i];
+                    const cuspEnd = houseCusps[(i + 1) % 12];
+                    
+                    let inHouse = false;
+                    if (cuspStart < cuspEnd) {
+                        if (planet.abs_pos >= cuspStart && planet.abs_pos < cuspEnd) inHouse = true;
+                    } else {
+                        if (planet.abs_pos >= cuspStart || planet.abs_pos < cuspEnd) inHouse = true;
+                    }
+
+                    if (inHouse) {
+                        overlays[planet.name] = HOUSE_NAMES[i];
+                        break;
+                    }
+                }
+            }
+            return overlays;
+        };
+
+        // --- MARKDOWN FORMATTING ENGINE ---
+        const formatMdNatalChart = (personData) => {
+            const { details, chart: apiResponse } = personData;
+            const chart = apiResponse.data.subject;
+            const aspects = apiResponse.aspects;
+
+            const degToDMS = (deg) => `${Math.floor(deg)}°${Math.round((deg % 1) * 60).toString().padStart(2, '0')}'`;
+
+            let report = [`# ${details.name}`];
+            report.push(`> Birth Location: ${details.city}, ${details.state} *(For reference only; uses coordinates below)*`);
+            report.push(`> Birth Coordinates: ${details.lat.toFixed(4)}, ${details.lon.toFixed(4)}`);
+            report.push(`> Birth Date: ${details.date}`);
+            report.push(`> Birth Time: ${details.time} (Timezone: ${details.timezone})`);
+            
+            report.push(`\n## Natal Chart – ${chart.houses_system_name}`);
+            let planetTable = '| Planet | AEL | Sign | Pos | 29° |\n|---|---|---|---|---|\n';
+            chart.planets_names_list.forEach(pName => {
+                const p = chart[pName.toLowerCase()];
+                if(p) planetTable += `| ${p.name} | ${p.abs_pos.toFixed(2)}° | ${p.sign} | ${degToDMS(p.position)} | ${p.position >= 29 ? '★' : ''} |\n`;
+            });
+            report.push(planetTable);
+
+            report.push(`\n## Planet House Placements`);
+             let placementTable = '| Planet | House |\n|---|---|\n';
+            chart.planets_names_list.forEach(pName => {
+                const p = chart[pName.toLowerCase()];
+                if(p && p.house) placementTable += `| ${p.name} | ${p.house} |\n`;
+            });
+            report.push(placementTable);
+
+            report.push(`\n## Natal Aspects`);
+            const aspectList = aspects.map(a => {
+                const core = a.orbit <= 3 ? ' (Core Pressure Point)' : '';
+                return `- ${a.p1_name} ${SYMBOLS[a.aspect.toLowerCase()]} ${a.p2_name} (${a.orbit.toFixed(1)}°)${core}`;
+            }).join('\n');
+            report.push(aspectList || '- None found.');
+
+            return report.join('\n');
+        };
+        
+        const formatMdTransit = (transitData, personData, isRelocated) => {
+            const chart = transitData.chart.data.subject;
+            const aspects = transitData.aspects;
+            const degToDMS = (deg) => `${Math.floor(deg)}°${Math.round((deg % 1) * 60).toString().padStart(2, '0')}'`;
+
+            let report = [];
+            if (isRelocated) {
+                report.push(`\n### Relocation Overlay for ${transitData.date}`);
+                report.push(`*Houses & Angles recalculated for ${chart.latitude.toFixed(4)}, ${chart.longitude.toFixed(4)}*`);
+            } else {
+                report.push(`\n## Transits for ${transitData.date}`);
+                report.push(`*Transits calculated for birth location: ${personData.details.city}, ${personData.details.state}, ${personData.details.nation}.*`);
+            }
+            let planetTable = '| Planet | AEL | Sign | Pos | 29° |\n|---|---|---|---|---|\n';
+            chart.planets_names_list.forEach(pName => {
+                const p = chart[pName.toLowerCase()];
+                if(p) planetTable += `| ${p.name} | ${p.abs_pos.toFixed(2)}° | ${p.sign} | ${degToDMS(p.position)} | ${p.position >= 29 ? '★' : ''} |\n`;
+            });
+            report.push(planetTable);
+
+            report.push(`\n### Transit → Natal Aspects (${personData.details.name})`);
+            const aspectList = aspects.map(a => {
+                 const core = a.orb <= 3 ? ' (Core Pressure Point)' : '';
+                return `- Transiting ${a.p1_name} ${SYMBOLS[a.aspect.toLowerCase()]} Natal ${a.p2_name} (${a.orb.toFixed(1)}°)${core}`;
+            }).join('\n');
+            report.push(aspectList || '- None found.');
+            
+            return report.join('\n');
+        };
+
+        const formatMdWeather = (weatherData) => {
+            const chart = weatherData.chart.data.subject;
+            const degToDMS = (deg) => `${Math.floor(deg)}°${Math.round((deg % 1) * 60).toString().padStart(2, '0')}'`;
+            
+            let report = [`# Local Astrological Forecast for ${chart.city}, ${chart.state}`];
+            report.push(`> This is a standalone chart of the sky for the specified date and location. It is not a transit report and does not contain aspects to a natal chart. For a full transit analysis, please use the "Generate Full Report" function.`);
+            report.push(`> Date: ${weatherData.date}`);
+            
+            let planetTable = '| Planet | AEL | Sign | Pos |\n|---|---|---|---|\n';
+            chart.planets_names_list.forEach(pName => {
+                const p = chart[pName.toLowerCase()];
+                if(p) planetTable += `| ${p.name} | ${p.abs_pos.toFixed(2)}° | ${p.sign} | ${degToDMS(p.position)} |\n`;
+            });
+            report.push(planetTable);
+            return report.join('\n\n');
+        };
+
+
+        // --- MAIN REPORT GENERATION LOGIC ---
+        async function generateReport() {
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+            outputSection.classList.add('hidden');
+            
+            try {
+                const personAData = getSubjectData('A');
+                if (!personAData) throw new Error("Person A's data is required.");
+
+                const apiResponseA = await getChartDataFromApi(personAData);
+                const chartA = apiResponseA.data.subject;
+                
+                fullReportData = {
+                    schema: "WM-Chart-1.0",
+                    person_a: { details: personAData, chart: apiResponseA }
+                };
+                
+                let markdownParts = [
+                    `> ★ = Planet is within the last degree of a sign (the 29th degree).\n> **Aspect Symbols:** ☌ = Conjunction, ☍ = Opposition, □ = Square, △ = Trine, ✶ = Sextile\n> **"Core Pressure Point"** = aspect orb ≤ 3° (the strongest and most direct influences).`,
+                    formatMdNatalChart(fullReportData.person_a)
+                ];
+
+                const personBData = getSubjectData('B');
+                let chartB = null;
+
+                if (personBData) {
+                    const apiResponseB = await getChartDataFromApi(personBData);
+                    chartB = apiResponseB.data.subject;
+                    fullReportData.person_b = { details: personBData, chart: apiResponseB };
+                    markdownParts.push(formatMdNatalChart(fullReportData.person_b));
+                    
+                    fullReportData.synastry = {
+                        aspects: calculateAspects(chartA, chartB),
+                        a_in_b_houses: calculateHouseOverlays(chartA, chartB),
+                        b_in_a_houses: calculateHouseOverlays(chartB, chartA)
+                    };
+                }
+
+                let startStr = startDateInput.value;
+                if (!startStr) {
+                    const today = new Date();
+                    startStr = `${today.getMonth() + 1}-${today.getDate()}-${today.getFullYear()}`;
+                }
+
+                const [sm, sd, sy] = startStr.split('-').map(Number);
+                const start = new Date(Date.UTC(sy, sm - 1, sd));
+                let end = start;
+                if (endDateInput.value) {
+                    const [em, ed, ey] = endDateInput.value.split('-').map(Number);
+                    end = new Date(Date.UTC(ey, em - 1, ed));
+                }
+
+                fullReportData.transits = [];
+
+                const relocationChecked = relocationToggle.checked;
+                let relocationCoords = getRelocationLatLonOrNull();
+                if (relocationChecked && !relocationCoords) throw new Error("Relocation coordinates are invalid.");
+
+                for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+                    const ds = (d.getUTCMonth()+1).toString().padStart(2,'0') + '-' +
+                                d.getUTCDate().toString().padStart(2,'0') + '-' +
+                                d.getUTCFullYear();
+
+                    const transitSubjectA = { 
+                        ...personAData, 
+                        year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
+                        name: `Transit ${ds}`
+                    };
+                    const transitApiResponseA = await getChartDataFromApi(transitSubjectA);
+                    const transitChartA = transitApiResponseA.data.subject;
+                    const entryA = {
+                        person: 'a', date: ds, chart: transitApiResponseA,
+                        aspects: calculateAspects(transitChartA, chartA),
+                        location_type: 'birth'
+                    };
+                    fullReportData.transits.push(entryA);
+                    markdownParts.push(formatMdTransit(entryA, fullReportData.person_a, false));
+
+                    if (personBData && chartB) {
+                         const transitSubjectB = { 
+                            ...personBData, 
+                            year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
+                            name: `Transit ${ds}`
+                        };
+                        const transitApiResponseB = await getChartDataFromApi(transitSubjectB);
+                        const transitChartB = transitApiResponseB.data.subject;
+                        const entryB = {
+                            person: 'b', date: ds, chart: transitApiResponseB,
+                            aspects: calculateAspects(transitChartB, chartB),
+                            location_type: 'birth'
+                        };
+                        fullReportData.transits.push(entryB);
+                        markdownParts.push(formatMdTransit(entryB, fullReportData.person_b, false));
+                    }
+
+                    // Relocation overlay for this date (optional)
+                    if (relocationChecked && relocationCoords) {
+                        const relocationSubjectA = {
+                            ...personAData,
+                            year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
+                            name: `Relocated Transit ${ds}`,
+                            lat: relocationCoords.lat, lon: relocationCoords.lon,
+                            city: 'Relocated', state: '', nation: ''
+                        };
+                        const relocationApiResponseA = await getChartDataFromApi(relocationSubjectA);
+                        const relocationChartA = relocationApiResponseA.data.subject;
+                        const entryRelocA = {
+                            person: 'a', date: ds, chart: relocationApiResponseA,
+                            aspects: calculateAspects(relocationChartA, chartA),
+                            location_type: 'relocated'
+                        };
+                        fullReportData.transits.push(entryRelocA);
+                        markdownParts.push(formatMdTransit(entryRelocA, fullReportData.person_a, true));
+
+                        if (personBData && chartB) {
+                            const relocationSubjectB = {
+                                ...personBData,
+                                year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
+                                name: `Relocated Transit ${ds}`,
+                                lat: relocationCoords.lat, lon: relocationCoords.lon,
+                                city: 'Relocated', state: '', nation: ''
+                            };
+                            const relocationApiResponseB = await getChartDataFromApi(relocationSubjectB);
+                            const relocationChartB = relocationApiResponseB.data.subject;
+                            const entryRelocB = {
+                                person: 'b', date: ds, chart: relocationApiResponseB,
+                                aspects: calculateAspects(relocationChartB, chartB),
+                                location_type: 'relocated'
+                            };
+                            fullReportData.transits.push(entryRelocB);
+                            markdownParts.push(formatMdTransit(entryRelocB, fullReportData.person_b, true));
+                        }
+                    }
+                }
+                
+                markdownReport = markdownParts.join('\n\n');
+                reportTitle.textContent = "Generated Report";
+                reportOutput.textContent = markdownReport;
+                outputSection.classList.remove('hidden');
+
+            } catch (error) {
+                showMessage(error.message, 'error');
+                console.error(error);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Generate Full Report';
+            }
+        }
+        
+        async function generateWeatherReport() {
+            getWeatherBtn.disabled = true;
+            getWeatherBtn.textContent = 'Fetching...';
+            outputSection.classList.add('hidden');
+
+            try {
+                const lat = parseFloat(document.getElementById('weatherLat').value);
+                const lon = parseFloat(document.getElementById('weatherLon').value);
+                if (isNaN(lat) || isNaN(lon)) throw new Error("Latitude and Longitude are required for the forecast.");
+
+                let startStr = weatherStartDateInput.value;
+                if (!startStr) {
+                    const today = new Date();
+                    startStr = `${today.getMonth() + 1}-${today.getDate()}-${today.getFullYear()}`;
+                }
+
+                const [sm, sd, sy] = startStr.split('-').map(Number);
+                const start = new Date(Date.UTC(sy, sm - 1, sd));
+                let end = start;
+                if (weatherEndDateInput.value) {
+                    const [em, ed, ey] = weatherEndDateInput.value.split('-').map(Number);
+                    end = new Date(Date.UTC(ey, em - 1, ed));
+                }
+
+                let markdownParts = [];
+                fullReportData = { schema: "WM-Forecast-1.0", forecasts: [] };
+
+                for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+                    const ds = (d.getUTCMonth()+1).toString().padStart(2,'0') + '-' +
+                                d.getUTCDate().toString().padStart(2,'0') + '-' +
+                                d.getUTCFullYear();
+                    
+                    const weatherSubject = {
+                        year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
+                        hour: 12, minute: 0, // Noon for a general daily chart
+                        city: "Local Forecast", state: "", nation: "",
+                        name: `Forecast for ${ds}`,
+                        lat: lat, lon: lon, 
+                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        zodiac_type: 'Tropic'
+                    };
+                    
+                    const apiResponse = await getChartDataFromApi(weatherSubject);
+                    const weatherEntry = { date: ds, chart: apiResponse };
+                    fullReportData.forecasts.push(weatherEntry);
+                    markdownParts.push(formatMdWeather(weatherEntry));
+                }
+
+                markdownReport = markdownParts.join('\n\n');
+                reportTitle.textContent = `Local Astrological Forecast`;
+                reportOutput.textContent = markdownReport;
+                outputSection.classList.remove('hidden');
+
+            } catch(error) {
+                showMessage(error.message, 'error');
+                console.error(error);
+            } finally {
+                getWeatherBtn.disabled = false;
+                getWeatherBtn.textContent = 'Get Forecast';
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        generateBtn.addEventListener('click', generateReport);
+        getWeatherBtn.addEventListener('click', generateWeatherReport);
+
+        copyBtn.addEventListener('click', () => {
+            const textarea = document.createElement('textarea');
+            textarea.value = markdownReport;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showMessage('Copied to clipboard!', 'success');
+                } else {
+                    showMessage('Failed to copy.', 'error');
+                }
+            } catch (err) {
+                showMessage('Failed to copy.', 'error');
+                console.error('Clipboard copy failed:', err);
+            }
+            document.body.removeChild(textarea);
+        });
+        
+        const downloadFile = (filename, content, contentType) => {
+            const element = document.createElement('a');
+            const blob = new Blob([content], { type: contentType });
+            element.href = URL.createObjectURL(blob);
+            element.download = filename;
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+            URL.revokeObjectURL(element.href);
+        };
+        
+        const generateFilename = (extension) => {
+            const nameA = document.getElementById('nameA').value.replace(/\s+/g, '_') || 'PersonA';
+            const startDateStr = startDateInput.value;
+            const endDateStr = endDateInput.value;
+            let datePart = `_on_${new Date().toISOString().split('T')[0]}`;
+
+            if (startDateStr) {
+                const reformatDate = (dateStr) => {
+                    const [m, d, y] = dateStr.split('-');
+                    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                }
+                const formattedStart = reformatDate(startDateStr);
+                if (endDateStr && endDateStr !== startDateStr) {
+                    const formattedEnd = reformatDate(endDateStr);
+                    datePart = `_from_${formattedStart}_to_${formattedEnd}`;
+                } else {
+                    datePart = `_on_${formattedStart}`;
+                }
+            }
+            return `report_${nameA}${datePart}.${extension}`;
+        };
+
+        saveJsonBtn.addEventListener('click', () => {
+            const filename = generateFilename('json');
+            downloadFile(filename, JSON.stringify(fullReportData, null, 2), 'application/json');
+        });
+
+        saveMdBtn.addEventListener('click', () => {
+            const filename = generateFilename('md');
+            downloadFile(filename, markdownReport, 'text/markdown');
+        });
+        
+        document.querySelectorAll('input[name^="coordMode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const personPrefix = e.target.name.includes('A') ? 'A' : 'B';
+                const isCombined = e.target.value === 'combined';
+                document.getElementById(`combinedCoords${personPrefix}`).style.display = isCombined ? 'block' : 'none';
+                document.getElementById(`manualCoords${personPrefix}`).style.display = isCombined ? 'none' : 'grid';
+            });
+        });
+
+        // Show or hide relocation inputs when checkbox toggled
+        relocationToggle.addEventListener('change', () => {
+            relocationFields.style.display = relocationToggle.checked ? 'block' : 'none';
+        });
+
+        // Validate relocation coordinates as user types
+        relocationCoordsInput.addEventListener('input', () => {
+            if (relocationToggle.checked) {
+                getRelocationLatLonOrNull();
+            }
+        });
+
+        // Helper to read relocation coordinates or return null if invalid
+        function getRelocationLatLonOrNull() {
+            if (!relocationToggle.checked) return null;
+            try {
+                const coords = parseCombinedCoords(relocationCoordsInput.value);
+                relocationError.classList.add('hidden');
+                return coords;
+            } catch (e) {
+                relocationError.textContent = e.message;
+                relocationError.classList.remove('hidden');
+                return null;
+            }
+        }
+
+    </script>
+</body>
+</html>
