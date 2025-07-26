@@ -45,4 +45,4 @@ Minutes are optional, and decimal degrees are supported.
 
 ## Notes
 
-The file `config.js` (containing your API key) and `.env` are ignored by Git. Do not commit your secret key to version control.
+The file `config.js` (containing your API key) and `.env` are ignored by Git. A template `config.example.js` is provided for convenience. Do not commit your secret key to version control.
