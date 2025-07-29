@@ -1,48 +1,126 @@
-# WovenWebApp
+# **Woven Map Report Generator (WovenWebApp)**
 
-A web application for generating natal charts and transit reports using the Astrologer API. The app supports optional relocation overlays and local forecast charts.
+This is a web-based application designed to generate a detailed astrological report for a primary individual (Person A), with an optional second individual (Person B) for synastry and relationship analysis. It uses a static HTML and JavaScript front-end that communicates with a Netlify serverless function to fetch data from an external astrology API.
 
-## Prerequisites
+## **Core Technology**
 
-- A RapidAPI key for the Astrologer API.
-- A modern web browser.
+* **Front-End:** Plain HTML, JavaScript, and Tailwind CSS.  
+* **Back-End:** A single serverless function (astrology.js) deployed on Netlify.  
+* **External API:** [Astrologer API on RapidAPI](https://rapidapi.com/tg4-solutions-tg4-solutions-default/api/astrologer)
 
-## Setup
+## **External API: Astrologer API**
 
-1. Copy `.env.example` to `.env` and place your RapidAPI key in it:
-   ```
-   cp .env.example .env
-   # Edit .env and set RAPIDAPI_KEY
-   ```
-2. Create a file named `config.js` and define your API key:
-   ```javascript
-   // config.js
-   window.RAPIDAPI_KEY = "YOUR_RAPIDAPI_KEY_HERE";
-   ```
-3. Open `wovenmap/index.html` in your browser. The root `index.html` now
-   acts as a minimalist landing page describing Woven Map and linking to the
-   application. You can visit the landing page first or navigate directly to
-   `wovenmap/index.html` to start using the generator.
+This project relies on the Astrologer API to perform all astrological calculations.
 
-## Usage
+### **Authentication**
 
-1. Enter birth information for **Person A**.
-2. In **Step 1**, choose the date range for transits. Tick **Add Relocation Overlay** to calculate a second set of transits for another location without altering the natal data.
-3. Click **Generate Full Report** to produce a Markdown report. Both natal-location transits and relocation overlays (if enabled) appear side by side.
-4. In **Step 2** you can generate a standalone sky chart for any location and date range.
-5. Use the buttons above the output to copy or save the report as Markdown or JSON.
+All requests to the Astrologer API must include the following headers:
 
-### Coordinate Formats
+* X-RapidAPI-Key: Your personal API key.  
+* X-RapidAPI-Host: astrologer.p.rapidapi.com
 
-Latitude and longitude fields accept several formats:
+The serverless function is responsible for adding these headers to the outgoing request. The API key is stored as an environment variable in Netlify.
 
-- `30°10'N`
-- `30°10' N`
-- `30.1588`
-- Combined field examples: `30°10′N, 85°40′W` or `30.1588, -85.6602`
+### **Primary Endpoint Used**
 
-Minutes are optional, and decimal degrees are supported.
+The application primarily interacts with the natal-aspects-data endpoint to get the core chart and aspect information for each person.
 
-## Notes
+* **Method:** POST  
+* **URL:** https://astrologer.p.rapidapi.com/api/v4/natal-aspects-data
 
-The file `config.js` (containing your API key) and `.env` are ignored by Git. A template `config.example.js` is provided for convenience. Do not commit your secret key to version control.
+#### **Request Body Structure**
+
+The API expects a JSON object containing a subject key. The subject object must include the following fields:
+
+{  
+  "subject": {  
+    "year": 1973,  
+    "month": 7,  
+    "day": 24,  
+    "hour": 14,  
+    "minute": 30,  
+    "latitude": 40.0167,  
+    "longitude": \-75.3167,  
+    "timezone": "America/New\_York",  
+    "city": "Bryn Mawr",  
+    "nation": "US",  
+    "name": "DH Cross",  
+    "zodiac\_type": "Tropic"  
+  }  
+}
+
+#### **Example JavaScript fetch Request**
+
+This is how the front-end calls the Netlify function, which then calls the Astrologer API.
+
+const subjectData \= {  
+    year: 1973,  
+    month: 7,  
+    day: 24,  
+    hour: 14,  
+    minute: 30,  
+    lat: 40.0167,  
+    lon: \-75.3167,  
+    timezone: "America/New\_York",  
+    city: "Bryn Mawr",  
+    nation: "US",  
+    name: "DH Cross",  
+    zodiac\_type": "Tropic"  
+};
+
+const getChartDataFromApi \= async (subject) \=\> {  
+    const response \= await fetch('/.netlify/functions/astrology', {  
+        method: 'POST',  
+        headers: { 'Content-Type': 'application/json' },  
+        body: JSON.stringify({ subject: subject })  
+    });
+
+    if (\!response.ok) {  
+        const errorData \= await response.json();  
+        throw new Error(errorData.error || 'An unknown server error occurred.');  
+    }
+
+    return response.json();  
+};
+
+// Usage:  
+// const chartData \= await getChartDataFromApi(subjectData);
+
+#### **Success Response Structure**
+
+A successful response from the API is a JSON object containing the status, the full data object for the subject, and a list of astrological aspects.
+
+{  
+  "status": "success",  
+  "data": {  
+    "subject": {  
+      // ... extensive astrological data for the subject  
+    }  
+  },  
+  "aspects": \[  
+    {  
+      "p1\_name": "Sun",  
+      "p2\_name": "Moon",  
+      "aspect": "trine",  
+      "orbit": 2.5  
+      // ... other aspect properties  
+    }  
+  \]  
+}
+
+## **Setup and Deployment**
+
+This project is deployed on Netlify and linked to a GitHub repository.
+
+### **Environment Variables**
+
+To run this project, you must set the following environment variable in the Netlify site settings (Site settings \> Build & deploy \> Environment):
+
+* **Key:** RAPIDAPI\_KEY  
+* **Value:** Your secret key from RapidAPI for the Astrologer API.
+
+### **File Structure**
+
+* index.html: The main application file containing the UI and front-end JavaScript.  
+* netlify/functions/astrology.js: The serverless function that securely calls the RapidAPI endpoint.  
+* netlify.toml: The Netlify configuration file that specifies the functions directory.
