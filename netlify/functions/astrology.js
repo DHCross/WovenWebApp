@@ -57,6 +57,11 @@ exports.handler = async function(event) {
     const apiResponse = await fetch(API_BASE_URL, options);
     const apiData = await apiResponse.json();
 
+    // Ensure error details are always returned as a readable string
+    if (apiData && typeof apiData.detail !== 'string' && apiData.detail !== undefined) {
+      apiData.detail = JSON.stringify(apiData.detail);
+    }
+
     if (!apiResponse.ok) {
       return {
         statusCode: apiResponse.status,
