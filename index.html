@@ -442,7 +442,11 @@
             let report = [];
             if (isRelocated) {
                 report.push(`\n### Relocation Overlay for ${transitData.date}`);
-                report.push(`*Houses & Angles recalculated for ${chart.latitude.toFixed(4)}, ${chart.longitude.toFixed(4)}*`);
+                const lat = chart.latitude ?? chart.lat;
+                const lon = chart.longitude ?? chart.lng;
+                if (typeof lat === 'number' && typeof lon === 'number') {
+                    report.push(`*Houses & Angles recalculated for ${lat.toFixed(4)}, ${lon.toFixed(4)}*`);
+                }
             } else {
                 report.push(`\n## Transits for ${transitData.date}`);
                 report.push(`*Transits calculated for birth location: ${personData.details.city}, ${personData.details.state}, ${personData.details.nation}.*`);
