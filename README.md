@@ -126,3 +126,20 @@ To run this project, you must set the following environment variable in the Netl
 * index.html: The main application file containing the UI and front-end JavaScript.  
 * netlify/functions/astrology.js: The serverless function that securely calls the RapidAPI endpoint.  
 * netlify.toml: The Netlify configuration file that specifies the functions directory.
+## 🌀 Raven Calder Synastry Glossary (for Poetic Brain Compatibility)
+
+| Term | Definition |
+| --- | --- |
+| Bidirectional Aspect | Each synastry aspect must be rendered from both A→B and B→A perspectives. Required for narrative reflection generation. |
+| Echo Loop | A dyadic repeating cycle formed by one or more synastry aspects under 3° orb, creating a self-reinforcing emotional or behavioral dynamic. |
+| REF (Relational Echo Field) | A macro structure triggered when two or more Echo Loops converge around a shared theme. Flagged as REF-[PolarityCode] (e.g. REF-F21). |
+| Polarity Code | A unique identifier linked to a specific dynamic type (e.g. F21 = "Frictional Attraction & Wound Trigger"). These come from the internal Symbolic Spectrum Table (SST). |
+| Orb | The difference in degrees between the two planetary positions in an aspect. For majors: ±3°; for minors: ±1°. Exact math matters. |
+| Geometry-First Diagnostic Rule | A Raven Calder system rule: all interpretations derive from exact planetary angle math, not archetype or psychological projection. |
+| Angle | The precise degree of angular separation between two planetary bodies. Required for Raven’s FIELD → MAP → VOICE processing. |
+| FIELD | The raw astrological data layer: charts, transits, aspects, orbs, houses. |
+| MAP | The interpreted structural pattern of dynamics, such as Echo Loops, house overlays, or activated geometry. |
+| VOICE | The narrative synthesis layer that generates journal-style outputs, symbolic interpretation, or mirrored dialogue. |
+| synastry_id_hash | Optional: a unique identifier per synastry aspect or pair, used for tracing and cross-referencing in logs or modular journal building. |
+| Daily Overlay Tracking | Optional timestamping of synastry aspects that are exact or activated on specific dates (e.g. in a Five-Day Synastry Field report). |
+| Tier-2 OSR Bridge | A symbolic overlay logic system that connects dynamic field movement (transits) to static relationship geometry. Used in daily or week-range diagnostic field mapping. |
