@@ -257,12 +257,12 @@
         const parseCombinedCoords = (txt) => {
             let parts = txt.split(',');
             if (parts.length >= 2) {
-                const lat = parseCoordinate(parts[0]);
-                const lon = parseCoordinate(parts.slice(1).join(','));
-                return { lat, lon };
+                const latitude = parseCoordinate(parts[0]);
+                const longitude = parseCoordinate(parts.slice(1).join(','));
+                return { latitude, longitude };
             }
             const match = txt.match(/([\d°º'"′″\.\s+-]+[NS])[^\dA-Z+-]*([\d°º'"′″\.\s+-]+[EW])/i);
-            if (match) return { lat: parseCoordinate(match[1]), lon: parseCoordinate(match[2]) };
+            if (match) return { latitude: parseCoordinate(match[1]), longitude: parseCoordinate(match[2]) };
             throw new Error('Invalid combined coordinate format.');
         };
         
@@ -280,7 +280,7 @@
                 return null;
             }
             
-            let lat, lon;
+            let latitude, longitude;
             const coordMode = document.querySelector(`input[name="coordMode${personPrefix}"]:checked`).value;
             
             try {
@@ -288,16 +288,16 @@
                     const astroValue = document.getElementById(`astro${personPrefix}`).value;
                     if (!astroValue) return null; 
                     const coords = parseCombinedCoords(astroValue);
-                    lat = coords.lat;
-                    lon = coords.lon;
+                    latitude = coords.latitude;
+                    longitude = coords.longitude;
                 } else {
                     const latValue = document.getElementById(`lat${personPrefix}`).value;
                     const lonValue = document.getElementById(`lon${personPrefix}`).value;
-                    if (!latValue || !lonValue) return null; 
-                    lat = parseCoordinate(latValue);
-                    lon = parseCoordinate(lonValue);
+                    if (!latValue || !lonValue) return null;
+                    latitude = parseCoordinate(latValue);
+                    longitude = parseCoordinate(lonValue);
                 }
-                if (isNaN(lat) || isNaN(lon)) {
+                if (isNaN(latitude) || isNaN(longitude)) {
                     throw new Error(`Invalid or incomplete coordinates for Person ${personPrefix}.`);
                 }
             } catch (error) {
@@ -308,7 +308,7 @@
             const [month, day, year] = date.split('-').map(Number);
             const [hour, minute] = time.split(':').map(Number);
 
-            return { name, city, state, date, time, timezone, lat, lon, year, month, day, hour, minute, nation, zodiac_type };
+            return { name, city, state, date, time, timezone, latitude, longitude, year, month, day, hour, minute, nation, zodiac_type };
         };
         
         // --- API CALL (UPDATED WITH ROBUST ERROR HANDLING) ---
@@ -404,7 +404,7 @@
 
             let report = [`# ${details.name}`];
             report.push(`> Birth Location: ${details.city}, ${details.state} *(For reference only; uses coordinates below)*`);
-            report.push(`> Birth Coordinates: ${details.lat.toFixed(4)}, ${details.lon.toFixed(4)}`);
+            report.push(`> Birth Coordinates: ${details.latitude.toFixed(4)}, ${details.longitude.toFixed(4)}`);
             report.push(`> Birth Date: ${details.date}`);
             report.push(`> Birth Time: ${details.time} (Timezone: ${details.timezone})`);
             
@@ -585,7 +585,7 @@
                             ...personAData,
                             year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
                             name: `Relocated Transit ${ds}`,
-                            lat: relocationCoords.lat, lon: relocationCoords.lon,
+                            latitude: relocationCoords.latitude, longitude: relocationCoords.longitude,
                             city: 'Relocated', state: '', nation: ''
                         };
                         const relocationApiResponseA = await getChartDataFromApi(relocationSubjectA);
@@ -603,7 +603,7 @@
                                 ...personBData,
                                 year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
                                 name: `Relocated Transit ${ds}`,
-                                lat: relocationCoords.lat, lon: relocationCoords.lon,
+                                latitude: relocationCoords.latitude, longitude: relocationCoords.longitude,
                                 city: 'Relocated', state: '', nation: ''
                             };
                             const relocationApiResponseB = await getChartDataFromApi(relocationSubjectB);
@@ -667,10 +667,10 @@
                     
                     const weatherSubject = {
                         year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
-                        hour: 12, minute: 0, 
+                        hour: 12, minute: 0,
                         city: "Local Forecast", state: "", nation: "",
                         name: `Forecast for ${ds}`,
-                        lat: lat, lon: lon, 
+                        latitude: lat, longitude: lon,
                         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                         zodiac_type: 'Tropic'
                     };
