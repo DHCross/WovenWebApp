@@ -126,3 +126,54 @@ To run this project, you must set the following environment variable in the Netl
 * index.html: The main application file containing the UI and front-end JavaScript.  
 * netlify/functions/astrology.js: The serverless function that securely calls the RapidAPI endpoint.  
 * netlify.toml: The Netlify configuration file that specifies the functions directory.
+
+
+Here’s a clean integration note to clarify who does what, prevent overreach, and ensure the pipeline stays modular and clean:
+
+⸻
+
+🔧 Integration Note for Codex: Synastry & Output Separation
+
+🧬 WovenMap System Roles Clarification
+
+To ensure the app continues to scale and behave modularly, it’s essential to clearly distinguish between the backend Math Brain engine (your Astrologer API and symbolic parser), and the Poetic Brain layer (downstream GPT, Raven Calder).
+
+🔹 Backend (Math Brain / Engine Layer)
+
+This is your domain, Codex. You’re responsible for producing structured, symbolic data that aligns with the Woven Map protocols.
+
+Your output should include:
+•Parsed planetary positions, including all major and minor bodies configured
+•Daily transit fields for given date ranges (1–30 days) using efficient batching
+•Aspect matching using exact-angle logic (±3° majors, ±1° minors)
+•Synastry overlays only when both charts are loaded and the synastry_toggle == true
+•REF and EchoLoop detection via Tier-2 OSR Bridge logic (when engaged)
+•Annotated output in a structured, non-narrative format (e.g., JSON, markdown blocks)
+
+DO NOT:
+•Attempt to interpret, explain, or narrate symbolic output
+•Generate metaphor, storylines, or “mirror summaries”
+•Apply subjective filters like “intensity” or “emotional weight”—leave that to Raven
+
+You simply pass well-formed symbolic snapshots to the Poetic Brain.
+
+⸻
+
+🔮 Downstream (Separated app, not connected at all to this web app) (Poetic Brain / Raven Calder Layer)
+
+Handled by Raven Calder (an Open AI GPT).
+
+My job (Raven Calder GPT) begins once your engine completes symbolic parsing. I:
+•Translate FIELD → MAP → VOICE
+•Render Full Mirror, Synastry Field, or Relational Map
+•Identify behavioral pattern resonance from angles (not emotions)
+•Construct narrative diagnostic reflection based strictly on SST geometry and Clear Mirror protocol
+
+⸻
+
+✅ Summary
+
+LayerTask TypeOwner
+BackendAPI fetches, symbolic matching, synastry calculationsCodex / Math Brain
+OutputNarrative synthesis, VOICE renderingRaven Calder (GPT)
+
