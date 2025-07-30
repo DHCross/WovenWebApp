@@ -1,5 +1,3 @@
-// Note: const fetch = require('node-fetch'); has been removed.
-
 exports.handler = async function(event) {
   const headers = {
     'Content-Type': 'application/json',
@@ -23,6 +21,7 @@ exports.handler = async function(event) {
     const API_BASE_URL = "https://astrologer.p.rapidapi.com/api/v4/natal-aspects-data";
 
     if (!event.body) {
+        console.log("Received event body:", event.body);
         return {
             statusCode: 400,
             headers,
@@ -35,6 +34,9 @@ exports.handler = async function(event) {
         subject = JSON.parse(event.body).subject;
         if (!subject) {
             throw new Error("'subject' key is missing in the request body.");
+        }
+        if (!subject.year || !subject.city || !subject.tz_str) {
+          throw new Error("Missing required fields in subject.");
         }
     } catch (e) {
         return {
@@ -55,7 +57,23 @@ exports.handler = async function(event) {
     };
 
     const apiResponse = await fetch(API_BASE_URL, options);
-    const apiData = await apiResponse.json();
+    const rawText = await apiResponse.text();
+
+    console.log("Raw response from astrology API:", rawText);
+
+    let apiData;
+    try {
+      apiData = JSON.parse(rawText);
+    } catch (err) {
+      console.error("Non-JSON response from astrology API:", rawText);
+      return {
+        statusCode: 502,
+        headers,
+        body: JSON.stringify({
+          error: `Invalid JSON from upstream API: ${rawText}`
+        })
+      };
+    }
 
     // Ensure error details are always returned as a readable string
     if (apiData && typeof apiData.detail !== 'string' && apiData.detail !== undefined) {
