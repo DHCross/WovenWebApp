@@ -120,7 +120,14 @@
                     </div>
                 </div>
             </div>
-            
+
+            <div class="mb-8">
+                <label class="flex items-center">
+                    <input type="checkbox" id="synastryToggle" class="form-checkbox h-5 w-5 text-teal-400" checked>
+                    <span class="ml-3 text-white font-medium">Include Synastry Analysis</span>
+                </label>
+            </div>
+
             <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
                 <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Step 1: Generate Natal & Transit Data</h2>
                 <div>
@@ -214,6 +221,7 @@
         const relocationFields = document.getElementById('relocationFields');
         const relocationCoordsInput = document.getElementById('relocationCoords');
         const relocationError = document.getElementById('relocationError');
+        const synastryToggle = document.getElementById('synastryToggle');
 
         // --- Global State ---
         let fullReportData = {};
@@ -485,6 +493,35 @@
             return report.join('\n\n');
         };
 
+        const formatMdSynastry = (synData, personA, personB) => {
+            const aspects = synData.aspects || [];
+            const aInB = synData.a_in_b_houses || {};
+            const bInA = synData.b_in_a_houses || {};
+
+            const clean = h => h.replace('_', ' ');
+
+            let report = [`## Synastry: ${personA.details.name} & ${personB.details.name}`];
+            report.push('### Interplanetary Aspects');
+            if (aspects.length) {
+                aspects.forEach(a => {
+                    const core = a.orb <= 3 ? ' (Core Pressure Point)' : '';
+                    report.push(`- ${a.p1_name} ${SYMBOLS[a.aspect.toLowerCase()]} ${a.p2_name} (${a.orb.toFixed(1)}°)${core}`);
+                });
+            } else {
+                report.push('- None found.');
+            }
+
+            report.push(`### ${personA.details.name}'s Planets in ${personB.details.name}'s Houses`);
+            const aLines = Object.entries(aInB).map(([p, h]) => `- ${p} in ${clean(h)}`);
+            report.push(aLines.join('\n') || '- None.');
+
+            report.push(`### ${personB.details.name}'s Planets in ${personA.details.name}'s Houses`);
+            const bLines = Object.entries(bInA).map(([p, h]) => `- ${p} in ${clean(h)}`);
+            report.push(bLines.join('\n') || '- None.');
+
+            return report.join('\n');
+        };
+
 
         // --- MAIN REPORT GENERATION LOGIC ---
         async function generateReport() {
@@ -525,6 +562,9 @@
                         a_in_b_houses: calculateHouseOverlays(chartA, chartB),
                         b_in_a_houses: calculateHouseOverlays(chartB, chartA)
                     };
+                    if (synastryToggle.checked) {
+                        markdownParts.push(formatMdSynastry(fullReportData.synastry, fullReportData.person_a, fullReportData.person_b));
+                    }
                 }
 
                 let startStr = startDateInput.value;
