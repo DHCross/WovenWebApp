@@ -1,6 +1,6 @@
 # **Woven Map Report Generator (WovenWebApp)**
 
-This is a web-based application designed to generate a detailed astrological report for a primary individual (Person A), with an optional second individual (Person B) for synastry and relationship analysis. It uses a static HTML and JavaScript front-end that communicates with a Netlify serverless function to fetch data from an external astrology API.
+This is a web-based application designed to generate a detailed astrological report for a primary individual (Person A), with an optional second individual (Person B) for synastry and relationship analysis. It uses a static HTML and JavaScript front-end that communicates with a Netlify serverless function to fetch data from an external astrology API. When a Person B is provided, you can toggle the **Include Synastry Analysis** checkbox to append synastry aspects and house overlays to the generated report.
 
 ## **Core Technology**
 
@@ -46,8 +46,10 @@ The API expects a JSON object containing a subject key. The subject object must 
     "nation": "US",  
     "name": "DH Cross",  
     "zodiac\_type": "Tropic"  
-  }  
+  }
 }
+
+> **Note**: The `nation` field must be a 2-letter country code following the ISO 3166-1 alpha-2 standard (e.g., `US`).
 
 #### **Example JavaScript fetch Request**
 
