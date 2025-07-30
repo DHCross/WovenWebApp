@@ -18,32 +18,44 @@ exports.handler = async function(event) {
       throw new Error("API key is not configured on the server.");
     }
     const API_HOST = "astrologer.p.rapidapi.com";
-    const API_BASE_URL = "https://astrologer.p.rapidapi.com/api/v4/natal-aspects-data";
 
-    if (!event.body) {
-        console.log("Received event body:", event.body);
-        return {
-            statusCode: 400,
-            headers,
-            body: JSON.stringify({ error: "Request body is missing." })
-        };
-    }
-      
-    let subject;
+    let postBody;
+    let API_BASE_URL;
+
     try {
-        subject = JSON.parse(event.body).subject;
-        if (!subject) {
-            throw new Error("'subject' key is missing in the request body.");
+      const body = JSON.parse(event.body);
+      console.log("Parsed request body:", body);
+
+      if (body.first_subject && body.second_subject) {
+        // Synastry call
+        const requiredFields = ['year', 'month', 'day', 'hour', 'minute', 'name', 'city'];
+        for (const field of requiredFields) {
+          if (!body.first_subject[field]) throw new Error(`Missing required field in first_subject: ${field}`);
+          if (!body.second_subject[field]) throw new Error(`Missing required field in second_subject: ${field}`);
         }
-        if (!subject.year || !subject.city || !subject.tz_str) {
-          throw new Error("Missing required fields in subject.");
-        }
-    } catch (e) {
-        return {
-            statusCode: 400,
-            headers,
-            body: JSON.stringify({ error: `Invalid JSON in request body: ${e.message}` })
+        API_BASE_URL = "https://astrologer.p.rapidapi.com/api/v4/synastry-aspects-data";
+        postBody = {
+          first_subject: body.first_subject,
+          second_subject: body.second_subject
         };
+      } else if (body.subject) {
+        // Natal call
+        const subject = body.subject;
+        const requiredFields = ['year', 'month', 'day', 'hour', 'minute', 'name', 'city'];
+        for (const field of requiredFields) {
+          if (!subject[field]) throw new Error(`Missing required field in subject: ${field}`);
+        }
+        API_BASE_URL = "https://astrologer.p.rapidapi.com/api/v4/natal-aspects-data";
+        postBody = { subject };
+      } else {
+        throw new Error("Invalid request body. Must contain either 'subject' or 'first_subject' and 'second_subject'.");
+      }
+    } catch (e) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: `Invalid JSON in request body: ${e.message}` })
+      };
     }
 
     const options = {
@@ -53,7 +65,7 @@ exports.handler = async function(event) {
         'X-RapidAPI-Key': API_KEY,
         'X-RapidAPI-Host': API_HOST
       },
-      body: JSON.stringify({ subject })
+      body: JSON.stringify(postBody)
     };
 
     const apiResponse = await fetch(API_BASE_URL, options);
