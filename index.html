@@ -428,7 +428,7 @@
         };
         
         // --- RELATIONAL CONTEXT STACK LOGIC ---
-        async function updateRelationalContext() {
+        function updateRelationalContext() {
             const personAData = getSubjectData('A');
             const personBData = getSubjectData('B');
 
@@ -437,70 +437,9 @@
                 return;
             }
 
-            try {
-                // Fetch both charts quietly for analysis
-                const [chartA, chartB] = await Promise.all([
-                    getChartDataFromApi({ subject: personAData }).then(r => r.data.subject),
-                    getChartDataFromApi({ subject: personBData }).then(r => r.data.subject)
-                ]);
-
-                const synastryAspects = calculateAspects(chartA, chartB);
-                const findings = [];
-
-                // 1. shared_vector_presence
-                if (synastryAspects.some(a => a.orb <= 2.0)) {
-                    findings.push('<li>These two charts show active mutual resonance (aspects within 2° orb).</li>');
-                }
-
-                // 2. angle_contact_check
-                const angles = ['Ascendant', 'Descendant', 'Medium_Coeli', 'Imum_Coeli'];
-                if (synastryAspects.some(a => angles.includes(a.p1_name) || angles.includes(a.p2_name))) {
-                    findings.push('<li>There’s at least one strong contact to an angular point.</li>');
-                }
-
-                // 3. 29°_crisis_flag
-                if (synastryAspects.some(a => a.p1_pos >= 29 || a.p2_pos >= 29)) {
-                    findings.push('<li>A 29° placement is involved in a tension aspect.</li>');
-                }
-                
-                // 4. echo_loop_flag
-                const tightAspects = synastryAspects.filter(a => a.orb < 1.0);
-                const echoLoops = [];
-                for(const aspect1 of tightAspects) {
-                    for (const aspect2 of tightAspects) {
-                        if(aspect1.p1_name === aspect2.p2_name && aspect1.p2_name === aspect2.p1_name) {
-                             if (!echoLoops.find(p => p.includes(aspect1.p1_name) && p.includes(aspect1.p2_name))) {
-                                echoLoops.push([aspect1.p1_name, aspect1.p2_name]);
-                             }
-                        }
-                    }
-                }
-                if (echoLoops.length > 0) {
-                     findings.push(`<li>At least one potential Echo Loop detected (${echoLoops.map(p => p.join('/')).join(', ')}).</li>`);
-                }
-
-                // 5. overlay_pressure_zone
-                const overlaysA_in_B = calculateHouseOverlays(chartA, chartB);
-                const overlaysB_in_A = calculateHouseOverlays(chartB, chartA);
-                const pressureHouses = ['Fourth_House', 'Seventh_House', 'Twelfth_House'];
-                const pressureOverlays = Object.values(overlaysA_in_B).some(h => pressureHouses.includes(h)) ||
-                                        Object.values(overlaysB_in_A).some(h => pressureHouses.includes(h));
-                if (pressureOverlays) {
-                    findings.push('<li>A planet falls in a pressure zone (4th, 7th, or 12th house overlay).</li>');
-                }
-
-                if (findings.length > 0) {
-                    contextReadout.innerHTML = findings.join('');
-                    relationalContextStack.classList.remove('hidden');
-                } else {
-                    contextReadout.innerHTML = '<li>No significant geometric links detected based on the core flags.</li>';
-                    relationalContextStack.classList.remove('hidden');
-                }
-
-            } catch (error) {
-                console.error("Context Stack Error:", error);
-                relationalContextStack.classList.add('hidden');
-            }
+            // Show placeholder message only, no API calls
+            contextReadout.innerHTML = '<li>Relationship context will be analyzed and shown here after you generate the full report.</li>';
+            relationalContextStack.classList.remove('hidden');
         }
 
 
@@ -810,7 +749,7 @@
                 reportOutput.textContent = markdownReport;
                 outputSection.classList.remove('hidden');
 
-            } catch(error) {
+            } catch(error {
                 showMessage(error.message, 'error');
                 console.error(error);
             } finally {
