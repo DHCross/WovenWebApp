@@ -1,130 +1,101 @@
-exports.handler = async function(event) {
-  const headers = {
-    'Content-Type': 'application/json',
-    'Allow': 'POST'
-  };
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Astrology App</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+</head>
+<body class="bg-gray-900 p-6">
+  <div class="max-w-md mx-auto">
+    <h1 class="text-white text-2xl font-bold mb-4">Astrology Data</h1>
+    <div id="primary-subject-fields" class="mb-4">
+      <input id="name" placeholder="Name" class="form-input w-full mb-2" />
+      <input id="year" placeholder="Year" class="form-input w-full mb-2" />
+      <input id="month" placeholder="Month" class="form-input w-full mb-2" />
+      <input id="day" placeholder="Day" class="form-input w-full mb-2" />
+      <input id="hour" placeholder="Hour" class="form-input w-full mb-2" />
+      <input id="minute" placeholder="Minute" class="form-input w-full mb-2" />
+      <input id="city" placeholder="City" class="form-input w-full mb-2" />
+      <input id="timezone" placeholder="Time Zone (e.g. America/New_York)" class="form-input w-full mb-2" />
+    </div>
 
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method Not Allowed. Please use POST.' })
-    };
-  }
+    <label class="inline-flex items-center mt-2">
+      <input type="checkbox" id="synastry-toggle" class="form-checkbox h-4 w-4 text-indigo-600" />
+      <span class="ml-2 text-white">Include Synastry Analysis</span>
+    </label>
 
-  try {
-    const API_KEY = process.env.RAPIDAPI_KEY;
-    if (!API_KEY) {
-      throw new Error("API key is not configured on the server.");
+    <div id="second-subject-fields" class="mt-4 hidden">
+      <h3 class="text-white font-semibold mb-2">Second Subject</h3>
+      <input id="second_name" placeholder="Name" class="form-input w-full mb-2" />
+      <input id="second_year" placeholder="Year" class="form-input w-full mb-2" />
+      <input id="second_month" placeholder="Month" class="form-input w-full mb-2" />
+      <input id="second_day" placeholder="Day" class="form-input w-full mb-2" />
+      <input id="second_hour" placeholder="Hour" class="form-input w-full mb-2" />
+      <input id="second_minute" placeholder="Minute" class="form-input w-full mb-2" />
+      <input id="second_city" placeholder="City" class="form-input w-full mb-2" />
+      <input id="second_timezone" placeholder="Time Zone (e.g. America/New_York)" class="form-input w-full mb-2" />
+    </div>
+
+    <button id="submit-btn" class="mt-4 bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700">
+      Submit
+    </button>
+
+    <pre id="result" class="text-white mt-4 whitespace-pre-wrap"></pre>
+  </div>
+
+  <script>
+    const synastryToggle = document.getElementById('synastry-toggle');
+    const secondSubjectFields = document.getElementById('second-subject-fields');
+    synastryToggle.addEventListener('change', () => {
+      secondSubjectFields.classList.toggle('hidden', !synastryToggle.checked);
+    });
+
+    function getSubjectData(prefix) {
+      return {
+        name: document.getElementById(prefix + 'name').value,
+        year: document.getElementById(prefix + 'year').value,
+        month: document.getElementById(prefix + 'month').value,
+        day: document.getElementById(prefix + 'day').value,
+        hour: document.getElementById(prefix + 'hour').value,
+        minute: document.getElementById(prefix + 'minute').value,
+        city: document.getElementById(prefix + 'city').value,
+        timezone: document.getElementById(prefix + 'timezone').value
+      };
     }
-    const API_HOST = "astrologer.p.rapidapi.com";
 
-    let postBody;
-    let API_BASE_URL;
-
-    try {
-      const body = JSON.parse(event.body);
-      const { subject, first_subject, second_subject } = body;
-      console.log("Received request for:", subject?.name || first_subject?.name || "Unknown");
-
-      if (body.first_subject && body.second_subject) {
-        // Synastry call
-        if (body.first_subject.timezone && !body.first_subject.tz_str) {
-          body.first_subject.tz_str = body.first_subject.timezone;
-          delete body.first_subject.timezone;
-        }
-        if (body.second_subject.timezone && !body.second_subject.tz_str) {
-          body.second_subject.tz_str = body.second_subject.timezone;
-          delete body.second_subject.timezone;
-        }
-        const requiredFields = ['year', 'month', 'day', 'hour', 'minute', 'name', 'city'];
-        for (const field of requiredFields) {
-          if (!body.first_subject[field]) throw new Error(`Missing required field in first_subject: ${field}`);
-          if (!body.second_subject[field]) throw new Error(`Missing required field in second_subject: ${field}`);
-        }
-        API_BASE_URL = "https://astrologer.p.rapidapi.com/api/v4/synastry-aspects-data";
-        postBody = {
-          first_subject: body.first_subject,
-          second_subject: body.second_subject
-        };
-      } else if (body.subject) {
-        // Natal call
-        const subject = body.subject;
-        if (subject.timezone && !subject.tz_str) {
-          subject.tz_str = subject.timezone;
-          delete subject.timezone;
-        }
-        const requiredFields = ['year', 'month', 'day', 'hour', 'minute', 'name', 'city'];
-        for (const field of requiredFields) {
-          if (!subject[field]) throw new Error(`Missing required field in subject: ${field}`);
-        }
-        API_BASE_URL = "https://astrologer.p.rapidapi.com/api/v4/natal-aspects-data";
-        postBody = { subject };
-      } else {
-        throw new Error("Invalid request body. Must contain either 'subject' or 'first_subject' and 'second_subject'.");
+    const buildRequestBody = () => {
+      const subject = getSubjectData('');
+      if (synastryToggle.checked) {
+        const second_subject = getSubjectData('second_');
+        return { first_subject: subject, second_subject };
       }
-    } catch (e) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: `Invalid JSON in request body: ${e.message}` })
-      };
-    }
-
-    const options = {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'X-RapidAPI-Key': API_KEY,
-        'X-RapidAPI-Host': API_HOST
-      },
-      body: JSON.stringify(postBody)
+      return { subject };
     };
 
-    const apiResponse = await fetch(API_BASE_URL, options);
-    const rawText = await apiResponse.text();
+    document.getElementById('submit-btn').addEventListener('click', async () => {
+      const resultEl = document.getElementById('result');
+      resultEl.textContent = 'Loading...';
 
-    console.log("Astrology API response length:", rawText.length);
+      try {
+        const response = await fetch('/.netlify/functions/astrology', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(buildRequestBody())
+        });
 
-    let apiData;
-    try {
-      apiData = JSON.parse(rawText);
-    } catch (err) {
-      console.error("Non-JSON response from astrology API:", rawText);
-      return {
-        statusCode: 502,
-        headers,
-        body: JSON.stringify({
-          error: `Invalid JSON from upstream API: ${rawText}`
-        })
-      };
-    }
+        const data = await response.json();
 
-    // Ensure error details are always returned as a readable string
-    if (apiData && typeof apiData.detail !== 'string' && apiData.detail !== undefined) {
-      apiData.detail = JSON.stringify(apiData.detail);
-    }
+        if (!response.ok) {
+          resultEl.textContent = `Error: ${data.error || 'Unknown error'}`;
+          return;
+        }
 
-    if (!apiResponse.ok) {
-      return {
-        statusCode: apiResponse.status,
-        headers,
-        body: JSON.stringify({ error: apiData.detail || 'Failed to fetch data from astrology API.' })
-      };
-    }
-
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(apiData)
-    };
-
-  } catch (error) {
-    console.error('Critical Error in Netlify function:', error);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: error.message })
-    };
-  }
-};
+        resultEl.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        resultEl.textContent = 'Fetch error: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
