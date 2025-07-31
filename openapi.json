@@ -4439,6 +4439,19 @@
         "title": "ValidationError"
       }
     },
+      "SynastryRequestModel": {
+        "type": "object",
+        "required": ["first_subject", "second_subject"],
+        "properties": {
+          "first_subject": {
+            "$ref": "#/components/schemas/SubjectModel"
+          },
+          "second_subject": {
+            "$ref": "#/components/schemas/SubjectModel"
+          }
+        },
+        "title": "SynastryRequestModel"
+      },
     "securitySchemes": {
       "RapidAPIKey": {
         "type": "apiKey",
@@ -4453,15 +4466,3 @@
     }
   ]
 }
-      "SynastryRequestModel": {
-        "type": "object",
-        "required": ["first_subject", "second_subject"],
-        "properties": {
-          "first_subject": {
-            "$ref": "#/components/schemas/SubjectModel"
-          },
-          "second_subject": {
-            "$ref": "#/components/schemas/SubjectModel"
-          }
-        }
-      },
