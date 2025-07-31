@@ -386,7 +386,9 @@
             }
 
             if (!res.ok) {
-                throw new Error(responsePayload.error || 'An unknown server error occurred.');
+                // Show detailed error if available
+                const errorMsg = responsePayload.error || responsePayload.details || 'An unknown server error occurred.';
+                throw new Error(errorMsg);
             }
 
             return responsePayload;
