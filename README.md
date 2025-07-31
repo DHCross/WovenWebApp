@@ -166,5 +166,5 @@ This will proxy requests to your serverless function and allow full front-end + 
 
 ## **License**
 
-This repository is currently unlicensed. All rights reserved. If you intend to reuse or modify this code, please contact the project owner for permission.
+This project is licensed under the [MIT License](LICENSE.txt).
 
