@@ -37,8 +37,41 @@
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8">
             <h1 class="text-4xl font-bold text-white">Woven Map Report Generator</h1>
-            <p class="text-gray-400 mt-2">Math Brain</p>
+            <p class="text-gray-400 mt-2 flex items-center justify-center gap-2">Math Brain
+                <button id="math-brain-info-btn" class="ml-2 text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none" type="button">What is this? (Glossary)</button>
+            </p>
         </header>
+
+        <!-- Math Brain Modal -->
+        <div id="math-brain-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
+          <div class="bg-gray-900 rounded-lg shadow-xl max-w-lg w-full p-6 relative border border-teal-500">
+            <button id="close-math-brain-modal" class="absolute top-2 right-2 text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+            <h2 class="text-xl font-bold text-teal-300 mb-2">Math Brain & Poetic Brain: The Woven Map Framework</h2>
+            <p class="text-sm text-gray-200 mb-3">The <b>Math Brain</b> is the symbolic scaffolding engine. It computes exact planetary positions, aspects, and house placements, and outputs a structured dataset of alignments (e.g., Venus square Pluto at 2° orb). It gives no meaning on its own—only the raw geometry. This is the MAP layer of FIELD → MAP → VOICE.<br><br>
+            The <b>Poetic Brain</b> (Raven Calder) translates this geometry into emotional, somatic, and narrative language. It asks: “Does this land for you?”—never prescribes meaning. The Poetic Brain is diagnostic, not predictive, and always testable by lived experience.<br><br>
+            <b>TL;DR:</b> The Math Brain finds the coordinates. The Poetic Brain speaks the language you can feel. Math Brain = telescope; Poetic Brain = translator.</p>
+            <h3 class="text-teal-200 font-semibold mt-4 mb-1">Glossary (Core Terms)</h3>
+            <ul class="text-xs text-gray-300 space-y-1 max-h-48 overflow-y-auto pr-2">
+              <li><b>FIELD → MAP → VOICE</b>: The interpretive structure. FIELD = energetic climate, MAP = geometry, VOICE = felt reflection.</li>
+              <li><b>Ping</b>: A moment of recognized resonance between chart and experience. No ping, no claim.</li>
+              <li><b>SST (Symbolic Spectrum Table)</b>: Falsifiability filter. WB = Within Boundary, ABE = At Boundary Edge, OSR = Outside Symbolic Range.</li>
+              <li><b>OSR</b>: No resonance. Not failure—just honest silence.</li>
+              <li><b>Echo Loop</b>: Repeating dynamic between two people, usually &lt;1° orb.</li>
+              <li><b>REF (Relational Echo Field)</b>: Macro-pattern resonance between two charts.</li>
+              <li><b>Intimacy Tier</b>: P1 = Platonic Partners, P2 = Friends-with-benefits, P3 = Romantic Partners.</li>
+              <li><b>Clear Mirror Language</b>: Testable, non-mystical, emotionally grounded phrasing.</li>
+              <li><b>29° Crisis Node</b>: Any planet at 29°, indicating volatility or urgency.</li>
+              <li><b>Symbolic Weather Overlay</b>: Optional summary of current transits as energetic "weather" (not predictive).</li>
+              <li><b>Poetic Codex</b>: System that turns geometry into poetic inquiries (not random poems).</li>
+              <li><b>Translation Bridge</b>: Converting geometry (MAP) into felt language (VOICE).</li>
+              <li><b>Resonance Line</b>: Dominant energetic vector in a chart.</li>
+              <li><b>Paradox Line</b>: Highlights internal contradictions or conflicting drives.</li>
+            </ul>
+            <div class="mt-4 text-right">
+              <button id="close-math-brain-modal-bottom" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-1 px-4 rounded">Close</button>
+            </div>
+          </div>
+        </div>
 
         <main>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -122,6 +155,14 @@
                         <label class="flex items-center"><input type="radio" name="relationshipType" value="Partner" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Partner (romantic/undefined-intimate)</span></label>
                         <label class="flex items-center"><input type="radio" name="relationshipType" value="Friend" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Friend or colleague</span></label>
                         <label class="flex items-center"><input type="radio" name="relationshipType" value="Family" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Family</span></label>
+                    </div>
+                    <div id="intimacy-tier-dropdown" class="mt-4 hidden">
+                        <p class="text-md font-medium text-white mb-2">What best describes the intimacy tier of this connection?</p>
+                        <div class="flex flex-col space-y-2">
+                            <label class="flex items-center"><input type="radio" name="intimacyTier" value="P1" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P1 – Platonic partners</span></label>
+                            <label class="flex items-center"><input type="radio" name="intimacyTier" value="P2" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P2 – Friends with benefits</span></label>
+                            <label class="flex items-center"><input type="radio" name="intimacyTier" value="P3" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P3 – Romantic partners</span></label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -561,41 +602,87 @@
                 if (!personAData) {
                     throw new Error("Person A's data is incomplete or invalid.");
                 }
-
                 const personBData = getSubjectData('B');
                 const useSynastry = personBData && synastryToggle.checked;
 
+                // --- Relationship Type & Intimacy Tier ---
+                const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value || '';
+                let intimacyTier = '';
+                if (relationshipType === 'Partner') {
+                    intimacyTier = document.querySelector('input[name="intimacyTier"]:checked')?.value || '';
+                }
+
+                // --- Diagnostics (from context stack, or recompute here) ---
+                let diagnostics = [];
+                if (useSynastry) {
+                    // We'll compute these after API calls below
+                }
+
                 let markdownParts = [
-                    `> ★ = Planet is within the last degree of a sign (the 29th degree).\n> **Aspect Symbols:** ☌ = Conjunction, ☍ = Opposition, □ = Square, △ = Trine, ✶ = Sextile\n> **"Core Pressure Point"** = aspect orb ≤ 3° (the strongest and most direct influences).`
+                    `> ★ = Planet is within the last degree of a sign (the 29th degree).\n> **Aspect Symbols:** ☌ = Conjunction, ☍ = Opposition, □ = Square, △ = Trine, ✶ = Sextile\n> **\"Core Pressure Point\"** = aspect orb ≤ 3° (the strongest and most direct influences).`
                 ];
                 fullReportData = { schema: "WM-Chart-1.0" };
 
+                // --- Relationship context for Poetic Brain ---
+                fullReportData.relationship_type = relationshipType;
+                fullReportData.intimacy_tier = intimacyTier;
+
+                // --- SYNASTRY/NATAL LOGIC ---
                 if (useSynastry) {
-                    // --- SYNASTRY REPORT ---
                     const payload = {
                         first_subject: personAData,
                         second_subject: personBData
                     };
                     const synastryResponse = await getChartDataFromApi(payload);
-
-                    // We need the natal aspects, which aren't in the synastry call, so we fetch them separately.
                     const natalAFromSynastry = await getChartDataFromApi({ subject: personAData });
                     const natalBFromSynastry = await getChartDataFromApi({ subject: personBData });
-
                     fullReportData.person_a = { details: personAData, chart: natalAFromSynastry };
                     fullReportData.person_b = { details: personBData, chart: natalBFromSynastry };
                     fullReportData.synastry = synastryResponse;
-                    
+
+                    // --- Compute Diagnostics ---
+                    diagnostics = [];
+                    // 29° placement in close synastry contact
+                    const synAspects = synastryResponse.aspects || [];
+                    if (synAspects.some(a => a.p1_pos >= 29 || a.p2_pos >= 29)) {
+                        diagnostics.push('29° placement in close synastry contact');
+                    }
+                    // Resonant aspect forming <1° orb (possible echo loop)
+                    const tight = synAspects.filter(a => a.orb < 1.0);
+                    if (tight.length > 0) {
+                        diagnostics.push('Resonant aspect forming <1° orb (possible echo loop)');
+                    }
+                    // Overlay present in 4th/7th house sectors
+                    const chartA = synastryResponse.data.first_subject;
+                    const chartB = synastryResponse.data.second_subject;
+                    const overlaysAinB = calculateHouseOverlays(chartA, chartB);
+                    const overlaysBinA = calculateHouseOverlays(chartB, chartA);
+                    const pressureHouses = ['Fourth_House', 'Seventh_House'];
+                    if (Object.values(overlaysAinB).some(h => pressureHouses.includes(h)) || Object.values(overlaysBinA).some(h => pressureHouses.includes(h))) {
+                        diagnostics.push('Overlay present in 4th/7th house sectors');
+                    }
+                    fullReportData.diagnostics = diagnostics;
+
+                    // --- Markdown: Relational Context & Diagnostics ---
+                    markdownParts.unshift(
+                        '## Relational Context',
+                        `- Relationship Type: ${relationshipType || 'N/A'}` + (intimacyTier ? `\n- Intimacy Tier: ${intimacyTier}` : ''),
+                        '## Initial Geometry Diagnostics',
+                        diagnostics.length ? diagnostics.map(f => `- ⚠️ ${f}`).join('\n') : '- None.'
+                    );
+
                     markdownParts.push(formatMdNatalChart(fullReportData.person_a));
                     markdownParts.push(formatMdNatalChart(fullReportData.person_b));
                     markdownParts.push(formatMdSynastry(synastryResponse, fullReportData.person_a, fullReportData.person_b));
-
                 } else {
                     // --- NATAL-ONLY REPORT ---
                     const apiResponseA = await getChartDataFromApi({ subject: personAData });
                     fullReportData.person_a = { details: personAData, chart: apiResponseA };
+                    markdownParts.unshift(
+                        '## Relational Context',
+                        `- Relationship Type: ${relationshipType || 'N/A'}` + (intimacyTier ? `\n- Intimacy Tier: ${intimacyTier}` : '')
+                    );
                     markdownParts.push(formatMdNatalChart(fullReportData.person_a));
-
                     if (personBData) {
                         const apiResponseB = await getChartDataFromApi({ subject: personBData });
                         fullReportData.person_b = { details: personBData, chart: apiResponseB };
@@ -847,6 +934,71 @@
             field.addEventListener('change', triggerContextCheck); // For select dropdown
         });
 
+        // Relationship type conditional intimacy tier logic
+        const relationshipTypeRadios = document.querySelectorAll('input[name="relationshipType"]');
+        const intimacyTierDropdown = document.getElementById('intimacy-tier-dropdown');
+        relationshipTypeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.value === 'Partner') {
+                    intimacyTierDropdown.classList.remove('hidden');
+                } else {
+                    intimacyTierDropdown.classList.add('hidden');
+                    // Optionally clear selection
+                    document.querySelectorAll('input[name="intimacyTier"]').forEach(tier => tier.checked = false);
+                }
+            });
+        });
+
+        // --- For Poetic Brain Export Button ---
+const poeticBrainBtn = document.createElement('button');
+poeticBrainBtn.id = 'poetic-brain-btn';
+poeticBrainBtn.textContent = 'Export for Poetic Brain';
+poeticBrainBtn.className = 'bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors ml-2';
+document.querySelector('#output-section .flex').appendChild(poeticBrainBtn);
+poeticBrainBtn.addEventListener('click', () => {
+    // Minimal export: relationship_type, intimacy_tier, diagnostics
+    const minimal = {
+        relationship_type: fullReportData.relationship_type || '',
+        intimacy_tier: fullReportData.intimacy_tier || '',
+        diagnostics: fullReportData.diagnostics || []
+    };
+    const filename = 'poetic_brain_context.json';
+    const element = document.createElement('a');
+    const blob = new Blob([JSON.stringify(minimal, null, 2)], { type: 'application/json' });
+    element.href = URL.createObjectURL(blob);
+    element.download = filename;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    URL.revokeObjectURL(element.href);
+});
+
+// --- Math Brain Modal Logic ---
+        const mathBrainBtn = document.getElementById('math-brain-info-btn');
+        const mathBrainModal = document.getElementById('math-brain-modal');
+        const closeMathBrainModal = document.getElementById('close-math-brain-modal');
+        const closeMathBrainModalBottom = document.getElementById('close-math-brain-modal-bottom');
+        
+        function openMathBrainModal() {
+          mathBrainModal.classList.remove('hidden');
+        }
+        function closeMathBrainModalFn() {
+          mathBrainModal.classList.add('hidden');
+        }
+        mathBrainBtn.addEventListener('click', openMathBrainModal);
+        closeMathBrainModal.addEventListener('click', closeMathBrainModalFn);
+        closeMathBrainModalBottom.addEventListener('click', closeMathBrainModalFn);
+        // Optional: close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+          if (!mathBrainModal.classList.contains('hidden') && e.key === 'Escape') closeMathBrainModalFn();
+        });
+        
+        // Close modal on outside click
+        window.addEventListener('click', (e) => {
+            if (mathBrainModal.classList.contains('hidden') === false && !mathBrainModal.contains(e.target) && !mathBrainBtn.contains(e.target)) {
+                closeMathBrainModalFn();
+            }
+        });
     </script>
 </body>
 </html>
