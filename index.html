@@ -140,15 +140,52 @@
                            <label class="flex items-center"><input type="radio" name="coordModeB" value="combined" class="form-radio h-4 w-4 text-indigo-600" checked><span class="ml-2 text-gray-300">Combined</span></label>
                         </div>
                         <div id="combinedCoordsB"><input type="text" id="astroB" placeholder="Birth Coordinates" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value=""></div>
+                        <button id="pasteAstroB" class="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1 px-2 rounded text-sm">
+                          Paste AstroSeek Data
+                        </button>
                     </div>
                 </div>
             </div>
 
             <div id="relational-context-stack" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 hidden border border-teal-500">
-                <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Relational Context Query Stack</h2>
-                <p class="text-gray-400 text-sm mb-4">Based on initial geometry, the Math Brain has detected the following potential dynamics:</p>
-                <ul id="context-readout" class="list-disc list-inside space-y-2 mb-4 text-gray-300">
+                <div class="flex items-center mb-4">
+                <h2 class="text-2xl font-semibold text-white border-b border-gray-700 pb-2 mr-3">Relational Context Query Stack</h2>
+                <button id="echo-loop-info-btn" type="button" class="relative group ml-2 text-xs text-indigo-300 underline hover:text-indigo-400 focus:outline-none">
+                  What’s an Echo Loop?
+                  <span class="hidden sm:block absolute left-1/2 transform -translate-x-1/2 mt-2 w-72 bg-gray-900 text-gray-200 text-xs rounded-lg shadow-lg p-3 border border-indigo-500 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity z-50 pointer-events-none">
+                    <b>An Echo Loop</b> is a repeating dynamic between two people, formed by tight (usually <1° orb) aspects that go both ways.<br><br>
+                    Think of it as a pattern you both co-create—often magnetic, sometimes difficult to break.<br><br>
+                    Echo Loops form the core of Relational Echo Fields (REFs) when multiple loops share a theme.<br><br>
+                    <span class="block mt-2 text-indigo-300 font-semibold">✅ Protocol Alignment: Why This Works</span>
+                    <ul class="list-disc list-inside text-gray-300 text-xs mt-1">
+                      <li>Does not override user autonomy (only describes mechanics)</li>
+                      <li>Preserves Recognition-first model (no "you're feeling X")</li>
+                      <li>Clarifies Math Brain’s role (no interpretive ambiguity)</li>
+                      <li>Prepares user for Poetic Brain handoff without overexplanation</li>
                     </ul>
+                  </span>
+                  <span class="block sm:hidden mt-2 w-full bg-gray-900 text-gray-200 text-xs rounded-lg shadow-lg p-3 border border-indigo-500">
+                    <b>An Echo Loop</b> is a repeating dynamic between two people, formed by tight (usually <1° orb) aspects that go both ways.<br><br>
+                    Think of it as a pattern you both co-create—often magnetic, sometimes difficult to break.<br><br>
+                    Echo Loops form the core of Relational Echo Fields (REFs) when multiple loops share a theme.<br><br>
+                    <span class="block mt-2 text-indigo-300 font-semibold">✅ Protocol Alignment: Why This Works</span>
+                    <ul class="list-disc list-inside text-gray-300 text-xs mt-1">
+                      <li>Does not override user autonomy (only describes mechanics)</li>
+                      <li>Preserves Recognition-first model (no "you're feeling X")</li>
+                      <li>Clarifies Math Brain’s role (no interpretive ambiguity)</li>
+                      <li>Prepares user for Poetic Brain handoff without overexplanation</li>
+                    </ul>
+                  </span>
+                </button>
+            </div>
+            <!-- Diagnostics Preview Strip -->
+            <div id="diagnostics-strip" class="mb-4 hidden">
+              <button id="diagnostics-toggle" class="text-xs bg-indigo-700 text-white rounded px-2 py-1 mr-2">Show Diagnostics</button>
+              <div id="diagnostics-panel" class="inline-block align-middle"></div>
+            </div>
+            <p class="text-gray-400 text-sm mb-4">Based on initial geometry, the Math Brain has detected the following potential dynamics:</p>
+            <ul id="context-readout" class="list-disc list-inside space-y-2 mb-4 text-gray-300">
+                </ul>
                 <div id="relationship-type-query">
                     <p class="text-lg font-medium text-white mb-2">How would you categorize this connection?</p>
                     <div class="flex flex-col space-y-2">
@@ -1004,3 +1041,59 @@ poeticBrainBtn.addEventListener('click', () => {
     </script>
 </body>
 </html>
+        // --- AstroSeek Clipboard Paste for Person B ---
+        const pasteAstroBtn = document.getElementById('pasteAstroB');
+        pasteAstroBtn.addEventListener('click', async () => {
+          try {
+            const text = await navigator.clipboard.readText();
+            const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+            // Name
+            document.getElementById('nameB').value = lines[0] || '';
+
+            // Local Date & Time with timezone
+            const dobLine = lines.find(l => l.startsWith('Date of Birth'));
+            if (dobLine) {
+              const match = dobLine.match(/:\s*(\d{1,2}) (\w+) (\d{4})\s*-\s*(\d{2}:\d{2}).*?\((\w+)\)/);
+              if (match) {
+                const [ , day, monthName, year, time, tzAbbrev ] = match;
+                const monthMap = { January:1, February:2, March:3, April:4, May:5, June:6, July:7, August:8, September:9, October:10, November:11, December:12 };
+                const mm = String(monthMap[monthName] || 1).padStart(2, '0');
+                const dd = day.padStart(2, '0');
+                document.getElementById('dateB').value = `${mm}-${dd}-${year}`;
+                document.getElementById('timeB').value = time;
+                // Map common abbreviations to TZ select values
+                const tzMap = { EST: 'America/New_York', CST: 'America/Chicago', MST: 'America/Denver', PST: 'America/Los_Angeles' };
+                document.getElementById('offsetB').value = tzMap[tzAbbrev] || 'America/New_York';
+              }
+            }
+
+            // Coordinates
+            const coordLine = lines.find(l => l.startsWith('Latitude, Longitude'));
+            if (coordLine) {
+              document.getElementById('astroB').value = coordLine.split(':')[1].trim();
+            }
+
+            // City
+            const cityLine = lines.find(l => l.startsWith('City:'));
+            if (cityLine) {
+              document.getElementById('cityB').value = cityLine.split(':')[1].trim();
+            }
+
+            // Country and State
+            const countryLine = lines.find(l => l.startsWith('Country:'));
+            if (countryLine) {
+              const parts = countryLine.split(':')[1].split(',');
+              document.getElementById('nationB').value = parts[0].trim();
+              if (parts[1]) {
+                document.getElementById('stateB').value = parts[1].trim();
+              }
+            }
+
+            showMessage('AstroSeek data pasted successfully.', 'success');
+            // Trigger context update
+            triggerContextCheck();
+          } catch (err) {
+            showMessage('Failed to read clipboard: ' + err.message, 'error');
+          }
+        });

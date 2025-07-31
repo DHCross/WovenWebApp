@@ -43,11 +43,20 @@ exports.handler = async function (event) {
         }
       });
 
-      const response = await fetch(API_SYNASTRY_URL, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ first_subject: fs, second_subject: ss })
-      });
+      let response;
+      try {
+        response = await fetch(API_SYNASTRY_URL, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ first_subject: fs, second_subject: ss })
+        });
+      } catch (err) {
+        console.error('Fetch error (synastry):', err);
+        return {
+          statusCode: 502,
+          body: JSON.stringify({ error: 'External API error', details: err.message })
+        };
+      }
 
       const rawText = await response.text();
       console.error('Astrology API error (synastry):', response.status, rawText);
@@ -86,11 +95,20 @@ exports.handler = async function (event) {
         if (!subject[key]) throw new Error(`Missing ${key} in subject`);
       }
 
-      const response = await fetch(API_NATAL_URL, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ subject })
-      });
+      let response;
+      try {
+        response = await fetch(API_NATAL_URL, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ subject })
+        });
+      } catch (err) {
+        console.error('Fetch error (natal):', err);
+        return {
+          statusCode: 502,
+          body: JSON.stringify({ error: 'External API error', details: err.message })
+        };
+      }
 
       const rawText = await response.text();
       console.error('Astrology API error (natal):', response.status, rawText);
