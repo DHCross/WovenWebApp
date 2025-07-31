@@ -594,8 +594,8 @@
             report.push('### Interplanetary Aspects');
             if (aspects.length) {
                 aspects.forEach(a => {
-                    const core = a.orb <= 3 ? ' (Core Pressure Point)' : '';
-                    report.push(`- ${a.p1_name} ${SYMBOLS[a.aspect.toLowerCase()]} ${a.p2_name} (${a.orb.toFixed(1)}°)${core}`);
+                    const core = a.orbit <= 3 ? ' (Core Pressure Point)' : '';
+                    report.push(`- ${a.p1_name} ${SYMBOLS[a.aspect.toLowerCase()]} ${a.p2_name} (${a.orbit.toFixed(1)}°)${core}`);
                 });
             } else {
                 report.push('- None found.');
