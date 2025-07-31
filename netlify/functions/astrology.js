@@ -50,17 +50,27 @@ exports.handler = async function (event) {
       });
 
       const rawText = await response.text();
-      try {
+
+      if (!response.ok) {
         return {
-          statusCode: 200,
+          statusCode: response.status,
           body: rawText
         };
-      } catch (e) {
+      }
+
+      try {
+        JSON.parse(rawText);
+      } catch {
         return {
           statusCode: 502,
           body: JSON.stringify({ error: 'Malformed response from API' })
         };
       }
+
+      return {
+        statusCode: 200,
+        body: rawText
+      };
     }
 
     // Natal request
@@ -83,6 +93,23 @@ exports.handler = async function (event) {
       });
 
       const rawText = await response.text();
+
+      if (!response.ok) {
+        return {
+          statusCode: response.status,
+          body: rawText
+        };
+      }
+
+      try {
+        JSON.parse(rawText);
+      } catch {
+        return {
+          statusCode: 502,
+          body: JSON.stringify({ error: 'Malformed response from API' })
+        };
+      }
+
       return {
         statusCode: 200,
         body: rawText
