@@ -7,8 +7,8 @@ const API_SYNASTRY_URL = "https://astrologer.p.rapidapi.com/api/v4/synastry-aspe
 function buildHeaders() {
   return {
     "content-type": "application/json",
-    "X-RapidAPI-Key": process.env.RAPIDAPI_KEY,
-    "X-RapidAPI-Host": "astrologer.p.rapidapi.com",
+    "x-rapidapi-key": process.env.RAPIDAPI_KEY,
+    "x-rapidapi-host": "astrologer.p.rapidapi.com",
   };
 }
 
@@ -48,11 +48,16 @@ exports.handler = async function (event) {
           delete subject.timezone;
         }
 
-        const required = ['year', 'month', 'day', 'hour', 'minute', 'name', 'city'];
+        const required = [
+          'year', 'month', 'day', 'hour', 'minute',
+          'name', 'city', 'nation', 'lng', 'lat', 'tz_str', 'zodiac_type'
+        ];
         for (const key of required) {
           if (!subject[key]) throw new Error(`Missing ${key} in subject`);
         }
       });
+
+      console.log('Outgoing synastry body:', JSON.stringify({ first_subject: fs, second_subject: ss }));
 
       let response;
       try {
@@ -101,10 +106,15 @@ exports.handler = async function (event) {
         delete subject.timezone;
       }
 
-      const required = ['year', 'month', 'day', 'hour', 'minute', 'name', 'city'];
+      const required = [
+        'year', 'month', 'day', 'hour', 'minute',
+        'name', 'city', 'nation', 'lng', 'lat', 'tz_str', 'zodiac_type'
+      ];
       for (const key of required) {
         if (!subject[key]) throw new Error(`Missing ${key} in subject`);
       }
+
+      console.log('Outgoing natal body:', JSON.stringify({ subject }));
 
       let response;
       try {
