@@ -1,13 +1,24 @@
 const API_NATAL_URL = "https://astrologer.p.rapidapi.com/api/v4/natal-aspects-data";
 const API_SYNASTRY_URL = "https://astrologer.p.rapidapi.com/api/v4/synastry-aspects-data";
 
-const headers = {
-  "content-type": "application/json",
-  "X-RapidAPI-Key": process.env.RAPIDAPI_KEY,
-  "X-RapidAPI-Host": "astrologer.p.rapidapi.com"
-};
+// Header template for RapidAPI requests. The API key is injected
+// at runtime inside the handler so tests can verify configuration
+// without reloading this module.
+function buildHeaders() {
+  return {
+    "content-type": "application/json",
+    "X-RapidAPI-Key": process.env.RAPIDAPI_KEY,
+    "X-RapidAPI-Host": "astrologer.p.rapidapi.com",
+  };
+}
 
 exports.handler = async function (event) {
+  if (!process.env.RAPIDAPI_KEY) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Server misconfiguration: RAPIDAPI_KEY is not set.' })
+    };
+  }
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -47,7 +58,7 @@ exports.handler = async function (event) {
       try {
         response = await fetch(API_SYNASTRY_URL, {
           method: 'POST',
-          headers,
+          headers: buildHeaders(),
           body: JSON.stringify({ first_subject: fs, second_subject: ss })
         });
       } catch (err) {
@@ -99,7 +110,7 @@ exports.handler = async function (event) {
       try {
         response = await fetch(API_NATAL_URL, {
           method: 'POST',
-          headers,
+          headers: buildHeaders(),
           body: JSON.stringify({ subject })
         });
       } catch (err) {
