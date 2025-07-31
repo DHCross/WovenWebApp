@@ -434,7 +434,10 @@
 
             if (!res.ok) {
                 // Show detailed error if available
-                const errorMsg = responsePayload.error || responsePayload.details || 'An unknown server error occurred.';
+                const errorMsg =
+                    responsePayload.details ??
+                    responsePayload.error ??
+                    'An unknown server error occurred.';
                 throw new Error(errorMsg);
             }
 
