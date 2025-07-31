@@ -150,7 +150,7 @@ This will proxy requests to your serverless function and allow full front-end + 
 ### **Troubleshooting**
 
 - **Relational drop-down hidden**: The relationship options only appear when both Person A and Person B fields are fully populated. Ensure each date is in `MM-DD-YYYY` format and each time is `HH:MM`. Invalid or missing data will keep the drop-down collapsed.
-- **External API error**: The serverless function returns this message when it cannot reach the Astrologer API. Verify that the `RAPIDAPI_KEY` environment variable is set either in your Netlify site settings or in a local `.env` file (you can copy `.env.example` to `.env`).
+- **External API error**: This message indicates the serverless function could not reach the Astrologer API. Double‑check that the `RAPIDAPI_KEY` environment variable is defined in your Netlify site settings or a local `.env` file (copy `.env.example` to `.env`). After updating the variable, restart `netlify dev` (or redeploy) so the new environment is loaded.
 ## 🌀 Raven Calder Synastry Glossary (for Poetic Brain Compatibility)
 
 | Term | Definition |
