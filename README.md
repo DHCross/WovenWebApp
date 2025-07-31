@@ -146,6 +146,11 @@ This will proxy requests to your serverless function and allow full front-end + 
 * index.html: The main application file containing the UI and front-end JavaScript.  
 * netlify/functions/astrology.js: The serverless function that securely calls the RapidAPI endpoint.  
 * netlify.toml: The Netlify configuration file that specifies the functions directory.
+
+### **Troubleshooting**
+
+- **Relational drop-down hidden**: The relationship options only appear when both Person A and Person B fields are fully populated. Ensure each date is in `MM-DD-YYYY` format and each time is `HH:MM`. Invalid or missing data will keep the drop-down collapsed.
+- **External API error**: The serverless function returns this message when it cannot reach the Astrologer API. Verify that the `RAPIDAPI_KEY` environment variable is set either in your Netlify site settings or in a local `.env` file (you can copy `.env.example` to `.env`).
 ## 🌀 Raven Calder Synastry Glossary (for Poetic Brain Compatibility)
 
 | Term | Definition |
