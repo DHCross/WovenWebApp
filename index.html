@@ -7,7 +7,6 @@
     <link href="dist/output.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
         body {
             font-family: 'Inter', sans-serif;
         }
@@ -43,7 +42,6 @@
             </p>
         </header>
 
-        <!-- Math Brain Modal -->
         <div id="math-brain-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
           <div class="bg-gray-900 rounded-lg shadow-xl max-w-lg w-full p-6 relative border border-teal-500">
             <button id="close-math-brain-modal" class="absolute top-2 right-2 text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
@@ -103,10 +101,10 @@
                                 <option value="Sidereal">Sidereal</option>
                             </select>
                         </div>
-                        <div class="flex items-center space-x-4 pt-2">
-                           <label class="flex items-center"><input type="radio" name="coordModeA" value="combined" class="form-radio h-4 w-4 text-indigo-600" checked><span class="ml-2 text-gray-300">Combined</span></label>
+                        <div>
+                            <label for="astroA" class="block mb-1 text-sm font-medium text-gray-300">Birth Coordinates</label>
+                            <input type="text" id="astroA" placeholder="e.g. 40°1'N, 75°19'W" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="40°1'N, 75°19'W">
                         </div>
-                        <div id="combinedCoordsA"><input type="text" id="astroA" placeholder="Birth Coordinates" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="40°1'N, 75°19'W"></div>
                     </div>
                 </div>
 
@@ -137,10 +135,10 @@
                                 <option value="Sidereal">Sidereal</option>
                             </select>
                         </div>
-                        <div class="flex items-center space-x-4 pt-2">
-                           <label class="flex items-center"><input type="radio" name="coordModeB" value="combined" class="form-radio h-4 w-4 text-indigo-600" checked><span class="ml-2 text-gray-300">Combined</span></label>
+                        <div>
+                           <label for="astroB" class="block mb-1 text-sm font-medium text-gray-300">Birth Coordinates</label>
+                           <input type="text" id="astroB" placeholder="Birth Coordinates" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
                         </div>
-                        <div id="combinedCoordsB"><input type="text" id="astroB" placeholder="Birth Coordinates" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value=""></div>
                         <button id="pasteAstroB" class="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1 px-2 rounded text-sm">
                           Paste AstroSeek Data
                         </button>
@@ -150,7 +148,7 @@
 
             <div id="relational-context-stack" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 hidden border border-teal-500">
                 <div class="flex items-center mb-4">
-                <h2 class="text-2xl font-semibold text-white border-b border-gray-700 pb-2 mr-3">Relational Context Query Stack</h2>
+                <h2 class="text-2xl font-semibold text-white mr-3">Relational Context Query Stack</h2>
                 <button id="echo-loop-info-btn" type="button" class="relative group ml-2 text-xs text-indigo-300 underline hover:text-indigo-400 focus:outline-none">
                   What’s an Echo Loop?
                   <span class="hidden sm:block absolute left-1/2 transform -translate-x-1/2 mt-2 w-72 bg-gray-900 text-gray-200 text-xs rounded-lg shadow-lg p-3 border border-indigo-500 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity z-50 pointer-events-none">
@@ -165,21 +163,8 @@
                       <li>Prepares user for Poetic Brain handoff without overexplanation</li>
                     </ul>
                   </span>
-                  <span class="block sm:hidden mt-2 w-full bg-gray-900 text-gray-200 text-xs rounded-lg shadow-lg p-3 border border-indigo-500">
-                    <b>An Echo Loop</b> is a repeating dynamic between two people, formed by tight (usually <1° orb) aspects that go both ways.<br><br>
-                    Think of it as a pattern you both co-create—often magnetic, sometimes difficult to break.<br><br>
-                    Echo Loops form the core of Relational Echo Fields (REFs) when multiple loops share a theme.<br><br>
-                    <span class="block mt-2 text-indigo-300 font-semibold">✅ Protocol Alignment: Why This Works</span>
-                    <ul class="list-disc list-inside text-gray-300 text-xs mt-1">
-                      <li>Does not override user autonomy (only describes mechanics)</li>
-                      <li>Preserves Recognition-first model (no "you're feeling X")</li>
-                      <li>Clarifies Math Brain’s role (no interpretive ambiguity)</li>
-                      <li>Prepares user for Poetic Brain handoff without overexplanation</li>
-                    </ul>
-                  </span>
                 </button>
             </div>
-            <!-- Diagnostics Preview Strip -->
             <div id="diagnostics-strip" class="mb-4 hidden">
               <button id="diagnostics-toggle" class="text-xs bg-indigo-700 text-white rounded px-2 py-1 mr-2">Show Diagnostics</button>
               <div id="diagnostics-panel" class="inline-block align-middle"></div>
@@ -195,21 +180,21 @@
                         <label class="flex items-center"><input type="radio" name="relationshipType" value="Family" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Family</span></label>
                     </div>
                     <div id="intimacy-tier-dropdown" class="mt-4 hidden">
-                      <p class="text-md font-medium text-white mb-2">What best describes the intimacy tier of this connection?</p>
-                      <div class="flex flex-col space-y-2">
-                        <label class="flex items-center">
-                          <input type="radio" name="intimacyTier" value="P1" class="form-radio h-4 w-4 text-pink-400">
-                          <span class="ml-2 text-gray-300">P1 – Platonic partners</span>
-                        </label>
-                        <label class="flex items-center">
-                          <input type="radio" name="intimacyTier" value="P2" class="form-radio h-4 w-4 text-pink-400">
-                          <span class="ml-2 text-gray-300">P2 – Friends with benefits</span>
-                        </label>
-                        <label class="flex items-center">
-                          <input type="radio" name="intimacyTier" value="P3" class="form-radio h-4 w-4 text-pink-400">
-                          <span class="ml-2 text-gray-300">P3 – Romantic partners</span>
-                        </label>
-                      </div>
+                        <p class="text-md font-medium text-white mb-2">What best describes the intimacy tier of this connection?</p>
+                        <div class="flex flex-col space-y-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="intimacyTier" value="P1" class="form-radio h-4 w-4 text-pink-400">
+                                <span class="ml-2 text-gray-300">P1 – Platonic partners</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="intimacyTier" value="P2" class="form-radio h-4 w-4 text-pink-400">
+                                <span class="ml-2 text-gray-300">P2 – Friends with benefits</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="intimacyTier" value="P3" class="form-radio h-4 w-4 text-pink-400">
+                                <span class="ml-2 text-gray-300">P3 – Romantic partners</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -382,20 +367,15 @@
             const nation = document.getElementById(`nation${personPrefix}`).value;
             const zodiac_type = document.getElementById(`zodiac${personPrefix}`).value;
 
-            // Basic validation for required fields
             if (!name || !city || !state || !date || !time || !nation) {
                 return null;
             }
-            // Date and time format validation
             if (!/^\d{2}-\d{2}-\d{4}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) {
                 return null;
             }
 
             let latitude, longitude;
-            const coordMode = document.querySelector(`input[name="coordMode${personPrefix}"]:checked`).value;
-
             try {
-                // Always use combined coordinate input
                 const astroValue = document.getElementById(`astro${personPrefix}`).value;
                 if (!astroValue) return null;
                 const coords = parseCombinedCoords(astroValue);
@@ -405,7 +385,6 @@
                    return null;
                 }
             } catch (error) {
-                // Don't show a popup for real-time validation, just return null
                 return null;
             }
 
@@ -433,11 +412,7 @@
             }
 
             if (!res.ok) {
-                // Show detailed error if available
-                const errorMsg =
-                    responsePayload.details ??
-                    responsePayload.error ??
-                    'An unknown server error occurred.';
+                const errorMsg = responsePayload.error || responsePayload.details || 'An unknown server error occurred.';
                 throw new Error(errorMsg);
             }
 
@@ -455,7 +430,6 @@
                 for (const p2Name of planetsB) {
                     const p2 = chartB[p2Name.toLowerCase()];
                     if (!p2) continue;
-                    // Avoid self-aspects in natal calculations
                     if (chartA === chartB && p1.name === p2.name) continue;
 
                     const diff = Math.abs((p1.abs_pos - p2.abs_pos + 180) % 360 - 180);
@@ -490,7 +464,7 @@
                     let inHouse = false;
                     if (cuspStart < cuspEnd) {
                         if (planet.abs_pos >= cuspStart && planet.abs_pos < cuspEnd) inHouse = true;
-                    } else { // Wraps around 0° Aries
+                    } else {
                         if (planet.abs_pos >= cuspStart || planet.abs_pos < cuspEnd) inHouse = true;
                     }
 
@@ -503,19 +477,16 @@
             return overlays;
         };
         
-        // --- RELATIONAL CONTEXT STACK LOGIC ---
         function updateRelationalContext() {
             const personAData = getSubjectData('A');
-            const nameB = document.getElementById('nameB').value.trim();
+            const personBData = getSubjectData('B');
 
-            // Show stack only when A is valid and B has a name
-            if (!personAData || !nameB) {
+            if (!personAData || !personBData) {
                 relationalContextStack.classList.add('hidden');
                 return;
             }
 
-            // Placeholder message until full report generation
-            contextReadout.innerHTML = '<li>Relationship context will be analyzed and shown here after you generate the full report.</li>';
+            contextReadout.innerHTML = '<li>Click "Generate Full Report" to see the initial geometry diagnostics.</li>';
             relationalContextStack.classList.remove('hidden');
         }
 
@@ -523,7 +494,6 @@
         // --- MARKDOWN FORMATTING ENGINE ---
         const formatMdNatalChart = (personData) => {
             const { details, chart: apiResponse } = personData;
-            // The API response for a natal call is nested under 'data', then 'subject'
             const chart = apiResponse.data.subject;
             const aspects = apiResponse.aspects;
 
@@ -613,7 +583,6 @@
 
         const formatMdSynastry = (synData, personA, personB) => {
             const aspects = synData.aspects || [];
-            // The synastry response directly contains the two subjects' data
             const chartA = synData.data.first_subject;
             const chartB = synData.data.second_subject;
             const aInB = calculateHouseOverlays(chartA, chartB);
@@ -644,7 +613,7 @@
         };
 
 
-        // --- MAIN REPORT GENERATION LOGIC (RESTRUCTURED) ---
+        // --- MAIN REPORT GENERATION LOGIC ---
         async function generateReport() {
             generateBtn.disabled = true;
             generateBtn.textContent = 'Generating...';
@@ -658,83 +627,52 @@
                 const personBData = getSubjectData('B');
                 const useSynastry = personBData && synastryToggle.checked;
 
-                // --- Relationship Type & Intimacy Tier ---
                 const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value || '';
                 let intimacyTier = '';
                 if (relationshipType === 'Partner') {
                     intimacyTier = document.querySelector('input[name="intimacyTier"]:checked')?.value || '';
                 }
 
-                // --- Diagnostics (from context stack, or recompute here) ---
-                let diagnostics = [];
-                if (useSynastry) {
-                    // We'll compute these after API calls below
-                }
-
                 let markdownParts = [
                     `> ★ = Planet is within the last degree of a sign (the 29th degree).\n> **Aspect Symbols:** ☌ = Conjunction, ☍ = Opposition, □ = Square, △ = Trine, ✶ = Sextile\n> **\"Core Pressure Point\"** = aspect orb ≤ 3° (the strongest and most direct influences).`
                 ];
-                fullReportData = { schema: "WM-Chart-1.0" };
+                fullReportData = { schema: "WM-Chart-1.0", relationship_type: relationshipType, intimacy_tier: intimacyTier };
 
-                // --- Relationship context for Poetic Brain ---
-                fullReportData.relationship_type = relationshipType;
-                fullReportData.intimacy_tier = intimacyTier;
-
-                // --- SYNASTRY/NATAL LOGIC ---
                 if (useSynastry) {
-                    const payload = {
-                        first_subject: personAData,
-                        second_subject: personBData
-                    };
-                    const synastryResponse = await getChartDataFromApi(payload);
-                    const natalAFromSynastry = await getChartDataFromApi({ subject: personAData });
-                    const natalBFromSynastry = await getChartDataFromApi({ subject: personBData });
-                    fullReportData.person_a = { details: personAData, chart: natalAFromSynastry };
-                    fullReportData.person_b = { details: personBData, chart: natalBFromSynastry };
+                    const payload = { first_subject: personAData, second_subject: personBData };
+                    const [synastryResponse, natalA, natalB] = await Promise.all([
+                        getChartDataFromApi(payload),
+                        getChartDataFromApi({ subject: personAData }),
+                        getChartDataFromApi({ subject: personBData })
+                    ]);
+                    fullReportData.person_a = { details: personAData, chart: natalA };
+                    fullReportData.person_b = { details: personBData, chart: natalB };
                     fullReportData.synastry = synastryResponse;
-
-                    // --- Compute Diagnostics ---
-                    diagnostics = [];
-                    // 29° placement in close synastry contact
+                    
+                    const diagnostics = [];
                     const synAspects = synastryResponse.aspects || [];
-                    if (synAspects.some(a => a.p1_pos >= 29 || a.p2_pos >= 29)) {
-                        diagnostics.push('29° placement in close synastry contact');
-                    }
-                    // Resonant aspect forming <1° orb (possible echo loop)
-                    const tight = synAspects.filter(a => a.orb < 1.0);
-                    if (tight.length > 0) {
-                        diagnostics.push('Resonant aspect forming <1° orb (possible echo loop)');
-                    }
-                    // Overlay present in 4th/7th house sectors
-                    const chartA = synastryResponse.data.first_subject;
-                    const chartB = synastryResponse.data.second_subject;
-                    const overlaysAinB = calculateHouseOverlays(chartA, chartB);
-                    const overlaysBinA = calculateHouseOverlays(chartB, chartA);
-                    const pressureHouses = ['Fourth_House', 'Seventh_House'];
+                    if (synAspects.some(a => a.p1_pos >= 29 || a.p2_pos >= 29)) diagnostics.push('29° placement in close synastry contact');
+                    if (synAspects.filter(a => a.orb < 1.0).length > 0) diagnostics.push('Resonant aspect forming <1° orb (possible echo loop)');
+                    const overlaysAinB = calculateHouseOverlays(synastryResponse.data.first_subject, synastryResponse.data.second_subject);
+                    const overlaysBinA = calculateHouseOverlays(synastryResponse.data.second_subject, synastryResponse.data.first_subject);
+                    const pressureHouses = ['Fourth_House', 'Seventh_House', 'Twelfth_House'];
                     if (Object.values(overlaysAinB).some(h => pressureHouses.includes(h)) || Object.values(overlaysBinA).some(h => pressureHouses.includes(h))) {
-                        diagnostics.push('Overlay present in 4th/7th house sectors');
+                        diagnostics.push('Overlay present in 4th/7th/12th house sectors');
                     }
                     fullReportData.diagnostics = diagnostics;
 
-                    // --- Markdown: Relational Context & Diagnostics ---
                     markdownParts.unshift(
                         '## Relational Context',
                         `- Relationship Type: ${relationshipType || 'N/A'}` + (intimacyTier ? `\n- Intimacy Tier: ${intimacyTier}` : ''),
                         '## Initial Geometry Diagnostics',
                         diagnostics.length ? diagnostics.map(f => `- ⚠️ ${f}`).join('\n') : '- None.'
                     );
-
                     markdownParts.push(formatMdNatalChart(fullReportData.person_a));
                     markdownParts.push(formatMdNatalChart(fullReportData.person_b));
                     markdownParts.push(formatMdSynastry(synastryResponse, fullReportData.person_a, fullReportData.person_b));
                 } else {
-                    // --- NATAL-ONLY REPORT ---
                     const apiResponseA = await getChartDataFromApi({ subject: personAData });
                     fullReportData.person_a = { details: personAData, chart: apiResponseA };
-                    markdownParts.unshift(
-                        '## Relational Context',
-                        `- Relationship Type: ${relationshipType || 'N/A'}` + (intimacyTier ? `\n- Intimacy Tier: ${intimacyTier}` : '')
-                    );
                     markdownParts.push(formatMdNatalChart(fullReportData.person_a));
                     if (personBData) {
                         const apiResponseB = await getChartDataFromApi({ subject: personBData });
@@ -743,13 +681,12 @@
                     }
                 }
 
-                // --- TRANSIT CALCULATIONS (COMMON LOGIC) ---
+                // --- TRANSIT CALCULATIONS ---
                 let startStr = startDateInput.value;
-                 if (!startStr) {
+                if (!startStr) {
                     const today = new Date();
                     startStr = `${String(today.getMonth() + 1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}-${today.getFullYear()}`;
                 }
-
                 const [sm, sd, sy] = startStr.split('-').map(Number);
                 const start = new Date(Date.UTC(sy, sm - 1, sd));
                 let end = start;
@@ -757,18 +694,13 @@
                     const [em, ed, ey] = endDateInput.value.split('-').map(Number);
                     end = new Date(Date.UTC(ey, em - 1, ed));
                 }
-
                 fullReportData.transits = [];
                 const relocationChecked = relocationToggle.checked;
                 let relocationCoords = getRelocationLatLonOrNull();
                 if (relocationChecked && !relocationCoords) throw new Error("Relocation coordinates are invalid.");
 
                 for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
-                     const ds = (d.getUTCMonth()+1).toString().padStart(2,'0') + '-' +
-                                 d.getUTCDate().toString().padStart(2,'0') + '-' +
-                                 d.getUTCFullYear();
-
-                    // Person A Transits
+                    const ds = `${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}-${d.getUTCFullYear()}`;
                     const transitSubjectA = { ...personAData, year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), name: `Transit ${ds}` };
                     const transitApiResponseA = await getChartDataFromApi({ subject: transitSubjectA });
                     const chartA = fullReportData.person_a.chart.data.subject;
@@ -776,16 +708,13 @@
                     fullReportData.transits.push(entryA);
                     markdownParts.push(formatMdTransit(entryA, fullReportData.person_a, false));
 
-                    // Relocation for A
                     if (relocationChecked && relocationCoords) {
-                         const relocationSubjectA = { ...transitSubjectA, latitude: relocationCoords.latitude, longitude: relocationCoords.longitude, city: 'Relocated', nation: '' };
-                         const relocationApiResponseA = await getChartDataFromApi({ subject: relocationSubjectA });
-                         const entryRelocA = { person: 'a', date: ds, chart: relocationApiResponseA, aspects: calculateAspects(relocationApiResponseA.data.subject, chartA), location_type: 'relocated' };
-                         fullReportData.transits.push(entryRelocA);
-                         markdownParts.push(formatMdTransit(entryRelocA, fullReportData.person_a, true));
+                        const relocationSubjectA = { ...transitSubjectA, latitude: relocationCoords.latitude, longitude: relocationCoords.longitude, city: 'Relocated', nation: '' };
+                        const relocationApiResponseA = await getChartDataFromApi({ subject: relocationSubjectA });
+                        const entryRelocA = { person: 'a', date: ds, chart: relocationApiResponseA, aspects: calculateAspects(relocationApiResponseA.data.subject, chartA), location_type: 'relocated' };
+                        fullReportData.transits.push(entryRelocA);
+                        markdownParts.push(formatMdTransit(entryRelocA, fullReportData.person_a, true));
                     }
-
-                    // Person B Transits (if they exist)
                     if (fullReportData.person_b) {
                         const transitSubjectB = { ...personBData, year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), name: `Transit ${ds}` };
                         const transitApiResponseB = await getChartDataFromApi({ subject: transitSubjectB });
@@ -793,14 +722,12 @@
                         const entryB = { person: 'b', date: ds, chart: transitApiResponseB, aspects: calculateAspects(transitApiResponseB.data.subject, chartB), location_type: 'birth' };
                         fullReportData.transits.push(entryB);
                         markdownParts.push(formatMdTransit(entryB, fullReportData.person_b, false));
-
-                         // Relocation for B
                         if (relocationChecked && relocationCoords) {
-                             const relocationSubjectB = { ...transitSubjectB, latitude: relocationCoords.latitude, longitude: relocationCoords.longitude, city: 'Relocated', nation: '' };
-                             const relocationApiResponseB = await getChartDataFromApi({ subject: relocationSubjectB });
-                             const entryRelocB = { person: 'b', date: ds, chart: relocationApiResponseB, aspects: calculateAspects(relocationApiResponseB.data.subject, chartB), location_type: 'relocated' };
-                             fullReportData.transits.push(entryRelocB);
-                             markdownParts.push(formatMdTransit(entryRelocB, fullReportData.person_b, true));
+                            const relocationSubjectB = { ...transitSubjectB, latitude: relocationCoords.latitude, longitude: relocationCoords.longitude, city: 'Relocated', nation: '' };
+                            const relocationApiResponseB = await getChartDataFromApi({ subject: relocationSubjectB });
+                            const entryRelocB = { person: 'b', date: ds, chart: relocationApiResponseB, aspects: calculateAspects(relocationApiResponseB.data.subject, chartB), location_type: 'relocated' };
+                            fullReportData.transits.push(entryRelocB);
+                            markdownParts.push(formatMdTransit(entryRelocB, fullReportData.person_b, true));
                         }
                     }
                 }
@@ -886,24 +813,11 @@
         getWeatherBtn.addEventListener('click', generateWeatherReport);
 
         copyBtn.addEventListener('click', () => {
-            const textarea = document.createElement('textarea');
-            textarea.value = markdownReport;
-            textarea.style.position = 'fixed';
-            textarea.style.left = '-9999px';
-            document.body.appendChild(textarea);
-            textarea.select();
-            try {
-                const successful = document.execCommand('copy');
-                if (successful) {
-                    showMessage('Copied to clipboard!', 'success');
-                } else {
-                    showMessage('Failed to copy.', 'error');
-                }
-            } catch (err) {
+            navigator.clipboard.writeText(markdownReport).then(() => {
+                showMessage('Copied to clipboard!', 'success');
+            }, () => {
                 showMessage('Failed to copy.', 'error');
-                console.error('Clipboard copy failed:', err);
-            }
-            document.body.removeChild(textarea);
+            });
         });
 
         const downloadFile = (filename, content, contentType) => {
@@ -976,18 +890,21 @@
             }
         }
         
-        // --- Trigger for the Relational Context Stack ---
         function triggerContextCheck() {
             clearTimeout(contextCheckTimeout);
-            contextCheckTimeout = setTimeout(updateRelationalContext, 1000); // Debounce to avoid rapid firing
+            contextCheckTimeout = setTimeout(updateRelationalContext, 1000);
         }
         
         document.querySelectorAll('.person-b-field').forEach(field => {
             field.addEventListener('input', triggerContextCheck);
-            field.addEventListener('change', triggerContextCheck); // For select dropdown
+            field.addEventListener('change', triggerContextCheck);
+        });
+        // Also watch Person A inputs so the stack updates whenever A changes
+        document.querySelectorAll('#personA-card input, #personA-card select').forEach(field => {
+            field.addEventListener('input', triggerContextCheck);
+            field.addEventListener('change', triggerContextCheck);
         });
 
-        // Relationship type conditional intimacy tier logic
         const relationshipTypeRadios = document.querySelectorAll('input[name="relationshipType"]');
         const intimacyTierDropdown = document.getElementById('intimacy-tier-dropdown');
         relationshipTypeRadios.forEach(radio => {
@@ -996,37 +913,26 @@
                     intimacyTierDropdown.classList.remove('hidden');
                 } else {
                     intimacyTierDropdown.classList.add('hidden');
-                    // Optionally clear selection
                     document.querySelectorAll('input[name="intimacyTier"]').forEach(tier => tier.checked = false);
                 }
             });
         });
 
-        // --- For Poetic Brain Export Button ---
 const poeticBrainBtn = document.createElement('button');
 poeticBrainBtn.id = 'poetic-brain-btn';
 poeticBrainBtn.textContent = 'Export for Poetic Brain';
 poeticBrainBtn.className = 'bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors ml-2';
 document.querySelector('#output-section .flex').appendChild(poeticBrainBtn);
 poeticBrainBtn.addEventListener('click', () => {
-    // Minimal export: relationship_type, intimacy_tier, diagnostics
     const minimal = {
         relationship_type: fullReportData.relationship_type || '',
         intimacy_tier: fullReportData.intimacy_tier || '',
         diagnostics: fullReportData.diagnostics || []
     };
     const filename = 'poetic_brain_context.json';
-    const element = document.createElement('a');
-    const blob = new Blob([JSON.stringify(minimal, null, 2)], { type: 'application/json' });
-    element.href = URL.createObjectURL(blob);
-    element.download = filename;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-    URL.revokeObjectURL(element.href);
+    downloadFile(filename, JSON.stringify(minimal, null, 2), 'application/json');
 });
 
-// --- Math Brain Modal Logic ---
         const mathBrainBtn = document.getElementById('math-brain-info-btn');
         const mathBrainModal = document.getElementById('math-brain-modal');
         const closeMathBrainModal = document.getElementById('close-math-brain-modal');
@@ -1041,71 +947,51 @@ poeticBrainBtn.addEventListener('click', () => {
         mathBrainBtn.addEventListener('click', openMathBrainModal);
         closeMathBrainModal.addEventListener('click', closeMathBrainModalFn);
         closeMathBrainModalBottom.addEventListener('click', closeMathBrainModalFn);
-        // Optional: close modal on Escape key
         document.addEventListener('keydown', (e) => {
           if (!mathBrainModal.classList.contains('hidden') && e.key === 'Escape') closeMathBrainModalFn();
         });
         
-        // Close modal on outside click
         window.addEventListener('click', (e) => {
             if (mathBrainModal.classList.contains('hidden') === false && !mathBrainModal.contains(e.target) && !mathBrainBtn.contains(e.target)) {
                 closeMathBrainModalFn();
             }
         });
-    // --- AstroSeek Clipboard Paste for Person B ---
-    const pasteAstroBtn = document.getElementById('pasteAstroB');
-    pasteAstroBtn.addEventListener('click', async () => {
-      try {
-        const text = await navigator.clipboard.readText();
 
-        // Name
-        document.getElementById('nameB').value = text.split('\n')[0].trim() || '';
+        const pasteAstroBtn = document.getElementById('pasteAstroB');
+        pasteAstroBtn.addEventListener('click', async () => {
+          try {
+            const text = await navigator.clipboard.readText();
+            document.getElementById('nameB').value = text.split('\n')[0].trim() || '';
 
-        // Date & Time
-        const dobMatch = text.match(/Date of Birth.*?:\s*(\d{1,2}) (\w+) (\d{4})\s*-\s*(\d{2}:\d{2}).*?\((\w+)\)/);
-        if (dobMatch) {
-          const [, day, monthName, year, time, tzAbbrev] = dobMatch;
-          const monthMap = { January:1, February:2, March:3, April:4, May:5, June:6, July:7, August:8, September:9, October:10, November:11, December:12 };
-          const mm = String(monthMap[monthName] || 1).padStart(2,'0');
-          const dd = day.padStart(2,'0');
-          document.getElementById('dateB').value = `${mm}-${dd}-${year}`;
-          document.getElementById('timeB').value = time;
-          // Expanded DST-aware timezone map
-          const tzMap = {
-            EST:'America/New_York', EDT:'America/New_York',
-            CST:'America/Chicago',  CDT:'America/Chicago',
-            MST:'America/Denver',   MDT:'America/Denver',
-            PST:'America/Los_Angeles', PDT:'America/Los_Angeles'
-          };
-          document.getElementById('offsetB').value = tzMap[tzAbbrev] || document.getElementById('offsetB').value;
-        }
+            const dobMatch = text.match(/(\d{1,2})\s(\w+)\s(\d{4})\s*-\s*(\d{2}:\d{2}).*?\((\w+)\)/);
+            if (dobMatch) {
+              const [, day, monthName, year, time, tzAbbrev] = dobMatch;
+              const monthMap = { January:1, February:2, March:3, April:4, May:5, June:6, July:7, August:8, September:9, October:10, November:11, December:12 };
+              const mm = String(monthMap[monthName] || 1).padStart(2,'0');
+              const dd = day.padStart(2,'0');
+              document.getElementById('dateB').value = `${mm}-${dd}-${year}`;
+              document.getElementById('timeB').value = time;
+              const tzMap = { EST:'America/New_York', CST:'America/Chicago', MST:'America/Denver', PST:'America/Los_Angeles' };
+              document.getElementById('offsetB').value = tzMap[tzAbbrev] || document.getElementById('offsetB').value;
+            }
 
-        // Coordinates (preserve hemisphere letters and extra prime symbols)
-        const coordMatch = text.match(/Latitude, Longitude:\s*([0-9°º'′"″\s,.\-NSWE]+)/i);
-        if (coordMatch) {
-          document.getElementById('astroB').value = coordMatch[1].trim();
-        }
+            const coordMatch = text.match(/Latitude, Longitude:\s*(.*)/);
+            if (coordMatch) document.getElementById('astroB').value = coordMatch[1].trim();
+            const cityMatch = text.match(/City:\s*([^\n\r]+)/);
+            if (cityMatch) document.getElementById('cityB').value = cityMatch[1].trim();
+            
+            const countryMatch = text.match(/Country:\s*([^\n\r(]+)\s*\((\w+)\),\s*(\w+)/);
+            if (countryMatch) {
+              document.getElementById('nationB').value = countryMatch[2].trim();
+              document.getElementById('stateB').value = countryMatch[3].trim();
+            }
 
-        // City
-        const cityMatch = text.match(/City:\s*([^\n\r]+)/);
-        if (cityMatch) {
-          document.getElementById('cityB').value = cityMatch[1].trim();
-        }
-
-        // Country & State (extract ISO country code in parentheses and state after comma)
-        const countryMatch = text.match(/Country:\s*.+?\((\w{2})\)\s*,\s*(\w+)/);
-        if (countryMatch) {
-          document.getElementById('nationB').value = countryMatch[1]; // e.g., US
-          document.getElementById('stateB').value  = countryMatch[2]; // e.g., GA
-        }
-
-        showMessage('AstroSeek data pasted successfully.', 'success');
-        // Trigger context update
-        triggerContextCheck();
-      } catch (err) {
-        showMessage('Failed to read clipboard: ' + err.message, 'error');
-      }
-    });
+            showMessage('AstroSeek data pasted successfully.', 'success');
+            triggerContextCheck();
+          } catch (err) {
+            showMessage('Failed to read clipboard: ' + err.message, 'error');
+          }
+        });
     </script>
 </body>
 </html>
