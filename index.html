@@ -374,14 +374,14 @@
                 return null;
             }
 
-            let latitude, longitude;
+            let lat, lng;
             try {
                 const astroValue = document.getElementById(`astro${personPrefix}`).value;
                 if (!astroValue) return null;
                 const coords = parseCombinedCoords(astroValue);
-                latitude = coords.latitude;
-                longitude = coords.longitude;
-                if (isNaN(latitude) || isNaN(longitude)) {
+                lat = coords.latitude;
+                lng = coords.longitude;
+                if (isNaN(lat) || isNaN(lng)) {
                    return null;
                 }
             } catch (error) {
@@ -391,7 +391,7 @@
             const [month, day, year] = date.split('-').map(Number);
             const [hour, minute] = time.split(':').map(Number);
 
-            return { name, city, state, date, time, timezone, latitude, longitude, year, month, day, hour, minute, nation, zodiac_type };
+            return { name, city, state, date, time, timezone, lat, lng, year, month, day, hour, minute, nation, zodiac_type };
         };
 
         const getChartDataFromApi = async (payload) => {
@@ -501,7 +501,7 @@
 
             let report = [`# ${details.name}`];
             report.push(`> Birth Location: ${details.city}, ${details.state} *(For reference only; uses coordinates below)*`);
-            report.push(`> Birth Coordinates: ${details.latitude.toFixed(4)}, ${details.longitude.toFixed(4)}`);
+            report.push(`> Birth Coordinates: ${details.lat.toFixed(4)}, ${details.lng.toFixed(4)}`);
             report.push(`> Birth Date: ${details.date}`);
             report.push(`> Birth Time: ${details.time} (Timezone: ${details.timezone})`);
 
