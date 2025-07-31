@@ -121,6 +121,26 @@ To run this project, you must set the following environment variable in the Netl
 * **Key:** RAPIDAPI\_KEY  
 * **Value:** Your secret key from RapidAPI for the Astrologer API.
 
+### **Local Development Instructions**
+
+To run this project locally using Netlify CLI:
+
+1. Install [Node.js](https://nodejs.org/) (recommended version: 18.x or higher).
+2. Install Netlify CLI (if not already installed):
+   ```
+   npm install -g netlify-cli
+   ```
+3. Create a `.env` file in the root of the project (optional) or set the environment variable in your shell:
+   ```
+   RAPIDAPI_KEY=your_rapidapi_key_here
+   ```
+4. Start the local dev server:
+   ```
+   netlify dev
+   ```
+
+This will proxy requests to your serverless function and allow full front-end + back-end testing in development mode.
+
 ### **File Structure**
 
 * index.html: The main application file containing the UI and front-end JavaScript.  
@@ -143,3 +163,8 @@ To run this project, you must set the following environment variable in the Netl
 | synastry_id_hash | Optional: a unique identifier per synastry aspect or pair, used for tracing and cross-referencing in logs or modular journal building. |
 | Daily Overlay Tracking | Optional timestamping of synastry aspects that are exact or activated on specific dates (e.g. in a Five-Day Synastry Field report). |
 | Tier-2 OSR Bridge | A symbolic overlay logic system that connects dynamic field movement (transits) to static relationship geometry. Used in daily or week-range diagnostic field mapping. |
+
+## **License**
+
+This repository is currently unlicensed. All rights reserved. If you intend to reuse or modify this code, please contact the project owner for permission.
+
