@@ -109,8 +109,9 @@
                             </select>
                         </div>
                         <div class="flex items-center space-x-4 pt-2">
-                           <label class="flex items-center"><input type="radio" name="coordModeB" value="combined" class="form-radio h-4 w-4 text-indigo-600" checked><span class="ml-2 text-gray-300">Combined</span></label>
-                           <label class="flex items-center"><input type="radio" name="coordModeB" value="manual" class="form-radio h-4 w-4 text-indigo-600"><span class="ml-2 text-gray-300">Manual</span></label>
+                           <label class="flex items-center"><input type="radio" name="relationshipType" value="Partner" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Partner (romantic/undefined-intimate)</span></label>
+                           <label class="flex items-center"><input type="radio" name="relationshipType" value="Friend" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Friend or colleague</span></label>
+                           <label class="flex items-center"><input type="radio" name="relationshipType" value="Family" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Family</span></label>
                         </div>
                         <div id="combinedCoordsB"><input type="text" id="astroB" placeholder="Birth Coordinates" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value=""></div>
                         <div id="manualCoordsB" class="hidden grid-cols-1 md:grid-cols-2 gap-4">
@@ -297,6 +298,7 @@
         const getSubjectData = (personPrefix) => {
             const name = document.getElementById(`name${personPrefix}`).value;
             const city = document.getElementById(`city${personPrefix}`).value;
+            const state = document.getElementById(`state${personPrefix}`).value;
             const date = document.getElementById(`date${personPrefix}`).value;
             const time = document.getElementById(`time${personPrefix}`).value;
             const timezone = document.getElementById(`offset${personPrefix}`).value;
@@ -304,7 +306,7 @@
             const zodiac_type = document.getElementById(`zodiac${personPrefix}`).value;
 
             // Basic validation for required fields
-            if (!name || !city || !date || !time || !nation) {
+            if (!name || !city || !state || !date || !time || !nation) {
                 return null;
             }
             // Date and time format validation
@@ -340,7 +342,7 @@
             const [month, day, year] = date.split('-').map(Number);
             const [hour, minute] = time.split(':').map(Number);
 
-            return { name, city, date, time, timezone, latitude, longitude, year, month, day, hour, minute, nation, zodiac_type };
+            return { name, city, state, date, time, timezone, latitude, longitude, year, month, day, hour, minute, nation, zodiac_type };
         };
 
         const getChartDataFromApi = async (payload) => {
