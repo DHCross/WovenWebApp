@@ -395,7 +395,7 @@
         };
 
         const getChartDataFromApi = async (payload) => {
-            const res = await fetch('/.netlify/functions/astrology', {
+            const res = await fetch('/api/astrology', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
