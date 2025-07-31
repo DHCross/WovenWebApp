@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Woven Map Report Generator",
   "scripts": {
-    "build:css": "tailwindcss -i ./src/input.css -o ./dist/output.css --minify"
+    "build:css": "tailwindcss -i ./src/input.css -o ./dist/output.css --minify",
+    "dev:tailwind": "tailwindcss -i ./src/input.css -o ./dist/output.css --watch"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.0",

@@ -1,0 +1,23 @@
+# How to use Tailwind CSS in this project
+
+## For development (live preview):
+1. Open a terminal in this folder.
+2. Run:
+   npm install
+   npm run dev:tailwind
+3. Leave that terminal window open while you work. It will automatically update dist/output.css as you edit index.html.
+4. Reload your site in the browser to see style changes.
+
+## For production (final build):
+1. Run:
+   npm run build:css
+2. This will generate a minimized dist/output.css for production use.
+
+## If you want to switch back to the CDN for quick testing:
+- In index.html, replace:
+  <link href="dist/output.css" rel="stylesheet">
+  with:
+  <script src="https://cdn.tailwindcss.com"></script>
+
+---
+No coding required—just use the commands above!
