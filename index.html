@@ -506,14 +506,15 @@
         // --- RELATIONAL CONTEXT STACK LOGIC ---
         function updateRelationalContext() {
             const personAData = getSubjectData('A');
-            const personBData = getSubjectData('B');
+            const nameB = document.getElementById('nameB').value.trim();
 
-            if (!personAData || !personBData) {
+            // Show stack only when A is valid and B has a name
+            if (!personAData || !nameB) {
                 relationalContextStack.classList.add('hidden');
                 return;
             }
 
-            // Show placeholder message only, no API calls
+            // Placeholder message until full report generation
             contextReadout.innerHTML = '<li>Relationship context will be analyzed and shown here after you generate the full report.</li>';
             relationalContextStack.classList.remove('hidden');
         }
@@ -1069,12 +1070,18 @@ poeticBrainBtn.addEventListener('click', () => {
           const dd = day.padStart(2,'0');
           document.getElementById('dateB').value = `${mm}-${dd}-${year}`;
           document.getElementById('timeB').value = time;
-          const tzMap = { EST:'America/New_York', CST:'America/Chicago', MST:'America/Denver', PST:'America/Los_Angeles' };
+          // Expanded DST-aware timezone map
+          const tzMap = {
+            EST:'America/New_York', EDT:'America/New_York',
+            CST:'America/Chicago',  CDT:'America/Chicago',
+            MST:'America/Denver',   MDT:'America/Denver',
+            PST:'America/Los_Angeles', PDT:'America/Los_Angeles'
+          };
           document.getElementById('offsetB').value = tzMap[tzAbbrev] || document.getElementById('offsetB').value;
         }
 
-        // Coordinates
-        const coordMatch = text.match(/Latitude, Longitude:\s*([0-9°'″\s,.-]+)/);
+        // Coordinates (preserve hemisphere letters and extra prime symbols)
+        const coordMatch = text.match(/Latitude, Longitude:\s*([0-9°º'′"″\s,.\-NSWE]+)/i);
         if (coordMatch) {
           document.getElementById('astroB').value = coordMatch[1].trim();
         }
@@ -1085,14 +1092,11 @@ poeticBrainBtn.addEventListener('click', () => {
           document.getElementById('cityB').value = cityMatch[1].trim();
         }
 
-        // Country & State
-        const countryMatch = text.match(/Country:\s*([^\n\r]+)/);
+        // Country & State (extract ISO country code in parentheses and state after comma)
+        const countryMatch = text.match(/Country:\s*.+?\((\w{2})\)\s*,\s*(\w+)/);
         if (countryMatch) {
-          const parts = countryMatch[1].split(',');
-          document.getElementById('nationB').value = parts[0].trim();
-          if (parts[1]) {
-            document.getElementById('stateB').value = parts[1].trim();
-          }
+          document.getElementById('nationB').value = countryMatch[1]; // e.g., US
+          document.getElementById('stateB').value  = countryMatch[2]; // e.g., GA
         }
 
         showMessage('AstroSeek data pasted successfully.', 'success');
