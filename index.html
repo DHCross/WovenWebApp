@@ -37,7 +37,7 @@
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8">
             <h1 class="text-4xl font-bold text-white">Woven Map Report Generator</h1>
-            <p class="text-gray-400 mt-2">Local Aspect Engine</p>
+            <p class="text-gray-400 mt-2">Math Brain</p>
         </header>
 
         <main>
@@ -85,14 +85,14 @@
                     <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Person B (Optional)</h2>
                     <div class="space-y-4">
                          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input type="text" id="nameB" placeholder="Name" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
-                            <input type="text" id="cityB" placeholder="Birth City" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
-                            <input type="text" id="stateB" placeholder="Birth State/Prov" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
+                            <input type="text" id="nameB" placeholder="Name" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
+                            <input type="text" id="cityB" placeholder="Birth City" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
+                            <input type="text" id="stateB" placeholder="Birth State/Prov" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input type="text" id="dateB" placeholder="Date (MM-DD-YYYY)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
-                            <input type="text" id="timeB" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
-                             <select id="offsetB" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <input type="text" id="dateB" placeholder="Date (MM-DD-YYYY)" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
+                            <input type="text" id="timeB" placeholder="Time (24h HH:MM)" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
+                             <select id="offsetB" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                                 <option value="America/New_York">Eastern (New York)</option>
                                 <option value="America/Chicago">Central (Chicago)</option>
                                 <option value="America/Denver">Mountain (Denver)</option>
@@ -102,8 +102,8 @@
                             </select>
                         </div>
                          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input type="text" id="nationB" placeholder="Country" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
-                            <select id="zodiacB" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <input type="text" id="nationB" placeholder="Country" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
+                            <select id="zodiacB" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                                 <option value="Tropic">Tropic</option>
                                 <option value="Sidereal">Sidereal</option>
                             </select>
@@ -112,11 +112,26 @@
                            <label class="flex items-center"><input type="radio" name="coordModeB" value="combined" class="form-radio h-4 w-4 text-indigo-600" checked><span class="ml-2 text-gray-300">Combined</span></label>
                            <label class="flex items-center"><input type="radio" name="coordModeB" value="manual" class="form-radio h-4 w-4 text-indigo-600"><span class="ml-2 text-gray-300">Manual</span></label>
                         </div>
-                        <div id="combinedCoordsB"><input type="text" id="astroB" placeholder="Birth Coordinates" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value=""></div>
+                        <div id="combinedCoordsB"><input type="text" id="astroB" placeholder="Birth Coordinates" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value=""></div>
                         <div id="manualCoordsB" class="hidden grid-cols-1 md:grid-cols-2 gap-4">
-                            <input type="text" id="latB" placeholder="Latitude" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                            <input type="text" id="lonB" placeholder="Longitude" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <input type="text" id="latB" placeholder="Latitude" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <input type="text" id="lonB" placeholder="Longitude" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="relational-context-stack" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 hidden border border-teal-500">
+                <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Relational Context Query Stack</h2>
+                <p class="text-gray-400 text-sm mb-4">Based on initial geometry, the Math Brain has detected the following potential dynamics:</p>
+                <ul id="context-readout" class="list-disc list-inside space-y-2 mb-4 text-gray-300">
+                    </ul>
+                <div id="relationship-type-query">
+                    <p class="text-lg font-medium text-white mb-2">How would you categorize this connection?</p>
+                    <div class="flex flex-col space-y-2">
+                        <label class="flex items-center"><input type="radio" name="relationshipType" value="Partner" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Partner (romantic/undefined-intimate)</span></label>
+                        <label class="flex items-center"><input type="radio" name="relationshipType" value="Friend" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Friend or colleague</span></label>
+                        <label class="flex items-center"><input type="radio" name="relationshipType" value="Family" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Family</span></label>
                     </div>
                 </div>
             </div>
@@ -222,17 +237,20 @@
         const relocationCoordsInput = document.getElementById('relocationCoords');
         const relocationError = document.getElementById('relocationError');
         const synastryToggle = document.getElementById('synastryToggle');
+        const relationalContextStack = document.getElementById('relational-context-stack');
+        const contextReadout = document.getElementById('context-readout');
 
         // --- Global State ---
         let fullReportData = {};
         let markdownReport = '';
+        let contextCheckTimeout;
 
         // --- API & LOCAL ENGINE CONFIG ---
         const ORBS = { "conjunction": 8, "opposition": 8, "square": 5, "trine": 6, "sextile": 4 };
         const ASPECT_DEGREES = { "conjunction": 0, "opposition": 180, "square": 90, "trine": 120, "sextile": 60 };
         const HOUSE_NAMES = ["First_House", "Second_House", "Third_House", "Fourth_House", "Fifth_House", "Sixth_House", "Seventh_House", "Eighth_House", "Ninth_House", "Tenth_House", "Eleventh_House", "Twelfth_House"];
         const SYMBOLS = {"conjunction": "☌", "opposition": "☍", "square": "□", "trine": "△", "sextile": "✶"};
-        
+
         // --- HELPER FUNCTIONS ---
         const showMessage = (message, type = 'error') => {
             messageBox.textContent = message;
@@ -244,6 +262,7 @@
 
         const parseCoordinate = (input) => {
             let s = String(input).trim();
+            if (!s) throw new Error("Coordinate input is empty.");
             let sign = /[SW]/i.test(s) ? -1 : 1;
             s = s.replace(/[NSEW]/ig, '');
             if (s.startsWith('-')) { sign = -1; s = s.slice(1); }
@@ -263,6 +282,7 @@
         };
 
         const parseCombinedCoords = (txt) => {
+            if (!txt) throw new Error("Coordinate input is empty.");
             let parts = txt.split(',');
             if (parts.length >= 2) {
                 const latitude = parseCoordinate(parts[0]);
@@ -273,28 +293,32 @@
             if (match) return { latitude: parseCoordinate(match[1]), longitude: parseCoordinate(match[2]) };
             throw new Error('Invalid combined coordinate format.');
         };
-        
+
         const getSubjectData = (personPrefix) => {
             const name = document.getElementById(`name${personPrefix}`).value;
             const city = document.getElementById(`city${personPrefix}`).value;
-            const state = document.getElementById(`state${personPrefix}`).value;
             const date = document.getElementById(`date${personPrefix}`).value;
             const time = document.getElementById(`time${personPrefix}`).value;
             const timezone = document.getElementById(`offset${personPrefix}`).value;
             const nation = document.getElementById(`nation${personPrefix}`).value;
             const zodiac_type = document.getElementById(`zodiac${personPrefix}`).value;
 
-            if (!name || !city || !state || !date || !time || !nation) {
+            // Basic validation for required fields
+            if (!name || !city || !date || !time || !nation) {
                 return null;
             }
-            
+            // Date and time format validation
+            if (!/^\d{2}-\d{2}-\d{4}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) {
+                return null;
+            }
+
             let latitude, longitude;
             const coordMode = document.querySelector(`input[name="coordMode${personPrefix}"]:checked`).value;
-            
+
             try {
                 if (coordMode === 'combined') {
                     const astroValue = document.getElementById(`astro${personPrefix}`).value;
-                    if (!astroValue) return null; 
+                    if (!astroValue) return null;
                     const coords = parseCombinedCoords(astroValue);
                     latitude = coords.latitude;
                     longitude = coords.longitude;
@@ -306,49 +330,47 @@
                     longitude = parseCoordinate(lonValue);
                 }
                 if (isNaN(latitude) || isNaN(longitude)) {
-                    throw new Error(`Invalid or incomplete coordinates for Person ${personPrefix}.`);
+                   return null;
                 }
             } catch (error) {
-                showMessage(error.message);
+                // Don't show a popup for real-time validation, just return null
                 return null;
             }
 
             const [month, day, year] = date.split('-').map(Number);
             const [hour, minute] = time.split(':').map(Number);
 
-            return { name, city, state, date, time, timezone, latitude, longitude, year, month, day, hour, minute, nation, zodiac_type };
+            return { name, city, date, time, timezone, latitude, longitude, year, month, day, hour, minute, nation, zodiac_type };
         };
-        
-        // --- API CALL (UPDATED WITH ROBUST ERROR HANDLING) ---
-        const getChartDataFromApi = async (subject) => {
+
+        const getChartDataFromApi = async (payload) => {
             const res = await fetch('/.netlify/functions/astrology', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subject })
+                body: JSON.stringify(payload)
             });
 
             const text = await res.text();
-            let payload;
+            let responsePayload;
 
             try {
-                payload = JSON.parse(text);
+                responsePayload = JSON.parse(text);
             } catch {
                 console.error('Non-JSON response from Netlify function:', text);
                 throw new Error(`Server returned invalid data (status ${res.status}):\n` + text);
             }
 
             if (!res.ok) {
-                throw new Error(payload.error || 'An unknown server error occurred.');
+                throw new Error(responsePayload.error || 'An unknown server error occurred.');
             }
 
-            return payload;
+            return responsePayload;
         };
-        
-        // --- LOCAL ASPECT/OVERLAY ENGINE ---
-        const calculateAspects = (chartA, chartB) => {
+
+        const calculateAspects = (chartA, chartB, orbOverrides = {}) => {
             const aspects = [];
-            const planetsA = chartA.planets_names_list;
-            const planetsB = chartB.planets_names_list;
+            const planetsA = chartA.planets_names_list.concat(chartA.axial_cusps_names_list);
+            const planetsB = chartB.planets_names_list.concat(chartB.axial_cusps_names_list);
 
             for (const p1Name of planetsA) {
                 const p1 = chartA[p1Name.toLowerCase()];
@@ -356,16 +378,18 @@
                 for (const p2Name of planetsB) {
                     const p2 = chartB[p2Name.toLowerCase()];
                     if (!p2) continue;
+                    // Avoid self-aspects in natal calculations
+                    if (chartA === chartB && p1.name === p2.name) continue;
 
                     const diff = Math.abs((p1.abs_pos - p2.abs_pos + 180) % 360 - 180);
                     for (const [aspectName, aspectDeg] of Object.entries(ASPECT_DEGREES)) {
+                        const orbLimit = orbOverrides[aspectName] || ORBS[aspectName];
                         const orb = Math.abs(diff - aspectDeg);
-                        if (orb < ORBS[aspectName]) {
+                        if (orb < orbLimit) {
                             aspects.push({
-                                p1_name: p1.name,
-                                p2_name: p2.name,
-                                aspect: aspectName,
-                                orb: parseFloat(orb.toFixed(2))
+                                p1_name: p1.name, p2_name: p2.name,
+                                p1_pos: p1.position, p2_pos: p2.position,
+                                aspect: aspectName, orb: parseFloat(orb.toFixed(2))
                             });
                         }
                     }
@@ -377,7 +401,7 @@
         const calculateHouseOverlays = (planetsChart, housesChart) => {
             const overlays = {};
             const houseCusps = HOUSE_NAMES.map(name => housesChart[name.toLowerCase()].abs_pos);
-            
+
             for (const planetName of planetsChart.planets_names_list) {
                 const planet = planetsChart[planetName.toLowerCase()];
                 if (!planet) continue;
@@ -385,11 +409,11 @@
                 for (let i = 0; i < 12; i++) {
                     const cuspStart = houseCusps[i];
                     const cuspEnd = houseCusps[(i + 1) % 12];
-                    
+
                     let inHouse = false;
                     if (cuspStart < cuspEnd) {
                         if (planet.abs_pos >= cuspStart && planet.abs_pos < cuspEnd) inHouse = true;
-                    } else {
+                    } else { // Wraps around 0° Aries
                         if (planet.abs_pos >= cuspStart || planet.abs_pos < cuspEnd) inHouse = true;
                     }
 
@@ -401,10 +425,88 @@
             }
             return overlays;
         };
+        
+        // --- RELATIONAL CONTEXT STACK LOGIC ---
+        async function updateRelationalContext() {
+            const personAData = getSubjectData('A');
+            const personBData = getSubjectData('B');
+
+            if (!personAData || !personBData) {
+                relationalContextStack.classList.add('hidden');
+                return;
+            }
+
+            try {
+                // Fetch both charts quietly for analysis
+                const [chartA, chartB] = await Promise.all([
+                    getChartDataFromApi({ subject: personAData }).then(r => r.data.subject),
+                    getChartDataFromApi({ subject: personBData }).then(r => r.data.subject)
+                ]);
+
+                const synastryAspects = calculateAspects(chartA, chartB);
+                const findings = [];
+
+                // 1. shared_vector_presence
+                if (synastryAspects.some(a => a.orb <= 2.0)) {
+                    findings.push('<li>These two charts show active mutual resonance (aspects within 2° orb).</li>');
+                }
+
+                // 2. angle_contact_check
+                const angles = ['Ascendant', 'Descendant', 'Medium_Coeli', 'Imum_Coeli'];
+                if (synastryAspects.some(a => angles.includes(a.p1_name) || angles.includes(a.p2_name))) {
+                    findings.push('<li>There’s at least one strong contact to an angular point.</li>');
+                }
+
+                // 3. 29°_crisis_flag
+                if (synastryAspects.some(a => a.p1_pos >= 29 || a.p2_pos >= 29)) {
+                    findings.push('<li>A 29° placement is involved in a tension aspect.</li>');
+                }
+                
+                // 4. echo_loop_flag
+                const tightAspects = synastryAspects.filter(a => a.orb < 1.0);
+                const echoLoops = [];
+                for(const aspect1 of tightAspects) {
+                    for (const aspect2 of tightAspects) {
+                        if(aspect1.p1_name === aspect2.p2_name && aspect1.p2_name === aspect2.p1_name) {
+                             if (!echoLoops.find(p => p.includes(aspect1.p1_name) && p.includes(aspect1.p2_name))) {
+                                echoLoops.push([aspect1.p1_name, aspect1.p2_name]);
+                             }
+                        }
+                    }
+                }
+                if (echoLoops.length > 0) {
+                     findings.push(`<li>At least one potential Echo Loop detected (${echoLoops.map(p => p.join('/')).join(', ')}).</li>`);
+                }
+
+                // 5. overlay_pressure_zone
+                const overlaysA_in_B = calculateHouseOverlays(chartA, chartB);
+                const overlaysB_in_A = calculateHouseOverlays(chartB, chartA);
+                const pressureHouses = ['Fourth_House', 'Seventh_House', 'Twelfth_House'];
+                const pressureOverlays = Object.values(overlaysA_in_B).some(h => pressureHouses.includes(h)) ||
+                                        Object.values(overlaysB_in_A).some(h => pressureHouses.includes(h));
+                if (pressureOverlays) {
+                    findings.push('<li>A planet falls in a pressure zone (4th, 7th, or 12th house overlay).</li>');
+                }
+
+                if (findings.length > 0) {
+                    contextReadout.innerHTML = findings.join('');
+                    relationalContextStack.classList.remove('hidden');
+                } else {
+                    contextReadout.innerHTML = '<li>No significant geometric links detected based on the core flags.</li>';
+                    relationalContextStack.classList.remove('hidden');
+                }
+
+            } catch (error) {
+                console.error("Context Stack Error:", error);
+                relationalContextStack.classList.add('hidden');
+            }
+        }
+
 
         // --- MARKDOWN FORMATTING ENGINE ---
         const formatMdNatalChart = (personData) => {
             const { details, chart: apiResponse } = personData;
+            // The API response for a natal call is nested under 'data', then 'subject'
             const chart = apiResponse.data.subject;
             const aspects = apiResponse.aspects;
 
@@ -415,7 +517,7 @@
             report.push(`> Birth Coordinates: ${details.latitude.toFixed(4)}, ${details.longitude.toFixed(4)}`);
             report.push(`> Birth Date: ${details.date}`);
             report.push(`> Birth Time: ${details.time} (Timezone: ${details.timezone})`);
-            
+
             report.push(`\n## Natal Chart – ${chart.houses_system_name}`);
             let planetTable = '| Planet | AEL | Sign | Pos | 29° |\n|---|---|---|---|---|\n';
             chart.planets_names_list.forEach(pName => {
@@ -441,7 +543,7 @@
 
             return report.join('\n');
         };
-        
+
         const formatMdTransit = (transitData, personData, isRelocated) => {
             const chart = transitData.chart.data.subject;
             const aspects = transitData.aspects;
@@ -450,14 +552,14 @@
             let report = [];
             if (isRelocated) {
                 report.push(`\n### Relocation Overlay for ${transitData.date}`);
-                const lat = chart.latitude ?? chart.lat;
-                const lon = chart.longitude ?? chart.lng;
+                const lat = chart.lat;
+                const lon = chart.lng;
                 if (typeof lat === 'number' && typeof lon === 'number') {
                     report.push(`*Houses & Angles recalculated for ${lat.toFixed(4)}, ${lon.toFixed(4)}*`);
                 }
             } else {
                 report.push(`\n## Transits for ${transitData.date}`);
-                report.push(`*Transits calculated for birth location: ${personData.details.city}, ${personData.details.state}, ${personData.details.nation}.*`);
+                report.push(`*Transits calculated for birth location: ${personData.details.city}.*`);
             }
             let planetTable = '| Planet | AEL | Sign | Pos | 29° |\n|---|---|---|---|---|\n';
             chart.planets_names_list.forEach(pName => {
@@ -472,18 +574,17 @@
                 return `- Transiting ${a.p1_name} ${SYMBOLS[a.aspect.toLowerCase()]} Natal ${a.p2_name} (${a.orb.toFixed(1)}°)${core}`;
             }).join('\n');
             report.push(aspectList || '- None found.');
-            
+
             return report.join('\n');
         };
 
         const formatMdWeather = (weatherData) => {
             const chart = weatherData.chart.data.subject;
             const degToDMS = (deg) => `${Math.floor(deg)}°${Math.round((deg % 1) * 60).toString().padStart(2, '0')}'`;
-            
-            let report = [`# Local Astrological Forecast for ${chart.city}, ${chart.state}`];
-            report.push(`> This is a standalone chart of the sky for the specified date and location. It is not a transit report and does not contain aspects to a natal chart. For a full transit analysis, please use the "Generate Full Report" function.`);
-            report.push(`> Date: ${weatherData.date}`);
-            
+
+            let report = [`# Local Astrological Forecast for ${weatherData.date}`];
+            report.push(`> This is a standalone chart of the sky for the specified date and location. It is not a transit report and does not contain aspects to a natal chart.`);
+
             let planetTable = '| Planet | AEL | Sign | Pos |\n|---|---|---|---|\n';
             chart.planets_names_list.forEach(pName => {
                 const p = chart[pName.toLowerCase()];
@@ -495,10 +596,13 @@
 
         const formatMdSynastry = (synData, personA, personB) => {
             const aspects = synData.aspects || [];
-            const aInB = synData.a_in_b_houses || {};
-            const bInA = synData.b_in_a_houses || {};
+            // The synastry response directly contains the two subjects' data
+            const chartA = synData.data.first_subject;
+            const chartB = synData.data.second_subject;
+            const aInB = calculateHouseOverlays(chartA, chartB);
+            const bInA = calculateHouseOverlays(chartB, chartA);
 
-            const clean = h => h.replace('_', ' ');
+            const clean = h => h.replace(/_/g, ' ');
 
             let report = [`## Synastry: ${personA.details.name} & ${personB.details.name}`];
             report.push('### Interplanetary Aspects');
@@ -511,11 +615,11 @@
                 report.push('- None found.');
             }
 
-            report.push(`### ${personA.details.name}'s Planets in ${personB.details.name}'s Houses`);
+            report.push(`\n### ${personA.details.name}'s Planets in ${personB.details.name}'s Houses`);
             const aLines = Object.entries(aInB).map(([p, h]) => `- ${p} in ${clean(h)}`);
             report.push(aLines.join('\n') || '- None.');
 
-            report.push(`### ${personB.details.name}'s Planets in ${personA.details.name}'s Houses`);
+            report.push(`\n### ${personB.details.name}'s Planets in ${personA.details.name}'s Houses`);
             const bLines = Object.entries(bInA).map(([p, h]) => `- ${p} in ${clean(h)}`);
             report.push(bLines.join('\n') || '- None.');
 
@@ -523,54 +627,64 @@
         };
 
 
-        // --- MAIN REPORT GENERATION LOGIC ---
+        // --- MAIN REPORT GENERATION LOGIC (RESTRUCTURED) ---
         async function generateReport() {
             generateBtn.disabled = true;
             generateBtn.textContent = 'Generating...';
             outputSection.classList.add('hidden');
-            
+
             try {
                 const personAData = getSubjectData('A');
                 if (!personAData) {
                     throw new Error("Person A's data is incomplete or invalid.");
                 }
 
-                const apiResponseA = await getChartDataFromApi(personAData);
-                const chartA = apiResponseA.data.subject;
-                
-                fullReportData = {
-                    schema: "WM-Chart-1.0",
-                    person_a: { details: personAData, chart: apiResponseA }
-                };
-                
-                let markdownParts = [
-                    `> ★ = Planet is within the last degree of a sign (the 29th degree).\n> **Aspect Symbols:** ☌ = Conjunction, ☍ = Opposition, □ = Square, △ = Trine, ✶ = Sextile\n> **"Core Pressure Point"** = aspect orb ≤ 3° (the strongest and most direct influences).`,
-                    formatMdNatalChart(fullReportData.person_a)
-                ];
-
                 const personBData = getSubjectData('B');
-                let chartB = null;
+                const useSynastry = personBData && synastryToggle.checked;
 
-                if (personBData) {
-                    const apiResponseB = await getChartDataFromApi(personBData);
-                    chartB = apiResponseB.data.subject;
-                    fullReportData.person_b = { details: personBData, chart: apiResponseB };
-                    markdownParts.push(formatMdNatalChart(fullReportData.person_b));
-                    
-                    fullReportData.synastry = {
-                        aspects: calculateAspects(chartA, chartB),
-                        a_in_b_houses: calculateHouseOverlays(chartA, chartB),
-                        b_in_a_houses: calculateHouseOverlays(chartB, chartA)
+                let markdownParts = [
+                    `> ★ = Planet is within the last degree of a sign (the 29th degree).\n> **Aspect Symbols:** ☌ = Conjunction, ☍ = Opposition, □ = Square, △ = Trine, ✶ = Sextile\n> **"Core Pressure Point"** = aspect orb ≤ 3° (the strongest and most direct influences).`
+                ];
+                fullReportData = { schema: "WM-Chart-1.0" };
+
+                if (useSynastry) {
+                    // --- SYNASTRY REPORT ---
+                    const payload = {
+                        first_subject: personAData,
+                        second_subject: personBData
                     };
-                    if (synastryToggle.checked) {
-                        markdownParts.push(formatMdSynastry(fullReportData.synastry, fullReportData.person_a, fullReportData.person_b));
+                    const synastryResponse = await getChartDataFromApi(payload);
+
+                    // We need the natal aspects, which aren't in the synastry call, so we fetch them separately.
+                    const natalAFromSynastry = await getChartDataFromApi({ subject: personAData });
+                    const natalBFromSynastry = await getChartDataFromApi({ subject: personBData });
+
+                    fullReportData.person_a = { details: personAData, chart: natalAFromSynastry };
+                    fullReportData.person_b = { details: personBData, chart: natalBFromSynastry };
+                    fullReportData.synastry = synastryResponse;
+                    
+                    markdownParts.push(formatMdNatalChart(fullReportData.person_a));
+                    markdownParts.push(formatMdNatalChart(fullReportData.person_b));
+                    markdownParts.push(formatMdSynastry(synastryResponse, fullReportData.person_a, fullReportData.person_b));
+
+                } else {
+                    // --- NATAL-ONLY REPORT ---
+                    const apiResponseA = await getChartDataFromApi({ subject: personAData });
+                    fullReportData.person_a = { details: personAData, chart: apiResponseA };
+                    markdownParts.push(formatMdNatalChart(fullReportData.person_a));
+
+                    if (personBData) {
+                        const apiResponseB = await getChartDataFromApi({ subject: personBData });
+                        fullReportData.person_b = { details: personBData, chart: apiResponseB };
+                        markdownParts.push(formatMdNatalChart(fullReportData.person_b));
                     }
                 }
 
+                // --- TRANSIT CALCULATIONS (COMMON LOGIC) ---
                 let startStr = startDateInput.value;
-                if (!startStr) {
+                 if (!startStr) {
                     const today = new Date();
-                    startStr = `${today.getMonth() + 1}-${today.getDate()}-${today.getFullYear()}`;
+                    startStr = `${String(today.getMonth() + 1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}-${today.getFullYear()}`;
                 }
 
                 const [sm, sd, sy] = startStr.split('-').map(Number);
@@ -582,87 +696,52 @@
                 }
 
                 fullReportData.transits = [];
-
                 const relocationChecked = relocationToggle.checked;
                 let relocationCoords = getRelocationLatLonOrNull();
                 if (relocationChecked && !relocationCoords) throw new Error("Relocation coordinates are invalid.");
 
                 for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
-                    const ds = (d.getUTCMonth()+1).toString().padStart(2,'0') + '-' +
+                     const ds = (d.getUTCMonth()+1).toString().padStart(2,'0') + '-' +
                                  d.getUTCDate().toString().padStart(2,'0') + '-' +
                                  d.getUTCFullYear();
 
-                    const transitSubjectA = { 
-                        ...personAData, 
-                        year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
-                        name: `Transit ${ds}`
-                    };
-                    const transitApiResponseA = await getChartDataFromApi(transitSubjectA);
-                    const transitChartA = transitApiResponseA.data.subject;
-                    const entryA = {
-                        person: 'a', date: ds, chart: transitApiResponseA,
-                        aspects: calculateAspects(transitChartA, chartA),
-                        location_type: 'birth'
-                    };
+                    // Person A Transits
+                    const transitSubjectA = { ...personAData, year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), name: `Transit ${ds}` };
+                    const transitApiResponseA = await getChartDataFromApi({ subject: transitSubjectA });
+                    const chartA = fullReportData.person_a.chart.data.subject;
+                    const entryA = { person: 'a', date: ds, chart: transitApiResponseA, aspects: calculateAspects(transitApiResponseA.data.subject, chartA), location_type: 'birth' };
                     fullReportData.transits.push(entryA);
                     markdownParts.push(formatMdTransit(entryA, fullReportData.person_a, false));
 
-                    if (personBData && chartB) {
-                         const transitSubjectB = { 
-                            ...personBData, 
-                            year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
-                            name: `Transit ${ds}`
-                        };
-                        const transitApiResponseB = await getChartDataFromApi(transitSubjectB);
-                        const transitChartB = transitApiResponseB.data.subject;
-                        const entryB = {
-                            person: 'b', date: ds, chart: transitApiResponseB,
-                            aspects: calculateAspects(transitChartB, chartB),
-                            location_type: 'birth'
-                        };
-                        fullReportData.transits.push(entryB);
-                        markdownParts.push(formatMdTransit(entryB, fullReportData.person_b, false));
+                    // Relocation for A
+                    if (relocationChecked && relocationCoords) {
+                         const relocationSubjectA = { ...transitSubjectA, latitude: relocationCoords.latitude, longitude: relocationCoords.longitude, city: 'Relocated', nation: '' };
+                         const relocationApiResponseA = await getChartDataFromApi({ subject: relocationSubjectA });
+                         const entryRelocA = { person: 'a', date: ds, chart: relocationApiResponseA, aspects: calculateAspects(relocationApiResponseA.data.subject, chartA), location_type: 'relocated' };
+                         fullReportData.transits.push(entryRelocA);
+                         markdownParts.push(formatMdTransit(entryRelocA, fullReportData.person_a, true));
                     }
 
-                    if (relocationChecked && relocationCoords) {
-                        const relocationSubjectA = {
-                            ...personAData,
-                            year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
-                            name: `Relocated Transit ${ds}`,
-                            latitude: relocationCoords.latitude, longitude: relocationCoords.longitude,
-                            city: 'Relocated', state: '', nation: ''
-                        };
-                        const relocationApiResponseA = await getChartDataFromApi(relocationSubjectA);
-                        const relocationChartA = relocationApiResponseA.data.subject;
-                        const entryRelocA = {
-                            person: 'a', date: ds, chart: relocationApiResponseA,
-                            aspects: calculateAspects(relocationChartA, chartA),
-                            location_type: 'relocated'
-                        };
-                        fullReportData.transits.push(entryRelocA);
-                        markdownParts.push(formatMdTransit(entryRelocA, fullReportData.person_a, true));
+                    // Person B Transits (if they exist)
+                    if (fullReportData.person_b) {
+                        const transitSubjectB = { ...personBData, year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), name: `Transit ${ds}` };
+                        const transitApiResponseB = await getChartDataFromApi({ subject: transitSubjectB });
+                        const chartB = fullReportData.person_b.chart.data.subject;
+                        const entryB = { person: 'b', date: ds, chart: transitApiResponseB, aspects: calculateAspects(transitApiResponseB.data.subject, chartB), location_type: 'birth' };
+                        fullReportData.transits.push(entryB);
+                        markdownParts.push(formatMdTransit(entryB, fullReportData.person_b, false));
 
-                        if (personBData && chartB) {
-                            const relocationSubjectB = {
-                                ...personBData,
-                                year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
-                                name: `Relocated Transit ${ds}`,
-                                latitude: relocationCoords.latitude, longitude: relocationCoords.longitude,
-                                city: 'Relocated', state: '', nation: ''
-                            };
-                            const relocationApiResponseB = await getChartDataFromApi(relocationSubjectB);
-                            const relocationChartB = relocationApiResponseB.data.subject;
-                            const entryRelocB = {
-                                person: 'b', date: ds, chart: relocationApiResponseB,
-                                aspects: calculateAspects(relocationChartB, chartB),
-                                location_type: 'relocated'
-                            };
-                            fullReportData.transits.push(entryRelocB);
-                            markdownParts.push(formatMdTransit(entryRelocB, fullReportData.person_b, true));
+                         // Relocation for B
+                        if (relocationChecked && relocationCoords) {
+                             const relocationSubjectB = { ...transitSubjectB, latitude: relocationCoords.latitude, longitude: relocationCoords.longitude, city: 'Relocated', nation: '' };
+                             const relocationApiResponseB = await getChartDataFromApi({ subject: relocationSubjectB });
+                             const entryRelocB = { person: 'b', date: ds, chart: relocationApiResponseB, aspects: calculateAspects(relocationApiResponseB.data.subject, chartB), location_type: 'relocated' };
+                             fullReportData.transits.push(entryRelocB);
+                             markdownParts.push(formatMdTransit(entryRelocB, fullReportData.person_b, true));
                         }
                     }
                 }
-                
+
                 markdownReport = markdownParts.join('\n\n');
                 reportTitle.textContent = "Generated Report";
                 reportOutput.textContent = markdownReport;
@@ -676,7 +755,7 @@
                 generateBtn.textContent = 'Generate Full Report';
             }
         }
-        
+
         async function generateWeatherReport() {
             getWeatherBtn.disabled = true;
             getWeatherBtn.textContent = 'Fetching...';
@@ -690,7 +769,7 @@
                 let startStr = weatherStartDateInput.value;
                 if (!startStr) {
                     const today = new Date();
-                    startStr = `${today.getMonth() + 1}-${today.getDate()}-${today.getFullYear()}`;
+                    startStr = `${String(today.getMonth() + 1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}-${today.getFullYear()}`;
                 }
 
                 const [sm, sd, sy] = startStr.split('-').map(Number);
@@ -708,18 +787,18 @@
                     const ds = (d.getUTCMonth()+1).toString().padStart(2,'0') + '-' +
                                  d.getUTCDate().toString().padStart(2,'0') + '-' +
                                  d.getUTCFullYear();
-                    
+
                     const weatherSubject = {
                         year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
                         hour: 12, minute: 0,
-                        city: "Local Forecast", state: "", nation: "",
+                        city: "Local Forecast",
                         name: `Forecast for ${ds}`,
                         latitude: lat, longitude: lon,
                         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                         zodiac_type: 'Tropic'
                     };
-                    
-                    const apiResponse = await getChartDataFromApi(weatherSubject);
+
+                    const apiResponse = await getChartDataFromApi({ subject: weatherSubject });
                     const weatherEntry = { date: ds, chart: apiResponse };
                     fullReportData.forecasts.push(weatherEntry);
                     markdownParts.push(formatMdWeather(weatherEntry));
@@ -763,7 +842,7 @@
             }
             document.body.removeChild(textarea);
         });
-        
+
         const downloadFile = (filename, content, contentType) => {
             const element = document.createElement('a');
             const blob = new Blob([content], { type: contentType });
@@ -774,15 +853,19 @@
             document.body.removeChild(element);
             URL.revokeObjectURL(element.href);
         };
-        
+
         const generateFilename = (extension) => {
             const nameA = document.getElementById('nameA').value.replace(/\s+/g, '_') || 'PersonA';
+            const nameB = document.getElementById('nameB').value.replace(/\s+/g, '_');
+            const finalName = nameB ? `${nameA}_and_${nameB}` : nameA;
+            
             const startDateStr = startDateInput.value;
             const endDateStr = endDateInput.value;
             let datePart = `_on_${new Date().toISOString().split('T')[0]}`;
 
             if (startDateStr) {
                 const reformatDate = (dateStr) => {
+                    if (!/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) return new Date().toISOString().split('T')[0];
                     const [m, d, y] = dateStr.split('-');
                     return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
                 }
@@ -794,7 +877,7 @@
                     datePart = `_on_${formattedStart}`;
                 }
             }
-            return `report_${nameA}${datePart}.${extension}`;
+            return `report_${finalName}${datePart}.${extension}`;
         };
 
         saveJsonBtn.addEventListener('click', () => {
@@ -806,13 +889,14 @@
             const filename = generateFilename('md');
             downloadFile(filename, markdownReport, 'text/markdown');
         });
-        
+
         document.querySelectorAll('input[name^="coordMode"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
                 const personPrefix = e.target.name.includes('A') ? 'A' : 'B';
                 const isCombined = e.target.value === 'combined';
                 document.getElementById(`combinedCoords${personPrefix}`).style.display = isCombined ? 'block' : 'none';
                 document.getElementById(`manualCoords${personPrefix}`).style.display = isCombined ? 'none' : 'grid';
+                if (personPrefix === 'B') triggerContextCheck();
             });
         });
 
@@ -838,6 +922,17 @@
                 return null;
             }
         }
+        
+        // --- Trigger for the Relational Context Stack ---
+        function triggerContextCheck() {
+            clearTimeout(contextCheckTimeout);
+            contextCheckTimeout = setTimeout(updateRelationalContext, 1000); // Debounce to avoid rapid firing
+        }
+        
+        document.querySelectorAll('.person-b-field').forEach(field => {
+            field.addEventListener('input', triggerContextCheck);
+            field.addEventListener('change', triggerContextCheck); // For select dropdown
+        });
 
     </script>
 </body>
