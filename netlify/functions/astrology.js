@@ -59,8 +59,8 @@ exports.handler = async function (event) {
       }
 
       const rawText = await response.text();
-      console.error('Astrology API error (synastry):', response.status, rawText);
       if (!response.ok) {
+        console.error('Astrology API error (synastry):', response.status, rawText);
         return {
           statusCode: 502,
           body: JSON.stringify({ error: 'External API error', details: rawText })
@@ -111,8 +111,8 @@ exports.handler = async function (event) {
       }
 
       const rawText = await response.text();
-      console.error('Astrology API error (natal):', response.status, rawText);
       if (!response.ok) {
+        console.error('Astrology API error (natal):', response.status, rawText);
         return {
           statusCode: 502,
           body: JSON.stringify({ error: 'External API error', details: rawText })
