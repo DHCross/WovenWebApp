@@ -1039,62 +1039,57 @@ poeticBrainBtn.addEventListener('click', () => {
                 closeMathBrainModalFn();
             }
         });
+    // --- AstroSeek Clipboard Paste for Person B ---
+    const pasteAstroBtn = document.getElementById('pasteAstroB');
+    pasteAstroBtn.addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+
+        // Name
+        document.getElementById('nameB').value = text.split('\n')[0].trim() || '';
+
+        // Date & Time
+        const dobMatch = text.match(/Date of Birth.*?:\s*(\d{1,2}) (\w+) (\d{4})\s*-\s*(\d{2}:\d{2}).*?\((\w+)\)/);
+        if (dobMatch) {
+          const [, day, monthName, year, time, tzAbbrev] = dobMatch;
+          const monthMap = { January:1, February:2, March:3, April:4, May:5, June:6, July:7, August:8, September:9, October:10, November:11, December:12 };
+          const mm = String(monthMap[monthName] || 1).padStart(2,'0');
+          const dd = day.padStart(2,'0');
+          document.getElementById('dateB').value = `${mm}-${dd}-${year}`;
+          document.getElementById('timeB').value = time;
+          const tzMap = { EST:'America/New_York', CST:'America/Chicago', MST:'America/Denver', PST:'America/Los_Angeles' };
+          document.getElementById('offsetB').value = tzMap[tzAbbrev] || document.getElementById('offsetB').value;
+        }
+
+        // Coordinates
+        const coordMatch = text.match(/Latitude, Longitude:\s*([0-9°'″\s,.-]+)/);
+        if (coordMatch) {
+          document.getElementById('astroB').value = coordMatch[1].trim();
+        }
+
+        // City
+        const cityMatch = text.match(/City:\s*([^\n\r]+)/);
+        if (cityMatch) {
+          document.getElementById('cityB').value = cityMatch[1].trim();
+        }
+
+        // Country & State
+        const countryMatch = text.match(/Country:\s*([^\n\r]+)/);
+        if (countryMatch) {
+          const parts = countryMatch[1].split(',');
+          document.getElementById('nationB').value = parts[0].trim();
+          if (parts[1]) {
+            document.getElementById('stateB').value = parts[1].trim();
+          }
+        }
+
+        showMessage('AstroSeek data pasted successfully.', 'success');
+        // Trigger context update
+        triggerContextCheck();
+      } catch (err) {
+        showMessage('Failed to read clipboard: ' + err.message, 'error');
+      }
+    });
     </script>
 </body>
 </html>
-        // --- AstroSeek Clipboard Paste for Person B ---
-        const pasteAstroBtn = document.getElementById('pasteAstroB');
-        pasteAstroBtn.addEventListener('click', async () => {
-          try {
-            const text = await navigator.clipboard.readText();
-            const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-
-            // Name
-            document.getElementById('nameB').value = lines[0] || '';
-
-            // Local Date & Time with timezone
-            const dobLine = lines.find(l => l.startsWith('Date of Birth'));
-            if (dobLine) {
-              const match = dobLine.match(/:\s*(\d{1,2}) (\w+) (\d{4})\s*-\s*(\d{2}:\d{2}).*?\((\w+)\)/);
-              if (match) {
-                const [ , day, monthName, year, time, tzAbbrev ] = match;
-                const monthMap = { January:1, February:2, March:3, April:4, May:5, June:6, July:7, August:8, September:9, October:10, November:11, December:12 };
-                const mm = String(monthMap[monthName] || 1).padStart(2, '0');
-                const dd = day.padStart(2, '0');
-                document.getElementById('dateB').value = `${mm}-${dd}-${year}`;
-                document.getElementById('timeB').value = time;
-                // Map common abbreviations to TZ select values
-                const tzMap = { EST: 'America/New_York', CST: 'America/Chicago', MST: 'America/Denver', PST: 'America/Los_Angeles' };
-                document.getElementById('offsetB').value = tzMap[tzAbbrev] || 'America/New_York';
-              }
-            }
-
-            // Coordinates
-            const coordLine = lines.find(l => l.startsWith('Latitude, Longitude'));
-            if (coordLine) {
-              document.getElementById('astroB').value = coordLine.split(':')[1].trim();
-            }
-
-            // City
-            const cityLine = lines.find(l => l.startsWith('City:'));
-            if (cityLine) {
-              document.getElementById('cityB').value = cityLine.split(':')[1].trim();
-            }
-
-            // Country and State
-            const countryLine = lines.find(l => l.startsWith('Country:'));
-            if (countryLine) {
-              const parts = countryLine.split(':')[1].split(',');
-              document.getElementById('nationB').value = parts[0].trim();
-              if (parts[1]) {
-                document.getElementById('stateB').value = parts[1].trim();
-              }
-            }
-
-            showMessage('AstroSeek data pasted successfully.', 'success');
-            // Trigger context update
-            triggerContextCheck();
-          } catch (err) {
-            showMessage('Failed to read clipboard: ' + err.message, 'error');
-          }
-        });
