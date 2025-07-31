@@ -1,4 +1,9 @@
 [build]
-  command = "echo 'No build command required'"
+  command = "npm run build:css"
   publish = "."
   functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/astrology"
+  to = "/.netlify/functions/astrology"
+  status = 200
