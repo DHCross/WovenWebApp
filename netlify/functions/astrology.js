@@ -24,10 +24,19 @@ exports.handler = async function(event) {
 
     try {
       const body = JSON.parse(event.body);
-      console.log("Parsed request body:", body);
+      const { subject, first_subject, second_subject } = body;
+      console.log("Received request for:", subject?.name || first_subject?.name || "Unknown");
 
       if (body.first_subject && body.second_subject) {
         // Synastry call
+        if (body.first_subject.timezone && !body.first_subject.tz_str) {
+          body.first_subject.tz_str = body.first_subject.timezone;
+          delete body.first_subject.timezone;
+        }
+        if (body.second_subject.timezone && !body.second_subject.tz_str) {
+          body.second_subject.tz_str = body.second_subject.timezone;
+          delete body.second_subject.timezone;
+        }
         const requiredFields = ['year', 'month', 'day', 'hour', 'minute', 'name', 'city'];
         for (const field of requiredFields) {
           if (!body.first_subject[field]) throw new Error(`Missing required field in first_subject: ${field}`);
@@ -41,6 +50,10 @@ exports.handler = async function(event) {
       } else if (body.subject) {
         // Natal call
         const subject = body.subject;
+        if (subject.timezone && !subject.tz_str) {
+          subject.tz_str = subject.timezone;
+          delete subject.timezone;
+        }
         const requiredFields = ['year', 'month', 'day', 'hour', 'minute', 'name', 'city'];
         for (const field of requiredFields) {
           if (!subject[field]) throw new Error(`Missing required field in subject: ${field}`);
@@ -71,7 +84,7 @@ exports.handler = async function(event) {
     const apiResponse = await fetch(API_BASE_URL, options);
     const rawText = await apiResponse.text();
 
-    console.log("Raw response from astrology API:", rawText);
+    console.log("Astrology API response length:", rawText.length);
 
     let apiData;
     try {
