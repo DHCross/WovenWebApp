@@ -1,101 +1,102 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Astrology App</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
-</head>
-<body class="bg-gray-900 p-6">
-  <div class="max-w-md mx-auto">
-    <h1 class="text-white text-2xl font-bold mb-4">Astrology Data</h1>
-    <div id="primary-subject-fields" class="mb-4">
-      <input id="name" placeholder="Name" class="form-input w-full mb-2" />
-      <input id="year" placeholder="Year" class="form-input w-full mb-2" />
-      <input id="month" placeholder="Month" class="form-input w-full mb-2" />
-      <input id="day" placeholder="Day" class="form-input w-full mb-2" />
-      <input id="hour" placeholder="Hour" class="form-input w-full mb-2" />
-      <input id="minute" placeholder="Minute" class="form-input w-full mb-2" />
-      <input id="city" placeholder="City" class="form-input w-full mb-2" />
-      <input id="timezone" placeholder="Time Zone (e.g. America/New_York)" class="form-input w-full mb-2" />
-    </div>
+const API_NATAL_URL = "https://astrologer.p.rapidapi.com/api/v4/natal-aspects-data";
+const API_SYNASTRY_URL = "https://astrologer.p.rapidapi.com/api/v4/synastry-aspects-data";
 
-    <label class="inline-flex items-center mt-2">
-      <input type="checkbox" id="synastry-toggle" class="form-checkbox h-4 w-4 text-indigo-600" />
-      <span class="ml-2 text-white">Include Synastry Analysis</span>
-    </label>
+const headers = {
+  "content-type": "application/json",
+  "X-RapidAPI-Key": process.env.RAPIDAPI_KEY,
+  "X-RapidAPI-Host": "astrologer.p.rapidapi.com"
+};
 
-    <div id="second-subject-fields" class="mt-4 hidden">
-      <h3 class="text-white font-semibold mb-2">Second Subject</h3>
-      <input id="second_name" placeholder="Name" class="form-input w-full mb-2" />
-      <input id="second_year" placeholder="Year" class="form-input w-full mb-2" />
-      <input id="second_month" placeholder="Month" class="form-input w-full mb-2" />
-      <input id="second_day" placeholder="Day" class="form-input w-full mb-2" />
-      <input id="second_hour" placeholder="Hour" class="form-input w-full mb-2" />
-      <input id="second_minute" placeholder="Minute" class="form-input w-full mb-2" />
-      <input id="second_city" placeholder="City" class="form-input w-full mb-2" />
-      <input id="second_timezone" placeholder="Time Zone (e.g. America/New_York)" class="form-input w-full mb-2" />
-    </div>
+exports.handler = async function (event) {
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: 'Only POST requests allowed' })
+    };
+  }
 
-    <button id="submit-btn" class="mt-4 bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700">
-      Submit
-    </button>
+  let body;
+  try {
+    body = JSON.parse(event.body);
+  } catch (err) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: 'Invalid JSON' })
+    };
+  }
 
-    <pre id="result" class="text-white mt-4 whitespace-pre-wrap"></pre>
-  </div>
+  try {
+    // Synastry request
+    if (body.first_subject && body.second_subject) {
+      const fs = body.first_subject;
+      const ss = body.second_subject;
 
-  <script>
-    const synastryToggle = document.getElementById('synastry-toggle');
-    const secondSubjectFields = document.getElementById('second-subject-fields');
-    synastryToggle.addEventListener('change', () => {
-      secondSubjectFields.classList.toggle('hidden', !synastryToggle.checked);
-    });
+      [fs, ss].forEach(subject => {
+        if (subject.timezone && !subject.tz_str) {
+          subject.tz_str = subject.timezone;
+          delete subject.timezone;
+        }
 
-    function getSubjectData(prefix) {
+        const required = ['year', 'month', 'day', 'hour', 'minute', 'name', 'city'];
+        for (const key of required) {
+          if (!subject[key]) throw new Error(`Missing ${key} in subject`);
+        }
+      });
+
+      const response = await fetch(API_SYNASTRY_URL, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ first_subject: fs, second_subject: ss })
+      });
+
+      const rawText = await response.text();
+      try {
+        return {
+          statusCode: 200,
+          body: rawText
+        };
+      } catch (e) {
+        return {
+          statusCode: 502,
+          body: JSON.stringify({ error: 'Malformed response from API' })
+        };
+      }
+    }
+
+    // Natal request
+    else if (body.subject) {
+      const subject = body.subject;
+      if (subject.timezone && !subject.tz_str) {
+        subject.tz_str = subject.timezone;
+        delete subject.timezone;
+      }
+
+      const required = ['year', 'month', 'day', 'hour', 'minute', 'name', 'city'];
+      for (const key of required) {
+        if (!subject[key]) throw new Error(`Missing ${key} in subject`);
+      }
+
+      const response = await fetch(API_NATAL_URL, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ subject })
+      });
+
+      const rawText = await response.text();
       return {
-        name: document.getElementById(prefix + 'name').value,
-        year: document.getElementById(prefix + 'year').value,
-        month: document.getElementById(prefix + 'month').value,
-        day: document.getElementById(prefix + 'day').value,
-        hour: document.getElementById(prefix + 'hour').value,
-        minute: document.getElementById(prefix + 'minute').value,
-        city: document.getElementById(prefix + 'city').value,
-        timezone: document.getElementById(prefix + 'timezone').value
+        statusCode: 200,
+        body: rawText
       };
     }
 
-    const buildRequestBody = () => {
-      const subject = getSubjectData('');
-      if (synastryToggle.checked) {
-        const second_subject = getSubjectData('second_');
-        return { first_subject: subject, second_subject };
-      }
-      return { subject };
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: 'Missing subject or synastry subjects' })
     };
-
-    document.getElementById('submit-btn').addEventListener('click', async () => {
-      const resultEl = document.getElementById('result');
-      resultEl.textContent = 'Loading...';
-
-      try {
-        const response = await fetch('/.netlify/functions/astrology', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(buildRequestBody())
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          resultEl.textContent = `Error: ${data.error || 'Unknown error'}`;
-          return;
-        }
-
-        resultEl.textContent = JSON.stringify(data, null, 2);
-      } catch (err) {
-        resultEl.textContent = 'Fetch error: ' + err.message;
-      }
-    });
-  </script>
-</body>
-</html>
+  } catch (err) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: err.message })
+    };
+  }
+};
