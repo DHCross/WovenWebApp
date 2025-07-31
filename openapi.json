@@ -408,7 +408,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SynastryAspectsRequestModel"
+                "$ref": "#/components/schemas/SynastryRequestModel"
               }
             }
           },
@@ -4453,3 +4453,15 @@
     }
   ]
 }
+      "SynastryRequestModel": {
+        "type": "object",
+        "required": ["first_subject", "second_subject"],
+        "properties": {
+          "first_subject": {
+            "$ref": "#/components/schemas/SubjectModel"
+          },
+          "second_subject": {
+            "$ref": "#/components/schemas/SubjectModel"
+          }
+        }
+      },
