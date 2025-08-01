@@ -998,8 +998,12 @@
               document.getElementById('offsetB').value = tzMap[tzAbbrev] || document.getElementById('offsetB').value;
             }
 
-            const coordMatch = text.match(/Latitude, Longitude:\s*(.*)/);
-            if (coordMatch) document.getElementById('astroB').value = coordMatch[1].trim();
+            const coordMatch = text.match(/Latitude, Longitude:\s*([^\n\r|]+)/);
+            if (coordMatch) {
+              let coords = coordMatch[1].split('|')[0].trim();
+              coords = coords.replace(/City:.*/i, '').trim();
+              document.getElementById('astroB').value = coords;
+            }
             const cityMatch = text.match(/City:\s*([^\n\r]+)/);
             if (cityMatch) document.getElementById('cityB').value = cityMatch[1].trim();
             
