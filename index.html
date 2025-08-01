@@ -129,7 +129,7 @@
                             </select>
                         </div>
                          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input type="text" id="nationB" placeholder="Country" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
+                            <input type="text" id="nationB" placeholder="Country" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="US">
                             <select id="zodiacB" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                                 <option value="Tropic">Tropic</option>
                                 <option value="Sidereal">Sidereal</option>
@@ -763,7 +763,7 @@
                     markdownParts.push(formatMdTransit(entryA, fullReportData.person_a, false));
 
                     if (relocationChecked && relocationCoords) {
-                        const relocationSubjectA = { ...transitSubjectA, latitude: relocationCoords.latitude, longitude: relocationCoords.longitude, city: 'Relocated', nation: '' };
+                        const relocationSubjectA = { ...transitSubjectA, latitude: relocationCoords.latitude, longitude: relocationCoords.longitude, city: 'Relocated', nation: 'US' };
                         const relocationApiResponseA = await getChartDataFromApi({ subject: relocationSubjectA });
                         const entryRelocA = { person: 'a', date: ds, chart: relocationApiResponseA, aspects: calculateAspects(relocationApiResponseA.data.subject, chartA), location_type: 'relocated' };
                         fullReportData.transits.push(entryRelocA);
@@ -777,7 +777,7 @@
                         fullReportData.transits.push(entryB);
                         markdownParts.push(formatMdTransit(entryB, fullReportData.person_b, false));
                         if (relocationChecked && relocationCoords) {
-                            const relocationSubjectB = { ...transitSubjectB, latitude: relocationCoords.latitude, longitude: relocationCoords.longitude, city: 'Relocated', nation: '' };
+                            const relocationSubjectB = { ...transitSubjectB, latitude: relocationCoords.latitude, longitude: relocationCoords.longitude, city: 'Relocated', nation: 'US' };
                             const relocationApiResponseB = await getChartDataFromApi({ subject: relocationSubjectB });
                             const entryRelocB = { person: 'b', date: ds, chart: relocationApiResponseB, aspects: calculateAspects(relocationApiResponseB.data.subject, chartB), location_type: 'relocated' };
                             fullReportData.transits.push(entryRelocB);
@@ -839,7 +839,8 @@
                         name: `Forecast for ${ds}`,
                         latitude: lat, longitude: lon,
                         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                        zodiac_type: 'Tropic'
+                        zodiac_type: 'Tropic',
+                        nation: 'US'  // Add required nation field
                     };
 
                     const apiResponse = await getChartDataFromApi({ subject: weatherSubject });
