@@ -413,6 +413,15 @@
             }
 
             if (!res.ok) {
+                // Enhanced error handling for missing fields
+                if (res.status === 400 && responsePayload.missing) {
+                    let msg = 'Missing required fields:';
+                    if (responsePayload.missing.person_a && responsePayload.missing.person_a.length) msg += `\nPerson A: ${responsePayload.missing.person_a.join(', ')}`;
+                    if (responsePayload.missing.person_b && responsePayload.missing.person_b.length) msg += `\nPerson B: ${responsePayload.missing.person_b.join(', ')}`;
+                    if (Array.isArray(responsePayload.missing) && responsePayload.missing.length) msg += `\n${responsePayload.missing.join(', ')}`;
+                    showMessage(msg, 'error');
+                    throw new Error(msg);
+                }
                 const errorMsg = responsePayload.error || responsePayload.details || 'An unknown server error occurred.';
                 throw new Error(errorMsg);
             }
