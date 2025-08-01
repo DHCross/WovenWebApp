@@ -1005,6 +1005,23 @@
             showMessage('Failed to read clipboard: ' + err.message, 'error');
           }
         });
+
+        // --- Intimacy Tier Visibility Logic ---
+        const relationshipRadios = document.querySelectorAll('input[name="relationshipType"]');
+        const intimacyDropdown = document.getElementById('intimacy-tier-dropdown');
+        function updateIntimacyDropdown() {
+            const selected = document.querySelector('input[name="relationshipType"]:checked');
+            if (selected && selected.value === "Partner") {
+                intimacyDropdown.classList.remove('hidden');
+            } else {
+                intimacyDropdown.classList.add('hidden');
+            }
+        }
+        relationshipRadios.forEach(radio => {
+            radio.addEventListener('change', updateIntimacyDropdown);
+        });
+        // Ensure correct initial state on load
+        updateIntimacyDropdown();
     </script>
 </body>
 </html>
