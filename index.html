@@ -608,11 +608,9 @@
 
             try {
                 const personAData = getSubjectData('A');
-                if (!personAData) {
-                    throw new Error("Person A's data is incomplete or invalid.");
-                }
                 const personBData = getSubjectData('B');
-                const useSynastry = personBData && synastryToggle.checked;
+                const useSynastry = personAData && personBData && synastryToggle.checked;
+                const dualMirror = personAData && personBData && !synastryToggle.checked;
 
                 const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value || 'Friend';
                 let intimacyTier = '';
@@ -637,11 +635,17 @@
 
                 if (useSynastry) {
                     const payload = { first_subject: personAData, second_subject: personBData };
-                    const [synastryResponse, natalA, natalB] = await Promise.all([
-                        getChartDataFromApi(payload),
-                        getChartDataFromApi({ subject: personAData }),
-                        getChartDataFromApi({ subject: personBData })
-                    ]);
+                    let synastryResponse, natalA, natalB;
+                    try {
+                        [synastryResponse, natalA, natalB] = await Promise.all([
+                            getChartDataFromApi(payload),
+                            getChartDataFromApi({ subject: personAData }),
+                            getChartDataFromApi({ subject: personBData })
+                        ]);
+                    } catch (err) {
+                        showMessage(err.message, 'error');
+                        throw err;
+                    }
                     fullReportData.person_a = { details: personAData, chart: natalA };
                     fullReportData.person_b = { details: personBData, chart: natalB };
                     fullReportData.synastry = synastryResponse;
@@ -667,6 +671,47 @@
                     markdownParts.push(formatMdNatalChart(fullReportData.person_a));
                     markdownParts.push(formatMdNatalChart(fullReportData.person_b));
                     markdownParts.push(formatMdSynastry(synastryResponse, fullReportData.person_a, fullReportData.person_b));
+                } else if (dualMirror) {
+                    // --- Dual-mirror mode: both A and B, no synastry ---
+                    let response;
+                    try {
+                        response = await fetch('/api/astrology', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ person_a: personAData, person_b: personBData, include_synastry: false })
+                        });
+                    } catch (err) {
+                        showMessage('Network error: ' + err.message, 'error');
+                        throw err;
+                    }
+                    const text = await response.text();
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch {
+                        showMessage('Malformed response from backend: ' + text, 'error');
+                        throw new Error('Malformed backend response');
+                    }
+                    if (response.status === 400 && data.missing) {
+                        let msg = 'Missing required fields:';
+                        if (data.missing.person_a && data.missing.person_a.length) msg += `\nPerson A: ${data.missing.person_a.join(', ')}`;
+                        if (data.missing.person_b && data.missing.person_b.length) msg += `\nPerson B: ${data.missing.person_b.join(', ')}`;
+                        showMessage(msg, 'error');
+                        generateBtn.disabled = false;
+                        generateBtn.textContent = 'Generate Full Report';
+                        return;
+                    }
+                    if (!data.personA || !data.personB) {
+                        showMessage('Backend did not return both charts.', 'error');
+                        throw new Error('Dual-mirror backend error');
+                    }
+                    fullReportData.person_a = { details: personAData, chart: data.personA };
+                    fullReportData.person_b = { details: personBData, chart: data.personB };
+                    markdownParts.unshift(
+                        '## Info: You entered two charts but did not select Synastry.\nYou will receive two separate mirror reflections, not a relationship analysis.'
+                    );
+                    markdownParts.push(formatMdNatalChart(fullReportData.person_a));
+                    markdownParts.push(formatMdNatalChart(fullReportData.person_b));
                 } else {
                     const apiResponseA = await getChartDataFromApi({ subject: personAData });
                     fullReportData.person_a = { details: personAData, chart: apiResponseA };
