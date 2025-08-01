@@ -47,10 +47,18 @@ exports.handler = async function (event) {
           subject.tz_str = subject.timezone;
           delete subject.timezone;
         }
-
+        // Normalize lat/lng to latitude/longitude for API
+        if (subject.lat !== undefined) {
+          subject.latitude = subject.lat;
+          delete subject.lat;
+        }
+        if (subject.lng !== undefined) {
+          subject.longitude = subject.lng;
+          delete subject.lng;
+        }
         const required = [
           'year', 'month', 'day', 'hour', 'minute',
-          'name', 'city', 'nation', 'lng', 'lat', 'tz_str', 'zodiac_type'
+          'name', 'city', 'nation', 'latitude', 'longitude', 'tz_str', 'zodiac_type'
         ];
         for (const key of required) {
           if (!subject[key]) throw new Error(`Missing ${key} in subject`);
@@ -105,10 +113,18 @@ exports.handler = async function (event) {
         subject.tz_str = subject.timezone;
         delete subject.timezone;
       }
-
+      // Normalize lat/lng to latitude/longitude for API
+      if (subject.lat !== undefined) {
+        subject.latitude = subject.lat;
+        delete subject.lat;
+      }
+      if (subject.lng !== undefined) {
+        subject.longitude = subject.lng;
+        delete subject.lng;
+      }
       const required = [
         'year', 'month', 'day', 'hour', 'minute',
-        'name', 'city', 'nation', 'lng', 'lat', 'tz_str', 'zodiac_type'
+        'name', 'city', 'nation', 'latitude', 'longitude', 'tz_str', 'zodiac_type'
       ];
       for (const key of required) {
         if (!subject[key]) throw new Error(`Missing ${key} in subject`);
