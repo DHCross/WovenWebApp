@@ -146,7 +146,7 @@
                 </div>
             </div>
 
-            <div id="relational-context-stack" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 hidden border border-teal-500">
+            <div id="relational-context-stack" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500">
                 <div class="flex items-center mb-4">
                 <h2 class="text-2xl font-semibold text-white mr-3">Relational Context Query Stack</h2>
                 <button id="echo-loop-info-btn" type="button" class="relative group ml-2 text-xs text-indigo-300 underline hover:text-indigo-400 focus:outline-none">
@@ -169,6 +169,7 @@
               <button id="diagnostics-toggle" class="text-xs bg-indigo-700 text-white rounded px-2 py-1 mr-2">Show Diagnostics</button>
               <div id="diagnostics-panel" class="inline-block align-middle"></div>
             </div>
+            <p class="text-gray-400 text-sm mb-2"><b>Note:</b> This choice determines how your report is interpreted by Poetic Brain (Raven Calder GPT).</p>
             <p class="text-gray-400 text-sm mb-4">Based on initial geometry, the Math Brain has detected the following potential dynamics:</p>
             <ul id="context-readout" class="list-disc list-inside space-y-2 mb-4 text-gray-300">
                 </ul>
@@ -176,7 +177,7 @@
                     <p class="text-lg font-medium text-white mb-2">How would you categorize this connection?</p>
                     <div class="flex flex-col space-y-2">
                         <label class="flex items-center"><input type="radio" name="relationshipType" value="Partner" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Partner (romantic/undefined-intimate)</span></label>
-                        <label class="flex items-center"><input type="radio" name="relationshipType" value="Friend" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Friend or colleague</span></label>
+                        <label class="flex items-center"><input type="radio" name="relationshipType" value="Friend" class="form-radio h-4 w-4 text-teal-400" checked><span class="ml-2 text-gray-300">Friend or colleague</span></label>
                         <label class="flex items-center"><input type="radio" name="relationshipType" value="Family" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Family</span></label>
                     </div>
                     <div id="intimacy-tier-dropdown" class="mt-4 hidden">
@@ -477,20 +478,6 @@
             return overlays;
         };
         
-        function updateRelationalContext() {
-            const personAData = getSubjectData('A');
-            const personBData = getSubjectData('B');
-
-            if (!personAData || !personBData) {
-                relationalContextStack.classList.add('hidden');
-                return;
-            }
-
-            contextReadout.innerHTML = '<li>Click "Generate Full Report" to see the initial geometry diagnostics.</li>';
-            relationalContextStack.classList.remove('hidden');
-        }
-
-
         // --- MARKDOWN FORMATTING ENGINE ---
         const formatMdNatalChart = (personData) => {
             const { details, chart: apiResponse } = personData;
@@ -627,16 +614,26 @@
                 const personBData = getSubjectData('B');
                 const useSynastry = personBData && synastryToggle.checked;
 
-                const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value || '';
+                const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value || 'Friend';
                 let intimacyTier = '';
                 if (relationshipType === 'Partner') {
                     intimacyTier = document.querySelector('input[name="intimacyTier"]:checked')?.value || '';
+                    if (!intimacyTier) {
+                        showMessage('Please select an intimacy tier for Partner relationships.', 'error');
+                        generateBtn.disabled = false;
+                        generateBtn.textContent = 'Generate Full Report';
+                        return;
+                    }
                 }
 
                 let markdownParts = [
                     `> ★ = Planet is within the last degree of a sign (the 29th degree).\n> **Aspect Symbols:** ☌ = Conjunction, ☍ = Opposition, □ = Square, △ = Trine, ✶ = Sextile\n> **\"Core Pressure Point\"** = aspect orb ≤ 3° (the strongest and most direct influences).`
                 ];
-                fullReportData = { schema: "WM-Chart-1.0", relationship_type: relationshipType, intimacy_tier: intimacyTier };
+                fullReportData = {
+                    schema: "WM-Chart-1.0",
+                    relationshipType: relationshipType,
+                    intimacyTier: intimacyTier
+                };
 
                 if (useSynastry) {
                     const payload = { first_subject: personAData, second_subject: personBData };
@@ -890,48 +887,20 @@
             }
         }
         
-        function triggerContextCheck() {
-            clearTimeout(contextCheckTimeout);
-            contextCheckTimeout = setTimeout(updateRelationalContext, 1000);
-        }
-        
-        document.querySelectorAll('.person-b-field').forEach(field => {
-            field.addEventListener('input', triggerContextCheck);
-            field.addEventListener('change', triggerContextCheck);
+        const poeticBrainBtn = document.createElement('button');
+        poeticBrainBtn.id = 'poetic-brain-btn';
+        poeticBrainBtn.textContent = 'Export for Poetic Brain';
+        poeticBrainBtn.className = 'bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors ml-2';
+        document.querySelector('#output-section .flex').appendChild(poeticBrainBtn);
+        poeticBrainBtn.addEventListener('click', () => {
+            const minimal = {
+                relationship_type: fullReportData.relationship_type || '',
+                intimacy_tier: fullReportData.intimacy_tier || '',
+                diagnostics: fullReportData.diagnostics || []
+            };
+            const filename = 'poetic_brain_context.json';
+            downloadFile(filename, JSON.stringify(minimal, null, 2), 'application/json');
         });
-        // Also watch Person A inputs so the stack updates whenever A changes
-        document.querySelectorAll('#personA-card input, #personA-card select').forEach(field => {
-            field.addEventListener('input', triggerContextCheck);
-            field.addEventListener('change', triggerContextCheck);
-        });
-
-        const relationshipTypeRadios = document.querySelectorAll('input[name="relationshipType"]');
-        const intimacyTierDropdown = document.getElementById('intimacy-tier-dropdown');
-        relationshipTypeRadios.forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                if (e.target.value === 'Partner') {
-                    intimacyTierDropdown.classList.remove('hidden');
-                } else {
-                    intimacyTierDropdown.classList.add('hidden');
-                    document.querySelectorAll('input[name="intimacyTier"]').forEach(tier => tier.checked = false);
-                }
-            });
-        });
-
-const poeticBrainBtn = document.createElement('button');
-poeticBrainBtn.id = 'poetic-brain-btn';
-poeticBrainBtn.textContent = 'Export for Poetic Brain';
-poeticBrainBtn.className = 'bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors ml-2';
-document.querySelector('#output-section .flex').appendChild(poeticBrainBtn);
-poeticBrainBtn.addEventListener('click', () => {
-    const minimal = {
-        relationship_type: fullReportData.relationship_type || '',
-        intimacy_tier: fullReportData.intimacy_tier || '',
-        diagnostics: fullReportData.diagnostics || []
-    };
-    const filename = 'poetic_brain_context.json';
-    downloadFile(filename, JSON.stringify(minimal, null, 2), 'application/json');
-});
 
         const mathBrainBtn = document.getElementById('math-brain-info-btn');
         const mathBrainModal = document.getElementById('math-brain-modal');
@@ -987,7 +956,6 @@ poeticBrainBtn.addEventListener('click', () => {
             }
 
             showMessage('AstroSeek data pasted successfully.', 'success');
-            triggerContextCheck();
           } catch (err) {
             showMessage('Failed to read clipboard: ' + err.message, 'error');
           }
