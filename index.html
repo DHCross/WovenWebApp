@@ -359,14 +359,17 @@
         };
 
         const getSubjectData = (personPrefix) => {
-            const name = document.getElementById(`name${personPrefix}`).value;
-            const city = document.getElementById(`city${personPrefix}`).value;
-            const state = document.getElementById(`state${personPrefix}`).value;
-            const date = document.getElementById(`date${personPrefix}`).value;
-            const time = document.getElementById(`time${personPrefix}`).value;
-            const timezone = document.getElementById(`offset${personPrefix}`).value;
-            const nation = document.getElementById(`nation${personPrefix}`).value;
-            const zodiac_type = document.getElementById(`zodiac${personPrefix}`).value;
+            const name = document.getElementById(`name${personPrefix}`).value.trim();
+            const city = document.getElementById(`city${personPrefix}`).value.trim();
+            const state = document.getElementById(`state${personPrefix}`).value.trim();
+            const date = document.getElementById(`date${personPrefix}`).value.trim();
+            const time = document.getElementById(`time${personPrefix}`).value.trim();
+            const timezone = document.getElementById(`offset${personPrefix}`).value.trim();
+            let nation = document.getElementById(`nation${personPrefix}`).value.trim().toUpperCase();
+            const zodiac_type = document.getElementById(`zodiac${personPrefix}`).value.trim();
+
+            // Default nation to 'US' if blank or not 2 letters
+            if (!nation || !/^[A-Z]{2}$/.test(nation)) nation = 'US';
 
             if (!name || !city || !state || !date || !time || !nation) {
                 return null;
@@ -377,7 +380,7 @@
 
             let lat, lng;
             try {
-                const astroValue = document.getElementById(`astro${personPrefix}`).value;
+                const astroValue = document.getElementById(`astro${personPrefix}`).value.trim();
                 if (!astroValue) return null;
                 const coords = parseCombinedCoords(astroValue);
                 lat = coords.latitude;
