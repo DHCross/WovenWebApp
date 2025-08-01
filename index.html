@@ -984,36 +984,8 @@
         pasteAstroBtn.addEventListener('click', async () => {
           try {
             const text = await navigator.clipboard.readText();
-            document.getElementById('nameB').value = text.split('\n')[0].trim() || '';
-
-            const dobMatch = text.match(/(\d{1,2})\s(\w+)\s(\d{4})\s*-\s*(\d{2}:\d{2}).*?\((\w+)\)/);
-            if (dobMatch) {
-              const [, day, monthName, year, time, tzAbbrev] = dobMatch;
-              const monthMap = { January:1, February:2, March:3, April:4, May:5, June:6, July:7, August:8, September:9, October:10, November:11, December:12 };
-              const mm = String(monthMap[monthName] || 1).padStart(2,'0');
-              const dd = day.padStart(2,'0');
-              document.getElementById('dateB').value = `${mm}-${dd}-${year}`;
-              document.getElementById('timeB').value = time;
-              const tzMap = { EST:'America/New_York', CST:'America/Chicago', MST:'America/Denver', PST:'America/Los_Angeles' };
-              document.getElementById('offsetB').value = tzMap[tzAbbrev] || document.getElementById('offsetB').value;
-            }
-
-            const coordMatch = text.match(/Latitude, Longitude:\s*([^\n\r|]+)/);
-            if (coordMatch) {
-              let coords = coordMatch[1].split('|')[0].trim();
-              coords = coords.replace(/City:.*/i, '').trim();
-              document.getElementById('astroB').value = coords;
-            }
-            const cityMatch = text.match(/City:\s*([^\n\r]+)/);
-            if (cityMatch) document.getElementById('cityB').value = cityMatch[1].trim();
-            
-            const countryMatch = text.match(/Country:\s*([^\n\r(]+)\s*\((\w+)\),\s*(\w+)/);
-            if (countryMatch) {
-              document.getElementById('nationB').value = countryMatch[2].trim();
-              document.getElementById('stateB').value = countryMatch[3].trim();
-            }
-
-            showMessage('AstroSeek data pasted successfully.', 'success');
+            document.getElementById('astroB').value = text.trim();
+            showMessage('Coordinates pasted. Please fill out the rest.', 'success');
           } catch (err) {
             showMessage('Failed to read clipboard: ' + err.message, 'error');
           }
