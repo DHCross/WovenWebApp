@@ -42,12 +42,8 @@ exports.handler = async function (event) {
       const fs = body.first_subject;
       const ss = body.second_subject;
 
+      // Normalize lat/lng to latitude/longitude for API
       [fs, ss].forEach(subject => {
-        if (subject.timezone && !subject.tz_str) {
-          subject.tz_str = subject.timezone;
-          delete subject.timezone;
-        }
-        // Normalize lat/lng to latitude/longitude for API
         if (subject.lat !== undefined) {
           subject.latitude = subject.lat;
           delete subject.lat;
@@ -56,12 +52,17 @@ exports.handler = async function (event) {
           subject.longitude = subject.lng;
           delete subject.lng;
         }
-        const required = [
+        // If tz_str is present, use as timezone
+        if (subject.tz_str && !subject.timezone) {
+          subject.timezone = subject.tz_str;
+        }
+        // Only keep allowed fields
+        const allowedFields = [
           'year', 'month', 'day', 'hour', 'minute',
-          'name', 'city', 'nation', 'latitude', 'longitude', 'tz_str', 'zodiac_type'
+          'name', 'city', 'nation', 'latitude', 'longitude', 'zodiac_type', 'timezone'
         ];
-        for (const key of required) {
-          if (!subject[key]) throw new Error(`Missing ${key} in subject`);
+        for (const key of Object.keys(subject)) {
+          if (!allowedFields.includes(key)) delete subject[key];
         }
       });
 
@@ -109,10 +110,6 @@ exports.handler = async function (event) {
     // Natal request
     else if (body.subject) {
       const subject = body.subject;
-      if (subject.timezone && !subject.tz_str) {
-        subject.tz_str = subject.timezone;
-        delete subject.timezone;
-      }
       // Normalize lat/lng to latitude/longitude for API
       if (subject.lat !== undefined) {
         subject.latitude = subject.lat;
@@ -122,12 +119,17 @@ exports.handler = async function (event) {
         subject.longitude = subject.lng;
         delete subject.lng;
       }
-      const required = [
+      // If tz_str is present, use as timezone
+      if (subject.tz_str && !subject.timezone) {
+        subject.timezone = subject.tz_str;
+      }
+      // Only keep allowed fields
+      const allowedFields = [
         'year', 'month', 'day', 'hour', 'minute',
-        'name', 'city', 'nation', 'latitude', 'longitude', 'tz_str', 'zodiac_type'
+        'name', 'city', 'nation', 'latitude', 'longitude', 'zodiac_type', 'timezone'
       ];
-      for (const key of required) {
-        if (!subject[key]) throw new Error(`Missing ${key} in subject`);
+      for (const key of Object.keys(subject)) {
+        if (!allowedFields.includes(key)) delete subject[key];
       }
 
       console.log('Outgoing natal body:', JSON.stringify({ subject }));
