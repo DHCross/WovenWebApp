@@ -477,6 +477,32 @@
             }
             return overlays;
         };
+
+        const groupByDate = (transits) => {
+            const grouped = {};
+            transits.forEach(transitEntry => {
+                // Extract date in MM-DD-YYYY format and convert to YYYY-MM-DD
+                const dateMMDDYYYY = transitEntry.date;
+                const [month, day, year] = dateMMDDYYYY.split('-');
+                const dateYYYYMMDD = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                
+                // Initialize date group if it doesn't exist
+                if (!grouped[dateYYYYMMDD]) {
+                    grouped[dateYYYYMMDD] = [];
+                }
+                
+                // Transform each aspect to the required format
+                transitEntry.aspects.forEach(aspect => {
+                    grouped[dateYYYYMMDD].push({
+                        p1_name: aspect.p1_name,
+                        p2_name: aspect.p2_name,
+                        aspect: aspect.aspect,
+                        orb: aspect.orb
+                    });
+                });
+            });
+            return grouped;
+        };
         
         // --- MARKDOWN FORMATTING ENGINE ---
         const formatMdNatalChart = (personData) => {
@@ -785,6 +811,9 @@
                         }
                     }
                 }
+
+                // Group transits by date after all transit processing is complete
+                fullReportData.transitsByDate = groupByDate(fullReportData.transits);
 
                 // Always prepend Poetic Brain context
                 markdownParts.unshift(poeticBrainContextMd());
