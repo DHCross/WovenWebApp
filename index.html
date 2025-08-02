@@ -146,58 +146,46 @@
                 </div>
             </div>
 
-            <div id="relational-context-stack" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500">
-                <div class="flex items-center mb-4">
-                <h2 class="text-2xl font-semibold text-white mr-3">Relational Context Query Stack</h2>
-                <button id="echo-loop-info-btn" type="button" class="relative group ml-2 text-xs text-indigo-300 underline hover:text-indigo-400 focus:outline-none">
-                  What’s an Echo Loop?
-                  <span class="hidden sm:block absolute left-1/2 transform -translate-x-1/2 mt-2 w-72 bg-gray-900 text-gray-200 text-xs rounded-lg shadow-lg p-3 border border-indigo-500 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity z-50 pointer-events-none">
-                    <b>An Echo Loop</b> is a repeating dynamic between two people, formed by tight (usually <1° orb) aspects that go both ways.<br><br>
-                    Think of it as a pattern you both co-create—often magnetic, sometimes difficult to break.<br><br>
-                    Echo Loops form the core of Relational Echo Fields (REFs) when multiple loops share a theme.<br><br>
-                    <span class="block mt-2 text-indigo-300 font-semibold">✅ Protocol Alignment: Why This Works</span>
-                    <ul class="list-disc list-inside text-gray-300 text-xs mt-1">
-                      <li>Does not override user autonomy (only describes mechanics)</li>
-                      <li>Preserves Recognition-first model (no "you're feeling X")</li>
-                      <li>Clarifies Math Brain’s role (no interpretive ambiguity)</li>
-                      <li>Prepares user for Poetic Brain handoff without overexplanation</li>
-                    </ul>
-                  </span>
-                </button>
-            </div>
-            <div id="diagnostics-strip" class="mb-4 hidden">
-              <button id="diagnostics-toggle" class="text-xs bg-indigo-700 text-white rounded px-2 py-1 mr-2">Show Diagnostics</button>
-              <div id="diagnostics-panel" class="inline-block align-middle"></div>
-            </div>
-            <p class="text-gray-400 text-sm mb-2"><b>Note:</b> This choice determines how your report is interpreted by Poetic Brain (Raven Calder GPT).</p>
-            <p class="text-gray-400 text-sm mb-4">Based on initial geometry, the Math Brain has detected the following potential dynamics:</p>
-            <ul id="context-readout" class="list-disc list-inside space-y-2 mb-4 text-gray-300">
-                </ul>
+            <div id="context-mode-section" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500">
+              <h2 class="text-2xl font-semibold text-white mr-3">Context Mode</h2>
+              <div id="context-toggle" class="flex items-center mb-4" style="display:none;">
+                <label class="flex items-center mr-4"><input type="radio" name="contextMode" value="self" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Self</span></label>
+                <label class="flex items-center"><input type="radio" name="contextMode" value="relational" class="form-radio h-4 w-4 text-teal-400" checked><span class="ml-2 text-gray-300">Relational Context Query</span></label>
+              </div>
+              <div id="self-context" style="display:none;">
+                <p class="text-gray-400 text-sm mb-2">You are in <b>Self</b> mode. Only Person A's context will be analyzed.</p>
+                <!-- Add any self-specific questions/fields here -->
+              </div>
+              <div id="relational-context" style="display:none;">
+                <p class="text-gray-400 text-sm mb-2">You are in <b>Relational Context Query</b> mode. Relationship fields and diagnostics will be shown.</p>
+                <!-- Place all relational-specific questions/fields here -->
                 <div id="relationship-type-query">
-                    <p class="text-lg font-medium text-white mb-2">How would you categorize this connection?</p>
+                  <p class="text-lg font-medium text-white mb-2">How would you categorize this connection?</p>
+                  <div class="flex flex-col space-y-2">
+                    <label class="flex items-center"><input type="radio" name="relationshipType" value="Partner" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Partner (romantic/undefined-intimate)</span></label>
+                    <label class="flex items-center"><input type="radio" name="relationshipType" value="Friend" class="form-radio h-4 w-4 text-teal-400" checked><span class="ml-2 text-gray-300">Friend or colleague</span></label>
+                    <label class="flex items-center"><input type="radio" name="relationshipType" value="Family" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Family</span></label>
+                  </div>
+                  <div id="intimacy-tier-dropdown" class="mt-4 hidden">
+                    <p class="text-md font-medium text-white mb-2">What best describes the intimacy tier of this connection?</p>
                     <div class="flex flex-col space-y-2">
-                        <label class="flex items-center"><input type="radio" name="relationshipType" value="Partner" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Partner (romantic/undefined-intimate)</span></label>
-                        <label class="flex items-center"><input type="radio" name="relationshipType" value="Friend" class="form-radio h-4 w-4 text-teal-400" checked><span class="ml-2 text-gray-300">Friend or colleague</span></label>
-                        <label class="flex items-center"><input type="radio" name="relationshipType" value="Family" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Family</span></label>
+                      <label class="flex items-center">
+                        <input type="radio" name="intimacyTier" value="P1" class="form-radio h-4 w-4 text-pink-400">
+                        <span class="ml-2 text-gray-300">P1 – Platonic partners</span>
+                      </label>
+                      <label class="flex items-center">
+                        <input type="radio" name="intimacyTier" value="P2" class="form-radio h-4 w-4 text-pink-400">
+                        <span class="ml-2 text-gray-300">P2 – Friends with benefits</span>
+                      </label>
+                      <label class="flex items-center">
+                        <input type="radio" name="intimacyTier" value="P3" class="form-radio h-4 w-4 text-pink-400">
+                        <span class="ml-2 text-gray-300">P3 – Romantic partners</span>
+                      </label>
                     </div>
-                    <div id="intimacy-tier-dropdown" class="mt-4 hidden">
-                        <p class="text-md font-medium text-white mb-2">What best describes the intimacy tier of this connection?</p>
-                        <div class="flex flex-col space-y-2">
-                            <label class="flex items-center">
-                                <input type="radio" name="intimacyTier" value="P1" class="form-radio h-4 w-4 text-pink-400">
-                                <span class="ml-2 text-gray-300">P1 – Platonic partners</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="radio" name="intimacyTier" value="P2" class="form-radio h-4 w-4 text-pink-400">
-                                <span class="ml-2 text-gray-300">P2 – Friends with benefits</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="radio" name="intimacyTier" value="P3" class="form-radio h-4 w-4 text-pink-400">
-                                <span class="ml-2 text-gray-300">P3 – Romantic partners</span>
-                            </label>
-                        </div>
-                    </div>
+                  </div>
                 </div>
+                <!-- Diagnostics, etc. can be placed here -->
+              </div>
             </div>
 
             <div class="mb-8">
@@ -624,27 +612,39 @@
                 const useSynastry = personAData && personBData && synastryToggle.checked;
                 const dualMirror = personAData && personBData && !synastryToggle.checked;
 
-                const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value || 'Friend';
+                const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value || 'N/A';
                 let intimacyTier = '';
                 if (relationshipType === 'Partner') {
-                    intimacyTier = document.querySelector('input[name="intimacyTier"]:checked')?.value || '';
-                    if (!intimacyTier) {
+                    intimacyTier = document.querySelector('input[name="intimacyTier"]:checked')?.value || 'N/A';
+                    if (!intimacyTier || intimacyTier === 'N/A') {
                         showMessage('Please select an intimacy tier for Partner relationships.', 'error');
                         generateBtn.disabled = false;
                         generateBtn.textContent = 'Generate Full Report';
                         return;
                     }
+                } else {
+                    intimacyTier = 'N/A';
                 }
 
-                let markdownParts = [
-                    `> ★ = Planet is within the last degree of a sign (the 29th degree).\n> **Aspect Symbols:** ☌ = Conjunction, ☍ = Opposition, □ = Square, △ = Trine, ✶ = Sextile\n> **\"Core Pressure Point\"** = aspect orb ≤ 3° (the strongest and most direct influences).`
-                ];
+                let diagnostics = [];
+                // diagnostics will be populated later in synastry mode
+
                 fullReportData = {
                     schema: "WM-Chart-1.0",
-                    relationshipType: relationshipType,
-                    intimacyTier: intimacyTier
+                    relationship_type: relationshipType,
+                    intimacy_tier: intimacyTier,
+                    diagnostics: [] // will be set later
                 };
 
+                // --- Poetic Brain Context Markdown Block ---
+                function poeticBrainContextMd() {
+                    let diagList = (fullReportData.diagnostics && fullReportData.diagnostics.length)
+                        ? fullReportData.diagnostics.map(d => `  - ${d}`).join('\n')
+                        : '  - None.';
+                    return `## Poetic Brain Context\n\n- Relationship Type: ${fullReportData.relationship_type || 'N/A'}\n- Intimacy Tier: ${fullReportData.intimacy_tier || 'N/A'}\n- Diagnostics:\n${diagList}\n`;
+                }
+
+                let markdownParts = [];
                 if (useSynastry) {
                     const payload = { first_subject: personAData, second_subject: personBData };
                     let synastryResponse, natalA, natalB;
@@ -662,7 +662,7 @@
                     fullReportData.person_b = { details: personBData, chart: natalB };
                     fullReportData.synastry = synastryResponse;
                     
-                    const diagnostics = [];
+                    diagnostics = [];
                     const synAspects = synastryResponse.aspects || [];
                     if (synAspects.some(a => a.p1_pos >= 29 || a.p2_pos >= 29)) diagnostics.push('29° placement in close synastry contact');
                     if (synAspects.filter(a => a.orb < 1.0).length > 0) diagnostics.push('Resonant aspect forming <1° orb (possible echo loop)');
@@ -786,6 +786,8 @@
                     }
                 }
 
+                // Always prepend Poetic Brain context
+                markdownParts.unshift(poeticBrainContextMd());
                 markdownReport = markdownParts.join('\n\n');
                 reportTitle.textContent = "Generated Report";
                 reportOutput.textContent = markdownReport;
@@ -945,21 +947,6 @@
             }
         }
         
-        const poeticBrainBtn = document.createElement('button');
-        poeticBrainBtn.id = 'poetic-brain-btn';
-        poeticBrainBtn.textContent = 'Export for Poetic Brain';
-        poeticBrainBtn.className = 'bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors ml-2';
-        document.querySelector('#output-section .flex').appendChild(poeticBrainBtn);
-        poeticBrainBtn.addEventListener('click', () => {
-            const minimal = {
-                relationship_type: fullReportData.relationship_type || '',
-                intimacy_tier: fullReportData.intimacy_tier || '',
-                diagnostics: fullReportData.diagnostics || []
-            };
-            const filename = 'poetic_brain_context.json';
-            downloadFile(filename, JSON.stringify(minimal, null, 2), 'application/json');
-        });
-
         const mathBrainBtn = document.getElementById('math-brain-info-btn');
         const mathBrainModal = document.getElementById('math-brain-modal');
         const closeMathBrainModal = document.getElementById('close-math-brain-modal');
@@ -1011,6 +998,45 @@
         });
         // Ensure correct initial state on load
         updateIntimacyDropdown();
+
+        // JS logic for context mode toggle and visibility
+        function updateContextModeVisibility() {
+          const personA = getSubjectData('A');
+          const personB = getSubjectData('B');
+          const contextToggle = document.getElementById('context-toggle');
+          const selfContext = document.getElementById('self-context');
+          const relationalContext = document.getElementById('relational-context');
+          if (personA && !personB) {
+            contextToggle.style.display = 'none';
+            selfContext.style.display = 'block';
+            relationalContext.style.display = 'none';
+          } else if (personA && personB) {
+            contextToggle.style.display = 'flex';
+            // Default to relational mode
+            const selectedMode = document.querySelector('input[name="contextMode"]:checked')?.value || 'relational';
+            if (selectedMode === 'self') {
+              selfContext.style.display = 'block';
+              relationalContext.style.display = 'none';
+            } else {
+              selfContext.style.display = 'none';
+              relationalContext.style.display = 'block';
+            }
+          } else {
+            // Hide both if no Person A
+            contextToggle.style.display = 'none';
+            selfContext.style.display = 'none';
+            relationalContext.style.display = 'none';
+          }
+        }
+        document.querySelectorAll('input[name="contextMode"]').forEach(radio => {
+          radio.addEventListener('change', updateContextModeVisibility);
+        });
+        // Call on load and whenever Person A/B changes
+        ['nameA','cityA','stateA','dateA','timeA','offsetA','nationA','zodiacA','astroA','nameB','cityB','stateB','dateB','timeB','offsetB','nationB','zodiacB','astroB'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.addEventListener('input', updateContextModeVisibility);
+        });
+        window.addEventListener('DOMContentLoaded', updateContextModeVisibility);
     </script>
 </body>
 </html>
