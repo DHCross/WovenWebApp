@@ -194,13 +194,25 @@ exports.handler = async function (event) {
           body: JSON.stringify({ error: 'Missing required fields', missing: { first_subject: missingA, second_subject: missingB } })
         };
       }
-      let response;
+      let synastryResponse, natalA, natalB;
       try {
-        response = await fetch(API_SYNASTRY_URL, {
-          method: 'POST',
-          headers: buildHeaders(),
-          body: JSON.stringify({ first_subject: fs, second_subject: ss })
-        });
+        [synastryResponse, natalA, natalB] = await Promise.all([
+          fetch(API_SYNASTRY_URL, {
+            method: 'POST',
+            headers: buildHeaders(),
+            body: JSON.stringify({ first_subject: fs, second_subject: ss })
+          }),
+          fetch(API_NATAL_URL, {
+            method: 'POST',
+            headers: buildHeaders(),
+            body: JSON.stringify({ subject: fs })
+          }),
+          fetch(API_NATAL_URL, {
+            method: 'POST',
+            headers: buildHeaders(),
+            body: JSON.stringify({ subject: ss })
+          })
+        ]);
       } catch (err) {
         console.error('Fetch error (synastry):', err);
         return {
@@ -208,18 +220,20 @@ exports.handler = async function (event) {
           body: JSON.stringify({ error: 'External API error', details: err.message })
         };
       }
-
-      const rawText = await response.text();
-      if (!response.ok) {
-        console.error('Astrology API error (synastry):', response.status, rawText);
+      const rawSynastry = await synastryResponse.text();
+      const rawA = await natalA.text();
+      const rawB = await natalB.text();
+      if (!synastryResponse.ok || !natalA.ok || !natalB.ok) {
         return {
           statusCode: 502,
-          body: JSON.stringify({ error: 'External API error', details: rawText })
+          body: JSON.stringify({ error: 'External API error', details: { synastry: rawSynastry, person_a: rawA, person_b: rawB } })
         };
       }
-      let parsed;
+      let parsedSynastry, parsedA, parsedB;
       try {
-        parsed = JSON.parse(rawText);
+        parsedSynastry = JSON.parse(rawSynastry);
+        parsedA = JSON.parse(rawA);
+        parsedB = JSON.parse(rawB);
       } catch {
         return {
           statusCode: 502,
@@ -227,12 +241,22 @@ exports.handler = async function (event) {
         };
       }
       // If transits array exists, add grouped version
-      if (parsed.transits && Array.isArray(parsed.transits)) {
-        parsed.transitsByDate = groupByDate(parsed.transits);
+      if (parsedSynastry.transits && Array.isArray(parsedSynastry.transits)) {
+        parsedSynastry.transitsByDate = groupByDate(parsedSynastry.transits);
+      }
+      if (parsedA.transits && Array.isArray(parsedA.transits)) {
+        parsedA.transitsByDate = groupByDate(parsedA.transits);
+      }
+      if (parsedB.transits && Array.isArray(parsedB.transits)) {
+        parsedB.transitsByDate = groupByDate(parsedB.transits);
       }
       return {
         statusCode: 200,
-        body: JSON.stringify(parsed)
+        body: JSON.stringify({
+          synastry: parsedSynastry,
+          personA: parsedA,
+          personB: parsedB
+        })
       };
     }
     // --- Solo-natal (A or B only, not synastry, not both) ---
