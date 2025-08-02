@@ -812,9 +812,18 @@
                     }
                 }
 
-                // Group transits by date after all transit processing is complete
-                fullReportData.transitsByDate = groupByDate(fullReportData.transits);
+// Helper to group flat transits by ISO date
+function groupTransitsByDate(transits) {
+  return transits.reduce((acc, entry) => {
+    const [mm, dd, yyyy] = entry.date.split('-');
+    const iso = `${yyyy}-${mm}-${dd}`;
+    if (!acc[iso]) acc[iso] = [];
+    acc[iso].push(entry);
+    return acc;
+  }, {});
+}
 
+fullReportData.transitsByDate = groupTransitsByDate(fullReportData.transits);
                 // Always prepend Poetic Brain context
                 markdownParts.unshift(poeticBrainContextMd());
                 markdownReport = markdownParts.join('\n\n');

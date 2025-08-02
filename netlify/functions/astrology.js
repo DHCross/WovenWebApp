@@ -26,6 +26,35 @@ function validateSubject(subject) {
   return missing;
 }
 
+// Helper to group transits by date (YYYY-MM-DD)
+function groupByDate(transits) {
+  return transits.reduce((acc, tr) => {
+    // Ensure date is in YYYY-MM-DD format (UTC)
+    let date = tr.date;
+    if (date) {
+      // Accept both Date objects and strings
+      if (date instanceof Date) {
+        date = date.toISOString().slice(0, 10);
+      } else if (/^\d{2}-\d{2}-\d{4}$/.test(date)) {
+        // Convert MM-DD-YYYY to YYYY-MM-DD
+        const [mm, dd, yyyy] = date.split('-');
+        date = `${yyyy}-${mm}-${dd}`;
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        // Already in ISO format
+      } else {
+        // Fallback: try Date parse
+        try {
+          date = new Date(date).toISOString().slice(0, 10);
+        } catch {
+          // Leave as-is if parse fails
+        }
+      }
+    }
+    (acc[date] ??= []).push(tr);
+    return acc;
+  }, {});
+}
+
 exports.handler = async function (event) {
   if (!process.env.RAPIDAPI_KEY) {
     return {
@@ -110,9 +139,25 @@ exports.handler = async function (event) {
           body: JSON.stringify({ error: 'External API error', details: { person_a: textA, person_b: textB } })
         };
       }
+      let parsedA, parsedB;
+      try {
+        parsedA = JSON.parse(textA);
+        parsedB = JSON.parse(textB);
+      } catch {
+        return {
+          statusCode: 502,
+          body: JSON.stringify({ error: 'Malformed response from API' })
+        };
+      }
+      if (parsedA.transits && Array.isArray(parsedA.transits)) {
+        parsedA.transitsByDate = groupByDate(parsedA.transits);
+      }
+      if (parsedB.transits && Array.isArray(parsedB.transits)) {
+        parsedB.transitsByDate = groupByDate(parsedB.transits);
+      }
       return {
         statusCode: 200,
-        body: JSON.stringify({ personA: JSON.parse(textA), personB: JSON.parse(textB) })
+        body: JSON.stringify({ personA: parsedA, personB: parsedB })
       };
     }
     // --- Synastry request ---
@@ -172,19 +217,22 @@ exports.handler = async function (event) {
           body: JSON.stringify({ error: 'External API error', details: rawText })
         };
       }
-
+      let parsed;
       try {
-        JSON.parse(rawText);
+        parsed = JSON.parse(rawText);
       } catch {
         return {
           statusCode: 502,
           body: JSON.stringify({ error: 'Malformed response from API' })
         };
       }
-
+      // If transits array exists, add grouped version
+      if (parsed.transits && Array.isArray(parsed.transits)) {
+        parsed.transitsByDate = groupByDate(parsed.transits);
+      }
       return {
         statusCode: 200,
-        body: rawText
+        body: JSON.stringify(parsed)
       };
     }
     // --- Solo-natal (A or B only, not synastry, not both) ---
@@ -233,9 +281,21 @@ exports.handler = async function (event) {
           body: JSON.stringify({ error: 'External API error', details: text })
         };
       }
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        return {
+          statusCode: 502,
+          body: JSON.stringify({ error: 'Malformed response from API' })
+        };
+      }
+      if (parsed.transits && Array.isArray(parsed.transits)) {
+        parsed.transitsByDate = groupByDate(parsed.transits);
+      }
       return {
         statusCode: 200,
-        body: JSON.stringify({ person: JSON.parse(text) })
+        body: JSON.stringify({ person: parsed })
       };
     }
     // Natal request
@@ -295,19 +355,21 @@ exports.handler = async function (event) {
           body: JSON.stringify({ error: 'External API error', details: rawText })
         };
       }
-
+      let parsed;
       try {
-        JSON.parse(rawText);
+        parsed = JSON.parse(rawText);
       } catch {
         return {
           statusCode: 502,
           body: JSON.stringify({ error: 'Malformed response from API' })
         };
       }
-
+      if (parsed.transits && Array.isArray(parsed.transits)) {
+        parsed.transitsByDate = groupByDate(parsed.transits);
+      }
       return {
         statusCode: 200,
-        body: rawText
+        body: JSON.stringify(parsed)
       };
     }
 
