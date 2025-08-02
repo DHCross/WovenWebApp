@@ -292,6 +292,27 @@
         const relationalContextStack = document.getElementById('relational-context-stack');
         const contextReadout = document.getElementById('context-readout');
 
+        // --- Intimacy Tier Dropdown Logic ---
+        const relationshipTypeRadios = document.querySelectorAll('input[name="relationshipType"]');
+        const intimacyTierDropdown = document.getElementById('intimacy-tier-dropdown');
+
+        function updateIntimacyTierVisibility() {
+          const selected = Array.from(relationshipTypeRadios).find(r => r.checked);
+          if (selected && selected.value === 'Partner') {
+            intimacyTierDropdown.classList.remove('hidden');
+          } else {
+            intimacyTierDropdown.classList.add('hidden');
+          }
+        }
+
+        // On page load, show/hide intimacy tier dropdown based on initial selection
+        updateIntimacyTierVisibility();
+
+        // Add event listeners to relationship type radios
+        relationshipTypeRadios.forEach(radio => {
+          radio.addEventListener('change', updateIntimacyTierVisibility);
+        });
+
         // --- Global State ---
         let fullReportData = {};
         let markdownReport = '';
@@ -786,19 +807,6 @@
                     }
                 }
 
-                // Helper to group flat transits by ISO date
-                function groupTransitsByDate(transits) {
-                  return transits.reduce((acc, entry) => {
-                    const [mm, dd, yyyy] = entry.date.split('-');
-                    const iso = `${yyyy}-${mm}-${dd}`;
-                    if (!acc[iso]) acc[iso] = [];
-                    acc[iso].push(entry);
-                    return acc;
-                  }, {});
-                }
-
-                fullReportData.transitsByDate = groupTransitsByDate(fullReportData.transits);
-
                 // Always prepend Poetic Brain context
                 markdownParts.unshift(poeticBrainContextMd());
                 markdownReport = markdownParts.join('\n\n');
@@ -995,22 +1003,29 @@
           }
         });
 
-        // --- Intimacy Tier Visibility Logic ---
-        const relationshipRadios = document.querySelectorAll('input[name="relationshipType"]');
-        const intimacyDropdown = document.getElementById('intimacy-tier-dropdown');
-        function updateIntimacyDropdown() {
-            const selected = document.querySelector('input[name="relationshipType"]:checked');
-            if (selected && selected.value === "Partner") {
-                intimacyDropdown.classList.remove('hidden');
-            } else {
-                intimacyDropdown.classList.add('hidden');
+        // --- RELATIONSHIP TYPE & INTIMACY TIER LOGIC ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const relationshipTypeRadios = document.querySelectorAll('input[name="relationshipType"]');
+            const intimacyTierDropdown = document.getElementById('intimacy-tier-dropdown');
+
+            // Helper to show/hide intimacy tier
+            function updateIntimacyTierVisibility() {
+                const selected = Array.from(relationshipTypeRadios).find(r => r.checked);
+                if (selected && selected.value === 'Partner') {
+                    intimacyTierDropdown.classList.remove('hidden');
+                } else {
+                    intimacyTierDropdown.classList.add('hidden');
+                }
             }
-        }
-        relationshipRadios.forEach(radio => {
-            radio.addEventListener('change', updateIntimacyDropdown);
+
+            // Initial state: show if Partner is selected
+            updateIntimacyTierVisibility();
+
+            // Listen for changes
+            relationshipTypeRadios.forEach(radio => {
+                radio.addEventListener('change', updateIntimacyTierVisibility);
+            });
         });
-        // Ensure correct initial state on load
-        updateIntimacyDropdown();
 
         // JS logic for context mode toggle and visibility
         function updateContextModeVisibility() {
