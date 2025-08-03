@@ -147,9 +147,13 @@
                         <input type="radio" name="contextMode" value="transit" class="mr-2">
                         <span class="text-gray-300">Transit</span>
                     </label>
-                    <label class="flex items-center">
+                    <label class="flex items-center mr-4">
                         <input type="radio" name="contextMode" value="composite" class="mr-2">
                         <span class="text-gray-300">Composite</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="contextMode" value="synastry-transits" class="mr-2">
+                        <span class="text-gray-300">Synastry + Transits</span>
                     </label>
                 </div>
                 
@@ -410,33 +414,41 @@
             relocationCoordsInput.classList.add('border-gray-600');
         }
 
-        // Show/hide transit date range fields based on context mode
+        // Show/hide transit date range fields and Person B based on context mode
         const transitDateFields = document.getElementById('transit-date-range-fields');
         const transitStartDate = document.getElementById('transitStartDate');
         const transitEndDate = document.getElementById('transitEndDate');
         const transitStep = document.getElementById('transitStep');
+        const personBCard = document.getElementById('personB-card');
+        const relocationSection = document.getElementById('relocation-section');
+
         document.querySelectorAll('input[name="contextMode"]').forEach(radio => {
             radio.addEventListener('change', () => {
-                const mode = radio.value;
+                const mode = document.querySelector('input[name="contextMode"]:checked').value;
                 if (mode === 'transit') {
                     transitDateFields.style.display = '';
-                } else {
-                    transitDateFields.style.display = 'none';
-                }
-                const personBCard = document.getElementById('personB-card');
-                const relocationSection = document.getElementById('relocation-section');
-                
-                if (mode === 'natal' || mode === 'transit') {
                     personBCard.style.opacity = '0.5';
                     personBCard.style.pointerEvents = 'none';
-                    // Show relocation overlay for these modes
                     relocationSection.style.display = 'block';
-                } else {
+                } else if (mode === 'natal') {
+                    transitDateFields.style.display = 'none';
+                    personBCard.style.opacity = '0.5';
+                    personBCard.style.pointerEvents = 'none';
+                    relocationSection.style.display = 'block';
+                } else if (mode === 'synastry-transits') {
+                    transitDateFields.style.display = '';
                     personBCard.style.opacity = '1';
                     personBCard.style.pointerEvents = 'auto';
-                    // Hide relocation overlay for synastry/composite modes
                     relocationSection.style.display = 'none';
-                    // Disable relocation if it was enabled
+                    if (relocationToggle.checked) {
+                        relocationToggle.checked = false;
+                        relocationFields.classList.add('hidden');
+                    }
+                } else {
+                    transitDateFields.style.display = 'none';
+                    personBCard.style.opacity = '1';
+                    personBCard.style.pointerEvents = 'auto';
+                    relocationSection.style.display = 'none';
                     if (relocationToggle.checked) {
                         relocationToggle.checked = false;
                         relocationFields.classList.add('hidden');
@@ -444,11 +456,28 @@
                 }
             });
         });
-        // On page load, hide transit fields unless transit mode is selected
-        if (document.querySelector('input[name="contextMode"]:checked').value !== 'transit') {
-            transitDateFields.style.display = 'none';
-        } else {
+        // On page load, set initial state for new mode
+        const initialMode = document.querySelector('input[name="contextMode"]:checked').value;
+        if (initialMode === 'transit') {
             transitDateFields.style.display = '';
+            personBCard.style.opacity = '0.5';
+            personBCard.style.pointerEvents = 'none';
+            relocationSection.style.display = 'block';
+        } else if (initialMode === 'synastry-transits') {
+            transitDateFields.style.display = '';
+            personBCard.style.opacity = '1';
+            personBCard.style.pointerEvents = 'auto';
+            relocationSection.style.display = 'none';
+        } else if (initialMode === 'natal') {
+            transitDateFields.style.display = 'none';
+            personBCard.style.opacity = '0.5';
+            personBCard.style.pointerEvents = 'none';
+            relocationSection.style.display = 'block';
+        } else {
+            transitDateFields.style.display = 'none';
+            personBCard.style.opacity = '1';
+            personBCard.style.pointerEvents = 'auto';
+            relocationSection.style.display = 'none';
         }
         // Validate transit date range
         function validateTransitDates() {
@@ -466,18 +495,58 @@
             }
             return true;
         }
-        // Update validateForm to include transit date validation
+        // Update validateForm to include synastry-transit mode
         const originalValidateForm = validateForm;
         validateForm = function() {
             if (!originalValidateForm()) return false;
-            if (!validateTransitDates()) return false;
+            const mode = document.querySelector('input[name="contextMode"]:checked').value;
+            if (mode === 'synastry-transits') {
+                // Require Person B fields
+                const nameB = document.getElementById('nameB').value.trim();
+                const dateB = document.getElementById('birth_dateB').value.trim();
+                const timeB = document.getElementById('birth_timeB').value.trim();
+                const astroB = document.getElementById('astroB').value.trim();
+                if (!nameB || !dateB || !timeB || !astroB) {
+                    showError('Please fill in all required fields for Person B for Synastry + Transits analysis');
+                    return false;
+                }
+                // Validate Person B date
+                const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+                if (!datePattern.test(dateB)) {
+                    showError('Please enter Person B date in YYYY-MM-DD format');
+                    return false;
+                }
+                // Validate Person B time
+                const timePattern = /^\d{2}:\d{2}$/;
+                if (!timePattern.test(timeB)) {
+                    showError('Please enter Person B time in HH:MM format (24-hour)');
+                    return false;
+                }
+                // Validate Person B coordinates
+                const decimalPattern = /^-?\d+\.?\d*,\s*-?\d+\.?\d*$/;
+                const dmsPattern = /\d+°\d+'[NS],\s*\d+°\d+'[EW]/;
+                if (!decimalPattern.test(astroB) && !dmsPattern.test(astroB)) {
+                    showError('Please enter Person B coordinates in decimal (e.g., 40.0167, -75.3167) or DMS format (e.g., 30°10\'N, 85°40\'W)');
+                    return false;
+                }
+                // Require transit dates
+                if (!transitStartDate.value.trim() || !transitEndDate.value.trim()) {
+                    showError('Please select both start and end dates for transit analysis');
+                    return false;
+                }
+                if (transitEndDate.value < transitStartDate.value) {
+                    showError('Transit end date must be after or equal to start date');
+                    return false;
+                }
+            }
             return true;
         };
-        // Update collectFormData to include transit dates and step
+        // Update collectFormData to include transit dates and step for synastry-transits mode
         const originalCollectFormData = collectFormData;
         collectFormData = function() {
             const formData = originalCollectFormData();
-            if (transitDateFields.style.display !== 'none') {
+            const mode = document.querySelector('input[name="contextMode"]:checked').value;
+            if (mode === 'transit' || mode === 'synastry-transits') {
                 formData.transit = {
                     startDate: transitStartDate.value,
                     endDate: transitEndDate.value,
