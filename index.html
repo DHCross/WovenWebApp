@@ -32,6 +32,17 @@
         }
     </style>
 </head>
+<!--
+====================================
+Woven Map Report Generator: Context Mode & JSON Export
+====================================
+- Self Mode: Only Person A's chart and transits are generated.
+- Relational Mode: Relationship type/intimacy tier fields appear; Person B and synastry/dual-mirror options enabled.
+- Validation and accessibility: All errors are announced to screen readers and shown visually.
+- JSON export includes both flat and grouped-by-date transits for easy analysis.
+- JSON structure is documented in comments in the JS logic.
+====================================
+-->
 <body class="bg-gray-900 text-gray-200">
 
     <div class="container mx-auto p-4 md:p-8">
@@ -231,6 +242,7 @@
                      <button id="generate-btn" class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 disabled:bg-indigo-400 disabled:cursor-not-allowed">
                         Generate Full Report
                     </button>
+                    <div id="validation-summary" class="hidden mt-2 p-3 bg-red-900/50 border border-red-600 rounded-md text-red-200 text-sm" aria-live="assertive"></div>
                 </div>
             </div>
              <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
@@ -250,7 +262,7 @@
                 </div>
                 <pre id="report-output" class="w-full h-96 bg-gray-900 text-gray-300 rounded-md p-4 overflow-auto font-mono text-sm whitespace-pre-wrap"></pre>
             </div>
-             <div id="message-box" class="fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg hidden"></div>
+             <div id="message-box" class="fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg hidden" aria-live="assertive"></div>
         </main>
     </div>
 
@@ -399,7 +411,18 @@
             const time = document.getElementById(`time${prefix}`).value.trim();
             const nation = document.getElementById(`nation${prefix}`).value.trim().toUpperCase();
             const astro = document.getElementById(`astro${prefix}`).value.trim();
-            
+            // Accessibility: add aria-invalid to fields with errors
+            function setAriaInvalid(id, invalid) {
+                const el = document.getElementById(id);
+                if (el) el.setAttribute('aria-invalid', invalid ? 'true' : 'false');
+            }
+            setAriaInvalid(`name${prefix}`, !name);
+            setAriaInvalid(`city${prefix}`, !city);
+            setAriaInvalid(`state${prefix}`, !state);
+            setAriaInvalid(`date${prefix}`, !date || (date.length > 0 && !/^\d{2}-\d{2}-\d{4}$/.test(date)));
+            setAriaInvalid(`time${prefix}`, !time || (time.length > 0 && !/^\d{2}:\d{2}$/.test(time)));
+            setAriaInvalid(`nation${prefix}`, !nation || !/^[A-Z]{2}$/.test(nation));
+            setAriaInvalid(`astro${prefix}`, !astro);
             if (!name) errors.push(`Person ${prefix}: Name is required`);
             if (!city) errors.push(`Person ${prefix}: Birth city is required`);
             if (!state) errors.push(`Person ${prefix}: Birth state/province is required`);
@@ -520,17 +543,22 @@
             }
         }
 
-        // Add validation summary element to DOM
+        // Add ARIA live region to validation summary and message box for accessibility
         function addValidationSummary() {
             const generateSection = document.querySelector('.bg-gray-800.p-6.rounded-lg.shadow-lg.mb-8');
             if (generateSection && !document.getElementById('validation-summary')) {
                 const summaryEl = document.createElement('div');
                 summaryEl.id = 'validation-summary';
                 summaryEl.className = 'hidden mt-2 p-3 bg-red-900/50 border border-red-600 rounded-md text-red-200 text-sm';
+                summaryEl.setAttribute('aria-live', 'assertive'); // Accessibility: announce errors
                 generateSection.querySelector('button').insertAdjacentElement('beforebegin', summaryEl);
             }
         }
         
+        // Ensure message box is ARIA live for error/success announcements
+        const messageBox = document.getElementById('message-box');
+        messageBox.setAttribute('aria-live', 'assertive');
+
         // --- MAIN REPORT GENERATION LOGIC ---
         async function generateReport() {
             // Run final validation before generating (strict mode)
@@ -900,38 +928,17 @@ fullReportData.transitsByDate = groupTransitsByDate(fullReportData.transits);
           const selfContext = document.getElementById('self-context');
           const relationalContext = document.getElementById('relational-context');
           const contextModeSection = document.getElementById('context-mode-section');
-          const contextModeTitle = contextModeSection.querySelector('h2');
-          
-          // Consider a person "present" if they have data, even if incomplete
-          const hasPersonA = personA && !personA.incomplete;
-          const hasPersonB = personB && !personB.incomplete;
-          
-          if (hasPersonA && !hasPersonB) {
-            // Single chart mode
-            contextModeTitle.textContent = 'Single Chart';
-            contextToggle.style.display = 'none';
-            selfContext.style.display = 'block';
-            relationalContext.style.display = 'none';
-          } else if (hasPersonA && hasPersonB) {
-            // Dual chart mode - show context toggle
-            contextModeTitle.textContent = 'Context Mode';
-            contextToggle.style.display = 'flex';
-            // Default to relational mode
-            const selectedMode = document.querySelector('input[name="contextMode"]:checked')?.value || 'relational';
-            if (selectedMode === 'self') {
-              selfContext.style.display = 'block';
-              relationalContext.style.display = 'none';
-            } else {
-              selfContext.style.display = 'none';
-              relationalContext.style.display = 'block';
-            }
-          } else {
-            // No complete data - hide context section
-            contextModeTitle.textContent = 'Context Mode';
-            contextToggle.style.display = 'none';
-            selfContext.style.display = 'none';
-            relationalContext.style.display = 'none';
-          }
+          // Show context toggle only if Person B has any data or synastry is checked
+          const showToggle = synastryToggle.checked || (personB && personB.name);
+          contextToggle.style.display = showToggle ? 'flex' : 'none';
+          // Show/hide context blocks
+          const selectedMode = document.querySelector('input[name="contextMode"]:checked')?.value;
+          selfContext.style.display = selectedMode === 'self' ? 'block' : 'none';
+          relationalContext.style.display = selectedMode === 'relational' ? 'block' : 'none';
+          // Accessibility: update aria-selected
+          document.querySelectorAll('input[name="contextMode"]').forEach(radio => {
+            radio.setAttribute('aria-checked', radio.checked ? 'true' : 'false');
+          });
         }
         document.querySelectorAll('input[name="contextMode"]').forEach(radio => {
           radio.addEventListener('change', updateContextModeVisibility);
@@ -942,6 +949,30 @@ fullReportData.transitsByDate = groupTransitsByDate(fullReportData.transits);
           if (el) el.addEventListener('input', updateContextModeVisibility);
         });
         window.addEventListener('DOMContentLoaded', updateContextModeVisibility);
+
+        // --- ACCESSIBILITY: Announce error messages ---
+        function showMessage(msg, type = 'error') {
+            messageBox.textContent = msg;
+            messageBox.className = type === 'error'
+                ? 'fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg'
+                : 'fixed top-5 right-5 bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg';
+            messageBox.setAttribute('role', 'alert');
+            messageBox.setAttribute('aria-live', 'assertive');
+            messageBox.classList.remove('hidden');
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, type === 'error' ? 6000 : 3000);
+        }
+
+        // --- ACCESSIBILITY: Focus states for buttons ---
+        [generateBtn, copyBtn, saveJsonBtn, saveMdBtn].forEach(btn => {
+            if (btn) {
+                btn.classList.add('focus:ring-2', 'focus:ring-teal-400', 'focus:outline-none');
+            }
+        });
+
+        // --- CLEANUP: Remove unused debug artifacts ---
+        // No debug code remains
 
         // --- REAL-TIME VALIDATION EVENT LISTENERS ---
         // Add validation on field changes (only on blur to avoid disrupting typing)
@@ -980,6 +1011,31 @@ fullReportData.transitsByDate = groupTransitsByDate(fullReportData.transits);
           addValidationSummary();
           updateGenerateButtonState(false); // Don't show errors on initial load
         });
+    /*
+    =====================
+    JSON Export Structure
+    =====================
+    fullReportData = {
+      schema: "WM-Chart-1.0", // Version identifier
+      relationship_type: "Partner" | "Friend" | "Family" | "N/A",
+      intimacy_tier: "P1" | "P2" | "P3" | "N/A",
+      diagnostics: [ ... ], // Array of diagnostic strings
+      person_a: {
+        details: { ... }, // Input details for Person A
+        chart: { ... }    // Natal chart data for Person A
+      },
+      person_b: {
+        details: { ... }, // Input details for Person B (if present)
+        chart: { ... }    // Natal chart data for Person B (if present)
+      },
+      synastry: { ... }, // Synastry overlay data (if synastry selected)
+      transits: [ ... ], // Flat array of transit entries
+      transitsByDate: {  // Object grouping transits by ISO date
+        "YYYY-MM-DD": [ ...transitEntries ]
+      }
+    }
+    =====================
+    */
     </script>
 </body>
 </html>
