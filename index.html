@@ -132,7 +132,7 @@
                             </select>
                         </div>
                          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input type="text" id="nationB" placeholder="Country" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="US">
+                            <input type="text" id="nationB" placeholder="Country" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
                             <select id="zodiacB" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                                 <option value="Tropic">Tropic</option>
                                 <option value="Sidereal">Sidereal</option>
@@ -283,26 +283,6 @@
             updateGenerateButtonState(false);
         }
 
-        // Debug function to show current validation errors
-        function showCurrentValidationErrors() {
-            const errors = validateAllInputs(false);
-            console.log('Current validation errors:', errors);
-            if (errors.length > 0) {
-                alert('Validation errors:\n' + errors.join('\n'));
-            } else {
-                alert('No validation errors found!');
-            }
-        }
-
-        // Add debug button (temporary)
-        function addDebugButton() {
-            const debugBtn = document.createElement('button');
-            debugBtn.textContent = 'Debug Validation';
-            debugBtn.className = 'mt-2 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-1 px-3 rounded text-sm';
-            debugBtn.onclick = showCurrentValidationErrors;
-            generateBtn.parentNode.insertBefore(debugBtn, generateBtn.nextSibling);
-        }
-
         // --- GENTLE VALIDATION FEEDBACK ---
         function showFieldValidating(fieldId) {
             const field = document.getElementById(fieldId);
@@ -368,10 +348,11 @@
             const synastryChecked = synastryToggle.checked;
             
             if (synastryChecked) {
-                // Check if Person B has any data entered
-                const personBHasData = ['nameB', 'cityB', 'stateB', 'dateB', 'timeB', 'nationB', 'astroB'].some(id => {
+                // Check if Person B has any meaningful data entered (excluding default dropdown values)
+                const meaningfulFields = ['nameB', 'cityB', 'stateB', 'dateB', 'timeB', 'nationB', 'astroB'];
+                const personBHasData = meaningfulFields.some(id => {
                     const field = document.getElementById(id);
-                    return field && field.value.trim();
+                    return field && field.value.trim() && field.value.trim() !== '';
                 });
                 
                 // Only validate Person B if:
@@ -902,7 +883,6 @@ fullReportData.transitsByDate = groupTransitsByDate(fullReportData.transits);
         // Initialize validation on page load (without showing errors initially)
         window.addEventListener('DOMContentLoaded', () => {
           addValidationSummary();
-          addDebugButton(); // Add debug button
           updateGenerateButtonState(false); // Don't show errors on initial load
         });
     </script>
