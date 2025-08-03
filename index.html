@@ -322,7 +322,7 @@
             throw new Error('Invalid coordinate format. Use "40.0167, -75.3167" or "40°1\'N, 75°19\'W"');
         }
 
-        function getSubjectData(prefix) {
+        function getSubjectData(prefix, strictMode = false) {
             const name = document.getElementById(`name${prefix}`)?.value?.trim();
             const city = document.getElementById(`city${prefix}`)?.value?.trim();
             const state = document.getElementById(`state${prefix}`)?.value?.trim();
@@ -333,21 +333,36 @@
             const offset = document.getElementById(`offset${prefix}`)?.value?.trim();
             const astro = document.getElementById(`astro${prefix}`)?.value?.trim();
             
-            // Return null if required fields are missing
-            if (!name || !city || !state || !date || !time || !nation || !astro) {
-                return null;
+            // In non-strict mode, return null only if NO meaningful data is present
+            // This allows for partial data during form editing
+            if (!strictMode) {
+                const hasAnyData = name || city || state || date || time || nation || astro;
+                if (!hasAnyData) {
+                    return null;
+                }
+                
+                // If we have some data but not all required fields, return partial object
+                // This helps with UI state management during editing
+                if (!name || !city || !state || !date || !time || !nation || !astro) {
+                    return { incomplete: true, name, city, state, date, time, nation, astro };
+                }
+            } else {
+                // In strict mode, require all fields
+                if (!name || !city || !state || !date || !time || !nation || !astro) {
+                    return null;
+                }
             }
             
             // Parse date (MM-DD-YYYY format)
             const dateMatch = date.match(/^(\d{2})-(\d{2})-(\d{4})$/);
             if (!dateMatch) {
-                return null;
+                return strictMode ? null : { incomplete: true, name, city, state, date, time, nation, astro };
             }
             
             // Parse time (HH:MM format)
             const timeMatch = time.match(/^(\d{2}):(\d{2})$/);
             if (!timeMatch) {
-                return null;
+                return strictMode ? null : { incomplete: true, name, city, state, date, time, nation, astro };
             }
             
             // Parse coordinates
@@ -355,7 +370,7 @@
             try {
                 coords = parseCombinedCoords(astro);
             } catch (err) {
-                return null;
+                return strictMode ? null : { incomplete: true, name, city, state, date, time, nation, astro };
             }
             
             return {
@@ -530,8 +545,8 @@
             outputSection.classList.add('hidden');
 
             try {
-                const personAData = getSubjectData('A');
-                const personBData = getSubjectData('B');
+                const personAData = getSubjectData('A', true); // Strict mode for generation
+                const personBData = getSubjectData('B', true); // Strict mode for generation
                 const useSynastry = personAData && personBData && synastryToggle.checked;
                 const dualMirror = personAData && personBData && !synastryToggle.checked;
 
@@ -879,21 +894,25 @@ fullReportData.transitsByDate = groupTransitsByDate(fullReportData.transits);
 
         // JS logic for context mode toggle and visibility
         function updateContextModeVisibility() {
-          const personA = getSubjectData('A');
-          const personB = getSubjectData('B');
+          const personA = getSubjectData('A', false); // Non-strict mode for UI updates
+          const personB = getSubjectData('B', false); // Non-strict mode for UI updates
           const contextToggle = document.getElementById('context-toggle');
           const selfContext = document.getElementById('self-context');
           const relationalContext = document.getElementById('relational-context');
           const contextModeSection = document.getElementById('context-mode-section');
           const contextModeTitle = contextModeSection.querySelector('h2');
           
-          if (personA && !personB) {
+          // Consider a person "present" if they have data, even if incomplete
+          const hasPersonA = personA && !personA.incomplete;
+          const hasPersonB = personB && !personB.incomplete;
+          
+          if (hasPersonA && !hasPersonB) {
             // Single chart mode
             contextModeTitle.textContent = 'Single Chart';
             contextToggle.style.display = 'none';
             selfContext.style.display = 'block';
             relationalContext.style.display = 'none';
-          } else if (personA && personB) {
+          } else if (hasPersonA && hasPersonB) {
             // Dual chart mode - show context toggle
             contextModeTitle.textContent = 'Context Mode';
             contextToggle.style.display = 'flex';
