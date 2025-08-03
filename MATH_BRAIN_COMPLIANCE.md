@@ -1,6 +1,37 @@
 # Math Brain Compliance Implementation
 
-This document explains how the Woven Map Math Brain implements strict FIELD → MAP → VOICE separation and maintains compliance with Math Brain developer instructions.
+Thi📈 What You Can Use It For
+
+The Math Brain supports mu🧪 Example: What You'll See
+
+Input:
+Mode = Composite + Transits
+Date = August 3, 2025
+Person A & B birth data
+Relocation enabled
+
+Output (Math Brain):
+
+Composite Sun: 18° Scorpio  
+Composite Moon: 12° Virgo (12th house)  
+Transiting Pluto: 12° Aquarius – square Composite Moon (0° orb)  
+
+Interpretation: (done by Poetic Brain)
+This would trigger a symbolic weather overlay about pressure to confront emotional avoidance in the relationship - with the composite chart providing the structural foundation that makes this transit meaningful rather than abstract.odes, each aligned with a specific diagnostic path:
+
+Mode	Use This When You Want To Know…
+Natal Chart	"What is my internal energetic architecture?"
+Synastry	"How do we activate each other?"
+Natal + Transits	"How is today pressing on me?"
+Composite	"What's the shape and tone of this relationship as its own entity?"
+Composite + Transits	"How is today pressing on our shared field?"
+Synastry + Transits	"How is today pressing on our interaction?"
+
+🧭 Pro Tip: If you're not sure which mode to pick, ask:
+
+"Do I want to see individual patterning (Natal, Synastry), external pressure (Natal+Transits, Composite+Transits, Synastry+Transits), or shared field dynamics (Composite)?"
+
+⚠️ **Critical Geometric Principle**: Transits without a base chart are "symbolic weather with no ground." A transit is a verb that needs a noun (the base chart) to create a complete symbolic statement. All transit modes now reference a structural foundation for proper FIELD → MAP → VOICE processing.lains how the Woven Map Math Brain implements strict FIELD → MAP → VOICE separation and maintains compliance with Math Brain developer instructions.
 
 Absolutely. Here’s a draft of a Clear Mirror–compliant, symbolically accurate:
 
@@ -164,9 +195,10 @@ Updated terminology guide that includes:
 ### FIELD (Input Layer)
 - ✅ Birth date, time, coordinates
 - ✅ Relocation coordinates (available for ALL context modes)
-- ✅ Context mode (natal/synastry/transit/composite)
+- ✅ Context mode (natal/synastry/natal+transits/composite/composite+transits/synastry+transits)
 - ✅ Person names, locations (for identification only)
 - ✅ **CRITICAL**: Relocation overlay enabled regardless of mode selection
+- ✅ **GEOMETRIC FOUNDATION**: All transit modes reference structural base charts
 
 ### MAP (Math Brain Output)
 - ✅ Planetary positions (degree, sign, house)
@@ -267,6 +299,28 @@ Clear messaging throughout the interface:
 
 ## Critical Protocol Requirements
 
+### 🧠 Geometric Foundation Principle
+
+**PROTOCOL REQUIREMENT**: All transit modes must reference a structural base chart to ensure meaningful symbolic statements.
+
+| Mode | Base Structure | Transit Overlay | Geometric Rationale |
+|------|----------------|----------------|-------------------|
+| Natal + Transits | Individual Chart | Current Planets | "How is today pressing on me?" |
+| Composite + Transits | Relationship Chart | Current Planets | "How is today pressing on our shared field?" |
+| Synastry + Transits | Two-Chart Overlay | Current Planets | "How is today pressing on our interaction?" |
+
+**Why This Matters**:
+- **A transit is a verb** that needs a **noun (base chart)** to create complete symbolic statements
+- Transits without base structure are "symbolic weather with no ground"
+- All symbolic statements must be falsifiable via angle-based structure (SST Rule 1)
+- Recognition Protocols §2.2: All FIELD overlays must reference a structural MAP
+
+**Implementation Changes**:
+- ❌ **REMOVED**: Standalone "Transit" mode (violates geometric foundation principle)
+- ✅ **ENHANCED**: "Natal + Transits" (preserves structural foundation)
+- ✅ **ADDED**: "Composite + Transits" (enables shared field pressure analysis)
+- ✅ **MAINTAINED**: "Synastry + Transits" (relational pressure dynamics)
+
 ### 🔥 Relocation Overlay Availability
 
 **PROTOCOL REQUIREMENT**: Relocation overlay must be available for ALL context modes whenever chart data is entered.
@@ -329,6 +383,7 @@ Frontend:
 6. **Error Resolution**: Fixed "Missing required fields" validation issues
 7. **Developer Onboarding**: Created comprehensive integration guides
 8. **🔥 CRITICAL FIX**: Relocation overlay now available for ALL context modes (Protocol-compliant)
+9. **🧠 GEOMETRIC FOUNDATION**: Transit modes now reference structural base charts (prevents "symbolic weather with no ground")
 
 ### ✅ System Integrity Verification
 

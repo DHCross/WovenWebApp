@@ -155,16 +155,20 @@
                             <span class="text-gray-300">Compares two charts for interaction patterns. <em>"How do we activate each other?"</em></span>
                         </div>
                         <div class="flex items-start">
-                            <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Transit →</span>
-                            <span class="text-gray-300">Maps current planetary pressure on natal chart. <em>"What's showing up for me now?"</em></span>
+                            <span class="inline-block w-24 text-teal-400 font-medium flex-shrink-0">Natal+Trans →</span>
+                            <span class="text-gray-300">Maps current planetary pressure on natal chart. <em>"How is today pressing on me?"</em></span>
                         </div>
                         <div class="flex items-start">
                             <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Composite →</span>
                             <span class="text-gray-300">Creates symbolic chart of the relationship itself. <em>"What is this connection as a shared structure?"</em></span>
                         </div>
                         <div class="flex items-start">
-                            <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Syn+Trans →</span>
-                            <span class="text-gray-300">Maps current pressure on relational dynamics. <em>"What's activating our connection now?"</em></span>
+                            <span class="inline-block w-24 text-teal-400 font-medium flex-shrink-0">Comp+Trans →</span>
+                            <span class="text-gray-300">Maps current pressure on the shared field. <em>"How is today pressing on our connection?"</em></span>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="inline-block w-24 text-teal-400 font-medium flex-shrink-0">Syn+Trans →</span>
+                            <span class="text-gray-300">Maps current pressure on relational dynamics. <em>"How is today pressing on our interaction?"</em></span>
                         </div>
                     </div>
                     <div class="mt-4 p-3 bg-gray-800 rounded border border-gray-600">
@@ -186,11 +190,15 @@
                     </label>
                     <label class="flex items-center mr-4">
                         <input type="radio" name="contextMode" value="transit" class="mr-2">
-                        <span class="text-gray-300">Transit</span>
+                        <span class="text-gray-300">Natal + Transits</span>
                     </label>
                     <label class="flex items-center mr-4">
                         <input type="radio" name="contextMode" value="composite" class="mr-2">
                         <span class="text-gray-300">Composite</span>
+                    </label>
+                    <label class="flex items-center mr-4">
+                        <input type="radio" name="contextMode" value="composite-transits" class="mr-2">
+                        <span class="text-gray-300">Composite + Transits</span>
                     </label>
                     <label class="flex items-center">
                         <input type="radio" name="contextMode" value="synastry-transits" class="mr-2">
@@ -795,13 +803,14 @@
 
             const isTransit = mode === 'transit';
             const isSynastryTransits = mode === 'synastry-transits';
+            const isCompositeTransits = mode === 'composite-transits';
             const isNatal = mode === 'natal';
             
             const showPersonB = !isNatal && !isTransit;
             personBCard.style.opacity = showPersonB ? '1' : '0.5';
             personBCard.style.pointerEvents = showPersonB ? 'auto' : 'none';
 
-            const showTransitFields = isTransit || isSynastryTransits;
+            const showTransitFields = isTransit || isSynastryTransits || isCompositeTransits;
             transitDateFields.style.display = showTransitFields ? 'block' : 'none';
 
             // CRITICAL: Relocation overlay must be available whenever ANY chart data is entered
