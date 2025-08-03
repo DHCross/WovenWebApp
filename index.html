@@ -317,6 +317,9 @@
     </div>
 
     <script>
+        // Global UI element references
+        let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown;
+
         // --- Utility Functions ---
 
         function showError(message) {
@@ -669,25 +672,25 @@
 
         // Initial UI setup on page load
         document.addEventListener('DOMContentLoaded', () => {
-            // DOM Elements
-            const generateBtn = document.getElementById('generateReport');
-            const loadingIndicator = document.getElementById('loadingIndicator');
-            const errorDisplay = document.getElementById('errorDisplay');
-            const errorMessage = document.getElementById('errorMessage');
-            const reportOutput = document.getElementById('reportOutput');
-            const reportContent = document.getElementById('reportContent');
-            const copyBtn = document.getElementById('copyReport');
-            const mathBrainInfoBtn = document.getElementById('math-brain-info-btn');
-            const mathBrainModal = document.getElementById('math-brain-modal');
-            const closeMathBrainModal = document.getElementById('close-math-brain-modal');
-            const closeMathBrainModalBottom = document.getElementById('close-math-brain-modal-bottom');
-            const relocationToggle = document.getElementById('relocationToggle');
-            const relocationFields = document.getElementById('relocationFields');
-            const transitDateFields = document.getElementById('transit-date-range-fields');
-            const personBCard = document.getElementById('personB-card');
-            const relocationSection = document.getElementById('relocation-section');
-            const relationalContextSection = document.getElementById('relational-context-section');
-            const intimacyTierDropdown = document.getElementById('intimacy-tier-dropdown');
+            // DOM Elements assignment
+            generateBtn = document.getElementById('generateReport');
+            loadingIndicator = document.getElementById('loadingIndicator');
+            errorDisplay = document.getElementById('errorDisplay');
+            errorMessage = document.getElementById('errorMessage');
+            reportOutput = document.getElementById('reportOutput');
+            reportContent = document.getElementById('reportContent');
+            copyBtn = document.getElementById('copyReport');
+            mathBrainInfoBtn = document.getElementById('math-brain-info-btn');
+            mathBrainModal = document.getElementById('math-brain-modal');
+            closeMathBrainModal = document.getElementById('close-math-brain-modal');
+            closeMathBrainModalBottom = document.getElementById('close-math-brain-modal-bottom');
+            relocationToggle = document.getElementById('relocationToggle');
+            relocationFields = document.getElementById('relocationFields');
+            transitDateFields = document.getElementById('transit-date-range-fields');
+            personBCard = document.getElementById('personB-card');
+            relocationSection = document.getElementById('relocation-section');
+            relationalContextSection = document.getElementById('relational-context-section');
+            intimacyTierDropdown = document.getElementById('intimacy-tier-dropdown');
 
             setupEventListeners();
             updateFormUI();
