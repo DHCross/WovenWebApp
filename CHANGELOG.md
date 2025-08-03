@@ -1,5 +1,15 @@
 # Woven Map App Error/Break History Log
 
+> **Note for AI Assistants:** The following is a commitment to a clear, collaborative workflow. Please adhere to these principles when assisting.
+>
+> - **Plain Language Explanations:** When discussing code, architecture, or documentation, I’ll use accessible language and clarify technical concepts.
+> - **Change Logs & Notes:** For every suggested change or edit, I’ll include a summary of what was changed and why, making your documentation easy to follow.
+> - **File Proposals:** Any new or revised file (e.g., Markdown docs) will be presented in a clear format, with annotations as needed.
+> - **Process Guidance:** I can walk you through how to track changes, review commits, or maintain audit logs within your repository.
+> - **API & Integration Checks:** I’ll remind you to check related API documentation and highlight where to keep notes for future reference.
+>
+> If you have specific questions, want a summary of changes, or need help updating documentation to reflect this workflow, just let me know!
+
 Track every time the app "breaks" (stops working as expected) or is recovered/fixed.  
 Each entry should include the date, a brief description, what caused the break (if known), and how it was resolved.
 

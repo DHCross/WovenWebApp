@@ -20,6 +20,10 @@ The documentation for the **Kerykeion engine** (Swagger/ReDoc) is incredibly use
 
 Both of your AI assistants were correct. One was describing the car you're driving, and the other was describing the engine that powers it.
 
+### Core Lesson Learned
+
+> The Woven Map app is specifically designed to work with the "car" – the Astrologer API hosted on RapidAPI – using its particular access methods. Understanding this distinction is crucial for troubleshooting and future development.
+
 ---
 
 ### Next Steps & Future Options
