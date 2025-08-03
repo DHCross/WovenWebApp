@@ -195,7 +195,7 @@
 
             <div class="mb-8">
                 <label class="flex items-center">
-                    <input type="checkbox" id="synastryToggle" class="form-checkbox h-5 w-5 text-teal-400" checked>
+                    <input type="checkbox" id="synastryToggle" class="form-checkbox h-5 w-5 text-teal-400">
                     <span class="ml-3 text-white font-medium">Include Synastry Analysis</span>
                 </label>
             </div>
@@ -280,6 +280,26 @@
             const errors = validateAllInputs();
             console.log('Current validation errors:', errors);
             updateGenerateButtonState(false);
+        }
+
+        // Debug function to show current validation errors
+        function showCurrentValidationErrors() {
+            const errors = validateAllInputs(false);
+            console.log('Current validation errors:', errors);
+            if (errors.length > 0) {
+                alert('Validation errors:\n' + errors.join('\n'));
+            } else {
+                alert('No validation errors found!');
+            }
+        }
+
+        // Add debug button (temporary)
+        function addDebugButton() {
+            const debugBtn = document.createElement('button');
+            debugBtn.textContent = 'Debug Validation';
+            debugBtn.className = 'mt-2 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-1 px-3 rounded text-sm';
+            debugBtn.onclick = showCurrentValidationErrors;
+            generateBtn.parentNode.insertBefore(debugBtn, generateBtn.nextSibling);
         }
 
         // --- GENTLE VALIDATION FEEDBACK ---
@@ -881,6 +901,7 @@ fullReportData.transitsByDate = groupTransitsByDate(fullReportData.transits);
         // Initialize validation on page load (without showing errors initially)
         window.addEventListener('DOMContentLoaded', () => {
           addValidationSummary();
+          addDebugButton(); // Add debug button
           updateGenerateButtonState(false); // Don't show errors on initial load
         });
     </script>
