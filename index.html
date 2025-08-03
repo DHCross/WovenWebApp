@@ -708,7 +708,7 @@
                 
                 // Call the Math Brain Netlify function (FIELD → MAP only)
                 const response = await fetch('/api/astrology-mathbrain', {
-                    method: 'POST',
+                    method: 'POST', // Explicitly set method to POST
                     headers: {
                         'Content-Type': 'application/json',
                     },
@@ -716,7 +716,8 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
                 }
 
                 const result = await response.json();

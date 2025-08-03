@@ -11,3 +11,10 @@ yarn-error.log*
 
 # Local Netlify folder
 .netlify
+
+# Build output
+dist/
+
+# VS Code
+.vscode/
+*.code-workspace

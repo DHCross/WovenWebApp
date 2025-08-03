@@ -6,9 +6,50 @@ API Page: https://rapidapi.com/gbattaglia/api/astrologer
 
 ## **Core Technology**
 
-* **Front-End:** Plain HTML, JavaScript, and Tailwind CSS.  
-* **Back-End:** A single serverless function (astrology.js) deployed on Netlify.  
-* **External API:** [Astrologer API on RapidAPI](https://rapidapi.com/tg4-solutions-tg4-solutions-default/api/astrologer)
+*   **Front-End:** Plain HTML, JavaScript, and Tailwind CSS.
+*   **Back-End:** A single serverless function (`astrology-mathbrain.js`) deployed on Netlify.
+*   **External API:** [Astrologer API on RapidAPI](https://rapidapi.com/tg4-solutions-tg4-solutions-default/api/astrologer)
+
+## **Development**
+
+### **Prerequisites**
+
+*   [Node.js](https://nodejs.org/) and npm
+*   A [Netlify](https://www.netlify.com/) account for deployment
+*   A RapidAPI account to get an Astrologer API key
+
+### **Setup**
+
+1.  Clone the repository.
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+3.  Create a `.env` file in the root directory and add your RapidAPI key:
+    ```
+    VITE_ASTROLOGER_API_KEY=your_rapidapi_key_here
+    ```
+    *Note: This key is used by the Netlify function during local development and needs to be set in the Netlify UI for production.*
+
+### **Running Locally**
+
+Use the Netlify CLI to run the site with the serverless function:
+
+```bash
+npm run dev
+```
+
+This command, defined in `package.json`, starts a local development server and watches for changes.
+
+### **Building for Production**
+
+To build the minified CSS for production, run:
+
+```bash
+npm run build:css
+```
+
+This script is automatically run by Netlify during the deployment process.
 
 ## **External API: Astrologer API**
 
@@ -72,11 +113,11 @@ const subjectData \= {
     zodiac\_type": "Tropic"  
 };
 
-const getChartDataFromApi \= async (subject) \=\> {  
-    const response \= await fetch('/.netlify/functions/astrology', {  
-        method: 'POST',  
-        headers: { 'Content-Type': 'application/json' },  
-        body: JSON.stringify({ subject: subject })  
+const getChartDataFromApi = async (subject) => {
+    const response = await fetch('/api/astrology-mathbrain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: subject })
     });
 
     if (\!response.ok) {  
