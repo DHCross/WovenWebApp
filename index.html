@@ -317,171 +317,102 @@
     </div>
 
     <script>
-        // DOM Elements
-        const generateBtn = document.getElementById('generateReport');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const errorDisplay = document.getElementById('errorDisplay');
-        const errorMessage = document.getElementById('errorMessage');
-        const reportOutput = document.getElementById('reportOutput');
-        const reportContent = document.getElementById('reportContent');
-        const copyBtn = document.getElementById('copyReport');
-        const mathBrainInfoBtn = document.getElementById('math-brain-info-btn');
-        const mathBrainModal = document.getElementById('math-brain-modal');
-        const closeMathBrainModal = document.getElementById('close-math-brain-modal');
-        const closeMathBrainModalBottom = document.getElementById('close-math-brain-modal-bottom');
-        const pasteAstroBBtn = document.getElementById('pasteAstroB');
-        const relocationToggle = document.getElementById('relocationToggle');
-        const relocationFields = document.getElementById('relocationFields');
-        const relocationCoordsInput = document.getElementById('relocationCoords');
-        const relocationCoordsError = document.getElementById('relocationCoordsError');
+        // --- Utility Functions ---
 
-        // Modal functionality
-        mathBrainInfoBtn.addEventListener('click', () => {
-            mathBrainModal.classList.remove('hidden');
-        });
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorDisplay.classList.remove('hidden');
+            reportOutput.classList.add('hidden');
+        }
 
-        closeMathBrainModal.addEventListener('click', () => {
-            mathBrainModal.classList.add('hidden');
-        });
+        function hideError() {
+            errorDisplay.classList.add('hidden');
+        }
 
-        closeMathBrainModalBottom.addEventListener('click', () => {
-            mathBrainModal.classList.add('hidden');
-        });
+        function parseCoordinates(coordString) {
+            if (!coordString) return { latitude: undefined, longitude: undefined };
+            
+            coordString = coordString.trim();
+            const decimalPattern = /^-?\d+\.?\d*,\s*-?\d+\.?\d*$/;
+            const dmsPattern = /(\d+)[°\s]+(\d+)'?\s*([NS]),\s*(\d+)[°\s]+(\d+)'?\s*([EW])/i;
 
-        // Close modal when clicking outside
-        mathBrainModal.addEventListener('click', (e) => {
-            if (e.target === mathBrainModal) {
-                mathBrainModal.classList.add('hidden');
+            if (decimalPattern.test(coordString)) {
+                const [lat, lon] = coordString.split(',').map(s => parseFloat(s.trim()));
+                return { latitude: lat, longitude: lon };
             }
-        });
 
-        // Paste AstroSeek data functionality
-        pasteAstroBBtn.addEventListener('click', async () => {
-            try {
-                const text = await navigator.clipboard.readText();
-                // Parse AstroSeek data format (this is a placeholder - you'd need to implement actual parsing)
-                console.log('Pasted text:', text);
-                alert('AstroSeek data parsing not yet implemented. Please enter coordinates manually.');
-            } catch (err) {
-                console.error('Failed to read clipboard contents: ', err);
-                alert('Could not access clipboard. Please paste manually.');
+            const dmsMatch = coordString.match(dmsPattern);
+            if (dmsMatch) {
+                let lat = parseFloat(dmsMatch[1]) + parseFloat(dmsMatch[2]) / 60;
+                if (dmsMatch[3].toUpperCase() === 'S') lat = -lat;
+
+                let lon = parseFloat(dmsMatch[4]) + parseFloat(dmsMatch[5]) / 60;
+                if (dmsMatch[6].toUpperCase() === 'W') lon = -lon;
+                
+                return { latitude: parseFloat(lat.toFixed(4)), longitude: parseFloat(lon.toFixed(4)) };
             }
-        });
+            
+            // Return undefined if no pattern matches
+            return { latitude: undefined, longitude: undefined };
+        }
 
-        // Relocation overlay toggle functionality
-        relocationToggle.addEventListener('change', () => {
-            if (relocationToggle.checked) {
-                relocationFields.classList.remove('hidden');
-            } else {
-                relocationFields.classList.add('hidden');
-                // Clear relocation fields when disabled
-                document.getElementById('relocationCity').value = '';
-                document.getElementById('relocationState').value = '';
-                document.getElementById('relocationCoords').value = '';
-                hideRelocationError();
+        // --- Form Logic ---
+
+        function validateForm() {
+            hideError();
+            const mode = document.querySelector('input[name="contextMode"]:checked').value;
+
+            // Validate Person A
+            const nameA = document.getElementById('nameA').value.trim();
+            const dateA = document.getElementById('birth_dateA').value.trim();
+            const timeA = document.getElementById('birth_timeA').value.trim();
+            const astroA = document.getElementById('astroA').value.trim();
+
+            if (!nameA || !dateA || !timeA || !astroA) {
+                showError('Please fill in all required fields for Person A');
+                return false;
             }
-        });
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateA)) {
+                showError('Please enter Person A date in YYYY-MM-DD format');
+                return false;
+            }
+            if (!/^\d{2}:\d{2}$/.test(timeA)) {
+                showError('Please enter Person A time in HH:MM format (24-hour)');
+                return false;
+            }
+            const coordsA = parseCoordinates(astroA);
+            if (coordsA.latitude === undefined || coordsA.longitude === undefined) {
+                showError('Please enter Person A coordinates in a valid decimal (e.g., 40.01, -75.31) or DMS format (e.g., 40°1\'N, 75°18\'W)');
+                return false;
+            }
 
-        // Relocation coordinates validation
-        relocationCoordsInput.addEventListener('blur', validateRelocationCoords);
-        relocationCoordsInput.addEventListener('input', hideRelocationError);
-
-        function validateRelocationCoords() {
-            const coords = relocationCoordsInput.value.trim();
-            if (relocationToggle.checked && coords) {
-                const coordPattern = /^-?\d+\.?\d*,\s*-?\d+\.?\d*$/;
-                const dmsPattern = /\d+°\d+'[NS],\s*\d+°\d+'[EW]/;
-                if (!coordPattern.test(coords) && !dmsPattern.test(coords)) {
-                    showRelocationError();
+            // Validate Person B if required by mode
+            if (mode === 'synastry' || mode === 'composite' || mode === 'synastry-transits') {
+                const nameB = document.getElementById('nameB').value.trim();
+                const dateB = document.getElementById('birth_dateB').value.trim();
+                const timeB = document.getElementById('birth_timeB').value.trim();
+                const astroB = document.getElementById('astroB').value.trim();
+                if (!nameB || !dateB || !timeB || !astroB) {
+                    showError(`Please fill in all required fields for Person B for ${mode} analysis`);
                     return false;
-                } else {
-                    hideRelocationError();
-                    return true;
+                }
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(dateB)) {
+                    showError('Please enter Person B date in YYYY-MM-DD format');
+                    return false;
+                }
+                if (!/^\d{2}:\d{2}$/.test(timeB)) {
+                    showError('Please enter Person B time in HH:MM format (24-hour)');
+                    return false;
+                }
+                const coordsB = parseCoordinates(astroB);
+                if (coordsB.latitude === undefined || coordsB.longitude === undefined) {
+                    showError('Please enter Person B coordinates in a valid decimal or DMS format');
+                    return false;
                 }
             }
-            return true;
-        }
 
-        function showRelocationError() {
-            relocationCoordsError.classList.remove('hidden');
-            relocationCoordsInput.classList.add('border-red-500');
-            relocationCoordsInput.classList.remove('border-gray-600');
-        }
-
-        function hideRelocationError() {
-            relocationCoordsError.classList.add('hidden');
-            relocationCoordsInput.classList.remove('border-red-500');
-            relocationCoordsInput.classList.add('border-gray-600');
-        }
-
-        // Show/hide transit date range fields and Person B based on context mode
-        const transitDateFields = document.getElementById('transit-date-range-fields');
-        const transitStartDate = document.getElementById('transitStartDate');
-        const transitEndDate = document.getElementById('transitEndDate');
-        const transitStep = document.getElementById('transitStep');
-        const personBCard = document.getElementById('personB-card');
-        const relocationSection = document.getElementById('relocation-section');
-
-        document.querySelectorAll('input[name="contextMode"]').forEach(radio => {
-            radio.addEventListener('change', () => {
-                const mode = document.querySelector('input[name="contextMode"]:checked').value;
-                if (mode === 'transit') {
-                    transitDateFields.style.display = '';
-                    personBCard.style.opacity = '0.5';
-                    personBCard.style.pointerEvents = 'none';
-                    relocationSection.style.display = 'block';
-                } else if (mode === 'natal') {
-                    transitDateFields.style.display = 'none';
-                    personBCard.style.opacity = '0.5';
-                    personBCard.style.pointerEvents = 'none';
-                    relocationSection.style.display = 'block';
-                } else if (mode === 'synastry-transits') {
-                    transitDateFields.style.display = '';
-                    personBCard.style.opacity = '1';
-                    personBCard.style.pointerEvents = 'auto';
-                    relocationSection.style.display = 'none';
-                    if (relocationToggle.checked) {
-                        relocationToggle.checked = false;
-                        relocationFields.classList.add('hidden');
-                    }
-                } else {
-                    transitDateFields.style.display = 'none';
-                    personBCard.style.opacity = '1';
-                    personBCard.style.pointerEvents = 'auto';
-                    relocationSection.style.display = 'none';
-                    if (relocationToggle.checked) {
-                        relocationToggle.checked = false;
-                        relocationFields.classList.add('hidden');
-                    }
-                }
-            });
-        });
-        // On page load, set initial state for new mode
-        const initialMode = document.querySelector('input[name="contextMode"]:checked').value;
-        if (initialMode === 'transit') {
-            transitDateFields.style.display = '';
-            personBCard.style.opacity = '0.5';
-            personBCard.style.pointerEvents = 'none';
-            relocationSection.style.display = 'block';
-        } else if (initialMode === 'synastry-transits') {
-            transitDateFields.style.display = '';
-            personBCard.style.opacity = '1';
-            personBCard.style.pointerEvents = 'auto';
-            relocationSection.style.display = 'none';
-        } else if (initialMode === 'natal') {
-            transitDateFields.style.display = 'none';
-            personBCard.style.opacity = '0.5';
-            personBCard.style.pointerEvents = 'none';
-            relocationSection.style.display = 'block';
-        } else {
-            transitDateFields.style.display = 'none';
-            personBCard.style.opacity = '1';
-            personBCard.style.pointerEvents = 'auto';
-            relocationSection.style.display = 'none';
-        }
-        // Validate transit date range
-        function validateTransitDates() {
-            if (transitDateFields.style.display !== 'none') {
+            // Validate transit dates if required by mode
+            if (mode === 'transit' || mode === 'synastry-transits') {
                 const start = transitStartDate.value;
                 const end = transitEndDate.value;
                 if (!start || !end) {
@@ -493,187 +424,17 @@
                     return false;
                 }
             }
-            return true;
-        }
-        // Update validateForm to include synastry-transit mode
-        const originalValidateForm = validateForm;
-        validateForm = function() {
-            if (!originalValidateForm()) return false;
-            const mode = document.querySelector('input[name="contextMode"]:checked').value;
-            if (mode === 'synastry-transits') {
-                // Require Person B fields
-                const nameB = document.getElementById('nameB').value.trim();
-                const dateB = document.getElementById('birth_dateB').value.trim();
-                const timeB = document.getElementById('birth_timeB').value.trim();
-                const astroB = document.getElementById('astroB').value.trim();
-                if (!nameB || !dateB || !timeB || !astroB) {
-                    showError('Please fill in all required fields for Person B for Synastry + Transits analysis');
-                    return false;
-                }
-                // Validate Person B date
-                const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-                if (!datePattern.test(dateB)) {
-                    showError('Please enter Person B date in YYYY-MM-DD format');
-                    return false;
-                }
-                // Validate Person B time
-                const timePattern = /^\d{2}:\d{2}$/;
-                if (!timePattern.test(timeB)) {
-                    showError('Please enter Person B time in HH:MM format (24-hour)');
-                    return false;
-                }
-                // Validate Person B coordinates
-                const decimalPattern = /^-?\d+\.?\d*,\s*-?\d+\.?\d*$/;
-                const dmsPattern = /\d+°\d+'[NS],\s*\d+°\d+'[EW]/;
-                if (!decimalPattern.test(astroB) && !dmsPattern.test(astroB)) {
-                    showError('Please enter Person B coordinates in decimal (e.g., 40.0167, -75.3167) or DMS format (e.g., 30°10\'N, 85°40\'W)');
-                    return false;
-                }
-                // Require transit dates
-                if (!transitStartDate.value.trim() || !transitEndDate.value.trim()) {
-                    showError('Please select both start and end dates for transit analysis');
-                    return false;
-                }
-                if (transitEndDate.value < transitStartDate.value) {
-                    showError('Transit end date must be after or equal to start date');
-                    return false;
-                }
-            }
-            return true;
-        };
-        // Update collectFormData to include transit dates and step for synastry-transits mode
-        const originalCollectFormData = collectFormData;
-        collectFormData = function() {
-            // Person A
-            const dateA = document.getElementById('birth_dateA').value.trim();
-            const timeA = document.getElementById('birth_timeA').value.trim();
-            const coordsA = document.getElementById('astroA').value.trim();
-            let year, month, day, hour, minute, latitude, longitude;
-            if (/^\d{4}-\d{2}-\d{2}$/.test(dateA)) {
-                [year, month, day] = dateA.split('-').map(Number);
-            }
-            if (/^\d{2}:\d{2}$/.test(timeA)) {
-                [hour, minute] = timeA.split(':').map(Number);
-            }
-            if (/^-?\d+\.?\d*,\s*-?\d+\.?\d*$/.test(coordsA)) {
-                [latitude, longitude] = coordsA.split(',').map(s => parseFloat(s.trim()));
-            } else {
-                latitude = coordsA;
-                longitude = undefined;
-            }
-            const personA = {
-                name: document.getElementById('nameA').value.trim(),
-                city: document.getElementById('birth_cityA').value.trim(),
-                nation: document.getElementById('birth_countryA').value.trim(),
-                year, month, day, hour, minute,
-                latitude, longitude,
-                zodiac_type: document.getElementById('zodiacA').value,
-                timezone: document.getElementById('offsetA').value
-            };
-            // Person B (unchanged)
-            const personB = {
-                name: document.getElementById('nameB').value.trim(),
-                birth_city: document.getElementById('birth_cityB').value.trim(),
-                birth_state: document.getElementById('birth_stateB').value.trim(),
-                birth_country: document.getElementById('birth_countryB').value.trim(),
-                birth_date: document.getElementById('birth_dateB').value,
-                birth_time: document.getElementById('birth_timeB').value.trim(),
-                timezone: document.getElementById('offsetB').value,
-                zodiac_type: document.getElementById('zodiacB').value,
-                birth_coordinates: document.getElementById('astroB').value.trim()
-            };
-            const formData = {
-                personA,
-                personB,
-                context: {
-                    mode: document.querySelector('input[name="contextMode"]:checked').value,
-                    relationship_type: document.querySelector('input[name="relationshipType"]:checked')?.value,
-                    intimacy_tier: document.querySelector('input[name="intimacyTier"]:checked')?.value
-                }
-            };
-            // Add relocation data if overlay is enabled
-            if (relocationToggle.checked) {
-                formData.relocation = {
-                    enabled: true,
-                    city: document.getElementById('relocationCity').value.trim(),
-                    state: document.getElementById('relocationState').value.trim(),
-                    coordinates: document.getElementById('relocationCoords').value.trim()
-                };
-            } else {
-                formData.relocation = {
-                    enabled: false
-                };
-            }
-            // Add transit data if in transit mode
-            const contextMode = document.querySelector('input[name="contextMode"]:checked').value;
-            if (contextMode === 'transit') {
-                formData.transit = {
-                    startDate: transitStartDate.value,
-                    endDate: transitEndDate.value,
-                    step: transitStep.value
-                };
-            }
-            return formData;
-        };
 
-        // Form validation
-        function validateForm() {
-            const nameA = document.getElementById('nameA').value.trim();
-            const dateA = document.getElementById('birth_dateA').value.trim();
-            const timeA = document.getElementById('birth_timeA').value.trim();
-            const astroA = document.getElementById('astroA').value.trim();
-
-            if (!nameA || !dateA || !timeA || !astroA) {
-                showError('Please fill in all required fields for Person A');
-                return false;
-            }
-
-            // Validate date format (MM-DD-YYYY)
-            const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-            if (!datePattern.test(dateA)) {
-                showError('Please enter date in YYYY-MM-DD format');
-                return false;
-            }
-
-            // Validate time format (HH:MM)
-            const timePattern = /^\d{2}:\d{2}$/;
-            if (!timePattern.test(timeA)) {
-                showError('Please enter time in HH:MM format (24-hour)');
-                return false;
-            }
-
-            // Validate coordinates format (accept decimal or DMS)
-            const decimalPattern = /^-?\d+\.?\d*,\s*-?\d+\.?\d*$/;
-            const dmsPattern = /\d+°\d+'[NS],\s*\d+°\d+'[EW]/;
-            if (!decimalPattern.test(astroA) && !dmsPattern.test(astroA)) {
-                showError('Please enter coordinates in decimal (e.g., 40.0167, -75.3167) or DMS format (e.g., 30°10\'N, 85°40\'W)');
-                return false;
-            }
-
-            // Validate relocation coordinates if relocation overlay is enabled
+            // Validate relocation coordinates if enabled
             if (relocationToggle.checked) {
                 const relocationCoords = relocationCoordsInput.value.trim();
                 if (!relocationCoords) {
-                    showError('Please enter relocation coordinates when relocation overlay is enabled');
+                    showError('Please enter relocation coordinates when overlay is enabled');
                     return false;
                 }
-                if (!decimalPattern.test(relocationCoords) && !dmsPattern.test(relocationCoords)) {
-                    showError('Please enter relocation coordinates in decimal (e.g., 40.0167, -75.3167) or DMS format (e.g., 30°10\'N, 85°40\'W)');
-                    return false;
-                }
-            }
-
-            // Validate transit dates if transit mode is selected
-            const contextMode = document.querySelector('input[name="contextMode"]:checked').value;
-            if (contextMode === 'transit') {
-                const transitStart = transitStartDate.value.trim();
-                const transitEnd = transitEndDate.value.trim();
-                if (!transitStart || !transitEnd) {
-                    showError('Please select both start and end dates for transit analysis');
-                    return false;
-                }
-                if (transitEnd < transitStart) {
-                    showError('Transit end date must be after or equal to start date');
+                const coordsR = parseCoordinates(relocationCoords);
+                if (coordsR.latitude === undefined || coordsR.longitude === undefined) {
+                    showError('Please enter valid relocation coordinates in decimal or DMS format');
                     return false;
                 }
             }
@@ -681,93 +442,86 @@
             return true;
         }
 
-        // Show error message
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorDisplay.classList.remove('hidden');
-            reportOutput.classList.add('hidden');
-        }
-
-        // Hide error message
-        function hideError() {
-            errorDisplay.classList.add('hidden');
-        }
-
-        // Collect form data - MATH BRAIN COMPLIANT: Only FIELD-level data
         function collectFormData() {
             // Person A
             const dateA = document.getElementById('birth_dateA').value.trim();
             const timeA = document.getElementById('birth_timeA').value.trim();
-            const coordsA = document.getElementById('astroA').value.trim();
-            let year, month, day, hour, minute, latitude, longitude;
-            if (/^\d{4}-\d{2}-\d{2}$/.test(dateA)) {
-                [year, month, day] = dateA.split('-').map(Number);
-            }
-            if (/^\d{2}:\d{2}$/.test(timeA)) {
-                [hour, minute] = timeA.split(':').map(Number);
-            }
-            if (/^-?\d+\.?\d*,\s*-?\d+\.?\d*$/.test(coordsA)) {
-                [latitude, longitude] = coordsA.split(',').map(s => parseFloat(s.trim()));
-            } else {
-                latitude = coordsA;
-                longitude = undefined;
-            }
+            const coordsA = parseCoordinates(document.getElementById('astroA').value.trim());
+            const [yearA, monthA, dayA] = dateA.split('-').map(Number);
+            const [hourA, minuteA] = timeA.split(':').map(Number);
+
             const personA = {
                 name: document.getElementById('nameA').value.trim(),
                 city: document.getElementById('birth_cityA').value.trim(),
                 nation: document.getElementById('birth_countryA').value.trim(),
-                year, month, day, hour, minute,
-                latitude, longitude,
+                year: yearA, month: monthA, day: dayA, hour: hourA, minute: minuteA,
+                latitude: coordsA.latitude, 
+                longitude: coordsA.longitude,
                 zodiac_type: document.getElementById('zodiacA').value,
                 timezone: document.getElementById('offsetA').value
             };
-            // Person B (unchanged)
-            const personB = {
-                name: document.getElementById('nameB').value.trim(),
-                birth_city: document.getElementById('birth_cityB').value.trim(),
-                birth_state: document.getElementById('birth_stateB').value.trim(),
-                birth_country: document.getElementById('birth_countryB').value.trim(),
-                birth_date: document.getElementById('birth_dateB').value,
-                birth_time: document.getElementById('birth_timeB').value.trim(),
-                timezone: document.getElementById('offsetB').value,
-                zodiac_type: document.getElementById('zodiacB').value,
-                birth_coordinates: document.getElementById('astroB').value.trim()
-            };
+
+            // Person B
+            const dateB_val = document.getElementById('birth_dateB').value;
+            const timeB_val = document.getElementById('birth_timeB').value.trim();
+            const coordsB_val = document.getElementById('astroB').value.trim();
+            let personB = {};
+
+            if (dateB_val && timeB_val && coordsB_val) {
+                const coordsB = parseCoordinates(coordsB_val);
+                if (coordsB.latitude !== undefined && coordsB.longitude !== undefined) {
+                    const [yearB, monthB, dayB] = dateB_val.split('-').map(Number);
+                    const [hourB, minuteB] = timeB_val.split(':').map(Number);
+                    personB = {
+                        name: document.getElementById('nameB').value.trim(),
+                        city: document.getElementById('birth_cityB').value.trim(),
+                        nation: document.getElementById('birth_countryB').value.trim(),
+                        year: yearB, month: monthB, day: dayB, hour: hourB, minute: minuteB,
+                        latitude: coordsB.latitude,
+                        longitude: coordsB.longitude,
+                        zodiac_type: document.getElementById('zodiacB').value,
+                        timezone: document.getElementById('offsetB').value
+                    };
+                }
+            }
+
             const formData = {
                 personA,
-                personB,
+                personB: Object.keys(personB).length > 0 ? personB : undefined,
                 context: {
                     mode: document.querySelector('input[name="contextMode"]:checked').value,
                     relationship_type: document.querySelector('input[name="relationshipType"]:checked')?.value,
                     intimacy_tier: document.querySelector('input[name="intimacyTier"]:checked')?.value
                 }
             };
-            // Add relocation data if overlay is enabled
+
             if (relocationToggle.checked) {
+                const relocationCoords = parseCoordinates(document.getElementById('relocationCoords').value.trim());
                 formData.relocation = {
                     enabled: true,
                     city: document.getElementById('relocationCity').value.trim(),
                     state: document.getElementById('relocationState').value.trim(),
-                    coordinates: document.getElementById('relocationCoords').value.trim()
+                    latitude: relocationCoords.latitude,
+                    longitude: relocationCoords.longitude
                 };
             } else {
-                formData.relocation = {
-                    enabled: false
-                };
+                formData.relocation = { enabled: false };
             }
-            // Add transit data if in transit mode
-            const contextMode = document.querySelector('input[name="contextMode"]:checked').value;
-            if (contextMode === 'transit') {
+
+            const mode = formData.context.mode;
+            if (mode === 'transit' || mode === 'synastry-transits') {
                 formData.transit = {
                     startDate: transitStartDate.value,
                     endDate: transitEndDate.value,
                     step: transitStep.value
                 };
             }
+
             return formData;
         }
 
-        // Generate report
+        // --- API Call ---
+
         async function generateReport() {
             if (!validateForm()) {
                 return;
@@ -781,56 +535,51 @@
             try {
                 const formData = collectFormData();
                 
-                // Call the Math Brain Netlify function (FIELD → MAP only)
                 const response = await fetch('/api/astrology-mathbrain', {
-                    method: 'POST', // Explicitly set method to POST
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
                 });
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+                    const errorBody = await response.text();
+                    let errorMessage = `HTTP error! status: ${response.status}`;
+                    try {
+                        // Try to parse as JSON to get a more specific error message
+                        const errorJson = JSON.parse(errorBody);
+                        if (errorJson.error) {
+                           errorMessage += ` - ${errorJson.error}`;
+                           if(errorJson.missing) {
+                             errorMessage += ` (Missing: ${errorJson.missing.join(', ')})`;
+                           }
+                        } else {
+                           errorMessage += ` - ${errorBody}`;
+                        }
+                    } catch (e) {
+                        // If not JSON, just use the text body
+                        errorMessage += ` - ${errorBody}`;
+                    }
+                    throw new Error(errorMessage);
                 }
 
                 const result = await response.json();
-                
                 if (result.error) {
                     throw new Error(result.error);
                 }
 
-                // MATH BRAIN COMPLIANCE: Display pure geometry output
                 let report = '';
-                
                 if (result._mathBrainOutput) {
                     report += '=== MATH BRAIN GEOMETRY OUTPUT ===\n';
-                    report += `Computation completed: ${result._fieldToMapComputed}\n`;
-                    report += `FIELD → MAP transformation successful\n\n`;
-                    
-                    report += '--- PURE ASTROLOGICAL GEOMETRY ---\n';
-                    report += 'Raw planetary positions, aspects, houses, and orbs\n';
-                    report += 'No interpretation, context, or narrative applied\n\n';
-                    
-                    // Display raw JSON geometry
+                    report += `Computation completed: ${result._fieldToMapComputed}\n\n`;
                     const geometryData = { ...result };
                     delete geometryData._mathBrainOutput;
                     delete geometryData._fieldToMapComputed;
                     delete geometryData._voiceLayerContext;
-                    
                     report += JSON.stringify(geometryData, null, 2);
-                    
-                    report += '\n\n--- VOICE LAYER PROCESSING ---\n';
-                    report += 'Focus area and report style preferences should be processed\n';
-                    report += 'by a separate Poetic Brain / VOICE layer system.\n';
-                    report += 'This Math Brain interface maintains strict FIELD → MAP → VOICE separation.\n';
                 } else {
-                    // Fallback for legacy response format
                     report = JSON.stringify(result, null, 2);
                 }
 
-                // Display the report
                 reportContent.textContent = report;
                 reportOutput.classList.remove('hidden');
 
@@ -843,97 +592,115 @@
             }
         }
 
-        // Copy report to clipboard
-        async function copyReport() {
-            try {
-                await navigator.clipboard.writeText(reportContent.textContent);
-                const originalText = copyBtn.textContent;
-                copyBtn.textContent = 'Copied!';
-                copyBtn.classList.add('bg-green-600');
-                copyBtn.classList.remove('bg-indigo-600');
-                
-                setTimeout(() => {
-                    copyBtn.textContent = originalText;
-                    copyBtn.classList.remove('bg-green-600');
-                    copyBtn.classList.add('bg-indigo-600');
-                }, 2000);
-            } catch (err) {
-                console.error('Failed to copy text: ', err);
-                alert('Could not copy to clipboard');
+        // --- Event Listeners & UI Updates ---
+
+        function setupEventListeners() {
+            // Main button
+            generateBtn.addEventListener('click', generateReport);
+
+            // Modal
+            mathBrainInfoBtn.addEventListener('click', () => mathBrainModal.classList.remove('hidden'));
+            closeMathBrainModal.addEventListener('click', () => mathBrainModal.classList.add('hidden'));
+            closeMathBrainModalBottom.addEventListener('click', () => mathBrainModal.classList.add('hidden'));
+            mathBrainModal.addEventListener('click', (e) => {
+                if (e.target === mathBrainModal) mathBrainModal.classList.add('hidden');
+            });
+
+            // Copy report
+            copyBtn.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(reportContent.textContent);
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(() => { copyBtn.textContent = 'Copy Geometry Data'; }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                }
+            });
+
+            // Context mode switching
+            document.querySelectorAll('input[name="contextMode"]').forEach(radio => {
+                radio.addEventListener('change', updateFormUI);
+            });
+
+            // Relocation toggle
+            relocationToggle.addEventListener('change', () => {
+                relocationFields.classList.toggle('hidden', !relocationToggle.checked);
+            });
+
+            // Relational context visibility
+            const personBInputs = ['nameB', 'birth_cityB', 'birth_stateB', 'birth_dateB', 'birth_timeB', 'birth_countryB', 'astroB'];
+            personBInputs.forEach(id => {
+                document.getElementById(id).addEventListener('input', () => {
+                    const anyFilled = personBInputs.some(id => document.getElementById(id).value.trim() !== '');
+                    relationalContextSection.classList.toggle('hidden', !anyFilled);
+                });
+            });
+            
+            // Intimacy tier visibility
+            document.querySelectorAll('input[name="relationshipType"]').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    const isPartner = document.querySelector('input[name="relationshipType"]:checked')?.value === 'partner';
+                    intimacyTierDropdown.classList.toggle('hidden', !isPartner);
+                });
+            });
+        }
+
+        function updateFormUI() {
+            const mode = document.querySelector('input[name="contextMode"]:checked').value;
+
+            const isTransit = mode === 'transit';
+            const isSynastryTransits = mode === 'synastry-transits';
+            const isNatal = mode === 'natal';
+            
+            const showPersonB = !isNatal && !isTransit;
+            personBCard.style.opacity = showPersonB ? '1' : '0.5';
+            personBCard.style.pointerEvents = showPersonB ? 'auto' : 'none';
+
+            const showTransitFields = isTransit || isSynastryTransits;
+            transitDateFields.style.display = showTransitFields ? 'block' : 'none';
+
+            const showRelocation = isNatal || isTransit;
+            relocationSection.style.display = showRelocation ? 'block' : 'none';
+            if (!showRelocation && relocationToggle.checked) {
+                relocationToggle.checked = false;
+                relocationFields.classList.add('hidden');
             }
         }
 
-        // Event listeners
-        generateBtn.addEventListener('click', generateReport);
-        copyBtn.addEventListener('click', copyReport);
+        // Initial UI setup on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elements
+            const generateBtn = document.getElementById('generateReport');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const errorDisplay = document.getElementById('errorDisplay');
+            const errorMessage = document.getElementById('errorMessage');
+            const reportOutput = document.getElementById('reportOutput');
+            const reportContent = document.getElementById('reportContent');
+            const copyBtn = document.getElementById('copyReport');
+            const mathBrainInfoBtn = document.getElementById('math-brain-info-btn');
+            const mathBrainModal = document.getElementById('math-brain-modal');
+            const closeMathBrainModal = document.getElementById('close-math-brain-modal');
+            const closeMathBrainModalBottom = document.getElementById('close-math-brain-modal-bottom');
+            const relocationToggle = document.getElementById('relocationToggle');
+            const relocationFields = document.getElementById('relocationFields');
+            const transitDateFields = document.getElementById('transit-date-range-fields');
+            const personBCard = document.getElementById('personB-card');
+            const relocationSection = document.getElementById('relocation-section');
+            const relationalContextSection = document.getElementById('relational-context-section');
+            const intimacyTierDropdown = document.getElementById('intimacy-tier-dropdown');
 
-        // Context mode toggle - show/hide Person B based on selected mode
-        document.querySelectorAll('input[name="contextMode"]').forEach(radio => {
-            radio.addEventListener('change', () => {
-                const personBCard = document.getElementById('personB-card');
-                const relocationSection = document.getElementById('relocation-section');
-                const mode = radio.value;
-                
-                if (mode === 'natal' || mode === 'transit') {
-                    personBCard.style.opacity = '0.5';
-                    personBCard.style.pointerEvents = 'none';
-                    // Show relocation overlay for these modes
-                    relocationSection.style.display = 'block';
-                } else {
-                    personBCard.style.opacity = '1';
-                    personBCard.style.pointerEvents = 'auto';
-                    // Hide relocation overlay for synastry/composite modes
-                    relocationSection.style.display = 'none';
-                    // Disable relocation if it was enabled
-                    if (relocationToggle.checked) {
-                        relocationToggle.checked = false;
-                        relocationFields.classList.add('hidden');
-                    }
-                }
-            });
-        });
-
-        // Initialize - set natal mode as default
-        document.getElementById('personB-card').style.opacity = '0.5';
-        document.getElementById('personB-card').style.pointerEvents = 'none';
-        document.getElementById('relocation-section').style.display = 'block';
-
-        // Show/hide relational context section based on Person B presence
-        const personBInputs = [
-            document.getElementById('nameB'),
-            document.getElementById('birth_cityB'),
-            document.getElementById('birth_stateB'),
-            document.getElementById('birth_dateB'),
-            document.getElementById('birth_timeB'),
-            document.getElementById('birth_countryB'),
-            document.getElementById('astroB')
-        ];
-        const relationalContextSection = document.getElementById('relational-context-section');
-        function checkPersonBPresent() {
-            const anyFilled = personBInputs.some(input => input.value.trim() !== '');
+            setupEventListeners();
+            updateFormUI();
+            
+            // Initial check for relational context section
+            const personBInputs = ['nameB', 'birth_cityB', 'birth_stateB', 'birth_dateB', 'birth_timeB', 'birth_countryB', 'astroB'];
+            const anyFilled = personBInputs.some(id => document.getElementById(id).value.trim() !== '');
             relationalContextSection.classList.toggle('hidden', !anyFilled);
-        }
-        personBInputs.forEach(input => {
-            input.addEventListener('input', checkPersonBPresent);
+            
+            // Initial check for intimacy tier
+            const isPartner = document.querySelector('input[name="relationshipType"]:checked')?.value === 'partner';
+            intimacyTierDropdown.classList.toggle('hidden', !isPartner);
         });
-        checkPersonBPresent();
-
-        // Show/hide intimacy tier only if Partner is selected
-        const relationshipTypeRadios = document.getElementsByName('relationshipType');
-        const intimacyTierSection = document.getElementById('intimacy-tier-section');
-        function updateIntimacyTierVisibility() {
-            const selected = Array.from(relationshipTypeRadios).find(r => r.checked);
-            intimacyTierSection.style.display = selected && selected.value === 'partner' ? '' : 'none';
-        }
-        relationshipTypeRadios.forEach(radio => {
-            radio.addEventListener('change', updateIntimacyTierVisibility);
-        });
-        updateIntimacyTierVisibility();
-
-        // MATH BRAIN COMPLIANCE NOTE:
-        // All interpretation functions have been removed from this Math Brain interface.
-        // Focus area and report style processing should be handled by a separate
-        // Poetic Brain / VOICE layer system that consumes the pure geometry output.
     </script>
 </body>
 </html>
