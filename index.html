@@ -205,6 +205,20 @@
                     </div>
                 </div>
                 
+                <!-- Transit Date Range Fields (only visible in transit mode) -->
+                <div id="transit-date-range-fields" class="mb-6" style="display:none;">
+                  <label for="transitStartDate" class="block text-gray-300 font-medium mb-1">Transit Start Date (YYYY-MM-DD):</label>
+                  <input type="date" id="transitStartDate" name="transitStartDate" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 mb-2" required>
+                  <label for="transitEndDate" class="block text-gray-300 font-medium mb-1">Transit End Date (YYYY-MM-DD):</label>
+                  <input type="date" id="transitEndDate" name="transitEndDate" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 mb-2" required>
+                  <label for="transitStep" class="block text-gray-300 font-medium mb-1">Step Size:</label>
+                  <select id="transitStep" name="transitStep" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                    <option value="1d">Daily</option>
+                    <option value="7d">Weekly</option>
+                    <option value="1m">Monthly</option>
+                  </select>
+                </div>
+                
                 <!-- Additional Context Options -->
                 <div id="context-options" class="space-y-4">
                     <div class="bg-yellow-900 border border-yellow-700 text-yellow-100 px-4 py-3 rounded mb-4">
@@ -412,6 +426,83 @@
             relocationCoordsInput.classList.add('border-gray-600');
         }
 
+        // Show/hide transit date range fields based on context mode
+        const transitDateFields = document.getElementById('transit-date-range-fields');
+        const transitStartDate = document.getElementById('transitStartDate');
+        const transitEndDate = document.getElementById('transitEndDate');
+        const transitStep = document.getElementById('transitStep');
+        document.querySelectorAll('input[name="contextMode"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                const mode = radio.value;
+                if (mode === 'transit') {
+                    transitDateFields.style.display = '';
+                } else {
+                    transitDateFields.style.display = 'none';
+                }
+                const personBCard = document.getElementById('personB-card');
+                const relocationSection = document.getElementById('relocation-section');
+                
+                if (mode === 'natal' || mode === 'transit') {
+                    personBCard.style.opacity = '0.5';
+                    personBCard.style.pointerEvents = 'none';
+                    // Show relocation overlay for these modes
+                    relocationSection.style.display = 'block';
+                } else {
+                    personBCard.style.opacity = '1';
+                    personBCard.style.pointerEvents = 'auto';
+                    // Hide relocation overlay for synastry/composite modes
+                    relocationSection.style.display = 'none';
+                    // Disable relocation if it was enabled
+                    if (relocationToggle.checked) {
+                        relocationToggle.checked = false;
+                        relocationFields.classList.add('hidden');
+                    }
+                }
+            });
+        });
+        // On page load, hide transit fields unless transit mode is selected
+        if (document.querySelector('input[name="contextMode"]:checked').value !== 'transit') {
+            transitDateFields.style.display = 'none';
+        } else {
+            transitDateFields.style.display = '';
+        }
+        // Validate transit date range
+        function validateTransitDates() {
+            if (transitDateFields.style.display !== 'none') {
+                const start = transitStartDate.value;
+                const end = transitEndDate.value;
+                if (!start || !end) {
+                    showError('Please enter both start and end dates for transit analysis');
+                    return false;
+                }
+                if (end < start) {
+                    showError('End date must be after or equal to start date');
+                    return false;
+                }
+            }
+            return true;
+        }
+        // Update validateForm to include transit date validation
+        const originalValidateForm = validateForm;
+        validateForm = function() {
+            if (!originalValidateForm()) return false;
+            if (!validateTransitDates()) return false;
+            return true;
+        };
+        // Update collectFormData to include transit dates and step
+        const originalCollectFormData = collectFormData;
+        collectFormData = function() {
+            const formData = originalCollectFormData();
+            if (transitDateFields.style.display !== 'none') {
+                formData.transit = {
+                    startDate: transitStartDate.value,
+                    endDate: transitEndDate.value,
+                    step: transitStep.value
+                };
+            }
+            return formData;
+        };
+
         // Form validation
         function validateForm() {
             const nameA = document.getElementById('nameA').value.trim();
@@ -454,6 +545,21 @@
                 }
                 if (!validateRelocationCoords()) {
                     showError('Please enter valid relocation coordinates in format: latitude, longitude');
+                    return false;
+                }
+            }
+
+            // Validate transit dates if transit mode is selected
+            const contextMode = document.querySelector('input[name="contextMode"]:checked').value;
+            if (contextMode === 'transit') {
+                const transitStart = transitStartDate.value.trim();
+                const transitEnd = transitEndDate.value.trim();
+                if (!transitStart || !transitEnd) {
+                    showError('Please select both start and end dates for transit analysis');
+                    return false;
+                }
+                if (transitEnd < transitStart) {
+                    showError('Transit end date must be after or equal to start date');
                     return false;
                 }
             }
@@ -515,6 +621,16 @@
             } else {
                 formData.relocation = {
                     enabled: false
+                };
+            }
+
+            // Add transit data if in transit mode
+            const contextMode = document.querySelector('input[name="contextMode"]:checked').value;
+            if (contextMode === 'transit') {
+                formData.transit = {
+                    startDate: transitStartDate.value,
+                    endDate: transitEndDate.value,
+                    step: transitStep.value
                 };
             }
 
