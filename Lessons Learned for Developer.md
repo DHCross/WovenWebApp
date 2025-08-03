@@ -33,3 +33,14 @@ Both of your AI assistants were correct. One was describing the car you're drivi
     *   Changing the API endpoint URL in `netlify/functions/astrology-mathbrain.js`.
     *   Updating the authentication method (it would no longer use a `RAPIDAPI_KEY`).
     *   Carefully testing to ensure the request and response formats are identical.
+
+---
+
+### Meta-Lesson: How AI Assistants See Your Workspace
+
+Different GitHub Copilot interfaces can have different views of your project's files, leading to potential confusion.
+
+*   **Copilot in an IDE (like VS Code):** This version directly interacts with your local file system and can usually be prompted to "refresh" or "rescan" to see the latest changes. It has a live view of your workspace.
+*   **Copilot in a Web "Space":** This version's knowledge is limited to the files that have been explicitly attached or uploaded to that specific session or "space." It does not automatically see local changes. The only way to "refresh" its context is to re-upload or update the files within that web interface.
+
+**Key Takeaway:** If an AI assistant reports a file is missing that you know exists, it's likely a context synchronization issue. The fix depends on the interface you're using—either refreshing your IDE or re-attaching the file in the web space.
