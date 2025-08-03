@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: #fff; }
+        button { padding: 10px 20px; margin: 10px 0; background: #007acc; color: white; border: none; cursor: pointer; }
+        button:hover { background: #005a9e; }
+        .result { margin: 10px 0; padding: 10px; background: #333; border-radius: 5px; }
+        .error { background: #ff4444; }
+        .success { background: #44ff44; color: #000; }
+    </style>
+</head>
+<body>
+    <h1>API Debug Test</h1>
+    <p>This page tests if the Netlify function is accessible.</p>
+    
+    <button onclick="testFunction()">Test Function Endpoint</button>
+    <button onclick="testSimpleCall()">Test Simple API Call</button>
+    <button onclick="testWithRealData()">Test With Real Data</button>
+    
+    <div id="results"></div>
+
+    <script>
+        function log(message, isError = false, isSuccess = false) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = 'result' + (isError ? ' error' : '') + (isSuccess ? ' success' : '');
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            results.appendChild(div);
+        }
+
+        async function testFunction() {
+            log('Testing if function endpoint is accessible...');
+            try {
+                const response = await fetch('/.netlify/functions/astrology-mathbrain', {
+                    method: 'GET'
+                });
+                log(`GET response: ${response.status} - ${response.statusText}`, response.status >= 400);
+                const text = await response.text();
+                log(`Response body: ${text.substring(0, 200)}...`);
+            } catch (error) {
+                log(`Error accessing function: ${error.message}`, true);
+            }
+        }
+
+        async function testSimpleCall() {
+            log('Testing simple POST call...');
+            try {
+                const response = await fetch('/.netlify/functions/astrology-mathbrain', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ test: true })
+                });
+                log(`POST response: ${response.status} - ${response.statusText}`, response.status >= 400);
+                const text = await response.text();
+                log(`Response body: ${text}`);
+            } catch (error) {
+                log(`Error with POST: ${error.message}`, true);
+            }
+        }
+
+        async function testWithRealData() {
+            log('Testing with minimal valid data...');
+            try {
+                const testData = {
+                    personA: {
+                        name: "Test Person",
+                        birthDate: "1990-06-15",
+                        birthTime: "14:30",
+                        birthLocation: "New York, NY",
+                        coordinates: "40.7128,-74.0060"
+                    },
+                    mode: "natal_transits",
+                    transitStartDate: "2024-01-01",
+                    transitEndDate: "2024-01-31"
+                };
+                
+                const response = await fetch('/.netlify/functions/astrology-mathbrain', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                log(`Real data response: ${response.status} - ${response.statusText}`, response.status >= 400, response.status === 200);
+                const text = await response.text();
+                log(`Response preview: ${text.substring(0, 500)}...`);
+                
+                if (response.status === 200) {
+                    try {
+                        const json = JSON.parse(text);
+                        log(`Successfully parsed JSON response with ${Object.keys(json).length} top-level properties`, false, true);
+                    } catch (e) {
+                        log(`Response was not valid JSON: ${e.message}`, true);
+                    }
+                }
+            } catch (error) {
+                log(`Error with real data: ${error.message}`, true);
+            }
+        }
+
+        // Test on page load
+        window.addEventListener('load', () => {
+            log('Page loaded. Click buttons above to test API endpoints.');
+            log(`Current URL: ${window.location.href}`);
+            log(`Testing endpoint: /.netlify/functions/astrology-mathbrain`);
+        });
+    </script>
+</body>
+</html>
