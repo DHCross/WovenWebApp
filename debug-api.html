@@ -70,14 +70,29 @@
                 const testData = {
                     personA: {
                         name: "Test Person",
-                        birthDate: "1990-06-15",
-                        birthTime: "14:30",
-                        birthLocation: "New York, NY",
-                        coordinates: "40.7128,-74.0060"
+                        year: 1990,
+                        month: 6,
+                        day: 15,
+                        hour: 14,
+                        minute: 30,
+                        city: "New York",
+                        nation: "US",
+                        latitude: 40.7128,
+                        longitude: -74.0060,
+                        zodiac_type: "Tropic",
+                        timezone: "America/New_York"
                     },
-                    mode: "natal_transits",
-                    transitStartDate: "2024-01-01",
-                    transitEndDate: "2024-01-31"
+                    context: {
+                        mode: "natal_transits",
+                        relationship_type: "partner",
+                        intimacy_tier: null
+                    },
+                    transit: {
+                        startDate: "2024-01-01",
+                        endDate: "2024-01-31",
+                        step: "day"
+                    },
+                    relocation: { enabled: false }
                 };
                 
                 const response = await fetch('/.netlify/functions/astrology-mathbrain', {
