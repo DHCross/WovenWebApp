@@ -71,7 +71,7 @@ This document outlines the best practices for maintaining, updating, and trouble
 
 ## Quick Checklist Before Each Update
 
-- [ ] Update CHANGELOG.txt with details of the change.
+- [ ] Update CHANGELOG.md with details of the change.
 - [ ] Ensure dependencies are up-to-date.
 - [ ] Test for errors and validate user flows.
 - [ ] Clean up unused files and double-check .env handling.
@@ -82,7 +82,7 @@ This document outlines the best practices for maintaining, updating, and trouble
 ## Troubleshooting Tips
 
 - **App not working?**  
-  - Check CHANGELOG.txt for recent changes.
+  - Check CHANGELOG.md for recent changes.
   - Verify API keys and environment variables.
   - Review error messages and validation logic.
 

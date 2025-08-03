@@ -707,7 +707,7 @@
                 const formData = collectFormData();
                 
                 // Call the Math Brain Netlify function (FIELD → MAP only)
-                const response = await fetch('/.netlify/functions/astrology-mathbrain', {
+                const response = await fetch('/api/astrology-mathbrain', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
