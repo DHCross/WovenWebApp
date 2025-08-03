@@ -5,6 +5,21 @@ Each entry should include the date, a brief description, what caused the break (
 
 ---
 
+### [2025-08-03 16:50] FIX
+**Symptom:**  
+The application returned a 404 "Not Found" error when clicking the "Compute Astrological Geometry" button.
+
+**Suspected Cause:**  
+The front-end JavaScript in `index.html` was making a `fetch` request directly to the internal Netlify function path (`/.netlify/functions/astrology-mathbrain`) instead of using the public-facing API endpoint defined in `netlify.toml`.
+
+**How Diagnosed:**  
+Compared the `fetch` URL in `index.html` with the `[[redirects]]` rules in `netlify.toml`. The request was not using the `/api/astrology-mathbrain` path that Netlify was configured to listen for.
+
+**Resolution:**  
+Modified the `fetch` call in `index.html` to use the correct endpoint: `/api/astrology-mathbrain`. This allows Netlify to properly handle the request and redirect it to the serverless function, resolving the 404 error.
+
+---
+
 ## Template for Each Entry
 
 ### [YYYY-MM-DD HH:MM] [BREAK/FIX]
