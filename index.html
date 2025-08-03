@@ -274,7 +274,7 @@ Woven Map Report Generator: Context Mode & JSON Export
         const reportOutput = document.getElementById('report-output');
         const reportTitle = document.getElementById('report-title');
         const copyBtn = document.getElementById('copy-btn');
-        const saveJsonBtn = document.get
+        const saveJsonBtn = document.getElementById('save-json-btn');
         const saveMdBtn = document.getElementById('save-md-btn');
         const messageBox = document.getElementById('message-box'); // <-- Only declare once here
         const startDateInput = document.getElementById('startDate');
@@ -581,6 +581,38 @@ async function getChartDataFromApi(payload) {
     } catch (err) {
         throw new Error('Network/API error: ' + err.message);
     }
+}
+
+        // --- FORMAT NATAL CHART TO MARKDOWN ---
+function formatMdNatalChart(personObj) {
+    if (!personObj || !personObj.details || !personObj.chart || !personObj.chart.data || !personObj.chart.data.subject) {
+        return '### Natal Chart\nData unavailable.';
+    }
+    const details = personObj.details;
+    const chart = personObj.chart.data.subject;
+    let md = `### Natal Chart: ${details.name || 'Unknown'}\n`;
+    md += `- Birth: ${details.city || ''}, ${details.nation || ''} (${details.year || ''}-${details.month || ''}-${details.day || ''} ${String(details.hour).padStart(2,'0')}:${String(details.minute).padStart(2,'0')})\n`;
+    md += `- Coordinates: ${details.latitude}, ${details.longitude}\n`;
+    md += `- Zodiac Type: ${details.zodiac_type || 'Tropic'}\n`;
+    if (chart.planets) {
+        md += `\n**Planets:**\n`;
+        Object.entries(chart.planets).forEach(([planet, pos]) => {
+            md += `- ${planet}: ${pos.sign} ${pos.degree}°${pos.minute}'\n`;
+        });
+    }
+    if (chart.houses) {
+        md += `\n**Houses:**\n`;
+        Object.entries(chart.houses).forEach(([house, pos]) => {
+            md += `- ${house}: ${pos.sign} ${pos.degree}°${pos.minute}'\n`;
+        });
+    }
+    if (chart.aspects && chart.aspects.length) {
+        md += `\n**Major Aspects:**\n`;
+        chart.aspects.forEach(a => {
+            md += `- ${a.p1} ${a.aspect} ${a.p2} (${a.orb}° orb)\n`;
+        });
+    }
+    return md;
 }
 
         // --- MAIN REPORT GENERATION LOGIC ---
