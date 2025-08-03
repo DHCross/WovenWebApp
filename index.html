@@ -316,6 +316,7 @@
         </footer>
     </div>
 
+    <script src="config.js"></script>
     <script>
         // Global UI element references
         let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown;
@@ -339,8 +340,11 @@
             const decimalPattern = /^-?\d+\.?\d*,\s*-?\d+\.?\d*$/;
             const dmsPattern = /(\d+)[°\s]+(\d+)'?\s*([NS]),\s*(\d+)[°\s]+(\d+)'?\s*([EW])/i;
 
+            console.log("Parsing coordinates:", coordString);
+
             if (decimalPattern.test(coordString)) {
                 const [lat, lon] = coordString.split(',').map(s => parseFloat(s.trim()));
+                console.log("Parsed decimal coordinates:", { latitude: lat, longitude: lon });
                 return { latitude: lat, longitude: lon };
             }
 
@@ -352,9 +356,11 @@
                 let lon = parseFloat(dmsMatch[4]) + parseFloat(dmsMatch[5]) / 60;
                 if (dmsMatch[6].toUpperCase() === 'W') lon = -lon;
                 
+                console.log("Parsed DMS coordinates:", { latitude: lat, longitude: lon });
                 return { latitude: parseFloat(lat.toFixed(4)), longitude: parseFloat(lon.toFixed(4)) };
             }
             
+            console.error("Failed to parse coordinates:", coordString);
             // Return undefined if no pattern matches
             return { latitude: undefined, longitude: undefined };
         }
@@ -446,21 +452,54 @@
         }
 
         function collectFormData() {
-            // Person A
+            console.log("=== COLLECTING FORM DATA ===");
+            
+            // Person A - Get raw form values first
+            const nameA = document.getElementById('nameA').value.trim();
+            const cityA = document.getElementById('birth_cityA').value.trim();
+            const stateA = document.getElementById('birth_stateA').value.trim();
+            const countryA = document.getElementById('birth_countryA').value.trim();
             const dateA = document.getElementById('birth_dateA').value.trim();
             const timeA = document.getElementById('birth_timeA').value.trim();
-            const coordsA = parseCoordinates(document.getElementById('astroA').value.trim());
+            const astroA = document.getElementById('astroA').value.trim();
+            const zodiacA = document.getElementById('zodiacA').value;
+            const timezoneA = document.getElementById('offsetA').value;
+
+            console.log("Raw form values for Person A:");
+            console.log("- Name:", nameA);
+            console.log("- City:", cityA);
+            console.log("- State:", stateA);
+            console.log("- Country:", countryA);
+            console.log("- Date:", dateA);
+            console.log("- Time:", timeA);
+            console.log("- Coordinates:", astroA);
+            console.log("- Zodiac:", zodiacA);
+            console.log("- Timezone:", timezoneA);
+
+            // Parse date and time
+            if (!dateA || !timeA) {
+                console.error("Missing date or time for Person A");
+                throw new Error("Date and time are required for Person A");
+            }
+
             const [yearA, monthA, dayA] = dateA.split('-').map(Number);
             const [hourA, minuteA] = timeA.split(':').map(Number);
 
-            console.log("Date A:", dateA, "Time A:", timeA, "Coordinates A:", coordsA);
-            console.log("Year:", yearA, "Month:", monthA, "Day:", dayA, "Hour:", hourA, "Minute:", minuteA);
+            console.log("Parsed date/time:", { yearA, monthA, dayA, hourA, minuteA });
+
+            // Parse coordinates
+            const coordsA = parseCoordinates(astroA);
+            console.log("Parsed coordinates:", coordsA);
+
+            if (coordsA.latitude === undefined || coordsA.longitude === undefined) {
+                console.error("Failed to parse coordinates for Person A");
+                throw new Error("Valid coordinates are required for Person A");
+            }
 
             const personA = {
-                name: document.getElementById('nameA').value.trim(),
-                city: document.getElementById('birth_cityA').value.trim(),
-                state: document.getElementById('birth_stateA').value.trim(), // Added state
-                nation: document.getElementById('birth_countryA').value.trim(),
+                name: nameA || "Unknown",
+                city: cityA || "Unknown",
+                nation: countryA || "US",
                 year: yearA,
                 month: monthA, 
                 day: dayA, 
@@ -468,37 +507,58 @@
                 minute: minuteA,
                 latitude: coordsA.latitude, 
                 longitude: coordsA.longitude,
-                zodiac_type: document.getElementById('zodiacA').value,
-                timezone: document.getElementById('offsetA').value
+                zodiac_type: zodiacA || "Tropic",
+                timezone: timezoneA || "America/New_York"
             };
+            
+            console.log("Final Person A data:", personA);
+            
+            // Validate all required fields are present and not undefined
+            const requiredFields = ['year', 'month', 'day', 'hour', 'minute', 'name', 'city', 'nation', 'latitude', 'longitude', 'zodiac_type', 'timezone'];
+            const missingFields = requiredFields.filter(field => {
+                const value = personA[field];
+                return value === undefined || value === null || value === "";
+            });
+            
+            if (missingFields.length > 0) {
+                console.error("Missing required fields for Person A:", missingFields);
+                console.error("Current Person A object:", personA);
+                throw new Error(`Missing required fields for Person A: ${missingFields.join(', ')}`);
+            }
 
-            // Person B
+            // Person B - only if fields are filled
             const dateB_val = document.getElementById('birth_dateB').value;
             const timeB_val = document.getElementById('birth_timeB').value.trim();
             const coordsB_val = document.getElementById('astroB').value.trim();
-            let personB = {};
+            let personB = null;
 
             if (dateB_val && timeB_val && coordsB_val) {
+                console.log("Processing Person B data...");
                 const coordsB = parseCoordinates(coordsB_val);
                 if (coordsB.latitude !== undefined && coordsB.longitude !== undefined) {
                     const [yearB, monthB, dayB] = dateB_val.split('-').map(Number);
                     const [hourB, minuteB] = timeB_val.split(':').map(Number);
                     personB = {
-                        name: document.getElementById('nameB').value.trim(),
-                        city: document.getElementById('birth_cityB').value.trim(),
-                        nation: document.getElementById('birth_countryB').value.trim(),
-                        year: yearB, month: monthB, day: dayB, hour: hourB, minute: minuteB,
+                        name: document.getElementById('nameB').value.trim() || "Unknown",
+                        city: document.getElementById('birth_cityB').value.trim() || "Unknown",
+                        nation: document.getElementById('birth_countryB').value.trim() || "US",
+                        year: yearB, 
+                        month: monthB, 
+                        day: dayB, 
+                        hour: hourB, 
+                        minute: minuteB,
                         latitude: coordsB.latitude,
                         longitude: coordsB.longitude,
-                        zodiac_type: document.getElementById('zodiacB').value,
-                        timezone: document.getElementById('offsetB').value
+                        zodiac_type: document.getElementById('zodiacB').value || "Tropic",
+                        timezone: document.getElementById('offsetB').value || "America/New_York"
                     };
+                    console.log("Person B data:", personB);
                 }
             }
 
             const formData = {
                 personA,
-                personB: Object.keys(personB).length > 0 ? personB : undefined,
+                personB: personB,
                 context: {
                     mode: document.querySelector('input[name="contextMode"]:checked').value,
                     relationship_type: document.querySelector('input[name="relationshipType"]:checked')?.value,
@@ -506,14 +566,15 @@
                 }
             };
 
-            if (relocationToggle.checked) {
+            if (relocationToggle && relocationToggle.checked) {
                 const relocationCoords = parseCoordinates(document.getElementById('relocationCoords').value.trim());
                 formData.relocation = {
                     enabled: true,
                     city: document.getElementById('relocationCity').value.trim(),
                     state: document.getElementById('relocationState').value.trim(),
                     latitude: relocationCoords.latitude,
-                    longitude: relocationCoords.longitude
+                    longitude: relocationCoords.longitude,
+                    coordinates: document.getElementById('relocationCoords').value.trim()
                 };
             } else {
                 formData.relocation = { enabled: false };
@@ -521,26 +582,30 @@
 
             const mode = formData.context.mode;
             if (mode === 'transit' || mode === 'synastry-transits') {
-                formData.transit = {
-                    startDate: transitStartDate.value,
-                    endDate: transitEndDate.value,
-                    step: transitStep.value
-                };
+                if (transitStartDate && transitEndDate && transitStep) {
+                    formData.transit = {
+                        startDate: transitStartDate.value,
+                        endDate: transitEndDate.value,
+                        step: transitStep.value
+                    };
+                }
             }
 
+            console.log("=== FINAL FORM DATA ===");
+            console.log(JSON.stringify(formData, null, 2));
             return formData;
         }
 
         // --- API Call ---
 
         async function generateReport() {
-            console.log("Generate button clicked");
+            WovenMapConfig.debugLog("Generate button clicked");
             
             if (!validateForm()) {
                 return;
             }
 
-            console.log("Form is valid, preparing API request");
+            WovenMapConfig.debugLog("Form is valid, preparing API request");
             hideError();
             generateBtn.disabled = true;
             loadingIndicator.classList.remove('hidden');
@@ -550,14 +615,27 @@
                 const formData = collectFormData();
                 
                 // Log the complete data being sent to API
-                console.log("Sending data to API:", JSON.stringify(formData, null, 2));
-                console.log("Form data collected:", formData);
+                WovenMapConfig.debugLog("Sending data to API", formData);
                 
-                console.log("Sending API request to /api/astrology-mathbrain");
-                const response = await fetch('/api/astrology-mathbrain', {
+                // Double-check required fields using configuration
+                const requiredFields = WovenMapConfig.validation.requiredFields.person;
+                const missingFields = requiredFields.filter(field => {
+                    const value = formData.personA[field];
+                    return value === undefined || value === null || value === "";
+                });
+                
+                if (missingFields.length > 0) {
+                    throw new Error(`Missing required fields for Person A: ${missingFields.join(', ')}`);
+                }
+                
+                const apiEndpoint = WovenMapConfig.getApiEndpoint('astrologyMathBrain');
+                WovenMapConfig.debugLog(`Sending API request to ${apiEndpoint}`);
+                
+                const response = await fetch(apiEndpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(formData),
+                    timeout: WovenMapConfig.api.timeout
                 });
 
                 if (!response.ok) {
@@ -707,6 +785,20 @@
             relocationSection = document.getElementById('relocation-section');
             relationalContextSection = document.getElementById('relational-context-section');
             intimacyTierDropdown = document.getElementById('intimacy-tier-dropdown');
+            transitStartDate = document.getElementById('transitStartDate');
+            transitEndDate = document.getElementById('transitEndDate');
+            transitStep = document.getElementById('transitStep');
+            relocationCoordsInput = document.getElementById('relocationCoords');
+
+            console.log("DOM elements assigned:", {
+                generateBtn: !!generateBtn,
+                loadingIndicator: !!loadingIndicator,
+                errorDisplay: !!errorDisplay,
+                transitStartDate: !!transitStartDate,
+                transitEndDate: !!transitEndDate,
+                transitStep: !!transitStep,
+                relocationCoordsInput: !!relocationCoordsInput
+            });
 
             setupEventListeners();
             updateFormUI();
