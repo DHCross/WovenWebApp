@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Form Data Collection</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-output { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e9; color: #2e7d32; }
+        button { padding: 10px 20px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Debug Form Data Collection</h1>
+    
+    <button onclick="testCurrentFormData()">Test Current Form Data</button>
+    <button onclick="testKnownGoodData()">Test Known Good Data</button>
+    
+    <div id="output" class="debug-output"></div>
+    
+    <script>
+        function parseCoordinates(coordString) {
+            if (!coordString) return { latitude: undefined, longitude: undefined };
+            
+            coordString = coordString.trim();
+            const decimalPattern = /^-?\d+\.?\d*,\s*-?\d+\.?\d*$/;
+            
+            if (decimalPattern.test(coordString)) {
+                const [lat, lon] = coordString.split(',').map(s => parseFloat(s.trim()));
+                return { latitude: lat, longitude: lon };
+            }
+            
+            return { latitude: undefined, longitude: undefined };
+        }
+        
+        function testCurrentFormData() {
+            const output = document.getElementById('output');
+            
+            try {
+                // Check if we can access the parent window's form
+                if (window.parent && window.parent.document) {
+                    const parentDoc = window.parent.document;
+                    
+                    // Try to collect form data like the main app does
+                    const nameA = parentDoc.getElementById('nameA')?.value.trim();
+                    const cityA = parentDoc.getElementById('birth_cityA')?.value.trim();
+                    const dateA = parentDoc.getElementById('birth_dateA')?.value.trim();
+                    const timeA = parentDoc.getElementById('birth_timeA')?.value.trim();
+                    const astroA = parentDoc.getElementById('astroA')?.value.trim();
+                    const zodiacA = parentDoc.getElementById('zodiacA')?.value;
+                    const timezoneA = parentDoc.getElementById('offsetA')?.value;
+                    
+                    output.innerHTML = `
+                        <h3>Form Elements Found:</h3>
+                        <pre>
+nameA: ${nameA || 'MISSING/EMPTY'}
+cityA: ${cityA || 'MISSING/EMPTY'}
+dateA: ${dateA || 'MISSING/EMPTY'}
+timeA: ${timeA || 'MISSING/EMPTY'}
+astroA: ${astroA || 'MISSING/EMPTY'}
+zodiacA: ${zodiacA || 'MISSING/EMPTY'}
+timezoneA: ${timezoneA || 'MISSING/EMPTY'}
+                        </pre>
+                    `;
+                    
+                    if (dateA && timeA) {
+                        const [yearA, monthA, dayA] = dateA.split('-').map(Number);
+                        const [hourA, minuteA] = timeA.split(':').map(Number);
+                        const coordsA = parseCoordinates(astroA);
+                        
+                        const personA = {
+                            name: nameA || "Unknown",
+                            city: cityA || "Unknown",
+                            nation: "US",
+                            year: yearA,
+                            month: monthA,
+                            day: dayA,
+                            hour: hourA,
+                            minute: minuteA,
+                            latitude: coordsA.latitude,
+                            longitude: coordsA.longitude,
+                            zodiac_type: zodiacA || "Tropic",
+                            timezone: timezoneA || "America/New_York"
+                        };
+                        
+                        output.innerHTML += `
+                            <h3>Processed Person A:</h3>
+                            <pre>${JSON.stringify(personA, null, 2)}</pre>
+                        `;
+                        
+                        // Check for missing fields
+                        const requiredFields = ['year', 'month', 'day', 'hour', 'minute', 'name', 'city', 'nation', 'latitude', 'longitude', 'zodiac_type', 'timezone'];
+                        const missingFields = requiredFields.filter(field => {
+                            const value = personA[field];
+                            return value === undefined || value === null || value === "" || (typeof value === 'number' && isNaN(value));
+                        });
+                        
+                        if (missingFields.length > 0) {
+                            output.innerHTML += `<div class="error"><h3>Missing Fields:</h3><pre>${missingFields.join(', ')}</pre></div>`;
+                        } else {
+                            output.innerHTML += `<div class="success"><h3>All required fields present!</h3></div>`;
+                        }
+                    }
+                } else {
+                    output.innerHTML = '<p>Cannot access parent form. Open this in the main app context.</p>';
+                }
+            } catch (error) {
+                output.innerHTML = `<div class="error"><h3>Error:</h3><pre>${error.message}</pre></div>`;
+            }
+        }
+        
+        function testKnownGoodData() {
+            const output = document.getElementById('output');
+            
+            const testData = {
+                personA: {
+                    name: "John Doe",
+                    city: "New York",
+                    nation: "US",
+                    year: 1990,
+                    month: 1,
+                    day: 1,
+                    hour: 12,
+                    minute: 0,
+                    latitude: 40.7128,
+                    longitude: -74.0060,
+                    zodiac_type: "Tropic",
+                    timezone: "America/New_York"
+                },
+                context: {
+                    mode: "natal"
+                }
+            };
+            
+            output.innerHTML = `
+                <h3>Known Good Test Data:</h3>
+                <pre>${JSON.stringify(testData, null, 2)}</pre>
+                <button onclick="testApiCall()">Test API Call with This Data</button>
+            `;
+        }
+        
+        async function testApiCall() {
+            const output = document.getElementById('output');
+            
+            const testData = {
+                personA: {
+                    name: "John Doe",
+                    city: "New York",
+                    nation: "US",
+                    year: 1990,
+                    month: 1,
+                    day: 1,
+                    hour: 12,
+                    minute: 0,
+                    latitude: 40.7128,
+                    longitude: -74.0060,
+                    zodiac_type: "Tropic",
+                    timezone: "America/New_York"
+                },
+                context: {
+                    mode: "natal"
+                }
+            };
+            
+            try {
+                output.innerHTML += '<p>Making API request...</p>';
+                
+                const response = await fetch('/api/astrology-mathbrain', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testData)
+                });
+                
+                const responseText = await response.text();
+                
+                if (response.ok) {
+                    output.innerHTML += `<div class="success"><h3>API Success!</h3><pre>${responseText}</pre></div>`;
+                } else {
+                    output.innerHTML += `<div class="error"><h3>API Error (${response.status}):</h3><pre>${responseText}</pre></div>`;
+                }
+            } catch (error) {
+                output.innerHTML += `<div class="error"><h3>Request Error:</h3><pre>${error.message}</pre></div>`;
+            }
+        }
+    </script>
+</body>
+</html>

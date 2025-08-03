@@ -67,11 +67,48 @@ The serverless function requires a valid RapidAPI key to function. This key must
 
 When troubleshooting API issues:
 
-1. Check browser console for JavaScript errors
-2. Verify form data is complete by logging `console.log(JSON.stringify(formData, null, 2))`
-3. Check server logs for validation errors
-4. Verify that the RapidAPI key is valid and properly configured
-5. Test the direct API endpoint using a tool like Postman
+1. **Check browser console for JavaScript errors**
+   - Open Developer Tools (F12) in the browser
+   - Look for any JavaScript errors in the Console tab
+   - Verify that form data collection logs appear when the button is clicked
+
+2. **Verify form data is complete**
+   - Check the Console for form data logs: `console.log(JSON.stringify(formData, null, 2))`
+   - Ensure all required fields are present and properly formatted
+
+3. **Inspect the actual API request**
+   - Open Developer Tools → Network tab
+   - Click the "Compute Astrological Geometry" button
+   - Find the POST request to `/api/astrology-mathbrain`
+   - Click on it to view the Request payload
+   - Compare the payload to the expected format
+
+4. **Check server logs for validation errors**
+   - Monitor the terminal running `netlify dev`
+   - Look for console.log output from the backend function
+   - Check for specific error messages about missing fields
+
+5. **Verify that the RapidAPI key is valid and properly configured**
+   - Ensure the `.env` file contains `RAPIDAPI_KEY=your_actual_key`
+   - Restart the server after updating the `.env` file
+
+6. **Test with known good data**
+   - Use the test page at `/api-test.html` to verify the API works with properly formatted data
+   - This helps isolate whether the issue is in the frontend form or the backend API
+
+### Common Issues and Solutions
+
+**Issue: "Missing required fields for Person A"**
+- **Cause**: The `collectFormData()` function is not properly extracting form data
+- **Solution**: Check for duplicate function definitions, verify form field IDs match, add extensive logging
+
+**Issue: No console logs appear when clicking the button**
+- **Cause**: JavaScript errors or duplicate function definitions
+- **Solution**: Check browser console for errors, verify event handlers are properly attached
+
+**Issue: API request shows empty or malformed data**
+- **Cause**: Form validation or data parsing issues
+- **Solution**: Add step-by-step logging in `collectFormData()`, verify coordinate parsing
 
 ## Example: Correct Data Format
 

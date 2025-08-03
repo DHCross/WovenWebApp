@@ -60,37 +60,44 @@ function extractFieldData(inputData) {
 
   const fieldData = {};
   
-  // Convert frontend format to API format
-  if (inputData.date) {
+  // Handle direct fields first (new frontend format)
+  for (const key of allowedFields) {
+    if (inputData[key] !== undefined && inputData[key] !== null && inputData[key] !== "") {
+      fieldData[key] = inputData[key];
+    }
+  }
+  
+  // Convert legacy frontend format to API format (for backwards compatibility)
+  if (!fieldData.year && inputData.date) {
     const [month, day, year] = inputData.date.split('-');
     fieldData.year = parseInt(year);
     fieldData.month = parseInt(month);
     fieldData.day = parseInt(day);
   }
   
-  if (inputData.time) {
+  if (!fieldData.hour && inputData.time) {
     const [hour, minute] = inputData.time.split(':');
     fieldData.hour = parseInt(hour);
     fieldData.minute = parseInt(minute);
   }
   
-  if (inputData.coordinates) {
+  if (!fieldData.latitude && inputData.coordinates) {
     const [lat, lng] = inputData.coordinates.split(',').map(s => parseFloat(s.trim()));
     fieldData.latitude = lat;
     fieldData.longitude = lng;
   }
   
-  // Map other direct fields
-  if (inputData.name) fieldData.name = inputData.name;
-  if (inputData.city) fieldData.city = inputData.city;
-  if (inputData.nation) fieldData.nation = inputData.nation;
-  if (inputData.zodiac) fieldData.zodiac_type = inputData.zodiac;
-  if (inputData.offset) fieldData.timezone = inputData.offset;
+  // Map other legacy field names for backwards compatibility
+  if (!fieldData.name && inputData.name) fieldData.name = inputData.name;
+  if (!fieldData.city && inputData.city) fieldData.city = inputData.city;
+  if (!fieldData.nation && inputData.nation) fieldData.nation = inputData.nation;
+  if (!fieldData.zodiac_type && inputData.zodiac) fieldData.zodiac_type = inputData.zodiac;
+  if (!fieldData.timezone && inputData.offset) fieldData.timezone = inputData.offset;
 
-  // Handle legacy field names
-  if (inputData.lat !== undefined) fieldData.latitude = inputData.lat;
-  if (inputData.lng !== undefined) fieldData.longitude = inputData.lng;
-  if (inputData.tz_str) fieldData.timezone = inputData.tz_str;
+  // Handle other legacy field names
+  if (!fieldData.latitude && inputData.lat !== undefined) fieldData.latitude = inputData.lat;
+  if (!fieldData.longitude && inputData.lng !== undefined) fieldData.longitude = inputData.lng;
+  if (!fieldData.timezone && inputData.tz_str) fieldData.timezone = inputData.tz_str;
 
   // STRICT FILTERING: Only return allowed FIELD-level data
   const filtered = {};
@@ -100,6 +107,7 @@ function extractFieldData(inputData) {
     }
   }
 
+  console.log('MATH BRAIN: Extracted field data:', JSON.stringify(filtered));
   return filtered;
 }
 
@@ -283,6 +291,7 @@ exports.handler = async function (event) {
   let body;
   try {
     body = JSON.parse(event.body);
+    console.log('MATH BRAIN: Received request body:', JSON.stringify(body, null, 2));
   } catch (err) {
     return {
       statusCode: 400,
@@ -297,8 +306,11 @@ exports.handler = async function (event) {
     let context = body.context || null;
     // Handle new frontend format (personA/personB/context/relocation)
     if (body.personA) {
+      console.log('MATH BRAIN: Raw personA data from frontend:', JSON.stringify(body.personA, null, 2));
       personA = extractFieldData(body.personA);
+      console.log('MATH BRAIN: Extracted personA data:', JSON.stringify(personA, null, 2));
       normalizeCoordinates(personA);
+      console.log('MATH BRAIN: PersonA after coordinate normalization:', JSON.stringify(personA, null, 2));
       if (body.personB && hasValidData(body.personB)) {
         personB = extractFieldData(body.personB);
         normalizeCoordinates(personB);

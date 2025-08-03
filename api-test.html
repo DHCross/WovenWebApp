@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>Woven Map API Test</h1>
+    <button id="testButton">Test API with Known Good Data</button>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('testButton').addEventListener('click', async function() {
+            const testData = {
+                personA: {
+                    name: "Test Person",
+                    city: "Bryn Mawr", 
+                    nation: "US",
+                    year: 1973,
+                    month: 7,
+                    day: 24,
+                    hour: 14,
+                    minute: 30,
+                    latitude: 40.0167,
+                    longitude: -75.3,
+                    zodiac_type: "Tropic",
+                    timezone: "America/New_York"
+                },
+                context: {
+                    mode: "natal"
+                },
+                relocation: {
+                    enabled: false
+                }
+            };
+
+            console.log('Sending test data:', JSON.stringify(testData, null, 2));
+
+            try {
+                const response = await fetch('/api/astrology-mathbrain', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testData)
+                });
+
+                const result = await response.text();
+                console.log('Response status:', response.status);
+                console.log('Response body:', result);
+
+                if (response.ok) {
+                    document.getElementById('result').innerHTML = `<h2>Success!</h2><pre>${result}</pre>`;
+                } else {
+                    document.getElementById('result').innerHTML = `<h2>Error: ${response.status}</h2><pre>${result}</pre>`;
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                document.getElementById('result').innerHTML = `<h2>Fetch Error</h2><pre>${error.message}</pre>`;
+            }
+        });
+    </script>
+</body>
+</html>

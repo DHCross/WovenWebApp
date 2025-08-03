@@ -41,6 +41,8 @@
             <h3 class="text-teal-200 font-semibold mt-4 mb-1">Glossary</h3>
             <ul class="text-xs text-gray-300 space-y-1 max-h-48 overflow-y-auto pr-2">
               <li><b>FIELD → MAP → VOICE</b>: FIELD = energetic climate, MAP = geometry, VOICE = felt reflection.</li>
+              <li><b>Recognition-First Principle</b>: Choose diagnostic mode based on real question, not technical curiosity.</li>
+              <li><b>Context Modes</b>: Natal (single person), Synastry (interaction), Transit (current pressure), Composite (relationship entity).</li>
               <li><b>Ping</b>: Recognized resonance between chart and experience.</li>
               <li><b>SST</b>: Falsifiability filter. WB = Within Boundary, ABE = At Boundary Edge, OSR = Outside Symbolic Range.</li>
               <li><b>Echo Loop</b>: Dyadic cycle under 1° orb.</li>
@@ -133,7 +135,46 @@
 
             <!-- Context Mode Section -->
             <div id="context-mode-section" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500">
-                <h2 class="text-2xl font-semibold text-white mr-3">Context Mode</h2>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-semibold text-white">Context Mode</h2>
+                    <button id="toggle-mode-help" class="text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none">
+                        🧭 What does each mode do?
+                    </button>
+                </div>
+                
+                <!-- Symbolic Purpose Guide (initially hidden) -->
+                <div id="mode-help-panel" class="hidden mb-6 p-4 bg-gray-750 rounded-lg border border-teal-600">
+                    <h3 class="text-lg font-semibold text-teal-300 mb-3">🧭 What Does Each Mode Do?</h3>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex items-start">
+                            <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Natal →</span>
+                            <span class="text-gray-300">Diagnoses a single person's energetic architecture. <em>"What tension patterns structure me?"</em></span>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Synastry →</span>
+                            <span class="text-gray-300">Compares two charts for interaction patterns. <em>"How do we activate each other?"</em></span>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Transit →</span>
+                            <span class="text-gray-300">Maps current planetary pressure on natal chart. <em>"What's showing up for me now?"</em></span>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Composite →</span>
+                            <span class="text-gray-300">Creates symbolic chart of the relationship itself. <em>"What is this connection as a shared structure?"</em></span>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Syn+Trans →</span>
+                            <span class="text-gray-300">Maps current pressure on relational dynamics. <em>"What's activating our connection now?"</em></span>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-3 bg-gray-800 rounded border border-gray-600">
+                        <p class="text-xs text-gray-400">
+                            <strong class="text-teal-300">Recognition-First Principle:</strong> Choose based on your real question, not technical curiosity. 
+                            Each mode serves a specific diagnostic purpose within the FIELD → MAP → VOICE framework.
+                        </p>
+                    </div>
+                </div>
+                
                 <div id="context-toggle" class="flex items-center mb-4">
                     <label class="flex items-center mr-4">
                         <input type="radio" name="contextMode" value="natal" class="mr-2" checked>
@@ -163,7 +204,7 @@
                         <input type="checkbox" id="relocationToggle" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
                         <label for="relocationToggle" class="text-gray-300 font-medium">
                             Enable Relocation Overlay
-                            <span class="text-xs text-gray-500 block">Compare transits/chart at alternate location</span>
+                            <span class="text-xs text-gray-500 block">Relocation affects house angles and overlay geometry. Available in all modes.</span>
                         </label>
                     </div>
                     
@@ -319,7 +360,7 @@
     <script src="config.js"></script>
     <script>
         // Global UI element references
-        let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown;
+        let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel;
 
         // --- Utility Functions ---
 
@@ -714,6 +755,13 @@
                 }
             });
 
+            // Toggle mode help panel
+            toggleModeHelp.addEventListener('click', () => {
+                const isHidden = modeHelpPanel.classList.contains('hidden');
+                modeHelpPanel.classList.toggle('hidden');
+                toggleModeHelp.textContent = isHidden ? '🧭 Hide mode guide' : '🧭 What does each mode do?';
+            });
+
             // Context mode switching
             document.querySelectorAll('input[name="contextMode"]').forEach(radio => {
                 radio.addEventListener('change', updateFormUI);
@@ -756,12 +804,11 @@
             const showTransitFields = isTransit || isSynastryTransits;
             transitDateFields.style.display = showTransitFields ? 'block' : 'none';
 
-            const showRelocation = isNatal || isTransit;
+            // CRITICAL: Relocation overlay must be available whenever ANY chart data is entered
+            // This includes Natal, Synastry, Composite, Transit, and Synastry+Transit modes
+            // Protocol requirement: Location affects angle geometry regardless of context mode
+            const showRelocation = true; // Always show relocation - it's a fundamental geometric option
             relocationSection.style.display = showRelocation ? 'block' : 'none';
-            if (!showRelocation && relocationToggle.checked) {
-                relocationToggle.checked = false;
-                relocationFields.classList.add('hidden');
-            }
         }
 
         // Initial UI setup on page load
@@ -789,6 +836,8 @@
             transitEndDate = document.getElementById('transitEndDate');
             transitStep = document.getElementById('transitStep');
             relocationCoordsInput = document.getElementById('relocationCoords');
+            toggleModeHelp = document.getElementById('toggle-mode-help');
+            modeHelpPanel = document.getElementById('mode-help-panel');
 
             console.log("DOM elements assigned:", {
                 generateBtn: !!generateBtn,
