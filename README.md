@@ -2,6 +2,8 @@
 
 This is a web-based application designed to generate a detailed astrological report for a primary individual (Person A), with an optional second individual (Person B) for synastry and relationship analysis. It uses a static HTML and JavaScript front-end that communicates with a Netlify serverless function to fetch data from an external astrology API. When a Person B is provided, you can toggle the **Include Synastry Analysis** checkbox to append synastry aspects and house overlays to the generated report.
 
+API Page: https://rapidapi.com/gbattaglia/api/astrologer
+
 ## **Core Technology**
 
 * **Front-End:** Plain HTML, JavaScript, and Tailwind CSS.  
