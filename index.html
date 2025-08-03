@@ -65,12 +65,12 @@
                     <div class="space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <input type="text" id="nameA" placeholder="Name" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="DH Cross">
-                            <input type="text" id="cityA" placeholder="Birth City" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="Bryn Mawr">
-                            <input type="text" id="stateA" placeholder="Birth State/Prov" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="PA">
+                            <input type="text" id="birth_cityA" placeholder="Birth City" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="Bryn Mawr">
+                            <input type="text" id="birth_stateA" placeholder="Birth State/Prov" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="PA">
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input type="text" id="dateA" placeholder="Date (MM-DD-YYYY)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="07-24-1973">
-                            <input type="text" id="timeA" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="14:30">
+                            <input type="date" id="birth_dateA" placeholder="Birth Date (YYYY-MM-DD)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="1973-07-24">
+                            <input type="text" id="birth_timeA" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="14:30">
                             <select id="offsetA" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
                                 <option value="America/New_York">Eastern (New York)</option>
                                 <option value="America/Chicago">Central (Chicago)</option>
@@ -81,7 +81,7 @@
                             </select>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input type="text" id="nationA" placeholder="Country (2-letter)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="US">
+                            <input type="text" id="birth_countryA" placeholder="Country (2-letter)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="US">
                             <select id="zodiacA" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
                                 <option value="Tropic">Tropic</option>
                                 <option value="Sidereal">Sidereal</option>
@@ -98,12 +98,12 @@
                     <div class="space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <input type="text" id="nameB" placeholder="Name" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
-                            <input type="text" id="cityB" placeholder="Birth City" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
-                            <input type="text" id="stateB" placeholder="Birth State/Prov" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            <input type="text" id="birth_cityB" placeholder="Birth City" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            <input type="text" id="birth_stateB" placeholder="Birth State/Prov" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input type="text" id="dateB" placeholder="Date (MM-DD-YYYY)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
-                            <input type="text" id="timeB" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            <input type="date" id="birth_dateB" placeholder="Birth Date (YYYY-MM-DD)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            <input type="text" id="birth_timeB" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
                             <select id="offsetB" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
                                 <option value="America/New_York">Eastern (New York)</option>
                                 <option value="America/Chicago">Central (Chicago)</option>
@@ -114,7 +114,7 @@
                             </select>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input type="text" id="nationB" placeholder="Country (2-letter)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            <input type="text" id="birth_countryB" placeholder="Country (2-letter)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
                             <select id="zodiacB" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
                                 <option value="Tropic">Tropic</option>
                                 <option value="Sidereal">Sidereal</option>
@@ -506,8 +506,8 @@
         // Form validation
         function validateForm() {
             const nameA = document.getElementById('nameA').value.trim();
-            const dateA = document.getElementById('dateA').value.trim();
-            const timeA = document.getElementById('timeA').value.trim();
+            const dateA = document.getElementById('birth_dateA').value.trim();
+            const timeA = document.getElementById('birth_timeA').value.trim();
             const astroA = document.getElementById('astroA').value.trim();
 
             if (!nameA || !dateA || !timeA || !astroA) {
@@ -516,9 +516,9 @@
             }
 
             // Validate date format (MM-DD-YYYY)
-            const datePattern = /^\d{2}-\d{2}-\d{4}$/;
+            const datePattern = /^\d{4}-\d{2}-\d{2}$/;
             if (!datePattern.test(dateA)) {
-                showError('Please enter date in MM-DD-YYYY format');
+                showError('Please enter date in YYYY-MM-DD format');
                 return false;
             }
 
@@ -584,29 +584,30 @@
             const formData = {
                 personA: {
                     name: document.getElementById('nameA').value.trim(),
-                    city: document.getElementById('cityA').value.trim(),
-                    state: document.getElementById('stateA').value.trim(),
-                    date: document.getElementById('dateA').value.trim(),
-                    time: document.getElementById('timeA').value.trim(),
-                    offset: document.getElementById('offsetA').value,
-                    nation: document.getElementById('nationA').value.trim(),
-                    zodiac: document.getElementById('zodiacA').value,
-                    coordinates: document.getElementById('astroA').value.trim()
+                    birth_city: document.getElementById('birth_cityA').value.trim(),
+                    birth_state: document.getElementById('birth_stateA').value.trim(),
+                    birth_country: document.getElementById('birth_countryA').value.trim(),
+                    birth_date: document.getElementById('birth_dateA').value,
+                    birth_time: document.getElementById('birth_timeA').value.trim(),
+                    timezone: document.getElementById('offsetA').value,
+                    zodiac_type: document.getElementById('zodiacA').value,
+                    birth_coordinates: document.getElementById('astroA').value.trim()
                 },
                 personB: {
                     name: document.getElementById('nameB').value.trim(),
-                    city: document.getElementById('cityB').value.trim(),
-                    state: document.getElementById('stateB').value.trim(),
-                    date: document.getElementById('dateB').value.trim(),
-                    time: document.getElementById('timeB').value.trim(),
-                    offset: document.getElementById('offsetB').value,
-                    nation: document.getElementById('nationB').value.trim(),
-                    zodiac: document.getElementById('zodiacB').value,
-                    coordinates: document.getElementById('astroB').value.trim()
+                    birth_city: document.getElementById('birth_cityB').value.trim(),
+                    birth_state: document.getElementById('birth_stateB').value.trim(),
+                    birth_country: document.getElementById('birth_countryB').value.trim(),
+                    birth_date: document.getElementById('birth_dateB').value,
+                    birth_time: document.getElementById('birth_timeB').value.trim(),
+                    timezone: document.getElementById('offsetB').value,
+                    zodiac_type: document.getElementById('zodiacB').value,
+                    birth_coordinates: document.getElementById('astroB').value.trim()
                 },
                 context: {
-                    mode: document.querySelector('input[name="contextMode"]:checked').value
-                    // REMOVED: focusArea, reportStyle - these are VOICE layer concerns
+                    mode: document.querySelector('input[name="contextMode"]:checked').value,
+                    relationship_type: document.querySelector('input[name="relationshipType"]:checked')?.value,
+                    intimacy_tier: document.querySelector('input[name="intimacyTier"]:checked')?.value
                 }
             };
 
@@ -770,11 +771,11 @@
         // Show/hide relational context section based on Person B presence
         const personBInputs = [
             document.getElementById('nameB'),
-            document.getElementById('cityB'),
-            document.getElementById('stateB'),
-            document.getElementById('dateB'),
-            document.getElementById('timeB'),
-            document.getElementById('nationB'),
+            document.getElementById('birth_cityB'),
+            document.getElementById('birth_stateB'),
+            document.getElementById('birth_dateB'),
+            document.getElementById('birth_timeB'),
+            document.getElementById('birth_countryB'),
             document.getElementById('astroB')
         ];
         const relationalContextSection = document.getElementById('relational-context-section');
