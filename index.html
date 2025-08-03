@@ -405,12 +405,12 @@
             if (!state) errors.push(`Person ${prefix}: Birth state/province is required`);
             if (!date) {
                 errors.push(`Person ${prefix}: Birth date is required`);
-            } else if (!/^\d{2}-\d{2}-\d{4}$/.test(date)) {
+            } else if (date.length > 0 && !/^\d{2}-\d{2}-\d{4}$/.test(date)) {
                 errors.push(`Person ${prefix}: Date must be MM-DD-YYYY format`);
             }
             if (!time) {
                 errors.push(`Person ${prefix}: Birth time is required`);
-            } else if (!/^\d{2}:\d{2}$/.test(time)) {
+            } else if (time.length > 0 && !/^\d{2}:\d{2}$/.test(time)) {
                 errors.push(`Person ${prefix}: Time must be HH:MM (24-hour) format`);
             }
             if (!nation || !/^[A-Z]{2}$/.test(nation)) {
