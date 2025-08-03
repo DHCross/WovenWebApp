@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Woven Map Report Generator</title>
+    <title>Woven Map Math Brain - Pure Astrological Geometry</title>
     <link href="dist/output.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -14,15 +14,16 @@
         ::-webkit-scrollbar-thumb:hover { background: #718096; }
         .animate-fade-in-out { animation: fadeInOut 8s ease-in-out forwards; }
         @keyframes fadeInOut { 0%, 100% { opacity: 0; transform: translateY(-20px); } 10%, 90% { opacity: 1; transform: translateY(0); } }
+        .bg-gray-750 { background-color: #334155; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-white">Woven Map Report Generator</h1>
-            <p class="text-gray-400 mt-2 flex items-center justify-center gap-2">Math Brain
+            <h1 class="text-4xl font-bold text-white">Woven Map Math Brain</h1>
+            <p class="text-gray-400 mt-2 flex items-center justify-center gap-2">Pure Astrological Geometry Computation
                 <button id="math-brain-info-btn" class="ml-2 text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none" type="button">
-                    What is this? (Glossary)
+                    What is Math Brain? (Glossary)
                 </button>
             </p>
         </header>
@@ -133,5 +134,559 @@
             <!-- Context Mode Section -->
             <div id="context-mode-section" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500">
                 <h2 class="text-2xl font-semibold text-white mr-3">Context Mode</h2>
-                <div id="context-toggle" class="flex items-center mb-4" style="display:none;">
-                    <label class="flex items-center mr-4"><input type="radio" name="
+                <div id="context-toggle" class="flex items-center mb-4">
+                    <label class="flex items-center mr-4">
+                        <input type="radio" name="contextMode" value="natal" class="mr-2" checked>
+                        <span class="text-gray-300">Natal Chart</span>
+                    </label>
+                    <label class="flex items-center mr-4">
+                        <input type="radio" name="contextMode" value="synastry" class="mr-2">
+                        <span class="text-gray-300">Synastry</span>
+                    </label>
+                    <label class="flex items-center mr-4">
+                        <input type="radio" name="contextMode" value="transit" class="mr-2">
+                        <span class="text-gray-300">Transit</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="contextMode" value="composite" class="mr-2">
+                        <span class="text-gray-300">Composite</span>
+                    </label>
+                </div>
+                
+                <!-- Relocation Overlay Section -->
+                <div id="relocation-section" class="mt-6 border-t border-gray-700 pt-4">
+                    <div class="flex items-center mb-4">
+                        <input type="checkbox" id="relocationToggle" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                        <label for="relocationToggle" class="text-gray-300 font-medium">
+                            Enable Relocation Overlay
+                            <span class="text-xs text-gray-500 block">Compare transits/chart at alternate location</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Relocation Fields (initially hidden) -->
+                    <div id="relocationFields" class="hidden space-y-4 bg-gray-750 p-4 rounded-lg border border-gray-600">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="relocationCity" class="block mb-1 text-sm font-medium text-gray-300">Relocation City</label>
+                                <input type="text" id="relocationCity" placeholder="e.g., Los Angeles" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            </div>
+                            <div>
+                                <label for="relocationState" class="block mb-1 text-sm font-medium text-gray-300">State/Province</label>
+                                <input type="text" id="relocationState" placeholder="e.g., CA" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="relocationCoords" class="block mb-1 text-sm font-medium text-gray-300">
+                                Relocation Coordinates
+                                <span class="text-xs text-gray-500">(Required for overlay calculations)</span>
+                            </label>
+                            <input type="text" id="relocationCoords" placeholder="e.g., 34.0522, -118.2437" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            <div class="mt-1 text-xs text-gray-500">
+                                Format: latitude, longitude (decimal degrees)
+                                <br>Examples: "40.7128, -74.0060" (NYC) or "34.0522, -118.2437" (LA)
+                            </div>
+                            
+                            <!-- Validation Error for Relocation Coords -->
+                            <div id="relocationCoordsError" class="hidden mt-1 text-xs text-red-400">
+                                Please enter valid coordinates in format: latitude, longitude
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-800 p-3 rounded border border-gray-600">
+                            <h4 class="text-sm font-medium text-teal-300 mb-2">How Relocation Overlay Works:</h4>
+                            <ul class="text-xs text-gray-400 space-y-1">
+                                <li>• Birth chart remains at original location</li>
+                                <li>• Transits/progressions calculated for new location</li>
+                                <li>• Shows how planetary energy shifts in different places</li>
+                                <li>• Useful for travel, relocation, or understanding location-based influences</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Additional Context Options -->
+                <div id="context-options" class="space-y-4">
+                    <div class="bg-yellow-900 border border-yellow-700 text-yellow-100 px-4 py-3 rounded mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium">Math Brain Protocol Active</h3>
+                                <div class="mt-2 text-sm">
+                                    This interface computes pure astrological geometry only. Focus area and report style preferences have been moved to the VOICE layer for proper FIELD → MAP → VOICE separation.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Relational Context Section (only if Person B is present) -->
+            <div id="relational-context-section" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500 hidden">
+                <h2 class="text-xl font-semibold text-white mb-2">Relational Context (for VOICE-layer)</h2>
+                <p class="text-gray-400 text-sm mb-4">These options set context for Poetic Brain interpretation only. They do not affect Math Brain geometry.</p>
+                <div class="mb-4">
+                    <label class="block text-gray-300 font-medium mb-2">Relationship Type</label>
+                    <div class="space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="relationshipType" value="partner" class="mr-2" checked>
+                            <span class="text-gray-200">Partner (romantic/undefined-intimate)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="relationshipType" value="friend" class="mr-2">
+                            <span class="text-gray-200">Friend or colleague</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="relationshipType" value="family" class="mr-2">
+                            <span class="text-gray-200">Family</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="intimacy-tier-section" class="mb-4">
+                    <label class="block text-gray-300 font-medium mb-2">Intimacy Tier <span class="text-xs text-gray-400">(only for Partner)</span></label>
+                    <div class="space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="intimacyTier" value="P1" class="mr-2" checked>
+                            <span class="text-gray-200">P1 – Platonic partners</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="intimacyTier" value="P2" class="mr-2">
+                            <span class="text-gray-200">P2 – Friends with benefits</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="intimacyTier" value="P3" class="mr-2">
+                            <span class="text-gray-200">P3 – Romantic partners</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generate Button -->
+            <div class="text-center mb-8">
+                <button id="generateReport" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Compute Astrological Geometry
+                </button>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="hidden text-center mb-8">
+                <div class="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-teal-600 transition ease-in-out duration-150">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Computing Astrological Geometry...
+                </div>
+            </div>
+
+            <!-- Error Display -->
+            <div id="errorDisplay" class="hidden bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded mb-8">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium">Error computing geometry</h3>
+                        <div id="errorMessage" class="mt-2 text-sm"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Output -->
+            <div id="reportOutput" class="hidden bg-gray-800 p-6 rounded-lg shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold text-white">Pure Astrological Geometry</h2>
+                    <button id="copyReport" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
+                        Copy Geometry Data
+                    </button>
+                </div>
+                <div id="reportContent" class="text-gray-200 whitespace-pre-wrap font-mono text-sm bg-gray-900 p-4 rounded border border-gray-700 overflow-auto max-h-96">
+                </div>
+            </div>
+        </main>
+
+        <footer class="text-center text-gray-500 text-sm mt-12">
+            <p>&copy; 2024 Woven Map Report Generator. Math Brain + Poetic Brain Framework.</p>
+        </footer>
+    </div>
+
+    <script>
+        // DOM Elements
+        const generateBtn = document.getElementById('generateReport');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const errorDisplay = document.getElementById('errorDisplay');
+        const errorMessage = document.getElementById('errorMessage');
+        const reportOutput = document.getElementById('reportOutput');
+        const reportContent = document.getElementById('reportContent');
+        const copyBtn = document.getElementById('copyReport');
+        const mathBrainInfoBtn = document.getElementById('math-brain-info-btn');
+        const mathBrainModal = document.getElementById('math-brain-modal');
+        const closeMathBrainModal = document.getElementById('close-math-brain-modal');
+        const closeMathBrainModalBottom = document.getElementById('close-math-brain-modal-bottom');
+        const pasteAstroBBtn = document.getElementById('pasteAstroB');
+        const relocationToggle = document.getElementById('relocationToggle');
+        const relocationFields = document.getElementById('relocationFields');
+        const relocationCoordsInput = document.getElementById('relocationCoords');
+        const relocationCoordsError = document.getElementById('relocationCoordsError');
+
+        // Modal functionality
+        mathBrainInfoBtn.addEventListener('click', () => {
+            mathBrainModal.classList.remove('hidden');
+        });
+
+        closeMathBrainModal.addEventListener('click', () => {
+            mathBrainModal.classList.add('hidden');
+        });
+
+        closeMathBrainModalBottom.addEventListener('click', () => {
+            mathBrainModal.classList.add('hidden');
+        });
+
+        // Close modal when clicking outside
+        mathBrainModal.addEventListener('click', (e) => {
+            if (e.target === mathBrainModal) {
+                mathBrainModal.classList.add('hidden');
+            }
+        });
+
+        // Paste AstroSeek data functionality
+        pasteAstroBBtn.addEventListener('click', async () => {
+            try {
+                const text = await navigator.clipboard.readText();
+                // Parse AstroSeek data format (this is a placeholder - you'd need to implement actual parsing)
+                console.log('Pasted text:', text);
+                alert('AstroSeek data parsing not yet implemented. Please enter coordinates manually.');
+            } catch (err) {
+                console.error('Failed to read clipboard contents: ', err);
+                alert('Could not access clipboard. Please paste manually.');
+            }
+        });
+
+        // Relocation overlay toggle functionality
+        relocationToggle.addEventListener('change', () => {
+            if (relocationToggle.checked) {
+                relocationFields.classList.remove('hidden');
+            } else {
+                relocationFields.classList.add('hidden');
+                // Clear relocation fields when disabled
+                document.getElementById('relocationCity').value = '';
+                document.getElementById('relocationState').value = '';
+                document.getElementById('relocationCoords').value = '';
+                hideRelocationError();
+            }
+        });
+
+        // Relocation coordinates validation
+        relocationCoordsInput.addEventListener('blur', validateRelocationCoords);
+        relocationCoordsInput.addEventListener('input', hideRelocationError);
+
+        function validateRelocationCoords() {
+            const coords = relocationCoordsInput.value.trim();
+            if (relocationToggle.checked && coords) {
+                const coordPattern = /^-?\d+\.?\d*,\s*-?\d+\.?\d*$/;
+                if (!coordPattern.test(coords)) {
+                    showRelocationError();
+                    return false;
+                } else {
+                    hideRelocationError();
+                    return true;
+                }
+            }
+            return true;
+        }
+
+        function showRelocationError() {
+            relocationCoordsError.classList.remove('hidden');
+            relocationCoordsInput.classList.add('border-red-500');
+            relocationCoordsInput.classList.remove('border-gray-600');
+        }
+
+        function hideRelocationError() {
+            relocationCoordsError.classList.add('hidden');
+            relocationCoordsInput.classList.remove('border-red-500');
+            relocationCoordsInput.classList.add('border-gray-600');
+        }
+
+        // Form validation
+        function validateForm() {
+            const nameA = document.getElementById('nameA').value.trim();
+            const dateA = document.getElementById('dateA').value.trim();
+            const timeA = document.getElementById('timeA').value.trim();
+            const astroA = document.getElementById('astroA').value.trim();
+
+            if (!nameA || !dateA || !timeA || !astroA) {
+                showError('Please fill in all required fields for Person A');
+                return false;
+            }
+
+            // Validate date format (MM-DD-YYYY)
+            const datePattern = /^\d{2}-\d{2}-\d{4}$/;
+            if (!datePattern.test(dateA)) {
+                showError('Please enter date in MM-DD-YYYY format');
+                return false;
+            }
+
+            // Validate time format (HH:MM)
+            const timePattern = /^\d{2}:\d{2}$/;
+            if (!timePattern.test(timeA)) {
+                showError('Please enter time in HH:MM format (24-hour)');
+                return false;
+            }
+
+            // Validate coordinates format
+            const coordPattern = /^-?\d+\.?\d*,\s*-?\d+\.?\d*$/;
+            if (!coordPattern.test(astroA)) {
+                showError('Please enter coordinates in format: latitude, longitude (e.g., 40.0167, -75.3167)');
+                return false;
+            }
+
+            // Validate relocation coordinates if relocation overlay is enabled
+            if (relocationToggle.checked) {
+                const relocationCoords = relocationCoordsInput.value.trim();
+                if (!relocationCoords) {
+                    showError('Please enter relocation coordinates when relocation overlay is enabled');
+                    return false;
+                }
+                if (!validateRelocationCoords()) {
+                    showError('Please enter valid relocation coordinates in format: latitude, longitude');
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // Show error message
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorDisplay.classList.remove('hidden');
+            reportOutput.classList.add('hidden');
+        }
+
+        // Hide error message
+        function hideError() {
+            errorDisplay.classList.add('hidden');
+        }
+
+        // Collect form data - MATH BRAIN COMPLIANT: Only FIELD-level data
+        function collectFormData() {
+            const formData = {
+                personA: {
+                    name: document.getElementById('nameA').value.trim(),
+                    city: document.getElementById('cityA').value.trim(),
+                    state: document.getElementById('stateA').value.trim(),
+                    date: document.getElementById('dateA').value.trim(),
+                    time: document.getElementById('timeA').value.trim(),
+                    offset: document.getElementById('offsetA').value,
+                    nation: document.getElementById('nationA').value.trim(),
+                    zodiac: document.getElementById('zodiacA').value,
+                    coordinates: document.getElementById('astroA').value.trim()
+                },
+                personB: {
+                    name: document.getElementById('nameB').value.trim(),
+                    city: document.getElementById('cityB').value.trim(),
+                    state: document.getElementById('stateB').value.trim(),
+                    date: document.getElementById('dateB').value.trim(),
+                    time: document.getElementById('timeB').value.trim(),
+                    offset: document.getElementById('offsetB').value,
+                    nation: document.getElementById('nationB').value.trim(),
+                    zodiac: document.getElementById('zodiacB').value,
+                    coordinates: document.getElementById('astroB').value.trim()
+                },
+                context: {
+                    mode: document.querySelector('input[name="contextMode"]:checked').value
+                    // REMOVED: focusArea, reportStyle - these are VOICE layer concerns
+                }
+            };
+
+            // Add relocation data if overlay is enabled
+            if (relocationToggle.checked) {
+                formData.relocation = {
+                    enabled: true,
+                    city: document.getElementById('relocationCity').value.trim(),
+                    state: document.getElementById('relocationState').value.trim(),
+                    coordinates: document.getElementById('relocationCoords').value.trim()
+                };
+            } else {
+                formData.relocation = {
+                    enabled: false
+                };
+            }
+
+            return formData;
+        }
+
+        // Generate report
+        async function generateReport() {
+            if (!validateForm()) {
+                return;
+            }
+
+            hideError();
+            generateBtn.disabled = true;
+            loadingIndicator.classList.remove('hidden');
+            reportOutput.classList.add('hidden');
+
+            try {
+                const formData = collectFormData();
+                
+                // Call the Math Brain Netlify function (FIELD → MAP only)
+                const response = await fetch('/.netlify/functions/astrology-mathbrain', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                // MATH BRAIN COMPLIANCE: Display pure geometry output
+                let report = '';
+                
+                if (result._mathBrainOutput) {
+                    report += '=== MATH BRAIN GEOMETRY OUTPUT ===\n';
+                    report += `Computation completed: ${result._fieldToMapComputed}\n`;
+                    report += `FIELD → MAP transformation successful\n\n`;
+                    
+                    report += '--- PURE ASTROLOGICAL GEOMETRY ---\n';
+                    report += 'Raw planetary positions, aspects, houses, and orbs\n';
+                    report += 'No interpretation, context, or narrative applied\n\n';
+                    
+                    // Display raw JSON geometry
+                    const geometryData = { ...result };
+                    delete geometryData._mathBrainOutput;
+                    delete geometryData._fieldToMapComputed;
+                    delete geometryData._voiceLayerContext;
+                    
+                    report += JSON.stringify(geometryData, null, 2);
+                    
+                    report += '\n\n--- VOICE LAYER PROCESSING ---\n';
+                    report += 'Focus area and report style preferences should be processed\n';
+                    report += 'by a separate Poetic Brain / VOICE layer system.\n';
+                    report += 'This Math Brain interface maintains strict FIELD → MAP → VOICE separation.\n';
+                } else {
+                    // Fallback for legacy response format
+                    report = JSON.stringify(result, null, 2);
+                }
+
+                // Display the report
+                reportContent.textContent = report;
+                reportOutput.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Error generating report:', error);
+                showError(`Failed to generate report: ${error.message}`);
+            } finally {
+                generateBtn.disabled = false;
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        // Copy report to clipboard
+        async function copyReport() {
+            try {
+                await navigator.clipboard.writeText(reportContent.textContent);
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                copyBtn.classList.add('bg-green-600');
+                copyBtn.classList.remove('bg-indigo-600');
+                
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.classList.remove('bg-green-600');
+                    copyBtn.classList.add('bg-indigo-600');
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                alert('Could not copy to clipboard');
+            }
+        }
+
+        // Event listeners
+        generateBtn.addEventListener('click', generateReport);
+        copyBtn.addEventListener('click', copyReport);
+
+        // Context mode toggle - show/hide Person B based on selected mode
+        document.querySelectorAll('input[name="contextMode"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                const personBCard = document.getElementById('personB-card');
+                const relocationSection = document.getElementById('relocation-section');
+                const mode = radio.value;
+                
+                if (mode === 'natal' || mode === 'transit') {
+                    personBCard.style.opacity = '0.5';
+                    personBCard.style.pointerEvents = 'none';
+                    // Show relocation overlay for these modes
+                    relocationSection.style.display = 'block';
+                } else {
+                    personBCard.style.opacity = '1';
+                    personBCard.style.pointerEvents = 'auto';
+                    // Hide relocation overlay for synastry/composite modes
+                    relocationSection.style.display = 'none';
+                    // Disable relocation if it was enabled
+                    if (relocationToggle.checked) {
+                        relocationToggle.checked = false;
+                        relocationFields.classList.add('hidden');
+                    }
+                }
+            });
+        });
+
+        // Initialize - set natal mode as default
+        document.getElementById('personB-card').style.opacity = '0.5';
+        document.getElementById('personB-card').style.pointerEvents = 'none';
+        document.getElementById('relocation-section').style.display = 'block';
+
+        // Show/hide relational context section based on Person B presence
+        const personBInputs = [
+            document.getElementById('nameB'),
+            document.getElementById('cityB'),
+            document.getElementById('stateB'),
+            document.getElementById('dateB'),
+            document.getElementById('timeB'),
+            document.getElementById('nationB'),
+            document.getElementById('astroB')
+        ];
+        const relationalContextSection = document.getElementById('relational-context-section');
+        function checkPersonBPresent() {
+            const anyFilled = personBInputs.some(input => input.value.trim() !== '');
+            relationalContextSection.classList.toggle('hidden', !anyFilled);
+        }
+        personBInputs.forEach(input => {
+            input.addEventListener('input', checkPersonBPresent);
+        });
+        checkPersonBPresent();
+
+        // Show/hide intimacy tier only if Partner is selected
+        const relationshipTypeRadios = document.getElementsByName('relationshipType');
+        const intimacyTierSection = document.getElementById('intimacy-tier-section');
+        function updateIntimacyTierVisibility() {
+            const selected = Array.from(relationshipTypeRadios).find(r => r.checked);
+            intimacyTierSection.style.display = selected && selected.value === 'partner' ? '' : 'none';
+        }
+        relationshipTypeRadios.forEach(radio => {
+            radio.addEventListener('change', updateIntimacyTierVisibility);
+        });
+        updateIntimacyTierVisibility();
+
+        // MATH BRAIN COMPLIANCE NOTE:
+        // All interpretation functions have been removed from this Math Brain interface.
+        // Focus area and report style processing should be handled by a separate
+        // Poetic Brain / VOICE layer system that consumes the pure geometry output.
+    </script>
+</body>
+</html>
