@@ -30,6 +30,29 @@ Modified the `fetch` call in `index.html` to use the correct endpoint: `/api/ast
 
 ---
 
+### [2025-08-04 10:00] BREAK
+**Symptom:**  
+The application loads as a blank white page. The HTML content is present, but no styling is applied, and the layout is broken.
+
+**Suspected Cause:**  
+The Tailwind CSS build process was failing, so the `dist/output.css` file was not being generated. Without this file, the browser cannot apply any of the application's styles.
+
+**How Diagnosed:**  
+1.  Checked the browser's developer console, which showed a 404 error for the file `dist/output.css`.
+2.  Verified that the `dist/` directory was missing from the project structure.
+3.  Ran the build script (`npm run build:css`) and observed errors indicating that the `tailwindcss` command was not found.
+4.  Investigated `node_modules/.bin` and confirmed the `tailwindcss` executable was missing, pointing to an incomplete or corrupted `npm install`.
+
+**Resolution:**  
+The issue was traced to a problem with the local `node_modules` installation. The following steps were taken to resolve it:
+1.  Deleted the `node_modules` directory and the `package-lock.json` file to ensure a clean slate.
+2.  Ran `npm install` to reinstall all dependencies according to `package.json`.
+3.  After a successful installation, the `tailwindcss` executable was present in `node_modules/.bin`.
+4.  Ran `npm run build:css`, which successfully generated the `dist/output.css` file.
+5.  Restarted the Netlify dev server (`netlify dev`). The app now loads correctly with all styles applied.
+
+---
+
 ## Template for Each Entry
 
 ### [YYYY-MM-DD HH:MM] [BREAK/FIX]
