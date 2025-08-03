@@ -241,40 +241,23 @@
 
             <!-- Relational Context Section (only if Person B is present) -->
             <div id="relational-context-section" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500 hidden">
-                <h2 class="text-xl font-semibold text-white mb-2">Relational Context (for VOICE-layer)</h2>
-                <p class="text-gray-400 text-sm mb-4">These options set context for Poetic Brain interpretation only. They do not affect Math Brain geometry.</p>
-                <div class="mb-4">
-                    <label class="block text-gray-300 font-medium mb-2">Relationship Type</label>
-                    <div class="space-x-4">
-                        <label class="inline-flex items-center">
-                            <input type="radio" name="relationshipType" value="partner" class="mr-2" checked>
-                            <span class="text-gray-200">Partner (romantic/undefined-intimate)</span>
-                        </label>
-                        <label class="inline-flex items-center">
-                            <input type="radio" name="relationshipType" value="friend" class="mr-2">
-                            <span class="text-gray-200">Friend or colleague</span>
-                        </label>
-                        <label class="inline-flex items-center">
-                            <input type="radio" name="relationshipType" value="family" class="mr-2">
-                            <span class="text-gray-200">Family</span>
-                        </label>
+                <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Relational Context Query Stack</h2>
+                <p class="text-gray-400 text-sm mb-4">Based on initial geometry, the Math Brain has detected the following potential dynamics:</p>
+                <ul id="context-readout" class="list-disc list-inside space-y-2 mb-4 text-gray-300"></ul>
+                <div id="relationship-type-query">
+                    <p class="text-lg font-medium text-white mb-2">How would you categorize this connection?</p>
+                    <div class="flex flex-col space-y-2">
+                        <label class="flex items-center"><input type="radio" name="relationshipType" value="partner" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Partner (romantic/undefined-intimate)</span></label>
+                        <label class="flex items-center"><input type="radio" name="relationshipType" value="friend" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Friend or colleague</span></label>
+                        <label class="flex items-center"><input type="radio" name="relationshipType" value="family" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Family</span></label>
                     </div>
-                </div>
-                <div id="intimacy-tier-section" class="mb-4">
-                    <label class="block text-gray-300 font-medium mb-2">Intimacy Tier <span class="text-xs text-gray-400">(only for Partner)</span></label>
-                    <div class="space-x-4">
-                        <label class="inline-flex items-center">
-                            <input type="radio" name="intimacyTier" value="P1" class="mr-2" checked>
-                            <span class="text-gray-200">P1 – Platonic partners</span>
-                        </label>
-                        <label class="inline-flex items-center">
-                            <input type="radio" name="intimacyTier" value="P2" class="mr-2">
-                            <span class="text-gray-200">P2 – Friends with benefits</span>
-                        </label>
-                        <label class="inline-flex items-center">
-                            <input type="radio" name="intimacyTier" value="P3" class="mr-2">
-                            <span class="text-gray-200">P3 – Romantic partners</span>
-                        </label>
+                    <div id="intimacy-tier-dropdown" class="mt-4 hidden">
+                        <p class="text-md font-medium text-white mb-2">What best describes the intimacy tier of this connection?</p>
+                        <div class="flex flex-col space-y-2">
+                            <label class="flex items-center"><input type="radio" name="intimacyTier" value="P1" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P1 – Platonic partners</span></label>
+                            <label class="flex items-center"><input type="radio" name="intimacyTier" value="P2" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P2 – Friends with benefits</span></label>
+                            <label class="flex items-center"><input type="radio" name="intimacyTier" value="P3" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P3 – Romantic partners</span></label>
+                        </div>
                     </div>
                 </div>
             </div>

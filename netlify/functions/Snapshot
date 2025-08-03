@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Woven Map Report Generator</title>
+   <script src="https://cdn.tailwindcss.com"></script>
+   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+   <style>
+       body {
+           font-family: 'Inter', sans-serif;
+       }
+       ::-webkit-scrollbar {
+           width: 8px;
+       }
+       ::-webkit-scrollbar-track {
+           background: #1a202c;
+       }
+       ::-webkit-scrollbar-thumb {
+           background: #4a5568;
+           border-radius: 4px;
+       }
+       ::-webkit-scrollbar-thumb:hover {
+           background: #718096;
+       }
+       .animate-fade-in-out {
+           animation: fadeInOut 8s ease-in-out forwards;
+       }
+       @keyframes fadeInOut {
+           0%, 100% { opacity: 0; transform: translateY(-20px); }
+           10%, 90% { opacity: 1; transform: translateY(0); }
+       }
+   </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+   <div class="container mx-auto p-4 md:p-8">
+       <header class="text-center mb-8">
+           <h1 class="text-4xl font-bold text-white">Woven Map Report Generator</h1>
+           <p class="text-gray-400 mt-2">Math Brain</p>
+       </header>
+
+       <main>
+           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+               <div id="personA-card" class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                   <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Person A / Natal Chart</h2>
+                   <div class="space-y-4">
+                       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                           <input type="text" id="nameA" placeholder="Name" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="DH Cross">
+                           <input type="text" id="cityA" placeholder="Birth City" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="Bryn Mawr">
+                            <input type="text" id="stateA" placeholder="Birth State/Prov" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="PA">
+                       </div>
+                       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                           <input type="text" id="dateA" placeholder="Date (MM-DD-YYYY)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="07-24-1973">
+                           <input type="text" id="timeA" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="14:30">
+                           <select id="offsetA" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                               <option value="America/New_York">Eastern (New York)</option>
+                               <option value="America/Chicago">Central (Chicago)</option>
+                               <option value="America/Denver">Mountain (Denver)</option>
+                               <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
+                               <option value="America/Anchorage">Alaska (Anchorage)</option>
+                               <option value="Pacific/Honolulu">Hawaii (Honolulu)</option>
+                           </select>
+                       </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           <input type="text" id="nationA" placeholder="Country" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="US">
+                           <select id="zodiacA" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                               <option value="Tropic">Tropic</option>
+                               <option value="Sidereal">Sidereal</option>
+                           </select>
+                       </div>
+                       <div class="flex items-center space-x-4 pt-2">
+                          <label class="flex items-center"><input type="radio" name="coordModeA" value="combined" class="form-radio h-4 w-4 text-indigo-600" checked><span class="ml-2 text-gray-300">Combined</span></label>
+                       </div>
+                       <div id="combinedCoordsA"><input type="text" id="astroA" placeholder="Birth Coordinates" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="40°1'N, 75°19'W"></div>
+                   </div>
+               </div>
+
+               <div id="personB-card" class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                   <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Person B (Optional)</h2>
+                   <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                           <input type="text" id="nameB" placeholder="Name" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
+                           <input type="text" id="cityB" placeholder="Birth City" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
+                           <input type="text" id="stateB" placeholder="Birth State/Prov" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
+                       </div>
+                       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                           <input type="text" id="dateB" placeholder="Date (MM-DD-YYYY)" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
+                           <input type="text" id="timeB" placeholder="Time (24h HH:MM)" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
+                            <select id="offsetB" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                               <option value="America/New_York">Eastern (New York)</option>
+                               <option value="America/Chicago">Central (Chicago)</option>
+                               <option value="America/Denver">Mountain (Denver)</option>
+                               <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
+                               <option value="America/Anchorage">Alaska (Anchorage)</option>
+                               <option value="Pacific/Honolulu">Hawaii (Honolulu)</option>
+                           </select>
+                       </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           <input type="text" id="nationB" placeholder="Country" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
+                           <select id="zodiacB" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                               <option value="Tropic">Tropic</option>
+                               <option value="Sidereal">Sidereal</option>
+                           </select>
+                       </div>
+                       <div class="flex items-center space-x-4 pt-2">
+                          <label class="flex items-center"><input type="radio" name="coordModeB" value="combined" class="form-radio h-4 w-4 text-indigo-600" checked><span class="ml-2 text-gray-300">Combined</span></label>
+                       </div>
+                       <div id="combinedCoordsB"><input type="text" id="astroB" placeholder="Birth Coordinates" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value=""></div>
+                   </div>
+               </div>
+           </div>
+
+           <div id="relational-context-stack" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 hidden border border-teal-500">
+               <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Relational Context Query Stack</h2>
+               <p class="text-gray-400 text-sm mb-4">Based on initial geometry, the Math Brain has detected the following potential dynamics:</p>
+               <ul id="context-readout" class="list-disc list-inside space-y-2 mb-4 text-gray-300">
+                   </ul>
+               <div id="relationship-type-query">
+                   <p class="text-lg font-medium text-white mb-2">How would you categorize this connection?</p>
+                   <div class="flex flex-col space-y-2">
+                       <label class="flex items-center"><input type="radio" name="relationshipType" value="Partner" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Partner (romantic/undefined-intimate)</span></label>
+                       <label class="flex items-center"><input type="radio" name="relationshipType" value="Friend" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Friend or colleague</span></label>
+                       <label class="flex items-center"><input type="radio" name="relationshipType" value="Family" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Family</span></label>
+                   </div>
+                   <div id="intimacy-tier-dropdown" class="mt-4 hidden">
+                       <p class="text-md font-medium text-white mb-2">What best describes the intimacy tier of this connection?</p>
+                       <div class="flex flex-col space-y-2">
+                           <label class="flex items-center"><input type="radio" name="intimacyTier" value="P1" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P1 – Platonic partners</span></label>
+                           <label class="flex items-center"><input type="radio" name="intimacyTier" value="P2" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P2 – Friends with benefits</span></label>
+                           <label class="flex items-center"><input type="radio" name="intimacyTier" value="P3" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P3 – Romantic partners</span></label>
+                       </div>
+                   </div>
+               </div>
+           </div>
+
+           <div class="mb-8">
+               <label class="flex items-center">
+                   <input type="checkbox" id="synastryToggle" class="form-checkbox h-5 w-5 text-teal-400" checked>
+                   <span class="ml-3 text-white font-medium">Include Synastry Analysis</span>
+               </label>
+           </div>
+
+           <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
+               <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Step 1: Generate Natal & Transit Data</h2>
+               <div>
+                    <label class="text-lg text-gray-200">Date Range (Defaults to Today)</label>
+                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                      <input type="text" id="startDate" placeholder="Start Date (MM-DD-YYYY)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                      <input type="text" id="endDate"   placeholder="End Date (optional)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                   </div>
+                    <p class="text-gray-400 text-sm mt-2">Generates natal charts and transits for the date range, always calculated for the birth location.</p>
+                    <div class="mt-4 bg-gray-700/50 p-4 rounded-md">
+                       <label class="flex items-center">
+                           <input type="checkbox" id="relocationToggle" class="form-checkbox h-5 w-5 text-teal-400">
+                           <span class="ml-3 text-white font-medium">Add Relocation Overlay (Optional)</span>
+                       </label>
+                       <div id="relocationFields" class="hidden mt-3">
+                           <p class="text-sm text-gray-400 mb-2">Enter coordinates (e.g., <b>30°10′N, 85°40′W</b>) to see a side-by-side comparison of how transits fall in the relocated house system.</p>
+                           <input type="text"
+                                  id="relocationCoords"
+                                  placeholder="30°10′N, 85°40′W"
+                                  class="w-full bg-gray-800 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                                  value="30°10′N, 85°40′W">
+                           <div id="relocationError" class="text-red-500 text-xs mt-1 hidden"></div>
+                           <p class="text-xs text-gray-500 italic text-right pr-1 pt-1">
+                               You can also paste decimal degrees (e.g., 30.1588, -85.6602).
+                           </p>
+                       </div>
+                   </div>
+                    <button id="generate-btn" class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 disabled:bg-indigo-400 disabled:cursor-not-allowed">
+                       Generate Full Report
+                   </button>
+               </div>
+           </div>
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
+                <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Step 2 (Optional): Get Local Astrological Forecast</h2>
+                <p class="text-gray-400 text-sm mb-4 italic">This generates a standalone chart of the sky for a specific location and time, which can be used as a contextual overlay. For a full transit analysis, provide this data to your Poetic Brain along with the main report.</p>
+                <p class="text-gray-400 text-sm mb-4 italic font-semibold">Note: This app is built to generate input for astrology AI apps (GPTs). If you only generate the astrological weather (Step 2) without a natal chart, it won’t connect to personal dynamics and will be symbolically meaningless.</p>
+               <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                   <div>
+                       <label class="text-lg text-gray-200">Location</label>
+                       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                          <input type="text" id="weatherLat" placeholder="Latitude (e.g. 30.1588)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="30.1588">
+                          <input type="text" id="weatherLon" placeholder="Longitude (e.g. -85.6602)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="-85.6602">
+                       </div>
+                       <p class="text-xs text-gray-500 italic text-right pr-1 pt-1">Find coordinates with a web search, e.g., "coordinates for Panama City, FL".</p>
+                   </div>
+                   <div>
+                       <label class="text-lg text-gray-200">Date Range (Defaults to Today)</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                          <input type="text" id="weatherStartDate" placeholder="Start Date (MM-DD-YYYY)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                          <input type="text" id="weatherEndDate"   placeholder="End Date (optional)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                       </div>
+                   </div>
+               </div>
+               <button id="getWeatherBtn" class="mt-4 w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                   Get Forecast
+               </button>
+           </div>
+
+
+           <div id="output-section" class="bg-gray-800 p-6 rounded-lg shadow-lg hidden">
+                <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                   <h2 id="report-title" class="text-2xl font-semibold text-white">Generated Report</h2>
+                   <div class="flex space-x-2">
+                       <button id="copy-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">Copy Markdown</button>
+                       <button id="save-md-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">Save Markdown</button>
+                       <button id="save-json-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">Save JSON</button>
+                   </div>
+               </div>
+               <pre id="report-output" class="w-full h-96 bg-gray-900 text-gray-300 rounded-md p-4 overflow-auto font-mono text-sm whitespace-pre-wrap"></pre>
+           </div>
+            <div id="message-box" class="fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg hidden"></div>
+       </main>
+   </div>
+
+   <script>
+       // --- DOM Elements ---
+       const generateBtn = document.getElementById('generate-btn');
+       const getWeatherBtn = document.getElementById('getWeatherBtn');
+       const outputSection = document.getElementById('output-section');
+       const reportOutput = document.getElementById('report-output');
+       const reportTitle = document.getElementById('report-title');
+       const copyBtn = document.getElementById('copy-btn');
+       const saveJsonBtn = document.getElementById('save-json-btn');
+       const saveMdBtn = document.getElementById('save-md-btn');
+       const messageBox = document.getElementById('message-box');
+       const startDateInput = document.getElementById('startDate');
+       const endDateInput = document.getElementById('endDate');
+       const weatherStartDateInput = document.getElementById('weatherStartDate');
+       const weatherEndDateInput = document.getElementById('weatherEndDate');
+       const relocationToggle = document.getElementById('relocationToggle');
+       const relocationFields = document.getElementById('relocationFields');
+       const relocationCoordsInput = document.getElementById('relocationCoords');
+       const relocationError = document.getElementById('relocationError');
+       const synastryToggle = document.getElementById('synastryToggle');
+       const relationalContext
