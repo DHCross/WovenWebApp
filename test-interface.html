@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Woven Map Test Interface</title>
+    <link href="dist/output.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hidden { display: none; }
+        .test-card { 
+            background: #1f2937; 
+            border: 1px solid #374151; 
+            border-radius: 8px; 
+            padding: 16px; 
+            margin: 16px 0; 
+        }
+        .test-btn { 
+            background: #059669; 
+            color: white; 
+            padding: 8px 16px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            margin: 4px; 
+        }
+        .test-btn:hover { background: #047857; }
+        .preset-btn { 
+            background: #1d4ed8; 
+            color: white; 
+            padding: 4px 8px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            margin: 2px; 
+            font-size: 12px;
+        }
+        .preset-btn:hover { background: #1e40af; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold text-white mb-6">🧪 Woven Map Test Interface</h1>
+        <p class="text-gray-400 mb-6">No clipboard needed - click preset buttons to auto-fill forms!</p>
+
+        <!-- Step-by-Step Testing Guide -->
+        <div class="test-card">
+            <h2 class="text-xl font-semibold text-white mb-4">📖 Testing Guide</h2>
+            <div class="text-sm text-gray-300 space-y-2">
+                <div><strong>1.</strong> Click "Open Main App" below</div>
+                <div><strong>2.</strong> Person A already filled (DH Cross) ✅</div>
+                <div><strong>3.</strong> For relational modes: Click "Show Person B Data" and copy-paste</div>
+                <div><strong>4.</strong> Click "Show Transit Dates" and fill those fields</div>
+                <div><strong>5.</strong> Select your context mode (Natal, Synastry+Transits, or Composite+Transits)</div>
+                <div><strong>6.</strong> Optional: Enable relocation overlay with "Show Relocation Data"</div>
+                <div><strong>7.</strong> Click "Compute Astrological Geometry" to test!</div>
+            </div>
+        </div>
+
+        <!-- Quick Data Reference -->
+        <div class="test-card">
+            <h2 class="text-xl font-semibold text-white mb-4">📋 Test Data Reference</h2>
+            <button class="preset-btn" onclick="showPersonB()">Show Person B Data</button>
+            <button class="preset-btn" onclick="showTransitDates()">Show Transit Dates</button>
+            <button class="preset-btn" onclick="showRelocation()">Show Relocation Data</button>
+            <button class="preset-btn" onclick="showCoordinates()">Show Coordinate Examples</button>
+        </div>
+
+        <!-- Data Display Area -->
+        <div id="dataDisplay" class="test-card hidden">
+            <h3 class="text-lg font-semibold text-white mb-2">📄 Copy This Data:</h3>
+            <div id="dataContent" class="bg-gray-800 p-4 rounded border border-gray-600 font-mono text-sm"></div>
+            <button class="preset-btn mt-2" onclick="hideData()">Hide</button>
+        </div>
+
+        <!-- Context Mode Testing -->
+        <div class="test-card">
+            <h2 class="text-xl font-semibold text-white mb-4">🎯 Mode Testing Instructions</h2>
+            <button class="test-btn" onclick="testMode('natal')">Instructions: Natal + Transits</button>
+            <button class="test-btn" onclick="testMode('synastry-transits')">Instructions: Synastry + Transits</button>
+            <button class="test-btn" onclick="testMode('composite-transits')">Instructions: Composite + Transits</button>
+        </div>
+
+        <!-- Quick Navigation -->
+        <div class="test-card">
+            <h2 class="text-xl font-semibold text-white mb-4">🚀 Quick Navigation</h2>
+            <button class="test-btn" onclick="openMainApp()">Open Main App</button>
+            <button class="test-btn" onclick="openApiTest()">Open API Test Page</button>
+            <button class="test-btn" onclick="openInChrome()">Open in Chrome</button>
+        </div>
+
+        <!-- Status Display -->
+        <div class="test-card">
+            <h2 class="text-xl font-semibold text-white mb-4">📊 Status</h2>
+            <div id="status" class="text-sm text-gray-300">Ready for testing...</div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            document.getElementById('status').innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
+        }
+
+        function showData(title, data) {
+            const display = document.getElementById('dataDisplay');
+            const content = document.getElementById('dataContent');
+            content.innerHTML = `<strong>${title}</strong><br><br>${data}`;
+            display.classList.remove('hidden');
+            log(`📄 ${title} displayed for copy-paste`);
+        }
+
+        function hideData() {
+            document.getElementById('dataDisplay').classList.add('hidden');
+        }
+
+        function showPersonB() {
+            const data = `Name: Test Person B
+Birth City: Los Angeles  
+Birth State: CA
+Birth Date: 1988-03-22
+Birth Time: 18:30
+Birth Country: US
+Coordinates: 34.0522, -118.2437`;
+            showData('Person B Example Data', data);
+        }
+
+        function showTransitDates() {
+            const data = `Transit Start Date: 2024-01-01
+Transit End Date: 2024-01-31
+Step Size: Daily`;
+            showData('Transit Date Example', data);
+        }
+
+        function showRelocation() {
+            const data = `Relocation City: Panama City
+State/Province: FL
+Coordinates: 30°10'N, 85°40'W
+(or decimal: 30.1667, -85.6667)`;
+            showData('Relocation Example Data', data);
+        }
+
+        function showCoordinates() {
+            const data = `DMS Format Examples:
+40°1'N, 75°18'W (Bryn Mawr, PA)
+30°10'N, 85°40'W (Panama City, FL)
+34°3'N, 118°15'W (Los Angeles, CA)
+
+Decimal Format Examples:
+40.0167, -75.3000 (Bryn Mawr, PA)
+30.1667, -85.6667 (Panama City, FL)
+34.0522, -118.2437 (Los Angeles, CA)`;
+            showData('Coordinate Format Examples', data);
+        }
+
+        function testMode(mode) {
+            log(`🎯 Testing ${mode} mode`);
+            log(`💡 To manually select: Open main app → Choose "${mode}" radio button`);
+            
+            // Provide instructions instead of trying to auto-select
+            const modeNames = {
+                'natal': 'Natal Chart + Transits',
+                'synastry-transits': 'Synastry + Transits', 
+                'composite-transits': 'Composite + Transits'
+            };
+            
+            log(`📋 Select "${modeNames[mode]}" in the Context Mode section`);
+            openMainApp();
+        }
+
+        function openMainApp() {
+            window.open('http://localhost:8000', 'mainApp');
+            log('🚀 Main app opened in new window');
+        }
+
+        function openApiTest() {
+            window.open('http://localhost:8000/test-streamlined-api.html', 'apiTest');
+            log('🧪 API test page opened in new window');
+        }
+
+        function openInChrome() {
+            log('💡 To open in Chrome: copy this URL: http://localhost:8000');
+            log('📋 Full clipboard functionality available in Chrome!');
+        }
+
+        // Auto-load instructions
+        window.onload = () => {
+            log('🎉 Test interface loaded');
+            log('� Click data buttons to get copy-paste friendly test data');
+            log('🌐 Person A already has your default data');
+            log('💡 For full clipboard support: open http://localhost:8000 in Chrome');
+        };
+    </script>
+</body>
+</html>
