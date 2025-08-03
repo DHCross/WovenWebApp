@@ -765,9 +765,8 @@ function groupTransitsByDate(transits) {
 fullReportData.transitsByDate = groupTransitsByDate(fullReportData.transits);
                 // Always prepend Poetic Brain context
                 markdownParts.unshift(poeticBrainContextMd());
-                markdownReport = markdownParts.join('\n\n');
                 reportTitle.textContent = "Generated Report";
-                reportOutput.textContent = markdownReport;
+                reportOutput.textContent = markdownParts.join('\n\n');
                 outputSection.classList.remove('hidden');
 
             } catch (error) {
@@ -933,7 +932,12 @@ fullReportData.transitsByDate = groupTransitsByDate(fullReportData.transits);
           // Show/hide context blocks
           const selectedMode = document.querySelector('input[name="contextMode"]:checked')?.value;
           selfContext.style.display = selectedMode === 'self' ? 'block' : 'none';
-          relationalContext.style.display = selectedMode === 'relational' ? 'block' : 'none';
+          // Only show relational context if Person B has data or synastry is checked
+          if (showToggle && selectedMode === 'relational') {
+            relationalContext.style.display = 'block';
+          } else {
+            relationalContext.style.display = 'none';
+          }
           // Accessibility: update aria-selected
           document.querySelectorAll('input[name="contextMode"]').forEach(radio => {
             radio.setAttribute('aria-checked', radio.checked ? 'true' : 'false');
