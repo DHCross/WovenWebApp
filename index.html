@@ -298,46 +298,20 @@
         const relationalContextStack = document.getElementById('relational-context-stack');
         const contextReadout = document.getElementById('context-readout');
 
-        // --- Intimacy Tier Dropdown Logic ---
-        const relationshipTypeRadios = document.querySelectorAll('input[name="relationshipType"]');
-        const intimacyTierDropdown = document.getElementById('intimacy-tier-dropdown');
-
-        function updateIntimacyTierVisibility() {
-          const selected = Array.from(relationshipTypeRadios).find(r => r.checked);
-          if (selected && selected.value === 'Partner') {
-            intimacyTierDropdown.classList.remove('hidden');
-          } else {
-            intimacyTierDropdown.classList.add('hidden');
-          }
+        // --- GENTLE VALIDATION FEEDBACK ---
+        function showFieldValidating(fieldId) {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.classList.add('border-yellow-400');
+                setTimeout(() => {
+                    field.classList.remove('border-yellow-400');
+                    field.classList.add('border-green-400');
+                    setTimeout(() => {
+                        field.classList.remove('border-green-400');
+                    }, 500);
+                }, 200);
+            }
         }
-
-        // On page load, show/hide intimacy tier dropdown based on initial selection
-        updateIntimacyTierVisibility();
-
-        // Add event listeners to relationship type radios
-        relationshipTypeRadios.forEach(radio => {
-          radio.addEventListener('change', updateIntimacyTierVisibility);
-        });
-
-        // --- Global State ---
-        let fullReportData = {};
-        let markdownReport = '';
-        let contextCheckTimeout;
-
-        // --- API & LOCAL ENGINE CONFIG ---
-        const ORBS = { "conjunction": 8, "opposition": 8, "square": 5, "trine": 6, "sextile": 4 };
-        const ASPECT_DEGREES = { "conjunction": 0, "opposition": 180, "square": 90, "trine": 120, "sextile": 60 };
-        const HOUSE_NAMES = ["First_House", "Second_House", "Third_House", "Fourth_House", "Fifth_House", "Sixth_House", "Seventh_House", "Eighth_House", "Ninth_House", "Tenth_House", "Eleventh_House", "Twelfth_House"];
-        const SYMBOLS = {"conjunction": "☌", "opposition": "☍", "square": "□", "trine": "△", "sextile": "✶"};
-
-        // --- HELPER FUNCTIONS ---
-        const showMessage = (message, type = 'error') => {
-            messageBox.textContent = message;
-            messageBox.className = `fixed top-5 right-5 text-white py-2 px-4 rounded-lg shadow-lg ${type === 'error' ? 'bg-red-600' : 'bg-green-600'}`;
-            messageBox.classList.remove('hidden');
-            messageBox.classList.add('animate-fade-in-out');
-            setTimeout(() => { messageBox.classList.add('hidden'); messageBox.classList.remove('animate-fade-in-out'); }, 7900);
-        };
 
         // --- VALIDATION FUNCTIONS ---
         function validatePersonFields(prefix) {
@@ -432,7 +406,7 @@
             return errors;
         }
 
-        function updateGenerateButtonState() {
+        function updateGenerateButtonState(showErrors = false) {
             const errors = validateAllInputs();
             const hasErrors = errors.length > 0;
             
@@ -442,16 +416,13 @@
                 ? 'mt-3 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md cursor-not-allowed'
                 : 'mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 disabled:bg-indigo-400 disabled:cursor-not-allowed';
             
-            if (hasErrors && errors.length <= 5) {
-                // Show validation errors in a subtle way
-                const errorSummary = document.getElementById('validation-summary');
-                if (errorSummary) {
+            // Only show errors if explicitly requested or if there are critical errors
+            const errorSummary = document.getElementById('validation-summary');
+            if (errorSummary) {
+                if (showErrors && hasErrors && errors.length <= 5) {
                     errorSummary.textContent = errors.join(' • ');
                     errorSummary.classList.remove('hidden');
-                }
-            } else {
-                const errorSummary = document.getElementById('validation-summary');
-                if (errorSummary) {
+                } else {
                     errorSummary.classList.add('hidden');
                 }
             }
@@ -941,28 +912,32 @@ fullReportData.transitsByDate = groupTransitsByDate(fullReportData.transits);
         window.addEventListener('DOMContentLoaded', updateContextModeVisibility);
 
         // --- REAL-TIME VALIDATION EVENT LISTENERS ---
-        // Add validation on field changes
+        // Add validation on field changes (only on blur to avoid disrupting typing)
         ['nameA','cityA','stateA','dateA','timeA','offsetA','nationA','zodiacA','astroA','nameB','cityB','stateB','dateB','timeB','offsetB','nationB','zodiacB','astroB','startDate','endDate'].forEach(id => {
           const el = document.getElementById(id);
           if (el) {
-            el.addEventListener('input', updateGenerateButtonState);
-            el.addEventListener('blur', updateGenerateButtonState);
+            // Only validate on blur (when leaving field) to avoid disrupting typing
+            el.addEventListener('blur', () => updateGenerateButtonState(true));
+            // Light validation on input (just button state, no error messages)
+            el.addEventListener('input', () => updateGenerateButtonState(false));
           }
         });
         
-        // Add validation for radio buttons and checkboxes
+        // Add validation for radio buttons and checkboxes (immediate feedback)
         document.querySelectorAll('input[name="relationshipType"], input[name="intimacyTier"]').forEach(radio => {
-          radio.addEventListener('change', updateGenerateButtonState);
+          radio.addEventListener('change', () => updateGenerateButtonState(true));
         });
         
-        synastryToggle.addEventListener('change', updateGenerateButtonState);
-        relocationToggle.addEventListener('change', updateGenerateButtonState);
-        if (relocationCoordsInput) relocationCoordsInput.addEventListener('input', updateGenerateButtonState);
+        // Important state changes should show validation immediately
+        synastryToggle.addEventListener('change', () => updateGenerateButtonState(true));
+        relocationToggle.addEventListener('change', () => updateGenerateButtonState(true));
+        if (relocationCoordsInput) relocationCoordsInput.addEventListener('input', () => updateGenerateButtonState(false));
+        if (relocationCoordsInput) relocationCoordsInput.addEventListener('blur', () => updateGenerateButtonState(true));
 
-        // Initialize validation on page load
+        // Initialize validation on page load (without showing errors initially)
         window.addEventListener('DOMContentLoaded', () => {
           addValidationSummary();
-          updateGenerateButtonState();
+          updateGenerateButtonState(false); // Don't show errors on initial load
         });
     </script>
 </body>
