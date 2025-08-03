@@ -276,7 +276,7 @@ Woven Map Report Generator: Context Mode & JSON Export
         const copyBtn = document.getElementById('copy-btn');
         const saveJsonBtn = document.getElementById('save-json-btn');
         const saveMdBtn = document.getElementById('save-md-btn');
-        const messageBox = document.getElementById('message-box');
+        const messageBox = document.getElementById('message-box'); // <-- Only declare once here
         const startDateInput = document.getElementById('startDate');
         const endDateInput = document.getElementById('endDate');
         const relocationToggle = document.getElementById('relocationToggle');
@@ -556,7 +556,6 @@ Woven Map Report Generator: Context Mode & JSON Export
         }
         
         // Ensure message box is ARIA live for error/success announcements
-        const messageBox = document.getElementById('message-box');
         messageBox.setAttribute('aria-live', 'assertive');
 
         // --- MAIN REPORT GENERATION LOGIC ---
