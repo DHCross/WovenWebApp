@@ -2,7 +2,18 @@
 
 Thi📈 What You Can Use It For
 
-The Math Brain supports mu🧪 Example: What You'll See
+The📈 What You Can Use It For
+
+The Math Brain supports multiple Context Modes, each enforcing the geometric foundation principle (no "floating verbs"):
+
+Mode	Use This When You Want To Know…
+Natal Chart + Transits	"How is today pressing on me?"
+Composite + Transits	"How is today pressing on our shared field?"
+Synastry + Transits	"How is today pressing on our interaction?"
+
+🧭 Pro Tip: All modes now include transit analysis by default, ensuring every computation has both structural foundation (the chart) and dynamic pressure (current planetary positions).
+
+⚠️ **Streamlined Protocol**: Removed standalone chart modes (Natal, Synastry, Composite) to enforce the principle that "a transit is a verb that needs a noun." Every mode now provides complete geometric analysis with temporal context.pports mu🧪 Example: What You'll See
 
 Input:
 Mode = Composite + Transits
@@ -195,10 +206,11 @@ Updated terminology guide that includes:
 ### FIELD (Input Layer)
 - ✅ Birth date, time, coordinates
 - ✅ Relocation coordinates (available for ALL context modes)
-- ✅ Context mode (natal/synastry/natal+transits/composite/composite+transits/synastry+transits)
+- ✅ Context mode (natal+transits/composite+transits/synastry+transits)
+- ✅ Transit date ranges (required for ALL modes)
 - ✅ Person names, locations (for identification only)
 - ✅ **CRITICAL**: Relocation overlay enabled regardless of mode selection
-- ✅ **GEOMETRIC FOUNDATION**: All transit modes reference structural base charts
+- ✅ **STREAMLINED**: All modes enforce geometric foundation + temporal pressure
 
 ### MAP (Math Brain Output)
 - ✅ Planetary positions (degree, sign, house)
@@ -325,14 +337,11 @@ Clear messaging throughout the interface:
 
 | Mode | Requires Transit Dates? | Person B Required? | Geometric Foundation |
 |------|------------------------|-------------------|---------------------|
-| Natal | ❌ | ❌ | Individual chart structure |
-| Synastry | ❌ | ✅ | Two-chart interaction |
-| Natal + Transits | ✅ | ❌ | Individual chart + pressure overlay |
-| Composite | ❌ | ✅ | Relationship entity structure |
+| Natal Chart + Transits | ✅ | ❌ | Individual chart + pressure overlay |
 | Composite + Transits | ✅ | ✅ | Relationship entity + pressure overlay |
 | Synastry + Transits | ✅ | ✅ | Two-chart interaction + pressure overlay |
 
-This ensures no "floating verbs" (transits without structural foundation) and complete validation coverage across all modes.
+**Streamlined Enforcement**: All modes now require transit dates by design, eliminating the possibility of "floating verbs" (transits without structural foundation) and ensuring complete geometric analysis with temporal context.
 
 ### 🔥 Relocation Overlay Availability
 

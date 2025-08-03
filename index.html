@@ -147,20 +147,8 @@
                     <h3 class="text-lg font-semibold text-teal-300 mb-3">🧭 What Does Each Mode Do?</h3>
                     <div class="space-y-3 text-sm">
                         <div class="flex items-start">
-                            <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Natal →</span>
-                            <span class="text-gray-300">Diagnoses a single person's energetic architecture. <em>"What tension patterns structure me?"</em></span>
-                        </div>
-                        <div class="flex items-start">
-                            <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Synastry →</span>
-                            <span class="text-gray-300">Compares two charts for interaction patterns. <em>"How do we activate each other?"</em></span>
-                        </div>
-                        <div class="flex items-start">
                             <span class="inline-block w-24 text-teal-400 font-medium flex-shrink-0">Natal+Trans →</span>
-                            <span class="text-gray-300">Maps current planetary pressure on natal chart. <em>"How is today pressing on me?"</em></span>
-                        </div>
-                        <div class="flex items-start">
-                            <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Composite →</span>
-                            <span class="text-gray-300">Creates symbolic chart of the relationship itself. <em>"What is this connection as a shared structure?"</em></span>
+                            <span class="text-gray-300">Maps current planetary pressure on individual chart. <em>"How is today pressing on me?"</em></span>
                         </div>
                         <div class="flex items-start">
                             <span class="inline-block w-24 text-teal-400 font-medium flex-shrink-0">Comp+Trans →</span>
@@ -182,19 +170,7 @@
                 <div id="context-toggle" class="flex items-center mb-4">
                     <label class="flex items-center mr-4">
                         <input type="radio" name="contextMode" value="natal" class="mr-2" checked>
-                        <span class="text-gray-300">Natal Chart</span>
-                    </label>
-                    <label class="flex items-center mr-4">
-                        <input type="radio" name="contextMode" value="synastry" class="mr-2">
-                        <span class="text-gray-300">Synastry</span>
-                    </label>
-                    <label class="flex items-center mr-4">
-                        <input type="radio" name="contextMode" value="transit" class="mr-2">
-                        <span class="text-gray-300">Natal + Transits</span>
-                    </label>
-                    <label class="flex items-center mr-4">
-                        <input type="radio" name="contextMode" value="composite" class="mr-2">
-                        <span class="text-gray-300">Composite</span>
+                        <span class="text-gray-300">Natal Chart + Transits</span>
                     </label>
                     <label class="flex items-center mr-4">
                         <input type="radio" name="contextMode" value="composite-transits" class="mr-2">
@@ -445,7 +421,7 @@
             }
 
             // Validate Person B if required by mode
-            if (mode === 'synastry' || mode === 'composite' || mode === 'synastry-transits' || mode === 'composite-transits') {
+            if (mode === 'synastry-transits' || mode === 'composite-transits') {
                 const nameB = document.getElementById('nameB').value.trim();
                 const dateB = document.getElementById('birth_dateB').value.trim();
                 const timeB = document.getElementById('birth_timeB').value.trim();
@@ -469,8 +445,8 @@
                 }
             }
 
-            // Validate transit dates if required by mode
-            if (mode === 'transit' || mode === 'synastry-transits' || mode === 'composite-transits') {
+            // Validate transit dates if required by mode (ALL modes now require transits)
+            if (mode === 'natal' || mode === 'synastry-transits' || mode === 'composite-transits') {
                 const start = transitStartDate.value;
                 const end = transitEndDate.value;
                 if (!start || !end) {
@@ -630,7 +606,7 @@
             }
 
             const mode = formData.context.mode;
-            if (mode === 'transit' || mode === 'synastry-transits' || mode === 'composite-transits') {
+            if (mode === 'natal' || mode === 'synastry-transits' || mode === 'composite-transits') {
                 if (transitStartDate && transitEndDate && transitStep) {
                     formData.transit = {
                         startDate: transitStartDate.value,
@@ -801,16 +777,15 @@
         function updateFormUI() {
             const mode = document.querySelector('input[name="contextMode"]:checked').value;
 
-            const isTransit = mode === 'transit';
+            const isNatal = mode === 'natal';
             const isSynastryTransits = mode === 'synastry-transits';
             const isCompositeTransits = mode === 'composite-transits';
-            const isNatal = mode === 'natal';
             
-            const showPersonB = !isNatal && !isTransit;
+            const showPersonB = !isNatal; // Person B needed for all relational modes
             personBCard.style.opacity = showPersonB ? '1' : '0.5';
             personBCard.style.pointerEvents = showPersonB ? 'auto' : 'none';
 
-            const showTransitFields = isTransit || isSynastryTransits || isCompositeTransits;
+            const showTransitFields = true; // ALL modes now include transits
             transitDateFields.style.display = showTransitFields ? 'block' : 'none';
 
             // CRITICAL: Relocation overlay must be available whenever ANY chart data is entered
