@@ -333,322 +333,149 @@
             setTimeout(() => { messageBox.classList.add('hidden'); messageBox.classList.remove('animate-fade-in-out'); }, 7900);
         };
 
-        const parseCoordinate = (input) => {
-            let s = String(input).trim();
-            if (!s) throw new Error("Coordinate input is empty.");
-            let sign = /[SW]/i.test(s) ? -1 : 1;
-            s = s.replace(/[NSEW]/ig, '');
-            if (s.startsWith('-')) { sign = -1; s = s.slice(1); }
-            s = s.replace(/[°º]/g, ' ').replace(/[\'′’]/g, ' ').replace(/[\"″]/g, ' ');
-            const parts = s.trim().split(/\s+/).filter(Boolean);
-            if (parts.length === 0) throw new Error(`Invalid coordinate format for "${input}".`);
-
-            const deg = parseFloat(parts[0]);
-            if (isNaN(deg)) throw new Error(`Invalid degrees in coordinate "${input}".`);
-            const min = parts[1] ? parseFloat(parts[1]) : 0;
-            const sec = parts[2] ? parseFloat(parts[2]) : 0;
-            if ((parts[1] && isNaN(min)) || (parts[2] && isNaN(sec))) {
-                throw new Error(`Invalid minutes or seconds in coordinate "${input}".`);
+        // --- VALIDATION FUNCTIONS ---
+        function validatePersonFields(prefix) {
+            const errors = [];
+            const name = document.getElementById(`name${prefix}`).value.trim();
+            const city = document.getElementById(`city${prefix}`).value.trim();
+            const state = document.getElementById(`state${prefix}`).value.trim();
+            const date = document.getElementById(`date${prefix}`).value.trim();
+            const time = document.getElementById(`time${prefix}`).value.trim();
+            const nation = document.getElementById(`nation${prefix}`).value.trim().toUpperCase();
+            const astro = document.getElementById(`astro${prefix}`).value.trim();
+            
+            if (!name) errors.push(`Person ${prefix}: Name is required`);
+            if (!city) errors.push(`Person ${prefix}: Birth city is required`);
+            if (!state) errors.push(`Person ${prefix}: Birth state/province is required`);
+            if (!date) {
+                errors.push(`Person ${prefix}: Birth date is required`);
+            } else if (!/^\d{2}-\d{2}-\d{4}$/.test(date)) {
+                errors.push(`Person ${prefix}: Date must be MM-DD-YYYY format`);
             }
-            const val = Math.abs(deg) + (min / 60) + (sec / 3600);
-            return sign * val;
-        };
-
-        const parseCombinedCoords = (txt) => {
-            if (!txt) throw new Error("Coordinate input is empty.");
-            let parts = txt.split(',');
-            if (parts.length >= 2) {
-                const latitude = parseCoordinate(parts[0]);
-                const longitude = parseCoordinate(parts.slice(1).join(','));
-                return { latitude, longitude };
+            if (!time) {
+                errors.push(`Person ${prefix}: Birth time is required`);
+            } else if (!/^\d{2}:\d{2}$/.test(time)) {
+                errors.push(`Person ${prefix}: Time must be HH:MM (24-hour) format`);
             }
-            const match = txt.match(/([\d°º'"′″\.\s+-]+[NS])[^\dA-Z+-]*([\d°º'"′″\.\s+-]+[EW])/i);
-            if (match) return { latitude: parseCoordinate(match[1]), longitude: parseCoordinate(match[2]) };
-            throw new Error('Invalid combined coordinate format.');
-        };
-
-        const getSubjectData = (personPrefix) => {
-            const name = document.getElementById(`name${personPrefix}`).value.trim();
-            const city = document.getElementById(`city${personPrefix}`).value.trim();
-            const state = document.getElementById(`state${personPrefix}`).value.trim();
-            const date = document.getElementById(`date${personPrefix}`).value.trim();
-            const time = document.getElementById(`time${personPrefix}`).value.trim();
-            const timezone = document.getElementById(`offset${personPrefix}`).value.trim();
-            let nation = document.getElementById(`nation${personPrefix}`).value.trim().toUpperCase();
-            const zodiac_type = document.getElementById(`zodiac${personPrefix}`).value.trim();
-
-            // Default nation to 'US' if blank or not 2 letters
-            if (!nation || !/^[A-Z]{2}$/.test(nation)) nation = 'US';
-
-            if (!name || !city || !state || !date || !time || !nation) {
-                return null;
+            if (!nation || !/^[A-Z]{2}$/.test(nation)) {
+                errors.push(`Person ${prefix}: Country must be a 2-letter code (e.g., US, CA, GB)`);
             }
-            if (!/^\d{2}-\d{2}-\d{4}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) {
-                return null;
-            }
-
-            let lat, lng;
-            try {
-                const astroValue = document.getElementById(`astro${personPrefix}`).value.trim();
-                if (!astroValue) return null;
-                const coords = parseCombinedCoords(astroValue);
-                lat = coords.latitude;
-                lng = coords.longitude;
-                if (isNaN(lat) || isNaN(lng)) {
-                   return null;
+            if (!astro) {
+                errors.push(`Person ${prefix}: Birth coordinates are required`);
+            } else {
+                try {
+                    parseCombinedCoords(astro);
+                } catch (err) {
+                    errors.push(`Person ${prefix}: Invalid coordinate format - ${err.message}`);
                 }
-            } catch (error) {
-                return null;
             }
+            return errors;
+        }
 
-            const [month, day, year] = date.split('-').map(Number);
-            const [hour, minute] = time.split(':').map(Number);
-
-            return { name, city, state, date, time, timezone, lat, lng, year, month, day, hour, minute, nation, zodiac_type };
-        };
-
-        const getChartDataFromApi = async (payload) => {
-            const res = await fetch('/api/astrology', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            const text = await res.text();
-            let responsePayload;
-
-            try {
-                responsePayload = JSON.parse(text);
-            } catch {
-                console.error('Non-JSON response from Netlify function:', text);
-                throw new Error(`Server returned invalid data (status ${res.status}):\n` + text);
-            }
-
-            if (!res.ok) {
-                // Enhanced error handling for missing fields
-                if (res.status === 400 && responsePayload.missing) {
-                    let msg = 'Missing required fields:';
-                    if (responsePayload.missing.person_a && responsePayload.missing.person_a.length) msg += `\nPerson A: ${responsePayload.missing.person_a.join(', ')}`;
-                    if (responsePayload.missing.person_b && responsePayload.missing.person_b.length) msg += `\nPerson B: ${responsePayload.missing.person_b.join(', ')}`;
-                    if (Array.isArray(responsePayload.missing) && responsePayload.missing.length) msg += `\n${responsePayload.missing.join(', ')}`;
-                    showMessage(msg, 'error');
-                    throw new Error(msg);
-                }
-                const errorMsg = responsePayload.error || responsePayload.details || 'An unknown server error occurred.';
-                throw new Error(errorMsg);
-            }
-
-            return responsePayload;
-        };
-
-        const calculateAspects = (chartA, chartB, orbOverrides = {}) => {
-            const aspects = [];
-            const planetsA = chartA.planets_names_list.concat(chartA.axial_cusps_names_list);
-            const planetsB = chartB.planets_names_list.concat(chartB.axial_cusps_names_list);
-
-            for (const p1Name of planetsA) {
-                const p1 = chartA[p1Name.toLowerCase()];
-                if (!p1) continue;
-                for (const p2Name of planetsB) {
-                    const p2 = chartB[p2Name.toLowerCase()];
-                    if (!p2) continue;
-                    if (chartA === chartB && p1.name === p2.name) continue;
-
-                    const diff = Math.abs((p1.abs_pos - p2.abs_pos + 180) % 360 - 180);
-                    for (const [aspectName, aspectDeg] of Object.entries(ASPECT_DEGREES)) {
-                        const orbLimit = orbOverrides[aspectName] || ORBS[aspectName];
-                        const orb = Math.abs(diff - aspectDeg);
-                        if (orb < orbLimit) {
-                            aspects.push({
-                                p1_name: p1.name, p2_name: p2.name,
-                                p1_pos: p1.position, p2_pos: p2.position,
-                                aspect: aspectName, orb: parseFloat(orb.toFixed(2))
-                            });
+        function validateAllInputs() {
+            const errors = [];
+            
+            // Always validate Person A
+            const errorsA = validatePersonFields('A');
+            errors.push(...errorsA);
+            
+            // If synastry is checked or Person B has any data, validate Person B
+            const synastryChecked = synastryToggle.checked;
+            const personBHasData = document.getElementById('nameB').value.trim() || 
+                                 document.getElementById('cityB').value.trim() || 
+                                 document.getElementById('dateB').value.trim();
+            
+            if (synastryChecked || personBHasData) {
+                const errorsB = validatePersonFields('B');
+                errors.push(...errorsB);
+                
+                // Check relationship context validation
+                if (synastryChecked) {
+                    const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value;
+                    if (!relationshipType) {
+                        errors.push('Please select a relationship type for synastry analysis');
+                    } else if (relationshipType === 'Partner') {
+                        const intimacyTier = document.querySelector('input[name="intimacyTier"]:checked')?.value;
+                        if (!intimacyTier) {
+                            errors.push('Please select an intimacy tier for Partner relationships');
                         }
                     }
                 }
             }
-            return aspects;
-        };
-
-        const calculateHouseOverlays = (planetsChart, housesChart) => {
-            const overlays = {};
-            const houseCusps = HOUSE_NAMES.map(name => housesChart[name.toLowerCase()].abs_pos);
-
-            for (const planetName of planetsChart.planets_names_list) {
-                const planet = planetsChart[planetName.toLowerCase()];
-                if (!planet) continue;
-
-                for (let i = 0; i < 12; i++) {
-                    const cuspStart = houseCusps[i];
-                    const cuspEnd = houseCusps[(i + 1) % 12];
-
-                    let inHouse = false;
-                    if (cuspStart < cuspEnd) {
-                        if (planet.abs_pos >= cuspStart && planet.abs_pos < cuspEnd) inHouse = true;
-                    } else {
-                        if (planet.abs_pos >= cuspStart || planet.abs_pos < cuspEnd) inHouse = true;
-                    }
-
-                    if (inHouse) {
-                        overlays[planet.name] = HOUSE_NAMES[i];
-                        break;
+            
+            // Validate date range if provided
+            const startDate = startDateInput.value.trim();
+            const endDate = endDateInput.value.trim();
+            
+            if (startDate && !/^\d{2}-\d{2}-\d{4}$/.test(startDate)) {
+                errors.push('Start date must be MM-DD-YYYY format');
+            }
+            if (endDate && !/^\d{2}-\d{2}-\d{4}$/.test(endDate)) {
+                errors.push('End date must be MM-DD-YYYY format');
+            }
+            
+            // Validate relocation coordinates if enabled
+            if (relocationToggle.checked) {
+                const relocationCoords = relocationCoordsInput.value.trim();
+                if (!relocationCoords) {
+                    errors.push('Relocation coordinates are required when relocation overlay is enabled');
+                } else {
+                    try {
+                        parseCombinedCoords(relocationCoords);
+                    } catch (err) {
+                        errors.push(`Invalid relocation coordinates: ${err.message}`);
                     }
                 }
             }
-            return overlays;
-        };
+            
+            return errors;
+        }
 
-        const groupByDate = (transits) => {
-            const grouped = {};
-            transits.forEach(transitEntry => {
-                // Extract date in MM-DD-YYYY format and convert to YYYY-MM-DD
-                const dateMMDDYYYY = transitEntry.date;
-                const [month, day, year] = dateMMDDYYYY.split('-');
-                const dateYYYYMMDD = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                
-                // Initialize date group if it doesn't exist
-                if (!grouped[dateYYYYMMDD]) {
-                    grouped[dateYYYYMMDD] = [];
+        function updateGenerateButtonState() {
+            const errors = validateAllInputs();
+            const hasErrors = errors.length > 0;
+            
+            generateBtn.disabled = hasErrors;
+            generateBtn.textContent = hasErrors ? 'Fix Errors to Generate' : 'Generate Full Report';
+            generateBtn.className = hasErrors 
+                ? 'mt-3 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md cursor-not-allowed'
+                : 'mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 disabled:bg-indigo-400 disabled:cursor-not-allowed';
+            
+            if (hasErrors && errors.length <= 5) {
+                // Show validation errors in a subtle way
+                const errorSummary = document.getElementById('validation-summary');
+                if (errorSummary) {
+                    errorSummary.textContent = errors.join(' • ');
+                    errorSummary.classList.remove('hidden');
                 }
-                
-                // Transform each aspect to the required format
-                transitEntry.aspects.forEach(aspect => {
-                    grouped[dateYYYYMMDD].push({
-                        p1_name: aspect.p1_name,
-                        p2_name: aspect.p2_name,
-                        aspect: aspect.aspect,
-                        orb: aspect.orb
-                    });
-                });
-            });
-            return grouped;
-        };
+            } else {
+                const errorSummary = document.getElementById('validation-summary');
+                if (errorSummary) {
+                    errorSummary.classList.add('hidden');
+                }
+            }
+        }
+
+        // Add validation summary element to DOM
+        function addValidationSummary() {
+            const generateSection = document.querySelector('.bg-gray-800.p-6.rounded-lg.shadow-lg.mb-8');
+            if (generateSection && !document.getElementById('validation-summary')) {
+                const summaryEl = document.createElement('div');
+                summaryEl.id = 'validation-summary';
+                summaryEl.className = 'hidden mt-2 p-3 bg-red-900/50 border border-red-600 rounded-md text-red-200 text-sm';
+                generateSection.querySelector('button').insertAdjacentElement('beforebegin', summaryEl);
+            }
+        }
         
-        // --- MARKDOWN FORMATTING ENGINE ---
-        const formatMdNatalChart = (personData) => {
-            const { details, chart: apiResponse } = personData;
-            const chart = apiResponse.data.subject;
-            const aspects = apiResponse.aspects;
-
-            const degToDMS = (deg) => `${Math.floor(deg)}°${Math.round((deg % 1) * 60).toString().padStart(2, '0')}'`;
-
-            let report = [`# ${details.name}`];
-            report.push(`> Birth Location: ${details.city}, ${details.state} *(For reference only; uses coordinates below)*`);
-            report.push(`> Birth Coordinates: ${details.lat.toFixed(4)}, ${details.lng.toFixed(4)}`);
-            report.push(`> Birth Date: ${details.date}`);
-            report.push(`> Birth Time: ${details.time} (Timezone: ${details.timezone})`);
-
-            report.push(`\n## Natal Chart – ${chart.houses_system_name}`);
-            let planetTable = '| Planet | AEL | Sign | Pos | 29° |\n|---|---|---|---|---|\n';
-            chart.planets_names_list.forEach(pName => {
-                const p = chart[pName.toLowerCase()];
-                if(p) planetTable += `| ${p.name} | ${p.abs_pos.toFixed(2)}° | ${p.sign} | ${degToDMS(p.position)} | ${p.position >= 29 ? '★' : ''} |\n`;
-            });
-            report.push(planetTable);
-
-            report.push(`\n## Planet House Placements`);
-             let placementTable = '| Planet | House |\n|---|---|\n';
-            chart.planets_names_list.forEach(pName => {
-                const p = chart[pName.toLowerCase()];
-                if(p && p.house) placementTable += `| ${p.name} | ${p.house} |\n`;
-            });
-            report.push(placementTable);
-
-            report.push(`\n## Natal Aspects`);
-            const aspectList = aspects.map(a => {
-                const core = a.orbit <= 3 ? ' (Core Pressure Point)' : '';
-                return `- ${a.p1_name} ${SYMBOLS[a.aspect.toLowerCase()]} ${a.p2_name} (${a.orbit.toFixed(1)}°)${core}`;
-            }).join('\n');
-            report.push(aspectList || '- None found.');
-
-            return report.join('\n');
-        };
-
-        const formatMdTransit = (transitData, personData, isRelocated) => {
-            const chart = transitData.chart.data.subject;
-            const aspects = transitData.aspects;
-            const degToDMS = (deg) => `${Math.floor(deg)}°${Math.round((deg % 1) * 60).toString().padStart(2, '0')}'`;
-
-            let report = [];
-            if (isRelocated) {
-                report.push(`\n### Relocation Overlay for ${transitData.date}`);
-                const lat = chart.lat;
-                const lon = chart.lng;
-                if (typeof lat === 'number' && typeof lon === 'number') {
-                    report.push(`*Houses & Angles recalculated for ${lat.toFixed(4)}, ${lon.toFixed(4)}*`);
-                }
-            } else {
-                report.push(`\n## Transits for ${transitData.date}`);
-                report.push(`*Transits calculated for birth location: ${personData.details.city}.*`);
-            }
-            let planetTable = '| Planet | AEL | Sign | Pos | 29° |\n|---|---|---|---|---|\n';
-            chart.planets_names_list.forEach(pName => {
-                const p = chart[pName.toLowerCase()];
-                if(p) planetTable += `| ${p.name} | ${p.abs_pos.toFixed(2)}° | ${p.sign} | ${degToDMS(p.position)} | ${p.position >= 29 ? '★' : ''} |\n`;
-            });
-            report.push(planetTable);
-
-            report.push(`\n### Transit → Natal Aspects (${personData.details.name})`);
-            const aspectList = aspects.map(a => {
-                 const core = a.orb <= 3 ? ' (Core Pressure Point)' : '';
-                return `- Transiting ${a.p1_name} ${SYMBOLS[a.aspect.toLowerCase()]} Natal ${a.p2_name} (${a.orb.toFixed(1)}°)${core}`;
-            }).join('\n');
-            report.push(aspectList || '- None found.');
-
-            return report.join('\n');
-        };
-
-        const formatMdWeather = (weatherData) => {
-            const chart = weatherData.chart.data.subject;
-            const degToDMS = (deg) => `${Math.floor(deg)}°${Math.round((deg % 1) * 60).toString().padStart(2, '0')}'`;
-
-            let report = [`# Local Astrological Forecast for ${weatherData.date}`];
-            report.push(`> This is a standalone chart of the sky for the specified date and location. It is not a transit report and does not contain aspects to a natal chart.`);
-
-            let planetTable = '| Planet | AEL | Sign | Pos |\n|---|---|---|---|\n';
-            chart.planets_names_list.forEach(pName => {
-                const p = chart[pName.toLowerCase()];
-                if(p) planetTable += `| ${p.name} | ${p.abs_pos.toFixed(2)}° | ${p.sign} | ${degToDMS(p.position)} |\n`;
-            });
-            report.push(planetTable);
-            return report.join('\n\n');
-        };
-
-        const formatMdSynastry = (synData, personA, personB) => {
-            const aspects = synData.aspects || [];
-            const chartA = synData.data.first_subject;
-            const chartB = synData.data.second_subject;
-            const aInB = calculateHouseOverlays(chartA, chartB);
-            const bInA = calculateHouseOverlays(chartB, chartA);
-
-            const clean = h => h.replace(/_/g, ' ');
-
-            let report = [`## Synastry: ${personA.details.name} & ${personB.details.name}`];
-            report.push('### Interplanetary Aspects');
-            if (aspects.length) {
-                aspects.forEach(a => {
-                    const core = a.orbit <= 3 ? ' (Core Pressure Point)' : '';
-                    report.push(`- ${a.p1_name} ${SYMBOLS[a.aspect.toLowerCase()]} ${a.p2_name} (${a.orbit.toFixed(1)}°)${core}`);
-                });
-            } else {
-                report.push('- None found.');
-            }
-
-            report.push(`\n### ${personA.details.name}'s Planets in ${personB.details.name}'s Houses`);
-            const aLines = Object.entries(aInB).map(([p, h]) => `- ${p} in ${clean(h)}`);
-            report.push(aLines.join('\n') || '- None.');
-
-            report.push(`\n### ${personB.details.name}'s Planets in ${personA.details.name}'s Houses`);
-            const bLines = Object.entries(bInA).map(([p, h]) => `- ${p} in ${clean(h)}`);
-            report.push(bLines.join('\n') || '- None.');
-
-            return report.join('\n');
-        };
-
-
         // --- MAIN REPORT GENERATION LOGIC ---
         async function generateReport() {
+            // Run final validation before generating
+            const validationErrors = validateAllInputs();
+            if (validationErrors.length > 0) {
+                showMessage('Please fix the following errors:\n' + validationErrors.join('\n'), 'error');
+                return;
+            }
+
             generateBtn.disabled = true;
             generateBtn.textContent = 'Generating...';
             outputSection.classList.add('hidden');
@@ -1103,6 +930,31 @@ fullReportData.transitsByDate = groupTransitsByDate(fullReportData.transits);
           if (el) el.addEventListener('input', updateContextModeVisibility);
         });
         window.addEventListener('DOMContentLoaded', updateContextModeVisibility);
+
+        // --- REAL-TIME VALIDATION EVENT LISTENERS ---
+        // Add validation on field changes
+        ['nameA','cityA','stateA','dateA','timeA','offsetA','nationA','zodiacA','astroA','nameB','cityB','stateB','dateB','timeB','offsetB','nationB','zodiacB','astroB','startDate','endDate'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.addEventListener('input', updateGenerateButtonState);
+            el.addEventListener('blur', updateGenerateButtonState);
+          }
+        });
+        
+        // Add validation for radio buttons and checkboxes
+        document.querySelectorAll('input[name="relationshipType"], input[name="intimacyTier"]').forEach(radio => {
+          radio.addEventListener('change', updateGenerateButtonState);
+        });
+        
+        synastryToggle.addEventListener('change', updateGenerateButtonState);
+        relocationToggle.addEventListener('change', updateGenerateButtonState);
+        if (relocationCoordsInput) relocationCoordsInput.addEventListener('input', updateGenerateButtonState);
+
+        // Initialize validation on page load
+        window.addEventListener('DOMContentLoaded', () => {
+          addValidationSummary();
+          updateGenerateButtonState();
+        });
     </script>
 </body>
 </html>
