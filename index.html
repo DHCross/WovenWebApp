@@ -7,75 +7,48 @@
     <link href="dist/output.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #1a202c;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #4a5568;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #718096;
-        }
-        .animate-fade-in-out {
-            animation: fadeInOut 8s ease-in-out forwards;
-        }
-        @keyframes fadeInOut {
-            0%, 100% { opacity: 0; transform: translateY(-20px); }
-            10%, 90% { opacity: 1; transform: translateY(0); }
-        }
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a202c; }
+        ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #718096; }
+        .animate-fade-in-out { animation: fadeInOut 8s ease-in-out forwards; }
+        @keyframes fadeInOut { 0%, 100% { opacity: 0; transform: translateY(-20px); } 10%, 90% { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<!--
-====================================
-Woven Map Report Generator: Context Mode & JSON Export
-====================================
-- Self Mode: Only Person A's chart and transits are generated.
-- Relational Mode: Relationship type/intimacy tier fields appear; Person B and synastry/dual-mirror options enabled.
-- Validation and accessibility: All errors are announced to screen readers and shown visually.
-- JSON export includes both flat and grouped-by-date transits for easy analysis.
-- JSON structure is documented in comments in the JS logic.
-====================================
--->
 <body class="bg-gray-900 text-gray-200">
-
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8">
             <h1 class="text-4xl font-bold text-white">Woven Map Report Generator</h1>
             <p class="text-gray-400 mt-2 flex items-center justify-center gap-2">Math Brain
-                <button id="math-brain-info-btn" class="ml-2 text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none" type="button">What is this? (Glossary)</button>
+                <button id="math-brain-info-btn" class="ml-2 text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none" type="button">
+                    What is this? (Glossary)
+                </button>
             </p>
         </header>
 
+        <!-- Glossary Modal -->
         <div id="math-brain-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
           <div class="bg-gray-900 rounded-lg shadow-xl max-w-lg w-full p-6 relative border border-teal-500">
             <button id="close-math-brain-modal" class="absolute top-2 right-2 text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
             <h2 class="text-xl font-bold text-teal-300 mb-2">Math Brain & Poetic Brain: The Woven Map Framework</h2>
-            <p class="text-sm text-gray-200 mb-3">The <b>Math Brain</b> is the symbolic scaffolding engine. It computes exact planetary positions, aspects, and house placements, and outputs a structured dataset of alignments (e.g., Venus square Pluto at 2° orb). It gives no meaning on its own—only the raw geometry. This is the MAP layer of FIELD → MAP → VOICE.<br><br>
-            The <b>Poetic Brain</b> (Raven Calder) translates this geometry into emotional, somatic, and narrative language. It asks: “Does this land for you?”—never prescribes meaning. The Poetic Brain is diagnostic, not predictive, and always testable by lived experience.<br><br>
-            <b>TL;DR:</b> The Math Brain finds the coordinates. The Poetic Brain speaks the language you can feel. Math Brain = telescope; Poetic Brain = translator.</p>
-            <h3 class="text-teal-200 font-semibold mt-4 mb-1">Glossary (Core Terms)</h3>
+            <p class="text-sm text-gray-200 mb-3">
+              <b>Math Brain</b>: computes planetary positions, aspects, house placements. Outputs geometry, no meaning.<br>
+              <b>Poetic Brain</b>: translates geometry into felt/narrative language. Diagnostic, not predictive.<br>
+              <b>TL;DR</b>: Math Brain finds the coordinates. Poetic Brain speaks the language you can feel.
+            </p>
+            <h3 class="text-teal-200 font-semibold mt-4 mb-1">Glossary</h3>
             <ul class="text-xs text-gray-300 space-y-1 max-h-48 overflow-y-auto pr-2">
-              <li><b>FIELD → MAP → VOICE</b>: The interpretive structure. FIELD = energetic climate, MAP = geometry, VOICE = felt reflection.</li>
-              <li><b>Ping</b>: A moment of recognized resonance between chart and experience. No ping, no claim.</li>
-              <li><b>SST (Symbolic Spectrum Table)</b>: Falsifiability filter. WB = Within Boundary, ABE = At Boundary Edge, OSR = Outside Symbolic Range.</li>
-              <li><b>OSR</b>: No resonance. Not failure—just honest silence.</li>
-              <li><b>Echo Loop</b>: Repeating dynamic between two people, usually &lt;1° orb.</li>
-              <li><b>REF (Relational Echo Field)</b>: Macro-pattern resonance between two charts.</li>
-              <li><b>Intimacy Tier</b>: P1 = Platonic Partners, P2 = Friends-with-benefits, P3 = Romantic Partners.</li>
-              <li><b>Clear Mirror Language</b>: Testable, non-mystical, emotionally grounded phrasing.</li>
-              <li><b>29° Crisis Node</b>: Any planet at 29°, indicating volatility or urgency.</li>
-              <li><b>Symbolic Weather Overlay</b>: Optional summary of current transits as energetic "weather" (not predictive).</li>
-              <li><b>Poetic Codex</b>: System that turns geometry into poetic inquiries (not random poems).</li>
-              <li><b>Translation Bridge</b>: Converting geometry (MAP) into felt language (VOICE).</li>
-              <li><b>Resonance Line</b>: Dominant energetic vector in a chart.</li>
-              <li><b>Paradox Line</b>: Highlights internal contradictions or conflicting drives.</li>
+              <li><b>FIELD → MAP → VOICE</b>: FIELD = energetic climate, MAP = geometry, VOICE = felt reflection.</li>
+              <li><b>Ping</b>: Recognized resonance between chart and experience.</li>
+              <li><b>SST</b>: Falsifiability filter. WB = Within Boundary, ABE = At Boundary Edge, OSR = Outside Symbolic Range.</li>
+              <li><b>Echo Loop</b>: Dyadic cycle under 1° orb.</li>
+              <li><b>REF</b>: Relational Echo Field, macro-pattern resonance between two charts.</li>
+              <li><b>Intimacy Tier</b>: P1 = Platonic, P2 = FWB, P3 = Romantic.</li>
+              <li><b>Clear Mirror</b>: Testable, non-mystical phrasing.</li>
+              <li><b>29° Crisis Node</b>: Planet at 29°, volatility.</li>
+              <li><b>Symbolic Weather Overlay</b>: Current transits as energetic "weather".</li>
+              <li><b>Paradox Line</b>: Internal contradiction.</li>
             </ul>
             <div class="mt-4 text-right">
               <button id="close-math-brain-modal-bottom" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-1 px-4 rounded">Close</button>
@@ -84,77 +57,71 @@ Woven Map Report Generator: Context Mode & JSON Export
         </div>
 
         <main>
+            <!-- Person A & B Cards -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                 <div id="personA-card" class="bg-gray-800 p-6 rounded-lg shadow-lg">
                     <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Person A / Natal Chart</h2>
                     <div class="space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input type="text" id="nameA" placeholder="Name" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="DH Cross">
-                            <input type="text" id="cityA" placeholder="Birth City" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="Bryn Mawr">
-                             <input type="text" id="stateA" placeholder="Birth State/Prov" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="PA">
+                            <input type="text" id="nameA" placeholder="Name" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="DH Cross">
+                            <input type="text" id="cityA" placeholder="Birth City" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="Bryn Mawr">
+                            <input type="text" id="stateA" placeholder="Birth State/Prov" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="PA">
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input type="text" id="dateA" placeholder="Date (MM-DD-YYYY)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="07-24-1973">
-                            <input type="text" id="timeA" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="14:30">
-                            <select id="offsetA" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <input type="text" id="dateA" placeholder="Date (MM-DD-YYYY)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="07-24-1973">
+                            <input type="text" id="timeA" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="14:30">
+                            <select id="offsetA" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
                                 <option value="America/New_York">Eastern (New York)</option>
                                 <option value="America/Chicago">Central (Chicago)</option>
                                 <option value="America/Denver">Mountain (Denver)</option>
                                 <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
-                                <option value="America/Anchorage">Alaska (Anchorage)</option>
-                                <option value="Pacific/Honolulu">Hawaii (Honolulu)</option>
+                                <option value="America/Anchorage">Alaska</option>
+                                <option value="Pacific/Honolulu">Hawaii</option>
                             </select>
                         </div>
-                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input type="text" id="nationA" placeholder="Country" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="US">
-                            <select id="zodiacA" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" id="nationA" placeholder="Country (2-letter)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="US">
+                            <select id="zodiacA" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
                                 <option value="Tropic">Tropic</option>
                                 <option value="Sidereal">Sidereal</option>
                             </select>
                         </div>
                         <div>
                             <label for="astroA" class="block mb-1 text-sm font-medium text-gray-300">Birth Coordinates</label>
-                            <input type="text" id="astroA" placeholder="40°1'N, 75°19'W or 40.0167, -75.3167" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="40°1'N, 75°19'W">
-                            <div class="mt-1 text-xs text-gray-400">
-                                <span class="font-medium">Examples:</span> 40°1'N, 75°19'W • 40.0167, -75.3167 • 40°1′N, 75°19′W
-                            </div>
+                            <input type="text" id="astroA" placeholder="e.g., 40.01, -75.31" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="40.0167, -75.3167">
                         </div>
                     </div>
                 </div>
-
                 <div id="personB-card" class="bg-gray-800 p-6 rounded-lg shadow-lg">
                     <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Person B (Optional)</h2>
                     <div class="space-y-4">
-                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input type="text" id="nameB" placeholder="Name" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
-                            <input type="text" id="cityB" placeholder="Birth City" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
-                            <input type="text" id="stateB" placeholder="Birth State/Prov" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <input type="text" id="nameB" placeholder="Name" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            <input type="text" id="cityB" placeholder="Birth City" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            <input type="text" id="stateB" placeholder="Birth State/Prov" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input type="text" id="dateB" placeholder="Date (MM-DD-YYYY)" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
-                            <input type="text" id="timeB" placeholder="Time (24h HH:MM)" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
-                             <select id="offsetB" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <input type="text" id="dateB" placeholder="Date (MM-DD-YYYY)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            <input type="text" id="timeB" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            <select id="offsetB" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
                                 <option value="America/New_York">Eastern (New York)</option>
                                 <option value="America/Chicago">Central (Chicago)</option>
                                 <option value="America/Denver">Mountain (Denver)</option>
                                 <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
-                                <option value="America/Anchorage">Alaska (Anchorage)</option>
-                                <option value="Pacific/Honolulu">Hawaii (Honolulu)</option>
+                                <option value="America/Anchorage">Alaska</option>
+                                <option value="Pacific/Honolulu">Hawaii</option>
                             </select>
                         </div>
-                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input type="text" id="nationB" placeholder="Country" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
-                            <select id="zodiacB" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" id="nationB" placeholder="Country (2-letter)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            <select id="zodiacB" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
                                 <option value="Tropic">Tropic</option>
                                 <option value="Sidereal">Sidereal</option>
                             </select>
                         </div>
                         <div>
                            <label for="astroB" class="block mb-1 text-sm font-medium text-gray-300">Birth Coordinates</label>
-                           <input type="text" id="astroB" placeholder="40°1'N, 75°19'W or 40.0167, -75.3167" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
-                           <div class="mt-1 text-xs text-gray-400">
-                                <span class="font-medium">Examples:</span> 31°21'N, 84°54'W • 31.35, -84.9 • 31°21′N, 84°54′W
-                            </div>
+                           <input type="text" id="astroB" placeholder="e.g., 30.16, -85.66" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
                         </div>
                         <button id="pasteAstroB" class="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1 px-2 rounded text-sm">
                           Paste AstroSeek Data
@@ -163,963 +130,8 @@ Woven Map Report Generator: Context Mode & JSON Export
                 </div>
             </div>
 
+            <!-- Context Mode Section -->
             <div id="context-mode-section" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500">
-              <h2 class="text-2xl font-semibold text-white mr-3">Context Mode</h2>
-              <div id="context-toggle" class="flex items-center mb-4" style="display:none;">
-                <label class="flex items-center mr-4"><input type="radio" name="contextMode" value="self" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Self</span></label>
-                <label class="flex items-center"><input type="radio" name="contextMode" value="relational" class="form-radio h-4 w-4 text-teal-400" checked><span class="ml-2 text-gray-300">Relational Context Query</span></label>
-              </div>
-              <div id="self-context" style="display:none;">
-                <p class="text-gray-400 text-sm mb-2">You are in <b>Self</b> mode. Only Person A's context will be analyzed.</p>
-                <!-- Add any self-specific questions/fields here -->
-              </div>
-              <div id="relational-context" style="display:none;">
-                <p class="text-gray-400 text-sm mb-2">You are in <b>Relational Context Query</b> mode. Relationship fields and diagnostics will be shown.</p>
-                <!-- Place all relational-specific questions/fields here -->
-                <div id="relationship-type-query">
-                  <p class="text-lg font-medium text-white mb-2">How would you categorize this connection?</p>
-                  <div class="flex flex-col space-y-2">
-                    <label class="flex items-center"><input type="radio" name="relationshipType" value="Partner" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Partner (romantic/undefined-intimate)</span></label>
-                    <label class="flex items-center"><input type="radio" name="relationshipType" value="Friend" class="form-radio h-4 w-4 text-teal-400" checked><span class="ml-2 text-gray-300">Friend or colleague</span></label>
-                    <label class="flex items-center"><input type="radio" name="relationshipType" value="Family" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Family</span></label>
-                  </div>
-                  <div id="intimacy-tier-dropdown" class="mt-4 hidden">
-                    <p class="text-md font-medium text-white mb-2">What best describes the intimacy tier of this connection?</p>
-                    <div class="flex flex-col space-y-2">
-                      <label class="flex items-center">
-                        <input type="radio" name="intimacyTier" value="P1" class="form-radio h-4 w-4 text-pink-400">
-                        <span class="ml-2 text-gray-300">P1 – Platonic partners</span>
-                      </label>
-                      <label class="flex items-center">
-                        <input type="radio" name="intimacyTier" value="P2" class="form-radio h-4 w-4 text-pink-400">
-                        <span class="ml-2 text-gray-300">P2 – Friends with benefits</span>
-                      </label>
-                      <label class="flex items-center">
-                        <input type="radio" name="intimacyTier" value="P3" class="form-radio h-4 w-4 text-pink-400">
-                        <span class="ml-2 text-gray-300">P3 – Romantic partners</span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-                <!-- Diagnostics, etc. can be placed here -->
-              </div>
-            </div>
-
-            <div class="mb-8">
-                <label class="flex items-center">
-                    <input type="checkbox" id="synastryToggle" class="form-checkbox h-5 w-5 text-teal-400">
-                    <span class="ml-3 text-white font-medium">Include Synastry Analysis</span>
-                </label>
-            </div>
-
-            <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
-                <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Generate Natal & Transit Data</h2>
-                <div>
-                     <label class="text-lg text-gray-200">Date Range (Defaults to Today)</label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
-                       <input type="text" id="startDate" placeholder="Start Date (MM-DD-YYYY)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                       <input type="text" id="endDate"   placeholder="End Date (optional)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                    </div>
-                     <p class="text-gray-400 text-sm mt-2">Generates natal charts and transits for the date range, always calculated for the birth location.</p>
-                     <div class="mt-4 bg-gray-700/50 p-4 rounded-md">
-                        <label class="flex items-center">
-                            <input type="checkbox" id="relocationToggle" class="form-checkbox h-5 w-5 text-teal-400">
-                            <span class="ml-3 text-white font-medium">Add Relocation Overlay (Optional)</span>
-                        </label>
-                        <div id="relocationFields" class="hidden mt-3">
-                            <p class="text-sm text-gray-400 mb-2">Enter coordinates (e.g., <b>30°10′N, 85°40′W</b>) to see a side-by-side comparison of how transits fall in the relocated house system.</p>
-                            <input type="text"
-                                   id="relocationCoords"
-                                   placeholder="30°10′N, 85°40′W or 30.1667, -85.6667"
-                                   class="w-full bg-gray-800 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                                   value="30°10′N, 85°40′W">
-                            <div id="relocationError" class="text-red-500 text-xs mt-1 hidden"></div>
-                            <div class="mt-1 text-xs text-gray-400">
-                                <span class="font-medium">Examples:</span> 30°10'N, 85°40'W • 30.1667, -85.6667 • 30°10′N, 85°40′W
-                            </div>
-                        </div>
-                    </div>
-                     <button id="generate-btn" class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 disabled:bg-indigo-400 disabled:cursor-not-allowed">
-                        Generate Full Report
-                    </button>
-                    <div id="validation-summary" class="hidden mt-2 p-3 bg-red-900/50 border border-red-600 rounded-md text-red-200 text-sm" aria-live="assertive"></div>
-                </div>
-            </div>
-             <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
-                 <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Generated Report</h2>
-                 <p class="text-gray-400 text-sm mb-4 italic">This generates a standalone chart of the sky for a specific location and time, which can be used as a contextual overlay. For a full transit analysis, provide this data to your Poetic Brain along with the main report.</p>
-                 <p class="text-gray-400 text-sm mb-4 italic font-semibold">Note: This app is built to generate input for astrology AI apps (GPTs). If you only generate the astrological weather (Step 2) without a natal chart, it won’t connect to personal dynamics and will be symbolically meaningless.</p>
-            </div>
-
-            <div id="output-section" class="bg-gray-800 p-6 rounded-lg shadow-lg hidden">
-                 <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
-                    <h2 id="report-title" class="text-2xl font-semibold text-white">Generated Report</h2>
-                    <div class="flex space-x-2">
-                        <button id="copy-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">Copy Markdown</button>
-                        <button id="save-md-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">Save Markdown</button>
-                        <button id="save-json-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">Save JSON</button>
-                    </div>
-                </div>
-                <pre id="report-output" class="w-full h-96 bg-gray-900 text-gray-300 rounded-md p-4 overflow-auto font-mono text-sm whitespace-pre-wrap"></pre>
-            </div>
-             <div id="message-box" class="fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg hidden" aria-live="assertive"></div>
-        </main>
-    </div>
-
-    <script>
-        // --- DOM Elements ---
-        const generateBtn = document.getElementById('generate-btn');
-        const getWeatherBtn = document.getElementById('getWeatherBtn');
-        const outputSection = document.getElementById('output-section');
-        const reportOutput = document.getElementById('report-output');
-        const reportTitle = document.getElementById('report-title');
-        const copyBtn = document.getElementById('copy-btn');
-        const saveJsonBtn = document.getElementById('save-json-btn');
-        const saveMdBtn = document.getElementById('save-md-btn');
-        const messageBox = document.getElementById('message-box'); // <-- Only declare once here
-        const startDateInput = document.getElementById('startDate');
-        const endDateInput = document.getElementById('endDate');
-        const relocationToggle = document.getElementById('relocationToggle');
-        const relocationFields = document.getElementById('relocationFields');
-        const relocationCoordsInput = document.getElementById('relocationCoords');
-        const relocationError = document.getElementById('relocationError');
-        const synastryToggle = document.getElementById('synastryToggle');
-        const relationalContextStack = document.getElementById('relational-context-stack');
-        const contextReadout = document.getElementById('context-readout');
-
-        // --- GENTLE VALIDATION FEEDBACK ---
-        function showFieldValidating(fieldId) {
-            const field = document.getElementById(fieldId);
-            if (field) {
-                field.classList.add('border-yellow-400');
-                setTimeout(() => {
-                    field.classList.remove('border-yellow-400');
-                    field.classList.add('border-green-400');
-                    setTimeout(() => {
-                        field.classList.remove('border-green-400');
-                    }, 500);
-                }, 200);
-            }
-        }
-
-        // --- UTILITY FUNCTIONS ---
-        function parseCombinedCoords(coordStr) {
-            if (!coordStr || !coordStr.trim()) {
-                throw new Error('Coordinates are required');
-            }
-            
-            const trimmed = coordStr.trim();
-            
-            // Handle decimal format (e.g., "40.0167, -75.3167")
-            const decimalMatch = trimmed.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
-            if (decimalMatch) {
-                return {
-                    latitude: parseFloat(decimalMatch[1]),
-                    longitude: parseFloat(decimalMatch[2])
-                };
-            }
-            
-            // Handle DMS format (e.g., "40°1'N, 75°19'W" or "40°1′N, 75°19′W")
-            const dmsMatch = trimmed.match(/^(\d+)°(\d+)[′']([NS]),?\s*(\d+)°(\d+)[′']([EW])$/i);
-            if (dmsMatch) {
-                let lat = parseInt(dmsMatch[1]) + parseInt(dmsMatch[2]) / 60;
-                let lng = parseInt(dmsMatch[4]) + parseInt(dmsMatch[5]) / 60;
-                
-                if (dmsMatch[3].toUpperCase() === 'S') lat = -lat;
-                if (dmsMatch[6].toUpperCase() === 'W') lng = -lng;
-                
-                return { latitude: lat, longitude: lng };
-            }
-            
-            throw new Error('Invalid coordinate format. Use "40.0167, -75.3167" or "40°1\'N, 75°19\'W"');
-        }
-
-        function getSubjectData(prefix, strictMode = false) {
-            const name = document.getElementById(`name${prefix}`)?.value?.trim();
-            const city = document.getElementById(`city${prefix}`)?.value?.trim();
-            const state = document.getElementById(`state${prefix}`)?.value?.trim();
-            const date = document.getElementById(`date${prefix}`)?.value?.trim();
-            const time = document.getElementById(`time${prefix}`)?.value?.trim();
-            const nation = document.getElementById(`nation${prefix}`)?.value?.trim();
-            const zodiac = document.getElementById(`zodiac${prefix}`)?.value?.trim();
-            const offset = document.getElementById(`offset${prefix}`)?.value?.trim();
-            const astro = document.getElementById(`astro${prefix}`)?.value?.trim();
-            
-            // In non-strict mode, return null only if NO meaningful data is present
-            // This allows for partial data during form editing
-            if (!strictMode) {
-                const hasAnyData = name || city || state || date || time || nation || astro;
-                if (!hasAnyData) {
-                    return null;
-                }
-                
-                // If we have some data but not all required fields, return partial object
-                // This helps with UI state management during editing
-                if (!name || !city || !state || !date || !time || !nation || !astro) {
-                    return { incomplete: true, name, city, state, date, time, nation, astro };
-                }
-            } else {
-                // In strict mode, require all fields
-                if (!name || !city || !state || !date || !time || !nation || !astro) {
-                    return null;
-                }
-            }
-            
-            // Parse date (MM-DD-YYYY format)
-            const dateMatch = date.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-            if (!dateMatch) {
-                return strictMode ? null : { incomplete: true, name, city, state, date, time, nation, astro };
-            }
-            
-            // Parse time (HH:MM format)
-            const timeMatch = time.match(/^(\d{2}):(\d{2})$/);
-            if (!timeMatch) {
-                return strictMode ? null : { incomplete: true, name, city, state, date, time, nation, astro };
-            }
-            
-            // Parse coordinates
-            let coords;
-            try {
-                coords = parseCombinedCoords(astro);
-            } catch (err) {
-                return strictMode ? null : { incomplete: true, name, city, state, date, time, nation, astro };
-            }
-            
-            return {
-                name: name,
-                city: city,
-                nation: nation.toUpperCase(),
-                year: parseInt(dateMatch[3]),
-                month: parseInt(dateMatch[1]),
-                day: parseInt(dateMatch[2]),
-                hour: parseInt(timeMatch[1]),
-                minute: parseInt(timeMatch[2]),
-                latitude: coords.latitude,
-                longitude: coords.longitude,
-                timezone: offset || 'America/New_York',
-                zodiac_type: zodiac || 'Tropic'
-            };
-        }
-
-        // --- VALIDATION FUNCTIONS ---
-        function validatePersonFields(prefix) {
-            const errors = [];
-            const name = document.getElementById(`name${prefix}`).value.trim();
-            const city = document.getElementById(`city${prefix}`).value.trim();
-            const state = document.getElementById(`state${prefix}`).value.trim();
-            const date = document.getElementById(`date${prefix}`).value.trim();
-            const time = document.getElementById(`time${prefix}`).value.trim();
-            const nation = document.getElementById(`nation${prefix}`).value.trim().toUpperCase();
-            const astro = document.getElementById(`astro${prefix}`).value.trim();
-            // Accessibility: add aria-invalid to fields with errors
-            function setAriaInvalid(id, invalid) {
-                const el = document.getElementById(id);
-                if (el) el.setAttribute('aria-invalid', invalid ? 'true' : 'false');
-            }
-            setAriaInvalid(`name${prefix}`, !name);
-            setAriaInvalid(`city${prefix}`, !city);
-            setAriaInvalid(`state${prefix}`, !state);
-            setAriaInvalid(`date${prefix}`, !date || (date.length > 0 && !/^\d{2}-\d{2}-\d{4}$/.test(date)));
-            setAriaInvalid(`time${prefix}`, !time || (time.length > 0 && !/^\d{2}:\d{2}$/.test(time)));
-            setAriaInvalid(`nation${prefix}`, !nation || !/^[A-Z]{2}$/.test(nation));
-            setAriaInvalid(`astro${prefix}`, !astro);
-            if (!name) errors.push(`Person ${prefix}: Name is required`);
-            if (!city) errors.push(`Person ${prefix}: Birth city is required`);
-            if (!state) errors.push(`Person ${prefix}: Birth state/province is required`);
-            if (!date) {
-                errors.push(`Person ${prefix}: Birth date is required`);
-            } else if (date.length > 0 && !/^\d{2}-\d{2}-\d{4}$/.test(date)) {
-                errors.push(`Person ${prefix}: Date must be MM-DD-YYYY format`);
-            }
-            if (!time) {
-                errors.push(`Person ${prefix}: Birth time is required`);
-            } else if (time.length > 0 && !/^\d{2}:\d{2}$/.test(time)) {
-                errors.push(`Person ${prefix}: Time must be HH:MM (24-hour) format`);
-            }
-            if (!nation || !/^[A-Z]{2}$/.test(nation)) {
-                errors.push(`Person ${prefix}: Country must be a 2-letter code (e.g., US, CA, GB)`);
-            }
-            if (!astro) {
-                errors.push(`Person ${prefix}: Birth coordinates are required`);
-            } else {
-                try {
-                    parseCombinedCoords(astro);
-                } catch (err) {
-                    errors.push(`Person ${prefix}: Invalid coordinate format - ${err.message}`);
-                }
-            }
-            return errors;
-        }
-
-        function validateAllInputs(isSubmit = false) {
-            const errors = [];
-            
-            // Always validate Person A
-            const errorsA = validatePersonFields('A');
-            errors.push(...errorsA);
-            
-            // If synastry is checked, validate Person B and relationship context
-            const synastryChecked = synastryToggle.checked;
-            
-            if (synastryChecked) {
-                // Check if Person B has any meaningful data entered (excluding default dropdown values)
-                const meaningfulFields = ['nameB', 'cityB', 'stateB', 'dateB', 'timeB', 'nationB', 'astroB'];
-                const personBHasData = meaningfulFields.some(id => {
-                    const field = document.getElementById(id);
-                    return field && field.value.trim() && field.value.trim() !== '';
-                });
-                
-                // Only validate Person B if:
-                // 1. This is a submit attempt, OR
-                // 2. Person B has some data entered (user is actively filling it out)
-                if (isSubmit || personBHasData) {
-                    const errorsB = validatePersonFields('B');
-                    errors.push(...errorsB);
-                }
-                
-                // Check relationship context validation (only on submit or if relationship type is selected)
-                const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value;
-                if (isSubmit || relationshipType) {
-                    if (!relationshipType) {
-                        errors.push('Please select a relationship type for synastry analysis');
-                    } else if (relationshipType === 'Partner') {
-                        const intimacyTier = document.querySelector('input[name="intimacyTier"]:checked')?.value;
-                        if (!intimacyTier) {
-                            errors.push('Please select an intimacy tier for Partner relationships');
-                        }
-                    }
-                }
-            }
-            
-            // Validate date range if provided
-            const startDate = startDateInput.value.trim();
-            const endDate = endDateInput.value.trim();
-            
-            if (startDate && !/^\d{2}-\d{2}-\d{4}$/.test(startDate)) {
-                errors.push('Start date must be MM-DD-YYYY format');
-            }
-            if (endDate && !/^\d{2}-\d{2}-\d{4}$/.test(endDate)) {
-                errors.push('End date must be MM-DD-YYYY format');
-            }
-            
-            // Validate relocation coordinates if enabled
-            if (relocationToggle.checked) {
-                const relocationCoords = relocationCoordsInput.value.trim();
-                if (!relocationCoords) {
-                    errors.push('Relocation coordinates are required when relocation overlay is enabled');
-                } else {
-                    try {
-                        parseCombinedCoords(relocationCoords);
-                    } catch (err) {
-                        errors.push(`Invalid relocation coordinates: ${err.message}`);
-                    }
-                }
-            }
-            
-            return errors;
-        }
-
-        function updateGenerateButtonState(showErrors = false) {
-            const errors = validateAllInputs();
-            const hasErrors = errors.length > 0;
-            
-            generateBtn.disabled = hasErrors;
-            generateBtn.textContent = hasErrors ? 'Fix Errors to Generate' : 'Generate Full Report';
-            generateBtn.className = hasErrors 
-                ? 'mt-3 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md cursor-not-allowed'
-                : 'mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 disabled:bg-indigo-400 disabled:cursor-not-allowed';
-            
-            // Always update error summary based on current state
-            const errorSummary = document.getElementById('validation-summary');
-            if (errorSummary) {
-                if (showErrors && hasErrors && errors.length <= 5) {
-                    errorSummary.textContent = errors.join(' • ');
-                    errorSummary.classList.remove('hidden');
-                } else {
-                    // Always hide errors if there are none or if not showing errors
-                    errorSummary.classList.add('hidden');
-                    errorSummary.textContent = '';
-                }
-            }
-        }
-
-        // Add ARIA live region to validation summary and message box for accessibility
-        function addValidationSummary() {
-            const generateSection = document.querySelector('.bg-gray-800.p-6.rounded-lg.shadow-lg.mb-8');
-            if (generateSection && !document.getElementById('validation-summary')) {
-                const summaryEl = document.createElement('div');
-                summaryEl.id = 'validation-summary';
-                summaryEl.className = 'hidden mt-2 p-3 bg-red-900/50 border border-red-600 rounded-md text-red-200 text-sm';
-                summaryEl.setAttribute('aria-live', 'assertive'); // Accessibility: announce errors
-                generateSection.querySelector('button').insertAdjacentElement('beforebegin', summaryEl);
-            }
-        }
-        
-        // Ensure message box is ARIA live for error/success announcements
-        messageBox.setAttribute('aria-live', 'assertive');
-
-        // --- API REQUEST FUNCTION ---
-async function getChartDataFromApi(payload) {
-    try {
-        const response = await fetch('/api/astrology', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        const text = await response.text();
-        let data;
-        try {
-            data = JSON.parse(text);
-        } catch {
-            throw new Error('Malformed response from backend: ' + text);
-        }
-        if (!response.ok) {
-            if (data && data.error) throw new Error(data.error);
-            throw new Error('API error: ' + response.status);
-        }
-        return data;
-    } catch (err) {
-        throw new Error('Network/API error: ' + err.message);
-    }
-}
-
-        // --- FORMAT NATAL CHART TO MARKDOWN ---
-function formatMdNatalChart(personObj) {
-    if (!personObj || !personObj.details || !personObj.chart || !personObj.chart.data || !personObj.chart.data.subject) {
-        return '### Natal Chart\nData unavailable.';
-    }
-    const details = personObj.details;
-    const chart = personObj.chart.data.subject;
-    let md = `### Natal Chart: ${details.name || 'Unknown'}\n`;
-    md += `- Birth: ${details.city || ''}, ${details.nation || ''} (${details.year || ''}-${details.month || ''}-${details.day || ''} ${String(details.hour).padStart(2,'0')}:${String(details.minute).padStart(2,'0')})\n`;
-    md += `- Coordinates: ${details.latitude}, ${details.longitude}\n`;
-    md += `- Zodiac Type: ${details.zodiac_type || 'Tropic'}\n`;
-    if (chart.planets) {
-        md += `\n**Planets:**\n`;
-        Object.entries(chart.planets).forEach(([planet, pos]) => {
-            md += `- ${planet}: ${pos.sign} ${pos.degree}°${pos.minute}'\n`;
-        });
-    }
-    if (chart.houses) {
-        md += `\n**Houses:**\n`;
-        Object.entries(chart.houses).forEach(([house, pos]) => {
-            md += `- ${house}: ${pos.sign} ${pos.degree}°${pos.minute}'\n`;
-        });
-    }
-    if (chart.aspects && chart.aspects.length) {
-        md += `\n**Major Aspects:**\n`;
-        chart.aspects.forEach(a => {
-            md += `- ${a.p1} ${a.aspect} ${a.p2} (${a.orb}° orb)\n`;
-        });
-    }
-    return md;
-}
-
-        // --- MAIN REPORT GENERATION LOGIC ---
-        async function generateReport() {
-            // Run final validation before generating (strict mode)
-            const validationErrors = validateAllInputs(true);
-            if (validationErrors.length > 0) {
-                showMessage('Please fix the following errors:\n' + validationErrors.join('\n'), 'error');
-                return;
-            }
-
-            generateBtn.disabled = true;
-            generateBtn.textContent = 'Generating...';
-            outputSection.classList.add('hidden');
-
-            try {
-                const personAData = getSubjectData('A', true); // Strict mode for generation
-                const personBData = getSubjectData('B', true); // Strict mode for generation
-                const useSynastry = personAData && personBData && synastryToggle.checked;
-                const dualMirror = personAData && personBData && !synastryToggle.checked;
-
-                const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value || 'N/A';
-                let intimacyTier = '';
-                if (relationshipType === 'Partner') {
-                    intimacyTier = document.querySelector('input[name="intimacyTier"]:checked')?.value || 'N/A';
-                    if (!intimacyTier || intimacyTier === 'N/A') {
-                        showMessage('Please select an intimacy tier for Partner relationships.', 'error');
-                        generateBtn.disabled = false;
-                        generateBtn.textContent = 'Generate Full Report';
-                        return;
-                    }
-                } else {
-                    intimacyTier = 'N/A';
-                }
-
-                let diagnostics = [];
-                // diagnostics will be populated later in synastry mode
-
-                fullReportData = {
-                    schema: "WM-Chart-1.0",
-                    relationship_type: relationshipType,
-                    intimacy_tier: intimacyTier,
-                    diagnostics: [] // will be set later
-                };
-
-                // --- Poetic Brain Context Markdown Block ---
-                function poeticBrainContextMd() {
-                    let diagList = (fullReportData.diagnostics && fullReportData.diagnostics.length)
-                        ? fullReportData.diagnostics.map(d => `  - ${d}`).join('\n')
-                        : '  - None.';
-                    return `## Poetic Brain Context\n\n- Relationship Type: ${fullReportData.relationship_type || 'N/A'}\n- Intimacy Tier: ${fullReportData.intimacy_tier || 'N/A'}\n- Diagnostics:\n${diagList}\n`;
-                }
-
-                let markdownParts = [];
-                if (useSynastry) {
-                    const payload = { first_subject: personAData, second_subject: personBData };
-                    let synastryResponse, natalA, natalB;
-                    try {
-                        [synastryResponse, natalA, natalB] = await Promise.all([
-                            getChartDataFromApi(payload),
-                            getChartDataFromApi({ subject: personAData }),
-                            getChartDataFromApi({ subject: personBData })
-                        ]);
-                    } catch (err) {
-                        showMessage(err.message, 'error');
-                        throw err;
-                    }
-                    fullReportData.person_a = { details: personAData, chart: natalA };
-                    fullReportData.person_b = { details: personBData, chart: natalB };
-                    fullReportData.synastry = synastryResponse;
-                    
-                    diagnostics = [];
-                    const synAspects = synastryResponse.aspects || [];
-                    if (synAspects.some(a => a.p1_pos >= 29 || a.p2_pos >= 29)) diagnostics.push('29° placement in close synastry contact');
-                    if (synAspects.filter(a => a.orb < 1.0).length > 0) diagnostics.push('Resonant aspect forming <1° orb (possible echo loop)');
-                    const overlaysAinB = calculateHouseOverlays(synastryResponse.data.first_subject, synastryResponse.data.second_subject);
-                    const overlaysBinA = calculateHouseOverlays(synastryResponse.data.second_subject, synastryResponse.data.first_subject);
-                    const pressureHouses = ['Fourth_House', 'Seventh_House', 'Twelfth_House'];
-                    if (Object.values(overlaysAinB).some(h => pressureHouses.includes(h)) || Object.values(overlaysBinA).some(h => pressureHouses.includes(h))) {
-                        diagnostics.push('Overlay present in 4th/7th/12th house sectors');
-                    }
-                    fullReportData.diagnostics = diagnostics;
-
-                    markdownParts.unshift(
-                        '## Relational Context',
-                        `- Relationship Type: ${relationshipType || 'N/A'}` + (intimacyTier ? `\n- Intimacy Tier: ${intimacyTier}` : ''),
-                        '## Initial Geometry Diagnostics',
-                        diagnostics.length ? diagnostics.map(f => `- ⚠️ ${f}`).join('\n') : '- None.'
-                    );
-                    markdownParts.push(formatMdNatalChart(fullReportData.person_a));
-                    markdownParts.push(formatMdNatalChart(fullReportData.person_b));
-                    markdownParts.push(formatMdSynastry(synastryResponse, fullReportData.person_a, fullReportData.person_b));
-                } else if (dualMirror) {
-                    // --- Dual-mirror mode: both A and B, no synastry ---
-                    let response;
-                    try {
-                        response = await fetch('/api/astrology', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ person_a: personAData, person_b: personBData, include_synastry: false })
-                        });
-                    } catch (err) {
-                        showMessage('Network error: ' + err.message, 'error');
-                        throw err;
-                    }
-                    const text = await response.text();
-                    let data;
-                    try {
-                        data = JSON.parse(text);
-                    } catch {
-                        showMessage('Malformed response from backend: ' + text, 'error');
-                        throw new Error('Malformed backend response');
-                    }
-                    if (response.status === 400 && data.missing) {
-                        let msg = 'Missing required fields:';
-                        if (data.missing.person_a && data.missing.person_a.length) msg += `\nPerson A: ${data.missing.person_a.join(', ')}`;
-                        if (data.missing.person_b && data.missing.person_b.length) msg += `\nPerson B: ${data.missing.person_b.join(', ')}`;
-                        showMessage(msg, 'error');
-                        generateBtn.disabled = false;
-                        generateBtn.textContent = 'Generate Full Report';
-                        return;
-                    }
-                    if (!data.personA || !data.personB) {
-                        showMessage('Backend did not return both charts.', 'error');
-                        throw new Error('Dual-mirror backend error');
-                    }
-                    fullReportData.person_a = { details: personAData, chart: data.personA };
-                    fullReportData.person_b = { details: personBData, chart: data.personB };
-                    markdownParts.unshift(
-                        '## Info: You entered two charts but did not select Synastry.\nYou will receive two separate mirror reflections, not a relationship analysis.'
-                    );
-                    markdownParts.push(formatMdNatalChart(fullReportData.person_a));
-                    markdownParts.push(formatMdNatalChart(fullReportData.person_b));
-                } else {
-                    const apiResponseA = await getChartDataFromApi({ subject: personAData });
-                    fullReportData.person_a = { details: personAData, chart: apiResponseA };
-                    markdownParts.push(formatMdNatalChart(fullReportData.person_a));
-                    if (personBData) {
-                        const apiResponseB = await getChartDataFromApi({ subject: personBData });
-                        fullReportData.person_b = { details: personBData, chart: apiResponseB };
-                        markdownParts.push(formatMdNatalChart(fullReportData.person_b));
-                    }
-                }
-
-                // --- TRANSIT CALCULATIONS ---
-                let startStr = startDateInput.value;
-                if (!startStr) {
-                    const today = new Date();
-                    startStr = `${String(today.getMonth() + 1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}-${today.getFullYear()}`;
-                }
-                const [sm, sd, sy] = startStr.split('-').map(Number);
-                const start = new Date(Date.UTC(sy, sm - 1, sd));
-                let end = start;
-                if (endDateInput.value) {
-                    const [em, ed, ey] = endDateInput.value.split('-').map(Number);
-                    end = new Date(Date.UTC(ey, em - 1, ed));
-                }
-                fullReportData.transits = [];
-                const relocationChecked = relocationToggle.checked;
-                let relocationCoords = getRelocationLatLonOrNull();
-                if (relocationChecked && !relocationCoords) throw new Error("Relocation coordinates are invalid.");
-
-                for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
-                    const ds = `${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}-${d.getUTCFullYear()}`;
-                    const transitSubjectA = { ...personAData, year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), name: `Transit ${ds}` };
-                    const transitApiResponseA = await getChartDataFromApi({ subject: transitSubjectA });
-                    const chartA = fullReportData.person_a.chart.data.subject;
-                    const entryA = { person: 'a', date: ds, chart: transitApiResponseA, aspects: calculateAspects(transitApiResponseA.data.subject, chartA), location_type: 'birth' };
-                    fullReportData.transits.push(entryA);
-                    markdownParts.push(formatMdTransit(entryA, fullReportData.person_a, false));
-
-                    if (relocationChecked && relocationCoords) {
-                        const relocationSubjectA = { ...transitSubjectA, latitude: relocationCoords.latitude, longitude: relocationCoords.longitude, city: 'Relocated', nation: 'US' };
-                        const relocationApiResponseA = await getChartDataFromApi({ subject: relocationSubjectA });
-                        const entryRelocA = { person: 'a', date: ds, chart: relocationApiResponseA, aspects: calculateAspects(relocationApiResponseA.data.subject, chartA), location_type: 'relocated' };
-                        fullReportData.transits.push(entryRelocA);
-                        markdownParts.push(formatMdTransit(entryRelocA, fullReportData.person_a, true));
-                    }
-                    if (fullReportData.person_b) {
-                        const transitSubjectB = { ...personBData, year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), name: `Transit ${ds}` };
-                        const transitApiResponseB = await getChartDataFromApi({ subject: transitSubjectB });
-                        const chartB = fullReportData.person_b.chart.data.subject;
-                        const entryB = { person: 'b', date: ds, chart: transitApiResponseB, aspects: calculateAspects(transitApiResponseB.data.subject, chartB), location_type: 'birth' };
-                        fullReportData.transits.push(entryB);
-                        markdownParts.push(formatMdTransit(entryB, fullReportData.person_b, false));
-                        if (relocationChecked && relocationCoords) {
-                            const relocationSubjectB = { ...transitSubjectB, latitude: relocationCoords.latitude, longitude: relocationCoords.longitude, city: 'Relocated', nation: 'US' };
-                            const relocationApiResponseB = await getChartDataFromApi({ subject: relocationSubjectB });
-                            const entryRelocB = { person: 'b', date: ds, chart: relocationApiResponseB, aspects: calculateAspects(relocationApiResponseB.data.subject, chartB), location_type: 'relocated' };
-                            fullReportData.transits.push(entryRelocB);
-                            markdownParts.push(formatMdTransit(entryRelocB, fullReportData.person_b, true));
-                        }
-                    }
-                }
-
-// Helper to group flat transits by ISO date
-function groupTransitsByDate(transits) {
-  return transits.reduce((acc, entry) => {
-    const [mm, dd, yyyy] = entry.date.split('-');
-    const iso = `${yyyy}-${mm}-${dd}`;
-    if (!acc[iso]) acc[iso] = [];
-    acc[iso].push(entry);
-    return acc;
-  }, {});
-}
-
-fullReportData.transitsByDate = groupTransitsByDate(fullReportData.transits);
-                // Always prepend Poetic Brain context
-                markdownParts.unshift(poeticBrainContextMd());
-                reportTitle.textContent = "Generated Report";
-                reportOutput.textContent = markdownParts.join('\n\n');
-                outputSection.classList.remove('hidden');
-
-            } catch (error) {
-                showMessage(error.message, 'error');
-                console.error(error);
-            } finally {
-                generateBtn.disabled = false;
-                generateBtn.textContent = 'Generate Full Report';
-            }
-        }
-
-        // --- EVENT LISTENERS ---
-        generateBtn.addEventListener('click', generateReport);
-
-        copyBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(markdownReport).then(() => {
-                showMessage('Copied to clipboard!', 'success');
-            }, () => {
-                showMessage('Failed to copy.', 'error');
-            });
-        });
-
-        const downloadFile = (filename, content, contentType) => {
-            const element = document.createElement('a');
-            const blob = new Blob([content], { type: contentType });
-            element.href = URL.createObjectURL(blob);
-            element.download = filename;
-            document.body.appendChild(element);
-            element.click();
-            document.body.removeChild(element);
-            URL.revokeObjectURL(element.href);
-        };
-
-        const generateFilename = (extension) => {
-            const nameA = document.getElementById('nameA').value.replace(/\s+/g, '_') || 'PersonA';
-            const nameB = document.getElementById('nameB').value.replace(/\s+/g, '_');
-            const finalName = nameB ? `${nameA}_and_${nameB}` : nameA;
-            
-            const startDateStr = startDateInput.value;
-            const endDateStr = endDateInput.value;
-            let datePart = `_on_${new Date().toISOString().split('T')[0]}`;
-
-            if (startDateStr) {
-                const reformatDate = (dateStr) => {
-                    if (!/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) return new Date().toISOString().split('T')[0];
-                    const [m, d, y] = dateStr.split('-');
-                    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-                }
-                const formattedStart = reformatDate(startDateStr);
-                if (endDateStr && endDateStr !== startDateStr) {
-                    const formattedEnd = reformatDate(endDateStr);
-                    datePart = `_from_${formattedStart}_to_${formattedEnd}`;
-                } else {
-                    datePart = `_on_${formattedStart}`;
-                }
-            }
-            return `report_${finalName}${datePart}.${extension}`;
-        };
-
-        saveJsonBtn.addEventListener('click', () => {
-            const filename = generateFilename('json');
-            downloadFile(filename, JSON.stringify(fullReportData, null, 2), 'application/json');
-        });
-
-        saveMdBtn.addEventListener('click', () => {
-            const filename = generateFilename('md');
-            downloadFile(filename, markdownReport, 'text/markdown');
-        });
-
-        relocationToggle.addEventListener('change', () => {
-            relocationFields.style.display = relocationToggle.checked ? 'block' : 'none';
-        });
-
-        relocationCoordsInput.addEventListener('input', () => {
-            if (relocationToggle.checked) {
-                getRelocationLatLonOrNull();
-            }
-        });
-
-        function getRelocationLatLonOrNull() {
-            if (!relocationToggle.checked) return null;
-            try {
-                const coords = parseCombinedCoords(relocationCoordsInput.value);
-                relocationError.classList.add('hidden');
-                return coords;
-            } catch (e) {
-                relocationError.textContent = e.message;
-                relocationError.classList.remove('hidden');
-                return null;
-            }
-        }
-        
-        const mathBrainBtn = document.getElementById('math-brain-info-btn');
-        const mathBrainModal = document.getElementById('math-brain-modal');
-        const closeMathBrainModal = document.getElementById('close-math-brain-modal');
-        const closeMathBrainModalBottom = document.getElementById('close-math-brain-modal-bottom');
-        
-        function openMathBrainModal() {
-          mathBrainModal.classList.remove('hidden');
-        }
-        function closeMathBrainModalFn() {
-          mathBrainModal.classList.add('hidden');
-        }
-        mathBrainBtn.addEventListener('click', openMathBrainModal);
-        closeMathBrainModal.addEventListener('click', closeMathBrainModalFn);
-        closeMathBrainModalBottom.addEventListener('click', closeMathBrainModalFn);
-        document.addEventListener('keydown', (e) => {
-          if (!mathBrainModal.classList.contains('hidden') && e.key === 'Escape') closeMathBrainModalFn();
-        });
-        
-        window.addEventListener('click', (e) => {
-            if (mathBrainModal.classList.contains('hidden') === false && !mathBrainModal.contains(e.target) && !mathBrainBtn.contains(e.target)) {
-                closeMathBrainModalFn();
-            }
-        });
-
-        const pasteAstroBtn = document.getElementById('pasteAstroB');
-        pasteAstroBtn.addEventListener('click', async () => {
-          try {
-            const text = await navigator.clipboard.readText();
-            document.getElementById('astroB').value = text.trim();
-            showMessage('Coordinates pasted. Please fill out the rest.', 'success');
-          } catch (err) {
-            showMessage('Failed to read clipboard: ' + err.message, 'error');
-          }
-        });
-
-        // --- RELATIONSHIP TYPE & INTIMACY TIER LOGIC ---
-        document.addEventListener('DOMContentLoaded', function() {
-            const relationshipTypeRadios = document.querySelectorAll('input[name="relationshipType"]');
-            const intimacyTierDropdown = document.getElementById('intimacy-tier-dropdown');
-
-            // Helper to show/hide intimacy tier
-            function updateIntimacyTierVisibility() {
-                const selected = Array.from(relationshipTypeRadios).find(r => r.checked);
-                if (selected && selected.value === 'Partner') {
-                    intimacyTierDropdown.classList.remove('hidden');
-                } else {
-                    intimacyTierDropdown.classList.add('hidden');
-                }
-            }
-
-            // Initial state: show if Partner is selected
-            updateIntimacyTierVisibility();
-
-            // Listen for changes
-            relationshipTypeRadios.forEach(radio => {
-                radio.addEventListener('change', updateIntimacyTierVisibility);
-            });
-        });
-
-        // JS logic for context mode toggle and visibility
-        function updateContextModeVisibility() {
-          const personA = getSubjectData('A', false); // Non-strict mode for UI updates
-          const personB = getSubjectData('B', false); // Non-strict mode for UI updates
-          const contextToggle = document.getElementById('context-toggle');
-          const selfContext = document.getElementById('self-context');
-          const relationalContext = document.getElementById('relational-context');
-          const contextModeSection = document.getElementById('context-mode-section');
-          // Show context toggle only if Person B has any data or synastry is checked
-          const showToggle = synastryToggle.checked || (personB && personB.name);
-          contextToggle.style.display = showToggle ? 'flex' : 'none';
-          // Show/hide context blocks
-          const selectedMode = document.querySelector('input[name="contextMode"]:checked')?.value;
-          selfContext.style.display = selectedMode === 'self' ? 'block' : 'none';
-          // Only show relational context if Person B has data or synastry is checked
-          if (showToggle && selectedMode === 'relational') {
-            relationalContext.style.display = 'block';
-          } else {
-            relationalContext.style.display = 'none';
-          }
-          // Accessibility: update aria-selected
-          document.querySelectorAll('input[name="contextMode"]').forEach(radio => {
-            radio.setAttribute('aria-checked', radio.checked ? 'true' : 'false');
-          });
-        }
-        document.querySelectorAll('input[name="contextMode"]').forEach(radio => {
-          radio.addEventListener('change', updateContextModeVisibility);
-        });
-        // Call on load and whenever Person A/B changes
-        ['nameA','cityA','stateA','dateA','timeA','offsetA','nationA','zodiacA','astroA','nameB','cityB','stateB','dateB','timeB','offsetB','nationB','zodiacB','astroB'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.addEventListener('input', updateContextModeVisibility);
-        });
-        window.addEventListener('DOMContentLoaded', updateContextModeVisibility);
-
-        // --- ACCESSIBILITY: Announce error messages ---
-        function showMessage(msg, type = 'error') {
-            messageBox.textContent = msg;
-            messageBox.className = type === 'error'
-                ? 'fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg'
-                : 'fixed top-5 right-5 bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg';
-            messageBox.setAttribute('role', 'alert');
-            messageBox.setAttribute('aria-live', 'assertive');
-            messageBox.classList.remove('hidden');
-            setTimeout(() => {
-                messageBox.classList.add('hidden');
-            }, type === 'error' ? 6000 : 3000);
-        }
-
-        // --- ACCESSIBILITY: Focus states for buttons ---
-        [generateBtn, copyBtn, saveJsonBtn, saveMdBtn].forEach(btn => {
-            if (btn) {
-                btn.classList.add('focus:ring-2', 'focus:ring-teal-400', 'focus:outline-none');
-            }
-        });
-
-        // --- CLEANUP: Remove unused debug artifacts ---
-        // No debug code remains
-
-        // --- REAL-TIME VALIDATION EVENT LISTENERS ---
-        // Add validation on field changes (only on blur to avoid disrupting typing)
-        ['nameA','cityA','stateA','dateA','timeA','offsetA','nationA','zodiacA','astroA','nameB','cityB','stateB','dateB','timeB','offsetB','nationB','zodiacB','astroB','startDate','endDate'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) {
-            // Only validate on blur (when leaving field) to avoid disrupting typing
-            el.addEventListener('blur', () => updateGenerateButtonState(true));
-            // Light validation on input (just button state, no error messages)
-            el.addEventListener('input', () => updateGenerateButtonState(false));
-          }
-        });
-        
-        // Add validation for radio buttons and checkboxes (immediate feedback)
-        document.querySelectorAll('input[name="relationshipType"], input[name="intimacyTier"]').forEach(radio => {
-          radio.addEventListener('change', () => updateGenerateButtonState(true));
-        });
-        
-        // Important state changes should show validation immediately
-        synastryToggle.addEventListener('change', () => {
-          console.log('Synastry toggle changed to:', synastryToggle.checked);
-          // Update context mode visibility first
-          updateContextModeVisibility();
-          // Then update validation - use a small delay to ensure DOM updates are complete
-          setTimeout(() => {
-            updateGenerateButtonState(false); // Don't show errors immediately when toggling modes
-            console.log('Validation updated after synastry toggle');
-          }, 10);
-        });
-        relocationToggle.addEventListener('change', () => updateGenerateButtonState(true));
-        if (relocationCoordsInput) relocationCoordsInput.addEventListener('input', () => updateGenerateButtonState(false));
-        if (relocationCoordsInput) relocationCoordsInput.addEventListener('blur', () => updateGenerateButtonState(true));
-
-        // Initialize validation on page load (without showing errors initially)
-        window.addEventListener('DOMContentLoaded', () => {
-          addValidationSummary();
-          updateGenerateButtonState(false); // Don't show errors on initial load
-        });
-    /*
-    =====================
-    JSON Export Structure
-    =====================
-    fullReportData = {
-      schema: "WM-Chart-1.0", // Version identifier
-      relationship_type: "Partner" | "Friend" | "Family" | "N/A",
-      intimacy_tier: "P1" | "P2" | "P3" | "N/A",
-      diagnostics: [ ... ], // Array of diagnostic strings
-      person_a: {
-        details: { ... }, // Input details for Person A
-        chart: { ... }    // Natal chart data for Person A
-      },
-      person_b: {
-        details: { ... }, // Input details for Person B (if present)
-        chart: { ... }    // Natal chart data for Person B (if present)
-      },
-      synastry: { ... }, // Synastry overlay data (if synastry selected)
-      transits: [ ... ], // Flat array of transit entries
-      transitsByDate: {  // Object grouping transits by ISO date
-        "YYYY-MM-DD": [ ...transitEntries ]
-      }
-    }
-    =====================
-    */
-    // --- CALCULATE ASPECTS BETWEEN TWO CHARTS ---
-function calculateAspects(transitChart, natalChart) {
-    // Basic placeholder: returns empty array if no planets
-    if (!transitChart || !transitChart.planets || !natalChart || !natalChart.planets) return [];
-    // Example: Find conjunctions within 1° orb
-    const aspects = [];
-    Object.entries(transitChart.planets).forEach(([planetT, posT]) => {
-        Object.entries(natalChart.planets).forEach(([planetN, posN]) => {
-            if (posT.sign === posN.sign) {
-                const orb = Math.abs((posT.degree + posT.minute/60) - (posN.degree + posN.minute/60));
-                if (orb < 1.0) {
-                    aspects.push({
-                        p1: planetT,
-                        p2: planetN,
-                        aspect: 'Conjunction',
-                        orb: orb.toFixed(2),
-                        sign: posT.sign
-                    });
-                }
-            }
-        });
-    });
-    return aspects;
-}
-    </script>
-</body>
-</html>
+                <h2 class="text-2xl font-semibold text-white mr-3">Context Mode</h2>
+                <div id="context-toggle" class="flex items-center mb-4" style="display:none;">
+                    <label class="flex items-center mr-4"><input type="radio" name="
