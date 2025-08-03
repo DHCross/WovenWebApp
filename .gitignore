@@ -1,7 +1,6 @@
 # Node and environment files
 node_modules/
 .env
-config.js
 .DS_Store
 
 # Logs
