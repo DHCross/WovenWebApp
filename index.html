@@ -275,14 +275,6 @@
         const relationalContextStack = document.getElementById('relational-context-stack');
         const contextReadout = document.getElementById('context-readout');
 
-        // Debug function for synastry toggle
-        function debugSynastryToggle() {
-            console.log('Synastry checked:', synastryToggle.checked);
-            const errors = validateAllInputs();
-            console.log('Current validation errors:', errors);
-            updateGenerateButtonState(false);
-        }
-
         // --- GENTLE VALIDATION FEEDBACK ---
         function showFieldValidating(fieldId) {
             const field = document.getElementById(fieldId);
@@ -296,6 +288,90 @@
                     }, 500);
                 }, 200);
             }
+        }
+
+        // --- UTILITY FUNCTIONS ---
+        function parseCombinedCoords(coordStr) {
+            if (!coordStr || !coordStr.trim()) {
+                throw new Error('Coordinates are required');
+            }
+            
+            const trimmed = coordStr.trim();
+            
+            // Handle decimal format (e.g., "40.0167, -75.3167")
+            const decimalMatch = trimmed.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
+            if (decimalMatch) {
+                return {
+                    latitude: parseFloat(decimalMatch[1]),
+                    longitude: parseFloat(decimalMatch[2])
+                };
+            }
+            
+            // Handle DMS format (e.g., "40°1'N, 75°19'W" or "40°1′N, 75°19′W")
+            const dmsMatch = trimmed.match(/^(\d+)°(\d+)[′']([NS]),?\s*(\d+)°(\d+)[′']([EW])$/i);
+            if (dmsMatch) {
+                let lat = parseInt(dmsMatch[1]) + parseInt(dmsMatch[2]) / 60;
+                let lng = parseInt(dmsMatch[4]) + parseInt(dmsMatch[5]) / 60;
+                
+                if (dmsMatch[3].toUpperCase() === 'S') lat = -lat;
+                if (dmsMatch[6].toUpperCase() === 'W') lng = -lng;
+                
+                return { latitude: lat, longitude: lng };
+            }
+            
+            throw new Error('Invalid coordinate format. Use "40.0167, -75.3167" or "40°1\'N, 75°19\'W"');
+        }
+
+        function getSubjectData(prefix) {
+            const name = document.getElementById(`name${prefix}`)?.value?.trim();
+            const city = document.getElementById(`city${prefix}`)?.value?.trim();
+            const state = document.getElementById(`state${prefix}`)?.value?.trim();
+            const date = document.getElementById(`date${prefix}`)?.value?.trim();
+            const time = document.getElementById(`time${prefix}`)?.value?.trim();
+            const nation = document.getElementById(`nation${prefix}`)?.value?.trim();
+            const zodiac = document.getElementById(`zodiac${prefix}`)?.value?.trim();
+            const offset = document.getElementById(`offset${prefix}`)?.value?.trim();
+            const astro = document.getElementById(`astro${prefix}`)?.value?.trim();
+            
+            // Return null if required fields are missing
+            if (!name || !city || !state || !date || !time || !nation || !astro) {
+                return null;
+            }
+            
+            // Parse date (MM-DD-YYYY format)
+            const dateMatch = date.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+            if (!dateMatch) {
+                return null;
+            }
+            
+            // Parse time (HH:MM format)
+            const timeMatch = time.match(/^(\d{2}):(\d{2})$/);
+            if (!timeMatch) {
+                return null;
+            }
+            
+            // Parse coordinates
+            let coords;
+            try {
+                coords = parseCombinedCoords(astro);
+            } catch (err) {
+                return null;
+            }
+            
+            return {
+                name: name,
+                city: city,
+                nation: nation.toUpperCase(),
+                year: parseInt(dateMatch[3]),
+                month: parseInt(dateMatch[1]),
+                day: parseInt(dateMatch[2]),
+                hour: parseInt(timeMatch[1]),
+                minute: parseInt(timeMatch[2]),
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+                timezone: offset || 'America/New_York',
+                zodiac_type: zodiac || 'Tropic'
+            };
         }
 
         // --- VALIDATION FUNCTIONS ---
