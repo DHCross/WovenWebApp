@@ -558,6 +558,31 @@ Woven Map Report Generator: Context Mode & JSON Export
         // Ensure message box is ARIA live for error/success announcements
         messageBox.setAttribute('aria-live', 'assertive');
 
+        // --- API REQUEST FUNCTION ---
+async function getChartDataFromApi(payload) {
+    try {
+        const response = await fetch('/api/astrology', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const text = await response.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch {
+            throw new Error('Malformed response from backend: ' + text);
+        }
+        if (!response.ok) {
+            if (data && data.error) throw new Error(data.error);
+            throw new Error('API error: ' + response.status);
+        }
+        return data;
+    } catch (err) {
+        throw new Error('Network/API error: ' + err.message);
+    }
+}
+
         // --- MAIN REPORT GENERATION LOGIC ---
         async function generateReport() {
             // Run final validation before generating (strict mode)
