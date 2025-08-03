@@ -403,7 +403,8 @@
             const coords = relocationCoordsInput.value.trim();
             if (relocationToggle.checked && coords) {
                 const coordPattern = /^-?\d+\.?\d*,\s*-?\d+\.?\d*$/;
-                if (!coordPattern.test(coords)) {
+                const dmsPattern = /\d+°\d+'[NS],\s*\d+°\d+'[EW]/;
+                if (!coordPattern.test(coords) && !dmsPattern.test(coords)) {
                     showRelocationError();
                     return false;
                 } else {
@@ -529,10 +530,11 @@
                 return false;
             }
 
-            // Validate coordinates format
-            const coordPattern = /^-?\d+\.?\d*,\s*-?\d+\.?\d*$/;
-            if (!coordPattern.test(astroA)) {
-                showError('Please enter coordinates in format: latitude, longitude (e.g., 40.0167, -75.3167)');
+            // Validate coordinates format (accept decimal or DMS)
+            const decimalPattern = /^-?\d+\.?\d*,\s*-?\d+\.?\d*$/;
+            const dmsPattern = /\d+°\d+'[NS],\s*\d+°\d+'[EW]/;
+            if (!decimalPattern.test(astroA) && !dmsPattern.test(astroA)) {
+                showError('Please enter coordinates in decimal (e.g., 40.0167, -75.3167) or DMS format (e.g., 30°10\'N, 85°40\'W)');
                 return false;
             }
 
@@ -543,8 +545,8 @@
                     showError('Please enter relocation coordinates when relocation overlay is enabled');
                     return false;
                 }
-                if (!validateRelocationCoords()) {
-                    showError('Please enter valid relocation coordinates in format: latitude, longitude');
+                if (!decimalPattern.test(relocationCoords) && !dmsPattern.test(relocationCoords)) {
+                    showError('Please enter relocation coordinates in decimal (e.g., 40.0167, -75.3167) or DMS format (e.g., 30°10\'N, 85°40\'W)');
                     return false;
                 }
             }
