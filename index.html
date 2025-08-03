@@ -453,11 +453,19 @@
             const [yearA, monthA, dayA] = dateA.split('-').map(Number);
             const [hourA, minuteA] = timeA.split(':').map(Number);
 
+            console.log("Date A:", dateA, "Time A:", timeA, "Coordinates A:", coordsA);
+            console.log("Year:", yearA, "Month:", monthA, "Day:", dayA, "Hour:", hourA, "Minute:", minuteA);
+
             const personA = {
                 name: document.getElementById('nameA').value.trim(),
                 city: document.getElementById('birth_cityA').value.trim(),
+                state: document.getElementById('birth_stateA').value.trim(), // Added state
                 nation: document.getElementById('birth_countryA').value.trim(),
-                year: yearA, month: monthA, day: dayA, hour: hourA, minute: minuteA,
+                year: yearA,
+                month: monthA, 
+                day: dayA, 
+                hour: hourA, 
+                minute: minuteA,
                 latitude: coordsA.latitude, 
                 longitude: coordsA.longitude,
                 zodiac_type: document.getElementById('zodiacA').value,
@@ -526,10 +534,13 @@
         // --- API Call ---
 
         async function generateReport() {
+            console.log("Generate button clicked");
+            
             if (!validateForm()) {
                 return;
             }
 
+            console.log("Form is valid, preparing API request");
             hideError();
             generateBtn.disabled = true;
             loadingIndicator.classList.remove('hidden');
@@ -538,6 +549,11 @@
             try {
                 const formData = collectFormData();
                 
+                // Log the complete data being sent to API
+                console.log("Sending data to API:", JSON.stringify(formData, null, 2));
+                console.log("Form data collected:", formData);
+                
+                console.log("Sending API request to /api/astrology-mathbrain");
                 const response = await fetch('/api/astrology-mathbrain', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
