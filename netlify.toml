@@ -7,3 +7,8 @@
   from = "/api/astrology"
   to = "/.netlify/functions/astrology"
   status = 200
+
+[[redirects]]
+  from = "/api/astrology-mathbrain"
+  to = "/.netlify/functions/astrology-mathbrain"
+  status = 200
