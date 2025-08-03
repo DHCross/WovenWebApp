@@ -103,7 +103,10 @@
                         </div>
                         <div>
                             <label for="astroA" class="block mb-1 text-sm font-medium text-gray-300">Birth Coordinates</label>
-                            <input type="text" id="astroA" placeholder="e.g. 40°1'N, 75°19'W" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="40°1'N, 75°19'W">
+                            <input type="text" id="astroA" placeholder="40°1'N, 75°19'W or 40.0167, -75.3167" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="40°1'N, 75°19'W">
+                            <div class="mt-1 text-xs text-gray-400">
+                                <span class="font-medium">Examples:</span> 40°1'N, 75°19'W • 40.0167, -75.3167 • 40°1′N, 75°19′W
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -137,7 +140,10 @@
                         </div>
                         <div>
                            <label for="astroB" class="block mb-1 text-sm font-medium text-gray-300">Birth Coordinates</label>
-                           <input type="text" id="astroB" placeholder="Birth Coordinates" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
+                           <input type="text" id="astroB" placeholder="40°1'N, 75°19'W or 40.0167, -75.3167" class="person-b-field w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="">
+                           <div class="mt-1 text-xs text-gray-400">
+                                <span class="font-medium">Examples:</span> 31°21'N, 84°54'W • 31.35, -84.9 • 31°21′N, 84°54′W
+                            </div>
                         </div>
                         <button id="pasteAstroB" class="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1 px-2 rounded text-sm">
                           Paste AstroSeek Data
@@ -213,13 +219,13 @@
                             <p class="text-sm text-gray-400 mb-2">Enter coordinates (e.g., <b>30°10′N, 85°40′W</b>) to see a side-by-side comparison of how transits fall in the relocated house system.</p>
                             <input type="text"
                                    id="relocationCoords"
-                                   placeholder="30°10′N, 85°40′W"
+                                   placeholder="30°10′N, 85°40′W or 30.1667, -85.6667"
                                    class="w-full bg-gray-800 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-teal-500 focus:outline-none"
                                    value="30°10′N, 85°40′W">
                             <div id="relocationError" class="text-red-500 text-xs mt-1 hidden"></div>
-                            <p class="text-xs text-gray-500 italic text-right pr-1 pt-1">
-                                You can also paste decimal degrees (e.g., 30.1588, -85.6602).
-                            </p>
+                            <div class="mt-1 text-xs text-gray-400">
+                                <span class="font-medium">Examples:</span> 30°10'N, 85°40'W • 30.1667, -85.6667 • 30°10′N, 85°40′W
+                            </div>
                         </div>
                     </div>
                      <button id="generate-btn" class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 disabled:bg-indigo-400 disabled:cursor-not-allowed">
@@ -379,26 +385,21 @@
             const errorsA = validatePersonFields('A');
             errors.push(...errorsA);
             
-            // If synastry is checked or Person B has any data, validate Person B
+            // If synastry is checked, validate Person B and relationship context
             const synastryChecked = synastryToggle.checked;
-            const personBHasData = document.getElementById('nameB').value.trim() || 
-                                 document.getElementById('cityB').value.trim() || 
-                                 document.getElementById('dateB').value.trim();
             
-            if (synastryChecked || personBHasData) {
+            if (synastryChecked) {
                 const errorsB = validatePersonFields('B');
                 errors.push(...errorsB);
                 
                 // Check relationship context validation
-                if (synastryChecked) {
-                    const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value;
-                    if (!relationshipType) {
-                        errors.push('Please select a relationship type for synastry analysis');
-                    } else if (relationshipType === 'Partner') {
-                        const intimacyTier = document.querySelector('input[name="intimacyTier"]:checked')?.value;
-                        if (!intimacyTier) {
-                            errors.push('Please select an intimacy tier for Partner relationships');
-                        }
+                const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value;
+                if (!relationshipType) {
+                    errors.push('Please select a relationship type for synastry analysis');
+                } else if (relationshipType === 'Partner') {
+                    const intimacyTier = document.querySelector('input[name="intimacyTier"]:checked')?.value;
+                    if (!intimacyTier) {
+                        errors.push('Please select an intimacy tier for Partner relationships');
                     }
                 }
             }
@@ -899,11 +900,18 @@ fullReportData.transitsByDate = groupTransitsByDate(fullReportData.transits);
           const contextToggle = document.getElementById('context-toggle');
           const selfContext = document.getElementById('self-context');
           const relationalContext = document.getElementById('relational-context');
+          const contextModeSection = document.getElementById('context-mode-section');
+          const contextModeTitle = contextModeSection.querySelector('h2');
+          
           if (personA && !personB) {
+            // Single chart mode
+            contextModeTitle.textContent = 'Single Chart';
             contextToggle.style.display = 'none';
             selfContext.style.display = 'block';
             relationalContext.style.display = 'none';
           } else if (personA && personB) {
+            // Dual chart mode - show context toggle
+            contextModeTitle.textContent = 'Context Mode';
             contextToggle.style.display = 'flex';
             // Default to relational mode
             const selectedMode = document.querySelector('input[name="contextMode"]:checked')?.value || 'relational';
@@ -915,7 +923,8 @@ fullReportData.transitsByDate = groupTransitsByDate(fullReportData.transits);
               relationalContext.style.display = 'block';
             }
           } else {
-            // Hide both if no Person A
+            // No complete data - hide context section
+            contextModeTitle.textContent = 'Context Mode';
             contextToggle.style.display = 'none';
             selfContext.style.display = 'none';
             relationalContext.style.display = 'none';
