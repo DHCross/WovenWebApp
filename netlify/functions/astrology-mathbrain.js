@@ -185,18 +185,27 @@ function dmsToDecimal(dmsStr) {
 
 // Helper: Normalize subject coordinates (DMS to decimal)
 function normalizeCoordinates(subject) {
-  let coords = subject.birth_coordinates || subject.latitude || "";
-  if (typeof coords === "string" && /°/.test(coords)) {
-    const dms = dmsToDecimal(coords);
+  // Always check birth_coordinates first
+  if (subject.birth_coordinates && typeof subject.birth_coordinates === "string" && /°/.test(subject.birth_coordinates)) {
+    const dms = dmsToDecimal(subject.birth_coordinates);
     if (dms) {
       subject.latitude = dms.latitude;
       subject.longitude = dms.longitude;
     }
-  } else if (typeof subject.latitude === "string" && /°/.test(subject.latitude)) {
+  } else if (subject.latitude && typeof subject.latitude === "string" && /°/.test(subject.latitude)) {
+    // If latitude is DMS string, try to parse with longitude
     const dms = dmsToDecimal(subject.latitude + ',' + subject.longitude);
     if (dms) {
       subject.latitude = dms.latitude;
       subject.longitude = dms.longitude;
+    }
+  }
+  // If latitude/longitude are still missing, try to parse from birth_coordinates as decimal
+  if ((!subject.latitude || !subject.longitude) && subject.birth_coordinates && /,/.test(subject.birth_coordinates)) {
+    const parts = subject.birth_coordinates.split(',').map(s => parseFloat(s.trim()));
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      subject.latitude = parts[0];
+      subject.longitude = parts[1];
     }
   }
 }
