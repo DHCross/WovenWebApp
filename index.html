@@ -445,7 +445,7 @@
             }
 
             // Validate Person B if required by mode
-            if (mode === 'synastry' || mode === 'composite' || mode === 'synastry-transits') {
+            if (mode === 'synastry' || mode === 'composite' || mode === 'synastry-transits' || mode === 'composite-transits') {
                 const nameB = document.getElementById('nameB').value.trim();
                 const dateB = document.getElementById('birth_dateB').value.trim();
                 const timeB = document.getElementById('birth_timeB').value.trim();
@@ -470,7 +470,7 @@
             }
 
             // Validate transit dates if required by mode
-            if (mode === 'transit' || mode === 'synastry-transits') {
+            if (mode === 'transit' || mode === 'synastry-transits' || mode === 'composite-transits') {
                 const start = transitStartDate.value;
                 const end = transitEndDate.value;
                 if (!start || !end) {
@@ -630,7 +630,7 @@
             }
 
             const mode = formData.context.mode;
-            if (mode === 'transit' || mode === 'synastry-transits') {
+            if (mode === 'transit' || mode === 'synastry-transits' || mode === 'composite-transits') {
                 if (transitStartDate && transitEndDate && transitStep) {
                     formData.transit = {
                         startDate: transitStartDate.value,

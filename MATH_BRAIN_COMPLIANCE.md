@@ -321,6 +321,19 @@ Clear messaging throughout the interface:
 - ✅ **ADDED**: "Composite + Transits" (enables shared field pressure analysis)
 - ✅ **MAINTAINED**: "Synastry + Transits" (relational pressure dynamics)
 
+**Validation Logic Table**:
+
+| Mode | Requires Transit Dates? | Person B Required? | Geometric Foundation |
+|------|------------------------|-------------------|---------------------|
+| Natal | ❌ | ❌ | Individual chart structure |
+| Synastry | ❌ | ✅ | Two-chart interaction |
+| Natal + Transits | ✅ | ❌ | Individual chart + pressure overlay |
+| Composite | ❌ | ✅ | Relationship entity structure |
+| Composite + Transits | ✅ | ✅ | Relationship entity + pressure overlay |
+| Synastry + Transits | ✅ | ✅ | Two-chart interaction + pressure overlay |
+
+This ensures no "floating verbs" (transits without structural foundation) and complete validation coverage across all modes.
+
 ### 🔥 Relocation Overlay Availability
 
 **PROTOCOL REQUIREMENT**: Relocation overlay must be available for ALL context modes whenever chart data is entered.
