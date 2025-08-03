@@ -1096,6 +1096,30 @@ fullReportData.transitsByDate = groupTransitsByDate(fullReportData.transits);
     }
     =====================
     */
+    // --- CALCULATE ASPECTS BETWEEN TWO CHARTS ---
+function calculateAspects(transitChart, natalChart) {
+    // Basic placeholder: returns empty array if no planets
+    if (!transitChart || !transitChart.planets || !natalChart || !natalChart.planets) return [];
+    // Example: Find conjunctions within 1° orb
+    const aspects = [];
+    Object.entries(transitChart.planets).forEach(([planetT, posT]) => {
+        Object.entries(natalChart.planets).forEach(([planetN, posN]) => {
+            if (posT.sign === posN.sign) {
+                const orb = Math.abs((posT.degree + posT.minute/60) - (posN.degree + posN.minute/60));
+                if (orb < 1.0) {
+                    aspects.push({
+                        p1: planetT,
+                        p2: planetN,
+                        aspect: 'Conjunction',
+                        orb: orb.toFixed(2),
+                        sign: posT.sign
+                    });
+                }
+            }
+        });
+    });
+    return aspects;
+}
     </script>
 </body>
 </html>
