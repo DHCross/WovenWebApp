@@ -171,6 +171,91 @@ async function calculateSynastry(firstSubject, secondSubject) {
   }
 }
 
+// Helper: Convert DMS string (e.g. "30°10'N, 85°40'W") to decimal degrees
+function dmsToDecimal(dmsStr) {
+  const regex = /([0-9]+)°([0-9]+)'([NS]),\s*([0-9]+)°([0-9]+)'([EW])/;
+  const match = dmsStr.match(regex);
+  if (!match) return null;
+  let lat = parseInt(match[1]) + parseInt(match[2]) / 60;
+  let lng = parseInt(match[4]) + parseInt(match[5]) / 60;
+  if (match[3] === 'S') lat = -lat;
+  if (match[6] === 'W') lng = -lng;
+  return { latitude: lat, longitude: lng };
+}
+
+// Helper: Normalize subject coordinates (DMS to decimal)
+function normalizeCoordinates(subject) {
+  let coords = subject.birth_coordinates || subject.latitude || "";
+  if (typeof coords === "string" && /°/.test(coords)) {
+    const dms = dmsToDecimal(coords);
+    if (dms) {
+      subject.latitude = dms.latitude;
+      subject.longitude = dms.longitude;
+    }
+  } else if (typeof subject.latitude === "string" && /°/.test(subject.latitude)) {
+    const dms = dmsToDecimal(subject.latitude + ',' + subject.longitude);
+    if (dms) {
+      subject.latitude = dms.latitude;
+      subject.longitude = dms.longitude;
+    }
+  }
+}
+
+function buildWMChart({ personA, personB, relocation, synastry, context }) {
+  function extractDetails(subject) {
+    let coords = subject.birth_coordinates || `${subject.latitude},${subject.longitude}` || "";
+    let latitude = subject.latitude;
+    let longitude = subject.longitude;
+    if (coords && /°/.test(coords)) {
+      const dms = dmsToDecimal(coords);
+      if (dms) {
+        latitude = dms.latitude;
+        longitude = dms.longitude;
+      }
+    } else if (coords && /,/.test(coords)) {
+      const parts = coords.split(',').map(s => parseFloat(s.trim()));
+      latitude = parts[0];
+      longitude = parts[1];
+    }
+    return {
+      name: subject.name || "",
+      birth_date: subject.birth_date || subject.date || "",
+      birth_time: subject.birth_time || subject.time || "",
+      birth_city: subject.birth_city || subject.city || "",
+      birth_state: subject.birth_state || subject.state || "",
+      birth_country: subject.birth_country || subject.nation || "",
+      birth_coordinates: coords,
+      latitude,
+      longitude,
+      timezone: subject.timezone || "",
+      zodiac_type: subject.zodiac_type || subject.zodiac || "Tropic"
+    };
+  }
+  const root = {
+    schema: "WM-Chart-1.0",
+    relationship_type: context?.relationship_type || "partner",
+    intimacy_tier: context?.intimacy_tier || undefined,
+    diagnostics: [],
+    person_a: {
+      details: extractDetails(personA.details || personA),
+      chart: personA.chart || personA
+    },
+    person_b: personB ? {
+      details: extractDetails(personB.details || personB),
+      chart: personB.chart || personB
+    } : undefined,
+    relocation: relocation ? relocation : undefined,
+    synastry: synastry ? synastry : undefined
+  };
+  if (personA.chart?.transits && personA.chart?.transitsByDate) {
+    const flat = JSON.stringify(personA.chart.transits);
+    const dict = JSON.stringify(Object.values(personA.chart.transitsByDate).flat());
+    if (flat !== dict) throw new Error("transits and transitsByDate must be deeply equal if both are present");
+  }
+  Object.keys(root).forEach(k => root[k] === undefined && delete root[k]);
+  return root;
+}
+
 // MATH BRAIN COMPLIANT HANDLER
 exports.handler = async function (event) {
   if (!process.env.RAPIDAPI_KEY) {
@@ -197,51 +282,42 @@ exports.handler = async function (event) {
   }
 
   try {
-    // MATH BRAIN COMPLIANCE: Extract only FIELD-level data, ignore VOICE-level context
     let personA = null;
     let personB = null;
     let relocationData = null;
-
-    console.log('MATH BRAIN: Processing request, ignoring context/style preferences');
-
+    let context = body.context || null;
     // Handle new frontend format (personA/personB/context/relocation)
     if (body.personA) {
       personA = extractFieldData(body.personA);
-      
+      normalizeCoordinates(personA);
       if (body.personB && hasValidData(body.personB)) {
         personB = extractFieldData(body.personB);
+        normalizeCoordinates(personB);
       }
-      
       if (body.relocation && body.relocation.enabled && body.relocation.coordinates) {
         relocationData = extractRelocationFieldData(body.relocation);
+        normalizeCoordinates(relocationData);
       }
-
-      // MATH BRAIN: Log that we're ignoring VOICE-layer context
-      if (body.context) {
-        console.log('MATH BRAIN: Ignoring context preferences (focusArea, reportStyle, etc.) - these are VOICE layer concerns');
-      }
-    }
-    // Handle legacy formats for backward compatibility
-    else if (body.person_a && body.person_b && !body.include_synastry) {
+    } else if (body.person_a && body.person_b && !body.include_synastry) {
       personA = extractFieldData(body.person_a);
+      normalizeCoordinates(personA);
       personB = extractFieldData(body.person_b);
-    }
-    else if (body.first_subject && body.second_subject) {
+      normalizeCoordinates(personB);
+    } else if (body.first_subject && body.second_subject) {
       personA = extractFieldData(body.first_subject);
+      normalizeCoordinates(personA);
       personB = extractFieldData(body.second_subject);
-    }
-    else if (body.subject) {
+      normalizeCoordinates(personB);
+    } else if (body.subject) {
       personA = extractFieldData(body.subject);
+      normalizeCoordinates(personA);
     }
-
     if (!personA) {
       return {
         statusCode: 400,
         body: JSON.stringify({ error: 'Missing primary subject data' })
       };
     }
-
-    // Validate required FIELD data
     const missingA = validateSubject(personA);
     if (missingA.length) {
       return {
@@ -249,8 +325,6 @@ exports.handler = async function (event) {
         body: JSON.stringify({ error: 'Missing required fields for Person A', missing: missingA })
       };
     }
-
-    // If we have Person B data, validate it too
     if (personB) {
       const missingB = validateSubject(personB);
       if (missingB.length) {
@@ -260,41 +334,30 @@ exports.handler = async function (event) {
         };
       }
     }
-
-    // MATH BRAIN OUTPUT: Pure geometry computation only
-    const results = {};
-
-    // Calculate primary natal chart geometry
-    results.natal = await calculateNatalChart(personA);
-    
-    // Calculate relocation overlay geometry if requested
-    if (relocationData) {
-      const relocatedSubject = { ...personA, ...relocationData };
-      results.relocation = await calculateNatalChart(relocatedSubject);
-      console.log('MATH BRAIN: Computed geometry for both birth location and relocated coordinates');
+    let natalA = await calculateNatalChart(personA);
+    let natalB = personB ? await calculateNatalChart(personB) : undefined;
+    let relocation = relocationData ? await calculateNatalChart({ ...personA, ...relocationData }) : undefined;
+    let synastry = personB ? await calculateSynastry(personA, personB) : undefined;
+    if (natalA.transits && Array.isArray(natalA.transits)) {
+      natalA.transitsByDate = groupByDate(natalA.transits);
     }
-
-    // Calculate synastry geometry if Person B exists
-    if (personB) {
-      results.synastry = await calculateSynastry(personA, personB);
-      results.natalB = await calculateNatalChart(personB);
-      console.log('MATH BRAIN: Computed synastry and dual natal geometries');
+    if (natalB && natalB.transits && Array.isArray(natalB.transits)) {
+      natalB.transitsByDate = groupByDate(natalB.transits);
     }
-
-    console.log('MATH BRAIN: Returning pure geometry data - no interpretation, context, or narrative');
-
+    if (synastry && synastry.transits && Array.isArray(synastry.transits)) {
+      synastry.transitsByDate = groupByDate(synastry.transits);
+    }
+    const wmChart = buildWMChart({
+      personA: { details: personA, chart: natalA },
+      personB: personB ? { details: personB, chart: natalB } : undefined,
+      relocation,
+      synastry,
+      context
+    });
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        // Include metadata for downstream VOICE layer
-        _mathBrainOutput: true,
-        _fieldToMapComputed: new Date().toISOString(),
-        _voiceLayerContext: body.context || null, // Pass through for downstream processing
-        // Pure MAP-level geometry
-        ...results
-      })
+      body: JSON.stringify(wmChart)
     };
-
   } catch (err) {
     console.error('MATH BRAIN error:', err);
     return {
