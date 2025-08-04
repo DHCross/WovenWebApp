@@ -147,3 +147,40 @@ These changes should eliminate the four recurring issues identified in the Noteb
 - Test the application to confirm the "Compute Astrological Geometry" button now works
 - Monitor for any remaining validation issues
 - Consider implementing client-side schema validation library for additional robustness
+
+---
+
+### [2025-08-04] PLANNED DEVELOPMENT
+**Description:**  
+Planning to restructure site architecture to create a proper homepage with navigation to multiple sections:
+
+**Planned Changes:**
+1. **Homepage Creation**:
+   - Move current Woven Map app from root (`index.html`) to subdirectory (`/app/` or `/woven-map/`)
+   - Create new professional homepage at root
+   - Add navigation and branding for personal/professional presence
+
+2. **Content Expansion**:
+   - Add section for upcoming book project
+   - Create space for additional tools and resources
+   - Implement proper site navigation and structure
+
+3. **Site Architecture**:
+   - Homepage: Landing page with overview and navigation
+   - `/woven-map/`: Current astrological geometry app
+   - `/book/`: Information about planned publication
+   - Future: Additional tools and content areas
+
+**Strategic Benefits:**
+- Separates specific tool from general web presence
+- Provides foundation for content expansion
+- More professional presentation for visitors
+- Scalable structure for future projects
+
+**Technical Considerations:**
+- Update Netlify redirects and deployment configuration
+- Ensure all existing bookmarks/links remain functional
+- Maintain API endpoints and function routing
+- Consider SEO implications of URL structure changes
+
+**Status:** Planning phase - not yet implemented
