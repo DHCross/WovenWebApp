@@ -364,9 +364,6 @@
                         <button id="downloadMarkdown" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded text-sm">
                             📄 Download MD
                         </button>
-                        <button id="downloadJson" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded text-sm">
-                            📋 Download JSON
-                        </button>
                         <button id="copyReport" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded text-sm">
                             Copy Data
                         </button>
@@ -385,7 +382,7 @@
     <script src="config.js"></script>
     <script>
         // Global UI element references
-        let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadMarkdownBtn, downloadJsonBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel;
+        let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadMarkdownBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel;
 
         // Store the latest result data for downloads
         let latestResultData = null;
@@ -947,26 +944,6 @@
                 }
             });
 
-            // Download JSON
-            downloadJsonBtn.addEventListener('click', () => {
-                if (!latestResultData) {
-                    showError('No data available for download. Please generate a report first.');
-                    return;
-                }
-                try {
-                    const jsonContent = JSON.stringify(latestResultData, null, 2);
-                    const filename = generateFilename('json', latestResultData);
-                    downloadFile(jsonContent, filename, 'application/json');
-                    
-                    // Brief visual feedback
-                    downloadJsonBtn.textContent = '✅ Downloaded!';
-                    setTimeout(() => { downloadJsonBtn.textContent = '📋 Download JSON'; }, 2000);
-                } catch (error) {
-                    console.error('Download error:', error);
-                    showError('Failed to generate JSON download: ' + error.message);
-                }
-            });
-
             // Toggle mode help panel
             toggleModeHelp.addEventListener('click', () => {
                 const isHidden = modeHelpPanel.classList.contains('hidden');
@@ -1044,7 +1021,6 @@
             reportContent = document.getElementById('reportContent');
             copyBtn = document.getElementById('copyReport');
             downloadMarkdownBtn = document.getElementById('downloadMarkdown');
-            downloadJsonBtn = document.getElementById('downloadJson');
             mathBrainInfoBtn = document.getElementById('math-brain-info-btn');
             mathBrainModal = document.getElementById('math-brain-modal');
             closeMathBrainModal = document.getElementById('close-math-brain-modal');

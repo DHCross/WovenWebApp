@@ -15,6 +15,36 @@ Each entry should include the date, a brief description, what caused the break (
 
 ---
 
+### [2025-08-04 16:15] USER INTERFACE SIMPLIFICATION
+**Description:**  
+Removed JSON download option from user-facing interface, keeping only Markdown download for reports.
+
+**Rationale:**  
+Per Raven Calder's workflow, the JSON output is primarily for internal API debugging and development purposes. End users of the Woven Map system work with human-readable Markdown reports that translate the geometric data into accessible language. Removing JSON from the user interface simplifies the experience and aligns with the Math Brain/Poetic Brain separation of concerns.
+
+**Changes Made:**
+1. **HTML Interface**:
+   - Removed JSON download button from report output section
+   - Cleaned up button layout to maintain visual balance
+
+2. **JavaScript**:
+   - Removed `downloadJsonBtn` from global variable declarations
+   - Removed JSON download event handler and initialization
+   - Kept `latestResultData` storage intact for potential future debugging needs
+
+3. **Preserved Functionality**:
+   - Markdown download remains fully functional
+   - Copy Data button still provides clipboard access to raw data if needed
+   - Internal JSON handling preserved for API communication
+
+**Strategic Benefits:**
+- Simplified user experience focused on practical output format
+- Maintains clear separation between Math Brain (geometry) and Poetic Brain (interpretation)
+- Reduces potential confusion about which format to use
+- Aligns interface with actual user workflow patterns
+
+---
+
 ### [2025-08-03 16:50] FIX
 **Symptom:**  
 The application returned a 404 "Not Found" error when clicking the "Compute Astrological Geometry" button.
