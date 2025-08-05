@@ -497,6 +497,18 @@
                 md += `- **Mars**: ${chart.mars.sign} ${chart.mars.position.toFixed(2)}° (${chart.mars.house})${chart.mars.retrograde ? ' ℞' : ''}\n\n`;
             }
 
+            // Composite Chart Summary (if present)
+            if (data.composite?.chart?.status === 'OK') {
+                md += `## Composite Chart Summary\n\n`;
+                const chart = data.composite.chart.data.subject;
+                md += `- **Ascendant**: ${chart.ascendant.sign} ${chart.ascendant.position.toFixed(2)}°\n`;
+                md += `- **Sun**: ${chart.sun.sign} ${chart.sun.position.toFixed(2)}° (${chart.sun.house})\n`;
+                md += `- **Moon**: ${chart.moon.sign} ${chart.moon.position.toFixed(2)}° (${chart.moon.house})\n`;
+                md += `- **Mercury**: ${chart.mercury.sign} ${chart.mercury.position.toFixed(2)}° (${chart.mercury.house})${chart.mercury.retrograde ? ' ℞' : ''}\n`;
+                md += `- **Venus**: ${chart.venus.sign} ${chart.venus.position.toFixed(2)}° (${chart.venus.house})${chart.venus.retrograde ? ' ℞' : ''}\n`;
+                md += `- **Mars**: ${chart.mars.sign} ${chart.mars.position.toFixed(2)}° (${chart.mars.house})${chart.mars.retrograde ? ' ℞' : ''}\n\n`;
+            }
+
             // Aspects Summary
             if (data.person_a?.chart?.aspects && data.person_a.chart.aspects.length > 0) {
                 md += `## Person A Major Aspects\n\n`;
@@ -507,9 +519,20 @@
             }
 
             if (data.synastry?.aspects && data.synastry.aspects.length > 0) {
-                md += `## Major Synastry Aspects\n\n`;
+                md += `## Synastry Geometry\n\n`;
+                md += `### Major Synastry Aspects\n\n`;
                 data.synastry.aspects.slice(0, 15).forEach(aspect => {
                     md += `- **${aspect.p1_owner} ${aspect.p1_name}** ${aspect.aspect} **${aspect.p2_owner} ${aspect.p2_name}** (${Math.abs(aspect.orbit).toFixed(1)}° orb)\n`;
+                });
+                md += `\n`;
+            }
+
+            // Handle composite data if present
+            if (data.composite?.chart?.aspects && data.composite.chart.aspects.length > 0) {
+                md += `## Composite Geometry\n\n`;
+                md += `### Composite Chart Aspects\n\n`;
+                data.composite.chart.aspects.slice(0, 15).forEach(aspect => {
+                    md += `- **${aspect.p1_name}** ${aspect.aspect} **${aspect.p2_name}** (${Math.abs(aspect.orbit).toFixed(1)}° orb)\n`;
                 });
                 md += `\n`;
             }

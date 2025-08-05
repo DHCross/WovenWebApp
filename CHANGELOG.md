@@ -15,6 +15,35 @@ Each entry should include the date, a brief description, what caused the break (
 
 ---
 
+### [2025-08-05 12:30] FIX: COMPOSITE/SYNASTRY GEOMETRY LABELING
+**Description:**  
+Added proper geometry block labeling for composite and synastry data in Markdown reports.
+
+**Issue:**  
+User received feedback that "No composite or synastry geometry block was labeled in the markdown" when using synastry mode. The Markdown generation was including the data but without clear geometric section headers.
+
+**Resolution:**
+1. **Enhanced Synastry Section**:
+   - Changed "Major Synastry Aspects" to "Synastry Geometry" with "Major Synastry Aspects" as subsection
+   - Provides clearer geometric context labeling
+
+2. **Added Composite Support**:
+   - Added "Composite Chart Summary" section for composite chart planetary positions
+   - Added "Composite Geometry" section with "Composite Chart Aspects" subsection
+   - Ensures composite mode has proper geometric block labeling
+
+3. **Improved Structure**:
+   - Clear hierarchical labeling: ## Geometry Type → ### Specific Data
+   - Consistent formatting across natal, synastry, and composite modes
+   - Better semantic organization for geometric data interpretation
+
+**Expected Impact:**
+- Resolves missing geometry block labeling issue
+- Provides clearer structure for Poetic Brain interpretation
+- Maintains consistency across all context modes
+
+---
+
 ### [2025-08-04 16:15] USER INTERFACE SIMPLIFICATION
 **Description:**  
 Removed JSON download option from user-facing interface, keeping only Markdown download for reports.
