@@ -15,6 +15,44 @@ Each entry should include the date, a brief description, what caused the break (
 
 ---
 
+### [2025-08-05 14:45] FEATURE: EX RELATIONSHIP OPTION
+**Description:**  
+Added "ex (no longer)" checkbox option for relationship context to handle past relationships in diagnostic work.
+
+**New Feature:**
+- Added checkbox labeled "Ex (no longer active relationship)" below relationship type selection
+- Checkbox can be applied to any relationship type (partner, friend, family)
+- Status is captured in form data and passed through API
+- Ex relationship status is prominently displayed in Markdown reports
+
+**UI Changes:**
+1. **Relationship Context Section**:
+   - Added bordered separator with checkbox below relationship type radio buttons
+   - Used red accent color for the checkbox to distinguish from other form elements
+   - Clear labeling: "Ex (no longer active relationship)"
+
+2. **Form Data Collection**:
+   - Added `is_ex_relationship` boolean field to context object
+   - Integrated with existing form validation and data flow
+
+3. **Markdown Report Enhancement**:
+   - Added "Relationship Context" section when Person B is present
+   - Shows relationship type with ex status appended: "partner (ex - no longer active)"
+   - Includes intimacy tier if specified
+
+**Backend Integration:**
+- Updated `buildWMChart()` function to include `is_ex_relationship` field
+- Maintains backward compatibility with existing data structures
+- Field defaults to `false` when not specified
+
+**Strategic Value:**
+- Enables more nuanced diagnostic work for past relationships
+- Provides important context for Poetic Brain interpretation
+- Acknowledges that relationship dynamics can persist beyond active involvement
+- Supports comprehensive relational analysis across different relationship states
+
+---
+
 ### [2025-08-05 12:30] FIX: COMPOSITE/SYNASTRY GEOMETRY LABELING
 **Description:**  
 Added proper geometry block labeling for composite and synastry data in Markdown reports.
