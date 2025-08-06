@@ -1065,6 +1065,25 @@
 
                 // Generate human-readable Markdown report
                 const report = generateMarkdownReport(result);
+                
+                // Debug: Log the actual data structure to understand transit availability
+                console.log('=== DEBUGGING TRANSIT DATA ===');
+                console.log('Full result structure:', Object.keys(result));
+                if (result.person_a?.chart) {
+                    console.log('Person A chart keys:', Object.keys(result.person_a.chart));
+                    console.log('Person A has transits?', !!result.person_a.chart.transits);
+                    console.log('Person A has transitsByDate?', !!result.person_a.chart.transitsByDate);
+                    if (result.person_a.chart.transits) {
+                        console.log('Person A transits sample:', result.person_a.chart.transits.slice(0, 2));
+                    }
+                }
+                if (result.synastry) {
+                    console.log('Synastry keys:', Object.keys(result.synastry));
+                    console.log('Synastry has transits?', !!result.synastry.transits);
+                    console.log('Synastry has transitsByDate?', !!result.synastry.transitsByDate);
+                }
+                console.log('=== END TRANSIT DEBUG ===');
+                
                 reportContent.textContent = report;
                 reportOutput.classList.remove('hidden');
 

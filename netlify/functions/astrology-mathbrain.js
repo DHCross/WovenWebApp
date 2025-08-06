@@ -124,13 +124,22 @@ function hasValidData(data) {
   return data && (data.date || data.year) && (data.coordinates || (data.latitude && data.longitude));
 }
 
-async function calculateNatalChart(subject) {
+async function calculateNatalChart(subject, transitParams = null) {
   console.log('MATH BRAIN: Calculating natal chart for:', JSON.stringify(subject));
+  console.log('MATH BRAIN: Transit params:', JSON.stringify(transitParams));
+  
+  // Build request body - include transit parameters if provided
+  const requestBody = { subject };
+  if (transitParams) {
+    requestBody.transit_date_start = transitParams.startDate;
+    requestBody.transit_date_end = transitParams.endDate;
+    requestBody.include_transits = true;
+  }
   
   const response = await fetch(API_NATAL_URL, {
     method: 'POST',
     headers: buildHeaders(),
-    body: JSON.stringify({ subject })
+    body: JSON.stringify(requestBody)
   });
 
   const rawText = await response.text();
@@ -146,6 +155,13 @@ async function calculateNatalChart(subject) {
     throw new Error('Malformed response from API');
   }
 
+  console.log('MATH BRAIN: API response keys:', Object.keys(parsed));
+  console.log('MATH BRAIN: Has transits?', !!parsed.transits);
+  if (parsed.transits) {
+    console.log('MATH BRAIN: Transit count:', parsed.transits.length);
+    console.log('MATH BRAIN: Sample transits:', parsed.transits.slice(0, 2));
+  }
+
   // Group transits by date for easier access
   if (parsed.transits && Array.isArray(parsed.transits)) {
     parsed.transitsByDate = groupByDate(parsed.transits);
@@ -154,16 +170,25 @@ async function calculateNatalChart(subject) {
   return parsed;
 }
 
-async function calculateSynastry(firstSubject, secondSubject) {
+async function calculateSynastry(firstSubject, secondSubject, transitParams = null) {
   console.log('MATH BRAIN: Calculating synastry for:', JSON.stringify({ firstSubject, secondSubject }));
+  console.log('MATH BRAIN: Synastry transit params:', JSON.stringify(transitParams));
+  
+  // Build request body - include transit parameters if provided
+  const requestBody = { 
+    first_subject: firstSubject,
+    second_subject: secondSubject 
+  };
+  if (transitParams) {
+    requestBody.transit_date_start = transitParams.startDate;
+    requestBody.transit_date_end = transitParams.endDate;
+    requestBody.include_transits = true;
+  }
   
   const response = await fetch(API_SYNASTRY_URL, {
     method: 'POST',
     headers: buildHeaders(),
-    body: JSON.stringify({ 
-      first_subject: firstSubject,
-      second_subject: secondSubject 
-    })
+    body: JSON.stringify(requestBody)
   });
 
   const rawText = await response.text();
@@ -173,7 +198,14 @@ async function calculateSynastry(firstSubject, secondSubject) {
   }
 
   try {
-    return JSON.parse(rawText);
+    const parsed = JSON.parse(rawText);
+    console.log('MATH BRAIN: Synastry API response keys:', Object.keys(parsed));
+    console.log('MATH BRAIN: Synastry has transits?', !!parsed.transits);
+    if (parsed.transits) {
+      console.log('MATH BRAIN: Synastry transit count:', parsed.transits.length);
+      console.log('MATH BRAIN: Sample synastry transits:', parsed.transits.slice(0, 2));
+    }
+    return parsed;
   } catch {
     throw new Error('Malformed response from API');
   }
@@ -306,6 +338,18 @@ exports.handler = async function (event) {
     let personB = null;
     let relocationData = null;
     let context = body.context || null;
+    let transitParams = null;
+    
+    // Extract transit parameters if present
+    if (body.transitStartDate && body.transitEndDate) {
+      transitParams = {
+        startDate: body.transitStartDate,
+        endDate: body.transitEndDate,
+        step: body.transitStep || 'daily'
+      };
+      console.log('MATH BRAIN: Extracted transit params:', JSON.stringify(transitParams));
+    }
+    
     // Handle new frontend format (personA/personB/context/relocation)
     if (body.personA) {
       console.log('MATH BRAIN: Raw personA data from frontend:', JSON.stringify(body.personA, null, 2));
@@ -357,12 +401,12 @@ exports.handler = async function (event) {
         };
       }
     }
-    let natalA = await calculateNatalChart(personA);
-    let natalB = personB ? await calculateNatalChart(personB) : undefined;
-    let relocationA = relocationData ? await calculateNatalChart({ ...personA, ...relocationData }) : undefined;
+    let natalA = await calculateNatalChart(personA, transitParams);
+    let natalB = personB ? await calculateNatalChart(personB, transitParams) : undefined;
+    let relocationA = relocationData ? await calculateNatalChart({ ...personA, ...relocationData }, transitParams) : undefined;
     let relocationB = (relocationData && personB && !body.relocation?.excludePersonB) ? 
-      await calculateNatalChart({ ...personB, ...relocationData }) : undefined;
-    let synastry = personB ? await calculateSynastry(personA, personB) : undefined;
+      await calculateNatalChart({ ...personB, ...relocationData }, transitParams) : undefined;
+    let synastry = personB ? await calculateSynastry(personA, personB, transitParams) : undefined;
     if (natalA.transits && Array.isArray(natalA.transits)) {
       natalA.transitsByDate = groupByDate(natalA.transits);
     }

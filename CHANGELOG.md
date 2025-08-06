@@ -53,6 +53,41 @@ Fixed critical issues with transit data processing and report generation that we
 
 ---
 
+### [2025-08-06 13:30] DEBUG: INVESTIGATING MISSING TRANSIT DATA
+**Description:**  
+Added comprehensive debugging and parameter passing to investigate why transit data is not appearing in reports despite the framework being in place.
+
+**Investigation Steps:**
+1. **Added Debug Logging**: Enhanced both frontend and backend to log data structures and API responses
+2. **Transit Parameter Passing**: Modified backend to accept and forward transit parameters to external API
+3. **API Request Enhancement**: Updated both `calculateNatalChart()` and `calculateSynastry()` functions to include transit parameters:
+   - `transit_date_start`: Start date for transit calculation
+   - `transit_date_end`: End date for transit calculation  
+   - `include_transits`: Boolean flag to request transit data
+
+**Current Hypothesis:**
+- The external astrology API (`astrologer.p.rapidapi.com`) may not return transit data by default
+- Transit data might require specific parameters or a different API endpoint
+- The current `natal-aspects-data` and `synastry-aspects-data` endpoints may not include transit information
+
+**Changes Made:**
+- Enhanced `calculateNatalChart()` to accept and forward `transitParams`
+- Enhanced `calculateSynastry()` to accept and forward `transitParams`
+- Added extensive debug logging to see actual API response structure
+- Modified backend request handler to extract transit parameters from frontend
+- Updated all chart calculation calls to pass transit parameters
+
+**Next Steps:**
+- Test with these changes to see debug output
+- Verify if external API accepts transit parameters
+- Consider alternative API endpoints or methods for transit data
+- May need to research external API documentation for proper transit data requests
+
+**Files Changed:**
+- `netlify/functions/astrology-mathbrain.js`: Enhanced API calls and debugging
+
+---
+
 ### [2025-08-06 13:00] CLEANUP: REMOVED JSON BLOCK FROM MARKDOWN REPORT
 **Description:**  
 Removed the "Raw Geometry Data" JSON block from the Markdown report to align with the app's focus on human-readable output.
