@@ -243,6 +243,17 @@
                                 <li>• Useful for travel, relocation, or understanding location-based influences</li>
                             </ul>
                         </div>
+                        
+                        <!-- Person B Relocation Option (only visible when Person B is present) -->
+                        <div id="relocationPersonBOption" class="hidden">
+                            <div class="flex items-center p-3 bg-gray-800 rounded border border-gray-600">
+                                <input type="checkbox" id="excludePersonBFromRelocation" class="mr-3 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-600 rounded bg-gray-700">
+                                <label for="excludePersonBFromRelocation" class="text-gray-300 font-medium">
+                                    Exclude Person B from relocation
+                                    <span class="text-xs text-gray-500 block">By default, both people are relocated together. Check this to only relocate Person A.</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -388,7 +399,7 @@
     <script src="config.js"></script>
     <script>
         // Global UI element references
-        let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadMarkdownBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel, exRelationshipCheckbox;
+        let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadMarkdownBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel, exRelationshipCheckbox, relocationPersonBOption, excludePersonBFromRelocation;
 
         // Store the latest result data for downloads
         let latestResultData = null;
@@ -488,10 +499,19 @@
             }
 
             // Relocation (if present)
-            if (data.relocation && data.relocation.status === 'OK') {
+            if (data.relocation_a && data.relocation_a.status === 'OK') {
                 md += `## Relocation Overlay\n\n`;
                 md += `- **Location**: ${formData.relocation?.city || 'Unknown'}\n`;
-                md += `- **Coordinates**: ${formData.relocation?.latitude}, ${formData.relocation?.longitude}\n\n`;
+                md += `- **Coordinates**: ${formData.relocation?.latitude}, ${formData.relocation?.longitude}\n`;
+                
+                if (data.relocation_b && data.relocation_b.status === 'OK') {
+                    md += `- **Scope**: Both Person A and Person B relocated\n`;
+                } else if (formData.relocation?.excludePersonB) {
+                    md += `- **Scope**: Only Person A relocated (Person B excluded)\n`;
+                } else {
+                    md += `- **Scope**: Person A relocated\n`;
+                }
+                md += `\n`;
             }
 
             // Chart Data Summary
@@ -510,6 +530,29 @@
                 md += `## Person B Chart Summary\n\n`;
                 const chart = data.person_b.chart.data.subject;
                 md += `- **Ascendant**: ${chart.ascendant.sign} ${chart.ascendant.position.toFixed(2)}°\n`;
+                md += `- **Sun**: ${chart.sun.sign} ${chart.sun.position.toFixed(2)}° (${chart.sun.house})\n`;
+                md += `- **Moon**: ${chart.moon.sign} ${chart.moon.position.toFixed(2)}° (${chart.moon.house})\n`;
+                md += `- **Mercury**: ${chart.mercury.sign} ${chart.mercury.position.toFixed(2)}° (${chart.mercury.house})${chart.mercury.retrograde ? ' ℞' : ''}\n`;
+                md += `- **Venus**: ${chart.venus.sign} ${chart.venus.position.toFixed(2)}° (${chart.venus.house})${chart.venus.retrograde ? ' ℞' : ''}\n`;
+                md += `- **Mars**: ${chart.mars.sign} ${chart.mars.position.toFixed(2)}° (${chart.mars.house})${chart.mars.retrograde ? ' ℞' : ''}\n\n`;
+            }
+
+            // Relocation Chart Summaries (if present)
+            if (data.relocation_a?.status === 'OK') {
+                md += `## Person A Relocated Chart Summary\n\n`;
+                const chart = data.relocation_a.data.subject;
+                md += `- **Relocated Ascendant**: ${chart.ascendant.sign} ${chart.ascendant.position.toFixed(2)}°\n`;
+                md += `- **Sun**: ${chart.sun.sign} ${chart.sun.position.toFixed(2)}° (${chart.sun.house})\n`;
+                md += `- **Moon**: ${chart.moon.sign} ${chart.moon.position.toFixed(2)}° (${chart.moon.house})\n`;
+                md += `- **Mercury**: ${chart.mercury.sign} ${chart.mercury.position.toFixed(2)}° (${chart.mercury.house})${chart.mercury.retrograde ? ' ℞' : ''}\n`;
+                md += `- **Venus**: ${chart.venus.sign} ${chart.venus.position.toFixed(2)}° (${chart.venus.house})${chart.venus.retrograde ? ' ℞' : ''}\n`;
+                md += `- **Mars**: ${chart.mars.sign} ${chart.mars.position.toFixed(2)}° (${chart.mars.house})${chart.mars.retrograde ? ' ℞' : ''}\n\n`;
+            }
+
+            if (data.relocation_b?.status === 'OK') {
+                md += `## Person B Relocated Chart Summary\n\n`;
+                const chart = data.relocation_b.data.subject;
+                md += `- **Relocated Ascendant**: ${chart.ascendant.sign} ${chart.ascendant.position.toFixed(2)}°\n`;
                 md += `- **Sun**: ${chart.sun.sign} ${chart.sun.position.toFixed(2)}° (${chart.sun.house})\n`;
                 md += `- **Moon**: ${chart.moon.sign} ${chart.moon.position.toFixed(2)}° (${chart.moon.house})\n`;
                 md += `- **Mercury**: ${chart.mercury.sign} ${chart.mercury.position.toFixed(2)}° (${chart.mercury.house})${chart.mercury.retrograde ? ' ℞' : ''}\n`;
@@ -822,7 +865,8 @@
                     state: document.getElementById('relocationState').value.trim(),
                     latitude: relocationCoords.latitude,
                     longitude: relocationCoords.longitude,
-                    coordinates: document.getElementById('relocationCoords').value.trim()
+                    coordinates: document.getElementById('relocationCoords').value.trim(),
+                    excludePersonB: excludePersonBFromRelocation?.checked || false
                 };
             } else {
                 formData.relocation = { enabled: false };
@@ -1013,6 +1057,7 @@
             // Relocation toggle
             relocationToggle.addEventListener('change', () => {
                 relocationFields.classList.toggle('hidden', !relocationToggle.checked);
+                updateRelocationPersonBOption();
             });
 
             // Relational context visibility
@@ -1052,6 +1097,31 @@
             // Protocol requirement: Location affects angle geometry regardless of context mode
             const showRelocation = true; // Always show relocation - it's a fundamental geometric option
             relocationSection.style.display = showRelocation ? 'block' : 'none';
+            
+            // Update Person B relocation option visibility
+            updateRelocationPersonBOption();
+            
+            // Show/hide relational context section based on whether Person B is needed
+            if (showPersonB) {
+                relationalContextSection.classList.remove('hidden');
+            } else {
+                relationalContextSection.classList.add('hidden');
+            }
+        }
+        
+        function updateRelocationPersonBOption() {
+            const mode = document.querySelector('input[name="contextMode"]:checked').value;
+            const showPersonB = mode !== 'natal';
+            const relocationEnabled = relocationToggle && relocationToggle.checked;
+            
+            // Show the Person B relocation option only if Person B is present and relocation is enabled
+            if (relocationPersonBOption) {
+                if (showPersonB && relocationEnabled) {
+                    relocationPersonBOption.classList.remove('hidden');
+                } else {
+                    relocationPersonBOption.classList.add('hidden');
+                }
+            }
         }
 
         // Initial UI setup on page load
@@ -1077,6 +1147,8 @@
             relationalContextSection = document.getElementById('relational-context-section');
             intimacyTierDropdown = document.getElementById('intimacy-tier-dropdown');
             exRelationshipCheckbox = document.getElementById('exRelationship');
+            relocationPersonBOption = document.getElementById('relocationPersonBOption');
+            excludePersonBFromRelocation = document.getElementById('excludePersonBFromRelocation');
             transitStartDate = document.getElementById('transitStartDate');
             transitEndDate = document.getElementById('transitEndDate');
             transitStep = document.getElementById('transitStep');

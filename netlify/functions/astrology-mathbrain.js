@@ -218,7 +218,7 @@ function normalizeCoordinates(subject) {
   }
 }
 
-function buildWMChart({ personA, personB, relocation, synastry, context }) {
+function buildWMChart({ personA, personB, relocationA, relocationB, synastry, context }) {
   function extractDetails(subject) {
     let coords = subject.birth_coordinates || `${subject.latitude},${subject.longitude}` || "";
     let latitude = subject.latitude;
@@ -262,7 +262,8 @@ function buildWMChart({ personA, personB, relocation, synastry, context }) {
       details: extractDetails(personB.details || personB),
       chart: personB.chart || personB
     } : undefined,
-    relocation: relocation ? relocation : undefined,
+    relocation_a: relocationA ? relocationA : undefined,
+    relocation_b: relocationB ? relocationB : undefined,
     synastry: synastry ? synastry : undefined
   };
   if (personA.chart?.transits && personA.chart?.transitsByDate) {
@@ -358,7 +359,9 @@ exports.handler = async function (event) {
     }
     let natalA = await calculateNatalChart(personA);
     let natalB = personB ? await calculateNatalChart(personB) : undefined;
-    let relocation = relocationData ? await calculateNatalChart({ ...personA, ...relocationData }) : undefined;
+    let relocationA = relocationData ? await calculateNatalChart({ ...personA, ...relocationData }) : undefined;
+    let relocationB = (relocationData && personB && !body.relocation?.excludePersonB) ? 
+      await calculateNatalChart({ ...personB, ...relocationData }) : undefined;
     let synastry = personB ? await calculateSynastry(personA, personB) : undefined;
     if (natalA.transits && Array.isArray(natalA.transits)) {
       natalA.transitsByDate = groupByDate(natalA.transits);
@@ -372,7 +375,8 @@ exports.handler = async function (event) {
     const wmChart = buildWMChart({
       personA: { details: personA, chart: natalA },
       personB: personB ? { details: personB, chart: natalB } : undefined,
-      relocation,
+      relocationA,
+      relocationB,
       synastry,
       context
     });

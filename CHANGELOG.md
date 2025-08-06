@@ -2,16 +2,49 @@
 
 > **Note for AI Assistants:** The following is a commitment to a clear, collaborative workflow. Please adhere to these principles when assisting.
 >
-> - **Plain Language Explanations:** When discussing code, architecture, or documentation, I’ll use accessible language and clarify technical concepts.
-> - **Change Logs & Notes:** For every suggested change or edit, I’ll include a summary of what was changed and why, making your documentation easy to follow.
+> - **Plain Language Explanations:** When discussing code, architecture, or documentation, I'll use accessible language and clarify technical concepts.
+> - **Change Logs & Notes:** For every suggested change or edit, I'll include a summary of what was changed and why, making your documentation easy to follow.
 > - **File Proposals:** Any new or revised file (e.g., Markdown docs) will be presented in a clear format, with annotations as needed.
 > - **Process Guidance:** I can walk you through how to track changes, review commits, or maintain audit logs within your repository.
-> - **API & Integration Checks:** I’ll remind you to check related API documentation and highlight where to keep notes for future reference.
+> - **API & Integration Checks:** I'll remind you to check related API documentation and highlight where to keep notes for future reference.
 >
 > If you have specific questions, want a summary of changes, or need help updating documentation to reflect this workflow, just let me know!
 
 Track every time the app "breaks" (stops working as expected) or is recovered/fixed.  
 Each entry should include the date, a brief description, what caused the break (if known), and how it was resolved.
+
+---
+
+### [2025-08-06 11:30] ENHANCEMENT: DUAL RELOCATION SUPPORT
+**Description:**  
+Enhanced relocation feature to relocate both Person A and Person B by default, with option to exclude Person B from relocation when needed.
+
+**Previous Behavior:**
+- Relocation only calculated relocated chart for Person A
+- Person B remained at original birth location
+- This was inconsistent with typical relationship astrology use cases
+
+**New Behavior:**
+1. **Default**: When relocation is enabled with Person B present, both people are relocated to the same location
+2. **Optional**: Checkbox to "Exclude Person B from relocation" when only Person A should be relocated
+3. **Data Structure**: Separate `relocation_a` and `relocation_b` fields in API output instead of single `relocation` field
+
+**Technical Changes:**
+- **Backend** (`astrology-mathbrain.js`):
+  - Modified relocation calculation to handle both Person A and Person B
+  - Added `excludePersonB` flag support from frontend
+  - Updated data structure to return `relocation_a` and `relocation_b` separately
+  - Updated `buildWMChart()` function signature and logic
+  
+- **Frontend** (`index.html`):
+  - Added "Exclude Person B from relocation" checkbox in relocation section
+  - Checkbox only visible when Person B is present and relocation is enabled
+  - Updated form data collection to include `excludePersonB` flag
+  - Enhanced Markdown report generation to show relocation scope and both relocated chart summaries
+  - Added `updateRelocationPersonBOption()` function for proper UI state management
+
+**Rationale:**
+When doing relationship astrology with relocation, astrologers typically want to see how both people's charts change when they're both in the new location together. This reflects real-world scenarios where couples relocate together and want to understand the relationship dynamics in the new place.
 
 ---
 
