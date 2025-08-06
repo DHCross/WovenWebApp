@@ -313,6 +313,12 @@
                         <label class="flex items-center"><input type="radio" name="relationshipType" value="friend" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Friend or colleague</span></label>
                         <label class="flex items-center"><input type="radio" name="relationshipType" value="family" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Family</span></label>
                     </div>
+                    <div class="mt-3 pt-2 border-t border-gray-600">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="exRelationship" class="form-checkbox h-4 w-4 text-red-400">
+                            <span class="ml-2 text-gray-300">Ex (no longer active relationship)</span>
+                        </label>
+                    </div>
                     <div id="intimacy-tier-dropdown" class="mt-4 hidden">
                         <p class="text-md font-medium text-white mb-2">What best describes the intimacy tier of this connection?</p>
                         <div class="flex flex-col space-y-2">
@@ -382,7 +388,7 @@
     <script src="config.js"></script>
     <script>
         // Global UI element references
-        let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadMarkdownBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel;
+        let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadMarkdownBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel, exRelationshipCheckbox;
 
         // Store the latest result data for downloads
         let latestResultData = null;
@@ -465,6 +471,20 @@
                 md += `- **Coordinates**: ${personB.latitude}, ${personB.longitude}\n`;
                 md += `- **Timezone**: ${personB.timezone}\n`;
                 md += `- **Zodiac Type**: ${personB.zodiac_type}\n\n`;
+
+                // Relationship Context (if present)
+                if (formData.context.relationship_type) {
+                    md += `## Relationship Context\n\n`;
+                    md += `- **Type**: ${formData.context.relationship_type}`;
+                    if (formData.context.is_ex_relationship) {
+                        md += ` (ex - no longer active)`;
+                    }
+                    md += `\n`;
+                    if (formData.context.intimacy_tier) {
+                        md += `- **Intimacy Tier**: ${formData.context.intimacy_tier}\n`;
+                    }
+                    md += `\n`;
+                }
             }
 
             // Relocation (if present)
@@ -789,7 +809,8 @@
                 context: {
                     mode: document.querySelector('input[name="contextMode"]:checked').value,
                     relationship_type: document.querySelector('input[name="relationshipType"]:checked')?.value,
-                    intimacy_tier: document.querySelector('input[name="intimacyTier"]:checked')?.value
+                    intimacy_tier: document.querySelector('input[name="intimacyTier"]:checked')?.value,
+                    is_ex_relationship: exRelationshipCheckbox?.checked || false
                 }
             };
 
@@ -1055,6 +1076,7 @@
             relocationSection = document.getElementById('relocation-section');
             relationalContextSection = document.getElementById('relational-context-section');
             intimacyTierDropdown = document.getElementById('intimacy-tier-dropdown');
+            exRelationshipCheckbox = document.getElementById('exRelationship');
             transitStartDate = document.getElementById('transitStartDate');
             transitEndDate = document.getElementById('transitEndDate');
             transitStep = document.getElementById('transitStep');

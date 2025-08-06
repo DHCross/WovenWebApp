@@ -252,6 +252,7 @@ function buildWMChart({ personA, personB, relocation, synastry, context }) {
     schema: "WM-Chart-1.0",
     relationship_type: context?.relationship_type || "partner",
     intimacy_tier: context?.intimacy_tier || undefined,
+    is_ex_relationship: context?.is_ex_relationship || false,
     diagnostics: [],
     person_a: {
       details: extractDetails(personA.details || personA),
