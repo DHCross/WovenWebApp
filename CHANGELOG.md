@@ -15,6 +15,31 @@ Each entry should include the date, a brief description, what caused the break (
 
 ---
 
+### [2025-08-06 13:00] CLEANUP: REMOVED JSON BLOCK FROM MARKDOWN REPORT
+**Description:**  
+Removed the "Raw Geometry Data" JSON block from the Markdown report to align with the app's focus on human-readable output.
+
+**Previous Behavior:**
+- Markdown reports included a large JSON block containing raw geometry data
+- This was added for transparency/debugging but conflicted with the goal of human-readable output
+- JSON block made reports less clean and harder to read
+
+**Changes Made:**
+- Removed "Raw Geometry Data" section from Markdown report generation
+- Eliminated `JSON.stringify(data, null, 2)` output from reports
+- Kept the report footer with generation attribution
+
+**Rationale:**
+- Aligns with focus on human-readable Markdown output
+- Supports Raven Calder's workflow requirements
+- JSON export functionality was already removed, so including JSON in reports was inconsistent
+- Users who need raw data can still access it through browser developer tools if needed
+
+**Files Changed:**
+- `index.html`: Modified `generateMarkdownReport()` function
+
+---
+
 ### [2025-08-06 11:30] ENHANCEMENT: DUAL RELOCATION SUPPORT
 **Description:**  
 Enhanced relocation feature to relocate both Person A and Person B by default, with option to exclude Person B from relocation when needed.
