@@ -605,6 +605,20 @@
                 const transitStartDate = formData.transitStartDate;
                 const transitEndDate = formData.transitEndDate;
                 
+                console.log('=== MARKDOWN TRANSIT DEBUG ===');
+                console.log('Transit mode detected in markdown generation:', mode);
+                console.log('Transit dates from form:', transitStartDate, 'to', transitEndDate);
+                console.log('Data object keys:', Object.keys(data));
+                console.log('Person A has transitsByDate?', !!data.person_a?.chart?.transitsByDate);
+                console.log('Person B has transitsByDate?', !!data.person_b?.chart?.transitsByDate);
+                
+                if (data.person_a?.chart?.transitsByDate) {
+                    console.log('Person A transit dates available:', Object.keys(data.person_a.chart.transitsByDate));
+                }
+                if (data.person_b?.chart?.transitsByDate) {
+                    console.log('Person B transit dates available:', Object.keys(data.person_b.chart.transitsByDate));
+                }
+                
                 md += `## Transit Analysis\n\n`;
                 md += `**Period**: ${transitStartDate} to ${transitEndDate}\n\n`;
 
@@ -618,17 +632,27 @@
                         return date >= transitStartDate && date <= transitEndDate;
                     }).sort();
                     
+                    console.log('Person A relevant dates:', relevantDates);
+                    
                     if (relevantDates.length > 0) {
                         relevantDates.forEach(date => {
+                            const transitsForDate = personATransits[date];
+                            console.log(`Person A transits for ${date}:`, transitsForDate?.length || 0, 'aspects');
+                            
                             md += `#### ${date}\n\n`;
-                            personATransits[date].slice(0, 10).forEach(transit => {
+                            transitsForDate.slice(0, 10).forEach(transit => {
                                 md += `- **${transit.p1_name}** ${transit.aspect} **${transit.p2_name}** (${Math.abs(transit.orbit).toFixed(1)}° orb)\n`;
                             });
                             md += `\n`;
                         });
                     } else {
                         md += `No significant transits found for Person A in the specified date range.\n\n`;
+                        console.log('No relevant dates found for Person A');
                     }
+                } else {
+                    md += `### Person A Current Transits\n\n`;
+                    md += `No transit data available for Person A.\n\n`;
+                    console.log('No transitsByDate found for Person A');
                 }
 
                 // Person B Transits (for synastry modes)
@@ -641,18 +665,30 @@
                         return date >= transitStartDate && date <= transitEndDate;
                     }).sort();
                     
+                    console.log('Person B relevant dates:', relevantDates);
+                    
                     if (relevantDates.length > 0) {
                         relevantDates.forEach(date => {
+                            const transitsForDate = personBTransits[date];
+                            console.log(`Person B transits for ${date}:`, transitsForDate?.length || 0, 'aspects');
+                            
                             md += `#### ${date}\n\n`;
-                            personBTransits[date].slice(0, 10).forEach(transit => {
+                            transitsForDate.slice(0, 10).forEach(transit => {
                                 md += `- **${transit.p1_name}** ${transit.aspect} **${transit.p2_name}** (${Math.abs(transit.orbit).toFixed(1)}° orb)\n`;
                             });
                             md += `\n`;
                         });
                     } else {
                         md += `No significant transits found for Person B in the specified date range.\n\n`;
+                        console.log('No relevant dates found for Person B');
                     }
+                } else if (mode.includes('synastry')) {
+                    md += `### Person B Current Transits\n\n`;
+                    md += `No transit data available for Person B.\n\n`;
+                    console.log('No transitsByDate found for Person B');
                 }
+                
+                console.log('=== END MARKDOWN TRANSIT DEBUG ===');
 
                 // Synastry Transits (transits to synastry aspects)
                 if (mode.includes('synastry') && data.synastry?.transitsByDate) {
@@ -977,11 +1013,26 @@
                 const endDateElement = document.getElementById('transitEndDate');
                 const stepElement = document.getElementById('transitStep');
                 
+                console.log('=== FRONTEND TRANSIT DEBUG ===');
+                console.log('Transit mode detected:', mode);
+                console.log('Start date element:', startDateElement, 'Value:', startDateElement?.value);
+                console.log('End date element:', endDateElement, 'Value:', endDateElement?.value);
+                console.log('Step element:', stepElement, 'Value:', stepElement?.value);
+                
                 if (startDateElement && endDateElement && stepElement) {
                     formData.transitStartDate = startDateElement.value;
                     formData.transitEndDate = endDateElement.value;
                     formData.transitStep = stepElement.value;
+                    
+                    console.log('Transit data added to form:', {
+                        transitStartDate: formData.transitStartDate,
+                        transitEndDate: formData.transitEndDate,
+                        transitStep: formData.transitStep
+                    });
+                } else {
+                    console.log('WARNING: Transit elements not found or missing values');
                 }
+                console.log('=== END FRONTEND TRANSIT DEBUG ===');
             }
 
             console.log("=== FINAL FORM DATA ===");

@@ -124,6 +124,40 @@ Successfully identified and implemented the correct approach for transit data by
 
 ---
 
+### [2025-08-06 14:00] CRITICAL FIX: CORRECTED TRANSIT API RESPONSE STRUCTURE
+**Description:**  
+Fixed critical issue in transit API integration by carefully reviewing the API documentation and correcting the response parsing logic.
+
+**Issues Found:**
+1. **Wrong Response Structure**: Was looking for `parsed.data.aspects` when API returns `parsed.aspects` at root level
+2. **API Documentation Review**: Confirmed correct request structure and required fields
+3. **Field Requirements**: Verified that all required fields are being sent correctly
+
+**API Structure Confirmed:**
+- **Endpoint**: `/api/v4/transit-aspects-data`
+- **Request**: `TransitChartRequestModel`
+  - `first_subject`: SubjectModel (natal chart) - requires: year, month, day, hour, minute, city, name
+  - `transit_subject`: TransitSubjectModel (transit date) - requires: year, month, day, hour, minute, city
+- **Response**: `TransitAspectsResponseModel`
+  - `status`: string
+  - `data`: TransitDataModel  
+  - `aspects`: array of AspectModel (THIS is what we need)
+
+**Key Fix:**
+- Changed from `parsed.data.aspects` to `parsed.aspects` 
+- Added fallback to check both structures for robustness
+- Enhanced debugging to show full API response structure
+
+**Expected Result:**
+- Transit API calls should now correctly parse aspect data
+- Should return actual planetary transits for each date in the range
+- Debug logs will show successful aspect parsing and counts
+
+**Files Changed:**
+- `netlify/functions/astrology-mathbrain.js`: Fixed response parsing logic
+
+---
+
 ### [2025-08-06 13:00] CLEANUP: REMOVED JSON BLOCK FROM MARKDOWN REPORT
 **Description:**  
 Removed the "Raw Geometry Data" JSON block from the Markdown report to align with the app's focus on human-readable output.
