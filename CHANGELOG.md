@@ -15,6 +15,44 @@ Each entry should include the date, a brief description, what caused the break (
 
 ---
 
+### [2025-08-06 13:15] BUG FIX: FIXED MISSING TRANSIT DATA AND JSON BLOCK PERSISTENCE
+**Description:**  
+Fixed critical issues with transit data processing and report generation that were preventing proper transit analysis in the Woven Map app.
+
+**Issues Found:**
+1. **Wrong Report Generation Path**: Main report display was using raw JSON output instead of human-readable Markdown
+2. **Missing Transit Data**: Despite selecting "SYNASTRY TRANSITS" mode, no transit sections appeared in reports
+3. **JSON Block Persistence**: Raw geometry JSON block continued to appear despite being removed
+4. **Incomplete Form Data Collection**: Transit date ranges weren't being properly collected from form fields
+
+**Root Cause:**
+- Main report display was falling back to legacy JSON report generation path
+- `generateMarkdownReport()` function didn't include transit data processing logic
+- Form data collection had incorrect variable references for transit dates
+
+**Changes Made:**
+- **Fixed Report Generation**: Updated main result handler to use `generateMarkdownReport()` instead of raw JSON
+- **Added Transit Processing**: Enhanced `generateMarkdownReport()` to include comprehensive transit analysis
+  - Person A transit analysis with date filtering
+  - Person B transit analysis (for synastry modes)
+  - Synastry transit activations
+  - Composite chart transits (for composite modes)
+- **Fixed Form Data Collection**: Corrected transit date field collection in `collectFormData()`
+- **Date Range Filtering**: Transits now properly filtered by user-specified date range
+- **Enhanced Structure**: Transit sections organized by date with clear headers
+
+**Result:**
+- Reports now correctly display transit data for the specified date range (e.g., through August 10th)
+- JSON blocks no longer appear in human-readable reports
+- All transit modes (natal_transits, synastry_transits, composite_transits) now functional
+- Reports align with user workflow expectations for astrology analysis
+
+**Files Changed:**
+- `index.html`: Modified result handler and `generateMarkdownReport()` function
+- `index.html`: Fixed `collectFormData()` transit date collection
+
+---
+
 ### [2025-08-06 13:00] CLEANUP: REMOVED JSON BLOCK FROM MARKDOWN REPORT
 **Description:**  
 Removed the "Raw Geometry Data" JSON block from the Markdown report to align with the app's focus on human-readable output.

@@ -600,6 +600,107 @@
                 md += `\n`;
             }
 
+            // Process Transit Data (if mode includes transits)
+            if (mode.includes('_transits')) {
+                const transitStartDate = formData.transitStartDate;
+                const transitEndDate = formData.transitEndDate;
+                
+                md += `## Transit Analysis\n\n`;
+                md += `**Period**: ${transitStartDate} to ${transitEndDate}\n\n`;
+
+                // Person A Transits
+                if (data.person_a?.chart?.transitsByDate) {
+                    md += `### Person A Current Transits\n\n`;
+                    const personATransits = data.person_a.chart.transitsByDate;
+                    
+                    // Filter transits within date range
+                    const relevantDates = Object.keys(personATransits).filter(date => {
+                        return date >= transitStartDate && date <= transitEndDate;
+                    }).sort();
+                    
+                    if (relevantDates.length > 0) {
+                        relevantDates.forEach(date => {
+                            md += `#### ${date}\n\n`;
+                            personATransits[date].slice(0, 10).forEach(transit => {
+                                md += `- **${transit.p1_name}** ${transit.aspect} **${transit.p2_name}** (${Math.abs(transit.orbit).toFixed(1)}° orb)\n`;
+                            });
+                            md += `\n`;
+                        });
+                    } else {
+                        md += `No significant transits found for Person A in the specified date range.\n\n`;
+                    }
+                }
+
+                // Person B Transits (for synastry modes)
+                if (mode.includes('synastry') && data.person_b?.chart?.transitsByDate) {
+                    md += `### Person B Current Transits\n\n`;
+                    const personBTransits = data.person_b.chart.transitsByDate;
+                    
+                    // Filter transits within date range
+                    const relevantDates = Object.keys(personBTransits).filter(date => {
+                        return date >= transitStartDate && date <= transitEndDate;
+                    }).sort();
+                    
+                    if (relevantDates.length > 0) {
+                        relevantDates.forEach(date => {
+                            md += `#### ${date}\n\n`;
+                            personBTransits[date].slice(0, 10).forEach(transit => {
+                                md += `- **${transit.p1_name}** ${transit.aspect} **${transit.p2_name}** (${Math.abs(transit.orbit).toFixed(1)}° orb)\n`;
+                            });
+                            md += `\n`;
+                        });
+                    } else {
+                        md += `No significant transits found for Person B in the specified date range.\n\n`;
+                    }
+                }
+
+                // Synastry Transits (transits to synastry aspects)
+                if (mode.includes('synastry') && data.synastry?.transitsByDate) {
+                    md += `### Synastry Transit Activations\n\n`;
+                    const synastryTransits = data.synastry.transitsByDate;
+                    
+                    // Filter transits within date range
+                    const relevantDates = Object.keys(synastryTransits).filter(date => {
+                        return date >= transitStartDate && date <= transitEndDate;
+                    }).sort();
+                    
+                    if (relevantDates.length > 0) {
+                        relevantDates.forEach(date => {
+                            md += `#### ${date}\n\n`;
+                            synastryTransits[date].slice(0, 10).forEach(transit => {
+                                md += `- **${transit.p1_name}** ${transit.aspect} **${transit.p2_owner} ${transit.p2_name}** (${Math.abs(transit.orbit).toFixed(1)}° orb)\n`;
+                            });
+                            md += `\n`;
+                        });
+                    } else {
+                        md += `No significant synastry transit activations in the specified date range.\n\n`;
+                    }
+                }
+
+                // Composite Transits (for composite modes)
+                if (mode.includes('composite') && data.composite?.chart?.transitsByDate) {
+                    md += `### Composite Chart Transits\n\n`;
+                    const compositeTransits = data.composite.chart.transitsByDate;
+                    
+                    // Filter transits within date range
+                    const relevantDates = Object.keys(compositeTransits).filter(date => {
+                        return date >= transitStartDate && date <= transitEndDate;
+                    }).sort();
+                    
+                    if (relevantDates.length > 0) {
+                        relevantDates.forEach(date => {
+                            md += `#### ${date}\n\n`;
+                            compositeTransits[date].slice(0, 10).forEach(transit => {
+                                md += `- **${transit.p1_name}** ${transit.aspect} **${transit.p2_name}** (${Math.abs(transit.orbit).toFixed(1)}° orb)\n`;
+                            });
+                            md += `\n`;
+                        });
+                    } else {
+                        md += `No significant composite transits in the specified date range.\n\n`;
+                    }
+                }
+            }
+
             md += `---\n*Generated by Woven Map Math Brain - Pure Astrological Geometry*`;
 
             return md;
@@ -872,12 +973,14 @@
 
             const mode = formData.context.mode;
             if (mode === 'natal_transits' || mode === 'synastry_transits' || mode === 'composite_transits') {
-                if (transitStartDate && transitEndDate && transitStep) {
-                    formData.transit = {
-                        startDate: transitStartDate.value,
-                        endDate: transitEndDate.value,
-                        step: transitStep.value
-                    };
+                const startDateElement = document.getElementById('transitStartDate');
+                const endDateElement = document.getElementById('transitEndDate');
+                const stepElement = document.getElementById('transitStep');
+                
+                if (startDateElement && endDateElement && stepElement) {
+                    formData.transitStartDate = startDateElement.value;
+                    formData.transitEndDate = endDateElement.value;
+                    formData.transitStep = stepElement.value;
                 }
             }
 
@@ -960,19 +1063,8 @@
                 // Store result data for downloads
                 latestResultData = result;
 
-                let report = '';
-                if (result._mathBrainOutput) {
-                    report += '=== MATH BRAIN GEOMETRY OUTPUT ===\n';
-                    report += `Computation completed: ${result._fieldToMapComputed}\n\n`;
-                    const geometryData = { ...result };
-                    delete geometryData._mathBrainOutput;
-                    delete geometryData._fieldToMapComputed;
-                    delete geometryData._voiceLayerContext;
-                    report += JSON.stringify(geometryData, null, 2);
-                } else {
-                    report = JSON.stringify(result, null, 2);
-                }
-
+                // Generate human-readable Markdown report
+                const report = generateMarkdownReport(result);
                 reportContent.textContent = report;
                 reportOutput.classList.remove('hidden');
 
