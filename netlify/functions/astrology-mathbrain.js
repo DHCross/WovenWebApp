@@ -1,5 +1,6 @@
 const API_NATAL_URL = "https://astrologer.p.rapidapi.com/api/v4/natal-aspects-data";
 const API_SYNASTRY_URL = "https://astrologer.p.rapidapi.com/api/v4/synastry-aspects-data";
+const API_TRANSIT_URL = "https://astrologer.p.rapidapi.com/api/v4/transit-aspects-data";
 
 // Header template for RapidAPI requests
 function buildHeaders() {
@@ -124,22 +125,13 @@ function hasValidData(data) {
   return data && (data.date || data.year) && (data.coordinates || (data.latitude && data.longitude));
 }
 
-async function calculateNatalChart(subject, transitParams = null) {
+async function calculateNatalChart(subject) {
   console.log('MATH BRAIN: Calculating natal chart for:', JSON.stringify(subject));
-  console.log('MATH BRAIN: Transit params:', JSON.stringify(transitParams));
-  
-  // Build request body - include transit parameters if provided
-  const requestBody = { subject };
-  if (transitParams) {
-    requestBody.transit_date_start = transitParams.startDate;
-    requestBody.transit_date_end = transitParams.endDate;
-    requestBody.include_transits = true;
-  }
   
   const response = await fetch(API_NATAL_URL, {
     method: 'POST',
     headers: buildHeaders(),
-    body: JSON.stringify(requestBody)
+    body: JSON.stringify({ subject })
   });
 
   const rawText = await response.text();
@@ -155,12 +147,7 @@ async function calculateNatalChart(subject, transitParams = null) {
     throw new Error('Malformed response from API');
   }
 
-  console.log('MATH BRAIN: API response keys:', Object.keys(parsed));
-  console.log('MATH BRAIN: Has transits?', !!parsed.transits);
-  if (parsed.transits) {
-    console.log('MATH BRAIN: Transit count:', parsed.transits.length);
-    console.log('MATH BRAIN: Sample transits:', parsed.transits.slice(0, 2));
-  }
+  console.log('MATH BRAIN: Natal API response keys:', Object.keys(parsed));
 
   // Group transits by date for easier access
   if (parsed.transits && Array.isArray(parsed.transits)) {
@@ -170,25 +157,16 @@ async function calculateNatalChart(subject, transitParams = null) {
   return parsed;
 }
 
-async function calculateSynastry(firstSubject, secondSubject, transitParams = null) {
+async function calculateSynastry(firstSubject, secondSubject) {
   console.log('MATH BRAIN: Calculating synastry for:', JSON.stringify({ firstSubject, secondSubject }));
-  console.log('MATH BRAIN: Synastry transit params:', JSON.stringify(transitParams));
-  
-  // Build request body - include transit parameters if provided
-  const requestBody = { 
-    first_subject: firstSubject,
-    second_subject: secondSubject 
-  };
-  if (transitParams) {
-    requestBody.transit_date_start = transitParams.startDate;
-    requestBody.transit_date_end = transitParams.endDate;
-    requestBody.include_transits = true;
-  }
   
   const response = await fetch(API_SYNASTRY_URL, {
     method: 'POST',
     headers: buildHeaders(),
-    body: JSON.stringify(requestBody)
+    body: JSON.stringify({ 
+      first_subject: firstSubject,
+      second_subject: secondSubject 
+    })
   });
 
   const rawText = await response.text();
@@ -200,11 +178,6 @@ async function calculateSynastry(firstSubject, secondSubject, transitParams = nu
   try {
     const parsed = JSON.parse(rawText);
     console.log('MATH BRAIN: Synastry API response keys:', Object.keys(parsed));
-    console.log('MATH BRAIN: Synastry has transits?', !!parsed.transits);
-    if (parsed.transits) {
-      console.log('MATH BRAIN: Synastry transit count:', parsed.transits.length);
-      console.log('MATH BRAIN: Sample synastry transits:', parsed.transits.slice(0, 2));
-    }
     return parsed;
   } catch {
     throw new Error('Malformed response from API');
@@ -401,12 +374,35 @@ exports.handler = async function (event) {
         };
       }
     }
-    let natalA = await calculateNatalChart(personA, transitParams);
-    let natalB = personB ? await calculateNatalChart(personB, transitParams) : undefined;
-    let relocationA = relocationData ? await calculateNatalChart({ ...personA, ...relocationData }, transitParams) : undefined;
+    let natalA = await calculateNatalChart(personA);
+    let natalB = personB ? await calculateNatalChart(personB) : undefined;
+    let relocationA = relocationData ? await calculateNatalChart({ ...personA, ...relocationData }) : undefined;
     let relocationB = (relocationData && personB && !body.relocation?.excludePersonB) ? 
-      await calculateNatalChart({ ...personB, ...relocationData }, transitParams) : undefined;
-    let synastry = personB ? await calculateSynastry(personA, personB, transitParams) : undefined;
+      await calculateNatalChart({ ...personB, ...relocationData }) : undefined;
+    let synastry = personB ? await calculateSynastry(personA, personB) : undefined;
+    
+    // Calculate transit data if transit parameters are provided
+    let transitDataA = null;
+    let transitDataB = null;
+    if (transitParams && transitParams.startDate && transitParams.endDate) {
+      console.log('MATH BRAIN: Calculating transit data for date range');
+      transitDataA = await calculateTransitData(personA, transitParams.startDate, transitParams.endDate);
+      if (personB) {
+        transitDataB = await calculateTransitData(personB, transitParams.startDate, transitParams.endDate);
+      }
+    }
+    
+    // Add transit data to charts if available
+    if (transitDataA) {
+      natalA.transitsByDate = transitDataA;
+      console.log('MATH BRAIN: Added transit data to Person A:', Object.keys(transitDataA));
+    }
+    if (transitDataB) {
+      natalB.transitsByDate = transitDataB;
+      console.log('MATH BRAIN: Added transit data to Person B:', Object.keys(transitDataB));
+    }
+    
+    // Legacy code - remove these as we're now using dedicated transit API
     if (natalA.transits && Array.isArray(natalA.transits)) {
       natalA.transitsByDate = groupByDate(natalA.transits);
     }
@@ -436,3 +432,60 @@ exports.handler = async function (event) {
     };
   }
 };
+
+async function calculateTransitData(natalSubject, transitStartDate, transitEndDate) {
+  console.log('MATH BRAIN: Calculating transit data for:', JSON.stringify(natalSubject));
+  console.log('MATH BRAIN: Transit period:', transitStartDate, 'to', transitEndDate);
+  
+  // Parse dates and create transit subject for each day in the range
+  const start = new Date(transitStartDate);
+  const end = new Date(transitEndDate);
+  const transitDataByDate = {};
+  
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toISOString().split('T')[0];
+    
+    // Create transit subject for this specific date at noon
+    const transitSubject = {
+      year: d.getFullYear(),
+      month: d.getMonth() + 1,
+      day: d.getDate(),
+      hour: 12,  // Use noon for transit calculations
+      minute: 0,
+      city: "Greenwich",  // Use Greenwich as reference point for transits
+      latitude: 51.4825766,
+      longitude: 0,
+      timezone: "UTC"
+    };
+    
+    try {
+      const response = await fetch(API_TRANSIT_URL, {
+        method: 'POST',
+        headers: buildHeaders(),
+        body: JSON.stringify({
+          first_subject: natalSubject,
+          transit_subject: transitSubject
+        })
+      });
+
+      const rawText = await response.text();
+      if (!response.ok) {
+        console.error(`Transit API error for ${dateStr}:`, response.status, rawText);
+        continue; // Skip this date if API call fails
+      }
+
+      const parsed = JSON.parse(rawText);
+      console.log(`MATH BRAIN: Transit API response for ${dateStr}:`, Object.keys(parsed));
+      
+      if (parsed.data && parsed.data.aspects) {
+        transitDataByDate[dateStr] = parsed.data.aspects;
+        console.log(`MATH BRAIN: Found ${parsed.data.aspects.length} transit aspects for ${dateStr}`);
+      }
+    } catch (error) {
+      console.error(`MATH BRAIN: Error calculating transits for ${dateStr}:`, error);
+      continue; // Skip this date if there's an error
+    }
+  }
+  
+  return transitDataByDate;
+}
