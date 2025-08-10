@@ -312,7 +312,8 @@ function createUserFriendlyError(apiError, operation, errorId) {
     429: 'Too many requests. Please wait a moment and try again.',
     500: 'Server error. Please try again later.',
     502: 'Service temporarily down. Please try again later.',
-    503: 'Service temporarily unavailable. Please try again later.'
+    503: 'Service temporarily unavailable. Please try again later.',
+    504: 'Request timed out. Reduce the date range or try again.'
   };
   
   const userMessage = errorMap[apiError.status] || 'Unexpected error occurred. Please try again.';
@@ -1258,12 +1259,13 @@ if (process.env.NODE_ENV === 'test') {
  * @returns {Promise<Object>} Object with date keys and transit aspect arrays as values
  * @throws {Error} If validation fails or date format is invalid
  */
-async function calculateTransitData(natalSubject, transitStartDate, transitEndDate, batchSize = 5, requestId = null) {
+async function calculateTransitData(natalSubject, transitStartDate, transitEndDate, step = 'daily', batchSize = 5, requestId = null) {
   logger.info('Starting transit calculation', { 
     natalSubject: natalSubject.name, 
     startDate: transitStartDate, 
     endDate: transitEndDate,
-    batchSize 
+    batchSize,
+    step
   }, requestId);
   
   // Validate natal subject has all required fields
@@ -1295,12 +1297,18 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
   
   logger.debug('Date range validation passed', { start, end, days: daysDiff }, requestId);
   
+  const stepDays = (typeof step === 'number') ? Math.max(1, step | 0) : (step === 'weekly' ? 7 : 1);
+  const maxPoints = parseInt(process.env.MAX_TRANSIT_POINTS) || 40;
   const transitDataByDate = {};
   const dates = [];
-  
-  // Generate array of all dates in the range
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+  // Generate array of all dates in the range with step sizing
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + stepDays)) {
     dates.push(new Date(d));
+  }
+  if (dates.length > maxPoints) {
+    logger.warn('Transit date count exceeds cap; truncating', { requested: dates.length, cap: maxPoints }, requestId);
+    dates.length = maxPoints;
+    transitDataByDate._truncated = true;
   }
   
   // Process dates in batches to avoid overwhelming the API
