@@ -1,6 +1,10 @@
-const API_NATAL_URL = "https://astrologer.p.rapidapi.com/api/v4/natal-aspects-data";
-const API_SYNASTRY_URL = "https://astrologer.p.rapidapi.com/api/v4/synastry-aspects-data";
-const API_TRANSIT_URL = "https://astrologer.p.rapidapi.com/api/v4/transit-aspects-data";
+const API_BASE_URL = process.env.ASTRO_API_BASE || "https://astrologer.p.rapidapi.com";
+const API_NATAL_URL = `${API_BASE_URL}/api/v4/natal-aspects-data`;
+const API_SYNASTRY_URL = `${API_BASE_URL}/api/v4/synastry-aspects-data`;
+const API_TRANSIT_URL = `${API_BASE_URL}/api/v4/transit-aspects-data`;
+const API_COMPOSITE_DATA_URL = `${API_BASE_URL}/api/v4/composite-aspects-data`;
+const API_NOW_URL = `${API_BASE_URL}/api/v4/now`;
+const API_BIRTH_DATA_URL = `${API_BASE_URL}/api/v4/birth-data`;
 
 /**
  * Default configuration for transit calculations
@@ -554,6 +558,117 @@ function groupByDate(transits) {
   }, {});
 }
 
+// ---------- Composite & Aspect Utilities ----------
+function degNorm(x){
+  let d = x % 360; if (d < 0) d += 360; return d;
+}
+function angleSeparation(a,b){
+  const diff = Math.abs(degNorm(a) - degNorm(b));
+  return diff > 180 ? 360 - diff : diff;
+}
+function circularMidpoint(a,b){
+  const A = degNorm(a), B = degNorm(b);
+  const d = ((B - A + 540) % 360) - 180; // shortest signed arc (-180,180]
+  return degNorm(A + d/2);
+}
+
+// Attempt to extract planet longitudes from various API shapes
+function extractPlanetLongitudesFromApiResponse(resp){
+  // Expected output: { Sun: 123.45, Moon: 234.56, Mercury: ..., ASC?: ..., MC?: ... }
+  const out = {};
+  const candidates = [
+    resp?.planets, resp?.data?.planets, resp?.points, resp?.data?.points,
+    resp?.bodies, resp?.data?.bodies
+  ].filter(Boolean);
+
+  for (const arr of candidates){
+    if (Array.isArray(arr)){
+      for (const p of arr){
+        const name = p.name || p.point || p.body || p.id || p.label;
+        const lon = p.longitude ?? p.lon ?? p.lng ?? p.long;
+        if (name && typeof lon === 'number') out[name] = lon;
+      }
+    } else if (typeof arr === 'object') {
+      for (const [k,v] of Object.entries(arr)){
+        const lon = v?.longitude ?? v?.lon ?? v?.lng ?? v?.long;
+        if (typeof lon === 'number') out[k] = lon;
+      }
+    }
+  }
+
+  // Common angle points sometimes broken out separately
+  const asc = resp?.angles?.ASC || resp?.angles?.Asc || resp?.data?.angles?.ASC;
+  const mc  = resp?.angles?.MC  || resp?.data?.angles?.MC;
+  if (typeof asc === 'number') out.ASC = asc;
+  if (typeof mc  === 'number') out.MC  = mc;
+
+  // --- Kerykeion-style nested placements (e.g., data.composite_subject.sun.abs_pos)
+  const nestedContainers = [
+    resp?.data?.composite_subject,
+    resp?.data?.first_subject,
+    resp?.data?.second_subject,
+    resp?.data?.transit,
+    resp?.data,
+    resp?.composite_subject
+  ].filter(Boolean);
+
+  const planetKeys = [
+    'sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron',
+    'mean_lilith','mean_node','true_node','mean_south_node','true_south_node',
+    'ascendant','descendant','medium_coeli','imum_coeli'
+  ];
+
+  for (const container of nestedContainers){
+    for (const k of planetKeys){
+      const v = container[k];
+      if (!v) continue;
+      const lon = v?.longitude ?? v?.lon ?? v?.abs_pos ?? v?.position;
+      if (typeof lon === 'number'){
+        const keyName = (
+          k === 'ascendant' ? 'ASC' :
+          k === 'medium_coeli' ? 'MC' :
+          k
+        );
+        const normalized = keyName === k ? (k[0].toUpperCase()+k.slice(1)) : keyName;
+        if (out[normalized] === undefined) out[normalized] = lon;
+      }
+    }
+  }
+
+  return out;
+}
+
+const DEFAULT_ASPECTS = [
+  {name:'Conjunction', angle:0,  orb:8},
+  {name:'Opposition',  angle:180,orb:7},
+  {name:'Trine',       angle:120,orb:6},
+  {name:'Square',      angle:90, orb:6},
+  {name:'Sextile',     angle:60, orb:4}
+];
+
+function findAspectsBetween(placementsA, placementsB, aspects=DEFAULT_ASPECTS){
+  const results = [];
+  for (const [nameA, lonA] of Object.entries(placementsA)){
+    if (typeof lonA !== 'number') continue;
+    for (const [nameB, lonB] of Object.entries(placementsB)){
+      if (typeof lonB !== 'number') continue;
+      const sep = angleSeparation(lonA, lonB);
+      for (const asp of aspects){
+        const delta = Math.abs(sep - asp.angle);
+        if (delta <= asp.orb){
+          results.push({
+            a: nameA, b: nameB,
+            aspect: asp.name, exact: asp.angle,
+            separation: +sep.toFixed(2), orb: +delta.toFixed(2)
+          });
+          break; // prefer first matching aspect
+        }
+      }
+    }
+  }
+  return results;
+}
+
 // MATH BRAIN COMPLIANCE: Extract only FIELD-level data, ignore all VOICE context
 function extractFieldData(inputData) {
   const allowedFields = [
@@ -642,6 +757,104 @@ function extractRelocationFieldData(relocationData) {
     longitude: coords[1],
     city: relocationData.city || "Relocated Location",
   };
+}
+
+// ----------- Composite Chart Builders -----------
+function buildCompositePlacements(natalAResp, natalBResp){
+  const A = extractPlanetLongitudesFromApiResponse(natalAResp) || {};
+  const B = extractPlanetLongitudesFromApiResponse(natalBResp) || {};
+  const haveLongitudes = Object.keys(A).length && Object.keys(B).length;
+  if (haveLongitudes){
+    const keys = Array.from(new Set([...Object.keys(A), ...Object.keys(B)]));
+    const composite = {};
+    for (const k of keys){
+      if (typeof A[k] === 'number' && typeof B[k] === 'number'){
+        composite[k] = circularMidpoint(A[k], B[k]);
+      }
+    }
+    return composite;
+  }
+  // If we don't have longitudes here, the handler will call the API composite endpoint instead
+  return {};
+}
+
+function toSubjectModel(p){
+  return {
+    year: p.year || p.y || p.birth_year,
+    month: p.month || p.m || p.birth_month,
+    day: p.day || p.d || p.birth_day,
+    hour: p.hour ?? (typeof p.birth_time==='string'? parseInt(p.birth_time.split(':')[0],10) : undefined),
+    minute: p.minute ?? (typeof p.birth_time==='string'? parseInt((p.birth_time.split(':')[1]||'0'),10) : 0),
+    city: p.city || p.birth_city || 'London',
+    nation: p.nation || p.birth_country || undefined,
+    name: p.name || 'Subject',
+    longitude: p.longitude ?? p.lng ?? undefined,
+    latitude: p.latitude ?? p.lat ?? undefined,
+    timezone: p.timezone || undefined,
+    zodiac_type: p.zodiac_type || p.zodiac || 'Tropic'
+  };
+}
+
+async function fetchCompositePlacementsViaApi(personA, personB){
+  const body = { first_subject: toSubjectModel(personA), second_subject: toSubjectModel(personB) };
+  const resp = await apiCallWithRetry(
+    API_COMPOSITE_DATA_URL,
+    { method:'POST', headers: buildHeaders(), body: JSON.stringify(body) },
+    'Composite aspects data'
+  );
+  return extractPlanetLongitudesFromApiResponse(resp);
+}
+
+function buildCompositeAspects(compositePlacements){
+  return findAspectsBetween(compositePlacements, compositePlacements)
+    .filter(x => x.a !== x.b); // ignore self aspects
+}
+
+async function getCurrentPlanetPlacements(dateStr){
+  const todayIso = new Date().toISOString().slice(0,10);
+  if (dateStr === todayIso){
+    const resp = await apiCallWithRetry(
+      API_NOW_URL,
+      { method:'GET', headers: buildHeaders() },
+      'Now planets'
+    );
+    return extractPlanetLongitudesFromApiResponse(resp);
+  }
+  const [yyyy,mm,dd] = dateStr.split('-').map(Number);
+  const subject = {
+    year: yyyy, month: mm, day: dd,
+    hour: 12, minute: 0,
+    city: 'Greenwich', nation: 'GB', name: `Transit ${dateStr}`,
+    longitude: 0, latitude: 51.4826,
+    zodiac_type: 'Tropic'
+  };
+  const resp = await apiCallWithRetry(
+    API_BIRTH_DATA_URL,
+    { method:'POST', headers: buildHeaders(), body: JSON.stringify({ subject }) },
+    `Birth-data planets for ${dateStr}`
+  );
+  return extractPlanetLongitudesFromApiResponse(resp);
+}
+
+async function computeCompositeTransitsByDate(compositePlacements, startDate, endDate, step='daily', requestId=null){
+  const start = new Date(startDate); const end = new Date(endDate);
+  if (isNaN(start) || isNaN(end)) throw new Error('Invalid date format. Use YYYY-MM-DD.');
+  const stepDays = (typeof step === 'number') ? Math.max(1, step|0) : (step === 'weekly' ? 7 : 1);
+  const dates = [];
+  for (let d=new Date(start); d<=end; d.setDate(d.getDate()+stepDays)){
+    dates.push(d.toISOString().slice(0,10));
+  }
+  const out = {};
+  for (const ds of dates){
+    try{
+      const transiting = await getCurrentPlanetPlacements(ds);
+      const aspects = findAspectsBetween(transiting, compositePlacements);
+      out[ds] = aspects;
+    }catch(err){
+      logger.warn('Failed composite transit day', { date: ds, error: err.message }, requestId);
+    }
+  }
+  return out;
 }
 
 function hasValidData(data) {
@@ -786,7 +999,10 @@ function buildWMChart({ personA, personB, relocationA, relocationB, synastry, co
     } : undefined,
     relocation_a: relocationA ? relocationA : undefined,
     relocation_b: relocationB ? relocationB : undefined,
-    synastry: synastry ? synastry : undefined
+    synastry: synastry ? synastry : undefined,
+    composite: context?.mode === 'COMPOSITE_TRANSITS' && context?.composite
+      ? context.composite
+      : undefined,
   };
   if (personA.chart?.transits && personA.chart?.transitsByDate) {
     const flat = JSON.stringify(personA.chart.transits);
@@ -980,6 +1196,32 @@ exports.handler = async function (event) {
       };
     }
     
+    // Mode invariants: COMPOSITE_TRANSITS guard (concrete checks)
+    if (body?.context?.mode === 'COMPOSITE_TRANSITS') {
+      const haveA = !!body.personA || !!body.person_a || !!body.first_subject;
+      const haveB = !!body.personB || !!body.person_b || !!body.second_subject;
+      const tp = body.transitParams || (body.transitStartDate && body.transitEndDate && {
+        startDate: body.transitStartDate, endDate: body.transitEndDate
+      });
+      const validDate = d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
+      let failReason = null;
+      if (!haveA) failReason = 'missingA';
+      else if (!haveB) failReason = 'missingB';
+      else if (!tp) failReason = 'missingDateRange';
+      else if (!validDate(tp.startDate) || !validDate(tp.endDate)) failReason = 'badDate';
+      if (failReason) {
+        logger.warn(`COMPOSITE_TRANSITS guard tripped: ${failReason}`, { haveA, haveB, tp }, requestId);
+        return {
+          statusCode: 400,
+          body: JSON.stringify({
+            error: "COMPOSITE_TRANSITS requires two subjects (A & B) and a valid date range (startDate, endDate in YYYY-MM-DD).",
+            code: "COMPOSITE_TRANSITS_INVALID_REQUEST",
+            errorId: requestId
+          })
+        };
+      }
+    }
+
     // Comprehensive data validation for all subjects
     const validationA = validateSubject(personA, 'Primary person');
     if (!validationA.isValid) {
@@ -1013,42 +1255,57 @@ exports.handler = async function (event) {
 
     // Execute astrological calculations with comprehensive error handling
     let natalA, natalB, relocationA, relocationB, synastry;
-    
+    // --- Composite chart block
+    let composite = null;
     try {
       logger.info('Starting chart calculations', { requestId }, requestId);
-      
+
       // Primary natal chart calculation (always required)
       natalA = await calculateNatalChart(personA);
       logger.debug('Person A natal chart calculated successfully', null, requestId);
-      
+
       // Secondary natal chart (for synastry analysis)
       if (personB) {
         natalB = await calculateNatalChart(personB);
         logger.debug('Person B natal chart calculated successfully', null, requestId);
       }
-      
+
+      // Build composite chart using API (fallback to midpoint)
+      if (natalA && natalB){
+        let compositePlacements = {};
+        try{
+          compositePlacements = await fetchCompositePlacementsViaApi(personA, personB);
+          logger.debug('Composite placements fetched from API', { points: Object.keys(compositePlacements).length }, requestId);
+        }catch(e){
+          logger.warn('Composite API fetch failed; falling back to midpoint', { error: e.message }, requestId);
+          compositePlacements = buildCompositePlacements(natalA, natalB);
+        }
+        const compositeAspects = buildCompositeAspects(compositePlacements);
+        composite = { placements: compositePlacements, aspects: compositeAspects };
+      }
+
       // Relocation charts (for geographic relocation analysis)
       if (relocationData) {
         relocationA = await calculateNatalChart({ ...personA, ...relocationData });
         logger.debug('Person A relocation chart calculated successfully', null, requestId);
-        
+
         if (personB && !body.relocation?.excludePersonB) {
           relocationB = await calculateNatalChart({ ...personB, ...relocationData });
           logger.debug('Person B relocation chart calculated successfully', null, requestId);
         }
       }
-      
+
       // Synastry analysis (relationship compatibility)
       if (personB) {
         synastry = await calculateSynastry(personA, personB);
         logger.debug('Synastry calculated successfully', null, requestId);
       }
-      
+
     } catch (error) {
       logger.error('Chart calculation failed', error, requestId);
       return {
         statusCode: 500,
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           error: error.message || 'Failed to calculate astrological charts. Please try again.',
           code: 'CALCULATION_ERROR',
           retryable: error.retryable || false,
@@ -1056,50 +1313,62 @@ exports.handler = async function (event) {
         })
       };
     }
-    
+
     // Calculate transit data for date range analysis (if requested)
     if (transitParams && transitParams.startDate && transitParams.endDate) {
       logger.info('Calculating transit data for date range', transitParams, requestId);
-      
+
       try {
         const batchSize = parseInt(process.env.TRANSIT_BATCH_SIZE) || 5;
-        
+
         // Calculate transits for primary person
         const transitDataA = await calculateTransitData(
-          personA, 
-          transitParams.startDate, 
-          transitParams.endDate, 
+          personA,
+          transitParams.startDate,
+          transitParams.endDate,
           batchSize,
           requestId
         );
-        
+
         if (Object.keys(transitDataA).length > 0) {
           natalA.transitsByDate = transitDataA;
-          logger.info('Successfully added transit data to Person A', { 
-            datesWithData: Object.keys(transitDataA).length 
+          logger.info('Successfully added transit data to Person A', {
+            datesWithData: Object.keys(transitDataA).length
           }, requestId);
         } else {
           logger.warn('No transit data available for Person A', null, requestId);
         }
-        
+
         // Calculate transits for secondary person (if present)
         if (personB) {
           const transitDataB = await calculateTransitData(
-            personB, 
-            transitParams.startDate, 
-            transitParams.endDate, 
+            personB,
+            transitParams.startDate,
+            transitParams.endDate,
             batchSize,
             requestId
           );
-          
+
           if (Object.keys(transitDataB).length > 0) {
             natalB.transitsByDate = transitDataB;
-            logger.info('Successfully added transit data to Person B', { 
-              datesWithData: Object.keys(transitDataB).length 
+            logger.info('Successfully added transit data to Person B', {
+              datesWithData: Object.keys(transitDataB).length
             }, requestId);
           } else {
             logger.warn('No transit data available for Person B', null, requestId);
           }
+        }
+        // Composite transits (transits to the composite chart)
+        if (composite && composite.placements){
+          const compTransits = await computeCompositeTransitsByDate(
+            composite.placements,
+            transitParams.startDate,
+            transitParams.endDate,
+            transitParams.step || 'daily',
+            requestId
+          );
+          composite.transitsByDate = compTransits;
+          logger.info('Composite transit data added', { dates: Object.keys(compTransits||{}).length }, requestId);
         }
       } catch (error) {
         logger.error('Transit calculation failed', error, requestId);
@@ -1112,7 +1381,7 @@ exports.handler = async function (event) {
         hasEndDate: !!transitParams?.endDate
       }, requestId);
     }
-    
+
     // Legacy transit grouping (for backwards compatibility with older API responses)
     if (natalA.transits && Array.isArray(natalA.transits)) {
       natalA.transitsByDate = groupByDate(natalA.transits);
@@ -1123,17 +1392,18 @@ exports.handler = async function (event) {
     if (synastry && synastry.transits && Array.isArray(synastry.transits)) {
       synastry.transitsByDate = groupByDate(synastry.transits);
     }
-    
+
     // Build final WM Chart response structure
+    const contextWithComposite = { ...(context||{}), composite, mode: context?.mode || (transitParams ? 'COMPOSITE_TRANSITS' : undefined) };
     const wmChart = buildWMChart({
       personA: { details: personA, chart: natalA },
       personB: personB ? { details: personB, chart: natalB } : undefined,
       relocationA,
       relocationB,
       synastry,
-      context
+      context: contextWithComposite
     });
-    
+
     // Log successful completion with summary
     logger.info('Chart calculation completed successfully', {
       requestId,
@@ -1145,25 +1415,25 @@ exports.handler = async function (event) {
       hasTransitDataA: !!(wmChart.person_a?.chart?.transitsByDate && Object.keys(wmChart.person_a.chart.transitsByDate).length > 0),
       hasTransitDataB: !!(wmChart.person_b?.chart?.transitsByDate && Object.keys(wmChart.person_b.chart.transitsByDate).length > 0)
     }, requestId);
-    
+
     // Record successful completion
     performanceMonitor.endRequest(requestContext, true);
-    
+
     return {
       statusCode: 200,
       body: JSON.stringify(wmChart)
     };
-    
+
   } catch (err) {
     const errorId = generateErrorId();
     logger.error('Unexpected error in handler', err, errorId);
-    
+
     // Record failed completion
     performanceMonitor.endRequest(requestContext, false, 'INTERNAL_ERROR');
-    
+
     return {
       statusCode: 500,
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         error: 'An unexpected error occurred. Please try again.',
         code: 'INTERNAL_ERROR',
         retryable: true,
@@ -1243,7 +1513,15 @@ if (process.env.NODE_ENV === 'test') {
     performanceMonitor,
     logger,
     generateErrorId,
-    createUserFriendlyError
+    createUserFriendlyError,
+    toSubjectModel,
+    fetchCompositePlacementsViaApi,
+    buildCompositePlacements,
+    buildCompositeAspects,
+    computeCompositeTransitsByDate,
+    extractPlanetLongitudesFromApiResponse,
+    circularMidpoint,
+    angleSeparation
   };
 }
 

@@ -1,4 +1,4 @@
-# API Integration Guide for Woven Map Application
+# API Integration Guide for Woven Map (Math Brain)
 
 This document provides detailed guidance on the API integration between the Woven Map frontend and the RapidAPI Astrologer service, based on lessons learned from debugging and development.
 
@@ -7,12 +7,25 @@ This document provides detailed guidance on the API integration between the Wove
 The Woven Map application uses a three-part architecture:
 
 1. **Frontend (index.html)**: Collects user input and sends it to the serverless function
-2. **Serverless Function (astrology-mathbrain.js)**: Validates data and forwards it to the external API
+2. **Serverless Function (netlify/functions/astrology-mathbrain.js)**: Validates data and forwards it to the external API
 3. **External API (Astrologer on RapidAPI)**: Processes the request and returns astrological calculations
+
+## Supported Modes
+
+The backend supports these modes via `context.mode`:
+- `natal` – single-subject natal calculations
+- `synastry` – A↔B comparisons
+- `COMPOSITE_TRANSITS` – midpoint composite placements + composite aspects + **transits to the composite chart** (new)
+
+Notes:
+- `COMPOSITE_TRANSITS` requires **both** `personA` and `personB` and a transit date range.
+- If a date range is provided without an explicit `context.mode`, the backend will treat it as `COMPOSITE_TRANSITS` when two people are present.
 
 ## Required Data Fields
 
-The backend validation in `astrology-mathbrain.js` requires the following fields for each subject (Person A, Person B):
+The backend validation in 
+
+`netlify/functions/astrology-mathbrain.js` requires the following fields for each subject (Person A, Person B):
 
 ```javascript
 const required = [
@@ -21,7 +34,12 @@ const required = [
 ];
 ```
 
-All of these fields must be present and properly formatted for the API request to succeed.
+**Additional requirements by mode:**
+- `COMPOSITE_TRANSITS`:
+  - Two subjects: `personA` and `personB` with all required fields
+  - `transitParams.startDate` (YYYY-MM-DD)
+  - `transitParams.endDate` (YYYY-MM-DD)
+  - Optional: `transitParams.step` = `daily` (default) | `weekly` | number of days (integer)
 
 ## Common Integration Issues
 
@@ -50,9 +68,10 @@ All of these fields must be present and properly formatted for the API request t
 **Problem:** Using incorrect API endpoints leads to 404 errors.
 
 **Solution:**
-- Always use the public-facing endpoint `/api/astrology-mathbrain`
-- Avoid direct references to `/.netlify/functions/astrology-mathbrain`
-- Use a centralized configuration for API endpoints
+- In production, call the public route: `/api/astrology-mathbrain`
+- In local dev, run `netlify dev`; your frontend can call `/api/astrology-mathbrain` (Netlify proxies to `/.netlify/functions/astrology-mathbrain`)
+- Avoid hardcoding `/.netlify/functions/...` in frontend code
+- Centralize the API base path in a config module
 
 ## Environment Setup
 
@@ -60,6 +79,12 @@ The serverless function requires a valid RapidAPI key to function. This key must
 
 1. **Production:** The Netlify environment variables for the deployed site
 2. **Development:** A local `.env` file containing `RAPIDAPI_KEY=your_api_key_here`
+
+The function name is 
+
+`astrology-mathbrain` and is located at 
+
+`netlify/functions/astrology-mathbrain.js`.
 
 **Important:** The server must be restarted after updating the `.env` file.
 
@@ -110,9 +135,17 @@ When troubleshooting API issues:
 - **Cause**: Form validation or data parsing issues
 - **Solution**: Add step-by-step logging in `collectFormData()`, verify coordinate parsing
 
-## Example: Correct Data Format
+### Composite Debugging Checklist
 
-Here is an example of correctly formatted data for the API:
+- Confirm `context.mode` is `COMPOSITE_TRANSITS` (or that two persons + a date range are present)
+- Ensure both `personA` and `personB` payloads include **all required fields**
+- Verify `transitParams.startDate` and `transitParams.endDate` are valid ISO dates
+- Inspect the response for `composite.placements`, `composite.aspects`, and `composite.transitsByDate`
+- If `composite` is missing, check the server logs for warnings about extraction of planet longitudes
+
+## Example Payloads
+
+**Natal (single subject)**
 
 ```javascript
 {
@@ -136,11 +169,85 @@ Here is an example of correctly formatted data for the API:
 }
 ```
 
+**Composite Transits (two subjects)**
+
+```json
+{
+  "personA": {
+    "name": "Person A",
+    "city": "Bryn Mawr",
+    "nation": "US",
+    "year": 1973,
+    "month": 7,
+    "day": 24,
+    "hour": 14,
+    "minute": 30,
+    "latitude": 40.0230,
+    "longitude": -75.3155,
+    "zodiac_type": "Tropic",
+    "timezone": "America/New_York"
+  },
+  "personB": {
+    "name": "Person B",
+    "city": "Panama City",
+    "nation": "US",
+    "year": 2006,
+    "month": 5,
+    "day": 17,
+    "hour": 10,
+    "minute": 15,
+    "latitude": 30.1588,
+    "longitude": -85.6602,
+    "zodiac_type": "Tropic",
+    "timezone": "America/Chicago"
+  },
+  "context": { "mode": "COMPOSITE_TRANSITS" },
+  "transitParams": {
+    "startDate": "2025-08-13",
+    "endDate": "2025-08-20",
+    "step": "daily"
+  }
+}
+```
+
+## Response Shape (COMPOSITE_TRANSITS)
+
+The response includes a `composite` node:
+
+```
+```json
+{
+  "composite": {
+    "placements": { "Sun": 123.45, "Moon": 234.56, "ASC": 210.10, "MC": 15.30, "Mercury": 98.12, "Venus": 76.44, ... },
+    "aspects": [
+      {"a":"Sun","b":"Moon","aspect":"Square","exact":90,"separation":92.10,"orb":2.10},
+      {"a":"Venus","b":"Mars","aspect":"Trine","exact":120,"separation":118.50,"orb":1.50}
+    ],
+    "transitsByDate": {
+      "2025-08-13": [
+        {"a":"Jupiter","b":"Sun","aspect":"Opposition","exact":180,"separation":182.30,"orb":2.30}
+      ],
+      "2025-08-14": [ ... ]
+    }
+  }
+}
+```
+
 ## Best Practices
 
 1. **Contract-First Development:** Use the `openapi.json` as the source of truth for API integration
 2. **Defensive Programming:** Always validate form data before submission
 3. **Detailed Logging:** Log form data and API responses during development
 4. **Error Handling:** Provide clear error messages for missing or invalid data
+- **Mode Invariants:** When `context.mode` is `COMPOSITE_TRANSITS`, validate two subjects and a date range on the client before sending.
 
 By following these guidelines, you can avoid common integration issues and ensure the Woven Map application works correctly with the RapidAPI Astrologer service.
+
+## Frontend Checklist (Quick)
+
+- All required fields present for A and B
+- `context.mode` set appropriately
+- Date range set when requesting composite transits
+- Public endpoint `/api/astrology-mathbrain` used (dev via `netlify dev`)
+- Console + Network tabs show a complete payload
+- Response parsed for `composite.*` fields
