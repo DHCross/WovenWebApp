@@ -1326,6 +1326,7 @@ exports.handler = async function (event) {
           personA,
           transitParams.startDate,
           transitParams.endDate,
+          transitParams.step || 'daily',
           batchSize,
           requestId
         );
@@ -1345,6 +1346,7 @@ exports.handler = async function (event) {
             personB,
             transitParams.startDate,
             transitParams.endDate,
+            transitParams.step || 'daily',
             batchSize,
             requestId
           );
@@ -1394,7 +1396,11 @@ exports.handler = async function (event) {
     }
 
     // Build final WM Chart response structure
-    const contextWithComposite = { ...(context||{}), composite, mode: context?.mode || (transitParams ? 'COMPOSITE_TRANSITS' : undefined) };
+    const contextWithComposite = { 
+      ...(context || {}),
+      ...(context?.mode === 'COMPOSITE_TRANSITS' ? { composite } : {})
+      // Do NOT override mode; keep context?.mode as-is
+    };
     const wmChart = buildWMChart({
       personA: { details: personA, chart: natalA },
       personB: personB ? { details: personB, chart: natalB } : undefined,
