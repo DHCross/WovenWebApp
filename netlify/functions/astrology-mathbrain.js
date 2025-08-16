@@ -362,9 +362,9 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
       rateLimiter.recordCall();
       performanceMonitor.recordApiCall(url); // Record API call for performance monitoring
       
-      // Apply a per-call timeout to avoid Netlify 504s (default 7s)
+      // Apply a per-call timeout to avoid Netlify 504s (default 3s)
       const controller = new AbortController();
-      const timeoutMs = parseInt(process.env.API_CALL_TIMEOUT_MS) || 7000;
+      const timeoutMs = parseInt(process.env.API_CALL_TIMEOUT_MS) || 3000;
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
       const opts = { ...options, signal: controller.signal };
       const response = await fetch(url, opts);
@@ -1346,7 +1346,7 @@ exports.handler = async function (event) {
       logger.info('Calculating transit data for date range', transitParams, requestId);
 
       try {
-        const batchSize = parseInt(process.env.TRANSIT_BATCH_SIZE) || 5;
+        const batchSize = parseInt(process.env.TRANSIT_BATCH_SIZE) || 3;
 
         // Calculate transits for primary person
         const transitDataA = await calculateTransitData(
@@ -1387,8 +1387,8 @@ exports.handler = async function (event) {
             logger.warn('No transit data available for Person B', null, requestId);
           }
         }
-        // Composite transits (transits to the composite chart)
-        if (composite && composite.placements){
+        // Composite transits (only when explicitly requested to reduce API calls/timeouts)
+        if (composite && composite.placements && (context?.mode === 'COMPOSITE_TRANSITS')){
           const compTransits = await computeCompositeTransitsByDate(
             composite.placements,
             transitParams.startDate,
@@ -1398,6 +1398,8 @@ exports.handler = async function (event) {
           );
           composite.transitsByDate = compTransits;
           logger.info('Composite transit data added', { dates: Object.keys(compTransits||{}).length }, requestId);
+        } else if (composite && composite.placements) {
+          logger.debug('Skipping composite transits (mode not COMPOSITE_TRANSITS)', { mode: context?.mode }, requestId);
         }
       } catch (error) {
         logger.error('Transit calculation failed', error, requestId);
@@ -1609,7 +1611,7 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
   logger.debug('Date range validation passed', { start, end, days: daysDiff }, requestId);
   
   const stepDays = (typeof step === 'number') ? Math.max(1, step | 0) : (step === 'weekly' ? 7 : 1);
-  const maxPoints = parseInt(process.env.MAX_TRANSIT_POINTS) || 14;
+  const maxPoints = parseInt(process.env.MAX_TRANSIT_POINTS) || 10;
   const transitDataByDate = {};
   const dates = [];
   // Generate array of all dates in the range with step sizing
@@ -1622,7 +1624,7 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
     transitDataByDate._truncated = true;
   }
   const startedAt = Date.now();
-  const budgetMs = parseInt(process.env.TRANSIT_TIME_BUDGET_MS) || 22000;
+  const budgetMs = parseInt(process.env.TRANSIT_TIME_BUDGET_MS) || 9000;
   
   // Process dates in batches to avoid overwhelming the API
   for (let i = 0; i < dates.length; i += batchSize) {
