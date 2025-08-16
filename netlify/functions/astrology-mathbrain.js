@@ -342,9 +342,8 @@ function createUserFriendlyError(apiError, operation, errorId) {
  * @returns {Promise<Object>} Parsed API response
  * @throws {Error} If all retry attempts fail or non-retryable error occurs
  */
-async function apiCallWithRetry(url, options, operation, maxRetries = 3) {
+async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
   const errorId = generateErrorId();
-  
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       // Check rate limiting before making the call
@@ -363,7 +362,14 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 3) {
       rateLimiter.recordCall();
       performanceMonitor.recordApiCall(url); // Record API call for performance monitoring
       
-      const response = await fetch(url, options);
+      // Apply a per-call timeout to avoid Netlify 504s (default 7s)
+      const controller = new AbortController();
+      const timeoutMs = parseInt(process.env.API_CALL_TIMEOUT_MS) || 7000;
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+      const opts = { ...options, signal: controller.signal };
+      const response = await fetch(url, opts);
+      clearTimeout(timeout);
+      
       const rawText = await response.text();
       
       if (!response.ok) {
@@ -1073,7 +1079,28 @@ exports.handler = async function (event) {
       hasKey: !!process.env.RAPIDAPI_KEY,
       keyLength: process.env.RAPIDAPI_KEY?.length || 0 
     }, requestId);
-    
+
+    // Lightweight health check via GET ?health=1 (must be before POST-only check)
+    if (event.httpMethod === 'GET') {
+      const wantsHealth =
+        (event.rawUrl && /[?&]health=1(?!\d)/.test(event.rawUrl)) ||
+        (event.queryStringParameters && event.queryStringParameters.health === '1');
+
+      if (wantsHealth) {
+        const stats = performanceMonitor.getStats();
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+          body: JSON.stringify({ status: 'ok', timestamp: new Date().toISOString(), performance: stats })
+        };
+      }
+
+      return {
+        statusCode: 405,
+        body: JSON.stringify({ error: 'Only POST is allowed for calculations', code: 'METHOD_NOT_ALLOWED' })
+      };
+    }
+
     // HTTP method validation
     if (event.httpMethod !== 'POST') {
       return {
@@ -1582,7 +1609,7 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
   logger.debug('Date range validation passed', { start, end, days: daysDiff }, requestId);
   
   const stepDays = (typeof step === 'number') ? Math.max(1, step | 0) : (step === 'weekly' ? 7 : 1);
-  const maxPoints = parseInt(process.env.MAX_TRANSIT_POINTS) || 40;
+  const maxPoints = parseInt(process.env.MAX_TRANSIT_POINTS) || 14;
   const transitDataByDate = {};
   const dates = [];
   // Generate array of all dates in the range with step sizing
@@ -1594,9 +1621,16 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
     dates.length = maxPoints;
     transitDataByDate._truncated = true;
   }
+  const startedAt = Date.now();
+  const budgetMs = parseInt(process.env.TRANSIT_TIME_BUDGET_MS) || 22000;
   
   // Process dates in batches to avoid overwhelming the API
   for (let i = 0; i < dates.length; i += batchSize) {
+    if (Date.now() - startedAt > budgetMs) {
+      logger.warn('Transit calculation time budget exceeded; returning partial results', { processedDates: Object.keys(transitDataByDate).length }, requestId);
+      break;
+    }
+    
     const batch = dates.slice(i, i + batchSize);
     const batchNumber = Math.floor(i/batchSize) + 1;
     const totalBatches = Math.ceil(dates.length/batchSize);
@@ -1690,7 +1724,7 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
       
       // Add configurable delay between batches to respect API rate limits
       if (i + batchSize < dates.length) {
-        const delay = parseInt(process.env.TRANSIT_BATCH_DELAY) || 500;
+        const delay = parseInt(process.env.TRANSIT_BATCH_DELAY) || 250;
         await new Promise(resolve => setTimeout(resolve, delay));
       }
       
