@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eldritch RPG 2nd Edition Character Generator</title>
+  <!-- Tailwind CSS for modern styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts for a clean, readable font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Custom styles to complement Tailwind */
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    }
+    /* Simple animation for card appearance */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in {
+      animation: fadeIn 0.5s ease-out forwards;
+    }
+    /* Custom message box for alerts */
+    .custom-alert-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0.3s;
+    }
+    .custom-alert-box {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 1rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        max-width: 90%;
+        width: 400px;
+        transform: scale(0.9);
+        transition: transform 0.3s;
+    }
+    .custom-alert-overlay.visible {
+        opacity: 1;
+        visibility: visible;
+    }
+     .custom-alert-overlay.visible .custom-alert-box {
+        transform: scale(1);
+    }
+    .custom-alert-button {
+        margin-top: 1.5rem;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        background-color: #3b82f6;
+        color: white;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.2s;
+    }
+    .custom-alert-button:hover {
+        background-color: #2563eb;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 antialiased">
+
+  <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-6xl">
+    <header class="mb-8 text-center">
+      <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Eldritch RPG 2nd Edition</h1>
+      <p class="text-lg text-gray-600">Character Generator</p>
+    </header>
+
+    <!-- Main controls container -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+        <!-- Race Selection -->
+        <div>
+          <label for="race" class="block text-sm font-medium text-gray-700 mb-1">Race</label>
+          <select id="race" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"></select>
+        </div>
+        <!-- Class Selection -->
+        <div>
+          <label for="class" class="block text-sm font-medium text-gray-700 mb-1">Class</label>
+          <select id="class" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"></select>
+        </div>
+        <!-- Level Selection -->
+        <div>
+          <label for="level" class="block text-sm font-medium text-gray-700 mb-1">Level</label>
+          <select id="level" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"></select>
+        </div>
+        <!-- Magic Path (Conditional) -->
+        <div id="magic-path-container" style="display:none;">
+          <label for="magic-path" class="block text-sm font-medium text-gray-700 mb-1">Chosen Magic Path</label>
+          <select id="magic-path" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"></select>
+        </div>
+      </div>
+      <!-- Options and Actions -->
+      <div class="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div class="flex items-center">
+          <input type="checkbox" id="magical-item-checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+          <label for="magical-item-checkbox" class="ml-2 block text-sm text-gray-900">Iconic Arcane Inheritance (Costs 4 CP)</label>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button id="generate-btn" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md">Generate Character</button>
+          <button id="export-md-btn" class="w-full sm:w-auto bg-white hover:bg-gray-100 text-blue-600 font-semibold py-2 px-4 border border-blue-600 rounded-lg shadow-sm transition-colors">Export Markdown</button>
+          <button id="copy-md-btn" class="w-full sm:w-auto bg-white hover:bg-gray-100 text-blue-600 font-semibold py-2 px-4 border border-blue-600 rounded-lg shadow-sm transition-colors">Copy Markdown</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Character Sheet Output -->
+    <div id="character-output">
+      <!-- Character sheet will be rendered here -->
+    </div>
+  </div>
+
+  <!-- Custom Alert Box HTML -->
+  <div id="custom-alert" class="custom-alert-overlay">
+      <div class="custom-alert-box">
+          <p id="custom-alert-message"></p>
+          <button id="custom-alert-close" class="custom-alert-button">OK</button>
+      </div>
+  </div>
+
+  <script>
+    // --- Game Data (Aligned with Rulebook) ---
+    const dieRanks = ['d4', 'd6', 'd8', 'd10', 'd12'];
+    const abilities = ['Competence', 'Prowess', 'Fortitude'];
+    const specialties = {
+      Competence: ['Adroitness', 'Expertise', 'Perception'],
+      Prowess: ['Agility', 'Melee', 'Precision'],
+      Fortitude: ['Endurance', 'Strength', 'Willpower']
+    };
+    const focuses = {
+      Adroitness: ['Skulduggery', 'Cleverness'],
+      Expertise: ['Wizardry', 'Theurgy'],
+      Perception: ['Alertness', 'Perspicacity'],
+      Agility: ['Speed', 'Reaction'],
+      Melee: ['Threat', 'Finesse'],
+      Precision: ['Ranged Threat', 'Ranged Finesse'],
+      Endurance: ['Vitality', 'Resilience'],
+      Strength: ['Ferocity', 'Might'],
+      Willpower: ['Courage', 'Resistance']
+    };
+    const races = ['Human', 'Elf', 'Dwarf', 'Gnome', 'Half-Elf', 'Half-Orc', 'Halfling', 'Drakkin'];
+    const classes = ['Adept', 'Assassin', 'Barbarian', 'Mage', 'Mystic', 'Rogue', 'Theurgist', 'Warrior'];
+    const levels = [1, 2, 3, 4, 5];
+    const casterClasses = ['Adept', 'Mage', 'Mystic', 'Theurgist'];
+    const magicPathsByClass = {
+      Adept: ['Thaumaturgy', 'Elementalism', 'Sorcery'], // Adepts have Arcanum, but can cast Wizardry spells
+      Mage: ['Thaumaturgy', 'Elementalism', 'Sorcery'],
+      Mystic: ['Mysticism'],
+      Theurgist: ['Druidry', 'Hieraticism']
+    };
+    const levelInfo = [
+      { level: 1, masteryDie: 'd4', usesPerDay: 2, cp_range: '10 to 100' },
+      { level: 2, masteryDie: 'd6', usesPerDay: 4, cp_range: '101 to 199' },
+      { level: 3, masteryDie: 'd8', usesPerDay: 6, cp_range: '200 to 299' },
+      { level: 4, masteryDie: 'd10', usesPerDay: 8, cp_range: '300 to 399' },
+      { level: 5, masteryDie: 'd12', usesPerDay: 10, cp_range: '400 to 500+' }
+    ];
+    const raceMinima = {
+        Drakkin: { Competence: 'd6', Prowess: 'd6', Fortitude: 'd6', Endurance: 'd6', Strength: 'd4' },
+        Dwarf: { Fortitude: 'd8', Endurance: 'd4', Prowess: 'd6', Melee: 'd6' },
+        Elf: { Competence: 'd6', Expertise: 'd6', Wizardry: '+1', Prowess: 'd4', Agility: 'd4', Reaction: '+1' },
+        Gnome: { Competence: 'd4', Adroitness: 'd6', Expertise: 'd6', Perception: 'd4', Perspicacity: '+1' },
+        'Half-Elf': { Competence: 'd6', Prowess: 'd6', Agility: 'd4', Fortitude: 'd4', Endurance: 'd4', Willpower: 'd4' },
+        'Half-Orc': { Fortitude: 'd6', Strength: 'd8', Ferocity: '+1', Endurance: 'd6' },
+        Halfling: { Competence: 'd6', Adroitness: 'd6', Cleverness: '+1', Fortitude: 'd6', Willpower: 'd4', Courage: '+1' },
+        Human: { Competence: 'd6', Prowess: 'd6', Melee: 'd4', Threat: '+1', Fortitude: 'd4', Willpower: 'd6' }
+    };
+    const classMinima = {
+        Adept: { Competence: 'd6', Adroitness: 'd4', Cleverness: '+1', Expertise: 'd6', Wizardry: '+1', Perception: 'd4', Perspicacity: '+1' },
+        Assassin: { Competence: 'd4', Adroitness: 'd6', Perception: 'd4', Prowess: 'd4', Agility: 'd4', Endurance: 'd6', Melee: 'd4', Finesse: '+1' },
+        Barbarian: { Prowess: 'd6', Melee: 'd8', Fortitude: 'd4', Strength: 'd4', Ferocity: '+1' },
+        Mage: { Competence: 'd6', Expertise: 'd8', Wizardry: '+1', Fortitude: 'd4', Willpower: 'd6', Resistance: '+1' },
+        Mystic: { Competence: 'd6', Expertise: 'd6', Wizardry: '+1', Prowess: 'd4', Melee: 'd4', Fortitude: 'd4', Endurance: 'd6', Resilience: '+1', Vitality: '+2' },
+        Rogue: { Competence: 'd4', Adroitness: 'd4', Skulduggery: '+1', Perception: 'd4', Prowess: 'd6', Agility: 'd8' },
+        Theurgist: { Competence: 'd8', Expertise: 'd4', Theurgy: '+1', Fortitude: 'd6', Willpower: 'd4' },
+        Warrior: { Prowess: 'd8', Melee: 'd6', Threat: '+1', Fortitude: 'd6' }
+    };
+    const allAdvantages = {
+      Human: ['Fortunate', 'Survival'],
+      Elf: ['Night Vision', 'Gift of Magic', 'Magic Resistance (+1)'],
+      Dwarf: ['Night Vision', 'Strong-willed', 'Sense of Direction'],
+      Gnome: ['Eidetic Memory', 'Low-Light Vision', 'Observant'],
+      'Half-Elf': ['Heightened Senses', 'Low-Light Vision', 'Magic Resistance (+1)'],
+      'Half-Orc': ['Low-light Vision', 'Intimidation', 'Menacing'],
+      Halfling: ['Low Light Vision', 'Read Emotions', 'Resilient'],
+      Drakkin: ['Natural Armor', 'Breath Weapon', 'Night Vision'],
+      Adept: ['Arcanum', 'Gift of Magic', 'Literacy', 'Scholar'],
+      Assassin: ['Expeditious', 'Heightened Senses (hearing)', 'Observant', 'Read Emotions'],
+      Barbarian: ['Animal Affinity', 'Brutishness', 'Menacing', 'Resilient'],
+      Mage: ['Arcanum', 'Gift of Magic', 'Magic Defense', 'Scholar'],
+      Mystic: ['Empathic', 'Gift of Magic', 'Intuitive', 'Magic Resistance (Lesser)', 'Strong-Willed'],
+      Rogue: ['Expeditious', 'Fortunate', 'Streetwise', 'Underworld Contacts'],
+      Theurgist: ['Gift of Magic', 'Magic Defense', 'Religion', 'Strong-Willed'],
+      Warrior: ['Commanding', 'Intimidation', 'Magic Resistance (+1)', 'Tactician']
+    };
+    const classFeats = {
+      Adept: ['Guile', 'Lore', 'Ritual Magic', 'Quick-witted'],
+      Assassin: ['Death Strike', 'Lethal Exploit', 'Ranged Ambush', 'Shadow Walk'],
+      Barbarian: ['Berserk', 'Brawl', 'Feat of Strength', 'Grapple'],
+      Mage: ['Arcane Finesse', 'Dweomers', 'Intangible Threat', 'Path Mastery'],
+      Mystic: ['Iron Mind', 'Path Mastery', 'Premonition', 'Psychic Powers'],
+      Rogue: ['Backstab', 'Evasion', 'Roguish Charm', 'Stealth'],
+      Theurgist: ['Divine Healing', 'Path Mastery', 'Spiritual Smite', 'Supernatural Intervention'],
+      Warrior: ['Battle Savvy', 'Maneuvers', 'Stunning Reversal', 'Sunder Foe']
+    };
+    const costToRankUpDie = { 'd4': 6, 'd6': 8, 'd8': 10, 'd10': 12, 'd12': Infinity };
+    const costToRankUpFocus = 4;
+    const cumulativeDieCost = { 'd4': 4, 'd6': 10, 'd8': 18, 'd10': 28, 'd12': 40 };
+    
+    // --- Spell Data ---
+    const spellsByPath = {
+        AllPaths: {
+            Common: ['Dispel Effect', 'Identify Magic', 'Eldritch Bolt', 'Eldritch Defense'],
+        },
+        Elementalism: {
+            Common: ['Air Bubble', 'Ball of Light', 'Boil Water', 'Breeze', 'Charge of the Elements', 'Cleanse Air', 'Crystal Vision', 'Drown', 'Energy Jump', 'Energy Pulse', 'Extinguish Flames', 'Fire Strike', 'Fire Trail', 'Flame Creature', 'Flame Fists', 'Flame Weapon', 'Forge From Stone', 'Freeze', 'Fresh Air', 'Fuel Flames', 'Halo of Energy', 'Heat', 'Illuminating Insight', 'Luminous Wave', 'Mineral Analysis', 'Kinetic Augmentation', 'Rain', 'Resist Elements', 'Rocky Terrain', 'Safe Descent', 'Sense Air Currents', 'Steal Breath', 'Tremor Sense', 'Water Breathing', 'Water Streaming', 'Water Vortex', 'Water Ward', 'Water Whip', 'Zephyr Mind'],
+            Uncommon: ['Arcane Maelstrom', 'Crystal Enhancement', 'Crystalize Earth', 'Disorienting Gale', 'Energy Drain', 'Energy Leech', 'Energy Surge', 'Energy Transference', 'Fire Whip', 'Fissure', 'Healing Waters', 'Heatwave', 'Ice Blade', 'Ignite', 'Rend Walls', 'Stone Shape', 'Stone Shatter', 'Water Elemental', 'Water Illusion', 'Water Prison', 'Water Walk', 'Windwalk'],
+            Esoteric: ['Air Pocket', 'Aquatic Summons', 'Crystal Analysis', 'Crystal Growth', 'Crystalize Object', 'Diamond Strike', 'Earth Kin', 'Energy Conversion', 'Energy Beacon', 'Energy Infusion', 'Energy Leech', 'Fire Armor', 'Fire Elemental', 'Flame Grasp', 'Ice Shield', 'Minor Earthquake', 'Propel', 'Purify Water', 'Quartz Shield', 'Sky Shelter', 'Skywalk', 'Stone Armor', 'Stone Skin', 'Water Breathing', 'Whirlpool', 'Whirlwind Prison'],
+            Occult: ['Aeromancy', 'Choking Vacuum', 'Energy Surge', 'Ethereal Pulse', 'Flame Trap', 'Liquid Armor', 'Stone Golem', 'Stone Weapon', 'Whelm', 'Whirlwind', 'Wind Rush'],
+            Legendary: ['Crystal Fortress', 'Earth Merge', 'Elemental Form', 'Energy Blade', 'Glacial Prison', 'Quicksand', 'Tidal Surge', 'Wind Riding']
+        },
+        Sorcery: {
+            Common: ['Arcane Lock', 'Arcane Mark', 'Minor Illusion', 'Olfactory Illusion', 'Shadow Step', 'Teleport Object', 'Transmute Rock'],
+            Uncommon: ['Audio Illusion', 'Chameleon', 'Dustify', 'Enfeeblement', 'Flux Portal', 'Illusory Disguise', 'Phantom Blade', 'Summon Monster'],
+            Esoteric: ['Apport Object', 'Cone of Silence', 'Full Body Illusion', 'Illusory Quiescence', 'Minion Horde', 'Object Space', 'Phantasms', 'Transdimensional Shift'],
+            Occult: ['Dimensional Travel', 'Havoc', 'Mirrored Opponent', 'Teleport Self', 'Waking Terror', 'Whisper of Woe'],
+            Legendary: ['Apport Creature', 'Assume Inanimate Form', 'Dreamscape', 'Mass Invisibility']
+        },
+        Thaumaturgy: {
+            Common: ['Banish', 'Claw Growth', 'Conjure Weapon', 'Echo', 'Fortify Object', 'Lighten', 'Magic Ride', 'Mend', 'Savorless', 'Sharpen Blade', 'Weaken Creature', 'Weaken Object'],
+            Uncommon: ['Contingent Notification', 'Create Illusion', 'Dimensional Pocket', 'Forced Egress', 'Invisibility', 'Mana Burst', 'Phantom Steed', 'Quickened Reflexes', 'Strengthen Creature', 'Weapon Readiness'],
+            Esoteric: ['Dance of Blades', 'Elemental Transmutation', 'Illusionary Clone', 'Levitation', 'Manipulate Object', 'Spatial Warp', 'Transmute Flesh'],
+            Occult: ['Deafness', 'Discordance', 'Loop Time', 'Matter Fusion', 'Monster Form', 'Temporal Rift'],
+            Legendary: ['Alter Age', 'Blindness', 'Demolish', 'Initiative Warp', 'Petrify', 'Stand Still', 'Time Halt']
+        },
+        Mysticism: {
+            Common: ['Confusion', 'Detect Magic', 'Ethereal Sight', 'Levitation', 'Mindfulness', 'Phase Shift', 'Silence', 'Soothing Balm', 'Soothing Mists'],
+            Uncommon: ['Discern Soul', 'Mind Shield', 'Object Read', 'Mind Blade', 'See Aura', 'See Invisible', 'Sense Power', 'Sixth Sense'],
+            Esoteric: ['Cosmic Shift', 'Fathom', 'Mind Read', 'Mystic Lore', 'Premonition', 'Psychic Beacon', 'Reassemble', 'Shadow Walk'],
+            Occult: ['Continuous Shadow', 'Dreamwalk', 'Ethereal Projection', 'Foreknowledge', 'Manipulate Shadow', 'Release Mind'],
+            Legendary: ['Control Humanoid', 'Form of Night', 'Hypnotic Suggestion', 'Induce Sleep', 'Mind Control', 'Super Intuition']
+        },
+        Hieraticism: {
+            Common: ['Aura of Restoration', 'Blessing of Renewal', 'Entreaty of Mercy', 'Heal', 'Repel Undead', 'Soothe Self', 'Word of Cleansing'],
+            Uncommon: ['Consecrate Ground', 'Healing Aura', 'Banish Undead', 'Blessing of Health', 'Dispel Magic', 'Nullify Poison', 'Recovery of the Unready', 'Soothe Ally', 'Soul Transfer'],
+            Esoteric: ['Doomsday Premonition', 'Mystical Regeneration', 'Rejuvenate', 'Remove Curse', 'Unbind Spirit'],
+            Occult: ['Desolate Curse', 'Entreat Entity', 'Omniscient Eye', 'Soul Transmutation'],
+            Legendary: ['Create Undead', 'Commune with the Dead', 'Regeneration', 'Summon Spirit']
+        },
+        Druidry: {
+            Common: ['Blossom/Wither Plants', 'Branch to Staff', 'Commune with Plants', 'Ears of the Bat', 'Entangling Roots', 'Eyes of the Eagle', 'Nose of the Wolf', 'Plant Growth', 'Rose Whip', 'Summon Animal'],
+            Uncommon: ['Animate Flora', 'Bramble Wall', 'Control Animal', 'Gust', 'Healing Grove', 'Seizing Plants', 'Shape Wood', 'Shapeshift', 'Wild Growth'],
+            Esoteric: ['Plant Automaton', 'Plant Meld', 'Regrowth', 'Speak with Nature', 'Tangle Trap', 'Thorny Shield'],
+            Occult: ['Animal Transformation', 'Might of the Oak', 'Nature\'s Blessing', 'Plant Armor', 'Plant Behemoth'],
+            Legendary: ['Magical Transformation', 'Plant Mastery']
+        }
+    };
+
+    // --- Helper Functions ---
+    function getMV(val) { return val.startsWith('d') ? parseInt(val.substring(1)) : (val.startsWith('+') ? parseInt(val.substring(1)) : 0); }
+    function dieSteps(dieRank) { return dieRanks.indexOf(dieRank); }
+    function parseFocusNumber(val) { return val ? parseInt(val.replace('+', '')) : 0; }
+    
+    // --- Custom Alert Function ---
+    function showAlert(message) {
+        const alertOverlay = document.getElementById('custom-alert');
+        const alertMessage = document.getElementById('custom-alert-message');
+        alertMessage.textContent = message;
+        alertOverlay.classList.add('visible');
+    }
+
+    // --- Dropdown Population ---
+    function populateDropdowns() {
+      const raceSelect = document.getElementById('race');
+      const classSelect = document.getElementById('class');
+      const levelSelect = document.getElementById('level');
+      
+      raceSelect.innerHTML = '<option value="">Select Race</option>' + races.map(r => `<option value="${r}">${r}</option>`).join('');
+      classSelect.innerHTML = '<option value="">Select Class</option>' + classes.map(c => `<option value="${c}">${c}</option>`).join('');
+      levelSelect.innerHTML = '<option value="">Select Level</option>' + levels.map(l => `<option value="${l}">${l}</option>`).join('');
+
+      classSelect.addEventListener('change', () => {
+        const selectedClass = classSelect.value;
+        const magicPathContainer = document.getElementById('magic-path-container');
+        const magicPathSelect = document.getElementById('magic-path');
+        
+        if (magicPathsByClass[selectedClass] && selectedClass !== 'Adept' && selectedClass !== 'Mystic') {
+          magicPathContainer.style.display = 'block';
+          magicPathSelect.innerHTML = '<option value="">-- Select Path --</option>' + magicPathsByClass[selectedClass].map(p => `<option value="${p}">${p}</option>`).join('');
+        } else {
+          magicPathContainer.style.display = 'none';
+          magicPathSelect.innerHTML = '';
+        }
+      });
+    }
+
+    // --- Character Generation Logic ---
+    function generateCharacter() {
+      const race = document.getElementById('race').value;
+      const characterClass = document.getElementById('class').value;
+      const level = parseInt(document.getElementById('level').value);
+      const isMagicalItem = document.getElementById('magical-item-checkbox').checked;
+      let magicPath = document.getElementById('magic-path').value;
+
+      if (!race || !characterClass || isNaN(level)) {
+        showAlert("Please select a valid race, class, and level.");
+        return;
+      }
+
+      // 1. Initialize character object and stats
+      let character = { race, class: characterClass, level, abilities: {}, specialties: {}, focuses: {} };
+      
+      abilities.forEach(a => {
+        character.abilities[a] = 'd4';
+        character.specialties[a] = {};
+        character.focuses[a] = {};
+        specialties[a].forEach(sp => {
+          character.specialties[a][sp] = 'd4';
+          focuses[sp].forEach(fx => {
+            character.focuses[a][fx] = '+0';
+          });
+        });
+      });
+
+      // 2. Apply racial and class minima (these are free baselines)
+      const applyMinima = (minima) => {
+        Object.entries(minima).forEach(([key, val]) => {
+          if (abilities.includes(key)) {
+            if (dieSteps(val) > dieSteps(character.abilities[key])) character.abilities[key] = val;
+          } else {
+            const parentAbility = Object.keys(specialties).find(a => specialties[a].includes(key));
+            const parentSpecialty = Object.keys(focuses).find(sp => focuses[sp].includes(key));
+            if (parentAbility) {
+              if (dieSteps(val) > dieSteps(character.specialties[parentAbility][key])) character.specialties[parentAbility][key] = val;
+            } else if (parentSpecialty) {
+              const focusParentAbility = Object.keys(specialties).find(a => specialties[a].includes(parentSpecialty));
+              if (parseFocusNumber(val) > parseFocusNumber(character.focuses[focusParentAbility][key])) character.focuses[focusParentAbility][key] = val;
+            }
+          }
+        });
+      };
+
+      applyMinima(raceMinima[race] || {});
+      applyMinima(classMinima[characterClass] || {});
+
+      // 3. Set CP budget and spend points
+      let remainingCPs = 10 + (level - 1) * 100;
+      if (isMagicalItem) remainingCPs -= 4;
+      
+      const upgradeOrder = {
+          'Warrior': ['Prowess', 'Melee', 'Strength', 'Fortitude', 'Precision', 'Endurance', 'Threat', 'Might', 'Ranged Threat'],
+          'Barbarian': ['Prowess', 'Melee', 'Strength', 'Fortitude', 'Endurance', 'Ferocity', 'Might', 'Vitality'],
+          'Rogue': ['Prowess', 'Agility', 'Competence', 'Adroitness', 'Perception', 'Skulduggery', 'Cleverness', 'Speed'],
+          'Assassin': ['Prowess', 'Agility', 'Melee', 'Competence', 'Adroitness', 'Finesse', 'Speed', 'Perception'],
+          'Mage': ['Competence', 'Expertise', 'Wizardry', 'Fortitude', 'Willpower', 'Resistance', 'Perception'],
+          'Mystic': ['Fortitude', 'Willpower', 'Competence', 'Expertise', 'Endurance', 'Prowess', 'Melee', 'Resilience', 'Vitality'],
+          'Adept': ['Competence', 'Expertise', 'Adroitness', 'Perception', 'Cleverness', 'Wizardry', 'Perspicacity'],
+          'Theurgist': ['Competence', 'Expertise', 'Theurgy', 'Fortitude', 'Willpower', 'Endurance', 'Courage']
+      };
+
+      for (const upgradeKey of upgradeOrder[characterClass]) {
+          while (true) {
+              let updated = false;
+              if (abilities.includes(upgradeKey)) {
+                  const currentRank = character.abilities[upgradeKey];
+                  const cost = costToRankUpDie[currentRank];
+                  if (currentRank !== 'd12' && remainingCPs >= cost) {
+                      character.abilities[upgradeKey] = dieRanks[dieRanks.indexOf(currentRank) + 1];
+                      remainingCPs -= cost;
+                      updated = true;
+                  }
+              } else if (Object.values(specialties).flat().includes(upgradeKey)) {
+                  const parentAbility = Object.keys(specialties).find(a => specialties[a].includes(upgradeKey));
+                  const currentRank = character.specialties[parentAbility][upgradeKey];
+                  const cost = costToRankUpDie[currentRank];
+                  if (currentRank !== 'd12' && remainingCPs >= cost) {
+                      character.specialties[parentAbility][upgradeKey] = dieRanks[dieRanks.indexOf(currentRank) + 1];
+                      remainingCPs -= cost;
+                      updated = true;
+                  }
+              } else { // It's a focus
+                  const parentSpecialty = Object.keys(focuses).find(sp => focuses[sp].includes(upgradeKey));
+                  const parentAbility = Object.keys(specialties).find(a => specialties[a].includes(parentSpecialty));
+                  let currentVal = parseFocusNumber(character.focuses[parentAbility][upgradeKey]);
+                  if (currentVal < 5 && remainingCPs >= costToRankUpFocus) {
+                      character.focuses[parentAbility][upgradeKey] = `+${currentVal + 1}`;
+                      remainingCPs -= costToRankUpFocus;
+                      updated = true;
+                  }
+              }
+              if (!updated) break;
+          }
+      }
+
+      // 4. Finalize character details
+      character.cpBreakdown = calculateCPBreakdown(character);
+
+      // *** NEW: Determine actual level based on final CP value ***
+      let actualLevel = 1;
+      for (let i = levelInfo.length - 1; i >= 0; i--) {
+          const levelData = levelInfo[i];
+          const minCP = parseInt(levelData.cp_range.split(' ')[0]);
+          if (character.cpBreakdown.total >= minCP) {
+              actualLevel = levelData.level;
+              break;
+          }
+      }
+      character.level = actualLevel; // Update character's level to the actual one
+      character.masteryDie = levelInfo[actualLevel - 1].masteryDie;
+
+      character.defensePools = calculateDefensePools(character);
+      character.equipment = getStartingEquipment(race, characterClass);
+      
+      const { advantages, duplicateAdvantage } = getAdvantagesWithBonus(race, characterClass);
+      character.advantages = advantages;
+      character.duplicateAdvantage = duplicateAdvantage;
+      if (isMagicalItem) character.advantages.push('Iconic Arcane Inheritance');
+
+      character.flaws = getFlaws(race, characterClass);
+      character.classFeats = classFeats[characterClass] ? [...classFeats[characterClass]] : [];
+
+      if (casterClasses.includes(characterClass)) {
+        const compSteps = dieSteps(character.abilities.Competence);
+        const expSteps = dieSteps(character.specialties.Competence.Expertise);
+        let knownCount = 2 * (compSteps + expSteps);
+        if(characterClass === 'Adept') knownCount = Math.floor(knownCount / 2);
+        
+        character.spellcasting = {
+          masteryPath: 'N/A',
+          pathSpecialization: null,
+          knownSpells: [],
+          knownSpellsCount: knownCount
+        };
+
+        const paths = magicPathsByClass[characterClass];
+        character.spellcasting.masteryPath = characterClass === 'Adept' ? 'Arcanum' : paths.join(', ');
+        if (characterClass === 'Mage' || characterClass === 'Theurgist') {
+            character.spellcasting.pathSpecialization = magicPath || paths[0];
+            const featIndex = character.classFeats.indexOf('Path Mastery');
+            if (featIndex !== -1) character.classFeats[featIndex] = `Path Mastery (${character.spellcasting.pathSpecialization})`;
+        } else if (characterClass === 'Mystic') {
+            character.spellcasting.pathSpecialization = 'Mysticism';
+        }
+        character.spellcasting.knownSpells = generateSpellList(character);
+      }
+      
+      // --- Action Calculations ---
+      character.actions = {};
+      character.actions.meleeAttack = `${character.abilities.Prowess} + ${character.specialties.Prowess.Melee}`;
+      if (parseFocusNumber(character.focuses.Prowess.Threat) > 0) character.actions.meleeAttack += ` + Threat ${character.focuses.Prowess.Threat}`;
+      if (parseFocusNumber(character.focuses.Prowess.Finesse) > 0) character.actions.meleeAttack += ` + Finesse ${character.focuses.Prowess.Finesse}`;
+
+      character.actions.rangedAttack = `${character.abilities.Prowess} + ${character.specialties.Prowess.Precision}`;
+      if (parseFocusNumber(character.focuses.Prowess['Ranged Threat']) > 0) character.actions.rangedAttack += ` + Ranged Threat ${character.focuses.Prowess['Ranged Threat']}`;
+      if (parseFocusNumber(character.focuses.Prowess['Ranged Finesse']) > 0) character.actions.rangedAttack += ` + Ranged Finesse ${character.focuses.Prowess['Ranged Finesse']}`;
+      
+      character.actions.perceptionCheck = `${character.abilities.Competence} + ${character.specialties.Competence.Perception}`;
+      if (parseFocusNumber(character.focuses.Competence.Alertness) > 0) character.actions.perceptionCheck += ` + Alertness ${character.focuses.Competence.Alertness}`;
+      if (parseFocusNumber(character.focuses.Competence.Perspicacity) > 0) character.actions.perceptionCheck += ` + Perspicacity ${character.focuses.Competence.Perspicacity}`;
+
+      if (casterClasses.includes(characterClass)) {
+        character.actions.magicAttack = `${character.abilities.Competence} + ${character.specialties.Competence.Expertise}`;
+        if (parseFocusNumber(character.focuses.Competence.Wizardry) > 0) character.actions.magicAttack += ` + Wizardry ${character.focuses.Competence.Wizardry}`;
+        if (parseFocusNumber(character.focuses.Competence.Theurgy) > 0) character.actions.magicAttack += ` + Theurgy ${character.focuses.Competence.Theurgy}`;
+      }
+
+      character.iconicItem = getIconicItem(character, isMagicalItem);
+      
+      if (character.iconicItem.type.includes('Iconic Weapon')) {
+          let threatBonusString = '';
+          if (character.class === 'Rogue') {
+              const skulduggeryBonus = parseFocusNumber(character.focuses.Competence.Skulduggery);
+              if (skulduggeryBonus > 0) {
+                  threatBonusString = ` + (+${skulduggeryBonus} Skulduggery Threat)`;
+              }
+          }
+          character.actions.iconicWeaponAttack = `${character.abilities.Prowess} + ${character.specialties.Prowess.Melee} or ${character.specialties.Prowess.Precision}${threatBonusString} + [${character.masteryDie} Mastery Die]`;
+      }
+      
+      window.lastCharacter = character;
+      displayCharacter(character);
+    }
+
+    // --- Calculation Functions ---
+    function calculateCPBreakdown(character) {
+        let abilitiesCP = 0;
+        let specialtiesCP = 0;
+        let focusesCP = 0;
+        
+        abilities.forEach(a => {
+            abilitiesCP += cumulativeDieCost[character.abilities[a]] || 0;
+            Object.values(character.specialties[a]).forEach(spDie => {
+                specialtiesCP += cumulativeDieCost[spDie] || 0;
+            });
+            Object.values(character.focuses[a]).forEach(fxVal => {
+                focusesCP += parseFocusNumber(fxVal) * costToRankUpFocus;
+            });
+        });
+        
+        const baseCP = 10;
+        const advantageCP = document.getElementById('magical-item-checkbox').checked ? 4 : 0;
+        const totalValue = baseCP + abilitiesCP + specialtiesCP + focusesCP + advantageCP;
+
+        return { base: baseCP, abilitiesCP, specialtiesCP, focusesCP, advantageCP, total: totalValue };
+    }
+
+    function calculateDefensePools(character) {
+      const { abilities, specialties } = character;
+      const activeDefense = getMV(abilities.Prowess) + getMV(specialties.Prowess.Agility) + getMV(specialties.Prowess.Melee);
+      const passiveDefense = getMV(abilities.Fortitude) + getMV(specialties.Fortitude.Endurance) + getMV(specialties.Fortitude.Strength);
+      const spiritPoints = getMV(abilities.Competence) + getMV(specialties.Fortitude.Willpower);
+      return { activeDefense, passiveDefense, spiritPoints };
+    }
+
+    // --- Content Generation Functions ---
+    function getStartingEquipment(race, characterClass) {
+        const commonEq = ['Set of ordinary clothes', 'Purse of 5 gold coins', 'Backpack', 'Small dagger', 'Week’s rations', 'Waterskin', 'Tinderbox', '50\' rope', 'Iron spikes', 'Small hammer', '6\' traveling staff or 10\' pole', 'Hooded lantern and 2 oil flasks or d4+1 torches'];
+        const classEq = {
+            Adept: ['Book of knowledge (area of expertise)'],
+            Assassin: ['Assassin hood, jacket, cape, robe, or tunic'],
+            Barbarian: ['Garments of woven wool or linen', 'Tunic', 'Overcoat or cloak'],
+            Mage: ['Spellbook', 'Staff or focus item'],
+            Mystic: ['Robes or shawl', 'Cloak', 'Armor up to leather'],
+            Rogue: ['Set of thieves\' tools', 'Light armor (up to leather)', 'One weapon'],
+            Theurgist: ['Prayer book', 'Holy relic or symbol', 'Focus item', 'Armor up to chain'],
+            Warrior: ['One weapon of choice', 'Armor up to chain', 'Small to large shield', 'Steed']
+        };
+        return [...commonEq, ...(classEq[characterClass] || [])];
+    }
+    
+    function getAdvantagesWithBonus(race, characterClass) {
+      const raceAdv = allAdvantages[race] || [];
+      const classAdv = allAdvantages[characterClass] || [];
+      const commonAdvantages = raceAdv.filter(adv => classAdv.includes(adv));
+      let allUniqueAdvantages = [...new Set([...raceAdv, ...classAdv])];
+      let duplicateAdvantage = null;
+
+      if (commonAdvantages.length > 0) {
+        duplicateAdvantage = `Duplicate Advantage Rule Triggered (by ${commonAdvantages.join(', ')}). You gain an extra 2-point advantage or can tier-up an existing one.`;
+        allUniqueAdvantages.push(duplicateAdvantage);
+      }
+      return { advantages: allUniqueAdvantages, duplicateAdvantage: duplicateAdvantage };
+    }
+
+    function getFlaws(race, characterClass) {
+      const raceFlaw = {
+        Gnome: ['Restriction: small weapons only'],
+        Halfling: ['Restriction: small weapons only'],
+        'Half-Orc': ['Ugliness']
+      };
+      return [...(raceFlaw[race] || [])];
+    }
+
+    function getIconicItem(character, isMagical) {
+      const { class: charClass } = character;
+      let item = { type: '', description: '', magicProperty: null };
+      const isCaster = casterClasses.includes(charClass);
+      const isCombat = ['Warrior', 'Barbarian', 'Rogue', 'Assassin'].includes(charClass);
+
+      if (isMagical) {
+        if (isCombat) {
+          item.type = 'Iconic Arcane Weapon';
+          item.description = 'A personalized weapon with inherent magical properties, passed down from an ancestor or discovered during a significant event. This inherent magic is resilient and cannot be dispelled by any known means.';
+          item.magicProperty = ['Enhanced Potential Harm', 'Elemental Infusion', 'Defensive Bonuses'][Math.floor(Math.random() * 3)];
+        } else if (isCaster) {
+          item.type = 'Iconic Arcane Magic Focus';
+          item.description = 'A personalized grimoire, staff, or holy symbol with inherent magical properties. It enhances spellcasting and is resilient to dispelling.';
+          item.magicProperty = ['Enhanced Spell Potency', 'Minor Spellcasting', 'Mental Resistance'][Math.floor(Math.random() * 3)];
+        } else {
+          item.type = 'Iconic Arcane Inspirational Item';
+          item.description = 'An item of sentimental value with inherent magic. It aids in ability tests and designated class feats, especially non-combative ones.';
+          item.magicProperty = ['Skill Bonuses', 'Enhanced Perception', 'Minor Spellcasting'][Math.floor(Math.random() * 3)];
+        }
+      } else {
+        if (isCombat) {
+          item.type = 'Iconic Weapon';
+          item.description = 'A personalized weapon of great significance. Grants bonuses and allows use of the Mastery Die for Master Twist effects.';
+        } else if (isCaster) {
+          item.type = 'Iconic Magic Focus';
+          item.description = 'A personalized grimoire, staff, or holy symbol used to channel magic. Enhances spellcasting and allows use of the Mastery Die.';
+        } else {
+          item.type = 'Inspirational Item';
+          item.description = 'An item of sentimental value that aids in ability tests and designated class feats. Allows use of the Mastery Die.';
+        }
+      }
+      return item;
+    }
+    
+    function generateSpellList(character) {
+        const { level, spellcasting } = character;
+        const { knownSpellsCount, pathSpecialization } = spellcasting;
+        let knownSpells = new Set();
+        
+        const pathSpells = spellsByPath[pathSpecialization] || {};
+        const allPathSpells = spellsByPath['AllPaths'] || {};
+        const combinedPool = {
+            Common: [...new Set([...(pathSpells.Common || []), ...(allPathSpells.Common || [])])],
+            Uncommon: [...new Set([...(pathSpells.Uncommon || []), ...(allPathSpells.Uncommon || [])])],
+            Esoteric: [...new Set([...(pathSpells.Esoteric || [])])],
+            Occult: [...new Set([...(pathSpells.Occult || [])])],
+            Legendary: [...new Set([...(pathSpells.Legendary || [])])]
+        };
+
+        for (let i = 0; i < knownSpellsCount; i++) {
+            const roll = Math.random() * 100;
+            let spell;
+            if (roll <= 70 && combinedPool.Common.length > 0) {
+                spell = combinedPool.Common[Math.floor(Math.random() * combinedPool.Common.length)];
+                knownSpells.add({ name: spell, rarity: 'Common' });
+            } else if (combinedPool.Uncommon.length > 0) {
+                spell = combinedPool.Uncommon[Math.floor(Math.random() * combinedPool.Uncommon.length)];
+                knownSpells.add({ name: spell, rarity: 'Uncommon' });
+            }
+        }
+
+        const addLevelUpSpell = (lvl, rarity, pool) => {
+            if (level >= lvl && pool.length > 0) {
+                const spell = pool[Math.floor(Math.random() * pool.length)];
+                knownSpells.add({ name: spell, rarity: rarity });
+            }
+        };
+
+        addLevelUpSpell(2, 'Uncommon', pathSpells.Uncommon || []);
+        addLevelUpSpell(3, 'Esoteric', pathSpells.Esoteric || []);
+        addLevelUpSpell(4, 'Occult', pathSpells.Occult || []);
+        addLevelUpSpell(5, 'Legendary', pathSpells.Legendary || []);
+        
+        return Array.from(knownSpells).sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    // --- Display and Export Functions ---
+    function displayCharacter(character) {
+      const output = document.getElementById('character-output');
+      
+      const formatAbilityLine = (abilityName) => {
+        let specialtyStrings = [];
+        for (const sp of specialties[abilityName]) {
+            let focusStrings = [];
+            for (const fx of focuses[sp]) {
+                const fxVal = character.focuses[abilityName]?.[fx] || '+0';
+                if (parseFocusNumber(fxVal) > 0) {
+                    focusStrings.push(`${fx} ${fxVal}`);
+                }
+            }
+            specialtyStrings.push(`${sp} <strong>${character.specialties[abilityName][sp]}</strong>` + (focusStrings.length > 0 ? ` (${focusStrings.join(', ')})` : ''));
+        }
+        return `<div class="mb-2"><span class="font-semibold">${abilityName} <strong>${character.abilities[abilityName]}</strong></span> &rarr; ${specialtyStrings.join(', ')}.</div>`;
+      };
+
+      const abilityLines = abilities.map(formatAbilityLine).join('');
+      const levelData = levelInfo[character.level - 1];
+      const cpRange = levelData.cp_range;
+
+      output.innerHTML = `
+        <div class="card bg-white p-6 rounded-2xl shadow-lg fade-in">
+          <h2 class="text-2xl font-bold text-gray-900 border-b pb-2 mb-4">${character.race} ${character.class} - Level ${character.level}</h2>
+          
+          <div class="grid md:grid-cols-3 gap-4 text-center mb-6 bg-gray-50 p-4 rounded-lg">
+            <div><span class="text-sm text-gray-500 block">Spirit Points</span><span class="text-xl font-bold">${character.defensePools.spiritPoints}</span></div>
+            <div><span class="text-sm text-gray-500 block">Active DP</span><span class="text-xl font-bold">${character.defensePools.activeDefense}</span></div>
+            <div><span class="text-sm text-gray-500 block">Passive DP</span><span class="text-xl font-bold">${character.defensePools.passiveDefense}</span></div>
+            <div class="md:col-span-3"><span class="text-sm text-gray-500 block">Mastery Die</span><span class="text-xl font-bold">${character.masteryDie}</span></div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
+            <div>
+              <h3 class="text-lg font-semibold mb-2 text-gray-800">Abilities</h3>
+              <div class="text-sm leading-relaxed">${abilityLines}</div>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold mb-2 text-gray-800">Actions</h3>
+              <ul class="list-disc list-inside space-y-1 text-sm">
+                ${Object.entries(character.actions).map(([name, value]) => `<li><strong>${name.replace(/([A-Z])/g, ' $1').trim()}:</strong> ${value}</li>`).join('')}
+              </ul>
+            </div>
+            <div class="lg:col-span-2">
+              <h3 class="text-lg font-semibold mb-2 text-gray-800">Iconic Item</h3>
+              <div class="text-sm bg-blue-50 p-3 rounded-lg">
+                <p><strong>Type:</strong> ${character.iconicItem.type}</p>
+                <p><strong>Description:</strong> ${character.iconicItem.description}</p>
+                ${character.iconicItem.magicProperty ? `<p><strong>Magic Property:</strong> ${character.iconicItem.magicProperty}</p>` : ''}
+              </div>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold mb-2 text-gray-800">Advantages</h3>
+              <ul class="list-disc list-inside space-y-1 text-sm">${character.advantages.map(adv => `<li>${adv}</li>`).join('')}</ul>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold mb-2 text-gray-800">Flaws</h3>
+              <ul class="list-disc list-inside space-y-1 text-sm">${character.flaws.length ? character.flaws.map(flaw => `<li>${flaw}</li>`).join('') : '<li>None</li>'}</ul>
+            </div>
+            <div class="lg:col-span-2">
+              <h3 class="text-lg font-semibold mb-2 text-gray-800">Starting Equipment</h3>
+              <ul class="list-disc list-inside space-y-1 text-sm columns-2">${character.equipment.map(eq => `<li>${eq}</li>`).join('')}</ul>
+            </div>
+            ${character.spellcasting ? `
+            <div class="lg:col-span-2">
+              <h3 class="text-lg font-semibold mb-2 text-gray-800">Spellcasting</h3>
+              <p class="text-sm mb-2"><strong>Mastery Path(s):</strong> ${character.spellcasting.masteryPath} | <strong>Chosen Path:</strong> ${character.spellcasting.pathSpecialization || 'N/A'}</p>
+              <h4 class="text-md font-semibold mb-1 text-gray-700">Known Spells (${character.spellcasting.knownSpells.length})</h4>
+              <ul class="list-disc list-inside space-y-1 text-sm columns-2">${character.spellcasting.knownSpells.map(s => `<li>${s.name} <span class="text-gray-500">(${s.rarity})</span></li>`).join('')}</ul>
+            </div>` : ''}
+            <div>
+              <h3 class="text-lg font-semibold mb-2 text-gray-800">Class Feats</h3>
+              <ul class="list-disc list-inside space-y-1 text-sm">${character.classFeats.map(f => `<li>${f}</li>`).join('')}</ul>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold mb-2 text-gray-800">Character Points (Total Value)</h3>
+              <ul class="list-disc list-inside space-y-1 text-sm">
+                <li><strong>Base Customization:</strong> ${character.cpBreakdown.base}</li>
+                <li><strong>From Abilities:</strong> ${character.cpBreakdown.abilitiesCP}</li>
+                <li><strong>From Specialties:</strong> ${character.cpBreakdown.specialtiesCP}</li>
+                <li><strong>From Focuses:</strong> ${character.cpBreakdown.focusesCP}</li>
+                <li><strong>From Advantages:</strong> ${character.cpBreakdown.advantageCP}</li>
+                <li><strong>Total CP Value:</strong> ${character.cpBreakdown.total} <span class="text-gray-500 text-xs">(Lvl ${character.level} Range: ${cpRange})</span></li>
+              </ul>
+              <p class="text-xs text-gray-500 mt-2 italic">Note: Total CP Value reflects the character's build balance. Advancement in-game is tracked separately via Earned CP, starting from 0.</p>
+            </div>
+            <!-- *** NEW: Added Earned CP Progression Table *** -->
+            <div class="lg:col-span-2">
+                <h3 class="text-lg font-semibold mb-2 text-gray-800">Level Advancement (Earned CP)</h3>
+                <div class="overflow-x-auto relative rounded-lg">
+                    <table class="w-full text-sm text-left text-gray-500">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-4 py-2">To Reach Level</th>
+                                <th scope="col" class="px-4 py-2">Total Earned CP Required</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="bg-white border-b"><td class="px-4 py-2 font-medium">Level 2</td><td class="px-4 py-2">100</td></tr>
+                            <tr class="bg-gray-50 border-b"><td class="px-4 py-2 font-medium">Level 3</td><td class="px-4 py-2">200</td></tr>
+                            <tr class="bg-white border-b"><td class="px-4 py-2 font-medium">Level 4</td><td class="px-4 py-2">300</td></tr>
+                            <tr class="bg-gray-50"><td class="px-4 py-2 font-medium">Level 5</td><td class="px-4 py-2">500</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function exportToMarkdown() {
+      const char = window.lastCharacter;
+      if (!char) {
+        showAlert('Generate a character first!');
+        return '';
+      }
+      let md = `# ${char.race} ${char.class} (Level ${char.level})\n\n`;
+      md += `### Core Stats\n`;
+      md += `- **SP:** ${char.defensePools.spiritPoints} | **Active DP:** ${char.defensePools.activeDefense} | **Passive DP:** ${char.defensePools.passiveDefense}\n`;
+      md += `- **Mastery Die:** ${char.masteryDie}\n`;
+      md += `- **Total CP Value:** ${char.cpBreakdown.total} (Expected Range for Level ${char.level}: ${levelInfo[char.level - 1].cp_range})\n\n`;
+
+      md += `### Abilities\n`;
+      abilities.forEach(a => {
+        const specialtyString = specialties[a].map(sp => {
+          const focusStrings = focuses[sp].map(fx => {
+            const fxVal = char.focuses[a]?.[fx] || '+0';
+            return parseFocusNumber(fxVal) > 0 ? `${fx} ${fxVal}` : null;
+          }).filter(Boolean).join(', ');
+          return `${sp} **${char.specialties[a][sp]}**` + (focusStrings ? ` (${focusStrings})` : '');
+        }).join(', ');
+        md += `**${a} ${char.abilities[a]}** &rarr; ${specialtyString}.\n`;
+      });
+      md += `\n`;
+      
+      md += `### Actions\n`;
+      Object.entries(char.actions).forEach(([name, value]) => {
+        md += `- **${name.replace(/([A-Z])/g, ' $1').trim()}:** ${value}\n`;
+      });
+      md += `\n`;
+
+      md += `### Iconic Item\n`;
+      md += `- **Type:** ${char.iconicItem.type}\n`;
+      md += `- **Description:** ${char.iconicItem.description}\n`;
+      if (char.iconicItem.magicProperty) md += `- **Magic Property:** ${char.iconicItem.magicProperty}\n`;
+      md += `\n`;
+
+      md += `### Advantages & Flaws\n`;
+      md += `**Advantages:**\n${char.advantages.map(adv => `- ${adv}`).join('\n')}\n\n`;
+      md += `**Flaws:**\n${char.flaws.length ? char.flaws.map(flaw => `- ${flaw}`).join('\n') : '- None'}\n\n`;
+      
+      md += `### Class Feats\n${char.classFeats.map(feat => `- ${feat}`).join('\n')}\n\n`;
+
+      if (char.spellcasting) {
+        md += `### Spellcasting\n`;
+        md += `- **Mastery Path(s):** ${char.spellcasting.masteryPath}\n`;
+        if (char.spellcasting.pathSpecialization) md += `- **Chosen Magic Path:** ${char.spellcasting.pathSpecialization}\n`;
+        md += `**Known Spells:**\n${char.spellcasting.knownSpells.map(s => `- ${s.name} (${s.rarity})`).join('\n')}\n\n`;
+      }
+
+      md += `### Starting Equipment\n${char.equipment.map(eq => `- ${eq}`).join('\n')}\n\n`;
+      
+      md += `### Character Points Breakdown (Total Value)\n`;
+      md += `- **Base Customization:** ${char.cpBreakdown.base}\n- **From Abilities:** ${char.cpBreakdown.abilitiesCP}\n- **From Specialties:** ${char.cpBreakdown.specialtiesCP}\n- **From Focuses:** ${char.cpBreakdown.focusesCP}\n- **From Advantages:** ${char.cpBreakdown.advantageCP}\n- **Total CP Value:** ${char.cpBreakdown.total}\n`;
+      md += `\n_Note: Total CP Value reflects the character's build balance. Advancement in-game is tracked separately via Earned CP, starting from 0._\n`;
+      
+      // *** NEW: Added Earned CP Progression Table to Markdown ***
+      md += `\n### Level Advancement (Earned CP)\n`;
+      md += `| To Reach Level | Total Earned CP Required |\n`;
+      md += `| :------------- | :----------------------- |\n`;
+      md += `| Level 2        | 100                      |\n`;
+      md += `| Level 3        | 200                      |\n`;
+      md += `| Level 4        | 300                      |\n`;
+      md += `| Level 5        | 500                      |\n`;
+
+      return md;
+    }
+
+    // --- Event Listeners ---
+    document.getElementById('export-md-btn').addEventListener('click', function() {
+      const md = exportToMarkdown();
+      if (!md) return;
+      const blob = new Blob([md], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const char = window.lastCharacter;
+      a.download = `${char.race}_${char.class}_L${char.level}_Character.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('copy-md-btn').addEventListener('click', function() {
+      const md = exportToMarkdown();
+      if (!md) return;
+      const tempElement = document.createElement('textarea');
+      tempElement.style.position = 'absolute';
+      tempElement.style.left = '-9999px';
+      tempElement.value = md;
+      document.body.appendChild(tempElement);
+      tempElement.select();
+      try {
+        document.execCommand('copy');
+        showAlert('Markdown copied to clipboard!');
+      } catch (err) {
+        showAlert('Failed to copy markdown.');
+      }
+      document.body.removeChild(tempElement);
+    });
+    
+    document.getElementById('custom-alert-close').addEventListener('click', () => {
+        document.getElementById('custom-alert').classList.remove('visible');
+    });
+
+    document.getElementById('generate-btn').addEventListener('click', generateCharacter);
+    document.addEventListener('DOMContentLoaded', populateDropdowns);
+  </script>
+</body>
+</html>
