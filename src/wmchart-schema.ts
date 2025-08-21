@@ -1,3 +1,9 @@
+/** ES5-compatible array flattening for array of arrays */
+function flatten<T>(arr: T[][]): T[] {
+  return arr.reduce(function(acc, val) {
+    return acc.concat(val);
+  }, []);
+}
 import { z } from "zod";
 
 export type ZodiacQuality = "cardinal" | "fixed" | "mutable";
@@ -111,11 +117,20 @@ export const ChartOrTransitRow = z.union([
   WMTransitAspectSchema
 ]);
 
+// Shared "by date" record schema (accept either key name: transitsByDate or byDate)
+const ISODate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+export const TransitsByDateSchema = z.record(ISODate, z.array(ChartOrTransitRow));
+
+// Helper to coalesce either alias at runtime
+export function coalesceTransitsByDate(root: any) {
+  return root?.transitsByDate ?? root?.byDate ?? {};
+}
+
 export const WMChartRootSchema = z.object({
   schema: z.literal("WM-Chart-1.0"),
   relationship_type: z.enum(["partner", "friend", "family"]),
   intimacy_tier: z.enum(["P1", "P2", "P3"]).optional(),
-  diagnostics: z.array(z.record(z.any())).optional(),
+  diagnostics: z.array(z.record(z.string(), z.any())).optional(),
   person_a: z.object({
     details: z.object({
       name: z.string(),
@@ -154,26 +169,95 @@ export const WMChartRootSchema = z.object({
       axial_cusps: AxialCuspsSchema
     })
   }).optional(),
-  transitsByDate: z.record(
-    z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    z.array(ChartOrTransitRow)
-  ).optional(),
+  // Accept either the canonical name or the legacy alias
+  transitsByDate: TransitsByDateSchema.optional(),
+  byDate: TransitsByDateSchema.optional(),
   transits: z.array(ChartOrTransitRow).optional()
 });
 
 // Redundancy rule runtime check
 export function checkTransitsRedundancy(root: any) {
-  // Note: we compare deep JSON of whichever accepted shapes (chart snapshots or lean rows) are present.
-  if (root.transits && root.transitsByDate) {
-    const transitsFlat = JSON.stringify(root.transits);
-    const transitsDict = JSON.stringify(
-      Object.values(root.transitsByDate).flat()
-    );
-    if (transitsFlat !== transitsDict) {
-      throw new Error("transits and transitsByDate must be deeply equal if both are present");
+  // Note: treat `byDate` as an alias of `transitsByDate`
+  const dict = root?.transitsByDate ?? root?.byDate;
+  const flat = root?.transits;
+
+  // Require at least one to be present
+  if (!dict && !flat) {
+    throw new Error("At least one of transits/transitsByDate (or byDate) must be present");
+  }
+
+  // If both are present, they must be deeply equal after flattening the dict
+  if (dict && flat) {
+  const flattened = JSON.stringify(flatten(Object.values(dict) as ChartOrTransit[][]));
+    const flattenedFlat = JSON.stringify(flat);
+    if (flattened !== flattenedFlat) {
+      throw new Error("transits and transitsByDate/byDate must be deeply equal if both are present");
     }
   }
-  if (!root.transits && !root.transitsByDate) {
-    throw new Error("At least one of transits or transitsByDate must be present");
+}
+
+// ---------- Runtime type guards & typed helpers ----------
+
+export type WMTransitAspect = z.infer<typeof WMTransitAspectSchema>;
+export type WMAspect = z.infer<typeof WMAspectSchema>;
+export type ChartSnapshot = z.infer<typeof ChartSnapshotSchema>;
+export type ChartOrTransit = z.infer<typeof ChartOrTransitRow>;
+export type TransitsByDate = z.infer<typeof TransitsByDateSchema>;
+export type WMChartRoot = z.infer<typeof WMChartRootSchema>;
+
+/** Narrowers (type guards) */
+export const isWMTransitAspect = (v: unknown): v is WMTransitAspect =>
+  WMTransitAspectSchema.safeParse(v).success;
+
+export const isWMAspect = (v: unknown): v is WMAspect =>
+  WMAspectSchema.safeParse(v).success;
+
+export const isChartSnapshot = (v: unknown): v is ChartSnapshot =>
+  ChartSnapshotSchema.safeParse(v).success;
+
+export const isChartOrTransit = (v: unknown): v is ChartOrTransit =>
+  ChartOrTransitRow.safeParse(v).success;
+
+export const isTransitsByDate = (v: unknown): v is TransitsByDate =>
+  TransitsByDateSchema.safeParse(v).success;
+
+export const isWMChartRoot = (v: unknown): v is WMChartRoot =>
+  WMChartRootSchema.safeParse(v).success;
+
+/** Assertions (throw on invalid) */
+export function assertWMChartRoot(v: unknown): asserts v is WMChartRoot {
+  const res = WMChartRootSchema.safeParse(v);
+  if (!res.success) {
+    // Using zod's .format() keeps messages compact but precise
+    throw new Error("Invalid WMChartRoot: " + JSON.stringify(res.error.format()));
   }
+}
+
+/** Get a typed-byDate dictionary, tolerant of aliasing (`byDate` vs `transitsByDate`). */
+export function getTransitsByDate(root: unknown): Record<string, ChartOrTransit[]> {
+  // Prefer full-root parse for maximum fidelity
+  const parsedRoot = WMChartRootSchema.safeParse(root);
+  if (parsedRoot.success) {
+    return (parsedRoot.data.transitsByDate ?? parsedRoot.data.byDate) ?? {};
+  }
+  // Fall back to best-effort coalescing using whatever keys exist
+  const dict = coalesceTransitsByDate(root as any);
+  const parsedDict = TransitsByDateSchema.safeParse(dict);
+  return parsedDict.success ? parsedDict.data : {};
+}
+
+/** Flatten a byDate dictionary into a single array of rows. */
+export function flattenTransitsByDate(dict: unknown): ChartOrTransit[] {
+  const parsed = TransitsByDateSchema.safeParse(dict);
+  return parsed.success ? flatten(Object.values(parsed.data) as ChartOrTransit[][]) : [];
+}
+
+/** Pick a normalized transits view from an arbitrary root shape. */
+export function pickTransitsView(root: unknown): {
+  byDate: Record<string, ChartOrTransit[]>;
+  flat: ChartOrTransit[];
+} {
+  const byDate = getTransitsByDate(root);
+  const flat = flatten(Object.values(byDate) as ChartOrTransit[][]);
+  return { byDate, flat };
 }

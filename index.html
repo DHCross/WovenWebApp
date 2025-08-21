@@ -726,7 +726,14 @@ function renderTransitDay(dateStr, items){
             if (data.person_a?.chart?.aspects && data.person_a.chart.aspects.length > 0) {
                 md += `## Person A Major Aspects\n\n`;
                 data.person_a.chart.aspects.slice(0, 10).forEach(aspect => {
-                    md += `- **${aspect.p1_name}** ${aspect.aspect} **${aspect.p2_name}** (${Math.abs(aspect.orbit).toFixed(1)}° orb)\n`;
+                    // Dual-read for orb field
+                    const orb = (Number.isFinite(aspect.orb) ? aspect.orb :
+                                 Number.isFinite(aspect.orbit) ? aspect.orbit :
+                                 Number.isFinite(aspect.diff) ? aspect.diff : null);
+                    const p1 = aspect.p1_name || aspect.planet_a || aspect.transit_body || '—';
+                    const p2 = aspect.p2_name || aspect.planet_b || aspect.natal_target || '—';
+                    const asp = aspect.aspect || aspect.aspect_name || aspect.name || '—';
+                    md += `- **${p1}** ${asp} **${p2}** (${orb !== null ? orb.toFixed(1) : '—'}° orb)\n`;
                 });
                 md += `\n`;
             }

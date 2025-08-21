@@ -2312,4 +2312,6 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
   }
   
   return transitDataByDate;
+  // Patch: return as { byDate: ... } for frontend compatibility
+  return { byDate: transitDataByDate };
 }
