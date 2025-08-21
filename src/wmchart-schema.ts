@@ -11,20 +11,20 @@ export type House =
   | "Ninth_House" | "Tenth_House" | "Eleventh_House" | "Twelfth_House";
 
 // ---------- Shared enums & lean geometry schemas ----------
-const QualityEnum = z.enum(["cardinal", "fixed", "mutable"]);
-const ElementEnum = z.enum(["fire", "earth", "air", "water"]);
-const SignEnum = z.enum([
+export const QualityEnum = z.enum(["cardinal", "fixed", "mutable"]);
+export const ElementEnum = z.enum(["fire", "earth", "air", "water"]);
+export const SignEnum = z.enum([
   "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
   "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
 ]);
-const HouseEnum = z.enum([
+export const HouseEnum = z.enum([
   "First_House", "Second_House", "Third_House", "Fourth_House",
   "Fifth_House", "Sixth_House", "Seventh_House", "Eighth_House",
   "Ninth_House", "Tenth_House", "Eleventh_House", "Twelfth_House"
 ]);
 
 // Full chart "planet" snapshot (existing strict shape, extracted to reuse)
-const ChartPlanetSchema = z.object({
+export const ChartPlanetSchema = z.object({
   name: z.string(),
   quality: QualityEnum,
   element: ElementEnum,
@@ -32,14 +32,14 @@ const ChartPlanetSchema = z.object({
   sign_num: z.number().int().min(0).max(11),
   position: z.number(),
   abs_pos: z.number(),
-  emoji: z.string(),
-  point_type: z.string(),
+  emoji: z.string().optional(),
+  point_type: z.string().optional(),
   house: HouseEnum,
   retrograde: z.boolean()
 });
 
 // Full chart "aspect" snapshot (existing strict shape, extracted to reuse)
-const AspectSnapshotSchema = z.object({
+export const AspectSnapshotSchema = z.object({
   planet_a: z.string(),
   planet_b: z.string(),
   abs_pos_a: z.number(),
@@ -61,7 +61,7 @@ const AxialCuspsSchema = z.array(z.object({
 })).optional();
 
 // Full chart snapshot (planets + aspects [+ houses/cusps])
-const ChartSnapshotSchema = z.object({
+export const ChartSnapshotSchema = z.object({
   planets: z.array(ChartPlanetSchema),
   aspects: z.array(AspectSnapshotSchema),
   houses: HousesArraySchema,
@@ -72,7 +72,7 @@ const ChartSnapshotSchema = z.object({
 const OrbBandEnum = z.enum(["tight","close","medium","wide"]);
 const ValenceHintEnum = z.enum(["hot","cool","neutral_to_hot","neutral_to_cool"]);
 
-const WMAspectSchema = z.object({
+export const WMAspectSchema = z.object({
   p1_name: z.string(),
   p2_name: z.string(),
   aspect: z.string(),
@@ -85,7 +85,7 @@ const WMAspectSchema = z.object({
   valence_hint: ValenceHintEnum
 });
 
-const WMTransitAspectSchema = z.object({
+export const WMTransitAspectSchema = z.object({
   transit_body: z.string(),
   natal_target: z.string(),
   aspect: z.string(),
@@ -101,7 +101,7 @@ const WMTransitAspectSchema = z.object({
 });
 
 // A union used where "chart snapshot OR lean rows" are acceptable
-const ChartOrTransitRow = z.union([
+export const ChartOrTransitRow = z.union([
   z.object({
     person: z.enum(["person_a", "person_b"]),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -153,7 +153,7 @@ export const WMChartRootSchema = z.object({
       houses: HousesArraySchema,
       axial_cusps: AxialCuspsSchema
     })
-  }),
+  }).optional(),
   transitsByDate: z.record(
     z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     z.array(ChartOrTransitRow)

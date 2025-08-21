@@ -398,6 +398,109 @@
 
     <script src="config.js"></script>
     <script>
+// ---- aspect math (for fallback orb) ----
+const ASPECTS = { conjunction:0, sextile:60, square:90, trine:120, opposition:180,
+    quincunx:150, quintile:72, biquintile:144, 'semi-square':45, semisquare:45, sesquiquadrate:135 };
+function degNorm(d){ let x=d%360; return x<0?x+360:x; }
+function sep(a,b){ const d=Math.abs(degNorm(a)-degNorm(b)); return d>180?360-d:d; }
+function computeOrbFromLongitudes(lon1, lon2, aspectName){
+    if(!Number.isFinite(lon1) || !Number.isFinite(lon2)) return null;
+    const exact = ASPECTS[(aspectName||'').toLowerCase()];
+    if(!Number.isFinite(exact)) return null;
+    return Math.abs(sep(lon1, lon2) - exact);
+}
+function bandOrb(orb){ if(!Number.isFinite(orb)) return 'wide';
+    if(orb<=1) return 'tight'; if(orb<=3) return 'close'; if(orb<=6) return 'medium'; return 'wide';
+}
+function valenceHint(aspect){
+    const a=(aspect||'').toLowerCase();
+    if(['square','opposition','sesquiquadrate','semisquare','semi-square','quincunx'].includes(a)) return 'hot';
+    if(['trine','sextile','quintile','biquintile'].includes(a)) return 'cool';
+    return 'neutral_to_hot';
+}
+
+// ---- normalizers that accept any shape ----
+function normalizeTransitRow(row){
+    if (row && row.transit_body && row.natal_target) {
+        const aspect = row.aspect || row.aspect_name || row.type || '';
+        let orb = Number.isFinite(row.orb) ? row.orb
+                        : Number.isFinite(row.orbit) ? row.orbit
+                        : computeOrbFromLongitudes(row.transit_lon, row.natal_lon, aspect);
+        return {
+            transit_body: row.transit_body,
+            natal_target: row.natal_target,
+            aspect,
+            orb: Number.isFinite(orb) ? +orb.toFixed(2) : null,
+            transit_lon: row.transit_lon ?? null,
+            natal_lon: row.natal_lon ?? null,
+            transit_house: row.transit_house ?? null,
+            natal_house: row.natal_house ?? null,
+            transit_is_retrograde: !!row.transit_is_retrograde,
+            natal_is_retrograde: !!row.natal_is_retrograde,
+            orb_band: bandOrb(orb),
+            valence_hint: valenceHint(aspect)
+        };
+    }
+    if (row && (row.planet_a || row.planet_b)) {
+        const aspect = row.aspect_name || row.aspect || row.type || '';
+        let orb = Number.isFinite(row.orbit) ? row.orbit
+                        : Number.isFinite(row.orb) ? row.orb
+                        : computeOrbFromLongitudes(row.abs_pos_a, row.abs_pos_b, aspect);
+        return {
+            transit_body: row.planet_a || '—',
+            natal_target: row.planet_b || '—',
+            aspect,
+            orb: Number.isFinite(orb) ? +orb.toFixed(2) : null,
+            transit_lon: row.abs_pos_a ?? null,
+            natal_lon: row.abs_pos_b ?? null,
+            transit_house: row.p1_house ?? row.house1 ?? null,
+            natal_house: row.p2_house ?? row.house2 ?? null,
+            transit_is_retrograde: !!row.p1_is_retrograde,
+            natal_is_retrograde: !!row.p2_is_retrograde,
+            orb_band: bandOrb(orb),
+            valence_hint: valenceHint(aspect)
+        };
+    }
+    if (row && (row.p1_name || row.p2_name)) {
+        const aspect = row.aspect || row.name || row.type || '';
+        let orb = Number.isFinite(row.orb) ? row.orb
+                        : Number.isFinite(row.orbit) ? row.orbit
+                        : computeOrbFromLongitudes(row.p1_abs_pos, row.p2_abs_pos, aspect);
+        return {
+            transit_body: row.p1_name || '—',
+            natal_target: row.p2_name || '—',
+            aspect,
+            orb: Number.isFinite(orb) ? +orb.toFixed(2) : null,
+            transit_lon: row.p1_abs_pos ?? null,
+            natal_lon: row.p2_abs_pos ?? null,
+            transit_house: row.p1_house ?? null,
+            natal_house: row.p2_house ?? null,
+            transit_is_retrograde: !!row.p1_is_retrograde,
+            natal_is_retrograde: !!row.p2_is_retrograde,
+            orb_band: bandOrb(orb),
+            valence_hint: valenceHint(aspect)
+        };
+    }
+    return null;
+}
+function normalizeTransitBlock(block){
+    if (Array.isArray(block)) {
+        return block.map(normalizeTransitRow).filter(Boolean);
+    }
+    if (block && block.chart && Array.isArray(block.chart.aspects)) {
+        return block.chart.aspects.map(normalizeTransitRow).filter(Boolean);
+    }
+    return [];
+}
+function renderTransitDay(dateStr, items){
+    const rows = normalizeTransitBlock(items);
+    if (!rows.length) return `<h4>${dateStr}</h4><p><em>No computed aspects.</em></p>`;
+    const lines = rows.map(r => {
+        const orbTxt = Number.isFinite(r.orb) ? `${r.orb.toFixed(2)}°` : '—';
+        return `• <strong>${r.transit_body}</strong> ${r.aspect} <strong>${r.natal_target}</strong> (${orbTxt}, ${r.orb_band}, ${r.valence_hint})`;
+    });
+    return `<h4>${dateStr}</h4><ul><li>${lines.join("</li><li>")}</li></ul>`;
+}
         // Global UI element references
         let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadMarkdownBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel, exRelationshipCheckbox, relocationPersonBOption, excludePersonBFromRelocation;
 
@@ -641,7 +744,12 @@
                             
                             md += `#### ${date}\n\n`;
                             transitsForDate.slice(0, 10).forEach(transit => {
-                                md += `- **${transit.p1_name}** ${transit.aspect} **${transit.p2_name}** (${Math.abs(transit.orbit).toFixed(1)}° orb)\n`;
+                                // Support both legacy and WMTransitAspect row shapes
+                                let bodyA = transit.p1_name || transit.transit_body || "?";
+                                let bodyB = transit.p2_name || transit.natal_target || "?";
+                                let aspect = transit.aspect || transit.aspect_name || "?";
+                                let orb = transit.orb ?? transit.orbit;
+                                md += `- **${bodyA}** ${aspect} **${bodyB}** (${orb !== undefined && orb !== null && !isNaN(orb) ? Math.abs(orb).toFixed(1) : "?"}° orb)\n`;
                             });
                             md += `\n`;
                         });
