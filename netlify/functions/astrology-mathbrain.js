@@ -18,7 +18,6 @@ const API_ENDPOINTS = {
 
 // Simplified logging utility to avoid external dependencies
 const { mapT2NAspects } = require('../../src/raven-lite-mapper');
-const { aggregate } = require('../../src/seismograph');
 const logger = {
   log: (...args) => console.log(`[LOG]`, ...args),
   info: (...args) => console.info(`[INFO]`, ...args),
