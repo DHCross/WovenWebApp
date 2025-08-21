@@ -177,6 +177,44 @@ async function runTests() {
     runner.assert(body.composite.derived.seismograph_summary, 'Composite should have seismograph summary');
   });
 
+  // Test 16: Composite transits calculation 
+  runner.test('Composite transits - COMPOSITE_TRANSITS mode', async () => {
+    const mockHandler = createMockHandler();
+    
+    const result = await mockHandler({
+      httpMethod: 'POST',
+      body: JSON.stringify({
+        personA: {
+          name: "Person A",
+          year: 1990, month: 6, day: 15, hour: 14, minute: 30,
+          city: "New York", nation: "US", timezone: "America/New_York",
+          latitude: 40.7128, longitude: -74.006, zodiac_type: "Tropic"
+        },
+        personB: {
+          name: "Person B", 
+          year: 1988, month: 3, day: 22, hour: 9, minute: 45,
+          city: "Los Angeles", nation: "US", timezone: "America/Los_Angeles",
+          latitude: 34.0522, longitude: -118.2437, zodiac_type: "Tropic"
+        },
+        context: {
+          mode: "COMPOSITE_TRANSITS"
+        },
+        transitParams: {
+          startDate: "2024-12-01",
+          endDate: "2024-12-02"
+        }
+      })
+    });
+
+    runner.assert(result.statusCode === 200, 'Should return 200 for composite transits');
+    
+    const response = JSON.parse(result.body);
+    runner.assert(response.composite, 'Should include composite data');
+    runner.assert(response.composite.transitsByDate, 'Should include transitsByDate');
+    runner.assert(response.composite.derived, 'Should include derived seismograph data');
+    runner.assert(response.composite.derived.seismograph_summary, 'Should include seismograph summary');
+  });
+
   await runner.run();
 }
 
