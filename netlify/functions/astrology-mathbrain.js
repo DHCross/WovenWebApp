@@ -1,7 +1,7 @@
 // This code is a consolidated and cleaned version of the provided Javascript for interacting with the Astrologer API.
 // It is ready to be used as a serverless function handler (e.g., in a Node.js environment).
 
-const { aggregate } = require('../../src/seismograph');
+const { aggregate } = require('./seismograph');
 const API_BASE_URL = 'https://astrologer.p.rapidapi.com';
 
 const API_ENDPOINTS = {
