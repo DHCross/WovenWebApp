@@ -1,3 +1,10 @@
+## [2025-08-21] Backend: Full API Integration for Transits & Composite
+
+- Refactored `astrology-mathbrain.js` to fully support composite transits, natal transits, and synastry per API_INTEGRATION_GUIDE.md.
+- Added robust validation for all required fields for both subjects.
+- Ensured correct endpoints and payload formats for all supported modes.
+- Bug fix: "No transit data available" now resolved for all supported modes.
+- Documentation and code now synchronized.
 # Woven Map App Error/Break History Log
 
 > **Note for AI Assistants:** The following is a commitment to a clear, collaborative workflow. Please adhere to these principles when assisting.

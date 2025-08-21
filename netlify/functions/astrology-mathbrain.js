@@ -4,12 +4,13 @@
 const API_BASE_URL = 'https://astrologer.p.rapidapi.com';
 
 const API_ENDPOINTS = {
-  NATAL_ASPECTS: `${API_BASE_URL}/api/v4/natal-aspects-data`,
-  SYNASTRY_ASPECTS: `${API_BASE_URL}/api/v4/synastry-aspects-data`,
-  TRANSIT_ASPECTS: `${API_BASE_URL}/api/v4/transit-aspects-data`,
-  COMPOSITE_ASPECTS: `${API_BASE_URL}/api/v4/composite-aspects-data`,
-  BIRTH_DATA: `${API_BASE_URL}/api/v4/birth-data`,
-  NOW: `${API_BASE_URL}/api/v4/now`,
+  BIRTH_CHART:        `${API_BASE_URL}/api/v4/birth-chart`,          // natal chart + aspects
+  SYNASTRY_CHART:     `${API_BASE_URL}/api/v4/synastry-chart`,       // A↔B + aspects
+  TRANSIT_CHART:      `${API_BASE_URL}/api/v4/transit-chart`,        // subject + aspects
+  TRANSIT_ASPECTS:    `${API_BASE_URL}/api/v4/transit-aspects-data`, // data-only
+  SYNASTRY_ASPECTS:   `${API_BASE_URL}/api/v4/synastry-aspects-data`,
+  BIRTH_DATA:         `${API_BASE_URL}/api/v4/birth-data`,
+  NOW:                `${API_BASE_URL}/api/v4/now`,
 };
 
 // Simplified logging utility to avoid external dependencies
@@ -46,13 +47,12 @@ function buildHeaders() {
  * @returns {{isValid: boolean, message: string}}
  */
 function validateSubject(subject) {
-  const requiredFields = ['year', 'month', 'day', 'hour', 'minute', 'latitude', 'longitude'];
-  const errors = requiredFields.filter(field => !subject[field] && subject[field] !== 0);
-  const isValid = errors.length === 0;
-  return {
-    isValid,
-    message: isValid ? 'Validation successful' : `Missing required fields: ${errors.join(', ')}`,
-  };
+  const required = [
+    'year','month','day','hour','minute',
+    'name','city','nation','latitude','longitude','zodiac_type','timezone'
+  ];
+  const missing = required.filter(f => subject[f] === undefined || subject[f] === null || subject[f] === '');
+  return { isValid: missing.length === 0, message: missing.length ? `Missing: ${missing.join(', ')}` : 'ok' };
 }
 
 /**
@@ -135,6 +135,57 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
  * @returns {Promise<Object>} An HTTP response object.
  */
 exports.handler = async function (event) {
+    // Extract context and transit params
+    const rawMode = (body.context?.mode || body.mode || '').toString().toUpperCase();
+    const transitParams = body.transitParams || {};
+    const transitStartDate = body.transitStartDate || body.transit_start_date || transitParams.startDate;
+    const transitEndDate = body.transitEndDate || body.transit_end_date || transitParams.endDate;
+    const transitStep = body.transitStep || body.transit_step || transitParams.step || 'daily';
+
+    let mode = (['NATAL','SYNASTRY','COMPOSITE_TRANSITS'].includes(rawMode) ? rawMode : 'NATAL');
+    const haveRange = Boolean(transitStartDate && transitEndDate);
+    const validB = validateSubject(personB).isValid;
+    if (haveRange && validB && (!rawMode || rawMode === '')) {
+      mode = 'COMPOSITE_TRANSITS'; // auto-upgrade per integration guide
+    }
+
+    // Natal chart (A)
+    const natalA = await apiCallWithRetry(API_ENDPOINTS.BIRTH_CHART, {
+      method:'POST', headers: buildHeaders(), body: JSON.stringify({ subject: personA })
+    }, 'Birth chart (A)');
+    result.person_a.chart = natalA.data;
+    result.person_a.aspects = natalA.data?.aspects || [];
+
+    // Synastry chart (A↔B)
+    if (mode === 'SYNASTRY' && validB) {
+      const syn = await apiCallWithRetry(API_ENDPOINTS.SYNASTRY_CHART, {
+        method:'POST', headers: buildHeaders(),
+        body: JSON.stringify({ first_subject: personA, second_subject: personB })
+      }, 'Synastry chart');
+      result.person_b = { details: personB, chart: syn.data?.second_subject };
+      result.synastry = syn.data?.aspects || [];
+    }
+
+    // Natal transits (A)
+    if (haveRange && mode === 'NATAL') {
+      const t = await apiCallWithRetry(API_ENDPOINTS.TRANSIT_CHART, {
+        method:'POST', headers: buildHeaders(),
+        body: JSON.stringify({ subject: personA, start_date: transitStartDate, end_date: transitEndDate, step: transitStep })
+      }, 'Transit chart (A)');
+      result.person_a.chart.transitsByDate = t.data?.transitsByDate || {};
+    }
+
+    // Composite transits
+    if (haveRange && validB && mode === 'COMPOSITE_TRANSITS') {
+      // Option A: vendor composite endpoint
+      // Option B: compute composite, then run transits
+      // For now, just call transit-chart with both subjects if supported
+      const compTransits = await apiCallWithRetry(API_ENDPOINTS.TRANSIT_CHART, {
+        method:'POST', headers: buildHeaders(),
+        body: JSON.stringify({ first_subject: personA, second_subject: personB, start_date: transitStartDate, end_date: transitEndDate, step: transitStep })
+      }, 'Composite transit chart');
+      result.composite = compTransits.data || {};
+    }
   try {
     if (event.httpMethod !== 'POST') {
       return {
