@@ -1,3 +1,23 @@
+function toAstrologerApiSubject(subject) {
+  return {
+    name: subject.name,
+    year: subject.year,
+    month: subject.month,
+    day: subject.day,
+    hour: subject.hour,
+    minute: subject.minute,
+    city: subject.city,
+    nation: subject.nation,
+    lat: subject.latitude,
+    lng: subject.longitude,
+    tz_str: subject.timezone,
+    zodiac_type: subject.zodiac_type
+  };
+}
+// Fallback: no-op enrichment for transit rows (returns input unchanged)
+function enrichTransitRowsWithDegrees(rows, natalMap, transitMap) {
+  return rows;
+}
 const API_BASE_URL = process.env.ASTRO_API_BASE || "https://astrologer.p.rapidapi.com";
 const API_NATAL_URL = `${API_BASE_URL}/api/v4/natal-aspects-data`;
 const API_SYNASTRY_URL = `${API_BASE_URL}/api/v4/synastry-aspects-data`;
@@ -2204,8 +2224,8 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
         logger.debug(`Transit subject for ${dateStr}`, transitSubject, requestId);
         
         const requestBody = {
-          first_subject: natalSubject,
-          transit_subject: transitSubject
+          first_subject: toAstrologerApiSubject(natalSubject),
+          transit_subject: toAstrologerApiSubject(transitSubject)
         };
         
         // Make API call with retry logic and error handling
