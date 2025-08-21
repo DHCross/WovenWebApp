@@ -1,6 +1,3 @@
-// This code is a consolidated and cleaned version of the provided Javascript for interacting with the Astrologer API.
-// It is ready to be used as a serverless function handler (e.g., in a Node.js environment).
-
 const API_BASE_URL = 'https://astrologer.p.rapidapi.com';
 
 const API_ENDPOINTS = {
@@ -8,11 +5,8 @@ const API_ENDPOINTS = {
   SYNASTRY_ASPECTS: `${API_BASE_URL}/api/v4/synastry-aspects-data`,
   TRANSIT_ASPECTS: `${API_BASE_URL}/api/v4/transit-aspects-data`,
   COMPOSITE_ASPECTS: `${API_BASE_URL}/api/v4/composite-aspects-data`,
-  BIRTH_DATA: `${API_BASE_URL}/api/v4/birth-data`,
-  NOW: `${API_BASE_URL}/api/v4/now`,
 };
 
-// Simplified logging utility to avoid external dependencies
 const logger = {
   log: (...args) => console.log(`[LOG]`, ...args),
   info: (...args) => console.info(`[INFO]`, ...args),
@@ -21,13 +15,6 @@ const logger = {
   debug: (...args) => process.env.LOG_LEVEL === 'debug' && console.debug(`[DEBUG]`, ...args),
 };
 
-// --- Helper Functions ---
-
-/**
- * Builds standard headers for API requests.
- * @returns {Object} Headers object.
- * @throws {Error} if the RapidAPI key is not configured.
- */
 function buildHeaders() {
   const key = process.env.RAPIDAPI_KEY;
   if (!key) {
@@ -40,14 +27,10 @@ function buildHeaders() {
   };
 }
 
-/**
- * Validates a subject object for all required fields.
- * @param {Object} subject - The subject data to validate.
- * @returns {{isValid: boolean, message: string}}
- */
 function validateSubject(subject) {
+  if (!subject) return { isValid: false, message: 'Subject is null or undefined.' };
   const requiredFields = ['year', 'month', 'day', 'hour', 'minute', 'latitude', 'longitude'];
-  const errors = requiredFields.filter(field => !subject[field] && subject[field] !== 0);
+  const errors = requiredFields.filter(field => subject[field] === undefined || subject[field] === null);
   const isValid = errors.length === 0;
   return {
     isValid,
@@ -55,53 +38,22 @@ function validateSubject(subject) {
   };
 }
 
-/**
- * Normalizes subject data from various input formats to the API's `SubjectModel`.
- * @param {Object} data - Raw subject data.
- * @returns {Object} Normalized subject model.
- */
 function normalizeSubjectData(data) {
-  if (!data || typeof data !== 'object') return {};
+    if (!data || typeof data !== 'object') return null;
+
+    const normalized = {
+      name: data.name || 'Subject',
+      year: data.year, month: data.month, day: data.day,
+      hour: data.hour, minute: data.minute,
+      city: data.city || 'London', nation: data.nation,
+      latitude: data.latitude, longitude: data.longitude,
+      timezone: data.timezone,
+      zodiac_type: data.zodiac_type || data.zodiac || 'Tropic',
+    };
   
-  const normalized = {
-    name: data.name || 'Subject',
-    year: data.year, month: data.month, day: data.day,
-    hour: data.hour, minute: data.minute,
-    city: data.city || 'London', nation: data.nation,
-    latitude: data.latitude, longitude: data.longitude,
-    timezone: data.timezone,
-    zodiac_type: data.zodiac_type || data.zodiac || 'Tropic',
-  };
-
-  // Convert legacy fields
-  if (data.date) {
-    const [m, d, y] = data.date.split('-').map(Number);
-    normalized.year = normalized.year || y;
-    normalized.month = normalized.month || m;
-    normalized.day = normalized.day || d;
-  }
-  if (data.time) {
-    const [h, min] = data.time.split(':').map(Number);
-    normalized.hour = normalized.hour || h;
-    normalized.minute = normalized.minute || min;
-  }
-  if (data.coordinates) {
-    const [lat, lng] = data.coordinates.split(',').map(s => parseFloat(s.trim()));
-    normalized.latitude = normalized.latitude || lat;
-    normalized.longitude = normalized.longitude || lng;
-  }
-
-  return normalized;
+    return normalized;
 }
 
-/**
- * Robustly calls an API endpoint with retry logic and error handling.
- * @param {string} url - The API endpoint URL.
- * @param {Object} options - Fetch options.
- * @param {string} operation - A description for logging.
- * @param {number} maxRetries - Max retry attempts.
- * @returns {Promise<Object>} The parsed JSON response.
- */
 async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -109,83 +61,164 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
       const response = await fetch(url, options);
 
       if (!response.ok) {
+        const errorBody = await response.text();
         if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-          throw new Error('Non-retryable client error');
+          logger.error(`Non-retryable client error for ${operation}: ${response.status}`, errorBody);
+          throw new Error(`Client error: ${errorBody}`);
         }
-        logger.warn(`API call failed with status ${response.status}. Retrying...`);
+        logger.warn(`API call for ${operation} failed with status ${response.status}. Retrying...`);
         throw new Error(`Server error: ${response.status}`);
       }
       return response.json();
     } catch (error) {
-      if (attempt === maxRetries || error.message.includes('Non-retryable')) {
-        logger.error(`Failed after ${attempt} attempts: ${error.message}`, { url, operation });
+      if (attempt === maxRetries || error.message.includes('Client error')) {
+        logger.error(`Failed API call for ${operation} after ${attempt} attempts: ${error.message}`);
         throw new Error(`Service temporarily unavailable. Please try again later.`);
       }
-      const delay = Math.pow(2, attempt) * 100 + Math.random() * 100; // Exponential backoff
+      const delay = Math.pow(2, attempt) * 100 + Math.random() * 100;
       await new Promise(res => setTimeout(res, delay));
     }
   }
 }
 
-// --- Main Handler ---
-
 /**
- * Main serverless function to handle astrological chart calculations.
- * @param {Object} event - The Netlify function event object.
- * @returns {Promise<Object>} An HTTP response object.
+ * Calculates transits for a given subject over a date range.
+ * @param {Object} subject - The natal subject data.
+ * @param {Object} transitParams - The transit parameters (startDate, endDate, step).
+ * @returns {Promise<Object>} An object with transits grouped by date.
  */
+async function getTransits(subject, transitParams) {
+    if (!transitParams || !transitParams.startDate || !transitParams.endDate) {
+        logger.warn('Skipping transit calculation due to missing transit parameters.');
+        return {};
+    }
+
+    const transitsByDate = {};
+    const startDate = new Date(transitParams.startDate);
+    const endDate = new Date(transitParams.endDate);
+
+    // Add a day to endDate to make it inclusive
+    endDate.setDate(endDate.getDate() + 1);
+
+    for (let d = startDate; d < endDate; d.setDate(d.getDate() + 1)) {
+        const dateString = d.toISOString().split('T')[0];
+        const transit_subject = {
+            year: d.getFullYear(),
+            month: d.getMonth() + 1,
+            day: d.getDate(),
+            hour: 12, // Use noon for consistent daily transits
+            minute: 0,
+            city: "Greenwich", // Use a neutral reference location
+            nation: "GB",
+            latitude: 51.4825766,
+            longitude: -0.0076589,
+            timezone: "UTC"
+        };
+
+        try {
+            const transit_resp = await apiCallWithRetry(
+                API_ENDPOINTS.TRANSIT_ASPECTS,
+                {
+                    method: 'POST',
+                    headers: buildHeaders(),
+                    body: JSON.stringify({
+                        first_subject: subject,
+                        transit_subject: transit_subject,
+                    }),
+                },
+                `Transits for ${subject.name} on ${dateString}`
+            );
+
+            // As per changelog, the aspects are at the root level of the response
+            if (transit_resp.aspects && transit_resp.aspects.length > 0) {
+                transitsByDate[dateString] = transit_resp.aspects;
+            }
+        } catch (error) {
+            logger.error(`Failed to get transits for ${subject.name} on ${dateString}`, error);
+        }
+    }
+    return transitsByDate;
+}
+
+
 exports.handler = async function (event) {
   try {
     if (event.httpMethod !== 'POST') {
-      return {
-        statusCode: 405,
-        body: JSON.stringify({ error: 'Only POST requests are allowed.' }),
-      };
+      return { statusCode: 405, body: JSON.stringify({ error: 'Only POST requests are allowed.' }) };
     }
 
     const body = JSON.parse(event.body);
-    const personA = normalizeSubjectData(body.personA || body.person_a || body.first_subject || body.subject);
-    const personB = normalizeSubjectData(body.personB || body.person_b || body.second_subject);
+    const { context = {}, transitParams } = body;
+    const mode = context.mode || 'natal_transits'; // Default mode
+
+    const personA = normalizeSubjectData(body.personA);
+    const personB = normalizeSubjectData(body.personB);
 
     const validationA = validateSubject(personA);
     if (!validationA.isValid) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: `Primary subject validation failed: ${validationA.message}` }),
-      };
+      return { statusCode: 400, body: JSON.stringify({ error: `Person A validation failed: ${validationA.message}` }) };
     }
 
     let result = {
+      schema: 'WM-Chart-1.1',
       person_a: { details: personA },
-      person_b: undefined,
-      synastry: undefined,
     };
 
-    // Calculate Person A's natal aspects
-    const natalA_resp = await apiCallWithRetry(
-      API_ENDPOINTS.NATAL_ASPECTS,
-      { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ subject: personA }) },
-      'Natal chart for Person A'
-    );
-    result.person_a.chart = natalA_resp.data;
-    result.person_a.aspects = natalA_resp.aspects;
+    switch (mode) {
+      case 'natal_transits':
+        const natalA_resp = await apiCallWithRetry(
+          API_ENDPOINTS.NATAL_ASPECTS,
+          { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ subject: personA }) },
+          'Natal chart for Person A'
+        );
+        result.person_a.chart = natalA_resp.data;
+        result.person_a.chart.aspects = natalA_resp.aspects;
+        result.person_a.chart.transitsByDate = await getTransits(personA, transitParams);
+        break;
 
-    // Calculate synastry if Person B is present
-    if (validateSubject(personB).isValid) {
-      const synastry_resp = await apiCallWithRetry(
-        API_ENDPOINTS.SYNASTRY_ASPECTS,
-        {
-          method: 'POST',
-          headers: buildHeaders(),
-          body: JSON.stringify({
-            first_subject: personA,
-            second_subject: personB,
-          }),
-        },
-        'Synastry aspects'
-      );
-      result.person_b = { details: personB, chart: synastry_resp.data.second_subject };
-      result.synastry = synastry_resp.aspects;
+      case 'synastry_transits':
+        const validationB = validateSubject(personB);
+        if (!validationB.isValid) {
+            return { statusCode: 400, body: JSON.stringify({ error: `Person B is required for synastry mode: ${validationB.message}` }) };
+        }
+        result.person_b = { details: personB };
+
+        const [natalRespA, natalRespB, synastryResp, transitsA, transitsB] = await Promise.all([
+            apiCallWithRetry(API_ENDPOINTS.NATAL_ASPECTS, { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ subject: personA }) }, 'Natal Chart A'),
+            apiCallWithRetry(API_ENDPOINTS.NATAL_ASPECTS, { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ subject: personB }) }, 'Natal Chart B'),
+            apiCallWithRetry(API_ENDPOINTS.SYNASTRY_ASPECTS, { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ first_subject: personA, second_subject: personB }) }, 'Synastry Aspects'),
+            getTransits(personA, transitParams),
+            getTransits(personB, transitParams)
+        ]);
+
+        result.person_a.chart = { ...natalRespA.data, aspects: natalRespA.aspects, transitsByDate: transitsA };
+        result.person_b.chart = { ...natalRespB.data, aspects: natalRespB.aspects, transitsByDate: transitsB };
+        result.synastry = { aspects: synastryResp.aspects };
+        break;
+
+      case 'composite_transits':
+        const validationComp = validateSubject(personB);
+        if (!validationComp.isValid) {
+            return { statusCode: 400, body: JSON.stringify({ error: `Person B is required for composite mode: ${validationComp.message}` }) };
+        }
+        result.person_b = { details: personB };
+
+        const composite_resp = await apiCallWithRetry(
+          API_ENDPOINTS.COMPOSITE_ASPECTS,
+          { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ first_subject: personA, second_subject: personB }) },
+          'Composite aspects'
+        );
+        result.composite = {
+            chart: composite_resp.data.composite_subject,
+            aspects: composite_resp.aspects,
+            transitsByDate: {} // Placeholder
+        };
+        logger.warn('Composite transit calculation is not yet fully implemented.');
+        // TODO: Implement logic to calculate transits to composite chart if API allows.
+        break;
+
+      default:
+        return { statusCode: 400, body: JSON.stringify({ error: `Unknown context mode: ${mode}` }) };
     }
 
     return {
