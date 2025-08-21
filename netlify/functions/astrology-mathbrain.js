@@ -339,7 +339,11 @@ exports.handler = async function(event) {
     logger.error('Handler error:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Internal server error' }),
+      body: JSON.stringify({
+        error: error?.message || 'Internal server error',
+        stack: error?.stack || null,
+        details: error
+      }),
     };
   }
 };
