@@ -398,6 +398,38 @@
 
     <script src="config.js"></script>
     <script>
+// --- Dual-read helpers for natal/synastry aspects ---
+function nameA(r){ return r.p1_name ?? (legacyTouch('natal/synastry:p1_name'), r.planet_a) ?? r.transit_body ?? '—'; }
+function nameB(r){ return r.p2_name ?? (legacyTouch('natal/synastry:p2_name'), r.planet_b) ?? r.natal_target ?? '—'; }
+function aspectA(r){ return r.aspect ?? (legacyTouch('natal/synastry:aspect_name'), r.aspect_name) ?? '—'; }
+function orbA(r){ return (typeof r.orb === 'number') ? r.orb 
+                 : (legacyTouch('natal/synastry:orbit/diff'), (r.orbit ?? r.diff)); }
+
+function formatAspectRow(r){
+    const A = nameA(r), B = nameB(r), asp = aspectA(r);
+    const o = orbA(r);
+    if (!A || !B || !asp || !Number.isFinite(+o)) return null;
+    return `**${A}** ${asp} **${B}** (${(+o).toFixed(1)}°)`;
+}
+// --- Global legacy usage telemetry ---
+window.WM_LEGACY_HITS = 0;
+function legacyTouch(tag){ 
+    window.WM_LEGACY_HITS++; 
+    console.warn(`[LEGACY] used: ${tag}`); 
+}
+
+function nameT(r){ return r.transit_body ?? (legacyTouch('p1_name'), r.p1_name); }
+function nameN(r){ return r.natal_target ?? (legacyTouch('p2_name'), r.p2_name); }
+function aspectT(r){ return r.aspect ?? (legacyTouch('aspect_name'), r.aspect_name); }
+function orbT(r){ return (typeof r.orb === 'number') ? r.orb 
+                 : (legacyTouch('orbit/diff'), (r.orbit ?? r.diff)); }
+
+function formatTransitRow(r){
+    const A = nameT(r), B = nameN(r), asp = aspectT(r);
+    const o = orbT(r);
+    if (!A || !B || !asp || !Number.isFinite(+o)) return null;
+    return `**${A}** ${asp} **${B}** (${(+o).toFixed(1)}°)`;
+}
 // ---- aspect math (for fallback orb) ----
 const ASPECTS = { conjunction:0, sextile:60, square:90, trine:120, opposition:180,
     quincunx:150, quintile:72, biquintile:144, 'semi-square':45, semisquare:45, sesquiquadrate:135 };
@@ -744,12 +776,14 @@ function renderTransitDay(dateStr, items){
                             
                             md += `#### ${date}\n\n`;
                             transitsForDate.slice(0, 10).forEach(transit => {
-                                // Support both legacy and WMTransitAspect row shapes
-                                let bodyA = transit.p1_name || transit.transit_body || "?";
-                                let bodyB = transit.p2_name || transit.natal_target || "?";
-                                let aspect = transit.aspect || transit.aspect_name || "?";
-                                let orb = transit.orb ?? transit.orbit;
-                                md += `- **${bodyA}** ${aspect} **${bodyB}** (${orb !== undefined && orb !== null && !isNaN(orb) ? Math.abs(orb).toFixed(1) : "?"}° orb)\n`;
+                                totalRowCount++;
+                                const bodyA = getP1(transit) ?? "?";
+                                const bodyB = getP2(transit) ?? "?";
+                                const aspect = transit.aspect ?? transit.aspect_name ?? "?";
+                                const orb = getOrb(transit);
+                                if (bodyA && bodyB && aspect && orb !== undefined && orb !== null && !isNaN(orb)) {
+                                    md += `- **${bodyA}** ${aspect} **${bodyB}** (${Math.abs(orb).toFixed(1)}° orb)\n`;
+                                }
                             });
                             md += `\n`;
                         });
