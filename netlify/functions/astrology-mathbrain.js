@@ -896,6 +896,11 @@ function indexPlacements(placements){
   } else if (typeof placements === 'object') {
     for (const [name, v] of Object.entries(placements)) {
       if (!name || !v) continue;
+      // Fast-path: support simple longitude maps like { Sun: 123.45 }
+      if (typeof v === 'number' && Number.isFinite(v)) {
+        idx[name] = { lon: v, house: undefined, rx: undefined };
+        continue;
+      }
       const lon = Number.isFinite(v.abs_pos) ? v.abs_pos
                 : Number.isFinite(v.position) ? v.position
                 : Number.isFinite(v.longitude)? v.longitude
