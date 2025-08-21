@@ -765,8 +765,8 @@ function renderTransitDay(dateStr, items){
 
             // Process Transit Data (if mode includes transits)
             if (mode.includes('_transits')) {
-                const transitStartDate = formData.transitStartDate;
-                const transitEndDate = formData.transitEndDate;
+                const transitStartDate = formData.transitParams?.startDate;
+                const transitEndDate = formData.transitParams?.endDate;
                 
                 console.log('=== MARKDOWN TRANSIT DEBUG ===');
                 console.log('Transit mode detected in markdown generation:', mode);
@@ -799,16 +799,17 @@ function renderTransitDay(dateStr, items){
                     
                     if (relevantDates.length > 0) {
                         relevantDates.forEach(date => {
-                            const transitsForDate = personATransits[date];
+                            const dailyData = personATransits[date];
+                            const transitsForDate = dailyData?.aspects || []; // Get raw aspects from new structure
                             console.log(`Person A transits for ${date}:`, transitsForDate?.length || 0, 'aspects');
                             
                             md += `#### ${date}\n\n`;
                             transitsForDate.slice(0, 10).forEach(transit => {
                                 totalRowCount++;
-                                const bodyA = getP1(transit) ?? "?";
-                                const bodyB = getP2(transit) ?? "?";
+                                const bodyA = transit.p1_name ?? "?";
+                                const bodyB = transit.p2_name ?? "?";
                                 const aspect = transit.aspect ?? transit.aspect_name ?? "?";
-                                const orb = getOrb(transit);
+                                const orb = transit.orbit ?? transit.orb ?? 0;
                                 if (bodyA && bodyB && aspect && orb !== undefined && orb !== null && !isNaN(orb)) {
                                     md += `- **${bodyA}** ${aspect} **${bodyB}** (${Math.abs(orb).toFixed(1)}° orb)\n`;
                                 }
@@ -839,12 +840,19 @@ function renderTransitDay(dateStr, items){
                     
                     if (relevantDates.length > 0) {
                         relevantDates.forEach(date => {
-                            const transitsForDate = personBTransits[date];
+                            const dailyData = personBTransits[date];
+                            const transitsForDate = dailyData?.aspects || []; // Get raw aspects from new structure
                             console.log(`Person B transits for ${date}:`, transitsForDate?.length || 0, 'aspects');
                             
                             md += `#### ${date}\n\n`;
                             transitsForDate.slice(0, 10).forEach(transit => {
-                                md += `- **${transit.p1_name}** ${transit.aspect} **${transit.p2_name}** (${Math.abs(transit.orbit).toFixed(1)}° orb)\n`;
+                                const bodyA = transit.p1_name ?? "?";
+                                const bodyB = transit.p2_name ?? "?";
+                                const aspect = transit.aspect ?? transit.aspect_name ?? "?";
+                                const orb = transit.orbit ?? transit.orb ?? 0;
+                                if (bodyA && bodyB && aspect && orb !== undefined && orb !== null && !isNaN(orb)) {
+                                    md += `- **${bodyA}** ${aspect} **${bodyB}** (${Math.abs(orb).toFixed(1)}° orb)\n`;
+                                }
                             });
                             md += `\n`;
                         });
@@ -873,9 +881,19 @@ function renderTransitDay(dateStr, items){
                     if (relevantDates.length > 0) {
                         relevantDates.forEach(date => {
                             md += `#### ${date}\n\n`;
-                            synastryTransits[date].slice(0, 10).forEach(transit => {
-                                md += `- **${transit.p1_name}** ${transit.aspect} **${transit.p2_owner} ${transit.p2_name}** (${Math.abs(transit.orbit).toFixed(1)}° orb)\n`;
-                            });
+                            const dailyData = synastryTransits[date];
+                            const transitsForDate = dailyData?.aspects || dailyData || []; // Handle both new and old structure
+                            if (Array.isArray(transitsForDate)) {
+                                transitsForDate.slice(0, 10).forEach(transit => {
+                                    const bodyA = transit.p1_name ?? "?";
+                                    const bodyB = transit.p2_owner ? `${transit.p2_owner} ${transit.p2_name}` : (transit.p2_name ?? "?");
+                                    const aspect = transit.aspect ?? transit.aspect_name ?? "?";
+                                    const orb = transit.orbit ?? transit.orb ?? 0;
+                                    if (bodyA && bodyB && aspect && orb !== undefined && orb !== null && !isNaN(orb)) {
+                                        md += `- **${bodyA}** ${aspect} **${bodyB}** (${Math.abs(orb).toFixed(1)}° orb)\n`;
+                                    }
+                                });
+                            }
                             md += `\n`;
                         });
                     } else {
@@ -884,9 +902,9 @@ function renderTransitDay(dateStr, items){
                 }
 
                 // Composite Transits (for composite modes)
-                if (mode.includes('composite') && data.composite?.chart?.transitsByDate) {
+                if (mode.includes('composite') && data.composite?.transitsByDate) {
                     md += `### Composite Chart Transits\n\n`;
-                    const compositeTransits = data.composite.chart.transitsByDate;
+                    const compositeTransits = data.composite.transitsByDate;
                     
                     // Filter transits within date range
                     const relevantDates = Object.keys(compositeTransits).filter(date => {
@@ -896,9 +914,19 @@ function renderTransitDay(dateStr, items){
                     if (relevantDates.length > 0) {
                         relevantDates.forEach(date => {
                             md += `#### ${date}\n\n`;
-                            compositeTransits[date].slice(0, 10).forEach(transit => {
-                                md += `- **${transit.p1_name}** ${transit.aspect} **${transit.p2_name}** (${Math.abs(transit.orbit).toFixed(1)}° orb)\n`;
-                            });
+                            const dailyData = compositeTransits[date];
+                            const transitsForDate = dailyData?.aspects || dailyData || []; // Handle both new and old structure
+                            if (Array.isArray(transitsForDate)) {
+                                transitsForDate.slice(0, 10).forEach(transit => {
+                                    const bodyA = transit.p1_name ?? "?";
+                                    const bodyB = transit.p2_name ?? "?";
+                                    const aspect = transit.aspect ?? transit.aspect_name ?? "?";
+                                    const orb = transit.orbit ?? transit.orb ?? 0;
+                                    if (bodyA && bodyB && aspect && orb !== undefined && orb !== null && !isNaN(orb)) {
+                                        md += `- **${bodyA}** ${aspect} **${bodyB}** (${Math.abs(orb).toFixed(1)}° orb)\n`;
+                                    }
+                                });
+                            }
                             md += `\n`;
                         });
                     } else {

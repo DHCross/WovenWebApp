@@ -227,7 +227,10 @@ function calculateSeismograph(transitsByDate) {
     }));
 
     const agg = aggregate(aspects, prev);
-    daily[d] = { seismograph: { magnitude: agg.magnitude, valence: agg.valence, volatility: agg.volatility } };
+    daily[d] = { 
+      seismograph: { magnitude: agg.magnitude, valence: agg.valence, volatility: agg.volatility },
+      aspects: transitsByDate[d] // Preserve raw aspect data for frontend display
+    };
     prev = { scored: agg.scored, Y_effective: agg.valence };
   }
 
