@@ -572,6 +572,16 @@ function renderTransitDay(dateStr, items){
             errorDisplay.classList.add('hidden');
         }
 
+        // Helper function to get opposite zodiac sign for South Node calculation
+        function getOppositeSign(sign) {
+            const opposites = {
+                'Ari': 'Lib', 'Tau': 'Sco', 'Gem': 'Sag', 'Can': 'Cap',
+                'Leo': 'Aqu', 'Vir': 'Pis', 'Lib': 'Ari', 'Sco': 'Tau',
+                'Sag': 'Gem', 'Cap': 'Can', 'Aqu': 'Leo', 'Pis': 'Vir'
+            };
+            return opposites[sign] || sign;
+        }
+
         // --- Date Utility Functions ---
 
         function getTodayDateString() {
@@ -671,26 +681,168 @@ function renderTransitDay(dateStr, items){
             }
 
             // Chart Data Summary
-            if (data.person_a?.chart?.status === 'OK') {
-                md += `## Person A Chart Summary\n\n`;
-                const chart = data.person_a.chart.data.subject;
-                md += `- **Ascendant**: ${chart.ascendant.sign} ${chart.ascendant.position.toFixed(2)}°\n`;
-                md += `- **Sun**: ${chart.sun.sign} ${chart.sun.position.toFixed(2)}° (${chart.sun.house})\n`;
-                md += `- **Moon**: ${chart.moon.sign} ${chart.moon.position.toFixed(2)}° (${chart.moon.house})\n`;
-                md += `- **Mercury**: ${chart.mercury.sign} ${chart.mercury.position.toFixed(2)}° (${chart.mercury.house})${chart.mercury.retrograde ? ' ℞' : ''}\n`;
-                md += `- **Venus**: ${chart.venus.sign} ${chart.venus.position.toFixed(2)}° (${chart.venus.house})${chart.venus.retrograde ? ' ℞' : ''}\n`;
-                md += `- **Mars**: ${chart.mars.sign} ${chart.mars.position.toFixed(2)}° (${chart.mars.house})${chart.mars.retrograde ? ' ℞' : ''}\n\n`;
+            if (data.person_a?.chart && (data.person_a.chart.status === 'OK' || data.person_a.chart.sun)) {
+                md += `## Person A Natal Chart\n\n`;
+                
+                // The chart data can be in different structures depending on API endpoint used
+                const chart = data.person_a.chart.data || data.person_a.chart;
+                
+                try {
+                    // Chart Angles - only show if available
+                    if (chart.asc || chart.ascendant) {
+                        md += `### Chart Angles\n\n`;
+                        const asc = chart.asc || chart.ascendant;
+                        const mc = chart.mc || chart.midheaven;
+                        const dsc = chart.dsc || chart.descendant;
+                        const ic = chart.ic || chart.imum_coeli;
+                        
+                        if (asc && asc.sign && asc.position !== undefined) {
+                            md += `- **Ascendant (ASC)**: ${asc.sign} ${asc.position.toFixed(2)}°\n`;
+                        }
+                        if (mc && mc.sign && mc.position !== undefined) {
+                            md += `- **Midheaven (MC)**: ${mc.sign} ${mc.position.toFixed(2)}°\n`;
+                        }
+                        if (dsc && dsc.sign && dsc.position !== undefined) {
+                            md += `- **Descendant (DSC)**: ${dsc.sign} ${dsc.position.toFixed(2)}°\n`;
+                        }
+                        if (ic && ic.sign && ic.position !== undefined) {
+                            md += `- **Imum Coeli (IC)**: ${ic.sign} ${ic.position.toFixed(2)}°\n`;
+                        }
+                        md += `\n`;
+                    }
+                    
+                    // Natal Planet Positions  
+                    md += `### Natal Planet Positions\n\n`;
+                    
+                    // Core planets in standard order
+                    const planets = [
+                        { key: 'sun', name: 'Sun' },
+                        { key: 'moon', name: 'Moon' },
+                        { key: 'mercury', name: 'Mercury' },
+                        { key: 'venus', name: 'Venus' },
+                        { key: 'mars', name: 'Mars' },
+                        { key: 'jupiter', name: 'Jupiter' },
+                        { key: 'saturn', name: 'Saturn' },
+                        { key: 'uranus', name: 'Uranus' },
+                        { key: 'neptune', name: 'Neptune' },
+                        { key: 'pluto', name: 'Pluto' },
+                        { key: 'chiron', name: 'Chiron' }
+                    ];
+                    
+                    planets.forEach(planet => {
+                        const planetData = chart[planet.key];
+                        if (planetData && planetData.sign && planetData.position !== undefined) {
+                            const house = planetData.house || 'Unknown';
+                            const retrograde = planetData.retrograde ? ' ℞' : '';
+                            md += `- **${planet.name}**: ${planetData.sign} ${planetData.position.toFixed(2)}° (House ${house})${retrograde}\n`;
+                        }
+                    });
+                    
+                    // Lunar Nodes if available
+                    if (chart.mean_node || chart.true_node || chart.north_node) {
+                        md += `\n### Lunar Nodes\n\n`;
+                        const northNode = chart.mean_node || chart.true_node || chart.north_node;
+                        if (northNode && northNode.sign && northNode.position !== undefined) {
+                            const house = northNode.house || 'Unknown';
+                            md += `- **North Node**: ${northNode.sign} ${northNode.position.toFixed(2)}° (House ${house})\n`;
+                        }
+                        // South Node is opposite North Node
+                        if (northNode && northNode.sign && northNode.position !== undefined) {
+                            const southNodePos = (northNode.position + 180) % 360;
+                            const southNodeSign = getOppositeSign(northNode.sign);
+                            if (southNodeSign) {
+                                md += `- **South Node**: ${southNodeSign} ${southNodePos.toFixed(2)}°\n`;
+                            }
+                        }
+                    }
+                    
+                    md += `\n`;
+                } catch (error) {
+                    console.log('Error rendering natal chart data:', error);
+                    md += `*Natal chart data available but could not be displayed due to formatting.*\n\n`;
+                }
             }
 
-            if (data.person_b?.chart?.status === 'OK') {
-                md += `## Person B Chart Summary\n\n`;
-                const chart = data.person_b.chart.data.subject;
-                md += `- **Ascendant**: ${chart.ascendant.sign} ${chart.ascendant.position.toFixed(2)}°\n`;
-                md += `- **Sun**: ${chart.sun.sign} ${chart.sun.position.toFixed(2)}° (${chart.sun.house})\n`;
-                md += `- **Moon**: ${chart.moon.sign} ${chart.moon.position.toFixed(2)}° (${chart.moon.house})\n`;
-                md += `- **Mercury**: ${chart.mercury.sign} ${chart.mercury.position.toFixed(2)}° (${chart.mercury.house})${chart.mercury.retrograde ? ' ℞' : ''}\n`;
-                md += `- **Venus**: ${chart.venus.sign} ${chart.venus.position.toFixed(2)}° (${chart.venus.house})${chart.venus.retrograde ? ' ℞' : ''}\n`;
-                md += `- **Mars**: ${chart.mars.sign} ${chart.mars.position.toFixed(2)}° (${chart.mars.house})${chart.mars.retrograde ? ' ℞' : ''}\n\n`;
+            if (data.person_b?.chart && (data.person_b.chart.status === 'OK' || data.person_b.chart.sun)) {
+                md += `## Person B Natal Chart\n\n`;
+                
+                // The chart data can be in different structures depending on API endpoint used
+                const chart = data.person_b.chart.data || data.person_b.chart;
+                
+                try {
+                    // Chart Angles - only show if available
+                    if (chart.asc || chart.ascendant) {
+                        md += `### Chart Angles\n\n`;
+                        const asc = chart.asc || chart.ascendant;
+                        const mc = chart.mc || chart.midheaven;
+                        const dsc = chart.dsc || chart.descendant;
+                        const ic = chart.ic || chart.imum_coeli;
+                        
+                        if (asc && asc.sign && asc.position !== undefined) {
+                            md += `- **Ascendant (ASC)**: ${asc.sign} ${asc.position.toFixed(2)}°\n`;
+                        }
+                        if (mc && mc.sign && mc.position !== undefined) {
+                            md += `- **Midheaven (MC)**: ${mc.sign} ${mc.position.toFixed(2)}°\n`;
+                        }
+                        if (dsc && dsc.sign && dsc.position !== undefined) {
+                            md += `- **Descendant (DSC)**: ${dsc.sign} ${dsc.position.toFixed(2)}°\n`;
+                        }
+                        if (ic && ic.sign && ic.position !== undefined) {
+                            md += `- **Imum Coeli (IC)**: ${ic.sign} ${ic.position.toFixed(2)}°\n`;
+                        }
+                        md += `\n`;
+                    }
+                    
+                    // Natal Planet Positions  
+                    md += `### Natal Planet Positions\n\n`;
+                    
+                    // Core planets in standard order
+                    const planets = [
+                        { key: 'sun', name: 'Sun' },
+                        { key: 'moon', name: 'Moon' },
+                        { key: 'mercury', name: 'Mercury' },
+                        { key: 'venus', name: 'Venus' },
+                        { key: 'mars', name: 'Mars' },
+                        { key: 'jupiter', name: 'Jupiter' },
+                        { key: 'saturn', name: 'Saturn' },
+                        { key: 'uranus', name: 'Uranus' },
+                        { key: 'neptune', name: 'Neptune' },
+                        { key: 'pluto', name: 'Pluto' },
+                        { key: 'chiron', name: 'Chiron' }
+                    ];
+                    
+                    planets.forEach(planet => {
+                        const planetData = chart[planet.key];
+                        if (planetData && planetData.sign && planetData.position !== undefined) {
+                            const house = planetData.house || 'Unknown';
+                            const retrograde = planetData.retrograde ? ' ℞' : '';
+                            md += `- **${planet.name}**: ${planetData.sign} ${planetData.position.toFixed(2)}° (House ${house})${retrograde}\n`;
+                        }
+                    });
+                    
+                    // Lunar Nodes if available
+                    if (chart.mean_node || chart.true_node || chart.north_node) {
+                        md += `\n### Lunar Nodes\n\n`;
+                        const northNode = chart.mean_node || chart.true_node || chart.north_node;
+                        if (northNode && northNode.sign && northNode.position !== undefined) {
+                            const house = northNode.house || 'Unknown';
+                            md += `- **North Node**: ${northNode.sign} ${northNode.position.toFixed(2)}° (House ${house})\n`;
+                        }
+                        // South Node is opposite North Node
+                        if (northNode && northNode.sign && northNode.position !== undefined) {
+                            const southNodePos = (northNode.position + 180) % 360;
+                            const southNodeSign = getOppositeSign(northNode.sign);
+                            if (southNodeSign) {
+                                md += `- **South Node**: ${southNodeSign} ${southNodePos.toFixed(2)}°\n`;
+                            }
+                        }
+                    }
+                    
+                    md += `\n`;
+                } catch (error) {
+                    console.log('Error rendering Person B natal chart data:', error);
+                    md += `*Natal chart data available but could not be displayed due to formatting.*\n\n`;
+                }
             }
 
             // Relocation Chart Summaries (if present)
