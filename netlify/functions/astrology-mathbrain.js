@@ -16,6 +16,7 @@ const API_ENDPOINTS = {
 };
 
 // Simplified logging utility to avoid external dependencies
+const { mapT2NAspects } = require('../../src/raven-lite-mapper');
 const logger = {
   log: (...args) => console.log(`[LOG]`, ...args),
   info: (...args) => console.info(`[INFO]`, ...args),
@@ -204,13 +205,42 @@ async function computeCompositeTransits(compositeRaw, start, end, step, pass = {
   }
 }
 
+
+// --- Error ID generator ---
+function generateErrorId() {
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10).replace(/-/g, '');
+  const time = now.toTimeString().slice(0, 8).replace(/:/g, '');
+  const random = Math.random().toString(36).substr(2, 4).toUpperCase();
+  return `ERR-${date}-${time}-${random}`;
+}
+
 exports.handler = async function(event) {
   try {
     if (event.httpMethod !== 'POST') {
-      return { statusCode: 405, body: JSON.stringify({ error: 'Only POST requests are allowed.' }) };
+      return {
+        statusCode: 405,
+        body: JSON.stringify({
+          error: 'Only POST requests are allowed.',
+          code: 'METHOD_NOT_ALLOWED',
+          errorId: generateErrorId()
+        })
+      };
     }
 
-    const body = JSON.parse(event.body || '{}');
+    let body;
+    try {
+      body = JSON.parse(event.body || '{}');
+    } catch (e) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error: 'Invalid JSON in request body.',
+          code: 'INVALID_JSON',
+          errorId: generateErrorId()
+        })
+      };
+    }
 
     // Inputs
     const personA = normalizeSubjectData(body.personA || body.person_a || body.first_subject || body.subject);
@@ -224,15 +254,37 @@ exports.handler = async function(event) {
     const wantComposite = modeToken === 'COMPOSITE' || modeToken === 'COMPOSITE_ASPECTS' || modeToken === 'COMPOSITE_TRANSITS' || body.wantComposite === true;
 
     const vA = (wantNatalAspectsOnly || wantBirthData) ? validateSubjectLean(personA) : validateSubject(personA);
-    if (!vA.isValid) return { statusCode: 400, body: JSON.stringify({ error: `Primary subject validation failed: ${vA.message}` }) };
+    if (!vA.isValid) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error: `Primary subject validation failed: ${vA.message}`,
+          code: 'VALIDATION_ERROR_A',
+          errorId: generateErrorId()
+        })
+      };
+    }
 
     const start = body.transitStartDate || body.transit_start_date || body.transitParams?.startDate;
     const end   = body.transitEndDate   || body.transit_end_date   || body.transitParams?.endDate;
     const step  = normalizeStep(body.transitStep || body.transit_step || body.transitParams?.step);
     const haveRange = Boolean(start && end);
 
-    const headers = buildHeaders();
-    const result = { person_a: { details: personA } };
+    let headers;
+    try {
+      headers = buildHeaders();
+    } catch (e) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          error: e.message,
+          code: 'CONFIG_ERROR',
+          errorId: generateErrorId()
+        })
+      };
+    }
+
+    const result = { schema: 'WM-Chart-1.0', person_a: { details: personA } };
 
     // 1) Natal (chart + aspects, natal aspects-only, or birth data)
     let natalResponse;
@@ -282,7 +334,14 @@ exports.handler = async function(event) {
         },
         'Transit aspects (A)'
       );
-      result.person_a.chart = { ...result.person_a.chart, transitsByDate: stripGraphicsDeep(t.data?.transitsByDate || {}) };
+      const transitsByDate = stripGraphicsDeep(t.data?.transitsByDate || {});
+      result.person_a.chart = { ...result.person_a.chart, transitsByDate };
+      // Raven-lite integration: flatten all aspects for derived.t2n_aspects
+      const allAspects = Object.values(transitsByDate).flatMap(day => day.aspects || []);
+      result.person_a.derived = result.person_a.derived || {};
+      result.person_a.derived.t2n_aspects = mapT2NAspects(allAspects);
+      // Add transit_data array for test compatibility
+      result.person_a.transit_data = Object.values(transitsByDate).map(day => day.aspects || []);
     }
 
     // 3) Synastry (chart + aspects, or synastry aspects-only)
@@ -297,7 +356,7 @@ exports.handler = async function(event) {
       );
       let synData = stripGraphicsDeep(syn.data || {});
       result.person_b = { details: personB };
-      result.synastry = synData.aspects || [];
+      result.synastry_aspects = synData.aspects || [];
       result.synastry_data = synData;
     } else if (wantSynastry && validBStrict.isValid) {
       // Full synastry chart endpoint
@@ -308,7 +367,7 @@ exports.handler = async function(event) {
       );
       const synClean = stripGraphicsDeep(syn.data || {});
       result.person_b = { details: personB, chart: synClean.second_subject || {} };
-      result.synastry = synClean.aspects || [];
+      result.synastry_aspects = synClean.aspects || [];
     }
 
     // === NEW COMPOSITE BRANCH ===
@@ -341,6 +400,8 @@ exports.handler = async function(event) {
       statusCode: 500,
       body: JSON.stringify({
         error: error?.message || 'Internal server error',
+        code: error?.code || 'INTERNAL_ERROR',
+        errorId: generateErrorId(),
         stack: error?.stack || null,
         details: error
       }),
