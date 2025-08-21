@@ -1,10 +1,12 @@
 const API_BASE_URL = 'https://astrologer.p.rapidapi.com';
 
 const API_ENDPOINTS = {
-  NATAL_ASPECTS: `${API_BASE_URL}/api/v4/natal-aspects-data`,
-  SYNASTRY_ASPECTS: `${API_BASE_URL}/api/v4/synastry-aspects-data`,
-  TRANSIT_ASPECTS: `${API_BASE_URL}/api/v4/transit-aspects-data`,
-  COMPOSITE_ASPECTS: `${API_BASE_URL}/api/v4/composite-aspects-data`,
+  BIRTH_CHART:        `${API_BASE_URL}/api/v4/birth-chart`,
+  NATAL_ASPECTS_DATA: `${API_BASE_URL}/api/v4/natal-aspects-data`,
+  SYNASTRY_CHART:     `${API_BASE_URL}/api/v4/synastry-chart`,
+  TRANSIT_ASPECTS:    `${API_BASE_URL}/api/v4/transit-aspects-data`,
+  SYNASTRY_ASPECTS:   `${API_BASE_URL}/api/v4/synastry-aspects-data`,
+  COMPOSITE_ASPECTS:  `${API_BASE_URL}/api/v4/composite-aspects-data`,
 };
 
 const logger = {
@@ -15,11 +17,21 @@ const logger = {
   debug: (...args) => process.env.LOG_LEVEL === 'debug' && console.debug(`[DEBUG]`, ...args),
 };
 
+function stripGraphicsDeep(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  const kill = new Set(['wheel','svg','image','chart']);
+  if (Array.isArray(obj)) return obj.map(stripGraphicsDeep);
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (kill.has(k)) continue;
+    out[k] = (v && typeof v === 'object') ? stripGraphicsDeep(v) : v;
+  }
+  return out;
+}
+
 function buildHeaders() {
   const key = process.env.RAPIDAPI_KEY;
-  if (!key) {
-    throw new Error('RAPIDAPI_KEY environment variable is not configured.');
-  }
+  if (!key) throw new Error('RAPIDAPI_KEY environment variable is not configured.');
   return {
     "content-type": "application/json",
     "x-rapidapi-key": key,
@@ -29,7 +41,7 @@ function buildHeaders() {
 
 function validateSubject(subject) {
   if (!subject) return { isValid: false, message: 'Subject is null or undefined.' };
-  const requiredFields = ['year', 'month', 'day', 'hour', 'minute', 'latitude', 'longitude'];
+  const requiredFields = ['year', 'month', 'day', 'hour', 'minute', 'latitude', 'longitude', 'timezone'];
   const errors = requiredFields.filter(field => subject[field] === undefined || subject[field] === null);
   const isValid = errors.length === 0;
   return {
@@ -40,106 +52,74 @@ function validateSubject(subject) {
 
 function normalizeSubjectData(data) {
     if (!data || typeof data !== 'object') return null;
-
-    const normalized = {
+    return {
       name: data.name || 'Subject',
       year: data.year, month: data.month, day: data.day,
       hour: data.hour, minute: data.minute,
-      city: data.city || 'London', nation: data.nation,
+      city: data.city || 'Unknown', nation: data.nation || 'US',
       latitude: data.latitude, longitude: data.longitude,
       timezone: data.timezone,
-      zodiac_type: data.zodiac_type || data.zodiac || 'Tropic',
+      zodiac_type: data.zodiac_type || 'Tropic',
     };
-  
-    return normalized;
 }
 
-async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+async function apiCallWithRetry(url, options, operation) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      logger.debug(`API call attempt ${attempt}/${maxRetries} for ${operation}`);
+      logger.debug(`API call attempt ${attempt}/2 for ${operation}`);
       const response = await fetch(url, options);
-
       if (!response.ok) {
         const errorBody = await response.text();
-        if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-          logger.error(`Non-retryable client error for ${operation}: ${response.status}`, errorBody);
-          throw new Error(`Client error: ${errorBody}`);
-        }
-        logger.warn(`API call for ${operation} failed with status ${response.status}. Retrying...`);
-        throw new Error(`Server error: ${response.status}`);
+        logger.error(`API Error for ${operation} [${response.status}]: ${errorBody}`);
+        throw new Error(`API call for ${operation} failed with status ${response.status}`);
       }
       return response.json();
     } catch (error) {
-      if (attempt === maxRetries || error.message.includes('Client error')) {
-        logger.error(`Failed API call for ${operation} after ${attempt} attempts: ${error.message}`);
-        throw new Error(`Service temporarily unavailable. Please try again later.`);
+      if (attempt === 2) {
+          logger.error(`API call for ${operation} failed after all retries.`, error);
+          throw error;
       }
-      const delay = Math.pow(2, attempt) * 100 + Math.random() * 100;
-      await new Promise(res => setTimeout(res, delay));
+      await new Promise(res => setTimeout(res, 100 * attempt));
     }
   }
 }
 
-/**
- * Calculates transits for a given subject over a date range.
- * @param {Object} subject - The natal subject data.
- * @param {Object} transitParams - The transit parameters (startDate, endDate, step).
- * @returns {Promise<Object>} An object with transits grouped by date.
- */
-async function getTransits(subject, transitParams) {
-    if (!transitParams || !transitParams.startDate || !transitParams.endDate) {
-        logger.warn('Skipping transit calculation due to missing transit parameters.');
-        return {};
-    }
+async function getTransits(subject, transitParams, headers) {
+    if (!transitParams || !transitParams.startDate || !transitParams.endDate) return {};
 
     const transitsByDate = {};
     const startDate = new Date(transitParams.startDate);
     const endDate = new Date(transitParams.endDate);
+    endDate.setDate(endDate.getDate() + 1); // Make end date inclusive
 
-    // Add a day to endDate to make it inclusive
-    endDate.setDate(endDate.getDate() + 1);
-
-    for (let d = startDate; d < endDate; d.setDate(d.getDate() + 1)) {
+    const promises = [];
+    for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
         const dateString = d.toISOString().split('T')[0];
         const transit_subject = {
-            year: d.getFullYear(),
-            month: d.getMonth() + 1,
-            day: d.getDate(),
-            hour: 12, // Use noon for consistent daily transits
-            minute: 0,
-            city: "Greenwich", // Use a neutral reference location
-            nation: "GB",
-            latitude: 51.4825766,
-            longitude: -0.0076589,
-            timezone: "UTC"
+            year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate(),
+            hour: 12, minute: 0, city: "Greenwich", nation: "GB",
+            latitude: 51.48, longitude: 0, timezone: "UTC"
         };
 
-        try {
-            const transit_resp = await apiCallWithRetry(
+        promises.push(
+            apiCallWithRetry(
                 API_ENDPOINTS.TRANSIT_ASPECTS,
                 {
                     method: 'POST',
-                    headers: buildHeaders(),
-                    body: JSON.stringify({
-                        first_subject: subject,
-                        transit_subject: transit_subject,
-                    }),
+                    headers,
+                    body: JSON.stringify({ first_subject: subject, transit_subject }),
                 },
                 `Transits for ${subject.name} on ${dateString}`
-            );
-
-            // As per changelog, the aspects are at the root level of the response
-            if (transit_resp.aspects && transit_resp.aspects.length > 0) {
-                transitsByDate[dateString] = transit_resp.aspects;
-            }
-        } catch (error) {
-            logger.error(`Failed to get transits for ${subject.name} on ${dateString}`, error);
-        }
+            ).then(resp => {
+                if (resp.aspects && resp.aspects.length > 0) {
+                    transitsByDate[dateString] = resp.aspects;
+                }
+            }).catch(e => logger.error(`Failed to get transits for ${dateString}`, e))
+        );
     }
+    await Promise.all(promises);
     return transitsByDate;
 }
-
 
 exports.handler = async function (event) {
   try {
@@ -147,78 +127,71 @@ exports.handler = async function (event) {
       return { statusCode: 405, body: JSON.stringify({ error: 'Only POST requests are allowed.' }) };
     }
 
-    const body = JSON.parse(event.body);
+    const body = JSON.parse(event.body || '{}');
     const { context = {}, transitParams } = body;
-    const mode = context.mode || 'natal_transits'; // Default mode
+    const mode = (context.mode || 'natal_transits').toUpperCase();
 
     const personA = normalizeSubjectData(body.personA);
-    const personB = normalizeSubjectData(body.personB);
-
     const validationA = validateSubject(personA);
     if (!validationA.isValid) {
       return { statusCode: 400, body: JSON.stringify({ error: `Person A validation failed: ${validationA.message}` }) };
     }
 
-    let result = {
-      schema: 'WM-Chart-1.1',
-      person_a: { details: personA },
-    };
+    const headers = buildHeaders();
+    let result = { schema: 'WM-Chart-1.2', person_a: { details: personA } };
 
     switch (mode) {
-      case 'natal_transits':
-        const natalA_resp = await apiCallWithRetry(
-          API_ENDPOINTS.NATAL_ASPECTS,
-          { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ subject: personA }) },
-          'Natal chart for Person A'
-        );
-        result.person_a.chart = natalA_resp.data;
-        result.person_a.chart.aspects = natalA_resp.aspects;
-        result.person_a.chart.transitsByDate = await getTransits(personA, transitParams);
+      case 'NATAL_TRANSITS': {
+        const [natalResp, transits] = await Promise.all([
+            apiCallWithRetry(API_ENDPOINTS.NATAL_ASPECTS_DATA, { method: 'POST', headers, body: JSON.stringify({ subject: personA }) }, 'Natal Aspects A'),
+            getTransits(personA, transitParams, headers)
+        ]);
+        result.person_a.chart = { ...stripGraphicsDeep(natalResp.data), aspects: natalResp.aspects, transitsByDate: transits };
         break;
+      }
 
-      case 'synastry_transits':
+      case 'SYNASTRY_TRANSITS': {
+        const personB = normalizeSubjectData(body.personB);
         const validationB = validateSubject(personB);
         if (!validationB.isValid) {
             return { statusCode: 400, body: JSON.stringify({ error: `Person B is required for synastry mode: ${validationB.message}` }) };
         }
         result.person_b = { details: personB };
 
-        const [natalRespA, natalRespB, synastryResp, transitsA, transitsB] = await Promise.all([
-            apiCallWithRetry(API_ENDPOINTS.NATAL_ASPECTS, { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ subject: personA }) }, 'Natal Chart A'),
-            apiCallWithRetry(API_ENDPOINTS.NATAL_ASPECTS, { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ subject: personB }) }, 'Natal Chart B'),
-            apiCallWithRetry(API_ENDPOINTS.SYNASTRY_ASPECTS, { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ first_subject: personA, second_subject: personB }) }, 'Synastry Aspects'),
-            getTransits(personA, transitParams),
-            getTransits(personB, transitParams)
+        const [natalA, natalB, synastry, transitsA, transitsB] = await Promise.all([
+            apiCallWithRetry(API_ENDPOINTS.NATAL_ASPECTS_DATA, { method: 'POST', headers, body: JSON.stringify({ subject: personA }) }, 'Natal Aspects A'),
+            apiCallWithRetry(API_ENDPOINTS.NATAL_ASPECTS_DATA, { method: 'POST', headers, body: JSON.stringify({ subject: personB }) }, 'Natal Aspects B'),
+            apiCallWithRetry(API_ENDPOINTS.SYNASTRY_ASPECTS, { method: 'POST', headers, body: JSON.stringify({ first_subject: personA, second_subject: personB }) }, 'Synastry Aspects'),
+            getTransits(personA, transitParams, headers),
+            getTransits(personB, transitParams, headers)
         ]);
 
-        result.person_a.chart = { ...natalRespA.data, aspects: natalRespA.aspects, transitsByDate: transitsA };
-        result.person_b.chart = { ...natalRespB.data, aspects: natalRespB.aspects, transitsByDate: transitsB };
-        result.synastry = { aspects: synastryResp.aspects };
+        result.person_a.chart = { ...stripGraphicsDeep(natalA.data), aspects: natalA.aspects, transitsByDate: transitsA };
+        result.person_b.chart = { ...stripGraphicsDeep(natalB.data), aspects: natalB.aspects, transitsByDate: transitsB };
+        result.synastry = { aspects: synastry.aspects };
         break;
+      }
 
-      case 'composite_transits':
-        const validationComp = validateSubject(personB);
-        if (!validationComp.isValid) {
-            return { statusCode: 400, body: JSON.stringify({ error: `Person B is required for composite mode: ${validationComp.message}` }) };
+      case 'COMPOSITE_TRANSITS': {
+        const personB = normalizeSubjectData(body.personB);
+        const validationB = validateSubject(personB);
+        if (!validationB.isValid) {
+            return { statusCode: 400, body: JSON.stringify({ error: `Person B is required for composite mode: ${validationB.message}` }) };
         }
         result.person_b = { details: personB };
 
-        const composite_resp = await apiCallWithRetry(
-          API_ENDPOINTS.COMPOSITE_ASPECTS,
-          { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ first_subject: personA, second_subject: personB }) },
-          'Composite aspects'
-        );
+        const compositeResp = await apiCallWithRetry(API_ENDPOINTS.COMPOSITE_ASPECTS, { method: 'POST', headers, body: JSON.stringify({ first_subject: personA, second_subject: personB }) }, 'Composite Aspects');
         result.composite = {
-            chart: composite_resp.data.composite_subject,
-            aspects: composite_resp.aspects,
-            transitsByDate: {} // Placeholder
+            chart: stripGraphicsDeep(compositeResp.data.composite_subject),
+            aspects: compositeResp.aspects,
+            transitsByDate: {}
         };
-        logger.warn('Composite transit calculation is not yet fully implemented.');
-        // TODO: Implement logic to calculate transits to composite chart if API allows.
+        logger.warn('Composite transit calculation is not yet implemented.');
         break;
+      }
 
       default:
-        return { statusCode: 400, body: JSON.stringify({ error: `Unknown context mode: ${mode}` }) };
+        return { statusCode: 400, body: JSON.stringify({ error: `Unknown or unsupported context mode: ${mode}` }) };
     }
 
     return {
