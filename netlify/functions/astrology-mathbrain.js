@@ -827,14 +827,23 @@ const DEFAULT_ASPECTS = [
 const ASPECTS_TABLE = { conjunction:0, sextile:60, square:90, trine:120, opposition:180 };
 const HARD_ASPECTS = new Set(['square','opposition','sesquiquadrate','semisquare','quincunx']);
 
-function safeName(ax, which){ // 'p1' (transit) or 'p2' (natal)
-  return ax?.[`${which}_name`] ??
-         ax?.[which]?.name ??
-         ax?.[`${which}Name`] ??
-         ax?.[which] ??
-         ax?.[`body${which === 'p1' ? '1' : '2'}`]?.name ??
-         ax?.[`point${which === 'p1' ? '1' : '2'}`]?.name ??
-         null;
+function safeName(ax, which){ // which: 'p1' (transit) or 'p2' (natal)
+  const idx = which === 'p1' ? '1' : '2';
+  const candidates = [
+    ax?.[`${which}_name`],
+    ax?.[`${which}Name`],
+    ax?.[which],
+    ax?.[`body${idx}`],
+    ax?.[`point${idx}`]
+  ];
+  for (const c of candidates) {
+    if (typeof c === 'string' && c.trim()) return c.trim();
+    if (c && typeof c === 'object') {
+      const n = (typeof c.name === 'string' ? c.name : (typeof c.label === 'string' ? c.label : (typeof c.id === 'string' ? c.id : null)));
+      if (n && n.trim()) return n.trim();
+    }
+  }
+  return null;
 }
 
 function safeAspect(ax){
@@ -842,8 +851,16 @@ function safeAspect(ax){
 }
 
 function safeOrb(ax){
-  const v = ax?.orb ?? ax?.orbit ?? ax?.aspect_degrees ?? ax?.diff ?? ax?.delta ?? ax?.difference;
-  return Number.isFinite(v) ? Number(v) : null;
+  const candidates = [
+    ax?.orb, ax?.orbit, ax?.aspect_degrees, ax?.aspectDegrees,
+    ax?.delta, ax?.diff, ax?.difference, ax?.d, ax?.o
+  ];
+  for (const v of candidates) {
+    if (v === null || v === undefined) continue;
+    const n = (typeof v === 'string') ? parseFloat(v) : v;
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
 }
 
 function computeOrbFromLongitudes(lon1, lon2, aspectName){
@@ -1203,23 +1220,51 @@ function extractFieldData(inputData) {
 }
 
 function extractRelocationFieldData(relocationData) {
-  const coords = relocationData.coordinates.split(',').map(s => parseFloat(s.trim()));
-  const latitude = coords[0];
-  const longitude = coords[1];
-  // Soft sanity check: coords must be plausible for given hemisphere labels in city string
+  let latitude = null;
+  let longitude = null;
+
+  // Primary source: a single coordinates string
+  const raw = relocationData && typeof relocationData.coordinates === 'string' ? relocationData.coordinates.trim() : null;
+
+  // Try DMS first if degrees symbol present
+  if (raw && /°/.test(raw)) {
+    const dms = dmsToDecimal(raw);
+    if (dms) { latitude = dms.latitude; longitude = dms.longitude; }
+  }
+
+  // Fallback: decimal "lat,lng" string
+  if ((latitude === null || longitude === null) && raw && /,/.test(raw)) {
+    const parts = raw.split(',').map(s => parseFloat(s.trim()));
+    if (parts.length === 2 && Number.isFinite(parts[0]) && Number.isFinite(parts[1])) {
+      latitude = parts[0];
+      longitude = parts[1];
+    }
+  }
+
+  // Final fallback: explicit fields on the object
+  if (latitude === null && Number.isFinite(+relocationData?.latitude)) latitude = +relocationData.latitude;
+  if (longitude === null && Number.isFinite(+relocationData?.longitude)) longitude = +relocationData.longitude;
+
+  const city = relocationData.city || "Relocated Location";
+
+  // Soft sanity checks for known places to prevent obvious mis-entries
   try {
-    const city = (relocationData.city||'').toLowerCase();
-    if (city.includes('panama city')){
-      if (!(latitude > 29 && latitude < 31 && longitude > -86.5 && longitude < -85)){
-        logger.warn('Relocation coords look far from Panama City, FL. Verify input.', { latitude, longitude, city: relocationData.city });
+    const lc = city.toLowerCase();
+    // Panama City, FL rough bounds
+    if (lc.includes('panama city')) {
+      if (!(latitude > 29 && latitude < 31 && longitude > -86.5 && longitude < -85)) {
+        logger.warn('Relocation coords look far from Panama City, FL. Verify input.', { latitude, longitude, city });
+      }
+    }
+    // Fountain, FL rough bounds (~30.3–30.7 N, -86 to -85 W)
+    if (lc.includes('fountain')) {
+      if (!(latitude > 29.8 && latitude < 30.8 && longitude > -86.0 && longitude < -85.0)) {
+        logger.warn('Relocation coords look far from Fountain, FL. Verify input.', { latitude, longitude, city });
       }
     }
   } catch {}
-  return {
-    latitude,
-    longitude,
-    city: relocationData.city || "Relocated Location",
-  };
+
+  return { latitude, longitude, city };
 }
 
 // ----------- Composite Chart Builders -----------
