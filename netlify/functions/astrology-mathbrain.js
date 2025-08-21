@@ -259,24 +259,85 @@ async function computeComposite(A, B, pass = {}, H) {
   };
 }
 
+/**
+ * Compute composite chart transits using the transit-aspects-data endpoint
+ * @param {Object} compositeRaw - Raw composite chart data (first_subject from composite calculation)
+ * @param {string} start - Start date (YYYY-MM-DD)
+ * @param {string} end - End date (YYYY-MM-DD) 
+ * @param {string} step - Step size (daily, weekly, etc)
+ * @param {Object} pass - Additional parameters to pass through
+ * @param {Object} H - Headers for API request
+ * @returns {Object} Object with transitsByDate and optional note
+ */
 async function computeCompositeTransits(compositeRaw, start, end, step, pass = {}, H) {
   if (!compositeRaw) return { transitsByDate: {} };
-  const payload = {
-    composite_subject: compositeRaw,
-    start_date: start,
-    end_date: end,
-    step,
-    ...pass,
-  };
-  try {
-    const r = await apiCallWithRetry(
-      API_ENDPOINTS.TRANSIT_ASPECTS,
-      { method:'POST', headers:H, body: JSON.stringify(payload) },
-      'Composite transit aspects'
+  
+  const transitsByDate = {};
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  endDate.setDate(endDate.getDate() + 1); // Make end date inclusive
+
+  const promises = [];
+  
+  // Process each date in the range
+  for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
+    const dateString = d.toISOString().split('T')[0];
+    
+    // Create transit subject for current date (transiting planets at noon UTC)
+    const transit_subject = {
+      year: d.getFullYear(),
+      month: d.getMonth() + 1, 
+      day: d.getDate(),
+      hour: 12,
+      minute: 0,
+      city: "Greenwich",
+      nation: "GB",
+      latitude: 51.48,
+      longitude: 0,
+      timezone: "UTC"
+    };
+
+    // Create payload with composite chart as first_subject and current date as transit_subject
+    const payload = {
+      first_subject: compositeRaw, // Use composite chart as the base chart
+      transit_subject,             // Current transiting planets
+      ...pass                      // Include any additional parameters
+    };
+
+    promises.push(
+      apiCallWithRetry(
+        API_ENDPOINTS.TRANSIT_ASPECTS,
+        {
+          method: 'POST',
+          headers: H,
+          body: JSON.stringify(payload),
+        },
+        `Composite transits for ${dateString}`
+      ).then(resp => {
+        // Store aspects for this date if any exist
+        if (resp.aspects && resp.aspects.length > 0) {
+          transitsByDate[dateString] = resp.aspects;
+        }
+      }).catch(e => {
+        logger.warn(`Failed to get composite transits for ${dateString}:`, e.message);
+        // Continue processing other dates even if one fails
+      })
     );
-    return { transitsByDate: r.data?.transitsByDate || {} };
+  }
+
+  try {
+    // Execute all API calls in parallel
+    await Promise.all(promises);
+    
+    // Return results with proper structure expected by frontend
+    return { transitsByDate };
+    
   } catch (e) {
-    return { transitsByDate: {}, _note: 'Composite transits not available in current plan' };
+    logger.error('Composite transits calculation failed:', e);
+    return { 
+      transitsByDate: {}, 
+      _note: 'Composite transits not available in current plan' 
+    };
   }
 }
 
@@ -434,27 +495,48 @@ exports.handler = async function(event) {
       result.synastry_aspects = synClean.aspects || [];
     }
 
-    // === NEW COMPOSITE BRANCH ===
+    // === COMPOSITE CHARTS AND TRANSITS ===
+    // Extract additional parameters for composite calculations
     const pass = {};
     ['active_points','active_aspects','houses_system_identifier','sidereal_mode','perspective_type']
       .forEach(k => { if (body[k] !== undefined) pass[k] = body[k]; });
 
     const vB = personB ? validateSubjectLean(personB) : { isValid:false };
     if (wantComposite && vB.isValid) {
-      // Always compute composite aspects first (data-only)
+      // Step 1: Always compute composite aspects first (data-only endpoint)
+      // This creates the midpoint composite chart data that serves as the base for transits
       const composite = await computeComposite(personA, personB, pass, headers);
       result.person_b = { ...(result.person_b || {}), details: personB };
-      result.composite = { aspects: composite.aspects, data: composite.raw };
+      result.composite = { 
+        aspects: composite.aspects,    // Composite chart internal aspects
+        data: composite.raw           // Raw composite chart data for further calculations
+      };
 
-      // Optional: if range present and your plan supports it, try composite transit activations
+      // Step 2: Optional composite transits (if date range provided and mode is COMPOSITE_TRANSITS)
+      // This calculates how current/future transiting planets aspect the composite chart
       if (modeToken === 'COMPOSITE_TRANSITS' && haveRange) {
+        logger.debug('Computing composite transits for date range:', { start, end, step });
+        
+        // Calculate transits to the composite chart using the composite chart as base
         const t = await computeCompositeTransits(composite.raw, start, end, step, pass, headers);
+        
+        // Store raw transit aspects by date
         result.composite.transitsByDate = t.transitsByDate;
         if (t._note) result.composite.note = t._note;
-        // Seismograph summary for composite transits
+        
+        // Step 3: Apply seismograph analysis to composite transits
+        // This converts raw aspects into magnitude, valence, and volatility metrics
         const seismographData = calculateSeismograph(t.transitsByDate);
+        
+        // Replace raw aspects with seismograph-processed daily data
         result.composite.transitsByDate = seismographData.daily;
-        result.composite.derived = { seismograph_summary: seismographData.summary };
+        
+        // Add derived metrics for frontend consumption
+        result.composite.derived = { 
+          seismograph_summary: seismographData.summary 
+        };
+        
+        logger.debug('Composite transits completed with seismograph analysis');
       }
     }
 
