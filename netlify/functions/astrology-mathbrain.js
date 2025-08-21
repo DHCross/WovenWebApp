@@ -1329,6 +1329,7 @@ function hasValidData(data) {
   return data && (data.date || data.year) && (data.coordinates || (data.latitude && data.longitude));
 }
 
+async function calculateNatalChart(subject) {
   logger.debug('Calculating natal chart for subject', subject);
   
   try {
