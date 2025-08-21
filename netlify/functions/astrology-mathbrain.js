@@ -658,6 +658,96 @@ function circularMidpoint(a,b){
   const d = ((B - A + 540) % 360) - 180; // shortest signed arc (-180,180]
   return degNorm(A + d/2);
 }
+// --- Relocation helpers ---
+function toRad(deg){ return (deg * Math.PI) / 180; }
+function haversineKm(lat1, lon1, lat2, lon2){
+  if (![lat1,lon1,lat2,lon2].every(v => typeof v === 'number' && isFinite(v))) return null;
+  const R = 6371; // km
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+function angleDeltaDeg(a,b){
+  if (!isFinite(a) || !isFinite(b)) return null;
+  let d = Math.abs((a % 360) - (b % 360));
+  if (d > 180) d = 360 - d;
+  return d;
+}
+function computeRelocationDeltas(natalResp, relocatedResp, natalDetails, relocationDetails){
+  try {
+    // Extract angles/placements from responses using existing helpers
+    const natSubj = (natalResp && (natalResp.data || natalResp)) || {};
+    const relSubj = (relocatedResp && (relocatedResp.data || relocatedResp)) || {};
+
+    const natMap = buildAbsPosMapFromSubject(natSubj);
+    const relMap = buildAbsPosMapFromSubject(relSubj);
+
+    const ascNat = natMap?.Ascendant?.abs_pos ?? natMap?.Ascendant ?? natMap?.ASC?.abs_pos ?? natMap?.ASC;
+    const ascRel = relMap?.Ascendant?.abs_pos ?? relMap?.Ascendant ?? relMap?.ASC?.abs_pos ?? relMap?.ASC;
+    const mcNat  = natMap?.Medium_Coeli?.abs_pos ?? natMap?.Medium_Coeli ?? natMap?.MC?.abs_pos ?? natMap?.MC;
+    const mcRel  = relMap?.Medium_Coeli?.abs_pos ?? relMap?.Medium_Coeli ?? relMap?.MC?.abs_pos ?? relMap?.MC;
+
+    const asc_shift_deg = angleDeltaDeg(ascNat, ascRel);
+    const mc_shift_deg  = angleDeltaDeg(mcNat, mcRel);
+
+    // Compare house assignments for planets
+    const planetNames = [
+      'Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto','Chiron','Mean_Node','True_Node','Mean_South_Node','True_South_Node','Mean_Lilith'
+    ];
+    const changed = [];
+    let crossed = 0;
+    for (const name of planetNames){
+      const hN = natMap?.[name]?.house;
+      const hR = relMap?.[name]?.house;
+      if (typeof hN === 'number' && typeof hR === 'number' && hN !== hR){
+        crossed += 1;
+        changed.push(`${name}: ${hN}\u2192${hR}`); // → arrow
+      }
+    }
+
+    // Geographic deltas
+    const lat1 = Number(natalDetails?.latitude);
+    const lon1 = Number(natalDetails?.longitude);
+    const lat2 = Number(relocationDetails?.latitude);
+    const lon2 = Number(relocationDetails?.longitude);
+    const delta_lat_deg = (isFinite(lat1) && isFinite(lat2)) ? +(lat2 - lat1).toFixed(2) : null;
+    const delta_lon_deg = (isFinite(lon1) && isFinite(lon2)) ? +(lon2 - lon1).toFixed(2) : null;
+    const distance_km = haversineKm(lat1, lon1, lat2, lon2);
+
+    // Micro-shift rule
+    const ascOK = isFinite(asc_shift_deg) ? asc_shift_deg < 1.0 : false;
+    const mcOK  = isFinite(mc_shift_deg) ? mc_shift_deg < 1.0 : false;
+    const planetsOK = crossed === 0;
+    const micro_shift = !!(ascOK && mcOK && planetsOK);
+
+    return {
+      delta_lat_deg: isFinite(delta_lat_deg) ? delta_lat_deg : null,
+      delta_lon_deg: isFinite(delta_lon_deg) ? delta_lon_deg : null,
+      distance_km: isFinite(distance_km) ? +distance_km.toFixed(1) : null,
+      asc_shift_deg: isFinite(asc_shift_deg) ? +asc_shift_deg.toFixed(2) : null,
+      mc_shift_deg: isFinite(mc_shift_deg) ? +mc_shift_deg.toFixed(2) : null,
+      planets_crossed_cusps: crossed,
+      changed_houses: changed,
+      micro_shift,
+      micro_shift_rule: 'asc|mc < 1.0° AND planets_crossed_cusps = 0'
+    };
+  } catch (e) {
+    logger.warn('computeRelocationDeltas failed; returning minimal diagnostics', { error: e.message });
+    return {
+      delta_lat_deg: null,
+      delta_lon_deg: null,
+      distance_km: null,
+      asc_shift_deg: null,
+      mc_shift_deg: null,
+      planets_crossed_cusps: 0,
+      changed_houses: [],
+      micro_shift: false,
+      micro_shift_rule: 'asc|mc < 1.0° AND planets_crossed_cusps = 0'
+    };
+  }
+}
 
 // Attempt to extract planet longitudes from various API shapes
 function extractPlanetLongitudesFromApiResponse(resp){
@@ -733,6 +823,156 @@ const DEFAULT_ASPECTS = [
   {name:'Sextile',     angle:60, orb:4}
 ];
 
+// ---------- Raven-safe core + resolvers (bullet-proof mappers) ----------
+const ASPECTS_TABLE = { conjunction:0, sextile:60, square:90, trine:120, opposition:180 };
+const HARD_ASPECTS = new Set(['square','opposition','sesquiquadrate','semisquare','quincunx']);
+
+function safeName(ax, which){ // 'p1' (transit) or 'p2' (natal)
+  return ax?.[`${which}_name`] ??
+         ax?.[which]?.name ??
+         ax?.[`${which}Name`] ??
+         ax?.[which] ??
+         ax?.[`body${which === 'p1' ? '1' : '2'}`]?.name ??
+         ax?.[`point${which === 'p1' ? '1' : '2'}`]?.name ??
+         null;
+}
+
+function safeAspect(ax){
+  return ax?.aspect ?? ax?.name ?? ax?.type ?? null;
+}
+
+function safeOrb(ax){
+  const v = ax?.orb ?? ax?.orbit ?? ax?.aspect_degrees ?? ax?.diff ?? ax?.delta ?? ax?.difference;
+  return Number.isFinite(v) ? Number(v) : null;
+}
+
+function computeOrbFromLongitudes(lon1, lon2, aspectName){
+  if (!Number.isFinite(lon1) || !Number.isFinite(lon2)) return null;
+  const exact = ASPECTS_TABLE[(aspectName || '').toLowerCase()];
+  if (!Number.isFinite(exact)) return null;
+  const s = minimalSeparationDeg(lon1, lon2);
+  return Math.abs(s - exact);
+}
+
+// Build a simple placement index from either an array of placements or a map {Name: {abs_pos,...}}
+function indexPlacements(placements){
+  const idx = {};
+  if (!placements) return idx;
+
+  if (Array.isArray(placements)) {
+    for (const p of placements) {
+      const name = p?.name || p?.point || p?.body || p?.id || p?.label;
+      if (!name) continue;
+      const lon = Number.isFinite(p.longitude) ? p.longitude
+                : Number.isFinite(p.abs_pos)  ? p.abs_pos
+                : Number.isFinite(p.lon)      ? p.lon
+                : Number.isFinite(p.position) ? p.position
+                : undefined;
+      idx[name] = {
+        lon,
+        house: Number.isFinite(p.house) ? p.house : (Number.isFinite(p.house_num) ? p.house_num : undefined),
+        rx: typeof p.is_retrograde === 'boolean' ? p.is_retrograde
+           : typeof p.retrograde === 'boolean'   ? p.retrograde
+           : undefined
+      };
+    }
+  } else if (typeof placements === 'object') {
+    for (const [name, v] of Object.entries(placements)) {
+      if (!name || !v) continue;
+      const lon = Number.isFinite(v.abs_pos) ? v.abs_pos
+                : Number.isFinite(v.position) ? v.position
+                : Number.isFinite(v.longitude)? v.longitude
+                : Number.isFinite(v.lon)      ? v.lon
+                : undefined;
+      idx[name] = {
+        lon,
+        house: Number.isFinite(v.house) ? v.house : (Number.isFinite(v.house_num) ? v.house_num : undefined),
+        rx: typeof v.is_retrograde === 'boolean' ? v.is_retrograde
+           : typeof v.retrograde === 'boolean'   ? v.retrograde
+           : undefined
+      };
+    }
+  }
+  return idx;
+}
+
+// Map natal aspects to WM schema with zero NaNs/undefined
+function mapNatalAspects(rawAspects, natalPlacementsIdx){
+  const natIdx = indexPlacements(natalPlacementsIdx);
+
+  return (rawAspects || []).map(ax => {
+    const p1 = safeName(ax,'p1'); const p2 = safeName(ax,'p2');
+    const aspect = (safeAspect(ax) || '').toLowerCase();
+    let orb = safeOrb(ax);
+
+    if (!Number.isFinite(orb)) {
+      const lon1 = natIdx[p1 || '']?.lon;
+      const lon2 = natIdx[p2 || '']?.lon;
+      orb = computeOrbFromLongitudes(lon1, lon2, aspect);
+    }
+
+    const out = {
+      p1_name: p1 || '—',
+      p2_name: p2 || '—',
+      aspect: aspect || '—',
+      orb: Number.isFinite(orb) ? +(+orb).toFixed(2) : null,
+      p1_house: natIdx[p1 || '']?.house ?? null,
+      p2_house: natIdx[p2 || '']?.house ?? null,
+      p1_is_retrograde: natIdx[p1 || '']?.rx ?? false,
+      p2_is_retrograde: natIdx[p2 || '']?.rx ?? false
+    };
+
+    return {
+      ...out,
+      orb_band: bandOrb(out.orb ?? undefined),
+      valence_hint: valenceFrom(out.aspect)
+    };
+  }).filter(x => x.p1_name !== '—' && x.p2_name !== '—' && x.aspect !== '—' && x.orb !== null);
+}
+
+// Map transit aspects to WM schema with zero NaNs/undefined
+function mapTransitAspects(rawAspects, natalPlacementsIdx, transitPlacementsIdx){
+  const natIdx = indexPlacements(natalPlacementsIdx);
+  const trIdx  = indexPlacements(transitPlacementsIdx);
+
+  return (rawAspects || []).map(ax => {
+    const tName = safeName(ax,'p1'); // transiting
+    const nName = safeName(ax,'p2'); // natal
+    const aspect = (safeAspect(ax) || '').toLowerCase();
+    let orb = safeOrb(ax);
+
+    if (!Number.isFinite(orb)) {
+      const lonT = trIdx[tName || '']?.lon;
+      const lonN = natIdx[nName || '']?.lon;
+      orb = computeOrbFromLongitudes(lonT, lonN, aspect);
+    }
+
+    const out = {
+      transit_body: tName || '—',
+      natal_target: nName || '—',
+      aspect: aspect || '—',
+      orb: Number.isFinite(orb) ? +(+orb).toFixed(2) : null,
+      transit_house: trIdx[tName || '']?.house ?? null,
+      natal_house:   natIdx[nName || '']?.house ?? null,
+      transit_is_retrograde: trIdx[tName || '']?.rx ?? false,
+      natal_is_retrograde:   natIdx[nName || '']?.rx ?? false
+    };
+
+    return {
+      ...out,
+      orb_band: bandOrb(out.orb ?? undefined),
+      valence_hint: valenceFrom(out.aspect)
+    };
+  }).filter(x => x.transit_body !== '—' && x.natal_target !== '—' && x.aspect !== '—' && x.orb !== null);
+}
+
+function diagnosticsSummary(rows){
+  const total = rows.length;
+  const wide = rows.filter(r => r.orb_band === 'wide').length;
+  const missing = rows.filter(r => r.orb === null).length;
+  return { total, wide, missing };
+}
+
 // ---- Derived helpers for aspect geometry ----
 function bandOrb(orb) {
   const o = typeof orb === 'number' ? orb : parseFloat(orb);
@@ -750,36 +990,111 @@ function valenceFrom(aspect) {
   return 'neutral_to_hot'; // conjunction & others vary by bodies
 }
 
+// ---- Aspect math + placement maps ----
+function exactAngleFor(aspectName){
+  const name = (aspectName||'').toString().toLowerCase();
+  const found = DEFAULT_ASPECTS.find(a => a.name.toLowerCase() === name);
+  if (found) return found.angle;
+  // common lowercase variants
+  if (name === 'conjunction') return 0;
+  if (name === 'sextile') return 60;
+  if (name === 'square') return 90;
+  if (name === 'trine') return 120;
+  if (name === 'opposition') return 180;
+  return null;
+}
+
+function minimalSeparationDeg(lon1, lon2){
+  const a = degNorm(lon1); const b = degNorm(lon2);
+  let d = Math.abs(a-b); if (d>180) d = 360-d; return d;
+}
+
+function computeOrb(aspectName, lon1, lon2){
+  const ex = exactAngleFor(aspectName);
+  if (ex == null || !isFinite(lon1) || !isFinite(lon2)) return null;
+  const sep = minimalSeparationDeg(lon1, lon2);
+  return Math.abs(sep - ex);
+}
+
+function buildAbsPosMapFromSubject(subj){
+  const map = {};
+  if (!subj) return map;
+  const keys = [
+    'sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron',
+    'mean_lilith','mean_node','true_node','mean_south_node','true_south_node',
+    'ascendant','descendant','medium_coeli','imum_coeli',
+    'first_house','second_house','third_house','fourth_house','fifth_house','sixth_house','seventh_house','eighth_house','ninth_house','tenth_house','eleventh_house','twelfth_house'
+  ];
+  for (const k of keys){
+    const p = subj?.[k];
+    if (!p) continue;
+    const name = (k === 'ascendant' ? 'Ascendant' : k === 'medium_coeli' ? 'Medium_Coeli' : k[0].toUpperCase()+k.slice(1));
+    const abs = p.abs_pos ?? p.position ?? p.longitude ?? p.lon;
+    map[name] = { abs_pos: abs, house: p.house_num ?? p.house ?? undefined, is_retrograde: !!p.retrograde };
+  }
+  return map;
+}
+
+function buildPlacementMapsFromResponse(resp){
+  // natal + transit maps if available on this response
+  const data = resp?.data || {};
+  const natalMap = buildAbsPosMapFromSubject(data.first_subject || data.subject || data.natal || data.primary || null);
+  const transitMap = buildAbsPosMapFromSubject(data.transit || data.second_subject || null);
+  return { natalMap, transitMap };
+}
+
 // Normalizers to align API aspects to WM schema with derived fields
-function normalizeNatalAspect(a){
-  const orb = a.orb ?? a.orbit ?? a.aspect_degrees ?? a.diff ?? 0;
+function normalizeNatalAspect(a, absMap){
+  let orb = a.orb ?? a.orbit ?? a.aspect_degrees ?? a.diff;
+  const p1 = a.p1_name ?? a.p1 ?? a.point1 ?? a.body1 ?? 'Unknown';
+  const p2 = a.p2_name ?? a.p2 ?? a.point2 ?? a.body2 ?? 'Unknown';
+  const aspect = a.aspect ?? a.name ?? 'conjunction';
+  if (!isFinite(orb)){
+    const lon1 = absMap?.[p1]?.abs_pos;
+    const lon2 = absMap?.[p2]?.abs_pos;
+    const computed = computeOrb(aspect, lon1, lon2);
+    if (isFinite(computed)) orb = +computed.toFixed(2);
+  } else {
+    orb = typeof orb === 'number' ? +orb : parseFloat(orb);
+  }
   return {
-    p1_name: a.p1_name ?? a.p1 ?? a.point1 ?? a.body1 ?? 'Unknown',
-    p2_name: a.p2_name ?? a.p2 ?? a.point2 ?? a.body2 ?? 'Unknown',
-    aspect: a.aspect ?? a.name ?? 'conjunction',
-    orb: typeof orb === 'number' ? +orb : parseFloat(orb),
-    p1_house: a.p1_house ?? a.house1 ?? a.p1_house_num ?? undefined,
-    p2_house: a.p2_house ?? a.house2 ?? a.p2_house_num ?? undefined,
-    p1_is_retrograde: a.p1_is_retrograde ?? a.p1_retro ?? false,
-    p2_is_retrograde: a.p2_is_retrograde ?? a.p2_retro ?? false,
+    p1_name: p1,
+    p2_name: p2,
+    aspect,
+    orb: isFinite(orb) ? orb : NaN,
+    p1_house: a.p1_house ?? a.house1 ?? a.p1_house_num ?? absMap?.[p1]?.house ?? undefined,
+    p2_house: a.p2_house ?? a.house2 ?? a.p2_house_num ?? absMap?.[p2]?.house ?? undefined,
+    p1_is_retrograde: a.p1_is_retrograde ?? a.p1_retro ?? absMap?.[p1]?.is_retrograde ?? false,
+    p2_is_retrograde: a.p2_is_retrograde ?? a.p2_retro ?? absMap?.[p2]?.is_retrograde ?? false,
     orb_band: bandOrb(orb),
-    valence_hint: valenceFrom(a.aspect ?? a.name)
+    valence_hint: valenceFrom(aspect)
   };
 }
 
-function normalizeTransitAspect(ax){
-  const orb = ax.orb ?? ax.orbit ?? ax.aspect_degrees ?? ax.diff ?? 0;
+function normalizeTransitAspect(ax, natalMap, transitMap){
+  const p1 = ax.p1_name ?? ax.p1 ?? ax.point1 ?? ax.body1 ?? '—'; // transiting
+  const p2 = ax.p2_name ?? ax.p2 ?? ax.point2 ?? ax.body2 ?? '—'; // natal
+  const aspect = ax.aspect ?? ax.name ?? '—';
+  let orb = ax.orb ?? ax.orbit ?? ax.aspect_degrees ?? ax.diff;
+  if (!isFinite(orb)){
+    const lon1 = transitMap?.[p1]?.abs_pos;
+    const lon2 = natalMap?.[p2]?.abs_pos;
+    const computed = computeOrb(aspect, lon1, lon2);
+    if (isFinite(computed)) orb = +computed.toFixed(2);
+  } else {
+    orb = typeof orb === 'number' ? +orb : parseFloat(orb);
+  }
   return {
-    transit_body: ax.p1_name ?? ax.p1 ?? ax.point1 ?? ax.body1 ?? 'Unknown',
-    natal_target: ax.p2_name ?? ax.p2 ?? ax.point2 ?? ax.body2 ?? 'Unknown',
-    aspect: ax.aspect ?? ax.name ?? 'conjunction',
-    orb: typeof orb === 'number' ? +orb : parseFloat(orb),
-    natal_house: ax.p2_house ?? ax.house2 ?? ax.p2_house_num ?? undefined,
-    transit_house: ax.p1_house ?? ax.house1 ?? ax.p1_house_num ?? undefined,
-    natal_is_retrograde: ax.p2_is_retrograde ?? ax.p2_retro ?? false,
-    transit_is_retrograde: ax.p1_is_retrograde ?? ax.p1_retro ?? false,
+    transit_body: p1,
+    natal_target: p2,
+    aspect,
+    orb: isFinite(orb) ? orb : NaN,
+    natal_house: ax.p2_house ?? ax.house2 ?? ax.p2_house_num ?? natalMap?.[p2]?.house ?? undefined,
+    transit_house: ax.p1_house ?? ax.house1 ?? ax.p1_house_num ?? transitMap?.[p1]?.house ?? undefined,
+    natal_is_retrograde: ax.p2_is_retrograde ?? ax.p2_retro ?? natalMap?.[p2]?.is_retrograde ?? false,
+    transit_is_retrograde: ax.p1_is_retrograde ?? ax.p1_retro ?? transitMap?.[p1]?.is_retrograde ?? false,
     orb_band: bandOrb(orb),
-    valence_hint: valenceFrom(ax.aspect ?? ax.name)
+    valence_hint: valenceFrom(aspect)
   };
 }
 
@@ -889,9 +1204,20 @@ function extractFieldData(inputData) {
 
 function extractRelocationFieldData(relocationData) {
   const coords = relocationData.coordinates.split(',').map(s => parseFloat(s.trim()));
+  const latitude = coords[0];
+  const longitude = coords[1];
+  // Soft sanity check: coords must be plausible for given hemisphere labels in city string
+  try {
+    const city = (relocationData.city||'').toLowerCase();
+    if (city.includes('panama city')){
+      if (!(latitude > 29 && latitude < 31 && longitude > -86.5 && longitude < -85)){
+        logger.warn('Relocation coords look far from Panama City, FL. Verify input.', { latitude, longitude, city: relocationData.city });
+      }
+    }
+  } catch {}
   return {
-    latitude: coords[0],
-    longitude: coords[1],
+    latitude,
+    longitude,
     city: relocationData.city || "Relocated Location",
   };
 }
@@ -983,7 +1309,15 @@ async function computeCompositeTransitsByDate(compositePlacements, startDate, en
     try{
       const transiting = await getCurrentPlanetPlacements(ds);
       const aspects = findAspectsBetween(transiting, compositePlacements);
-      out[ds] = aspects;
+      const enriched = aspects.map(a => ({
+        transit_body: a.a,
+        natal_target: a.b,
+        aspect: a.aspect,
+        orb: a.orb,
+        orb_band: bandOrb(a.orb),
+        valence_hint: valenceFrom(a.aspect)
+      }));
+      out[ds] = enriched;
     }catch(err){
       logger.warn('Failed composite transit day', { date: ds, error: err.message }, requestId);
     }
@@ -995,7 +1329,6 @@ function hasValidData(data) {
   return data && (data.date || data.year) && (data.coordinates || (data.latitude && data.longitude));
 }
 
-async function calculateNatalChart(subject) {
   logger.debug('Calculating natal chart for subject', subject);
   
   try {
@@ -1011,11 +1344,15 @@ async function calculateNatalChart(subject) {
 
     logger.debug('Natal API response keys', Object.keys(response));
 
-    // Normalize natal aspects and add derived fields (orb_band, valence_hint)
+    // Build abs position map for orb computation + houses/retro fill
+    const subj = response.data || response;
+    const absMap = buildAbsPosMapFromSubject(subj);
+    // Build a compact placement index for natal (name, abs_pos, house, retro) and map aspects safely
+    const natalPlacementsIdx = absMap; // already shaped as { Name: {abs_pos, house, is_retrograde} }
     if (Array.isArray(response.aspects)) {
-      response.aspects = response.aspects.map(normalizeNatalAspect);
+      response.aspects = mapNatalAspects(response.aspects, natalPlacementsIdx);
     } else if (response.data && Array.isArray(response.data.aspects)) {
-      response.data.aspects = response.data.aspects.map(normalizeNatalAspect);
+      response.data.aspects = mapNatalAspects(response.data.aspects, natalPlacementsIdx);
     }
 
     // Group transits by date for easier access
@@ -1094,7 +1431,7 @@ function normalizeCoordinates(subject) {
   }
 }
 
-function buildWMChart({ personA, personB, relocationA, relocationB, synastry, context }) {
+function buildWMChart({ personA, personB, relocationA, relocationB, relocationADeltas, relocationBDeltas, synastry, context }) {
   function extractDetails(subject) {
     let coords = subject.birth_coordinates || `${subject.latitude},${subject.longitude}` || "";
     let latitude = subject.latitude;
@@ -1138,8 +1475,8 @@ function buildWMChart({ personA, personB, relocationA, relocationB, synastry, co
       details: extractDetails(personB.details || personB),
       chart: personB.chart || personB
     } : undefined,
-    relocation_a: relocationA ? relocationA : undefined,
-    relocation_b: relocationB ? relocationB : undefined,
+    relocation_a: relocationA ? { ...relocationA, relocation_deltas: relocationADeltas || undefined } : undefined,
+    relocation_b: relocationB ? { ...relocationB, relocation_deltas: relocationBDeltas || undefined } : undefined,
     synastry: synastry ? synastry : undefined,
     composite: context?.mode === 'COMPOSITE_TRANSITS' && context?.composite
       ? context.composite
@@ -1419,6 +1756,8 @@ exports.handler = async function (event) {
     let natalA, natalB, relocationA, relocationB, synastry;
     // --- Composite chart block
     let composite = null;
+    // Relocation delta diagnostics
+    let relocationADeltas = null, relocationBDeltas = null;
     try {
       logger.info('Starting chart calculations', { requestId }, requestId);
 
@@ -1450,10 +1789,27 @@ exports.handler = async function (event) {
       if (relocationData) {
         relocationA = await calculateNatalChart({ ...personA, ...relocationData });
         logger.debug('Person A relocation chart calculated successfully', null, requestId);
+        let natalDetails = personA;
+        let relocationDetails = relocationData;
+        // Compute relocationA deltas
+        try {
+          relocationADeltas = computeRelocationDeltas(natalA, relocationA, natalDetails, relocationDetails);
+        } catch (e) {
+          logger.warn('Relocation A deltas computation failed', { error: e.message }, requestId);
+        }
 
         if (personB && !body.relocation?.excludePersonB) {
           relocationB = await calculateNatalChart({ ...personB, ...relocationData });
           logger.debug('Person B relocation chart calculated successfully', null, requestId);
+          let natalDetailsB = personB;
+          let relocationDetailsB = relocationData;
+          try {
+            if (personB && relocationB) {
+              relocationBDeltas = computeRelocationDeltas(natalB, relocationB, natalDetailsB, relocationDetailsB);
+            }
+          } catch (e) {
+            logger.warn('Relocation B deltas computation failed', { error: e.message }, requestId);
+          }
         }
       }
 
@@ -1570,6 +1926,8 @@ exports.handler = async function (event) {
       personB: personB ? { details: personB, chart: natalB } : undefined,
       relocationA,
       relocationB,
+      relocationADeltas, // NEW
+      relocationBDeltas, // NEW
       synastry,
       context: contextWithComposite
     });
@@ -1818,15 +2176,36 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
         
         // Extract aspects from response according to API documentation
         let rawAspects = [];
-        if (response.aspects && Array.isArray(response.aspects)) {
+        if (Array.isArray(response.aspects)) {
           rawAspects = response.aspects;
         } else if (response.data && Array.isArray(response.data.aspects)) {
           rawAspects = response.data.aspects;
         } else {
           logger.warn(`No aspects found in response for ${dateStr}`, { responseStructure: Object.keys(response) }, requestId);
         }
-        const aspects = rawAspects.map(normalizeTransitAspect);
-        return { date: dateStr, aspects };
+        // Build placement indices. Prefer explicit per-day transit longitudes (via /now or /birth-data),
+        // but enrich with any houses/retro flags exposed on the transit response.
+        const { natalMap, transitMap } = buildPlacementMapsFromResponse(response);
+
+        // Also fetch a clean set of transit longitudes for this date to guarantee lon availability
+        let transitLongs = {};
+        try {
+          transitLongs = await getCurrentPlanetPlacements(dateStr); // { Sun: 123.45, ... }
+        } catch (e) {
+          logger.warn('Could not fetch explicit transit longitudes; falling back to response-only data', { date: dateStr, error: e.message }, requestId);
+        }
+
+        // Merge transit longitudes into transitMap-like index for robust orb computation
+        const transitIdxMerged = { ...transitMap };
+        for (const [k,v] of Object.entries(transitLongs || {})) {
+          if (!transitIdxMerged[k]) transitIdxMerged[k] = {};
+          if (!Number.isFinite(transitIdxMerged[k].abs_pos)) transitIdxMerged[k].abs_pos = v;
+        }
+
+        const mapped = mapTransitAspects(rawAspects, natalMap, transitIdxMerged);
+        const diag = diagnosticsSummary(mapped);
+
+        return { date: dateStr, aspects: mapped, diagnostics: { ...diag } };
         
       } catch (error) {
         logger.error(`Transit calculation failed for ${dateStr}`, error, requestId);
@@ -1843,6 +2222,8 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
       for (const result of batchResults) {
         if (result.aspects.length > 0) {
           transitDataByDate[result.date] = result.aspects;
+          if (!transitDataByDate._diagnostics) transitDataByDate._diagnostics = {};
+          if (result.diagnostics) transitDataByDate._diagnostics[result.date] = result.diagnostics;
           logger.debug(`Added ${result.aspects.length} transits for ${result.date}`, null, requestId);
         } else if (result.error) {
           logger.warn(`Skipped ${result.date} due to error: ${result.error}`, null, requestId);
