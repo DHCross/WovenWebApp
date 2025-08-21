@@ -1585,7 +1585,7 @@ exports.handler = async function (event) {
         };
       }
     } catch (error) {
-  logger.error('Error processing request data', error && error.message ? error : { message: 'Unknown error' }, requestId);
+  logger.error('Error processing request data', (error && typeof error === 'object' && error.message) ? error : { message: 'Unknown error' }, requestId);
       return {
         statusCode: 400,
         body: JSON.stringify({ 
@@ -1733,13 +1733,19 @@ exports.handler = async function (event) {
       }
 
     } catch (error) {
-  logger.error('Chart calculation failed', error && error.message ? error : { message: 'Unknown error' }, requestId);
+      logger.error('A core chart calculation failed', error, requestId);
+      // Safely determine the error message and retryable status
+      const errorMessage = (error && error.message)
+        ? error.message
+        : 'An error occurred during the astrological calculation process. Please try again.';
+      const isRetryable = (error && typeof error === 'object' && error.retryable === true);
+      // Return a well-formed error response without crashing
       return {
         statusCode: 500,
         body: JSON.stringify({
-          error: error.message || 'Failed to calculate astrological charts. Please try again.',
+          error: errorMessage,
           code: 'CALCULATION_ERROR',
-          retryable: error.retryable || false,
+          retryable: isRetryable,
           errorId: requestId
         })
       };
@@ -1806,7 +1812,7 @@ exports.handler = async function (event) {
           logger.debug('Skipping composite transits (mode not COMPOSITE_TRANSITS)', { mode: context?.mode }, requestId);
         }
       } catch (err) {
-        logger.error('Transit calculation failed', err, requestId);
+  logger.error('Transit calculation failed', (err && typeof err === 'object' && err.message) ? err : { message: String(err) }, requestId);
         // Don't fail the entire request, just continue without transit data
         logger.warn('Continuing without transit data due to calculation error', null, requestId);
       }
@@ -1865,19 +1871,24 @@ exports.handler = async function (event) {
       body: JSON.stringify(wmChart)
     };
 
-  } catch (err) {
+  } catch (error) {
     const errorId = generateErrorId();
-    logger.error('Unexpected error in handler', err, errorId);
+  logger.error('Unexpected error in handler', (error && typeof error === 'object' && error.message) ? error : { message: String(error) }, errorId);
 
     // Record failed completion
     performanceMonitor.endRequest(requestContext, false, 'INTERNAL_ERROR');
 
+    const errorMessage = (error && typeof error === 'object' && error.message)
+      ? error.message
+      : 'An unexpected server error occurred.';
+    const isRetryable = (error && typeof error === 'object' && error.retryable === true);
+
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: err && err.message ? err.message : 'An unexpected error occurred. Please try again.',
+        error: errorMessage,
         code: 'INTERNAL_ERROR',
-        retryable: true,
+        retryable: isRetryable,
         errorId: errorId
       })
     };
@@ -2121,7 +2132,7 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
   return { date: dateStr, aspects: mappedWithDeg, diagnostics: { ...diag } };
         
       } catch (error) {
-  logger.error(`Transit calculation failed for ${dateStr}`, error && error.message ? error : { message: 'Unknown error' }, requestId);
+  logger.error(`Transit calculation failed for ${dateStr}`, (error && typeof error === 'object' && error.message) ? error : { message: 'Unknown error' }, requestId);
         // Return error result but don't fail the entire operation
   return { date: dateStr, aspects: [], diagnostics: { total: 0, wide: 0, missing: 0, error: true } };
       }
@@ -2148,7 +2159,7 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
       }
       
     } catch (error) {
-  logger.error(`Batch processing failed for dates ${batch[0].toISOString().split('T')[0]} to ${batch[batch.length-1].toISOString().split('T')[0]}`, error && error.message ? error : { message: 'Unknown error' }, requestId);
+  logger.error(`Batch processing failed for dates ${batch[0].toISOString().split('T')[0]} to ${batch[batch.length-1].toISOString().split('T')[0]}`, (error && typeof error === 'object' && error.message) ? error : { message: 'Unknown error' }, requestId);
       // Continue with next batch rather than failing completely
     }
   }
