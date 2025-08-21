@@ -17,6 +17,7 @@ const API_ENDPOINTS = {
 
 // Simplified logging utility to avoid external dependencies
 const { mapT2NAspects } = require('../../src/raven-lite-mapper');
+const { aggregate } = require('../../src/seismograph');
 const logger = {
   log: (...args) => console.log(`[LOG]`, ...args),
   info: (...args) => console.info(`[INFO]`, ...args),
@@ -165,6 +166,80 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
   }
 }
 
+// --- Transit helpers ---
+async function getTransits(subject, transitParams, headers) {
+  if (!transitParams || !transitParams.startDate || !transitParams.endDate) return {};
+
+  const transitsByDate = {};
+  const startDate = new Date(transitParams.startDate);
+  const endDate = new Date(transitParams.endDate);
+  endDate.setDate(endDate.getDate() + 1); // Make end date inclusive
+
+  const promises = [];
+  for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
+    const dateString = d.toISOString().split('T')[0];
+    const transit_subject = {
+      year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate(),
+      hour: 12, minute: 0, city: "Greenwich", nation: "GB",
+      latitude: 51.48, longitude: 0, timezone: "UTC"
+    };
+
+    promises.push(
+      apiCallWithRetry(
+        API_ENDPOINTS.TRANSIT_ASPECTS,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ first_subject: subject, transit_subject }),
+        },
+        `Transits for ${subject.name} on ${dateString}`
+      ).then(resp => {
+        if (resp.aspects && resp.aspects.length > 0) {
+          transitsByDate[dateString] = resp.aspects;
+        }
+      }).catch(e => logger.error(`Failed to get transits for ${dateString}`, e))
+    );
+  }
+  await Promise.all(promises);
+  return transitsByDate;
+}
+
+function calculateSeismograph(transitsByDate) {
+  if (!transitsByDate || Object.keys(transitsByDate).length === 0) {
+    return { daily: {}, summary: {} };
+  }
+
+  const days = Object.keys(transitsByDate).sort();
+  let prev = null;
+  const daily = {};
+
+  for (const d of days) {
+    const aspects = (transitsByDate[d] || []).map(x => ({
+      transit: { body: x.p1_name },
+      natal: {
+        body: x.p2_name,
+        isAngleProx: ["Ascendant","Medium_Coeli","Descendant","Imum_Coeli"].includes(x.p2_name),
+        isLuminary: ["Sun","Moon"].includes(x.p2_name),
+        degCrit: false // Not available from API
+      },
+      type: (x.aspect || "").toLowerCase(),
+      orbDeg: typeof x.orbit === "number" ? x.orbit : 6.01
+    }));
+
+    const agg = aggregate(aspects, prev);
+    daily[d] = { seismograph: { magnitude: agg.magnitude, valence: agg.valence, volatility: agg.volatility } };
+    prev = { scored: agg.scored, Y_effective: agg.valence };
+  }
+
+  const numDays = days.length;
+  const X = Object.values(daily).reduce((s, d) => s + d.seismograph.magnitude, 0) / numDays;
+  const Y = Object.values(daily).reduce((s, d) => s + d.seismograph.valence, 0) / numDays;
+  const VI = Object.values(daily).reduce((s, d) => s + d.seismograph.volatility, 0) / numDays;
+  const summary = { magnitude: +X.toFixed(2), valence: +Y.toFixed(2), volatility: +VI.toFixed(2) };
+
+  return { daily, summary };
+}
+
 // --- Composite helpers ---
 async function computeComposite(A, B, pass = {}, H) {
   const payload = {
@@ -214,6 +289,7 @@ function generateErrorId() {
   const random = Math.random().toString(36).substr(2, 4).toUpperCase();
   return `ERR-${date}-${time}-${random}`;
 }
+
 
 exports.handler = async function(event) {
   try {
@@ -317,31 +393,19 @@ exports.handler = async function(event) {
 
     // 2) Transits (optional; raw aspects by date, with advanced options)
     if (haveRange) {
-      const active_points = body.active_points;
-      const active_aspects = body.active_aspects;
-      const transitPayload = {
-        subject: personA,
-        start_date: start,
-        end_date: end,
-        step,
-      };
-      if (Array.isArray(active_points)) transitPayload.active_points = active_points;
-      if (Array.isArray(active_aspects)) transitPayload.active_aspects = active_aspects;
-      const t = await apiCallWithRetry(
-        API_ENDPOINTS.TRANSIT_ASPECTS,
-        { method: 'POST', headers,
-          body: JSON.stringify(transitPayload)
-        },
-        'Transit aspects (A)'
-      );
-      const transitsByDate = stripGraphicsDeep(t.data?.transitsByDate || {});
+      // Use new getTransits and seismograph logic
+      const transitsByDate = await getTransits(personA, { startDate: start, endDate: end, step }, headers);
       result.person_a.chart = { ...result.person_a.chart, transitsByDate };
       // Raven-lite integration: flatten all aspects for derived.t2n_aspects
-      const allAspects = Object.values(transitsByDate).flatMap(day => day.aspects || []);
+      const allAspects = Object.values(transitsByDate).flatMap(day => day);
       result.person_a.derived = result.person_a.derived || {};
       result.person_a.derived.t2n_aspects = mapT2NAspects(allAspects);
       // Add transit_data array for test compatibility
-      result.person_a.transit_data = Object.values(transitsByDate).map(day => day.aspects || []);
+      result.person_a.transit_data = Object.values(transitsByDate);
+      // Seismograph summary
+      const seismographData = calculateSeismograph(transitsByDate);
+      result.person_a.derived.seismograph_summary = seismographData.summary;
+      result.person_a.chart.transitsByDate = seismographData.daily;
     }
 
     // 3) Synastry (chart + aspects, or synastry aspects-only)
@@ -387,6 +451,10 @@ exports.handler = async function(event) {
         const t = await computeCompositeTransits(composite.raw, start, end, step, pass, headers);
         result.composite.transitsByDate = t.transitsByDate;
         if (t._note) result.composite.note = t._note;
+        // Seismograph summary for composite transits
+        const seismographData = calculateSeismograph(t.transitsByDate);
+        result.composite.transitsByDate = seismographData.daily;
+        result.composite.derived = { seismograph_summary: seismographData.summary };
       }
     }
 
