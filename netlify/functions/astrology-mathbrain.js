@@ -176,7 +176,7 @@ async function computeComposite(A, B, pass = {}, H) {
     { method: 'POST', headers: H, body: JSON.stringify(payload) },
     'Composite aspects'
   );
-  const data = stripGraphics(r.data || {});
+  const data = stripGraphicsDeep(r.data || {});
   return {
     aspects: data.aspects || [],
     raw: data,
