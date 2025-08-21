@@ -400,6 +400,19 @@
 
     <script src="config.js"></script>
     <script>
+// --- Global row counter for report summary ---
+let totalRowCount = 0;
+
+// --- Helper for lean/legacy aspect/transit row keys ---
+function rowNamesAndOrb(r) {
+    const transit = r.transit_body ?? r.p1_name ?? r.planet_a ?? '—';
+    const natal   = r.natal_target ?? r.p2_name ?? r.planet_b ?? '—';
+    const aspect  = r.aspect ?? r.aspect_name ?? r.name ?? '—';
+    let orb = r.orb;
+    if (!Number.isFinite(orb)) orb = Number(r.orbit);
+    if (!Number.isFinite(orb)) orb = null;
+    return { transit, natal, aspect, orb };
+}
 // --- Dual-read helpers for natal/synastry aspects ---
 function nameA(r){ return r.p1_name ?? (legacyTouch('natal/synastry:p1_name'), r.planet_a) ?? r.transit_body ?? '—'; }
 function nameB(r){ return r.p2_name ?? (legacyTouch('natal/synastry:p2_name'), r.planet_b) ?? r.natal_target ?? '—'; }

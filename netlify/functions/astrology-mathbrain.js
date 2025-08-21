@@ -2254,9 +2254,9 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
         }
 
         const mapped = mapTransitAspects(rawAspects, natalMap, transitIdxMerged);
-        const diag = diagnosticsSummary(mapped);
-
-        return { date: dateStr, aspects: mapped, diagnostics: { ...diag } };
+  const mappedWithDeg = enrichTransitRowsWithDegrees(mapped, natalMap, transitIdxMerged);
+  const diag = diagnosticsSummary(mappedWithDeg);
+  return { date: dateStr, aspects: mappedWithDeg, diagnostics: { ...diag } };
         
       } catch (error) {
         logger.error(`Transit calculation failed for ${dateStr}`, error, requestId);
