@@ -1,6 +1,6 @@
+    <!DOCTYPE html>
     // Telemetry counter for legacy/total rows
     let totalRowCount = 0;
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -403,6 +403,9 @@
 // --- Global row counter for report summary ---
 let totalRowCount = 0;
 
+// Universal context reference for browser/server compatibility
+const WOVEN_GLOBAL = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : {});
+
 // --- Helper for lean/legacy aspect/transit row keys ---
 function rowNamesAndOrb(r) {
     const transit = r.transit_body ?? r.p1_name ?? r.planet_a ?? '—';
@@ -423,7 +426,7 @@ function orbA(r){ return (typeof r.orb === 'number') ? r.orb
 function formatAspectRow(r){
     const A = nameA(r), B = nameB(r), asp = aspectA(r);
     const o = orbA(r);
-    if (!A || !B || !asp || !Number.isFinite(+o)) return null;
+    if (!A || !B || !asp || o === undefined || o === null || isNaN(o) || !Number.isFinite(+o)) return null;
     return `**${A}** ${asp} **${B}** (${(+o).toFixed(1)}°)`;
 }
 // --- Global legacy usage telemetry ---
@@ -442,7 +445,7 @@ function orbT(r){ return (typeof r.orb === 'number') ? r.orb
 function formatTransitRow(r){
     const A = nameT(r), B = nameN(r), asp = aspectT(r);
     const o = orbT(r);
-    if (!A || !B || !asp || !Number.isFinite(+o)) return null;
+    if (!A || !B || !asp || o === undefined || o === null || isNaN(o) || !Number.isFinite(+o)) return null;
     return `**${A}** ${asp} **${B}** (${(+o).toFixed(1)}°)`;
 }
 // ---- aspect math (for fallback orb) ----
@@ -541,15 +544,20 @@ function normalizeTransitBlock(block){
 }
 function renderTransitDay(dateStr, items){
     const rows = normalizeTransitBlock(items);
-    if (!rows.length) return `<h4>${dateStr}</h4><p><em>No computed aspects.</em></p>`;
+    if (!Array.isArray(rows) || rows.length === 0) return `<h4>${dateStr}</h4><p><em>No computed aspects.</em></p>`;
     const lines = rows.map(r => {
-        const orbTxt = Number.isFinite(r.orb) ? `${r.orb.toFixed(2)}°` : '—';
+        const orbTxt = (r && typeof r.orb === 'number' && Number.isFinite(r.orb)) ? `${r.orb.toFixed(2)}°` : '—';
         return `• <strong>${r.transit_body}</strong> ${r.aspect} <strong>${r.natal_target}</strong> (${orbTxt}, ${r.orb_band}, ${r.valence_hint})`;
     });
     return `<h4>${dateStr}</h4><ul><li>${lines.join("</li><li>")}</li></ul>`;
 }
         // Global UI element references
         let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadMarkdownBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel, exRelationshipCheckbox, relocationPersonBOption, excludePersonBFromRelocation;
+
+        // Defensive check for window/globalThis
+        if (typeof window === 'undefined') {
+            console.warn('window is not defined; running in non-browser context');
+        }
 
         // Store the latest result data for downloads
         let latestResultData = null;
