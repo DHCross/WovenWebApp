@@ -1,6 +1,57 @@
-// Centralized API endpoint configuration
+// --- API Endpoint Constants ---
 const API_BASE_URL = 'https://astrologer.p.rapidapi.com';
+const API_NATAL_URL = `${API_BASE_URL}/api/v4/natal-aspects-data`;
+const API_SYNASTRY_URL = `${API_BASE_URL}/api/v4/synastry-aspects-data`;
 const API_TRANSIT_URL = `${API_BASE_URL}/api/v4/transit-aspects-data`;
+const API_COMPOSITE_DATA_URL = `${API_BASE_URL}/api/v4/composite-aspects-data`;
+const API_BIRTH_DATA_URL = `${API_BASE_URL}/api/v4/birth-data`;
+const API_NOW_URL = `${API_BASE_URL}/api/v4/now`;
+
+// --- Helper: Validate Subject ---
+/**
+ * Validates that a subject object has all required fields for an API call.
+ * @param {Object} subject - The subject data to validate.
+ * @param {string} subjectName - A descriptive name for logging (e.g., 'Primary person').
+ * @returns {{isValid: boolean, userMessage: string, errors: string[]}}
+ */
+function validateSubject(subject, subjectName = 'Subject') {
+  const requiredFields = ['year', 'month', 'day', 'hour', 'minute', 'latitude', 'longitude'];
+  const errors = [];
+  for (const field of requiredFields) {
+    const value = subject[field];
+    if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
+      errors.push(`Missing required field: '${field}'`);
+    }
+  }
+  const isValid = errors.length === 0;
+  return {
+    isValid,
+    userMessage: isValid ? 'Validation successful' : `${subjectName} data is incomplete. Please provide all required birth information.`,
+    errors
+  };
+}
+
+// --- Helper: Enrich Transit Rows With Degrees ---
+/**
+ * Enriches transit aspect rows with the absolute degree positions of the involved bodies.
+ * @param {Array} mappedAspects - The array of normalized aspect objects.
+ * @param {Object} natalMap - The indexed map of natal planet positions.
+ * @param {Object} transitMap - The indexed map of transiting planet positions.
+ * @returns {Array} The enriched array of aspects.
+ */
+function enrichTransitRowsWithDegrees(mappedAspects, natalMap, transitMap) {
+  if (!Array.isArray(mappedAspects)) return [];
+  return mappedAspects.map(aspect => {
+    const natalTarget = natalMap[aspect.natal_target];
+    const transitBody = transitMap[aspect.transit_body];
+    return {
+      ...aspect,
+      natal_deg: natalTarget?.abs_pos ?? natalTarget?.lon ?? null,
+      transit_deg: transitBody?.abs_pos ?? transitBody?.lon ?? null,
+    };
+  });
+}
+// Centralized API endpoint configuration
 const { logger } = require('./logger');
 // Secure logging utility with multiple levels and sensitive data protection
 // Automatically redacts sensitive information like API keys and personal data
@@ -268,12 +319,12 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
         
         // Don't retry on client errors (4xx) except rate limiting (429)
         if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-          throw new Error(error.message);
+          throw new Error('Service temporarily unavailable. Please try again later.');
         }
-        
+
         // Retry on server errors and rate limits
         if (attempt === maxRetries) {
-          throw new Error(error.message);
+          throw new Error('Service temporarily unavailable. Please try again later.');
         }
         
         // Exponential backoff: 1s, 2s, 4s
@@ -297,7 +348,7 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
           responseLength: rawText.length,
           responsePreview: rawText.substring(0, 200) 
         }, errorId);
-        throw new Error('Received invalid data from astrology service. Please try again.');
+  throw new Error('Service returned invalid data. Please try again later.');
       }
     } catch (error) {
       // If we've exhausted retries or the request was aborted, surface the error
@@ -307,7 +358,7 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
           attempt, 
           maxRetries 
         }, errorId);
-        throw error;
+        throw new Error('Network error contacting astrology service. Please try again later.');
       }
       // Exponential backoff between attempts
       const delay = Math.pow(2, attempt - 1) * 1000;
@@ -525,20 +576,25 @@ function computeRelocationDeltas(natalResp, relocatedResp, natalDetails, relocat
       micro_shift,
       micro_shift_rule: 'asc|mc < 1.0° AND planets_crossed_cusps = 0'
     };
-  } catch (e) {
-    logger.warn('computeRelocationDeltas failed; returning minimal diagnostics', { error: e.message });
-    return {
-      delta_lat_deg: null,
-      delta_lon_deg: null,
-      distance_km: null,
-      asc_shift_deg: null,
-      mc_shift_deg: null,
-      planets_crossed_cusps: 0,
-      changed_houses: [],
-      micro_shift: false,
-      micro_shift_rule: 'asc|mc < 1.0° AND planets_crossed_cusps = 0'
-    };
-  }
+    } catch (error) {
+      logger.error('Chart calculation failed', error, requestId);
+      // Defensive error handling
+      const errorMessage = (error && error.message)
+        ? error.message
+        : 'Failed to calculate astrological charts. Please try again.';
+      const isRetryable = (error && typeof error === 'object' && error.retryable)
+        ? true
+        : false;
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          error: errorMessage,
+          code: 'CALCULATION_ERROR',
+          retryable: isRetryable,
+          errorId: requestId
+        })
+      };
+    }
 }
 
 // Attempt to extract planet longitudes from various API shapes
@@ -1220,7 +1276,7 @@ async function calculateNatalChart(subject) {
     return response;
   } catch (error) {
     logger.error('Failed to calculate natal chart', error);
-    throw error;
+  throw new Error('Natal chart service is temporarily unavailable. Please try again later.');
   }
 }
 
@@ -1245,7 +1301,7 @@ async function calculateSynastry(firstSubject, secondSubject) {
     return response;
   } catch (error) {
     logger.error('Failed to calculate synastry', error);
-    throw error;
+  throw new Error('Synastry service is temporarily unavailable. Please try again later.');
   }
 }
 
@@ -1529,7 +1585,7 @@ exports.handler = async function (event) {
         };
       }
     } catch (error) {
-      logger.error('Error processing request data', error, requestId);
+  logger.error('Error processing request data', error && error.message ? error : { message: 'Unknown error' }, requestId);
       return {
         statusCode: 400,
         body: JSON.stringify({ 
@@ -1677,7 +1733,7 @@ exports.handler = async function (event) {
       }
 
     } catch (error) {
-      logger.error('Chart calculation failed', error, requestId);
+  logger.error('Chart calculation failed', error && error.message ? error : { message: 'Unknown error' }, requestId);
       return {
         statusCode: 500,
         body: JSON.stringify({
@@ -2065,9 +2121,9 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
   return { date: dateStr, aspects: mappedWithDeg, diagnostics: { ...diag } };
         
       } catch (error) {
-        logger.error(`Transit calculation failed for ${dateStr}`, error, requestId);
+  logger.error(`Transit calculation failed for ${dateStr}`, error && error.message ? error : { message: 'Unknown error' }, requestId);
         // Return error result but don't fail the entire operation
-        return { date: dateStr, aspects: [], error: error.message };
+  return { date: dateStr, aspects: [], diagnostics: { total: 0, wide: 0, missing: 0, error: true } };
       }
     });
     
@@ -2092,7 +2148,7 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
       }
       
     } catch (error) {
-      logger.error(`Batch processing failed for dates ${batch[0].toISOString().split('T')[0]} to ${batch[batch.length-1].toISOString().split('T')[0]}`, error, requestId);
+  logger.error(`Batch processing failed for dates ${batch[0].toISOString().split('T')[0]} to ${batch[batch.length-1].toISOString().split('T')[0]}`, error && error.message ? error : { message: 'Unknown error' }, requestId);
       // Continue with next batch rather than failing completely
     }
   }
