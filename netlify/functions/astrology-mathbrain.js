@@ -17,6 +17,8 @@ const API_ENDPOINTS = {
 };
 
 // Simplified logging utility to avoid external dependencies
+const { mapT2NAspects } = require('../../src/raven-lite-mapper');
+const { aggregate } = require('../../src/seismograph');
 const logger = {
   log: (...args) => console.log(`[LOG]`, ...args),
   info: (...args) => console.info(`[INFO]`, ...args),
@@ -165,79 +167,79 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
   }
 }
 
+// --- Transit helpers ---
 async function getTransits(subject, transitParams, headers) {
-    if (!transitParams || !transitParams.startDate || !transitParams.endDate) return {};
+  if (!transitParams || !transitParams.startDate || !transitParams.endDate) return {};
 
-    const transitsByDate = {};
-    const startDate = new Date(transitParams.startDate);
-    const endDate = new Date(transitParams.endDate);
-    endDate.setDate(endDate.getDate() + 1); // Make end date inclusive
+  const transitsByDate = {};
+  const startDate = new Date(transitParams.startDate);
+  const endDate = new Date(transitParams.endDate);
+  endDate.setDate(endDate.getDate() + 1); // Make end date inclusive
 
-    const promises = [];
-    for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
-        const dateString = d.toISOString().split('T')[0];
-        const transit_subject = {
-            year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate(),
-            hour: 12, minute: 0, city: "Greenwich", nation: "GB",
-            latitude: 51.48, longitude: 0, timezone: "UTC"
-        };
+  const promises = [];
+  for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
+    const dateString = d.toISOString().split('T')[0];
+    const transit_subject = {
+      year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate(),
+      hour: 12, minute: 0, city: "Greenwich", nation: "GB",
+      latitude: 51.48, longitude: 0, timezone: "UTC"
+    };
 
-        promises.push(
-            apiCallWithRetry(
-                API_ENDPOINTS.TRANSIT_ASPECTS,
-                {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({ first_subject: subject, transit_subject }),
-                },
-                `Transits for ${subject.name} on ${dateString}`
-            ).then(resp => {
-                if (resp.aspects && resp.aspects.length > 0) {
-                    transitsByDate[dateString] = resp.aspects;
-                }
-            }).catch(e => logger.error(`Failed to get transits for ${dateString}`, e))
-        );
-    }
-    await Promise.all(promises);
-    return transitsByDate;
+    promises.push(
+      apiCallWithRetry(
+        API_ENDPOINTS.TRANSIT_ASPECTS,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ first_subject: subject, transit_subject }),
+        },
+        `Transits for ${subject.name} on ${dateString}`
+      ).then(resp => {
+        if (resp.aspects && resp.aspects.length > 0) {
+          transitsByDate[dateString] = resp.aspects;
+        }
+      }).catch(e => logger.error(`Failed to get transits for ${dateString}`, e))
+    );
+  }
+  await Promise.all(promises);
+  return transitsByDate;
 }
 
 function calculateSeismograph(transitsByDate) {
-    if (!transitsByDate || Object.keys(transitsByDate).length === 0) {
-        return { daily: {}, summary: {} };
-    }
+  if (!transitsByDate || Object.keys(transitsByDate).length === 0) {
+    return { daily: {}, summary: {} };
+  }
 
-    const days = Object.keys(transitsByDate).sort();
-    let prev = null;
-    const daily = {};
+  const days = Object.keys(transitsByDate).sort();
+  let prev = null;
+  const daily = {};
 
-    for (const d of days) {
-        const aspects = (transitsByDate[d] || []).map(x => ({
-            transit: { body: x.p1_name },
-            natal: {
-                body: x.p2_name,
-                isAngleProx: ["Ascendant","Medium_Coeli","Descendant","Imum_Coeli"].includes(x.p2_name),
-                isLuminary: ["Sun","Moon"].includes(x.p2_name),
-                degCrit: false // This information is not available from the API
-            },
-            type: (x.aspect || "").toLowerCase(),
-            orbDeg: typeof x.orbit === "number" ? x.orbit : 6.01
-        }));
+  for (const d of days) {
+    const aspects = (transitsByDate[d] || []).map(x => ({
+      transit: { body: x.p1_name },
+      natal: {
+        body: x.p2_name,
+        isAngleProx: ["Ascendant","Medium_Coeli","Descendant","Imum_Coeli"].includes(x.p2_name),
+        isLuminary: ["Sun","Moon"].includes(x.p2_name),
+        degCrit: false // Not available from API
+      },
+      type: (x.aspect || "").toLowerCase(),
+      orbDeg: typeof x.orbit === "number" ? x.orbit : 6.01
+    }));
 
-        const agg = aggregate(aspects, prev);
-        daily[d] = { seismograph: { magnitude: agg.magnitude, valence: agg.valence, volatility: agg.volatility } };
-        prev = { scored: agg.scored, Y_effective: agg.valence };
-    }
+    const agg = aggregate(aspects, prev);
+    daily[d] = { seismograph: { magnitude: agg.magnitude, valence: agg.valence, volatility: agg.volatility } };
+    prev = { scored: agg.scored, Y_effective: agg.valence };
+  }
 
-    const numDays = days.length;
-    const X = Object.values(daily).reduce((s, d) => s + d.seismograph.magnitude, 0) / numDays;
-    const Y = Object.values(daily).reduce((s, d) => s + d.seismograph.valence, 0) / numDays;
-    const VI = Object.values(daily).reduce((s, d) => s + d.seismograph.volatility, 0) / numDays;
-    const summary = { magnitude: +X.toFixed(2), valence: +Y.toFixed(2), volatility: +VI.toFixed(2) };
+  const numDays = days.length;
+  const X = Object.values(daily).reduce((s, d) => s + d.seismograph.magnitude, 0) / numDays;
+  const Y = Object.values(daily).reduce((s, d) => s + d.seismograph.valence, 0) / numDays;
+  const VI = Object.values(daily).reduce((s, d) => s + d.seismograph.volatility, 0) / numDays;
+  const summary = { magnitude: +X.toFixed(2), valence: +Y.toFixed(2), volatility: +VI.toFixed(2) };
 
-    return { daily, summary };
+  return { daily, summary };
 }
-
 
 // --- Composite helpers ---
 async function computeComposite(A, B, pass = {}, H) {
@@ -279,118 +281,182 @@ async function computeCompositeTransits(compositeRaw, start, end, step, pass = {
   }
 }
 
+
+// --- Error ID generator ---
+function generateErrorId() {
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10).replace(/-/g, '');
+  const time = now.toTimeString().slice(0, 8).replace(/:/g, '');
+  const random = Math.random().toString(36).substr(2, 4).toUpperCase();
+  return `ERR-${date}-${time}-${random}`;
+}
+
+
 exports.handler = async function(event) {
   try {
     if (event.httpMethod !== 'POST') {
-      return { statusCode: 405, body: JSON.stringify({ error: 'Only POST requests are allowed.' }) };
+      return {
+        statusCode: 405,
+        body: JSON.stringify({
+          error: 'Only POST requests are allowed.',
+          code: 'METHOD_NOT_ALLOWED',
+          errorId: generateErrorId()
+        })
+      };
     }
 
-    const body = JSON.parse(event.body || '{}');
+    let body;
+    try {
+      body = JSON.parse(event.body || '{}');
+    } catch (e) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error: 'Invalid JSON in request body.',
+          code: 'INVALID_JSON',
+          errorId: generateErrorId()
+        })
+      };
+    }
 
     // Inputs
     const personA = normalizeSubjectData(body.personA || body.person_a || body.first_subject || body.subject);
     const personB = normalizeSubjectData(body.personB || body.person_b || body.second_subject);
-    const modeToken = (body.context?.mode || 'NATAL_TRANSITS').toString().toUpperCase();
+    // Use strict validator for full chart endpoints, lean for aspects-only
+    const modeToken = (body.context?.mode || body.mode || '').toString().toUpperCase();
+    const wantNatalAspectsOnly = modeToken === 'NATAL_ASPECTS' || event.path?.includes('natal-aspects-data');
+    const wantBirthData = modeToken === 'BIRTH_DATA' || event.path?.includes('birth-data');
+    const wantSynastry = modeToken === 'SYNASTRY';
+    const wantSynastryAspectsOnly = modeToken === 'SYNASTRY_ASPECTS' || event.path?.includes('synastry-aspects-data');
+    const wantComposite = modeToken === 'COMPOSITE' || modeToken === 'COMPOSITE_ASPECTS' || modeToken === 'COMPOSITE_TRANSITS' || body.wantComposite === true;
 
-    const vA = validateSubject(personA);
-    if (!vA.isValid) return { statusCode: 400, body: JSON.stringify({ error: `Primary subject validation failed: ${vA.message}` }) };
+    const vA = (wantNatalAspectsOnly || wantBirthData) ? validateSubjectLean(personA) : validateSubject(personA);
+    if (!vA.isValid) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error: `Primary subject validation failed: ${vA.message}`,
+          code: 'VALIDATION_ERROR_A',
+          errorId: generateErrorId()
+        })
+      };
+    }
 
     const start = body.transitStartDate || body.transit_start_date || body.transitParams?.startDate;
     const end   = body.transitEndDate   || body.transit_end_date   || body.transitParams?.endDate;
     const step  = normalizeStep(body.transitStep || body.transit_step || body.transitParams?.step);
     const haveRange = Boolean(start && end);
 
-    const headers = buildHeaders();
-    const result = { person_a: { details: personA } };
+    let headers;
+    try {
+      headers = buildHeaders();
+    } catch (e) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          error: e.message,
+          code: 'CONFIG_ERROR',
+          errorId: generateErrorId()
+        })
+      };
+    }
 
-    switch (modeToken) {
-        case 'BIRTH_CHART': {
-            const natalResp = await apiCallWithRetry(API_ENDPOINTS.BIRTH_CHART, { method: 'POST', headers, body: JSON.stringify({ subject: personA }) }, 'Birth Chart A');
-            result.person_a.chart = { ...stripGraphicsDeep(natalResp.data), aspects: natalResp.aspects || [] };
-            break;
-        }
+    const result = { schema: 'WM-Chart-1.0', person_a: { details: personA } };
 
-        case 'SYNASTRY': {
-            const vB = validateSubject(personB);
-            if (!vB.isValid) return { statusCode: 400, body: JSON.stringify({ error: `Person B is required for synastry mode: ${vB.message}` }) };
-            result.person_b = { details: personB };
-            const synastryResp = await apiCallWithRetry(API_ENDPOINTS.SYNASTRY_CHART, { method: 'POST', headers, body: JSON.stringify({ first_subject: personA, second_subject: personB }) }, 'Synastry Chart');
-            const synClean = stripGraphicsDeep(synastryResp.data || {});
-            result.person_b.chart = synClean.second_subject || {};
-            result.synastry = { aspects: synClean.aspects || [] };
-            break;
-        }
+    // 1) Natal (chart + aspects, natal aspects-only, or birth data)
+    let natalResponse;
+    if (wantBirthData) {
+      natalResponse = await apiCallWithRetry(
+        API_ENDPOINTS.BIRTH_DATA,
+        { method: 'POST', headers, body: JSON.stringify({ subject: personA }) },
+        'Birth data (A)'
+      );
+      result.person_a.birth_data = stripGraphicsDeep(natalResponse.data || {});
+    } else if (wantNatalAspectsOnly) {
+      natalResponse = await apiCallWithRetry(
+        API_ENDPOINTS.NATAL_ASPECTS_DATA,
+        { method: 'POST', headers, body: JSON.stringify({ subject: personA }) },
+        'Natal aspects data (A)'
+      );
+      let chartData = stripGraphicsDeep(natalResponse.data || {});
+      result.person_a.chart = chartData;
+      result.person_a.aspects = (chartData && chartData.aspects) || [];
+    } else {
+      natalResponse = await apiCallWithRetry(
+        API_ENDPOINTS.BIRTH_CHART,
+        { method: 'POST', headers, body: JSON.stringify({ subject: personA }) },
+        'Birth chart (A)'
+      );
+      let chartData = stripGraphicsDeep(natalResponse.data || {});
+      result.person_a.chart = chartData;
+      result.person_a.aspects = (chartData && chartData.aspects) || [];
+    }
 
-        case 'NATAL_TRANSITS': {
-            const [natalResp, transits] = await Promise.all([
-                apiCallWithRetry(API_ENDPOINTS.NATAL_ASPECTS_DATA, { method: 'POST', headers, body: JSON.stringify({ subject: personA }) }, 'Natal Aspects A'),
-                getTransits(personA, {startDate: start, endDate: end, step}, headers)
-            ]);
-            result.person_a.chart = { ...stripGraphicsDeep(natalResp.data), aspects: natalResp.aspects, transitsByDate: transits };
+    // 2) Transits (optional; raw aspects by date, with advanced options)
+    if (haveRange) {
+      // Use new getTransits and seismograph logic
+      const transitsByDate = await getTransits(personA, { startDate: start, endDate: end, step }, headers);
+      result.person_a.chart = { ...result.person_a.chart, transitsByDate };
+      // Raven-lite integration: flatten all aspects for derived.t2n_aspects
+      const allAspects = Object.values(transitsByDate).flatMap(day => day);
+      result.person_a.derived = result.person_a.derived || {};
+      result.person_a.derived.t2n_aspects = mapT2NAspects(allAspects);
+      // Add transit_data array for test compatibility
+      result.person_a.transit_data = Object.values(transitsByDate);
+      // Seismograph summary
+      const seismographData = calculateSeismograph(transitsByDate);
+      result.person_a.derived.seismograph_summary = seismographData.summary;
+      result.person_a.chart.transitsByDate = seismographData.daily;
+    }
 
-            if (haveRange) {
-                const seismographData = calculateSeismograph(transits);
-                result.person_a.chart.transitsByDate = seismographData.daily;
-                result.person_a.derived = { seismograph_summary: seismographData.summary };
-            }
-            break;
-        }
+    // 3) Synastry (chart + aspects, or synastry aspects-only)
+    const validBLean = validateSubjectLean(personB);
+    const validBStrict = validateSubject(personB);
+    if (wantSynastryAspectsOnly && validBLean.isValid) {
+      // Synastry aspects-only endpoint
+      const syn = await apiCallWithRetry(
+        API_ENDPOINTS.SYNASTRY_ASPECTS,
+        { method: 'POST', headers, body: JSON.stringify({ first_subject: personA, second_subject: personB }) },
+        'Synastry aspects data'
+      );
+      let synData = stripGraphicsDeep(syn.data || {});
+      result.person_b = { details: personB };
+      result.synastry_aspects = synData.aspects || [];
+      result.synastry_data = synData;
+    } else if (wantSynastry && validBStrict.isValid) {
+      // Full synastry chart endpoint
+      const syn = await apiCallWithRetry(
+        API_ENDPOINTS.SYNASTRY_CHART,
+        { method: 'POST', headers, body: JSON.stringify({ first_subject: personA, second_subject: personB }) },
+        'Synastry chart'
+      );
+      const synClean = stripGraphicsDeep(syn.data || {});
+      result.person_b = { details: personB, chart: synClean.second_subject || {} };
+      result.synastry_aspects = synClean.aspects || [];
+    }
 
-        case 'SYNASTRY_TRANSITS': {
-            const vB = validateSubject(personB);
-            if (!vB.isValid) return { statusCode: 400, body: JSON.stringify({ error: `Person B is required for synastry mode: ${vB.message}` }) };
-            result.person_b = { details: personB };
+    // === NEW COMPOSITE BRANCH ===
+    const pass = {};
+    ['active_points','active_aspects','houses_system_identifier','sidereal_mode','perspective_type']
+      .forEach(k => { if (body[k] !== undefined) pass[k] = body[k]; });
 
-            const [natalA, natalB, synastry, transitsA, transitsB] = await Promise.all([
-                apiCallWithRetry(API_ENDPOINTS.NATAL_ASPECTS_DATA, { method: 'POST', headers, body: JSON.stringify({ subject: personA }) }, 'Natal Aspects A'),
-                apiCallWithRetry(API_ENDPOINTS.NATAL_ASPECTS_DATA, { method: 'POST', headers, body: JSON.stringify({ subject: personB }) }, 'Natal Aspects B'),
-                apiCallWithRetry(API_ENDPOINTS.SYNASTRY_ASPECTS, { method: 'POST', headers, body: JSON.stringify({ first_subject: personA, second_subject: personB }) }, 'Synastry Aspects'),
-                getTransits(personA, {startDate: start, endDate: end, step}, headers),
-                getTransits(personB, {startDate: start, endDate: end, step}, headers)
-            ]);
+    const vB = personB ? validateSubjectLean(personB) : { isValid:false };
+    if (wantComposite && vB.isValid) {
+      // Always compute composite aspects first (data-only)
+      const composite = await computeComposite(personA, personB, pass, headers);
+      result.person_b = { ...(result.person_b || {}), details: personB };
+      result.composite = { aspects: composite.aspects, data: composite.raw };
 
-            result.person_a.chart = { ...stripGraphicsDeep(natalA.data), aspects: natalA.aspects, transitsByDate: transitsA };
-            result.person_b.chart = { ...stripGraphicsDeep(natalB.data), aspects: natalB.aspects, transitsByDate: transitsB };
-            result.synastry = { aspects: synastry.aspects };
-
-            if (haveRange) {
-                const seismographA = calculateSeismograph(transitsA);
-                result.person_a.chart.transitsByDate = seismographA.daily;
-                result.person_a.derived = { seismograph_summary: seismographA.summary };
-
-                const seismographB = calculateSeismograph(transitsB);
-                result.person_b.chart.transitsByDate = seismographB.daily;
-                result.person_b.derived = { seismograph_summary: seismographB.summary };
-            }
-            break;
-        }
-
-        case 'COMPOSITE_TRANSITS': {
-            const vB = validateSubject(personB);
-            if (!vB.isValid) return { statusCode: 400, body: JSON.stringify({ error: `Person B is required for composite mode: ${vB.message}` }) };
-            result.person_b = { details: personB };
-
-            const pass = {};
-            ['active_points','active_aspects','houses_system_identifier','sidereal_mode','perspective_type']
-              .forEach(k => { if (body[k] !== undefined) pass[k] = body[k]; });
-
-            const composite = await computeComposite(personA, personB, pass, headers);
-            result.composite = { aspects: composite.aspects, data: composite.raw };
-
-            if (haveRange) {
-                const t = await computeCompositeTransits(composite.raw, start, end, step, pass, headers);
-                result.composite.transitsByDate = t.transitsByDate;
-                if (t._note) result.composite.note = t._note;
-
-                const seismographData = calculateSeismograph(t.transitsByDate);
-                result.composite.transitsByDate = seismographData.daily;
-                result.composite.derived = { seismograph_summary: seismographData.summary };
-            }
-            break;
-        }
-
-        default:
-            return { statusCode: 400, body: JSON.stringify({ error: `Unknown or unsupported context mode: ${modeToken}` }) };
+      // Optional: if range present and your plan supports it, try composite transit activations
+      if (modeToken === 'COMPOSITE_TRANSITS' && haveRange) {
+        const t = await computeCompositeTransits(composite.raw, start, end, step, pass, headers);
+        result.composite.transitsByDate = t.transitsByDate;
+        if (t._note) result.composite.note = t._note;
+        // Seismograph summary for composite transits
+        const seismographData = calculateSeismograph(t.transitsByDate);
+        result.composite.transitsByDate = seismographData.daily;
+        result.composite.derived = { seismograph_summary: seismographData.summary };
+      }
     }
 
     return {
@@ -403,6 +469,8 @@ exports.handler = async function(event) {
       statusCode: 500,
       body: JSON.stringify({
         error: error?.message || 'Internal server error',
+        code: error?.code || 'INTERNAL_ERROR',
+        errorId: generateErrorId(),
         stack: error?.stack || null,
         details: error
       }),
