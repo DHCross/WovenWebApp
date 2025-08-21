@@ -212,6 +212,16 @@ This will proxy requests to your serverless function and allow full front-end + 
 | Daily Overlay Tracking | Optional timestamping of synastry aspects that are exact or activated on specific dates (e.g. in a Five-Day Synastry Field report). |
 | Tier-2 OSR Bridge | A symbolic overlay logic system that connects dynamic field movement (transits) to static relationship geometry. Used in daily or week-range diagnostic field mapping. |
 
+## **GitHub Copilot Integration**
+
+This repository includes comprehensive GitHub Copilot instructions to ensure smooth AI-assisted development:
+
+- **[.github/copilot-instructions.md](.github/copilot-instructions.md)** - Complete guide for AI assistants working on this repository
+- **`npm run verify-copilot`** - Automated verification of Copilot setup and configuration
+- **Integrated Documentation** - All existing guides (MAINTENANCE_GUIDE.md, "Lessons Learned for Developer.md", etc.) are referenced in the Copilot instructions
+
+For AI assistants: Always review the Copilot instructions before making changes to ensure adherence to established workflows, testing protocols, and documentation standards.
+
 ## **License**
 
 This project is licensed under the [MIT License](LICENSE.txt).

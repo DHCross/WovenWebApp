@@ -2,273 +2,325 @@
 
 ## Project Overview
 
-WovenWebApp is an astrological report generator that provides detailed natal charts, synastry analysis, and transit calculations. The application uses a specialized "Raven Calder" astrological system that emphasizes geometric precision over archetypal interpretation.
+WovenWebApp is a web-based astrological chart analysis application that generates detailed reports for individuals and relationships using the **Raven Calder** system. It combines a static HTML/JavaScript frontend with Tailwind CSS and a Netlify serverless backend that interfaces with the RapidAPI Astrologer API.
 
-### Core Philosophy
-- **FIELD → MAP → VOICE**: Raw astrological data → Structural patterns → Narrative synthesis
-- **Geometry-First**: All interpretations derive from exact planetary angle math, not psychological projection
-- **Falsifiable Results**: Mathematical precision over subjective interpretation
+### Core Philosophy (Raven Calder)
+
+* **FIELD → MAP → VOICE:** Raw geometry → structural patterns → narrative synthesis.
+* **Geometry‑First & Falsifiable:** Exact planetary angle math precedes language; reflections must land or be discarded.
+* **Map, not mandate:** Symbolic weather supports agency; no deterministic claims.
+
+---
 
 ## Architecture Overview
 
 ### Technology Stack
-- **Frontend**: Static HTML, JavaScript, Tailwind CSS
-- **Backend**: Netlify serverless functions
-- **External API**: RapidAPI Astrologer API (powered by Kerykeion)
-- **Deployment**: Netlify with GitHub integration
-- **Styling**: Tailwind CSS with PostCSS
+
+* **Frontend:** Static HTML, JavaScript, Tailwind CSS
+* **Backend:** Netlify serverless functions (`netlify/functions/astrology-mathbrain.js`)
+* **Data Processing:** `src/raven-lite-mapper.js` (+ `src/seismograph.js` for symbolic scoring)
+* **External API:** RapidAPI **Astrologer** (Kerykeion-powered)
+* **Deployment:** Netlify with GitHub integration
+* **Styling:** Tailwind CSS (PostCSS)
 
 ### Key Components
 
-#### Frontend (`index.html`)
-- Single-page application with form-based input
-- Real-time validation and error handling
-- Responsive design with dark theme
-- Interactive report generation and display
+* **Frontend (`index.html`)**
+  Single-page UI with form-based input, real-time validation, responsive dark theme, report rendering.
+* **Backend (`astrology-mathbrain.js`)**
+  Primary function for calculations, API proxying, validation, and structured error handling.
+* **Raven Mapper (`src/raven-lite-mapper.js`)**
+  Transit‑to‑natal aspect mapping and Raven Calder formatting.
+* **Seismograph (`src/seismograph.js`)**
+  Magnitude/Valence/Volatility aggregation for transit stacks (Two‑Axis Symbolic Seismograph).
+* **Configuration**
+  `package.json`, `tailwind.config.js`, `netlify.toml`, `.env(.example)`.
 
-#### Backend (`netlify/functions/astrology-mathbrain.js`)
-- Primary serverless function handling all astrological calculations
-- API proxy to RapidAPI Astrologer service
-- Data transformation and validation
-- Error handling with detailed logging
+---
 
-#### Data Processing (`src/raven-lite-mapper.js`)
-- Custom mapping logic for astrological aspects
-- Transit-to-natal aspect processing
-- Raven Calder system implementation
+## Essential Documentation (review before changes)
 
-#### Configuration Files
-- `package.json`: Build scripts and dependencies
-- `tailwind.config.js`: CSS framework configuration
-- `netlify.toml`: Deployment configuration
-- `.env`: Environment variables (API keys, logging levels)
+1. `README.md` – Setup, API details, troubleshooting
+2. `MAINTENANCE_GUIDE.md` – Best practices, error handling, file org
+3. `CHANGELOG.md` – Change history with AI collaboration notes
+4. `Lessons Learned for Developer.md` – Context & IDE integration
+5. `MATH_BRAIN_COMPLIANCE.md` – Technical compliance requirements
+6. `API_INTEGRATION_GUIDE.md` – External API usage patterns
+
+---
 
 ## Development Workflow
 
-### Prerequisites
+### Environment Setup
+
 ```bash
-# Required tools
-- Node.js 18.x or higher
-- npm
-- Netlify CLI
-- RapidAPI account with Astrologer API subscription
-```
-
-### Local Development Setup
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Create environment file
-cp .env.example .env
-# Edit .env with your RAPIDAPI_KEY
-
-# 3. Verify environment setup
+# Environment check
 npm run check-env
 
-# 4. Build CSS for production
-npm run build:css
-
-# 5. Start development server
+# Local development
 npm run dev
+
+# Production CSS build
+npm run build:css
 ```
 
-### Build Scripts
-- `npm run build:css`: Compile and minify Tailwind CSS for production
-- `npm run dev:tailwind`: Watch mode for CSS development
-- `npm run check-env`: Verify environment configuration
-- `npm run dev`: Start local development server with Netlify CLI
-- `npm run start:local`: Full local development setup (check env + build CSS + start server)
+**Before changes**
 
-### Environment Variables
-- `RAPIDAPI_KEY`: **Required** - Your RapidAPI key for Astrologer API
-- `LOG_LEVEL`: Optional - Controls logging verbosity (debug, info, warn, error)
-- `NODE_ENV`: Optional - Environment mode (development, production)
-- Transit configuration options (see `.env.example` for full list)
+* Read `CHANGELOG.md` and `MAINTENANCE_GUIDE.md`
+* Verify API keys in `.env` / Netlify env
+* Run `netlify dev` to confirm baseline health
 
-## Key Concepts and Terminology
+**While changing**
 
-### Raven Calder System
-- **FIELD**: Raw astrological data (charts, transits, aspects, orbs, houses)
-- **MAP**: Interpreted structural patterns (Echo Loops, house overlays, activated geometry)
-- **VOICE**: Narrative synthesis layer (journal-style outputs, symbolic interpretation)
-- **OSR (Outside Symbolic Range)**: Events beyond the system's interpretive scope
-- **Geometry-First Diagnostic Rule**: All interpretations derive from exact planetary angles
+* Make minimal, surgical modifications
+* Test locally (`netlify dev`)
+* Update docs if behavior/setup shifts
+* Follow existing patterns and style
 
-### Application Features
-- **Natal Charts**: Birth chart calculation with planetary positions and aspects
-- **Synastry Analysis**: Relationship compatibility between two individuals
-- **Transit Calculations**: Current planetary influences on natal charts
-- **House Overlays**: How one person's planets fall in another's houses
-- **Composite Aspects**: Combined chart analysis for relationships
+### Commit Message Standards
 
-## Common Development Patterns
-
-### API Integration
-```javascript
-// All API calls go through the Netlify function
-const response = await fetch('/.netlify/functions/astrology-mathbrain', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestData)
-});
+```
+[YYYY-MM-DD] TYPE: Brief description
+Types: FIX, FEATURE, BREAK, CHANGE, UPDATE, CRITICAL FIX
 ```
 
-### Error Handling
-```javascript
-// Standard error response format
-{
-    success: false,
-    error: "Error message",
-    code: "ERROR_CODE",
-    errorId: "unique-error-identifier",
-    details: errorObject
-}
-```
+Examples:
 
-### Data Validation
-- Use the existing validation patterns in `astrology-mathbrain.js`
-- Validate dates, coordinates, and required fields before API calls
-- Provide clear error messages for missing or invalid data
+* `[2025-01-21] FIX: Resolve API validation error for invalid coordinates`
+* `[2025-01-21] FEATURE: Add composite transit support`
 
-### Logging
-```javascript
-// Use consistent logging throughout
-logger.info('Operation completed', { context: data });
-logger.error('Operation failed', { error, context });
-```
+---
 
-## Best Practices for AI-Assisted Development
+## Testing & Verification
 
-### Code Modifications
-1. **Preserve Existing Patterns**: Follow the established error handling and logging patterns
-2. **Validate Against Schema**: Check changes against `openapi.json` contract
-3. **Test API Integration**: Always test with the external RapidAPI service
-4. **Maintain Documentation**: Update relevant `.md` files when making changes
+**Required Steps**
 
-### Common Tasks
-- **Adding New Features**: Follow the FIELD → MAP → VOICE pattern
-- **API Changes**: Update both frontend validation and backend processing
-- **Styling Updates**: Use existing Tailwind classes and maintain dark theme
-- **Error Handling**: Provide user-friendly messages while logging technical details
+1. Local function testing via `netlify dev`
+2. API integration with test data (all endpoints)
+3. Error-path checks using invalid inputs
+4. Env variance (dev vs prod) validation
+5. CSS production build verification
 
-### Debugging Approach
-1. Check environment variables and API key configuration
-2. Verify form data structure matches API expectations
-3. Review browser console and network tabs for errors
-4. Check Netlify function logs for backend issues
-5. Validate API responses against expected schema
+**Test Aids**
+
+* `test-improvements.js`, `test-coords.js`
+* `FORM_DATA_EXAMPLE.md`
+* `debug-api.html`, `debug-test.html`
+
+---
+
+## Error Handling Best Practices
+
+* Secrets only via environment variables; never commit keys
+* User-facing errors stay clear and humane; logs hold detail
+* Validate input before API calls
+* Handle network/API failures gracefully with retries where appropriate
+* Common fixes:
+
+  * **Server misconfiguration:** Verify `RAPIDAPI_KEY`
+  * **Port in use:** Stop existing `netlify dev`
+  * **Styling issues:** `npm run build:css`
+
+---
+
+## AI Assistant Context Management
+
+**Context reality**
+
+* **IDE Copilot:** Live filesystem access; refreshable
+* **Web Copilot:** Limited to uploaded files; manual context sync needed
+
+**Best practices**
+
+* If an AI “can’t find” a file that exists, it’s a context sync issue
+* Prefer VS Code for full-context assistance
+* Re‑upload changed files to web interfaces as needed
+* Reference exact paths
+
+---
 
 ## File Organization
 
-### Core Files
-- `index.html`: Main application interface
-- `config.js`: Frontend configuration
-- `netlify/functions/astrology-mathbrain.js`: Primary backend function
-- `src/raven-lite-mapper.js`: Data processing logic
-- `src/input.css`: Tailwind source styles
+**Core**
 
-### Documentation
-- `README.md`: Project overview and setup instructions
-- `MAINTENANCE_GUIDE.md`: Best practices and troubleshooting
-- `API_INTEGRATION_GUIDE.md`: API usage patterns
-- `Lessons Learned for Developer.md`: Common issues and solutions
+* `index.html` – UI + frontend logic
+* `netlify/functions/astrology-mathbrain.js` – backend function
+* `src/raven-lite-mapper.js` – aspect mapping
+* `src/seismograph.js` – symbolic seismograph aggregation
+* `src/input.css` → `dist/output.css` (built)
 
-### Configuration
-- `package.json`: Dependencies and build scripts
-- `tailwind.config.js`: CSS framework settings
-- `netlify.toml`: Deployment configuration
-- `.env.example`: Environment variable template
+**Config**
 
-## Testing and Quality Assurance
+* `.env.example`, `netlify.toml`, `package.json`, `tailwind.config.js`
 
-### Manual Testing Checklist
-- [ ] Form validation with various input combinations
-- [ ] API integration with real data
-- [ ] Error handling for invalid inputs
-- [ ] Responsive design across devices
-- [ ] Report generation accuracy
+**Docs**
 
-### Common Issues
-1. **Missing API Key**: Check `.env` file and Netlify environment variables
-2. **CORS Errors**: Ensure requests go through Netlify functions  
-3. **Date Format Issues**: Use YYYY-MM-DD format consistently
-4. **Rate Limiting**: Respect API limits, implement proper batching
-5. **CSS Build Failures**: Run `npm install` to ensure all dependencies are available
-6. **Browserslist Warnings**: Run `npx update-browserslist-db@latest` to update browser compatibility data
+* `README.md`, `MAINTENANCE_GUIDE.md`, `CHANGELOG.md`, `API_INTEGRATION_GUIDE.md`, `Lessons Learned for Developer.md`
 
-## Security Considerations
+---
 
-### API Keys
-- Never commit `.env` files to version control
-- Use different keys for development and production
-- Rotate keys regularly (every 90 days recommended)
-- Monitor API usage for unexpected activity
+## Raven Calder System: Key Concepts
 
-### Data Handling
-- All user data is processed client-side or in serverless functions
-- No persistent storage of personal information
-- Respect user privacy and consent principles
+* **FIELD:** Energetic climate (raw geometry, orbs, houses)
+* **MAP:** Structural patterns (echo loops, overlays, activated vectors)
+* **VOICE:** Shareable mirror in plain language (no determinism)
+* **Two‑Axis Symbolic Seismograph:** Magnitude (X), Valence (Y), Volatility index (VI)
+* **Hook Stack UX:** High‑charge aspects, angles, anaretic, anchors—top‑loaded for fast recognition
 
-## Deployment
+---
 
-### Netlify Configuration
-- Automatic deployments from GitHub main branch
-- Environment variables set in Netlify dashboard
-- Build command: `npm run build:css`
-- Functions automatically deployed from `netlify/functions/`
+## Development Patterns
 
-### Environment Setup
-1. Configure `RAPIDAPI_KEY` in Netlify environment variables
+**API Integration (frontend → function)**
+
+```js
+const response = await fetch('/.netlify/functions/astrology-mathbrain', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(requestData)
+});
+```
+
+**Error Response (standard)**
+
+```json
+{
+  "success": false,
+  "error": "Error message",
+  "code": "ERROR_CODE",
+  "errorId": "unique-id",
+  "details": {}
+}
+```
+
+**Logging**
+
+```js
+logger.info('Operation completed', { context });
+logger.error('Operation failed', { error, context });
+```
+
+---
+
+## Branch Protection & Merge Guidelines
+
+**Agent Permissions**
+
+* AI agents work on feature branches; human review required for `main`
+* Assign Jules or repo owner for final verification
+* Branch names: `feature/...`, `fix/...`
+
+**Conflict Resolution**
+
+1. Manual review for core files (`index.html`, `astrology-mathbrain.js`)
+2. For documentation, integrate both perspectives with clear attribution
+3. Config conflicts defer to production‑tested settings
+4. Follow established style and error handling patterns
+
+**Merge Checklist**
+
+* [ ] Local tests pass (`netlify dev`)
+* [ ] No secrets committed
+* [ ] `CHANGELOG.md` updated
+* [ ] Documentation updated
+* [ ] CSS built if styles changed (`npm run build:css`)
+* [ ] Human reviewer assigned
+
+---
+
+## Security & Data Handling
+
+* Never commit `.env`; rotate keys regularly (≈90 days)
+* Separate dev/prod keys; monitor usage
+* No persistent storage of personal data
+* Respect privacy; process client‑side or in functions only
+
+---
+
+## Deployment (Netlify)
+
+* Auto deploys from GitHub `main`
+* Env vars set in Netlify dashboard (include `RAPIDAPI_KEY`)
+* Build command: `npm run build:css`
+* Functions picked up from `netlify/functions/`
+
+**Production checklist**
+
+1. Configure env vars (esp. `RAPIDAPI_KEY`)
 2. Verify build settings and deploy hooks
-3. Test API integration in production environment
-4. Monitor function logs for errors
+3. Test API integration live
+4. Monitor function logs
+
+---
 
 ## Troubleshooting Guide
 
-### Common Error Patterns
-- **"Error computing geometry"**: Usually indicates missing or invalid API key
-- **"End date must be after start date"**: Date validation failure
-- **Network errors**: Check API key and internet connectivity
-- **Empty reports**: Verify API response data structure
+**Common Errors**
 
-### Debugging Steps
-1. Enable debug logging (`LOG_LEVEL=debug`)
-2. Check browser console for JavaScript errors
-3. Verify API key configuration
-4. Test with known-good sample data
+* “Error computing geometry” → likely missing/invalid API key
+* “End date must be after start date” → validation issue
+* CORS complaints → route through Netlify functions
+* Empty reports → check response shape vs expected schema
+
+**Debug Steps**
+
+1. `LOG_LEVEL=debug`
+2. Inspect browser console + network tab
+3. Verify env & keys
+4. Test with known‑good payloads
 5. Review Netlify function logs
 
-## AI Assistant Guidelines
+---
 
-When working with this codebase:
+## Best Practices for AI‑Assisted Development
 
-1. **Understand the Domain**: Familiarize yourself with astrological concepts and the Raven Calder system
-2. **Respect the Architecture**: Maintain the separation between frontend, backend, and external API
-3. **Follow Existing Patterns**: Use established error handling, logging, and validation approaches
-4. **Test Thoroughly**: Always verify changes work with real API data
-5. **Document Changes**: Update relevant documentation when modifying functionality
-6. **Preserve Philosophy**: Maintain the geometry-first, falsifiable approach to astrological calculation
+1. Preserve existing patterns (validation, logging, errors)
+2. Validate against any schemas/contracts
+3. Test with the live RapidAPI endpoint
+4. Update docs alongside code changes
+5. Keep **FIELD → MAP → VOICE** intact in outputs
+6. Maintain geometry‑first, falsifiable phrasing
 
-### Recommended Reading
-- `README.md`: Complete project overview
-- `MAINTENANCE_GUIDE.md`: Best practices and maintenance procedures
-- `Lessons Learned for Developer.md`: Common pitfalls and solutions
-- `The Woven Map System, an App and seperate GPT.md`: Philosophical framework
+**Recommended Reading**
 
-## Contributing
+* `README.md`, `MAINTENANCE_GUIDE.md`, `Lessons Learned for Developer.md`
+* Raven Calder system briefs (Hook Stack, Seismograph, Shareable Mirror)
 
-### Before Making Changes
-1. Review existing documentation thoroughly
-2. Test the application locally with real data
-3. Understand the Raven Calder system philosophy
-4. Check for related issues in the changelog
+---
 
-### Change Process
-1. Create feature branch from main
-2. Make minimal, focused changes
-3. Test thoroughly with various input scenarios
-4. Update documentation as needed
-5. Submit pull request with clear description
+## Emergency & Escalation
 
-This project emphasizes mathematical precision, user agency, and diagnostic clarity. All development should preserve these core principles while enhancing functionality and user experience.
+* **Owner:** Jules (DHCross)
+* **Prod:** Netlify dashboard
+* **API:** RapidAPI status/key validity
+* **Build:** Verify Node version & deps
+
+**Escalate when**
+
+* Main functionality breaks
+* API integration fails
+* Security concerns appear
+* Major architecture changes occur
+
+---
+
+## Quick Reference Commands
+
+```bash
+# Environment check
+npm run check-env
+
+# Local development
+npm run dev
+
+# CSS production build
+npm run build:css
+
+# Test env var (unix)
+echo $RAPIDAPI_KEY
+
+# Kill stuck Netlify dev (unix)
+pkill -f netlify
+```
+
+**Reminder:** Review docs before changes, test with `netlify dev`, and keep the documentation standards high.
