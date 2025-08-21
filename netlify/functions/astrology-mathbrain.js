@@ -1,3 +1,17 @@
+        // Log outgoing payload for debugging
+        logger.info('Transit API outgoing payload', requestBody, requestId);
+
+        // Validate payload fields for both subjects
+        function validateApiSubjectFields(subj, label) {
+          const required = ['name','year','month','day','hour','minute','city','nation','lat','lng','tz_str','zodiac_type'];
+          for (const key of required) {
+            if (subj[key] === undefined || subj[key] === null || (typeof subj[key] === 'string' && subj[key].trim() === '')) {
+              logger.warn(`Missing or invalid field '${key}' in ${label}`, subj, requestId);
+            }
+          }
+        }
+        validateApiSubjectFields(requestBody.first_subject, 'first_subject');
+        validateApiSubjectFields(requestBody.transit_subject, 'transit_subject');
 function toAstrologerApiSubject(subject) {
   return {
     name: subject.name,
