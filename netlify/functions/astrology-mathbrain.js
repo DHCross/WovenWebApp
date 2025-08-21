@@ -564,6 +564,87 @@ function groupByDate(transits) {
   }, {});
 }
 
+// ---------- Date Sampling (snapshot) helper ----------
+// Build interval-based date samples FIRST, then enforce the cap with even downsampling.
+// Supported step values: 'daily' | 'weekly' | 'monthly' | 'first-middle-last'|'fml' | number (days) | 'every:NN'
+function buildSampleDates(startDateStr, endDateStr, step = 'daily', maxPoints = 10) {
+  const start = new Date(startDateStr);
+  const end = new Date(endDateStr);
+  if (isNaN(start) || isNaN(end)) throw new Error('Invalid date format. Use YYYY-MM-DD.');
+
+  const dates = [];
+  const pushISO = (d) => dates.push(new Date(d).toISOString().slice(0, 10));
+
+  const pushEveryNDays = (n) => {
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + n)) {
+      pushISO(d);
+    }
+  };
+
+  if (typeof step === 'string') {
+    switch (step) {
+      case 'daily':
+        pushEveryNDays(1);
+        break;
+      case 'weekly':
+        pushEveryNDays(7);
+        break;
+      case 'monthly': {
+        let y = start.getFullYear(), m = start.getMonth();
+        const endY = end.getFullYear(), endM = end.getMonth();
+        while (y < endY || (y === endY && m <= endM)) {
+          const d = new Date(y, m, 1, 12, 0, 0);
+          if (d >= start && d <= end) pushISO(d);
+          m += 1; if (m > 11) { m = 0; y += 1; }
+        }
+        break;
+      }
+      case 'first-middle-last':
+      case 'fml': {
+        let y = start.getFullYear(), m = start.getMonth();
+        const endY = end.getFullYear(), endM = end.getMonth();
+        while (y < endY || (y === endY && m <= endM)) {
+          const first = new Date(y, m, 1, 12, 0, 0);
+          const mid   = new Date(y, m, 15, 12, 0, 0);
+          const last  = new Date(y, m + 1, 0, 12, 0, 0);
+          [first, mid, last].forEach(d => { if (d >= start && d <= end) pushISO(d); });
+          m += 1; if (m > 11) { m = 0; y += 1; }
+        }
+        break;
+      }
+      default: {
+        const m = step.match(/^every[:\- ]?(\d+)$/i);
+        if (m) {
+          const n = Math.max(1, parseInt(m[1], 10));
+          pushEveryNDays(n);
+        } else if (!isNaN(parseInt(step, 10))) {
+          pushEveryNDays(Math.max(1, parseInt(step, 10)));
+        } else {
+          // Fallback to daily
+          pushEveryNDays(1);
+        }
+      }
+    }
+  } else if (typeof step === 'number') {
+    pushEveryNDays(Math.max(1, step | 0));
+  } else {
+    pushEveryNDays(1);
+  }
+
+  // Enforce cap with **even downsampling** (not truncation)
+  if (dates.length > maxPoints) {
+    const sampled = [];
+    for (let i = 0; i < maxPoints; i++) {
+      const idx = Math.round(i * (dates.length - 1) / (maxPoints - 1));
+      if (sampled[sampled.length - 1] !== dates[idx]) sampled.push(dates[idx]);
+    }
+    sampled._downsampled = true;
+    return sampled;
+  }
+
+  return dates;
+}
+
 // ---------- Composite & Aspect Utilities ----------
 function degNorm(x){
   let d = x % 360; if (d < 0) d += 360; return d;
@@ -651,6 +732,56 @@ const DEFAULT_ASPECTS = [
   {name:'Square',      angle:90, orb:6},
   {name:'Sextile',     angle:60, orb:4}
 ];
+
+// ---- Derived helpers for aspect geometry ----
+function bandOrb(orb) {
+  const o = typeof orb === 'number' ? orb : parseFloat(orb);
+  if (!isFinite(o)) return 'wide';
+  if (o <= 1.0) return 'tight';
+  if (o <= 3.0) return 'close';
+  if (o <= 6.0) return 'medium';
+  return 'wide';
+}
+
+function valenceFrom(aspect) {
+  const a = (aspect || '').toString().toLowerCase();
+  if (a === 'square' || a === 'opposition' || a === 'semi-square' || a === 'semisquare' || a === 'sesquiquadrate' || a === 'quincunx') return 'hot';
+  if (a === 'trine' || a === 'sextile' || a === 'quintile' || a === 'biquintile') return 'cool';
+  return 'neutral_to_hot'; // conjunction & others vary by bodies
+}
+
+// Normalizers to align API aspects to WM schema with derived fields
+function normalizeNatalAspect(a){
+  const orb = a.orb ?? a.orbit ?? a.aspect_degrees ?? a.diff ?? 0;
+  return {
+    p1_name: a.p1_name ?? a.p1 ?? a.point1 ?? a.body1 ?? 'Unknown',
+    p2_name: a.p2_name ?? a.p2 ?? a.point2 ?? a.body2 ?? 'Unknown',
+    aspect: a.aspect ?? a.name ?? 'conjunction',
+    orb: typeof orb === 'number' ? +orb : parseFloat(orb),
+    p1_house: a.p1_house ?? a.house1 ?? a.p1_house_num ?? undefined,
+    p2_house: a.p2_house ?? a.house2 ?? a.p2_house_num ?? undefined,
+    p1_is_retrograde: a.p1_is_retrograde ?? a.p1_retro ?? false,
+    p2_is_retrograde: a.p2_is_retrograde ?? a.p2_retro ?? false,
+    orb_band: bandOrb(orb),
+    valence_hint: valenceFrom(a.aspect ?? a.name)
+  };
+}
+
+function normalizeTransitAspect(ax){
+  const orb = ax.orb ?? ax.orbit ?? ax.aspect_degrees ?? ax.diff ?? 0;
+  return {
+    transit_body: ax.p1_name ?? ax.p1 ?? ax.point1 ?? ax.body1 ?? 'Unknown',
+    natal_target: ax.p2_name ?? ax.p2 ?? ax.point2 ?? ax.body2 ?? 'Unknown',
+    aspect: ax.aspect ?? ax.name ?? 'conjunction',
+    orb: typeof orb === 'number' ? +orb : parseFloat(orb),
+    natal_house: ax.p2_house ?? ax.house2 ?? ax.p2_house_num ?? undefined,
+    transit_house: ax.p1_house ?? ax.house1 ?? ax.p1_house_num ?? undefined,
+    natal_is_retrograde: ax.p2_is_retrograde ?? ax.p2_retro ?? false,
+    transit_is_retrograde: ax.p1_is_retrograde ?? ax.p1_retro ?? false,
+    orb_band: bandOrb(orb),
+    valence_hint: valenceFrom(ax.aspect ?? ax.name)
+  };
+}
 
 function findAspectsBetween(placementsA, placementsB, aspects=DEFAULT_ASPECTS){
   const results = [];
@@ -845,11 +976,8 @@ async function getCurrentPlanetPlacements(dateStr){
 async function computeCompositeTransitsByDate(compositePlacements, startDate, endDate, step='daily', requestId=null){
   const start = new Date(startDate); const end = new Date(endDate);
   if (isNaN(start) || isNaN(end)) throw new Error('Invalid date format. Use YYYY-MM-DD.');
-  const stepDays = (typeof step === 'number') ? Math.max(1, step|0) : (step === 'weekly' ? 7 : 1);
-  const dates = [];
-  for (let d=new Date(start); d<=end; d.setDate(d.getDate()+stepDays)){
-    dates.push(d.toISOString().slice(0,10));
-  }
+  const maxPoints = parseInt(process.env.MAX_TRANSIT_POINTS) || 10;
+  const dates = buildSampleDates(startDate, endDate, step, maxPoints);
   const out = {};
   for (const ds of dates){
     try{
@@ -882,6 +1010,13 @@ async function calculateNatalChart(subject) {
     );
 
     logger.debug('Natal API response keys', Object.keys(response));
+
+    // Normalize natal aspects and add derived fields (orb_band, valence_hint)
+    if (Array.isArray(response.aspects)) {
+      response.aspects = response.aspects.map(normalizeNatalAspect);
+    } else if (response.data && Array.isArray(response.data.aspects)) {
+      response.data.aspects = response.data.aspects.map(normalizeNatalAspect);
+    }
 
     // Group transits by date for easier access
     if (response.transits && Array.isArray(response.transits)) {
@@ -1610,19 +1745,14 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
   
   logger.debug('Date range validation passed', { start, end, days: daysDiff }, requestId);
   
-  const stepDays = (typeof step === 'number') ? Math.max(1, step | 0) : (step === 'weekly' ? 7 : 1);
   const maxPoints = parseInt(process.env.MAX_TRANSIT_POINTS) || 10;
   const transitDataByDate = {};
-  const dates = [];
-  // Generate array of all dates in the range with step sizing
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + stepDays)) {
-    dates.push(new Date(d));
+  const sampled = buildSampleDates(transitStartDate, transitEndDate, step, maxPoints);
+  if (sampled._downsampled) {
+    transitDataByDate._truncated = true; // signal to UI that cap forced downsampling
+    logger.warn('Transit date count exceeded cap; evenly downsampled', { requested: '>' + maxPoints, cap: maxPoints, mode: step }, requestId);
   }
-  if (dates.length > maxPoints) {
-    logger.warn('Transit date count exceeds cap; truncating', { requested: dates.length, cap: maxPoints }, requestId);
-    dates.length = maxPoints;
-    transitDataByDate._truncated = true;
-  }
+  const dates = sampled.map(ds => new Date(ds + 'T00:00:00Z'));
   const startedAt = Date.now();
   const budgetMs = parseInt(process.env.TRANSIT_TIME_BUDGET_MS) || 9000;
   
@@ -1687,18 +1817,15 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
         }, requestId);
         
         // Extract aspects from response according to API documentation
-        let aspects = [];
+        let rawAspects = [];
         if (response.aspects && Array.isArray(response.aspects)) {
-          aspects = response.aspects;
-        } else if (response.data && response.data.aspects && Array.isArray(response.data.aspects)) {
-          // Fallback for different response structure
-          aspects = response.data.aspects;
+          rawAspects = response.aspects;
+        } else if (response.data && Array.isArray(response.data.aspects)) {
+          rawAspects = response.data.aspects;
         } else {
-          logger.warn(`No aspects found in response for ${dateStr}`, { 
-            responseStructure: Object.keys(response) 
-          }, requestId);
+          logger.warn(`No aspects found in response for ${dateStr}`, { responseStructure: Object.keys(response) }, requestId);
         }
-        
+        const aspects = rawAspects.map(normalizeTransitAspect);
         return { date: dateStr, aspects };
         
       } catch (error) {
@@ -1741,10 +1868,11 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
   const totalDates = dates.length;
   const successRate = totalDates > 0 ? Math.round((successfulDates/totalDates) * 100) : 0;
   
-  logger.info('Transit calculation completed', { 
-    successfulDates, 
-    totalDates, 
-    successRate: `${successRate}%` 
+  logger.info('Transit calculation completed', {
+    successfulDates,
+    totalDates,
+    successRate: `${successRate}%`,
+    downsampled: !!transitDataByDate._truncated
   }, requestId);
   
   if (successfulDates === 0) {
