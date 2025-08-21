@@ -17,3 +17,15 @@ dist/
 # VS Code
 .vscode/
 *.code-workspace
+
+# Copilot and AI assistant temporary files
+.copilot/
+*.copilot-*
+.ai-temp/
+temp-*
+/tmp/
+
+# Development temporary files
+debug-*.log
+test-output-*
+*.backup
