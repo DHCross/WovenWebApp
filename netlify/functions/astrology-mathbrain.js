@@ -170,6 +170,62 @@ exports.handler = async function (event) {
     result.person_a.chart = natalA_resp.data;
     result.person_a.aspects = natalA_resp.aspects;
 
+
+    // --- Transit & Composite Calculation ---
+    const mode = body.context?.mode || body.mode;
+    const transitParams = body.transitParams || {};
+    const transitStartDate = body.transitStartDate || body.transit_start_date || transitParams.startDate;
+    const transitEndDate = body.transitEndDate || body.transit_end_date || transitParams.endDate;
+    const transitStep = body.transitStep || body.transit_step || transitParams.step || 'daily';
+
+    // Composite Transits
+    if (
+      (mode === 'COMPOSITE_TRANSITS' || (personA && personB && transitStartDate && transitEndDate))
+    ) {
+      try {
+        const compositePayload = {
+          first_subject: personA,
+          second_subject: personB,
+          start_date: transitStartDate,
+          end_date: transitEndDate,
+          step: transitStep,
+        };
+        const composite_resp = await apiCallWithRetry(
+          API_ENDPOINTS.COMPOSITE_ASPECTS,
+          { method: 'POST', headers: buildHeaders(), body: JSON.stringify(compositePayload) },
+          'Composite aspects and transits'
+        );
+        result.composite = composite_resp.data || {};
+      } catch (err) {
+        logger.warn('Composite calculation failed:', err);
+      }
+    } else if (
+      mode === 'natal_transits' || mode === 'synastry_transits'
+    ) {
+      if (transitStartDate && transitEndDate) {
+        try {
+          const transitPayload = {
+            subject: personA,
+            start_date: transitStartDate,
+            end_date: transitEndDate,
+            step: transitStep,
+          };
+          const transit_resp = await apiCallWithRetry(
+            API_ENDPOINTS.TRANSIT_ASPECTS,
+            { method: 'POST', headers: buildHeaders(), body: JSON.stringify(transitPayload) },
+            'Transit aspects for Person A'
+          );
+          if (result.person_a.chart) {
+            result.person_a.chart.transitsByDate = transit_resp.data?.transitsByDate || {};
+          } else {
+            result.person_a.chart = { transitsByDate: transit_resp.data?.transitsByDate || {} };
+          }
+        } catch (err) {
+          logger.warn('Transit calculation failed:', err);
+        }
+      }
+    }
+
     // Calculate synastry if Person B is present
     if (validateSubject(personB).isValid) {
       const synastry_resp = await apiCallWithRetry(
