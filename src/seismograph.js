@@ -1,6 +1,4 @@
 // src/seismograph.js
-// Raven-lite Seismograph: per-aspect scoring + daily aggregates (Magnitude, Valence, Volatility)
-// Implements Two-Axis defaults and stacking bonuses. See docs for details.
 
 /**
  * @typedef {Object} AspectIn

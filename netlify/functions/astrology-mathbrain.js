@@ -1,6 +1,7 @@
 // This code is a consolidated and cleaned version of the provided Javascript for interacting with the Astrologer API.
 // It is ready to be used as a serverless function handler (e.g., in a Node.js environment).
 
+const { aggregate } = require('../../src/seismograph');
 const API_BASE_URL = 'https://astrologer.p.rapidapi.com';
 
 const API_ENDPOINTS = {
@@ -17,7 +18,6 @@ const API_ENDPOINTS = {
 
 // Simplified logging utility to avoid external dependencies
 const { mapT2NAspects } = require('../../src/raven-lite-mapper');
-const { aggregate } = require('../../src/seismograph');
 const logger = {
   log: (...args) => console.log(`[LOG]`, ...args),
   info: (...args) => console.info(`[INFO]`, ...args),
@@ -101,7 +101,7 @@ function validateSubject(subject) {
  */
 function normalizeSubjectData(data) {
   if (!data || typeof data !== 'object') return {};
-  
+
   const normalized = {
     name: data.name || 'Subject',
     year: data.year, month: data.month, day: data.day,

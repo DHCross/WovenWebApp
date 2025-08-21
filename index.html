@@ -1190,15 +1190,13 @@ function renderTransitDay(dateStr, items){
                 console.log('Step element:', stepElement, 'Value:', stepElement?.value);
                 
                 if (startDateElement && endDateElement && stepElement) {
-                    formData.transitStartDate = startDateElement.value;
-                    formData.transitEndDate = endDateElement.value;
-                    formData.transitStep = stepElement.value;
+                    formData.transitParams = {
+                        startDate: startDateElement.value,
+                        endDate: endDateElement.value,
+                        step: stepElement.value
+                    };
                     
-                    console.log('Transit data added to form:', {
-                        transitStartDate: formData.transitStartDate,
-                        transitEndDate: formData.transitEndDate,
-                        transitStep: formData.transitStep
-                    });
+                    console.log('Transit data added to form:', formData.transitParams);
                 } else {
                     console.log('WARNING: Transit elements not found or missing values');
                 }
