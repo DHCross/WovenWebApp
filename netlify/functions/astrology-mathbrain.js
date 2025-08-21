@@ -1,69 +1,8 @@
+const { logger } = require('./logger');
 // Secure logging utility with multiple levels and sensitive data protection
 // Automatically redacts sensitive information like API keys and personal data
 // Secure logging utility with multiple levels and sensitive data protection
 // Automatically redacts sensitive information like API keys and personal data
-
-// Log outgoing payload for debugging
-        logger.info('Transit API outgoing payload', requestBody, requestId);
-
-        // Validate payload fields for both subjects
-        function validateApiSubjectFields(subj, label) {
-          const required = ['name','year','month','day','hour','minute','city','nation','lat','lng','tz_str','zodiac_type'];
-          for (const key of required) {
-            if (subj[key] === undefined || subj[key] === null || (typeof subj[key] === 'string' && subj[key].trim() === '')) {
-              logger.warn(`Missing or invalid field '${key}' in ${label}`, subj, requestId);
-            }
-          }
-        }
-        validateApiSubjectFields(requestBody.first_subject, 'first_subject');
-        validateApiSubjectFields(requestBody.transit_subject, 'transit_subject');
-function toAstrologerApiSubject(subject) {
-  return {
-    name: subject.name,
-    year: subject.year,
-    month: subject.month,
-    day: subject.day,
-    hour: subject.hour,
-    minute: subject.minute,
-    city: subject.city,
-    nation: subject.nation,
-    lat: subject.latitude,
-    lng: subject.longitude,
-    tz_str: subject.timezone,
-    zodiac_type: subject.zodiac_type
-  };
-}
-// Fallback: no-op enrichment for transit rows (returns input unchanged)
-function enrichTransitRowsWithDegrees(rows, natalMap, transitMap) {
-  return rows;
-}
-const API_BASE_URL = process.env.ASTRO_API_BASE || "https://astrologer.p.rapidapi.com";
-const API_NATAL_URL = `${API_BASE_URL}/api/v4/natal-aspects-data`;
-const API_SYNASTRY_URL = `${API_BASE_URL}/api/v4/synastry-aspects-data`;
-const API_TRANSIT_URL = `${API_BASE_URL}/api/v4/transit-aspects-data`;
-const API_COMPOSITE_DATA_URL = `${API_BASE_URL}/api/v4/composite-aspects-data`;
-const API_NOW_URL = `${API_BASE_URL}/api/v4/now`;
-const API_BIRTH_DATA_URL = `${API_BASE_URL}/api/v4/birth-data`;
-
-/**
- * Default configuration for transit calculations
- * Uses Greenwich Observatory as the reference point for planetary positions
- */
-const DEFAULT_TRANSIT_CONFIG = {
-  city: "Greenwich",
-  nation: "GB", 
-  latitude: 51.4825766,    // Greenwich Observatory latitude
-  longitude: 0,            // Prime Meridian
-  timezone: "UTC",         // Universal Coordinated Time
-  zodiac_type: "Tropic",   // Tropical zodiac system
-  hour: 12,               // Noon for consistent daily transit timing
-  minute: 0
-};
-
-/**
- * Performance monitoring and API usage statistics
- * Tracks request metrics for optimization and monitoring
- */
 const performanceMonitor = {
   stats: {
     totalRequests: 0,
@@ -166,7 +105,6 @@ const performanceMonitor = {
     logger.info('Performance statistics reset');
   }
 };
-
 /**
  * Rate limiting tracker to prevent API quota exhaustion
  * Tracks API calls per minute to proactively throttle requests
@@ -219,99 +157,9 @@ function generateErrorId() {
   const time = now.toTimeString().slice(0, 8).replace(/:/g, '');
   const random = Math.random().toString(36).substr(2, 4).toUpperCase();
   return `ERR-${date}-${time}-${random}`;
+
 }
 
-/**
- * Secure logging utility with multiple levels and sensitive data protection
- * Automatically redacts sensitive information like API keys and personal data
- */
-const logger = {
-  /**
-   * Redact sensitive information from log data
-   * @param {any} data - Data to be logged
-   * @returns {any} Sanitized data safe for logging
-   */
-  sanitize(data) {
-    if (!data) return data;
-    
-    const sensitiveFields = [
-      'rapidapi-key', 'x-rapidapi-key', 'RAPIDAPI_KEY', 'api_key', 
-      'password', 'secret', 'token', 'auth'
-    ];
-    
-    if (typeof data === 'string') {
-      // Redact potential API keys (32+ character alphanumeric strings)
-      return data.replace(/[a-zA-Z0-9]{32,}/g, '[REDACTED]');
-    }
-    
-    if (typeof data === 'object' && data !== null) {
-      const sanitized = Array.isArray(data) ? [...data] : { ...data };
-      
-      for (const key in sanitized) {
-        const lowerKey = key.toLowerCase();
-        if (sensitiveFields.some(field => lowerKey.includes(field))) {
-          sanitized[key] = '[REDACTED]';
-        } else if (typeof sanitized[key] === 'object') {
-          sanitized[key] = this.sanitize(sanitized[key]);
-        }
-      }
-      
-      return sanitized;
-    }
-    
-    return data;
-  },
-
-  /**
-   * Debug level logging - only shown when LOG_LEVEL=debug
-   * @param {string} msg - Log message
-   * @param {any} data - Optional data to log
-   * @param {string} errorId - Optional error ID for correlation
-   */
-  debug: (msg, data, errorId) => {
-    if (process.env.LOG_LEVEL === 'debug') {
-      const sanitizedData = logger.sanitize(data);
-      const prefix = errorId ? `[${errorId}] DEBUG: ${msg}` : `DEBUG: ${msg}`;
-      console.log(prefix, sanitizedData ? JSON.stringify(sanitizedData, null, 2) : '');
-    }
-  },
-
-  /**
-   * Info level logging - general operational messages
-   * @param {string} msg - Log message
-   * @param {any} data - Optional data to log
-   * @param {string} errorId - Optional error ID for correlation
-   */
-  info: (msg, data, errorId) => {
-    const sanitizedData = logger.sanitize(data);
-    const prefix = errorId ? `[${errorId}] INFO: ${msg}` : `INFO: ${msg}`;
-    console.log(prefix, sanitizedData ? JSON.stringify(sanitizedData, null, 2) : '');
-  },
-
-  /**
-   * Warning level logging - potential issues that don't stop execution
-   * @param {string} msg - Log message
-   * @param {any} data - Optional data to log
-   * @param {string} errorId - Optional error ID for correlation
-   */
-  warn: (msg, data, errorId) => {
-    const sanitizedData = logger.sanitize(data);
-    const prefix = errorId ? `[${errorId}] WARN: ${msg}` : `WARN: ${msg}`;
-    console.warn(prefix, sanitizedData ? JSON.stringify(sanitizedData, null, 2) : '');
-  },
-
-  /**
-   * Error level logging - serious issues that need attention
-   * @param {string} msg - Log message
-   * @param {any} error - Error object or data
-   * @param {string} errorId - Optional error ID for correlation
-   */
-  error: (msg, error, errorId) => {
-    const sanitizedError = logger.sanitize(error);
-    const prefix = errorId ? `[${errorId}] ERROR: ${msg}` : `ERROR: ${msg}`;
-    console.error(prefix, sanitizedError);
-  }
-};
 
 /**
  * Build secure headers for RapidAPI requests
@@ -449,8 +297,8 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
         throw new Error('Received invalid data from astrology service. Please try again.');
       }
     } catch (error) {
-      // Don't retry on fetch errors (network issues) if this is the last attempt
-      if (attempt === maxRetries || error.message.includes('fetch')) {
+      // If we've exhausted retries or the request was aborted, surface the error
+      if (attempt === maxRetries || error.name === 'AbortError') {
         logger.error(`Final API call failure`, { 
           error: error.message, 
           attempt, 
@@ -458,127 +306,29 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
         }, errorId);
         throw error;
       }
-      
+      // Exponential backoff between attempts
       const delay = Math.pow(2, attempt - 1) * 1000;
-      logger.warn(`Network error, retrying in ${delay}ms...`, { 
-        attempt, 
-        error: error.message 
+      logger.warn(`Network/API error, retrying in ${delay}ms...`, { 
+        attempt,
+        maxRetries,
+        error: error.message
       }, errorId);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise(res => setTimeout(res, delay));
     }
   }
-}
-
-/**
- * MATH BRAIN COMPLIANCE: Comprehensive subject data validation
- * Validates all required fields and performs range checking for dates, times, and coordinates
- * Ensures data integrity before sending to external astrology API
- * 
- * @param {Object} subject - Subject data to validate
- * @param {string} subjectName - Human-readable name for error messages (default: 'Subject')
- * @returns {Object} Validation result with isValid flag and detailed error information
- * 
- * Required fields:
- * - year: Birth year (1900-2100)
- * - month: Birth month (1-12) 
- * - day: Birth day (1-31)
- * - hour: Birth hour (0-23)
- * - minute: Birth minute (0-59)
- * - name: Person's name (string)
- * - city: Birth city (string)
- * - nation: Birth country/nation (string)
- * - latitude: Birth latitude (-90 to 90)
- * - longitude: Birth longitude (-180 to 180)
- * - zodiac_type: Zodiac system ('Tropic' or 'Sidereal')
- * - timezone: Timezone identifier (string)
- */
-function validateSubject(subject, subjectName = 'Subject') {
-  const required = [
-    'year', 'month', 'day', 'hour', 'minute',
-    'name', 'city', 'nation', 'latitude', 'longitude', 'zodiac_type', 'timezone'
-  ];
-  
-  const missing = [];
-  const invalid = [];
-  
-  // Check each required field for presence and validity
-  for (const key of required) {
-    const value = subject[key];
-    
-    // Check if field is present and not empty
-    if (value === undefined || value === null || value === "") {
-      missing.push(key);
-      continue; // Skip range validation if field is missing
-    }
-    
-    // Perform range validation for specific fields
-    switch (key) {
-      case 'year':
-        if (value < 1900 || value > 2100) {
-          invalid.push(`${key} must be between 1900 and 2100`);
-        }
-        break;
-      case 'month':
-        if (value < 1 || value > 12) {
-          invalid.push(`${key} must be between 1 and 12`);
-        }
-        break;
-      case 'day':
-        if (value < 1 || value > 31) {
-          invalid.push(`${key} must be between 1 and 31`);
-        }
-        break;
-      case 'hour':
-        if (value < 0 || value > 23) {
-          invalid.push(`${key} must be between 0 and 23`);
-        }
-        break;
-      case 'minute':
-        if (value < 0 || value > 59) {
-          invalid.push(`${key} must be between 0 and 59`);
-        }
-        break;
-      case 'latitude':
-        if (value < -90 || value > 90) {
-          invalid.push(`${key} must be between -90 and 90`);
-        }
-        break;
-      case 'longitude':
-        if (value < -180 || value > 180) {
-          invalid.push(`${key} must be between -180 and 180`);
-        }
-        break;
-      case 'zodiac_type':
-        if (!['Tropic', 'Sidereal'].includes(value)) {
-          invalid.push(`${key} must be either 'Tropic' or 'Sidereal'`);
-        }
-        break;
-    }
-  }
-  
-  // Return validation result
-  if (missing.length > 0 || invalid.length > 0) {
-    const errors = [];
-    if (missing.length > 0) {
-      errors.push(`Missing required fields: ${missing.join(', ')}`);
-    }
-    if (invalid.length > 0) {
-      errors.push(`Invalid values: ${invalid.join(', ')}`);
-    }
-    
-    return {
-      isValid: false,
-      errors: errors,
-      missingFields: missing,
-      invalidFields: invalid,
-      userMessage: `${subjectName} data is incomplete or invalid. Please check: ${errors.join(' ')}`
-    };
-  }
-  
-  return { isValid: true };
 }
 
 // Helper to group transits by date (YYYY-MM-DD)
+// Default transit location (Panama City); can be overridden via environment
+const DEFAULT_TRANSIT_CONFIG = {
+  year: 2000, month: 1, day: 1,
+  hour: 12, minute: 0,
+  city: 'Panama City', nation: 'US',
+  latitude: 30.1667, longitude: -85.6667,
+  timezone: 'America/Chicago',
+  zodiac_type: 'Tropic',
+  name: 'Transit'
+};
 function groupByDate(transits) {
   return transits.reduce((acc, tr) => {
     let date = tr.date;
@@ -1347,6 +1097,20 @@ function toSubjectModel(p){
   };
 }
 
+// Normalize our internal subject to the Astrologer API subject shape
+function toAstrologerApiSubject(s){
+  if (!s || typeof s !== 'object') return {};
+  return {
+    year: s.year, month: s.month, day: s.day,
+    hour: s.hour, minute: s.minute,
+    city: s.city, nation: s.nation,
+    latitude: s.latitude, longitude: s.longitude,
+    timezone: s.timezone,
+    zodiac_type: s.zodiac_type || s.zodiac || 'Tropic',
+    name: s.name || 'Subject'
+  };
+}
+
 async function fetchCompositePlacementsViaApi(personA, personB){
   const body = { first_subject: toSubjectModel(personA), second_subject: toSubjectModel(personB) };
   const resp = await apiCallWithRetry(
@@ -1982,8 +1746,8 @@ exports.handler = async function (event) {
         } else if (composite && composite.placements) {
           logger.debug('Skipping composite transits (mode not COMPOSITE_TRANSITS)', { mode: context?.mode }, requestId);
         }
-      } catch (error) {
-        logger.error('Transit calculation failed', error, requestId);
+      } catch (err) {
+        logger.error('Transit calculation failed', err, requestId);
         // Don't fail the entire request, just continue without transit data
         logger.warn('Continuing without transit data due to calculation error', null, requestId);
       }
@@ -2052,7 +1816,7 @@ exports.handler = async function (event) {
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: 'An unexpected error occurred. Please try again.',
+        error: err && err.message ? err.message : 'An unexpected error occurred. Please try again.',
         code: 'INTERNAL_ERROR',
         retryable: true,
         errorId: errorId
@@ -2308,17 +2072,13 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
       // Wait for all promises in this batch to complete
       const batchResults = await Promise.all(batchPromises);
       
-      // Process results and add to main data structure
-      for (const result of batchResults) {
-        if (result.aspects.length > 0) {
-          transitDataByDate[result.date] = result.aspects;
+      // Aggregate results into { [YYYY-MM-DD]: AspectRow[] } + optional diagnostics map
+      for (const r of batchResults) {
+        if (!r || !r.date) continue;
+        transitDataByDate[r.date] = Array.isArray(r.aspects) ? r.aspects : [];
+        if (r.diagnostics) {
           if (!transitDataByDate._diagnostics) transitDataByDate._diagnostics = {};
-          if (result.diagnostics) transitDataByDate._diagnostics[result.date] = result.diagnostics;
-          logger.debug(`Added ${result.aspects.length} transits for ${result.date}`, null, requestId);
-        } else if (result.error) {
-          logger.warn(`Skipped ${result.date} due to error: ${result.error}`, null, requestId);
-        } else {
-          logger.debug(`No transits found for ${result.date}`, null, requestId);
+          transitDataByDate._diagnostics[r.date] = r.diagnostics;
         }
       }
       
@@ -2351,6 +2111,4 @@ async function calculateTransitData(natalSubject, transitStartDate, transitEndDa
   }
   
   return transitDataByDate;
-  // Patch: return as { byDate: ... } for frontend compatibility
-  return { byDate: transitDataByDate };
 }
