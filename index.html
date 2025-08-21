@@ -756,6 +756,33 @@ function renderTransitDay(dateStr, items){
                         }
                     }
                     
+                    // House Cusps if available
+                    const hasHouseCusps = chart.first_house || chart.second_house || chart.third_house;
+                    if (hasHouseCusps) {
+                        md += `\n### House Cusps\n\n`;
+                        const houses = [
+                            { key: 'first_house', name: '1st House', description: 'Self, Identity' },
+                            { key: 'second_house', name: '2nd House', description: 'Values, Resources' },
+                            { key: 'third_house', name: '3rd House', description: 'Communication, Learning' },
+                            { key: 'fourth_house', name: '4th House', description: 'Home, Family' },
+                            { key: 'fifth_house', name: '5th House', description: 'Creativity, Romance' },
+                            { key: 'sixth_house', name: '6th House', description: 'Work, Health' },
+                            { key: 'seventh_house', name: '7th House', description: 'Partnerships' },
+                            { key: 'eighth_house', name: '8th House', description: 'Transformation, Shared Resources' },
+                            { key: 'ninth_house', name: '9th House', description: 'Philosophy, Higher Learning' },
+                            { key: 'tenth_house', name: '10th House', description: 'Career, Public Image' },
+                            { key: 'eleventh_house', name: '11th House', description: 'Groups, Aspirations' },
+                            { key: 'twelfth_house', name: '12th House', description: 'Spirituality, Subconscious' }
+                        ];
+                        
+                        houses.forEach(house => {
+                            const houseData = chart[house.key];
+                            if (houseData && houseData.sign && houseData.position !== undefined) {
+                                md += `- **${house.name}**: ${houseData.sign} ${houseData.position.toFixed(2)}° (${house.description})\n`;
+                            }
+                        });
+                    }
+                    
                     md += `\n`;
                 } catch (error) {
                     console.log('Error rendering natal chart data:', error);
@@ -836,6 +863,33 @@ function renderTransitDay(dateStr, items){
                                 md += `- **South Node**: ${southNodeSign} ${southNodePos.toFixed(2)}°\n`;
                             }
                         }
+                    }
+                    
+                    // House Cusps if available
+                    const hasHouseCusps = chart.first_house || chart.second_house || chart.third_house;
+                    if (hasHouseCusps) {
+                        md += `\n### House Cusps\n\n`;
+                        const houses = [
+                            { key: 'first_house', name: '1st House', description: 'Self, Identity' },
+                            { key: 'second_house', name: '2nd House', description: 'Values, Resources' },
+                            { key: 'third_house', name: '3rd House', description: 'Communication, Learning' },
+                            { key: 'fourth_house', name: '4th House', description: 'Home, Family' },
+                            { key: 'fifth_house', name: '5th House', description: 'Creativity, Romance' },
+                            { key: 'sixth_house', name: '6th House', description: 'Work, Health' },
+                            { key: 'seventh_house', name: '7th House', description: 'Partnerships' },
+                            { key: 'eighth_house', name: '8th House', description: 'Transformation, Shared Resources' },
+                            { key: 'ninth_house', name: '9th House', description: 'Philosophy, Higher Learning' },
+                            { key: 'tenth_house', name: '10th House', description: 'Career, Public Image' },
+                            { key: 'eleventh_house', name: '11th House', description: 'Groups, Aspirations' },
+                            { key: 'twelfth_house', name: '12th House', description: 'Spirituality, Subconscious' }
+                        ];
+                        
+                        houses.forEach(house => {
+                            const houseData = chart[house.key];
+                            if (houseData && houseData.sign && houseData.position !== undefined) {
+                                md += `- **${house.name}**: ${houseData.sign} ${houseData.position.toFixed(2)}° (${house.description})\n`;
+                            }
+                        });
                     }
                     
                     md += `\n`;
