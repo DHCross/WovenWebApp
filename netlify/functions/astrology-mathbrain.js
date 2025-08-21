@@ -1,3 +1,6 @@
+// Centralized API endpoint configuration
+const API_BASE_URL = 'https://astrologer.p.rapidapi.com';
+const API_TRANSIT_URL = `${API_BASE_URL}/api/v4/transit-aspects-data`;
 const { logger } = require('./logger');
 // Secure logging utility with multiple levels and sensitive data protection
 // Automatically redacts sensitive information like API keys and personal data
