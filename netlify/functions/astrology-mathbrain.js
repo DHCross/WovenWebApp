@@ -127,185 +127,67 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
   }
 }
 
-// --- Main Handler ---
-
-/**
- * Main serverless function to handle astrological chart calculations.
- * @param {Object} event - The Netlify function event object.
- * @returns {Promise<Object>} An HTTP response object.
- */
-exports.handler = async function (event) {
-    // Extract context and transit params
-    const rawMode = (body.context?.mode || body.mode || '').toString().toUpperCase();
-    const transitParams = body.transitParams || {};
-    const transitStartDate = body.transitStartDate || body.transit_start_date || transitParams.startDate;
-    const transitEndDate = body.transitEndDate || body.transit_end_date || transitParams.endDate;
-    const transitStep = body.transitStep || body.transit_step || transitParams.step || 'daily';
-
-    let mode = (['NATAL','SYNASTRY','COMPOSITE_TRANSITS'].includes(rawMode) ? rawMode : 'NATAL');
-    const haveRange = Boolean(transitStartDate && transitEndDate);
-    const validB = validateSubject(personB).isValid;
-    if (haveRange && validB && (!rawMode || rawMode === '')) {
-      mode = 'COMPOSITE_TRANSITS'; // auto-upgrade per integration guide
+exports.handler = async function(event) {
+  try {
+    if (event.httpMethod !== 'POST') {
+      return { statusCode: 405, body: JSON.stringify({ error: 'Only POST requests are allowed.' }) };
     }
 
-    // Natal chart (A)
-    const natalA = await apiCallWithRetry(API_ENDPOINTS.BIRTH_CHART, {
-      method:'POST', headers: buildHeaders(), body: JSON.stringify({ subject: personA })
-    }, 'Birth chart (A)');
-    result.person_a.chart = natalA.data;
-    result.person_a.aspects = natalA.data?.aspects || [];
+    const body = JSON.parse(event.body || '{}');
 
-    // Synastry chart (A↔B)
-    if (mode === 'SYNASTRY' && validB) {
-      const syn = await apiCallWithRetry(API_ENDPOINTS.SYNASTRY_CHART, {
-        method:'POST', headers: buildHeaders(),
-        body: JSON.stringify({ first_subject: personA, second_subject: personB })
-      }, 'Synastry chart');
-      result.person_b = { details: personB, chart: syn.data?.second_subject };
+    // Inputs
+    const personA = normalizeSubjectData(body.personA || body.person_a || body.first_subject || body.subject);
+    const personB = normalizeSubjectData(body.personB || body.person_b || body.second_subject);
+    const { isValid, message } = validateSubject(personA);
+    if (!isValid) return { statusCode: 400, body: JSON.stringify({ error: `Primary subject validation failed: ${message}` }) };
+
+    const start = body.transitStartDate || body.transit_start_date || body.transitParams?.startDate;
+    const end   = body.transitEndDate   || body.transit_end_date   || body.transitParams?.endDate;
+    const step  = body.transitStep      || body.transit_step       || body.transitParams?.step || 'daily';
+    const haveRange = Boolean(start && end);
+
+    const headers = buildHeaders();
+    const result = { person_a: { details: personA } };
+
+    // 1) Natal (chart + aspects)
+    const natal = await apiCallWithRetry(
+      API_ENDPOINTS.BIRTH_CHART,
+      { method: 'POST', headers, body: JSON.stringify({ subject: personA }) },
+      'Birth chart (A)'
+    );
+    // assuming provider returns { data: { positions/angles/houseCusps..., aspects: [...] } }
+    result.person_a.chart = natal.data || {};
+    result.person_a.aspects = (natal.data && natal.data.aspects) || [];
+
+    // 2) Transits (optional; raw aspects by date)
+    if (haveRange) {
+      const t = await apiCallWithRetry(
+        API_ENDPOINTS.TRANSIT_ASPECTS,
+        { method: 'POST', headers,
+          body: JSON.stringify({ subject: personA, start_date: start, end_date: end, step })
+        },
+        'Transit aspects (A)'
+      );
+      // expecting { data: { transitsByDate: { 'YYYY-MM-DD': [...] } } }
+      result.person_a.chart = { ...result.person_a.chart, transitsByDate: t.data?.transitsByDate || {} };
+    }
+
+    // 3) Optional synastry (chart + aspects) — only if explicitly requested
+    const wantSynastry = (body.context?.mode || body.mode || '').toString().toUpperCase() === 'SYNASTRY';
+    const validB = validateSubject(personB).isValid;
+    if (wantSynastry && validB) {
+      const syn = await apiCallWithRetry(
+        API_ENDPOINTS.SYNASTRY_CHART,
+        { method: 'POST', headers, body: JSON.stringify({ first_subject: personA, second_subject: personB }) },
+        'Synastry chart'
+      );
+      result.person_b = { details: personB, chart: syn.data?.second_subject || {} };
       result.synastry = syn.data?.aspects || [];
     }
 
-    // Natal transits (A)
-    if (haveRange && mode === 'NATAL') {
-      const t = await apiCallWithRetry(API_ENDPOINTS.TRANSIT_CHART, {
-        method:'POST', headers: buildHeaders(),
-        body: JSON.stringify({ subject: personA, start_date: transitStartDate, end_date: transitEndDate, step: transitStep })
-      }, 'Transit chart (A)');
-      result.person_a.chart.transitsByDate = t.data?.transitsByDate || {};
-    }
-
-    // Composite transits
-    if (haveRange && validB && mode === 'COMPOSITE_TRANSITS') {
-      // Option A: vendor composite endpoint
-      // Option B: compute composite, then run transits
-      // For now, just call transit-chart with both subjects if supported
-      const compTransits = await apiCallWithRetry(API_ENDPOINTS.TRANSIT_CHART, {
-        method:'POST', headers: buildHeaders(),
-        body: JSON.stringify({ first_subject: personA, second_subject: personB, start_date: transitStartDate, end_date: transitEndDate, step: transitStep })
-      }, 'Composite transit chart');
-      result.composite = compTransits.data || {};
-    }
-  try {
-    if (event.httpMethod !== 'POST') {
-      return {
-        statusCode: 405,
-        body: JSON.stringify({ error: 'Only POST requests are allowed.' }),
-      };
-    }
-
-    const body = JSON.parse(event.body);
-    const personA = normalizeSubjectData(body.personA || body.person_a || body.first_subject || body.subject);
-    const personB = normalizeSubjectData(body.personB || body.person_b || body.second_subject);
-
-    const validationA = validateSubject(personA);
-    if (!validationA.isValid) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: `Primary subject validation failed: ${validationA.message}` }),
-      };
-    }
-
-    let result = {
-      person_a: { details: personA },
-      person_b: undefined,
-      synastry: undefined,
-    };
-
-    // Calculate Person A's natal aspects
-    const natalA_resp = await apiCallWithRetry(
-      API_ENDPOINTS.NATAL_ASPECTS,
-      { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ subject: personA }) },
-      'Natal chart for Person A'
-    );
-    result.person_a.chart = natalA_resp.data;
-    result.person_a.aspects = natalA_resp.aspects;
-
-
-    // --- Transit & Composite Calculation ---
-    const mode = body.context?.mode || body.mode;
-    const transitParams = body.transitParams || {};
-    const transitStartDate = body.transitStartDate || body.transit_start_date || transitParams.startDate;
-    const transitEndDate = body.transitEndDate || body.transit_end_date || transitParams.endDate;
-    const transitStep = body.transitStep || body.transit_step || transitParams.step || 'daily';
-
-    // Composite Transits
-    if (
-      (mode === 'COMPOSITE_TRANSITS' || (personA && personB && transitStartDate && transitEndDate))
-    ) {
-      try {
-        const compositePayload = {
-          first_subject: personA,
-          second_subject: personB,
-          start_date: transitStartDate,
-          end_date: transitEndDate,
-          step: transitStep,
-        };
-        const composite_resp = await apiCallWithRetry(
-          API_ENDPOINTS.COMPOSITE_ASPECTS,
-          { method: 'POST', headers: buildHeaders(), body: JSON.stringify(compositePayload) },
-          'Composite aspects and transits'
-        );
-        result.composite = composite_resp.data || {};
-      } catch (err) {
-        logger.warn('Composite calculation failed:', err);
-      }
-    } else if (
-      mode === 'natal_transits' || mode === 'synastry_transits'
-    ) {
-      if (transitStartDate && transitEndDate) {
-        try {
-          const transitPayload = {
-            subject: personA,
-            start_date: transitStartDate,
-            end_date: transitEndDate,
-            step: transitStep,
-          };
-          const transit_resp = await apiCallWithRetry(
-            API_ENDPOINTS.TRANSIT_ASPECTS,
-            { method: 'POST', headers: buildHeaders(), body: JSON.stringify(transitPayload) },
-            'Transit aspects for Person A'
-          );
-          if (result.person_a.chart) {
-            result.person_a.chart.transitsByDate = transit_resp.data?.transitsByDate || {};
-          } else {
-            result.person_a.chart = { transitsByDate: transit_resp.data?.transitsByDate || {} };
-          }
-        } catch (err) {
-          logger.warn('Transit calculation failed:', err);
-        }
-      }
-    }
-
-    // Calculate synastry if Person B is present
-    if (validateSubject(personB).isValid) {
-      const synastry_resp = await apiCallWithRetry(
-        API_ENDPOINTS.SYNASTRY_ASPECTS,
-        {
-          method: 'POST',
-          headers: buildHeaders(),
-          body: JSON.stringify({
-            first_subject: personA,
-            second_subject: personB,
-          }),
-        },
-        'Synastry aspects'
-      );
-      result.person_b = { details: personB, chart: synastry_resp.data.second_subject };
-      result.synastry = synastry_resp.aspects;
-    }
-
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(result),
-    };
-
-  } catch (error) {
-    logger.error('Handler failed:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error.message || 'An unexpected error occurred.' }),
-    };
+    return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(result) };
+  } catch (err) {
+    logger.error('Handler failed:', err);
+    return { statusCode: 500, body: JSON.stringify({ error: err.message || 'Unexpected error.' }) };
   }
 };
