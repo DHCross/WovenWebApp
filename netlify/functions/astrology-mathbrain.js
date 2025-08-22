@@ -257,21 +257,35 @@ function calculateSeismograph(transitsByDate) {
 
 // --- Composite helpers ---
 async function computeComposite(A, B, pass = {}, H) {
-  const payload = {
-    first_subject: A,
-    second_subject: B,
-    ...pass,
-  };
-  const r = await apiCallWithRetry(
-    API_ENDPOINTS.COMPOSITE_ASPECTS,
-    { method: 'POST', headers: H, body: JSON.stringify(payload) },
-    'Composite aspects'
-  );
-  const data = stripGraphicsDeep(r.data || {});
-  return {
-    aspects: data.aspects || [],
-    raw: data,
-  };
+  try {
+    logger.debug('Computing composite for subjects:', { 
+      personA: A?.name || 'Unknown A', 
+      personB: B?.name || 'Unknown B' 
+    });
+    
+    const payload = {
+      first_subject: A,
+      second_subject: B,
+      ...pass,
+    };
+    
+    const r = await apiCallWithRetry(
+      API_ENDPOINTS.COMPOSITE_ASPECTS,
+      { method: 'POST', headers: H, body: JSON.stringify(payload) },
+      'Composite aspects'
+    );
+    
+    const data = stripGraphicsDeep(r.data || {});
+    logger.debug('Composite calculation successful, aspects found:', data.aspects?.length || 0);
+    
+    return {
+      aspects: data.aspects || [],
+      raw: data,
+    };
+  } catch (error) {
+    logger.error('Composite calculation failed:', error);
+    throw new Error(`Composite calculation failed: ${error.message}`);
+  }
 }
 
 /**
@@ -401,7 +415,7 @@ exports.handler = async function(event) {
     const modeToken = (body.context?.mode || body.mode || '').toString().toUpperCase();
     const wantNatalAspectsOnly = modeToken === 'NATAL_ASPECTS' || event.path?.includes('natal-aspects-data');
     const wantBirthData = modeToken === 'BIRTH_DATA' || event.path?.includes('birth-data');
-    const wantSynastry = modeToken === 'SYNASTRY';
+    const wantSynastry = modeToken === 'SYNASTRY' || modeToken === 'SYNASTRY_TRANSITS';
     const wantSynastryAspectsOnly = modeToken === 'SYNASTRY_ASPECTS' || event.path?.includes('synastry-aspects-data');
     const wantComposite = modeToken === 'COMPOSITE' || modeToken === 'COMPOSITE_ASPECTS' || modeToken === 'COMPOSITE_TRANSITS' || body.wantComposite === true;
 
@@ -542,6 +556,23 @@ exports.handler = async function(event) {
       const synClean = stripGraphicsDeep(syn.data || {});
       result.person_b = { details: personB, chart: synClean.second_subject || {} };
       result.synastry_aspects = synClean.aspects || [];
+      
+      // Add Person B transits for synastry modes (especially SYNASTRY_TRANSITS)
+      if (modeToken === 'SYNASTRY_TRANSITS' && haveRange) {
+        logger.debug('Computing Person B transits for synastry mode:', { start, end, step });
+        const transitsByDateB = await getTransits(personB, { startDate: start, endDate: end, step }, headers, pass);
+        result.person_b.chart = { ...result.person_b.chart, transitsByDate: transitsByDateB };
+        
+        // Apply seismograph analysis to Person B transits
+        const seismographDataB = calculateSeismograph(transitsByDateB);
+        result.person_b.chart.transitsByDate = seismographDataB.daily;
+        result.person_b.derived = { 
+          seismograph_summary: seismographDataB.summary,
+          t2n_aspects: mapT2NAspects(Object.values(transitsByDateB).flatMap(day => day))
+        };
+        
+        logger.debug('Person B transits completed for synastry mode');
+      }
     }
 
     // === COMPOSITE CHARTS AND TRANSITS ===
