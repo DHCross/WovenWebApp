@@ -912,7 +912,7 @@ function renderTransitDay(dateStr, items){
                     
                     // Filter transits within date range
                     const relevantDates = Object.keys(personATransits).filter(date => {
-                        return date >= transitStartDate && date <= transitEndDate;
+                        return date >= formData.transitParams.startDate && date <= formData.transitParams.endDate;
                     }).sort();
                     
                     console.log('Person A relevant dates:', relevantDates);
@@ -953,7 +953,7 @@ function renderTransitDay(dateStr, items){
                     
                     // Filter transits within date range
                     const relevantDates = Object.keys(personBTransits).filter(date => {
-                        return date >= transitStartDate && date <= transitEndDate;
+                        return date >= formData.transitParams.startDate && date <= formData.transitParams.endDate;
                     }).sort();
                     
                     console.log('Person B relevant dates:', relevantDates);
@@ -995,7 +995,7 @@ function renderTransitDay(dateStr, items){
                     
                     // Filter transits within date range
                     const relevantDates = Object.keys(synastryTransits).filter(date => {
-                        return date >= transitStartDate && date <= transitEndDate;
+                        return date >= formData.transitParams.startDate && date <= formData.transitParams.endDate;
                     }).sort();
                     
                     if (relevantDates.length > 0) {
@@ -1028,7 +1028,7 @@ function renderTransitDay(dateStr, items){
                     
                     // Filter transits within date range
                     const relevantDates = Object.keys(compositeTransits).filter(date => {
-                        return date >= transitStartDate && date <= transitEndDate;
+                        return date >= formData.transitParams.startDate && date <= formData.transitParams.endDate;
                     }).sort();
                     
                     if (relevantDates.length > 0) {
