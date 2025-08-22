@@ -179,7 +179,7 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
   for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
     const dateString = d.toISOString().split('T')[0];
     const transit_subject = {
-      year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate(),
+      year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
       hour: 12, minute: 0, city: "Greenwich", nation: "GB",
       latitude: 51.48, longitude: 0, timezone: "UTC"
     };
@@ -314,9 +314,9 @@ async function computeCompositeTransits(compositeRaw, start, end, step, pass = {
     
     // Create transit subject for current date (transiting planets at noon UTC)
     const transit_subject = {
-      year: d.getFullYear(),
-      month: d.getMonth() + 1, 
-      day: d.getDate(),
+      year: d.getUTCFullYear(),
+      month: d.getUTCMonth() + 1,
+      day: d.getUTCDate(),
       hour: 12,
       minute: 0,
       city: "Greenwich",
