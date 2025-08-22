@@ -206,13 +206,31 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
         },
         `Transits for ${subject.name} on ${dateString}`
       ).then(resp => {
+        logger.debug(`Transit API response for ${dateString}:`, {
+          hasAspects: !!(resp && resp.aspects),
+          aspectCount: (resp && resp.aspects) ? resp.aspects.length : 0,
+          responseKeys: resp ? Object.keys(resp) : 'null response',
+          sample: resp && resp.aspects && resp.aspects.length > 0 ? resp.aspects[0] : 'no aspects'
+        });
+        
         if (resp.aspects && resp.aspects.length > 0) {
           transitsByDate[dateString] = resp.aspects;
+          logger.debug(`Stored ${resp.aspects.length} aspects for ${dateString}`);
+        } else {
+          logger.debug(`No aspects found for ${dateString} - response structure:`, resp);
         }
       }).catch(e => logger.error(`Failed to get transits for ${dateString}`, e))
     );
   }
   await Promise.all(promises);
+  
+  logger.debug(`getTransits completed for ${subject.name}:`, {
+    requestedDates: Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)),
+    datesWithData: Object.keys(transitsByDate).length,
+    totalAspects: Object.values(transitsByDate).reduce((sum, aspects) => sum + aspects.length, 0),
+    availableDates: Object.keys(transitsByDate)
+  });
+  
   return transitsByDate;
 }
 
@@ -431,9 +449,9 @@ exports.handler = async function(event) {
       };
     }
 
-    const start = body.transitStartDate || body.transit_start_date || body.transitParams?.startDate;
-    const end   = body.transitEndDate   || body.transit_end_date   || body.transitParams?.endDate;
-    const step  = normalizeStep(body.transitStep || body.transit_step || body.transitParams?.step);
+    const start = body.transitStartDate || body.transit_start_date || body.transitParams?.startDate || body.transit?.startDate;
+    const end   = body.transitEndDate   || body.transit_end_date   || body.transitParams?.endDate || body.transit?.endDate;
+    const step  = normalizeStep(body.transitStep || body.transit_step || body.transitParams?.step || body.transit?.step);
     const haveRange = Boolean(start && end);
 
     let headers;
