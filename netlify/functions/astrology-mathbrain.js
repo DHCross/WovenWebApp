@@ -443,6 +443,31 @@ exports.handler = async function(event) {
     ['active_points','active_aspects','houses_system_identifier','sidereal_mode','perspective_type']
       .forEach(k => { if (body[k] !== undefined) pass[k] = body[k]; });
 
+    // Ensure active_points includes all planets (especially outer planets) if not explicitly set
+    if (!pass.active_points) {
+      pass.active_points = [
+        "Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn",
+        "Uranus", "Neptune", "Pluto", "Mean_Node", "Chiron", 
+        "Ascendant", "Medium_Coeli", "Mean_Lilith", "Mean_South_Node"
+      ];
+      logger.debug('Setting default active_points to include all planets including outer planets');
+    }
+
+    // Ensure active_aspects includes all major aspects if not explicitly set
+    if (!pass.active_aspects) {
+      pass.active_aspects = [
+        { name: "conjunction", orb: 10 },
+        { name: "opposition", orb: 10 },
+        { name: "trine", orb: 8 },
+        { name: "square", orb: 8 },
+        { name: "sextile", orb: 6 },
+        { name: "quincunx", orb: 3 },
+        { name: "semisquare", orb: 3 },
+        { name: "sesquiquadrate", orb: 3 }
+      ];
+      logger.debug('Setting default active_aspects to include all major aspects');
+    }
+
     // 1) Natal (chart + aspects, natal aspects-only, or birth data)
     let natalResponse;
     if (wantBirthData) {
@@ -479,11 +504,15 @@ exports.handler = async function(event) {
       result.person_a.chart = { ...result.person_a.chart, transitsByDate };
       // Raven-lite integration: flatten all aspects for derived.t2n_aspects
       const allAspects = Object.values(transitsByDate).flatMap(day => day);
+      
+      logger.debug(`Transit aspects found: ${allAspects.length} total including outer planets`);
+      
       result.person_a.derived = result.person_a.derived || {};
       result.person_a.derived.t2n_aspects = mapT2NAspects(allAspects);
       // Add transit_data array for test compatibility
       result.person_a.transit_data = Object.values(transitsByDate);
-      // Seismograph summary
+      
+      // Seismograph summary (using all aspects including outer planets for complete structural analysis)
       const seismographData = calculateSeismograph(transitsByDate);
       result.person_a.derived.seismograph_summary = seismographData.summary;
       result.person_a.chart.transitsByDate = seismographData.daily;
