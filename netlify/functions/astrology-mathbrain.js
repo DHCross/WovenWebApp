@@ -141,7 +141,73 @@ function normalizeSubjectData(data) {
  * @param {number} maxRetries - Max retry attempts.
  * @returns {Promise<Object>} The parsed JSON response.
  */
+/**
+ * Creates mock transit data for testing when API is unavailable
+ */
+function createMockTransitData(dateString, subjectName) {
+  return [
+    {
+      p1_name: "Sun",
+      p2_name: "Venus",
+      aspect: "trine",
+      orbit: 2.3,
+      orb: 2.3
+    },
+    {
+      p1_name: "Mars",
+      p2_name: "Jupiter", 
+      aspect: "square",
+      orbit: 1.8,
+      orb: 1.8
+    },
+    {
+      p1_name: "Saturn",
+      p2_name: "Moon",
+      aspect: "opposition",
+      orbit: 3.1,
+      orb: 3.1
+    }
+  ];
+}
+
+/**
+ * Mock version of apiCallWithRetry for testing when external API is unavailable
+ */
+async function apiCallWithRetryMock(url, options, operation, maxRetries = 2) {
+  logger.debug(`MOCK API call for ${operation}`);
+  
+  if (url.includes('/birth-chart') || url.includes('/natal-aspects-data')) {
+    return {
+      data: {
+        aspects: [
+          { p1_name: "Sun", p2_name: "Moon", aspect: "conjunction", orbit: 1.2 },
+          { p1_name: "Venus", p2_name: "Mars", aspect: "sextile", orbit: 2.5 }
+        ]
+      }
+    };
+  }
+  
+  if (url.includes('/transit-aspects-data')) {
+    const body = JSON.parse(options.body);
+    const transitDate = `${body.transit_subject.year}-${String(body.transit_subject.month).padStart(2, '0')}-${String(body.transit_subject.day).padStart(2, '0')}`;
+    
+    return {
+      aspects: createMockTransitData(transitDate, body.first_subject.name)
+    };
+  }
+  
+  return { data: {}, aspects: [] };
+}
+
 async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
+  // Check if we should use mock mode for testing
+  const useMockMode = process.env.RAPIDAPI_KEY === 'test_key_placeholder' || process.env.USE_MOCK_API === 'true';
+  
+  if (useMockMode) {
+    logger.debug(`Using mock API for testing: ${operation}`);
+    return apiCallWithRetryMock(url, options, operation, maxRetries);
+  }
+  
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       logger.debug(`API call attempt ${attempt}/${maxRetries} for ${operation}`);
@@ -206,13 +272,31 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
         },
         `Transits for ${subject.name} on ${dateString}`
       ).then(resp => {
+        logger.debug(`Transit API response for ${dateString}:`, {
+          hasAspects: !!(resp && resp.aspects),
+          aspectCount: (resp && resp.aspects) ? resp.aspects.length : 0,
+          responseKeys: resp ? Object.keys(resp) : 'null response',
+          sample: resp && resp.aspects && resp.aspects.length > 0 ? resp.aspects[0] : 'no aspects'
+        });
+        
         if (resp.aspects && resp.aspects.length > 0) {
           transitsByDate[dateString] = resp.aspects;
+          logger.debug(`Stored ${resp.aspects.length} aspects for ${dateString}`);
+        } else {
+          logger.debug(`No aspects found for ${dateString} - response structure:`, resp);
         }
       }).catch(e => logger.error(`Failed to get transits for ${dateString}`, e))
     );
   }
   await Promise.all(promises);
+  
+  logger.debug(`getTransits completed for ${subject.name}:`, {
+    requestedDates: Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)),
+    datesWithData: Object.keys(transitsByDate).length,
+    totalAspects: Object.values(transitsByDate).reduce((sum, aspects) => sum + aspects.length, 0),
+    availableDates: Object.keys(transitsByDate)
+  });
+  
   return transitsByDate;
 }
 
@@ -431,9 +515,9 @@ exports.handler = async function(event) {
       };
     }
 
-    const start = body.transitStartDate || body.transit_start_date || body.transitParams?.startDate;
-    const end   = body.transitEndDate   || body.transit_end_date   || body.transitParams?.endDate;
-    const step  = normalizeStep(body.transitStep || body.transit_step || body.transitParams?.step);
+    const start = body.transitStartDate || body.transit_start_date || body.transitParams?.startDate || body.transit?.startDate;
+    const end   = body.transitEndDate   || body.transit_end_date   || body.transitParams?.endDate || body.transit?.endDate;
+    const step  = normalizeStep(body.transitStep || body.transit_step || body.transitParams?.step || body.transit?.step);
     const haveRange = Boolean(start && end);
 
     let headers;
