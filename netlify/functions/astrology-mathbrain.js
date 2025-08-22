@@ -167,7 +167,7 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
 }
 
 // --- Transit helpers ---
-async function getTransits(subject, transitParams, headers) {
+async function getTransits(subject, transitParams, headers, pass = {}) {
   if (!transitParams || !transitParams.startDate || !transitParams.endDate) return {};
 
   const transitsByDate = {};
@@ -184,13 +184,25 @@ async function getTransits(subject, transitParams, headers) {
       latitude: 51.48, longitude: 0, timezone: "UTC"
     };
 
+    // Include configuration parameters for which planets to include
+    const payload = {
+      first_subject: subject,
+      transit_subject,
+      ...pass // Include active_points, active_aspects, etc.
+    };
+
+    logger.debug(`Transit API call for ${dateString}:`, {
+      active_points: payload.active_points || 'default',
+      pass_keys: Object.keys(pass)
+    });
+
     promises.push(
       apiCallWithRetry(
         API_ENDPOINTS.TRANSIT_ASPECTS,
         {
           method: 'POST',
           headers,
-          body: JSON.stringify({ first_subject: subject, transit_subject }),
+          body: JSON.stringify(payload),
         },
         `Transits for ${subject.name} on ${dateString}`
       ).then(resp => {
@@ -426,6 +438,11 @@ exports.handler = async function(event) {
 
     const result = { schema: 'WM-Chart-1.0', person_a: { details: personA } };
 
+    // Extract additional parameters for API calculations (including transits)
+    const pass = {};
+    ['active_points','active_aspects','houses_system_identifier','sidereal_mode','perspective_type']
+      .forEach(k => { if (body[k] !== undefined) pass[k] = body[k]; });
+
     // 1) Natal (chart + aspects, natal aspects-only, or birth data)
     let natalResponse;
     if (wantBirthData) {
@@ -457,8 +474,8 @@ exports.handler = async function(event) {
 
     // 2) Transits (optional; raw aspects by date, with advanced options)
     if (haveRange) {
-      // Use new getTransits and seismograph logic
-      const transitsByDate = await getTransits(personA, { startDate: start, endDate: end, step }, headers);
+      // Use new getTransits and seismograph logic with configuration parameters
+      const transitsByDate = await getTransits(personA, { startDate: start, endDate: end, step }, headers, pass);
       result.person_a.chart = { ...result.person_a.chart, transitsByDate };
       // Raven-lite integration: flatten all aspects for derived.t2n_aspects
       const allAspects = Object.values(transitsByDate).flatMap(day => day);
@@ -499,11 +516,6 @@ exports.handler = async function(event) {
     }
 
     // === COMPOSITE CHARTS AND TRANSITS ===
-    // Extract additional parameters for composite calculations
-    const pass = {};
-    ['active_points','active_aspects','houses_system_identifier','sidereal_mode','perspective_type']
-      .forEach(k => { if (body[k] !== undefined) pass[k] = body[k]; });
-
     const vB = personB ? validateSubjectLean(personB) : { isValid:false };
     if (wantComposite && vB.isValid) {
       // Step 1: Always compute composite aspects first (data-only endpoint)
