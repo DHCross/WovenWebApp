@@ -505,40 +505,15 @@ exports.handler = async function(event) {
       // Raven-lite integration: flatten all aspects for derived.t2n_aspects
       const allAspects = Object.values(transitsByDate).flatMap(day => day);
       
-      // Apply tight orb filtering for outer planets (≤3° for Saturn, Uranus, Neptune, Pluto)
-      const filteredAspects = allAspects.filter(aspect => {
-        const transitingPlanet = aspect.p2_name || aspect.transit_body;
-        const isOuterPlanet = ["Saturn", "Uranus", "Neptune", "Pluto"].includes(transitingPlanet);
-        const orb = aspect.orbit || aspect.orb || 0;
-        
-        if (isOuterPlanet && orb > 3.0) {
-          logger.debug(`Filtering out wide outer planet aspect: ${transitingPlanet} (orb: ${orb}°)`);
-          return false;
-        }
-        return true;
-      });
-      
-      logger.debug(`Transit filtering: ${allAspects.length} total aspects, ${filteredAspects.length} after outer planet orb filtering`);
+      logger.debug(`Transit aspects found: ${allAspects.length} total including outer planets`);
       
       result.person_a.derived = result.person_a.derived || {};
-      result.person_a.derived.t2n_aspects = mapT2NAspects(filteredAspects);
-      // Add transit_data array for test compatibility (using filtered aspects)
+      result.person_a.derived.t2n_aspects = mapT2NAspects(allAspects);
+      // Add transit_data array for test compatibility
       result.person_a.transit_data = Object.values(transitsByDate);
       
-      // Update transitsByDate with filtered aspects for seismograph calculation
-      const filteredTransitsByDate = {};
-      Object.keys(transitsByDate).forEach(date => {
-        const dayAspects = transitsByDate[date] || [];
-        filteredTransitsByDate[date] = dayAspects.filter(aspect => {
-          const transitingPlanet = aspect.p2_name || aspect.transit_body;
-          const isOuterPlanet = ["Saturn", "Uranus", "Neptune", "Pluto"].includes(transitingPlanet);
-          const orb = aspect.orbit || aspect.orb || 0;
-          return !isOuterPlanet || orb <= 3.0;
-        });
-      });
-      
-      // Seismograph summary (using filtered aspects)
-      const seismographData = calculateSeismograph(filteredTransitsByDate);
+      // Seismograph summary (using all aspects including outer planets for complete structural analysis)
+      const seismographData = calculateSeismograph(transitsByDate);
       result.person_a.derived.seismograph_summary = seismographData.summary;
       result.person_a.chart.transitsByDate = seismographData.daily;
     }
