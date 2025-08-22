@@ -798,24 +798,24 @@ function renderTransitDay(dateStr, items){
 
             // Chart Data Summary
             if (data.person_a?.chart && (data.person_a.chart.status === 'OK' || data.person_a.chart.sun)) {
-                md += `## Person A Natal Chart\n\n`;
+                md += `## ${personA.name} Natal Chart\n\n`;
                 
                 // The chart data can be in different structures depending on API endpoint used
                 const chart = data.person_a.chart.data || data.person_a.chart;
-                md += renderNatalChartData(chart, 'Person A');
+                md += renderNatalChartData(chart, personA.name);
             }
 
             if (data.person_b?.chart && (data.person_b.chart.status === 'OK' || data.person_b.chart.sun)) {
-                md += `## Person B Natal Chart\n\n`;
+                md += `## ${personB.name} Natal Chart\n\n`;
                 
                 // The chart data can be in different structures depending on API endpoint used
                 const chart = data.person_b.chart.data || data.person_b.chart;
-                md += renderNatalChartData(chart, 'Person B');
+                md += renderNatalChartData(chart, personB.name);
             }
 
             // Relocation Chart Summaries (if present)
             if (data.relocation_a?.status === 'OK') {
-                md += `## Person A Relocated Chart Summary\n\n`;
+                md += `## ${personA.name} Relocated Chart Summary\n\n`;
                 const chart = data.relocation_a.data.subject;
                 md += `- **Relocated Ascendant**: ${chart.ascendant.sign} ${chart.ascendant.position.toFixed(2)}°\n`;
                 md += `- **Sun**: ${chart.sun.sign} ${chart.sun.position.toFixed(2)}° (${chart.sun.house})\n`;
@@ -826,7 +826,7 @@ function renderTransitDay(dateStr, items){
             }
 
             if (data.relocation_b?.status === 'OK') {
-                md += `## Person B Relocated Chart Summary\n\n`;
+                md += `## ${personB.name} Relocated Chart Summary\n\n`;
                 const chart = data.relocation_b.data.subject;
                 md += `- **Relocated Ascendant**: ${chart.ascendant.sign} ${chart.ascendant.position.toFixed(2)}°\n`;
                 md += `- **Sun**: ${chart.sun.sign} ${chart.sun.position.toFixed(2)}° (${chart.sun.house})\n`;
@@ -907,7 +907,7 @@ function renderTransitDay(dateStr, items){
 
                 // Person A Transits
                 if (data.person_a?.chart?.transitsByDate) {
-                    md += `### Person A Current Transits\n\n`;
+                    md += `### ${personA.name} Current Transits\n\n`;
                     const personATransits = data.person_a.chart.transitsByDate;
                     
                     // Filter transits within date range
@@ -924,7 +924,7 @@ function renderTransitDay(dateStr, items){
                             console.log(`Person A transits for ${date}:`, transitsForDate?.length || 0, 'aspects');
                             
                             md += `#### ${date}\n\n`;
-                            transitsForDate.slice(0, 10).forEach(transit => {
+                            transitsForDate.forEach(transit => {
                                 totalRowCount++;
                                 const bodyA = transit.p1_name ?? "?";
                                 const bodyB = transit.p2_name ?? "?";
@@ -937,18 +937,18 @@ function renderTransitDay(dateStr, items){
                             md += `\n`;
                         });
                     } else {
-                        md += `No significant transits found for Person A in the specified date range.\n\n`;
+                        md += `No significant transits found for ${personA.name} in the specified date range.\n\n`;
                         console.log('No relevant dates found for Person A');
                     }
                 } else {
-                    md += `### Person A Current Transits\n\n`;
-                    md += `No transit data available for Person A.\n\n`;
+                    md += `### ${personA.name} Current Transits\n\n`;
+                    md += `No transit data available for ${personA.name}.\n\n`;
                     console.log('No transitsByDate found for Person A');
                 }
 
                 // Person B Transits (for synastry modes)
                 if (mode.includes('synastry') && data.person_b?.chart?.transitsByDate) {
-                    md += `### Person B Current Transits\n\n`;
+                    md += `### ${personB.name} Current Transits\n\n`;
                     const personBTransits = data.person_b.chart.transitsByDate;
                     
                     // Filter transits within date range
@@ -965,7 +965,7 @@ function renderTransitDay(dateStr, items){
                             console.log(`Person B transits for ${date}:`, transitsForDate?.length || 0, 'aspects');
                             
                             md += `#### ${date}\n\n`;
-                            transitsForDate.slice(0, 10).forEach(transit => {
+                            transitsForDate.forEach(transit => {
                                 const bodyA = transit.p1_name ?? "?";
                                 const bodyB = transit.p2_name ?? "?";
                                 const aspect = transit.aspect ?? transit.aspect_name ?? "?";
@@ -977,12 +977,12 @@ function renderTransitDay(dateStr, items){
                             md += `\n`;
                         });
                     } else {
-                        md += `No significant transits found for Person B in the specified date range.\n\n`;
+                        md += `No significant transits found for ${personB.name} in the specified date range.\n\n`;
                         console.log('No relevant dates found for Person B');
                     }
                 } else if (mode.includes('synastry')) {
-                    md += `### Person B Current Transits\n\n`;
-                    md += `No transit data available for Person B.\n\n`;
+                    md += `### ${personB.name} Current Transits\n\n`;
+                    md += `No transit data available for ${personB.name}.\n\n`;
                     console.log('No transitsByDate found for Person B');
                 }
                 
@@ -1004,7 +1004,7 @@ function renderTransitDay(dateStr, items){
                             const dailyData = synastryTransits[date];
                             const transitsForDate = dailyData?.aspects || dailyData || []; // Handle both new and old structure
                             if (Array.isArray(transitsForDate)) {
-                                transitsForDate.slice(0, 10).forEach(transit => {
+                                transitsForDate.forEach(transit => {
                                     const bodyA = transit.p1_name ?? "?";
                                     const bodyB = transit.p2_owner ? `${transit.p2_owner} ${transit.p2_name}` : (transit.p2_name ?? "?");
                                     const aspect = transit.aspect ?? transit.aspect_name ?? "?";
@@ -1037,7 +1037,7 @@ function renderTransitDay(dateStr, items){
                             const dailyData = compositeTransits[date];
                             const transitsForDate = dailyData?.aspects || dailyData || []; // Handle both new and old structure
                             if (Array.isArray(transitsForDate)) {
-                                transitsForDate.slice(0, 10).forEach(transit => {
+                                transitsForDate.forEach(transit => {
                                     const bodyA = transit.p1_name ?? "?";
                                     const bodyB = transit.p2_name ?? "?";
                                     const aspect = transit.aspect ?? transit.aspect_name ?? "?";
