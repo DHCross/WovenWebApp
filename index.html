@@ -247,10 +247,10 @@
                         <!-- Person B Relocation Option (only visible when Person B is present) -->
                         <div id="relocationPersonBOption" class="hidden">
                             <div class="flex items-center p-3 bg-gray-800 rounded border border-gray-600">
-                                <input type="checkbox" id="excludePersonBFromRelocation" class="mr-3 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-600 rounded bg-gray-700">
-                                <label for="excludePersonBFromRelocation" class="text-gray-300 font-medium">
-                                    Exclude Person B from relocation
-                                    <span class="text-xs text-gray-500 block">By default, both people are relocated together. Check this to only relocate Person A.</span>
+                                <input type="checkbox" id="includePersonBRelocation" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                                <label for="includePersonBRelocation" class="text-gray-300 font-medium">
+                                    Also relocate Person B
+                                    <span class="text-xs text-gray-500 block">Default: Only Person A relocation applied. Check to include Person B.</span>
                                 </label>
                             </div>
                         </div>
@@ -330,14 +330,24 @@
                             <span class="ml-2 text-gray-300">Ex (no longer active relationship)</span>
                         </label>
                     </div>
-                    <div id="intimacy-tier-dropdown" class="mt-4 hidden">
-                        <p class="text-md font-medium text-white mb-2">What best describes the intimacy tier of this connection?</p>
-                        <div class="flex flex-col space-y-2">
-                            <label class="flex items-center"><input type="radio" name="intimacyTier" value="P1" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P1 – Platonic partners</span></label>
-                            <label class="flex items-center"><input type="radio" name="intimacyTier" value="P2" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P2 – Friends with benefits</span></label>
-                            <label class="flex items-center"><input type="radio" name="intimacyTier" value="P3" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P3 – Romantic partners</span></label>
-                        </div>
-                    </div>
+                                        <!-- Relationship Role (conditional: family full list, friend minimal) -->
+                                        <div id="relationship-role-block" class="mt-4 hidden">
+                                            <label for="relationshipRole" class="block text-sm font-medium text-gray-300">Relationship Role (Person B relative to A)</label>
+                                            <select id="relationshipRole" class="mt-1 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm"></select>
+                                            <input id="relationshipRoleCustom" placeholder="Custom role (e.g., half-brother, stepmother)" class="mt-2 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm hidden" />
+                                            <div class="mt-2">
+                                                <label for="relationshipNotes" class="block text-xs font-medium text-gray-400">Relationship Notes (optional)</label>
+                                                <textarea id="relationshipNotes" rows="2" class="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-xs" placeholder="Any clarifying context (e.g., estranged, adopted)"></textarea>
+                                            </div>
+                                        </div>
+                                        <div id="intimacy-tier-dropdown" class="mt-4 hidden">
+                                                <p class="text-md font-medium text-white mb-2">What best describes the intimacy tier of this connection?</p>
+                                                <div class="flex flex-col space-y-2">
+                                                        <label class="flex items-center"><input type="radio" name="intimacyTier" value="P1" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P1 – Platonic partners</span></label>
+                                                        <label class="flex items-center"><input type="radio" name="intimacyTier" value="P2" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P2 – Friends with benefits</span></label>
+                                                        <label class="flex items-center"><input type="radio" name="intimacyTier" value="P3" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P3 – Romantic partners</span></label>
+                                                </div>
+                                        </div>
                 </div>
             </div>
 
@@ -555,7 +565,7 @@ function renderTransitDay(dateStr, items){
     return `<h4>${dateStr}</h4><ul><li>${lines.join("</li><li>")}</li></ul>`;
 }
         // Global UI element references
-        let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadMarkdownBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel, exRelationshipCheckbox, relocationPersonBOption, excludePersonBFromRelocation, transitStartDate, transitEndDate, transitStep, relocationCoordsInput;
+    let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadMarkdownBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel, exRelationshipCheckbox, relocationPersonBOption, includePersonBRelocationEl, transitStartDate, transitEndDate, transitStep, relocationCoordsInput;
 
         // Defensive check for window/globalThis
         if (typeof window === 'undefined') {
@@ -747,10 +757,17 @@ function renderTransitDay(dateStr, items){
             const personB = (data.person_b && data.person_b.details) ? data.person_b.details : formData.personB;
             const mode = formData.context.mode;
             
-            let md = `# Woven Map Astrological Geometry Report\n\n`;
-            md += `**Generated**: ${currentDate}\n`;
-            md += `**Context Mode**: ${mode.replace(/_/g, ' ').toUpperCase()}\n`;
-            md += `**Schema**: ${data.schema || 'WM-Chart-1.0'}\n\n`;
+                        let md = `# Woven Map Astrological Geometry Report\n\n`;
+                        md += `**Generated**: ${currentDate}\n`;
+                        md += `**Context Mode**: ${mode.replace(/_/g, ' ').toUpperCase()}\n`;
+                        md += `**Schema**: ${data.schema || 'WM-Chart-1.0'}\n`;
+                        if (formData.transitParams?.startDate && formData.transitParams?.endDate) {
+                            const stepMap = { '1d':'Daily', 'daily':'Daily', '7d':'Weekly', 'weekly':'Weekly', '1m':'Monthly', '1mo':'Monthly', 'monthly':'Monthly' };
+                            const rawStep = formData.transitParams.step || 'daily';
+                            const stepHuman = stepMap[rawStep] || rawStep;
+                            md += `**Range**: ${formData.transitParams.startDate} → ${formData.transitParams.endDate} (Step: ${stepHuman})\n`;
+                        }
+                        md += `\n`;
 
             // Person A Details
             md += `## Person A: ${personA.name}\n\n`;
@@ -762,7 +779,7 @@ function renderTransitDay(dateStr, items){
             md += `- **Zodiac Type**: ${personA.zodiac_type}\n\n`;
 
             // Person B Details (if present)
-            if (personB) {
+                        if (personB) {
                 md += `## Person B: ${personB.name}\n\n`;
                 md += `- **Birth Date**: ${personB.year}-${String(personB.month).padStart(2, '0')}-${String(personB.day).padStart(2, '0')}\n`;
                 md += `- **Birth Time**: ${String(personB.hour).padStart(2, '0')}:${String(personB.minute).padStart(2, '0')}\n`;
@@ -770,6 +787,12 @@ function renderTransitDay(dateStr, items){
                 md += `- **Coordinates**: ${personB.latitude}, ${personB.longitude}\n`;
                 md += `- **Timezone**: ${personB.timezone}\n`;
                 md += `- **Zodiac Type**: ${personB.zodiac_type}\n\n`;
+
+                                const relRole = formData.context.relationship_role;
+                                const relNotes = formData.context.relationship_notes;
+                                if (relRole || relNotes) {
+                                    md += `- **Relationship Role**: ${relRole || 'unspecified'}${relNotes? ` — ${relNotes}`:''}\n\n`;
+                                }
 
                 // Relationship Context (if present)
                 if (formData.context.relationship_type) {
@@ -1362,7 +1385,7 @@ function renderTransitDay(dateStr, items){
                     latitude: relocationCoords.latitude,
                     longitude: relocationCoords.longitude,
                     coordinates: document.getElementById('relocationCoords').value.trim(),
-                    excludePersonB: excludePersonBFromRelocation?.checked || false
+                    excludePersonB: !(document.getElementById('includePersonBRelocation')?.checked)
                 };
             } else {
                 formData.relocation = { enabled: false };
@@ -1394,6 +1417,13 @@ function renderTransitDay(dateStr, items){
                 console.log('=== END FRONTEND TRANSIT DEBUG ===');
             }
 
+            // Relationship role & notes capture
+            const roleSel = document.getElementById('relationshipRole');
+            const roleCustom = document.getElementById('relationshipRoleCustom');
+            const roleVal = roleSel ? (roleSel.value === 'other' ? (roleCustom?.value?.trim() || '') : roleSel.value) : '';
+            const notesVal = document.getElementById('relationshipNotes')?.value?.trim() || '';
+            formData.context.relationship_role = roleVal;
+            formData.context.relationship_notes = notesVal;
             console.log("=== FINAL FORM DATA ===");
             console.log(JSON.stringify(formData, null, 2));
             return formData;
@@ -1648,6 +1678,42 @@ function renderTransitDay(dateStr, items){
                 radio.addEventListener('change', () => {
                     const isPartner = document.querySelector('input[name="relationshipType"]:checked')?.value === 'partner';
                     intimacyTierDropdown.classList.toggle('hidden', !isPartner);
+                    // Role block logic
+                    const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value;
+                    const roleBlock = document.getElementById('relationship-role-block');
+                    const roleSelect = document.getElementById('relationshipRole');
+                    const roleCustom = document.getElementById('relationshipRoleCustom');
+                    if (roleBlock && roleSelect) {
+                        // Clear existing options
+                        roleSelect.innerHTML = '';
+                        if (relationshipType === 'family') {
+                            roleBlock.classList.remove('hidden');
+                            const familyOptions = [
+                                {v:'', l:'(optional)'},
+                                {v:'parent', l:'Parent'},
+                                {v:'child', l:'Child'},
+                                {v:'sibling', l:'Sibling'},
+                                {v:'cousin', l:'Cousin'},
+                                {v:'extended', l:'Extended Family'},
+                                {v:'guardian', l:'Guardian'},
+                                {v:'mentor', l:'Mentor'},
+                                {v:'other', l:'Other / Custom'}
+                            ];
+                            familyOptions.forEach(o=>{ const opt=document.createElement('option'); opt.value=o.v; opt.textContent=o.l; roleSelect.appendChild(opt); });
+                        } else if (relationshipType === 'friend') {
+                            roleBlock.classList.remove('hidden');
+                            const friendOptions = [
+                                {v:'', l:'(optional)'},
+                                {v:'acquaintance', l:'Acquaintance'},
+                                {v:'mentor', l:'Mentor'},
+                                {v:'other', l:'Other / Custom'}
+                            ];
+                            friendOptions.forEach(o=>{ const opt=document.createElement('option'); opt.value=o.v; opt.textContent=o.l; roleSelect.appendChild(opt); });
+                        } else { // partner or unspecified
+                            roleBlock.classList.add('hidden');
+                        }
+                        if (roleCustom) roleCustom.classList.add('hidden');
+                    }
                 });
             });
         }
@@ -1722,7 +1788,7 @@ function renderTransitDay(dateStr, items){
             intimacyTierDropdown = document.getElementById('intimacy-tier-dropdown');
             exRelationshipCheckbox = document.getElementById('exRelationship');
             relocationPersonBOption = document.getElementById('relocationPersonBOption');
-            excludePersonBFromRelocation = document.getElementById('excludePersonBFromRelocation');
+            includePersonBRelocationEl = document.getElementById('includePersonBRelocation');
             transitStartDate = document.getElementById('transitStartDate');
             transitEndDate = document.getElementById('transitEndDate');
             transitStep = document.getElementById('transitStep');
@@ -1732,6 +1798,13 @@ function renderTransitDay(dateStr, items){
             prefillTodayBtn = document.getElementById('prefillToday');
             stepSizeHelpBtn = document.getElementById('stepSizeHelp');
             stepSizeHelpPanel = document.getElementById('stepSizeHelpPanel');
+            // Relationship role custom field toggle (delegated)
+            document.addEventListener('change', (e)=>{
+                if (e.target && e.target.id === 'relationshipRole') {
+                    const roleCustom = document.getElementById('relationshipRoleCustom');
+                    roleCustom && roleCustom.classList.toggle('hidden', e.target.value !== 'other');
+                }
+            });
 
             console.log("DOM elements assigned:", {
                 generateBtn: !!generateBtn,
