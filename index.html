@@ -737,8 +737,9 @@ function renderTransitDay(dateStr, items){
         function generateMarkdownReport(data) {
             const formData = collectFormData();
             const currentDate = new Date().toISOString().split('T')[0];
-            const personA = formData.personA;
-            const personB = formData.personB;
+            // Prefer authoritative server-returned details if present (may include normalization/zodiac defaults)
+            const personA = (data.person_a && data.person_a.details) ? data.person_a.details : formData.personA;
+            const personB = (data.person_b && data.person_b.details) ? data.person_b.details : formData.personB;
             const mode = formData.context.mode;
             
             let md = `# Woven Map Astrological Geometry Report\n\n`;
@@ -946,44 +947,46 @@ function renderTransitDay(dateStr, items){
                     console.log('No transitsByDate found for Person A');
                 }
 
-                // Person B Transits (for synastry modes)
-                if (mode.includes('synastry') && data.person_b?.chart?.transitsByDate) {
-                    md += `### ${personB.name} Current Transits\n\n`;
-                    const personBTransits = data.person_b.chart.transitsByDate;
-                    
-                    // Filter transits within date range
-                    const relevantDates = Object.keys(personBTransits).filter(date => {
-                        return date >= formData.transitParams.startDate && date <= formData.transitParams.endDate;
-                    }).sort();
-                    
-                    console.log('Person B relevant dates:', relevantDates);
-                    
-                    if (relevantDates.length > 0) {
-                        relevantDates.forEach(date => {
-                            const dailyData = personBTransits[date];
-                            const transitsForDate = dailyData?.aspects || []; // Get raw aspects from new structure
-                            console.log(`Person B transits for ${date}:`, transitsForDate?.length || 0, 'aspects');
-                            
-                            md += `#### ${date}\n\n`;
-                            transitsForDate.forEach(transit => {
-                                const bodyA = transit.p1_name ?? "?";
-                                const bodyB = transit.p2_name ?? "?";
-                                const aspect = transit.aspect ?? transit.aspect_name ?? "?";
-                                const orb = transit.orbit ?? transit.orb ?? 0;
-                                if (bodyA && bodyB && aspect && orb !== undefined && orb !== null && !isNaN(orb)) {
-                                    md += `- **${bodyA}** ${aspect} **${bodyB}** (${Math.abs(orb).toFixed(1)}° orb)\n`;
-                                }
+                // Person B Transits (available in ANY *_transits mode when B supplied)
+                if (mode.includes('_transits')) {
+                    if (data.person_b?.chart?.transitsByDate) {
+                        md += `### ${personB.name} Current Transits`;
+                        if (data.person_b?.implicit_dual_transits) {
+                            md += ` *(implicit dual)*`;
+                        }
+                        md += `\n\n`;
+                        const personBTransits = data.person_b.chart.transitsByDate;
+                        const relevantDates = Object.keys(personBTransits).filter(date => {
+                            return date >= formData.transitParams.startDate && date <= formData.transitParams.endDate;
+                        }).sort();
+                        console.log('Person B relevant dates:', relevantDates);
+                        if (relevantDates.length > 0) {
+                            relevantDates.forEach(date => {
+                                const dailyData = personBTransits[date];
+                                const transitsForDate = dailyData?.aspects || [];
+                                console.log(`Person B transits for ${date}:`, transitsForDate?.length || 0, 'aspects');
+                                md += `#### ${date}\n\n`;
+                                transitsForDate.forEach(transit => {
+                                    const bodyA = transit.p1_name ?? "?";
+                                    const bodyB = transit.p2_name ?? "?";
+                                    const aspect = transit.aspect ?? transit.aspect_name ?? "?";
+                                    const orb = transit.orbit ?? transit.orb ?? 0;
+                                    if (bodyA && bodyB && aspect && orb !== undefined && orb !== null && !isNaN(orb)) {
+                                        totalRowCount++;
+                                        md += `- **${bodyA}** ${aspect} **${bodyB}** (${Math.abs(orb).toFixed(1)}° orb)\n`;
+                                    }
+                                });
+                                md += `\n`;
                             });
-                            md += `\n`;
-                        });
-                    } else {
-                        md += `No significant transits found for ${personB.name} in the specified date range.\n\n`;
-                        console.log('No relevant dates found for Person B');
+                        } else {
+                            md += `No significant transits found for ${personB.name} in the specified date range.\n\n`;
+                            console.log('No relevant dates found for Person B');
+                        }
+                    } else if (personB && personB.name) {
+                        md += `### ${personB.name} Current Transits\n\n`;
+                        md += `No transit data available for ${personB.name}.\n\n`;
+                        console.log('No transitsByDate found for Person B');
                     }
-                } else if (mode.includes('synastry')) {
-                    md += `### ${personB.name} Current Transits\n\n`;
-                    md += `No transit data available for ${personB.name}.\n\n`;
-                    console.log('No transitsByDate found for Person B');
                 }
                 
                 console.log('=== END MARKDOWN TRANSIT DEBUG ===');
@@ -1395,12 +1398,29 @@ function renderTransitDay(dateStr, items){
                 const apiEndpoint = WovenMapConfig.getApiEndpoint('astrologyMathBrain');
                 WovenMapConfig.debugLog(`Sending API request to ${apiEndpoint}`);
                 
-                const response = await fetch(apiEndpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData),
-                    timeout: WovenMapConfig.api.timeout
-                });
+                // --- Robust fetch with AbortController (native fetch ignores custom timeout property) ---
+                const timeoutMs = (WovenMapConfig?.api?.timeout && Number.isFinite(+WovenMapConfig.api.timeout)) ? +WovenMapConfig.api.timeout : 30000;
+                const controller = new AbortController();
+                const timeoutHandle = setTimeout(() => {
+                    controller.abort();
+                }, timeoutMs);
+
+                let response;
+                try {
+                    response = await fetch(apiEndpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData),
+                        signal: controller.signal
+                    });
+                } catch (fetchErr) {
+                    if (fetchErr.name === 'AbortError') {
+                        throw new Error(`Request timed out after ${Math.round(timeoutMs/1000)}s (network slow or server overloaded)`);
+                    }
+                    throw fetchErr;
+                } finally {
+                    clearTimeout(timeoutHandle);
+                }
 
                 if (!response.ok) {
                     const errorBody = await response.text();
@@ -1423,10 +1443,46 @@ function renderTransitDay(dateStr, items){
                     throw new Error(errorMessage);
                 }
 
-                const result = await response.json();
+                let result;
+                try {
+                    result = await response.json();
+                } catch (parseErr) {
+                    throw new Error('Failed to parse JSON response from server');
+                }
                 if (result.error) {
                     throw new Error(result.error);
                 }
+
+                // --- Shape Harmonization Shim ---
+                (function harmonizeResultShape(r){
+                    try {
+                        // Synastry: ensure r.synastry.aspects present if nested chart form used
+                        if (r.synastry && !r.synastry.aspects && r.synastry.chart?.aspects && Array.isArray(r.synastry.chart.aspects)) {
+                            r.synastry.aspects = r.synastry.chart.aspects;
+                        }
+                        // Composite: some earlier frontend code expects composite.chart.* already; if only composite.aspects given, wrap
+                        if (r.composite && !r.composite.chart && r.composite.aspects) {
+                            r.composite.chart = { aspects: r.composite.aspects };
+                        }
+                        // Transit containers: normalize transitsByDate key if only transits present & shaped as date map
+                        const maybePromote = (chartObj) => {
+                            if (!chartObj || chartObj.transitsByDate) return;
+                            if (chartObj.transits && !Array.isArray(chartObj.transits)) {
+                                // Heuristic: if it's an object whose keys look like YYYY-MM-DD
+                                const keys = Object.keys(chartObj.transits || {});
+                                if (keys.length && keys.every(k => /^\d{4}-\d{2}-\d{2}$/.test(k))) {
+                                    chartObj.transitsByDate = chartObj.transits; // promote
+                                }
+                            }
+                        };
+                        if (r.person_a?.chart) maybePromote(r.person_a.chart);
+                        if (r.person_b?.chart) maybePromote(r.person_b.chart);
+                        if (r.synastry) maybePromote(r.synastry); // in case synastry transits delivered similarly
+                        if (r.composite) maybePromote(r.composite);
+                    } catch (e) {
+                        console.warn('Shape harmonization encountered an issue:', e);
+                    }
+                })(result);
 
                 // Store result data for downloads
                 latestResultData = result;

@@ -133,6 +133,28 @@ function normalizeSubjectData(data) {
   return normalized;
 }
 
+// Canonicalize incoming mode tokens: trim, uppercase, replace spaces/dashes with single underscore, collapse repeats
+function canonicalizeMode(raw) {
+  if (!raw) return '';
+  return raw.toString()
+    .trim()
+    .replace(/[-\s]+/g, '_')
+    .replace(/__+/g, '_')
+    .toUpperCase();
+}
+
+// Build field-by-field validation map for strict subject requirements
+const STRICT_REQUIRED_FIELDS = ['year','month','day','hour','minute','name','city','nation','latitude','longitude','timezone','zodiac_type'];
+function validateSubjectStrictWithMap(subject) {
+  const errors = {};
+  STRICT_REQUIRED_FIELDS.forEach(f => {
+    if (subject[f] === undefined || subject[f] === null || subject[f] === '') {
+      errors[f] = 'Missing or empty';
+    }
+  });
+  return { isValid: Object.keys(errors).length === 0, errors };
+}
+
 /**
  * Robustly calls an API endpoint with retry logic and error handling.
  * @param {string} url - The API endpoint URL.
@@ -468,7 +490,7 @@ exports.handler = async function(event) {
     const personA = normalizeSubjectData(body.personA || body.person_a || body.first_subject || body.subject);
     const personB = normalizeSubjectData(body.personB || body.person_b || body.second_subject);
     // Use strict validator for full chart endpoints, lean for aspects-only
-    const modeToken = (body.context?.mode || body.mode || '').toString().toUpperCase();
+  const modeToken = canonicalizeMode(body.context?.mode || body.mode || '');
     const wantNatalAspectsOnly = modeToken === 'NATAL_ASPECTS' || event.path?.includes('natal-aspects-data');
     const wantBirthData = modeToken === 'BIRTH_DATA' || event.path?.includes('birth-data');
     const wantSynastry = modeToken === 'SYNASTRY' || modeToken === 'SYNASTRY_TRANSITS';
@@ -485,6 +507,27 @@ exports.handler = async function(event) {
           errorId: generateErrorId()
         })
       };
+    }
+
+    // Relationship mode strict validation for Person B (fail loud, no silent fallback)
+    const relationshipMode = wantSynastry || wantSynastryAspectsOnly || wantComposite;
+    let personBStrictValidation = { isValid: false, errors: { reason: 'Not requested' } };
+    if (relationshipMode) {
+      // Auto-fill default zodiac_type if missing BEFORE validation to reduce false negatives
+      if (!personB.zodiac_type) personB.zodiac_type = 'Tropic';
+      personBStrictValidation = validateSubjectStrictWithMap(personB);
+      if (!personBStrictValidation.isValid) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({
+            error: 'Secondary subject validation failed',
+            code: 'VALIDATION_ERROR_B',
+            mode: modeToken,
+            errorId: generateErrorId(),
+            fieldErrors: personBStrictValidation.errors
+          })
+        };
+      }
     }
 
     const start = body.transitStartDate || body.transit_start_date || body.transitParams?.startDate || body.transit?.startDate;
@@ -507,11 +550,18 @@ exports.handler = async function(event) {
     }
 
     const result = { schema: 'WM-Chart-1.0', person_a: { details: personA } };
+    // Eagerly initialize Person B details in any relationship mode so UI never loses the panel
+    if (relationshipMode && personB && Object.keys(personB).length) {
+      result.person_b = { details: personB };
+    }
 
     // Extract additional parameters for API calculations (including transits)
     const pass = {};
     ['active_points','active_aspects','houses_system_identifier','sidereal_mode','perspective_type']
       .forEach(k => { if (body[k] !== undefined) pass[k] = body[k]; });
+    // Quarantine UI/VOICE flags so they never touch math layer
+    const quarantineKeys = ['voice','voice_mode','exclude_person_b','excludePersonB','reflect_mode','ui','display'];
+    quarantineKeys.forEach(k => { if (k in pass) delete pass[k]; });
 
     // Ensure active_points includes all planets (especially outer planets) if not explicitly set
     if (!pass.active_points) {
@@ -627,10 +677,100 @@ exports.handler = async function(event) {
       result.person_a.chart.transitsByDate = seismographData.daily;
     }
 
+    // 2b) Dual natal modes (explicit): provide both natal charts (and optional transits) WITHOUT synastry math
+    const dualNatalMode = modeToken === 'DUAL_NATAL' || modeToken === 'DUAL_NATAL_TRANSITS';
+    if ((dualNatalMode || (!relationshipMode && modeToken && modeToken.startsWith('NATAL') && personB && Object.keys(personB).length)) && personB) {
+      const vBLeanPassive = validateSubjectLean(personB);
+      if (vBLeanPassive.isValid) {
+        if (!result.person_b || !result.person_b.chart) {
+          try {
+            const natalB = await apiCallWithRetry(
+              API_ENDPOINTS.BIRTH_CHART,
+              { method: 'POST', headers, body: JSON.stringify({ subject: personB }) },
+              'Birth chart (B dual)'
+            );
+            const chartDataB = stripGraphicsDeep(natalB.data || {});
+            result.person_b = { details: personB, chart: chartDataB, aspects: chartDataB.aspects || [] };
+          } catch (e) {
+            logger.warn('Dual Person B natal fetch failed', e.message);
+            result.person_b = { details: personB, error: 'Failed to compute Person B chart' };
+          }
+        }
+        // Optional Person B transits in dual transits mode
+        if (haveRange && modeToken === 'DUAL_NATAL_TRANSITS') {
+          try {
+            const transitsByDateB = await getTransits(personB, { startDate: start, endDate: end, step }, headers, pass);
+            const allB = Object.values(transitsByDateB).flatMap(day => day);
+            const seismoB = calculateSeismograph(transitsByDateB);
+            result.person_b.chart = { ...(result.person_b.chart || {}), transitsByDate: seismoB.daily };
+            result.person_b.derived = result.person_b.derived || {};
+            result.person_b.derived.seismograph_summary = seismoB.summary;
+            result.person_b.derived.t2n_aspects = mapT2NAspects(allB); // Person B self transits (transit-to-natal B)
+            result.person_b.transit_data = Object.values(transitsByDateB);
+          } catch (e) {
+            logger.warn('Dual Person B transits fetch failed', e.message);
+            result.person_b.transits_error = 'Failed to compute Person B transits';
+          }
+        }
+      } else {
+        result.person_b = { details: personB, validation_error: vBLeanPassive.message };
+      }
+    }
+
+    // 2c) Implicit dual transit support: if mode is a single-person NATAL* variant that requests transits (e.g., NATAL_TRANSITS)
+    // and Person B was supplied, compute Person B transits as well (without requiring explicit DUAL_NATAL_TRANSITS token).
+    // Skip if relationshipMode (synastry/composite) to avoid duplication, and skip if already handled by explicit dual mode above.
+    if (
+      haveRange &&
+      !relationshipMode &&
+      personB && Object.keys(personB).length &&
+      modeToken && modeToken.startsWith('NATAL') && modeToken.includes('TRANSITS') &&
+      modeToken !== 'DUAL_NATAL_TRANSITS'
+    ) {
+      const vBLeanPassive2 = validateSubjectLean(personB);
+      if (vBLeanPassive2.isValid) {
+        // Ensure we have Person B natal baseline (light fetch if missing)
+        if (!result.person_b || !result.person_b.chart) {
+          try {
+            const natalB = await apiCallWithRetry(
+              API_ENDPOINTS.BIRTH_CHART,
+              { method: 'POST', headers, body: JSON.stringify({ subject: personB }) },
+              'Birth chart (B implicit dual)'
+            );
+            const chartDataB = stripGraphicsDeep(natalB.data || {});
+            result.person_b = { details: personB, chart: chartDataB, aspects: chartDataB.aspects || [] };
+          } catch (e) {
+            logger.warn('Implicit dual Person B natal fetch failed', e.message);
+            result.person_b = { ...(result.person_b || {}), details: personB, error: 'Failed to compute Person B chart' };
+          }
+        }
+        // Only compute B transits if not already present
+        const hasBTransits = !!(result.person_b && result.person_b.chart && result.person_b.chart.transitsByDate);
+        if (!hasBTransits) {
+          try {
+            const transitsByDateB = await getTransits(personB, { startDate: start, endDate: end, step }, headers, pass);
+            const allB = Object.values(transitsByDateB).flatMap(day => day);
+            const seismoB = calculateSeismograph(transitsByDateB);
+            result.person_b.chart = { ...(result.person_b.chart || {}), transitsByDate: seismoB.daily };
+            result.person_b.derived = result.person_b.derived || {};
+            result.person_b.derived.seismograph_summary = seismoB.summary;
+            result.person_b.derived.t2n_aspects = mapT2NAspects(allB);
+            result.person_b.transit_data = Object.values(transitsByDateB);
+            result.person_b.implicit_dual_transits = true; // provenance flag
+          } catch (e) {
+            logger.warn('Implicit dual Person B transits fetch failed', e.message);
+            result.person_b.transits_error = 'Failed to compute Person B transits';
+          }
+        }
+      } else {
+        result.person_b = { ...(result.person_b || {}), details: personB, validation_error: vBLeanPassive2.message };
+      }
+    }
+
     // 3) Synastry (chart + aspects, or synastry aspects-only)
-    const validBLean = validateSubjectLean(personB);
-    const validBStrict = validateSubject(personB);
-    if (wantSynastryAspectsOnly && validBLean.isValid) {
+  const validBLean = validateSubjectLean(personB);
+  const validBStrict = validateSubject(personB);
+  if (wantSynastryAspectsOnly && validBLean.isValid) {
       // Synastry aspects-only endpoint
       const syn = await apiCallWithRetry(
         API_ENDPOINTS.SYNASTRY_ASPECTS,
@@ -638,9 +778,22 @@ exports.handler = async function(event) {
         'Synastry aspects data'
       );
       let synData = stripGraphicsDeep(syn.data || {});
-      result.person_b = { details: personB };
+      // Preserve existing person_b (eager init) while ensuring details present
+      result.person_b = { ...(result.person_b || {}), details: personB };
       result.synastry_aspects = synData.aspects || [];
       result.synastry_data = synData;
+      // Optional: augment with Person B natal chart so UI has both charts in aspects-only mode
+      try {
+        const natalB = await apiCallWithRetry(
+          API_ENDPOINTS.BIRTH_CHART,
+          { method: 'POST', headers, body: JSON.stringify({ subject: personB }) },
+          'Birth chart (B for synastry-aspects)'
+        );
+        const chartDataB = stripGraphicsDeep(natalB.data || {});
+        result.person_b.chart = chartDataB;
+      } catch (e) {
+        logger.warn('Could not augment synastry-aspects with Person B natal chart', e.message);
+      }
     } else if (wantSynastry && validBStrict.isValid) {
       // Full synastry chart endpoint
       const syn = await apiCallWithRetry(
@@ -671,8 +824,8 @@ exports.handler = async function(event) {
     }
 
     // === COMPOSITE CHARTS AND TRANSITS ===
-    const vB = personB ? validateSubjectLean(personB) : { isValid:false };
-    if (wantComposite && vB.isValid) {
+  const vB = personB ? validateSubjectLean(personB) : { isValid:false };
+  if (wantComposite && vB.isValid) {
       // Step 1: Always compute composite aspects first (data-only endpoint)
       // This creates the midpoint composite chart data that serves as the base for transits
       const composite = await computeComposite(personA, personB, pass, headers);
@@ -682,9 +835,9 @@ exports.handler = async function(event) {
         data: composite.raw           // Raw composite chart data for further calculations
       };
 
-      // Step 2: Optional composite transits (if date range provided and mode is COMPOSITE_TRANSITS)
-      // This calculates how current/future transiting planets aspect the composite chart
-      if (modeToken === 'COMPOSITE_TRANSITS' && haveRange) {
+  // Step 2: Composite transits: now ALWAYS computed when a date range is supplied, regardless of specific composite sub-mode
+  // Rationale: connection "pressure" mapping requires transits; aspects-only without transits is incomplete.
+  if (haveRange) {
         logger.debug('Computing composite transits for date range:', { start, end, step });
         
         // Calculate transits to the composite chart using the composite chart as base
@@ -706,7 +859,22 @@ exports.handler = async function(event) {
           seismograph_summary: seismographData.summary 
         };
         
+        // Annotate if transits were auto-added (mode not explicitly COMPOSITE_TRANSITS)
+        if (modeToken !== 'COMPOSITE_TRANSITS') {
+          result.composite.auto_transits_included = true;
+          result.composite.request_mode = modeToken;
+        }
         logger.debug('Composite transits completed with seismograph analysis');
+      }
+    }
+
+    // Post-compute contract assertions: if relationship mode requested ensure presence of person_b/composite
+    if (relationshipMode) {
+      const missing = [];
+      if ((wantSynastry || wantSynastryAspectsOnly) && !result.person_b) missing.push('person_b');
+      if (wantComposite && !result.composite) missing.push('composite');
+      if (missing.length) {
+        throw Object.assign(new Error('PIPELINE_DROPPED_B'), { code: 'PIPELINE_DROPPED_B', missing });
       }
     }
 
