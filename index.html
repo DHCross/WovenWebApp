@@ -978,37 +978,84 @@ function renderTransitDay(dateStr, items){
                                                     });
                                                     return counts;
                                                 }
+                                                // Hook pruning utilities
+                                                function pruneHooks(list){
+                                                    if(!Array.isArray(list)) return [];
+                                                    const ORB_CAPS = { luminary:6, planet:5, point:4 }; // degrees
+                                                    function bodyClass(n){
+                                                        const name = (n||'').toLowerCase();
+                                                        if (['sun','moon'].includes(name)) return 'luminary';
+                                                        if (['ascendant','midheaven','mc','ic','north node','south node','node','lilith','chiron'].includes(name)) return 'point';
+                                                        return 'planet';
+                                                    }
+                                                    // Filter by orb caps
+                                                    const capped = list.filter(a=>{
+                                                        const orb = Math.abs(a._orb??a.orb??99);
+                                                        const aClass = bodyClass(a.p1_name);
+                                                        const bClass = bodyClass(a.p2_name);
+                                                        const cap = Math.min( ORB_CAPS[aClass]||5, ORB_CAPS[bClass]||5 );
+                                                        return orb <= cap;
+                                                    });
+                                                    // Diversity: limit max 2 entries per symbolic point (Node/Lilith/Chiron) and 2 per identical pair signature
+                                                    const pointNames = new Set(['north node','south node','node','lilith','chiron']);
+                                                    const pointCounts = {}; const pairCounts = {};
+                                                    const diversified = [];
+                                                    for (const h of capped.sort((a,b)=>{ const w=(b._weight||0)-(a._weight||0); if (Math.abs(w)>1e-6) return w; return (Math.abs(a._orb??a.orb??99)) - (Math.abs(b._orb??b.orb??99)); })) {
+                                                        const aName=(h.p1_name||'').toLowerCase();
+                                                        const bName=(h.p2_name||'').toLowerCase();
+                                                        const pairKey = [aName,bName].sort().join('_');
+                                                        const involvesPoint = pointNames.has(aName)||pointNames.has(bName);
+                                                        if (involvesPoint){
+                                                            pointCounts[aName] = pointCounts[aName]||0;
+                                                            pointCounts[bName] = pointCounts[bName]||0;
+                                                        }
+                                                        pairCounts[pairKey] = pairCounts[pairKey]||0;
+                                                        if (involvesPoint){
+                                                            const totalPointHits = (pointCounts[aName]||0)+(pointCounts[bName]||0);
+                                                            if (totalPointHits >=4) continue; // roughly 2 each combined ceiling
+                                                        }
+                                                        if (pairCounts[pairKey] >=2) continue;
+                                                        // accept
+                                                        diversified.push(h);
+                                                        if (pointNames.has(aName)) pointCounts[aName]++;
+                                                        if (pointNames.has(bName)) pointCounts[bName]++;
+                                                        pairCounts[pairKey]++;
+                                                        if (diversified.length>=8) break; // cap hooks shown
+                                                    }
+                                                    return diversified;
+                                                }
                                                 function buildDaySection(date, day){
                                                     if(!day) return '';
                                                     // Hooks sort tie-break by smaller orb
-                                                    const hooks = (day.hooks?.slice()||[]).sort((a,b)=>{
+                                                    const rawHooksSorted = (day.hooks?.slice()||[]).sort((a,b)=>{
                                                         const wDiff = (b._weight||0) - (a._weight||0);
                                                         if (Math.abs(wDiff) > 1e-6) return wDiff;
-                                                        const oa = a._orb??a.orb??99; const ob = b._orb??b.orb??99; return oa - ob;
+                                                        const oa = Math.abs(a._orb??a.orb??99); const ob = Math.abs(b._orb??b.orb??99); return oa - ob;
                                                     });
+                                                    const hooks = pruneHooks(rawHooksSorted);
                                                     const filteredAll = (day.filtered_aspects||[]).filter(passClientFilters);
                                                     const counts = deriveCounts(filteredAll);
                                                     // Invariant check (debug only)
                                                     if ((counts.majors_tight + counts.majors_loose + counts.minors + counts.harmonics + counts.self_aspects) !== filteredAll.length){
                                                         console.warn('Count invariant mismatch', date, counts, filteredAll.length);
                                                     }
-                                                    let summaryLine = `${date} — Majors ${counts.majors_tight}/${counts.majors_loose} · Minors ${counts.minors} · Harmonics ${counts.harmonics}`;
+                                                    let summaryLine = `${date} — Majors: ${counts.majors_tight + counts.majors_loose} (tight ${counts.majors_tight}, loose ${counts.majors_loose}) · Minors: ${counts.minors} · Harmonics: ${counts.harmonics}`;
                                                     let out = `<details><summary>${summaryLine}</summary>\n\n`;
-                                                    out += `**Hooks**\n`;
+                                                    out += `**Hooks** (orb caps applied; diversity filtered${rawHooksSorted.length>hooks.length?`, ${rawHooksSorted.length-hooks.length} suppressed`:''})\n`;
                                                     hooks.forEach(h=> out += `- ${hookLine(h)}\n`);
                                                     if (!hooks.length) out += `- —\n`;
-                                                    out += `\n**Filtered aspects (${filteredAll.length})**\n`;
+                                                    out += `\n**Filtered aspects (${filteredAll.length})**  *Loose majors (>6°) omitted from hooks*\n`;
                                                     filteredAll.forEach(a=>{
                                                         const orb = a._orb??a.orb??a.orbit; const orbTxt = (typeof orb==='number')? orb.toFixed(1)+'°':'—';
                                                         out += `- ${labelName(a.p1_display||a.p1_name)} ${aspectGlyph(a._aspect||a.aspect)} ${labelName(a.p2_display||a.p2_name)} (${orbTxt}) — ${classifyClient(a)}\n`;
                                                     });
                                                     if (Array.isArray(day.aspects) && day.aspects.length){
                                                         out += `\n<details><summary>Full list (raw ${day.aspects.length})</summary>\n\n`;
-                                                        day.aspects.slice(0,50).forEach(a=>{
+                                                        day.aspects.slice(0,40).forEach(a=>{
                                                             const orb = a._orb??a.orb??a.orbit; const orbTxt = (typeof orb==='number')? orb.toFixed(1)+'°':'—';
                                                             out += `- ${labelName(a.p1_display||a.p1_name)} ${aspectGlyph(a._aspect||a.aspect)} ${labelName(a.p2_display||a.p2_name)} (${orbTxt})\n`;
                                                         });
-                                                        if (day.aspects.length>50) out += `... (${day.aspects.length-50} more)\n`;
+                                                        if (day.aspects.length>40) out += `... (${day.aspects.length-40} more)\n`;
                                                         out += `</details>\n`;
                                                     }
                                                     out += `\n</details>\n\n`;
@@ -1017,7 +1064,8 @@ function renderTransitDay(dateStr, items){
                                                 function buildSummaryTable(title, dailyMap){
                                                     const dates = Object.keys(dailyMap||{}).sort();
                                                     if (!dates.length) return '';
-                                                    let out = `## ${title} — Weekly Seismograph\n\n| Date | Magnitude | Valence | Volatility | Top Hooks |\n|------|-----------:|--------:|-----------:|-----------|\n`;
+                                                    const single = dates.length===1;
+                                                    let out = `## ${title} — Seismograph ${single?'(Daily Range)':'(Range)'}\n\n| Date | Magnitude | Valence | Volatility | Top Hooks |\n|------|-----------:|--------:|-----------:|-----------|\n`;
                                                     dates.forEach(d=>{
                                                         const day = dailyMap[d];
                                                         // Limit to top 3 hooks by weight desc w/ tie-break
@@ -1025,7 +1073,7 @@ function renderTransitDay(dateStr, items){
                                                         const peak = hooks.map(h=> hookLine(h)).join(', ');
                                                         out += `| ${d} | ${(day.seismograph?.magnitude??0).toFixed(2)} | ${(day.seismograph?.valence??0).toFixed(2)} | ${(day.seismograph?.volatility??0).toFixed(2)} | ${peak.replace(/\|/g,'\\|') || '—'} |\n`;
                                                     });
-                                                    out += `\n`;
+                                                    out += `\nMagnitude=aggregate charge (0–10 est), Valence=net tension (−=friction, +=ease), Volatility=dispersion of charge.\n\n`;
                                                     return out;
                                                 }
                 
@@ -1034,7 +1082,7 @@ function renderTransitDay(dateStr, items){
                                 if (data.person_b?.chart?.transitsByDate) md += buildSummaryTable(`${personB.name}${data.person_b?.implicit_dual_transits?' (implicit dual)':''}`, data.person_b.chart.transitsByDate);
                                 if (data.composite?.transitsByDate) md += buildSummaryTable(`Composite Field`, data.composite.transitsByDate);
                 
-                                md += `\n## Daily Hooks\n`;
+                                md += `\n## Daily Hooks\n\n_Orb sign: values show signed distance; hooks use absolute orb with applying/separating pending phase pass._\n`;
                                 if (data.person_a?.chart?.transitsByDate){
                                     Object.keys(data.person_a.chart.transitsByDate).sort().forEach(d=>{ md += buildDaySection(d, data.person_a.chart.transitsByDate[d]); });
                                 }
