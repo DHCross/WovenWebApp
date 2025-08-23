@@ -943,9 +943,14 @@ function renderTransitDay(dateStr, items){
                                 const labelName = n => NAME_MAP[n] || n;
                                 const aspectGlyph = a => ({conjunction:'☌', opposition:'☍', square:'□', trine:'△', sextile:'✧'})[a] || a;
                                                 function hookLine(h){
-                                                    const orbVal = h._orb??h.orb; const exact = (typeof orbVal==='number' && orbVal<=0.2) ? '★ ' : '';
-                                                    const dir = h.approaching===true? '↓': (h.approaching===false? '↑': '');
-                                                    return `${exact}${labelName(h.p1_display||h.p1_name)} ${aspectGlyph(h._aspect||h.aspect)} ${labelName(h.p2_display||h.p2_name)} (${(orbVal)?.toFixed ? orbVal.toFixed(1): '—'}°) ${(dir)}`.trim();
+                                                    let orbVal = h._orb??h.orb; 
+                                                    const sign = (typeof orbVal==='number' && orbVal<0)? -1:1;
+                                                    const absOrb = (typeof orbVal==='number')? Math.abs(orbVal): orbVal;
+                                                    const exact = (typeof absOrb==='number' && absOrb<=0.2) ? '★ ' : '';
+                                                    // Phase arrow: if approaching flag supplied else derive from sign (negative = separating) fallback
+                                                    let phaseArrow = '';
+                                                    if (h.approaching === true) phaseArrow = '↑'; else if (h.approaching === false) phaseArrow = '↓'; else phaseArrow = (sign>0? '↑':'↓');
+                                                    return `${exact}${labelName(h.p1_display||h.p1_name)} ${aspectGlyph(h._aspect||h.aspect)} ${labelName(h.p2_display||h.p2_name)} — ${(absOrb)?.toFixed ? absOrb.toFixed(1): '—'}° ${phaseArrow}`.trim();
                                                 }
                                 function classifyClient(a){
                                     const cls = a._class || a.class || ''; // major, minor, harmonic
@@ -981,7 +986,7 @@ function renderTransitDay(dateStr, items){
                                                 // Hook pruning utilities
                                                 function pruneHooks(list){
                                                     if(!Array.isArray(list)) return [];
-                                                    const ORB_CAPS = { luminary:6, planet:5, point:4 }; // degrees
+                                                    const ORB_CAPS = { luminary:6, planet:4, point:3 }; // tightened hook layer caps
                                                     function bodyClass(n){
                                                         const name = (n||'').toLowerCase();
                                                         if (['sun','moon'].includes(name)) return 'luminary';
@@ -1071,7 +1076,9 @@ function renderTransitDay(dateStr, items){
                                                         // Limit to top 3 hooks by weight desc w/ tie-break
                                                         const hooks = (day.hooks||[]).slice().sort((a,b)=>{ const w=(b._weight||0)-(a._weight||0); if (Math.abs(w)>1e-6) return w; const oa=a._orb??a.orb??99; const ob=b._orb??b.orb??99; return oa-ob; }).slice(0,3);
                                                         const peak = hooks.map(h=> hookLine(h)).join(', ');
-                                                        out += `| ${d} | ${(day.seismograph?.magnitude??0).toFixed(2)} | ${(day.seismograph?.valence??0).toFixed(2)} | ${(day.seismograph?.volatility??0).toFixed(2)} | ${peak.replace(/\|/g,'\\|') || '—'} |\n`;
+                                                        const rawVal = (day.seismograph?.valence??0);
+                                                        const clampedVal = Math.max(-5, Math.min(5, rawVal));
+                                                        out += `| ${d} | ${(day.seismograph?.magnitude??0).toFixed(2)} | ${clampedVal.toFixed(2)} | ${(day.seismograph?.volatility??0).toFixed(2)} | ${peak.replace(/\|/g,'\\|') || '—'} |\n`;
                                                     });
                                                     out += `\nMagnitude=aggregate charge (0–10 est), Valence=net tension (−=friction, +=ease), Volatility=dispersion of charge.\n\n`;
                                                     return out;
@@ -1082,7 +1089,7 @@ function renderTransitDay(dateStr, items){
                                 if (data.person_b?.chart?.transitsByDate) md += buildSummaryTable(`${personB.name}${data.person_b?.implicit_dual_transits?' (implicit dual)':''}`, data.person_b.chart.transitsByDate);
                                 if (data.composite?.transitsByDate) md += buildSummaryTable(`Composite Field`, data.composite.transitsByDate);
                 
-                                md += `\n## Daily Hooks\n\n_Orb sign: values show signed distance; hooks use absolute orb with applying/separating pending phase pass._\n`;
+                                md += `\n## Daily Hooks\n\n_Orb shows absolute degrees. Phase: ↑ applying (tightening) · ↓ separating (widening). Hook layer caps: ≤6° luminaries, ≤4° planets, ≤3° points; broader orbs remain in Raw._\n`;
                                 if (data.person_a?.chart?.transitsByDate){
                                     Object.keys(data.person_a.chart.transitsByDate).sort().forEach(d=>{ md += buildDaySection(d, data.person_a.chart.transitsByDate[d]); });
                                 }
