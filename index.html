@@ -194,7 +194,46 @@
                     </label>
                 </div>
                 
-                <!-- Relocation Overlay Section -->
+                <!-- Relational Context Section (moved above relocation) -->
+                <div id="relational-context-section" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500 hidden">
+                    <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Relational Context</h2>
+                    <p class="text-gray-400 text-sm mb-4">Detected potential dynamics:</p>
+                    <ul id="context-readout" class="list-disc list-inside space-y-2 mb-4 text-gray-300"></ul>
+                    <div id="relationship-type-query">
+                        <p class="text-lg font-medium text-white mb-2">How would you categorize this connection?</p>
+                        <div class="flex flex-col space-y-2">
+                            <label class="flex items-center"><input type="radio" name="relationshipType" value="partner" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Partner (romantic/undefined-intimate)</span></label>
+                            <label class="flex items-center"><input type="radio" name="relationshipType" value="friend" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Friend or colleague</span></label>
+                            <label class="flex items-center"><input type="radio" name="relationshipType" value="family" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Family</span></label>
+                        </div>
+                        <div class="mt-3 pt-2 border-t border-gray-600">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="exRelationship" class="form-checkbox h-4 w-4 text-red-400">
+                                <span class="ml-2 text-gray-300">Ex or Estranged</span>
+                            </label>
+                        </div>
+                        <!-- Relationship Role (conditional: family full list, friend minimal) -->
+                        <div id="relationship-role-block" class="mt-4 hidden">
+                            <label for="relationshipRole" class="block text-sm font-medium text-gray-300">Relationship Role (Person B relative to A)</label>
+                            <select id="relationshipRole" class="mt-1 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm"></select>
+                            <input id="relationshipRoleCustom" placeholder="Custom role (e.g., half-brother, stepmother)" class="mt-2 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm hidden" />
+                            <div class="mt-2">
+                                <label for="relationshipNotes" class="block text-xs font-medium text-gray-400">Relationship Notes (optional)</label>
+                                <textarea id="relationshipNotes" rows="2" class="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-xs" placeholder="Any clarifying context (e.g., estranged, adopted)"></textarea>
+                            </div>
+                        </div>
+                        <div id="intimacy-tier-dropdown" class="mt-4 hidden">
+                            <p class="text-md font-medium text-white mb-2">What best describes the intimacy tier of this connection?</p>
+                            <div class="flex flex-col space-y-2">
+                                <label class="flex items-center"><input type="radio" name="intimacyTier" value="P1" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P1 – Platonic partners</span></label>
+                                <label class="flex items-center"><input type="radio" name="intimacyTier" value="P2" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P2 – Friends with benefits</span></label>
+                                <label class="flex items-center"><input type="radio" name="intimacyTier" value="P3" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P3 – Romantic partners</span></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Relocation Overlay Section (moved below relational context) -->
                 <div id="relocation-section" class="mt-6 border-t border-gray-700 pt-4">
                     <div class="flex items-center mb-4">
                         <input type="checkbox" id="relocationToggle" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
@@ -312,43 +351,6 @@
                 </div>
             </div>
 
-            <!-- Relational Context Section (only if Person B is present) -->
-            <div id="relational-context-section" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500 hidden">
-                <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Relational Context Query Stack</h2>
-                <p class="text-gray-400 text-sm mb-4">Based on initial geometry, the Math Brain has detected the following potential dynamics:</p>
-                <ul id="context-readout" class="list-disc list-inside space-y-2 mb-4 text-gray-300"></ul>
-                <div id="relationship-type-query">
-                    <p class="text-lg font-medium text-white mb-2">How would you categorize this connection?</p>
-                    <div class="flex flex-col space-y-2">
-                        <label class="flex items-center"><input type="radio" name="relationshipType" value="partner" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Partner (romantic/undefined-intimate)</span></label>
-                        <label class="flex items-center"><input type="radio" name="relationshipType" value="friend" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Friend or colleague</span></label>
-                        <label class="flex items-center"><input type="radio" name="relationshipType" value="family" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Family</span></label>
-                    </div>
-                    <div class="mt-3 pt-2 border-t border-gray-600">
-                        <label class="flex items-center">
-                            <input type="checkbox" id="exRelationship" class="form-checkbox h-4 w-4 text-red-400">
-                            <span class="ml-2 text-gray-300">Ex (no longer active relationship)</span>
-                        </label>
-                    </div>
-                                        <!-- Relationship Role (conditional: family full list, friend minimal) -->
-                                        <div id="relationship-role-block" class="mt-4 hidden">
-                                            <label for="relationshipRole" class="block text-sm font-medium text-gray-300">Relationship Role (Person B relative to A)</label>
-                                            <select id="relationshipRole" class="mt-1 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm"></select>
-                                            <input id="relationshipRoleCustom" placeholder="Custom role (e.g., half-brother, stepmother)" class="mt-2 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm hidden" />
-                                            <div class="mt-2">
-                                                <label for="relationshipNotes" class="block text-xs font-medium text-gray-400">Relationship Notes (optional)</label>
-                                                <textarea id="relationshipNotes" rows="2" class="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-xs" placeholder="Any clarifying context (e.g., estranged, adopted)"></textarea>
-                                            </div>
-                                        </div>
-                                        <div id="intimacy-tier-dropdown" class="mt-4 hidden">
-                                                <p class="text-md font-medium text-white mb-2">What best describes the intimacy tier of this connection?</p>
-                                                <div class="flex flex-col space-y-2">
-                                                        <label class="flex items-center"><input type="radio" name="intimacyTier" value="P1" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P1 – Platonic partners</span></label>
-                                                        <label class="flex items-center"><input type="radio" name="intimacyTier" value="P2" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P2 – Friends with benefits</span></label>
-                                                        <label class="flex items-center"><input type="radio" name="intimacyTier" value="P3" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P3 – Romantic partners</span></label>
-                                                </div>
-                                        </div>
-                </div>
             </div>
 
             <!-- Generate Button -->
