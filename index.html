@@ -912,10 +912,7 @@ function renderTransitDay(dateStr, items){
                     
                     // Filter transits within date range
                     const relevantDates = Object.keys(personATransits).filter(date => {
-                        const d = new Date(date);
-                        const start = new Date(formData.transitParams.startDate);
-                        const end = new Date(formData.transitParams.endDate);
-                        return d >= start && d <= end;
+                        return date >= formData.transitParams.startDate && date <= formData.transitParams.endDate;
                     }).sort();
                     
                     console.log('Person A relevant dates:', relevantDates);
