@@ -386,6 +386,8 @@
                         </button>
                     </div>
                 </div>
+                                <!-- Simple Mode: Hook / Aspect Filter Controls intentionally hidden (retained for future advanced mode) -->
+                                <div id="hookFilters" class="hidden"></div>
                 <div id="reportContent" class="text-gray-200 whitespace-pre-wrap font-mono text-sm bg-gray-900 p-4 rounded border border-gray-700 overflow-auto max-h-96">
                 </div>
             </div>
@@ -400,6 +402,9 @@
     <script>
 // --- Global row counter for report summary ---
 let totalRowCount = 0;
+// UI Filter State (persist across renders)
+// Simple Mode defaults (no user toggles rendered)
+window.WOVEN_UI_FILTERS = { tightOnly:true, showMinor:false, showHarmonic:false, showSelf:false };
 
 // Universal context reference for browser/server compatibility
 const WOVEN_GLOBAL = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : {});
@@ -906,88 +911,114 @@ function renderTransitDay(dateStr, items){
                 md += `## Transit Analysis\n\n`;
                 md += `**Period**: ${transitStartDate} to ${transitEndDate}\n\n`;
 
-                // Person A Transits
-                if (data.person_a?.chart?.transitsByDate) {
-                    md += `### ${personA.name} Current Transits\n\n`;
-                    const personATransits = data.person_a.chart.transitsByDate;
-                    
-                    // Filter transits within date range
-                    const relevantDates = Object.keys(personATransits).filter(date => {
-                        return date >= formData.transitParams.startDate && date <= formData.transitParams.endDate;
-                    }).sort();
-                    
-                    console.log('Person A relevant dates:', relevantDates);
-                    
-                    if (relevantDates.length > 0) {
-                        relevantDates.forEach(date => {
-                            const dailyData = personATransits[date];
-                            const transitsForDate = dailyData?.aspects || []; // Get raw aspects from new structure
-                            console.log(`Person A transits for ${date}:`, transitsForDate?.length || 0, 'aspects');
-                            
-                            md += `#### ${date}\n\n`;
-                            transitsForDate.forEach(transit => {
-                                totalRowCount++;
-                                const bodyA = transit.p1_name ?? "?";
-                                const bodyB = transit.p2_name ?? "?";
-                                const aspect = transit.aspect ?? transit.aspect_name ?? "?";
-                                const orb = transit.orbit ?? transit.orb ?? 0;
-                                if (bodyA && bodyB && aspect && orb !== undefined && orb !== null && !isNaN(orb)) {
-                                    md += `- **${bodyA}** ${aspect} **${bodyB}** (${Math.abs(orb).toFixed(1)}° orb)\n`;
+                                // --- New Unified Hook / Seismograph Renderer ---
+                                const ui = window.WOVEN_UI_FILTERS || { tightOnly:true, showMinor:false, showHarmonic:false, showSelf:false };
+                
+                                const NAME_MAP = { Medium_Coeli:'Midheaven (MC)', MC:'Midheaven (MC)', Mean_Node:'North Node', Mean_South_Node:'South Node', Mean_Lilith:'Lilith' };
+                                const labelName = n => NAME_MAP[n] || n;
+                                const aspectGlyph = a => ({conjunction:'☌', opposition:'☍', square:'□', trine:'△', sextile:'✧'})[a] || a;
+                                                function hookLine(h){
+                                                    const orbVal = h._orb??h.orb; const exact = (typeof orbVal==='number' && orbVal<=0.2) ? '★ ' : '';
+                                                    const dir = h.approaching===true? '↓': (h.approaching===false? '↑': '');
+                                                    return `${exact}${labelName(h.p1_display||h.p1_name)} ${aspectGlyph(h._aspect||h.aspect)} ${labelName(h.p2_display||h.p2_name)} (${(orbVal)?.toFixed ? orbVal.toFixed(1): '—'}°) ${(dir)}`.trim();
+                                                }
+                                function classifyClient(a){
+                                    const cls = a._class || a.class || ''; // major, minor, harmonic
+                                    if (cls==='major') return 'Major';
+                                    if (cls==='minor') return 'Minor';
+                                    if (cls==='harmonic') return 'Harmonic';
+                                    return 'Other';
                                 }
-                            });
-                            md += `\n`;
-                        });
-                    } else {
-                        md += `No significant transits found for ${personA.name} in the specified date range.\n\n`;
-                        console.log('No relevant dates found for Person A');
-                    }
-                } else {
-                    md += `### ${personA.name} Current Transits\n\n`;
-                    md += `No transit data available for ${personA.name}.\n\n`;
-                    console.log('No transitsByDate found for Person A');
-                }
-
-                // Person B Transits (available in ANY *_transits mode when B supplied)
-                if (mode.includes('_transits')) {
-                    if (data.person_b?.chart?.transitsByDate) {
-                        md += `### ${personB.name} Current Transits`;
-                        if (data.person_b?.implicit_dual_transits) {
-                            md += ` *(implicit dual)*`;
-                        }
-                        md += `\n\n`;
-                        const personBTransits = data.person_b.chart.transitsByDate;
-                        const relevantDates = Object.keys(personBTransits).filter(date => {
-                            return date >= formData.transitParams.startDate && date <= formData.transitParams.endDate;
-                        }).sort();
-                        console.log('Person B relevant dates:', relevantDates);
-                        if (relevantDates.length > 0) {
-                            relevantDates.forEach(date => {
-                                const dailyData = personBTransits[date];
-                                const transitsForDate = dailyData?.aspects || [];
-                                console.log(`Person B transits for ${date}:`, transitsForDate?.length || 0, 'aspects');
-                                md += `#### ${date}\n\n`;
-                                transitsForDate.forEach(transit => {
-                                    const bodyA = transit.p1_name ?? "?";
-                                    const bodyB = transit.p2_name ?? "?";
-                                    const aspect = transit.aspect ?? transit.aspect_name ?? "?";
-                                    const orb = transit.orbit ?? transit.orb ?? 0;
-                                    if (bodyA && bodyB && aspect && orb !== undefined && orb !== null && !isNaN(orb)) {
-                                        totalRowCount++;
-                                        md += `- **${bodyA}** ${aspect} **${bodyB}** (${Math.abs(orb).toFixed(1)}° orb)\n`;
-                                    }
-                                });
-                                md += `\n`;
-                            });
-                        } else {
-                            md += `No significant transits found for ${personB.name} in the specified date range.\n\n`;
-                            console.log('No relevant dates found for Person B');
-                        }
-                    } else if (personB && personB.name) {
-                        md += `### ${personB.name} Current Transits\n\n`;
-                        md += `No transit data available for ${personB.name}.\n\n`;
-                        console.log('No transitsByDate found for Person B');
-                    }
-                }
+                                function passClientFilters(a){
+                                    const orb = a._orb ?? a.orb;
+                                    const tight = typeof orb==='number' && orb<=2;
+                                    const cls = a._class;
+                                    const isMinor = cls==='minor';
+                                    const isHarm = cls==='harmonic';
+                                    const isSelf = a.p1_name===a.p2_name;
+                                    if (ui.tightOnly && !tight) return false;
+                                    if (!ui.showMinor && isMinor) return false;
+                                    if (!ui.showHarmonic && isHarm) return false;
+                                    if (!ui.showSelf && isSelf) return false;
+                                    return true;
+                                }
+                                                function deriveCounts(filteredList){
+                                                    const counts = { majors_tight:0, majors_loose:0, minors:0, harmonics:0, self_aspects:0 };
+                                                    filteredList.forEach(a=>{
+                                                        const orb = a._orb??a.orb??99;
+                                                        const isSelf = a.p1_name===a.p2_name;
+                                                        if (isSelf) counts.self_aspects++;
+                                                        if (a._class==='major') { if (orb<=2) counts.majors_tight++; else counts.majors_loose++; }
+                                                        else if (a._class==='minor') counts.minors++; else if (a._class==='harmonic') counts.harmonics++;
+                                                    });
+                                                    return counts;
+                                                }
+                                                function buildDaySection(date, day){
+                                                    if(!day) return '';
+                                                    // Hooks sort tie-break by smaller orb
+                                                    const hooks = (day.hooks?.slice()||[]).sort((a,b)=>{
+                                                        const wDiff = (b._weight||0) - (a._weight||0);
+                                                        if (Math.abs(wDiff) > 1e-6) return wDiff;
+                                                        const oa = a._orb??a.orb??99; const ob = b._orb??b.orb??99; return oa - ob;
+                                                    });
+                                                    const filteredAll = (day.filtered_aspects||[]).filter(passClientFilters);
+                                                    const counts = deriveCounts(filteredAll);
+                                                    // Invariant check (debug only)
+                                                    if ((counts.majors_tight + counts.majors_loose + counts.minors + counts.harmonics + counts.self_aspects) !== filteredAll.length){
+                                                        console.warn('Count invariant mismatch', date, counts, filteredAll.length);
+                                                    }
+                                                    let summaryLine = `${date} — Majors ${counts.majors_tight}/${counts.majors_loose} · Minors ${counts.minors} · Harmonics ${counts.harmonics}`;
+                                                    let out = `<details><summary>${summaryLine}</summary>\n\n`;
+                                                    out += `**Hooks**\n`;
+                                                    hooks.forEach(h=> out += `- ${hookLine(h)}\n`);
+                                                    if (!hooks.length) out += `- —\n`;
+                                                    out += `\n**Filtered aspects (${filteredAll.length})**\n`;
+                                                    filteredAll.forEach(a=>{
+                                                        const orb = a._orb??a.orb??a.orbit; const orbTxt = (typeof orb==='number')? orb.toFixed(1)+'°':'—';
+                                                        out += `- ${labelName(a.p1_display||a.p1_name)} ${aspectGlyph(a._aspect||a.aspect)} ${labelName(a.p2_display||a.p2_name)} (${orbTxt}) — ${classifyClient(a)}\n`;
+                                                    });
+                                                    if (Array.isArray(day.aspects) && day.aspects.length){
+                                                        out += `\n<details><summary>Full list (raw ${day.aspects.length})</summary>\n\n`;
+                                                        day.aspects.slice(0,50).forEach(a=>{
+                                                            const orb = a._orb??a.orb??a.orbit; const orbTxt = (typeof orb==='number')? orb.toFixed(1)+'°':'—';
+                                                            out += `- ${labelName(a.p1_display||a.p1_name)} ${aspectGlyph(a._aspect||a.aspect)} ${labelName(a.p2_display||a.p2_name)} (${orbTxt})\n`;
+                                                        });
+                                                        if (day.aspects.length>50) out += `... (${day.aspects.length-50} more)\n`;
+                                                        out += `</details>\n`;
+                                                    }
+                                                    out += `\n</details>\n\n`;
+                                                    return out;
+                                                }
+                                                function buildSummaryTable(title, dailyMap){
+                                                    const dates = Object.keys(dailyMap||{}).sort();
+                                                    if (!dates.length) return '';
+                                                    let out = `## ${title} — Weekly Seismograph\n\n| Date | Magnitude | Valence | Volatility | Top Hooks |\n|------|-----------:|--------:|-----------:|-----------|\n`;
+                                                    dates.forEach(d=>{
+                                                        const day = dailyMap[d];
+                                                        // Limit to top 3 hooks by weight desc w/ tie-break
+                                                        const hooks = (day.hooks||[]).slice().sort((a,b)=>{ const w=(b._weight||0)-(a._weight||0); if (Math.abs(w)>1e-6) return w; const oa=a._orb??a.orb??99; const ob=b._orb??b.orb??99; return oa-ob; }).slice(0,3);
+                                                        const peak = hooks.map(h=> hookLine(h)).join(', ');
+                                                        out += `| ${d} | ${(day.seismograph?.magnitude??0).toFixed(2)} | ${(day.seismograph?.valence??0).toFixed(2)} | ${(day.seismograph?.volatility??0).toFixed(2)} | ${peak.replace(/\|/g,'\\|') || '—'} |\n`;
+                                                    });
+                                                    out += `\n`;
+                                                    return out;
+                                                }
+                
+                                md += `\n## Simple Mode — Hooks-First Geometry\n`;
+                                if (data.person_a?.chart?.transitsByDate) md += buildSummaryTable(`${personA.name}`, data.person_a.chart.transitsByDate);
+                                if (data.person_b?.chart?.transitsByDate) md += buildSummaryTable(`${personB.name}${data.person_b?.implicit_dual_transits?' (implicit dual)':''}`, data.person_b.chart.transitsByDate);
+                                if (data.composite?.transitsByDate) md += buildSummaryTable(`Composite Field`, data.composite.transitsByDate);
+                
+                                md += `\n## Daily Hooks\n`;
+                                if (data.person_a?.chart?.transitsByDate){
+                                    Object.keys(data.person_a.chart.transitsByDate).sort().forEach(d=>{ md += buildDaySection(d, data.person_a.chart.transitsByDate[d]); });
+                                }
+                                if (data.person_b?.chart?.transitsByDate){
+                                    Object.keys(data.person_b.chart.transitsByDate).sort().forEach(d=>{ md += buildDaySection(d, data.person_b.chart.transitsByDate[d]); });
+                                }
+                                if (data.composite?.transitsByDate){
+                                    Object.keys(data.composite.transitsByDate).sort().forEach(d=>{ md += buildDaySection(d, data.composite.transitsByDate[d]); });
+                                }
                 
                 console.log('=== END MARKDOWN TRANSIT DEBUG ===');
 
@@ -1062,6 +1093,15 @@ function renderTransitDay(dateStr, items){
 
             return md;
         }
+
+                // Re-render hooks only (without round-trip) when filters change
+                function rerenderHookMarkdownSection(){
+                        if(!latestResultData) return;
+                        try {
+                            const full = generateMarkdownReport(latestResultData);
+                            reportContent.textContent = full;
+                        } catch(e){ console.warn('Re-render failed', e); }
+                }
 
         function generateFilename(extension, data) {
             const formData = collectFormData();
@@ -1574,6 +1614,7 @@ function renderTransitDay(dateStr, items){
 
             // Prefill today's date for transit dates
             prefillTodayBtn.addEventListener('click', prefillTodayDates);
+                // Simple Mode: filter controls suppressed (defaults applied globally)
 
             // Toggle step size help panel
             stepSizeHelpBtn.addEventListener('click', () => {
