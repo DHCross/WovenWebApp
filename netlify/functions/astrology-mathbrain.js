@@ -149,6 +149,20 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
 
       if (!response.ok) {
         if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+          // DIAGNOSTIC PATCH: Capture real status and response body before throwing
+          const status = response.status;
+          let rawText = '';
+          try { 
+            rawText = await response.text(); 
+          } catch(_) { 
+            rawText = 'Unable to read response body'; 
+          }
+          logger.error('Transit endpoint failure detail', { 
+            status, 
+            url, 
+            operation, 
+            rawText: rawText.slice(0, 1200) 
+          });
           throw new Error('Non-retryable client error');
         }
         logger.warn(`API call failed with status ${response.status}. Retrying...`);
@@ -181,7 +195,8 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
     const transit_subject = {
       year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
       hour: 12, minute: 0, city: "Greenwich", nation: "GB",
-      latitude: 51.48, longitude: 0, timezone: "UTC"
+      latitude: 51.48, longitude: 0, timezone: "UTC",
+      zodiac_type: "Tropic" // Fix: Add missing zodiac_type
     };
 
     // Include configuration parameters for which planets to include
@@ -346,7 +361,8 @@ async function computeCompositeTransits(compositeRaw, start, end, step, pass = {
       nation: "GB",
       latitude: 51.48,
       longitude: 0,
-      timezone: "UTC"
+      timezone: "UTC",
+      zodiac_type: "Tropic" // Fix: Add missing zodiac_type for composite transits
     };
 
     // Create payload with composite chart as first_subject and current date as transit_subject
