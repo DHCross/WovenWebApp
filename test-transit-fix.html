@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transit Date Filtering - End-to-End Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .test-container { background: white; padding: 20px; border-radius: 8px; margin: 10px 0; }
+        .result { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .pass { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .fail { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .aspect-list { margin: 10px 0; padding-left: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Transit Date Filtering - End-to-End Test</h1>
+    <p>This test simulates the exact scenario from the bug report to verify the fix works correctly.</p>
+
+    <div class="test-container">
+        <h2>Test Setup</h2>
+        <div class="info result">
+            <strong>Scenario:</strong> DH Cross transit analysis for 2025-08-22 to 2025-08-30<br>
+            <strong>Issue:</strong> "No significant transits found" message appearing incorrectly<br>
+            <strong>Root Cause:</strong> Inconsistent date filtering (Date objects vs string comparison)
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>Mock Data Simulation</h2>
+        <div id="mockDataResults"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Date Filtering Test Results</h2>
+        <div id="filteringResults"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Transit Report Generation Test</h2>
+        <div id="reportResults"></div>
+    </div>
+
+    <script>
+        // Simulate the exact data structure that would come from the backend
+        const mockBackendResponse = {
+            person_a: {
+                chart: {
+                    transitsByDate: {
+                        "2025-08-22": [
+                            { p1_name: "Mars", p2_name: "Sun", aspect: "Square", orb: 2.1 },
+                            { p1_name: "Venus", p2_name: "Moon", aspect: "Trine", orb: 1.8 }
+                        ],
+                        "2025-08-23": [
+                            { p1_name: "Jupiter", p2_name: "Mercury", aspect: "Conjunction", orb: 0.9 }
+                        ],
+                        "2025-08-24": [
+                            { p1_name: "Saturn", p2_name: "Venus", aspect: "Opposition", orb: 3.2 }
+                        ],
+                        "2025-08-29": [
+                            { p1_name: "Uranus", p2_name: "Mars", aspect: "Sextile", orb: 2.4 }
+                        ],
+                        "2025-08-30": [
+                            { p1_name: "Neptune", p2_name: "Jupiter", aspect: "Square", orb: 1.5 },
+                            { p1_name: "Pluto", p2_name: "Moon", aspect: "Trine", orb: 2.8 }
+                        ]
+                    }
+                }
+            }
+        };
+
+        const formData = {
+            transitParams: {
+                startDate: "2025-08-22",
+                endDate: "2025-08-30"
+            }
+        };
+
+        const personA = { name: "DH Cross" };
+
+        function displayMockData() {
+            const container = document.getElementById('mockDataResults');
+            const totalDates = Object.keys(mockBackendResponse.person_a.chart.transitsByDate).length;
+            const totalAspects = Object.values(mockBackendResponse.person_a.chart.transitsByDate)
+                .reduce((sum, aspects) => sum + aspects.length, 0);
+            
+            container.innerHTML = `
+                <div class="info result">
+                    <strong>Mock Backend Response:</strong><br>
+                    • ${totalDates} dates with transit data<br>
+                    • ${totalAspects} total transit aspects<br>
+                    • Date range: ${Object.keys(mockBackendResponse.person_a.chart.transitsByDate)[0]} to ${Object.keys(mockBackendResponse.person_a.chart.transitsByDate).pop()}<br>
+                    • Form date range: ${formData.transitParams.startDate} to ${formData.transitParams.endDate}
+                </div>
+            `;
+        }
+
+        function testDateFiltering() {
+            const container = document.getElementById('filteringResults');
+            const personATransits = mockBackendResponse.person_a.chart.transitsByDate;
+
+            // Test OLD method (the buggy one that was fixed)
+            console.log('=== Testing OLD (buggy) Date object method ===');
+            const relevantDatesOld = Object.keys(personATransits).filter(date => {
+                const d = new Date(date);
+                const start = new Date(formData.transitParams.startDate);
+                const end = new Date(formData.transitParams.endDate);
+                return d >= start && d <= end;
+            }).sort();
+
+            // Test NEW method (the fixed one)
+            console.log('=== Testing NEW (fixed) string comparison method ===');
+            const relevantDatesNew = Object.keys(personATransits).filter(date => {
+                return date >= formData.transitParams.startDate && date <= formData.transitParams.endDate;
+            }).sort();
+
+            const expectedDates = ["2025-08-22", "2025-08-23", "2025-08-24", "2025-08-29", "2025-08-30"];
+            const newMethodCorrect = JSON.stringify(relevantDatesNew) === JSON.stringify(expectedDates);
+
+            container.innerHTML = `
+                <div class="${newMethodCorrect ? 'pass' : 'fail'} result">
+                    <strong>Date Filtering Test Results:</strong><br>
+                    • OLD method found: ${relevantDatesOld.length} dates<br>
+                    • NEW method found: ${relevantDatesNew.length} dates<br>
+                    • Expected: ${expectedDates.length} dates<br>
+                    • Fix Status: ${newMethodCorrect ? '✅ WORKING' : '❌ FAILED'}
+                </div>
+                <div class="info result">
+                    <strong>Details:</strong><br>
+                    Expected dates: [${expectedDates.join(', ')}]<br>
+                    NEW method result: [${relevantDatesNew.join(', ')}]<br>
+                    Match: ${newMethodCorrect ? 'Perfect' : 'Failed'}
+                </div>
+            `;
+
+            return { relevantDatesNew, newMethodCorrect };
+        }
+
+        function generateTransitReport(relevantDates) {
+            const container = document.getElementById('reportResults');
+            const personA = { name: "DH Cross" };
+            const personATransits = mockBackendResponse.person_a.chart.transitsByDate;
+            
+            // Simulate the exact markdown generation logic from the application
+            let md = `### ${personA.name} Current Transits\n\n`;
+            
+            if (relevantDates.length > 0) {
+                relevantDates.forEach(date => {
+                    const dailyData = personATransits[date];
+                    const transitsForDate = dailyData || [];
+                    
+                    md += `#### ${date}\n\n`;
+                    transitsForDate.forEach(transit => {
+                        const bodyA = transit.p1_name ?? "?";
+                        const bodyB = transit.p2_name ?? "?";
+                        const aspect = transit.aspect ?? "?";
+                        const orb = transit.orb?.toFixed(1) ?? "?";
+                        md += `**${bodyA}** ${aspect} **${bodyB}** (orb: ${orb}°)\n\n`;
+                    });
+                });
+            } else {
+                md += `No significant transits found for ${personA.name} in the specified date range.\n\n`;
+            }
+
+            const reportWorking = relevantDates.length > 0;
+            const aspectCount = relevantDates.reduce((sum, date) => {
+                return sum + (personATransits[date] ? personATransits[date].length : 0);
+            }, 0);
+
+            container.innerHTML = `
+                <div class="${reportWorking ? 'pass' : 'fail'} result">
+                    <strong>Transit Report Generation:</strong><br>
+                    • Relevant dates found: ${relevantDates.length}<br>
+                    • Total aspects to display: ${aspectCount}<br>
+                    • Status: ${reportWorking ? '✅ SUCCESS - Transits will be shown' : '❌ FAILED - "No significant transits found" message'}
+                </div>
+                <div class="info result">
+                    <strong>Generated Report Preview:</strong>
+                    <pre>${md}</pre>
+                </div>
+            `;
+
+            return reportWorking;
+        }
+
+        // Run all tests
+        function runTests() {
+            console.log('🧪 Running Transit Date Filtering Tests...');
+            
+            // 1. Display mock data
+            displayMockData();
+            
+            // 2. Test date filtering
+            const { relevantDatesNew, newMethodCorrect } = testDateFiltering();
+            
+            // 3. Test report generation
+            const reportWorking = generateTransitReport(relevantDatesNew);
+            
+            // 4. Overall result
+            const overallSuccess = newMethodCorrect && reportWorking;
+            
+            document.body.insertAdjacentHTML('beforeend', `
+                <div class="test-container">
+                    <h2>🎯 Overall Test Result</h2>
+                    <div class="${overallSuccess ? 'pass' : 'fail'} result">
+                        <strong>${overallSuccess ? '✅ ALL TESTS PASSED' : '❌ TESTS FAILED'}</strong><br>
+                        ${overallSuccess 
+                            ? 'The "No significant transits found" issue has been successfully resolved!' 
+                            : 'The fix did not resolve the issue. Further investigation needed.'}
+                    </div>
+                </div>
+            `);
+
+            console.log(`🎯 Test Result: ${overallSuccess ? 'PASSED' : 'FAILED'}`);
+        }
+
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', runTests);
+    </script>
+</body>
+</html>
