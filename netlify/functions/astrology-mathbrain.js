@@ -526,17 +526,56 @@ exports.handler = async function(event) {
     // Ensure active_aspects includes all major aspects if not explicitly set
     if (!pass.active_aspects) {
       pass.active_aspects = [
+        // Accepted list per API error detail: 'conjunction', 'semi-sextile', 'semi-square', 'sextile', 'quintile', 'square', 'trine', 'sesquiquadrate', 'biquintile', 'quincunx', 'opposition'
         { name: "conjunction", orb: 10 },
         { name: "opposition", orb: 10 },
         { name: "trine", orb: 8 },
         { name: "square", orb: 8 },
         { name: "sextile", orb: 6 },
+        { name: "semi-sextile", orb: 2 },
+        { name: "semi-square", orb: 2 }, // renamed from semisquare
         { name: "quincunx", orb: 3 },
-        { name: "semisquare", orb: 3 },
-        { name: "sesquiquadrate", orb: 3 }
+        { name: "sesquiquadrate", orb: 3 },
+        { name: "quintile", orb: 2 },
+        { name: "biquintile", orb: 2 }
       ];
-      logger.debug('Setting default active_aspects to include all major aspects');
+      logger.debug('Setting default active_aspects to accepted canonical list');
     }
+
+    // --- Aspect name normalization (handles user supplied list & legacy synonyms) ---
+    const ASPECT_SYNONYMS = {
+      'semisquare': 'semi-square',
+      'semi_square': 'semi-square',
+      'semi square': 'semi-square',
+      'semisextile': 'semi-sextile',
+      'semi_sextile': 'semi-sextile',
+      'semi sextile': 'semi-sextile',
+      'inconjunct': 'quincunx',
+      'sesqui-square': 'sesquiquadrate',
+      'sesquisquare': 'sesquiquadrate'
+    };
+
+    if (Array.isArray(pass.active_aspects)) {
+      pass.active_aspects = pass.active_aspects
+        .map(a => {
+          if (!a) return null;
+            if (typeof a === 'string') return { name: a, orb: 3 };
+            if (typeof a === 'object') {
+              const raw = (a.name || a.type || '').toString().toLowerCase();
+              const canonical = ASPECT_SYNONYMS[raw] || raw;
+              return { name: canonical, orb: a.orb != null ? a.orb : 3 };
+            }
+            return null;
+        })
+        .filter(Boolean)
+        // Deduplicate by name keeping largest orb
+        .reduce((acc, cur) => {
+          const existing = acc.find(x => x.name === cur.name);
+          if (!existing) acc.push(cur); else if (cur.orb > existing.orb) existing.orb = cur.orb;
+          return acc;
+        }, []);
+    }
+    logger.debug('Normalized active_aspects list:', pass.active_aspects);
 
     // 1) Natal (chart + aspects, natal aspects-only, or birth data)
     let natalResponse;
