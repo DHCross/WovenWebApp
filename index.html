@@ -195,8 +195,8 @@
                 </div>
                 
                 <!-- Relational Context Section (moved above relocation) -->
-                <div id="relational-context-section" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500 hidden">
-                    <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Relational Context</h2>
+                <div id="relational-context-section" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500 hidden" role="region" aria-labelledby="relational-context-heading">
+                    <h2 id="relational-context-heading" class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Relational Context</h2>
                     <p class="text-gray-400 text-sm mb-4">Detected potential dynamics:</p>
                     <ul id="context-readout" class="list-disc list-inside space-y-2 mb-4 text-gray-300"></ul>
                     <div id="relationship-type-query">
@@ -206,14 +206,14 @@
                             <label class="flex items-center"><input type="radio" name="relationshipType" value="friend" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Friend or colleague</span></label>
                             <label class="flex items-center"><input type="radio" name="relationshipType" value="family" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Family</span></label>
                         </div>
-                        <div class="mt-3 pt-2 border-t border-gray-600">
+                        <div id="exRelationshipRow" class="mt-3 pt-2 border-t border-gray-600">
                             <label class="flex items-center">
                                 <input type="checkbox" id="exRelationship" class="form-checkbox h-4 w-4 text-red-400">
                                 <span class="ml-2 text-gray-300">Ex or Estranged</span>
                             </label>
                         </div>
                         <!-- Relationship Role (conditional: family full list, friend minimal) -->
-                        <div id="relationship-role-block" class="mt-4 hidden">
+                        <div id="relationship-role-block" class="mt-4 hidden" aria-live="polite">
                             <label for="relationshipRole" class="block text-sm font-medium text-gray-300">Relationship Role (Person B relative to A)</label>
                             <select id="relationshipRole" class="mt-1 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm"></select>
                             <input id="relationshipRoleCustom" placeholder="Custom role (e.g., half-brother, stepmother)" class="mt-2 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm hidden" />
@@ -1181,6 +1181,11 @@ function renderTransitDay(dateStr, items){
         function validateForm() {
             hideError();
             const mode = document.querySelector('input[name="contextMode"]:checked').value;
+            const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value;
+            const intimacyTier = document.querySelector('input[name="intimacyTier"]:checked')?.value;
+            const roleSel = document.getElementById('relationshipRole');
+            const roleCustomInput = document.getElementById('relationshipRoleCustom');
+            const roleValueRaw = roleSel ? roleSel.value : '';
 
             // Validate Person A
             const nameA = document.getElementById('nameA').value.trim();
@@ -1259,6 +1264,25 @@ function renderTransitDay(dateStr, items){
                 }
             }
 
+            // Relational validation
+            if (relationshipType === 'partner') {
+                if (!intimacyTier) {
+                    showError('Select an intimacy tier for partner relationships');
+                    return false;
+                }
+            }
+            if (relationshipType && relationshipType !== 'partner') {
+                if (roleSel && roleValueRaw === 'other') {
+                    const customVal = roleCustomInput?.value?.trim();
+                    if (!customVal) {
+                        showError('Provide a custom role description');
+                        return false;
+                    }
+                }
+            }
+            if (relationshipType === 'partner' && roleSel && roleValueRaw) {
+                console.warn('Role value ignored for partner type');
+            }
             return true;
         }
 
@@ -1426,6 +1450,16 @@ function renderTransitDay(dateStr, items){
             const notesVal = document.getElementById('relationshipNotes')?.value?.trim() || '';
             formData.context.relationship_role = roleVal;
             formData.context.relationship_notes = notesVal;
+            // Mutual exclusivity & cleanup
+            const t = formData.context.relationship_type;
+            if (t === 'partner') {
+                formData.context.relationship_role = null;
+            } else {
+                formData.context.intimacy_tier = null;
+            }
+            if (t === 'friend' && formData.context.is_ex_relationship) {
+                formData.context.is_ex_relationship = false; // clear ex for friend
+            }
             console.log("=== FINAL FORM DATA ===");
             console.log(JSON.stringify(formData, null, 2));
             return formData;
@@ -1676,46 +1710,63 @@ function renderTransitDay(dateStr, items){
             });
             
             // Intimacy tier visibility
+            function resetRelationalStateFor(type){
+                const roleSelect = document.getElementById('relationshipRole');
+                const customRoleInput = document.getElementById('relationshipRoleCustom');
+                const roleBlock = document.getElementById('relationship-role-block');
+                const exRow = document.getElementById('exRelationshipRow');
+                const exCb = document.getElementById('exRelationship');
+                // Clear any custom visibility
+                if (type === 'partner') {
+                    if (roleSelect) roleSelect.value='';
+                    if (customRoleInput) { customRoleInput.value=''; customRoleInput.classList.add('hidden'); }
+                } else { // leaving partner
+                    document.querySelectorAll('input[name="intimacyTier"]').forEach(r=> r.checked=false);
+                }
+                // Hide ex for friend
+                if (exRow && exCb) {
+                    const hideEx = type === 'friend';
+                    exRow.classList.toggle('hidden', hideEx);
+                    if (hideEx) exCb.checked = false;
+                }
+                // Focus first interactive element for accessibility
+                if (type === 'partner') {
+                    const firstTier = document.querySelector('input[name="intimacyTier"]');
+                    firstTier && firstTier.focus();
+                } else if (roleBlock && !roleBlock.classList.contains('hidden')) {
+                    const firstRole = document.getElementById('relationshipRole');
+                    firstRole && firstRole.focus();
+                }
+            }
+
             document.querySelectorAll('input[name="relationshipType"]').forEach(radio => {
                 radio.addEventListener('change', () => {
-                    const isPartner = document.querySelector('input[name="relationshipType"]:checked')?.value === 'partner';
-                    intimacyTierDropdown.classList.toggle('hidden', !isPartner);
-                    // Role block logic
                     const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value;
+                    const isPartner = relationshipType === 'partner';
+                    intimacyTierDropdown.classList.toggle('hidden', !isPartner);
                     const roleBlock = document.getElementById('relationship-role-block');
                     const roleSelect = document.getElementById('relationshipRole');
                     const roleCustom = document.getElementById('relationshipRoleCustom');
                     if (roleBlock && roleSelect) {
-                        // Clear existing options
                         roleSelect.innerHTML = '';
                         if (relationshipType === 'family') {
                             roleBlock.classList.remove('hidden');
                             const familyOptions = [
-                                {v:'', l:'(optional)'},
-                                {v:'parent', l:'Parent'},
-                                {v:'child', l:'Child'},
-                                {v:'sibling', l:'Sibling'},
-                                {v:'cousin', l:'Cousin'},
-                                {v:'extended', l:'Extended Family'},
-                                {v:'guardian', l:'Guardian'},
-                                {v:'mentor', l:'Mentor'},
-                                {v:'other', l:'Other / Custom'}
+                                {v:'', l:'(optional)'}, {v:'parent', l:'Parent'}, {v:'child', l:'Child'}, {v:'sibling', l:'Sibling'}, {v:'cousin', l:'Cousin'}, {v:'extended', l:'Extended Family'}, {v:'guardian', l:'Guardian'}, {v:'mentor', l:'Mentor'}, {v:'other', l:'Other / Custom'}
                             ];
                             familyOptions.forEach(o=>{ const opt=document.createElement('option'); opt.value=o.v; opt.textContent=o.l; roleSelect.appendChild(opt); });
                         } else if (relationshipType === 'friend') {
                             roleBlock.classList.remove('hidden');
                             const friendOptions = [
-                                {v:'', l:'(optional)'},
-                                {v:'acquaintance', l:'Acquaintance'},
-                                {v:'mentor', l:'Mentor'},
-                                {v:'other', l:'Other / Custom'}
+                                {v:'', l:'(optional)'}, {v:'acquaintance', l:'Acquaintance'}, {v:'mentor', l:'Mentor'}, {v:'other', l:'Other / Custom'}
                             ];
                             friendOptions.forEach(o=>{ const opt=document.createElement('option'); opt.value=o.v; opt.textContent=o.l; roleSelect.appendChild(opt); });
-                        } else { // partner or unspecified
+                        } else {
                             roleBlock.classList.add('hidden');
                         }
                         if (roleCustom) roleCustom.classList.add('hidden');
                     }
+                    resetRelationalStateFor(relationshipType);
                 });
             });
         }
