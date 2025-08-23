@@ -1448,7 +1448,8 @@ function renderTransitDay(dateStr, items){
             const roleCustom = document.getElementById('relationshipRoleCustom');
             const roleVal = roleSel ? (roleSel.value === 'other' ? (roleCustom?.value?.trim() || '') : roleSel.value) : '';
             const notesVal = document.getElementById('relationshipNotes')?.value?.trim() || '';
-            formData.context.relationship_role = roleVal;
+            // Backward compatibility: normalize 'child' -> 'offspring'
+            formData.context.relationship_role = (roleVal === 'child') ? 'offspring' : roleVal;
             formData.context.relationship_notes = notesVal;
             // Mutual exclusivity & cleanup
             const t = formData.context.relationship_type;
@@ -1749,10 +1750,10 @@ function renderTransitDay(dateStr, items){
                     const roleCustom = document.getElementById('relationshipRoleCustom');
                     if (roleBlock && roleSelect) {
                         roleSelect.innerHTML = '';
-                        if (relationshipType === 'family') {
+            if (relationshipType === 'family') {
                             roleBlock.classList.remove('hidden');
                             const familyOptions = [
-                                {v:'', l:'(optional)'}, {v:'parent', l:'Parent'}, {v:'child', l:'Child'}, {v:'sibling', l:'Sibling'}, {v:'cousin', l:'Cousin'}, {v:'extended', l:'Extended Family'}, {v:'guardian', l:'Guardian'}, {v:'mentor', l:'Mentor'}, {v:'other', l:'Other / Custom'}
+                {v:'', l:'(optional)'}, {v:'parent', l:'Parent'}, {v:'offspring', l:'Offspring'}, {v:'sibling', l:'Sibling'}, {v:'cousin', l:'Cousin'}, {v:'extended', l:'Extended Family'}, {v:'guardian', l:'Guardian'}, {v:'mentor', l:'Mentor'}, {v:'other', l:'Other / Custom'}
                             ];
                             familyOptions.forEach(o=>{ const opt=document.createElement('option'); opt.value=o.v; opt.textContent=o.l; roleSelect.appendChild(opt); });
                         } else if (relationshipType === 'friend') {
