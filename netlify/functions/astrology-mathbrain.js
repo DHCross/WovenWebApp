@@ -196,6 +196,9 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
       pass_keys: Object.keys(pass)
     });
 
+    // Enhanced debug logging: Log full payload when debugging empty results
+    logger.debug(`Full transit API payload for ${dateString}:`, JSON.stringify(payload, null, 2));
+
     promises.push(
       apiCallWithRetry(
         API_ENDPOINTS.TRANSIT_ASPECTS,
@@ -217,7 +220,9 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
           transitsByDate[dateString] = resp.aspects;
           logger.debug(`Stored ${resp.aspects.length} aspects for ${dateString}`);
         } else {
+          // Enhanced debug logging: Log full response when no aspects found
           logger.debug(`No aspects found for ${dateString} - response structure:`, resp);
+          logger.debug(`Full raw API response for ${dateString} (no aspects):`, JSON.stringify(resp, null, 2));
         }
       }).catch(e => logger.error(`Failed to get transits for ${dateString}`, e))
     );
@@ -351,6 +356,13 @@ async function computeCompositeTransits(compositeRaw, start, end, step, pass = {
       ...pass                      // Include any additional parameters
     };
 
+    // Enhanced debug logging for composite transits
+    logger.debug(`Composite transit API call for ${dateString}:`, {
+      pass_keys: Object.keys(pass),
+      composite_subject: compositeRaw?.name || 'Unknown composite'
+    });
+    logger.debug(`Full composite transit API payload for ${dateString}:`, JSON.stringify(payload, null, 2));
+
     promises.push(
       apiCallWithRetry(
         API_ENDPOINTS.TRANSIT_ASPECTS,
@@ -361,9 +373,19 @@ async function computeCompositeTransits(compositeRaw, start, end, step, pass = {
         },
         `Composite transits for ${dateString}`
       ).then(resp => {
+        logger.debug(`Composite transit API response for ${dateString}:`, {
+          hasAspects: !!(resp && resp.aspects),
+          aspectCount: (resp && resp.aspects) ? resp.aspects.length : 0,
+          responseKeys: resp ? Object.keys(resp) : 'null response'
+        });
+
         // Store aspects for this date if any exist
         if (resp.aspects && resp.aspects.length > 0) {
           transitsByDate[dateString] = resp.aspects;
+          logger.debug(`Stored ${resp.aspects.length} composite aspects for ${dateString}`);
+        } else {
+          logger.debug(`No composite aspects found for ${dateString} - response structure:`, resp);
+          logger.debug(`Full raw composite API response for ${dateString} (no aspects):`, JSON.stringify(resp, null, 2));
         }
       }).catch(e => {
         logger.warn(`Failed to get composite transits for ${dateString}:`, e.message);
