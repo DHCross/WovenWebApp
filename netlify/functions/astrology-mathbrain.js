@@ -279,21 +279,33 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
 
       if (!response.ok) {
         if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-          // DIAGNOSTIC PATCH: Capture real status and response body before throwing
+          // Capture status + body once
           const status = response.status;
           let rawText = '';
-          try { 
-            rawText = await response.text(); 
-          } catch(_) { 
-            rawText = 'Unable to read response body'; 
-          }
-          logger.error('Transit endpoint failure detail', { 
-            status, 
-            url, 
-            operation, 
-            rawText: rawText.slice(0, 1200) 
-          });
-          throw new Error('Non-retryable client error');
+          try { rawText = await response.text(); } catch { rawText = 'Unable to read response body'; }
+          let parsedMessage = rawText;
+          try {
+            const j = JSON.parse(rawText);
+            if (j.message) parsedMessage = j.message;
+          } catch(_) {/* keep rawText */}
+          // Special handling for auth/subscription issues
+            if (status === 401 || status === 403) {
+              const hint = parsedMessage && /not subscribed|unauthorized|invalid api key|api key is invalid/i.test(parsedMessage)
+                ? 'Verify RAPIDAPI_KEY, subscription plan, and that the key matches this API.'
+                : 'Authentication / subscription issue likely.';
+              logger.error('RapidAPI auth/subscription error', { status, operation, parsedMessage, hint });
+              const err = new Error(`RapidAPI access denied (${status}): ${parsedMessage}. ${hint}`);
+              err.code = 'RAPIDAPI_SUBSCRIPTION';
+              err.status = status;
+              err.raw = rawText.slice(0,1200);
+              throw err;
+            }
+          logger.error('Client error (non-retryable)', { status, operation, url, body: rawText.slice(0,1200) });
+          const err = new Error(`Client error ${status} for ${operation}`);
+          err.code = 'CLIENT_ERROR';
+          err.status = status;
+          err.raw = rawText.slice(0,1200);
+          throw err;
         }
         logger.warn(`API call failed with status ${response.status}. Retrying...`);
         throw new Error(`Server error: ${response.status}`);
@@ -301,8 +313,12 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
       return response.json();
     } catch (error) {
       if (attempt === maxRetries || error.message.includes('Non-retryable')) {
-        logger.error(`Failed after ${attempt} attempts: ${error.message}`, { url, operation });
-        throw new Error(`Service temporarily unavailable. Please try again later.`);
+        logger.error(`Failed after ${attempt} attempts: ${error.message}`, { url, operation, code: error.code, status: error.status });
+        if (error.code === 'RAPIDAPI_SUBSCRIPTION') throw error; // surface directly
+        if (error.code === 'CLIENT_ERROR') throw error;
+        const err = new Error(`Service temporarily unavailable. Please try again later.`);
+        err.code = 'UPSTREAM_TEMPORARY';
+        throw err;
       }
       const delay = Math.pow(2, attempt) * 100 + Math.random() * 100; // Exponential backoff
       await new Promise(res => setTimeout(res, delay));
@@ -1005,8 +1021,8 @@ exports.handler = async function(event) {
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: error?.message || 'Internal server error',
-        code: error?.code || 'INTERNAL_ERROR',
+  error: error?.message || 'Internal server error',
+  code: error?.code || 'INTERNAL_ERROR',
         errorId: generateErrorId(),
         stack: error?.stack || null,
         details: error
