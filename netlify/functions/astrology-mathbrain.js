@@ -2,6 +2,7 @@
 // It is ready to be used as a serverless function handler (e.g., in a Node.js environment).
 
 const { aggregate } = require('../../src/seismograph');
+const { _internals: seismoInternals } = require('../../src/seismograph');
 const API_BASE_URL = 'https://astrologer.p.rapidapi.com';
 
 const API_ENDPOINTS = {
@@ -400,6 +401,107 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
   return transitsByDate;
 }
 
+// --- Transit Table Formatting: Orb-Band + Phase + Score ---
+function formatTransitTable(enrichedAspects, prevDayAspects = null) {
+  if (!Array.isArray(enrichedAspects) || enrichedAspects.length === 0) {
+    return {
+      exact: [],
+      tight: [],
+      moderate: [],
+      wide: [],
+      markdown: "No aspects for this date."
+    };
+  }
+
+  // Create lookup map for previous day's orbs to determine phase
+  const prevOrbMap = new Map();
+  if (prevDayAspects && Array.isArray(prevDayAspects)) {
+    for (const aspect of prevDayAspects) {
+      const key = `${aspect.p1_name}|${aspect._aspect}|${aspect.p2_name}`;
+      prevOrbMap.set(key, aspect._orb);
+    }
+  }
+
+  // Process aspects with orb bands, phase, and score
+  const processedAspects = enrichedAspects.map(aspect => {
+    const orb = aspect._orb || 0;
+    const key = `${aspect.p1_name}|${aspect._aspect}|${aspect.p2_name}`;
+    const prevOrb = prevOrbMap.get(key);
+    
+    // Determine phase: ↑ tightening (orb decreasing), ↓ separating (orb increasing)
+    let phase = '—'; // neutral/unknown
+    if (prevOrb != null && typeof prevOrb === 'number') {
+      if (orb < prevOrb) phase = '↑'; // tightening
+      else if (orb > prevOrb) phase = '↓'; // separating
+      // if equal, keep neutral
+    }
+
+    // Calculate score using seismograph internals
+    const aspectForScore = {
+      transit: { body: aspect.p1_name },
+      natal: { body: aspect.p2_name },
+      type: aspect._aspect,
+      orbDeg: orb
+    };
+    const scored = seismoInternals.scoreAspect(aspectForScore, {
+      isAngleProx: aspect.p2_isAngle,
+      critical: false
+    });
+
+    return {
+      transit: aspect.p1_display || aspect.p1_name,
+      aspect: aspect._aspect,
+      natal: aspect.p2_display || aspect.p2_name,
+      orb: Number(orb.toFixed(1)),
+      phase: phase,
+      score: Number(scored.S.toFixed(2)),
+      _orbValue: orb // for sorting
+    };
+  });
+
+  // Sort by orb (tightest first)
+  processedAspects.sort((a, b) => a._orbValue - b._orbValue);
+
+  // Group by orb bands
+  const exact = processedAspects.filter(a => a._orbValue <= 0.5);
+  const tight = processedAspects.filter(a => a._orbValue > 0.5 && a._orbValue <= 2.0);
+  const moderate = processedAspects.filter(a => a._orbValue > 2.0 && a._orbValue <= 6.0);
+  const wide = processedAspects.filter(a => a._orbValue > 6.0);
+
+  // Generate markdown table format
+  function createMarkdownTable(aspects, title) {
+    if (aspects.length === 0) return '';
+    
+    let table = `\n**${title}**\n\n`;
+    table += '| Transit | Aspect | Natal | Orb (°) | Phase | Score |\n';
+    table += '|---------|--------|-------|---------|--------|-------|\n';
+    
+    for (const a of aspects) {
+      table += `| ${a.transit} | ${a.aspect} | ${a.natal} | ${a.orb} | ${a.phase} | ${a.score >= 0 ? '+' : ''}${a.score} |\n`;
+    }
+    
+    return table;
+  }
+
+  let markdown = '';
+  if (exact.length > 0) markdown += createMarkdownTable(exact, '⭐ Exact Aspects (≤0.5°)');
+  if (tight.length > 0) markdown += createMarkdownTable(tight, '🔥 Tight Aspects (0.5° - 2°)');
+  if (moderate.length > 0) markdown += createMarkdownTable(moderate, '📊 Moderate Aspects (2° - 6°)');
+  if (wide.length > 0) markdown += createMarkdownTable(wide, '🌫️ Wide Aspects (>6°)');
+
+  if (markdown === '') {
+    markdown = "No aspects for this date.";
+  }
+
+  return {
+    exact,
+    tight,
+    moderate,
+    wide,
+    markdown
+  };
+}
+
 function calculateSeismograph(transitsByDate) {
   if (!transitsByDate || Object.keys(transitsByDate).length === 0) {
     return { daily: {}, summary: {} };
@@ -407,11 +509,16 @@ function calculateSeismograph(transitsByDate) {
 
   const days = Object.keys(transitsByDate).sort();
   let prev = null;
+  let prevDayFiltered = null;
   const daily = {};
 
   for (const d of days) {
     const rawDayAspects = transitsByDate[d] || [];
     const enriched = enrichDailyAspects(rawDayAspects);
+    
+    // Generate orb-band transit table with phase and score
+    const transitTable = formatTransitTable(enriched.filtered, prevDayFiltered);
+    
     const aspectsForAggregate = enriched.filtered.map(x => ({
       transit: { body: x.p1_name },
       natal: {
@@ -429,9 +536,11 @@ function calculateSeismograph(transitsByDate) {
       aspects: rawDayAspects,
       filtered_aspects: enriched.filtered,
       hooks: enriched.hooks,
-      counts: enriched.counts
+      counts: enriched.counts,
+      transit_table: transitTable
     };
     prev = { scored: agg.scored, Y_effective: agg.valence };
+    prevDayFiltered = enriched.filtered; // Store for next day's phase calculation
   }
 
   const numDays = days.length;
