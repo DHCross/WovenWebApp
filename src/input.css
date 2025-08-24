@@ -1,3 +1,21 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Mobile-specific improvements */
+@layer components {
+  /* Ensure form inputs work properly on mobile */
+  .mobile-device input[type="date"],
+  .mobile-device input[type="time"],
+  .mobile-device input[type="text"],
+  .mobile-device select {
+    @apply text-base; /* Prevent zoom on iOS */
+  }
+  
+  /* Better mobile date input styling */
+  .mobile-device input[type="date"] {
+    color-scheme: dark;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+}

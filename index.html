@@ -15,6 +15,78 @@
             .animate-fade-in-out { animation: fadeInOut 8s ease-in-out forwards; }
             @keyframes fadeInOut { 0%, 100% { opacity: 0; transform: translateY(-20px); } 10%, 90% { opacity: 1; transform: translateY(0); } }
             .bg-gray-750 { background-color: #334155; }
+            
+            /* Mobile-specific fixes for date inputs and form elements */
+            @media (max-width: 768px) {
+                /* Fix date input styling on mobile */
+                input[type="date"] {
+                    -webkit-appearance: none;
+                    -moz-appearance: none;
+                    appearance: none;
+                    background-color: #374151 !important;
+                    color: #ffffff !important;
+                    border: 1px solid #4b5563 !important;
+                    padding: 0.5rem !important;
+                    border-radius: 0.375rem !important;
+                    font-size: 16px; /* Prevents zoom on iOS */
+                    text-align: left !important;
+                }
+                
+                /* Ensure date input text is visible */
+                input[type="date"]::-webkit-datetime-edit-text,
+                input[type="date"]::-webkit-datetime-edit-month-field,
+                input[type="date"]::-webkit-datetime-edit-day-field,
+                input[type="date"]::-webkit-datetime-edit-year-field {
+                    color: #ffffff;
+                }
+                
+                /* Style the date picker button */
+                input[type="date"]::-webkit-calendar-picker-indicator {
+                    background-color: #ffffff;
+                    border-radius: 3px;
+                    cursor: pointer;
+                    opacity: 0.8;
+                }
+                
+                input[type="date"]::-webkit-calendar-picker-indicator:hover {
+                    opacity: 1;
+                }
+                
+                /* Prevent zoom on all form inputs on iOS */
+                input, select, textarea {
+                    font-size: 16px !important;
+                }
+                
+                /* Fix time input styling */
+                input[type="time"] {
+                    -webkit-appearance: none;
+                    -moz-appearance: none;
+                    appearance: none;
+                    background-color: #374151 !important;
+                    color: #ffffff !important;
+                    border: 1px solid #4b5563 !important;
+                    text-align: left !important;
+                }
+                
+                /* Ensure mobile viewport doesn't zoom on input focus */
+                input:focus, select:focus, textarea:focus {
+                    font-size: 16px !important;
+                }
+            }
+            
+            /* General date input improvements for all devices */
+            input[type="date"]:invalid {
+                color: #ffffff;
+            }
+            
+            input[type="date"]:valid {
+                color: #ffffff;
+            }
+            
+            /* Fallback for browsers that don't support color-scheme */
+            input[type="date"] {
+                color-scheme: dark;
+            }
         </style>
     </head>
 <body class="bg-gray-900 text-gray-200">
@@ -1235,6 +1307,13 @@ function renderTransitDay(dateStr, items){
 
         function validateForm() {
             hideError();
+            
+            // Mobile debugging - log form data collection
+            console.log('=== FORM VALIDATION START ===');
+            console.log('User agent:', navigator.userAgent);
+            console.log('Screen dimensions:', window.screen.width, 'x', window.screen.height);
+            console.log('Viewport dimensions:', window.innerWidth, 'x', window.innerHeight);
+            
             const mode = document.querySelector('input[name="contextMode"]:checked').value;
             const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value;
             const intimacyTier = document.querySelector('input[name="intimacyTier"]:checked')?.value;
@@ -1248,11 +1327,22 @@ function renderTransitDay(dateStr, items){
             const timeA = document.getElementById('birth_timeA').value.trim();
             const astroA = document.getElementById('astroA').value.trim();
 
+            // Mobile debugging - log raw values
+            console.log('Person A form values:');
+            console.log('- Name:', nameA);
+            console.log('- Date (raw):', dateA);
+            console.log('- Time (raw):', timeA);
+            console.log('- Coordinates (raw):', astroA);
+            console.log('- Date field type:', document.getElementById('birth_dateA').type);
+            console.log('- Date field value:', document.getElementById('birth_dateA').value);
+
             if (!nameA || !dateA || !timeA || !astroA) {
+                console.error('Missing required fields:', { nameA: !!nameA, dateA: !!dateA, timeA: !!timeA, astroA: !!astroA });
                 showError('Please fill in all required fields for Person A');
                 return false;
             }
             if (!/^\d{4}-\d{2}-\d{2}$/.test(dateA)) {
+                console.error('Date format validation failed. Expected YYYY-MM-DD, got:', dateA);
                 showError('Please enter Person A date in YYYY-MM-DD format');
                 return false;
             }
@@ -1943,7 +2033,77 @@ function renderTransitDay(dateStr, items){
             // Initial check for intimacy tier
             const isPartner = document.querySelector('input[name="relationshipType"]:checked')?.value === 'partner';
             intimacyTierDropdown.classList.toggle('hidden', !isPartner);
+            
+            // Mobile-specific initialization
+            initializeMobileSupport();
         });
+        
+        // Mobile support initialization
+        function initializeMobileSupport() {
+            console.log('Initializing mobile support...');
+            
+            // Check if we're on a mobile device
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isSmallScreen = window.innerWidth <= 768;
+            
+            console.log('Mobile detection:', { isMobile, isSmallScreen, userAgent: navigator.userAgent });
+            
+            if (isMobile || isSmallScreen) {
+                // Add mobile class to body for additional styling hooks
+                document.body.classList.add('mobile-device');
+                
+                // Fix date inputs on mobile
+                const dateInputs = document.querySelectorAll('input[type="date"]');
+                dateInputs.forEach(input => {
+                    // Ensure proper date format handling
+                    input.addEventListener('input', function(e) {
+                        console.log('Date input changed:', e.target.id, 'value:', e.target.value);
+                        
+                        // Validate the date format
+                        if (e.target.value && !/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) {
+                            console.warn('Date format issue detected:', e.target.value);
+                            // Try to convert common formats
+                            if (e.target.value.includes('/')) {
+                                const parts = e.target.value.split('/');
+                                if (parts.length === 3) {
+                                    // Assume MM/DD/YYYY format and convert to YYYY-MM-DD
+                                    const month = parts[0].padStart(2, '0');
+                                    const day = parts[1].padStart(2, '0');
+                                    const year = parts[2];
+                                    const isoDate = `${year}-${month}-${day}`;
+                                    console.log('Converting date format:', e.target.value, 'to', isoDate);
+                                    e.target.value = isoDate;
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Prevent iOS zoom on focus
+                    input.addEventListener('focus', function(e) {
+                        console.log('Date input focused:', e.target.id);
+                        e.target.style.fontSize = '16px';
+                    });
+                });
+                
+                // Also handle time inputs
+                const timeInputs = document.querySelectorAll('input[type="time"]');
+                timeInputs.forEach(input => {
+                    input.addEventListener('focus', function(e) {
+                        e.target.style.fontSize = '16px';
+                    });
+                });
+                
+                // Handle text inputs that might become date inputs on mobile
+                const textInputs = document.querySelectorAll('input[type="text"]');
+                textInputs.forEach(input => {
+                    input.addEventListener('focus', function(e) {
+                        e.target.style.fontSize = '16px';
+                    });
+                });
+                
+                console.log('Mobile support initialized');
+            }
+        }
     </script>
 </body>
 </html>
