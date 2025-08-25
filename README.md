@@ -246,8 +246,9 @@ Before making any changes, **always** review these key documents:
 2. **[MAINTENANCE_GUIDE.md](../MAINTENANCE_GUIDE.md)** - Best practices, error handling, file organization
 3. **[CHANGELOG.md](../CHANGELOG.md)** - Complete change history with AI assistant collaboration notes
 4. **[Lessons Learned for Developer.md](../Lessons%20Learned%20for%20Developer.md)** - Critical insights about AI assistant context and IDE integration
-5. **[MATH_BRAIN_COMPLIANCE.md](../MATH_BRAIN_COMPLIANCE.md)** - Technical compliance requirements
-6. **[API_INTEGRATION_GUIDE.md](../API_INTEGRATION_GUIDE.md)** - API integration specifications
+5. **[copilot_fix_recovery.md](../copilot_fix_recovery.md)** - **Emergency recovery when AI assistants cause problems**
+6. **[MATH_BRAIN_COMPLIANCE.md](../MATH_BRAIN_COMPLIANCE.md)** - Technical compliance requirements
+7. **[API_INTEGRATION_GUIDE.md](../API_INTEGRATION_GUIDE.md)** - API integration specifications
 
 ## Development Workflow Guidelines
 
