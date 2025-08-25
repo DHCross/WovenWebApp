@@ -44,8 +44,9 @@ WovenWebApp is a web-based astrological chart analysis application that generate
 2. `MAINTENANCE_GUIDE.md` – Best practices, error handling, file org
 3. `CHANGELOG.md` – Change history with AI collaboration notes
 4. `Lessons Learned for Developer.md` – Context & IDE integration
-5. `MATH_BRAIN_COMPLIANCE.md` – Technical compliance requirements
-6. `API_INTEGRATION_GUIDE.md` – External API usage patterns
+5. `copilot_fix_recovery.md` – **Emergency recovery when AI assistants cause issues**
+6. `MATH_BRAIN_COMPLIANCE.md` – Technical compliance requirements
+7. `API_INTEGRATION_GUIDE.md` – External API usage patterns
 
 ---
 
