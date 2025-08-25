@@ -3,92 +3,50 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Eldritch RPG 2e Character Generator — Balanced vs Specialist + Rookie Profiles</title>
+  <title>Eldritch RPG 2e — Character Generator (Rebuilt)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .fade-in { animation: fadeIn .4s ease-out forwards; }
+    :root { color-scheme: light dark; }
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: translateY(0);} }
+    .fade-in { animation: fadeIn .25s ease-out; }
     .pill { border-radius: 9999px; }
-    .kpi { box-shadow: inset 0 0 0 1px rgba(0,0,0,.05); }
-    /* Custom message box for alerts */
-    .custom-alert-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.3s, visibility 0.3s;
-    }
-    .custom-alert-box {
-        background-color: white;
-        padding: 2rem;
-        border-radius: 1rem;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        text-align: center;
-        max-width: 90%;
-        width: 400px;
-        transform: scale(0.9);
-        transition: transform 0.3s;
-    }
-    .custom-alert-overlay.visible {
-        opacity: 1;
-        visibility: visible;
-    }
-     .custom-alert-overlay.visible .custom-alert-box {
-        transform: scale(1);
-    }
-    .custom-alert-button {
-        margin-top: 1.5rem;
-        padding: 0.75rem 1.5rem;
-        border: none;
-        background-color: #3b82f6;
-        color: white;
-        border-radius: 0.5rem;
-        cursor: pointer;
-        font-weight: 600;
-        transition: background-color 0.2s;
-    }
-    .custom-alert-button:hover {
-        background-color: #2563eb;
-    }
-    select:disabled {
-        background-color: #e5e7eb;
-        cursor: not-allowed;
-    }
+    .kpi { box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
+    .btn { @apply rounded-full font-semibold px-4 py-2.5 shadow focus:outline-none focus:ring-2 focus:ring-offset-2; }
+    .sr-only-focusable:focus { position: static !important; width: auto; height: auto; clip: auto; }
   </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
-  <div class="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
+  <a href="#main" class="sr-only sr-only-focusable block p-2 m-2 bg-white rounded">Skip to content</a>
+  <div class="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8" id="main">
+    <!-- Header -->
     <header class="mb-6 sm:mb-8 text-center">
-      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Eldritch RPG 2nd Edition</h1>
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Eldritch RPG 2e</h1>
       <p class="text-gray-600">Character Generator — <span class="font-semibold">Balanced · Specialist · Rookie</span></p>
     </header>
 
     <!-- Controls -->
-    <section class="bg-white rounded-2xl shadow kpi p-6 mb-6">
+    <section class="bg-white rounded-2xl shadow kpi p-6 mb-6" aria-labelledby="controlsTitle">
+      <h2 id="controlsTitle" class="text-lg font-semibold mb-4">Character Controls</h2>
+
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
         <div>
           <label class="block text-sm font-medium mb-1" for="race">Race</label>
-          <select id="race" class="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5"></select>
+          <select id="race" class="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5" aria-describedby="raceHelp"></select>
+          <p id="raceHelp" class="mt-1 text-xs text-gray-500">Applies racial minima/advantages.</p>
         </div>
         <div>
           <label class="block text-sm font-medium mb-1" for="class">Class</label>
-          <select id="class" class="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5"></select>
+          <select id="class" class="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5" aria-describedby="classHelp"></select>
+          <p id="classHelp" class="mt-1 text-xs text-gray-500">Applies class minima/feats axis for weighting.</p>
         </div>
         <div>
           <label class="block text-sm font-medium mb-1" for="level">Level</label>
-          <select id="level" class="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5"></select>
+          <select id="level" class="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5" aria-describedby="levelHelp"></select>
+          <p id="levelHelp" class="mt-1 text-xs text-gray-500">Uses CP bands to back-compute display level.</p>
         </div>
         <div id="magic-path-container" class="hidden">
           <label class="block text-sm font-medium mb-1" for="magic-path">Chosen Magic Path</label>
@@ -98,19 +56,19 @@
 
       <div class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Build Philosophy -->
-        <div class="bg-gray-50 rounded-xl p-4">
-          <h3 class="font-semibold mb-2">Build Philosophy</h3>
-          <div class="flex flex-wrap gap-2" id="build-style">
+        <fieldset class="bg-gray-50 rounded-xl p-4" aria-labelledby="buildPhilosophy">
+          <legend id="buildPhilosophy" class="font-semibold mb-2">Build Philosophy</legend>
+          <div class="flex flex-wrap gap-2" id="build-style" role="radiogroup" aria-label="Build Style">
             <label class="flex items-center gap-2 rounded-full px-3 py-2 bg-white border cursor-pointer">
-              <input type="radio" name="style" value="balanced" checked>
+              <input type="radio" name="style" value="balanced" checked aria-label="Balanced">
               <span class="text-sm font-medium">Balanced</span>
             </label>
             <label class="flex items-center gap-2 rounded-full px-3 py-2 bg-white border cursor-pointer">
-              <input type="radio" name="style" value="hybrid">
+              <input type="radio" name="style" value="hybrid" aria-label="Hybrid">
               <span class="text-sm font-medium">Hybrid</span>
             </label>
             <label class="flex items-center gap-2 rounded-full px-3 py-2 bg-white border cursor-pointer">
-              <input type="radio" name="style" value="specialist">
+              <input type="radio" name="style" value="specialist" aria-label="Specialist">
               <span class="text-sm font-medium">Specialist</span>
             </label>
           </div>
@@ -119,7 +77,7 @@
             <label for="enforce-softcaps">Enforce Soft Caps by Level</label>
           </div>
           <p class="mt-2 text-xs text-gray-500">Balanced spreads CP before spiking; Specialist prioritizes class axis; Hybrid blends both.</p>
-        </div>
+        </fieldset>
 
         <!-- Rookie Profiles -->
         <div class="bg-gray-50 rounded-xl p-4">
@@ -148,325 +106,457 @@
             <label for="warn-weakness" class="text-sm">Show Weakness Report</label>
           </div>
           <div class="flex flex-wrap gap-2 pt-2">
-            <button id="generate-btn" class="rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 shadow">Generate</button>
-            <button id="export-md-btn" class="rounded-full bg-white hover:bg-gray-100 text-blue-600 font-semibold py-2.5 px-4 border border-blue-600 shadow">Export MD</button>
-            <button id="copy-md-btn" class="rounded-full bg-white hover:bg-gray-100 text-blue-600 font-semibold py-2.5 px-4 border border-blue-600 shadow">Copy MD</button>
+            <button id="generate-btn" class="btn bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-600">Generate</button>
+            <button id="export-md-btn" class="btn bg-white hover:bg-gray-100 text-blue-600 border border-blue-600 focus:ring-blue-600">Export MD</button>
+            <button id="copy-md-btn" class="btn bg-white hover:bg-gray-100 text-blue-600 border border-blue-600 focus:ring-blue-600">Copy MD</button>
+            <button id="reset-btn" class="btn bg-white hover:bg-gray-100 text-gray-700 border focus:ring-gray-400">Reset</button>
           </div>
         </div>
       </div>
     </section>
 
     <!-- Output -->
-    <div id="character-output"></div>
+    <section id="character-output" aria-live="polite"></section>
   </div>
 
-  <!-- Custom Alert Box HTML -->
-  <div id="custom-alert" class="custom-alert-overlay">
-      <div class="custom-alert-box">
-          <p id="custom-alert-message"></p>
-          <button id="custom-alert-close" class="custom-alert-button">OK</button>
+  <!-- Custom Alert Box -->
+  <div id="custom-alert" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+    <div class="bg-white max-w-sm w-[90%] rounded-xl p-6 shadow-xl">
+      <p id="custom-alert-message" class="text-center"></p>
+      <div class="mt-4 flex justify-center">
+        <button id="custom-alert-close" class="btn bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-600">OK</button>
       </div>
+    </div>
   </div>
 
   <script>
+  // ==========================
+  // Eldritch 2e Character Generator (Rebuilt)
+  // ==========================
+  // Design goals:
+  // - Deterministic CP economy aligned to 2e costs
+  // - Clear separation of data, rules, UI
+  // - Soft caps & Rookie profiles baked in
+  // - Accessible output, compact layout, markdown export
+
   // ======= DATA =======
-  const dieRanks=['d4','d6','d8','d10','d12'];
-  const abilities=['Competence','Prowess','Fortitude'];
-  const specs={Competence:['Adroitness','Expertise','Perception'],Prowess:['Agility','Melee','Precision'],Fortitude:['Endurance','Strength','Willpower']};
-  const foci={Adroitness:['Skulduggery','Cleverness'],Expertise:['Wizardry','Theurgy'],Perception:['Alertness','Perspicacity'],Agility:['Speed','Reaction'],Melee:['Threat','Finesse'],Precision:['Ranged Threat','Ranged Finesse'],Endurance:['Vitality','Resilience'],Strength:['Ferocity','Might'],Willpower:['Courage','Resistance']};
-  const races=['Human','Elf','Dwarf','Gnome','Half-Elf','Half-Orc','Halfling','Drakkin'];
-  const classes=['Adept','Assassin','Barbarian','Mage','Mystic','Rogue','Theurgist','Warrior'];
-  const levels=[1,2,3,4,5];
-  const casterClasses=['Adept','Mage','Mystic','Theurgist'];
-  const magicPathsByClass={Adept:['Thaumaturgy','Elementalism','Sorcery'],Mage:['Thaumaturgy','Elementalism','Sorcery'],Mystic:['Mysticism'],Theurgist:['Druidry','Hieraticism']};
-  const levelInfo=[{level:1,masteryDie:'d4',cpBand:[10,100]},{level:2,masteryDie:'d6',cpBand:[101,199]},{level:3,masteryDie:'d8',cpBand:[200,299]},{level:4,masteryDie:'d10',cpBand:[300,399]},{level:5,masteryDie:'d12',cpBand:[400,999]}];
-  const raceMinima={Drakkin:{Competence:'d6',Prowess:'d6',Fortitude:'d6',Endurance:'d6',Strength:'d4'},Dwarf:{Fortitude:'d8',Endurance:'d4',Prowess:'d6',Melee:'d6'},Elf:{Competence:'d6',Expertise:'d6',Wizardry:'+1',Prowess:'d4',Agility:'d4',Reaction:'+1'},Gnome:{Competence:'d4',Adroitness:'d6',Expertise:'d6',Perception:'d4',Perspicacity:'+1'},'Half-Elf':{Competence:'d6',Prowess:'d6',Agility:'d4',Fortitude:'d4',Endurance:'d4',Willpower:'d4'},'Half-Orc':{Fortitude:'d6',Strength:'d8',Ferocity:'+1',Endurance:'d6'},Halfling:{Competence:'d6',Adroitness:'d6',Cleverness:'+1',Fortitude:'d6',Willpower:'d4',Courage:'+1'},Human:{Competence:'d6',Prowess:'d6',Melee:'d4',Threat:'+1',Fortitude:'d4',Willpower:'d6'}};
-  const classMinima={Adept:{Competence:'d6',Adroitness:'d4',Cleverness:'+1',Expertise:'d6',Wizardry:'+1',Perception:'d4',Perspicacity:'+1'},Assassin:{Competence:'d4',Adroitness:'d6',Perception:'d4',Prowess:'d4',Agility:'d4',Endurance:'d6',Melee:'d4',Finesse:'+1'},Barbarian:{Prowess:'d6',Melee:'d8',Fortitude:'d4',Strength:'d4',Ferocity:'+1'},Mage:{Competence:'d6',Expertise:'d8',Wizardry:'+1',Fortitude:'d4',Willpower:'d6',Resistance:'+1'},Mystic:{Competence:'d6',Expertise:'d6',Wizardry:'+1',Prowess:'d4',Melee:'d4',Fortitude:'d4',Endurance:'d6',Resilience:'+1',Vitality:'+2'},Rogue:{Competence:'d4',Adroitness:'d4',Skulduggery:'+1',Perception:'d4',Prowess:'d6',Agility:'d8'},Theurgist:{Competence:'d8',Expertise:'d4',Theurgy:'+1',Fortitude:'d6',Willpower:'d4'},Warrior:{Prowess:'d8',Melee:'d6',Threat:'+1',Fortitude:'d6'}};
-  const allAdvantages={Human:['Fortunate','Survival'],Elf:['Night Vision','Gift of Magic','Magic Resistance (+1)'],Dwarf:['Night Vision','Strong-willed','Sense of Direction'],Gnome:['Eidetic Memory','Low-Light Vision','Observant'],'Half-Elf':['Heightened Senses','Low-Light Vision','Magic Resistance (+1)'],'Half-Orc':['Low-light Vision','Intimidation','Menacing'],Halfling:['Low Light Vision','Read Emotions','Resilient'],Drakkin:['Natural Armor','Breath Weapon','Night Vision'],Adept:['Arcanum','Gift of Magic','Literacy','Scholar'],Assassin:['Expeditious','Heightened Senses (hearing)','Observant','Read Emotions'],Barbarian:['Animal Affinity','Brutishness','Menacing','Resilient'],Mage:['Arcanum','Gift of Magic','Magic Defense','Scholar'],Mystic:['Empathic','Gift of Magic','Intuitive','Magic Resistance (Lesser)','Strong-Willed'],Rogue:['Expeditious','Fortunate','Streetwise','Underworld Contacts'],Theurgist:['Gift of Magic','Magic Defense','Religion','Strong-Willed'],Warrior:['Commanding','Intimidation','Magic Resistance (+1)','Tactician']};
-  const classFeats={Adept:['Guile','Lore','Ritual Magic','Quick-witted'],Assassin:['Death Strike','Lethal Exploit','Ranged Ambush','Shadow Walk'],Barbarian:['Berserk','Brawl','Feat of Strength','Grapple'],Mage:['Arcane Finesse','Dweomers','Intangible Threat','Path Mastery'],Mystic:['Iron Mind','Path Mastery','Premonition','Psychic Powers'],Rogue:['Backstab','Evasion','Roguish Charm','Stealth'],Theurgist:['Divine Healing','Path Mastery','Spiritual Smite','Supernatural Intervention'],Warrior:['Battle Savvy','Maneuvers','Stunning Reversal','Sunder Foe']};
-  const raceFlaws={Gnome:['Restriction: small weapons only'],Halfling:['Restriction: small weapons only'],'Half-Orc':['Ugliness']};
-  const startingEquipment={common:['Set of ordinary clothes','Purse of 5 gold coins','Backpack','Small dagger','Week’s rations','Waterskin','Tinderbox','50\' rope','Iron spikes','Small hammer','6\' traveling staff or 10\' pole','Hooded lantern and 2 oil flasks or d4+1 torches'],Adept:['Book of knowledge (area of expertise)'],Assassin:['Assassin hood, jacket, cape, robe, or tunic'],Barbarian:['Garments of woven wool or linen','Tunic','Overcoat or cloak'],Mage:['Spellbook','Staff or focus item'],Mystic:['Robes or shawl','Cloak','Armor up to leather'],Rogue:['Set of thieves\' tools','Light armor (up to leather)','One weapon'],Theurgist:['Prayer book','Holy relic or symbol','Focus item','Armor up to chain'],Warrior:['One weapon of choice','Armor up to chain','Small to large shield','Steed']};
-  const stepCost={'d4':6,'d6':8,'d8':10,'d10':12,'d12':Infinity};
-  const cumulativeDieCost={'d4':4,'d6':10,'d8':18,'d10':28,'d12':40};
-  const focusStepCost=4;
-  const classAxes={Warrior:['Prowess','Melee','Strength','Fortitude','Endurance','Threat','Agility','Might'],Barbarian:['Prowess','Melee','Strength','Fortitude','Endurance','Ferocity','Might','Vitality'],Rogue:['Prowess','Agility','Competence','Adroitness','Perception','Skulduggery','Cleverness','Speed'],Assassin:['Prowess','Agility','Melee','Competence','Adroitness','Finesse','Speed','Perception'],Mage:['Competence','Expertise','Wizardry','Fortitude','Willpower','Resistance','Perception'],Mystic:['Fortitude','Willpower','Competence','Expertise','Endurance','Prowess','Melee','Resilience','Vitality'],Adept:['Competence','Expertise','Adroitness','Perception','Cleverness','Wizardry','Perspicacity'],Theurgist:['Competence','Expertise','Theurgy','Fortitude','Willpower','Endurance','Courage']};
+  const dieRanks = ['d4','d6','d8','d10','d12'];
+  const abilities = ['Competence','Prowess','Fortitude'];
+  const specs = {
+    Competence:['Adroitness','Expertise','Perception'],
+    Prowess:['Agility','Melee','Precision'],
+    Fortitude:['Endurance','Strength','Willpower']
+  };
+  const foci = {
+    Adroitness:['Skulduggery','Cleverness'],
+    Expertise:['Wizardry','Theurgy'],
+    Perception:['Alertness','Perspicacity'],
+    Agility:['Speed','Reaction'],
+    Melee:['Threat','Finesse'],
+    Precision:['Ranged Threat','Ranged Finesse'],
+    Endurance:['Vitality','Resilience'],
+    Strength:['Ferocity','Might'],
+    Willpower:['Courage','Resistance']
+  };
+  const races = ['Human','Elf','Dwarf','Gnome','Half-Elf','Half-Orc','Halfling','Drakkin'];
+  const classes = ['Adept','Assassin','Barbarian','Mage','Mystic','Rogue','Theurgist','Warrior'];
+  const levels = [1,2,3,4,5];
+  const casterClasses = ['Adept','Mage','Mystic','Theurgist'];
+  const magicPathsByClass = {
+    Adept:['Thaumaturgy','Elementalism','Sorcery'],
+    Mage:['Thaumaturgy','Elementalism','Sorcery'],
+    Mystic:['Mysticism'],
+    Theurgist:['Druidry','Hieraticism']
+  };
+  const levelInfo = [
+    {level:1, masteryDie:'d4', cpBand:[10,100]},
+    {level:2, masteryDie:'d6', cpBand:[101,199]},
+    {level:3, masteryDie:'d8', cpBand:[200,299]},
+    {level:4, masteryDie:'d10', cpBand:[300,399]},
+    {level:5, masteryDie:'d12', cpBand:[400,999]}
+  ];
+
+  // Racial & Class minima tuned to manuscript
+  const raceMinima = {
+    Drakkin:{Competence:'d6',Prowess:'d6',Fortitude:'d6',Endurance:'d6',Strength:'d4'},
+    Dwarf:{Fortitude:'d8',Endurance:'d4',Prowess:'d6',Melee:'d6'},
+    Elf:{Competence:'d6',Expertise:'d6',Wizardry:'+1',Prowess:'d4',Agility:'d4',Reaction:'+1'},
+    Gnome:{Competence:'d4',Adroitness:'d6',Expertise:'d6',Perception:'d4',Perspicacity:'+1'},
+    'Half-Elf':{Competence:'d6',Prowess:'d6',Agility:'d4',Fortitude:'d4',Endurance:'d4',Willpower:'d4'},
+    'Half-Orc':{Fortitude:'d6',Strength:'d8',Ferocity:'+1',Endurance:'d6'},
+    Halfling:{Competence:'d6',Adroitness:'d6',Cleverness:'+1',Fortitude:'d6',Willpower:'d4',Courage:'+1'},
+    Human:{Competence:'d6',Prowess:'d6',Melee:'d4',Threat:'+1',Fortitude:'d4',Willpower:'d6'}
+  };
+  const classMinima = {
+    Adept:{Competence:'d6',Adroitness:'d4',Cleverness:'+1',Expertise:'d6',Wizardry:'+1',Perception:'d4',Perspicacity:'+1'},
+    Assassin:{Competence:'d4',Adroitness:'d6',Perception:'d4',Prowess:'d4',Agility:'d4',Endurance:'d6',Melee:'d4',Finesse:'+1'},
+    Barbarian:{Prowess:'d6',Melee:'d8',Fortitude:'d4',Strength:'d4',Ferocity:'+1'},
+    Mage:{Competence:'d6',Expertise:'d8',Wizardry:'+1',Fortitude:'d4',Willpower:'d6',Resistance:'+1'},
+    Mystic:{Competence:'d6',Expertise:'d6',Wizardry:'+1',Prowess:'d4',Melee:'d4',Fortitude:'d4',Endurance:'d6',Resilience:'+1',Vitality:'+2'},
+    Rogue:{Competence:'d4',Adroitness:'d4',Skulduggery:'+1',Perception:'d4',Prowess:'d6',Agility:'d8'},
+    Theurgist:{Competence:'d8',Expertise:'d4',Theurgy:'+1',Fortitude:'d6',Willpower:'d4'},
+    Warrior:{Prowess:'d8',Melee:'d6',Threat:'+1',Fortitude:'d6'}
+  };
+  const allAdvantages = {
+    Human:['Fortunate','Survival'],Elf:['Night Vision','Gift of Magic','Magic Resistance (+1)'],
+    Dwarf:['Night Vision','Strong-willed','Sense of Direction'],Gnome:['Eidetic Memory','Low-Light Vision','Observant'],
+    'Half-Elf':['Heightened Senses','Low-Light Vision','Magic Resistance (+1)'],'Half-Orc':['Low-light Vision','Intimidation','Menacing'],
+    Halfling:['Low Light Vision','Read Emotions','Resilient'],Drakkin:['Natural Armor','Breath Weapon','Night Vision'],
+    Adept:['Arcanum','Gift of Magic','Literacy','Scholar'],Assassin:['Expeditious','Heightened Senses (hearing)','Observant','Read Emotions'],
+    Barbarian:['Animal Affinity','Brutishness','Menacing','Resilient'],Mage:['Arcanum','Gift of Magic','Magic Defense','Scholar'],
+    Mystic:['Empathic','Gift of Magic','Intuitive','Magic Resistance (Lesser)','Strong-Willed'],
+    Rogue:['Expeditious','Fortunate','Streetwise','Underworld Contacts'],Theurgist:['Gift of Magic','Magic Defense','Religion','Strong-Willed'],
+    Warrior:['Commanding','Intimidation','Magic Resistance (+1)','Tactician']
+  };
+  const raceFlaws = { Gnome:['Restriction: small weapons only'], Halfling:['Restriction: small weapons only'], 'Half-Orc':['Ugliness'] };
+  const startingEquipment = {
+    common:['Set of ordinary clothes','Purse of 5 gold coins','Backpack','Small dagger','Week’s rations','Waterskin','Tinderbox','50\' rope','Iron spikes','Small hammer','6\' traveling staff or 10\' pole','Hooded lantern and 2 oil flasks or d4+1 torches'],
+    Adept:['Book of knowledge (area of expertise)'],Assassin:['Assassin hood, jacket, cape, robe, or tunic'],
+    Barbarian:['Garments of woven wool or linen','Tunic','Overcoat or cloak'],Mage:['Spellbook','Staff or focus item'],
+    Mystic:['Robes or shawl','Cloak','Armor up to leather'],Rogue:['Set of thieves\' tools','Light armor (up to leather)','One weapon'],
+    Theurgist:['Prayer book','Holy relic or symbol','Focus item','Armor up to chain'],Warrior:['One weapon of choice','Armor up to chain','Small to large shield','Steed']
+  };
+
+  // CP economy (aligned to manuscript tables)
+  const stepCost = { 'd4':6,'d6':8,'d8':10,'d10':12,'d12':Infinity }; // cost to go up one die from current
+  const cumulativeDieCost = { 'd4':4,'d6':10,'d8':18,'d10':28,'d12':40 }; // total value accounting
+  const focusStepCost = 4; // +1 focus step cost
+
+  // Class axes weight order (used by spender heuristics)
+  const classAxes = {
+    Warrior:['Prowess','Melee','Strength','Fortitude','Endurance','Threat','Agility','Might'],
+    Barbarian:['Prowess','Melee','Strength','Fortitude','Endurance','Ferocity','Might','Vitality'],
+    Rogue:['Prowess','Agility','Competence','Adroitness','Perception','Skulduggery','Cleverness','Speed'],
+    Assassin:['Prowess','Agility','Melee','Competence','Adroitness','Finesse','Speed','Perception'],
+    Mage:['Competence','Expertise','Wizardry','Fortitude','Willpower','Resistance','Perception'],
+    Mystic:['Fortitude','Willpower','Competence','Expertise','Endurance','Prowess','Melee','Resilience','Vitality'],
+    Adept:['Competence','Expertise','Adroitness','Perception','Cleverness','Wizardry','Perspicacity'],
+    Theurgist:['Competence','Expertise','Theurgy','Fortitude','Willpower','Endurance','Courage']
+  };
 
   // ======= HELPERS =======
-  const idx=r=>dieRanks.indexOf(r);
-  const mv=r=>r&&r.startsWith('d')?parseInt(r.slice(1),10):0;
-  const fnum=v=>v?parseInt(String(v).replace('+',''),10):0;
-  const sel=id=>document.getElementById(id);
+  const idx = r => dieRanks.indexOf(r);
+  const mv = r => r && r.startsWith('d') ? parseInt(r.slice(1),10) : 0;
+  const fnum = v => v ? parseInt(String(v).replace('+',''),10) : 0;
+  const sel = id => document.getElementById(id);
+  const order = {'d4':0,'d6':1,'d8':2,'d10':3,'d12':4};
 
-  function showAlert(message) {
-    const alertOverlay = sel('custom-alert');
-    const alertMessage = sel('custom-alert-message');
-    alertMessage.textContent = message;
-    alertOverlay.classList.add('visible');
+  function showAlert(message){
+    const o = sel('custom-alert');
+    sel('custom-alert-message').textContent = message;
+    o.classList.remove('hidden');
+    o.classList.add('flex');
+  }
+  function closeAlert(){
+    const o = sel('custom-alert');
+    o.classList.add('hidden');
+    o.classList.remove('flex');
   }
 
   // ======= UI SETUP =======
   function populate(){
-    sel('race').innerHTML='<option value="">Select Race</option>'+races.map(r=>`<option>${r}</option>`).join('');
-    sel('class').innerHTML='<option value="">Select Class</option>'+classes.map(c=>`<option>${c}</option>`).join('');
-    sel('level').innerHTML='<option value="">Select Level</option>'+levels.map(l=>`<option>${l}</option>`).join('');
-    
-    sel('level').addEventListener('change', () => {
-        const levelSelect = sel('level');
-        const rookieSelect = sel('rookie-profile');
-        if (levelSelect.value === '1') {
-            rookieSelect.disabled = false;
-        } else {
-            rookieSelect.disabled = true;
-            rookieSelect.value = 'off';
-        }
+    sel('race').innerHTML = '<option value="">Select Race</option>' + races.map(r=>`<option>${r}</option>`).join('');
+    sel('class').innerHTML = '<option value="">Select Class</option>' + classes.map(c=>`<option>${c}</option>`).join('');
+    sel('level').innerHTML = '<option value="">Select Level</option>' + levels.map(l=>`<option>${l}</option>`).join('');
+
+    sel('level').addEventListener('change',()=>{
+      const rp = sel('rookie-profile');
+      rp.disabled = sel('level').value !== '1';
+      if (rp.disabled) rp.value = 'off';
     });
 
     sel('class').addEventListener('change',()=>{
-      const c=sel('class').value;
-      const cont=sel('magic-path-container');
-      const psel=sel('magic-path');
-      if (magicPathsByClass[c] && c!=='Adept' && c!=='Mystic') {
+      const c = sel('class').value;
+      const cont = sel('magic-path-container');
+      const psel = sel('magic-path');
+      if (magicPathsByClass[c] && c !== 'Adept' && c !== 'Mystic'){
         cont.classList.remove('hidden');
-        psel.innerHTML='<option value="">-- Select Path --</option>'+magicPathsByClass[c].map(p=>`<option>${p}</option>`).join('');
+        psel.innerHTML = '<option value="">-- Select Path --</option>' + magicPathsByClass[c].map(p=>`<option>${p}</option>`).join('');
       } else {
         cont.classList.add('hidden');
-        psel.innerHTML='';
+        psel.innerHTML = '';
       }
     });
   }
 
   // ======= CORE LOGIC =======
-  function applyMinima(ch,minima){
+  function applyMinima(ch, minima){
     for (const [k,v] of Object.entries(minima||{})){
       if (abilities.includes(k)){
-        if (idx(v)>idx(ch.abilities[k])) ch.abilities[k]=v;
+        if (idx(v) > idx(ch.abilities[k])) ch.abilities[k] = v;
       } else {
-        const parentA=Object.keys(specs).find(a=>specs[a].includes(k));
-        const parentS=Object.keys(foci).find(s=>foci[s].includes(k));
-        if (parentA){
-          if (idx(v)>idx(ch.specialties[parentA][k])) ch.specialties[parentA][k]=v;
-        } else if (parentS){
-          const pa=Object.keys(specs).find(a=>specs[a].includes(parentS));
-          if (fnum(v)>fnum(ch.focuses[pa][k])) ch.focuses[pa][k]=`+${fnum(v)}`;
+        const parentSpec = Object.keys(specs).find(a=>specs[a].includes(k));
+        const parentFocus = Object.keys(foci).find(s=>foci[s].includes(k));
+        if (parentSpec){
+          if (idx(v) > idx(ch.specialties[parentSpec][k])) ch.specialties[parentSpec][k] = v;
+        } else if (parentFocus){
+          const parentAbility = Object.keys(specs).find(a=>specs[a].includes(parentFocus));
+          if (fnum(v) > fnum(ch.focuses[parentAbility][k])) ch.focuses[parentAbility][k] = `+${fnum(v)}`;
         }
       }
     }
   }
 
   function rookieCaps(profile){
-    if (profile==='pure') return {abilityMax:'d6',specMax:'d6',focusMax:1, rules:[ch=>true]};
-    if (profile==='balanced') return {abilityMax:'d8',specMax:'d8',focusMax:2, rules:[ch=> breadthFloors(ch,'d6')]};
-    if (profile==='specialist') return {abilityMax:'d8',specMax:'d10',focusMax:3, rules:[ch=> floors(ch,'d4')]};
+    if (profile==='pure') return { abilityMax:'d6', specMax:'d6', focusMax:1, rules:[ch=>true] };
+    if (profile==='balanced') return { abilityMax:'d8', specMax:'d8', focusMax:2, rules:[ch=> breadthFloors(ch,'d6')] };
+    if (profile==='specialist') return { abilityMax:'d8', specMax:'d10', focusMax:3, rules:[ch=> floors(ch,'d4')] };
     return null;
   }
-
-  function softCaps(level,style){
-    const sc={abilityMax:'d12',specMax:'d12',focusMax:5,rules:[]};
+  function softCaps(level, style){
+    const sc = { abilityMax:'d12', specMax:'d12', focusMax:5, rules:[] };
     if (style==='balanced'){
       if (level<=3){ sc.abilityMax='d10'; sc.specMax='d10'; sc.focusMax=3; }
       if (level===4){ sc.focusMax=4; }
       sc.rules.push(ch=> breadthFloors(ch,'d8'));
       sc.rules.push(ch=> countSpecsAtOrAbove(ch,'d12')<=1);
     }
-    if (style==='hybrid' && level<=3) sc.focusMax=4;
+    if (style==='hybrid' && level<=3) sc.focusMax = 4;
     if (style==='specialist'){
-      if (level<=3) sc.focusMax=5;
+      if (level<=3) sc.focusMax = 5;
       sc.rules.push(ch=> floors(ch,'d4'));
     }
     return sc;
   }
+  function breadthFloors(ch, rank){ return Object.values(ch.abilities).every(r=>order[r] >= order[rank]); }
+  function floors(ch, rank){ return Object.values(ch.abilities).every(r=>order[r] >= order[rank]); }
+  function countSpecsAtOrAbove(ch, rank){ let n=0; for (const a of abilities){ for (const s of specs[a]) if (order[ch.specialties[a][s]]>=order[rank]) n++; } return n; }
 
-  const order={'d4':0,'d6':1,'d8':2,'d10':3,'d12':4};
-  function breadthFloors(ch,rank){ return Object.values(ch.abilities).every(r=>order[r]>=order[rank]); }
-  function floors(ch,rank){ return Object.values(ch.abilities).every(r=>order[r]>=order[rank]); }
-  function countSpecsAtOrAbove(ch,rank){ let n=0; for (const a of abilities){ for (const s of specs[a]) if (order[ch.specialties[a][s]]>=order[rank]) n++; } return n; }
-
-  function buildWeights(klass,style){
-    const axis=classAxes[klass]||[]; const w={}; axis.forEach((k,i)=> w[k]=(style==='specialist'?100-i*4: style==='balanced'?60-i*3:80-i*3));
-    if (style==='balanced'){ w['Competence']=(w['Competence']||30)+20; w['Fortitude']=(w['Fortitude']||30)+20; ['Endurance','Strength','Willpower','Agility'].forEach(k=> w[k]=(w[k]||20)+10); }
+  function buildWeights(klass, style){
+    const axis = classAxes[klass]||[]; const w = {};
+    axis.forEach((k,i)=> w[k] = (style==='specialist'?100 - i*4 : style==='balanced'?60 - i*3 : 80 - i*3));
+    if (style==='balanced'){
+      w['Competence'] = (w['Competence']||30)+20;
+      w['Fortitude'] = (w['Fortitude']||30)+20;
+      ['Endurance','Strength','Willpower','Agility'].forEach(k=> w[k]=(w[k]||20)+10);
+    }
     return w;
   }
 
   function canUpgrade(ch,key,kind,level,style){
     if (!sel('enforce-softcaps').checked) return true;
-    const rp=sel('rookie-profile').value;
-    const rc=rookieCaps(rp);
+    const rp = sel('rookie-profile').value;
+    const rc = rookieCaps(rp);
     const sc = (level === 1 && rp !== 'off') ? rc : softCaps(level,style);
-    const maxDie = (kind==='ability')? sc.abilityMax : sc.specMax;
-    let cur='d4';
-    if (kind==='ability') cur=ch.abilities[key];
-    else { const pa=Object.keys(specs).find(a=>specs[a].includes(key)); cur=ch.specialties[pa][key]; }
-    if (order[cur]>=order[maxDie]) return false;
+    const maxDie = (kind==='ability') ? sc.abilityMax : sc.specMax;
+    let cur = 'd4';
+    if (kind==='ability') cur = ch.abilities[key]; else { const pa=Object.keys(specs).find(a=>specs[a].includes(key)); cur = ch.specialties[pa][key]; }
+    if (order[cur] >= order[maxDie]) return false;
     for (const rule of sc.rules){ if (!rule(ch)) return false; }
+    // Balanced gating: specialty can't leap beyond its parent too far
     if (!rc && style==='balanced' && kind==='spec'){
       const pa=Object.keys(specs).find(a=>specs[a].includes(key));
-      const parent=ch.abilities[pa]; if (order[cur]+1 > order[parent]+1) return false;
+      const parent = ch.abilities[pa];
+      if (order[cur]+1 > order[parent]+1) return false; // keep specialty close to parent rank
     }
     return true;
   }
 
   function spendCP(ch, cpBudget, style, level, npcMode){
-    const weights=buildWeights(ch.class,style);
-    const tryUpgrade=(key)=>{
+    const weights = buildWeights(ch.class, style);
+    const tryUpgrade = (key)=>{
       if (abilities.includes(key)){
-        const cur=ch.abilities[key]; if (cur==='d12') return false; if (!canUpgrade(ch,key,'ability',level,style)) return false; const cost=stepCost[cur]; if (cpBudget.value<cost) return false; ch.abilities[key]=dieRanks[idx(cur)+1]; cpBudget.value-=cost; return true;
+        const cur = ch.abilities[key]; if (cur==='d12') return false; if (!canUpgrade(ch,key,'ability',level,style)) return false;
+        const cost = stepCost[cur]; if (cpBudget.value < cost) return false;
+        ch.abilities[key] = dieRanks[idx(cur)+1]; cpBudget.value -= cost; return true;
       }
-      const pa=Object.keys(specs).find(a=>specs[a].includes(key));
-      if (pa){ const cur=ch.specialties[pa][key]; if (cur==='d12') return false; if (!canUpgrade(ch,key,'spec',level,style)) return false; const cost=stepCost[cur]; if (cpBudget.value<cost) return false; ch.specialties[pa][key]=dieRanks[idx(cur)+1]; cpBudget.value-=cost; return true; }
-      const ps=Object.keys(foci).find(s=>foci[s].includes(key));
+      const pa = Object.keys(specs).find(a=>specs[a].includes(key));
+      if (pa){
+        const cur = ch.specialties[pa][key]; if (cur==='d12') return false; if (!canUpgrade(ch,key,'spec',level,style)) return false;
+        const cost = stepCost[cur]; if (cpBudget.value < cost) return false;
+        // NPC mode: avoid sprinting to d12 at low level
+        if (npcMode && (level<=2) && dieRanks[idx(cur)+1]==='d12') return false;
+        ch.specialties[pa][key] = dieRanks[idx(cur)+1]; cpBudget.value -= cost; return true;
+      }
+      const ps = Object.keys(foci).find(s=>foci[s].includes(key));
       if (ps){
-        const pa2=Object.keys(specs).find(a=>specs[a].includes(ps));
-        const val=fnum(ch.focuses[pa2][key]);
-        const rp=sel('rookie-profile').value;
-        const rc=rookieCaps(rp);
+        const pa2 = Object.keys(specs).find(a=>specs[a].includes(ps));
+        const val = fnum(ch.focuses[pa2][key]);
+        const rp = sel('rookie-profile').value; const rc = rookieCaps(rp);
         const sc = (level === 1 && rp !== 'off') ? rc : softCaps(level,style);
-        if (val>=sc.focusMax) return false;
-        if (cpBudget.value<focusStepCost) return false;
-        ch.focuses[pa2][key]=`+${val+1}`;
-        cpBudget.value-=focusStepCost;
-        return true;
+        if (val >= sc.focusMax) return false;
+        if (cpBudget.value < focusStepCost) return false;
+        ch.focuses[pa2][key] = `+${val+1}`; cpBudget.value -= focusStepCost; return true;
       }
       return false;
     };
-    const keys=[...new Set([...abilities,...Object.values(specs).flat(),...Object.values(foci).flat()])];
-    let safety=0;
-    while (cpBudget.value>0 && safety<5000){
-      safety++;
-      const sorted=keys.slice().sort((a,b)=>(weights[b]||10)-(weights[a]||10));
-      let upgraded=false;
-      for (const k of sorted){ if (tryUpgrade(k)){ upgraded=true; break; } }
+
+    const keys = [...new Set([...abilities,...Object.values(specs).flat(),...Object.values(foci).flat()])];
+    let guard=0;
+    while (cpBudget.value>0 && guard<6000){
+      guard++;
+      const sorted = keys.slice().sort((a,b)=>(weights[b]||10)-(weights[a]||10));
+      let upgraded = false;
+      for (const k of sorted){ if (tryUpgrade(k)){ upgraded = true; break; } }
       if (!upgraded) break;
     }
   }
 
-  function computePools(ch){ const AD=mv(ch.abilities.Prowess)+mv(ch.specialties.Prowess.Agility)+mv(ch.specialties.Prowess.Melee); const PD=mv(ch.abilities.Fortitude)+mv(ch.specialties.Fortitude.Endurance)+mv(ch.specialties.Fortitude.Strength); const SP=mv(ch.abilities.Competence)+mv(ch.specialties.Fortitude.Willpower); return {active:AD, passive:PD, spirit:SP}; }
+  function computePools(ch){
+    const AD = mv(ch.abilities.Prowess) + mv(ch.specialties.Prowess.Agility) + mv(ch.specialties.Prowess.Melee);
+    const PD = mv(ch.abilities.Fortitude) + mv(ch.specialties.Fortitude.Endurance) + mv(ch.specialties.Fortitude.Strength);
+    const SP = mv(ch.abilities.Competence) + mv(ch.specialties.Fortitude.Willpower);
+    return { active:AD, passive:PD, spirit:SP };
+  }
 
-  function weaknessReport(ch){ const {active,passive,spirit}=computePools(ch); const flags=[]; if (spirit<=12) flags.push('Low Spirit Points (mental/arcane pressure will hurt).'); if (active<24) flags.push('Low Active DP (poor agility/parry).'); if (passive<24) flags.push('Low Passive DP (fragile to heavy blows).'); if (idx(ch.abilities.Competence)<=1) flags.push('Low Competence (poor perception/social/planning).'); if (idx(ch.specialties.Competence.Perception)<=1) flags.push('Low Perception branch (traps/ambush risk).'); if (idx(ch.specialties.Fortitude.Willpower)<=1) flags.push('Low Willpower (charms/fear/illusions).'); if (idx(ch.specialties.Prowess.Precision)<=1) flags.push('Weak ranged capability.'); return flags; }
+  function weaknessReport(ch){
+    const {active,passive,spirit} = computePools(ch);
+    const flags = [];
+    if (spirit <= 12) flags.push('Low Spirit Points (mental/arcane pressure will hurt).');
+    if (active < 24) flags.push('Low Active DP (poor agility/parry).');
+    if (passive < 24) flags.push('Low Passive DP (fragile to heavy blows).');
+    if (idx(ch.abilities.Competence) <= 1) flags.push('Low Competence (poor perception/social/planning).');
+    if (idx(ch.specialties.Competence.Perception) <= 1) flags.push('Low Perception branch (traps/ambush risk).');
+    if (idx(ch.specialties.Fortitude.Willpower) <= 1) flags.push('Low Willpower (charms/fear/illusions).');
+    if (idx(ch.specialties.Prowess.Precision) <= 1) flags.push('Weak ranged capability.');
+    return flags;
+  }
 
-  function cpTally(ch,iconic){ let a=0,s=0,f=0; for (const ab of abilities){ a+=(cumulativeDieCost[ch.abilities[ab]]||0); for (const sp of specs[ab]) s+=(cumulativeDieCost[ch.specialties[ab][sp]]||0); for (const fx of Object.values(ch.focuses[ab])) f+=fnum(fx)*focusStepCost; } const base=10, adv=iconic?4:0; return {base,abilities:a,specialties:s,focuses:f,advantages:adv,total:base+a+s+f+adv}; }
+  function cpTally(ch, iconic){
+    let a=0,s=0,f=0; for (const ab of abilities){
+      a += (cumulativeDieCost[ch.abilities[ab]]||0);
+      for (const sp of specs[ab]) s += (cumulativeDieCost[ch.specialties[ab][sp]]||0);
+      for (const fx of Object.values(ch.focuses[ab])) f += fnum(fx)*focusStepCost;
+    }
+    const base = 10, adv = iconic?4:0;
+    return { base, abilities:a, specialties:s, focuses:f, advantages:adv, total: base+a+s+f+adv };
+  }
 
-  // ======= MAIN GENERATE FUNCTION =======
+  // ======= MAIN GENERATE =======
   function generate(){
-    const race=sel('race').value; const klass=sel('class').value; const lvl=parseInt(sel('level').value,10);
+    const race = sel('race').value; const klass = sel('class').value; const lvl = parseInt(sel('level').value,10);
     if (!race || !klass || !lvl){ showAlert('Please select a valid race, class, and level.'); return; }
-    const iconic=sel('iconic-arcane').checked; const style=document.querySelector('input[name="style"]:checked').value; const rp=sel('rookie-profile').value; const npcMode=sel('npc-mode').checked;
+    const iconic = sel('iconic-arcane').checked; const style = document.querySelector('input[name="style"]:checked').value;
+    const rp = sel('rookie-profile').value; const npcMode = sel('npc-mode').checked;
 
-    const ch={race,class:klass,level:lvl,abilities:{},specialties:{},focuses:{}};
-    for (const a of abilities){ ch.abilities[a]='d4'; ch.specialties[a]={}; ch.focuses[a]={}; for (const s of specs[a]){ ch.specialties[a][s]='d4'; for (const fx of foci[s]) ch.focuses[a][fx]='+0'; } }
+    // Init character
+    const ch = { race, class:klass, level:lvl, abilities:{}, specialties:{}, focuses:{}, path: sel('magic-path').value || null };
+    for (const a of abilities){ ch.abilities[a]='d4'; ch.specialties[a]={}; ch.focuses[a]={}; for (const s of specs[a]){ ch.specialties[a][s]='d4'; for (const fx of foci[s]) ch.focuses[a][fx] = '+0'; } }
 
-    applyMinima(ch,raceMinima[race]); applyMinima(ch,classMinima[klass]);
+    applyMinima(ch, raceMinima[race]); applyMinima(ch, classMinima[klass]);
 
-    const cpBudget={ value: 10 + (lvl-1)*100 - (iconic?4:0) };
-    if (lvl === 1 && rp==='pure'){ /* no CP spending beyond minima */ }
-    else { spendCP(ch, cpBudget, style, lvl, npcMode); }
+    const cpBudget = { value: 10 + (lvl-1)*100 - (iconic?4:0) };
+    if (lvl === 1 && rp === 'pure'){
+      // no spending beyond minima
+    } else {
+      spendCP(ch, cpBudget, style, lvl, npcMode);
+    }
 
-    const totals=cpTally(ch,iconic);
-    let actualLevel=1;
-    for (let i=levelInfo.length-1;i>=0;i--){ if (totals.total>=levelInfo[i].cpBand[0]){ actualLevel=levelInfo[i].level; break; } }
-    ch.displayLevel=actualLevel;
-    ch.masteryDie=levelInfo[actualLevel-1].masteryDie;
+    // Back-compute display level by CP band
+    const totals = cpTally(ch, iconic);
+    let actualLevel = 1; for (let i=levelInfo.length-1;i>=0;i--){ if (totals.total >= levelInfo[i].cpBand[0]){ actualLevel = levelInfo[i].level; break; } }
+    ch.displayLevel = actualLevel; ch.masteryDie = levelInfo[actualLevel-1].masteryDie;
 
-    const w=fnum(ch.focuses.Competence.Wizardry); const t=fnum(ch.focuses.Competence.Theurgy);
-    ch.actions={
+    const w = fnum(ch.focuses.Competence.Wizardry); const t = fnum(ch.focuses.Competence.Theurgy);
+    ch.actions = {
       meleeAttack: `${ch.abilities.Prowess} + ${ch.specialties.Prowess.Melee}` + (fnum(ch.focuses.Prowess.Threat)?` + Threat +${fnum(ch.focuses.Prowess.Threat)}`:''),
       rangedAttack: `${ch.abilities.Prowess} + ${ch.specialties.Prowess.Precision}` + (fnum(ch.focuses.Prowess['Ranged Threat'])?` + Ranged Threat +${fnum(ch.focuses.Prowess['Ranged Threat'])}`:''),
       perceptionCheck: `${ch.abilities.Competence} + ${ch.specialties.Competence.Perception}` + (fnum(ch.focuses.Competence.Perspicacity)?` + Perspicacity +${fnum(ch.focuses.Competence.Perspicacity)}`:''),
-      magicAttack: casterClasses.includes(klass)? `${ch.abilities.Competence} + ${ch.specialties.Competence.Expertise} + ${(w?`Wizardry +${w}`:t?`Theurgy +${t}`:'(path focus 0)')}` : '—'
+      magicAttack: casterClasses.includes(klass) ? `${ch.abilities.Competence} + ${ch.specialties.Competence.Expertise} + ${(w?`Wizardry +${w}`:t?`Theurgy +${t}`:'(path focus 0)')}` : '—'
     };
 
-    ch.pools=computePools(ch);
+    ch.pools = computePools(ch);
     render(ch, totals, style, rp);
-    window.lastCharacter=ch;
+    window.lastCharacter = ch;
   }
 
-  // ======= RENDER & EXPORT =======
+  // ======= RENDER =======
   function render(ch, totals, style, rp){
-    const out=sel('character-output');
-    const band=levelInfo[ch.displayLevel-1].cpBand; const bandStr=`${band[0]} to ${band[1]}`;
-    const abilityLines=abilities.map(ab=>{
-      const sp=specs[ab].map(s=>{
-        const fxList=foci[s].map(fx=>{ const v=fnum(ch.focuses[ab][fx]); return v?`${fx} +${v}`:null; }).filter(Boolean).join(', ');
-        return `${s} <strong>${ch.specialties[ab][s]}</strong>${fxList?` (${fxList})`:''}`;
-      }).join(', ');
-      return `<div class="mb-2"><span class="font-semibold">${ab} <strong>${ch.abilities[ab]}</strong></span> &rarr; ${sp}.</div>`;
+    const out = sel('character-output');
+    const band = levelInfo[ch.displayLevel-1].cpBand; const bandStr = `${band[0]}–${band[1]}`;
+
+    const abilityCards = abilities.map(ab=>{
+      const sp = specs[ab].map(s=>{
+        const fxList = foci[s].map(fx=>{ const v=fnum(ch.focuses[ab][fx]); return v?`<span class="text-gray-700">${fx} +${v}</span>`:''; }).filter(Boolean).join('<span class="text-gray-300"> · </span>');
+        return `<div class="flex items-center justify-between text-sm py-1"><div><span class="font-medium">${s}</span> <span class="font-semibold">${ch.specialties[ab][s]}</span></div>${fxList?`<div class="text-xs">${fxList}</div>`:''}</div>`;
+      }).join('');
+      return `<div class="bg-gray-50 rounded-xl p-3">
+        <div class="text-xs text-gray-500 mb-1">${ab}</div>
+        <div class="text-lg font-bold mb-2">${ch.abilities[ab]}</div>
+        ${sp}
+      </div>`;
     }).join('');
-    const warn=sel('warn-weakness').checked?weaknessReport(ch):[];
-    out.innerHTML=`
-      <div class="bg-white rounded-2xl shadow p-6 fade-in">
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-          <h2 class="text-2xl font-bold">${ch.race} ${ch.class} — Level ${ch.displayLevel}</h2>
+
+    const warn = sel('warn-weakness').checked ? weaknessReport(ch) : [];
+
+    out.innerHTML = `
+      <div class="bg-white rounded-2xl shadow p-6 fade-in" role="region" aria-labelledby="summaryTitle">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h2 id="summaryTitle" class="text-2xl font-bold">${ch.race} ${ch.class}${ch.path?` — <span class='text-gray-500 text-xl'>${ch.path}</span>`:''} <span class="text-gray-500 font-medium">(Level ${ch.displayLevel})</span></h2>
           <div class="flex items-center gap-2">
-            <span class="rounded-full bg-gray-100 text-gray-700 text-xs px-3 py-1">Style: ${style}</span>
-            ${(sel('level').value === '1' && rp!=='off')?`<span class="rounded-full bg-indigo-100 text-indigo-700 text-xs px-3 py-1">Rookie: ${rp}</span>`:''}
+            <span class="rounded-full bg-gray-100 text-gray-700 text-xs px-3 py-1" title="Build Style">Style: ${style}</span>
+            ${(sel('level').value === '1' && rp!=='off')?`<span class="rounded-full bg-indigo-100 text-indigo-700 text-xs px-3 py-1" title="Rookie Profile">Rookie: ${rp}</span>`:''}
           </div>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center mb-4">
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center mb-4">
           <div class="bg-gray-50 rounded-xl p-3"><div class="text-xs text-gray-500">Spirit Points</div><div class="text-xl font-bold">${ch.pools.spirit}</div></div>
           <div class="bg-gray-50 rounded-xl p-3"><div class="text-xs text-gray-500">Active DP</div><div class="text-xl font-bold">${ch.pools.active}</div></div>
           <div class="bg-gray-50 rounded-xl p-3"><div class="text-xs text-gray-500">Passive DP</div><div class="text-xl font-bold">${ch.pools.passive}</div></div>
           <div class="bg-gray-50 rounded-xl p-3"><div class="text-xs text-gray-500">Mastery Die</div><div class="text-xl font-bold">${ch.masteryDie}</div></div>
         </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
-            <h3 class="font-semibold mb-2">Abilities</h3>
-            <div class="text-sm leading-relaxed">${abilityLines}</div>
+            <h3 class="font-semibold mb-2">Abilities & Branches</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${abilityCards}</div>
           </div>
           <div>
             <h3 class="font-semibold mb-2">Actions</h3>
-            <ul class="text-sm list-disc list-inside">
+            <ul class="text-sm space-y-1">
               <li><strong>Melee Attack:</strong> ${ch.actions.meleeAttack}</li>
               <li><strong>Ranged Attack:</strong> ${ch.actions.rangedAttack}</li>
               <li><strong>Perception Check:</strong> ${ch.actions.perceptionCheck}</li>
               ${casterClasses.includes(ch.class)?`<li><strong>Magic Attack:</strong> ${ch.actions.magicAttack}</li>`:''}
             </ul>
+            <div class="mt-4">
+              <h3 class="font-semibold mb-2">Character Points (Total Value)</h3>
+              <ul class="text-sm space-y-1">
+                <li><strong>Base Customization:</strong> ${totals.base}</li>
+                <li><strong>From Abilities:</strong> ${totals.abilities}</li>
+                <li><strong>From Specialties:</strong> ${totals.specialties}</li>
+                <li><strong>From Focuses:</strong> ${totals.focuses}</li>
+                <li><strong>From Advantages:</strong> ${totals.advantages}</li>
+                <li><strong>Total CP Value:</strong> ${totals.total} <span class="text-gray-500 text-xs">(Lvl ${ch.displayLevel} Range: ${bandStr})</span></li>
+              </ul>
+              <p class="text-xs text-gray-500 mt-2 italic">Total CP is a diagnostic for balance; in-play advancement uses Earned CP.</p>
+            </div>
           </div>
+
           ${warn.length?`<div class="lg:col-span-2">
             <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
               <h3 class="font-semibold text-amber-900 mb-2">Weakness Report</h3>
-              <ul class="text-sm text-amber-900 list-disc list-inside">${warn.map(w=>`<li>${w}</li>`).join('')}</ul>
+              <ul class="text-sm text-amber-900 list-disc list-inside space-y-1">${warn.map(w=>`<li>${w}</li>`).join('')}</ul>
             </div>
           </div>`:''}
-          <div>
-            <h3 class="font-semibold mb-2">Character Points (Total Value)</h3>
-            <ul class="text-sm list-disc list-inside">
-              <li><strong>Base Customization:</strong> ${totals.base}</li>
-              <li><strong>From Abilities:</strong> ${totals.abilities}</li>
-              <li><strong>From Specialties:</strong> ${totals.specialties}</li>
-              <li><strong>From Focuses:</strong> ${totals.focuses}</li>
-              <li><strong>From Advantages:</strong> ${totals.advantages}</li>
-              <li><strong>Total CP Value:</strong> ${totals.total} <span class="text-gray-500 text-xs">(Lvl ${ch.displayLevel} Range: ${bandStr})</span></li>
-            </ul>
-            <p class="text-xs text-gray-500 mt-2 italic">Total CP is a diagnostic for balance; in-play advancement uses Earned CP.</p>
-          </div>
+
           <div class="lg:col-span-2">
-              <h3 class="text-lg font-semibold mb-2 text-gray-800">Level Advancement (Earned CP)</h3>
-              <div class="overflow-x-auto relative rounded-lg">
-                  <table class="w-full text-sm text-left text-gray-500">
-                      <thead class="text-xs text-gray-700 uppercase bg-gray-50">
-                          <tr>
-                              <th scope="col" class="px-4 py-2">To Reach Level</th>
-                              <th scope="col" class="px-4 py-2">Total Earned CP Required</th>
-                          </tr>
-                      </thead>
-                      <tbody>
-                          <tr class="bg-white border-b"><td class="px-4 py-2 font-medium">Level 2</td><td class="px-4 py-2">100</td></tr>
-                          <tr class="bg-gray-50 border-b"><td class="px-4 py-2 font-medium">Level 3</td><td class="px-4 py-2">200</td></tr>
-                          <tr class="bg-white border-b"><td class="px-4 py-2 font-medium">Level 4</td><td class="px-4 py-2">300</td></tr>
-                          <tr class="bg-gray-50"><td class="px-4 py-2 font-medium">Level 5</td><td class="px-4 py-2">500</td></tr>
-                      </tbody>
-                  </table>
-              </div>
+            <h3 class="text-lg font-semibold mb-2 text-gray-800">Level Advancement (Earned CP)</h3>
+            <div class="overflow-x-auto relative rounded-lg">
+              <table class="w-full text-sm text-left text-gray-700">
+                <thead class="text-xs uppercase bg-gray-50">
+                  <tr><th class="px-4 py-2">To Reach Level</th><th class="px-4 py-2">Total Earned CP Required</th></tr>
+                </thead>
+                <tbody>
+                  <tr class="bg-white border-b"><td class="px-4 py-2 font-medium">Level 2</td><td class="px-4 py-2">100</td></tr>
+                  <tr class="bg-gray-50 border-b"><td class="px-4 py-2 font-medium">Level 3</td><td class="px-4 py-2">200</td></tr>
+                  <tr class="bg-white border-b"><td class="px-4 py-2 font-medium">Level 4</td><td class="px-4 py-2">300</td></tr>
+                  <tr class="bg-gray-50"><td class="px-4 py-2 font-medium">Level 5</td><td class="px-4 py-2">500</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>`;
   }
 
+  // ======= MARKDOWN =======
   function getFullMarkdown(){
     if (!window.lastCharacter){ return ''; }
     const ch = window.lastCharacter;
     const totals = cpTally(ch, sel('iconic-arcane').checked);
     const band = levelInfo[ch.displayLevel-1].cpBand; const bandStr = `${band[0]} to ${band[1]}`;
-    let md = `# ${ch.race} ${ch.class} (Level ${ch.displayLevel})\n\n`+
+    let md = `# ${ch.race} ${ch.class}${ch.path?` — ${ch.path}`:''} (Level ${ch.displayLevel})\n\n`+
       `### Core Stats\n`+
       `- **SP:** ${ch.pools.spirit} | **Active DP:** ${ch.pools.active} | **Passive DP:** ${ch.pools.passive}\n`+
       `- **Mastery Die:** ${ch.masteryDie}\n`+
@@ -494,42 +584,49 @@
 
   function exportMD(){
     const md = getFullMarkdown();
-    if (!md) { showAlert('Generate a character first!'); return; }
+    if (!md){ showAlert('Generate a character first!'); return; }
     const blob = new Blob([md],{type:'text/markdown'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href=url;
-    a.download=`${window.lastCharacter.race}_${window.lastCharacter.class}_L${window.lastCharacter.displayLevel}.md`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    a.href = url; a.download = `${(window.lastCharacter.race||'Character')}_${(window.lastCharacter.class||'Build')}_L${window.lastCharacter.displayLevel}.md`;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   }
-
   function copyMD(){
     const md = getFullMarkdown();
-    if (!md) { showAlert('Generate a character first!'); return; }
-    const tempElement = document.createElement('textarea');
-    tempElement.style.position = 'absolute';
-    tempElement.style.left = '-9999px';
-    tempElement.value = md;
-    document.body.appendChild(tempElement);
-    tempElement.select();
-    try {
-      document.execCommand('copy');
-      showAlert('Markdown copied to clipboard!');
-    } catch (err) {
-      showAlert('Failed to copy markdown.');
-    }
-    document.body.removeChild(tempElement);
+    if (!md){ showAlert('Generate a character first!'); return; }
+    navigator.clipboard?.writeText(md).then(()=> showAlert('Markdown copied to clipboard!'))
+      .catch(()=>{ // fallback
+        const t = document.createElement('textarea'); t.value = md; t.style.position = 'fixed'; t.style.left='-9999px'; document.body.appendChild(t); t.select();
+        try { document.execCommand('copy'); showAlert('Markdown copied to clipboard!'); } catch { showAlert('Failed to copy markdown.'); }
+        document.body.removeChild(t);
+      });
   }
 
-  // ======= EVENT LISTENERS =======
-  sel('generate-btn').addEventListener('click', generate);
-  sel('export-md-btn').addEventListener('click', exportMD);
-  sel('copy-md-btn').addEventListener('click', copyMD);
-  sel('custom-alert-close').addEventListener('click', () => sel('custom-alert').classList.remove('visible'));
+  function resetForm(){
+    sel('race').value = '';
+    sel('class').value = '';
+    sel('level').value = '';
+    sel('rookie-profile').value = 'off'; sel('rookie-profile').disabled = true;
+    sel('magic-path').innerHTML = ''; sel('magic-path-container').classList.add('hidden');
+    document.querySelector('input[name="style"][value="balanced"]').checked = true;
+    sel('enforce-softcaps').checked = true;
+    sel('iconic-arcane').checked = false;
+    sel('npc-mode').checked = false;
+    sel('warn-weakness').checked = true;
+    sel('character-output').innerHTML = '';
+    window.lastCharacter = null;
+  }
+
+  // ======= WIRE EVENTS =======
   document.addEventListener('DOMContentLoaded', populate);
+  document.addEventListener('DOMContentLoaded', ()=>{
+    sel('generate-btn').addEventListener('click', generate);
+    sel('export-md-btn').addEventListener('click', exportMD);
+    sel('copy-md-btn').addEventListener('click', copyMD);
+    sel('reset-btn').addEventListener('click', resetForm);
+    sel('custom-alert-close').addEventListener('click', closeAlert);
+    document.addEventListener('keydown', (e)=>{ if (e.key==='Escape') closeAlert(); });
+  });
   </script>
 </body>
-</ht
+</html>
