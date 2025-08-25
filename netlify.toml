@@ -3,9 +3,16 @@
   [headers.values]
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com"
 [build]
-  command = "npm run build:css"
+  # Build main Woven CSS + offshoot isolated CSS
+  command = "npm run build:css:all"
   publish = "."
   functions = "netlify/functions"
+
+# (Optional) Explicitly ensure offshoot pages aren't routed through any SPA catch-all (none defined now)
+[[redirects]]
+  from = "/offshoot/*"
+  to = "/offshoot/:splat"
+  status = 200
 
 [[redirects]]
   from = "/api/astrology"

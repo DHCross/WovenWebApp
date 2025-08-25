@@ -1,0 +1,7 @@
+/* Tailwind entrypoint for Eldritch RPG 2e Character Generator */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Local overrides (kept minimal) */
+body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif; }
