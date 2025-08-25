@@ -15,7 +15,6 @@
     .fade-in { animation: fadeIn .25s ease-out; }
     .pill { border-radius: 9999px; }
     .kpi { box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
-    .btn { @apply rounded-full font-semibold px-4 py-2.5 shadow focus:outline-none focus:ring-2 focus:ring-offset-2; }
     .sr-only-focusable:focus { position: static !important; width: auto; height: auto; clip: auto; }
   </style>
 </head>
@@ -103,13 +102,13 @@
           </div>
           <div class="flex items-center gap-2">
             <input id="warn-weakness" type="checkbox" class="h-4 w-4 rounded" checked>
-            <label for="warn-weakness" class="text-sm">Show Weakness Report</label>
+            <label for="warn-weakness" class="text-sm">Show Tactical Notes</label>
           </div>
           <div class="flex flex-wrap gap-2 pt-2">
-            <button id="generate-btn" class="btn bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-600">Generate</button>
-            <button id="export-md-btn" class="btn bg-white hover:bg-gray-100 text-blue-600 border border-blue-600 focus:ring-blue-600">Export MD</button>
-            <button id="copy-md-btn" class="btn bg-white hover:bg-gray-100 text-blue-600 border border-blue-600 focus:ring-blue-600">Copy MD</button>
-            <button id="reset-btn" class="btn bg-white hover:bg-gray-100 text-gray-700 border focus:ring-gray-400">Reset</button>
+            <button id="generate-btn" class="rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 shadow focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2">Generate</button>
+            <button id="export-md-btn" class="rounded-full bg-white hover:bg-gray-100 text-blue-600 font-semibold py-2.5 px-4 border border-blue-600 shadow focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2">Export MD</button>
+            <button id="copy-md-btn" class="rounded-full bg-white hover:bg-gray-100 text-blue-600 font-semibold py-2.5 px-4 border border-blue-600 shadow focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2">Copy MD</button>
+            <button id="reset-btn" class="rounded-full bg-white hover:bg-gray-100 text-gray-700 font-semibold py-2.5 px-4 border shadow focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">Reset</button>
           </div>
         </div>
       </div>
@@ -124,7 +123,7 @@
     <div class="bg-white max-w-sm w-[90%] rounded-xl p-6 shadow-xl">
       <p id="custom-alert-message" class="text-center"></p>
       <div class="mt-4 flex justify-center">
-        <button id="custom-alert-close" class="btn bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-600">OK</button>
+        <button id="custom-alert-close" class="rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 shadow focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2">OK</button>
       </div>
     </div>
   </div>
@@ -133,50 +132,20 @@
   // ==========================
   // Eldritch 2e Character Generator (Rebuilt)
   // ==========================
-  // Design goals:
-  // - Deterministic CP economy aligned to 2e costs
-  // - Clear separation of data, rules, UI
-  // - Soft caps & Rookie profiles baked in
-  // - Accessible output, compact layout, markdown export
+  // Deterministic CP economy, soft caps & rookie profiles, accessible output
 
   // ======= DATA =======
   const dieRanks = ['d4','d6','d8','d10','d12'];
   const abilities = ['Competence','Prowess','Fortitude'];
-  const specs = {
-    Competence:['Adroitness','Expertise','Perception'],
-    Prowess:['Agility','Melee','Precision'],
-    Fortitude:['Endurance','Strength','Willpower']
-  };
-  const foci = {
-    Adroitness:['Skulduggery','Cleverness'],
-    Expertise:['Wizardry','Theurgy'],
-    Perception:['Alertness','Perspicacity'],
-    Agility:['Speed','Reaction'],
-    Melee:['Threat','Finesse'],
-    Precision:['Ranged Threat','Ranged Finesse'],
-    Endurance:['Vitality','Resilience'],
-    Strength:['Ferocity','Might'],
-    Willpower:['Courage','Resistance']
-  };
+  const specs = { Competence:['Adroitness','Expertise','Perception'], Prowess:['Agility','Melee','Precision'], Fortitude:['Endurance','Strength','Willpower'] };
+  const foci = { Adroitness:['Skulduggery','Cleverness'], Expertise:['Wizardry','Theurgy'], Perception:['Alertness','Perspicacity'], Agility:['Speed','Reaction'], Melee:['Threat','Finesse'], Precision:['Ranged Threat','Ranged Finesse'], Endurance:['Vitality','Resilience'], Strength:['Ferocity','Might'], Willpower:['Courage','Resistance'] };
   const races = ['Human','Elf','Dwarf','Gnome','Half-Elf','Half-Orc','Halfling','Drakkin'];
   const classes = ['Adept','Assassin','Barbarian','Mage','Mystic','Rogue','Theurgist','Warrior'];
   const levels = [1,2,3,4,5];
   const casterClasses = ['Adept','Mage','Mystic','Theurgist'];
-  const magicPathsByClass = {
-    Adept:['Thaumaturgy','Elementalism','Sorcery'],
-    Mage:['Thaumaturgy','Elementalism','Sorcery'],
-    Mystic:['Mysticism'],
-    Theurgist:['Druidry','Hieraticism']
-  };
-  const levelInfo = [
-    {level:1, masteryDie:'d4', cpBand:[10,100]},
-    {level:2, masteryDie:'d6', cpBand:[101,199]},
-    {level:3, masteryDie:'d8', cpBand:[200,299]},
-    {level:4, masteryDie:'d10', cpBand:[300,399]},
-    {level:5, masteryDie:'d12', cpBand:[400,999]}
-  ];
+  const magicPathsByClass = { Adept:['Thaumaturgy','Elementalism','Sorcery'], Mage:['Thaumaturgy','Elementalism','Sorcery'], Mystic:['Mysticism'], Theurgist:['Druidry','Hieraticism'] };
+  const levelInfo = [ {level:1, masteryDie:'d4', cpBand:[10,100]}, {level:2, masteryDie:'d6', cpBand:[101,199]}, {level:3, masteryDie:'d8', cpBand:[200,299]}, {level:4, masteryDie:'d10', cpBand:[300,399]}, {level:5, masteryDie:'d12', cpBand:[400,999]} ];
 
-  // Racial & Class minima tuned to manuscript
   const raceMinima = {
     Drakkin:{Competence:'d6',Prowess:'d6',Fortitude:'d6',Endurance:'d6',Strength:'d4'},
     Dwarf:{Fortitude:'d8',Endurance:'d4',Prowess:'d6',Melee:'d6'},
@@ -197,42 +166,14 @@
     Theurgist:{Competence:'d8',Expertise:'d4',Theurgy:'+1',Fortitude:'d6',Willpower:'d4'},
     Warrior:{Prowess:'d8',Melee:'d6',Threat:'+1',Fortitude:'d6'}
   };
-  const allAdvantages = {
-    Human:['Fortunate','Survival'],Elf:['Night Vision','Gift of Magic','Magic Resistance (+1)'],
-    Dwarf:['Night Vision','Strong-willed','Sense of Direction'],Gnome:['Eidetic Memory','Low-Light Vision','Observant'],
-    'Half-Elf':['Heightened Senses','Low-Light Vision','Magic Resistance (+1)'],'Half-Orc':['Low-light Vision','Intimidation','Menacing'],
-    Halfling:['Low Light Vision','Read Emotions','Resilient'],Drakkin:['Natural Armor','Breath Weapon','Night Vision'],
-    Adept:['Arcanum','Gift of Magic','Literacy','Scholar'],Assassin:['Expeditious','Heightened Senses (hearing)','Observant','Read Emotions'],
-    Barbarian:['Animal Affinity','Brutishness','Menacing','Resilient'],Mage:['Arcanum','Gift of Magic','Magic Defense','Scholar'],
-    Mystic:['Empathic','Gift of Magic','Intuitive','Magic Resistance (Lesser)','Strong-Willed'],
-    Rogue:['Expeditious','Fortunate','Streetwise','Underworld Contacts'],Theurgist:['Gift of Magic','Magic Defense','Religion','Strong-Willed'],
-    Warrior:['Commanding','Intimidation','Magic Resistance (+1)','Tactician']
-  };
-  const raceFlaws = { Gnome:['Restriction: small weapons only'], Halfling:['Restriction: small weapons only'], 'Half-Orc':['Ugliness'] };
-  const startingEquipment = {
-    common:['Set of ordinary clothes','Purse of 5 gold coins','Backpack','Small dagger','Week’s rations','Waterskin','Tinderbox','50\' rope','Iron spikes','Small hammer','6\' traveling staff or 10\' pole','Hooded lantern and 2 oil flasks or d4+1 torches'],
-    Adept:['Book of knowledge (area of expertise)'],Assassin:['Assassin hood, jacket, cape, robe, or tunic'],
-    Barbarian:['Garments of woven wool or linen','Tunic','Overcoat or cloak'],Mage:['Spellbook','Staff or focus item'],
-    Mystic:['Robes or shawl','Cloak','Armor up to leather'],Rogue:['Set of thieves\' tools','Light armor (up to leather)','One weapon'],
-    Theurgist:['Prayer book','Holy relic or symbol','Focus item','Armor up to chain'],Warrior:['One weapon of choice','Armor up to chain','Small to large shield','Steed']
-  };
 
-  // CP economy (aligned to manuscript tables)
-  const stepCost = { 'd4':6,'d6':8,'d8':10,'d10':12,'d12':Infinity }; // cost to go up one die from current
-  const cumulativeDieCost = { 'd4':4,'d6':10,'d8':18,'d10':28,'d12':40 }; // total value accounting
-  const focusStepCost = 4; // +1 focus step cost
+  const startingEquipment = { common:['Set of ordinary clothes','Purse of 5 gold coins','Backpack','Small dagger','Week’s rations','Waterskin','Tinderbox','50\' rope','Iron spikes','Small hammer','6\' traveling staff or 10\' pole','Hooded lantern and 2 oil flasks or d4+1 torches'], Adept:['Book of knowledge (area of expertise)'], Assassin:['Assassin hood, jacket, cape, robe, or tunic'], Barbarian:['Garments of woven wool or linen','Tunic','Overcoat or cloak'], Mage:['Spellbook','Staff or focus item'], Mystic:['Robes or shawl','Cloak','Armor up to leather'], Rogue:['Set of thieves\' tools','Light armor (up to leather)','One weapon'], Theurgist:['Prayer book','Holy relic or symbol','Focus item','Armor up to chain'], Warrior:['One weapon of choice','Armor up to chain','Small to large shield','Steed'] };
 
-  // Class axes weight order (used by spender heuristics)
-  const classAxes = {
-    Warrior:['Prowess','Melee','Strength','Fortitude','Endurance','Threat','Agility','Might'],
-    Barbarian:['Prowess','Melee','Strength','Fortitude','Endurance','Ferocity','Might','Vitality'],
-    Rogue:['Prowess','Agility','Competence','Adroitness','Perception','Skulduggery','Cleverness','Speed'],
-    Assassin:['Prowess','Agility','Melee','Competence','Adroitness','Finesse','Speed','Perception'],
-    Mage:['Competence','Expertise','Wizardry','Fortitude','Willpower','Resistance','Perception'],
-    Mystic:['Fortitude','Willpower','Competence','Expertise','Endurance','Prowess','Melee','Resilience','Vitality'],
-    Adept:['Competence','Expertise','Adroitness','Perception','Cleverness','Wizardry','Perspicacity'],
-    Theurgist:['Competence','Expertise','Theurgy','Fortitude','Willpower','Endurance','Courage']
-  };
+  // CP economy
+  const stepCost = { 'd4':6,'d6':8,'d8':10,'d10':12,'d12':Infinity }; // one-step upgrade cost
+  const cumulativeDieCost = { 'd4':4,'d6':10,'d8':18,'d10':28,'d12':40 }; // accounting value
+  const focusStepCost = 4;
+  const classAxes = { Warrior:['Prowess','Melee','Strength','Fortitude','Endurance','Threat','Agility','Might'], Barbarian:['Prowess','Melee','Strength','Fortitude','Endurance','Ferocity','Might','Vitality'], Rogue:['Prowess','Agility','Competence','Adroitness','Perception','Skulduggery','Cleverness','Speed'], Assassin:['Prowess','Agility','Melee','Competence','Adroitness','Finesse','Speed','Perception'], Mage:['Competence','Expertise','Wizardry','Fortitude','Willpower','Resistance','Perception'], Mystic:['Fortitude','Willpower','Competence','Expertise','Endurance','Prowess','Melee','Resilience','Vitality'], Adept:['Competence','Expertise','Adroitness','Perception','Cleverness','Wizardry','Perspicacity'], Theurgist:['Competence','Expertise','Theurgy','Fortitude','Willpower','Endurance','Courage'] };
 
   // ======= HELPERS =======
   const idx = r => dieRanks.indexOf(r);
@@ -241,17 +182,8 @@
   const sel = id => document.getElementById(id);
   const order = {'d4':0,'d6':1,'d8':2,'d10':3,'d12':4};
 
-  function showAlert(message){
-    const o = sel('custom-alert');
-    sel('custom-alert-message').textContent = message;
-    o.classList.remove('hidden');
-    o.classList.add('flex');
-  }
-  function closeAlert(){
-    const o = sel('custom-alert');
-    o.classList.add('hidden');
-    o.classList.remove('flex');
-  }
+  function showAlert(message){ const o = sel('custom-alert'); sel('custom-alert-message').textContent = message; o.classList.remove('hidden'); o.classList.add('flex'); }
+  function closeAlert(){ const o = sel('custom-alert'); o.classList.add('hidden'); o.classList.remove('flex'); }
 
   // ======= UI SETUP =======
   function populate(){
@@ -343,11 +275,10 @@
     if (kind==='ability') cur = ch.abilities[key]; else { const pa=Object.keys(specs).find(a=>specs[a].includes(key)); cur = ch.specialties[pa][key]; }
     if (order[cur] >= order[maxDie]) return false;
     for (const rule of sc.rules){ if (!rule(ch)) return false; }
-    // Balanced gating: specialty can't leap beyond its parent too far
     if (!rc && style==='balanced' && kind==='spec'){
       const pa=Object.keys(specs).find(a=>specs[a].includes(key));
       const parent = ch.abilities[pa];
-      if (order[cur]+1 > order[parent]+1) return false; // keep specialty close to parent rank
+      if (order[cur]+1 > order[parent]+1) return false;
     }
     return true;
   }
@@ -364,7 +295,6 @@
       if (pa){
         const cur = ch.specialties[pa][key]; if (cur==='d12') return false; if (!canUpgrade(ch,key,'spec',level,style)) return false;
         const cost = stepCost[cur]; if (cpBudget.value < cost) return false;
-        // NPC mode: avoid sprinting to d12 at low level
         if (npcMode && (level<=2) && dieRanks[idx(cur)+1]==='d12') return false;
         ch.specialties[pa][key] = dieRanks[idx(cur)+1]; cpBudget.value -= cost; return true;
       }
@@ -399,17 +329,17 @@
     return { active:AD, passive:PD, spirit:SP };
   }
 
-  function weaknessReport(ch){
+  function tacticalNotes(ch){
     const {active,passive,spirit} = computePools(ch);
-    const flags = [];
-    if (spirit <= 12) flags.push('Low Spirit Points (mental/arcane pressure will hurt).');
-    if (active < 24) flags.push('Low Active DP (poor agility/parry).');
-    if (passive < 24) flags.push('Low Passive DP (fragile to heavy blows).');
-    if (idx(ch.abilities.Competence) <= 1) flags.push('Low Competence (poor perception/social/planning).');
-    if (idx(ch.specialties.Competence.Perception) <= 1) flags.push('Low Perception branch (traps/ambush risk).');
-    if (idx(ch.specialties.Fortitude.Willpower) <= 1) flags.push('Low Willpower (charms/fear/illusions).');
-    if (idx(ch.specialties.Prowess.Precision) <= 1) flags.push('Weak ranged capability.');
-    return flags;
+    const notes = [];
+    if (spirit <= 12) notes.push('Spirit Pool is on the low side — mental strain and heavy arcane use may press.');
+    if (active < 24) notes.push('Active Defense is lean — parries/positioning matter.');
+    if (passive < 24) notes.push('Passive Defense is modest — sustained blows will tell.');
+    if (idx(ch.abilities.Competence) <= 1) notes.push('Competence is limited — lean on allies for scouting/social edges.');
+    if (idx(ch.specialties.Competence.Perception) <= 1) notes.push('Perception is basic — surprises/traps are harder to catch.');
+    if (idx(ch.specialties.Fortitude.Willpower) <= 1) notes.push('Willpower is untrained — charm/fear magic is a risk.');
+    if (idx(ch.specialties.Prowess.Precision) <= 1) notes.push('Ranged precision is minimal — this build prefers close work.');
+    return notes;
   }
 
   function cpTally(ch, iconic){
@@ -429,7 +359,6 @@
     const iconic = sel('iconic-arcane').checked; const style = document.querySelector('input[name="style"]:checked').value;
     const rp = sel('rookie-profile').value; const npcMode = sel('npc-mode').checked;
 
-    // Init character
     const ch = { race, class:klass, level:lvl, abilities:{}, specialties:{}, focuses:{}, path: sel('magic-path').value || null };
     for (const a of abilities){ ch.abilities[a]='d4'; ch.specialties[a]={}; ch.focuses[a]={}; for (const s of specs[a]){ ch.specialties[a][s]='d4'; for (const fx of foci[s]) ch.focuses[a][fx] = '+0'; } }
 
@@ -437,12 +366,11 @@
 
     const cpBudget = { value: 10 + (lvl-1)*100 - (iconic?4:0) };
     if (lvl === 1 && rp === 'pure'){
-      // no spending beyond minima
+      // minima only
     } else {
       spendCP(ch, cpBudget, style, lvl, npcMode);
     }
 
-    // Back-compute display level by CP band
     const totals = cpTally(ch, iconic);
     let actualLevel = 1; for (let i=levelInfo.length-1;i>=0;i--){ if (totals.total >= levelInfo[i].cpBand[0]){ actualLevel = levelInfo[i].level; break; } }
     ch.displayLevel = actualLevel; ch.masteryDie = levelInfo[actualLevel-1].masteryDie;
@@ -467,81 +395,81 @@
 
     const abilityCards = abilities.map(ab=>{
       const sp = specs[ab].map(s=>{
-        const fxList = foci[s].map(fx=>{ const v=fnum(ch.focuses[ab][fx]); return v?`<span class="text-gray-700">${fx} +${v}</span>`:''; }).filter(Boolean).join('<span class="text-gray-300"> · </span>');
-        return `<div class="flex items-center justify-between text-sm py-1"><div><span class="font-medium">${s}</span> <span class="font-semibold">${ch.specialties[ab][s]}</span></div>${fxList?`<div class="text-xs">${fxList}</div>`:''}</div>`;
+        const fxList = foci[s].map(fx=>{ const v=fnum(ch.focuses[ab][fx]); return v?`<span class=\"text-gray-700\">${fx} +${v}</span>`:''; }).filter(Boolean).join('<span class=\"text-gray-300\"> · </span>');
+        return `<div class=\"flex items-center justify-between text-sm py-1\"><div><span class=\"font-medium\">${s}</span> <span class=\"font-semibold\">${ch.specialties[ab][s]}</span></div>${fxList?`<div class=\"text-xs\">${fxList}</div>`:''}</div>`;
       }).join('');
-      return `<div class="bg-gray-50 rounded-xl p-3">
-        <div class="text-xs text-gray-500 mb-1">${ab}</div>
-        <div class="text-lg font-bold mb-2">${ch.abilities[ab]}</div>
+      return `<div class=\"bg-gray-50 rounded-xl p-3\">
+        <div class=\"text-xs text-gray-500 mb-1\">${ab}</div>
+        <div class=\"text-lg font-bold mb-2\">${ch.abilities[ab]}</div>
         ${sp}
       </div>`;
     }).join('');
 
-    const warn = sel('warn-weakness').checked ? weaknessReport(ch) : [];
+    const notes = sel('warn-weakness').checked ? tacticalNotes(ch) : [];
 
     out.innerHTML = `
-      <div class="bg-white rounded-2xl shadow p-6 fade-in" role="region" aria-labelledby="summaryTitle">
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h2 id="summaryTitle" class="text-2xl font-bold">${ch.race} ${ch.class}${ch.path?` — <span class='text-gray-500 text-xl'>${ch.path}</span>`:''} <span class="text-gray-500 font-medium">(Level ${ch.displayLevel})</span></h2>
-          <div class="flex items-center gap-2">
-            <span class="rounded-full bg-gray-100 text-gray-700 text-xs px-3 py-1" title="Build Style">Style: ${style}</span>
-            ${(sel('level').value === '1' && rp!=='off')?`<span class="rounded-full bg-indigo-100 text-indigo-700 text-xs px-3 py-1" title="Rookie Profile">Rookie: ${rp}</span>`:''}
+      <div class=\"bg-white rounded-2xl shadow p-6 fade-in\" role=\"region\" aria-labelledby=\"summaryTitle\">
+        <div class=\"flex flex-wrap items-center justify-between gap-3 mb-4\">
+          <h2 id=\"summaryTitle\" class=\"text-2xl font-bold\">${ch.race} ${ch.class}${ch.path?` — <span class='text-gray-500 text-xl'>${ch.path}</span>`:''} <span class=\"text-gray-500 font-medium\">(Level ${ch.displayLevel})</span></h2>
+          <div class=\"flex items-center gap-2\">
+            <span class=\"rounded-full bg-gray-100 text-gray-700 text-xs px-3 py-1\" title=\"Build Style\">Style: ${style}</span>
+            ${(sel('level').value === '1' && rp!=='off')?`<span class=\"rounded-full bg-indigo-100 text-indigo-700 text-xs px-3 py-1\" title=\"Rookie Profile\">Rookie: ${rp}</span>`:''}
           </div>
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center mb-4">
-          <div class="bg-gray-50 rounded-xl p-3"><div class="text-xs text-gray-500">Spirit Points</div><div class="text-xl font-bold">${ch.pools.spirit}</div></div>
-          <div class="bg-gray-50 rounded-xl p-3"><div class="text-xs text-gray-500">Active DP</div><div class="text-xl font-bold">${ch.pools.active}</div></div>
-          <div class="bg-gray-50 rounded-xl p-3"><div class="text-xs text-gray-500">Passive DP</div><div class="text-xl font-bold">${ch.pools.passive}</div></div>
-          <div class="bg-gray-50 rounded-xl p-3"><div class="text-xs text-gray-500">Mastery Die</div><div class="text-xl font-bold">${ch.masteryDie}</div></div>
+        <div class=\"grid grid-cols-2 md:grid-cols-4 gap-3 text-center mb-4\">
+          <div class=\"bg-gray-50 rounded-xl p-3\"><div class=\"text-xs text-gray-500\">Spirit Points</div><div class=\"text-xl font-bold\">${ch.pools.spirit}</div></div>
+          <div class=\"bg-gray-50 rounded-xl p-3\"><div class=\"text-xs text-gray-500\">Active DP</div><div class=\"text-xl font-bold\">${ch.pools.active}</div></div>
+          <div class=\"bg-gray-50 rounded-xl p-3\"><div class=\"text-xs text-gray-500\">Passive DP</div><div class=\"text-xl font-bold\">${ch.pools.passive}</div></div>
+          <div class=\"bg-gray-50 rounded-xl p-3\"><div class=\"text-xs text-gray-500\">Mastery Die</div><div class=\"text-xl font-bold\">${ch.masteryDie}</div></div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class=\"grid grid-cols-1 lg:grid-cols-2 gap-6\">
           <div>
-            <h3 class="font-semibold mb-2">Abilities & Branches</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${abilityCards}</div>
+            <h3 class=\"font-semibold mb-2\">Abilities & Branches</h3>
+            <div class=\"grid grid-cols-1 sm:grid-cols-2 gap-3\">${abilityCards}</div>
           </div>
           <div>
-            <h3 class="font-semibold mb-2">Actions</h3>
-            <ul class="text-sm space-y-1">
+            <h3 class=\"font-semibold mb-2\">Actions</h3>
+            <ul class=\"text-sm space-y-1\">
               <li><strong>Melee Attack:</strong> ${ch.actions.meleeAttack}</li>
               <li><strong>Ranged Attack:</strong> ${ch.actions.rangedAttack}</li>
               <li><strong>Perception Check:</strong> ${ch.actions.perceptionCheck}</li>
               ${casterClasses.includes(ch.class)?`<li><strong>Magic Attack:</strong> ${ch.actions.magicAttack}</li>`:''}
             </ul>
-            <div class="mt-4">
-              <h3 class="font-semibold mb-2">Character Points (Total Value)</h3>
-              <ul class="text-sm space-y-1">
+            <div class=\"mt-4\">
+              <h3 class=\"font-semibold mb-2\">Character Points (Total Value)</h3>
+              <ul class=\"text-sm space-y-1\">
                 <li><strong>Base Customization:</strong> ${totals.base}</li>
                 <li><strong>From Abilities:</strong> ${totals.abilities}</li>
                 <li><strong>From Specialties:</strong> ${totals.specialties}</li>
                 <li><strong>From Focuses:</strong> ${totals.focuses}</li>
                 <li><strong>From Advantages:</strong> ${totals.advantages}</li>
-                <li><strong>Total CP Value:</strong> ${totals.total} <span class="text-gray-500 text-xs">(Lvl ${ch.displayLevel} Range: ${bandStr})</span></li>
+                <li><strong>Total CP Value:</strong> ${totals.total} <span class=\"text-gray-500 text-xs\">(Lvl ${ch.displayLevel} Range: ${bandStr})</span></li>
               </ul>
-              <p class="text-xs text-gray-500 mt-2 italic">Total CP is a diagnostic for balance; in-play advancement uses Earned CP.</p>
+              <p class=\"text-xs text-gray-500 mt-2 italic\">Total CP is a diagnostic for balance; in-play advancement uses Earned CP.</p>
             </div>
           </div>
 
-          ${warn.length?`<div class="lg:col-span-2">
-            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <h3 class="font-semibold text-amber-900 mb-2">Weakness Report</h3>
-              <ul class="text-sm text-amber-900 list-disc list-inside space-y-1">${warn.map(w=>`<li>${w}</li>`).join('')}</ul>
+          ${notes.length?`<div class=\"lg:col-span-2\">
+            <div class=\"bg-amber-50 border border-amber-200 rounded-xl p-4\">
+              <h3 class=\"font-semibold text-amber-900 mb-2\">Tactical Notes</h3>
+              <ul class=\"text-sm text-amber-900 list-disc list-inside space-y-1\">${notes.map(w=>`<li>${w}</li>`).join('')}</ul>
             </div>
           </div>`:''}
 
-          <div class="lg:col-span-2">
-            <h3 class="text-lg font-semibold mb-2 text-gray-800">Level Advancement (Earned CP)</h3>
-            <div class="overflow-x-auto relative rounded-lg">
-              <table class="w-full text-sm text-left text-gray-700">
-                <thead class="text-xs uppercase bg-gray-50">
-                  <tr><th class="px-4 py-2">To Reach Level</th><th class="px-4 py-2">Total Earned CP Required</th></tr>
+          <div class=\"lg:col-span-2\">
+            <h3 class=\"text-lg font-semibold mb-2 text-gray-800\">Level Advancement (Earned CP)</h3>
+            <div class=\"overflow-x-auto relative rounded-lg\">
+              <table class=\"w-full text-sm text-left text-gray-700\">
+                <thead class=\"text-xs uppercase bg-gray-50\">
+                  <tr><th class=\"px-4 py-2\">To Reach Level</th><th class=\"px-4 py-2\">Total Earned CP Required</th></tr>
                 </thead>
                 <tbody>
-                  <tr class="bg-white border-b"><td class="px-4 py-2 font-medium">Level 2</td><td class="px-4 py-2">100</td></tr>
-                  <tr class="bg-gray-50 border-b"><td class="px-4 py-2 font-medium">Level 3</td><td class="px-4 py-2">200</td></tr>
-                  <tr class="bg-white border-b"><td class="px-4 py-2 font-medium">Level 4</td><td class="px-4 py-2">300</td></tr>
-                  <tr class="bg-gray-50"><td class="px-4 py-2 font-medium">Level 5</td><td class="px-4 py-2">500</td></tr>
+                  <tr class=\"bg-white border-b\"><td class=\"px-4 py-2 font-medium\">Level 2</td><td class=\"px-4 py-2\">100</td></tr>
+                  <tr class=\"bg-gray-50 border-b\"><td class=\"px-4 py-2 font-medium\">Level 3</td><td class=\"px-4 py-2\">200</td></tr>
+                  <tr class=\"bg-white border-b\"><td class=\"px-4 py-2 font-medium\">Level 4</td><td class=\"px-4 py-2\">300</td></tr>
+                  <tr class=\"bg-gray-50\"><td class=\"px-4 py-2 font-medium\">Level 5</td><td class=\"px-4 py-2\">500</td></tr>
                 </tbody>
               </table>
             </div>
@@ -595,11 +523,7 @@
     const md = getFullMarkdown();
     if (!md){ showAlert('Generate a character first!'); return; }
     navigator.clipboard?.writeText(md).then(()=> showAlert('Markdown copied to clipboard!'))
-      .catch(()=>{ // fallback
-        const t = document.createElement('textarea'); t.value = md; t.style.position = 'fixed'; t.style.left='-9999px'; document.body.appendChild(t); t.select();
-        try { document.execCommand('copy'); showAlert('Markdown copied to clipboard!'); } catch { showAlert('Failed to copy markdown.'); }
-        document.body.removeChild(t);
-      });
+      .catch(()=>{ const t = document.createElement('textarea'); t.value = md; t.style.position = 'fixed'; t.style.left='-9999px'; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); showAlert('Markdown copied to clipboard!'); } catch { showAlert('Failed to copy markdown.'); } document.body.removeChild(t); });
   }
 
   function resetForm(){
