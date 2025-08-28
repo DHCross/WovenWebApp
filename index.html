@@ -87,6 +87,43 @@
             input[type="date"] {
                 color-scheme: dark;
             }
+            
+            /* Mobile tap target improvements */
+            @media (max-width: 768px) {
+                /* Increase radio button and checkbox sizes for easier tapping */
+                input[type="radio"], input[type="checkbox"] {
+                    min-width: 20px;
+                    min-height: 20px;
+                    margin-right: 12px;
+                }
+                
+                /* Ensure labels are easily tappable */
+                label {
+                    min-height: 44px;
+                    display: flex;
+                    align-items: center;
+                    cursor: pointer;
+                }
+                
+                /* Increase button sizes */
+                button {
+                    min-height: 44px;
+                    padding: 12px 16px;
+                }
+                
+                /* Collapse verbose help by default */
+                #stepSizeHelpPanel,
+                #context-help-panel {
+                    display: none;
+                }
+                
+                /* Tab buttons should be larger on mobile */
+                #mirrorModeTab,
+                #geometryModeTab {
+                    min-height: 48px;
+                    padding: 12px 24px;
+                }
+            }
         </style>
     </head>
 <body class="bg-gray-900 text-gray-200">
@@ -98,6 +135,27 @@
                     What is Math Brain? (Glossary)
                 </button>
             </p>
+            
+            <!-- Mirror/Geometry Tab Switch -->
+            <div class="mt-6 mb-4">
+                <div class="flex justify-center">
+                    <div class="bg-gray-800 p-1 rounded-lg border border-gray-600 inline-flex" role="tablist" aria-label="Output Mode">
+                        <button id="mirrorModeTab" type="button" role="tab" aria-selected="true" aria-controls="mirror-content" 
+                                class="px-6 py-2 text-sm font-medium rounded-md bg-teal-600 text-white transition-colors duration-200" 
+                                data-mode="mirror">
+                            Mirror
+                        </button>
+                        <button id="geometryModeTab" type="button" role="tab" aria-selected="false" aria-controls="geometry-content"
+                                class="px-6 py-2 text-sm font-medium rounded-md text-gray-300 hover:text-white transition-colors duration-200" 
+                                data-mode="geometry">
+                            Geometry
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-2 text-xs text-gray-400 text-center">
+                    <span id="modeDescription">Start with your reflection, explore the wiring later</span>
+                </div>
+            </div>
         </header>
 
         <!-- Glossary Modal -->
@@ -167,46 +225,144 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Person B Card with Progressive Disclosure -->
                 <div id="personB-card" class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                    <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Person B (Optional)</h2>
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input type="text" id="nameB" placeholder="Name" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
-                            <input type="text" id="birth_cityB" placeholder="Birth City" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
-                            <input type="text" id="birth_stateB" placeholder="Birth State/Prov" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                    <!-- Person B Toggle Header -->
+                    <div id="personB-toggle" class="flex items-center justify-between mb-4 cursor-pointer hover:bg-gray-750 p-2 -m-2 rounded transition-colors" role="button" tabindex="0" aria-expanded="false" aria-controls="personB-details">
+                        <h2 class="text-2xl font-semibold text-white border-b border-gray-700 pb-2 border-b-0 pb-0">Person B (Optional)</h2>
+                        <svg id="personB-chevron" class="w-5 h-5 text-gray-400 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </div>
+                    
+                    <!-- Person B Details (collapsible) -->
+                    <div id="personB-details" class="hidden">
+                        <div class="border-b border-gray-700 mb-4"></div>
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <input type="text" id="nameB" placeholder="Name" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                                <input type="text" id="birth_cityB" placeholder="Birth City" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                                <input type="text" id="birth_stateB" placeholder="Birth State/Prov" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <input type="date" id="birth_dateB" placeholder="Birth Date (YYYY-MM-DD)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                                <input type="text" id="birth_timeB" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                                <select id="offsetB" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                                    <option value="America/New_York">Eastern (New York)</option>
+                                    <option value="America/Chicago">Central (Chicago)</option>
+                                    <option value="America/Denver">Mountain (Denver)</option>
+                                    <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
+                                    <option value="America/Anchorage">Alaska</option>
+                                    <option value="Pacific/Honolulu">Hawaii</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <input type="text" id="birth_countryB" placeholder="Country (2-letter)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                                <select id="zodiacB" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                                    <option value="Tropic">Tropic</option>
+                                    <option value="Sidereal">Sidereal</option>
+                                </select>
+                            </div>
+                            <div>
+                               <label for="astroB" class="block mb-1 text-sm font-medium text-gray-300">Birth Coordinates</label>
+                               <input type="text" id="astroB" placeholder="e.g., 30.16, -85.66" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            </div>
+                            <button id="pasteAstroB" class="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1 px-2 rounded text-sm">
+                              Paste AstroSeek Data
+                            </button>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input type="date" id="birth_dateB" placeholder="Birth Date (YYYY-MM-DD)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
-                            <input type="text" id="birth_timeB" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
-                            <select id="offsetB" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
-                                <option value="America/New_York">Eastern (New York)</option>
-                                <option value="America/Chicago">Central (Chicago)</option>
-                                <option value="America/Denver">Mountain (Denver)</option>
-                                <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
-                                <option value="America/Anchorage">Alaska</option>
-                                <option value="Pacific/Honolulu">Hawaii</option>
-                            </select>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input type="text" id="birth_countryB" placeholder="Country (2-letter)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
-                            <select id="zodiacB" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
-                                <option value="Tropic">Tropic</option>
-                                <option value="Sidereal">Sidereal</option>
-                            </select>
-                        </div>
-                        <div>
-                           <label for="astroB" class="block mb-1 text-sm font-medium text-gray-300">Birth Coordinates</label>
-                           <input type="text" id="astroB" placeholder="e.g., 30.16, -85.66" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
-                        </div>
-                        <button id="pasteAstroB" class="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1 px-2 rounded text-sm">
-                          Paste AstroSeek Data
-                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Context Mode Section -->
-            <div id="context-mode-section" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500">
+            <!-- Context Gate: Simplified Selection -->
+            <div id="context-gate-section" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-white">What do you want to explore?</h2>
+                    <button id="context-help-btn" class="text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none">
+                        🧭 Context Guide
+                    </button>
+                </div>
+                
+                <!-- Context Help Panel (initially hidden) -->
+                <div id="context-help-panel" class="hidden mb-6 p-4 bg-gray-750 rounded-lg border border-teal-600">
+                    <h3 class="text-lg font-semibold text-teal-300 mb-3">🧭 What Does Each Context Do?</h3>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex items-start">
+                            <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Solo →</span>
+                            <div class="text-gray-300">
+                                <div>Your individual astrological architecture and current transits. <em>"What's my inner landscape and how is today pressing on it?"</em></div>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Relational →</span>
+                            <div class="text-gray-300">
+                                <div>How two people activate each other, plus current pressures on the dynamic. <em>"What's happening between us?"</em></div>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Weather →</span>
+                            <div class="text-gray-300">
+                                <div>Current planetary pressures without personal chart context. <em>"What's the energetic weather right now?"</em></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-3 bg-gray-800 rounded border border-gray-600">
+                        <p class="text-xs text-gray-400">
+                            <strong class="text-teal-300">Recognition-First Principle:</strong> Choose based on your real question, not technical curiosity.
+                        </p>
+                    </div>
+                </div>
+                
+                <div id="context-selection" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <label class="flex items-center p-4 border border-gray-600 rounded-lg hover:border-teal-500 transition-colors cursor-pointer">
+                        <input type="radio" name="contextType" value="solo" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700" checked>
+                        <div>
+                            <div class="text-white font-medium">Solo</div>
+                            <div class="text-gray-400 text-sm">Your chart + current transits</div>
+                        </div>
+                    </label>
+                    <label class="flex items-center p-4 border border-gray-600 rounded-lg hover:border-teal-500 transition-colors cursor-pointer">
+                        <input type="radio" name="contextType" value="relational" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                        <div>
+                            <div class="text-white font-medium">Relational</div>
+                            <div class="text-gray-400 text-sm">Two people + current pressures</div>
+                        </div>
+                    </label>
+                    <label class="flex items-center p-4 border border-gray-600 rounded-lg hover:border-teal-500 transition-colors cursor-pointer">
+                        <input type="radio" name="contextType" value="weather" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                        <div>
+                            <div class="text-white font-medium">Weather Only</div>
+                            <div class="text-gray-400 text-sm">Current planetary patterns</div>
+                        </div>
+                    </label>
+                </div>
+                
+                <!-- Relational Subtype Selection (initially hidden) -->
+                <div id="relational-subtypes" class="hidden mt-4 p-4 bg-gray-750 rounded-lg border border-gray-600">
+                    <h3 class="text-sm font-medium text-white mb-3">What type of relational analysis?</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
+                            <input type="radio" name="relationalSubtype" value="synastry" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                            <div>
+                                <div class="text-white text-sm">Synastry + Transits</div>
+                                <div class="text-gray-400 text-xs">How you activate each other</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
+                            <input type="radio" name="relationalSubtype" value="composite" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700" checked>
+                            <div>
+                                <div class="text-white text-sm">Composite + Transits</div>
+                                <div class="text-gray-400 text-xs">The relationship as its own entity</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Context Mode Section (legacy - will be hidden and auto-updated) -->
+            <div id="context-mode-section" class="hidden bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-2xl font-semibold text-white">Context Mode</h2>
                     <button id="toggle-mode-help" class="text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none">
@@ -251,6 +407,213 @@
                     </div>
                 </div>
                 
+            <!-- Progressive Disclosure Sections -->
+            
+            <!-- Transit Date Range with Progressive Disclosure -->
+            <div id="optional-details-section" class="space-y-6">
+                
+                <!-- Quick Transit Settings (Mirror Mode Default) -->
+                <div id="quick-transit-section" class="bg-gray-800 p-6 rounded-lg shadow-lg border border-teal-500">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-semibold text-white">Date Range</h2>
+                        <div class="flex items-center gap-4">
+                            <button id="todayDefault" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded text-sm transition-colors">
+                                📅 Use Today
+                            </button>
+                            <button id="expandTransitOptions" class="text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none" type="button">
+                                ⚙️ More Options
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Simple Date Inputs -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="transitStartDate" class="block text-gray-300 font-medium mb-1">Start Date:</label>
+                            <input type="date" id="transitStartDate" name="transitStartDate" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" required>
+                        </div>
+                        <div>
+                            <label for="transitEndDate" class="block text-gray-300 font-medium mb-1">End Date:</label>
+                            <input type="date" id="transitEndDate" name="transitEndDate" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Advanced Transit Options (initially hidden) -->
+                    <div id="advanced-transit-options" class="hidden mt-4 pt-4 border-t border-gray-700">
+                        <div class="flex justify-between items-center mb-2">
+                            <label for="transitStep" class="block text-gray-300 font-medium">Step Size:</label>
+                            <button id="stepSizeHelp" class="text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none" type="button">
+                                ❓ What does this do?
+                            </button>
+                        </div>
+                        <select id="transitStep" name="transitStep" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            <option value="1d">Daily (1 day intervals)</option>
+                            <option value="7d">Weekly (7 day intervals)</option>
+                            <option value="1m">Monthly (1 month intervals)</option>
+                        </select>
+                        <!-- Step Size Help Panel (initially hidden) -->
+                        <div id="stepSizeHelpPanel" class="hidden mt-2 p-3 bg-gray-750 rounded-lg border border-teal-600 text-sm">
+                            <h4 class="text-teal-300 font-semibold mb-2">📊 Step Size Explained</h4>
+                            <p class="text-gray-200 mb-2">Step size controls how frequently transit calculations are performed within your date range:</p>
+                            <ul class="text-gray-300 space-y-1 ml-4">
+                                <li><b>Daily</b>: Calculate transits for every single day (most detailed, slower for long ranges)</li>
+                                <li><b>Weekly</b>: Calculate transits every 7 days (good balance for monthly+ ranges)</li>
+                                <li><b>Monthly</b>: Calculate transits once per month (fastest, good for yearly overviews)</li>
+                            </ul>
+                            <p class="text-yellow-200 mt-2 text-xs"><b>Tip</b>: For quick current checks, use "Daily" with today's date. For longer ranges (months/years), "Weekly" or "Monthly" will be faster.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Relocation Overlay with Progressive Disclosure -->
+                <div id="relocation-section" class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-600">
+                    <div class="flex items-center justify-between cursor-pointer hover:bg-gray-750 p-2 -m-2 rounded transition-colors" 
+                         id="relocation-toggle-header" role="button" tabindex="0" aria-expanded="false" aria-controls="relocation-details">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="relocationToggle" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                            <div>
+                                <h3 class="text-lg font-medium text-white">Relocation Overlay</h3>
+                                <p class="text-xs text-gray-400">Adjust coordinates for different locations</p>
+                            </div>
+                        </div>
+                        <svg id="relocation-chevron" class="w-5 h-5 text-gray-400 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </div>
+                    
+                    <!-- Relocation Details (collapsible) -->
+                    <div id="relocation-details" class="hidden">
+                        <div class="mt-4 pt-4 border-t border-gray-700 space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="relocationCity" class="block mb-1 text-sm font-medium text-gray-300">Relocation City</label>
+                                    <input type="text" id="relocationCity" placeholder="e.g., Panama City" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="Panama City">
+                                </div>
+                                <div>
+                                    <label for="relocationState" class="block mb-1 text-sm font-medium text-gray-300">State/Province</label>
+                                    <input type="text" id="relocationState" placeholder="e.g., FL" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="FL">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label for="relocationCoords" class="block mb-1 text-sm font-medium text-gray-300">
+                                    Relocation Coordinates
+                                    <span class="text-xs text-gray-500">(Required for overlay calculations)</span>
+                                </label>
+                                <input type="text" id="relocationCoords" placeholder="e.g., 30°10'N, 85°40'W or 34.0522, -118.2437" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="30°10'N, 85°40'W">
+                                <div class="mt-1 text-xs text-gray-500">
+                                    Format: latitude, longitude (decimal degrees)
+                                    <br>Examples: "40.7128, -74.0060" (NYC) or "34.0522, -118.2437" (LA)
+                                </div>
+                                
+                                <!-- Validation Error for Relocation Coords -->
+                                <div id="relocationCoordsError" class="hidden mt-1 text-xs text-red-400">
+                                    Please enter valid coordinates in format: latitude, longitude
+                                </div>
+                            </div>
+                            
+                            <div class="bg-gray-750 p-3 rounded border border-gray-600">
+                                <h4 class="text-sm font-medium text-teal-300 mb-2">How Relocation Overlay Works:</h4>
+                                <ul class="text-xs text-gray-400 space-y-1">
+                                    <li>• Birth chart remains at original location</li>
+                                    <li>• Transits/progressions calculated for new location</li>
+                                    <li>• Shows how planetary energy shifts in different places</li>
+                                    <li>• Useful for travel, relocation, or understanding location-based influences</li>
+                                </ul>
+                            </div>
+                            
+                            <!-- Person B Relocation Option (only visible when Person B is present) -->
+                            <div id="relocationPersonBOption" class="hidden">
+                                <div class="flex items-center p-3 bg-gray-750 rounded border border-gray-600">
+                                    <input type="checkbox" id="includePersonBRelocation" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                                    <label for="includePersonBRelocation" class="text-gray-300 font-medium">
+                                        Also relocate Person B
+                                        <span class="text-xs text-gray-500 block">Default: Only Person A relocation applied. Check to include Person B.</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Relational Context Section (conditional visibility) -->
+                <div id="relational-context-section" class="hidden bg-gray-800 p-6 rounded-lg shadow-lg border border-teal-500" role="region" aria-labelledby="relational-context-heading">
+                    <h2 id="relational-context-heading" class="text-xl font-semibold mb-4 text-white">Relational Context</h2>
+                    <p class="text-gray-400 text-sm mb-4">Detected potential dynamics:</p>
+                    <ul id="context-readout" class="list-disc list-inside space-y-2 mb-4 text-gray-300"></ul>
+                    <div id="relationship-type-query">
+                        <p class="text-lg font-medium text-white mb-2">How would you categorize this connection?</p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
+                                <input type="radio" name="relationshipType" value="partner" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                                <div>
+                                    <div class="text-white font-medium">Partner</div>
+                                    <div class="text-gray-400 text-xs">Romantic/intimate</div>
+                                </div>
+                            </label>
+                            <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
+                                <input type="radio" name="relationshipType" value="friend" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                                <div>
+                                    <div class="text-white font-medium">Friend</div>
+                                    <div class="text-gray-400 text-xs">Friend or colleague</div>
+                                </div>
+                            </label>
+                            <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
+                                <input type="radio" name="relationshipType" value="family" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                                <div>
+                                    <div class="text-white font-medium">Family</div>
+                                    <div class="text-gray-400 text-xs">Family member</div>
+                                </div>
+                            </label>
+                        </div>
+                        <div id="exRelationshipRow" class="mt-4 pt-3 border-t border-gray-600">
+                            <label class="flex items-center p-2 hover:bg-gray-750 rounded cursor-pointer">
+                                <input type="checkbox" id="exRelationship" class="mr-3 h-4 w-4 text-red-400 focus:ring-red-500 border-gray-600 rounded bg-gray-700">
+                                <span class="text-gray-300">Ex or Estranged</span>
+                            </label>
+                        </div>
+                        <!-- Relationship Role (conditional) -->
+                        <div id="relationship-role-block" class="mt-4 hidden" aria-live="polite">
+                            <label for="relationshipRole" class="block text-sm font-medium text-gray-300">Relationship Role (Person B relative to A)</label>
+                            <select id="relationshipRole" class="mt-1 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm"></select>
+                            <input id="relationshipRoleCustom" placeholder="Custom role (e.g., half-brother, stepmother)" class="mt-2 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm hidden" />
+                            <div class="mt-2">
+                                <label for="relationshipNotes" class="block text-xs font-medium text-gray-400">Relationship Notes (optional)</label>
+                                <textarea id="relationshipNotes" rows="2" class="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-xs" placeholder="Any clarifying context (e.g., estranged, adopted)"></textarea>
+                            </div>
+                        </div>
+                        <div id="intimacy-tier-dropdown" class="mt-4 hidden">
+                            <p class="text-md font-medium text-white mb-2">What best describes the intimacy tier of this connection?</p>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
+                                    <input type="radio" name="intimacyTier" value="P1" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
+                                    <div>
+                                        <div class="text-white text-sm">P1 – Platonic</div>
+                                        <div class="text-gray-400 text-xs">Platonic partners</div>
+                                    </div>
+                                </label>
+                                <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
+                                    <input type="radio" name="intimacyTier" value="P2" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
+                                    <div>
+                                        <div class="text-white text-sm">P2 – FWB</div>
+                                        <div class="text-gray-400 text-xs">Friends with benefits</div>
+                                    </div>
+                                </label>
+                                <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
+                                    <input type="radio" name="intimacyTier" value="P3" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
+                                    <div>
+                                        <div class="text-white text-sm">P3 – Romantic</div>
+                                        <div class="text-gray-400 text-xs">Romantic partners</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legacy hidden sections for compatibility -->
+            <div class="hidden">
                 <div id="context-toggle" class="flex items-center mb-4">
                     <label class="flex items-center mr-4">
                         <input type="radio" name="contextMode" value="natal_transits" class="mr-2" checked>
@@ -266,142 +629,16 @@
                     </label>
                 </div>
                 
-                <!-- Relational Context Section (moved above relocation) -->
-                <div id="relational-context-section" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500 hidden" role="region" aria-labelledby="relational-context-heading">
-                    <h2 id="relational-context-heading" class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Relational Context</h2>
-                    <p class="text-gray-400 text-sm mb-4">Detected potential dynamics:</p>
-                    <ul id="context-readout" class="list-disc list-inside space-y-2 mb-4 text-gray-300"></ul>
-                    <div id="relationship-type-query">
-                        <p class="text-lg font-medium text-white mb-2">How would you categorize this connection?</p>
-                        <div class="flex flex-col space-y-2">
-                            <label class="flex items-center"><input type="radio" name="relationshipType" value="partner" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Partner (romantic/undefined-intimate)</span></label>
-                            <label class="flex items-center"><input type="radio" name="relationshipType" value="friend" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Friend or colleague</span></label>
-                            <label class="flex items-center"><input type="radio" name="relationshipType" value="family" class="form-radio h-4 w-4 text-teal-400"><span class="ml-2 text-gray-300">Family</span></label>
-                        </div>
-                        <div id="exRelationshipRow" class="mt-3 pt-2 border-t border-gray-600">
-                            <label class="flex items-center">
-                                <input type="checkbox" id="exRelationship" class="form-checkbox h-4 w-4 text-red-400">
-                                <span class="ml-2 text-gray-300">Ex or Estranged</span>
-                            </label>
-                        </div>
-                        <!-- Relationship Role (conditional: family full list, friend minimal) -->
-                        <div id="relationship-role-block" class="mt-4 hidden" aria-live="polite">
-                            <label for="relationshipRole" class="block text-sm font-medium text-gray-300">Relationship Role (Person B relative to A)</label>
-                            <select id="relationshipRole" class="mt-1 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm"></select>
-                            <input id="relationshipRoleCustom" placeholder="Custom role (e.g., half-brother, stepmother)" class="mt-2 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm hidden" />
-                            <div class="mt-2">
-                                <label for="relationshipNotes" class="block text-xs font-medium text-gray-400">Relationship Notes (optional)</label>
-                                <textarea id="relationshipNotes" rows="2" class="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-xs" placeholder="Any clarifying context (e.g., estranged, adopted)"></textarea>
-                            </div>
-                        </div>
-                        <div id="intimacy-tier-dropdown" class="mt-4 hidden">
-                            <p class="text-md font-medium text-white mb-2">What best describes the intimacy tier of this connection?</p>
-                            <div class="flex flex-col space-y-2">
-                                <label class="flex items-center"><input type="radio" name="intimacyTier" value="P1" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P1 – Platonic partners</span></label>
-                                <label class="flex items-center"><input type="radio" name="intimacyTier" value="P2" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P2 – Friends with benefits</span></label>
-                                <label class="flex items-center"><input type="radio" name="intimacyTier" value="P3" class="form-radio h-4 w-4 text-pink-400"><span class="ml-2 text-gray-300">P3 – Romantic partners</span></label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Relocation Overlay Section (moved below relational context) -->
-                <div id="relocation-section" class="mt-6 border-t border-gray-700 pt-4">
-                    <div class="flex items-center mb-4">
-                        <input type="checkbox" id="relocationToggle" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
-                        <label for="relocationToggle" class="text-gray-300 font-medium">
-                            Enable Relocation Overlay
-                            <span class="text-xs text-gray-500 block">Relocation affects house angles and overlay geometry. Available in all modes.</span>
-                        </label>
-                    </div>
-                    
-                    <!-- Relocation Fields (initially hidden) -->
-                    <div id="relocationFields" class="hidden space-y-4 bg-gray-750 p-4 rounded-lg border border-gray-600">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label for="relocationCity" class="block mb-1 text-sm font-medium text-gray-300">Relocation City</label>
-                                <input type="text" id="relocationCity" placeholder="e.g., Panama City" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="Panama City">
-                            </div>
-                            <div>
-                                <label for="relocationState" class="block mb-1 text-sm font-medium text-gray-300">State/Province</label>
-                                <input type="text" id="relocationState" placeholder="e.g., FL" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="FL">
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <label for="relocationCoords" class="block mb-1 text-sm font-medium text-gray-300">
-                                Relocation Coordinates
-                                <span class="text-xs text-gray-500">(Required for overlay calculations)</span>
-                            </label>
-                            <input type="text" id="relocationCoords" placeholder="e.g., 30°10'N, 85°40'W or 34.0522, -118.2437" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="30°10'N, 85°40'W">
-                            <div class="mt-1 text-xs text-gray-500">
-                                Format: latitude, longitude (decimal degrees)
-                                <br>Examples: "40.7128, -74.0060" (NYC) or "34.0522, -118.2437" (LA)
-                            </div>
-                            
-                            <!-- Validation Error for Relocation Coords -->
-                            <div id="relocationCoordsError" class="hidden mt-1 text-xs text-red-400">
-                                Please enter valid coordinates in format: latitude, longitude
-                            </div>
-                        </div>
-                        
-                        <div class="bg-gray-800 p-3 rounded border border-gray-600">
-                            <h4 class="text-sm font-medium text-teal-300 mb-2">How Relocation Overlay Works:</h4>
-                            <ul class="text-xs text-gray-400 space-y-1">
-                                <li>• Birth chart remains at original location</li>
-                                <li>• Transits/progressions calculated for new location</li>
-                                <li>• Shows how planetary energy shifts in different places</li>
-                                <li>• Useful for travel, relocation, or understanding location-based influences</li>
-                            </ul>
-                        </div>
-                        
-                        <!-- Person B Relocation Option (only visible when Person B is present) -->
-                        <div id="relocationPersonBOption" class="hidden">
-                            <div class="flex items-center p-3 bg-gray-800 rounded border border-gray-600">
-                                <input type="checkbox" id="includePersonBRelocation" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
-                                <label for="includePersonBRelocation" class="text-gray-300 font-medium">
-                                    Also relocate Person B
-                                    <span class="text-xs text-gray-500 block">Default: Only Person A relocation applied. Check to include Person B.</span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Transit Date Range Fields (always visible - all modes include transits) -->
-                <div id="transit-date-range-fields" class="mb-6">
+                <!-- Legacy transit fields for compatibility -->
+                <div id="transit-date-range-fields" class="mb-6 hidden">
                   <div class="flex justify-between items-center mb-2">
                     <label for="transitStartDate" class="block text-gray-300 font-medium">Transit Start Date (YYYY-MM-DD):</label>
                     <button id="prefillToday" class="text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none" type="button">
                         📅 Use Today for Quick Check
                     </button>
                   </div>
-                  <input type="date" id="transitStartDate" name="transitStartDate" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 mb-2" required>
-                  <label for="transitEndDate" class="block text-gray-300 font-medium mb-1">Transit End Date (YYYY-MM-DD):</label>
-                  <input type="date" id="transitEndDate" name="transitEndDate" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 mb-2" required>
-                  <div class="flex justify-between items-center mb-1">
-                    <label for="transitStep" class="block text-gray-300 font-medium">Step Size:</label>
-                    <button id="stepSizeHelp" class="text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none" type="button">
-                        ❓ What does this do?
-                    </button>
-                  </div>
-                  <select id="transitStep" name="transitStep" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
-                    <option value="1d">Daily (1 day intervals)</option>
-                    <option value="7d">Weekly (7 day intervals)</option>
-                    <option value="1m">Monthly (1 month intervals)</option>
-                  </select>
-                  <!-- Step Size Help Panel (initially hidden) -->
-                  <div id="stepSizeHelpPanel" class="hidden mt-2 p-3 bg-gray-750 rounded-lg border border-teal-600 text-sm">
-                    <h4 class="text-teal-300 font-semibold mb-2">📊 Step Size Explained</h4>
-                    <p class="text-gray-200 mb-2">Step size controls how frequently transit calculations are performed within your date range:</p>
-                    <ul class="text-gray-300 space-y-1 ml-4">
-                      <li><b>Daily</b>: Calculate transits for every single day (most detailed, slower for long ranges)</li>
-                      <li><b>Weekly</b>: Calculate transits every 7 days (good balance for monthly+ ranges)</li>
-                      <li><b>Monthly</b>: Calculate transits once per month (fastest, good for yearly overviews)</li>
-                    </ul>
-                    <p class="text-yellow-200 mt-2 text-xs"><b>Tip</b>: For quick current checks, use "Daily" with today's date. For longer ranges (months/years), "Weekly" or "Monthly" will be faster.</p>
-                  </div>
                 </div>
+            </div>
                 
                 <!-- Additional Context Options -->
                 <div id="context-options" class="space-y-4">
@@ -415,7 +652,7 @@
                             <div class="ml-3">
                                 <h3 class="text-sm font-medium">Math Brain Protocol Active</h3>
                                 <div class="mt-2 text-sm">
-                                    This interface computes pure astrological geometry only. Focus area and report style preferences have been moved to the VOICE layer for proper FIELD → MAP → VOICE separation.
+                                    This panel computes geometry only. Interpretation lives in the Mirror.
                                 </div>
                             </div>
                         </div>
@@ -428,8 +665,13 @@
             <!-- Generate Button -->
             <div class="text-center mb-8">
                 <button id="generateReport" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                    Compute Astrological Geometry
+                    Get My Mirror
                 </button>
+                <div class="mt-3">
+                    <button id="showWiringBtn" class="text-teal-300 underline hover:text-teal-400 text-sm transition-colors duration-200">
+                        Show Wiring
+                    </button>
+                </div>
             </div>
 
             <!-- Loading Indicator -->
@@ -2083,6 +2325,358 @@ function renderTransitDay(dateStr, items){
             });
         }
 
+        // =============================================================================
+        // NEW UX IMPROVEMENT FUNCTIONS
+        // =============================================================================
+        
+        // Global state for the app mode
+        let currentAppMode = 'mirror'; // 'mirror' or 'geometry'
+        let currentContextType = 'solo'; // 'solo', 'relational', 'weather'
+        
+        function updateAppMode(mode) {
+            currentAppMode = mode;
+            
+            // Update tab appearance
+            const mirrorTab = document.getElementById('mirrorModeTab');
+            const geometryTab = document.getElementById('geometryModeTab');
+            const modeDescription = document.getElementById('modeDescription');
+            const generateBtn = document.getElementById('generateReport');
+            const showWiringBtn = document.getElementById('showWiringBtn');
+            
+            if (mode === 'mirror') {
+                mirrorTab.classList.add('bg-teal-600', 'text-white');
+                mirrorTab.classList.remove('text-gray-300');
+                mirrorTab.setAttribute('aria-selected', 'true');
+                
+                geometryTab.classList.remove('bg-teal-600', 'text-white');
+                geometryTab.classList.add('text-gray-300');
+                geometryTab.setAttribute('aria-selected', 'false');
+                
+                modeDescription.textContent = 'Start with your reflection, explore the wiring later';
+                generateBtn.textContent = 'Get My Mirror';
+                showWiringBtn.style.display = 'inline';
+                
+                // Auto-populate today's date in Mirror mode
+                autoPopulateTodayDates();
+                
+            } else if (mode === 'geometry') {
+                geometryTab.classList.add('bg-teal-600', 'text-white');
+                geometryTab.classList.remove('text-gray-300');
+                geometryTab.setAttribute('aria-selected', 'true');
+                
+                mirrorTab.classList.remove('bg-teal-600', 'text-white');
+                mirrorTab.classList.add('text-gray-300');
+                mirrorTab.setAttribute('aria-selected', 'false');
+                
+                modeDescription.textContent = 'Deep dive into the mathematical structures';
+                generateBtn.textContent = 'Compute Geometry';
+                showWiringBtn.style.display = 'none';
+                
+                // Show advanced options in Geometry mode
+                showAdvancedTransitOptions();
+            }
+            
+            updateUIBasedOnMode();
+        }
+        
+        function updateContextType(contextType) {
+            currentContextType = contextType;
+            
+            // Update the legacy context mode for compatibility
+            const contextModeInputs = document.querySelectorAll('input[name="contextMode"]');
+            
+            if (contextType === 'solo') {
+                contextModeInputs.forEach(input => {
+                    input.checked = input.value === 'natal_transits';
+                });
+                hidePersonBSection();
+                hideRelationalSubtypes();
+                hideRelationalContext();
+            } else if (contextType === 'relational') {
+                showPersonBSection();
+                showRelationalSubtypes();
+                // Default to composite for relational
+                const relationalSubtype = document.querySelector('input[name="relationalSubtype"]:checked')?.value || 'composite';
+                updateRelationalSubtype(relationalSubtype);
+            } else if (contextType === 'weather') {
+                // Weather only mode - hide person sections
+                hidePersonBSection();
+                hideRelationalSubtypes();
+                hideRelationalContext();
+                // Set to transit-only mode
+                contextModeInputs.forEach(input => {
+                    input.checked = input.value === 'natal_transits'; // Use natal_transits but hide person data
+                });
+            }
+            
+            updateFormUI();
+        }
+        
+        function updateRelationalSubtype(subtype) {
+            const contextModeInputs = document.querySelectorAll('input[name="contextMode"]');
+            
+            if (subtype === 'synastry') {
+                contextModeInputs.forEach(input => {
+                    input.checked = input.value === 'synastry_transits';
+                });
+            } else if (subtype === 'composite') {
+                contextModeInputs.forEach(input => {
+                    input.checked = input.value === 'composite_transits';
+                });
+            }
+            
+            updateFormUI();
+        }
+        
+        function showPersonBSection() {
+            const personBToggle = document.getElementById('personB-toggle');
+            const personBDetails = document.getElementById('personB-details');
+            const personBChevron = document.getElementById('personB-chevron');
+            
+            if (personBToggle && personBDetails) {
+                personBToggle.setAttribute('aria-expanded', 'true');
+                personBDetails.classList.remove('hidden');
+                if (personBChevron) {
+                    personBChevron.classList.add('rotate-180');
+                }
+            }
+        }
+        
+        function hidePersonBSection() {
+            const personBToggle = document.getElementById('personB-toggle');
+            const personBDetails = document.getElementById('personB-details');
+            const personBChevron = document.getElementById('personB-chevron');
+            
+            if (personBToggle && personBDetails) {
+                personBToggle.setAttribute('aria-expanded', 'false');
+                personBDetails.classList.add('hidden');
+                if (personBChevron) {
+                    personBChevron.classList.remove('rotate-180');
+                }
+            }
+        }
+        
+        function showRelationalSubtypes() {
+            const relationalSubtypes = document.getElementById('relational-subtypes');
+            if (relationalSubtypes) {
+                relationalSubtypes.classList.remove('hidden');
+            }
+        }
+        
+        function hideRelationalSubtypes() {
+            const relationalSubtypes = document.getElementById('relational-subtypes');
+            if (relationalSubtypes) {
+                relationalSubtypes.classList.add('hidden');
+            }
+        }
+        
+        function showRelationalContext() {
+            const relationalContext = document.getElementById('relational-context-section');
+            if (relationalContext) {
+                relationalContext.classList.remove('hidden');
+            }
+        }
+        
+        function hideRelationalContext() {
+            const relationalContext = document.getElementById('relational-context-section');
+            if (relationalContext) {
+                relationalContext.classList.add('hidden');
+            }
+        }
+        
+        function autoPopulateTodayDates() {
+            const todayStr = getTodayDateString();
+            const startDate = document.getElementById('transitStartDate');
+            const endDate = document.getElementById('transitEndDate');
+            
+            if (startDate && endDate) {
+                // Only auto-populate if fields are empty
+                if (!startDate.value) startDate.value = todayStr;
+                if (!endDate.value) endDate.value = todayStr;
+            }
+        }
+        
+        function showAdvancedTransitOptions() {
+            const advancedOptions = document.getElementById('advanced-transit-options');
+            if (advancedOptions) {
+                advancedOptions.classList.remove('hidden');
+            }
+        }
+        
+        function hideAdvancedTransitOptions() {
+            const advancedOptions = document.getElementById('advanced-transit-options');
+            if (advancedOptions) {
+                advancedOptions.classList.add('hidden');
+            }
+        }
+        
+        function updateUIBasedOnMode() {
+            const mathBrainBanner = document.querySelector('#context-options .bg-yellow-900');
+            
+            if (currentAppMode === 'mirror') {
+                // Hide Math Brain banner in Mirror mode
+                if (mathBrainBanner) {
+                    mathBrainBanner.style.display = 'none';
+                }
+                hideAdvancedTransitOptions();
+            } else if (currentAppMode === 'geometry') {
+                // Show Math Brain banner in Geometry mode
+                if (mathBrainBanner) {
+                    mathBrainBanner.style.display = 'block';
+                }
+                showAdvancedTransitOptions();
+            }
+        }
+        
+        function togglePersonB() {
+            const personBDetails = document.getElementById('personB-details');
+            const personBChevron = document.getElementById('personB-chevron');
+            const personBToggle = document.getElementById('personB-toggle');
+            
+            if (personBDetails && personBChevron && personBToggle) {
+                const isExpanded = personBToggle.getAttribute('aria-expanded') === 'true';
+                
+                personBToggle.setAttribute('aria-expanded', !isExpanded);
+                personBDetails.classList.toggle('hidden');
+                personBChevron.classList.toggle('rotate-180');
+                
+                // If expanding and we're in solo mode, switch to relational
+                if (!isExpanded && currentContextType === 'solo') {
+                    const relationalRadio = document.querySelector('input[name="contextType"][value="relational"]');
+                    if (relationalRadio) {
+                        relationalRadio.checked = true;
+                        updateContextType('relational');
+                    }
+                }
+            }
+        }
+        
+        function toggleRelocation() {
+            const relocationDetails = document.getElementById('relocation-details');
+            const relocationChevron = document.getElementById('relocation-chevron');
+            const relocationToggle = document.getElementById('relocationToggle');
+            const relocationHeader = document.getElementById('relocation-toggle-header');
+            
+            if (relocationDetails && relocationChevron && relocationHeader) {
+                const isExpanded = relocationHeader.getAttribute('aria-expanded') === 'true';
+                
+                relocationHeader.setAttribute('aria-expanded', !isExpanded);
+                relocationDetails.classList.toggle('hidden');
+                relocationChevron.classList.toggle('rotate-180');
+                
+                // Also toggle the checkbox
+                if (relocationToggle) {
+                    relocationToggle.checked = !isExpanded;
+                }
+            }
+        }
+        
+        function setupProgressiveDisclosureEventListeners() {
+            // Mirror/Geometry tabs
+            const mirrorTab = document.getElementById('mirrorModeTab');
+            const geometryTab = document.getElementById('geometryModeTab');
+            
+            if (mirrorTab) {
+                mirrorTab.addEventListener('click', () => updateAppMode('mirror'));
+            }
+            if (geometryTab) {
+                geometryTab.addEventListener('click', () => updateAppMode('geometry'));
+            }
+            
+            // Context type selection
+            document.querySelectorAll('input[name="contextType"]').forEach(radio => {
+                radio.addEventListener('change', (e) => updateContextType(e.target.value));
+            });
+            
+            // Relational subtypes
+            document.querySelectorAll('input[name="relationalSubtype"]').forEach(radio => {
+                radio.addEventListener('change', (e) => updateRelationalSubtype(e.target.value));
+            });
+            
+            // Person B toggle
+            const personBToggle = document.getElementById('personB-toggle');
+            if (personBToggle) {
+                personBToggle.addEventListener('click', togglePersonB);
+                personBToggle.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        togglePersonB();
+                    }
+                });
+            }
+            
+            // Relocation toggle
+            const relocationHeader = document.getElementById('relocation-toggle-header');
+            if (relocationHeader) {
+                relocationHeader.addEventListener('click', toggleRelocation);
+                relocationHeader.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleRelocation();
+                    }
+                });
+            }
+            
+            // Today default button
+            const todayDefaultBtn = document.getElementById('todayDefault');
+            if (todayDefaultBtn) {
+                todayDefaultBtn.addEventListener('click', () => {
+                    const todayStr = getTodayDateString();
+                    document.getElementById('transitStartDate').value = todayStr;
+                    document.getElementById('transitEndDate').value = todayStr;
+                    
+                    // Visual feedback
+                    todayDefaultBtn.textContent = '✅ Set to Today';
+                    setTimeout(() => {
+                        todayDefaultBtn.textContent = '📅 Use Today';
+                    }, 2000);
+                });
+            }
+            
+            // Expand transit options button
+            const expandTransitBtn = document.getElementById('expandTransitOptions');
+            if (expandTransitBtn) {
+                expandTransitBtn.addEventListener('click', () => {
+                    const advancedOptions = document.getElementById('advanced-transit-options');
+                    if (advancedOptions) {
+                        const isHidden = advancedOptions.classList.contains('hidden');
+                        advancedOptions.classList.toggle('hidden');
+                        expandTransitBtn.textContent = isHidden ? '⚙️ Hide Options' : '⚙️ More Options';
+                    }
+                });
+            }
+            
+            // Context help toggle
+            const contextHelpBtn = document.getElementById('context-help-btn');
+            const contextHelpPanel = document.getElementById('context-help-panel');
+            if (contextHelpBtn && contextHelpPanel) {
+                contextHelpBtn.addEventListener('click', () => {
+                    const isHidden = contextHelpPanel.classList.contains('hidden');
+                    contextHelpPanel.classList.toggle('hidden');
+                    contextHelpBtn.textContent = isHidden ? '🧭 Hide Guide' : '🧭 Context Guide';
+                });
+            }
+            
+            // Show Wiring button (scroll to geometry section)
+            const showWiringBtn = document.getElementById('showWiringBtn');
+            if (showWiringBtn) {
+                showWiringBtn.addEventListener('click', () => {
+                    // Switch to geometry mode and scroll to report section
+                    updateAppMode('geometry');
+                    
+                    // Scroll to report section if it exists
+                    const reportSection = document.getElementById('reportOutput');
+                    if (reportSection && !reportSection.classList.contains('hidden')) {
+                        reportSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
+            }
+        }
+        
+        // =============================================================================
+        // END NEW UX IMPROVEMENT FUNCTIONS
+        // =============================================================================
+
         function updateFormUI() {
             const mode = document.querySelector('input[name="contextMode"]:checked').value;
 
@@ -2182,7 +2776,12 @@ function renderTransitDay(dateStr, items){
             });
 
             setupEventListeners();
+            setupProgressiveDisclosureEventListeners(); // New UX improvement functions
             updateFormUI();
+            
+            // Initialize with Mirror mode
+            updateAppMode('mirror');
+            updateContextType('solo');
             
             // Auto-prefill transit dates with today for convenience
             const todayStr = getTodayDateString();
