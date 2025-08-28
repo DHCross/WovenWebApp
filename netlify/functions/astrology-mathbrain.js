@@ -47,6 +47,10 @@ function stripGraphicsDeep(obj) {
   return out;
 }
 
+// Provenance constants
+const MATH_BRAIN_VERSION = '0.2.1'; // Single source of truth for version
+const EPHEMERIS_SOURCE = 'AstrologerAPI-v4';
+
 function normalizeStep(step) {
   const s = String(step || '').toLowerCase();
   if (['daily','weekly','monthly'].includes(s)) return s;
@@ -131,17 +135,56 @@ function normalizeSubjectData(data) {
     normalized.longitude = normalized.longitude || lng;
   }
 
+  // Flexible coordinate parsing (decimal or DMS) if still strings or missing
+  function parseCoordinatesFlexible(input){
+    if(!input || typeof input !== 'string') return null;
+    const DEC = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/;
+    const DMS = /^\s*(\d{1,3})(?:°\s*(\d{1,2}))?(?:'\s*([\d.]+))?\s*([NS])\s*,\s*(\d{1,3})(?:°\s*(\d{1,2}))?(?:'\s*([\d.]+))?\s*([EW])\s*$/i;
+    const m1 = DEC.exec(input);
+    if (m1){
+      const lat = +m1[1], lon = +m1[2];
+      if (isFinite(lat) && isFinite(lon) && Math.abs(lat)<=90 && Math.abs(lon)<=180) return {lat, lon};
+      return null;
+    }
+    const cleaned = input.replace(/º/g,'°');
+    const m2 = DMS.exec(cleaned);
+    if (m2){
+      const conv = (d,m,s,h)=>{ const sign = /[SW]/i.test(h)?-1:1; return sign*(+d + (+m||0)/60 + (+s||0)/3600); };
+      const lat = conv(m2[1],m2[2],m2[3],m2[4]);
+      const lon = conv(m2[5],m2[6],m2[7],m2[8]);
+      if (isFinite(lat) && isFinite(lon)) return {lat, lon};
+    }
+    return null;
+  }
+
+  // If coordinates provided as a single string in data.astro or data.coords
+  if (!normalized.latitude || !normalized.longitude) {
+    const alt = data.astro || data.coords || data.coordinate || data.coord;
+    const parsed = parseCoordinatesFlexible(alt);
+    if (parsed){
+      normalized.latitude = normalized.latitude ?? parsed.lat;
+      normalized.longitude = normalized.longitude ?? parsed.lon;
+    }
+  }
+  // If lat/lon still strings with DMS pattern
+  if (typeof normalized.latitude === 'string') {
+    const p = parseCoordinatesFlexible(normalized.latitude + ',' + normalized.longitude);
+    if (p){ normalized.latitude = p.lat; normalized.longitude = p.lon; }
+  }
+
   return normalized;
 }
 
-// ---- Aspect Filtering & Hook Extraction Helpers ----
-// Classification sets & orb caps (soft guidance; we tag wide aspects rather than always dropping majors)
+// ---- Aspect Filtering & Hook Extraction (refined) ----
+// Aspect classes
 const ASPECT_CLASS = {
   major: new Set(['conjunction','opposition','square','trine','sextile']),
   minor: new Set(['quincunx','sesquiquadrate','semi-square','semi-sextile']),
   harmonic: new Set(['quintile','biquintile'])
 };
-const ORB_CAPS = {
+
+// Orb caps by aspect (geometry constraint)
+const ASPECT_ORB_CAPS = {
   conjunction: 10,
   opposition: 10,
   square: 8,
@@ -155,7 +198,23 @@ const ORB_CAPS = {
   biquintile: 2
 };
 
-const RETURN_BODIES = new Set(['Saturn','Jupiter','Chiron','Mean_Node','Mean_South_Node']);
+// Orb caps by body class (slower bodies tolerate larger orbs for the same structural salience)
+const BODY_CLASS_CAPS = {
+  luminary: 12,
+  personal: 8,
+  social: 7,     // Jupiter / Saturn
+  outer: 6,
+  angle: 8,
+  point: 5,      // Chiron, Nodes, Lilith
+  other: 6
+};
+
+const RETURN_BODIES = new Set(['Saturn','Jupiter','Chiron','Mean_Node','Mean_South_Node','True_Node','True_South_Node']);
+const POINT_BODIES = new Set([
+  'Ascendant','Medium_Coeli','Descendant','Imum_Coeli',
+  'Mean_Node','True_Node','Mean_South_Node','True_South_Node',
+  'Chiron','Mean_Lilith'
+]); // Ensure True nodes & all angles included
 
 function classifyAspectName(name){
   if (ASPECT_CLASS.major.has(name)) return 'major';
@@ -164,45 +223,79 @@ function classifyAspectName(name){
   return 'other';
 }
 
+function bodyClass(name){
+  switch(name){
+    case 'Sun':
+    case 'Moon': return 'luminary';
+    case 'Mercury':
+    case 'Venus':
+    case 'Mars': return 'personal';
+    case 'Jupiter':
+    case 'Saturn': return 'social';
+    case 'Uranus':
+    case 'Neptune':
+    case 'Pluto': return 'outer';
+    case 'Ascendant':
+    case 'Medium_Coeli':
+    case 'Descendant':
+    case 'Imum_Coeli': return 'angle';
+    case 'Chiron':
+    case 'Mean_Node':
+  case 'True_Node':
+    case 'Mean_South_Node':
+  case 'True_South_Node':
+    case 'Mean_Lilith': return 'point';
+    default: return 'other';
+  }
+}
+
 function displayBodyName(raw){
   const map = {
     'Medium_Coeli': 'MC',
+  'Imum_Coeli': 'IC',
     'Mean_Node': 'North Node',
     'Mean_South_Node': 'South Node',
+  'True_Node': 'North Node (True)',
+  'True_South_Node': 'South Node (True)',
     'Mean_Lilith': 'Lilith'
   };
   return map[raw] || raw;
 }
 
 function weightAspect(a){
-  // Base factor by class
   const base = a._class === 'major' ? 1.0 : a._class === 'minor' ? 0.55 : a._class === 'harmonic' ? 0.45 : 0.4;
-  const cap = ORB_CAPS[a._aspect] || 6;
-  const tightness = Math.max(0, 1 - (a._orb / cap));
-  // Luminary / Angle emphasis
+  const aspectCap = ASPECT_ORB_CAPS[a._aspect] || 6;
+  const classCapTransit = BODY_CLASS_CAPS[bodyClass(a.p1_name)] || 6;
+  const classCapNatal = BODY_CLASS_CAPS[bodyClass(a.p2_name)] || 6;
+  const effectiveCap = Math.min(aspectCap, Math.max(classCapTransit, classCapNatal));
+  const tightness = a._orb != null ? Math.max(0, 1 - (a._orb / effectiveCap)) : 0;
   const lumOrAngle = (a.p1_isLuminary || a.p2_isLuminary || a.p1_isAngle || a.p2_isAngle) ? 1.15 : 1.0;
   return +(base * tightness * lumOrAngle).toFixed(4);
 }
 
 function enrichDailyAspects(rawList){
-  if (!Array.isArray(rawList)) return { raw: [], filtered: [], hooks: [], counts: { raw:0, filtered:0, hooks:0 } };
+  if (!Array.isArray(rawList)) return { raw: [], filtered: [], hooks: [], rejections: [], counts: { raw:0, filtered:0, hooks:0 } };
   const enriched = [];
+  const rejections = [];
   for (const a of rawList){
     const aspectName = (a.aspect || '').toLowerCase();
     const orb = typeof a.orbit === 'number' ? a.orbit : (typeof a.orb === 'number' ? a.orb : null);
     const p1 = a.p1_name; const p2 = a.p2_name;
     const sameBody = p1 === p2;
-    let drop = false; let dropReason = '';
     const cls = classifyAspectName(aspectName);
-    // Self aspects: keep only conjunction/opposition (returns) & only if body in RETURN_BODIES or it's a luminary
+    const p1Class = bodyClass(p1);
+    const p2Class = bodyClass(p2);
+    const aspectCap = ASPECT_ORB_CAPS[aspectName] || 6;
+    const classCap = Math.max(BODY_CLASS_CAPS[p1Class] || 6, BODY_CLASS_CAPS[p2Class] || 6);
+    const effectiveCap = Math.min(aspectCap, classCap);
+    let dropReason = '';
+
     if (sameBody) {
-      if (!['conjunction','opposition'].includes(aspectName)) { drop = true; dropReason = 'self-nonreturn'; }
-      else if (!(RETURN_BODIES.has(p1) || ['Sun','Moon'].includes(p1))) { drop = true; dropReason = 'self-noncritical'; }
+      if (!['conjunction','opposition'].includes(aspectName)) dropReason = 'OUT_OF_CAP'; // treat non-return self aspect as out-of-scope
+      else if (!(RETURN_BODIES.has(p1) || ['Sun','Moon'].includes(p1))) dropReason = 'OUT_OF_CAP';
     }
-    // Wide minor/harmonic aspects beyond cap
-    const cap = ORB_CAPS[aspectName];
-    if (!drop && cap && orb != null && orb > cap) { drop = true; dropReason = 'orb-exceeds-cap'; }
-    // Tag
+    if (!dropReason && orb != null && orb > effectiveCap) dropReason = 'OUT_OF_CAP';
+
     const rec = {
       ...a,
       _aspect: aspectName,
@@ -215,67 +308,85 @@ function enrichDailyAspects(rawList){
       p2_isLuminary: ['Sun','Moon'].includes(p2),
       p1_isAngle: ['Ascendant','Medium_Coeli','Descendant','Imum_Coeli'].includes(p1),
       p2_isAngle: ['Ascendant','Medium_Coeli','Descendant','Imum_Coeli'].includes(p2),
-      _drop: drop,
-      _dropReason: dropReason
+      p1_class: p1Class,
+      p2_class: p2Class,
+      effective_cap: effectiveCap
     };
-    if (!drop){
+    if (dropReason){
+      rejections.push({ aspect: `${p1} ${aspectName} ${p2}`, reason: dropReason, orb });
+    } else {
       rec._weight = weightAspect(rec);
+      enriched.push(rec);
     }
-    enriched.push(rec);
   }
-  const filtered = enriched.filter(a => !a._drop);
-  // Enhanced Hook selection: prioritize resonance - luminary involvement, exact geometry, nodes/chiron
+
+  // Post-weight filtering for weak weight
+  const strong = []; 
+  for (const r of enriched){
+    if ((r._weight || 0) < 0.15){
+      rejections.push({ aspect: `${r.p1_name} ${r._aspect} ${r.p2_name}`, reason: 'WEAK_WEIGHT', orb: r._orb });
+    } else strong.push(r);
+  }
+
+  // Diversity & duplicate pair filtering
+  const pairSeen = new Set();
+  const primaryCounts = new Map(); // luminary + angle dominance guard
+  const filtered = [];
+  for (const r of strong){
+    const pairKey = [r.p1_name, r.p2_name].sort().join('|') + '|' + r._aspect;
+    if (pairSeen.has(pairKey)) { rejections.push({ aspect: `${r.p1_name} ${r._aspect} ${r.p2_name}`, reason: 'DUPLICATE_PAIR', orb: r._orb }); continue; }
+    pairSeen.add(pairKey);
+    const primaries = [];
+    if (r.p1_isLuminary || r.p1_isAngle) primaries.push(r.p1_name);
+    if (r.p2_isLuminary || r.p2_isAngle) primaries.push(r.p2_name);
+    let primaryDup = false;
+    for (const p of primaries){
+      const c = (primaryCounts.get(p) || 0) + 1;
+      primaryCounts.set(p, c);
+      if (c > 3){ primaryDup = true; }
+    }
+    if (primaryDup){
+      rejections.push({ aspect: `${r.p1_name} ${r._aspect} ${r.p2_name}`, reason: 'PRIMARY_DUP', orb: r._orb });
+      continue;
+    }
+    filtered.push(r);
+  }
+
+  // Hook selection prioritisation
   const hookCandidates = filtered.filter(a => {
     const orb = a._orb != null ? a._orb : 6.01;
-    const isLuminary = a.p1_isLuminary || a.p2_isLuminary;
-    const isAngle = a.p1_isAngle || a.p2_isAngle;
-    const isNodeChiron = ['Mean_Node', 'Mean_South_Node', 'Chiron'].includes(a.p1_name) || 
-                         ['Mean_Node', 'Mean_South_Node', 'Chiron'].includes(a.p2_name);
     const isExact = orb <= 0.5;
     const isTight = orb <= 1.5;
-    const isMajorAspect = a._class === 'major';
-    
-    // Priority selection criteria
-    if (isExact) return true; // Always include exact aspects
-    if (isLuminary && orb <= 3.0) return true; // Luminary hooks with wider orb
-    if (isAngle && orb <= 2.5) return true; // Angle aspects 
-    if (isNodeChiron && orb <= 2.0) return true; // Node/Chiron for long-running storylines
-    if (isMajorAspect && isTight) return true; // Major aspects within tight orb
-    
+    const isLum = a.p1_isLuminary || a.p2_isLuminary;
+    const isAngle = a.p1_isAngle || a.p2_isAngle;
+    const isNodeChiron = ['Mean_Node','Mean_South_Node','Chiron'].includes(a.p1_name) || ['Mean_Node','Mean_South_Node','Chiron'].includes(a.p2_name);
+    if (isExact) return true;
+    if (isLum && orb <= 3) return true;
+    if (isAngle && orb <= 2.5) return true;
+    if (isNodeChiron && orb <= 2) return true;
+    if (a._class === 'major' && isTight) return true;
     return false;
   });
-  
-  // Enhanced sorting for hooks: exact > luminary > tight > weighted score
+
   const hooks = (hookCandidates.length ? hookCandidates : filtered.slice(0, 8))
-    .slice() // copy
-    .sort((a, b) => {
-      const orbA = a._orb != null ? a._orb : 6.01;
-      const orbB = b._orb != null ? b._orb : 6.01;
-      const isExactA = orbA <= 0.5;
-      const isExactB = orbB <= 0.5;
-      const isLumA = a.p1_isLuminary || a.p2_isLuminary;
-      const isLumB = b.p1_isLuminary || b.p2_isLuminary;
-      
-      // Sort exact aspects first
-      if (isExactA && !isExactB) return -1;
-      if (!isExactA && isExactB) return 1;
-      
-      // Then luminary aspects
-      if (isLumA && !isLumB) return -1;
-      if (!isLumA && isLumB) return 1;
-      
-      // Then by tighter orb
-      if (orbA !== orbB) return orbA - orbB;
-      
-      // Finally by weight
-      return (b._weight || 0) - (a._weight || 0);
+    .slice()
+    .sort((a,b)=>{
+      const oa = a._orb ?? 6.01; const ob = b._orb ?? 6.01;
+      const ea = oa <= 0.5; const eb = ob <= 0.5;
+      if (ea !== eb) return ea ? -1 : 1;
+      const la = a.p1_isLuminary || a.p2_isLuminary; const lb = b.p1_isLuminary || b.p2_isLuminary;
+      if (la !== lb) return la ? -1 : 1;
+      if (oa !== ob) return oa - ob;
+      return (b._weight||0) - (a._weight||0);
     })
-    .slice(0, 12); // Keep reasonable limit but allow more than before
+    .slice(0,12);
+
   return {
     raw: rawList,
     filtered,
     hooks,
-    counts: { raw: rawList.length, filtered: filtered.length, hooks: hooks.length }
+    rejections,
+    counts: { raw: rawList.length, filtered: filtered.length, hooks: hooks.length, rejected: rejections.length }
   };
 }
 
@@ -366,10 +477,26 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
 }
 
 // --- Transit helpers ---
+// Coordinate parsing (supports DMS "30°10'N" and decimal)
+function parseCoordinate(val){
+  if (typeof val === 'number') return val;
+  if (typeof val !== 'string') return null;
+  const dec = val.trim();
+  if (/^-?\d+(?:\.\d+)?$/.test(dec)) return parseFloat(dec);
+  // DMS pattern e.g., 30°10'15"N or 30°10'N
+  const dms = /^\s*(\d{1,3})[^0-9]+(\d{1,2})?(?:[^0-9]+(\d{1,2}(?:\.\d+)?))?\s*([NnSsEeWw])\s*$/.exec(dec);
+  if (dms){
+    const d=+dms[1]; const m=dms[2]?+dms[2]:0; const s=dms[3]?+dms[3]:0; const hemi=dms[4];
+    const sign=/[SsWw]/.test(hemi)?-1:1; return sign*(d + m/60 + s/3600);
+  }
+  return null;
+}
+
 async function getTransits(subject, transitParams, headers, pass = {}) {
   if (!transitParams || !transitParams.startDate || !transitParams.endDate) return {};
 
   const transitsByDate = {};
+  const retroFlagsByDate = {}; // body -> retro boolean per date
   const startDate = new Date(transitParams.startDate);
   const endDate = new Date(transitParams.endDate);
   endDate.setDate(endDate.getDate() + 1); // Make end date inclusive
@@ -408,7 +535,7 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
           body: JSON.stringify(payload),
         },
         `Transits for ${subject.name} on ${dateString}`
-      ).then(resp => {
+  ).then(resp => {
         logger.debug(`Transit API response for ${dateString}:`, {
           hasAspects: !!(resp && resp.aspects),
           aspectCount: (resp && resp.aspects) ? resp.aspects.length : 0,
@@ -418,6 +545,20 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
         
         if (resp.aspects && resp.aspects.length > 0) {
           transitsByDate[dateString] = resp.aspects;
+          // Extract retro flags if available
+          const retroMap = {};
+          const fs = resp.data?.first_subject || resp.data?.firstSubject;
+          const tr = resp.data?.transit || resp.data?.transit_subject;
+          const collect = (block) => {
+            if (!block || typeof block !== 'object') return;
+            for (const [k,v] of Object.entries(block)) {
+              if (v && typeof v === 'object' && 'retrograde' in v) {
+                retroMap[(v.name||v.body||k)] = !!v.retrograde;
+              }
+            }
+          };
+          collect(fs); collect(tr);
+          if (Object.keys(retroMap).length) retroFlagsByDate[dateString] = retroMap;
           logger.debug(`Stored ${resp.aspects.length} aspects for ${dateString}`);
         } else {
           // Enhanced debug logging: Log full response when no aspects found
@@ -436,7 +577,7 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
     availableDates: Object.keys(transitsByDate)
   });
   
-  return transitsByDate;
+  return { transitsByDate, retroFlagsByDate };
 }
 
 // --- Transit Table Formatting: Orb-Band + Phase + Score ---
@@ -540,7 +681,7 @@ function formatTransitTable(enrichedAspects, prevDayAspects = null) {
   };
 }
 
-function calculateSeismograph(transitsByDate) {
+function calculateSeismograph(transitsByDate, retroFlagsByDate = {}) {
   if (!transitsByDate || Object.keys(transitsByDate).length === 0) {
     return { daily: {}, summary: {} };
   }
@@ -555,24 +696,29 @@ function calculateSeismograph(transitsByDate) {
   for (let i = 0; i < days.length; i++) {
     const d = days[i];
     const rawDayAspects = transitsByDate[d] || [];
-    const enriched = enrichDailyAspects(rawDayAspects);
+  const enriched = enrichDailyAspects(rawDayAspects);
     
     // Enhance aspects with retrograde flags
-    const enrichedWithRetrograde = enriched.filtered.map(aspect => ({
-      ...aspect,
-      p1_retrograde: aspect.p1_is_retrograde || false,
-      p2_retrograde: aspect.p2_is_retrograde || false,
-      retrograde_involved: aspect.p1_is_retrograde || aspect.p2_is_retrograde
-    }));
+    const retroMap = retroFlagsByDate[d] || {};
+    const enrichedWithRetrograde = enriched.filtered.map(aspect => {
+      const p1r = retroMap[aspect.p1_name] ?? retroMap[aspect.p1_display] ?? false;
+      const p2r = retroMap[aspect.p2_name] ?? retroMap[aspect.p2_display] ?? false;
+      return {
+        ...aspect,
+        p1_retrograde: p1r,
+        p2_retrograde: p2r,
+        retrograde_involved: p1r || p2r
+      };
+    });
     
     // Generate orb-band transit table with phase and score
     const transitTable = formatTransitTable(enriched.filtered, prevDayFiltered);
     
     const aspectsForAggregate = enriched.filtered.map(x => ({
-      transit: { body: x.p1_name, retrograde: x.p1_is_retrograde },
+      transit: { body: x.p1_name, retrograde: x.p1_retrograde },
       natal: {
         body: x.p2_name,
-        retrograde: x.p2_is_retrograde,
+        retrograde: x.p2_retrograde,
         isAngleProx: ["Ascendant","Medium_Coeli","Descendant","Imum_Coeli"].includes(x.p2_name),
         isLuminary: ["Sun","Moon"].includes(x.p2_name),
         degCrit: false
@@ -584,7 +730,14 @@ function calculateSeismograph(transitsByDate) {
     // Prepare rolling context for magnitude normalization
     const rollingContext = rollingMagnitudes.length >= 1 ? { magnitudes: [...rollingMagnitudes] } : null;
     
-    const agg = aggregate(aspectsForAggregate, prev, { rollingContext });
+  const agg = aggregate(aspectsForAggregate, prev, { rollingContext });
+
+  // Determine scaling strategy and confidence
+  let scalingStrategy = 'prior';
+  const nContext = rollingMagnitudes.length;
+  if (nContext >= 14) scalingStrategy = 'rolling';
+  else if (nContext >= 2) scalingStrategy = 'blended';
+  const scaleConfidence = Math.min(1, nContext / 14);
     
     // Track rolling magnitudes using the original magnitude before normalization (keep last 14 days)
     const magnitudeToTrack = agg.originalMagnitude || agg.rawMagnitude || agg.magnitude;
@@ -598,18 +751,29 @@ function calculateSeismograph(transitsByDate) {
     // Identify retrograde recursion aspects
     const retrogradeAspects = enrichedWithRetrograde.filter(a => a.retrograde_involved);
     
+    // Dispersion-based volatility override (std deviation of hook weights)
+    let dispersionVol = 0;
+    if (enriched.hooks.length >= 2) {
+      const weights = enriched.hooks.map(h => h._weight || 0);
+      const meanW = weights.reduce((s,v)=>s+v,0)/weights.length;
+      const variance = weights.reduce((s,v)=>s+Math.pow(v-meanW,2),0)/weights.length;
+      dispersionVol = Math.min(10, Math.sqrt(variance) * 10); // scale
+    }
+
     daily[d] = {
       seismograph: { 
         magnitude: agg.magnitude, 
         valence: agg.valence, 
-        volatility: agg.volatility,
+        volatility: dispersionVol, // use dispersion measure
         rawMagnitude: agg.rawMagnitude,
         originalMagnitude: agg.originalMagnitude,
-        scaleConfidence: agg.scaleConfidence
+        scaling_strategy: scalingStrategy,
+        scaling_confidence: +scaleConfidence.toFixed(2)
       },
       aspects: rawDayAspects,
       filtered_aspects: enrichedWithRetrograde,
       hooks: enriched.hooks,
+      rejections: enriched.rejections,
       counts: enriched.counts,
       transit_table: transitTable,
       retrograde_aspects: retrogradeAspects,
@@ -655,19 +819,16 @@ async function computeComposite(A, B, pass = {}, H) {
       ...pass,
     };
     
-    const r = await apiCallWithRetry(
+  const r = await apiCallWithRetry(
       API_ENDPOINTS.COMPOSITE_ASPECTS,
       { method: 'POST', headers: H, body: JSON.stringify(payload) },
       'Composite aspects'
     );
-    
-    const data = stripGraphicsDeep(r.data || {});
-    logger.debug('Composite calculation successful, aspects found:', data.aspects?.length || 0);
-    
-    return {
-      aspects: data.aspects || [],
-      raw: data,
-    };
+  // Prefer top-level aspects if present, fallback to data.aspects
+  const data = stripGraphicsDeep(r.data || {});
+  const topAspects = Array.isArray(r.aspects) ? r.aspects : (data.aspects || []);
+  logger.debug('Composite calculation successful, aspects found:', topAspects.length);
+  return { aspects: topAspects, raw: data };
   } catch (error) {
     logger.error('Composite calculation failed:', error);
     throw new Error(`Composite calculation failed: ${error.message}`);
@@ -875,7 +1036,19 @@ exports.handler = async function(event) {
       };
     }
 
-    const result = { schema: 'WM-Chart-1.0', person_a: { details: personA } };
+    const result = { 
+      schema: 'WM-Chart-1.0', 
+      provenance: {
+        math_brain_version: MATH_BRAIN_VERSION,
+        ephemeris_source: EPHEMERIS_SOURCE,
+        build_ts: new Date().toISOString(),
+        timezone: personA.timezone || 'UTC'
+      },
+      context: { mode: modeToken || 'UNKNOWN' },
+      mirror_ready: true,
+      contract: 'clear-mirror/1.2',
+      person_a: { details: personA }
+    };
     // Eagerly initialize Person B details in any relationship mode so UI never loses the panel
     if (relationshipMode && personB && Object.keys(personB).length) {
       result.person_b = { details: personB };
@@ -892,11 +1065,13 @@ exports.handler = async function(event) {
     // Ensure active_points includes all planets (especially outer planets) if not explicitly set
     if (!pass.active_points) {
       pass.active_points = [
-        "Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn",
-        "Uranus", "Neptune", "Pluto", "Mean_Node", "Chiron", 
-        "Ascendant", "Medium_Coeli", "Mean_Lilith", "Mean_South_Node"
+        'Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn',
+        'Uranus','Neptune','Pluto',
+        'Mean_Node','True_Node','Mean_South_Node','True_South_Node',
+        'Chiron','Mean_Lilith',
+        'Ascendant','Medium_Coeli','Descendant','Imum_Coeli'
       ];
-      logger.debug('Setting default active_points to include all planets including outer planets');
+      logger.debug('Setting default active_points (includes True nodes & full angle set)');
     }
 
     // Ensure active_aspects includes all major aspects if not explicitly set
@@ -968,25 +1143,25 @@ exports.handler = async function(event) {
         { method: 'POST', headers, body: JSON.stringify({ subject: personA }) },
         'Natal aspects data (A)'
       );
-      let chartData = stripGraphicsDeep(natalResponse.data || {});
+      const chartData = stripGraphicsDeep(natalResponse.data || {});
       result.person_a.chart = chartData;
-      result.person_a.aspects = (chartData && chartData.aspects) || [];
+      result.person_a.aspects = Array.isArray(natalResponse.aspects) ? natalResponse.aspects : (chartData.aspects || []);
     } else {
       natalResponse = await apiCallWithRetry(
         API_ENDPOINTS.BIRTH_CHART,
         { method: 'POST', headers, body: JSON.stringify({ subject: personA }) },
         'Birth chart (A)'
       );
-      let chartData = stripGraphicsDeep(natalResponse.data || {});
+      const chartData = stripGraphicsDeep(natalResponse.data || {});
       result.person_a.chart = chartData;
-      result.person_a.aspects = (chartData && chartData.aspects) || [];
+      result.person_a.aspects = Array.isArray(natalResponse.aspects) ? natalResponse.aspects : (chartData.aspects || []);
     }
 
     // 2) Transits (optional; raw aspects by date, with advanced options)
     if (haveRange) {
       // Use new getTransits and seismograph logic with configuration parameters
-      const transitsByDate = await getTransits(personA, { startDate: start, endDate: end, step }, headers, pass);
-      result.person_a.chart = { ...result.person_a.chart, transitsByDate };
+  const { transitsByDate, retroFlagsByDate } = await getTransits(personA, { startDate: start, endDate: end, step }, headers, pass);
+  result.person_a.chart = { ...result.person_a.chart, transitsByDate };
       // Raven-lite integration: flatten all aspects for derived.t2n_aspects
       const allAspects = Object.values(transitsByDate).flatMap(day => day);
       
@@ -998,7 +1173,7 @@ exports.handler = async function(event) {
       result.person_a.transit_data = Object.values(transitsByDate);
       
       // Seismograph summary (using all aspects including outer planets for complete structural analysis)
-      const seismographData = calculateSeismograph(transitsByDate);
+  const seismographData = calculateSeismograph(transitsByDate, retroFlagsByDate);
       result.person_a.derived.seismograph_summary = seismographData.summary;
   // NOTE: transitsByDate now includes per-day: aspects (raw), filtered_aspects, hooks, counts, seismograph metrics
   // Frontend can progressively disclose hooks first, then filtered_aspects, then full list.
@@ -1018,7 +1193,7 @@ exports.handler = async function(event) {
               'Birth chart (B dual)'
             );
             const chartDataB = stripGraphicsDeep(natalB.data || {});
-            result.person_b = { details: personB, chart: chartDataB, aspects: chartDataB.aspects || [] };
+            result.person_b = { details: personB, chart: chartDataB, aspects: Array.isArray(natalB.aspects) ? natalB.aspects : (chartDataB.aspects || []) };
           } catch (e) {
             logger.warn('Dual Person B natal fetch failed', e.message);
             result.person_b = { details: personB, error: 'Failed to compute Person B chart' };
@@ -1027,9 +1202,9 @@ exports.handler = async function(event) {
         // Optional Person B transits in dual transits mode
         if (haveRange && modeToken === 'DUAL_NATAL_TRANSITS') {
           try {
-            const transitsByDateB = await getTransits(personB, { startDate: start, endDate: end, step }, headers, pass);
+            const { transitsByDate: transitsByDateB, retroFlagsByDate: retroFlagsByDateB } = await getTransits(personB, { startDate: start, endDate: end, step }, headers, pass);
             const allB = Object.values(transitsByDateB).flatMap(day => day);
-            const seismoB = calculateSeismograph(transitsByDateB);
+            const seismoB = calculateSeismograph(transitsByDateB, retroFlagsByDateB);
             // Enriched Person B transits (dual mode) with hooks & filtered_aspects
             result.person_b.chart = { ...(result.person_b.chart || {}), transitsByDate: seismoB.daily };
             result.person_b.derived = result.person_b.derived || {};
@@ -1067,7 +1242,7 @@ exports.handler = async function(event) {
               'Birth chart (B implicit dual)'
             );
             const chartDataB = stripGraphicsDeep(natalB.data || {});
-            result.person_b = { details: personB, chart: chartDataB, aspects: chartDataB.aspects || [] };
+            result.person_b = { details: personB, chart: chartDataB, aspects: Array.isArray(natalB.aspects) ? natalB.aspects : (chartDataB.aspects || []) };
           } catch (e) {
             logger.warn('Implicit dual Person B natal fetch failed', e.message);
             result.person_b = { ...(result.person_b || {}), details: personB, error: 'Failed to compute Person B chart' };
@@ -1077,9 +1252,9 @@ exports.handler = async function(event) {
         const hasBTransits = !!(result.person_b && result.person_b.chart && result.person_b.chart.transitsByDate);
         if (!hasBTransits) {
           try {
-            const transitsByDateB = await getTransits(personB, { startDate: start, endDate: end, step }, headers, pass);
+            const { transitsByDate: transitsByDateB, retroFlagsByDate: retroFlagsByDateB } = await getTransits(personB, { startDate: start, endDate: end, step }, headers, pass);
             const allB = Object.values(transitsByDateB).flatMap(day => day);
-            const seismoB = calculateSeismograph(transitsByDateB);
+            const seismoB = calculateSeismograph(transitsByDateB, retroFlagsByDateB);
             // Enriched Person B implicit dual transits with hooks & filtered_aspects
             result.person_b.chart = { ...(result.person_b.chart || {}), transitsByDate: seismoB.daily };
             result.person_b.derived = result.person_b.derived || {};
@@ -1107,11 +1282,10 @@ exports.handler = async function(event) {
         { method: 'POST', headers, body: JSON.stringify({ first_subject: personA, second_subject: personB }) },
         'Synastry aspects data'
       );
-      let synData = stripGraphicsDeep(syn.data || {});
-      // Preserve existing person_b (eager init) while ensuring details present
-      result.person_b = { ...(result.person_b || {}), details: personB };
-      result.synastry_aspects = synData.aspects || [];
-      result.synastry_data = synData;
+  const synData = stripGraphicsDeep(syn.data || {});
+  result.person_b = { ...(result.person_b || {}), details: personB };
+  result.synastry_aspects = Array.isArray(syn.aspects) ? syn.aspects : (synData.aspects || []);
+  result.synastry_data = synData;
       // Optional: augment with Person B natal chart so UI has both charts in aspects-only mode
       try {
         const natalB = await apiCallWithRetry(
@@ -1131,18 +1305,18 @@ exports.handler = async function(event) {
         { method: 'POST', headers, body: JSON.stringify({ first_subject: personA, second_subject: personB }) },
         'Synastry chart'
       );
-      const synClean = stripGraphicsDeep(syn.data || {});
-      result.person_b = { details: personB, chart: synClean.second_subject || {} };
-      result.synastry_aspects = synClean.aspects || [];
+  const synClean = stripGraphicsDeep(syn.data || {});
+  result.person_b = { details: personB, chart: synClean.second_subject || {} };
+  result.synastry_aspects = Array.isArray(syn.aspects) ? syn.aspects : (synClean.aspects || []);
       
       // Add Person B transits for synastry modes (especially SYNASTRY_TRANSITS)
       if (modeToken === 'SYNASTRY_TRANSITS' && haveRange) {
         logger.debug('Computing Person B transits for synastry mode:', { start, end, step });
-        const transitsByDateB = await getTransits(personB, { startDate: start, endDate: end, step }, headers, pass);
+  const { transitsByDate: transitsByDateB, retroFlagsByDate: retroFlagsByDateB } = await getTransits(personB, { startDate: start, endDate: end, step }, headers, pass);
         result.person_b.chart = { ...result.person_b.chart, transitsByDate: transitsByDateB };
         
         // Apply seismograph analysis to Person B transits
-        const seismographDataB = calculateSeismograph(transitsByDateB);
+  const seismographDataB = calculateSeismograph(transitsByDateB, retroFlagsByDateB);
   // Enriched Person B synastry transits
   result.person_b.chart.transitsByDate = seismographDataB.daily;
         result.person_b.derived = { 
@@ -1172,7 +1346,7 @@ exports.handler = async function(event) {
         logger.debug('Computing composite transits for date range:', { start, end, step });
         
         // Calculate transits to the composite chart using the composite chart as base
-        const t = await computeCompositeTransits(composite.raw, start, end, step, pass, headers);
+  const t = await computeCompositeTransits(composite.raw, start, end, step, pass, headers);
         
         // Store raw transit aspects by date
         result.composite.transitsByDate = t.transitsByDate;
@@ -1180,7 +1354,7 @@ exports.handler = async function(event) {
         
         // Step 3: Apply seismograph analysis to composite transits
         // This converts raw aspects into magnitude, valence, and volatility metrics
-        const seismographData = calculateSeismograph(t.transitsByDate);
+  const seismographData = calculateSeismograph(t.transitsByDate, {});
         
         // Replace raw aspects with seismograph-processed daily data
   // Enriched composite transits with hooks & filtered_aspects
@@ -1210,10 +1384,19 @@ exports.handler = async function(event) {
       }
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify(result),
-    };
+    // Final narrative key scrub (defense-in-depth for Clear Mirror contract)
+    function scrubNarrativeKeys(obj){
+      if (!obj || typeof obj !== 'object') return obj;
+      if (Array.isArray(obj)) return obj.map(scrubNarrativeKeys);
+      const out = {};
+      for (const [k,v] of Object.entries(obj)) {
+        if (k === 'field' || k === 'voice' || k === 'map') continue;
+        out[k] = scrubNarrativeKeys(v);
+      }
+      return out;
+    }
+    const safeResult = scrubNarrativeKeys(result);
+    return { statusCode: 200, body: JSON.stringify(safeResult) };
   } catch (error) {
     logger.error('Handler error:', error);
     return {

@@ -1,4 +1,14 @@
     <!DOCTYPE html>
+    <!-- COPILOT_GUIDE: CLEAR MIRROR DOWNSTREAM ONLY
+     - Math Brain payload is geometry-only. Do NOT generate narrative (Clear Mirror) here.
+     - Never emit keys named field, voice, or map back to serverless layer.
+     - Provide RAVEN_NUDGE + Mirror flags so downstream Poetic Brain (Raven Calder) can translate FIELD → MAP → VOICE.
+     - Use hooks (≤2° preference), seismograph (magnitude, valence, volatility, scaling_strategy/confidence), retrograde flags, and True/Mean Node distinctions.
+     - Timezone baseline preference: America/Chicago (Central). Emit TZ check hints; do not auto-correct silently.
+     - Add Mini Glossary + Raven Checklist at footer for non-Raven consumers.
+     - TODO[RAVEN]: Read seismograph scaling to nuance stability vs emergent signal.
+     - TODO[RAVEN]: If multiple retrograde_involved hooks, surface a "revision/recursion" nuance.
+    -->
     <html lang="en">
     <head>
         <meta charset="UTF-8">
@@ -204,8 +214,8 @@
                             <input type="date" id="birth_dateA" placeholder="Birth Date (YYYY-MM-DD)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="1973-07-24">
                             <input type="text" id="birth_timeA" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="14:30">
                             <select id="offsetA" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                                <option value="America/Chicago" selected>Central (Chicago)</option>
                                 <option value="America/New_York">Eastern (New York)</option>
-                                <option value="America/Chicago">Central (Chicago)</option>
                                 <option value="America/Denver">Mountain (Denver)</option>
                                 <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
                                 <option value="America/Anchorage">Alaska</option>
@@ -1066,6 +1076,10 @@ function renderTransitDay(dateStr, items){
         }
 
         function generateMarkdownReport(data) {
+            // MATH BRAIN ONLY (IMPORTANT):
+            // - Do NOT generate mirror/narrative paragraphs here.
+            // - Always include RAVEN_NUDGE, Mirror flags, TZ check (Central), and Mini Glossary (if not Raven).
+            // - Raven Calder (Poetic Brain) handles Clear Mirror downstream using Poetic Codex & source docs.
             const formData = collectFormData();
             const currentDate = new Date().toISOString().split('T')[0];
             // Prefer authoritative server-returned details if present (may include normalization/zodiac defaults)
@@ -1077,6 +1091,14 @@ function renderTransitDay(dateStr, items){
                         md += `**Generated**: ${currentDate}\n`;
                         md += `**Context Mode**: ${mode.replace(/_/g, ' ').toUpperCase()}\n`;
                         md += `**Schema**: ${data.schema || 'WM-Chart-1.0'}\n`;
+                        md += `**Engine**: Math Brain (Geometry Only)\n`;
+                        md += `**Mirror**: mirror_ready: ${data.mirror_ready ? 'true':'false'} • mode: ${mode} • version: ${(data.provenance?.math_brain_version)||'0.x'}\n`;
+                        md += `**Reminder**: Do not produce narrative. Clear Mirror is downstream (Raven Calder).\n\n`;
+                        md += `### RAVEN_NUDGE\n`;
+                        md += `- Clear Mirror required → Translate FIELD → MAP → VOICE from this geometry.\n`;
+                        md += `- Check sources: Poetic Codex, FIELD_MAP_VOICE, Hook Stack, Seismograph rules.\n`;
+                        md += `- Verify Person A timezone = **America/Chicago (Central)**. If mismatch, normalize before mirroring.\n`;
+                        md += `- Use retrograde flags + True/Mean Node distinctions from payload.\n\n`;
                         if (formData.transitParams?.startDate && formData.transitParams?.endDate) {
                             const stepMap = { '1d':'Daily', 'daily':'Daily', '7d':'Weekly', 'weekly':'Weekly', '1m':'Monthly', '1mo':'Monthly', 'monthly':'Monthly' };
                             const rawStep = formData.transitParams.step || 'daily';
@@ -1093,6 +1115,8 @@ function renderTransitDay(dateStr, items){
             md += `- **Coordinates**: ${personA.latitude}, ${personA.longitude}\n`;
             md += `- **Timezone**: ${personA.timezone}\n`;
             md += `- **Zodiac Type**: ${personA.zodiac_type}\n\n`;
+            md += `**TZ Check (Person A)**: expected \`America/Chicago\` (Central).\n`;
+            md += `**Observed**: \`${personA.timezone}\` → ${personA.timezone === 'America/Chicago' ? 'OK' : '⚠ Normalize before mirroring'}\n\n`;
 
             // Person B Details (if present)
                         if (personB) {
@@ -1227,6 +1251,10 @@ function renderTransitDay(dateStr, items){
                 });
                 md += `\n`;
             }
+
+            // Geometry Only disclaimer (before transit details)
+            md += `> Geometry Only: This file contains calculations and aspect wiring.\n`;
+            md += `> **Do not** include narrative or advice here. Clear Mirror is performed by Raven Calder downstream.\n\n`;
 
             // Process Transit Data (if mode includes transits)
             if (mode.includes('_transits')) {
@@ -1649,6 +1677,20 @@ function renderTransitDay(dateStr, items){
                 }
             }
 
+            // Footer glossary + checklist
+            const isRavenConsumer = data.raven_consumer === 'RAVEN_CALDER_GPT';
+            if (!isRavenConsumer) {
+                md += `## Mini Glossary (for non-Raven Astro GPTs)\n`;
+                md += `- **FIELD → MAP → VOICE**: Diagnostic climate → exact geometry → human reflection.\n`;
+                md += `- **Hook**: Salient aspect used for daily focus (orb caps).\n`;
+                md += `- **Orb Band**: tight (≤1°), close (≤3°), medium (≤6°), wide (>6°).\n`;
+                md += `- **Valence**: Friction vs ease signal from aspect family.\n`;
+                md += `- **Clear Mirror**: Testable, agency-centered reflection (downstream).\n\n`;
+            }
+            md += `### Raven Checklist\n`;
+            md += `- Sources: Poetic Codex • FIELD_MAP_VOICE • Hook Stack • Seismograph Protocol\n`;
+            md += `- Inputs: retro flags present • True/Mean Nodes present • coords normalized\n`;
+            md += `- Mode fit: Recognition-First • SST tags (WB/ABE/OSR) respected if present\n\n`;
             md += `---\n*Generated by Woven Map Math Brain - Pure Astrological Geometry*`;
 
             return md;
