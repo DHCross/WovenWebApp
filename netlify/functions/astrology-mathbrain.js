@@ -224,15 +224,53 @@ function enrichDailyAspects(rawList){
     enriched.push(rec);
   }
   const filtered = enriched.filter(a => !a._drop);
-  // Hook selection: prioritize (a) major aspects orb <= 2, (b) luminary or angle involvement orb <= 3, (c) highest weight fallback
-  const hookCandidates = filtered.filter(a => (
-    (a._class === 'major' && a._orb != null && a._orb <= 2) ||
-    ((a.p1_isLuminary || a.p2_isLuminary || a.p1_isAngle || a.p2_isAngle) && a._orb != null && a._orb <= 3)
-  ));
-  const hooks = (hookCandidates.length ? hookCandidates : filtered)
+  // Enhanced Hook selection: prioritize resonance - luminary involvement, exact geometry, nodes/chiron
+  const hookCandidates = filtered.filter(a => {
+    const orb = a._orb != null ? a._orb : 6.01;
+    const isLuminary = a.p1_isLuminary || a.p2_isLuminary;
+    const isAngle = a.p1_isAngle || a.p2_isAngle;
+    const isNodeChiron = ['Mean_Node', 'Mean_South_Node', 'Chiron'].includes(a.p1_name) || 
+                         ['Mean_Node', 'Mean_South_Node', 'Chiron'].includes(a.p2_name);
+    const isExact = orb <= 0.5;
+    const isTight = orb <= 1.5;
+    const isMajorAspect = a._class === 'major';
+    
+    // Priority selection criteria
+    if (isExact) return true; // Always include exact aspects
+    if (isLuminary && orb <= 3.0) return true; // Luminary hooks with wider orb
+    if (isAngle && orb <= 2.5) return true; // Angle aspects 
+    if (isNodeChiron && orb <= 2.0) return true; // Node/Chiron for long-running storylines
+    if (isMajorAspect && isTight) return true; // Major aspects within tight orb
+    
+    return false;
+  });
+  
+  // Enhanced sorting for hooks: exact > luminary > tight > weighted score
+  const hooks = (hookCandidates.length ? hookCandidates : filtered.slice(0, 8))
     .slice() // copy
-    .sort((a,b) => (b._weight||0) - (a._weight||0))
-    .slice(0, 12);
+    .sort((a, b) => {
+      const orbA = a._orb != null ? a._orb : 6.01;
+      const orbB = b._orb != null ? b._orb : 6.01;
+      const isExactA = orbA <= 0.5;
+      const isExactB = orbB <= 0.5;
+      const isLumA = a.p1_isLuminary || a.p2_isLuminary;
+      const isLumB = b.p1_isLuminary || b.p2_isLuminary;
+      
+      // Sort exact aspects first
+      if (isExactA && !isExactB) return -1;
+      if (!isExactA && isExactB) return 1;
+      
+      // Then luminary aspects
+      if (isLumA && !isLumB) return -1;
+      if (!isLumA && isLumB) return 1;
+      
+      // Then by tighter orb
+      if (orbA !== orbB) return orbA - orbB;
+      
+      // Finally by weight
+      return (b._weight || 0) - (a._weight || 0);
+    })
+    .slice(0, 12); // Keep reasonable limit but allow more than before
   return {
     raw: rawList,
     filtered,
@@ -544,12 +582,13 @@ function calculateSeismograph(transitsByDate) {
     }));
 
     // Prepare rolling context for magnitude normalization
-    const rollingContext = rollingMagnitudes.length >= 2 ? { magnitudes: rollingMagnitudes } : null;
+    const rollingContext = rollingMagnitudes.length >= 1 ? { magnitudes: [...rollingMagnitudes] } : null;
     
     const agg = aggregate(aspectsForAggregate, prev, { rollingContext });
     
-    // Track rolling magnitudes (keep last 14 days)
-    rollingMagnitudes.push(agg.rawMagnitude || agg.magnitude);
+    // Track rolling magnitudes using the original magnitude before normalization (keep last 14 days)
+    const magnitudeToTrack = agg.originalMagnitude || agg.rawMagnitude || agg.magnitude;
+    rollingMagnitudes.push(magnitudeToTrack);
     if (rollingMagnitudes.length > 14) rollingMagnitudes.shift();
     
     // Track valence history (keep last 7 days for trend)
@@ -564,7 +603,9 @@ function calculateSeismograph(transitsByDate) {
         magnitude: agg.magnitude, 
         valence: agg.valence, 
         volatility: agg.volatility,
-        rawMagnitude: agg.rawMagnitude
+        rawMagnitude: agg.rawMagnitude,
+        originalMagnitude: agg.originalMagnitude,
+        scaleConfidence: agg.scaleConfidence
       },
       aspects: rawDayAspects,
       filtered_aspects: enrichedWithRetrograde,

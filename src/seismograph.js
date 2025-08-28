@@ -195,23 +195,53 @@ function volatility(scoredToday, prevCtx=null, opts=DEFAULTS){
   return A + B + C + D + Math.round(E);
 } 
 
-// ---------- Rolling magnitude normalization ----------
+// ---------- Rolling magnitude normalization with fallback scaling ----------
 function normalizeWithRollingWindow(magnitude, rollingContext = null, opts = DEFAULTS) {
-  if (!rollingContext || !rollingContext.magnitudes || rollingContext.magnitudes.length < 2) {
-    return magnitude; // Not enough data for normalization
+  // System prior from original spec (X = min(5, X_raw/4)), i.e., a "typical" day
+  const X_prior = 4.0;
+  const epsilon = 1e-6;
+  
+  if (!rollingContext || !rollingContext.magnitudes || rollingContext.magnitudes.length < 1) {
+    // No context at all, use original magnitude
+    return magnitude;
   }
   
   const { magnitudes } = rollingContext;
-  const mean = magnitudes.reduce((s, m) => s + m, 0) / magnitudes.length;
-  const variance = magnitudes.reduce((s, m) => s + Math.pow(m - mean, 2), 0) / magnitudes.length;
-  const stdDev = Math.sqrt(variance);
+  const n = magnitudes.length;
   
-  // Normalize to 0-10 scale with rolling context
-  if (stdDev < 0.1) return magnitude; // No significant variation
+  // Calculate blend weight: λ = n/14 (cap to [0,1])
+  const lambda = Math.min(1, n / 14);
   
-  const zScore = (magnitude - mean) / stdDev;
-  const normalized = 5 + (zScore * 1.5); // Center at 5, scale by stdDev
-  return Math.max(0, Math.min(10, normalized));
+  let X_ref;
+  
+  if (n >= 14) {
+    // Full window: use median of last 14 days
+    const sorted = [...magnitudes].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    X_ref = sorted.length % 2 === 0 ? 
+      (sorted[mid - 1] + sorted[mid]) / 2 : 
+      sorted[mid];
+  } else if (n >= 2) {
+    // Thin slice: blend available median with system prior
+    const sorted = [...magnitudes].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const median_available = sorted.length % 2 === 0 ? 
+      (sorted[mid - 1] + sorted[mid]) / 2 : 
+      sorted[mid];
+    
+    X_ref = lambda * median_available + (1 - lambda) * X_prior;
+  } else {
+    // n = 1: use system prior
+    X_ref = X_prior;
+  }
+  
+  // Ensure X_ref is not too small to avoid division issues
+  if (X_ref < epsilon) X_ref = X_prior;
+  
+  // Apply magnitude formula: magnitude = clip(5 * X_raw / (X_ref * 1.6), 0, 10)
+  const normalized = Math.max(0, Math.min(10, 5 * magnitude / (X_ref * 1.6)));
+  
+  return normalized;
 }
 
 // ---------- main aggregate ----------
@@ -232,6 +262,16 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   let X = Math.min(5, X_raw / opts.magnitudeDivisor);
   X = Math.min(5, X + multiplicityBonus(scored, opts));
   
+  // Store the original magnitude before normalization
+  const X_original = X;
+  
+  // Calculate confidence based on available data
+  let scale_confidence = 1.0;
+  if (options.rollingContext && options.rollingContext.magnitudes) {
+    const n = options.rollingContext.magnitudes.length;
+    scale_confidence = round(n / 14, 2);
+  }
+  
   // Apply rolling magnitude normalization if context provided
   if (options.rollingContext) {
     X = normalizeWithRollingWindow(X, options.rollingContext, opts);
@@ -246,7 +286,9 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     valence: round(Y_effective, 2),
     volatility: VI,
     scored,
-    rawMagnitude: round(X_raw / opts.magnitudeDivisor, 2) // For debugging/tracking
+    rawMagnitude: round(X_raw / opts.magnitudeDivisor, 2), // For debugging/tracking
+    originalMagnitude: round(X_original, 2), // Before rolling normalization
+    scaleConfidence: scale_confidence
   };
 }
 

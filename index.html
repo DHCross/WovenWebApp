@@ -1244,6 +1244,23 @@ function renderTransitDay(dateStr, items){
                                                         out += `---\n\n`;
                                                     });
                                                     
+                                                    // Add confidence scaling information
+                                                    const sampleDay = Object.values(dailyMap)[0];
+                                                    if (sampleDay?.seismograph?.scaleConfidence !== undefined) {
+                                                        const confidence = sampleDay.seismograph.scaleConfidence;
+                                                        const n = Math.round(confidence * 14);
+                                                        out += `**Scaling:** blended (n=${n}, confidence=${confidence})\n\n`;
+                                                        
+                                                        if (confidence < 1.0) {
+                                                            out += `_Note: Magnitude scaling uses ${n}/14 days available. `;
+                                                            if (confidence < 0.5) {
+                                                                out += `Limited data; prior-weighted scaling applied._\n\n`;
+                                                            } else {
+                                                                out += `Partial rolling window; blended with system prior._\n\n`;
+                                                            }
+                                                        }
+                                                    }
+                                                    
                                                     return out;
                                                 }
                                                 
@@ -1286,7 +1303,17 @@ function renderTransitDay(dateStr, items){
                                                         const clampedVal = Math.max(-5, Math.min(5, rawVal));
                                                         out += `| ${d} | ${(day.seismograph?.magnitude??0).toFixed(2)} | ${clampedVal.toFixed(2)} | ${(day.seismograph?.volatility??0).toFixed(2)} | ${peak.replace(/\|/g,'\\|') || '—'} |\n`;
                                                     });
-                                                    out += `\nMagnitude=aggregate charge (0–10 est), Valence=net tension (−=friction, +=ease), Volatility=dispersion of charge.\n\n`;
+                                                    out += `\nMagnitude=aggregate charge (0–10 est), Valence=net tension (−=friction, +=ease), Volatility=dispersion of charge.\n`;
+                                                    
+                                                    // Add confidence scaling information if available
+                                                    const sampleDay = Object.values(dailyMap)[0];
+                                                    if (sampleDay?.seismograph?.scaleConfidence !== undefined) {
+                                                        const confidence = sampleDay.seismograph.scaleConfidence;
+                                                        const n = Math.round(confidence * 14);
+                                                        out += `Scaling: blended (n=${n}, confidence=${confidence})\n`;
+                                                    }
+                                                    
+                                                    out += `\n`;
                                                     return out;
                                                 }
                 
