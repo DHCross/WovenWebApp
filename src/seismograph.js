@@ -37,7 +37,18 @@ const DEFAULTS = {
   sameTargetBonusCap: 0.3,           
   tightBandDeg: 1.5,                 
   outerTightenStep: 0.2,             
-  uranusTightFlagDeg: 3.0            
+  uranusTightFlagDeg: 3.0,
+  // Enhanced volatility settings
+  fastComponentThreshold: 1.0,       // orb threshold for fast-moving aspects (Moon-Mercury/Mars)
+  rollingWindowDays: 14,             // magnitude normalization window
+  hookStackCap: 5,                   // max hooks to surface in summary
+  // Planetary weights for volatility dispersion
+  planetaryWeights: {
+    'Sun': 1.2, 'Moon': 1.5, 'ASC': 1.3, 'MC': 1.3, 'IC': 1.1, 'DSC': 1.1,
+    'Mercury': 1.0, 'Venus': 1.0, 'Mars': 1.1, 'Jupiter': 0.9,
+    'Saturn': 0.8, 'Uranus': 0.7, 'Neptune': 0.6, 'Pluto': 0.6,
+    'Chiron': 0.8, 'Mean_Node': 0.7, 'Mean_South_Node': 0.7
+  }
 };
 
 function round(n, p=2){ return Math.round(n * (10**p)) / (10**p); }
