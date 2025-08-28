@@ -141,11 +141,12 @@ function multiplicityBonus(scored, opts=DEFAULTS){
   return hub + target;
 } 
 
-// ---------- Volatility Index ----------
+// ---------- Enhanced Volatility Index (weighted dispersion) ----------
 function volatility(scoredToday, prevCtx=null, opts=DEFAULTS){
   let A=0,B=0,C=0,D=0;
   const key = (x)=>`${x.transit.body}|${x.natal.body}|${x.type}`;
 
+  // A: Tight aspects entering/leaving
   if (prevCtx?.scored){
     const tight = arr => arr.filter(x=>x.orbDeg <= opts.tightBandDeg);
     const prevTight = new Set(tight(prevCtx.scored).map(key));
@@ -154,12 +155,14 @@ function volatility(scoredToday, prevCtx=null, opts=DEFAULTS){
     for (const k of prevTight) if (!nowTight.has(k)) A++;
   }
 
+  // B: Valence sign flip 
   if (typeof prevCtx?.Y_effective === "number"){
     const prevY = prevCtx.Y_effective;
     const nowY  = scoredToday.reduce((s,x)=>s+x.S,0);
     if (Math.sign(prevY) !== Math.sign(nowY) && Math.abs(prevY)>0.05 && Math.abs(nowY)>0.05) B = 1;
   }
 
+  // C: Outer planet hard aspects tightening
   if (prevCtx?.scored){
     const prevMap = new Map(prevCtx.scored.map(x=>[key(x),x]));
     for (const cur of scoredToday){
@@ -170,10 +173,76 @@ function volatility(scoredToday, prevCtx=null, opts=DEFAULTS){
     }
   }
 
+  // D: Uranus exact activation
   if (scoredToday.some(x => (x.transit.body==="Uranus" || x.natal.body==="Uranus") && x.orbDeg <= opts.uranusTightFlagDeg)) D = 1;
 
-  return A+B+C+D;
+  // Enhanced: Add weighted valence dispersion component
+  const weightedValences = scoredToday.map(x => {
+    const transitWeight = opts.planetaryWeights[x.transit.body] || 0.5;
+    const natalWeight = opts.planetaryWeights[x.natal.body] || 0.5;
+    const combinedWeight = Math.max(transitWeight, natalWeight);
+    return x.S * combinedWeight;
+  });
+
+  let E = 0; // Dispersion component
+  if (weightedValences.length >= 3) {
+    const mean = weightedValences.reduce((s, v) => s + v, 0) / weightedValences.length;
+    const variance = weightedValences.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / weightedValences.length;
+    const stdDev = Math.sqrt(variance);
+    E = Math.min(2, stdDev * 0.5); // Scale to 0-2 range
+  }
+
+  return A + B + C + D + Math.round(E);
 } 
+
+// ---------- Rolling magnitude normalization with fallback scaling ----------
+function normalizeWithRollingWindow(magnitude, rollingContext = null, opts = DEFAULTS) {
+  // System prior from original spec (X = min(5, X_raw/4)), i.e., a "typical" day
+  const X_prior = 4.0;
+  const epsilon = 1e-6;
+  
+  if (!rollingContext || !rollingContext.magnitudes || rollingContext.magnitudes.length < 1) {
+    // No context at all, use original magnitude
+    return magnitude;
+  }
+  
+  const { magnitudes } = rollingContext;
+  const n = magnitudes.length;
+  
+  // Calculate blend weight: λ = n/14 (cap to [0,1])
+  const lambda = Math.min(1, n / 14);
+  
+  let X_ref;
+  
+  if (n >= 14) {
+    // Full window: use median of last 14 days
+    const sorted = [...magnitudes].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    X_ref = sorted.length % 2 === 0 ? 
+      (sorted[mid - 1] + sorted[mid]) / 2 : 
+      sorted[mid];
+  } else if (n >= 2) {
+    // Thin slice: blend available median with system prior
+    const sorted = [...magnitudes].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const median_available = sorted.length % 2 === 0 ? 
+      (sorted[mid - 1] + sorted[mid]) / 2 : 
+      sorted[mid];
+    
+    X_ref = lambda * median_available + (1 - lambda) * X_prior;
+  } else {
+    // n = 1: use system prior
+    X_ref = X_prior;
+  }
+  
+  // Ensure X_ref is not too small to avoid division issues
+  if (X_ref < epsilon) X_ref = X_prior;
+  
+  // Apply magnitude formula: magnitude = clip(5 * X_raw / (X_ref * 1.6), 0, 10)
+  const normalized = Math.max(0, Math.min(10, 5 * magnitude / (X_ref * 1.6)));
+  
+  return normalized;
+}
 
 // ---------- main aggregate ----------
 function aggregate(aspects = [], prevCtx = null, options = {}){
@@ -192,6 +261,21 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
 
   let X = Math.min(5, X_raw / opts.magnitudeDivisor);
   X = Math.min(5, X + multiplicityBonus(scored, opts));
+  
+  // Store the original magnitude before normalization
+  const X_original = X;
+  
+  // Calculate confidence based on available data
+  let scale_confidence = 1.0;
+  if (options.rollingContext && options.rollingContext.magnitudes) {
+    const n = options.rollingContext.magnitudes.length;
+    scale_confidence = round(n / 14, 2);
+  }
+  
+  // Apply rolling magnitude normalization if context provided
+  if (options.rollingContext) {
+    X = normalizeWithRollingWindow(X, options.rollingContext, opts);
+  }
 
   const Y_effective = Y_raw * (0.8 + 0.2 * X);
 
@@ -201,7 +285,10 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     magnitude: round(X, 2),
     valence: round(Y_effective, 2),
     volatility: VI,
-    scored
+    scored,
+    rawMagnitude: round(X_raw / opts.magnitudeDivisor, 2), // For debugging/tracking
+    originalMagnitude: round(X_original, 2), // Before rolling normalization
+    scaleConfidence: scale_confidence
   };
 }
 
@@ -209,6 +296,6 @@ module.exports = {
   aggregate,
   _internals: {
     normalizeAspect, baseValence, planetTier, orbMultiplier, sensitivityMultiplier,
-    scoreAspect, multiplicityBonus, volatility
+    scoreAspect, multiplicityBonus, volatility, normalizeWithRollingWindow
   }
 };
