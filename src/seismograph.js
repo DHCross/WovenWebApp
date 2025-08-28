@@ -141,11 +141,12 @@ function multiplicityBonus(scored, opts=DEFAULTS){
   return hub + target;
 } 
 
-// ---------- Volatility Index ----------
+// ---------- Enhanced Volatility Index (weighted dispersion) ----------
 function volatility(scoredToday, prevCtx=null, opts=DEFAULTS){
   let A=0,B=0,C=0,D=0;
   const key = (x)=>`${x.transit.body}|${x.natal.body}|${x.type}`;
 
+  // A: Tight aspects entering/leaving
   if (prevCtx?.scored){
     const tight = arr => arr.filter(x=>x.orbDeg <= opts.tightBandDeg);
     const prevTight = new Set(tight(prevCtx.scored).map(key));
@@ -154,12 +155,14 @@ function volatility(scoredToday, prevCtx=null, opts=DEFAULTS){
     for (const k of prevTight) if (!nowTight.has(k)) A++;
   }
 
+  // B: Valence sign flip 
   if (typeof prevCtx?.Y_effective === "number"){
     const prevY = prevCtx.Y_effective;
     const nowY  = scoredToday.reduce((s,x)=>s+x.S,0);
     if (Math.sign(prevY) !== Math.sign(nowY) && Math.abs(prevY)>0.05 && Math.abs(nowY)>0.05) B = 1;
   }
 
+  // C: Outer planet hard aspects tightening
   if (prevCtx?.scored){
     const prevMap = new Map(prevCtx.scored.map(x=>[key(x),x]));
     for (const cur of scoredToday){
@@ -170,10 +173,46 @@ function volatility(scoredToday, prevCtx=null, opts=DEFAULTS){
     }
   }
 
+  // D: Uranus exact activation
   if (scoredToday.some(x => (x.transit.body==="Uranus" || x.natal.body==="Uranus") && x.orbDeg <= opts.uranusTightFlagDeg)) D = 1;
 
-  return A+B+C+D;
+  // Enhanced: Add weighted valence dispersion component
+  const weightedValences = scoredToday.map(x => {
+    const transitWeight = opts.planetaryWeights[x.transit.body] || 0.5;
+    const natalWeight = opts.planetaryWeights[x.natal.body] || 0.5;
+    const combinedWeight = Math.max(transitWeight, natalWeight);
+    return x.S * combinedWeight;
+  });
+
+  let E = 0; // Dispersion component
+  if (weightedValences.length >= 3) {
+    const mean = weightedValences.reduce((s, v) => s + v, 0) / weightedValences.length;
+    const variance = weightedValences.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / weightedValences.length;
+    const stdDev = Math.sqrt(variance);
+    E = Math.min(2, stdDev * 0.5); // Scale to 0-2 range
+  }
+
+  return A + B + C + D + Math.round(E);
 } 
+
+// ---------- Rolling magnitude normalization ----------
+function normalizeWithRollingWindow(magnitude, rollingContext = null, opts = DEFAULTS) {
+  if (!rollingContext || !rollingContext.magnitudes || rollingContext.magnitudes.length < 2) {
+    return magnitude; // Not enough data for normalization
+  }
+  
+  const { magnitudes } = rollingContext;
+  const mean = magnitudes.reduce((s, m) => s + m, 0) / magnitudes.length;
+  const variance = magnitudes.reduce((s, m) => s + Math.pow(m - mean, 2), 0) / magnitudes.length;
+  const stdDev = Math.sqrt(variance);
+  
+  // Normalize to 0-10 scale with rolling context
+  if (stdDev < 0.1) return magnitude; // No significant variation
+  
+  const zScore = (magnitude - mean) / stdDev;
+  const normalized = 5 + (zScore * 1.5); // Center at 5, scale by stdDev
+  return Math.max(0, Math.min(10, normalized));
+}
 
 // ---------- main aggregate ----------
 function aggregate(aspects = [], prevCtx = null, options = {}){
@@ -192,6 +231,11 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
 
   let X = Math.min(5, X_raw / opts.magnitudeDivisor);
   X = Math.min(5, X + multiplicityBonus(scored, opts));
+  
+  // Apply rolling magnitude normalization if context provided
+  if (options.rollingContext) {
+    X = normalizeWithRollingWindow(X, options.rollingContext, opts);
+  }
 
   const Y_effective = Y_raw * (0.8 + 0.2 * X);
 
@@ -201,7 +245,8 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     magnitude: round(X, 2),
     valence: round(Y_effective, 2),
     volatility: VI,
-    scored
+    scored,
+    rawMagnitude: round(X_raw / opts.magnitudeDivisor, 2) // For debugging/tracking
   };
 }
 
@@ -209,6 +254,6 @@ module.exports = {
   aggregate,
   _internals: {
     normalizeAspect, baseValence, planetTier, orbMultiplier, sensitivityMultiplier,
-    scoreAspect, multiplicityBonus, volatility
+    scoreAspect, multiplicityBonus, volatility, normalizeWithRollingWindow
   }
 };

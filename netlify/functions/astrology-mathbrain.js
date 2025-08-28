@@ -511,18 +511,30 @@ function calculateSeismograph(transitsByDate) {
   let prev = null;
   let prevDayFiltered = null;
   const daily = {};
+  const rollingMagnitudes = []; // Track for 14-day rolling window
+  const valenceHistory = []; // Track for trend analysis
 
-  for (const d of days) {
+  for (let i = 0; i < days.length; i++) {
+    const d = days[i];
     const rawDayAspects = transitsByDate[d] || [];
     const enriched = enrichDailyAspects(rawDayAspects);
+    
+    // Enhance aspects with retrograde flags
+    const enrichedWithRetrograde = enriched.filtered.map(aspect => ({
+      ...aspect,
+      p1_retrograde: aspect.p1_is_retrograde || false,
+      p2_retrograde: aspect.p2_is_retrograde || false,
+      retrograde_involved: aspect.p1_is_retrograde || aspect.p2_is_retrograde
+    }));
     
     // Generate orb-band transit table with phase and score
     const transitTable = formatTransitTable(enriched.filtered, prevDayFiltered);
     
     const aspectsForAggregate = enriched.filtered.map(x => ({
-      transit: { body: x.p1_name },
+      transit: { body: x.p1_name, retrograde: x.p1_is_retrograde },
       natal: {
         body: x.p2_name,
+        retrograde: x.p2_is_retrograde,
         isAngleProx: ["Ascendant","Medium_Coeli","Descendant","Imum_Coeli"].includes(x.p2_name),
         isLuminary: ["Sun","Moon"].includes(x.p2_name),
         degCrit: false
@@ -530,17 +542,40 @@ function calculateSeismograph(transitsByDate) {
       type: x._aspect,
       orbDeg: typeof x._orb === 'number' ? x._orb : 6.01
     }));
-    const agg = aggregate(aspectsForAggregate, prev);
+
+    // Prepare rolling context for magnitude normalization
+    const rollingContext = rollingMagnitudes.length >= 2 ? { magnitudes: rollingMagnitudes } : null;
+    
+    const agg = aggregate(aspectsForAggregate, prev, { rollingContext });
+    
+    // Track rolling magnitudes (keep last 14 days)
+    rollingMagnitudes.push(agg.rawMagnitude || agg.magnitude);
+    if (rollingMagnitudes.length > 14) rollingMagnitudes.shift();
+    
+    // Track valence history (keep last 7 days for trend)
+    valenceHistory.push(agg.valence);
+    if (valenceHistory.length > 7) valenceHistory.shift();
+    
+    // Identify retrograde recursion aspects
+    const retrogradeAspects = enrichedWithRetrograde.filter(a => a.retrograde_involved);
+    
     daily[d] = {
-      seismograph: { magnitude: agg.magnitude, valence: agg.valence, volatility: agg.volatility },
+      seismograph: { 
+        magnitude: agg.magnitude, 
+        valence: agg.valence, 
+        volatility: agg.volatility,
+        rawMagnitude: agg.rawMagnitude
+      },
       aspects: rawDayAspects,
-      filtered_aspects: enriched.filtered,
+      filtered_aspects: enrichedWithRetrograde,
       hooks: enriched.hooks,
       counts: enriched.counts,
-      transit_table: transitTable
+      transit_table: transitTable,
+      retrograde_aspects: retrogradeAspects,
+      valence_trend: valenceHistory.length > 1 ? calculateTrend(valenceHistory) : 0
     };
     prev = { scored: agg.scored, Y_effective: agg.valence };
-    prevDayFiltered = enriched.filtered; // Store for next day's phase calculation
+    prevDayFiltered = enriched.filtered;
   }
 
   const numDays = days.length;
@@ -550,6 +585,19 @@ function calculateSeismograph(transitsByDate) {
   const summary = { magnitude: +X.toFixed(2), valence: +Y.toFixed(2), volatility: +VI.toFixed(2) };
 
   return { daily, summary };
+}
+
+// Helper function to calculate valence trend
+function calculateTrend(values) {
+  if (values.length < 2) return 0;
+  const recent = values.slice(-3); // Last 3 values for trend
+  if (recent.length < 2) return 0;
+  
+  let trend = 0;
+  for (let i = 1; i < recent.length; i++) {
+    trend += recent[i] - recent[i-1];
+  }
+  return +(trend / (recent.length - 1)).toFixed(2);
 }
 
 // --- Composite helpers ---

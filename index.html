@@ -1138,6 +1138,140 @@ function renderTransitDay(dateStr, items){
                                                     out += `\n</details>\n\n`;
                                                     return out;
                                                 }
+
+                                                // Enhanced FIELD/MAP/VOICE Translation Bridge
+                                                function generateFieldMapVoice(day) {
+                                                    const mag = day.seismograph?.magnitude || 0;
+                                                    const val = day.seismograph?.valence || 0;
+                                                    const vol = day.seismograph?.volatility || 0;
+                                                    const trend = day.valence_trend || 0;
+                                                    
+                                                    // FIELD: Emotional/somatic tone
+                                                    let field = '';
+                                                    if (mag > 6) {
+                                                        field = vol > 3 ? 'High-charge turbulence' : 'Concentrated pressure';
+                                                    } else if (mag > 3) {
+                                                        field = val > 0 ? 'Energized flow' : 'Navigational friction';
+                                                    } else {
+                                                        field = vol > 2 ? 'Subtle recalibration' : 'Ambient stability';
+                                                    }
+                                                    
+                                                    // MAP: Social/behavioral translation
+                                                    let map = '';
+                                                    if (val > 2) {
+                                                        map = trend > 0.5 ? 'Momentum building toward breakthrough' : 'Sustained constructive pressure';
+                                                    } else if (val < -2) {
+                                                        map = vol > 3 ? 'Resist rushing; structural shifts occurring' : 'Navigate obstacles with precision';
+                                                    } else {
+                                                        map = mag > 4 ? 'Mixed signals require discernment' : 'Steady course maintenance';
+                                                    }
+                                                    
+                                                    // VOICE: Shareable mirror line
+                                                    let voice = '';
+                                                    if (mag > 5 && Math.abs(val) > 2) {
+                                                        voice = val > 0 ? 'Your inner compass points toward expansion' : 'Resistance reveals what needs attention';
+                                                    } else if (vol > 3) {
+                                                        voice = 'Change pulses beneath the surface';
+                                                    } else {
+                                                        voice = mag > 2 ? 'Quiet strength builds' : 'Space for reflection opens';
+                                                    }
+                                                    
+                                                    return { field, map, voice };
+                                                }
+                                                
+                                                // Enhanced buildSummaryTable with three-tier structure
+                                                function buildEnhancedSummaryTable(title, dailyMap) {
+                                                    const dates = Object.keys(dailyMap||{}).sort();
+                                                    if (!dates.length) return '';
+                                                    
+                                                    let out = `## ${title} — Daily Woven Map\n\n`;
+                                                    
+                                                    dates.forEach(d => {
+                                                        const day = dailyMap[d];
+                                                        const mag = (day.seismograph?.magnitude || 0).toFixed(2);
+                                                        const val = Math.max(-5, Math.min(5, day.seismograph?.valence || 0)).toFixed(2);
+                                                        const vol = (day.seismograph?.volatility || 0).toFixed(2);
+                                                        const trend = day.valence_trend || 0;
+                                                        const trendArrow = trend > 0.5 ? ' ↗' : trend < -0.5 ? ' ↘' : '';
+                                                        
+                                                        // 1. Climate Line
+                                                        out += `### ${d} — Climate Line\n`;
+                                                        out += `**Magnitude:** ${mag} • **Valence:** ${val}${trendArrow} • **Volatility:** ${vol}\n\n`;
+                                                        
+                                                        // 2. Top Hooks Snapshot (apply strict orb caps)
+                                                        const filteredHooks = applyStrictOrbCaps(day.hooks || []);
+                                                        const topHooks = filteredHooks.slice(0, 5);
+                                                        
+                                                        out += `**Top Hooks Snapshot:**\n`;
+                                                        if (topHooks.length === 0) {
+                                                            out += `- No hooks within orb caps today\n`;
+                                                        } else {
+                                                            topHooks.forEach(h => {
+                                                                const retroSymbol = (h.p1_retrograde ? '℞' : '') + (h.p2_retrograde ? '℞' : '');
+                                                                out += `- ${hookLine(h)}${retroSymbol ? ' ' + retroSymbol : ''}\n`;
+                                                            });
+                                                        }
+                                                        
+                                                        // 3. Recursion Band (retrograde aspects)
+                                                        const retrogradeAspects = day.retrograde_aspects || [];
+                                                        if (retrogradeAspects.length > 0) {
+                                                            out += `\n**Recursion Band** _(internal pressure)_:\n`;
+                                                            retrogradeAspects.slice(0, 3).forEach(a => {
+                                                                const orb = Math.abs(a._orb || a.orb || 0).toFixed(1);
+                                                                out += `- ${labelName(a.p1_name)}℞ ${aspectGlyph(a._aspect)} ${labelName(a.p2_name)} (${orb}°)\n`;
+                                                            });
+                                                        }
+                                                        
+                                                        // 4. FIELD/MAP/VOICE Translation
+                                                        const translation = generateFieldMapVoice(day);
+                                                        out += `\n**Translation Bridge:**\n`;
+                                                        out += `- **FIELD:** ${translation.field}\n`;
+                                                        out += `- **MAP:** ${translation.map}\n`;
+                                                        out += `- **VOICE:** ${translation.voice}\n\n`;
+                                                        
+                                                        // 5. Raw Geometry (collapsible)
+                                                        const allAspects = day.filtered_aspects || [];
+                                                        if (allAspects.length > 0) {
+                                                            out += `<details><summary>Raw Geometry (${allAspects.length} aspects)</summary>\n\n`;
+                                                            allAspects.forEach(a => {
+                                                                const orb = Math.abs(a._orb || a.orb || 0).toFixed(1);
+                                                                const retroFlag = (a.p1_retrograde || a.p2_retrograde) ? ' ℞' : '';
+                                                                out += `- ${labelName(a.p1_name)} ${aspectGlyph(a._aspect)} ${labelName(a.p2_name)} (${orb}°)${retroFlag}\n`;
+                                                            });
+                                                            out += `\n</details>\n\n`;
+                                                        }
+                                                        
+                                                        out += `---\n\n`;
+                                                    });
+                                                    
+                                                    return out;
+                                                }
+                                                
+                                                // Apply strict orb caps for Top Hooks
+                                                function applyStrictOrbCaps(hooks) {
+                                                    const ORB_CAPS = { luminary: 6, planet: 4, point: 3 };
+                                                    
+                                                    function getBodyType(name) {
+                                                        const n = (name || '').toLowerCase();
+                                                        if (['sun', 'moon'].includes(n)) return 'luminary';
+                                                        if (['ascendant', 'midheaven', 'mc', 'ic', 'north node', 'south node', 'lilith', 'chiron'].includes(n)) return 'point';
+                                                        return 'planet';
+                                                    }
+                                                    
+                                                    return hooks.filter(h => {
+                                                        const orb = Math.abs(h._orb || h.orb || 99);
+                                                        const type1 = getBodyType(h.p1_name);
+                                                        const type2 = getBodyType(h.p2_name);
+                                                        const cap = Math.min(ORB_CAPS[type1] || 5, ORB_CAPS[type2] || 5);
+                                                        return orb <= cap;
+                                                    }).sort((a, b) => {
+                                                        // Sort by weight, then by orb tightness
+                                                        const wDiff = (b._weight || 0) - (a._weight || 0);
+                                                        if (Math.abs(wDiff) > 1e-6) return wDiff;
+                                                        return Math.abs(a._orb || a.orb || 99) - Math.abs(b._orb || b.orb || 99);
+                                                    });
+                                                }
+
                                                 function buildSummaryTable(title, dailyMap){
                                                     const dates = Object.keys(dailyMap||{}).sort();
                                                     if (!dates.length) return '';
@@ -1156,7 +1290,12 @@ function renderTransitDay(dateStr, items){
                                                     return out;
                                                 }
                 
-                                md += `\n## Simple Mode — Hooks-First Geometry\n`;
+                                md += `\n## Enhanced Daily Woven Maps\n`;
+                                if (data.person_a?.chart?.transitsByDate) md += buildEnhancedSummaryTable(`${personA.name}`, data.person_a.chart.transitsByDate);
+                                if (data.person_b?.chart?.transitsByDate) md += buildEnhancedSummaryTable(`${personB.name}${data.person_b?.implicit_dual_transits?' (implicit dual)':''}`, data.person_b.chart.transitsByDate);
+                                if (data.composite?.transitsByDate) md += buildEnhancedSummaryTable(`Composite Field`, data.composite.transitsByDate);
+                
+                                md += `\n## Legacy Table View\n`;
                                 if (data.person_a?.chart?.transitsByDate) md += buildSummaryTable(`${personA.name}`, data.person_a.chart.transitsByDate);
                                 if (data.person_b?.chart?.transitsByDate) md += buildSummaryTable(`${personB.name}${data.person_b?.implicit_dual_transits?' (implicit dual)':''}`, data.person_b.chart.transitsByDate);
                                 if (data.composite?.transitsByDate) md += buildSummaryTable(`Composite Field`, data.composite.transitsByDate);
