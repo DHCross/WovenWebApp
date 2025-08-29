@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RavenCalderConfig",
+  "type": "object",
+  "required": ["version", "contract", "roles", "provenance_expected", "tz_policy", "terminology_layering"],
+  "properties": {
+    "version": { "type": "string" },
+    "contract": {
+      "type": "object",
+      "required": ["id", "spec_version", "math_brain_payload_contract", "narrative_boundary"],
+      "properties": {
+        "id": { "const": "clear-mirror" },
+        "spec_version": { "type": "string" },
+        "math_brain_payload_contract": { "const": "geometry_only" },
+        "narrative_boundary": { "type": "string" }
+      }
+    },
+    "roles": {
+      "type": "object",
+      "required": ["math_brain", "poetic_brain"],
+      "properties": {
+        "math_brain": {
+          "type": "object",
+          "required": ["function", "emits", "prohibitions"],
+          "properties": {
+            "function": { "type": "string" },
+            "emits": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+            "prohibitions": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+          }
+        },
+        "poetic_brain": {
+          "type": "object",
+          "required": ["alias", "agent_id", "function"],
+          "properties": {
+            "alias": { "type": "string" },
+            "agent_id": { "type": "string" },
+            "function": { "type": "string" }
+          }
+        }
+      }
+    },
+    "provenance_expected": {
+      "type": "object",
+      "required": ["fields"],
+      "properties": {
+        "fields": { "type": "array", "contains": { "const": "mirror_ready" } }
+      }
+    },
+    "tz_policy": {
+      "type": "object",
+      "required": ["baseline_timezone", "auto_correct"],
+      "properties": {
+        "baseline_timezone": { "const": "America/Chicago" },
+        "auto_correct": { "const": false }
+      }
+    },
+    "terminology_layering": {
+      "type": "object",
+      "required": ["natal_personality", "transits_short_term", "transit_forecast_macro"],
+      "properties": {
+        "natal_personality": { "type": "string" },
+        "transits_short_term": { "type": "string" },
+        "transit_forecast_macro": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+      }
+    }
+  }
+}

@@ -1158,7 +1158,9 @@ exports.handler = async function(event) {
     }
 
     // 2) Transits (optional; raw aspects by date, with advanced options)
-    if (haveRange) {
+    // Skip transit processing for natal_only mode even if date range is provided
+    const skipTransits = modeToken === 'NATAL_ONLY';
+    if (haveRange && !skipTransits) {
       // Use new getTransits and seismograph logic with configuration parameters
   const { transitsByDate, retroFlagsByDate } = await getTransits(personA, { startDate: start, endDate: end, step }, headers, pass);
   result.person_a.chart = { ...result.person_a.chart, transitsByDate };
@@ -1200,7 +1202,7 @@ exports.handler = async function(event) {
           }
         }
         // Optional Person B transits in dual transits mode
-        if (haveRange && modeToken === 'DUAL_NATAL_TRANSITS') {
+        if (haveRange && !skipTransits && modeToken === 'DUAL_NATAL_TRANSITS') {
           try {
             const { transitsByDate: transitsByDateB, retroFlagsByDate: retroFlagsByDateB } = await getTransits(personB, { startDate: start, endDate: end, step }, headers, pass);
             const allB = Object.values(transitsByDateB).flatMap(day => day);
@@ -1226,6 +1228,7 @@ exports.handler = async function(event) {
     // Skip if relationshipMode (synastry/composite) to avoid duplication, and skip if already handled by explicit dual mode above.
     if (
       haveRange &&
+      !skipTransits &&
       !relationshipMode &&
       personB && Object.keys(personB).length &&
       modeToken && modeToken.startsWith('NATAL') && modeToken.includes('TRANSITS') &&
@@ -1310,7 +1313,7 @@ exports.handler = async function(event) {
   result.synastry_aspects = Array.isArray(syn.aspects) ? syn.aspects : (synClean.aspects || []);
       
       // Add Person B transits for synastry modes (especially SYNASTRY_TRANSITS)
-      if (modeToken === 'SYNASTRY_TRANSITS' && haveRange) {
+      if (modeToken === 'SYNASTRY_TRANSITS' && haveRange && !skipTransits) {
         logger.debug('Computing Person B transits for synastry mode:', { start, end, step });
   const { transitsByDate: transitsByDateB, retroFlagsByDate: retroFlagsByDateB } = await getTransits(personB, { startDate: start, endDate: end, step }, headers, pass);
         result.person_b.chart = { ...result.person_b.chart, transitsByDate: transitsByDateB };
@@ -1342,7 +1345,7 @@ exports.handler = async function(event) {
 
   // Step 2: Composite transits: now ALWAYS computed when a date range is supplied, regardless of specific composite sub-mode
   // Rationale: connection "pressure" mapping requires transits; aspects-only without transits is incomplete.
-  if (haveRange) {
+  if (haveRange && !skipTransits) {
         logger.debug('Computing composite transits for date range:', { start, end, step });
         
         // Calculate transits to the composite chart using the composite chart as base

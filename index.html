@@ -214,7 +214,12 @@
             <!-- Person A & B Cards -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                 <div id="personA-card" class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                    <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Person A / Natal Chart</h2>
+                    <div class="flex items-center justify-between mb-4 border-b border-gray-700 pb-2">
+                        <h2 class="text-2xl font-semibold text-white">Person A / Natal Chart</h2>
+                        <div class="flex items-center gap-2">
+                            <button id="relocQuickBtn" type="button" class="text-xs px-3 py-1 rounded-full bg-gray-700 text-teal-300 hover:bg-teal-600/20 border border-teal-500/40 transition-colors" title="Apply Panama City relocation overlay">Reloc: Panama City</button>
+                        </div>
+                    </div>
                     <div class="space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <input type="text" id="nameA" placeholder="Name" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="DH Cross">
@@ -341,7 +346,7 @@
                         <input type="radio" name="contextType" value="solo" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700" checked>
                         <div>
                             <div class="text-white font-medium">Solo</div>
-                            <div class="text-gray-400 text-sm">Your chart + current transits</div>
+                            <div class="text-gray-400 text-sm">Your chart analysis</div>
                         </div>
                     </label>
                     <label class="flex items-center p-4 border border-gray-600 rounded-lg hover:border-teal-500 transition-colors cursor-pointer">
@@ -358,6 +363,27 @@
                             <div class="text-gray-400 text-sm">Current planetary patterns</div>
                         </div>
                     </label>
+                </div>
+                
+                <!-- Solo Subtype Selection (initially visible for solo mode) -->
+                <div id="solo-subtypes" class="mt-4 p-4 bg-gray-750 rounded-lg border border-gray-600">
+                    <h3 class="text-sm font-medium text-white mb-3">What type of solo analysis?</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
+                            <input type="radio" name="soloSubtype" value="natal_only" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                            <div>
+                                <div class="text-white text-sm">Chart Only</div>
+                                <div class="text-gray-400 text-xs">Foundational natal architecture</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
+                            <input type="radio" name="soloSubtype" value="natal_transits" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700" checked>
+                            <div>
+                                <div class="text-white text-sm">Chart + Transits</div>
+                                <div class="text-gray-400 text-xs">Your chart + current pressures</div>
+                            </div>
+                        </label>
+                    </div>
                 </div>
                 
                 <!-- Relational Subtype Selection (initially hidden) -->
@@ -494,12 +520,15 @@
                             <input type="checkbox" id="relocationToggle" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
                             <div>
                                 <h3 class="text-lg font-medium text-white">Relocation Overlay</h3>
-                                <p class="text-xs text-gray-400">Adjust coordinates for different locations</p>
+                                <p class="text-xs text-gray-400">How place tilts the lens of your chart - same planets, different stage</p>
                             </div>
                         </div>
-                        <svg id="relocation-chevron" class="w-5 h-5 text-gray-400 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
+                        <div class="flex items-center gap-3">
+                            <button id="useDefaultRelocation" type="button" class="text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none">Use my default</button>
+                            <svg id="relocation-chevron" class="w-5 h-5 text-gray-400 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
                     </div>
                     
                     <!-- Relocation Details (collapsible) -->
@@ -534,13 +563,19 @@
                             </div>
                             
                             <div class="bg-gray-750 p-3 rounded border border-gray-600">
-                                <h4 class="text-sm font-medium text-teal-300 mb-2">How Relocation Overlay Works:</h4>
+                                <h4 class="text-sm font-medium text-teal-300 mb-2">How Relocation Works:</h4>
                                 <ul class="text-xs text-gray-400 space-y-1">
-                                    <li>• Birth chart remains at original location</li>
-                                    <li>• Transits/progressions calculated for new location</li>
-                                    <li>• Shows how planetary energy shifts in different places</li>
-                                    <li>• Useful for travel, relocation, or understanding location-based influences</li>
+                                    <li>• <strong class="text-gray-300">Same birth chart, different stage set</strong> - planets and aspects unchanged</li>
+                                    <li>• <strong class="text-gray-300">Houses and angles shift</strong> - where your patterns get expressed in daily life</li>
+                                    <li>• <strong class="text-gray-300">Tectonic, not weather</strong> - foundational context shift, not timing</li>
+                                    <li>• <strong class="text-gray-300">Diagnostic value</strong> - shows where natal pressures plug into new ground</li>
                                 </ul>
+                                <div class="mt-2 p-2 bg-gray-800 rounded border border-gray-600">
+                                    <p class="text-xs text-teal-300">
+                                        <strong>Example:</strong> Sun in 12th (private) → Sun at Midheaven (public stage). 
+                                        Same solar nature, different life domain where it gets expressed.
+                                    </p>
+                                </div>
                             </div>
                             
                             <!-- Person B Relocation Option (only visible when Person B is present) -->
@@ -636,6 +671,10 @@
             <!-- Legacy hidden sections for compatibility -->
             <div class="hidden">
                 <div id="context-toggle" class="flex items-center mb-4">
+                    <label class="flex items-center mr-4">
+                        <input type="radio" name="contextMode" value="natal_only" class="mr-2">
+                        <span class="text-gray-300">Natal Chart Only</span>
+                    </label>
                     <label class="flex items-center mr-4">
                         <input type="radio" name="contextMode" value="natal_transits" class="mr-2" checked>
                         <span class="text-gray-300">Natal Chart + Transits</span>
@@ -1267,8 +1306,8 @@ function renderTransitDay(dateStr, items){
             md += `> Geometry Only: This file contains calculations and aspect wiring.\n`;
             md += `> **Do not** include narrative or advice here. Clear Mirror is performed by Raven Calder downstream.\n\n`;
 
-            // Process Transit Data (if mode includes transits)
-            if (mode.includes('_transits')) {
+            // Process Transit Data (if mode includes transits and is not natal_only)
+            if (mode.includes('_transits') && mode !== 'natal_only') {
                 const transitStartDate = formData.transitParams?.startDate;
                 const transitEndDate = formData.transitParams?.endDate;
                 
@@ -1842,7 +1881,7 @@ function renderTransitDay(dateStr, items){
                 }
             }
 
-            // Validate transit dates if required by mode (ALL modes now require transits)
+            // Validate transit dates if required by mode (skip for natal_only)
             if (mode === 'natal_transits' || mode === 'synastry_transits' || mode === 'composite_transits') {
                 const start = transitStartDate.value;
                 const end = transitEndDate.value;
@@ -2009,16 +2048,41 @@ function renderTransitDay(dateStr, items){
             };
 
             if (relocationToggle && relocationToggle.checked) {
-                const relocationCoords = parseCoordinates(document.getElementById('relocationCoords').value.trim());
-                formData.relocation = {
-                    enabled: true,
-                    city: document.getElementById('relocationCity').value.trim(),
-                    state: document.getElementById('relocationState').value.trim(),
-                    latitude: relocationCoords.latitude,
-                    longitude: relocationCoords.longitude,
-                    coordinates: document.getElementById('relocationCoords').value.trim(),
-                    excludePersonB: !(document.getElementById('includePersonBRelocation')?.checked)
-                };
+                const rawReloc = document.getElementById('relocationCoords').value.trim();
+                const parsedReloc = parseLatLonFlexible ? parseLatLonFlexible(rawReloc) : null;
+                if (parsedReloc) {
+                    formData.relocation = {
+                        enabled: true,
+                        city: document.getElementById('relocationCity').value.trim(),
+                        state: document.getElementById('relocationState').value.trim(),
+                        latitude: parsedReloc.lat,
+                        longitude: parsedReloc.lon,
+                        input: rawReloc,
+                        normalized: parsedReloc.normalized,
+                        excludePersonB: !(document.getElementById('includePersonBRelocation')?.checked)
+                    };
+                } else {
+                    // Fallback to legacy parseCoordinates if available
+                    try {
+                        const legacy = parseCoordinates(rawReloc);
+                        if (legacy && legacy.latitude !== undefined) {
+                            formData.relocation = {
+                                enabled: true,
+                                city: document.getElementById('relocationCity').value.trim(),
+                                state: document.getElementById('relocationState').value.trim(),
+                                latitude: legacy.latitude,
+                                longitude: legacy.longitude,
+                                input: rawReloc,
+                                normalized: `${legacy.latitude}, ${legacy.longitude}`,
+                                excludePersonB: !(document.getElementById('includePersonBRelocation')?.checked)
+                            };
+                        } else {
+                            formData.relocation = { enabled: true, invalid: true, input: rawReloc };
+                        }
+                    } catch(e){
+                        formData.relocation = { enabled: true, invalid: true, input: rawReloc };
+                    }
+                }
             } else {
                 formData.relocation = { enabled: false };
             }
@@ -2047,6 +2111,11 @@ function renderTransitDay(dateStr, items){
                     console.log('WARNING: Transit elements not found or missing values');
                 }
                 console.log('=== END FRONTEND TRANSIT DEBUG ===');
+            } else if (mode === 'natal_only') {
+                console.log('=== NATAL ONLY MODE ===');
+                console.log('Skipping transit parameter collection for natal_only mode');
+                // No transit parameters needed for natal_only mode
+                console.log('=== END NATAL ONLY MODE ===');
             }
 
             // Relationship role & notes capture
@@ -2439,15 +2508,17 @@ function renderTransitDay(dateStr, items){
             const contextModeInputs = document.querySelectorAll('input[name="contextMode"]');
             
             if (contextType === 'solo') {
-                contextModeInputs.forEach(input => {
-                    input.checked = input.value === 'natal_transits';
-                });
                 hidePersonBSection();
                 hideRelationalSubtypes();
                 hideRelationalContext();
+                showSoloSubtypes();
+                // Default to current solo subtype or natal_transits
+                const soloSubtype = document.querySelector('input[name="soloSubtype"]:checked')?.value || 'natal_transits';
+                updateSoloSubtype(soloSubtype);
             } else if (contextType === 'relational') {
                 showPersonBSection();
                 showRelationalSubtypes();
+                hideSoloSubtypes();
                 // Default to composite for relational
                 const relationalSubtype = document.querySelector('input[name="relationalSubtype"]:checked')?.value || 'composite';
                 updateRelationalSubtype(relationalSubtype);
@@ -2455,10 +2526,27 @@ function renderTransitDay(dateStr, items){
                 // Weather only mode - hide person sections
                 hidePersonBSection();
                 hideRelationalSubtypes();
+                hideSoloSubtypes();
                 hideRelationalContext();
                 // Set to transit-only mode
                 contextModeInputs.forEach(input => {
                     input.checked = input.value === 'natal_transits'; // Use natal_transits but hide person data
+                });
+            }
+            
+            updateFormUI();
+        }
+        
+        function updateSoloSubtype(subtype) {
+            const contextModeInputs = document.querySelectorAll('input[name="contextMode"]');
+            
+            if (subtype === 'natal_only') {
+                contextModeInputs.forEach(input => {
+                    input.checked = input.value === 'natal_only';
+                });
+            } else if (subtype === 'natal_transits') {
+                contextModeInputs.forEach(input => {
+                    input.checked = input.value === 'natal_transits';
                 });
             }
             
@@ -2506,6 +2594,20 @@ function renderTransitDay(dateStr, items){
                 if (personBChevron) {
                     personBChevron.classList.remove('rotate-180');
                 }
+            }
+        }
+        
+        function showSoloSubtypes() {
+            const soloSubtypes = document.getElementById('solo-subtypes');
+            if (soloSubtypes) {
+                soloSubtypes.classList.remove('hidden');
+            }
+        }
+        
+        function hideSoloSubtypes() {
+            const soloSubtypes = document.getElementById('solo-subtypes');
+            if (soloSubtypes) {
+                soloSubtypes.classList.add('hidden');
             }
         }
         
@@ -2641,6 +2743,11 @@ function renderTransitDay(dateStr, items){
                 radio.addEventListener('change', (e) => updateContextType(e.target.value));
             });
             
+            // Solo subtypes
+            document.querySelectorAll('input[name="soloSubtype"]').forEach(radio => {
+                radio.addEventListener('change', (e) => updateSoloSubtype(e.target.value));
+            });
+            
             // Relational subtypes
             document.querySelectorAll('input[name="relationalSubtype"]').forEach(radio => {
                 radio.addEventListener('change', (e) => updateRelationalSubtype(e.target.value));
@@ -2730,25 +2837,70 @@ function renderTransitDay(dateStr, items){
         // END NEW UX IMPROVEMENT FUNCTIONS
         // =============================================================================
 
+        // ---------- Relocation Defaults & Persistence (Panama City baseline) ----------
+        const DEFAULT_RELOC = { city: 'Panama City', state: 'FL', coords: "30°10'N, 85°40'W" };
+        const RELOC_PREF_KEY = 'wm_pref_default_reloc_enabled';
+        const DMS_RE = /^\s*([0-9]{1,3})(?:[°\s]([0-9]{1,2}))?(?:['\s]([0-9]{1,2}(?:\.\d+)?))?\s*([NnSs])\s*,\s*([0-9]{1,3})(?:[°\s]([0-9]{1,2}))?(?:['\s]([0-9]{1,2}(?:\.\d+)?))?\s*([EeWw])\s*$/;
+        const DEC_RE = /^\s*(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$/;
+        function dmsToDec(d,m,s,h){const sign=/[SsWw]/.test(h)?-1:1;return sign*(+d+(+(m||0))/60+(+(s||0))/3600);}        
+        function parseLatLonFlexible(input){
+            if(!input) return null;
+            const m1 = DEC_RE.exec(input); if(m1){ const lat=+m1[1], lon=+m1[2];
+                return (isFinite(lat)&&isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180)
+                  ? {lat, lon, normalized:`${lat.toFixed(6)}, ${lon.toFixed(6)}`} : null; }
+            const cleaned = input.replace(/°|º/g,'°').replace(/’|′/g,"'");
+            const m2 = DMS_RE.exec(cleaned); if(m2){ const lat=dmsToDec(m2[1],m2[2],m2[3],m2[4]); const lon=dmsToDec(m2[5],m2[6],m2[7],m2[8]);
+                return (isFinite(lat)&&isFinite(lon)) ? {lat, lon, normalized:`${lat.toFixed(6)}, ${lon.toFixed(6)}`} : null; }
+            return null;
+        }
+        function attachCoordValidator(inputId, hintId){
+            const el=document.getElementById(inputId), hint=document.getElementById(hintId);
+            if(!el||!hint) return; 
+            el.addEventListener('blur', ()=>{ const v=el.value.trim(); if(!v){ hint.textContent=''; hint.className='mt-1 text-xs'; return; }
+                const ok=parseLatLonFlexible(v); if(ok){ hint.textContent=`✓ Normalized: ${ok.normalized}`; hint.className='mt-1 text-xs text-teal-300'; }
+                else { hint.textContent='Invalid. Use "lat, lon" (e.g., 30.1667, -85.6667) or DMS (30°10\'N, 85°40\'W).'; hint.className='mt-1 text-xs text-red-400'; }
+            });
+        }
+        function applyRelocDefaults(openSection=true){
+            const t=document.getElementById('relocationToggle');
+            const city=document.getElementById('relocationCity');
+            const st=document.getElementById('relocationState');
+            const c=document.getElementById('relocationCoords');
+            if(!t||!city||!st||!c) return; 
+            city.value=DEFAULT_RELOC.city; st.value=DEFAULT_RELOC.state; c.value=DEFAULT_RELOC.coords; t.checked=true;
+            if(openSection){
+                document.getElementById('relocation-details')?.classList.remove('hidden');
+                document.getElementById('relocation-toggle-header')?.setAttribute('aria-expanded','true');
+            }
+            c.dispatchEvent(new Event('blur'));
+        }
+        function wireUseDefaultRelocButton(){
+            const btn=document.getElementById('useDefaultRelocation');
+            if(!btn) return; btn.addEventListener('click', ()=> applyRelocDefaults(true));
+        }
+        function loadRelocPref(){ return localStorage.getItem(RELOC_PREF_KEY)==='1'; }
+        function saveRelocPref(v){ localStorage.setItem(RELOC_PREF_KEY, v?'1':'0'); }
+
+
         function updateFormUI() {
             const mode = document.querySelector('input[name="contextMode"]:checked').value;
 
-            const isNatal = mode === 'natal';
+            const isNatalOnly = mode === 'natal_only';
+            const isNatal = mode === 'natal_transits';
             const isSynastryTransits = mode === 'synastry_transits';
             const isCompositeTransits = mode === 'composite_transits';
             
-            const showPersonB = !isNatal; // Person B needed for all relational modes
+            const showPersonB = !isNatalOnly && !isNatal; // Person B needed for all relational modes
             personBCard.style.opacity = showPersonB ? '1' : '0.5';
             personBCard.style.pointerEvents = showPersonB ? 'auto' : 'none';
 
-            const showTransitFields = true; // ALL modes now include transits
+            const showTransitFields = !isNatalOnly; // Show transit fields for all modes except natal_only
             transitDateFields.style.display = showTransitFields ? 'block' : 'none';
 
-            // CRITICAL: Relocation overlay must be available whenever ANY chart data is entered
-            // This includes Natal, Synastry, Composite, Transit, and Synastry+Transit modes
-            // Protocol requirement: Location affects angle geometry regardless of context mode
-            const showRelocation = true; // Always show relocation - it's a fundamental geometric option
-            relocationSection.style.display = showRelocation ? 'block' : 'none';
+            // CRITICAL: Relocation overlay available for ALL chart modes (natal_only and transit modes)
+            // Relocation is about geometric foundation shift, not timing - affects natal architecture context
+            const showRelocation = true; // Always show relocation - foundational architectural overlay
+            if (relocationSection) relocationSection.style.display = showRelocation ? 'block' : 'none';
             
             // Update Person B relocation option visibility
             updateRelocationPersonBOption();
@@ -2793,7 +2945,7 @@ function renderTransitDay(dateStr, items){
             closeMathBrainModalBottom = document.getElementById('close-math-brain-modal-bottom');
             relocationToggle = document.getElementById('relocationToggle');
             relocationFields = document.getElementById('relocationFields');
-            transitDateFields = document.getElementById('transit-date-range-fields');
+            transitDateFields = document.getElementById('quick-transit-section'); // The actual transit section, not the legacy hidden one
             personBCard = document.getElementById('personB-card');
             relocationSection = document.getElementById('relocation-section');
             relationalContextSection = document.getElementById('relational-context-section');
@@ -2825,13 +2977,44 @@ function renderTransitDay(dateStr, items){
                 transitStartDate: !!transitStartDate,
                 transitEndDate: !!transitEndDate,
                 transitStep: !!transitStep,
-                relocationCoordsInput: !!relocationCoordsInput
+                relocationCoordsInput: !!relocationCoordsInput,
+                relocationSection: !!relocationSection
             });
 
             setupEventListeners();
             setupProgressiveDisclosureEventListeners(); // New UX improvement functions
+            
             updateFormUI();
             
+            // Relocation default wiring & persistence
+            // Ensure hint container exists
+            if(document.getElementById('relocationCoords') && !document.getElementById('relocationCoordsError')){
+                const hint=document.createElement('div'); hint.id='relocationCoordsError'; hint.className='mt-1 text-xs'; hint.setAttribute('aria-live','polite');
+                document.getElementById('relocationCoords').parentNode.appendChild(hint);
+            }
+            attachCoordValidator('relocationCoords','relocationCoordsError');
+            wireUseDefaultRelocButton();
+            if(loadRelocPref()) { applyRelocDefaults(false); }
+            // Add persistence checkbox inside details if not present
+            const details = document.getElementById('relocation-details');
+            if(details && !document.getElementById('alwaysUseDefaultReloc')){
+                const wrap=document.createElement('label');
+                wrap.className='mt-3 flex items-center gap-2 text-sm';
+                wrap.innerHTML='<input id="alwaysUseDefaultReloc" type="checkbox" class="h-4 w-4"> Always use Panama City by default';
+                details.appendChild(wrap);
+                const cb=document.getElementById('alwaysUseDefaultReloc');
+                cb.checked=loadRelocPref();
+                cb.addEventListener('change',e=> saveRelocPref(e.target.checked));
+            }
+            // Header quick button
+            const relocQuickBtn = document.getElementById('relocQuickBtn');
+            if (relocQuickBtn){
+                relocQuickBtn.addEventListener('click', ()=>{
+                    applyRelocDefaults(true);
+                    document.getElementById('relocation-section')?.scrollIntoView({behavior:'smooth', block:'start'});
+                });
+            }
+
             // Initialize with Mirror mode
             updateAppMode('mirror');
             updateContextType('solo');

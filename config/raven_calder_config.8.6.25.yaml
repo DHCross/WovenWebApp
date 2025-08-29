@@ -1,0 +1,171 @@
+# Raven Calder Config 8.6.25 (Clear Mirror Contract)
+# Purpose: Enforce strict separation of Math Brain (geometry) and Poetic Brain (Raven Calder narrative).
+
+version: 8.6.25
+
+contract:
+  id: clear-mirror
+  spec_version: 1.2
+  math_brain_payload_contract: geometry_only
+  narrative_boundary: "Poetic Brain only; Math Brain MUST NOT emit narrative keys (field,map,voice)."
+
+roles:
+  math_brain:
+    function: "compute planetary geometry only"
+    emits:
+      - provenance
+      - transitsByDate
+      - retroFlagsByDate
+      - hooks
+      - seismograph
+      - scaling
+      - rejections
+      - mirror_ready
+      - raven_nudge
+    prohibitions:
+      - "No narrative synthesis"
+      - "No metaphor injection"
+      - "Never fabricate houses/aspects not present in API geometry"
+      - "Do not auto-correct timezone; emit TZ_CHECK_HINT instead"
+  poetic_brain:
+    alias: "Raven Calder"
+    agent_id: "raven_calder_gpt_poetic_brain"
+    function: "translate geometry into diagnostic Clear Mirror (not deterministic forecast)"
+    sources:
+      - "Poetic Codex"
+      - "Hook Stack (ranked aspects)"
+      - "Seismograph rules"
+      - "Valence trends"
+    output_mode:
+      stance: "mirror_not_oracle"
+      disclaimers:
+        - "Map ≠ mandate"
+        - "Support agency"
+
+agent_detection:
+  expected_agent_id: "raven_calder_gpt_poetic_brain"
+  fallback_behavior:
+    glossary_append: true
+    extra_raven_nudge: true
+    note: "If agent_id != Raven, append Mini Glossary + Raven Checklist."
+
+provenance_expected:
+  fields:
+    - math_brain_version
+    - ephemeris_source
+    - build_ts
+    - timezone
+    - scaling_strategy
+    - scaling_confidence
+    - mirror_ready
+    - point_bodies
+    - coord_parse_mode
+  validation: "Reject payload if any required provenance field missing."
+
+tz_policy:
+  baseline_timezone: "America/Chicago"
+  emit_hint_key: "TZ_CHECK_HINT"
+  auto_correct: false
+  message: "Math Brain emits hint only; Raven performs normalization in mirror layer."
+
+coordinates:
+  parse_required: true
+  accepted_formats: ["DMS","decimal"]
+  parser: "parseCoordinate"
+  record_input_format: true
+
+scaling:
+  strategies: [prior, blended, rolling]
+  confidence_range: "0.0–1.0"
+  interpretation:
+    high_confidence: "stable scaling basis"
+    low_confidence: "emergent / sparse data"
+  volatility:
+    source: "hook weight dispersion"
+    scale: "0–10"
+    note: "High volatility + low confidence => caution framing"
+
+rejections_taxonomy:
+  - OUT_OF_CAP
+  - PRIMARY_DUP
+  - DUPLICATE_PAIR
+  - WEAK_WEIGHT
+  - DIVERSITY_FILTERED
+
+orb_caps:
+  tiering:
+    luminary_angle: 8
+    inner_planet: 6
+    outer_planet: 5
+    minor_point: 4
+  strategy: "discard_or_demote"
+  record_rejection_detail: true
+
+retrograde_handling:
+  flag_source: "transit API daily ephemeris"
+  narrative_nuance_trigger: ">=2 hooks with retrograde bodies"
+  recursion_phrase: "revision / re-threading"
+  station_sensitivity_tolerance_deg: 0.2
+
+nodes:
+  preference: "True Node primary"
+  fallback: "Mean Node with explicit note"
+  provide_constants: ["True_Node","True_South_Node","Mean_Node"]
+  south_node_derivation: "180° inversion if True_South_Node absent"
+  frontend_labeling_note: "Distinguish True vs Mean in any display normalization."
+
+terminology_layering:
+  natal_personality: "Reveal the Weave"
+  transits_short_term: "Trace the Threads"
+  transit_forecast_macro: ["Currents","Seismograph"]
+  rationale: "Mythic register; avoid mechanistic 'wiring'."
+
+narrative_hygiene:
+  forbidden_terms: [predict, fate, guarantee]
+  encouraged_frames: [mirror, pattern, weather, signal]
+  agency_reinforcement_minimum: 1
+
+glossary_injection:
+  auto_append_if: ["not_raven_agent","dev_mode_flag=true"]
+  entries:
+    weave: "Underlying structural natal pattern."
+    thread: "Active transit tugging a natal vector."
+    currents: "Aggregate symbolic pressures."
+    seismograph: "Magnitude / Valence / Volatility snapshot."
+  footer_checklist:
+    - "Verify Central timezone normalization."
+    - "Read scaling strategy + confidence."
+    - "Scan for retrograde clustering (recursion cue)."
+    - "Prefer True Node; note Mean fallback."
+
+payload_controls:
+  slimming:
+    default: ["hooks","filtered_aspects","seismograph"]
+    include_raw_toggle: "raw=1"
+    security_note: "Raw aspects may expose experimental fields."
+  mirror_ready_flag_required: true
+
+composite_compat:
+  aspects_source_preference: ["top_level_aspects","composite.raw.data.aspects"]
+  note: "If API adds top-level aspects for composite, prefer them."
+
+relocation:
+  dual_frame_support: false
+  planned: [delta_magnitude, delta_valence, relocated_hook_diff]
+  caution: "Do not synthesize relocation narrative until dual_frame_support=true."
+
+safety:
+  max_date_span_days: 30
+  rate_limits:
+    user_daily_transit_requests: 50
+  rejection_on_missing_scaling: true
+
+dev_overrides:
+  enable_debug_annotations: false
+  show_rejections_detail: false
+  query_params: [raw, dev, debug]
+
+footers:
+  baseline_timezone: "America/Chicago"
+  agency_clause: "You steer; this is symbolic weather."
+  contract_tag: "Clear Mirror v1.2"
