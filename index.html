@@ -1164,19 +1164,68 @@ function renderTransitDay(dateStr, items){
             
             // Add specific flags based on data analysis
             const geometryFlags = [];
+            let nodeTypes = new Set();
+            let retrogradeCount = 0;
+            let scaleConfidenceIssues = false;
+            let hasDispersedInfluence = false;
+            
+            // Analyze the data for specific flags
             if (data.person_a?.chart?.transitsByDate) {
                 const firstDay = Object.values(data.person_a.chart.transitsByDate)[0];
-                if (firstDay?.retrograde_aspects?.length >= 2) geometryFlags.push('retrograde recursion');
-                if (firstDay?.seismograph?.scaleConfidence < 0.7) geometryFlags.push('low scale confidence');
-                if (firstDay?.hooks?.length === 0) geometryFlags.push('dispersed influence');
+                if (firstDay?.retrograde_aspects?.length >= 2) {
+                    geometryFlags.push('retrograde recursion');
+                    retrogradeCount = firstDay.retrograde_aspects.length;
+                }
+                if (firstDay?.seismograph?.scaleConfidence < 0.7) {
+                    geometryFlags.push('low scale confidence');
+                    scaleConfidenceIssues = true;
+                }
+                if (firstDay?.hooks?.length === 0) {
+                    geometryFlags.push('dispersed influence');
+                    hasDispersedInfluence = true;
+                }
+                
+                // Check for node types in hooks and aspects
+                const allAspects = [...(firstDay.hooks || []), ...(firstDay.filtered_aspects || [])];
+                allAspects.forEach(a => {
+                    if (a.p1_name?.includes('True_Node') || a.p2_name?.includes('True_Node')) nodeTypes.add('True Node');
+                    if (a.p1_name?.includes('Mean_Node') || a.p2_name?.includes('Mean_Node')) nodeTypes.add('Mean Node');
+                });
             }
+            
+            // Check synastry/composite for additional patterns
+            if (data.synastry?.aspects) {
+                const tightAspects = data.synastry.aspects.filter(a => Math.abs(a.orbit) <= 1);
+                if (tightAspects.length >= 2) geometryFlags.push('echo loop formation');
+            }
+            
             md += geometryFlags.length ? geometryFlags.join(' • ') : 'standard geometry';
             md += `\n`;
             
-            md += `**Node Distinction**: ${data.provenance ? 'True Node preferred; Mean Node with notation' : 'Standard node handling'}\n`;
+            md += `**Node Distinction**: `;
+            if (nodeTypes.size > 0) {
+                md += Array.from(nodeTypes).join(' and ') + ' present';
+                if (nodeTypes.has('True Node') && nodeTypes.has('Mean Node')) {
+                    md += ' — prefer True Node precision for tight orbs';
+                }
+            } else {
+                md += 'Standard node handling (True Node preferred)';
+            }
+            md += `\n`;
+            
             md += `**Timezone Check**: Target America/Chicago (Central) — Current: ${personA.timezone} ${personA.timezone === 'America/Chicago' ? '✓' : '⚠ Normalize required'}\n`;
             md += `**Falsifiability**: All outputs must pass "Does this land?" test\n`;
-            md += `**Agency Reinforcement**: Every output must preserve client autonomy\n\n`;
+            md += `**Agency Reinforcement**: Every output must preserve client autonomy\n`;
+            
+            // Add specific processing alerts
+            if (retrogradeCount >= 2 || scaleConfidenceIssues || hasDispersedInfluence || nodeTypes.size > 1) {
+                md += `**Processing Alerts**:\n`;
+                if (retrogradeCount >= 2) md += `- ${retrogradeCount} retrograde aspects detected → internal revision themes likely\n`;
+                if (scaleConfidenceIssues) md += `- Scale confidence below threshold → caution framing advised\n`;
+                if (hasDispersedInfluence) md += `- No tight hooks → background stability or dispersed pattern\n`;
+                if (nodeTypes.size > 1) md += `- Multiple node types present → ensure precision consistency\n`;
+            }
+            md += `\n`;
             
             // Range and Context
             if (formData.transitParams?.startDate && formData.transitParams?.endDate) {
@@ -1323,49 +1372,72 @@ function renderTransitDay(dateStr, items){
                 md += `## Relational Echo Field Analysis\n\n`;
                 md += `### Bidirectional Aspect Inventory\n\n`;
                 md += `> **Protocol**: Each aspect rendered from both A→B and B→A perspectives for narrative reflection generation\n`;
-                md += `> **Echo Loop Detection**: Aspects within ±3° orb creating self-reinforcing dynamics\n\n`;
+                md += `> **Echo Loop Detection**: Aspects within ±3° orb creating self-reinforcing dynamics\n`;
+                md += `> **Attribution Rule**: PersonA vs PersonB explicit — no generic "they" or "both" until confirmed\n\n`;
                 
-                // Group aspects by orb ranges for better analysis
+                // Group aspects by orb ranges for Echo Loop analysis
                 const tight = data.synastry.aspects.filter(a => Math.abs(a.orbit) <= 1);
-                const close = data.synastry.aspects.filter(a => Math.abs(a.orbit) > 1 && Math.abs(a.orbit) <= 3);
-                const medium = data.synastry.aspects.filter(a => Math.abs(a.orbit) > 3 && Math.abs(a.orbit) <= 6);
+                const echoRange = data.synastry.aspects.filter(a => Math.abs(a.orbit) > 1 && Math.abs(a.orbit) <= 3);
+                const background = data.synastry.aspects.filter(a => Math.abs(a.orbit) > 3 && Math.abs(a.orbit) <= 6);
                 
                 if (tight.length > 0) {
                     md += `**Echo Loops (≤1° orb) — ${tight.length} aspects:**\n\n`;
-                    tight.forEach(aspect => {
+                    tight.forEach((aspect, index) => {
                         const initiator = aspect.p1_owner === personA.name ? personA.name : personB.name;
                         const receiver = aspect.p2_owner === personA.name ? personA.name : personB.name;
-                        md += `- **${initiator} ${aspect.p1_name}** ${aspect.aspect} **${receiver} ${aspect.p2_name}** (${Math.abs(aspect.orbit).toFixed(1)}° orb)\n`;
-                        md += `  - Direction: ${aspect.p1_name} (${initiator}) → ${aspect.p2_name} (${receiver})\n`;
+                        const aspectCode = `EL-${String(index + 1).padStart(2, '0')}`;
+                        md += `- **${aspectCode}**: ${initiator} ${aspect.p1_name} ${aspect.aspect} ${receiver} ${aspect.p2_name} (${Math.abs(aspect.orbit).toFixed(1)}° orb)\n`;
+                        md += `  - **Direction**: ${aspect.p1_name} (${initiator}) → ${aspect.p2_name} (${receiver})\n`;
+                        md += `  - **Reciprocal**: ${aspect.p2_name} (${receiver}) ← ${aspect.p1_name} (${initiator})\n`;
                     });
                     md += `\n`;
                 }
                 
-                if (close.length > 0) {
-                    md += `**Relational Echo Field (1-3° orb) — ${close.length} aspects:**\n\n`;
-                    close.forEach(aspect => {
+                if (echoRange.length > 0) {
+                    md += `**Relational Echo Field (1-3° orb) — ${echoRange.length} aspects:**\n\n`;
+                    echoRange.forEach((aspect, index) => {
                         const initiator = aspect.p1_owner === personA.name ? personA.name : personB.name;
                         const receiver = aspect.p2_owner === personA.name ? personA.name : personB.name;
-                        md += `- **${initiator} ${aspect.p1_name}** ${aspect.aspect} **${receiver} ${aspect.p2_name}** (${Math.abs(aspect.orbit).toFixed(1)}° orb)\n`;
+                        const aspectCode = `REF-${String(index + 1).padStart(2, '0')}`;
+                        md += `- **${aspectCode}**: ${initiator} ${aspect.p1_name} ${aspect.aspect} ${receiver} ${aspect.p2_name} (${Math.abs(aspect.orbit).toFixed(1)}° orb)\n`;
                     });
                     md += `\n`;
                 }
                 
-                if (medium.length > 0) {
-                    md += `**Background Geometry (3-6° orb) — ${medium.length} aspects:**\n\n`;
-                    medium.slice(0, 10).forEach(aspect => {
+                if (background.length > 0) {
+                    md += `**Background Geometry (3-6° orb) — ${background.length} aspects:**\n\n`;
+                    background.slice(0, 10).forEach((aspect, index) => {
                         const initiator = aspect.p1_owner === personA.name ? personA.name : personB.name;
                         const receiver = aspect.p2_owner === personA.name ? personA.name : personB.name;
-                        md += `- **${initiator} ${aspect.p1_name}** ${aspect.aspect} **${receiver} ${aspect.p2_name}** (${Math.abs(aspect.orbit).toFixed(1)}° orb)\n`;
+                        md += `- ${initiator} ${aspect.p1_name} ${aspect.aspect} ${receiver} ${aspect.p2_name} (${Math.abs(aspect.orbit).toFixed(1)}° orb)\n`;
                     });
-                    if (medium.length > 10) md += `... (${medium.length - 10} additional background aspects)\n`;
+                    if (background.length > 10) md += `... (${background.length - 10} additional background aspects)\n`;
                     md += `\n`;
                 }
                 
-                // REF Detection (Relational Echo Field macro structures)
-                if (tight.length >= 2) {
-                    md += `**REF Detection**: ${tight.length} tight aspects detected — potential macro structure formation\n`;
-                    md += `**Polarity Code Assignment**: Requires downstream MAP layer analysis\n\n`;
+                // REF Detection and Polarity Code Assignment
+                if (tight.length >= 2 || (tight.length >= 1 && echoRange.length >= 1)) {
+                    md += `**REF Macro Structure Detection**:\n`;
+                    md += `- **Echo Loop Count**: ${tight.length}\n`;
+                    md += `- **Echo Field Count**: ${echoRange.length}\n`;
+                    md += `- **Convergence Threshold**: ${tight.length >= 2 ? 'Met' : 'Partial'}\n`;
+                    
+                    // Generate provisional polarity codes based on aspect types
+                    const aspectTypes = [...tight, ...echoRange.slice(0, 2)].map(a => a.aspect.toLowerCase());
+                    const hasHard = aspectTypes.some(a => ['square', 'opposition'].includes(a));
+                    const hasSoft = aspectTypes.some(a => ['trine', 'sextile'].includes(a));
+                    const hasConjunction = aspectTypes.some(a => a === 'conjunction');
+                    
+                    let polarityHint = '';
+                    if (hasHard && hasConjunction) polarityHint = 'F21 (Frictional Attraction)';
+                    else if (hasHard && hasSoft) polarityHint = 'M15 (Mixed Tension)';
+                    else if (hasConjunction && hasSoft) polarityHint = 'H12 (Harmonic Blend)';
+                    else if (hasHard) polarityHint = 'C18 (Challenge Dynamic)';
+                    else if (hasSoft) polarityHint = 'E09 (Ease Flow)';
+                    else polarityHint = 'TBD (Complex Pattern)';
+                    
+                    md += `- **Provisional Polarity Code**: ${polarityHint} — requires MAP layer confirmation\n`;
+                    md += `- **Attribution**: ${personA.name} ↔ ${personB.name} (bidirectional analysis required)\n\n`;
                 }
             }
 
@@ -1621,16 +1693,41 @@ function renderTransitDay(dateStr, items){
                                                             out += `- No hooks → Background stability or dispersed influence pattern\n`;
                                                         }
                                                         
-                                                        // 5. Raw Aspect Inventory (collapsible)
+                                                        // 5. Raw Aspect Inventory with Rejection Taxonomy (collapsible)
                                                         const allAspects = day.filtered_aspects || [];
-                                                        if (allAspects.length > 0) {
-                                                            out += `\n<details><summary>Raw Aspect Inventory (${allAspects.length} total)</summary>\n\n`;
-                                                            allAspects.forEach(a => {
-                                                                const orb = Math.abs(a._orb || a.orb || 0).toFixed(1);
-                                                                const retroFlag = (a.p1_retrograde || a.p2_retrograde) ? ' ℞' : '';
-                                                                const classFlag = a._class ? ` [${a._class}]` : '';
-                                                                out += `- ${labelName(a.p1_name)} ${aspectGlyph(a._aspect)} ${labelName(a.p2_name)} (${orb}°)${retroFlag}${classFlag}\n`;
-                                                            });
+                                                        const rejections = day.rejections || [];
+                                                        
+                                                        if (allAspects.length > 0 || rejections.length > 0) {
+                                                            out += `\n<details><summary>Aspect Processing Summary — ${allAspects.length} accepted, ${rejections.length} rejected</summary>\n\n`;
+                                                            
+                                                            if (allAspects.length > 0) {
+                                                                out += `**Accepted Aspects (${allAspects.length}):**\n`;
+                                                                allAspects.forEach(a => {
+                                                                    const orb = Math.abs(a._orb || a.orb || 0).toFixed(1);
+                                                                    const retroFlag = (a.p1_retrograde || a.p2_retrograde) ? ' ℞' : '';
+                                                                    const classFlag = a._class ? ` [${a._class}]` : '';
+                                                                    const weightFlag = a._weight ? ` w=${a._weight.toFixed(2)}` : '';
+                                                                    out += `- ${labelName(a.p1_name)} ${aspectGlyph(a._aspect)} ${labelName(a.p2_name)} (${orb}°)${retroFlag}${classFlag}${weightFlag}\n`;
+                                                                });
+                                                            }
+                                                            
+                                                            if (rejections.length > 0) {
+                                                                out += `\n**Rejection Taxonomy (${rejections.length}):**\n`;
+                                                                const rejectionGroups = {};
+                                                                rejections.forEach(r => {
+                                                                    if (!rejectionGroups[r.reason]) rejectionGroups[r.reason] = [];
+                                                                    rejectionGroups[r.reason].push(r);
+                                                                });
+                                                                
+                                                                Object.entries(rejectionGroups).forEach(([reason, items]) => {
+                                                                    out += `- **${reason}** (${items.length}): `;
+                                                                    const samples = items.slice(0, 3).map(r => `${r.aspect} (${Math.abs(r.orb || 0).toFixed(1)}°)`);
+                                                                    out += samples.join(', ');
+                                                                    if (items.length > 3) out += `, +${items.length - 3} more`;
+                                                                    out += `\n`;
+                                                                });
+                                                            }
+                                                            
                                                             out += `\n</details>\n\n`;
                                                         }
                                                         
