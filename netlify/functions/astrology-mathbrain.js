@@ -984,6 +984,72 @@ exports.handler = async function(event) {
     const wantSynastryAspectsOnly = modeToken === 'SYNASTRY_ASPECTS' || event.path?.includes('synastry-aspects-data');
     const wantComposite = modeToken === 'COMPOSITE' || modeToken === 'COMPOSITE_ASPECTS' || modeToken === 'COMPOSITE_TRANSITS' || body.wantComposite === true;
 
+    // --- Relationship Context Validation (Partner / Friend / Family) ---
+    // Canonical enumerations supplied by product spec
+    const REL_PRIMARY = ['PARTNER','FRIEND','FAMILY']; // FRIEND covers Friend / Colleague
+    const PARTNER_TIERS = ['P1','P2','P3','P4','P5a','P5b'];
+    const FRIEND_ROLES = ['Acquaintance','Mentor','Other','Custom'];
+    const FAMILY_ROLES = ['Parent','Offspring','Sibling','Cousin','Extended','Guardian','Mentor','Other','Custom'];
+
+    function normalizeRelType(t){
+      if(!t) return '';
+      const up = t.toString().trim().toUpperCase();
+      if (up.startsWith('FRIEND')) return 'FRIEND';
+      if (up === 'COLLEAGUE' || up.includes('COLLEAGUE')) return 'FRIEND';
+      if (up.startsWith('FAMILY')) return 'FAMILY';
+      if (up.startsWith('PARTNER')) return 'PARTNER';
+      return up; // fallback; will validate later
+    }
+
+    function validateRelationshipContext(raw, relationshipMode){
+      if(!relationshipMode) return { valid: true, value: null, reason: 'Not in relationship mode' };
+      const ctx = raw || body.relationship || body.relationship_context || body.relationshipContext || {};
+      const errors = [];
+      const cleaned = {};
+
+      cleaned.type = normalizeRelType(ctx.type || ctx.relationship_type || ctx.category);
+      if(!REL_PRIMARY.includes(cleaned.type)) {
+        errors.push('relationship.type required (PARTNER|FRIEND|FAMILY)');
+      }
+
+      // Intimacy tier requirement for PARTNER
+      if (cleaned.type === 'PARTNER') {
+        cleaned.intimacy_tier = (ctx.intimacy_tier || ctx.tier || '').toString();
+        if(!PARTNER_TIERS.includes(cleaned.intimacy_tier)) {
+          errors.push(`intimacy_tier required for PARTNER (one of ${PARTNER_TIERS.join(',')})`);
+        }
+      }
+
+      // Role requirement for FAMILY; optional for FRIEND
+      if (cleaned.type === 'FAMILY') {
+        cleaned.role = (ctx.role || ctx.family_role || '').toString();
+        if(!FAMILY_ROLES.includes(cleaned.role)) {
+          errors.push(`role required for FAMILY (one of ${FAMILY_ROLES.join(',')})`);
+        }
+      } else if (cleaned.type === 'FRIEND') {
+        cleaned.role = (ctx.role || ctx.friend_role || '').toString();
+        if (cleaned.role && !FRIEND_ROLES.includes(cleaned.role)) {
+          errors.push(`friend role invalid (optional, one of ${FRIEND_ROLES.join(',')})`);
+        }
+      }
+
+      // Ex / Estranged flag only for PARTNER or FAMILY
+      if (ctx.ex_estranged !== undefined || ctx.ex || ctx.estranged) {
+        const flag = Boolean(ctx.ex_estranged || ctx.ex || ctx.estranged);
+        if (cleaned.type === 'FRIEND') {
+          errors.push('ex_estranged flag not allowed for FRIEND');
+        } else {
+          cleaned.ex_estranged = flag;
+        }
+      }
+
+      if (ctx.notes) cleaned.notes = (ctx.notes || '').toString().slice(0, 500);
+
+      if(errors.length) return { valid:false, errors, value: cleaned };
+      return { valid:true, value: cleaned };
+    }
+
+
     const vA = (wantNatalAspectsOnly || wantBirthData) ? validateSubjectLean(personA) : validateSubject(personA);
     if (!vA.isValid) {
       return {
@@ -999,6 +1065,19 @@ exports.handler = async function(event) {
     // Relationship mode strict validation for Person B (fail loud, no silent fallback)
     const relationshipMode = wantSynastry || wantSynastryAspectsOnly || wantComposite;
     let personBStrictValidation = { isValid: false, errors: { reason: 'Not requested' } };
+    // Relationship context validation (must precede Person B requirements messaging to give precise feedback)
+    const relContextValidation = validateRelationshipContext(body.relationship_context || body.relationshipContext, relationshipMode);
+    if (relationshipMode && !relContextValidation.valid) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error: 'Relationship context invalid',
+          code: 'REL_CONTEXT_INVALID',
+          errorId: generateErrorId(),
+          issues: relContextValidation.errors || []
+        })
+      };
+    }
     if (relationshipMode) {
       // Auto-fill default zodiac_type if missing BEFORE validation to reduce false negatives
       if (!personB.zodiac_type) personB.zodiac_type = 'Tropic';
@@ -1052,6 +1131,9 @@ exports.handler = async function(event) {
     // Eagerly initialize Person B details in any relationship mode so UI never loses the panel
     if (relationshipMode && personB && Object.keys(personB).length) {
       result.person_b = { details: personB };
+    }
+    if (relationshipMode && relContextValidation.valid && relContextValidation.value) {
+      result.relationship = relContextValidation.value;
     }
 
     // Extract additional parameters for API calculations (including transits)

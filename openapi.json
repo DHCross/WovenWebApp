@@ -2132,15 +2132,20 @@
                 }
               ]
             ]
+          },
+          "relationship_context": {
+            "$ref": "#/components/schemas/RelationshipContextModel",
+            "description": "Required relationship context for composite analysis."
           }
         },
         "type": "object",
         "required": [
           "first_subject",
-          "second_subject"
+          "second_subject",
+          "relationship_context"
         ],
         "title": "CompositeChartRequestModel",
-        "description": "The request model for the Synastry Chart endpoint."
+        "description": "The request model for the Composite Chart endpoint."
       },
       "CompositeChartResponseModel": {
         "properties": {
@@ -3927,12 +3932,17 @@
                 }
               ]
             ]
+          },
+          "relationship_context": {
+            "$ref": "#/components/schemas/RelationshipContextModel",
+            "description": "Required relationship context for synastry analysis."
           }
         },
         "type": "object",
         "required": [
           "first_subject",
-          "second_subject"
+          "second_subject",
+          "relationship_context"
         ],
         "title": "SynastryChartRequestModel",
         "description": "The request model for the Synastry Chart endpoint."
@@ -4437,17 +4447,111 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "RelationshipContextModel": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "PARTNER",
+              "FRIEND",
+              "FAMILY"
+            ],
+            "title": "Relationship Type",
+            "description": "Primary relationship category."
+          },
+          "intimacy_tier": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "P1",
+                  "P2",
+                  "P3",
+                  "P4",
+                  "P5a",
+                  "P5b"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intimacy Tier",
+            "description": "Required for PARTNER type. P1=Platonic, P2=Friends-with-benefits, P3=Situationship, P4=Low-commitment, P5a=Committed romantic+sexual, P5b=Committed romantic non-sexual."
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Parent",
+                  "Offspring",
+                  "Sibling",
+                  "Cousin",
+                  "Extended",
+                  "Guardian",
+                  "Mentor",
+                  "Acquaintance",
+                  "Other",
+                  "Custom"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role",
+            "description": "Required for FAMILY type. Optional for FRIEND type (Acquaintance, Mentor, Other, Custom)."
+          },
+          "ex_estranged": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ex or Estranged",
+            "description": "Optional flag for PARTNER or FAMILY. Not allowed for FRIEND type.",
+            "default": false
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes",
+            "description": "Optional clarifying notes (max 500 characters).",
+            "maxLength": 500
+          }
+        },
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "title": "RelationshipContextModel",
+        "description": "Context information about the relationship between two subjects for astrological analysis."
       }
     },
       "SynastryRequestModel": {
         "type": "object",
-        "required": ["first_subject", "second_subject"],
+        "required": ["first_subject", "second_subject", "relationship_context"],
         "properties": {
           "first_subject": {
             "$ref": "#/components/schemas/SubjectModel"
           },
           "second_subject": {
             "$ref": "#/components/schemas/SubjectModel"
+          },
+          "relationship_context": {
+            "$ref": "#/components/schemas/RelationshipContextModel",
+            "description": "Required relationship context for synastry aspects analysis."
           }
         },
         "title": "SynastryRequestModel"

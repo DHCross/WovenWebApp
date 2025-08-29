@@ -1,3 +1,14 @@
+## [2025-08-29] Backend: Relationship Context Validation
+
+- Added relationship context schema enforcement in `netlify/functions/astrology-mathbrain.js` for all synastry / composite modes.
+- Requires `type` (PARTNER | FRIEND | FAMILY).
+- PARTNER: mandatory `intimacy_tier` (P1, P2, P3, P4, P5a, P5b).
+- FAMILY: mandatory `role` (Parent, Offspring, Sibling, Cousin, Extended, Guardian, Mentor, Other, Custom).
+- FRIEND: optional `role` (Acquaintance, Mentor, Other, Custom) validated if present.
+- Ex/Estranged flag allowed only for PARTNER or FAMILY; rejected for FRIEND.
+- Free-text `notes` trimmed & capped at 500 chars.
+- On validation failure returns 400 REL_CONTEXT_INVALID with issue list; on success injects `relationship` block into response payload.
+
 ## [2025-08-21] Backend: Composite Transits Logic & Robust Error Handling
 
 - Merged Copilot Agent’s composite_transits implementation into `astrology-mathbrain.js`.

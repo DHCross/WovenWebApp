@@ -217,7 +217,7 @@
                     <div class="flex items-center justify-between mb-4 border-b border-gray-700 pb-2">
                         <h2 class="text-2xl font-semibold text-white">Person A / Natal Chart</h2>
                         <div class="flex items-center gap-2">
-                            <button id="relocQuickBtn" type="button" class="text-xs px-3 py-1 rounded-full bg-gray-700 text-teal-300 hover:bg-teal-600/20 border border-teal-500/40 transition-colors" title="Apply Panama City relocation overlay">Reloc: Panama City</button>
+                            <button id="relocQuickBtn" type="button" aria-pressed="false" class="text-xs px-3 py-1 rounded-full border border-gray-600 text-gray-300 hover:bg-gray-700/20 transition-colors" title="Apply Panama City relocation overlay">Reloc: Panama City</button>
                         </div>
                     </div>
                     <div class="space-y-4">
@@ -533,6 +533,9 @@
                     
                     <!-- Relocation Details (collapsible) -->
                     <div id="relocation-details" class="hidden">
+                        <p id="relocation-default-note" class="mb-4 text-xs text-gray-500 italic">
+                            Panama City, FL (30°10'N, 85°40'W) is pre-filled as a suggested relocation reference. It is NOT applied until you enable the checkbox.
+                        </p>
                         <div class="mt-4 pt-4 border-t border-gray-700 space-y-4">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
@@ -658,8 +661,29 @@
                                 <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
                                     <input type="radio" name="intimacyTier" value="P3" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
                                     <div>
-                                        <div class="text-white text-sm">P3 – Romantic</div>
-                                        <div class="text-gray-400 text-xs">Romantic partners</div>
+                                        <div class="text-white text-sm">P3 – Situationship</div>
+                                        <div class="text-gray-400 text-xs">Fluid rules/expectations</div>
+                                    </div>
+                                </label>
+                                <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
+                                    <input type="radio" name="intimacyTier" value="P4" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
+                                    <div>
+                                        <div class="text-white text-sm">P4 – Low-commitment</div>
+                                        <div class="text-gray-400 text-xs">Uneven investment</div>
+                                    </div>
+                                </label>
+                                <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
+                                    <input type="radio" name="intimacyTier" value="P5a" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
+                                    <div>
+                                        <div class="text-white text-sm">P5a – Committed</div>
+                                        <div class="text-gray-400 text-xs">Romantic + sexual</div>
+                                    </div>
+                                </label>
+                                <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
+                                    <input type="radio" name="intimacyTier" value="P5b" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
+                                    <div>
+                                        <div class="text-white text-sm">P5b – Committed</div>
+                                        <div class="text-gray-400 text-xs">Romantic, non-sexual</div>
                                     </div>
                                 </label>
                             </div>
@@ -2111,7 +2135,47 @@ function renderTransitDay(dateStr, items){
                 }
             }
 
-            // Relational validation
+            // Relationship context validation for synastry/composite modes
+            if (mode === 'synastry_transits' || mode === 'composite_transits') {
+                if (!relationshipType) {
+                    showError('Please specify the relationship type for synastry/composite analysis');
+                    return false;
+                }
+                
+                // Partner requires intimacy tier
+                if (relationshipType === 'partner') {
+                    if (!intimacyTier) {
+                        showError('Please select an intimacy tier for partner relationships');
+                        return false;
+                    }
+                }
+                
+                // Family requires role
+                if (relationshipType === 'family') {
+                    if (!roleValueRaw) {
+                        showError('Please specify the family role for family relationships');
+                        return false;
+                    }
+                    if (roleValueRaw === 'other') {
+                        const customVal = roleCustomInput?.value?.trim();
+                        if (!customVal) {
+                            showError('Please provide a custom family role description');
+                            return false;
+                        }
+                    }
+                }
+                
+                // Friend allows optional role but validates if provided
+                if (relationshipType === 'friend' && roleValueRaw === 'other') {
+                    const customVal = roleCustomInput?.value?.trim();
+                    if (!customVal) {
+                        showError('Please provide a custom friend role description or select "Other"');
+                        return false;
+                    }
+                }
+            }
+
+            // Legacy relationship validation (for existing patterns)
             if (relationshipType === 'partner') {
                 if (!intimacyTier) {
                     showError('Select an intimacy tier for partner relationships');
@@ -2248,6 +2312,48 @@ function renderTransitDay(dateStr, items){
                     is_ex_relationship: exRelationshipCheckbox?.checked || false
                 }
             };
+
+            // Add relationship_context for synastry/composite modes
+            const relType = formData.context.relationship_type;
+            const isRelationalMode = formData.context.mode && 
+                (formData.context.mode.includes('synastry') || formData.context.mode.includes('composite'));
+            
+            if (isRelationalMode && relType) {
+                const relContext = { 
+                    type: relType.toUpperCase() 
+                };
+                
+                // Add required fields based on type
+                if (relType === 'partner') {
+                    const tier = formData.context.intimacy_tier;
+                    if (tier) relContext.intimacy_tier = tier;
+                } else if (relType === 'family') {
+                    const role = document.getElementById('relationshipRole')?.value;
+                    if (role && role !== 'other') relContext.role = role;
+                    else if (role === 'other') {
+                        const customRole = document.getElementById('relationshipRoleCustom')?.value?.trim();
+                        if (customRole) relContext.role = 'Custom';
+                    }
+                } else if (relType === 'friend') {
+                    const role = document.getElementById('relationshipRole')?.value;
+                    if (role && role !== 'other') relContext.role = role;
+                    else if (role === 'other') {
+                        const customRole = document.getElementById('relationshipRoleCustom')?.value?.trim();
+                        if (customRole) relContext.role = 'Custom';
+                    }
+                }
+                
+                // Ex/Estranged flag (not for friends)
+                if (relType !== 'friend' && exRelationshipCheckbox?.checked) {
+                    relContext.ex_estranged = true;
+                }
+                
+                // Notes
+                const notes = document.getElementById('relationshipNotes')?.value?.trim();
+                if (notes) relContext.notes = notes;
+                
+                formData.relationship_context = relContext;
+            }
 
             if (relocationToggle && relocationToggle.checked) {
                 const rawReloc = document.getElementById('relocationCoords').value.trim();
@@ -2978,6 +3084,10 @@ function renderTransitDay(dateStr, items){
                     }
                 });
             }
+            const relocationToggleElInline = document.getElementById('relocationToggle');
+            if (relocationToggleElInline){
+                relocationToggleElInline.addEventListener('change', updateRelocationNote);
+            }
             
             // Today default button
             const todayDefaultBtn = document.getElementById('todayDefault');
@@ -3075,6 +3185,7 @@ function renderTransitDay(dateStr, items){
                 document.getElementById('relocation-toggle-header')?.setAttribute('aria-expanded','true');
             }
             c.dispatchEvent(new Event('blur'));
+            updateRelocationNote();
         }
         function wireUseDefaultRelocButton(){
             const btn=document.getElementById('useDefaultRelocation');
@@ -3082,6 +3193,18 @@ function renderTransitDay(dateStr, items){
         }
         function loadRelocPref(){ return localStorage.getItem(RELOC_PREF_KEY)==='1'; }
         function saveRelocPref(v){ localStorage.setItem(RELOC_PREF_KEY, v?'1':'0'); }
+        function updateRelocationNote(){
+            const note = document.getElementById('relocation-default-note');
+            const toggle = document.getElementById('relocationToggle');
+            if(!note || !toggle) return;
+            if(toggle.checked){
+                note.textContent = 'Relocation overlay ACTIVE using current values (modify city/coords as needed).';
+                note.className='mb-4 text-xs text-teal-300';
+            } else {
+                note.textContent = "Panama City, FL (30°10'N, 85°40'W) is pre-filled as a suggested relocation reference. It is NOT applied until you enable the checkbox.";
+                note.className='mb-4 text-xs text-gray-500 italic';
+            }
+        }
 
 
         function updateFormUI() {
@@ -3210,12 +3333,30 @@ function renderTransitDay(dateStr, items){
             }
             // Header quick button
             const relocQuickBtn = document.getElementById('relocQuickBtn');
+            const relocToggleEl = document.getElementById('relocationToggle');
             if (relocQuickBtn){
+                // Only apply defaults when user clicks; show neutral visual otherwise
                 relocQuickBtn.addEventListener('click', ()=>{
                     applyRelocDefaults(true);
                     document.getElementById('relocation-section')?.scrollIntoView({behavior:'smooth', block:'start'});
+                    if (relocQuickBtn) { relocQuickBtn.setAttribute('aria-pressed','true'); relocQuickBtn.classList.add('bg-teal-600','text-white'); }
                 });
+                // Sync visual state with checkbox
+                if (relocToggleEl) {
+                    const syncQuickBtn = () => {
+                        const checked = !!relocToggleEl.checked;
+                        relocQuickBtn.setAttribute('aria-pressed', checked ? 'true' : 'false');
+                        if (checked) { relocQuickBtn.classList.add('bg-teal-600','text-white'); }
+                        else { relocQuickBtn.classList.remove('bg-teal-600','text-white'); }
+                        updateRelocationNote();
+                    };
+                    relocToggleEl.addEventListener('change', syncQuickBtn);
+                    // initial sync
+                    syncQuickBtn();
+                }
             }
+            // Initial note state if not already updated
+            updateRelocationNote();
 
             // Initialize with Mirror mode
             updateAppMode('mirror');
