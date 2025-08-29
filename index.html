@@ -2926,15 +2926,28 @@ function renderTransitDay(dateStr, items){
                 // 3. Any Person B field has data
                 const shouldShow = currentContextType === 'relational' || isPersonBExpanded || anyFilled;
                 
+                console.log('[REL VIS] shouldShow:', shouldShow, 'reasons:', {
+                    relationalMode: currentContextType === 'relational',
+                    personBExpanded: isPersonBExpanded, 
+                    personBData: anyFilled
+                });
+                
                 if (relContextSection) {
+                    const wasHidden = relContextSection.classList.contains('hidden');
                     if (shouldShow) {
                         relContextSection.classList.remove('hidden');
                         console.log('[REL VIS] Showing relational context - reason:', 
                             currentContextType === 'relational' ? 'relational mode' : 
                             isPersonBExpanded ? 'Person B expanded' : 'Person B data entered');
+                        if (wasHidden) {
+                            console.log('[REL VIS] ✅ Context section was hidden, now shown');
+                        }
                     } else {
                         relContextSection.classList.add('hidden');
+                        console.log('[REL VIS] ❌ Hiding relational context section');
                     }
+                } else {
+                    console.error('[REL VIS] ⚠️ relational-context-section element not found!');
                 }
             }
             // Make function globally accessible
@@ -3110,6 +3123,11 @@ function renderTransitDay(dateStr, items){
                 // Default to composite for relational
                 const relationalSubtype = document.querySelector('input[name="relationalSubtype"]:checked')?.value || 'composite';
                 updateRelationalSubtype(relationalSubtype);
+                
+                // Evaluate relational context visibility after switching
+                if (window.evaluateRelationalContextVisibility) {
+                    setTimeout(window.evaluateRelationalContextVisibility, 100);
+                }
             } else if (contextType === 'weather') {
                 // Weather only mode - hide person sections
                 hidePersonBSection();
