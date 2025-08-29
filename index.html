@@ -1126,10 +1126,13 @@ function renderTransitDay(dateStr, items){
         }
 
         function generateMarkdownReport(data) {
-            // MATH BRAIN ONLY (IMPORTANT):
-            // - Do NOT generate mirror/narrative paragraphs here.
-            // - Always include RAVEN_NUDGE, Mirror flags, TZ check (Central), and Mini Glossary (if not Raven).
-            // - Raven Calder (Poetic Brain) handles Clear Mirror downstream using Poetic Codex & source docs.
+            // MATH BRAIN COMPLIANCE (PROTOCOL LAYER 1: GEOMETRY ONLY):
+            // - Output pure astrological geometry with provenance tracking
+            // - Include RAVEN_NUDGE for downstream Poetic Brain (Raven Calder) processing
+            // - Layer separation: GEOMETRY ONLY → Clear Mirror → Poetic Codex
+            // - NO narrative, interpretation, or advice generation here
+            // - Protocol compliance: mirror_ready flags, rejections taxonomy, scaling confidence
+            
             const formData = collectFormData();
             const currentDate = new Date().toISOString().split('T')[0];
             // Prefer authoritative server-returned details if present (may include normalization/zodiac defaults)
@@ -1137,28 +1140,110 @@ function renderTransitDay(dateStr, items){
             const personB = (data.person_b && data.person_b.details) ? data.person_b.details : formData.personB;
             const mode = formData.context.mode;
             
-                        let md = `# Woven Map Astrological Geometry Report\n\n`;
-                        md += `**Generated**: ${currentDate}\n`;
-                        md += `**Context Mode**: ${mode.replace(/_/g, ' ').toUpperCase()}\n`;
-                        md += `**Schema**: ${data.schema || 'WM-Chart-1.0'}\n`;
-                        md += `**Engine**: Math Brain (Geometry Only)\n`;
-                        md += `**Mirror**: mirror_ready: ${data.mirror_ready ? 'true':'false'} • mode: ${mode} • version: ${(data.provenance?.math_brain_version)||'0.x'}\n`;
-                        md += `**Reminder**: Do not produce narrative. Clear Mirror is downstream (Raven Calder).\n\n`;
-                        md += `### RAVEN_NUDGE\n`;
-                        md += `- Clear Mirror required → Translate FIELD → MAP → VOICE from this geometry.\n`;
-                        md += `- Check sources: Poetic Codex, FIELD_MAP_VOICE, Hook Stack, Seismograph rules.\n`;
-                        md += `- Verify Person A timezone = **America/Chicago (Central)**. If mismatch, normalize before mirroring.\n`;
-                        md += `- Use retrograde flags + True/Mean Node distinctions from payload.\n\n`;
-                        if (formData.transitParams?.startDate && formData.transitParams?.endDate) {
-                            const stepMap = { '1d':'Daily', 'daily':'Daily', '7d':'Weekly', 'weekly':'Weekly', '1m':'Monthly', '1mo':'Monthly', 'monthly':'Monthly' };
-                            const rawStep = formData.transitParams.step || 'daily';
-                            const stepHuman = stepMap[rawStep] || rawStep;
-                            md += `**Range**: ${formData.transitParams.startDate} → ${formData.transitParams.endDate} (Step: ${stepHuman})\n`;
-                        }
-                        md += `\n`;
+            // Protocol Layer Headers
+            let md = `# Woven Map System Report\n\n`;
+            md += `## Protocol Layer 1: Geometry Only\n\n`;
+            md += `**Generated**: ${currentDate}\n`;
+            md += `**Context Mode**: ${mode.replace(/_/g, ' ').toUpperCase()}\n`;
+            md += `**Schema**: ${data.schema || 'WM-Chart-1.0'}\n`;
+            md += `**Math Brain Version**: ${(data.provenance?.math_brain_version)||'0.x'}\n`;
+            md += `**Ephemeris Source**: ${data.provenance?.ephemeris_source || 'AstrologerAPI-v4'}\n`;
+            md += `**Mirror Status**: ${data.mirror_ready ? 'Ready for downstream processing' : 'Incomplete'}\n`;
+            md += `**Contract**: ${data.contract || 'clear-mirror/1.2'}\n\n`;
+            
+            // Critical Protocol Reminder
+            md += `> **Math Brain Role**: Symbolic scaffolding engine providing pure geometry.\n`;
+            md += `> **Boundary**: No narrative, prediction, or interpretation. Mirror, not mandate.\n`;
+            md += `> **Next Layer**: Clear Mirror translation via Poetic Brain (Raven Calder).\n\n`;
+            
+            // RAVEN_NUDGE Section (Protocol Requirement)
+            md += `### RAVEN_NUDGE (Downstream Processing Guidance)\n\n`;
+            md += `**Protocol Flow**: FIELD → MAP → VOICE translation required\n`;
+            md += `**Sources Required**: Poetic Codex • FIELD_MAP_VOICE rules • Hook Stack • Seismograph Protocol\n`;
+            md += `**Geometry Flags**: `;
+            
+            // Add specific flags based on data analysis
+            const geometryFlags = [];
+            let nodeTypes = new Set();
+            let retrogradeCount = 0;
+            let scaleConfidenceIssues = false;
+            let hasDispersedInfluence = false;
+            
+            // Analyze the data for specific flags
+            if (data.person_a?.chart?.transitsByDate) {
+                const firstDay = Object.values(data.person_a.chart.transitsByDate)[0];
+                if (firstDay?.retrograde_aspects?.length >= 2) {
+                    geometryFlags.push('retrograde recursion');
+                    retrogradeCount = firstDay.retrograde_aspects.length;
+                }
+                if (firstDay?.seismograph?.scaleConfidence < 0.7) {
+                    geometryFlags.push('low scale confidence');
+                    scaleConfidenceIssues = true;
+                }
+                if (firstDay?.hooks?.length === 0) {
+                    geometryFlags.push('dispersed influence');
+                    hasDispersedInfluence = true;
+                }
+                
+                // Check for node types in hooks and aspects
+                const allAspects = [...(firstDay.hooks || []), ...(firstDay.filtered_aspects || [])];
+                allAspects.forEach(a => {
+                    if (a.p1_name?.includes('True_Node') || a.p2_name?.includes('True_Node')) nodeTypes.add('True Node');
+                    if (a.p1_name?.includes('Mean_Node') || a.p2_name?.includes('Mean_Node')) nodeTypes.add('Mean Node');
+                });
+            }
+            
+            // Check synastry/composite for additional patterns
+            if (data.synastry?.aspects) {
+                const tightAspects = data.synastry.aspects.filter(a => Math.abs(a.orbit) <= 1);
+                if (tightAspects.length >= 2) geometryFlags.push('echo loop formation');
+            }
+            
+            md += geometryFlags.length ? geometryFlags.join(' • ') : 'standard geometry';
+            md += `\n`;
+            
+            md += `**Node Distinction**: `;
+            if (nodeTypes.size > 0) {
+                md += Array.from(nodeTypes).join(' and ') + ' present';
+                if (nodeTypes.has('True Node') && nodeTypes.has('Mean Node')) {
+                    md += ' — prefer True Node precision for tight orbs';
+                }
+            } else {
+                md += 'Standard node handling (True Node preferred)';
+            }
+            md += `\n`;
+            
+            md += `**Timezone Check**: Target America/Chicago (Central) — Current: ${personA.timezone} ${personA.timezone === 'America/Chicago' ? '✓' : '⚠ Normalize required'}\n`;
+            md += `**Falsifiability**: All outputs must pass "Does this land?" test\n`;
+            md += `**Agency Reinforcement**: Every output must preserve client autonomy\n`;
+            
+            // Add specific processing alerts
+            if (retrogradeCount >= 2 || scaleConfidenceIssues || hasDispersedInfluence || nodeTypes.size > 1) {
+                md += `**Processing Alerts**:\n`;
+                if (retrogradeCount >= 2) md += `- ${retrogradeCount} retrograde aspects detected → internal revision themes likely\n`;
+                if (scaleConfidenceIssues) md += `- Scale confidence below threshold → caution framing advised\n`;
+                if (hasDispersedInfluence) md += `- No tight hooks → background stability or dispersed pattern\n`;
+                if (nodeTypes.size > 1) md += `- Multiple node types present → ensure precision consistency\n`;
+            }
+            md += `\n`;
+            
+            // Range and Context
+            if (formData.transitParams?.startDate && formData.transitParams?.endDate) {
+                const stepMap = { '1d':'Daily', 'daily':'Daily', '7d':'Weekly', 'weekly':'Weekly', '1m':'Monthly', '1mo':'Monthly', 'monthly':'Monthly' };
+                const rawStep = formData.transitParams.step || 'daily';
+                const stepHuman = stepMap[rawStep] || rawStep;
+                const startDate = new Date(formData.transitParams.startDate);
+                const endDate = new Date(formData.transitParams.endDate);
+                const daySpan = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                
+                md += `**Temporal Scope**: ${formData.transitParams.startDate} → ${formData.transitParams.endDate}\n`;
+                md += `**Step Resolution**: ${stepHuman} (${daySpan} day span)\n`;
+                md += `**Protocol Check**: ${daySpan <= 30 ? '✓ Within 30-day safety limit' : '⚠ Exceeds recommended span'}\n\n`;
+            }
 
-            // Person A Details
-            md += `## Person A: ${personA.name}\n\n`;
+            // Subject Details (FIELD Layer)
+            md += `## Subject Details — Reveal the Weave\n\n`;
+            md += `### Primary Subject: ${personA.name}\n\n`;
             md += `- **Birth Date**: ${personA.year}-${String(personA.month).padStart(2, '0')}-${String(personA.day).padStart(2, '0')}\n`;
             md += `- **Birth Time**: ${String(personA.hour).padStart(2, '0')}:${String(personA.minute).padStart(2, '0')}\n`;
             md += `- **Location**: ${personA.city}, ${personA.nation}\n`;
@@ -1168,9 +1253,9 @@ function renderTransitDay(dateStr, items){
             md += `**TZ Check (Person A)**: expected \`America/Chicago\` (Central).\n`;
             md += `**Observed**: \`${personA.timezone}\` → ${personA.timezone === 'America/Chicago' ? 'OK' : '⚠ Normalize before mirroring'}\n\n`;
 
-            // Person B Details (if present)
+            // Secondary Subject Details (if present)
                         if (personB) {
-                md += `## Person B: ${personB.name}\n\n`;
+                md += `### Secondary Subject: ${personB.name}\n\n`;
                 md += `- **Birth Date**: ${personB.year}-${String(personB.month).padStart(2, '0')}-${String(personB.day).padStart(2, '0')}\n`;
                 md += `- **Birth Time**: ${String(personB.hour).padStart(2, '0')}:${String(personB.minute).padStart(2, '0')}\n`;
                 md += `- **Location**: ${personB.city}, ${personB.nation}\n`;
@@ -1215,9 +1300,9 @@ function renderTransitDay(dateStr, items){
                 md += `\n`;
             }
 
-            // Chart Data Summary
+            // Natal Chart Geometry (Structural Identity Patterns)
             if (data.person_a?.chart && (data.person_a.chart.status === 'OK' || data.person_a.chart.sun)) {
-                md += `## ${personA.name} Natal Chart\n\n`;
+                md += `## ${personA.name} Natal Geometry — Structural Weave\n\n`;
                 
                 // The chart data can be in different structures depending on API endpoint used
                 const chart = data.person_a.chart.data || data.person_a.chart;
@@ -1225,7 +1310,7 @@ function renderTransitDay(dateStr, items){
             }
 
             if (data.person_b?.chart && (data.person_b.chart.status === 'OK' || data.person_b.chart.sun)) {
-                md += `## ${personB.name} Natal Chart\n\n`;
+                md += `## ${personB.name} Natal Geometry — Structural Weave\n\n`;
                 
                 // The chart data can be in different structures depending on API endpoint used
                 const chart = data.person_b.chart.data || data.person_b.chart;
@@ -1284,29 +1369,97 @@ function renderTransitDay(dateStr, items){
             }
 
             if (data.synastry?.aspects && data.synastry.aspects.length > 0) {
-                md += `## Synastry Geometry\n\n`;
-                md += `### Major Synastry Aspects\n\n`;
-                data.synastry.aspects.slice(0, 15).forEach(aspect => {
-                    md += `- **${aspect.p1_owner} ${aspect.p1_name}** ${aspect.aspect} **${aspect.p2_owner} ${aspect.p2_name}** (${Math.abs(aspect.orbit).toFixed(1)}° orb)\n`;
-                });
-                md += `\n`;
+                md += `## Relational Echo Field Analysis\n\n`;
+                md += `### Bidirectional Aspect Inventory\n\n`;
+                md += `> **Protocol**: Each aspect rendered from both A→B and B→A perspectives for narrative reflection generation\n`;
+                md += `> **Echo Loop Detection**: Aspects within ±3° orb creating self-reinforcing dynamics\n`;
+                md += `> **Attribution Rule**: PersonA vs PersonB explicit — no generic "they" or "both" until confirmed\n\n`;
+                
+                // Group aspects by orb ranges for Echo Loop analysis
+                const tight = data.synastry.aspects.filter(a => Math.abs(a.orbit) <= 1);
+                const echoRange = data.synastry.aspects.filter(a => Math.abs(a.orbit) > 1 && Math.abs(a.orbit) <= 3);
+                const background = data.synastry.aspects.filter(a => Math.abs(a.orbit) > 3 && Math.abs(a.orbit) <= 6);
+                
+                if (tight.length > 0) {
+                    md += `**Echo Loops (≤1° orb) — ${tight.length} aspects:**\n\n`;
+                    tight.forEach((aspect, index) => {
+                        const initiator = aspect.p1_owner === personA.name ? personA.name : personB.name;
+                        const receiver = aspect.p2_owner === personA.name ? personA.name : personB.name;
+                        const aspectCode = `EL-${String(index + 1).padStart(2, '0')}`;
+                        md += `- **${aspectCode}**: ${initiator} ${aspect.p1_name} ${aspect.aspect} ${receiver} ${aspect.p2_name} (${Math.abs(aspect.orbit).toFixed(1)}° orb)\n`;
+                        md += `  - **Direction**: ${aspect.p1_name} (${initiator}) → ${aspect.p2_name} (${receiver})\n`;
+                        md += `  - **Reciprocal**: ${aspect.p2_name} (${receiver}) ← ${aspect.p1_name} (${initiator})\n`;
+                    });
+                    md += `\n`;
+                }
+                
+                if (echoRange.length > 0) {
+                    md += `**Relational Echo Field (1-3° orb) — ${echoRange.length} aspects:**\n\n`;
+                    echoRange.forEach((aspect, index) => {
+                        const initiator = aspect.p1_owner === personA.name ? personA.name : personB.name;
+                        const receiver = aspect.p2_owner === personA.name ? personA.name : personB.name;
+                        const aspectCode = `REF-${String(index + 1).padStart(2, '0')}`;
+                        md += `- **${aspectCode}**: ${initiator} ${aspect.p1_name} ${aspect.aspect} ${receiver} ${aspect.p2_name} (${Math.abs(aspect.orbit).toFixed(1)}° orb)\n`;
+                    });
+                    md += `\n`;
+                }
+                
+                if (background.length > 0) {
+                    md += `**Background Geometry (3-6° orb) — ${background.length} aspects:**\n\n`;
+                    background.slice(0, 10).forEach((aspect, index) => {
+                        const initiator = aspect.p1_owner === personA.name ? personA.name : personB.name;
+                        const receiver = aspect.p2_owner === personA.name ? personA.name : personB.name;
+                        md += `- ${initiator} ${aspect.p1_name} ${aspect.aspect} ${receiver} ${aspect.p2_name} (${Math.abs(aspect.orbit).toFixed(1)}° orb)\n`;
+                    });
+                    if (background.length > 10) md += `... (${background.length - 10} additional background aspects)\n`;
+                    md += `\n`;
+                }
+                
+                // REF Detection and Polarity Code Assignment
+                if (tight.length >= 2 || (tight.length >= 1 && echoRange.length >= 1)) {
+                    md += `**REF Macro Structure Detection**:\n`;
+                    md += `- **Echo Loop Count**: ${tight.length}\n`;
+                    md += `- **Echo Field Count**: ${echoRange.length}\n`;
+                    md += `- **Convergence Threshold**: ${tight.length >= 2 ? 'Met' : 'Partial'}\n`;
+                    
+                    // Generate provisional polarity codes based on aspect types
+                    const aspectTypes = [...tight, ...echoRange.slice(0, 2)].map(a => a.aspect.toLowerCase());
+                    const hasHard = aspectTypes.some(a => ['square', 'opposition'].includes(a));
+                    const hasSoft = aspectTypes.some(a => ['trine', 'sextile'].includes(a));
+                    const hasConjunction = aspectTypes.some(a => a === 'conjunction');
+                    
+                    let polarityHint = '';
+                    if (hasHard && hasConjunction) polarityHint = 'F21 (Frictional Attraction)';
+                    else if (hasHard && hasSoft) polarityHint = 'M15 (Mixed Tension)';
+                    else if (hasConjunction && hasSoft) polarityHint = 'H12 (Harmonic Blend)';
+                    else if (hasHard) polarityHint = 'C18 (Challenge Dynamic)';
+                    else if (hasSoft) polarityHint = 'E09 (Ease Flow)';
+                    else polarityHint = 'TBD (Complex Pattern)';
+                    
+                    md += `- **Provisional Polarity Code**: ${polarityHint} — requires MAP layer confirmation\n`;
+                    md += `- **Attribution**: ${personA.name} ↔ ${personB.name} (bidirectional analysis required)\n\n`;
+                }
             }
 
-            // Handle composite data if present
+            // Composite Field Dynamics (if present)
             if (data.composite?.chart?.aspects && data.composite.chart.aspects.length > 0) {
-                md += `## Composite Geometry\n\n`;
+                md += `## Composite Field Dynamics — Shared Structural Patterns\n\n`;
                 md += `### Composite Chart Aspects\n\n`;
+                md += `> **Protocol**: Composite represents shared field dynamics, not individual attribution\n\n`;
                 data.composite.chart.aspects.slice(0, 15).forEach(aspect => {
                     md += `- **${aspect.p1_name}** ${aspect.aspect} **${aspect.p2_name}** (${Math.abs(aspect.orbit).toFixed(1)}° orb)\n`;
                 });
                 md += `\n`;
             }
 
-            // Geometry Only disclaimer (before transit details)
-            md += `> Geometry Only: This file contains calculations and aspect wiring.\n`;
-            md += `> **Do not** include narrative or advice here. Clear Mirror is performed by Raven Calder downstream.\n\n`;
+            // Protocol Compliance Reminder
+            md += `## Protocol Compliance Check\n\n`;
+            md += `> **Geometry Layer Complete**: Calculations and aspect patterns documented\n`;
+            md += `> **Boundary Maintained**: No narrative, prediction, or interpretation included\n`;
+            md += `> **Next Required**: Clear Mirror translation via Poetic Brain (Raven Calder)\n`;
+            md += `> **Contract**: mirror-ready geometry with appropriate nudges provided\n\n`;
 
-            // Process Transit Data (if mode includes transits and is not natal_only)
+            // Transit Analysis (if mode includes transits and is not natal_only)
             if (mode.includes('_transits') && mode !== 'natal_only') {
                 const transitStartDate = formData.transitParams?.startDate;
                 const transitEndDate = formData.transitParams?.endDate;
@@ -1325,8 +1478,10 @@ function renderTransitDay(dateStr, items){
                     console.log('Person B transit dates available:', Object.keys(data.person_b.chart.transitsByDate));
                 }
                 
-                md += `## Transit Analysis\n\n`;
-                md += `**Period**: ${transitStartDate} to ${transitEndDate}\n\n`;
+                md += `## Protocol Layer 2: Live Activations — Trace the Threads\n\n`;
+                md += `**Temporal Scope**: ${transitStartDate} to ${transitEndDate}\n`;
+                md += `**Purpose**: Identify active tugging patterns and symbolic weather overlays\n`;
+                md += `**Processing**: Seismograph aggregation with magnitude, valence, volatility metrics\n\n`;
 
                                 // --- New Unified Hook / Seismograph Renderer ---
                                 const ui = window.WOVEN_UI_FILTERS || { tightOnly:true, showMinor:false, showHarmonic:false, showSelf:false };
@@ -1459,52 +1614,25 @@ function renderTransitDay(dateStr, items){
                                                     return out;
                                                 }
 
-                                                // Enhanced FIELD/MAP/VOICE Translation Bridge
-                                                function generateFieldMapVoice(day) {
-                                                    const mag = day.seismograph?.magnitude || 0;
-                                                    const val = day.seismograph?.valence || 0;
-                                                    const vol = day.seismograph?.volatility || 0;
-                                                    const trend = day.valence_trend || 0;
-                                                    
-                                                    // FIELD: Emotional/somatic tone
-                                                    let field = '';
-                                                    if (mag > 6) {
-                                                        field = vol > 3 ? 'High-charge turbulence' : 'Concentrated pressure';
-                                                    } else if (mag > 3) {
-                                                        field = val > 0 ? 'Energized flow' : 'Navigational friction';
-                                                    } else {
-                                                        field = vol > 2 ? 'Subtle recalibration' : 'Ambient stability';
-                                                    }
-                                                    
-                                                    // MAP: Social/behavioral translation
-                                                    let map = '';
-                                                    if (val > 2) {
-                                                        map = trend > 0.5 ? 'Momentum building toward breakthrough' : 'Sustained constructive pressure';
-                                                    } else if (val < -2) {
-                                                        map = vol > 3 ? 'Resist rushing; structural shifts occurring' : 'Navigate obstacles with precision';
-                                                    } else {
-                                                        map = mag > 4 ? 'Mixed signals require discernment' : 'Steady course maintenance';
-                                                    }
-                                                    
-                                                    // VOICE: Shareable mirror line
-                                                    let voice = '';
-                                                    if (mag > 5 && Math.abs(val) > 2) {
-                                                        voice = val > 0 ? 'Your inner compass points toward expansion' : 'Resistance reveals what needs attention';
-                                                    } else if (vol > 3) {
-                                                        voice = 'Change pulses beneath the surface';
-                                                    } else {
-                                                        voice = mag > 2 ? 'Quiet strength builds' : 'Space for reflection opens';
-                                                    }
-                                                    
-                                                    return { field, map, voice };
-                                                }
+                                                // REMOVED: FIELD/MAP/VOICE Translation Bridge
+                                                // Math Brain Compliance: This function violated protocol by generating interpretive content.
+                                                // FIELD → MAP → VOICE translation is exclusively handled by downstream Poetic Brain (Raven Calder).
+                                                // Math Brain outputs geometry only with appropriate nudges for downstream processing.
                                                 
-                                                // Enhanced buildSummaryTable with three-tier structure
+                                                // Enhanced buildSummaryTable with three-tier protocol structure
                                                 function buildEnhancedSummaryTable(title, dailyMap) {
                                                     const dates = Object.keys(dailyMap||{}).sort();
                                                     if (!dates.length) return '';
                                                     
-                                                    let out = `## ${title} — Daily Woven Map\n\n`;
+                                                    // Determine context layer based on title content for proper mythic metaphors
+                                                    let contextLayer = 'Trace the Threads'; // Default for transits
+                                                    if (title.toLowerCase().includes('composite')) {
+                                                        contextLayer = 'Currents + Seismograph';
+                                                    }
+                                                    
+                                                    let out = `## ${title} — ${contextLayer}\n\n`;
+                                                    out += `> **Math Brain Protocol**: Geometry Only • Mirror-ready for downstream Poetic Brain (Raven Calder)\n`;
+                                                    out += `> **Layer**: Symbolic scaffolding for MAP → VOICE translation\n\n`;
                                                     
                                                     dates.forEach(d => {
                                                         const day = dailyMap[d];
@@ -1513,72 +1641,109 @@ function renderTransitDay(dateStr, items){
                                                         const vol = (day.seismograph?.volatility || 0).toFixed(2);
                                                         const trend = day.valence_trend || 0;
                                                         const trendArrow = trend > 0.5 ? ' ↗' : trend < -0.5 ? ' ↘' : '';
+                                                        const scaleConf = day.seismograph?.scaleConfidence?.toFixed(3) || '—';
                                                         
-                                                        // 1. Climate Line
-                                                        out += `### ${d} — Climate Line\n`;
-                                                        out += `**Magnitude:** ${mag} • **Valence:** ${val}${trendArrow} • **Volatility:** ${vol}\n\n`;
+                                                        // 1. Seismograph Readout (pure geometry)
+                                                        out += `### ${d} — Seismograph Readout\n`;
+                                                        out += `**Magnitude:** ${mag} • **Valence:** ${val}${trendArrow} • **Volatility:** ${vol} • **Scale Confidence:** ${scaleConf}\n\n`;
                                                         
-                                                        // 2. Top Hooks Snapshot (apply strict orb caps)
+                                                        // 2. Top Hooks (geometry with retrograde flags)
                                                         const filteredHooks = applyStrictOrbCaps(day.hooks || []);
                                                         const topHooks = filteredHooks.slice(0, 5);
                                                         
-                                                        out += `**Top Hooks Snapshot:**\n`;
+                                                        out += `**Geometry Hooks** _(orb caps applied)_:\n`;
                                                         if (topHooks.length === 0) {
-                                                            out += `- No hooks within orb caps today\n`;
+                                                            out += `- No hooks within protocol orb caps\n`;
                                                         } else {
                                                             topHooks.forEach(h => {
                                                                 const retroSymbol = (h.p1_retrograde ? '℞' : '') + (h.p2_retrograde ? '℞' : '');
-                                                                out += `- ${hookLine(h)}${retroSymbol ? ' ' + retroSymbol : ''}\n`;
+                                                                const weightFlag = h._weight >= 0.8 ? ' ●' : h._weight >= 0.5 ? ' ◐' : '';
+                                                                out += `- ${hookLine(h)}${retroSymbol ? ' ' + retroSymbol : ''}${weightFlag}\n`;
                                                             });
                                                         }
                                                         
-                                                        // 3. Recursion Band (retrograde aspects)
+                                                        // 3. Retrograde Recursion Band (if ≥2 retrograde aspects per protocol)
                                                         const retrogradeAspects = day.retrograde_aspects || [];
-                                                        if (retrogradeAspects.length > 0) {
-                                                            out += `\n**Recursion Band** _(internal pressure)_:\n`;
-                                                            retrogradeAspects.slice(0, 3).forEach(a => {
+                                                        if (retrogradeAspects.length >= 2) {
+                                                            out += `\n**Retrograde Recursion Pattern** _(${retrogradeAspects.length} aspects)_:\n`;
+                                                            retrogradeAspects.slice(0, 4).forEach(a => {
                                                                 const orb = Math.abs(a._orb || a.orb || 0).toFixed(1);
-                                                                out += `- ${labelName(a.p1_name)}℞ ${aspectGlyph(a._aspect)} ${labelName(a.p2_name)} (${orb}°)\n`;
+                                                                const body1 = (a.p1_retrograde ? '℞' : '') + labelName(a.p1_name);
+                                                                const body2 = (a.p2_retrograde ? '℞' : '') + labelName(a.p2_name);
+                                                                out += `- ${body1} ${aspectGlyph(a._aspect)} ${body2} (${orb}°)\n`;
                                                             });
+                                                            if (retrogradeAspects.length > 4) out += `- ... (${retrogradeAspects.length - 4} more)\n`;
                                                         }
                                                         
-                                                        // 4. FIELD/MAP/VOICE Translation
-                                                        const translation = generateFieldMapVoice(day);
-                                                        out += `\n**Translation Bridge:**\n`;
-                                                        out += `- **FIELD:** ${translation.field}\n`;
-                                                        out += `- **MAP:** ${translation.map}\n`;
-                                                        out += `- **VOICE:** ${translation.voice}\n\n`;
+                                                        // 4. Protocol Nudges for Downstream Processing
+                                                        out += `\n**Raven Processing Nudges:**\n`;
+                                                        if (mag >= 6 && vol >= 3) {
+                                                            out += `- High magnitude + volatility → Pressure-state mirroring required\n`;
+                                                        }
+                                                        if (Math.abs(val) >= 3) {
+                                                            out += `- Significant valence (${val}) → Tension-direction clarity needed\n`;
+                                                        }
+                                                        if (retrogradeAspects.length >= 2) {
+                                                            out += `- Retrograde recursion → Internal revision themes indicated\n`;
+                                                        }
+                                                        if (scaleConf !== '—' && parseFloat(scaleConf) < 0.7) {
+                                                            out += `- Low scale confidence → Caution framing advised\n`;
+                                                        }
+                                                        if (topHooks.length === 0) {
+                                                            out += `- No hooks → Background stability or dispersed influence pattern\n`;
+                                                        }
                                                         
-                                                        // 5. Raw Geometry (collapsible)
+                                                        // 5. Raw Aspect Inventory with Rejection Taxonomy (collapsible)
                                                         const allAspects = day.filtered_aspects || [];
-                                                        if (allAspects.length > 0) {
-                                                            out += `<details><summary>Raw Geometry (${allAspects.length} aspects)</summary>\n\n`;
-                                                            allAspects.forEach(a => {
-                                                                const orb = Math.abs(a._orb || a.orb || 0).toFixed(1);
-                                                                const retroFlag = (a.p1_retrograde || a.p2_retrograde) ? ' ℞' : '';
-                                                                out += `- ${labelName(a.p1_name)} ${aspectGlyph(a._aspect)} ${labelName(a.p2_name)} (${orb}°)${retroFlag}\n`;
-                                                            });
+                                                        const rejections = day.rejections || [];
+                                                        
+                                                        if (allAspects.length > 0 || rejections.length > 0) {
+                                                            out += `\n<details><summary>Aspect Processing Summary — ${allAspects.length} accepted, ${rejections.length} rejected</summary>\n\n`;
+                                                            
+                                                            if (allAspects.length > 0) {
+                                                                out += `**Accepted Aspects (${allAspects.length}):**\n`;
+                                                                allAspects.forEach(a => {
+                                                                    const orb = Math.abs(a._orb || a.orb || 0).toFixed(1);
+                                                                    const retroFlag = (a.p1_retrograde || a.p2_retrograde) ? ' ℞' : '';
+                                                                    const classFlag = a._class ? ` [${a._class}]` : '';
+                                                                    const weightFlag = a._weight ? ` w=${a._weight.toFixed(2)}` : '';
+                                                                    out += `- ${labelName(a.p1_name)} ${aspectGlyph(a._aspect)} ${labelName(a.p2_name)} (${orb}°)${retroFlag}${classFlag}${weightFlag}\n`;
+                                                                });
+                                                            }
+                                                            
+                                                            if (rejections.length > 0) {
+                                                                out += `\n**Rejection Taxonomy (${rejections.length}):**\n`;
+                                                                const rejectionGroups = {};
+                                                                rejections.forEach(r => {
+                                                                    if (!rejectionGroups[r.reason]) rejectionGroups[r.reason] = [];
+                                                                    rejectionGroups[r.reason].push(r);
+                                                                });
+                                                                
+                                                                Object.entries(rejectionGroups).forEach(([reason, items]) => {
+                                                                    out += `- **${reason}** (${items.length}): `;
+                                                                    const samples = items.slice(0, 3).map(r => `${r.aspect} (${Math.abs(r.orb || 0).toFixed(1)}°)`);
+                                                                    out += samples.join(', ');
+                                                                    if (items.length > 3) out += `, +${items.length - 3} more`;
+                                                                    out += `\n`;
+                                                                });
+                                                            }
+                                                            
                                                             out += `\n</details>\n\n`;
                                                         }
                                                         
                                                         out += `---\n\n`;
                                                     });
                                                     
-                                                    // Add confidence scaling information
+                                                    // Add scaling strategy summary
                                                     const sampleDay = Object.values(dailyMap)[0];
-                                                    if (sampleDay?.seismograph?.scaleConfidence !== undefined) {
-                                                        const confidence = sampleDay.seismograph.scaleConfidence;
-                                                        const n = Math.round(confidence * 14);
-                                                        out += `**Scaling:** blended (n=${n}, confidence=${confidence})\n\n`;
-                                                        
-                                                        if (confidence < 1.0) {
-                                                            out += `_Note: Magnitude scaling uses ${n}/14 days available. `;
-                                                            if (confidence < 0.5) {
-                                                                out += `Limited data; prior-weighted scaling applied._\n\n`;
-                                                            } else {
-                                                                out += `Partial rolling window; blended with system prior._\n\n`;
-                                                            }
+                                                    if (sampleDay?.seismograph?.scalingStrategy) {
+                                                        out += `**Scaling Protocol**: ${sampleDay.seismograph.scalingStrategy}`;
+                                                        if (sampleDay.seismograph.scaleConfidence !== undefined) {
+                                                            const confidence = sampleDay.seismograph.scaleConfidence;
+                                                            const n = Math.round(confidence * 14);
+                                                            out += ` (${n}/14 day window, confidence=${confidence.toFixed(3)})`;
                                                         }
+                                                        out += `\n\n`;
                                                     }
                                                     
                                                     return out;
@@ -1637,7 +1802,7 @@ function renderTransitDay(dateStr, items){
                                                     return out;
                                                 }
                 
-                                md += `\n## Enhanced Daily Woven Maps\n`;
+                                md += `### Daily Seismograph Readouts\n\n`;
                                 if (data.person_a?.chart?.transitsByDate) md += buildEnhancedSummaryTable(`${personA.name}`, data.person_a.chart.transitsByDate);
                                 if (data.person_b?.chart?.transitsByDate) md += buildEnhancedSummaryTable(`${personB.name}${data.person_b?.implicit_dual_transits?' (implicit dual)':''}`, data.person_b.chart.transitsByDate);
                                 if (data.composite?.transitsByDate) md += buildEnhancedSummaryTable(`Composite Field`, data.composite.transitsByDate);
@@ -1727,21 +1892,58 @@ function renderTransitDay(dateStr, items){
                 }
             }
 
-            // Footer glossary + checklist
+            // Footer: Protocol Compliance & Safety Requirements
             const isRavenConsumer = data.raven_consumer === 'RAVEN_CALDER_GPT';
+            
+            md += `## Safety & Hygiene Protocol\n\n`;
+            
+            // Agency Clause (Required by Protocol)
+            md += `### Agency Reinforcement (Required)\n\n`;
+            md += `**Agency Statement**: This geometric analysis provides symbolic weather patterns, not deterministic outcomes. `;
+            md += `You remain the author of your choices and the validator of any resonance. `;
+            md += `The map supports your agency—it never overrides it. If something doesn't land, it doesn't count.\n\n`;
+            
+            // Temporal and Rate Limits
+            md += `### Protocol Limits\n\n`;
+            md += `- **Max Date Span**: 30 days per request (current: ${formData.transitParams ? Math.ceil((new Date(formData.transitParams.endDate) - new Date(formData.transitParams.startDate)) / (1000 * 60 * 60 * 24)) : 'N/A'} days)\n`;
+            md += `- **Rate Limits**: 50 transit requests per day per user\n`;
+            md += `- **Narrative Hygiene**: No deterministic or fatalistic language permitted\n`;
+            md += `- **Falsifiability**: All outputs subject to "Does this land?" validation\n\n`;
+            
+            // Glossary for non-Raven consumers
             if (!isRavenConsumer) {
-                md += `## Mini Glossary (for non-Raven Astro GPTs)\n`;
-                md += `- **FIELD → MAP → VOICE**: Diagnostic climate → exact geometry → human reflection.\n`;
-                md += `- **Hook**: Salient aspect used for daily focus (orb caps).\n`;
-                md += `- **Orb Band**: tight (≤1°), close (≤3°), medium (≤6°), wide (>6°).\n`;
-                md += `- **Valence**: Friction vs ease signal from aspect family.\n`;
-                md += `- **Clear Mirror**: Testable, agency-centered reflection (downstream).\n\n`;
+                md += `## Symbolic Glossary (for Non-Raven GPT Consumers)\n\n`;
+                md += `| Term | Definition |\n`;
+                md += `|------|------------|\n`;
+                md += `| **Weave** | Structural identity patterns revealed through natal geometry |\n`;
+                md += `| **Threads** | Live activation patterns through transiting aspects |\n`;
+                md += `| **Currents** | Macro pressure states from seismograph aggregation |\n`;
+                md += `| **Seismograph** | Two-axis symbolic measurement: Magnitude (X), Valence (Y), Volatility Index |\n`;
+                md += `| **Echo Loop** | Bidirectional aspect within ±3° orb creating reinforcing relational dynamic |\n`;
+                md += `| **REF** | Relational Echo Field — macro structure from converging Echo Loops |\n`;
+                md += `| **Hook** | Salient daily aspect for focused attention (strict orb caps applied) |\n`;
+                md += `| **Recursion Band** | Retrograde aspect pattern indicating internal revision themes |\n\n`;
+                
+                md += `### System Role Clarity\n\n`;
+                md += `- **Math Brain**: Finds coordinates, measures angles, provides geometric scaffolding\n`;
+                md += `- **Poetic Brain (Raven Calder)**: Translates geometry into felt language and mirrors\n`;
+                md += `- **User**: Validates resonance, maintains agency, decides what lands\n\n`;
             }
-            md += `### Raven Checklist\n`;
-            md += `- Sources: Poetic Codex • FIELD_MAP_VOICE • Hook Stack • Seismograph Protocol\n`;
-            md += `- Inputs: retro flags present • True/Mean Nodes present • coords normalized\n`;
-            md += `- Mode fit: Recognition-First • SST tags (WB/ABE/OSR) respected if present\n\n`;
-            md += `---\n*Generated by Woven Map Math Brain - Pure Astrological Geometry*`;
+            
+            // Raven Processing Checklist
+            md += `### Raven Calder Processing Checklist\n\n`;
+            md += `**Required Sources**: `;
+            md += `☐ Poetic Codex • ☐ FIELD_MAP_VOICE rules • ☐ Hook Stack protocols • ☐ Seismograph guidelines\n\n`;
+            md += `**Geometry Verification**: `;
+            md += `☐ Retrograde flags applied • ☐ True/Mean Node distinctions noted • ☐ Coordinates normalized • ☐ Timezone validated\n\n`;
+            md += `**Protocol Compliance**: `;
+            md += `☐ Recognition-first approach • ☐ SST taxonomy respected • ☐ Falsifiability maintained • ☐ Agency preserved\n\n`;
+            md += `**Output Standards**: `;
+            md += `☐ Mirror not mandate • ☐ No prediction claims • ☐ Testable reflections • ☐ Clear boundary maintenance\n\n`;
+            
+            md += `---\n\n`;
+            md += `*Generated by Woven Map Math Brain — Pure Geometric Scaffolding Engine*\n`;
+            md += `*Contract: clear-mirror/1.2 • Protocol: FIELD → MAP → VOICE • Version: ${(data.provenance?.math_brain_version)||'0.x'}*`;
 
             return md;
         }
