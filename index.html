@@ -401,7 +401,7 @@
                             <input type="radio" name="relationalSubtype" value="composite" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700" checked>
                             <div>
                                 <div class="text-white text-sm">Composite + Transits</div>
-                                <div class="text-gray-400 text-xs">The relationship as its own entity</div>
+                                <div class="text-gray-400 text-xs">Shared midpoint chart + current pressures</div>
                             </div>
                         </label>
                     </div>
@@ -607,20 +607,20 @@
                                 <input type="radio" name="relationshipType" value="partner" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
                                 <div>
                                     <div class="text-white font-medium">Partner</div>
-                                    <div class="text-gray-400 text-xs">Romantic/intimate</div>
+                                    <div class="text-gray-400 text-xs">Romantic / undefined-intimate</div>
                                 </div>
                             </label>
                             <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
                                 <input type="radio" name="relationshipType" value="friend" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
                                 <div>
-                                    <div class="text-white font-medium">Friend</div>
+                                    <div class="text-white font-medium">Friend / Colleague</div>
                                     <div class="text-gray-400 text-xs">Friend or colleague</div>
                                 </div>
                             </label>
                             <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
                                 <input type="radio" name="relationshipType" value="family" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
                                 <div>
-                                    <div class="text-white font-medium">Family</div>
+                                    <div class="text-white font-medium">Family Member</div>
                                     <div class="text-gray-400 text-xs">Family member</div>
                                 </div>
                             </label>
@@ -629,11 +629,15 @@
                             <label class="flex items-center p-2 hover:bg-gray-750 rounded cursor-pointer">
                                 <input type="checkbox" id="exRelationship" class="mr-3 h-4 w-4 text-red-400 focus:ring-red-500 border-gray-600 rounded bg-gray-700">
                                 <span class="text-gray-300">Ex or Estranged</span>
+                                <span class="text-xs text-gray-500 ml-2">(not valid for Friend/Colleague)</span>
                             </label>
                         </div>
                         <!-- Relationship Role (conditional) -->
                         <div id="relationship-role-block" class="mt-4 hidden" aria-live="polite">
-                            <label for="relationshipRole" class="block text-sm font-medium text-gray-300">Relationship Role (Person B relative to A)</label>
+                            <label for="relationshipRole" class="block text-sm font-medium text-gray-300">
+                                Relationship Role 
+                                <span class="text-xs text-gray-400">(Person B relative to A)</span>
+                            </label>
                             <select id="relationshipRole" class="mt-1 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm"></select>
                             <input id="relationshipRoleCustom" placeholder="Custom role (e.g., half-brother, stepmother)" class="mt-2 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm hidden" />
                             <div class="mt-2">
@@ -642,20 +646,20 @@
                             </div>
                         </div>
                         <div id="intimacy-tier-dropdown" class="mt-4 hidden">
-                            <p class="text-md font-medium text-white mb-2">What best describes the intimacy tier of this connection?</p>
+                            <p class="text-md font-medium text-white mb-2">Select intimacy tier (required for Partner):</p>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
                                     <input type="radio" name="intimacyTier" value="P1" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
                                     <div>
                                         <div class="text-white text-sm">P1 – Platonic</div>
-                                        <div class="text-gray-400 text-xs">Platonic partners</div>
+                                        <div class="text-gray-400 text-xs">No sexual/romantic expectations</div>
                                     </div>
                                 </label>
                                 <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
                                     <input type="radio" name="intimacyTier" value="P2" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
                                     <div>
                                         <div class="text-white text-sm">P2 – FWB</div>
-                                        <div class="text-gray-400 text-xs">Friends with benefits</div>
+                                        <div class="text-gray-400 text-xs">Sexual, no romantic commitment</div>
                                     </div>
                                 </label>
                                 <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
@@ -669,7 +673,7 @@
                                     <input type="radio" name="intimacyTier" value="P4" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
                                     <div>
                                         <div class="text-white text-sm">P4 – Low-commitment</div>
-                                        <div class="text-gray-400 text-xs">Uneven investment</div>
+                                        <div class="text-gray-400 text-xs">Uneven investment, minimal care</div>
                                     </div>
                                 </label>
                                 <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
@@ -683,7 +687,7 @@
                                     <input type="radio" name="intimacyTier" value="P5b" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
                                     <div>
                                         <div class="text-white text-sm">P5b – Committed</div>
-                                        <div class="text-gray-400 text-xs">Romantic, non-sexual</div>
+                                        <div class="text-gray-400 text-xs">Romantic, no sexual</div>
                                     </div>
                                 </label>
                             </div>
@@ -756,6 +760,20 @@
                         Show Wiring
                     </button>
                 </div>
+            </div>
+
+            <!-- Save/Load Controls -->
+            <div class="text-center mb-6">
+                <div class="flex justify-center gap-3 mb-2">
+                    <button id="saveDataBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
+                        💾 Save Chart Data
+                    </button>
+                    <button id="loadDataBtn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
+                        📂 Load Chart Data
+                    </button>
+                </div>
+                <input type="file" id="loadDataInput" accept=".json" class="hidden">
+                <p class="text-xs text-gray-500">Save Person A & B data to reload later</p>
             </div>
 
             <!-- Loading Indicator -->
@@ -2449,6 +2467,203 @@ function renderTransitDay(dateStr, items){
             return formData;
         }
 
+        // --- Save/Load Functions ---
+
+        function saveChartData() {
+            try {
+                // Collect all form data
+                const chartData = {
+                    timestamp: new Date().toISOString(),
+                    version: "1.0",
+                    contextType: currentContextType,
+                    personA: {
+                        name: document.getElementById('nameA')?.value || '',
+                        birth_city: document.getElementById('birth_cityA')?.value || '',
+                        birth_state: document.getElementById('birth_stateA')?.value || '',
+                        birth_date: document.getElementById('birth_dateA')?.value || '',
+                        birth_time: document.getElementById('birth_timeA')?.value || '',
+                        birth_country: document.getElementById('birth_countryA')?.value || '',
+                        astro: document.getElementById('astroA')?.value || '',
+                        offset: document.getElementById('offsetA')?.value || '',
+                        zodiac: document.getElementById('zodiacA')?.value || ''
+                    },
+                    personB: {
+                        name: document.getElementById('nameB')?.value || '',
+                        birth_city: document.getElementById('birth_cityB')?.value || '',
+                        birth_state: document.getElementById('birth_stateB')?.value || '',
+                        birth_date: document.getElementById('birth_dateB')?.value || '',
+                        birth_time: document.getElementById('birth_timeB')?.value || '',
+                        birth_country: document.getElementById('birth_countryB')?.value || '',
+                        astro: document.getElementById('astroB')?.value || '',
+                        offset: document.getElementById('offsetB')?.value || '',
+                        zodiac: document.getElementById('zodiacB')?.value || ''
+                    },
+                    relationalContext: {
+                        relationship_type: document.querySelector('input[name="relationshipType"]:checked')?.value || '',
+                        intimacy_tier: document.querySelector('input[name="intimacyTier"]:checked')?.value || '',
+                        relationship_role: document.getElementById('relationshipRole')?.value || '',
+                        relationship_role_custom: document.getElementById('relationshipRoleCustom')?.value || '',
+                        relationship_notes: document.getElementById('relationshipNotes')?.value || '',
+                        is_ex_relationship: document.getElementById('exRelationship')?.checked || false
+                    },
+                    transitParams: {
+                        startDate: document.getElementById('transitStartDate')?.value || '',
+                        endDate: document.getElementById('transitEndDate')?.value || '',
+                        step: document.getElementById('transitStep')?.value || ''
+                    },
+                    relocation: {
+                        enabled: document.getElementById('relocationToggle')?.checked || false,
+                        coords: document.getElementById('relocationCoords')?.value || '',
+                        includePersonB: document.getElementById('includePersonBRelocation')?.checked || false
+                    },
+                    contextMode: {
+                        solo: document.querySelector('input[name="soloSubtype"]:checked')?.value || '',
+                        relational: document.querySelector('input[name="relationalSubtype"]:checked')?.value || ''
+                    }
+                };
+
+                // Generate filename with names and timestamp
+                const nameA = chartData.personA.name || 'PersonA';
+                const nameB = chartData.personB.name || 'PersonB';
+                const timestamp = new Date().toISOString().slice(0, 16).replace('T', '_').replace(/:/g, '-');
+                const filename = `chart_${nameA}_${nameB}_${timestamp}.json`;
+
+                // Create and download file
+                const dataStr = JSON.stringify(chartData, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                // Visual feedback
+                const saveBtn = document.getElementById('saveDataBtn');
+                const originalText = saveBtn.textContent;
+                saveBtn.textContent = '✅ Saved!';
+                setTimeout(() => { saveBtn.textContent = originalText; }, 2000);
+
+            } catch (error) {
+                console.error('Error saving chart data:', error);
+                alert('Error saving chart data: ' + error.message);
+            }
+        }
+
+        function loadChartData(file) {
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const chartData = JSON.parse(e.target.result);
+                    
+                    // Validate data structure
+                    if (!chartData.personA || !chartData.personB) {
+                        throw new Error('Invalid chart data format');
+                    }
+
+                    // Load Person A data
+                    if (chartData.personA) {
+                        document.getElementById('nameA').value = chartData.personA.name || '';
+                        document.getElementById('birth_cityA').value = chartData.personA.birth_city || '';
+                        document.getElementById('birth_stateA').value = chartData.personA.birth_state || '';
+                        document.getElementById('birth_dateA').value = chartData.personA.birth_date || '';
+                        document.getElementById('birth_timeA').value = chartData.personA.birth_time || '';
+                        document.getElementById('birth_countryA').value = chartData.personA.birth_country || '';
+                        document.getElementById('astroA').value = chartData.personA.astro || '';
+                        if (chartData.personA.offset) document.getElementById('offsetA').value = chartData.personA.offset;
+                        if (chartData.personA.zodiac) document.getElementById('zodiacA').value = chartData.personA.zodiac;
+                    }
+
+                    // Load Person B data
+                    if (chartData.personB) {
+                        document.getElementById('nameB').value = chartData.personB.name || '';
+                        document.getElementById('birth_cityB').value = chartData.personB.birth_city || '';
+                        document.getElementById('birth_stateB').value = chartData.personB.birth_state || '';
+                        document.getElementById('birth_dateB').value = chartData.personB.birth_date || '';
+                        document.getElementById('birth_timeB').value = chartData.personB.birth_time || '';
+                        document.getElementById('birth_countryB').value = chartData.personB.birth_country || '';
+                        document.getElementById('astroB').value = chartData.personB.astro || '';
+                        if (chartData.personB.offset) document.getElementById('offsetB').value = chartData.personB.offset;
+                        if (chartData.personB.zodiac) document.getElementById('zodiacB').value = chartData.personB.zodiac;
+                    }
+
+                    // Load context type
+                    if (chartData.contextType) {
+                        const contextRadio = document.querySelector(`input[name="contextType"][value="${chartData.contextType}"]`);
+                        if (contextRadio) {
+                            contextRadio.checked = true;
+                            updateContextType(chartData.contextType);
+                        }
+                    }
+
+                    // Load relational context
+                    if (chartData.relationalContext) {
+                        const rel = chartData.relationalContext;
+                        if (rel.relationship_type) {
+                            const typeRadio = document.querySelector(`input[name="relationshipType"][value="${rel.relationship_type}"]`);
+                            if (typeRadio) {
+                                typeRadio.checked = true;
+                                typeRadio.dispatchEvent(new Event('change'));
+                            }
+                        }
+                        if (rel.intimacy_tier) {
+                            const tierRadio = document.querySelector(`input[name="intimacyTier"][value="${rel.intimacy_tier}"]`);
+                            if (tierRadio) tierRadio.checked = true;
+                        }
+                        if (rel.relationship_role) {
+                            const roleSelect = document.getElementById('relationshipRole');
+                            if (roleSelect) roleSelect.value = rel.relationship_role;
+                        }
+                        if (rel.relationship_role_custom) {
+                            document.getElementById('relationshipRoleCustom').value = rel.relationship_role_custom;
+                        }
+                        if (rel.relationship_notes) {
+                            document.getElementById('relationshipNotes').value = rel.relationship_notes;
+                        }
+                        if (rel.is_ex_relationship) {
+                            document.getElementById('exRelationship').checked = rel.is_ex_relationship;
+                        }
+                    }
+
+                    // Load transit params
+                    if (chartData.transitParams) {
+                        const trans = chartData.transitParams;
+                        if (trans.startDate) document.getElementById('transitStartDate').value = trans.startDate;
+                        if (trans.endDate) document.getElementById('transitEndDate').value = trans.endDate;
+                        if (trans.step) document.getElementById('transitStep').value = trans.step;
+                    }
+
+                    // Load relocation
+                    if (chartData.relocation) {
+                        const reloc = chartData.relocation;
+                        if (reloc.enabled) document.getElementById('relocationToggle').checked = true;
+                        if (reloc.coords) document.getElementById('relocationCoords').value = reloc.coords;
+                        if (reloc.includePersonB) document.getElementById('includePersonBRelocation').checked = true;
+                    }
+
+                    // Trigger relational context visibility check
+                    if (window.evaluateRelationalContextVisibility) {
+                        setTimeout(window.evaluateRelationalContextVisibility, 100);
+                    }
+
+                    // Visual feedback
+                    const loadBtn = document.getElementById('loadDataBtn');
+                    const originalText = loadBtn.textContent;
+                    loadBtn.textContent = '✅ Loaded!';
+                    setTimeout(() => { loadBtn.textContent = originalText; }, 2000);
+
+                } catch (error) {
+                    console.error('Error loading chart data:', error);
+                    alert('Error loading chart data: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
         // --- API Call ---
 
         async function generateReport() {
@@ -2616,6 +2831,17 @@ function renderTransitDay(dateStr, items){
             // Main button
             generateBtn.addEventListener('click', generateReport);
 
+            // Save/Load buttons
+            document.getElementById('saveDataBtn').addEventListener('click', saveChartData);
+            document.getElementById('loadDataBtn').addEventListener('click', () => {
+                document.getElementById('loadDataInput').click();
+            });
+            document.getElementById('loadDataInput').addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    loadChartData(e.target.files[0]);
+                }
+            });
+
             // Modal
             mathBrainInfoBtn.addEventListener('click', () => mathBrainModal.classList.remove('hidden'));
             closeMathBrainModal.addEventListener('click', () => mathBrainModal.classList.add('hidden'));
@@ -2684,14 +2910,42 @@ function renderTransitDay(dateStr, items){
                 updateRelocationPersonBOption();
             });
 
-            // Relational context visibility
+            // Relational context visibility refinement:
+            // Show immediately when relational context type selected. If user returns to solo/weather, hide.
+            // While still in relational context, do NOT auto-hide just because Person B fields are blank.
             const personBInputs = ['nameB', 'birth_cityB', 'birth_stateB', 'birth_dateB', 'birth_timeB', 'birth_countryB', 'astroB'];
+            function evaluateRelationalContextVisibility(){
+                const anyFilled = personBInputs.some(id => document.getElementById(id).value.trim() !== '');
+                const relContextSection = document.getElementById('relational-context-section');
+                const isPersonBExpanded = document.getElementById('personB-toggle')?.getAttribute('aria-expanded') === 'true';
+                console.log('[REL VIS] anyFilled:', anyFilled, 'currentContextType:', currentContextType, 'personBExpanded:', isPersonBExpanded);
+                
+                // Show relational context if:
+                // 1. We're in relational mode, OR
+                // 2. Person B section is expanded, OR  
+                // 3. Any Person B field has data
+                const shouldShow = currentContextType === 'relational' || isPersonBExpanded || anyFilled;
+                
+                if (relContextSection) {
+                    if (shouldShow) {
+                        relContextSection.classList.remove('hidden');
+                        console.log('[REL VIS] Showing relational context - reason:', 
+                            currentContextType === 'relational' ? 'relational mode' : 
+                            isPersonBExpanded ? 'Person B expanded' : 'Person B data entered');
+                    } else {
+                        relContextSection.classList.add('hidden');
+                    }
+                }
+            }
+            // Make function globally accessible
+            window.evaluateRelationalContextVisibility = evaluateRelationalContextVisibility;
+            
             personBInputs.forEach(id => {
-                document.getElementById(id).addEventListener('input', () => {
-                    const anyFilled = personBInputs.some(id => document.getElementById(id).value.trim() !== '');
-                    relationalContextSection.classList.toggle('hidden', !anyFilled);
-                });
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', evaluateRelationalContextVisibility);
             });
+            // Initial evaluation
+            evaluateRelationalContextVisibility();
             
             // Intimacy tier visibility
             function resetRelationalStateFor(type){
@@ -2726,23 +2980,42 @@ function renderTransitDay(dateStr, items){
             document.querySelectorAll('input[name="relationshipType"]').forEach(radio => {
                 radio.addEventListener('change', () => {
                     const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value;
+                    console.log('[REL TYPE] Changed to:', relationshipType);
+                    if (!relationshipType) return;
                     const isPartner = relationshipType === 'partner';
-                    intimacyTierDropdown.classList.toggle('hidden', !isPartner);
+                    if (intimacyTierDropdown) {
+                        intimacyTierDropdown.classList.toggle('hidden', !isPartner);
+                        if (!isPartner) {
+                            // Clear any previously selected intimacy tiers when leaving partner
+                            document.querySelectorAll('input[name="intimacyTier"]').forEach(r=> r.checked=false);
+                        }
+                    }
                     const roleBlock = document.getElementById('relationship-role-block');
                     const roleSelect = document.getElementById('relationshipRole');
                     const roleCustom = document.getElementById('relationshipRoleCustom');
                     if (roleBlock && roleSelect) {
                         roleSelect.innerHTML = '';
-            if (relationshipType === 'family') {
+                        if (relationshipType === 'family') {
                             roleBlock.classList.remove('hidden');
                             const familyOptions = [
-                {v:'', l:'(optional)'}, {v:'parent', l:'Parent'}, {v:'offspring', l:'Offspring'}, {v:'sibling', l:'Sibling'}, {v:'cousin', l:'Cousin'}, {v:'extended', l:'Extended Family'}, {v:'guardian', l:'Guardian'}, {v:'mentor', l:'Mentor'}, {v:'other', l:'Other / Custom'}
+                                {v:'', l:'Select role (required)'}, 
+                                {v:'parent', l:'Parent'}, 
+                                {v:'offspring', l:'Offspring'}, 
+                                {v:'sibling', l:'Sibling'}, 
+                                {v:'cousin', l:'Cousin'}, 
+                                {v:'extended', l:'Extended family'}, 
+                                {v:'guardian', l:'Guardian'}, 
+                                {v:'mentor', l:'Mentor'}, 
+                                {v:'other', l:'Other / Custom'}
                             ];
                             familyOptions.forEach(o=>{ const opt=document.createElement('option'); opt.value=o.v; opt.textContent=o.l; roleSelect.appendChild(opt); });
                         } else if (relationshipType === 'friend') {
                             roleBlock.classList.remove('hidden');
                             const friendOptions = [
-                                {v:'', l:'(optional)'}, {v:'acquaintance', l:'Acquaintance'}, {v:'mentor', l:'Mentor'}, {v:'other', l:'Other / Custom'}
+                                {v:'', l:'(optional)'}, 
+                                {v:'acquaintance', l:'Acquaintance'}, 
+                                {v:'mentor', l:'Mentor'}, 
+                                {v:'other', l:'Other / Custom'}
                             ];
                             friendOptions.forEach(o=>{ const opt=document.createElement('option'); opt.value=o.v; opt.textContent=o.l; roleSelect.appendChild(opt); });
                         } else {
@@ -2811,6 +3084,7 @@ function renderTransitDay(dateStr, items){
         
         function updateContextType(contextType) {
             currentContextType = contextType;
+            console.log('[CTX] Switching contextType ->', contextType);
             
             // Update the legacy context mode for compatibility
             const contextModeInputs = document.querySelectorAll('input[name="contextMode"]');
@@ -2826,6 +3100,12 @@ function renderTransitDay(dateStr, items){
             } else if (contextType === 'relational') {
                 showPersonBSection();
                 showRelationalSubtypes();
+                showRelationalContext(); // ensure visible
+                const rcs = document.getElementById('relational-context-section');
+                if (rcs && rcs.classList.contains('hidden')) {
+                    console.warn('[CTX] Relational context was hidden unexpectedly; forcing show.');
+                    rcs.classList.remove('hidden');
+                }
                 hideSoloSubtypes();
                 // Default to composite for relational
                 const relationalSubtype = document.querySelector('input[name="relationalSubtype"]:checked')?.value || 'composite';
@@ -3011,6 +3291,21 @@ function renderTransitDay(dateStr, items){
                         updateContextType('relational');
                     }
                 }
+                
+                // Show relationship context when Person B is expanded in any relational mode
+                if (!isExpanded && (currentContextType === 'relational' || 
+                    ['synastry_transits', 'composite_transits'].includes(document.querySelector('input[name="contextMode"]:checked')?.value))) {
+                    showRelationalContext();
+                }
+                
+                // Update form UI to enable/disable Person B based on expansion state
+                updateFormUI();
+                
+                // Evaluate relational context visibility when Person B is toggled
+                setTimeout(() => {
+                    const evaluateFunc = window.evaluateRelationalContextVisibility;
+                    if (evaluateFunc) evaluateFunc();
+                }, 50);
             }
         }
         
@@ -3215,9 +3510,26 @@ function renderTransitDay(dateStr, items){
             const isSynastryTransits = mode === 'synastry_transits';
             const isCompositeTransits = mode === 'composite_transits';
             
-            const showPersonB = !isNatalOnly && !isNatal; // Person B needed for all relational modes
+            // Person B should be enabled for relational context OR when manually expanded
+            const isRelationalContext = currentContextType === 'relational';
+            const isPersonBExpanded = document.getElementById('personB-toggle')?.getAttribute('aria-expanded') === 'true';
+            const showPersonB = isRelationalContext || isPersonBExpanded || (!isNatalOnly && !isNatal);
+            // Visual dim only when not active; keep header clickable to allow expansion
             personBCard.style.opacity = showPersonB ? '1' : '0.5';
-            personBCard.style.pointerEvents = showPersonB ? 'auto' : 'none';
+            // Never fully disable pointer events on the whole card (so header can always be clicked)
+            personBCard.style.pointerEvents = 'auto';
+            // Instead, disable the form controls inside when not active
+            const personBInputs = personBCard.querySelectorAll('input, select, button:not(#personB-toggle)');
+            personBInputs.forEach(el => {
+                if (el.id === 'personB-toggle') return; // safeguard
+                if (!showPersonB) {
+                    el.setAttribute('disabled','disabled');
+                    el.classList.add('cursor-not-allowed','opacity-70');
+                } else {
+                    el.removeAttribute('disabled');
+                    el.classList.remove('cursor-not-allowed','opacity-70');
+                }
+            });
 
             const showTransitFields = !isNatalOnly; // Show transit fields for all modes except natal_only
             transitDateFields.style.display = showTransitFields ? 'block' : 'none';
@@ -3230,11 +3542,12 @@ function renderTransitDay(dateStr, items){
             // Update Person B relocation option visibility
             updateRelocationPersonBOption();
             
-            // Show/hide relational context section based on whether Person B is needed
-            if (showPersonB) {
-                relationalContextSection.classList.remove('hidden');
+            // Show/hide relational context section based on whether this is a relational mode
+            const isRelationalMode = isSynastryTransits || isCompositeTransits;
+            if (isRelationalMode || currentContextType === 'relational') {
+                showRelationalContext();
             } else {
-                relationalContextSection.classList.add('hidden');
+                hideRelationalContext();
             }
         }
         
@@ -3368,11 +3681,6 @@ function renderTransitDay(dateStr, items){
                 transitStartDate.value = todayStr;
                 transitEndDate.value = todayStr;
             }
-            
-            // Initial check for relational context section
-            const personBInputs = ['nameB', 'birth_cityB', 'birth_stateB', 'birth_dateB', 'birth_timeB', 'birth_countryB', 'astroB'];
-            const anyFilled = personBInputs.some(id => document.getElementById(id).value.trim() !== '');
-            relationalContextSection.classList.toggle('hidden', !anyFilled);
             
             // Initial check for intimacy tier
             const isPartner = document.querySelector('input[name="relationshipType"]:checked')?.value === 'partner';
