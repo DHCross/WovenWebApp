@@ -597,7 +597,61 @@
 
             </div>
 
-            <!-- Relational Context Section (conditional visibility) - moved from context-mode-section -->
+            <!-- Legacy hidden sections for compatibility -->
+            <div class="hidden">
+                <div id="context-toggle" class="flex items-center mb-4">
+                    <label class="flex items-center mr-4">
+                        <input type="radio" name="contextMode" value="natal_only" class="mr-2">
+                        <span class="text-gray-300">Natal Chart Only</span>
+                    </label>
+                    <label class="flex items-center mr-4">
+                        <input type="radio" name="contextMode" value="natal_transits" class="mr-2" checked>
+                        <span class="text-gray-300">Natal Chart + Transits</span>
+                    </label>
+                    <label class="flex items-center mr-4">
+                        <input type="radio" name="contextMode" value="composite_transits" class="mr-2">
+                        <span class="text-gray-300">Composite + Transits</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="contextMode" value="synastry_transits" class="mr-2">
+                        <span class="text-gray-300">Synastry + Transits</span>
+                    </label>
+                </div>
+                
+                <!-- Legacy transit fields for compatibility -->
+                <div id="transit-date-range-fields" class="mb-6 hidden">
+                  <div class="flex justify-between items-center mb-2">
+                    <label for="transitStartDate" class="block text-gray-300 font-medium">Transit Start Date (YYYY-MM-DD):</label>
+                    <button id="prefillToday" class="text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none" type="button">
+                        📅 Use Today for Quick Check
+                    </button>
+                  </div>
+                </div>
+            </div>
+                
+                <!-- Additional Context Options -->
+                <div id="context-options" class="space-y-4">
+                    <div class="bg-yellow-900 border border-yellow-700 text-yellow-100 px-4 py-3 rounded mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium">Math Brain Protocol Active</h3>
+                                <div class="mt-2 text-sm">
+                                    This panel computes geometry only. Interpretation lives in the Mirror.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            </div>
+
+            <!-- Relational Context Section (conditional visibility) - moved from hidden context-mode-section -->
             <div id="relational-context-section" class="hidden bg-gray-800 p-6 rounded-lg shadow-lg border border-teal-500" role="region" aria-labelledby="relational-context-heading">
                 <h2 id="relational-context-heading" class="text-xl font-semibold mb-4 text-white">Relational Context</h2>
                 <p class="text-gray-400 text-sm mb-4">Detected potential dynamics:</p>
@@ -695,60 +749,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Legacy hidden sections for compatibility -->
-            <div class="hidden">
-                <div id="context-toggle" class="flex items-center mb-4">
-                    <label class="flex items-center mr-4">
-                        <input type="radio" name="contextMode" value="natal_only" class="mr-2">
-                        <span class="text-gray-300">Natal Chart Only</span>
-                    </label>
-                    <label class="flex items-center mr-4">
-                        <input type="radio" name="contextMode" value="natal_transits" class="mr-2" checked>
-                        <span class="text-gray-300">Natal Chart + Transits</span>
-                    </label>
-                    <label class="flex items-center mr-4">
-                        <input type="radio" name="contextMode" value="composite_transits" class="mr-2">
-                        <span class="text-gray-300">Composite + Transits</span>
-                    </label>
-                    <label class="flex items-center">
-                        <input type="radio" name="contextMode" value="synastry_transits" class="mr-2">
-                        <span class="text-gray-300">Synastry + Transits</span>
-                    </label>
-                </div>
-                
-                <!-- Legacy transit fields for compatibility -->
-                <div id="transit-date-range-fields" class="mb-6 hidden">
-                  <div class="flex justify-between items-center mb-2">
-                    <label for="transitStartDate" class="block text-gray-300 font-medium">Transit Start Date (YYYY-MM-DD):</label>
-                    <button id="prefillToday" class="text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none" type="button">
-                        📅 Use Today for Quick Check
-                    </button>
-                  </div>
-                </div>
-            </div>
-                
-                <!-- Additional Context Options -->
-                <div id="context-options" class="space-y-4">
-                    <div class="bg-yellow-900 border border-yellow-700 text-yellow-100 px-4 py-3 rounded mb-4">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <h3 class="text-sm font-medium">Math Brain Protocol Active</h3>
-                                <div class="mt-2 text-sm">
-                                    This panel computes geometry only. Interpretation lives in the Mirror.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             </div>
 
             <!-- Generate Button -->
