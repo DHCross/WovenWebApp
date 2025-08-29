@@ -594,106 +594,7 @@
                         </div>
                     </div>
                 </div>
-                
-                <!-- Relational Context Section (conditional visibility) -->
-                <div id="relational-context-section" class="hidden bg-gray-800 p-6 rounded-lg shadow-lg border border-teal-500" role="region" aria-labelledby="relational-context-heading">
-                    <h2 id="relational-context-heading" class="text-xl font-semibold mb-4 text-white">Relational Context</h2>
-                    <p class="text-gray-400 text-sm mb-4">Detected potential dynamics:</p>
-                    <ul id="context-readout" class="list-disc list-inside space-y-2 mb-4 text-gray-300"></ul>
-                    <div id="relationship-type-query">
-                        <p class="text-lg font-medium text-white mb-2">How would you categorize this connection?</p>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
-                                <input type="radio" name="relationshipType" value="partner" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
-                                <div>
-                                    <div class="text-white font-medium">Partner</div>
-                                    <div class="text-gray-400 text-xs">Romantic / undefined-intimate</div>
-                                </div>
-                            </label>
-                            <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
-                                <input type="radio" name="relationshipType" value="friend" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
-                                <div>
-                                    <div class="text-white font-medium">Friend / Colleague</div>
-                                    <div class="text-gray-400 text-xs">Friend or colleague</div>
-                                </div>
-                            </label>
-                            <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
-                                <input type="radio" name="relationshipType" value="family" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
-                                <div>
-                                    <div class="text-white font-medium">Family Member</div>
-                                    <div class="text-gray-400 text-xs">Family member</div>
-                                </div>
-                            </label>
-                        </div>
-                        <div id="exRelationshipRow" class="mt-4 pt-3 border-t border-gray-600">
-                            <label class="flex items-center p-2 hover:bg-gray-750 rounded cursor-pointer">
-                                <input type="checkbox" id="exRelationship" class="mr-3 h-4 w-4 text-red-400 focus:ring-red-500 border-gray-600 rounded bg-gray-700">
-                                <span class="text-gray-300">Ex or Estranged</span>
-                                <span class="text-xs text-gray-500 ml-2">(not valid for Friend/Colleague)</span>
-                            </label>
-                        </div>
-                        <!-- Relationship Role (conditional) -->
-                        <div id="relationship-role-block" class="mt-4 hidden" aria-live="polite">
-                            <label for="relationshipRole" class="block text-sm font-medium text-gray-300">
-                                Relationship Role 
-                                <span class="text-xs text-gray-400">(Person B relative to A)</span>
-                            </label>
-                            <select id="relationshipRole" class="mt-1 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm"></select>
-                            <input id="relationshipRoleCustom" placeholder="Custom role (e.g., half-brother, stepmother)" class="mt-2 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm hidden" />
-                            <div class="mt-2">
-                                <label for="relationshipNotes" class="block text-xs font-medium text-gray-400">Relationship Notes (optional)</label>
-                                <textarea id="relationshipNotes" rows="2" class="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-xs" placeholder="Any clarifying context (e.g., estranged, adopted)"></textarea>
-                            </div>
-                        </div>
-                        <div id="intimacy-tier-dropdown" class="mt-4 hidden">
-                            <p class="text-md font-medium text-white mb-2">Select intimacy tier (required for Partner):</p>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
-                                    <input type="radio" name="intimacyTier" value="P1" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
-                                    <div>
-                                        <div class="text-white text-sm">P1 – Platonic</div>
-                                        <div class="text-gray-400 text-xs">No sexual/romantic expectations</div>
-                                    </div>
-                                </label>
-                                <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
-                                    <input type="radio" name="intimacyTier" value="P2" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
-                                    <div>
-                                        <div class="text-white text-sm">P2 – FWB</div>
-                                        <div class="text-gray-400 text-xs">Sexual, no romantic commitment</div>
-                                    </div>
-                                </label>
-                                <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
-                                    <input type="radio" name="intimacyTier" value="P3" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
-                                    <div>
-                                        <div class="text-white text-sm">P3 – Situationship</div>
-                                        <div class="text-gray-400 text-xs">Fluid rules/expectations</div>
-                                    </div>
-                                </label>
-                                <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
-                                    <input type="radio" name="intimacyTier" value="P4" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
-                                    <div>
-                                        <div class="text-white text-sm">P4 – Low-commitment</div>
-                                        <div class="text-gray-400 text-xs">Uneven investment, minimal care</div>
-                                    </div>
-                                </label>
-                                <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
-                                    <input type="radio" name="intimacyTier" value="P5a" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
-                                    <div>
-                                        <div class="text-white text-sm">P5a – Committed</div>
-                                        <div class="text-gray-400 text-xs">Romantic + sexual</div>
-                                    </div>
-                                </label>
-                                <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
-                                    <input type="radio" name="intimacyTier" value="P5b" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
-                                    <div>
-                                        <div class="text-white text-sm">P5b – Committed</div>
-                                        <div class="text-gray-400 text-xs">Romantic, no sexual</div>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
             </div>
 
             <!-- Legacy hidden sections for compatibility -->
@@ -748,6 +649,106 @@
                 </div>
             </div>
 
+            </div>
+
+            <!-- Relational Context Section (conditional visibility) - moved from hidden context-mode-section -->
+            <div id="relational-context-section" class="hidden bg-gray-800 p-6 rounded-lg shadow-lg border border-teal-500" role="region" aria-labelledby="relational-context-heading">
+                <h2 id="relational-context-heading" class="text-xl font-semibold mb-4 text-white">Relational Context</h2>
+                <p class="text-gray-400 text-sm mb-4">Detected potential dynamics:</p>
+                <ul id="context-readout" class="list-disc list-inside space-y-2 mb-4 text-gray-300"></ul>
+                <div id="relationship-type-query">
+                    <p class="text-lg font-medium text-white mb-2">How would you categorize this connection?</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
+                            <input type="radio" name="relationshipType" value="partner" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                            <div>
+                                <div class="text-white font-medium">Partner</div>
+                                <div class="text-gray-400 text-xs">Romantic / undefined-intimate</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
+                            <input type="radio" name="relationshipType" value="friend" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                            <div>
+                                <div class="text-white font-medium">Friend / Colleague</div>
+                                <div class="text-gray-400 text-xs">Friend or colleague</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
+                            <input type="radio" name="relationshipType" value="family" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                            <div>
+                                <div class="text-white font-medium">Family Member</div>
+                                <div class="text-gray-400 text-xs">Family member</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div id="exRelationshipRow" class="mt-4 pt-3 border-t border-gray-600">
+                        <label class="flex items-center p-2 hover:bg-gray-750 rounded cursor-pointer">
+                            <input type="checkbox" id="exRelationship" class="mr-3 h-4 w-4 text-red-400 focus:ring-red-500 border-gray-600 rounded bg-gray-700">
+                            <span class="text-gray-300">Ex or Estranged</span>
+                            <span class="text-xs text-gray-500 ml-2">(not valid for Friend/Colleague)</span>
+                        </label>
+                    </div>
+                    <!-- Relationship Role (conditional) -->
+                    <div id="relationship-role-block" class="mt-4 hidden" aria-live="polite">
+                        <label for="relationshipRole" class="block text-sm font-medium text-gray-300">
+                            Relationship Role 
+                            <span class="text-xs text-gray-400">(Person B relative to A)</span>
+                        </label>
+                        <select id="relationshipRole" class="mt-1 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm"></select>
+                        <input id="relationshipRoleCustom" placeholder="Custom role (e.g., half-brother, stepmother)" class="mt-2 w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-sm hidden" />
+                        <div class="mt-2">
+                            <label for="relationshipNotes" class="block text-xs font-medium text-gray-400">Relationship Notes (optional)</label>
+                            <textarea id="relationshipNotes" rows="2" class="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-xs" placeholder="Any clarifying context (e.g., estranged, adopted)"></textarea>
+                        </div>
+                    </div>
+                    <div id="intimacy-tier-dropdown" class="mt-4 hidden">
+                        <p class="text-md font-medium text-white mb-2">Select intimacy tier (required for Partner):</p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
+                                <input type="radio" name="intimacyTier" value="P1" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
+                                <div>
+                                    <div class="text-white text-sm">P1 – Platonic</div>
+                                    <div class="text-gray-400 text-xs">No sexual/romantic expectations</div>
+                                </div>
+                            </label>
+                            <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
+                                <input type="radio" name="intimacyTier" value="P2" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
+                                <div>
+                                    <div class="text-white text-sm">P2 – FWB</div>
+                                    <div class="text-gray-400 text-xs">Sexual, no romantic commitment</div>
+                                </div>
+                            </label>
+                            <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
+                                <input type="radio" name="intimacyTier" value="P3" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
+                                <div>
+                                    <div class="text-white text-sm">P3 – Situationship</div>
+                                    <div class="text-gray-400 text-xs">Fluid rules/expectations</div>
+                                </div>
+                            </label>
+                            <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
+                                <input type="radio" name="intimacyTier" value="P4" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
+                                <div>
+                                    <div class="text-white text-sm">P4 – Low-commitment</div>
+                                    <div class="text-gray-400 text-xs">Uneven investment, minimal care</div>
+                                </div>
+                            </label>
+                            <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
+                                <input type="radio" name="intimacyTier" value="P5a" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
+                                <div>
+                                    <div class="text-white text-sm">P5a – Committed</div>
+                                    <div class="text-gray-400 text-xs">Romantic + sexual</div>
+                                </div>
+                            </label>
+                            <label class="flex items-center p-3 border border-gray-600 rounded hover:border-pink-500 transition-colors cursor-pointer">
+                                <input type="radio" name="intimacyTier" value="P5b" class="mr-3 h-4 w-4 text-pink-400 focus:ring-pink-500 border-gray-600 rounded bg-gray-700">
+                                <div>
+                                    <div class="text-white text-sm">P5b – Committed</div>
+                                    <div class="text-gray-400 text-xs">Romantic, no sexual</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Generate Button -->
