@@ -2586,9 +2586,15 @@ function renderTransitDay(dateStr, items){
 
                 // Generate filename with names and timestamp
                 const nameA = chartData.personA.name || 'PersonA';
-                const nameB = chartData.personB.name || 'PersonB';
+                const nameB = chartData.personB.name;
                 const timestamp = new Date().toISOString().slice(0, 16).replace('T', '_').replace(/:/g, '-');
-                const filename = `chart_${nameA}_${nameB}_${timestamp}.json`;
+                
+                let filename;
+                if (nameB && currentContextType === 'relational') {
+                    filename = `math_brain_${nameA}_${nameB}_${timestamp}.json`;
+                } else {
+                    filename = `math_brain_${nameA}_${timestamp}.json`;
+                }
 
                 // Create and download file
                 const dataStr = JSON.stringify(chartData, null, 2);
