@@ -3525,7 +3525,7 @@ function renderTransitDay(dateStr, items){
         // ---------- Relocation Defaults & Persistence (Panama City baseline) ----------
         const DEFAULT_RELOC = { city: 'Panama City', state: 'FL', coords: "30°10'N, 85°40'W" };
         const RELOC_PREF_KEY = 'wm_pref_default_reloc_enabled';
-        const DMS_RE = /^\s*([0-9]{1,3})(?:[°\s]([0-9]{1,2}))?(?:['\s]([0-9]{1,2}(?:\.\d+)?))?\s*([NnSs])\s*,\s*([0-9]{1,3})(?:[°\s]([0-9]{1,2}))?(?:['\s]([0-9]{1,2}(?:\.\d+)?))?\s*([EeWw])\s*$/;
+        const DMS_RE = /^\s*([0-9]{1,3})\s*[°]?\s*([0-9]{1,2})?\s*['′]?\s*([0-9]{1,2}(?:\.\d+)?)?\s*([NnSs])\s*,?\s*([0-9]{1,3})\s*[°]?\s*([0-9]{1,2})?\s*['′]?\s*([0-9]{1,2}(?:\.\d+)?)?\s*([EeWw])\s*$/;
         const DEC_RE = /^\s*(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$/;
         function dmsToDec(d,m,s,h){const sign=/[SsWw]/.test(h)?-1:1;return sign*(+d+(+(m||0))/60+(+(s||0))/3600);}        
         function parseLatLonFlexible(input){
