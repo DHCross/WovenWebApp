@@ -555,8 +555,10 @@
                                 </label>
                                 <input type="text" id="relocationCoords" placeholder="e.g., 30°10'N, 85°40'W or 34.0522, -118.2437" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="30°10'N, 85°40'W">
                                 <div class="mt-1 text-xs text-gray-500">
-                                    Format: latitude, longitude (decimal degrees)
-                                    <br>Examples: "40.7128, -74.0060" (NYC) or "34.0522, -118.2437" (LA)
+                                    <strong class="text-gray-400">Supported formats:</strong>
+                                    <br>• <strong>Astroseek format:</strong> "30°10'N, 85°40'W" (degrees/minutes with direction)
+                                    <br>• <strong>Decimal degrees:</strong> "40.7128, -74.0060" (positive = N/E, negative = S/W)
+                                    <br>• Get coordinates from <a href="https://astroseek.com/astrology-birth-chart-calculator-map" target="_blank" class="text-teal-400 underline">Astroseek</a> or Google Maps
                                 </div>
                                 
                                 <!-- Validation Error for Relocation Coords -->
@@ -586,8 +588,12 @@
                                 <div class="flex items-center p-3 bg-gray-750 rounded border border-gray-600">
                                     <input type="checkbox" id="includePersonBRelocation" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
                                     <label for="includePersonBRelocation" class="text-gray-300 font-medium">
-                                        Also relocate Person B
-                                        <span class="text-xs text-gray-500 block">Default: Only Person A relocation applied. Check to include Person B.</span>
+                                        Also relocate Person B to same location
+                                        <span class="text-xs text-gray-500 block">
+                                            <strong>Default:</strong> Only Person A gets relocated. <br>
+                                            <strong>Check this if:</strong> Person B is also in the same relocation city. <br>
+                                            <strong>Leave unchecked if:</strong> Person B remains in their birth location.
+                                        </span>
                                     </label>
                                 </div>
                             </div>
@@ -746,6 +752,32 @@
                                     <div class="text-gray-400 text-xs">Romantic, no sexual</div>
                                 </div>
                             </label>
+                        </div>
+                    </div>
+
+                    <!-- Contact Channel Toggle -->
+                    <div class="mt-6 p-4 bg-gray-750 rounded-lg border border-gray-600">
+                        <p class="text-md font-medium text-white mb-3">Contact Channel:</p>
+                        <p class="text-xs text-gray-400 mb-4">Is this an active relationship channel (currently exchanging), or a dormant one (not currently exchanging)?</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
+                                <input type="radio" name="contactChannel" value="live" class="mr-3 h-4 w-4 text-teal-400 focus:ring-teal-500 border-gray-600 rounded bg-gray-700" checked>
+                                <div>
+                                    <div class="text-white text-sm">🟢 Live</div>
+                                    <div class="text-gray-400 text-xs">Currently in contact / active exchange</div>
+                                </div>
+                            </label>
+                            <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
+                                <input type="radio" name="contactChannel" value="latent" class="mr-3 h-4 w-4 text-teal-400 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                                <div>
+                                    <div class="text-white text-sm">⚫ Latent</div>
+                                    <div class="text-gray-400 text-xs">Not currently in contact / no active exchange</div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="mt-3 p-2 bg-gray-800 rounded text-xs text-gray-300">
+                            <strong class="text-teal-300">Live:</strong> Enables interaction overlays ("when A does this, B may respond...") <br>
+                            <strong class="text-teal-300">Latent:</strong> Parallel weather only (side-by-side individual readings)
                         </div>
                     </div>
                 </div>
@@ -1322,6 +1354,9 @@ function renderTransitDay(dateStr, items){
                     md += `\n`;
                     if (formData.context.intimacy_tier) {
                         md += `- **Intimacy Tier**: ${formData.context.intimacy_tier}\n`;
+                    }
+                    if (formData.context.contact_channel) {
+                        md += `- **Contact Channel**: ${formData.context.contact_channel === 'live' ? '🟢 Live (active exchange)' : '⚫ Latent (dormant channel)'}\n`;
                     }
                     md += `\n`;
                 }
@@ -2328,6 +2363,7 @@ function renderTransitDay(dateStr, items){
                     mode: document.querySelector('input[name="contextMode"]:checked').value,
                     relationship_type: document.querySelector('input[name="relationshipType"]:checked')?.value,
                     intimacy_tier: document.querySelector('input[name="intimacyTier"]:checked')?.value,
+                    contact_channel: document.querySelector('input[name="contactChannel"]:checked')?.value,
                     is_ex_relationship: exRelationshipCheckbox?.checked || false
                 }
             };
@@ -2502,6 +2538,7 @@ function renderTransitDay(dateStr, items){
                     relationalContext: {
                         relationship_type: document.querySelector('input[name="relationshipType"]:checked')?.value || '',
                         intimacy_tier: document.querySelector('input[name="intimacyTier"]:checked')?.value || '',
+                        contact_channel: document.querySelector('input[name="contactChannel"]:checked')?.value || '',
                         relationship_role: document.getElementById('relationshipRole')?.value || '',
                         relationship_role_custom: document.getElementById('relationshipRoleCustom')?.value || '',
                         relationship_notes: document.getElementById('relationshipNotes')?.value || '',
@@ -2614,6 +2651,10 @@ function renderTransitDay(dateStr, items){
                         if (rel.intimacy_tier) {
                             const tierRadio = document.querySelector(`input[name="intimacyTier"][value="${rel.intimacy_tier}"]`);
                             if (tierRadio) tierRadio.checked = true;
+                        }
+                        if (rel.contact_channel) {
+                            const channelRadio = document.querySelector(`input[name="contactChannel"][value="${rel.contact_channel}"]`);
+                            if (channelRadio) channelRadio.checked = true;
                         }
                         if (rel.relationship_role) {
                             const roleSelect = document.getElementById('relationshipRole');
