@@ -858,10 +858,13 @@
                     <h2 class="text-2xl font-semibold text-white">Pure Astrological Geometry</h2>
                     <div class="flex gap-2">
                         <button id="downloadMarkdown" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded text-sm">
-                            📄 Download MD
+                            📄 Save Chart Data
                         </button>
-                        <button id="copyReport" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded text-sm">
-                            Copy Data
+                        <button id="downloadReport" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded text-sm hidden">
+                            📄 Download Report (.md)
+                        </button>
+                        <button id="copyReport" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded text-sm hidden">
+                            📋 Copy Report
                         </button>
                     </div>
                 </div>
@@ -1034,7 +1037,7 @@ function renderTransitDay(dateStr, items){
     return `<h4>${dateStr}</h4><ul><li>${lines.join("</li><li>")}</li></ul>`;
 }
         // Global UI element references
-    let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadMarkdownBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel, exRelationshipCheckbox, relocationPersonBOption, includePersonBRelocationEl, transitStartDate, transitEndDate, transitStep, relocationCoordsInput;
+    let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadMarkdownBtn, downloadReportBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel, exRelationshipCheckbox, relocationPersonBOption, includePersonBRelocationEl, transitStartDate, transitEndDate, transitStep, relocationCoordsInput;
 
         // Defensive check for window/globalThis
         if (typeof window === 'undefined') {
@@ -1050,6 +1053,9 @@ function renderTransitDay(dateStr, items){
             errorMessage.textContent = message;
             errorDisplay.classList.remove('hidden');
             reportOutput.classList.add('hidden');
+            // Hide report action buttons when showing error
+            document.getElementById('copyReport').classList.add('hidden');
+            document.getElementById('downloadReport').classList.add('hidden');
         }
 
         function hideError() {
@@ -2739,6 +2745,9 @@ function renderTransitDay(dateStr, items){
             generateBtn.disabled = true;
             loadingIndicator.classList.remove('hidden');
             reportOutput.classList.add('hidden');
+            // Hide report action buttons when starting new generation
+            document.getElementById('copyReport').classList.add('hidden');
+            document.getElementById('downloadReport').classList.add('hidden');
 
             try {
                 const formData = collectFormData();
@@ -2875,6 +2884,10 @@ function renderTransitDay(dateStr, items){
                 
                 reportContent.textContent = report;
                 reportOutput.classList.remove('hidden');
+                
+                // Show copy and download report buttons when report is generated
+                document.getElementById('copyReport').classList.remove('hidden');
+                document.getElementById('downloadReport').classList.remove('hidden');
 
             } catch (error) {
                 console.error('Error generating report:', error);
@@ -2915,9 +2928,49 @@ function renderTransitDay(dateStr, items){
                 try {
                     await navigator.clipboard.writeText(reportContent.textContent);
                     copyBtn.textContent = 'Copied!';
-                    setTimeout(() => { copyBtn.textContent = 'Copy Data'; }, 2000);
+                    setTimeout(() => { copyBtn.textContent = '📋 Copy Report'; }, 2000);
                 } catch (err) {
                     console.error('Failed to copy text: ', err);
+                }
+            });
+
+            // Download report as markdown file
+            document.getElementById('downloadReport').addEventListener('click', () => {
+                if (!reportContent.textContent) {
+                    showError('No report available for download. Please generate a report first.');
+                    return;
+                }
+                try {
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                    const person1Name = document.getElementById('person1-name').value || 'Person1';
+                    const person2Name = document.getElementById('person2-name').value;
+                    
+                    let filename;
+                    if (person2Name) {
+                        filename = `report_${person1Name}_${person2Name}_${timestamp}.md`;
+                    } else {
+                        filename = `report_${person1Name}_${timestamp}.md`;
+                    }
+                    
+                    const blob = new Blob([reportContent.textContent], { type: 'text/markdown' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    // Brief visual feedback
+                    const btn = document.getElementById('downloadReport');
+                    btn.textContent = '✅ Downloaded!';
+                    setTimeout(() => { btn.textContent = '📄 Download Report (.md)'; }, 2000);
+                    
+                    logger.info('Report downloaded', { filename, size: reportContent.textContent.length });
+                } catch (err) {
+                    console.error('Failed to download report: ', err);
+                    showError('Failed to download report. Please try again.');
                 }
             });
 
@@ -2933,8 +2986,8 @@ function renderTransitDay(dateStr, items){
                     downloadFile(markdownContent, filename, 'text/markdown');
                     
                     // Brief visual feedback
-                    downloadMarkdownBtn.textContent = '✅ Downloaded!';
-                    setTimeout(() => { downloadMarkdownBtn.textContent = '📄 Download MD'; }, 2000);
+                    downloadMarkdownBtn.textContent = '✅ Saved!';
+                    setTimeout(() => { downloadMarkdownBtn.textContent = '📄 Save Chart Data'; }, 2000);
                 } catch (error) {
                     console.error('Download error:', error);
                     showError('Failed to generate markdown download: ' + error.message);
@@ -3677,6 +3730,7 @@ function renderTransitDay(dateStr, items){
             reportContent = document.getElementById('reportContent');
             copyBtn = document.getElementById('copyReport');
             downloadMarkdownBtn = document.getElementById('downloadMarkdown');
+            downloadReportBtn = document.getElementById('downloadReport');
             mathBrainInfoBtn = document.getElementById('math-brain-info-btn');
             mathBrainModal = document.getElementById('math-brain-modal');
             closeMathBrainModal = document.getElementById('close-math-brain-modal');
