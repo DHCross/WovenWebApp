@@ -409,7 +409,7 @@
             </div>
 
             <!-- Context Mode Section (legacy - will be hidden and auto-updated) -->
-            <div id="context-mode-section" class="hidden bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500">
+            <div id="context-mode-section" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-2xl font-semibold text-white">Context Mode</h2>
                     <button id="toggle-mode-help" class="text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none">
@@ -3523,11 +3523,14 @@ function renderTransitDay(dateStr, items){
 
         function updateFormUI() {
             const mode = document.querySelector('input[name="contextMode"]:checked').value;
+            console.log('[UPDATE UI] Current mode:', mode);
 
             const isNatalOnly = mode === 'natal_only';
             const isNatal = mode === 'natal_transits';
             const isSynastryTransits = mode === 'synastry_transits';
             const isCompositeTransits = mode === 'composite_transits';
+            
+            console.log('[UPDATE UI] Mode analysis:', { isNatalOnly, isNatal, isSynastryTransits, isCompositeTransits });
             
             // Person B should be enabled for relational context OR when manually expanded
             const isRelationalContext = currentContextType === 'relational';
@@ -3551,7 +3554,26 @@ function renderTransitDay(dateStr, items){
             });
 
             const showTransitFields = !isNatalOnly; // Show transit fields for all modes except natal_only
-            transitDateFields.style.display = showTransitFields ? 'block' : 'none';
+            console.log('[UPDATE UI] Transit fields:', { showTransitFields, isNatalOnly, transitDateFields: !!transitDateFields });
+            
+            if (transitDateFields) {
+                transitDateFields.style.display = showTransitFields ? 'block' : 'none';
+                console.log('[UPDATE UI] ✅ Transit fields display set to:', showTransitFields ? 'block' : 'none');
+                
+                // Debug parent visibility
+                const parent = transitDateFields.parentElement;
+                const grandParent = parent?.parentElement;
+                console.log('[UPDATE UI] Parent visibility check:', {
+                    parentId: parent?.id || 'no-id',
+                    parentClasses: parent?.className || '',
+                    parentDisplay: parent ? getComputedStyle(parent).display : 'not found',
+                    grandParentId: grandParent?.id || 'no-id', 
+                    grandParentClasses: grandParent?.className || '',
+                    grandParentDisplay: grandParent ? getComputedStyle(grandParent).display : 'not found'
+                });
+            } else {
+                console.error('[UPDATE UI] ❌ transitDateFields element not found!');
+            }
 
             // CRITICAL: Relocation overlay available for ALL chart modes (natal_only and transit modes)
             // Relocation is about geometric foundation shift, not timing - affects natal architecture context
