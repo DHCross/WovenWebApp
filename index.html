@@ -174,7 +174,10 @@
                     </div>
                 </div>
                 <div class="mt-2 text-xs text-gray-400 text-center">
-                    <span id="modeDescription">Start with your reflection, explore the wiring later</span>
+                    <span id="modeDescription">
+                        <strong class="text-teal-300">Mirror:</strong> The land seen in reflection—how the shapes form an image when two charts touch. 
+                        <strong class="text-gray-300">Geometry:</strong> The surveyor's ledger—exact measurements without story.
+                    </span>
                 </div>
             </div>
         </header>
@@ -394,16 +397,31 @@
                             <input type="radio" name="relationalSubtype" value="synastry" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
                             <div>
                                 <div class="text-white text-sm">Synastry + Transits</div>
-                                <div class="text-gray-400 text-xs">How you activate each other</div>
+                                <div class="text-gray-400 text-xs">Laying two old maps on top of each other—where rivers line up, where mountains clash</div>
                             </div>
                         </label>
                         <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
                             <input type="radio" name="relationalSubtype" value="composite" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700" checked>
                             <div>
                                 <div class="text-white text-sm">Composite + Transits</div>
-                                <div class="text-gray-400 text-xs">Shared midpoint chart + current pressures</div>
+                                <div class="text-gray-400 text-xs">Sketching a third map from the overlap—what country appears when you travel together</div>
                             </div>
                         </label>
+                    </div>
+                    
+                    <!-- Relational Mode Explanation -->
+                    <div class="mt-4 p-3 bg-gray-800 rounded-lg border border-gray-600">
+                        <div class="text-xs text-gray-300 space-y-2">
+                            <div>
+                                <strong class="text-teal-300">Synastry</strong> is like laying two old maps on top of each other to see where the rivers line up and where the mountains clash. It shows where each of you naturally flows toward or grinds against the other.
+                            </div>
+                            <div>
+                                <strong class="text-teal-300">Composite</strong> is more like sketching a third map out of the overlap—what kind of country appears when you travel together, even if only for a short spell. That land isn't yours alone or theirs alone; it only exists when the two maps are laid together.
+                            </div>
+                            <div class="text-gray-400 italic mt-2">
+                                Remember: The mirror does not mean the journey is happening—only that, if the two paths touch, this is what the water would show.
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -3110,7 +3128,7 @@ function renderTransitDay(dateStr, items){
                 geometryTab.classList.add('text-gray-300');
                 geometryTab.setAttribute('aria-selected', 'false');
                 
-                modeDescription.textContent = 'Start with your reflection, explore the wiring later';
+                modeDescription.innerHTML = '<strong class="text-teal-300">Mirror:</strong> The land seen in reflection—how the shapes form an image when charts touch. The water shows what appears when two paths meet.';
                 generateBtn.textContent = 'Get My Mirror';
                 showWiringBtn.style.display = 'inline';
                 
@@ -3126,7 +3144,7 @@ function renderTransitDay(dateStr, items){
                 mirrorTab.classList.add('text-gray-300');
                 mirrorTab.setAttribute('aria-selected', 'false');
                 
-                modeDescription.textContent = 'Deep dive into the mathematical structures';
+                modeDescription.innerHTML = '<strong class="text-teal-300">Geometry:</strong> The skeleton of the land—numbers, distances, angles. Silent and exact, measuring rods and compass marks.';
                 generateBtn.textContent = 'Compute Geometry';
                 showWiringBtn.style.display = 'none';
                 
