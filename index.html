@@ -3314,6 +3314,65 @@ function renderTransitDay(dateStr, items){
         function renderBarometerChart(title, dailyMap) {
             const dates = Object.keys(dailyMap || {}).sort();
             if (!dates.length) return '';
+            // If only a single day, render enriched semantic snapshot instead of generic canvas
+            if (dates.length === 1) {
+                const d = dates[0];
+                const day = dailyMap[d] || {};
+                const seismo = day.seismograph || {};
+                const magRaw = Number(seismo.magnitude)||0; // original 0..10 scale? earlier we divide by 2 to normalize
+                const mag = +(magRaw/2).toFixed(2); // normalized 0..5
+                const val = Math.max(-5, Math.min(5, Number(seismo.valence)||0));
+                const vol = +(Number(seismo.volatility)||0).toFixed(2);
+                const heur = generateBarometerHeuristics(mag, val, vol, day);
+                // Color logic based on valence & magnitude
+                const color = barometerColorForValence(val, mag);
+                const gradient = `linear-gradient(135deg, ${color.start} 0%, ${color.end} 70%)`;
+                const glyphs = heur.glyphs ? `<div class="text-2xl tracking-tight">${heur.glyphs}</div>` : '';
+                const annotation = heur.annotation ? `<p class="text-sm italic text-gray-200 mt-2">“${heur.annotation}”</p>` : '';
+                const hooks = (day.hooks && Array.isArray(day.hooks) && day.hooks.length) ?
+                    `<div class="mt-3 text-xs text-teal-200"><span class="font-semibold text-teal-300">Hook Signature:</span> ${day.hooks.slice(0,5).map(h=>h.label||h.name||h.aspect||'').filter(Boolean).join(' · ')}</div>` : '';
+                const scaleConf = (seismo.scaleConfidence!=null) ? `<span class="ml-2 text-[10px] text-gray-400">scale conf ${(+seismo.scaleConfidence).toFixed(2)}</span>` : '';
+                return `<div class="mb-6">
+                    <h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Daily Barometer</h4>
+                    <div class="rounded border border-gray-600 overflow-hidden bg-gray-900">
+                        <div class="p-4" style="background:${gradient};">
+                            <div class="flex flex-col md:flex-row md:items-start gap-4">
+                                <div class="flex-1 min-w-[240px]">
+                                    <div class="text-xs uppercase tracking-wide text-gray-300 mb-1">${d}</div>
+                                    <h5 class="text-xl font-semibold text-gray-50">${heur.title || 'Pattern Snapshot'}${scaleConf}</h5>
+                                    ${annotation}
+                                    ${glyphs}
+                                </div>
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm flex-none">
+                                    <div class="bg-gray-900/50 backdrop-blur rounded p-2 border border-gray-700">
+                                        <div class="text-[10px] uppercase text-gray-400">Magnitude</div>
+                                        <div class="font-semibold text-gray-100">${mag.toFixed(2)}<span class="text-[11px] text-gray-400"> / 5</span></div>
+                                        <div class="text-[10px] text-gray-300">${heur.magnitudeLabel}</div>
+                                    </div>
+                                    <div class="bg-gray-900/50 backdrop-blur rounded p-2 border border-gray-700">
+                                        <div class="text-[10px] uppercase text-gray-400">Valence</div>
+                                        <div class="font-semibold ${val<0?'text-rose-300':'text-emerald-300'}">${val.toFixed(2)}</div>
+                                        <div class="text-[10px] text-gray-300">${heur.valenceLabel}</div>
+                                    </div>
+                                    <div class="bg-gray-900/50 backdrop-blur rounded p-2 border border-gray-700">
+                                        <div class="text-[10px] uppercase text-gray-400">Volatility</div>
+                                        <div class="font-semibold ${vol>3?'text-amber-300':'text-gray-200'}">${vol.toFixed(2)}</div>
+                                        <div class="text-[10px] text-gray-300">${heur.volatilityLabel}</div>
+                                    </div>
+                                    <div class="bg-gray-900/50 backdrop-blur rounded p-2 border border-gray-700">
+                                        <div class="text-[10px] uppercase text-gray-400">Signal Tags</div>
+                                        <div class="font-semibold text-gray-100">${heur.signalTags || '—'}</div>
+                                        <div class="text-[10px] text-gray-300">${heur.signalLabel}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            ${hooks}
+                            <div class="mt-4 text-[10px] text-gray-300 uppercase tracking-wide">Signal descriptors (geometry-sourced; not narrative)</div>
+                        </div>
+                    </div>
+                </div>`;
+            }
+            // Multi-day fallback: existing canvas bar chart
             const canvasId = `bar-${title.replace(/\s+/g,'-').toLowerCase()}`;
             const html = `<div class="mb-6"><h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Daily Barometer</h4><div class="bg-gray-800 p-4 rounded border border-gray-600"><canvas id="${canvasId}" width="900" height="260" class="w-full bg-gray-900 rounded"></canvas></div></div>`;
             setTimeout(()=>drawBarometerChart(canvasId, dailyMap, dates),5);
@@ -3355,13 +3414,59 @@ function renderTransitDay(dateStr, items){
             // Grid
             ctx.strokeStyle='#374151'; ctx.lineWidth=1; for(let i=0;i<=5;i++){const y=margin.top+ch-(ch*i/5); ctx.beginPath(); ctx.moveTo(margin.left,y); ctx.lineTo(margin.left+cw,y); ctx.stroke(); ctx.fillStyle='#6b7280'; ctx.font='10px Inter'; ctx.fillText(i.toString(), margin.left-18, y+3);} // bars
             // Bars
-            points.forEach((p,i)=>{const x=margin.left+i*(barW+2); const h=(p.mag/5)*ch; const y=margin.top+ch-h; // volatility shading (higher vol => lighter fill pattern)
-                const alpha=0.4+Math.min(p.vol/5,0.5); ctx.fillStyle=`rgba(45,212,191,${alpha})`; ctx.fillRect(x,y,barW,h); ctx.fillStyle='#0f766e'; ctx.fillRect(x,y,barW,2); // cap
+            points.forEach((p,i)=>{const x=margin.left+i*(barW+2); const h=(p.mag/5)*ch; const y=margin.top+ch-h; // volatility shading (higher vol => pattern)
+                const col = barometerColorForValence(p.val, p.mag);
+                // base fill gradient
+                const g=ctx.createLinearGradient(x,y,x,y+h); g.addColorStop(0,col.start); g.addColorStop(1,col.end); ctx.fillStyle=g; ctx.fillRect(x,y,barW,h);
+                // volatility overlay stripes
+                if(p.vol>2){ const stripeCount = Math.min(12, 4 + Math.floor(p.vol*2)); ctx.save(); ctx.beginPath(); ctx.rect(x,y,barW,h); ctx.clip(); ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1; for(let s=0;s<stripeCount;s++){const sy=y + (h/stripeCount)*s; ctx.beginPath(); ctx.moveTo(x, sy); ctx.lineTo(x+barW, sy + 4); ctx.stroke(); } ctx.restore(); }
+                // top cap
+                ctx.fillStyle=col.cap; ctx.fillRect(x,y,barW,2);
                 if(i%Math.ceil(points.length/10)===0||i===points.length-1){ctx.fillStyle='#94a3b8'; ctx.save(); ctx.translate(x+barW/2, H-8); ctx.rotate(-Math.PI/4); ctx.fillText(p.d, -20,0); ctx.restore();}
                 // Valence annotation above bar
-                ctx.fillStyle='#fbbf24'; ctx.font='9px Inter'; ctx.fillText('V:'+(p.val>=0?'+':'')+p.val.toFixed(1), x-2, y-4); });
+                ctx.fillStyle=p.val<0? '#f87171':'#fbbf24'; ctx.font='9px Inter'; ctx.fillText('V:'+(p.val>=0?'+':'')+p.val.toFixed(1), x-2, y-4); });
             // Axes labels
             ctx.fillStyle='#e5e7eb'; ctx.font='11px Inter'; ctx.fillText('Magnitude 0–5 (normalized)', margin.left, 12); ctx.fillText('Valence annotated per bar', margin.left+220, 12);
+        }
+
+        // --- Barometer Heuristics & Color Helpers (single-day + multi-day styling) ---
+        function barometerColorForValence(val, mag){
+            // Returns {start,end,cap}
+            if(val <= -3) return {start:'#581c1c', end:'#b91c1c', cap:'#dc2626'};
+            if(val < -1) return {start:'#4c1d1d', end:'#7f1d1d', cap:'#991b1b'};
+            if(val > 3) return {start:'#064e3b', end:'#059669', cap:'#10b981'};
+            if(val > 1) return {start:'#0f766e', end:'#14b8a6', cap:'#0d9488'};
+            return {start:'#334155', end:'#475569', cap:'#64748b'}; // neutral
+        }
+        function generateBarometerHeuristics(mag,val,vol, day){
+            // Magnitude label
+            let magnitudeLabel = mag>=4? 'high internal charge' : mag>=3? 'elevated load' : mag>=2? 'moderate field' : mag>1? 'light field' : 'minimal pressure';
+            // Valence label
+            let valenceLabel = val<=-4? 'acute friction' : val<=-3? 'sharp drag' : val<=-1.5? 'net tension' : val<-0.5? 'mild drag' : val<0.5? 'neutral drift' : val<2? 'supportive tone' : val<3.5? 'strong uplift' : 'surging uplift';
+            // Volatility label
+            let volatilityLabel = vol>=4? 'scattered / spiking' : vol>=3? 'unstable oscillation' : vol>=2? 'variable' : vol>=1? 'settling' : 'steady';
+            // Signal tags & glyphs
+            const tags=[]; const glyphs=[];
+            if(vol>=3) { tags.push('⚡'); glyphs.push('⚡'); }
+            if(val<=-3) { tags.push('☍'); if(!glyphs.includes('☍')) glyphs.push('☍'); }
+            if(vol>=3 && val<0) { tags.push('⧖'); if(!glyphs.includes('⧖')) glyphs.push('⧖'); }
+            const signalTags = tags.join('');
+            // Title heuristics
+            let title;
+            if(mag>=4 && val<=-3) title='Held in the Pause';
+            else if(val<=-4) title='Friction Peak';
+            else if(vol>=4 && val<0) title='Diffuse Pulse';
+            else if(mag<2 && Math.abs(val)<0.5) title='Low Signal Day';
+            else if(mag>=3 && val>2) title='Momentum Window';
+            else title='Pattern Snapshot';
+            // Annotation (short, geometry-sourced descriptors; not narrative voice)
+            let annotation;
+            if(title==='Held in the Pause') annotation='Signal drop. Echo instead of response.';
+            else if(title==='Friction Peak') annotation='Contact misfires; compression spike.';
+            else if(title==='Diffuse Pulse') annotation='Energy disperses; focus splits.';
+            else if(title==='Momentum Window') annotation='Supportive current with lift.';
+            else if(title==='Low Signal Day') annotation='Minimal activation; baseline field.';
+            return {title, annotation, glyphs: glyphs.join(''), magnitudeLabel, valenceLabel, volatilityLabel, signalTags, signalLabel:'composite flags'};
         }
 
         // =============================================================================
