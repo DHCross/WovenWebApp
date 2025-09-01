@@ -3211,18 +3211,21 @@ function renderTransitDay(dateStr, items){
 
         function generateFilename(extension, data) {
             const formData = collectFormData();
-            const personA = formData.personA.name.replace(/[^a-zA-Z0-9]/g, '');
+            const personA = formData.personA.name.replace(/[^a-zA-Z0-9]/g, '') || 'PersonA';
             const personB = formData.personB?.name?.replace(/[^a-zA-Z0-9]/g, '') || '';
             const mode = formData.context.mode;
-            const date = new Date().toISOString().split('T')[0];
-            
+            const today = new Date().toISOString().split('T')[0];
+            const isSeismo = currentAppMode === 'seismograph';
             let filename = `WovenMap_${personA}`;
-            if (personB) {
-                filename += `_${personB}`;
+            if (personB) filename += `_${personB}`;
+            if (isSeismo) {
+                const start = formData.transitParams?.startDate || today;
+                const end = formData.transitParams?.endDate || start;
+                if (start === end) filename += `_seismograph_${start}`; else filename += `_seismograph_${start}_to_${end}`;
+            } else {
+                filename += `_${mode}_${today}`;
             }
-            filename += `_${mode}_${date}.${extension}`;
-            
-            return filename;
+            return `${filename}.${extension}`;
         }
 
         function parseCoordinates(coordString) {
@@ -4021,19 +4024,22 @@ function renderTransitDay(dateStr, items){
                 if (currentAppMode === 'seismograph') {
                     const html = buildSeismographDisplay(result);
                     reportContent.innerHTML = html;
-                    // Hide markdown-specific buttons for seismograph mode
                     document.getElementById('copyReport').classList.add('hidden');
                     document.getElementById('downloadReport').classList.add('hidden');
-                    // Setup seismograph event listeners
                     setupSeismographEventListeners();
                 } else {
-                    // Generate human-readable Markdown report for mirror/geometry modes
                     const report = generateMarkdownReport(result);
                     reportContent.textContent = report;
-                    // Show copy and download report buttons when report is generated
                     document.getElementById('copyReport').classList.remove('hidden');
                     document.getElementById('downloadReport').classList.remove('hidden');
+                    // Prompt for seismograph if transit data present
+                    const hasTransitsMode = formData.context.mode.includes('transits');
+                    const hasTransitData = result.person_a?.chart?.transitsByDate || result.person_b?.chart?.transitsByDate || result.composite?.transitsByDate;
+                    if (hasTransitsMode && hasTransitData) {
+                        addSeismographPrompt();
+                    }
                 }
+                updateSeismographTabIndicator();
                 
                 reportOutput.classList.remove('hidden');
 
@@ -4310,7 +4316,7 @@ function renderTransitDay(dateStr, items){
         let currentAppMode = 'mirror'; // 'mirror', 'geometry', or 'seismograph'
         let currentContextType = 'solo'; // 'solo', 'relational', 'weather'
         
-        function updateAppMode(mode) {
+    function updateAppMode(mode) {
             currentAppMode = mode;
             
             // Update tab appearance
@@ -4358,8 +4364,7 @@ function renderTransitDay(dateStr, items){
                 seismographTab.classList.add('bg-teal-600', 'text-white');
                 seismographTab.classList.remove('text-gray-300');
                 seismographTab.setAttribute('aria-selected', 'true');
-                
-                modeDescription.innerHTML = '<strong class="text-cyan-300">Seismograph:</strong> Live pressure metrics (magnitude, valence, volatility) across the chosen window. The needle traces symbolic earthquakes in time.';
+                modeDescription.innerHTML = '<strong class="text-cyan-300">Seismograph:</strong> Maps symbolic pressure fronts moving through time. Magnitude (0–5) = charge intensity, Valence (-5..+5) = ease vs friction, Volatility (0–5) = rate of change. The trace follows currents across your window.';
                 generateBtn.textContent = 'Generate Seismograph';
                 showWiringBtn.style.display = 'none';
                 
@@ -4369,6 +4374,65 @@ function renderTransitDay(dateStr, items){
             }
             
             updateUIBasedOnMode();
+        }
+
+        // --- Seismograph Prompt & Indicator ---
+        function addSeismographPrompt() {
+            if (currentAppMode === 'seismograph') return;
+            if (document.getElementById('seismographPrompt')) return; // avoid duplicates
+            const hasTransitData = latestResultData && (latestResultData.person_a?.chart?.transitsByDate || latestResultData.person_b?.chart?.transitsByDate || latestResultData.composite?.transitsByDate);
+            if (!hasTransitData) return;
+            const container = document.getElementById('reportOutput');
+            if (!container) return;
+            const div = document.createElement('div');
+            div.id = 'seismographPrompt';
+            div.className = 'mt-6 p-4 bg-gray-800 rounded-lg border border-cyan-500';
+            div.innerHTML = `
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-cyan-300 mb-2">📊 Visualize Transit Patterns?</h3>
+                    <p class="text-sm text-gray-300 mb-3">Transit data available. Map symbolic pressure surges & lulls (magnitude / valence / volatility) over your selected window.</p>
+                    <div class="flex gap-3">
+                      <button id="viewSeismographBtn" class="px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 text-sm">📊 View Seismograph</button>
+                      <button id="dismissSeismographBtn" class="px-4 py-2 bg-gray-600 text-gray-200 rounded hover:bg-gray-700 text-sm">Not Now</button>
+                    </div>
+                  </div>
+                  <button id="closeSeismographPrompt" class="text-gray-400 hover:text-white ml-4" aria-label="Dismiss prompt">✕</button>
+                </div>`;
+            container.appendChild(div);
+            const viewBtn = div.querySelector('#viewSeismographBtn');
+            const dismissIds = ['dismissSeismographBtn','closeSeismographPrompt'];
+            if (viewBtn) viewBtn.addEventListener('click', () => {
+                updateAppMode('seismograph');
+                const html = buildSeismographDisplay(latestResultData);
+                const reportContent = document.getElementById('reportContent');
+                if (reportContent) reportContent.innerHTML = html;
+                setupSeismographEventListeners();
+                document.getElementById('copyReport')?.classList.add('hidden');
+                document.getElementById('downloadReport')?.classList.add('hidden');
+                div.remove();
+                window.scrollTo({top:0, behavior:'smooth'});
+            });
+            dismissIds.forEach(id=>{
+                const btn = div.querySelector('#'+id); if(btn) btn.addEventListener('click', ()=>div.remove());
+            });
+        }
+
+        function updateSeismographTabIndicator() {
+            const tab = document.getElementById('seismographModeTab');
+            if (!tab) return;
+            const hasTransitData = latestResultData && (latestResultData.person_a?.chart?.transitsByDate || latestResultData.person_b?.chart?.transitsByDate || latestResultData.composite?.transitsByDate);
+            let indicator = tab.querySelector('.transit-indicator');
+            if (hasTransitData) {
+                if (!indicator) {
+                    indicator = document.createElement('span');
+                    indicator.className = 'transit-indicator ml-1 inline-block w-2 h-2 bg-cyan-400 rounded-full animate-pulse';
+                    indicator.title = 'Transit data ready for Seismograph';
+                    tab.appendChild(indicator);
+                }
+            } else if (indicator) {
+                indicator.remove();
+            }
         }
         
         function updateContextType(contextType) {
