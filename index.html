@@ -123,27 +123,86 @@
                     min-height: 44px;
                     display: flex;
                     align-items: center;
-                    cursor: pointer;
                 }
                 
-                /* Increase button sizes */
-                button {
+                /* Seismograph mobile optimizations */
+                .swipeable-card {
+                    touch-action: pan-x;
+                    transition: transform 0.2s ease;
+                }
+                
+                .swipeable-card:active {
+                    transform: scale(0.98);
+                }
+                
+                /* Mobile-friendly table scrolling */
+                .overflow-x-auto {
+                    -webkit-overflow-scrolling: touch;
+                }
+                
+                /* Seismograph controls */
+                .seismograph-controls {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0.5rem;
+                }
+                
+                .seismograph-controls button {
                     min-height: 44px;
-                    padding: 12px 16px;
+                    touch-action: manipulation;
                 }
-                
-                /* Collapse verbose help by default */
-                #stepSizeHelpPanel,
-                #context-help-panel {
-                    display: none;
-                }
-                
-                /* Tab buttons should be larger on mobile */
-                #mirrorModeTab,
-                #geometryModeTab {
-                    min-height: 48px;
-                    padding: 12px 24px;
-                }
+            }
+            
+            /* Seismograph-specific styles */
+            .seismograph-table th,
+            .seismograph-table td {
+                white-space: nowrap;
+            }
+            
+            .pattern-card {
+                transition: all 0.2s ease;
+            }
+            
+            .pattern-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            }
+            
+            /* Filter panel animations */
+            #seismographFiltersPanel {
+                transition: all 0.3s ease;
+                max-height: 0;
+                overflow: hidden;
+            }
+            
+            #seismographFiltersPanel:not(.hidden) {
+                max-height: 400px;
+            }
+            
+            /* Custom range slider styling for dark theme */
+            input[type="range"] {
+                height: 6px;
+                background: #4a5568;
+                border-radius: 3px;
+                outline: none;
+            }
+            
+            input[type="range"]::-webkit-slider-thumb {
+                appearance: none;
+                width: 18px;
+                height: 18px;
+                background: #3182ce;
+                border-radius: 50%;
+                cursor: pointer;
+            }
+            
+            input[type="range"]::-moz-range-thumb {
+                width: 18px;
+                height: 18px;
+                background: #3182ce;
+                border-radius: 50%;
+                cursor: pointer;
+                border: none;
             }
         </style>
     </head>
@@ -170,6 +229,11 @@
                                 class="px-6 py-2 text-sm font-medium rounded-md text-gray-300 hover:text-white transition-colors duration-200" 
                                 data-mode="geometry">
                             Geometry
+                        </button>
+                        <button id="seismographModeTab" type="button" role="tab" aria-selected="false" aria-controls="seismograph-content"
+                                class="px-6 py-2 text-sm font-medium rounded-md text-gray-300 hover:text-white transition-colors duration-200" 
+                                data-mode="seismograph">
+                            Seismograph
                         </button>
                     </div>
                 </div>
@@ -2050,6 +2114,1092 @@ function renderTransitDay(dateStr, items){
             return md;
         }
 
+        // =============================================================================
+        // SEISMOGRAPH FUNCTIONS
+        // =============================================================================
+
+    function buildSeismographDisplay(data) {
+            if (!data) return '<p>No data available for seismograph analysis.</p>';
+            
+            // Store data globally for CSV export and filtering
+            window.seismographData = data;
+            window.seismographFilters = {
+                minMagnitude: 0,
+                minValence: -5,
+                maxValence: 5,
+                minVolatility: 0,
+                showPatterns: true
+            };
+            
+            let html = `
+                <div class="space-y-6">
+                    <div class="bg-gray-800 p-4 rounded-lg border border-teal-500">
+                        <h3 class="text-lg font-semibold text-teal-300 mb-3">Seismograph Overview</h3>
+                        <p class="text-sm text-gray-300 mb-3 leading-relaxed">
+                            <strong>Macro (Seismograph Arc):</strong> Normalized activation curve (Magnitude scaled to 0–5) with valence drift path.<br>
+                            <strong>Micro (Barometer):</strong> Daily bar pulses (Magnitude 0–5) with textual valence annotations (V:+/-x.x) and volatility shading.<br>
+                            <strong>Scales:</strong> Magnitude 0–5 (normalized), Valence -5..+5 (annotation only), Volatility 0–5. Raw source magnitude (0–10) preserved in tables.
+                        </p>
+                        <div class="flex flex-wrap gap-2 mb-4" aria-label="Seismograph controls">
+                            <button id="toggleSeismographView" aria-live="polite" class="px-3 py-1 bg-teal-600 text-white rounded text-sm hover:bg-teal-700" title="Cycle: Table → Arc → Barometer → Mobile">
+                                🔄 View: Table
+                            </button>
+                            <button id="downloadAllSeismographCSV" class="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700" title="Download CSV per dataset">
+                                📁 Download All CSV
+                            </button>
+                            <button id="toggleSeismographFilters" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700" title="Show/Hide Filters">
+                                🔍 Filters
+                            </button>
+                            <button id="detectSeismographPatterns" class="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700" title="Run pattern detection">
+                                🔮 Detect Patterns
+                            </button>
+                        </div>
+                        ${buildSeismographFilters()}
+                        <div class="mt-4 text-xs text-gray-400 border-t border-gray-700 pt-3">
+                            Normalization happens only in visual arc/barometer layers. Tables retain raw magnitude (0–10) for auditability.
+                        </div>
+                    </div>`;
+            
+            // Pattern detection results
+            html += '<div id="seismographPatterns"></div>';
+            
+            // View toggle container
+            html += '<div id="seismographViewContainer">';
+            
+            // Build tables for each person/composite
+            if (data.person_a?.chart?.transitsByDate) {
+                const personAName = data.person_a?.info?.name || 'Person A';
+                html += buildSeismographTable(personAName, data.person_a.chart.transitsByDate);
+            }
+            
+            if (data.person_b?.chart?.transitsByDate) {
+                const personBName = data.person_b?.info?.name || 'Person B';
+                html += buildSeismographTable(personBName, data.person_b.chart.transitsByDate);
+            }
+            
+            if (data.composite?.transitsByDate) {
+                html += buildSeismographTable('Composite', data.composite.transitsByDate);
+            }
+            
+            // Mobile cards view (hidden by default)
+            html += '<div id="seismographMobileView" class="hidden">';
+            if (data.person_a?.chart?.transitsByDate) {
+                const personAName = data.person_a?.info?.name || 'Person A';
+                html += buildMobileSeismographCards(personAName, data.person_a.chart.transitsByDate);
+            }
+            if (data.person_b?.chart?.transitsByDate) {
+                const personBName = data.person_b?.info?.name || 'Person B';
+                html += buildMobileSeismographCards(personBName, data.person_b.chart.transitsByDate);
+            }
+            if (data.composite?.transitsByDate) {
+                html += buildMobileSeismographCards('Composite', data.composite.transitsByDate);
+            }
+            html += '</div>';
+            
+            html += '</div></div>';
+            return html;
+        }
+
+        function buildSeismographFilters() {
+            return `
+                <div id="seismographFiltersPanel" class="hidden mt-4 p-4 bg-gray-700 rounded border">
+                    <h4 class="text-sm font-semibold text-blue-300 mb-3">Filter Thresholds</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                        <div>
+                            <label class="block text-gray-300 mb-1">Min Magnitude</label>
+                            <input type="range" id="filterMinMagnitude" min="0" max="10" step="0.1" value="0" 
+                                   class="w-full accent-blue-500">
+                            <span id="filterMinMagnitudeValue" class="text-blue-300">0.0</span>
+                        </div>
+                        <div>
+                            <label class="block text-gray-300 mb-1">Min Valence</label>
+                            <input type="range" id="filterMinValence" min="-5" max="5" step="0.1" value="-5" 
+                                   class="w-full accent-blue-500">
+                            <span id="filterMinValenceValue" class="text-blue-300">-5.0</span>
+                        </div>
+                        <div>
+                            <label class="block text-gray-300 mb-1">Max Valence</label>
+                            <input type="range" id="filterMaxValence" min="-5" max="5" step="0.1" value="5" 
+                                   class="w-full accent-blue-500">
+                            <span id="filterMaxValenceValue" class="text-blue-300">5.0</span>
+                        </div>
+                        <div>
+                            <label class="block text-gray-300 mb-1">Min Volatility</label>
+                            <input type="range" id="filterMinVolatility" min="0" max="5" step="0.1" value="0" 
+                                   class="w-full accent-blue-500">
+                            <span id="filterMinVolatilityValue" class="text-blue-300">0.0</span>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex gap-2">
+                        <button id="applySeismographFilters" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                            Apply Filters
+                        </button>
+                        <button id="resetSeismographFilters" class="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700">
+                            Reset
+                        </button>
+                    </div>
+                </div>`;
+        }
+
+        function buildSeismographTable(title, dailyMap) {
+            if (!dailyMap || Object.keys(dailyMap).length === 0) {
+                return `<div class="mb-6">
+                    <h4 class="text-lg font-semibold text-yellow-300 mb-3">${title}</h4>
+                    <p class="text-gray-400">No transit data available for this period.</p>
+                </div>`;
+            }
+            
+            const dates = Object.keys(dailyMap).sort();
+            
+            let html = `
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="text-lg font-semibold text-yellow-300">${title}</h4>
+                        <button onclick="downloadSeismographCSV('${title}', window.seismographData)" 
+                                class="px-2 py-1 bg-gray-600 text-white rounded text-xs hover:bg-gray-700">
+                            📄 CSV
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm border border-gray-600 rounded seismograph-table">
+                            <thead class="bg-gray-700">
+                                <tr>
+                                    <th class="px-3 py-2 text-left text-gray-300 border-b border-gray-600">Date</th>
+                                    <th class="px-3 py-2 text-right text-gray-300 border-b border-gray-600">Magnitude</th>
+                                    <th class="px-3 py-2 text-right text-gray-300 border-b border-gray-600">Valence</th>
+                                    <th class="px-3 py-2 text-right text-gray-300 border-b border-gray-600">Volatility</th>
+                                    <th class="px-3 py-2 text-left text-gray-300 border-b border-gray-600">Top Hooks</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+            
+            dates.forEach(date => {
+                const day = dailyMap[date];
+                if (!day) return;
+                
+                const mag = (day.seismograph?.magnitude || 0).toFixed(1);
+                const val = Math.max(-5, Math.min(5, day.seismograph?.valence || 0)).toFixed(1);
+                const vol = (day.seismograph?.volatility || 0).toFixed(1);
+                
+                // Get top 3 hooks
+                const hooks = (day.hooks || []).slice(0, 3);
+                const hookText = hooks.length > 0 
+                    ? hooks.map(h => `${h.p1_name || h.p1_display || '?'} ${h.aspect || h._aspect || '?'} ${h.p2_name || h.p2_display || '?'}`).join(', ')
+                    : '—';
+                
+                // Reduced semantic coloring – keep magnitude emphasis only (valence annotation neutral)
+                const magColor = parseFloat(mag) > 7 ? 'text-red-400' : parseFloat(mag) > 5 ? 'text-yellow-400' : 'text-teal-300';
+                const valColor = 'text-gray-300';
+                const volColor = 'text-gray-300';
+                
+                html += `
+                    <tr class="hover:bg-gray-700 transition-colors">
+                        <td class="px-3 py-2 border-b border-gray-700 text-teal-300">${date}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-right ${magColor}">${mag}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-right ${valColor}">${val}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-right ${volColor}">${vol}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-gray-300 text-xs" title="${hookText}">${hookText.length > 50 ? hookText.substring(0, 50) + '...' : hookText}</td>
+                    </tr>`;
+            });
+            
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+            
+            return html;
+        }
+
+        function buildSeismographTableFiltered(title, dailyMap, filters) {
+            if (!dailyMap || Object.keys(dailyMap).length === 0) {
+                return `<div class="mb-6">
+                    <h4 class="text-lg font-semibold text-yellow-300 mb-3">${title}</h4>
+                    <p class="text-gray-400">No transit data available for this period.</p>
+                </div>`;
+            }
+            
+            const dates = Object.keys(dailyMap).sort();
+            
+            // Filter dates based on seismograph values
+            const filteredDates = dates.filter(date => {
+                const day = dailyMap[date];
+                if (!day || !day.seismograph) return false;
+                
+                const mag = day.seismograph.magnitude || 0;
+                const val = day.seismograph.valence || 0;
+                const vol = day.seismograph.volatility || 0;
+                
+                return mag >= filters.minMagnitude &&
+                       val >= filters.minValence &&
+                       val <= filters.maxValence &&
+                       vol >= filters.minVolatility;
+            });
+            
+            let html = `
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="text-lg font-semibold text-yellow-300">${title}</h4>
+                        <div class="flex gap-2 items-center">
+                            <span class="text-xs text-blue-400">Filtered: ${filteredDates.length}/${dates.length}</span>
+                            <button onclick="downloadSeismographCSV('${title}', window.seismographData)" 
+                                    class="px-2 py-1 bg-gray-600 text-white rounded text-xs hover:bg-gray-700">
+                                📄 CSV
+                            </button>
+                        </div>
+                    </div>`;
+                    
+            if (filteredDates.length === 0) {
+                html += `<p class="text-orange-400 text-sm">No dates match current filter criteria.</p></div>`;
+                return html;
+            }
+            
+            html += `
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm border border-gray-600 rounded seismograph-table">
+                            <thead class="bg-gray-700">
+                                <tr>
+                                    <th class="px-3 py-2 text-left text-gray-300 border-b border-gray-600">Date</th>
+                                    <th class="px-3 py-2 text-right text-gray-300 border-b border-gray-600">Magnitude</th>
+                                    <th class="px-3 py-2 text-right text-gray-300 border-b border-gray-600">Valence</th>
+                                    <th class="px-3 py-2 text-right text-gray-300 border-b border-gray-600">Volatility</th>
+                                    <th class="px-3 py-2 text-left text-gray-300 border-b border-gray-600">Top Hooks</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+            
+            filteredDates.forEach(date => {
+                const day = dailyMap[date];
+                const mag = (day.seismograph?.magnitude || 0).toFixed(1);
+                const val = Math.max(-5, Math.min(5, day.seismograph?.valence || 0)).toFixed(1);
+                const vol = (day.seismograph?.volatility || 0).toFixed(1);
+                
+                const hooks = (day.hooks || []).slice(0, 3);
+                const hookText = hooks.length > 0 
+                    ? hooks.map(h => `${h.p1_name || h.p1_display || '?'} ${h.aspect || h._aspect || '?'} ${h.p2_name || h.p2_display || '?'}`).join(', ')
+                    : '—';
+                
+                // Reduced semantic coloring – magnitude only
+                const magColor = parseFloat(mag) > 7 ? 'text-red-300 font-bold' : parseFloat(mag) > 5 ? 'text-yellow-400' : 'text-teal-300';
+                const valColor = 'text-gray-300';
+                const volColor = 'text-gray-300';
+                
+                html += `
+                    <tr class="hover:bg-gray-700 transition-colors">
+                        <td class="px-3 py-2 border-b border-gray-700 text-teal-300">${date}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-right ${magColor}">${mag}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-right ${valColor}">${val}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-right ${volColor}">${vol}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-gray-300 text-xs" title="${hookText}">${hookText.length > 50 ? hookText.substring(0, 50) + '...' : hookText}</td>
+                    </tr>`;
+            });
+            
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+            
+            return html;
+        }
+
+        function buildMobileSeismographCardsFiltered(title, dailyMap, filters) {
+            if (!dailyMap || Object.keys(dailyMap).length === 0) return '';
+            
+            const dates = Object.keys(dailyMap).sort();
+            
+            // Filter dates
+            const filteredDates = dates.filter(date => {
+                const day = dailyMap[date];
+                if (!day || !day.seismograph) return false;
+                
+                const mag = day.seismograph.magnitude || 0;
+                const val = day.seismograph.valence || 0;
+                const vol = day.seismograph.volatility || 0;
+                
+                return mag >= filters.minMagnitude &&
+                       val >= filters.minValence &&
+                       val <= filters.maxValence &&
+                       vol >= filters.minVolatility;
+            });
+            
+            if (filteredDates.length === 0) {
+                return `<div class="mb-6">
+                    <h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} - Mobile View</h4>
+                    <p class="text-orange-400 text-sm">No dates match current filter criteria.</p>
+                </div>`;
+            }
+            
+            let html = `<div class="mb-6">
+                <h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} - Mobile View (${filteredDates.length}/${dates.length})</h4>
+                <div class="space-y-3">`;
+            
+            filteredDates.forEach(date => {
+                const day = dailyMap[date];
+                const mag = (day.seismograph?.magnitude || 0).toFixed(1);
+                const val = Math.max(-5, Math.min(5, day.seismograph?.valence || 0)).toFixed(1);
+                const vol = (day.seismograph?.volatility || 0).toFixed(1);
+                
+                const hooks = (day.hooks || []).slice(0, 2);
+                const hookText = hooks.length > 0 
+                    ? hooks.map(h => `${h.p1_name || '?'} ${h.aspect || '?'} ${h.p2_name || '?'}`).join('<br>')
+                    : 'No significant hooks';
+                
+                // Color coding for cards
+                const cardClass = parseFloat(mag) > 7 ? 'border-red-500' : parseFloat(mag) > 5 ? 'border-yellow-500' : 'border-teal-500';
+                
+                html += `
+                    <div class="bg-gray-700 p-3 rounded border-l-4 ${cardClass} swipeable-card">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-teal-300 font-semibold">${date}</span>
+                            <div class="text-xs text-gray-400">
+                                M:${mag} V:${val} Vol:${vol}
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-300">${hookText}</div>
+                    </div>`;
+            });
+            
+            html += `</div></div>`;
+            return html;
+        }
+
+        function buildMobileSeismographCards(title, dailyMap) {
+            if (!dailyMap || Object.keys(dailyMap).length === 0) return '';
+            
+            const dates = Object.keys(dailyMap).sort();
+            
+            let html = `<div class="mb-6">
+                <h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} - Mobile View</h4>
+                <div class="space-y-3">`;
+            
+            dates.forEach(date => {
+                const day = dailyMap[date];
+                if (!day) return;
+                
+                const mag = (day.seismograph?.magnitude || 0).toFixed(1);
+                const val = Math.max(-5, Math.min(5, day.seismograph?.valence || 0)).toFixed(1);
+                const vol = (day.seismograph?.volatility || 0).toFixed(1);
+                
+                const hooks = (day.hooks || []).slice(0, 2);
+                const hookText = hooks.length > 0 
+                    ? hooks.map(h => `${h.p1_name || '?'} ${h.aspect || '?'} ${h.p2_name || '?'}`).join('<br>')
+                    : 'No significant hooks';
+                
+                html += `
+                    <div class="bg-gray-700 p-3 rounded border-l-4 border-teal-500 swipeable-card">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-teal-300 font-semibold">${date}</span>
+                            <div class="text-xs text-gray-400">
+                                M:${mag} V:${val} Vol:${vol}
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-300">${hookText}</div>
+                    </div>`;
+            });
+            
+            html += `</div></div>`;
+            return html;
+        }
+
+        function downloadSeismographCSV(title, data) {
+            const dailyMap = title === 'Person A' ? data?.person_a?.chart?.transitsByDate :
+                           title === 'Person B' ? data?.person_b?.chart?.transitsByDate :
+                           title === 'Composite' ? data?.composite?.transitsByDate : null;
+            
+            if (!dailyMap) {
+                console.warn('No data available for CSV export:', title);
+                return;
+            }
+            
+            const dates = Object.keys(dailyMap).sort();
+            let csv = 'Date,Magnitude,Valence,Volatility,Scale_Confidence,Top_Hooks\n';
+            
+            dates.forEach(date => {
+                const day = dailyMap[date];
+                if (!day) return;
+                
+                const mag = (day.seismograph?.magnitude || 0).toFixed(2);
+                const val = (day.seismograph?.valence || 0).toFixed(2);
+                const vol = (day.seismograph?.volatility || 0).toFixed(2);
+                const conf = (day.seismograph?.scaleConfidence || 0).toFixed(3);
+                
+                const hooks = (day.hooks || []).slice(0, 3);
+                const hookText = hooks.map(h => `${h.p1_name || '?'} ${h.aspect || '?'} ${h.p2_name || '?'}`).join('; ');
+                
+                csv += `${date},${mag},${val},${vol},${conf},"${hookText}"\n`;
+            });
+            
+            const timestamp = new Date().toISOString().slice(0, 10);
+            const filename = `seismograph_${title.replace(/\s+/g, '_')}_${timestamp}.csv`;
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadAllSeismographData() {
+            if (!window.seismographData) {
+                console.warn('No seismograph data available for export');
+                return;
+            }
+            
+            const data = window.seismographData;
+            const timestamp = new Date().toISOString().slice(0, 10);
+            
+            // Download individual CSVs
+            if (data.person_a?.chart?.transitsByDate) {
+                downloadSeismographCSV('Person A', data);
+            }
+            if (data.person_b?.chart?.transitsByDate) {
+                downloadSeismographCSV('Person B', data);
+            }
+            if (data.composite?.transitsByDate) {
+                downloadSeismographCSV('Composite', data);
+            }
+        }
+
+        function detectSeismographPatterns(data) {
+            if (!data) data = window.seismographData;
+            if (!data) return;
+            
+            let patterns = [];
+            
+            // Analyze each dataset
+            ['person_a', 'person_b', 'composite'].forEach(key => {
+                const dailyMap = data[key]?.chart?.transitsByDate;
+                if (!dailyMap) return;
+                
+                const name = key === 'person_a' ? 'Person A' : 
+                           key === 'person_b' ? 'Person B' : 'Composite';
+                
+                const dates = Object.keys(dailyMap).sort();
+                const values = dates.map(date => ({
+                    date,
+                    magnitude: dailyMap[date].seismograph?.magnitude || 0,
+                    valence: dailyMap[date].seismograph?.valence || 0,
+                    volatility: dailyMap[date].seismograph?.volatility || 0
+                }));
+                
+                if (values.length < 3) return; // Need at least 3 days for meaningful analysis
+                
+                // 1. Detect valence trends (more sensitive threshold)
+                const valenceTrend = detectTrend(values.map(v => v.valence));
+                if (Math.abs(valenceTrend) > 0.05) { // Lowered from 0.1 to catch subtler trends
+                    const strength = Math.abs(valenceTrend);
+                    const direction = valenceTrend > 0 ? 'Increasing ease/flow' : 'Increasing tension/friction';
+                    patterns.push({
+                        type: 'valence_trend',
+                        subject: name,
+                        description: `${direction} (${strength.toFixed(3)} units/day)`,
+                        strength: strength,
+                        priority: strength > 0.2 ? 'high' : strength > 0.1 ? 'medium' : 'low'
+                    });
+                }
+                
+                // 2. Detect magnitude trends
+                const magnitudeTrend = detectTrend(values.map(v => v.magnitude));
+                if (Math.abs(magnitudeTrend) > 0.1) { // Magnitude trends need to be more significant
+                    const direction = magnitudeTrend > 0 ? 'Intensifying' : 'Subsiding';
+                    patterns.push({
+                        type: 'magnitude_trend',
+                        subject: name,
+                        description: `${direction} activation levels (${Math.abs(magnitudeTrend).toFixed(3)} units/day)`,
+                        strength: Math.abs(magnitudeTrend),
+                        priority: Math.abs(magnitudeTrend) > 0.3 ? 'high' : 'medium'
+                    });
+                }
+                
+                // 3. Detect volatility spikes (high volatility periods)
+                const highVolatilityDays = values.filter(v => v.volatility > 3.5).length;
+                if (highVolatilityDays > Math.max(2, dates.length * 0.2)) {
+                    patterns.push({
+                        type: 'volatility_spike',
+                        subject: name,
+                        description: `High volatility period (${highVolatilityDays}/${dates.length} days above 3.5)`,
+                        intensity: highVolatilityDays / dates.length,
+                        priority: highVolatilityDays > dates.length * 0.5 ? 'high' : 'medium'
+                    });
+                }
+                
+                // 4. Detect sustained high magnitude
+                const highMagCount = values.filter(v => v.magnitude > 5.5).length; // Lowered from 6.0
+                if (highMagCount > Math.max(2, dates.length * 0.25)) {
+                    patterns.push({
+                        type: 'sustained_pressure',
+                        subject: name,
+                        description: `Sustained high activation (${highMagCount}/${dates.length} days above 5.5)`,
+                        intensity: highMagCount / dates.length,
+                        priority: highMagCount > dates.length * 0.5 ? 'high' : 'medium'
+                    });
+                }
+                
+                // 5. Detect sustained low activity (potential stagnation)
+                const lowMagCount = values.filter(v => v.magnitude < 1.5).length;
+                if (lowMagCount > Math.max(3, dates.length * 0.4)) {
+                    patterns.push({
+                        type: 'low_activity',
+                        subject: name,
+                        description: `Extended quiet period (${lowMagCount}/${dates.length} days below 1.5)`,
+                        intensity: lowMagCount / dates.length,
+                        priority: 'low'
+                    });
+                }
+                
+                // 6. Detect extreme valence periods
+                const extremePositiveCount = values.filter(v => v.valence > 3.0).length;
+                const extremeNegativeCount = values.filter(v => v.valence < -3.0).length;
+                
+                if (extremePositiveCount > Math.max(2, dates.length * 0.2)) {
+                    patterns.push({
+                        type: 'extreme_ease',
+                        subject: name,
+                        description: `Extended ease period (${extremePositiveCount}/${dates.length} days above +3.0 valence)`,
+                        intensity: extremePositiveCount / dates.length,
+                        priority: 'medium'
+                    });
+                }
+                
+                if (extremeNegativeCount > Math.max(2, dates.length * 0.2)) {
+                    patterns.push({
+                        type: 'extreme_tension',
+                        subject: name,
+                        description: `Extended friction period (${extremeNegativeCount}/${dates.length} days below -3.0 valence)`,
+                        intensity: extremeNegativeCount / dates.length,
+                        priority: extremeNegativeCount > dates.length * 0.4 ? 'high' : 'medium'
+                    });
+                }
+                
+                // 7. Detect cycles (improved algorithm)
+                const magnitudeCycle = detectCyclePeriod(values.map(v => v.magnitude));
+                if (magnitudeCycle > 0 && magnitudeCycle <= dates.length / 2) {
+                    patterns.push({
+                        type: 'magnitude_cycle',
+                        subject: name,
+                        description: `${magnitudeCycle}-day activation cycle detected`,
+                        period: magnitudeCycle,
+                        priority: magnitudeCycle >= 7 && magnitudeCycle <= 14 ? 'high' : 'medium' // Weekly/bi-weekly cycles are significant
+                    });
+                }
+                
+                // 8. Detect volatility stability
+                const avgVolatility = values.reduce((sum, v) => sum + v.volatility, 0) / values.length;
+                const volatilityStdDev = Math.sqrt(values.reduce((sum, v) => sum + Math.pow(v.volatility - avgVolatility, 2), 0) / values.length);
+                
+                if (volatilityStdDev < 0.5 && avgVolatility < 2.0) {
+                    patterns.push({
+                        type: 'stable_period',
+                        subject: name,
+                        description: `Stable energy pattern (low volatility variation: ${volatilityStdDev.toFixed(2)})`,
+                        stability: 1 - volatilityStdDev,
+                        priority: 'low'
+                    });
+                }
+            });
+            
+            // Sort patterns by priority and strength
+            patterns.sort((a, b) => {
+                const priorityOrder = { high: 3, medium: 2, low: 1 };
+                const aPriority = priorityOrder[a.priority] || 1;
+                const bPriority = priorityOrder[b.priority] || 1;
+                
+                if (aPriority !== bPriority) return bPriority - aPriority;
+                
+                // Secondary sort by strength/intensity
+                const aStrength = a.strength || a.intensity || 0;
+                const bStrength = b.strength || b.intensity || 0;
+                return bStrength - aStrength;
+            });
+            
+            displaySeismographPatterns(patterns);
+        }
+
+        function detectTrend(values) {
+            if (values.length < 3) return 0;
+            
+            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+            
+            values.forEach((y, x) => {
+                sumX += x;
+                sumY += y;
+                sumXY += x * y;
+                sumXX += x * x;
+            });
+            
+            const n = values.length;
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            return slope;
+        }
+
+        function detectCyclePeriod(values) {
+            if (values.length < 6) return 0;
+            
+            // Simple autocorrelation to detect cycles
+            let bestPeriod = 0;
+            let bestCorrelation = 0;
+            
+            for (let period = 2; period <= Math.floor(values.length / 2); period++) {
+                let correlation = 0;
+                let count = 0;
+                
+                for (let i = 0; i < values.length - period; i++) {
+                    correlation += values[i] * values[i + period];
+                    count++;
+                }
+                
+                correlation /= count;
+                
+                if (correlation > bestCorrelation) {
+                    bestCorrelation = correlation;
+                    bestPeriod = period;
+                }
+            }
+            
+            return bestCorrelation > 0.5 ? bestPeriod : 0;
+        }
+
+        function displaySeismographPatterns(patterns) {
+            const container = document.getElementById('seismographPatterns');
+            if (!container) return;
+            
+            if (patterns.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-gray-800 p-4 rounded border border-gray-600 mb-4">
+                        <h4 class="text-purple-300 font-semibold mb-2">Pattern Analysis</h4>
+                        <p class="text-gray-400">No significant patterns detected in current data.</p>
+                    </div>`;
+                return;
+            }
+            
+            // Group patterns by priority
+            const groupedPatterns = {
+                high: patterns.filter(p => p.priority === 'high'),
+                medium: patterns.filter(p => p.priority === 'medium'),
+                low: patterns.filter(p => p.priority === 'low')
+            };
+            
+            let html = `
+                <div class="bg-gray-800 p-4 rounded border border-purple-500 mb-4">
+                    <h4 class="text-purple-300 font-semibold mb-3">🔮 Pattern Detection Results (${patterns.length} patterns found)</h4>`;
+            
+            // High priority patterns
+            if (groupedPatterns.high.length > 0) {
+                html += `
+                    <div class="mb-4">
+                        <h5 class="text-red-300 font-semibold mb-2 flex items-center">
+                            🚨 High Priority Patterns (${groupedPatterns.high.length})
+                        </h5>
+                        <div class="space-y-2">`;
+                
+                groupedPatterns.high.forEach(pattern => {
+                    const typeColor = getPatternTypeColor(pattern.type);
+                    const typeIcon = getPatternTypeIcon(pattern.type);
+                    
+                    html += `
+                        <div class="bg-red-900/20 border border-red-500/30 p-3 rounded pattern-card">
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold ${typeColor}">${typeIcon} ${pattern.subject}</span>
+                                <span class="text-xs text-red-300 bg-red-800/50 px-2 py-1 rounded">${pattern.type.replace(/_/g, ' ')}</span>
+                            </div>
+                            <p class="text-sm text-gray-200 mt-1">${pattern.description}</p>
+                        </div>`;
+                });
+                
+                html += `</div></div>`;
+            }
+            
+            // Medium priority patterns
+            if (groupedPatterns.medium.length > 0) {
+                html += `
+                    <div class="mb-4">
+                        <h5 class="text-yellow-300 font-semibold mb-2 flex items-center">
+                            ⚠️ Medium Priority Patterns (${groupedPatterns.medium.length})
+                        </h5>
+                        <div class="space-y-2">`;
+                
+                groupedPatterns.medium.forEach(pattern => {
+                    const typeColor = getPatternTypeColor(pattern.type);
+                    const typeIcon = getPatternTypeIcon(pattern.type);
+                    
+                    html += `
+                        <div class="bg-yellow-900/20 border border-yellow-500/30 p-3 rounded pattern-card">
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold ${typeColor}">${typeIcon} ${pattern.subject}</span>
+                                <span class="text-xs text-yellow-300 bg-yellow-800/50 px-2 py-1 rounded">${pattern.type.replace(/_/g, ' ')}</span>
+                            </div>
+                            <p class="text-sm text-gray-200 mt-1">${pattern.description}</p>
+                        </div>`;
+                });
+                
+                html += `</div></div>`;
+            }
+            
+            // Low priority patterns (collapsible)
+            if (groupedPatterns.low.length > 0) {
+                html += `
+                    <div class="mb-4">
+                        <h5 class="text-gray-300 font-semibold mb-2 flex items-center cursor-pointer" onclick="toggleLowPriorityPatterns()">
+                            <span id="lowPriorityToggle">▶</span> Low Priority Patterns (${groupedPatterns.low.length})
+                        </h5>
+                        <div id="lowPriorityPatterns" class="hidden space-y-2">`;
+                
+                groupedPatterns.low.forEach(pattern => {
+                    const typeColor = getPatternTypeColor(pattern.type);
+                    const typeIcon = getPatternTypeIcon(pattern.type);
+                    
+                    html += `
+                        <div class="bg-gray-700/50 border border-gray-500/30 p-3 rounded pattern-card">
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold ${typeColor}">${typeIcon} ${pattern.subject}</span>
+                                <span class="text-xs text-gray-400 bg-gray-600/50 px-2 py-1 rounded">${pattern.type.replace(/_/g, ' ')}</span>
+                            </div>
+                            <p class="text-sm text-gray-300 mt-1">${pattern.description}</p>
+                        </div>`;
+                });
+                
+                html += `</div></div>`;
+            }
+            
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        function getPatternTypeColor(type) {
+            const colors = {
+                valence_trend: 'text-blue-400',
+                magnitude_trend: 'text-red-400',
+                volatility_spike: 'text-orange-400',
+                sustained_pressure: 'text-red-300',
+                low_activity: 'text-gray-400',
+                extreme_ease: 'text-green-400',
+                extreme_tension: 'text-red-400',
+                magnitude_cycle: 'text-purple-400',
+                stable_period: 'text-teal-400'
+            };
+            return colors[type] || 'text-gray-300';
+        }
+
+        function getPatternTypeIcon(type) {
+            const icons = {
+                valence_trend: '📈',
+                magnitude_trend: '⚡',
+                volatility_spike: '🌪️',
+                sustained_pressure: '🔥',
+                low_activity: '😴',
+                extreme_ease: '🌟',
+                extreme_tension: '⚠️',
+                magnitude_cycle: '🔄',
+                stable_period: '🧘'
+            };
+            return icons[type] || '📊';
+        }
+
+        function toggleLowPriorityPatterns() {
+            const container = document.getElementById('lowPriorityPatterns');
+            const toggle = document.getElementById('lowPriorityToggle');
+            
+            if (container && toggle) {
+                const isHidden = container.classList.contains('hidden');
+                
+                if (isHidden) {
+                    container.classList.remove('hidden');
+                    toggle.textContent = '▼';
+                } else {
+                    container.classList.add('hidden');
+                    toggle.textContent = '▶';
+                }
+            }
+        }
+
+        function setupSeismographEventListeners() {
+            // Toggle filters
+            const toggleFilters = document.getElementById('toggleSeismographFilters');
+            const filtersPanel = document.getElementById('seismographFiltersPanel');
+            if (toggleFilters && filtersPanel) {
+                toggleFilters.addEventListener('click', () => {
+                    filtersPanel.classList.toggle('hidden');
+                });
+            }
+            
+            // Download all CSV
+            const downloadAllBtn = document.getElementById('downloadAllSeismographCSV');
+            if (downloadAllBtn) {
+                downloadAllBtn.addEventListener('click', downloadAllSeismographData);
+            }
+            
+            // Pattern detection
+            const patternBtn = document.getElementById('detectSeismographPatterns');
+            if (patternBtn) {
+                patternBtn.addEventListener('click', () => detectSeismographPatterns());
+            }
+            
+            // Filter controls
+            ['MinMagnitude', 'MinValence', 'MaxValence', 'MinVolatility'].forEach(name => {
+                const slider = document.getElementById(`filter${name}`);
+                const display = document.getElementById(`filter${name}Value`);
+                if (slider && display) {
+                    slider.addEventListener('input', () => {
+                        display.textContent = parseFloat(slider.value).toFixed(1);
+                    });
+                }
+            });
+            
+            // Apply filters button
+            const applyBtn = document.getElementById('applySeismographFilters');
+            if (applyBtn) {
+                applyBtn.addEventListener('click', applySeismographFilters);
+            }
+            
+            // Reset filters button
+            const resetBtn = document.getElementById('resetSeismographFilters');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', resetSeismographFilters);
+            }
+            
+            // Toggle view (chart/table)
+            const toggleView = document.getElementById('toggleSeismographView');
+            if (toggleView) {
+                toggleView.addEventListener('click', toggleSeismographViewMode);
+            }
+        }
+
+        function applySeismographFilters() {
+            if (!window.seismographData) {
+                console.warn('No seismograph data available for filtering');
+                return;
+            }
+            
+            // Get filter values
+            const filters = {
+                minMagnitude: parseFloat(document.getElementById('filterMinMagnitude').value),
+                minValence: parseFloat(document.getElementById('filterMinValence').value),
+                maxValence: parseFloat(document.getElementById('filterMaxValence').value),
+                minVolatility: parseFloat(document.getElementById('filterMinVolatility').value)
+            };
+            
+            // Update global filters
+            window.seismographFilters = { ...window.seismographFilters, ...filters };
+            
+            // Re-render tables with filtered data
+            const container = document.getElementById('seismographViewContainer');
+            if (!container) return;
+            
+            let html = '';
+            
+            // Rebuild each table with filtered data
+            if (window.seismographData.person_a?.chart?.transitsByDate) {
+                const personAName = window.seismographData.person_a?.info?.name || 'Person A';
+                html += buildSeismographTableFiltered(personAName, window.seismographData.person_a.chart.transitsByDate, filters);
+            }
+            
+            if (window.seismographData.person_b?.chart?.transitsByDate) {
+                const personBName = window.seismographData.person_b?.info?.name || 'Person B';
+                html += buildSeismographTableFiltered(personBName, window.seismographData.person_b.chart.transitsByDate, filters);
+            }
+            
+            if (window.seismographData.composite?.transitsByDate) {
+                html += buildSeismographTableFiltered('Composite', window.seismographData.composite.transitsByDate, filters);
+            }
+            
+            container.innerHTML = html;
+            
+            // Also update mobile view
+            const mobileContainer = document.getElementById('seismographMobileView');
+            if (mobileContainer) {
+                let mobileHtml = '';
+                
+                if (window.seismographData.person_a?.chart?.transitsByDate) {
+                    const personAName = window.seismographData.person_a?.info?.name || 'Person A';
+                    mobileHtml += buildMobileSeismographCardsFiltered(personAName, window.seismographData.person_a.chart.transitsByDate, filters);
+                }
+                
+                if (window.seismographData.person_b?.chart?.transitsByDate) {
+                    const personBName = window.seismographData.person_b?.info?.name || 'Person B';
+                    mobileHtml += buildMobileSeismographCardsFiltered(personBName, window.seismographData.person_b.chart.transitsByDate, filters);
+                }
+                
+                if (window.seismographData.composite?.transitsByDate) {
+                    mobileHtml += buildMobileSeismographCardsFiltered('Composite', window.seismographData.composite.transitsByDate, filters);
+                }
+                
+                mobileContainer.innerHTML = mobileHtml;
+            }
+            
+            // Show feedback
+            const applyBtn = document.getElementById('applySeismographFilters');
+            if (applyBtn) {
+                const originalText = applyBtn.textContent;
+                applyBtn.textContent = '✅ Applied';
+                applyBtn.classList.add('bg-green-600');
+                applyBtn.classList.remove('bg-blue-600');
+                
+                setTimeout(() => {
+                    applyBtn.textContent = originalText;
+                    applyBtn.classList.remove('bg-green-600');
+                    applyBtn.classList.add('bg-blue-600');
+                }, 2000);
+            }
+        }
+
+        function resetSeismographFilters() {
+            document.getElementById('filterMinMagnitude').value = 0;
+            document.getElementById('filterMinValence').value = -5;
+            document.getElementById('filterMaxValence').value = 5;
+            document.getElementById('filterMinVolatility').value = 0;
+            
+            // Update displays
+            document.getElementById('filterMinMagnitudeValue').textContent = '0.0';
+            document.getElementById('filterMinValenceValue').textContent = '-5.0';
+            document.getElementById('filterMaxValenceValue').textContent = '5.0';
+            document.getElementById('filterMinVolatilityValue').textContent = '0.0';
+        }
+
+        // New dual visualization & render mode cycle =======================================
+        function toggleSeismographViewMode() {
+            const button = document.getElementById('toggleSeismographView');
+            const tableView = document.getElementById('seismographViewContainer');
+            const mobileView = document.getElementById('seismographMobileView');
+            let chartContainer = document.getElementById('seismographChartContainer');
+            if (!button || !tableView || !mobileView) return;
+            if (!chartContainer) {
+                chartContainer = document.createElement('div');
+                chartContainer.id = 'seismographChartContainer';
+                chartContainer.className = 'mb-6';
+                tableView.parentNode.insertBefore(chartContainer, tableView);
+            }
+            // Modes: table -> arc -> barometer -> mobile -> table
+            const mode = button.getAttribute('data-mode') || 'table';
+            const next = mode === 'table' ? 'arc' : mode === 'arc' ? 'barometer' : mode === 'barometer' ? 'mobile' : 'table';
+            // Reset visibility
+            tableView.classList.add('hidden');
+            mobileView.classList.add('hidden');
+            chartContainer.classList.add('hidden');
+            if (next === 'table') {
+                tableView.classList.remove('hidden');
+                button.textContent = '🔄 View: Table';
+            } else if (next === 'arc') {
+                chartContainer.innerHTML = renderSeismographArcCharts();
+                chartContainer.classList.remove('hidden');
+                button.textContent = '🔄 View: Arc';
+            } else if (next === 'barometer') {
+                chartContainer.innerHTML = renderBarometerCharts();
+                chartContainer.classList.remove('hidden');
+                button.textContent = '🔄 View: Barometer';
+            } else if (next === 'mobile') {
+                mobileView.classList.remove('hidden');
+                button.textContent = '🔄 View: Mobile';
+            }
+            button.setAttribute('data-mode', next);
+        }
+
+        function renderSeismographArcCharts() {
+            if (!window.seismographData) return '<p>No data.</p>';
+            let html = '<div class="space-y-6">';
+            if (window.seismographData.person_a?.chart?.transitsByDate) {
+                const nm = window.seismographData.person_a?.info?.name || 'Person A';
+                html += renderArcChart(nm, window.seismographData.person_a.chart.transitsByDate);
+            }
+            if (window.seismographData.person_b?.chart?.transitsByDate) {
+                const nm = window.seismographData.person_b?.info?.name || 'Person B';
+                html += renderArcChart(nm, window.seismographData.person_b.chart.transitsByDate);
+            }
+            if (window.seismographData.composite?.transitsByDate) {
+                html += renderArcChart('Composite', window.seismographData.composite.transitsByDate);
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function renderBarometerCharts() {
+            if (!window.seismographData) return '<p>No data.</p>';
+            let html = '<div class="space-y-6">';
+            if (window.seismographData.person_a?.chart?.transitsByDate) {
+                const nm = window.seismographData.person_a?.info?.name || 'Person A';
+                html += renderBarometerChart(nm, window.seismographData.person_a.chart.transitsByDate);
+            }
+            if (window.seismographData.person_b?.chart?.transitsByDate) {
+                const nm = window.seismographData.person_b?.info?.name || 'Person B';
+                html += renderBarometerChart(nm, window.seismographData.person_b.chart.transitsByDate);
+            }
+            if (window.seismographData.composite?.transitsByDate) {
+                html += renderBarometerChart('Composite', window.seismographData.composite.transitsByDate);
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function renderArcChart(title, dailyMap) {
+            const dates = Object.keys(dailyMap || {}).sort();
+            if (!dates.length) return '';
+            const canvasId = `arc-${title.replace(/\s+/g,'-').toLowerCase()}`;
+            const html = `<div class="mb-6"><h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Macro Arc</h4><div class="bg-gray-800 p-4 rounded border border-gray-600"><canvas id="${canvasId}" width="900" height="260" class="w-full bg-gray-900 rounded"></canvas></div></div>`;
+            setTimeout(()=>drawSeismographArc(canvasId, dailyMap, dates),5);
+            return html;
+        }
+
+        function renderBarometerChart(title, dailyMap) {
+            const dates = Object.keys(dailyMap || {}).sort();
+            if (!dates.length) return '';
+            const canvasId = `bar-${title.replace(/\s+/g,'-').toLowerCase()}`;
+            const html = `<div class="mb-6"><h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Daily Barometer</h4><div class="bg-gray-800 p-4 rounded border border-gray-600"><canvas id="${canvasId}" width="900" height="260" class="w-full bg-gray-900 rounded"></canvas></div></div>`;
+            setTimeout(()=>drawBarometerChart(canvasId, dailyMap, dates),5);
+            return html;
+        }
+
+        function drawSeismographArc(canvasId, dailyMap, dates){
+            const canvas = document.getElementById(canvasId); if(!canvas) return; const ctx = canvas.getContext('2d');
+            const W=canvas.width, H=canvas.height; ctx.fillStyle='#111827'; ctx.fillRect(0,0,W,H);
+            if(!dates.length) return; const margin={top:20,left:50,right:30,bottom:30};
+            const cw=W-margin.left-margin.right, ch=H-margin.top-margin.bottom;
+            const points = dates.map(d=>{const day=dailyMap[d]; const raw=day?.seismograph?.magnitude||0; const mag=raw/2; // normalize 0-5
+                const val=Math.max(-5,Math.min(5,day?.seismograph?.valence||0)); return {d, mag, val};});
+            // Scales
+            const xStep = cw/(points.length-1);
+            // Background grid (magnitude bands)
+            ctx.strokeStyle='#374151'; ctx.lineWidth=1; for(let i=0;i<=5;i++){const y=margin.top+ch-(ch*i/5); ctx.beginPath(); ctx.moveTo(margin.left,y); ctx.lineTo(margin.left+cw,y); ctx.stroke(); ctx.fillStyle='#6b7280'; ctx.font='10px Inter'; ctx.fillText(i.toString(), margin.left-20, y+3); }
+            // Valence midline
+            const midY = margin.top + ch/2; ctx.strokeStyle='#4b5563'; ctx.beginPath(); ctx.moveTo(margin.left, midY); ctx.lineTo(margin.left+cw, midY); ctx.stroke();
+            // Magnitude arc (smoothed line)
+            ctx.strokeStyle='#14b8a6'; ctx.lineWidth=2; ctx.beginPath();
+            points.forEach((p,i)=>{const x=margin.left+i*xStep; const y=margin.top+ch-(p.mag/5)*ch; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);}); ctx.stroke();
+            // Valence drift (overlay thin line)
+            ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1.5; ctx.beginPath(); points.forEach((p,i)=>{const x=margin.left+i*xStep; const y=midY-(p.val/5)*(ch/2); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);}); ctx.stroke();
+            // Points with annotations
+            ctx.font='10px Inter'; points.forEach((p,i)=>{const x=margin.left+i*xStep; const y=margin.top+ch-(p.mag/5)*ch; ctx.fillStyle='#0d9488'; ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill(); if(i%Math.ceil(points.length/12)===0||i===points.length-1){ctx.fillStyle='#94a3b8'; ctx.fillText(p.d, x-20, H-8);} // date labels sparse
+                // Valence annotation
+                ctx.fillStyle='#fbbf24'; ctx.fillText('V:'+(p.val>=0?'+':'')+p.val.toFixed(1), x-14, y-10); });
+            // Legend
+            ctx.fillStyle='#14b8a6'; ctx.fillRect(margin.left,5,8,8); ctx.fillStyle='#e5e7eb'; ctx.font='11px Inter'; ctx.fillText('Magnitude (0–5)', margin.left+12,13);
+            ctx.fillStyle='#fbbf24'; ctx.fillRect(margin.left+140,5,8,8); ctx.fillStyle='#e5e7eb'; ctx.fillText('Valence Path (-5..+5)', margin.left+154,13);
+        }
+
+        function drawBarometerChart(canvasId,dailyMap,dates){
+            const canvas=document.getElementById(canvasId); if(!canvas) return; const ctx=canvas.getContext('2d');
+            const W=canvas.width,H=canvas.height; ctx.fillStyle='#111827'; ctx.fillRect(0,0,W,H); if(!dates.length) return; const margin={top:15,left:50,right:20,bottom:45};
+            const cw=W-margin.left-margin.right, ch=H-margin.top-margin.bottom; const barW=Math.max(4, cw/dates.length - 2);
+            const points=dates.map(d=>{const day=dailyMap[d]; const raw=day?.seismograph?.magnitude||0; const mag=raw/2; const val=Math.max(-5,Math.min(5,day?.seismograph?.valence||0)); const vol=day?.seismograph?.volatility||0; return {d,mag,val,vol};});
+            // Grid
+            ctx.strokeStyle='#374151'; ctx.lineWidth=1; for(let i=0;i<=5;i++){const y=margin.top+ch-(ch*i/5); ctx.beginPath(); ctx.moveTo(margin.left,y); ctx.lineTo(margin.left+cw,y); ctx.stroke(); ctx.fillStyle='#6b7280'; ctx.font='10px Inter'; ctx.fillText(i.toString(), margin.left-18, y+3);} // bars
+            // Bars
+            points.forEach((p,i)=>{const x=margin.left+i*(barW+2); const h=(p.mag/5)*ch; const y=margin.top+ch-h; // volatility shading (higher vol => lighter fill pattern)
+                const alpha=0.4+Math.min(p.vol/5,0.5); ctx.fillStyle=`rgba(45,212,191,${alpha})`; ctx.fillRect(x,y,barW,h); ctx.fillStyle='#0f766e'; ctx.fillRect(x,y,barW,2); // cap
+                if(i%Math.ceil(points.length/10)===0||i===points.length-1){ctx.fillStyle='#94a3b8'; ctx.save(); ctx.translate(x+barW/2, H-8); ctx.rotate(-Math.PI/4); ctx.fillText(p.d, -20,0); ctx.restore();}
+                // Valence annotation above bar
+                ctx.fillStyle='#fbbf24'; ctx.font='9px Inter'; ctx.fillText('V:'+(p.val>=0?'+':'')+p.val.toFixed(1), x-2, y-4); });
+            // Axes labels
+            ctx.fillStyle='#e5e7eb'; ctx.font='11px Inter'; ctx.fillText('Magnitude 0–5 (normalized)', margin.left, 12); ctx.fillText('Valence annotated per bar', margin.left+220, 12);
+        }
+
+        // =============================================================================
+        // END SEISMOGRAPH FUNCTIONS
+        // =============================================================================
+
                 // Re-render hooks only (without round-trip) when filters change
                 function rerenderHookMarkdownSection(){
                         if(!latestResultData) return;
@@ -2867,33 +4017,25 @@ function renderTransitDay(dateStr, items){
                 // Store result data for downloads
                 latestResultData = result;
 
-                // Generate human-readable Markdown report
-                const report = generateMarkdownReport(result);
-                
-                // Debug: Log the actual data structure to understand transit availability
-                console.log('=== DEBUGGING TRANSIT DATA ===');
-                console.log('Full result structure:', Object.keys(result));
-                if (result.person_a?.chart) {
-                    console.log('Person A chart keys:', Object.keys(result.person_a.chart));
-                    console.log('Person A has transits?', !!result.person_a.chart.transits);
-                    console.log('Person A has transitsByDate?', !!result.person_a.chart.transitsByDate);
-                    if (result.person_a.chart.transits) {
-                        console.log('Person A transits sample:', result.person_a.chart.transits.slice(0, 2));
-                    }
+                // Generate report based on current mode
+                if (currentAppMode === 'seismograph') {
+                    const html = buildSeismographDisplay(result);
+                    reportContent.innerHTML = html;
+                    // Hide markdown-specific buttons for seismograph mode
+                    document.getElementById('copyReport').classList.add('hidden');
+                    document.getElementById('downloadReport').classList.add('hidden');
+                    // Setup seismograph event listeners
+                    setupSeismographEventListeners();
+                } else {
+                    // Generate human-readable Markdown report for mirror/geometry modes
+                    const report = generateMarkdownReport(result);
+                    reportContent.textContent = report;
+                    // Show copy and download report buttons when report is generated
+                    document.getElementById('copyReport').classList.remove('hidden');
+                    document.getElementById('downloadReport').classList.remove('hidden');
                 }
-                if (result.synastry) {
-                    console.log('Synastry keys:', Object.keys(result.synastry));
-                    console.log('Synastry has transits?', !!result.synastry.transits);
-                    console.log('Synastry has transitsByDate?', !!result.synastry.transitsByDate);
-                }
-                console.log('=== END TRANSIT DEBUG ===');
                 
-                reportContent.textContent = report;
                 reportOutput.classList.remove('hidden');
-                
-                // Show copy and download report buttons when report is generated
-                document.getElementById('copyReport').classList.remove('hidden');
-                document.getElementById('downloadReport').classList.remove('hidden');
 
             } catch (error) {
                 console.error('Error generating report:', error);
@@ -3165,7 +4307,7 @@ function renderTransitDay(dateStr, items){
         // =============================================================================
         
         // Global state for the app mode
-        let currentAppMode = 'mirror'; // 'mirror' or 'geometry'
+        let currentAppMode = 'mirror'; // 'mirror', 'geometry', or 'seismograph'
         let currentContextType = 'solo'; // 'solo', 'relational', 'weather'
         
         function updateAppMode(mode) {
@@ -3174,18 +4316,24 @@ function renderTransitDay(dateStr, items){
             // Update tab appearance
             const mirrorTab = document.getElementById('mirrorModeTab');
             const geometryTab = document.getElementById('geometryModeTab');
+            const seismographTab = document.getElementById('seismographModeTab');
             const modeDescription = document.getElementById('modeDescription');
             const generateBtn = document.getElementById('generateReport');
             const showWiringBtn = document.getElementById('showWiringBtn');
+            
+            // Reset all tabs first
+            [mirrorTab, geometryTab, seismographTab].forEach(tab => {
+                if (tab) {
+                    tab.classList.remove('bg-teal-600', 'text-white');
+                    tab.classList.add('text-gray-300');
+                    tab.setAttribute('aria-selected', 'false');
+                }
+            });
             
             if (mode === 'mirror') {
                 mirrorTab.classList.add('bg-teal-600', 'text-white');
                 mirrorTab.classList.remove('text-gray-300');
                 mirrorTab.setAttribute('aria-selected', 'true');
-                
-                geometryTab.classList.remove('bg-teal-600', 'text-white');
-                geometryTab.classList.add('text-gray-300');
-                geometryTab.setAttribute('aria-selected', 'false');
                 
                 modeDescription.innerHTML = '<strong class="text-teal-300">Mirror:</strong> The land seen in reflection—how the shapes form an image when charts touch. The water shows what appears when two paths meet.';
                 generateBtn.textContent = 'Get My Mirror';
@@ -3199,15 +4347,24 @@ function renderTransitDay(dateStr, items){
                 geometryTab.classList.remove('text-gray-300');
                 geometryTab.setAttribute('aria-selected', 'true');
                 
-                mirrorTab.classList.remove('bg-teal-600', 'text-white');
-                mirrorTab.classList.add('text-gray-300');
-                mirrorTab.setAttribute('aria-selected', 'false');
-                
                 modeDescription.innerHTML = '<strong class="text-teal-300">Geometry:</strong> The skeleton of the land—numbers, distances, angles. Silent and exact, measuring rods and compass marks.';
                 generateBtn.textContent = 'Compute Geometry';
                 showWiringBtn.style.display = 'none';
                 
                 // Show advanced options in Geometry mode
+                showAdvancedTransitOptions();
+                
+            } else if (mode === 'seismograph') {
+                seismographTab.classList.add('bg-teal-600', 'text-white');
+                seismographTab.classList.remove('text-gray-300');
+                seismographTab.setAttribute('aria-selected', 'true');
+                
+                modeDescription.innerHTML = '<strong class="text-cyan-300">Seismograph:</strong> Live pressure metrics (magnitude, valence, volatility) across the chosen window. The needle traces symbolic earthquakes in time.';
+                generateBtn.textContent = 'Generate Seismograph';
+                showWiringBtn.style.display = 'none';
+                
+                // Auto-populate today's date and show transit options for seismograph
+                autoPopulateTodayDates();
                 showAdvancedTransitOptions();
             }
             
@@ -3467,15 +4624,19 @@ function renderTransitDay(dateStr, items){
         }
         
         function setupProgressiveDisclosureEventListeners() {
-            // Mirror/Geometry tabs
+            // Mirror/Geometry/Seismograph tabs
             const mirrorTab = document.getElementById('mirrorModeTab');
             const geometryTab = document.getElementById('geometryModeTab');
+            const seismographTab = document.getElementById('seismographModeTab');
             
             if (mirrorTab) {
                 mirrorTab.addEventListener('click', () => updateAppMode('mirror'));
             }
             if (geometryTab) {
                 geometryTab.addEventListener('click', () => updateAppMode('geometry'));
+            }
+            if (seismographTab) {
+                seismographTab.addEventListener('click', () => updateAppMode('seismograph'));
             }
             
             // Context type selection
