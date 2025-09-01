@@ -2293,11 +2293,6 @@ function renderTransitDay(dateStr, items){
                 <div class="space-y-6">
                     <div class="bg-gray-800 p-4 rounded-lg border border-teal-500">
                         <h3 class="text-lg font-semibold text-teal-300 mb-3">Seismograph Overview</h3>
-                        <p class="text-sm text-gray-300 mb-3 leading-relaxed">
-                            <strong>Macro (Seismograph Arc):</strong> Normalized activation curve (Magnitude scaled to 0–5) with valence drift path.<br>
-                            <strong>Micro (Barometer):</strong> Daily bar pulses (Magnitude 0–5) with textual valence annotations (V:+/-x.x) and volatility shading.<br>
-                            <strong>Scales:</strong> Magnitude 0–5 (normalized), Valence -5..+5 (annotation only), Volatility 0–5. Raw source magnitude (0–10) preserved in tables.
-                        </p>
                         <div class="flex flex-wrap gap-2 mb-4" aria-label="Seismograph controls">
                             <button id="toggleSeismographView" aria-live="polite" class="px-3 py-1 bg-teal-600 text-white rounded text-sm hover:bg-teal-700" title="Cycle: Table → Arc → Barometer → Mobile">
                                 🔄 View: Table
@@ -2312,6 +2307,11 @@ function renderTransitDay(dateStr, items){
                                 🔮 Detect Patterns
                             </button>
                         </div>
+                        <p class="text-sm text-gray-300 mb-3 leading-relaxed">
+                            <strong>Macro (Seismograph Arc):</strong> Normalized activation curve (Magnitude scaled to 0–5) with valence drift path.<br>
+                            <strong>Micro (Barometer):</strong> Daily bar pulses (Magnitude 0–5) with textual valence annotations (V:+/-x.x) and volatility shading.<br>
+                            <strong>Scales:</strong> Magnitude 0–5 (normalized), Valence -5..+5 (annotation only), Volatility 0–5. Raw source magnitude (0–10) preserved in tables.
+                        </p>
                         ${buildSeismographFilters()}
                         <div class="mt-4 text-xs text-gray-400 border-t border-gray-700 pt-3">
                             Normalization happens only in visual arc/barometer layers. Tables retain raw magnitude (0–10) for auditability.
