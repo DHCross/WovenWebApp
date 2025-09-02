@@ -2010,22 +2010,32 @@ function renderTransitDay(dateStr, items){
                                                         }
                                                         
                                                         // 4. Protocol Nudges for Downstream Processing
-                                                        out += `\n**Raven Processing Nudges:**\n`;
-                                                        if (mag >= 6 && vol >= 3) {
-                                                            out += `- High magnitude + volatility → Pressure-state mirroring required\n`;
-                                                        }
-                                                        if (Math.abs(val) >= 3) {
-                                                            out += `- Significant valence (${val}) → Tension-direction clarity needed\n`;
-                                                        }
-                                                        if (retrogradeAspects.length >= 2) {
-                                                            out += `- Retrograde recursion → Internal revision themes indicated\n`;
-                                                        }
-                                                        if (scaleConf !== '—' && parseFloat(scaleConf) < 0.7) {
-                                                            out += `- Low scale confidence → Caution framing advised\n`;
-                                                        }
-                                                        if (topHooks.length === 0) {
-                                                            out += `- No hooks → Background stability or dispersed influence pattern\n`;
-                                                        }
+                                                            const includePoetic = (typeof document !== 'undefined' && document.getElementById('poeticFlagsToggle')?.checked);
+                                                            if (includePoetic) {
+                                                                const realMag = parseFloat(mag);
+                                                                const realVal = parseFloat(val);
+                                                                out += `\n**Poetic Prep Flags (optional; interpretive – not geometry):**\n`;
+                                                                if (realMag >= 6 && parseFloat(vol) >= 3) {
+                                                                    out += `- Pressure cluster: high magnitude + volatility (mirror before narrative)\n`;
+                                                                }
+                                                                if (Math.abs(realVal) >= 3) {
+                                                                    out += `- Valence extreme (${val}) – directional tension needs framing\n`;
+                                                                }
+                                                                if (retrogradeAspects.length >= 2) {
+                                                                    out += `- Retrograde recursion band (${retrogradeAspects.length}) – internal revision motif\n`;
+                                                                }
+                                                                if (scaleConf !== '—' && parseFloat(scaleConf) < 0.7) {
+                                                                    out += `- Low scale confidence (${scaleConf}) – treat as provisional signal\n`;
+                                                                }
+                                                                if (topHooks.length === 0) {
+                                                                    out += `- Sparse hook density – diffuse / background state\n`;
+                                                                }
+                                                                if (realMag < 2 && Math.abs(realVal) < 0.5) {
+                                                                    out += `- Low activation baseline – avoid over-interpretation\n`;
+                                                                }
+                                                            } else {
+                                                                out += `\n<details><summary><em>Enable Poetic Prep Flags (interpretive layer)</em></summary>Activate the toggle in Seismograph filters to surface optional salience prompts. Math Brain keeps geometry neutral by default.</details>\n`;
+                                                            }
                                                         
                                                         // 5. Raw Aspect Inventory with Rejection Taxonomy (collapsible)
                                                         const allAspects = day.filtered_aspects || [];
@@ -2396,6 +2406,13 @@ function renderTransitDay(dateStr, items){
                             <input type="range" id="filterMinVolatility" min="0" max="5" step="0.1" value="0" 
                                    class="w-full accent-blue-500">
                             <span id="filterMinVolatilityValue" class="text-blue-300">0.0</span>
+                        </div>
+                        <div class="md:col-span-4 mt-1">
+                            <label class="inline-flex items-center gap-2 text-[11px] font-medium text-gray-300 select-none">
+                                <input id="poeticFlagsToggle" type="checkbox" class="rounded border-gray-600 bg-gray-800 text-teal-500 focus:ring-teal-500">
+                                <span>Include <span class="text-teal-300 font-semibold">Poetic Prep Flags</span> (salience prompts – not geometry)</span>
+                            </label>
+                            <p class="text-[10px] text-gray-400 mt-1 leading-snug">Filtering adjusts interpretation scope. Math Brain mirrors raw geometry; enabling flags adds optional prompts for the downstream Poetic Brain without altering calculations.</p>
                         </div>
                     </div>
                     <div class="mt-3 flex gap-2">
