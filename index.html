@@ -2323,8 +2323,8 @@ function renderTransitDay(dateStr, items){
                             <button id="toggleSeismographFilters" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700" title="Show/Hide Filters">
                                 🔍 Filters
                             </button>
-                            <button id="detectSeismographPatterns" class="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700" title="Run pattern detection">
-                                🔮 Detect Patterns
+                            <button id="queueSeismographAnalysis" class="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700" title="Queue pattern & cycle analysis (runs asynchronously)">
+                                📦 Queue Analysis
                             </button>
                         </div>
                         <p class="text-sm text-gray-300 mb-3 leading-relaxed">
@@ -2340,6 +2340,12 @@ function renderTransitDay(dateStr, items){
             
             // Pattern detection results
             html += '<div id="seismographPatterns"></div>';
+            // Raven Voice panel container (hidden until analysis queued)
+            html += '<div id="ravenVoicePanel" class="hidden mt-4 bg-gray-800 p-4 rounded border border-teal-600"><h4 class="text-teal-300 font-semibold mb-2">🗣️ Raven Voice</h4><div class="text-sm text-gray-200" id="ravenVoiceContent">Queue an analysis or hover (future) elements for contextual synthesis. FIELD → MAP remain primary; this is optional VOICE.</div></div>';
+            // Global tooltip element (created once)
+            if(!document.getElementById('globalHoverTooltip')){
+                setTimeout(()=>{const t=document.createElement('div'); t.id='globalHoverTooltip'; t.className='pointer-events-none fixed z-50 px-2 py-1 rounded bg-gray-900/90 text-[11px] text-gray-100 border border-teal-500 shadow'; t.style.display='none'; document.body.appendChild(t);},0);
+            }
             
             // View toggle container
             html += '<div id="seismographViewContainer">';
@@ -2772,6 +2778,62 @@ function renderTransitDay(dateStr, items){
             }
         }
 
+        // --- Seismograph Analysis Queue & Voice Synthesis Layer ---
+        let seismographAnalysisQueue = [];
+        let seismographAnalysisRunning = false;
+        function queueSeismographAnalysis(){
+            seismographAnalysisQueue.push(Date.now());
+            const btn = document.getElementById('queueSeismographAnalysis');
+            if(btn){
+                const original = btn.dataset.labelOriginal || btn.textContent.trim();
+                btn.dataset.labelOriginal = original;
+                btn.textContent = '⏳ Queued…';
+                btn.disabled = true;
+                btn.classList.add('opacity-70','cursor-wait');
+            }
+            processSeismographAnalysisQueue();
+        }
+        function processSeismographAnalysisQueue(){
+            if(seismographAnalysisRunning) return;
+            if(!seismographAnalysisQueue.length) return;
+            seismographAnalysisRunning = true;
+            seismographAnalysisQueue.shift();
+            setTimeout(()=>{ // simulate async batch
+                detectSeismographPatterns();
+                seismographAnalysisRunning = false;
+                const btn = document.getElementById('queueSeismographAnalysis');
+                if(btn){
+                    btn.textContent = '✅ Analysis Complete';
+                    setTimeout(()=>{
+                        btn.textContent = '📦 Queue Analysis';
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-70','cursor-wait');
+                    },1400);
+                }
+                synthesizeRavenVoiceFromPatterns();
+                if(seismographAnalysisQueue.length) processSeismographAnalysisQueue();
+            }, 60);
+        }
+        function synthesizeRavenVoiceFromPatterns(){
+            const panel = document.getElementById('ravenVoicePanel');
+            const content = document.getElementById('ravenVoiceContent');
+            if(!panel||!content) return;
+            const patterns = window.latestSeismographPatterns || [];
+            if(!patterns.length){
+                panel.classList.remove('hidden');
+                content.innerHTML = 'No significant macro pattern clusters. Geometry baseline steady; micro hooks carry modulation.';
+                return;
+            }
+            const top = patterns.slice(0,3).map(p=>`<span class=\"text-teal-300\">${p.subject}</span>: ${p.description}`).join('<br>');
+            content.innerHTML = `<div class=\"space-y-2\">${top}<div class=\"text-[10px] text-gray-400 pt-1 border-t border-gray-700\">VOICE = optional synthesis. FIELD/MAP (tables & charts) remain falsifiable core.</div></div>`;
+            panel.classList.remove('hidden');
+        }
+        // Tooltip helpers (foundation for future richer contextual hovers)
+        function attachSeismographTooltip(el,text){ if(!el) return; el.addEventListener('mouseenter',e=>showGlobalTooltip(e,text)); el.addEventListener('mouseleave', hideGlobalTooltip); el.addEventListener('mousemove', moveGlobalTooltip); }
+        function showGlobalTooltip(e,text){ const t=document.getElementById('globalHoverTooltip'); if(!t) return; t.innerHTML=text; t.style.display='block'; moveGlobalTooltip(e);} 
+        function moveGlobalTooltip(e){ const t=document.getElementById('globalHoverTooltip'); if(!t) return; const pad=12; t.style.left=(e.clientX+pad)+'px'; t.style.top=(e.clientY+pad)+'px'; }
+        function hideGlobalTooltip(){ const t=document.getElementById('globalHoverTooltip'); if(t) t.style.display='none'; }
+
         function detectSeismographPatterns(data) {
             if (!data) data = window.seismographData;
             if (!data) return;
@@ -2925,6 +2987,7 @@ function renderTransitDay(dateStr, items){
             });
             
             displaySeismographPatterns(patterns);
+            window.latestSeismographPatterns = patterns;
         }
 
         function detectTrend(values) {
@@ -3140,10 +3203,10 @@ function renderTransitDay(dateStr, items){
                 downloadAllBtn.addEventListener('click', downloadAllSeismographData);
             }
             
-            // Pattern detection
-            const patternBtn = document.getElementById('detectSeismographPatterns');
-            if (patternBtn) {
-                patternBtn.addEventListener('click', () => detectSeismographPatterns());
+            // Queue analysis (replaces direct pattern detection trigger)
+            const queueBtn = document.getElementById('queueSeismographAnalysis');
+            if (queueBtn) {
+                queueBtn.addEventListener('click', () => queueSeismographAnalysis());
             }
             
             // Filter controls
@@ -3427,7 +3490,13 @@ function renderTransitDay(dateStr, items){
             }
             // Multi-day fallback: existing canvas bar chart
             const canvasId = `bar-${title.replace(/\s+/g,'-').toLowerCase()}`;
-            const html = `<div class="mb-6"><h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Daily Barometer</h4><div class="bg-gray-800 p-4 rounded border border-gray-600"><canvas id="${canvasId}" width="900" height="260" class="w-full bg-gray-900 rounded"></canvas></div></div>`;
+            const legend = `<div class=\"mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] text-gray-300\">
+                <div class=\"bg-gray-900/60 rounded p-2 border border-gray-700\"><span class=\"text-teal-300 font-semibold\">Magnitude</span><br><span class=\"text-gray-400\">Activation load 0–5</span></div>
+                <div class=\"bg-gray-900/60 rounded p-2 border border-gray-700\"><span class=\"text-amber-300 font-semibold\">Valence</span><br><span class=\"text-gray-400\">Ease ↔ Friction -5..+5</span></div>
+                <div class=\"bg-gray-900/60 rounded p-2 border border-gray-700\"><span class=\"text-pink-300 font-semibold\">Volatility</span><br><span class=\"text-gray-400\">Stability ↔ Spiking</span></div>
+                <div class=\"bg-gray-900/60 rounded p-2 border border-gray-700\"><span class=\"text-gray-200 font-semibold\">Hooks</span><br><span class=\"text-gray-400\">Aspect signatures</span></div>
+            </div>`;
+            const html = `<div class="mb-6"><h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Daily Barometer</h4><div class="bg-gray-800 p-4 rounded border border-gray-600"><canvas id="${canvasId}" width="900" height="260" class="w-full bg-gray-900 rounded"></canvas>${legend}</div></div>`;
             setTimeout(()=>drawBarometerChart(canvasId, dailyMap, dates),5);
             return html;
         }
