@@ -1558,6 +1558,81 @@ function renderTransitDay(dateStr, items){
             }
             md += `\n`;
             
+            // === RAVEN CALDER POETIC BRAIN INSTRUCTIONS ===
+            md += `### INSTRUCTIONS FOR RAVEN CALDER POETIC BRAIN\n\n`;
+            
+            if (personB && formData.context.relationship_type) {
+                // Two-person relational reading instructions
+                md += `**RELATIONAL READING PROTOCOL:**\n`;
+                md += `- **Subject Clarity**: Always identify who is who (${personA.name} vs ${personB.name})\n`;
+                md += `- **Bidirectional Analysis**: Address dynamics from both perspectives\n`;
+                md += `- **Relationship Status**: ${formData.context.is_ex_relationship ? 'LATENT (ex-relationship - no active exchange)' : 'ACTIVE (ongoing relationship)'}\n`;
+                
+                if (formData.context.contact_channel) {
+                    md += `- **Contact Channel**: ${formData.context.contact_channel === 'live' ? 'LIVE (regular contact/interaction)' : 'LATENT (minimal/dormant contact)'}\n`;
+                }
+                
+                md += `- **Intimacy Context**: ${formData.context.intimacy_tier || 'unspecified'}\n`;
+                md += `- **Mirror Focus**: Relational dynamics, shared field pressures, echo patterns\n`;
+                
+                if (data.synastry?.aspects?.length > 0) {
+                    md += `- **Synastry Available**: ${data.synastry.aspects.length} aspects - analyze interaction patterns\n`;
+                }
+                if (data.composite?.chart) {
+                    md += `- **Composite Available**: Merged entity dynamics present\n`;
+                }
+                
+                md += `\n**Required Elements in Response:**\n`;
+                md += `1. Individual seismograph interpretation for both ${personA.name} AND ${personB.name}\n`;
+                md += `2. Relational field analysis (how their patterns interact)\n`;
+                md += `3. Clear attribution: "For ${personA.name}..." vs "For ${personB.name}..."\n`;
+                md += `4. Bidirectional dynamics: How A affects B AND how B affects A\n`;
+                
+            } else if (personB) {
+                // Two-person but no relationship context (comparison mode)
+                md += `**COMPARATIVE READING PROTOCOL:**\n`;
+                md += `- **Subject Clarity**: Always identify who is who (${personA.name} vs ${personB.name})\n`;
+                md += `- **Individual Focus**: Analyze each person's geometry separately\n`;
+                md += `- **No Relational Assumption**: Treat as independent charts unless synastry present\n`;
+                md += `- **Mirror Focus**: Individual seismographs, separate hook stacks\n`;
+                
+            } else {
+                // Single person reading instructions
+                md += `**SOLO READING PROTOCOL:**\n`;
+                md += `- **Subject**: ${personA.name} (single-person analysis)\n`;
+                md += `- **Mirror Focus**: Individual seismograph, personal hook stack, internal pressures\n`;
+                md += `- **Temporal Context**: ${mode.includes('transit') ? 'Transits to natal geometry' : 'Natal geometry only'}\n`;
+                
+                if (mode.includes('transit') && formData.transitParams?.startDate) {
+                    const daySpan = formData.transitParams.endDate ? 
+                        Math.ceil((new Date(formData.transitParams.endDate) - new Date(formData.transitParams.startDate)) / (1000 * 60 * 60 * 24)) : 1;
+                    
+                    if (daySpan === 1) {
+                        md += `- **Single Day Focus**: Deep-dive into specific day's pressure patterns\n`;
+                        md += `- **Barometer Emphasis**: Detailed single-day barometric reading\n`;
+                    } else {
+                        md += `- **Time Range**: ${daySpan}-day span - analyze macro patterns and trends\n`;
+                        md += `- **Seismograph Emphasis**: Pattern detection across time range\n`;
+                    }
+                }
+            }
+            
+            md += `\n**Universal Requirements:**\n`;
+            md += `- **Falsifiability**: Every statement must be testable against lived experience\n`;
+            md += `- **Agency Preservation**: No deterministic claims - mirror, not mandate\n`;
+            md += `- **Geometry First**: Build from math brain data, add poetic voice layer\n`;
+            md += `- **Landing Test**: Does this resonate with actual lived experience?\n`;
+            
+            if (geometryFlags.includes('low scale confidence') || scaleConfidenceIssues) {
+                md += `- **Caution Flag**: Scale confidence issues detected - frame interpretations tentatively\n`;
+            }
+            
+            if (hasDispersedInfluence) {
+                md += `- **Pattern Note**: No tight hooks detected - background stability or dispersed influence\n`;
+            }
+            
+            md += `\n---\n\n`;
+            
             // Range and Context
             if (formData.transitParams?.startDate && formData.transitParams?.endDate) {
                 const stepMap = { '1d':'Daily', 'daily':'Daily', '7d':'Weekly', 'weekly':'Weekly', '1m':'Monthly', '1mo':'Monthly', 'monthly':'Monthly' };
