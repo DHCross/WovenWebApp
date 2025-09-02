@@ -743,7 +743,7 @@
                             <h4 class="text-teal-300 font-semibold mb-2">📊 Step Size Explained</h4>
                             <p class="text-gray-200 mb-2">Step size controls how frequently transit calculations are performed within your date range:</p>
                             <ul class="text-gray-300 space-y-1 ml-4">
-                                <li><b>Daily</b>: Calculate transits for every single day (most detailed, max 30 days)</li>
+                                <li><b>Daily</b>: Calculate transits for every single day (most detailed, max 45 days)</li>
                                 <li><b>Weekly</b>: Calculate transits every 7 days (good balance, max 6 months)</li>
                                 <li><b>Monthly</b>: Calculate transits once per month (fastest, max 1 year)</li>
                             </ul>
@@ -755,7 +755,7 @@
                                     <li>• <strong>3-6 months:</strong> Use Monthly for overview</li>
                                     <li>• <strong>Today only:</strong> Daily for current transits</li>
                                 </ul>
-                                <p class="text-yellow-200 mt-2 text-xs"><b>API Protection</b>: Conservative limits prevent excessive API usage. Daily=30 days max, Weekly=6 months max, Monthly=1 year max.</p>
+                                <p class="text-yellow-200 mt-2 text-xs"><b>API Protection</b>: Conservative limits prevent excessive API usage. Daily=45 days max, Weekly=9 months max, Monthly=18 months max.</p>
                             </div>
                             <p class="text-yellow-200 mt-2 text-xs"><b>Performance Note</b>: Longer ranges with finer steps may take more time to process and generate larger datasets.</p>
                         </div>
@@ -2320,7 +2320,7 @@ function renderTransitDay(dateStr, items){
             
             // Temporal and Rate Limits
             md += `### Protocol Limits\n\n`;
-            md += `- **Max Date Span**: 30 days per request (current: ${formData.transitParams ? Math.ceil((new Date(formData.transitParams.endDate) - new Date(formData.transitParams.startDate)) / (1000 * 60 * 60 * 24)) : 'N/A'} days)\n`;
+            md += `- **Max Date Span**: 45 days per request (current: ${formData.transitParams ? Math.ceil((new Date(formData.transitParams.endDate) - new Date(formData.transitParams.startDate)) / (1000 * 60 * 60 * 24)) : 'N/A'} days)\n`;
             md += `- **Rate Limits**: 50 transit requests per day per user\n`;
             md += `- **Narrative Hygiene**: No deterministic or fatalistic language permitted\n`;
             md += `- **Falsifiability**: All outputs subject to "Does this land?" validation\n\n`;
@@ -3935,7 +3935,7 @@ function renderTransitDay(dateStr, items){
                 // Date range validation with step size awareness
                 const startDate = new Date(start);
                 const endDate = new Date(end);
-                const daySpan = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                const daySpan = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1);
                 const stepSize = transitStep.value || '1d';
                 
                 // Define maximum ranges based on step size - CONSERVATIVE for API protection
@@ -3943,32 +3943,32 @@ function renderTransitDay(dateStr, items){
                 switch (stepSize) {
                     case '1d':
                     case 'daily':
-                        maxDays = 30;        // 30 days max for daily (was 90)
-                        warningDays = 14;    // Warning at 2 weeks (was 30)
+                        maxDays = 45;        // Increased from 30 to 45 days
+                        warningDays = 21;    // Warning at 3 weeks
                         stepDescription = 'daily calculations';
                         break;
                     case '7d':
                     case 'weekly':
-                        maxDays = 180;       // 6 months max for weekly (was 365)
-                        warningDays = 90;    // Warning at 3 months (was 180)
+                        maxDays = 270;       // Increased from 180 to 9 months
+                        warningDays = 120;   // Warning at 4 months
                         stepDescription = 'weekly calculations';
                         break;
                     case '1m':
                     case '1mo':
                     case 'monthly':
-                        maxDays = 365;       // 1 year max for monthly (was 1095)
-                        warningDays = 180;   // Warning at 6 months (was 730)
+                        maxDays = 550;       // Increased from 365 to ~18 months
+                        warningDays = 270;   // Warning at 9 months
                         stepDescription = 'monthly calculations';
                         break;
                     default:
-                        maxDays = 30;
-                        warningDays = 14;
+                        maxDays = 45;
+                        warningDays = 21;
                         stepDescription = 'calculations';
                 }
 
                 // Hard limit validation
                 if (daySpan > maxDays) {
-                    showError(`Date range of ${daySpan} days exceeds the ${maxDays}-day limit for ${stepDescription}. Please use a shorter range or change the step size to weekly/monthly for longer periods. (API Protection: Daily=30 days max, Weekly=6 months max, Monthly=1 year max)`);
+                    showError(`Date range of ${daySpan} days exceeds the ${maxDays}-day limit for ${stepDescription}. Please use a shorter range or change the step size to weekly/monthly for longer periods. (API Protection: Daily=45 days max, Weekly=9 months max, Monthly=18 months max)`);
                     return false;
                 }
 
@@ -3982,7 +3982,7 @@ function renderTransitDay(dateStr, items){
                         `Date range is ${daySpan} days (approximately ${actualSteps} ${stepDescription}).\n\n` +
                         `This may take longer to process and generate a large amount of data.\n\n` +
                         `Consider using:\n` +
-                        `• Weekly step size for ranges over 30 days\n` +
+                        `• Weekly step size for ranges over 45 days\n` +
                         `• Monthly step size for ranges over 6 months\n\n` +
                         `Continue with current settings?`
                     );
@@ -4863,7 +4863,7 @@ function renderTransitDay(dateStr, items){
                             warningClass = daySpan > maxDays ? 'text-red-400' : 'text-yellow-400';
                             warningText = daySpan > maxDays ? 
                                 `⚠️ ${daySpan} days exceeds 30-day limit for daily calculations` :
-                                `⚠️ ${daySpan} days is approaching daily limit (30 days max)`;
+                                `⚠️ ${daySpan} days is approaching daily limit (45 days max)`;
                         }
                         break;
                     case '7d':
