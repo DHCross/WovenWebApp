@@ -99,5 +99,8 @@ A: UX legibility + cross-period comparability; raw retained for audit.
 **Q: Can Valence be zero with high Magnitude?**  
 A: Yes—structural pressure without directional tilt (ambiguous pivot field).
 
+**Q: Where can I find detailed explanations of valence types?**  
+A: The seismograph interface includes an expanded glossary (📖 Glossary button) with comprehensive valence maps, including detailed descriptions of negative and positive valence types, sources of force, and quick navigation guidance.
+
 ---
 © Raven Calder System – Geometry-first symbolic diagnostics.
