@@ -3326,7 +3326,21 @@ function renderTransitDay(dateStr, items){
                 const heur = generateBarometerHeuristics(mag, val, vol, day);
                 // Color logic based on valence & magnitude
                 const color = barometerColorForValence(val, mag);
-                const gradient = `linear-gradient(135deg, ${color.start} 0%, ${color.end} 70%)`;
+                // Enhanced gradient with volatility texture
+                let gradient;
+                if (vol >= 4) {
+                    // High volatility: complex scattered gradient 
+                    gradient = `radial-gradient(ellipse at 30% 20%, ${color.start} 0%, ${color.end} 45%), linear-gradient(135deg, ${color.start} 0%, ${color.end} 70%, ${color.cap} 100%)`;
+                } else if (vol >= 3) {
+                    // Medium-high volatility: angular gradient with stops
+                    gradient = `linear-gradient(125deg, ${color.start} 0%, ${color.end} 35%, ${color.start} 55%, ${color.end} 70%)`;
+                } else if (vol >= 2) {
+                    // Variable: enhanced linear with cap
+                    gradient = `linear-gradient(135deg, ${color.start} 0%, ${color.end} 60%, ${color.cap} 85%)`;
+                } else {
+                    // Low volatility: clean linear
+                    gradient = `linear-gradient(135deg, ${color.start} 0%, ${color.end} 70%)`;
+                }
                 const glyphs = heur.glyphs ? `<div class="text-2xl tracking-tight">${heur.glyphs}</div>` : '';
                 const annotation = heur.annotation ? `<p class="text-sm italic text-gray-200 mt-2">“${heur.annotation}”</p>` : '';
                 const hooks = (day.hooks && Array.isArray(day.hooks) && day.hooks.length) ?
@@ -3431,8 +3445,10 @@ function renderTransitDay(dateStr, items){
 
         // --- Barometer Heuristics & Color Helpers (single-day + multi-day styling) ---
         function barometerColorForValence(val, mag){
-            // Returns {start,end,cap}
-            if(val <= -3) return {start:'#581c1c', end:'#b91c1c', cap:'#dc2626'};
+            // Returns {start,end,cap} with enhanced emotional shading
+            // Extreme negative valence: deep storm/friction colors
+            if(val <= -4) return {start:'#4c1d15', end:'#991b1b', cap:'#dc2626'}; // deeper storm-gray to red
+            if(val <= -3) return {start:'#581c1c', end:'#b91c1c', cap:'#dc2626'}; // original dark red
             if(val < -1) return {start:'#4c1d1d', end:'#7f1d1d', cap:'#991b1b'};
             if(val > 3) return {start:'#064e3b', end:'#059669', cap:'#10b981'};
             if(val > 1) return {start:'#0f766e', end:'#14b8a6', cap:'#0d9488'};
@@ -3451,9 +3467,11 @@ function renderTransitDay(dateStr, items){
             if(val<=-3) { tags.push('☍'); if(!glyphs.includes('☍')) glyphs.push('☍'); }
             if(vol>=3 && val<0) { tags.push('⧖'); if(!glyphs.includes('⧖')) glyphs.push('⧖'); }
             const signalTags = tags.join('');
-            // Title heuristics
+            // Title heuristics - enhanced for extreme states
             let title;
-            if(mag>=4 && val<=-3) title='Held in the Pause';
+            if(val<=-4.5 && vol>=3) title='Silence with Teeth';
+            else if(val<=-4.5) title='Labor Day Misfire';
+            else if(mag>=4 && val<=-3) title='Held in the Pause';
             else if(val<=-4) title='Friction Peak';
             else if(vol>=4 && val<0) title='Diffuse Pulse';
             else if(mag<2 && Math.abs(val)<0.5) title='Low Signal Day';
@@ -3461,7 +3479,9 @@ function renderTransitDay(dateStr, items){
             else title='Pattern Snapshot';
             // Annotation (short, geometry-sourced descriptors; not narrative voice)
             let annotation;
-            if(title==='Held in the Pause') annotation='Signal drop. Echo instead of response.';
+            if(title==='Silence with Teeth') annotation='Weight held with no return.';
+            else if(title==='Labor Day Misfire') annotation='Systems jam; repair mode engaged.';
+            else if(title==='Held in the Pause') annotation='Signal drop. Echo instead of response.';
             else if(title==='Friction Peak') annotation='Contact misfires; compression spike.';
             else if(title==='Diffuse Pulse') annotation='Energy disperses; focus splits.';
             else if(title==='Momentum Window') annotation='Supportive current with lift.';
