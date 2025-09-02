@@ -2401,6 +2401,9 @@ function renderTransitDay(dateStr, items){
                             <button id="queueSeismographAnalysis" class="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700" title="Queue pattern & cycle analysis (runs asynchronously)">
                                 📦 Queue Analysis
                             </button>
+                            <button id="toggleGlossary" class="px-3 py-1 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700" title="Open Seismograph Glossary">
+                                📖 Glossary
+                            </button>
                         </div>
                         <p class="text-sm text-gray-300 mb-3 leading-relaxed">
                             <strong>Macro (Seismograph Arc):</strong> Normalized activation curve (Magnitude scaled to 0–5) with valence drift path.<br>
@@ -2425,6 +2428,62 @@ function renderTransitDay(dateStr, items){
             // View toggle container
             html += '<div id="seismographViewContainer">';
             
+            // Glossary Modal
+            html += `
+                <div id="seismographGlossaryModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 p-4" aria-labelledby="glossary-title" role="dialog" aria-modal="true">
+                    <div class="bg-gray-900 rounded-lg shadow-xl max-w-2xl w-full p-6 relative border border-indigo-500 overflow-y-auto max-h-[90vh]">
+                        <button id="closeGlossary" class="absolute top-3 right-3 text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+                        <h2 id="glossary-title" class="text-2xl font-bold text-indigo-300 mb-4">🌌 Woven Map Glossary</h2>
+                        
+                        <div class="space-y-6">
+                            <div>
+                                <h3 class="text-lg font-semibold text-white mb-3 border-b border-gray-700 pb-2">Core Dimensions</h3>
+                                <ul class="space-y-3 text-sm">
+                                    <li><strong>Valence (↗ / ↘)</strong> 🌞🌑 → <span class="text-gray-300"><em>Emotional / symbolic charge</em> of an aspect. Positive (+) opens, harmonizes, lifts. Negative (–) presses, contracts, destabilizes.</span></li>
+                                    <li><strong>Type (🌪️ / 🌊 / 🔥 / 🌱)</strong> → <span class="text-gray-300"><em>Kind of symbolic weather</em>.</span></li>
+                                    <li><strong>Magnitude (⚡)</strong> → <span class="text-gray-300"><em>How strong it lands</em> (orb 🎯 + planets 🪐 + natal echo 📡).</span></li>
+                                    <li><strong>Volatility (🌊🔥)</strong> → <span class="text-gray-300"><em>How fast it fluctuates</em>.</span></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 class="text-lg font-semibold text-rose-300 mb-3 border-b border-gray-700 pb-2">🌑 Map of Negative Valence Types</h3>
+                                <p class="text-xs text-gray-400 mb-3 italic">When energy pulls down, contracts, or destabilizes.</p>
+                                <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                                    <li>🌪️ <strong>Recursion Pull</strong> — <span class="text-gray-300">Old cycles re-emerge, karmic gravity.</span></li>
+                                    <li>⚔️ <strong>Friction Clash</strong> — <span class="text-gray-300">Mars-style conflict, arguments, heat.</span></li>
+                                    <li>🌊 <strong>Cross Current</strong> — <span class="text-gray-300">Confusion, split priorities, energies working against each other.</span></li>
+                                    <li>🌀 <strong>Fog / Dissolution</strong> — <span class="text-gray-300">Neptune-style disorientation, loss of clarity.</span></li>
+                                    <li>🌋 <strong>Pressure / Eruption</strong> — <span class="text-gray-300">Pluto compression until it bursts.</span></li>
+                                    <li>🕰️ <strong>Saturn Weight</strong> — <span class="text-gray-300">Heaviness, delay, feeling stuck or tested.</span></li>
+                                    <li>🧩 <strong>Fragmentation</strong> — <span class="text-gray-300">Energy scattered, sense of being pulled in pieces.</span></li>
+                                    <li>🌫️ <strong>Entropy Drift</strong> — <span class="text-gray-300">Loss of focus, energy drains away, inertia.</span></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 class="text-lg font-semibold text-emerald-300 mb-3 border-b border-gray-700 pb-2">🌞 Map of Positive Valence Types</h3>
+                                <p class="text-xs text-gray-400 mb-3 italic">When energy uplifts, harmonizes, or expands.</p>
+                                <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                                    <li>🌱 <strong>Fertile Field</strong> — <span class="text-gray-300">Growth, new opportunities, creativity sprouts.</span></li>
+                                    <li>✨ <strong>Harmonic Resonance</strong> — <span class="text-gray-300">Trines/sextiles, things click, natural flow.</span></li>
+                                    <li>💎 <strong>Expansion Lift</strong> — <span class="text-gray-300">Jupiter blessing, confidence, abundance.</span></li>
+                                    <li>🔥 <strong>Combustion Clarity</strong> — <span class="text-gray-300">Pressure breaks to reveal hidden truth.</span></li>
+                                    <li>🦋 <strong>Liberation / Release</strong> — <span class="text-gray-300">Uranian breakthroughs, freedom, fresh change.</span></li>
+                                    <li>🧘 <strong>Integration</strong> — <span class="text-gray-300">Opposites balanced, contradictions reconciled.</span></li>
+                                    <li>🌊 <strong>Flow Tide</strong> — <span class="text-gray-300">Ease, adaptability, emotions moving freely.</span></li>
+                                    <li>🌈 <strong>Visionary Spark</strong> — <span class="text-gray-300">Inspiration, Neptune dream turned into art.</span></li>
+                                </ul>
+                            </div>
+                            
+                            <div class="text-center pt-4 border-t border-gray-700">
+                                <button id="glossary-close-secondary" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded text-sm">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
             // Build tables for each person/composite
             if (data.person_a?.chart?.transitsByDate) {
                 const personAName = data.person_a?.info?.name || 'Person A';
@@ -3307,6 +3366,22 @@ function renderTransitDay(dateStr, items){
                 resetBtn.addEventListener('click', resetSeismographFilters);
             }
             
+            // Glossary modal
+            const glossaryModal = document.getElementById('seismographGlossaryModal');
+            const toggleGlossaryBtn = document.getElementById('toggleGlossary');
+            const closeGlossaryBtn = document.getElementById('closeGlossary');
+            const closeGlossarySecondaryBtn = document.getElementById('glossary-close-secondary');
+
+            const openGlossary = () => glossaryModal.classList.remove('hidden');
+            const closeGlossary = () => glossaryModal.classList.add('hidden');
+
+            if (toggleGlossaryBtn) toggleGlossaryBtn.addEventListener('click', openGlossary);
+            if (closeGlossaryBtn) closeGlossaryBtn.addEventListener('click', closeGlossary);
+            if (closeGlossarySecondaryBtn) closeGlossarySecondaryBtn.addEventListener('click', closeGlossary);
+            if (glossaryModal) glossaryModal.addEventListener('click', (e) => {
+                if (e.target === glossaryModal) closeGlossary();
+            });
+
             // Toggle view (chart/table)
             const toggleView = document.getElementById('toggleSeismographView');
             if (toggleView) {
