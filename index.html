@@ -2448,12 +2448,18 @@ function renderTransitDay(dateStr, items){
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm border border-gray-600 rounded seismograph-table">
                             <thead class="bg-gray-700">
-                                <tr>
-                                    <th class="px-3 py-2 text-left text-gray-300 border-b border-gray-600">Date</th>
-                                    <th class="px-3 py-2 text-right text-gray-300 border-b border-gray-600">Magnitude</th>
-                                    <th class="px-3 py-2 text-right text-gray-300 border-b border-gray-600">Valence</th>
-                                    <th class="px-3 py-2 text-right text-gray-300 border-b border-gray-600">Volatility</th>
-                                    <th class="px-3 py-2 text-left text-gray-300 border-b border-gray-600">Top Hooks</th>
+                                <tr class="text-[11px] uppercase tracking-wide">
+                                    <th class="px-3 py-2 text-left text-gray-300 border-b border-gray-600 align-bottom">Date</th>
+                                    <th class="px-3 py-2 text-right text-teal-300 border-b border-gray-600 align-bottom">Magnitude<br><span class="text-[10px] normal-case font-normal text-gray-400">Standalone Pressure</span></th>
+                                    <th colspan="2" class="px-3 py-1 text-center text-amber-300 border-b border-gray-600 align-bottom">Modifiers<br><span class="text-[10px] normal-case font-normal text-gray-400">Tone & Turbulence (independent)</span></th>
+                                    <th class="px-3 py-2 text-left text-gray-300 border-b border-gray-600 align-bottom">Top Hooks</th>
+                                </tr>
+                                <tr class="text-[11px] tracking-wide bg-gray-700/80">
+                                    <th></th>
+                                    <th class="text-right text-gray-400 font-normal">⚡ Mag</th>
+                                    <th class="text-right text-gray-400 font-normal">↗︎ Val</th>
+                                    <th class="text-right text-gray-400 font-normal">🌪 Vol</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>`;
@@ -2479,10 +2485,10 @@ function renderTransitDay(dateStr, items){
                 
                 html += `
                     <tr class="hover:bg-gray-700 transition-colors">
-                        <td class="px-3 py-2 border-b border-gray-700 text-teal-300">${date}</td>
-                        <td class="px-3 py-2 border-b border-gray-700 text-right ${magColor}">${mag}</td>
-                        <td class="px-3 py-2 border-b border-gray-700 text-right ${valColor}">${val}</td>
-                        <td class="px-3 py-2 border-b border-gray-700 text-right ${volColor}">${vol}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-teal-300 whitespace-nowrap">${date}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-right ${magColor}" title="Symbolic pressure scalar (independent)">${mag}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-right ${valColor}" title="Directional tone (headwind vs tailwind)">${val}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-right ${volColor}" title="Turbulence / spread of activation">${vol}</td>
                         <td class="px-3 py-2 border-b border-gray-700 text-gray-300 text-xs" title="${hookText}">${hookText.length > 50 ? hookText.substring(0, 50) + '...' : hookText}</td>
                     </tr>`;
             });
@@ -2490,6 +2496,11 @@ function renderTransitDay(dateStr, items){
             html += `
                             </tbody>
                         </table>
+                        <div class="mt-2 text-[10px] text-gray-400 flex flex-col gap-1 leading-snug">
+                            <div><span class="text-teal-300 font-semibold">Magnitude</span> = pressure intensity (hook density + weighted alignment). Not computed from Valence or Volatility.</div>
+                            <div><span class="text-amber-300 font-semibold">Valence</span> = net directional tone. <span class="text-amber-300 font-semibold">Volatility</span> = turbulence / variance. Both modify lived experience of pressure but do not derive it.</div>
+                            <div>Three independent dials → mirror first, interpret later. <span class="text-gray-300">Mirror, not mandate.</span></div>
+                        </div>
                     </div>
                 </div>`;
             
@@ -2543,12 +2554,18 @@ function renderTransitDay(dateStr, items){
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm border border-gray-600 rounded seismograph-table">
                             <thead class="bg-gray-700">
-                                <tr>
-                                    <th class="px-3 py-2 text-left text-gray-300 border-b border-gray-600">Date</th>
-                                    <th class="px-3 py-2 text-right text-gray-300 border-b border-gray-600">Magnitude</th>
-                                    <th class="px-3 py-2 text-right text-gray-300 border-b border-gray-600">Valence</th>
-                                    <th class="px-3 py-2 text-right text-gray-300 border-b border-gray-600">Volatility</th>
-                                    <th class="px-3 py-2 text-left text-gray-300 border-b border-gray-600">Top Hooks</th>
+                                <tr class="text-[11px] uppercase tracking-wide">
+                                    <th class="px-3 py-2 text-left text-gray-300 border-b border-gray-600 align-bottom">Date</th>
+                                    <th class="px-3 py-2 text-right text-teal-300 border-b border-gray-600 align-bottom">Magnitude<br><span class="text-[10px] normal-case font-normal text-gray-400">Standalone Pressure</span></th>
+                                    <th colspan="2" class="px-3 py-1 text-center text-amber-300 border-b border-gray-600 align-bottom">Modifiers<br><span class="text-[10px] normal-case font-normal text-gray-400">Tone & Turbulence (independent)</span></th>
+                                    <th class="px-3 py-2 text-left text-gray-300 border-b border-gray-600 align-bottom">Top Hooks</th>
+                                </tr>
+                                <tr class="text-[11px] tracking-wide bg-gray-700/80">
+                                    <th></th>
+                                    <th class="text-right text-gray-400 font-normal">⚡ Mag</th>
+                                    <th class="text-right text-gray-400 font-normal">↗︎ Val</th>
+                                    <th class="text-right text-gray-400 font-normal">🌪 Vol</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>`;
@@ -2571,10 +2588,10 @@ function renderTransitDay(dateStr, items){
                 
                 html += `
                     <tr class="hover:bg-gray-700 transition-colors">
-                        <td class="px-3 py-2 border-b border-gray-700 text-teal-300">${date}</td>
-                        <td class="px-3 py-2 border-b border-gray-700 text-right ${magColor}">${mag}</td>
-                        <td class="px-3 py-2 border-b border-gray-700 text-right ${valColor}">${val}</td>
-                        <td class="px-3 py-2 border-b border-gray-700 text-right ${volColor}">${vol}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-teal-300 whitespace-nowrap">${date}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-right ${magColor}" title="Symbolic pressure scalar (independent)">${mag}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-right ${valColor}" title="Directional tone (headwind vs tailwind)">${val}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-right ${volColor}" title="Turbulence / spread of activation">${vol}</td>
                         <td class="px-3 py-2 border-b border-gray-700 text-gray-300 text-xs" title="${hookText}">${hookText.length > 50 ? hookText.substring(0, 50) + '...' : hookText}</td>
                     </tr>`;
             });
@@ -2582,6 +2599,11 @@ function renderTransitDay(dateStr, items){
             html += `
                             </tbody>
                         </table>
+                        <div class="mt-2 text-[10px] text-gray-400 flex flex-col gap-1 leading-snug">
+                            <div><span class="text-teal-300 font-semibold">Magnitude</span> = pressure intensity (hook density + weighted alignment). Independent axis.</div>
+                            <div><span class="text-amber-300 font-semibold">Valence</span> = directional tone; <span class="text-amber-300 font-semibold">Volatility</span> = turbulence. Modify experience, not source magnitude.</div>
+                            <div>Three dials; no derivation chain. <span class="text-gray-300">Mirror first → interpret later.</span></div>
+                        </div>
                     </div>
                 </div>`;
             
