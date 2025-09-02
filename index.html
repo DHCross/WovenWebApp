@@ -1038,11 +1038,7 @@
                 <button id="generateReport" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
                     Get My Mirror
                 </button>
-                <div class="mt-3">
-                    <button id="showWiringBtn" class="text-teal-300 underline hover:text-teal-400 text-sm transition-colors duration-200">
-                        Show Wiring
-                    </button>
-                </div>
+
             </div>
 
             <!-- Save/Load Controls -->
@@ -4770,8 +4766,8 @@ function renderTransitDay(dateStr, items){
                 }
                 try {
                     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-                    const person1Name = document.getElementById('person1-name').value || 'Person1';
-                    const person2Name = document.getElementById('person2-name').value;
+                    const person1Name = document.getElementById('nameA').value || 'PersonA';
+                    const person2Name = document.getElementById('nameB').value;
                     
                     let filename;
                     if (person2Name) {
