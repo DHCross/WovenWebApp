@@ -2441,7 +2441,7 @@ function renderTransitDay(dateStr, items){
                                 <h3 class="text-lg font-semibold text-white mb-3 border-b border-gray-700 pb-2">Core Dimensions</h3>
                                 <ul class="space-y-3 text-sm">
                                     <li><strong>Valence (↗ / ↘)</strong> 🌞🌑 → <span class="text-gray-300"><em>Emotional / symbolic charge</em> of an aspect.</span>
-                                        <ul class="ml-4 mt-1 space-y-1 text-xs text-gray-400">
+                                        <ul class="ml-4 mt-2 space-y-1 text-xs text-gray-400">
                                             <li><strong>Positive (+):</strong> opens, harmonizes, lifts.</li>
                                             <li><strong>Negative (–):</strong> presses, contracts, destabilizes.</li>
                                             <li><strong>Neutral (0):</strong> background hum.</li>
@@ -2456,7 +2456,7 @@ function renderTransitDay(dateStr, items){
                             <!-- Negative Valence Types -->
                             <div>
                                 <h3 class="text-lg font-semibold text-rose-300 mb-3 border-b border-gray-700 pb-2">🌑 Map of Negative Valence Types</h3>
-                                <p class="text-xs text-gray-400 mb-3 italic">(when energy pulls down, contracts, destabilizes)</p>
+                                <p class="text-xs text-gray-400 mb-3 italic">When energy pulls down, contracts, destabilizes</p>
                                 <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
                                     <li>🌪️ <strong>Recursion Pull</strong> — <span class="text-gray-300">Old cycles re-emerge, karmic gravity, déjà vu themes.</span></li>
                                     <li>⚔️ <strong>Friction Clash</strong> — <span class="text-gray-300">Mars-style conflict, arguments, accidents, heat.</span></li>
@@ -2472,7 +2472,7 @@ function renderTransitDay(dateStr, items){
                             <!-- Positive Valence Types -->
                             <div>
                                 <h3 class="text-lg font-semibold text-emerald-300 mb-3 border-b border-gray-700 pb-2">🌞 Map of Positive Valence Types</h3>
-                                <p class="text-xs text-gray-400 mb-3 italic">(when energy uplifts, harmonizes, expands)</p>
+                                <p class="text-xs text-gray-400 mb-3 italic">When energy uplifts, harmonizes, expands</p>
                                 <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
                                     <li>🌱 <strong>Fertile Field</strong> — <span class="text-gray-300">Growth, new opportunities, creativity sprouts.</span></li>
                                     <li>✨ <strong>Harmonic Resonance</strong> — <span class="text-gray-300">Trines/sextiles, things click, natural flow.</span></li>
@@ -2485,9 +2485,8 @@ function renderTransitDay(dateStr, items){
                                 </ul>
                             </div>
 
-                            <!-- Sources of Force -->
                             <div>
-                                <h3 class="text-lg font-semibold text-cyan-300 mb-3 border-b border-gray-700 pb-2">Sources of Force</h3>
+                                <h3 class="text-lg font-semibold text-amber-300 mb-3 border-b border-gray-700 pb-2">Sources of Force</h3>
                                 <ul class="space-y-2 text-sm">
                                     <li><strong>Orb (🎯)</strong> → <span class="text-gray-300">Closer = stronger.</span></li>
                                     <li><strong>Aspect Type (🌀)</strong> → <span class="text-gray-300">Major = thunder, Minor = whispers.</span></li>
@@ -2497,24 +2496,21 @@ function renderTransitDay(dateStr, items){
                                 </ul>
                             </div>
 
-                            <!-- Quick Navigation -->
                             <div>
-                                <h3 class="text-lg font-semibold text-yellow-300 mb-3 border-b border-gray-700 pb-2">Quick Navigation</h3>
-                                <ol class="space-y-2 text-sm list-decimal list-inside">
-                                    <li><strong>Valence</strong> = Is it 🌞 lifting or 🌑 pressing?</li>
-                                    <li><strong>Type</strong> = Which "weather flavor" (🌪️ Recursion, 🌱 Fertility, etc.)?</li>
-                                    <li><strong>Magnitude</strong> ⚡ = How loud is it?</li>
-                                    <li><strong>Volatility</strong> 🌊🔥 = Is it steady or stormy?</li>
+                                <h3 class="text-lg font-semibold text-cyan-300 mb-3 border-b border-gray-700 pb-2">Quick Navigation</h3>
+                                <ol class="space-y-2 text-sm">
+                                    <li><strong>1. Valence</strong> = Is it 🌞 lifting or 🌑 pressing?</li>
+                                    <li><strong>2. Type</strong> = Which "weather flavor" (🌪️ Recursion, 🌱 Fertility, etc.)?</li>
+                                    <li><strong>3. Magnitude</strong> ⚡ = How loud is it?</li>
+                                    <li><strong>4. Volatility</strong> 🌊🔥 = Is it steady or stormy?</li>
                                 </ol>
-                                
-                                <div class="mt-4 p-3 bg-gray-800 rounded border border-gray-600">
-                                    <p class="text-xs text-teal-300 mb-2">
-                                        👉 So negative valence isn't just "bad vibes" — it could be <strong>weight (Saturn), fog (Neptune), eruption (Pluto), or clash (Mars)</strong>.
-                                    </p>
-                                    <p class="text-xs text-teal-300">
-                                        And positive valence isn't just "good vibes" — it could be <strong>growth (Jupiter), clarity (Sun), flow (Moon), or liberation (Uranus)</strong>.
-                                    </p>
-                                </div>
+                            </div>
+
+                            <div class="bg-gray-800 p-4 rounded border border-gray-600">
+                                <p class="text-sm text-gray-300">
+                                    👉 So negative valence isn't just "bad vibes" — it could be <strong>weight (Saturn), fog (Neptune), eruption (Pluto), or clash (Mars)</strong>.<br>
+                                    And positive valence isn't just "good vibes" — it could be <strong>growth (Jupiter), clarity (Sun), flow (Moon), or liberation (Uranus)</strong>.
+                                </p>
                             </div>
                             
                             <div class="text-center pt-4 border-t border-gray-700">
