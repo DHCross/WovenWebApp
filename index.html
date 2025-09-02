@@ -2431,15 +2431,21 @@ function renderTransitDay(dateStr, items){
             // Glossary Modal
             html += `
                 <div id="seismographGlossaryModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 p-4" aria-labelledby="glossary-title" role="dialog" aria-modal="true">
-                    <div class="bg-gray-900 rounded-lg shadow-xl max-w-2xl w-full p-6 relative border border-indigo-500 overflow-y-auto max-h-[90vh]">
+                    <div class="bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full p-6 relative border border-indigo-500 overflow-y-auto max-h-[90vh]">
                         <button id="closeGlossary" class="absolute top-3 right-3 text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
-                        <h2 id="glossary-title" class="text-2xl font-bold text-indigo-300 mb-4">🌌 Woven Map Glossary</h2>
+                        <h2 id="glossary-title" class="text-2xl font-bold text-indigo-300 mb-4">🌌 Woven Map Glossary (Expanded with Valence Maps)</h2>
                         
                         <div class="space-y-6">
                             <div>
                                 <h3 class="text-lg font-semibold text-white mb-3 border-b border-gray-700 pb-2">Core Dimensions</h3>
                                 <ul class="space-y-3 text-sm">
-                                    <li><strong>Valence (↗ / ↘)</strong> 🌞🌑 → <span class="text-gray-300"><em>Emotional / symbolic charge</em> of an aspect. Positive (+) opens, harmonizes, lifts. Negative (–) presses, contracts, destabilizes.</span></li>
+                                    <li><strong>Valence (↗ / ↘)</strong> 🌞🌑 → <span class="text-gray-300"><em>Emotional / symbolic charge</em> of an aspect.</span>
+                                        <ul class="ml-4 mt-2 space-y-1 text-xs text-gray-400">
+                                            <li><strong>Positive (+):</strong> opens, harmonizes, lifts.</li>
+                                            <li><strong>Negative (–):</strong> presses, contracts, destabilizes.</li>
+                                            <li><strong>Neutral (0):</strong> background hum.</li>
+                                        </ul>
+                                    </li>
                                     <li><strong>Type (🌪️ / 🌊 / 🔥 / 🌱)</strong> → <span class="text-gray-300"><em>Kind of symbolic weather</em>.</span></li>
                                     <li><strong>Magnitude (⚡)</strong> → <span class="text-gray-300"><em>How strong it lands</em> (orb 🎯 + planets 🪐 + natal echo 📡).</span></li>
                                     <li><strong>Volatility (🌊🔥)</strong> → <span class="text-gray-300"><em>How fast it fluctuates</em>.</span></li>
@@ -2448,13 +2454,13 @@ function renderTransitDay(dateStr, items){
 
                             <div>
                                 <h3 class="text-lg font-semibold text-rose-300 mb-3 border-b border-gray-700 pb-2">🌑 Map of Negative Valence Types</h3>
-                                <p class="text-xs text-gray-400 mb-3 italic">When energy pulls down, contracts, or destabilizes.</p>
+                                <p class="text-xs text-gray-400 mb-3 italic">When energy pulls down, contracts, destabilizes</p>
                                 <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                                    <li>🌪️ <strong>Recursion Pull</strong> — <span class="text-gray-300">Old cycles re-emerge, karmic gravity.</span></li>
-                                    <li>⚔️ <strong>Friction Clash</strong> — <span class="text-gray-300">Mars-style conflict, arguments, heat.</span></li>
+                                    <li>🌪️ <strong>Recursion Pull</strong> — <span class="text-gray-300">Old cycles re-emerge, karmic gravity, déjà vu themes.</span></li>
+                                    <li>⚔️ <strong>Friction Clash</strong> — <span class="text-gray-300">Mars-style conflict, arguments, accidents, heat.</span></li>
                                     <li>🌊 <strong>Cross Current</strong> — <span class="text-gray-300">Confusion, split priorities, energies working against each other.</span></li>
-                                    <li>🌀 <strong>Fog / Dissolution</strong> — <span class="text-gray-300">Neptune-style disorientation, loss of clarity.</span></li>
-                                    <li>🌋 <strong>Pressure / Eruption</strong> — <span class="text-gray-300">Pluto compression until it bursts.</span></li>
+                                    <li>🌀 <strong>Fog / Dissolution</strong> — <span class="text-gray-300">Neptune-style disorientation, loss of clarity, boundaries blur.</span></li>
+                                    <li>🌋 <strong>Pressure / Eruption</strong> — <span class="text-gray-300">Pluto compression until it bursts, shadow surfacing.</span></li>
                                     <li>🕰️ <strong>Saturn Weight</strong> — <span class="text-gray-300">Heaviness, delay, feeling stuck or tested.</span></li>
                                     <li>🧩 <strong>Fragmentation</strong> — <span class="text-gray-300">Energy scattered, sense of being pulled in pieces.</span></li>
                                     <li>🌫️ <strong>Entropy Drift</strong> — <span class="text-gray-300">Loss of focus, energy drains away, inertia.</span></li>
@@ -2463,17 +2469,45 @@ function renderTransitDay(dateStr, items){
 
                             <div>
                                 <h3 class="text-lg font-semibold text-emerald-300 mb-3 border-b border-gray-700 pb-2">🌞 Map of Positive Valence Types</h3>
-                                <p class="text-xs text-gray-400 mb-3 italic">When energy uplifts, harmonizes, or expands.</p>
+                                <p class="text-xs text-gray-400 mb-3 italic">When energy uplifts, harmonizes, expands</p>
                                 <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
                                     <li>🌱 <strong>Fertile Field</strong> — <span class="text-gray-300">Growth, new opportunities, creativity sprouts.</span></li>
                                     <li>✨ <strong>Harmonic Resonance</strong> — <span class="text-gray-300">Trines/sextiles, things click, natural flow.</span></li>
                                     <li>💎 <strong>Expansion Lift</strong> — <span class="text-gray-300">Jupiter blessing, confidence, abundance.</span></li>
-                                    <li>🔥 <strong>Combustion Clarity</strong> — <span class="text-gray-300">Pressure breaks to reveal hidden truth.</span></li>
-                                    <li>🦋 <strong>Liberation / Release</strong> — <span class="text-gray-300">Uranian breakthroughs, freedom, fresh change.</span></li>
+                                    <li>🔥 <strong>Combustion Clarity</strong> — <span class="text-gray-300">Pressure breaks but reveals hidden truth, sudden insight.</span></li>
+                                    <li>🦋 <strong>Liberation / Release</strong> — <span class="text-gray-300">Uranian breakthroughs, freedom, change feels fresh.</span></li>
                                     <li>🧘 <strong>Integration</strong> — <span class="text-gray-300">Opposites balanced, contradictions reconciled.</span></li>
                                     <li>🌊 <strong>Flow Tide</strong> — <span class="text-gray-300">Ease, adaptability, emotions moving freely.</span></li>
-                                    <li>🌈 <strong>Visionary Spark</strong> — <span class="text-gray-300">Inspiration, Neptune dream turned into art.</span></li>
+                                    <li>🌈 <strong>Visionary Spark</strong> — <span class="text-gray-300">Inspiration, Neptune dream turned into art, spiritual elevation.</span></li>
                                 </ul>
+                            </div>
+
+                            <div>
+                                <h3 class="text-lg font-semibold text-amber-300 mb-3 border-b border-gray-700 pb-2">Sources of Force</h3>
+                                <ul class="space-y-2 text-sm">
+                                    <li><strong>Orb (🎯)</strong> → <span class="text-gray-300">Closer = stronger.</span></li>
+                                    <li><strong>Aspect Type (🌀)</strong> → <span class="text-gray-300">Major = thunder, Minor = whispers.</span></li>
+                                    <li><strong>Planetary Potency (🪐)</strong> → <span class="text-gray-300">Fast planets = sparks, slow planets = tectonic.</span></li>
+                                    <li><strong>Natal Resonance (📡)</strong> → <span class="text-gray-300">Hits angles, luminaries, nodes = amplified.</span></li>
+                                    <li><strong>Recursion Stack (🎶)</strong> → <span class="text-gray-300">Multiple repeating themes = louder echo.</span></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 class="text-lg font-semibold text-cyan-300 mb-3 border-b border-gray-700 pb-2">Quick Navigation</h3>
+                                <ol class="space-y-2 text-sm">
+                                    <li><strong>1. Valence</strong> = Is it 🌞 lifting or 🌑 pressing?</li>
+                                    <li><strong>2. Type</strong> = Which "weather flavor" (🌪️ Recursion, 🌱 Fertility, etc.)?</li>
+                                    <li><strong>3. Magnitude</strong> ⚡ = How loud is it?</li>
+                                    <li><strong>4. Volatility</strong> 🌊🔥 = Is it steady or stormy?</li>
+                                </ol>
+                            </div>
+
+                            <div class="bg-gray-800 p-4 rounded border border-gray-600">
+                                <p class="text-sm text-gray-300">
+                                    👉 So negative valence isn't just "bad vibes" — it could be <strong>weight (Saturn), fog (Neptune), eruption (Pluto), or clash (Mars)</strong>.<br>
+                                    And positive valence isn't just "good vibes" — it could be <strong>growth (Jupiter), clarity (Sun), flow (Moon), or liberation (Uranus)</strong>.
+                                </p>
                             </div>
                             
                             <div class="text-center pt-4 border-t border-gray-700">
