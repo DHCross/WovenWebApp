@@ -4255,6 +4255,9 @@ function renderTransitDay(dateStr, items){
                         throw new Error('Invalid chart data format');
                     }
 
+                    // Set a flag to indicate we're loading data (to prevent clearing relationship selections)
+                    window.isLoadingChartData = true;
+
                     // Load Person A data
                     if (chartData.personA) {
                         document.getElementById('nameA').value = chartData.personA.name || '';
@@ -4290,38 +4293,56 @@ function renderTransitDay(dateStr, items){
                         }
                     }
 
-                    // Load relational context
-                    if (chartData.relationalContext) {
-                        const rel = chartData.relationalContext;
-                        if (rel.relationship_type) {
-                            const typeRadio = document.querySelector(`input[name="relationshipType"][value="${rel.relationship_type}"]`);
-                            if (typeRadio) {
-                                typeRadio.checked = true;
-                                typeRadio.dispatchEvent(new Event('change'));
+                    // Load relational context AFTER context type is set
+                    setTimeout(() => {
+                        if (chartData.relationalContext) {
+                            const rel = chartData.relationalContext;
+                            
+                            // Temporarily enable relationship controls for data loading
+                            const relationshipControls = document.querySelectorAll('input[name="relationshipType"], input[name="intimacyTier"], #exRelationship');
+                            relationshipControls.forEach(control => {
+                                control.disabled = false;
+                                if (control.parentElement) {
+                                    control.parentElement.classList.remove('opacity-50', 'cursor-not-allowed');
+                                }
+                            });
+                            
+                            if (rel.relationship_type) {
+                                const typeRadio = document.querySelector(`input[name="relationshipType"][value="${rel.relationship_type}"]`);
+                                if (typeRadio) {
+                                    typeRadio.checked = true;
+                                    typeRadio.dispatchEvent(new Event('change'));
+                                }
+                            }
+                            if (rel.intimacy_tier) {
+                                const tierRadio = document.querySelector(`input[name="intimacyTier"][value="${rel.intimacy_tier}"]`);
+                                if (tierRadio) tierRadio.checked = true;
+                            }
+                            if (rel.contact_channel) {
+                                const channelRadio = document.querySelector(`input[name="contactChannel"][value="${rel.contact_channel}"]`);
+                                if (channelRadio) channelRadio.checked = true;
+                            }
+                            if (rel.relationship_role) {
+                                const roleSelect = document.getElementById('relationshipRole');
+                                if (roleSelect) roleSelect.value = rel.relationship_role;
+                            }
+                            if (rel.relationship_role_custom) {
+                                document.getElementById('relationshipRoleCustom').value = rel.relationship_role_custom;
+                            }
+                            if (rel.relationship_notes) {
+                                document.getElementById('relationshipNotes').value = rel.relationship_notes;
+                            }
+                            if (rel.is_ex_relationship) {
+                                document.getElementById('exRelationship').checked = rel.is_ex_relationship;
                             }
                         }
-                        if (rel.intimacy_tier) {
-                            const tierRadio = document.querySelector(`input[name="intimacyTier"][value="${rel.intimacy_tier}"]`);
-                            if (tierRadio) tierRadio.checked = true;
+                        
+                        // Clear the loading flag and re-evaluate visibility
+                        window.isLoadingChartData = false;
+                        if (window.evaluateRelationalContextVisibility) {
+                            window.evaluateRelationalContextVisibility();
                         }
-                        if (rel.contact_channel) {
-                            const channelRadio = document.querySelector(`input[name="contactChannel"][value="${rel.contact_channel}"]`);
-                            if (channelRadio) channelRadio.checked = true;
-                        }
-                        if (rel.relationship_role) {
-                            const roleSelect = document.getElementById('relationshipRole');
-                            if (roleSelect) roleSelect.value = rel.relationship_role;
-                        }
-                        if (rel.relationship_role_custom) {
-                            document.getElementById('relationshipRoleCustom').value = rel.relationship_role_custom;
-                        }
-                        if (rel.relationship_notes) {
-                            document.getElementById('relationshipNotes').value = rel.relationship_notes;
-                        }
-                        if (rel.is_ex_relationship) {
-                            document.getElementById('exRelationship').checked = rel.is_ex_relationship;
-                        }
-                    }
+                    }, 100);
 
                     // Load transit params
                     if (chartData.transitParams) {
@@ -4748,15 +4769,17 @@ function renderTransitDay(dateStr, items){
                 const anyFilled = personBInputs.some(id => document.getElementById(id).value.trim() !== '');
                 const relContextSection = document.getElementById('relational-context-section');
                 const isPersonBExpanded = document.getElementById('personB-toggle')?.getAttribute('aria-expanded') === 'true';
-                console.log('[REL VIS] anyFilled:', anyFilled, 'currentContextType:', currentContextType, 'personBExpanded:', isPersonBExpanded);
+                const isLoadingData = window.isLoadingChartData || false;
+                console.log('[REL VIS] anyFilled:', anyFilled, 'currentContextType:', currentContextType, 'personBExpanded:', isPersonBExpanded, 'isLoadingData:', isLoadingData);
                 
                 // Show relational context if:
                 // 1. We're in relational mode, OR
                 // 2. Person B section is expanded, OR  
                 // 3. Any Person B field has data
                 const shouldShow = currentContextType === 'relational' || isPersonBExpanded || anyFilled;
+                const isInRelationalMode = currentContextType === 'relational';
                 
-                console.log('[REL VIS] shouldShow:', shouldShow, 'reasons:', {
+                console.log('[REL VIS] shouldShow:', shouldShow, 'isInRelationalMode:', isInRelationalMode, 'reasons:', {
                     relationalMode: currentContextType === 'relational',
                     personBExpanded: isPersonBExpanded, 
                     personBData: anyFilled
@@ -4772,9 +4795,35 @@ function renderTransitDay(dateStr, items){
                         if (wasHidden) {
                             console.log('[REL VIS] ✅ Context section was hidden, now shown');
                         }
+                        
+                        // Enable/disable relationship type controls based on actual relational mode
+                        // BUT skip this during data loading to allow restoration
+                        if (!isLoadingData) {
+                            const relationshipControls = relContextSection.querySelectorAll('input[name="relationshipType"], input[name="intimacyTier"], #exRelationship');
+                            relationshipControls.forEach(control => {
+                                control.disabled = !isInRelationalMode;
+                                if (control.parentElement) {
+                                    if (isInRelationalMode) {
+                                        control.parentElement.classList.remove('opacity-50', 'cursor-not-allowed');
+                                    } else {
+                                        control.parentElement.classList.add('opacity-50', 'cursor-not-allowed');
+                                    }
+                                }
+                            });
+                            
+                            // Clear selections if not in relational mode (but not during data loading)
+                            if (!isInRelationalMode) {
+                                clearRelationshipTypeSelections();
+                            }
+                        }
+                        
                     } else {
                         relContextSection.classList.add('hidden');
                         console.log('[REL VIS] ❌ Hiding relational context section');
+                        // Only clear selections if not loading data
+                        if (!isLoadingData) {
+                            clearRelationshipTypeSelections();
+                        }
                     }
                 } else {
                     console.error('[REL VIS] ⚠️ relational-context-section element not found!');
@@ -5027,6 +5076,15 @@ function renderTransitDay(dateStr, items){
                 const relationalSubtype = document.querySelector('input[name="relationalSubtype"]:checked')?.value || 'composite';
                 updateRelationalSubtype(relationalSubtype);
                 
+                // Re-enable relationship type controls when switching to relational mode
+                const relationshipControls = document.querySelectorAll('input[name="relationshipType"], input[name="intimacyTier"], #exRelationship');
+                relationshipControls.forEach(control => {
+                    control.disabled = false;
+                    if (control.parentElement) {
+                        control.parentElement.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                });
+                
                 // Evaluate relational context visibility after switching
                 if (window.evaluateRelationalContextVisibility) {
                     setTimeout(window.evaluateRelationalContextVisibility, 100);
@@ -5145,6 +5203,24 @@ function renderTransitDay(dateStr, items){
             const relationalContext = document.getElementById('relational-context-section');
             if (relationalContext) {
                 relationalContext.classList.add('hidden');
+                // Clear relationship type selections when hiding relational context
+                clearRelationshipTypeSelections();
+            }
+        }
+        
+        function clearRelationshipTypeSelections() {
+            // Clear all relationship type radio buttons
+            document.querySelectorAll('input[name="relationshipType"]').forEach(radio => {
+                radio.checked = false;
+            });
+            // Clear intimacy tier selections
+            document.querySelectorAll('input[name="intimacyTier"]').forEach(radio => {
+                radio.checked = false;
+            });
+            // Clear ex-relationship checkbox
+            const exRelCheckbox = document.getElementById('exRelationship');
+            if (exRelCheckbox) {
+                exRelCheckbox.checked = false;
             }
         }
         
