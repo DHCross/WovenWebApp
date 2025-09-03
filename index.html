@@ -1119,6 +1119,41 @@ window.WOVEN_UI_FILTERS = { tightOnly:true, showMinor:false, showHarmonic:false,
 // Universal context reference for browser/server compatibility
 const WOVEN_GLOBAL = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : {});
 
+// Step-size limits (centralized + configurable)
+// Defaults are intentionally conservative; warnings trigger at 80% of max.
+const DEFAULT_STEP_LIMITS = {
+    daily:  { max: 45,  warnRatio: 0.8, label: 'daily calculations' },
+    weekly: { max: 270, warnRatio: 0.8, label: 'weekly calculations' },
+    monthly:{ max: 550, warnRatio: 0.8, label: 'monthly calculations' }
+};
+function resolveStepLimits(){
+    try {
+        // Allow overrides via config.js if present
+        const conf = (typeof WovenMapConfig !== 'undefined' && WovenMapConfig && WovenMapConfig.api && WovenMapConfig.api.limits && WovenMapConfig.api.limits.steps)
+            ? WovenMapConfig.api.limits.steps : null;
+        // Allow developer/browser overrides via localStorage
+        const ls = localStorage.getItem('wm_step_limits_override');
+        const lsParsed = ls ? JSON.parse(ls) : null;
+        const merged = JSON.parse(JSON.stringify(DEFAULT_STEP_LIMITS));
+        const apply = (src) => {
+            if (!src) return;
+            ['daily','weekly','monthly'].forEach(k => {
+                if (src[k]) {
+                    if (Number.isFinite(+src[k].max)) merged[k].max = +src[k].max;
+                    if (Number.isFinite(+src[k].warnRatio)) merged[k].warnRatio = Math.max(0, Math.min(1, +src[k].warnRatio));
+                    if (typeof src[k].label === 'string') merged[k].label = src[k].label;
+                }
+            });
+        };
+        apply(conf); apply(lsParsed);
+        return merged;
+    } catch(e){
+        console.warn('Step limits override parse failed; using defaults', e);
+        return DEFAULT_STEP_LIMITS;
+    }
+}
+window.WOVEN_STEP_LIMITS = resolveStepLimits();
+
 // --- Helper for lean/legacy aspect/transit row keys ---
 function rowNamesAndOrb(r) {
     const transit = r.transit_body ?? r.p1_name ?? r.planet_a ?? '—';
@@ -1450,6 +1485,205 @@ function renderTransitDay(dateStr, items){
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
+        }
+
+        // Chunking functions for handling large date ranges
+        function calculateDaySpan(transitParams) {
+            if (!transitParams?.startDate || !transitParams?.endDate) return 0;
+            const start = new Date(transitParams.startDate);
+            const end = new Date(transitParams.endDate);
+            return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        }
+
+        function createDateChunks(transitParams, chunkSize = 10) {
+            const start = new Date(transitParams.startDate);
+            const end = new Date(transitParams.endDate);
+            const chunks = [];
+            
+            let currentStart = new Date(start);
+            
+            while (currentStart <= end) {
+                let currentEnd = new Date(currentStart);
+                currentEnd.setDate(currentEnd.getDate() + chunkSize - 1);
+                
+                if (currentEnd > end) {
+                    currentEnd = new Date(end);
+                }
+                
+                chunks.push({
+                    startDate: currentStart.toISOString().split('T')[0],
+                    endDate: currentEnd.toISOString().split('T')[0],
+                    step: transitParams.step
+                });
+                
+                currentStart.setDate(currentEnd.getDate() + 1);
+            }
+            
+            return chunks;
+        }
+
+        function mergeChunkedResults(results) {
+            // Merge multiple chunked results into a single coherent result
+            if (!results.length) return null;
+            
+            const merged = JSON.parse(JSON.stringify(results[0])); // Deep clone first result
+            
+            // Merge transitsByDate for each entity
+            for (let i = 1; i < results.length; i++) {
+                const result = results[i];
+                
+                // Merge Person A transits
+                if (result.person_a?.chart?.transitsByDate && merged.person_a?.chart?.transitsByDate) {
+                    Object.assign(merged.person_a.chart.transitsByDate, result.person_a.chart.transitsByDate);
+                }
+                
+                // Merge Person B transits
+                if (result.person_b?.chart?.transitsByDate && merged.person_b?.chart?.transitsByDate) {
+                    Object.assign(merged.person_b.chart.transitsByDate, result.person_b.chart.transitsByDate);
+                }
+                
+                // Merge Composite transits
+                if (result.composite?.transitsByDate && merged.composite?.transitsByDate) {
+                    Object.assign(merged.composite.transitsByDate, result.composite.transitsByDate);
+                }
+                
+                // Merge Synastry transits
+                if (result.synastry?.transitsByDate && merged.synastry?.transitsByDate) {
+                    Object.assign(merged.synastry.transitsByDate, result.synastry.transitsByDate);
+                }
+            }
+            
+            return merged;
+        }
+
+        async function generateReportWithChunking(formData) {
+            const daySpan = calculateDaySpan(formData.transitParams);
+            const mode = formData.context.mode;
+            
+            // Auto-chunk for ranges > 15 days to stay under 6MB limit
+            if (daySpan > 15 && mode.includes('transits')) {
+                console.log(`Auto-chunking ${daySpan}-day range into smaller segments`);
+                
+                // Determine optimal chunk size based on step size
+                let chunkSize = 10; // Default: 10 days per chunk
+                if (formData.transitParams.step === '7d' || formData.transitParams.step === 'weekly') {
+                    chunkSize = 21; // 3 weeks per chunk for weekly data
+                } else if (formData.transitParams.step === '1m' || formData.transitParams.step === 'monthly') {
+                    chunkSize = 60; // 2 months per chunk for monthly data
+                }
+                
+                const chunks = createDateChunks(formData.transitParams, chunkSize);
+                const results = [];
+                
+                // Update loading indicator to show progress
+                const loadingText = loadingIndicator.querySelector('.text-white, .text-sm');
+                const originalText = loadingText?.textContent || 'Computing Astrological Geometry...';
+                
+                for (let i = 0; i < chunks.length; i++) {
+                    const chunk = chunks[i];
+                    
+                    // Create a new formData object with chunked transit parameters
+                    // CRITICAL: Don't modify transitParams directly - create new payload per chunk
+                    const chunkData = JSON.parse(JSON.stringify(formData)); // Deep clone
+                    chunkData.transitParams = chunk;
+                    
+                    // Update progress
+                    if (loadingText) {
+                        loadingText.textContent = `Processing chunk ${i + 1} of ${chunks.length} (${chunk.startDate} to ${chunk.endDate})...`;
+                    }
+                    
+                    console.log(`Processing chunk ${i + 1}/${chunks.length}: ${chunk.startDate} to ${chunk.endDate}`);
+                    
+                    try {
+                        const apiEndpoint = WovenMapConfig.getApiEndpoint('astrologyMathBrain');
+                        const timeoutMs = 60000; // Longer timeout for chunked requests
+                        const controller = new AbortController();
+                        const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
+
+                        let response;
+                        try {
+                            response = await fetch(apiEndpoint, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(chunkData),
+                                signal: controller.signal
+                            });
+                        } finally {
+                            clearTimeout(timeoutHandle);
+                        }
+
+                        if (!response.ok) {
+                            const errorBody = await response.text();
+                            throw new Error(`Chunk ${i + 1} failed: HTTP ${response.status} - ${errorBody}`);
+                        }
+
+                        const result = await response.json();
+                        if (result.error) {
+                            throw new Error(`Chunk ${i + 1} error: ${result.error}`);
+                        }
+                        
+                        results.push(result);
+                        
+                        // Brief pause between chunks to avoid overwhelming the server
+                        if (i < chunks.length - 1) {
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        }
+                        
+                    } catch (error) {
+                        console.error(`Chunk ${i + 1} failed:`, error);
+                        throw new Error(`Failed processing chunk ${i + 1} (${chunk.startDate} to ${chunk.endDate}): ${error.message}`);
+                    }
+                }
+                
+                // Restore loading text
+                if (loadingText) {
+                    loadingText.textContent = 'Merging results...';
+                }
+                
+                console.log(`Successfully processed ${chunks.length} chunks, merging results...`);
+                return mergeChunkedResults(results);
+            }
+            
+            // Single request for shorter ranges
+            const apiEndpoint = WovenMapConfig.getApiEndpoint('astrologyMathBrain');
+            const timeoutMs = (WovenMapConfig?.api?.timeout && Number.isFinite(+WovenMapConfig.api.timeout)) ? +WovenMapConfig.api.timeout : 30000;
+            const controller = new AbortController();
+            const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
+
+            let response;
+            try {
+                response = await fetch(apiEndpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData),
+                    signal: controller.signal
+                });
+            } finally {
+                clearTimeout(timeoutHandle);
+            }
+
+            if (!response.ok) {
+                const errorBody = await response.text();
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                try {
+                    const errorJson = JSON.parse(errorBody);
+                    if (errorJson.error) {
+                       errorMessage += ` - ${errorJson.error}`;
+                    } else {
+                       errorMessage += ` - ${errorBody}`;
+                    }
+                } catch (e) {
+                    errorMessage += ` - ${errorBody}`;
+                }
+                throw new Error(errorMessage);
+            }
+
+            const result = await response.json();
+            if (result.error) {
+                throw new Error(result.error);
+            }
+            
+            return result;
         }
 
         function generateMarkdownReport(data) {
@@ -3938,37 +4172,20 @@ function renderTransitDay(dateStr, items){
                 const daySpan = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1);
                 const stepSize = transitStep.value || '1d';
                 
-                // Define maximum ranges based on step size - CONSERVATIVE for API protection
+                // Define maximum ranges based on centralized limits (configurable)
                 let maxDays, warningDays, stepDescription;
-                switch (stepSize) {
-                    case '1d':
-                    case 'daily':
-                        maxDays = 45;        // Increased from 30 to 45 days
-                        warningDays = 21;    // Warning at 3 weeks
-                        stepDescription = 'daily calculations';
-                        break;
-                    case '7d':
-                    case 'weekly':
-                        maxDays = 270;       // Increased from 180 to 9 months
-                        warningDays = 120;   // Warning at 4 months
-                        stepDescription = 'weekly calculations';
-                        break;
-                    case '1m':
-                    case '1mo':
-                    case 'monthly':
-                        maxDays = 550;       // Increased from 365 to ~18 months
-                        warningDays = 270;   // Warning at 9 months
-                        stepDescription = 'monthly calculations';
-                        break;
-                    default:
-                        maxDays = 45;
-                        warningDays = 21;
-                        stepDescription = 'calculations';
-                }
+                const stepKey = (stepSize === '7d' || stepSize === 'weekly') ? 'weekly'
+                                 : (stepSize === '1m' || stepSize === '1mo' || stepSize === 'monthly') ? 'monthly'
+                                 : 'daily';
+                const limits = (window.WOVEN_STEP_LIMITS && window.WOVEN_STEP_LIMITS[stepKey]) || { max: 45, warnRatio: 0.8, label: 'calculations' };
+                maxDays = limits.max;
+                warningDays = Math.floor(limits.max * (limits.warnRatio || 0.8));
+                stepDescription = limits.label || 'calculations';
 
                 // Hard limit validation
                 if (daySpan > maxDays) {
-                    showError(`Date range of ${daySpan} days exceeds the ${maxDays}-day limit for ${stepDescription}. Please use a shorter range or change the step size to weekly/monthly for longer periods. (API Protection: Daily=45 days max, Weekly=9 months max, Monthly=18 months max)`);
+                    const limitsMsg = `Daily=${(window.WOVEN_STEP_LIMITS?.daily?.max)||45} days max, Weekly=${Math.round(((window.WOVEN_STEP_LIMITS?.weekly?.max)||270)/30)} months max, Monthly=${Math.round(((window.WOVEN_STEP_LIMITS?.monthly?.max)||550)/30)} months max`;
+                    showError(`Date range of ${daySpan} days exceeds the ${maxDays}-day limit for ${stepDescription}. Please use a shorter range or change the step size to weekly/monthly for longer periods. (API Protection: ${limitsMsg})`);
                     return false;
                 }
 
@@ -3982,7 +4199,7 @@ function renderTransitDay(dateStr, items){
                         `Date range is ${daySpan} days (approximately ${actualSteps} ${stepDescription}).\n\n` +
                         `This may take longer to process and generate a large amount of data.\n\n` +
                         `Consider using:\n` +
-                        `• Weekly step size for ranges over 45 days\n` +
+                        `• Weekly step size for longer ranges\n` +
                         `• Monthly step size for ranges over 6 months\n\n` +
                         `Continue with current settings?`
                     );
@@ -4598,63 +4815,8 @@ function renderTransitDay(dateStr, items){
                     throw new Error(`Missing required fields for Person A: ${missingFields.join(', ')}`);
                 }
                 
-                const apiEndpoint = WovenMapConfig.getApiEndpoint('astrologyMathBrain');
-                WovenMapConfig.debugLog(`Sending API request to ${apiEndpoint}`);
-                
-                // --- Robust fetch with AbortController (native fetch ignores custom timeout property) ---
-                const timeoutMs = (WovenMapConfig?.api?.timeout && Number.isFinite(+WovenMapConfig.api.timeout)) ? +WovenMapConfig.api.timeout : 30000;
-                const controller = new AbortController();
-                const timeoutHandle = setTimeout(() => {
-                    controller.abort();
-                }, timeoutMs);
-
-                let response;
-                try {
-                    response = await fetch(apiEndpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(formData),
-                        signal: controller.signal
-                    });
-                } catch (fetchErr) {
-                    if (fetchErr.name === 'AbortError') {
-                        throw new Error(`Request timed out after ${Math.round(timeoutMs/1000)}s (network slow or server overloaded)`);
-                    }
-                    throw fetchErr;
-                } finally {
-                    clearTimeout(timeoutHandle);
-                }
-
-                if (!response.ok) {
-                    const errorBody = await response.text();
-                    let errorMessage = `HTTP error! status: ${response.status}`;
-                    try {
-                        // Try to parse as JSON to get a more specific error message
-                        const errorJson = JSON.parse(errorBody);
-                        if (errorJson.error) {
-                           errorMessage += ` - ${errorJson.error}`;
-                           if(errorJson.missing) {
-                             errorMessage += ` (Missing: ${errorJson.missing.join(', ')})`;
-                           }
-                        } else {
-                           errorMessage += ` - ${errorBody}`;
-                        }
-                    } catch (e) {
-                        // If not JSON, just use the text body
-                        errorMessage += ` - ${errorBody}`;
-                    }
-                    throw new Error(errorMessage);
-                }
-
-                let result;
-                try {
-                    result = await response.json();
-                } catch (parseErr) {
-                    throw new Error('Failed to parse JSON response from server');
-                }
-                if (result.error) {
-                    throw new Error(result.error);
-                }
+                // Use chunking-aware generation to handle large date ranges
+                const result = await generateReportWithChunking(formData);
 
                 // --- Shape Harmonization Shim ---
                 (function harmonizeResultShape(r){
@@ -4855,38 +5017,31 @@ function renderTransitDay(dateStr, items){
                 if (daySpan === 0) return;
                 
                 let maxDays, warningClass = '', warningText = '';
-                switch (stepSize) {
-                    case '1d':
-                    case 'daily':
-                        maxDays = 30;
-                        if (daySpan > 14) {
-                            warningClass = daySpan > maxDays ? 'text-red-400' : 'text-yellow-400';
-                            warningText = daySpan > maxDays ? 
-                                `⚠️ ${daySpan} days exceeds 30-day limit for daily calculations` :
-                                `⚠️ ${daySpan} days is approaching daily limit (45 days max)`;
-                        }
-                        break;
-                    case '7d':
-                    case 'weekly':
-                        maxDays = 180;
-                        if (daySpan > 90) {
-                            warningClass = daySpan > maxDays ? 'text-red-400' : 'text-yellow-400';
-                            warningText = daySpan > maxDays ? 
-                                `⚠️ ${daySpan} days exceeds 6-month limit for weekly calculations` :
-                                `⚠️ ${daySpan} days is a long range (${Math.ceil(daySpan/7)} weeks)`;
-                        }
-                        break;
-                    case '1m':
-                    case '1mo':
-                    case 'monthly':
-                        maxDays = 365;
-                        if (daySpan > 180) {
-                            warningClass = daySpan > maxDays ? 'text-red-400' : 'text-yellow-400';
-                            warningText = daySpan > maxDays ? 
-                                `⚠️ ${daySpan} days exceeds 1-year limit for monthly calculations` :
-                                `⚠️ ${daySpan} days is a long range (${Math.ceil(daySpan/30)} months)`;
-                        }
-                        break;
+                const stepKey = (stepSize === '7d' || stepSize === 'weekly') ? 'weekly'
+                                 : (stepSize === '1m' || stepSize === '1mo' || stepSize === 'monthly') ? 'monthly'
+                                 : 'daily';
+                const limits = (window.WOVEN_STEP_LIMITS && window.WOVEN_STEP_LIMITS[stepKey]) || { max: 45, warnRatio: 0.8 };
+                maxDays = limits.max;
+                const warnDays = Math.floor(limits.max * (limits.warnRatio || 0.8));
+                const isWeekly = stepKey === 'weekly';
+                const isMonthly = stepKey === 'monthly';
+                if (daySpan > warnDays) {
+                    warningClass = daySpan > maxDays ? 'text-red-400' : 'text-yellow-400';
+                    if (daySpan > maxDays) {
+                        const hardMsg = isWeekly
+                            ? `⚠️ ${daySpan} days exceeds ${(Math.round(maxDays/30*10)/10)}-month limit for weekly calculations`
+                            : isMonthly
+                            ? `⚠️ ${daySpan} days exceeds ${(Math.round(maxDays/30*10)/10)}-year limit for monthly calculations`
+                            : `⚠️ ${daySpan} days exceeds ${maxDays}-day limit for daily calculations`;
+                        warningText = hardMsg;
+                    } else {
+                        const softMsg = isWeekly
+                            ? `⚠️ ${daySpan} days is a long range (${Math.ceil(daySpan/7)} weeks)`
+                            : isMonthly
+                            ? `⚠️ ${daySpan} days is a long range (${Math.ceil(daySpan/30)} months)`
+                            : `⚠️ ${daySpan} days is approaching daily limit (${maxDays} days max)`;
+                        warningText = softMsg;
+                    }
                 }
                 
                 // Show warning if needed
@@ -5804,6 +5959,22 @@ function renderTransitDay(dateStr, items){
             prefillTodayBtn = document.getElementById('prefillToday');
             stepSizeHelpBtn = document.getElementById('stepSizeHelp');
             stepSizeHelpPanel = document.getElementById('stepSizeHelpPanel');
+            // Sync help copy with configured limits
+            try {
+                const panel = stepSizeHelpPanel;
+                if (panel) {
+                    const paras = Array.from(panel.querySelectorAll('p'));
+                    const apiProt = paras.find(p => /API Protection/i.test(p.textContent||''));
+                    const dMax = (window.WOVEN_STEP_LIMITS?.daily?.max)||45;
+                    const wMax = (window.WOVEN_STEP_LIMITS?.weekly?.max)||270;
+                    const mMax = (window.WOVEN_STEP_LIMITS?.monthly?.max)||550;
+                    const wMonths = Math.round(wMax/30);
+                    const mMonths = Math.round(mMax/30);
+                    if (apiProt) {
+                        apiProt.innerHTML = `<b>API Protection</b>: Configured limits — Daily=${dMax} days max, Weekly=${wMonths} months max, Monthly=${mMonths} months max.`;
+                    }
+                }
+            } catch(e){ console.warn('Could not refresh Step Size help copy', e); }
             // Relationship role custom field toggle (delegated)
             document.addEventListener('change', (e)=>{
                 if (e.target && e.target.id === 'relationshipRole') {
@@ -5822,6 +5993,12 @@ function renderTransitDay(dateStr, items){
                 relocationCoordsInput: !!relocationCoordsInput,
                 relocationSection: !!relocationSection
             });
+
+            // Developer hint: override step limits from console if desired
+            try {
+                console.info('Step limits in use:', window.WOVEN_STEP_LIMITS);
+                console.info('To override limits in this browser, run:', "localStorage.setItem('wm_step_limits_override', JSON.stringify({daily:{max:60,warnRatio:0.85},weekly:{max:360},monthly:{max:720}})); location.reload();");
+            } catch(_) {}
 
             setupEventListeners();
             setupProgressiveDisclosureEventListeners(); // New UX improvement functions
