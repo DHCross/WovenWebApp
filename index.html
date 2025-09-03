@@ -1062,7 +1062,7 @@
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Computing Astrological Geometry...
+                    <span id="loadingText">Computing Astrological Geometry...</span>
                 </div>
             </div>
 
@@ -1516,7 +1516,9 @@ function renderTransitDay(dateStr, items){
                     step: transitParams.step
                 });
                 
-                currentStart.setDate(currentEnd.getDate() + 1);
+                // advance to the day after the currentEnd (robust across months/years)
+                currentStart = new Date(currentEnd);
+                currentStart.setDate(currentStart.getDate() + 1);
             }
             
             return chunks;
@@ -1576,9 +1578,10 @@ function renderTransitDay(dateStr, items){
                 const results = [];
                 
                 // Update loading indicator to show progress
-                const loadingText = loadingIndicator.querySelector('.text-white, .text-sm');
+                const loadingText = document.getElementById('loadingText');
                 const originalText = loadingText?.textContent || 'Computing Astrological Geometry...';
                 
+                const failed = [];
                 for (let i = 0; i < chunks.length; i++) {
                     const chunk = chunks[i];
                     
@@ -1631,16 +1634,25 @@ function renderTransitDay(dateStr, items){
                         
                     } catch (error) {
                         console.error(`Chunk ${i + 1} failed:`, error);
-                        throw new Error(`Failed processing chunk ${i + 1} (${chunk.startDate} to ${chunk.endDate}): ${error.message}`);
+                        failed.push({ index: i + 1, start: chunk.startDate, end: chunk.endDate, message: error.message });
+                        // Continue to try remaining chunks (partial success strategy)
                     }
                 }
                 
                 // Restore loading text
                 if (loadingText) {
                     loadingText.textContent = 'Merging results...';
+                    // restore shortly after to base message
+                    setTimeout(()=>{ try{ loadingText.textContent = originalText; } catch(_){} }, 300);
                 }
                 
-                console.log(`Successfully processed ${chunks.length} chunks, merging results...`);
+                console.log(`Processed ${chunks.length} chunks → success: ${results.length}, failed: ${failed.length}. Merging results...`);
+                if (failed.length) {
+                    console.warn('Chunk failures:', failed);
+                }
+                if (!results.length) {
+                    throw new Error('All chunk requests failed; no data could be retrieved.');
+                }
                 return mergeChunkedResults(results);
             }
             
@@ -1874,7 +1886,9 @@ function renderTransitDay(dateStr, items){
                 
                 md += `**Temporal Scope**: ${formData.transitParams.startDate} → ${formData.transitParams.endDate}\n`;
                 md += `**Step Resolution**: ${stepHuman} (${daySpan} day span)\n`;
-                md += `**Protocol Check**: ${daySpan <= 30 ? '✓ Within 30-day safety limit' : '⚠ Exceeds recommended span'}\n\n`;
+                const stepKey = (rawStep === '7d' || rawStep === 'weekly') ? 'weekly' : ((rawStep === '1m' || rawStep === '1mo' || rawStep === 'monthly') ? 'monthly' : 'daily');
+                const limit = (window.WOVEN_STEP_LIMITS && window.WOVEN_STEP_LIMITS[stepKey]?.max) || 45;
+                md += `**Protocol Check**: ${daySpan <= limit ? '✓ Within safety limit' : '⚠ Exceeds recommended span'}\n\n`;
             }
 
             // Subject Details (FIELD Layer)
@@ -2554,7 +2568,10 @@ function renderTransitDay(dateStr, items){
             
             // Temporal and Rate Limits
             md += `### Protocol Limits\n\n`;
-            md += `- **Max Date Span**: 45 days per request (current: ${formData.transitParams ? Math.ceil((new Date(formData.transitParams.endDate) - new Date(formData.transitParams.startDate)) / (1000 * 60 * 60 * 24)) : 'N/A'} days)\n`;
+            const dMax = (window.WOVEN_STEP_LIMITS?.daily?.max)||45;
+            const wMaxM = Math.round(((window.WOVEN_STEP_LIMITS?.weekly?.max)||270)/30);
+            const mMaxM = Math.round(((window.WOVEN_STEP_LIMITS?.monthly?.max)||550)/30);
+            md += `- **Max Date Span**: Daily up to ${dMax} days; Weekly up to ${wMaxM} months; Monthly up to ${mMaxM} months (current: ${formData.transitParams ? Math.ceil((new Date(formData.transitParams.endDate) - new Date(formData.transitParams.startDate)) / (1000 * 60 * 60 * 24)) : 'N/A'} days)\n`;
             md += `- **Rate Limits**: 50 transit requests per day per user\n`;
             md += `- **Narrative Hygiene**: No deterministic or fatalistic language permitted\n`;
             md += `- **Falsifiability**: All outputs subject to "Does this land?" validation\n\n`;
@@ -5031,7 +5048,7 @@ function renderTransitDay(dateStr, items){
                         const hardMsg = isWeekly
                             ? `⚠️ ${daySpan} days exceeds ${(Math.round(maxDays/30*10)/10)}-month limit for weekly calculations`
                             : isMonthly
-                            ? `⚠️ ${daySpan} days exceeds ${(Math.round(maxDays/30*10)/10)}-year limit for monthly calculations`
+                            ? `⚠️ ${daySpan} days exceeds ${(Math.round(maxDays/30*10)/10)}-month limit for monthly calculations`
                             : `⚠️ ${daySpan} days exceeds ${maxDays}-day limit for daily calculations`;
                         warningText = hardMsg;
                     } else {
