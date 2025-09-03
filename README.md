@@ -51,6 +51,75 @@ npm run build:css
 
 This script is automatically run by Netlify during the deployment process.
 
+## **(Experimental) Health Auto Export Comparative Integration**
+
+Math Brain can optionally ingest an Apple Health dataset exported via the iOS **Health Auto Export** app and correlate daily physiological / mood metrics with the Woven Map Seismograph (magnitude, valence, volatility, hooks). This powers comparative markdown reports and downstream Uncanny (falsifiability) scoring.
+
+### Recommended Export (Best Case)
+Use the Health Auto Export app:
+
+1. Quick Export tab
+2. Aggregation Interval: `days`
+3. Aggregate Data: ON
+4. Include metrics:
+  * HRV (Heart Rate Variability)
+  * Resting Heart Rate
+  * Sleep Sessions
+  * (Optional) State Of Mind / Mood (or supply the separate CSV – both work)
+
+If you export raw (Aggregate OFF) the parser will still daily‑aggregate; the file is just larger.
+
+### What The Parser Auto‑Detects (Schema Flexible)
+Case‑insensitive, alias matching — no manual toggles needed:
+
+| Concept | Accepted Keys / Heuristics |
+|---------|----------------------------|
+| HRV | `heartRateVariability`, contains `variability`, units `ms` |
+| Resting HR | `restingHeartRate`, contains `rest` + `heart` |
+| Sleep | `sleepSessions`, `sleep`, `sleepData` (start/end aggregated → hours on wake day) |
+| Mood Valence | `stateOfMind` entries (`daily_mood`, `momentary_emotion`) averaged per calendar day |
+| Date | Any ISO timestamp (timezone localized to America/Chicago unless specified) |
+
+Unused streams (for now) are ignored: workouts, cycle tracking, ECG, heart notifications, symptoms. They can be included safely.
+
+### Two Gotchas
+* Keep timezone consistent with charting (Central / America/Chicago by default).
+* If Seismograph Magnitude is statistically flat (near‑zero variance) the system automatically shifts primary comparison emphasis to Volatility.
+
+### Output (When Comparative Mode Implemented)
+Generates a markdown report containing:
+
+* Range header and timezone
+* Daily comparative table: physiological metrics + symbolic metrics + hooks
+* Overlay charts (e.g., HRV ↔ Magnitude / Volatility; Sleep ↔ Volatility)
+* Optional “Uncanny Window Audit” (rolling correlation windows; six‑factor scoring)
+
+### Privacy & Handling
+* Health JSON stays in the local browser session (no server round‑trip) unless you manually export a combined report.
+* No third‑party analytics or storage.
+* You control deletion (refresh / clear state).
+
+### Philosophy Alignment
+Mirror, not mandate: outputs are reflective pattern summaries, **not** medical advice or deterministic claims. When something does not resonate it is treated as Outside Symbolic Range (OSR) and excluded from narrative synthesis.
+
+### Troubleshooting
+| Issue | Likely Cause | Resolution |
+|-------|--------------|-----------|
+| Missing HRV column | Metric not selected in export | Re‑export with HRV enabled (Quick Export → Select Health Metrics) |
+| All sleep values 0 | Sessions exported raw with unexpected keys | Ensure `sleepSessions` present or enable aggregation |
+| Time shift (date off by one) | Timezone difference / UTC midnight crossover | Confirm device timezone & keep Central alignment |
+| Mood not aggregated | Only momentary emotions exported | Enable daily mood or accept sparser alignment |
+
+### Roadmap (Planned Enhancements)
+* Inline canvas → PNG chart embedding
+* Rolling Pearson correlation + rarity scoring
+* Adjustable sync/break thresholds & window length
+* Additional metric channels (HRV SDNN vs RMSSD detection, HRV trend slope, sleep efficiency)
+
+> If a new key appears in your export that is not recognized, the parser can be extended with a single alias entry—no architectural change required.
+
+---
+
 ## **External API: Astrologer API**
 
 This project relies on the Astrologer API to perform all astrological calculations.
