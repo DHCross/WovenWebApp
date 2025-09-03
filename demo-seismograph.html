@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Queue Analysis & Filters Demo - Woven Map</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f0f14;
+            color: #f3f4f6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .demo-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .filters-btn {
+            background: #3b82f6;
+            color: white;
+        }
+        .filters-btn:hover {
+            background: #2563eb;
+        }
+        .queue-btn {
+            background: #8b5cf6;
+            color: white;
+        }
+        .queue-btn:hover {
+            background: #7c3aed;
+        }
+        .queue-btn:disabled {
+            opacity: 0.7;
+            cursor: wait;
+        }
+        .filters-panel {
+            background: rgba(55, 65, 81, 0.8);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+            max-height: 0;
+            overflow: hidden;
+        }
+        .filters-panel.visible {
+            max-height: 400px;
+        }
+        .filter-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 16px 0;
+        }
+        .filter-control {
+            display: flex;
+            flex-direction: column;
+        }
+        .filter-control label {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-bottom: 4px;
+        }
+        .filter-control input[type="range"] {
+            width: 100%;
+            margin-bottom: 4px;
+        }
+        .filter-value {
+            font-size: 12px;
+            color: #60a5fa;
+            font-weight: bold;
+        }
+        .apply-btn {
+            background: #3b82f6;
+            color: white;
+            margin-right: 8px;
+        }
+        .reset-btn {
+            background: #6b7280;
+            color: white;
+        }
+        .seismograph-data {
+            background: rgba(20, 184, 166, 0.05);
+            border: 1px solid rgba(20, 184, 166, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        .data-table th,
+        .data-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .data-table th {
+            background: rgba(102, 126, 234, 0.1);
+            font-weight: 600;
+            font-size: 12px;
+        }
+        .data-table td {
+            font-size: 11px;
+        }
+        .high-magnitude {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+        .positive-valence {
+            color: #10b981;
+        }
+        .negative-valence {
+            color: #ef4444;
+        }
+        .raven-voice {
+            background: rgba(20, 184, 166, 0.08);
+            border: 1px solid rgba(20, 184, 166, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-active {
+            background: #10b981;
+        }
+        .status-inactive {
+            background: #6b7280;
+        }
+        .explanation {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .code-sample {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 8px 0;
+            overflow-x: auto;
+        }
+        h1, h2, h3 {
+            color: #f3f4f6;
+        }
+        h1 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Queue Analysis & Filters Demo</h1>
+        
+        <div class="explanation">
+            <h3>🔍 Understanding the Issue</h3>
+            <p><strong>Queue Analysis</strong> and <strong>Filters</strong> buttons only appear <em>after</em> seismograph data has been successfully generated in the actual application.</p>
+            
+            <p>The user experience flow is:</p>
+            <ol>
+                <li>Switch to <strong>Seismograph</strong> mode</li>
+                <li>Fill in chart data and date range</li>
+                <li>Click <strong>"Generate Seismograph"</strong></li>
+                <li>Wait for API to process transit data</li>
+                <li><strong>Only then</strong> do Queue Analysis and Filters buttons become available</li>
+            </ol>
+            
+            <p>This demo shows what those features look like when they're working properly.</p>
+        </div>
+
+        <div class="demo-section">
+            <h2>
+                <span class="status-indicator status-active"></span>
+                Seismograph Data Available
+            </h2>
+            <p>This simulates the state after successful seismograph generation.</p>
+            
+            <div class="button-row">
+                <button class="filters-btn" id="toggleFilters">🔍 Filters</button>
+                <button class="queue-btn" id="queueAnalysis">📦 Queue Analysis</button>
+                <button style="background: #6b7280; color: white;">📁 Download All CSV</button>
+                <button style="background: #4f46e5; color: white;">📖 Glossary</button>
+            </div>
+
+            <div class="filters-panel" id="filtersPanel">
+                <h4 style="color: #60a5fa; margin-top: 0;">Filter Thresholds</h4>
+                <div class="filter-group">
+                    <div class="filter-control">
+                        <label>Min Magnitude</label>
+                        <input type="range" id="minMag" min="0" max="10" step="0.1" value="2.5">
+                        <span class="filter-value" id="minMagValue">2.5</span>
+                    </div>
+                    <div class="filter-control">
+                        <label>Min Valence</label>
+                        <input type="range" id="minVal" min="-5" max="5" step="0.1" value="-2.0">
+                        <span class="filter-value" id="minValValue">-2.0</span>
+                    </div>
+                    <div class="filter-control">
+                        <label>Max Valence</label>
+                        <input type="range" id="maxVal" min="-5" max="5" step="0.1" value="3.0">
+                        <span class="filter-value" id="maxValValue">3.0</span>
+                    </div>
+                    <div class="filter-control">
+                        <label>Min Volatility</label>
+                        <input type="range" id="minVol" min="0" max="5" step="0.1" value="1.0">
+                        <span class="filter-value" id="minVolValue">1.0</span>
+                    </div>
+                </div>
+                <div style="margin-top: 16px;">
+                    <button class="apply-btn">Apply Filters</button>
+                    <button class="reset-btn">Reset</button>
+                </div>
+            </div>
+
+            <div class="seismograph-data">
+                <h3>Sample Seismograph Data (Person A)</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Magnitude</th>
+                            <th>Valence</th>
+                            <th>Volatility</th>
+                            <th>Hooks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTable">
+                        <tr>
+                            <td>2025-09-01</td>
+                            <td class="high-magnitude">4.2</td>
+                            <td class="positive-valence">+2.1</td>
+                            <td>3.8</td>
+                            <td>Mars ⚹ Venus (2.1°)</td>
+                        </tr>
+                        <tr>
+                            <td>2025-09-02</td>
+                            <td>3.7</td>
+                            <td class="negative-valence">-1.5</td>
+                            <td>2.3</td>
+                            <td>Jupiter ☐ Saturn (0.8°)</td>
+                        </tr>
+                        <tr>
+                            <td>2025-09-03</td>
+                            <td class="high-magnitude">5.1</td>
+                            <td class="positive-valence">+3.2</td>
+                            <td>4.5</td>
+                            <td>Sun ☌ Mercury (0.3°)</td>
+                        </tr>
+                        <tr>
+                            <td>2025-09-04</td>
+                            <td>2.8</td>
+                            <td class="negative-valence">-2.8</td>
+                            <td>1.9</td>
+                            <td>Moon ☍ Pluto (1.2°)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="raven-voice" id="ravenVoice" style="display: none;">
+                <h4 style="color: #14b8a6; margin-top: 0;">🗣️ Raven Voice Analysis Results</h4>
+                <div id="analysisResults">
+                    <p><span style="color: #14b8a6;">Person A:</span> Intensifying activation levels (0.234 units/day) - sustained high pressure period</p>
+                    <p><span style="color: #14b8a6;">Pattern Detected:</span> 3-day volatility spike with increasing ease/flow trend</p>
+                    <p><span style="color: #14b8a6;">Cycle Analysis:</span> 7-day activation cycle detected with peak intensity on day 3</p>
+                    <div style="font-size: 10px; color: #6b7280; padding-top: 8px; border-top: 1px solid rgba(107, 114, 128, 0.3);">
+                        VOICE = optional synthesis. FIELD/MAP (tables & charts) remain falsifiable core.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>
+                <span class="status-indicator status-inactive"></span>
+                No Seismograph Data Available
+            </h2>
+            <p>This simulates the state before seismograph generation or when API calls fail.</p>
+            
+            <div class="button-row">
+                <button style="background: #6b7280; color: white; opacity: 0.5;" disabled>🔍 Filters (Hidden)</button>
+                <button style="background: #6b7280; color: white; opacity: 0.5;" disabled>📦 Queue Analysis (Hidden)</button>
+            </div>
+            
+            <p style="color: #9ca3af; font-style: italic;">
+                In the actual application, these buttons don't appear at all until seismograph data is successfully loaded.
+            </p>
+        </div>
+
+        <div class="explanation">
+            <h3>💡 How to Access These Features</h3>
+            
+            <h4>Prerequisites:</h4>
+            <ul>
+                <li>✅ Valid API key configured (RAPIDAPI_KEY in .env)</li>
+                <li>✅ Netlify functions running (not simple HTTP server)</li>
+                <li>✅ Complete chart data filled in</li>
+                <li>✅ Valid date range specified</li>
+                <li>✅ Successful seismograph generation</li>
+            </ul>
+
+            <h4>Step-by-step Process:</h4>
+            <ol>
+                <li>Switch to <strong>Seismograph</strong> tab</li>
+                <li>Fill in Person A data completely</li>
+                <li>Set date range (use "📅 Use Today" for quick setup)</li>
+                <li>Click <strong>"Generate Seismograph"</strong></li>
+                <li>Wait for API processing to complete</li>
+                <li>Queue Analysis and Filters buttons will appear in the seismograph results</li>
+            </ol>
+
+            <h4>Common Issues:</h4>
+            <ul>
+                <li><strong>API Error 501:</strong> Backend functions not running (need <code>netlify dev</code>)</li>
+                <li><strong>Missing dates:</strong> Both start and end dates required</li>
+                <li><strong>Invalid API key:</strong> Need valid RAPIDAPI_KEY in environment</li>
+                <li><strong>No data:</strong> API returned empty results for date range</li>
+            </ul>
+        </div>
+
+        <div class="code-sample">
+            <strong>Technical Details:</strong><br>
+            - Queue Analysis button ID: <code>queueSeismographAnalysis</code><br>
+            - Filters button ID: <code>toggleSeismographFilters</code><br>
+            - Both controlled by: <code>buildSeismographDisplay()</code> function<br>
+            - Visibility depends on: <code>window.seismographData</code> being populated
+        </div>
+    </div>
+
+    <script>
+        // Demo functionality
+        const toggleFilters = document.getElementById('toggleFilters');
+        const filtersPanel = document.getElementById('filtersPanel');
+        const queueAnalysis = document.getElementById('queueAnalysis');
+        const ravenVoice = document.getElementById('ravenVoice');
+
+        // Toggle filters panel
+        toggleFilters.addEventListener('click', () => {
+            filtersPanel.classList.toggle('visible');
+            toggleFilters.textContent = filtersPanel.classList.contains('visible') 
+                ? '🔍 Hide Filters' 
+                : '🔍 Filters';
+        });
+
+        // Update filter values
+        ['minMag', 'minVal', 'maxVal', 'minVol'].forEach(id => {
+            const slider = document.getElementById(id);
+            const display = document.getElementById(id + 'Value');
+            
+            slider.addEventListener('input', () => {
+                display.textContent = parseFloat(slider.value).toFixed(1);
+            });
+        });
+
+        // Queue analysis simulation
+        queueAnalysis.addEventListener('click', () => {
+            queueAnalysis.textContent = '⏳ Queued…';
+            queueAnalysis.disabled = true;
+            
+            setTimeout(() => {
+                queueAnalysis.textContent = '✅ Analysis Complete';
+                ravenVoice.style.display = 'block';
+                
+                setTimeout(() => {
+                    queueAnalysis.textContent = '📦 Queue Analysis';
+                    queueAnalysis.disabled = false;
+                }, 2000);
+            }, 1000);
+        });
+
+        // Filter application demo
+        document.querySelector('.apply-btn').addEventListener('click', function() {
+            this.textContent = '✅ Applied';
+            this.style.background = '#10b981';
+            
+            // Demo: Hide rows that don't match filter criteria
+            const minMag = parseFloat(document.getElementById('minMag').value);
+            const rows = document.querySelectorAll('#dataTable tr');
+            
+            rows.forEach((row, index) => {
+                if (index === 0) return; // Skip header
+                const magCell = row.children[1];
+                const magnitude = parseFloat(magCell.textContent);
+                
+                if (magnitude < minMag) {
+                    row.style.opacity = '0.3';
+                    row.style.textDecoration = 'line-through';
+                } else {
+                    row.style.opacity = '1';
+                    row.style.textDecoration = 'none';
+                }
+            });
+            
+            setTimeout(() => {
+                this.textContent = 'Apply Filters';
+                this.style.background = '#3b82f6';
+            }, 2000);
+        });
+
+        // Reset filters
+        document.querySelector('.reset-btn').addEventListener('click', () => {
+            document.getElementById('minMag').value = 0;
+            document.getElementById('minVal').value = -5;
+            document.getElementById('maxVal').value = 5;
+            document.getElementById('minVol').value = 0;
+            
+            document.getElementById('minMagValue').textContent = '0.0';
+            document.getElementById('minValValue').textContent = '-5.0';
+            document.getElementById('maxValValue').textContent = '5.0';
+            document.getElementById('minVolValue').textContent = '0.0';
+            
+            // Reset table display
+            document.querySelectorAll('#dataTable tr').forEach(row => {
+                row.style.opacity = '1';
+                row.style.textDecoration = 'none';
+            });
+        });
+    </script>
+</body>
+</html>
