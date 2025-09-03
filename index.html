@@ -1064,10 +1064,58 @@
                     <button id="clearHealthDataBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden">
                         ✖️ Clear Health Data
                     </button>
+                    <button id="healthDataHelpBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
+                        ❓ Help
+                    </button>
                 </div>
                 <input type="file" id="healthDataInput" accept=".json" class="hidden">
-                <div id="healthDataStatus" class="text-xs text-gray-500 hidden"></div>
+                <div id="healthDataStatus" class="text-xs text-green-400 hidden"></div>
                 <p class="text-xs text-gray-500">Upload iOS Health Auto Export JSON for correlation analysis</p>
+                <p class="text-xs text-blue-400 mt-1">Recommended: Quick Export → days → HRV, Resting HR, Sleep, State of Mind</p>
+                
+                <!-- Health Data Help Modal -->
+                <div id="healthDataHelpModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-gray-800 p-6 rounded-lg max-w-2xl max-h-96 overflow-y-auto border border-purple-500">
+                        <h3 class="text-lg font-semibold text-purple-300 mb-4">Health Auto Export Setup Guide</h3>
+                        <div class="text-sm text-gray-300 space-y-3">
+                            <p><strong class="text-white">Required App:</strong> "Health Auto Export" from iOS App Store</p>
+                            <p><strong class="text-white">Recommended Settings:</strong></p>
+                            <ul class="list-disc list-inside ml-4 space-y-1">
+                                <li>Quick Export tab</li>
+                                <li>Aggregation Interval: <span class="text-green-400">days</span></li>
+                                <li>Aggregate Data: <span class="text-green-400">ON</span></li>
+                            </ul>
+                            <p><strong class="text-white">Include These Metrics:</strong></p>
+                            <ul class="list-disc list-inside ml-4 space-y-1">
+                                <li>Heart Rate Variability (HRV)</li>
+                                <li>Resting Heart Rate</li>
+                                <li>Sleep Sessions</li>
+                                <li>State of Mind (optional - can use separate CSV)</li>
+                            </ul>
+                            <p class="text-yellow-300"><strong>Note:</strong> Other metrics (workouts, ECG, etc.) are safely ignored.</p>
+                            <p class="text-blue-300"><strong>Privacy:</strong> Data stays in your browser - no server upload.</p>
+                        </div>
+                        <button id="closeHealthDataHelp" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm">Close</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seismograph MD Ingestion -->
+            <div class="text-center mb-6 border-t border-gray-700 pt-6">
+                <div class="flex justify-center gap-3 mb-2">
+                    <button id="loadSeismoBtn" class="bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
+                        📄 Upload Seismograph (.md)
+                    </button>
+                    <button id="clearSeismoBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden">
+                        ✖️ Clear Seismograph
+                    </button>
+                    <button id="genComparativeBtn" class="bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden" disabled>
+                        🔗 Generate Comparative Report
+                    </button>
+                </div>
+                <input type="file" id="seismoMdInput" accept=".md,.markdown,text/markdown" class="hidden">
+                <div id="seismoDataStatus" class="text-xs text-gray-500 hidden"></div>
+                <p class="text-xs text-gray-500">Compatible with Health Auto Export (iOS). Other exports currently unsupported.</p>
             </div>
 
             <!-- Loading Indicator -->
@@ -1127,6 +1175,8 @@
     </div>
 
     <script src="config.js"></script>
+    <script src="src/parsers/seismograph-md.js"></script>
+    <script src="src/reporters/comparative-report.js"></script>
     <script>
 // --- Global row counter for report summary ---
 let totalRowCount = 0;
@@ -1318,7 +1368,7 @@ function renderTransitDay(dateStr, items){
     return `<h4>${dateStr}</h4><ul><li>${lines.join("</li><li>")}</li></ul>`;
 }
         // Global UI element references
-    let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadMarkdownBtn, downloadReportBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel, exRelationshipCheckbox, relocationPersonBOption, includePersonBRelocationEl, transitStartDate, transitEndDate, transitStep, relocationCoordsInput, loadHealthDataBtn, clearHealthDataBtn, healthDataInput, healthDataStatus;
+    let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadMarkdownBtn, downloadReportBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel, exRelationshipCheckbox, relocationPersonBOption, includePersonBRelocationEl, transitStartDate, transitEndDate, transitStep, relocationCoordsInput, loadHealthDataBtn, clearHealthDataBtn, healthDataInput, healthDataStatus, loadSeismoBtn, clearSeismoBtn, seismoMdInput, seismoDataStatus, genComparativeBtn;
 
         // Store health data for correlation analysis
         let loadedHealthData = null;
@@ -2632,6 +2682,19 @@ function renderTransitDay(dateStr, items){
             md += `*Generated by Woven Map Math Brain — Pure Geometric Scaffolding Engine*\n`;
             md += `*Contract: clear-mirror/1.2 • Protocol: FIELD → MAP → VOICE • Version: ${(data.provenance?.math_brain_version)||'0.x'}*`;
 
+            // Optional: Append Health Correlation if health data is present and we have Person A transits
+            try {
+                if (typeof loadedHealthData === 'object' && loadedHealthData && data.person_a?.chart?.transitsByDate) {
+                    const correlations = correlateHealthWithSeismograph(loadedHealthData, data.person_a.chart.transitsByDate);
+                    if (correlations && correlations.length) {
+                        md += `\n---\n\n`;
+                        md += generateHealthCorrelationTable(correlations);
+                    }
+                }
+            } catch (e) {
+                console.warn('Health correlation append skipped:', e);
+            }
+
             return md;
         }
 
@@ -3013,6 +3076,7 @@ function renderTransitDay(dateStr, items){
                             </thead>
                             <tbody>`;
             
+            const healthByDate = (typeof window !== 'undefined' && window.WM_HEALTH_BY_DATE) ? window.WM_HEALTH_BY_DATE : null;
             dates.forEach(date => {
                 const day = dailyMap[date];
                 if (!day) return;
@@ -3027,6 +3091,26 @@ function renderTransitDay(dateStr, items){
                     ? hooks.map(h => `${h.p1_name || h.p1_display || '?'} ${h.aspect || h._aspect || '?'} ${h.p2_name || h.p2_display || '?'}`).join(', ')
                     : '—';
                 
+                // Optional correlation badge
+                let badge = '';
+                if (healthByDate) {
+                    const hb = healthByDate[date];
+                    if (hb) {
+                        const sObj = { magnitude: parseFloat(mag), valence: parseFloat(val), volatility: parseFloat(vol) };
+                        try {
+                            const score = calculateCorrelationScore(sObj, hb);
+                            let label = '', cls = '';
+                            if (score >= 0.75) { label = '⭐ uncanny'; cls = 'bg-emerald-700 text-emerald-200'; }
+                            else if (score >= 0.60) { label = '▲ strong'; cls = 'bg-amber-700 text-amber-200'; }
+                            else if (score >= 0.45) { label = '△ mild'; cls = 'bg-blue-700 text-blue-200'; }
+                            if (label) {
+                                const detail = Object.keys(hb).map(k=>`${k}:${hb[k]}`).join(', ');
+                                badge = `<span class="ml-2 text-[10px] px-1.5 py-0.5 rounded ${cls}" title="health: ${detail}; score=${score.toFixed(3)}">${label}</span>`;
+                            }
+                        } catch(_){}
+                    }
+                }
+
                 // Reduced semantic coloring – keep magnitude emphasis only (valence annotation neutral)
                 const magColor = parseFloat(mag) > 7 ? 'text-red-400' : parseFloat(mag) > 5 ? 'text-yellow-400' : 'text-teal-300';
                 const valColor = 'text-gray-300';
@@ -3034,7 +3118,7 @@ function renderTransitDay(dateStr, items){
                 
                 html += `
                     <tr class="hover:bg-gray-700 transition-colors">
-                        <td class="px-3 py-2 border-b border-gray-700 text-teal-300 whitespace-nowrap">${date}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-teal-300 whitespace-nowrap">${date} ${badge}</td>
                         <td class="px-3 py-2 border-b border-gray-700 text-right ${magColor}" title="Symbolic pressure scalar (independent)">${mag}</td>
                         <td class="px-3 py-2 border-b border-gray-700 text-right ${valColor}" title="Directional tone (headwind vs tailwind)">${val}</td>
                         <td class="px-3 py-2 border-b border-gray-700 text-right ${volColor}" title="Turbulence / spread of activation">${vol}</td>
@@ -3119,6 +3203,7 @@ function renderTransitDay(dateStr, items){
                             </thead>
                             <tbody>`;
             
+            const healthByDate = (typeof window !== 'undefined' && window.WM_HEALTH_BY_DATE) ? window.WM_HEALTH_BY_DATE : null;
             filteredDates.forEach(date => {
                 const day = dailyMap[date];
                 const mag = (day.seismograph?.magnitude || 0).toFixed(1);
@@ -3130,6 +3215,21 @@ function renderTransitDay(dateStr, items){
                     ? hooks.map(h => `${h.p1_name || h.p1_display || '?'} ${h.aspect || h._aspect || '?'} ${h.p2_name || h.p2_display || '?'}`).join(', ')
                     : '—';
                 
+                // Optional correlation badge
+                let badge = '';
+                if (healthByDate) {
+                    const hb = healthByDate[date];
+                    if (hb) {
+                        try {
+                            const sObj = { magnitude: parseFloat(mag), valence: parseFloat(val), volatility: parseFloat(vol) };
+                            const score = calculateCorrelationScore(sObj, hb);
+                            if (score >= 0.75) badge = `<span class=\"ml-2 text-[10px] px-1.5 py-0.5 rounded bg-emerald-700 text-emerald-200\" title=\"score ${score.toFixed(3)}\">⭐ uncanny</span>`;
+                            else if (score >= 0.60) badge = `<span class=\"ml-2 text-[10px] px-1.5 py-0.5 rounded bg-amber-700 text-amber-200\" title=\"score ${score.toFixed(3)}\">▲ strong</span>`;
+                            else if (score >= 0.45) badge = `<span class=\"ml-2 text-[10px] px-1.5 py-0.5 rounded bg-blue-700 text-blue-200\" title=\"score ${score.toFixed(3)}\">△ mild</span>`;
+                        } catch(_){}
+                    }
+                }
+
                 // Reduced semantic coloring – magnitude only
                 const magColor = parseFloat(mag) > 7 ? 'text-red-300 font-bold' : parseFloat(mag) > 5 ? 'text-yellow-400' : 'text-teal-300';
                 const valColor = 'text-gray-300';
@@ -3137,7 +3237,7 @@ function renderTransitDay(dateStr, items){
                 
                 html += `
                     <tr class="hover:bg-gray-700 transition-colors">
-                        <td class="px-3 py-2 border-b border-gray-700 text-teal-300 whitespace-nowrap">${date}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-teal-300 whitespace-nowrap">${date} ${badge}</td>
                         <td class="px-3 py-2 border-b border-gray-700 text-right ${magColor}" title="Symbolic pressure scalar (independent)">${mag}</td>
                         <td class="px-3 py-2 border-b border-gray-700 text-right ${valColor}" title="Directional tone (headwind vs tailwind)">${val}</td>
                         <td class="px-3 py-2 border-b border-gray-700 text-right ${volColor}" title="Turbulence / spread of activation">${vol}</td>
@@ -4938,16 +5038,23 @@ function renderTransitDay(dateStr, items){
 
                 const toDateKey = (ts) => {
                     if (!ts) return null;
-                    // Support either YYYY-MM-DD or full ISO
-                    if (ts.length === 10 && /\d{4}-\d{2}-\d{2}/.test(ts)) return ts;
-                    // Strip timezone if present
+                    // Accept direct YYYY-MM-DD
+                    if (typeof ts === 'string' && ts.length === 10 && /\d{4}-\d{2}-\d{2}/.test(ts)) return ts;
+                    // Use Central time to compute calendar day
                     const d = new Date(ts);
-                    if (isNaN(d.getTime())) return null;
-                    // Use local (assumed America/Chicago – could be configurable later)
-                    const year = d.getFullYear();
-                    const m = String(d.getMonth()+1).padStart(2,'0');
-                    const day = String(d.getDate()).padStart(2,'0');
-                    return `${year}-${m}-${day}`;
+                    if (isNaN(d)) return null;
+                    try {
+                        const fmt = new Intl.DateTimeFormat('en-CA', {
+                            timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit'
+                        });
+                        return fmt.format(d); // en-CA yields YYYY-MM-DD
+                    } catch(_) {
+                        // Fallback to local if Intl/timeZone not available
+                        const year = d.getFullYear();
+                        const m = String(d.getMonth()+1).padStart(2,'0');
+                        const day = String(d.getDate()).padStart(2,'0');
+                        return `${year}-${m}-${day}`;
+                    }
                 };
 
                 // 1. State of Mind (mood / emotion) → mood_valence
@@ -5132,10 +5239,32 @@ function renderTransitDay(dateStr, items){
                     const parsedMetrics = parseHealthAutoExportJSON(healthData);
                     
                     loadedHealthData = parsedMetrics;
-                    updateHealthDataStatus(Object.keys(parsedMetrics).length + " health metrics loaded");
-                    
+                    const metricKeys = Object.keys(parsedMetrics);
+                    const coverageParts = metricKeys.map(k => {
+                        const dates = (parsedMetrics[k]||[]).map(p=>p.date).filter(Boolean).sort();
+                        if (!dates.length) return `${k}: —`;
+                        return `${k}: ${dates[0]} → ${dates[dates.length-1]} (${dates.length}d)`;
+                    });
+                    const statusMsg = metricKeys.length
+                      ? `${metricKeys.length} metrics loaded • ${coverageParts.join(' • ')}`
+                      : 'No metrics recognized in file';
+                    updateHealthDataStatus(statusMsg);
+                    // Build per-date map for quick correlation badges
+                    try {
+                        const byDate = {};
+                        metricKeys.forEach(mk => {
+                            (parsedMetrics[mk]||[]).forEach(pt => {
+                                const dkey = (pt.date||'').slice(0,10);
+                                if (!/^\d{4}-\d{2}-\d{2}$/.test(dkey)) return;
+                                if (!byDate[dkey]) byDate[dkey] = {};
+                                byDate[dkey][mk] = pt.value;
+                            });
+                        });
+                        window.WM_HEALTH_BY_DATE = byDate;
+                    } catch(_) { window.WM_HEALTH_BY_DATE = null; }
                     // Show clear button
                     clearHealthDataBtn.classList.remove('hidden');
+                    updateComparativeAvailability();
                     
                 } catch (error) {
                     console.error('Error loading health data:', error);
@@ -5147,8 +5276,10 @@ function renderTransitDay(dateStr, items){
 
         function clearHealthData() {
             loadedHealthData = null;
+            window.WM_HEALTH_BY_DATE = null;
             updateHealthDataStatus("");
             clearHealthDataBtn.classList.add('hidden');
+            updateComparativeAvailability();
             
             // Visual feedback
             const clearBtn = clearHealthDataBtn;
@@ -5157,14 +5288,104 @@ function renderTransitDay(dateStr, items){
             setTimeout(() => { clearBtn.textContent = originalText; }, 2000);
         }
 
-        function updateHealthDataStatus(message) {
+        function updateHealthDataStatus(message, metrics = null) {
             if (message) {
-                healthDataStatus.textContent = message;
+                if (metrics && Object.keys(metrics).length > 0) {
+                    const metricsList = Object.keys(metrics).map(key => {
+                        const count = metrics[key].length;
+                        const displayName = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        return `${displayName} (${count} days)`;
+                    }).join(', ');
+                    healthDataStatus.innerHTML = `<strong>${message}</strong><br><span class="text-xs text-gray-400">${metricsList}</span>`;
+                } else {
+                    healthDataStatus.textContent = message;
+                }
                 healthDataStatus.classList.remove('hidden');
                 healthDataStatus.classList.add('text-green-400');
             } else {
                 healthDataStatus.classList.add('hidden');
                 healthDataStatus.classList.remove('text-green-400');
+            }
+        }
+
+        // --- Seismograph MD Ingestion ---
+        let loadedSeismographData = null; // map of date -> { magnitude, valence, volatility, hooks }
+
+        function loadSeismographMd(file){
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e){
+                try {
+                    const text = e.target.result;
+                    const parsed = (typeof parseSeismographMarkdown === 'function') ? parseSeismographMarkdown(text) : null;
+                    if (!parsed || !parsed.map || Object.keys(parsed.map).length === 0){
+                        throw new Error('No seismograph table found');
+                    }
+                    loadedSeismographData = parsed.map;
+                    updateSeismoDataStatus(Object.keys(parsed.map).length + ' seismograph days loaded');
+                    clearSeismoBtn.classList.remove('hidden');
+                    updateComparativeAvailability();
+                } catch(err){
+                    console.error('Seismograph parse error:', err);
+                    alert('Error parsing seismograph markdown: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearSeismograph(){
+            loadedSeismographData = null;
+            updateSeismoDataStatus('');
+            clearSeismoBtn.classList.add('hidden');
+            updateComparativeAvailability();
+            const btn = clearSeismoBtn;
+            const originalText = btn.textContent; btn.textContent = '✅ Cleared!';
+            setTimeout(()=> btn.textContent = originalText, 2000);
+        }
+
+        function updateSeismoDataStatus(message){
+            if (message){
+                seismoDataStatus.textContent = message;
+                seismoDataStatus.classList.remove('hidden');
+                seismoDataStatus.classList.add('text-green-400');
+            } else {
+                seismoDataStatus.classList.add('hidden');
+                seismoDataStatus.classList.remove('text-green-400');
+            }
+        }
+
+        function updateComparativeAvailability(){
+            const ready = !!(loadedHealthData && loadedSeismographData);
+            if (ready){
+                genComparativeBtn.classList.remove('hidden');
+                genComparativeBtn.disabled = false;
+            } else {
+                genComparativeBtn.disabled = true;
+                if (loadedHealthData || loadedSeismographData){
+                    genComparativeBtn.classList.remove('hidden');
+                } else {
+                    genComparativeBtn.classList.add('hidden');
+                }
+            }
+        }
+
+        function generateComparativeReport(){
+            try {
+                if (!loadedHealthData || !loadedSeismographData) {
+                    alert('Please load both Health JSON and Seismograph (.md) first.');
+                    return;
+                }
+                if (typeof generateComparativeReportMarkdown !== 'function'){
+                    throw new Error('Comparative reporter not available');
+                }
+                const md = generateComparativeReportMarkdown(loadedSeismographData, loadedHealthData);
+                const fname = `comparative_${new Date().toISOString().slice(0,10)}.md`;
+                downloadFile(md, fname, 'text/markdown');
+                const original = genComparativeBtn.textContent; genComparativeBtn.textContent = '✅ Exported!';
+                setTimeout(()=> genComparativeBtn.textContent = original, 2000);
+            } catch (e){
+                console.error('Comparative export failed:', e);
+                alert('Failed to generate comparative report: ' + e.message);
             }
         }
 
@@ -5305,6 +5526,19 @@ function renderTransitDay(dateStr, items){
                 }
             });
             document.getElementById('clearHealthDataBtn').addEventListener('click', clearHealthData);
+            
+            // Health Data Help Modal
+            document.getElementById('healthDataHelpBtn').addEventListener('click', () => {
+                document.getElementById('healthDataHelpModal').classList.remove('hidden');
+            });
+            document.getElementById('closeHealthDataHelp').addEventListener('click', () => {
+                document.getElementById('healthDataHelpModal').classList.add('hidden');
+            });
+            document.getElementById('healthDataHelpModal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('healthDataHelpModal')) {
+                    document.getElementById('healthDataHelpModal').classList.add('hidden');
+                }
+            });
 
             // Modal
             mathBrainInfoBtn.addEventListener('click', () => mathBrainModal.classList.remove('hidden'));
@@ -5405,6 +5639,18 @@ function renderTransitDay(dateStr, items){
                     showError('Failed to generate markdown download: ' + error.message);
                 }
             });
+
+            // Seismograph MD wiring
+            loadSeismoBtn = document.getElementById('loadSeismoBtn');
+            clearSeismoBtn = document.getElementById('clearSeismoBtn');
+            seismoMdInput = document.getElementById('seismoMdInput');
+            seismoDataStatus = document.getElementById('seismoDataStatus');
+            genComparativeBtn = document.getElementById('genComparativeBtn');
+
+            loadSeismoBtn?.addEventListener('click', ()=> seismoMdInput.click());
+            seismoMdInput?.addEventListener('change', (e)=>{ if (e.target.files && e.target.files.length) loadSeismographMd(e.target.files[0]); });
+            clearSeismoBtn?.addEventListener('click', clearSeismograph);
+            genComparativeBtn?.addEventListener('click', generateComparativeReport);
 
             // Toggle mode help panel
             toggleModeHelp.addEventListener('click', () => {
@@ -6423,6 +6669,8 @@ function renderTransitDay(dateStr, items){
                 transitEndDate: !!transitEndDate,
                 transitStep: !!transitStep,
                 relocationCoordsInput: !!relocationCoordsInput,
+                seismoMdInput: !!document.getElementById('seismoMdInput'),
+                genComparativeBtn: !!document.getElementById('genComparativeBtn'),
                 relocationSection: !!relocationSection
             });
 
