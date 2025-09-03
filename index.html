@@ -3091,7 +3091,7 @@ function renderTransitDay(dateStr, items){
                     ? hooks.map(h => `${h.p1_name || h.p1_display || '?'} ${h.aspect || h._aspect || '?'} ${h.p2_name || h.p2_display || '?'}`).join(', ')
                     : '—';
                 
-                // Optional correlation badge
+                // Optional correlation score (raw data only - no salience labels)
                 let badge = '';
                 if (healthByDate) {
                     const hb = healthByDate[date];
@@ -3099,13 +3099,11 @@ function renderTransitDay(dateStr, items){
                         const sObj = { magnitude: parseFloat(mag), valence: parseFloat(val), volatility: parseFloat(vol) };
                         try {
                             const score = calculateCorrelationScore(sObj, hb);
-                            let label = '', cls = '';
-                            if (score >= 0.75) { label = '⭐ uncanny'; cls = 'bg-emerald-700 text-emerald-200'; }
-                            else if (score >= 0.60) { label = '▲ strong'; cls = 'bg-amber-700 text-amber-200'; }
-                            else if (score >= 0.45) { label = '△ mild'; cls = 'bg-blue-700 text-blue-200'; }
-                            if (label) {
+                            // Show correlation score without automatic salience interpretation
+                            // User must determine if correlation reflects lived experience
+                            if (score >= 0.45) {
                                 const detail = Object.keys(hb).map(k=>`${k}:${hb[k]}`).join(', ');
-                                badge = `<span class="ml-2 text-[10px] px-1.5 py-0.5 rounded ${cls}" title="health: ${detail}; score=${score.toFixed(3)}">${label}</span>`;
+                                badge = `<span class="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-gray-600 text-gray-300" title="health: ${detail}; correlation=${score.toFixed(3)}">r=${score.toFixed(2)}</span>`;
                             }
                         } catch(_){}
                     }
@@ -3215,7 +3213,7 @@ function renderTransitDay(dateStr, items){
                     ? hooks.map(h => `${h.p1_name || h.p1_display || '?'} ${h.aspect || h._aspect || '?'} ${h.p2_name || h.p2_display || '?'}`).join(', ')
                     : '—';
                 
-                // Optional correlation badge
+                // Optional correlation score (raw data only - no salience labels)
                 let badge = '';
                 if (healthByDate) {
                     const hb = healthByDate[date];
@@ -3223,9 +3221,11 @@ function renderTransitDay(dateStr, items){
                         try {
                             const sObj = { magnitude: parseFloat(mag), valence: parseFloat(val), volatility: parseFloat(vol) };
                             const score = calculateCorrelationScore(sObj, hb);
-                            if (score >= 0.75) badge = `<span class=\"ml-2 text-[10px] px-1.5 py-0.5 rounded bg-emerald-700 text-emerald-200\" title=\"score ${score.toFixed(3)}\">⭐ uncanny</span>`;
-                            else if (score >= 0.60) badge = `<span class=\"ml-2 text-[10px] px-1.5 py-0.5 rounded bg-amber-700 text-amber-200\" title=\"score ${score.toFixed(3)}\">▲ strong</span>`;
-                            else if (score >= 0.45) badge = `<span class=\"ml-2 text-[10px] px-1.5 py-0.5 rounded bg-blue-700 text-blue-200\" title=\"score ${score.toFixed(3)}\">△ mild</span>`;
+                            // Show correlation score without automatic salience interpretation
+                            // User must determine if correlation reflects lived experience
+                            if (score >= 0.45) {
+                                badge = `<span class="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-gray-600 text-gray-300" title="correlation=${score.toFixed(3)}">r=${score.toFixed(2)}</span>`;
+                            }
                         } catch(_){}
                     }
                 }
