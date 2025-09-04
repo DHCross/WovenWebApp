@@ -3004,6 +3004,10 @@ function renderTransitDay(dateStr, items){
                 html += buildSeismographTable('Composite', data.composite.transitsByDate);
             }
             
+            if (data.synastry?.transitsByDate) {
+                html += buildSeismographTable('Synastry Transits', data.synastry.transitsByDate);
+            }
+            
             // Mobile cards view (hidden by default)
             html += '<div id="seismographMobileView" class="hidden">';
             if (data.person_a?.chart?.transitsByDate) {
@@ -3016,6 +3020,9 @@ function renderTransitDay(dateStr, items){
             }
             if (data.composite?.transitsByDate) {
                 html += buildMobileSeismographCards('Composite', data.composite.transitsByDate);
+            }
+            if (data.synastry?.transitsByDate) {
+                html += buildMobileSeismographCards('Synastry Transits', data.synastry.transitsByDate);
             }
             html += '</div>';
             
@@ -3396,7 +3403,8 @@ function renderTransitDay(dateStr, items){
         function downloadSeismographCSV(title, data) {
             const dailyMap = title === 'Person A' ? data?.person_a?.chart?.transitsByDate :
                            title === 'Person B' ? data?.person_b?.chart?.transitsByDate :
-                           title === 'Composite' ? data?.composite?.transitsByDate : null;
+                           title === 'Composite' ? data?.composite?.transitsByDate :
+                           title === 'Synastry Transits' ? data?.synastry?.transitsByDate : null;
             
             if (!dailyMap) {
                 console.warn('No data available for CSV export:', title);
@@ -3453,6 +3461,9 @@ function renderTransitDay(dateStr, items){
             }
             if (data.composite?.transitsByDate) {
                 downloadSeismographCSV('Composite', data);
+            }
+            if (data.synastry?.transitsByDate) {
+                downloadSeismographCSV('Synastry Transits', data);
             }
         }
 
@@ -3971,6 +3982,10 @@ function renderTransitDay(dateStr, items){
                 html += buildSeismographTableFiltered('Composite', window.seismographData.composite.transitsByDate, filters);
             }
             
+            if (window.seismographData.synastry?.transitsByDate) {
+                html += buildSeismographTableFiltered('Synastry Transits', window.seismographData.synastry.transitsByDate, filters);
+            }
+            
             container.innerHTML = html;
             
             // Also update mobile view
@@ -3990,6 +4005,10 @@ function renderTransitDay(dateStr, items){
                 
                 if (window.seismographData.composite?.transitsByDate) {
                     mobileHtml += buildMobileSeismographCardsFiltered('Composite', window.seismographData.composite.transitsByDate, filters);
+                }
+                
+                if (window.seismographData.synastry?.transitsByDate) {
+                    mobileHtml += buildMobileSeismographCardsFiltered('Synastry Transits', window.seismographData.synastry.transitsByDate, filters);
                 }
                 
                 mobileContainer.innerHTML = mobileHtml;
@@ -4076,6 +4095,9 @@ function renderTransitDay(dateStr, items){
             if (window.seismographData.composite?.transitsByDate) {
                 html += renderArcChart('Composite', window.seismographData.composite.transitsByDate);
             }
+            if (window.seismographData.synastry?.transitsByDate) {
+                html += renderArcChart('Synastry Transits', window.seismographData.synastry.transitsByDate);
+            }
             html += '</div>';
             return html;
         }
@@ -4093,6 +4115,9 @@ function renderTransitDay(dateStr, items){
             }
             if (window.seismographData.composite?.transitsByDate) {
                 html += renderBarometerChart('Composite', window.seismographData.composite.transitsByDate);
+            }
+            if (window.seismographData.synastry?.transitsByDate) {
+                html += renderBarometerChart('Synastry Transits', window.seismographData.synastry.transitsByDate);
             }
             html += '</div>';
             return html;
@@ -5516,7 +5541,7 @@ function renderTransitDay(dateStr, items){
                     document.getElementById('exportValidationBtn').classList.remove('hidden');
                     // Prompt for seismograph if transit data present
                     const hasTransitsMode = formData.context.mode.includes('transits');
-                    const hasTransitData = result.person_a?.chart?.transitsByDate || result.person_b?.chart?.transitsByDate || result.composite?.transitsByDate;
+                    const hasTransitData = result.person_a?.chart?.transitsByDate || result.person_b?.chart?.transitsByDate || result.composite?.transitsByDate || result.synastry?.transitsByDate;
                     if (hasTransitsMode && hasTransitData) {
                         addSeismographPrompt();
                     }
@@ -6034,7 +6059,7 @@ function renderTransitDay(dateStr, items){
         function addSeismographPrompt() {
             if (currentAppMode === 'seismograph') return;
             if (document.getElementById('seismographPrompt')) return; // avoid duplicates
-            const hasTransitData = latestResultData && (latestResultData.person_a?.chart?.transitsByDate || latestResultData.person_b?.chart?.transitsByDate || latestResultData.composite?.transitsByDate);
+            const hasTransitData = latestResultData && (latestResultData.person_a?.chart?.transitsByDate || latestResultData.person_b?.chart?.transitsByDate || latestResultData.composite?.transitsByDate || latestResultData.synastry?.transitsByDate);
             if (!hasTransitData) return;
             const container = document.getElementById('reportOutput');
             if (!container) return;
@@ -6075,7 +6100,7 @@ function renderTransitDay(dateStr, items){
         function updateSeismographTabIndicator() {
             const tab = document.getElementById('seismographModeTab');
             if (!tab) return;
-            const hasTransitData = latestResultData && (latestResultData.person_a?.chart?.transitsByDate || latestResultData.person_b?.chart?.transitsByDate || latestResultData.composite?.transitsByDate);
+            const hasTransitData = latestResultData && (latestResultData.person_a?.chart?.transitsByDate || latestResultData.person_b?.chart?.transitsByDate || latestResultData.composite?.transitsByDate || latestResultData.synastry?.transitsByDate);
             let indicator = tab.querySelector('.transit-indicator');
             if (hasTransitData) {
                 if (!indicator) {
