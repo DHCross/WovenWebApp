@@ -571,7 +571,7 @@
                             </div>
                         </div>
                         <div class="flex items-start">
-                            <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Sky Only →</span>
+                            <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Weather →</span>
                             <div class="text-gray-300">
                                 <div>Current planetary pressures without personal chart context. <em>"What's the energetic weather right now?"</em></div>
                             </div>
@@ -602,8 +602,8 @@
                     <label class="flex items-center p-4 border border-gray-600 rounded-lg hover:border-teal-500 transition-colors cursor-pointer">
                         <input type="radio" name="contextType" value="weather" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
                         <div>
-                            <div class="text-white font-medium">Current Sky Only</div>
-                            <div class="text-gray-400 text-sm">Planetary patterns only</div>
+                            <div class="text-white font-medium">Planetary Weather Only</div>
+                            <div class="text-gray-400 text-sm">Look only at current planetary movements</div>
                         </div>
                     </label>
                 </div>
@@ -841,7 +841,7 @@
                                 <ul class="text-xs text-gray-400 space-y-1">
                                     <li>• <strong class="text-gray-300">Same birth chart, different stage set</strong> - planets and aspects unchanged</li>
                                     <li>• <strong class="text-gray-300">Houses and angles shift</strong> - where your patterns get expressed in daily life</li>
-                                    <li>• <strong class="text-gray-300">Tectonic, not weather</strong> - foundational context shift, not timing</li>
+                                    <li>• <strong class="text-gray-300">Tectonic (where), not timing</strong> - foundational context shift; timing of the sky doesn't change</li>
                                     <li>• <strong class="text-gray-300">Diagnostic value</strong> - shows where natal pressures plug into new ground</li>
                                 </ul>
                                 <div class="mt-2 p-2 bg-gray-800 rounded border border-gray-600">
@@ -1902,6 +1902,7 @@ function renderTransitDay(dateStr, items){
             const personA = (data.person_a && data.person_a.details) ? data.person_a.details : formData.personA;
             const personB = (data.person_b && data.person_b.details) ? data.person_b.details : formData.personB;
             const mode = formData.context.mode;
+            const isSky = mode === 'sky_transits';
             
             // Protocol Layer Headers
             let md = `# Woven Map System Report\n\n`;
@@ -1976,7 +1977,11 @@ function renderTransitDay(dateStr, items){
             }
             md += `\n`;
             
-            md += `**Timezone Check**: Target America/Chicago (Central) — Current: ${personA.timezone} ${personA.timezone === 'America/Chicago' ? '✓' : '⚠ Normalize required'}\n`;
+            if (!isSky && personA && personA.timezone) {
+                md += `**Timezone Check**: Target America/Chicago (Central) — Current: ${personA.timezone} ${personA.timezone === 'America/Chicago' ? '✓' : '⚠ Normalize required'}\n`;
+            } else if (isSky) {
+                md += `**Timezone Baseline**: America/Chicago (Central) — used for day-bucketing hints\n`;
+            }
             md += `**Falsifiability**: All outputs must pass "Does this land?" test\n`;
             md += `**Agency Reinforcement**: Every output must preserve client autonomy\n`;
             
@@ -1993,7 +1998,12 @@ function renderTransitDay(dateStr, items){
             // === RAVEN CALDER POETIC BRAIN INSTRUCTIONS ===
             md += `### INSTRUCTIONS FOR RAVEN CALDER POETIC BRAIN\n\n`;
             
-            if (personB && formData.context.relationship_type) {
+            if (isSky) {
+                md += `**WEATHER READING PROTOCOL:**\n`;
+                md += `- **Subject**: Planetary weather only (no natal anchoring)\n`;
+                md += `- **Mirror Focus**: Macro pressures (magnitude/valence/volatility), hooks sampled without houses/angles\n`;
+                md += `- **Scope**: Symbolic climate; use personal charts separately if attribution is needed\n`;
+            } else if (personB && formData.context.relationship_type) {
                 // Two-person relational reading instructions
                 md += `**RELATIONAL READING PROTOCOL:**\n`;
                 md += `- **Subject Clarity**: Always identify who is who (${personA.name} vs ${personB.name})\n`;
@@ -2081,17 +2091,19 @@ function renderTransitDay(dateStr, items){
                 md += `**Protocol Check**: ${daySpan <= limit ? '✓ Within safety limit' : '⚠ Exceeds recommended span'}\n\n`;
             }
 
-            // Subject Details (FIELD Layer)
-            md += `## Subject Details — Reveal the Weave\n\n`;
-            md += `### Primary Subject: ${personA.name}\n\n`;
-            md += `- **Birth Date**: ${personA.year}-${String(personA.month).padStart(2, '0')}-${String(personA.day).padStart(2, '0')}\n`;
-            md += `- **Birth Time**: ${String(personA.hour).padStart(2, '0')}:${String(personA.minute).padStart(2, '0')}\n`;
-            md += `- **Location**: ${personA.city}, ${personA.nation}\n`;
-            md += `- **Coordinates**: ${personA.latitude}, ${personA.longitude}\n`;
-            md += `- **Timezone**: ${personA.timezone}\n`;
-            md += `- **Zodiac Type**: ${personA.zodiac_type}\n\n`;
-            md += `**TZ Check (Person A)**: expected \`America/Chicago\` (Central).\n`;
-            md += `**Observed**: \`${personA.timezone}\` → ${personA.timezone === 'America/Chicago' ? 'OK' : '⚠ Normalize before mirroring'}\n\n`;
+            if (!isSky && personA) {
+                // Subject Details (FIELD Layer)
+                md += `## Subject Details — Reveal the Weave\n\n`;
+                md += `### Primary Subject: ${personA.name}\n\n`;
+                md += `- **Birth Date**: ${personA.year}-${String(personA.month).padStart(2, '0')}-${String(personA.day).padStart(2, '0')}\n`;
+                md += `- **Birth Time**: ${String(personA.hour).padStart(2, '0')}:${String(personA.minute).padStart(2, '0')}\n`;
+                md += `- **Location**: ${personA.city}, ${personA.nation}\n`;
+                md += `- **Coordinates**: ${personA.latitude}, ${personA.longitude}\n`;
+                md += `- **Timezone**: ${personA.timezone}\n`;
+                md += `- **Zodiac Type**: ${personA.zodiac_type}\n\n`;
+                md += `**TZ Check (Person A)**: expected \`America/Chicago\` (Central).\n`;
+                md += `**Observed**: \`${personA.timezone}\` → ${personA.timezone === 'America/Chicago' ? 'OK' : '⚠ Normalize before mirroring'}\n\n`;
+            }
 
             // Secondary Subject Details (if present)
                         if (personB) {
@@ -2656,12 +2668,21 @@ function renderTransitDay(dateStr, items){
                                                 }
                 
                                 md += `### Daily Seismograph Readouts\n\n`;
-                                if (data.person_a?.chart?.transitsByDate) md += buildEnhancedSummaryTable(`${personA.name}`, data.person_a.chart.transitsByDate);
+                                // Sky dataset (weather-only)
+                                if (isSky && (data.sky?.transitsByDate || data.transitsByDate)) {
+                                    const skyMap = data.sky?.transitsByDate || data.transitsByDate;
+                                    md += buildEnhancedSummaryTable(`Planetary Weather`, skyMap);
+                                }
+                                if (data.person_a?.chart?.transitsByDate && personA?.name) md += buildEnhancedSummaryTable(`${personA.name}`, data.person_a.chart.transitsByDate);
                                 if (data.person_b?.chart?.transitsByDate) md += buildEnhancedSummaryTable(`${personB.name}${data.person_b?.implicit_dual_transits?' (implicit dual)':''}`, data.person_b.chart.transitsByDate);
                                 if (data.composite?.transitsByDate) md += buildEnhancedSummaryTable(`Composite Field`, data.composite.transitsByDate);
                 
                                 md += `\n## Legacy Table View\n`;
-                                if (data.person_a?.chart?.transitsByDate) md += buildSummaryTable(`${personA.name}`, data.person_a.chart.transitsByDate);
+                                if (isSky && (data.sky?.transitsByDate || data.transitsByDate)) {
+                                    const skyMap = data.sky?.transitsByDate || data.transitsByDate;
+                                    md += buildSummaryTable(`Planetary Weather`, skyMap);
+                                }
+                                if (data.person_a?.chart?.transitsByDate && personA?.name) md += buildSummaryTable(`${personA.name}`, data.person_a.chart.transitsByDate);
                                 if (data.person_b?.chart?.transitsByDate) md += buildSummaryTable(`${personB.name}${data.person_b?.implicit_dual_transits?' (implicit dual)':''}`, data.person_b.chart.transitsByDate);
                                 if (data.composite?.transitsByDate) md += buildSummaryTable(`Composite Field`, data.composite.transitsByDate);
                 
@@ -2862,9 +2883,11 @@ function renderTransitDay(dateStr, items){
             };
 
             // Datasets
+            const sky = data?.sky?.transitsByDate || data?.transitsByDate;
             const pa = data?.person_a?.chart?.transitsByDate;
             const pb = data?.person_b?.chart?.transitsByDate;
             const co = data?.composite?.transitsByDate;
+            if (sky) md += emitDataset('Planetary Weather', sky);
             if (pa) md += emitDataset((data?.person_a?.details?.name || 'Person A'), pa);
             if (pb) md += emitDataset((data?.person_b?.details?.name || 'Person B'), pb);
             if (co) md += emitDataset('Composite', co);
@@ -2890,6 +2913,7 @@ function renderTransitDay(dateStr, items){
             };
             const appendix = {
                 meta: { mode, start, end, step, generated: now },
+                sky: sky ? extract(sky) : undefined,
                 person_a: pa ? extract(pa) : undefined,
                 person_b: pb ? extract(pb) : undefined,
                 composite: co ? extract(co) : undefined
@@ -3090,7 +3114,12 @@ function renderTransitDay(dateStr, items){
             // View toggle container - inside scrollable content area
             html += '<div id="seismographViewContainer">';
 
-            // Build tables for each person/composite
+            // Build tables for sky/person/composite
+            if (data.sky?.transitsByDate) {
+                html += buildSeismographTable('Planetary Weather', data.sky.transitsByDate);
+            } else if (data.transitsByDate) {
+                html += buildSeismographTable('Planetary Weather', data.transitsByDate);
+            }
             if (data.person_a?.chart?.transitsByDate) {
                 const personAName = data.person_a?.info?.name || 'Person A';
                 html += buildSeismographTable(personAName, data.person_a.chart.transitsByDate);
@@ -3111,6 +3140,10 @@ function renderTransitDay(dateStr, items){
             
             // Mobile cards view (hidden by default)
             html += '<div id="seismographMobileView" class="hidden">';
+            if (data.sky?.transitsByDate || data.transitsByDate) {
+                const map = data.sky?.transitsByDate || data.transitsByDate;
+                html += buildMobileSeismographCards('Planetary Weather', map);
+            }
             if (data.person_a?.chart?.transitsByDate) {
                 const personAName = data.person_a?.info?.name || 'Person A';
                 html += buildMobileSeismographCards(personAName, data.person_a.chart.transitsByDate);
@@ -4492,12 +4525,51 @@ function renderTransitDay(dateStr, items){
             console.log('Screen dimensions:', window.screen.width, 'x', window.screen.height);
             console.log('Viewport dimensions:', window.innerWidth, 'x', window.innerHeight);
             
-            const mode = document.querySelector('input[name="contextMode"]:checked').value;
+            const modeSel = document.querySelector('input[name="contextMode"]:checked');
+            const mode = modeSel ? modeSel.value : (currentContextType === 'weather' ? 'sky_transits' : 'natal_transits');
             const relationshipType = document.querySelector('input[name="relationshipType"]:checked')?.value;
             const intimacyTier = document.querySelector('input[name="intimacyTier"]:checked')?.value;
             const roleSel = document.getElementById('relationshipRole');
             const roleCustomInput = document.getElementById('relationshipRoleCustom');
             const roleValueRaw = roleSel ? roleSel.value : '';
+
+            // Weather-only: skip personal validation; validate only date range
+            if (currentContextType === 'weather') {
+                // Validate transit dates only
+                const start = transitStartDate.value;
+                const end = transitEndDate.value;
+                if (!start || !end) {
+                    showError('Please enter both start and end dates for planetary weather analysis');
+                    return false;
+                }
+                if (end < start) {
+                    showError('End date must be after or equal to start date');
+                    return false;
+                }
+                // Date range + step limits as usual
+                const startDate = new Date(start);
+                const endDate = new Date(end);
+                const daySpan = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1);
+                const stepSize = transitStep.value || '1d';
+                const stepKey = (stepSize === '7d' || stepSize === 'weekly') ? 'weekly'
+                                 : (stepSize === '1m' || stepSize === '1mo' || stepSize === 'monthly') ? 'monthly'
+                                 : 'daily';
+                const limits = (window.WOVEN_STEP_LIMITS && window.WOVEN_STEP_LIMITS[stepKey]) || { max: 45, warnRatio: 0.8, label: 'calculations' };
+                if (daySpan > limits.max) {
+                    const limitsMsg = `Daily=${(window.WOVEN_STEP_LIMITS?.daily?.max)||45} days max, Weekly=${Math.round(((window.WOVEN_STEP_LIMITS?.weekly?.max)||270)/30)} months max, Monthly=${Math.round(((window.WOVEN_STEP_LIMITS?.monthly?.max)||550)/30)} months max`;
+                    showError(`Date range of ${daySpan} days exceeds the ${limits.max}-day limit for ${limits.label}. Please shorten the range or use weekly/monthly.`);
+                    return false;
+                }
+                const warningDays = Math.floor(limits.max * (limits.warnRatio || 0.8));
+                if (daySpan > warningDays) {
+                    const actualSteps = stepSize === '7d' || stepSize === 'weekly' ? Math.ceil(daySpan / 7)
+                                       : stepSize === '1m' || stepSize === '1mo' || stepSize === 'monthly' ? Math.ceil(daySpan / 30)
+                                       : daySpan;
+                    const proceed = confirm(`Date range is ${daySpan} days (~${actualSteps} ${limits.label}). This may be slower. Continue?`);
+                    if (!proceed) return false;
+                }
+                return true;
+            }
 
             // Validate Person A
             const nameA = document.getElementById('nameA').value.trim();
@@ -4702,6 +4774,24 @@ function renderTransitDay(dateStr, items){
 
         function collectFormData() {
             console.log("=== COLLECTING FORM DATA ===");
+
+            // Sky-only: build minimal payload (no natal, no houses/angles)
+            if (currentContextType === 'weather') {
+                const startDateElement = document.getElementById('transitStartDate');
+                const endDateElement = document.getElementById('transitEndDate');
+                const stepElement = document.getElementById('transitStep');
+                const transitParams = (startDateElement && endDateElement && stepElement) ? {
+                    startDate: startDateElement.value,
+                    endDate: endDateElement.value,
+                    step: stepElement.value || '1d'
+                } : null;
+                const formData = {
+                    context: { mode: 'sky_transits' }
+                };
+                if (transitParams) formData.transitParams = transitParams;
+                console.log('Sky-only payload:', JSON.stringify(formData));
+                return formData;
+            }
             
             // Person A - Get raw form values first
             const nameA = document.getElementById('nameA').value.trim();
@@ -5579,14 +5669,16 @@ function renderTransitDay(dateStr, items){
                 WovenMapConfig.debugLog("Sending data to API", formData);
                 
                 // Double-check required fields using configuration
-                const requiredFields = WovenMapConfig.validation.requiredFields.person;
-                const missingFields = requiredFields.filter(field => {
-                    const value = formData.personA[field];
-                    return value === undefined || value === null || value === "";
-                });
-                
-                if (missingFields.length > 0) {
-                    throw new Error(`Missing required fields for Person A: ${missingFields.join(', ')}`);
+                // Skip person validation for sky-only mode
+                if (formData?.context?.mode !== 'sky_transits') {
+                    const requiredFields = WovenMapConfig.validation.requiredFields.person;
+                    const missingFields = requiredFields.filter(field => {
+                        const value = formData.personA[field];
+                        return value === undefined || value === null || value === "";
+                    });
+                    if (missingFields.length > 0) {
+                        throw new Error(`Missing required fields for Person A: ${missingFields.join(', ')}`);
+                    }
                 }
                 
                 // Use chunking-aware generation to handle large date ranges
@@ -6201,7 +6293,11 @@ function renderTransitDay(dateStr, items){
         function updateSeismographTabIndicator() {
             const tab = document.getElementById('seismographModeTab');
             if (!tab) return;
-            const hasTransitData = latestResultData && (latestResultData.person_a?.chart?.transitsByDate || latestResultData.person_b?.chart?.transitsByDate || latestResultData.composite?.transitsByDate || latestResultData.synastry?.transitsByDate);
+            const hasTransitData = latestResultData && (
+                latestResultData.sky?.transitsByDate || latestResultData.transitsByDate ||
+                latestResultData.person_a?.chart?.transitsByDate || latestResultData.person_b?.chart?.transitsByDate ||
+                latestResultData.composite?.transitsByDate || latestResultData.synastry?.transitsByDate
+            );
             let indicator = tab.querySelector('.transit-indicator');
             if (hasTransitData) {
                 if (!indicator) {
@@ -6264,9 +6360,7 @@ function renderTransitDay(dateStr, items){
                 hideSoloSubtypes();
                 hideRelationalContext();
                 // Set to transit-only mode
-                contextModeInputs.forEach(input => {
-                    input.checked = input.value === 'natal_transits'; // Use natal_transits but hide person data
-                });
+                contextModeInputs.forEach(input => { input.checked = input.checked && false; });
             }
             
             updateFormUI();
@@ -6672,7 +6766,8 @@ function renderTransitDay(dateStr, items){
 
 
         function updateFormUI() {
-            const mode = document.querySelector('input[name="contextMode"]:checked').value;
+            const modeSel = document.querySelector('input[name="contextMode"]:checked');
+            const mode = modeSel ? modeSel.value : (currentContextType === 'weather' ? 'sky_transits' : 'natal_transits');
             console.log('[UPDATE UI] Current mode:', mode);
 
             const isNatalOnly = mode === 'natal_only';
@@ -6727,8 +6822,15 @@ function renderTransitDay(dateStr, items){
 
             // CRITICAL: Relocation overlay available for ALL chart modes (natal_only and transit modes)
             // Relocation is about geometric foundation shift, not timing - affects natal architecture context
-            const showRelocation = true; // Always show relocation - foundational architectural overlay
+            const showRelocation = currentContextType !== 'weather';
             if (relocationSection) relocationSection.style.display = showRelocation ? 'block' : 'none';
+
+            // Hide Person A card entirely in weather mode (no natal)
+            const personACard = document.getElementById('personA-card');
+            if (personACard) {
+                if (currentContextType === 'weather') personACard.classList.add('hidden');
+                else personACard.classList.remove('hidden');
+            }
             
             // Update Person B relocation option visibility
             updateRelocationPersonBOption();

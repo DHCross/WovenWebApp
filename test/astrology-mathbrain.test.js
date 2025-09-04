@@ -146,28 +146,46 @@ async function runTests() {
   });
 
   runner.test('Should handle synastry mode', async () => {
-      const event = { httpMethod: 'POST', body: JSON.stringify({ personA: VALID_PERSON_A, personB: VALID_PERSON_B, context: { mode: 'SYNASTRY' } }) };
+      const event = { httpMethod: 'POST', body: JSON.stringify({
+        personA: VALID_PERSON_A,
+        personB: VALID_PERSON_B,
+        context: { mode: 'SYNASTRY' },
+        // Relationship context required by handler after recent merge
+        relationship_context: { type: 'FRIEND', role: 'Acquaintance' }
+      }) };
       const result = await handler(event);
       runner.assertEqual(result.statusCode, 200);
       const body = JSON.parse(result.body);
-      runner.assert(body.synastry, 'Should have synastry aspects');
+      runner.assert(Array.isArray(body.synastry_aspects), 'Should have synastry aspects');
   });
 
   runner.test('Should handle synastry with transits and Seismograph for BOTH people', async () => {
-    const event = { httpMethod: 'POST', body: JSON.stringify({ personA: VALID_PERSON_A, personB: VALID_PERSON_B, transitParams: VALID_TRANSIT_PARAMS, context: { mode: 'SYNASTRY_TRANSITS' } }) };
+    const event = { httpMethod: 'POST', body: JSON.stringify({
+      personA: VALID_PERSON_A,
+      personB: VALID_PERSON_B,
+      transitParams: VALID_TRANSIT_PARAMS,
+      context: { mode: 'SYNASTRY_TRANSITS' },
+      relationship_context: { type: 'FRIEND', role: 'Acquaintance' }
+    }) };
     const result = await handler(event);
     const body = JSON.parse(result.body);
 
     runner.assertEqual(result.statusCode, 200);
     runner.assert(body.person_a.chart.transitsByDate, 'Person A should have transits');
     runner.assert(body.person_b.chart.transitsByDate, 'Person B should have transits');
-    runner.assert(body.synastry, 'Should have synastry aspects');
+    runner.assert(Array.isArray(body.synastry_aspects), 'Should have synastry aspects');
     runner.assert(body.person_a.derived.seismograph_summary, 'Person A should have seismograph summary');
     runner.assert(body.person_b.derived.seismograph_summary, 'Person B should have seismograph summary');
   });
 
   runner.test('Should handle composite with transits and Seismograph', async () => {
-    const event = { httpMethod: 'POST', body: JSON.stringify({ personA: VALID_PERSON_A, personB: VALID_PERSON_B, transitParams: VALID_TRANSIT_PARAMS, context: { mode: 'COMPOSITE_TRANSITS' } }) };
+    const event = { httpMethod: 'POST', body: JSON.stringify({
+      personA: VALID_PERSON_A,
+      personB: VALID_PERSON_B,
+      transitParams: VALID_TRANSIT_PARAMS,
+      context: { mode: 'COMPOSITE_TRANSITS' },
+      relationship_context: { type: 'PARTNER', intimacy_tier: 'P3' }
+    }) };
     const result = await handler(event);
     runner.assertEqual(result.statusCode, 200);
     const body = JSON.parse(result.body);
@@ -177,37 +195,20 @@ async function runTests() {
     runner.assert(body.composite.derived.seismograph_summary, 'Composite should have seismograph summary');
   });
 
-  // Test 16: Composite transits calculation 
-  runner.test('Composite transits - COMPOSITE_TRANSITS mode', async () => {
-    const mockHandler = createMockHandler();
-    
-    const result = await mockHandler({
+  // Composite transits (explicit) – additional coverage
+  runner.test('Composite transits - explicit COMPOSITE_TRANSITS mode', async () => {
+    const result = await handler({
       httpMethod: 'POST',
       body: JSON.stringify({
-        personA: {
-          name: "Person A",
-          year: 1990, month: 6, day: 15, hour: 14, minute: 30,
-          city: "New York", nation: "US", timezone: "America/New_York",
-          latitude: 40.7128, longitude: -74.006, zodiac_type: "Tropic"
-        },
-        personB: {
-          name: "Person B", 
-          year: 1988, month: 3, day: 22, hour: 9, minute: 45,
-          city: "Los Angeles", nation: "US", timezone: "America/Los_Angeles",
-          latitude: 34.0522, longitude: -118.2437, zodiac_type: "Tropic"
-        },
-        context: {
-          mode: "COMPOSITE_TRANSITS"
-        },
-        transitParams: {
-          startDate: "2024-12-01",
-          endDate: "2024-12-02"
-        }
+        personA: VALID_PERSON_A,
+        personB: VALID_PERSON_B,
+        context: { mode: 'COMPOSITE_TRANSITS' },
+        relationship_context: { type: 'PARTNER', intimacy_tier: 'P3' },
+        transitParams: { startDate: '2024-12-01', endDate: '2024-12-02' }
       })
     });
 
-    runner.assert(result.statusCode === 200, 'Should return 200 for composite transits');
-    
+    runner.assertEqual(result.statusCode, 200, 'Should return 200 for composite transits');
     const response = JSON.parse(result.body);
     runner.assert(response.composite, 'Should include composite data');
     runner.assert(response.composite.transitsByDate, 'Should include transitsByDate');
