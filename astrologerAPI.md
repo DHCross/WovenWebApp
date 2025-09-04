@@ -1,3 +1,31 @@
+# Astrologer API Supplement
+
+The Math Brain app expects the following endpoints to expose raw natal math.
+
+## GET /natal/positions
+Returns planetary positions, angles, and houses with fields:
+`name`, `lon_deg`, `sign`, `deg_in_sign`, `speed_deg_per_day`, `retrograde`, `house`.
+
+## GET /natal/aspects
+Returns full natal aspect grid with `a`, `b`, `type`, `orb_deg`, and `phase`.
+
+## GET /transits
+Returns transits to natal with `{transiting_body, natal_target, type, orb_deg, phase, location_context, exact_hits[]}`.
+
+Example:
+
+```json
+{
+  "natal": {
+    "planets": [{ "name":"Sun","lon_deg":45.12,"sign":"Taurus","deg_in_sign":15.12,"speed_deg_per_day":0.9856,"retrograde":false,"house":10 }],
+    "angles": { "ASC": { "lon_deg":123.33,"sign":"Leo","deg_in_sign":3.33 } },
+    "houses": [{ "num":1,"lon_deg":123.33,"sign":"Leo","deg_in_sign":3.33 }],
+    "aspects": [{ "a":"Saturn","b":"Moon","type":"square","orb_deg":3.12,"phase":"applying","exact":null }]
+  },
+  "transits": { "aspects": [] }
+}
+```
+
 {
 
 "openapi": "3.1.0", "info": {
