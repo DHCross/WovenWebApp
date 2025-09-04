@@ -18,7 +18,7 @@
         If NOT Raven Calder GPT:
             - Auto-append Mini Glossary footer.
             - Reinforce role distinction: "Math Brain finds the coordinates; Poetic Brain translates the weave."
-        ================================================
+        
     -->
     <html lang="en">
     <head>
@@ -2798,7 +2798,7 @@ function renderTransitDay(dateStr, items){
             return md;
         }
 
-        // =============================================================================
+        
         // SEISMOGRAPH FUNCTIONS
         // =============================================================================
 
@@ -2866,7 +2866,7 @@ function renderTransitDay(dateStr, items){
             // View toggle container
             html += '<div id="seismographViewContainer">';
             
-            // Glossary Modal
+            // Glossary Modal - Expanded with Valence Maps
             html += `
                 <div id="seismographGlossaryModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 p-4" aria-labelledby="glossary-title" role="dialog" aria-modal="true">
                     <div class="bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full p-6 relative border border-indigo-500 overflow-y-auto max-h-[90vh]">
@@ -2874,6 +2874,7 @@ function renderTransitDay(dateStr, items){
                         <h2 id="glossary-title" class="text-2xl font-bold text-indigo-300 mb-4">🌌 Woven Map Glossary (Expanded with Valence Maps)</h2>
                         
                         <div class="space-y-6">
+                            <!-- Core Dimensions -->
                             <div>
                                 <h3 class="text-lg font-semibold text-white mb-3 border-b border-gray-700 pb-2">Core Dimensions</h3>
                                 <ul class="space-y-3 text-sm">
@@ -2890,6 +2891,7 @@ function renderTransitDay(dateStr, items){
                                 </ul>
                             </div>
 
+                            <!-- Negative Valence Types -->
                             <div>
                                 <h3 class="text-lg font-semibold text-rose-300 mb-3 border-b border-gray-700 pb-2">🌑 Map of Negative Valence Types</h3>
                                 <p class="text-xs text-gray-400 mb-3 italic">When energy pulls down, contracts, destabilizes</p>
@@ -2905,6 +2907,7 @@ function renderTransitDay(dateStr, items){
                                 </ul>
                             </div>
 
+                            <!-- Positive Valence Types -->
                             <div>
                                 <h3 class="text-lg font-semibold text-emerald-300 mb-3 border-b border-gray-700 pb-2">🌞 Map of Positive Valence Types</h3>
                                 <p class="text-xs text-gray-400 mb-3 italic">When energy uplifts, harmonizes, expands</p>
