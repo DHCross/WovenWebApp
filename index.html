@@ -1481,6 +1481,40 @@ function renderTransitDay(dateStr, items){
             errorDisplay.classList.add('hidden');
         }
 
+        // Non-destructive error notification for non-critical failures (like download issues)
+        function showNotification(message, type = 'error') {
+            // Create or reuse notification element
+            let notification = document.getElementById('notification');
+            if (!notification) {
+                notification = document.createElement('div');
+                notification.id = 'notification';
+                notification.className = 'fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-md transition-all duration-300 transform translate-x-full';
+                document.body.appendChild(notification);
+            }
+            
+            // Set content and styling based on type
+            const bgColor = type === 'error' ? 'bg-red-600' : type === 'success' ? 'bg-green-600' : 'bg-blue-600';
+            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-md transition-all duration-300 transform ${bgColor} text-white`;
+            notification.textContent = message;
+            
+            // Show notification
+            notification.classList.remove('translate-x-full');
+            notification.classList.add('translate-x-0');
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                if (notification && notification.parentNode) {
+                    notification.classList.remove('translate-x-0');
+                    notification.classList.add('translate-x-full');
+                    setTimeout(() => {
+                        if (notification && notification.parentNode) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }
+            }, 5000);
+        }
+
         // Helper function to get opposite zodiac sign for South Node calculation
         function getOppositeSign(sign) {
             const opposites = {
@@ -5750,7 +5784,7 @@ function renderTransitDay(dateStr, items){
             // Download Markdown
             downloadMarkdownBtn.addEventListener('click', () => {
                 if (!latestResultData) {
-                    showError('No data available for download. Please generate a report first.');
+                    showNotification('No data available for download. Please generate a report first.');
                     return;
                 }
                 try {
@@ -5763,7 +5797,7 @@ function renderTransitDay(dateStr, items){
                     setTimeout(() => { downloadMarkdownBtn.textContent = '📄 Save Chart Data'; }, 2000);
                 } catch (error) {
                     console.error('Download error:', error);
-                    showError('Failed to generate markdown download: ' + error.message);
+                    showNotification('Failed to download report. Please try again.');
                 }
             });
 
