@@ -18,7 +18,7 @@
         If NOT Raven Calder GPT:
             - Auto-append Mini Glossary footer.
             - Reinforce role distinction: "Math Brain finds the coordinates; Poetic Brain translates the weave."
-        ================================================
+        
     -->
     <html lang="en">
     <head>
@@ -2816,7 +2816,7 @@ function renderTransitDay(dateStr, items){
             return md;
         }
 
-        // =============================================================================
+        
         // SEISMOGRAPH FUNCTIONS
         // =============================================================================
 
@@ -2886,7 +2886,14 @@ function renderTransitDay(dateStr, items){
                 setTimeout(()=>{const t=document.createElement('div'); t.id='globalHoverTooltip'; t.className='pointer-events-none fixed z-50 px-2 py-1 rounded bg-gray-900/90 text-[11px] text-gray-100 border border-teal-500 shadow'; t.style.display='none'; document.body.appendChild(t);},0);
             }
             
+
             // Glossary Modal (fixed overlay - outside scrollable content)
+
+            // View toggle container
+            html += '<div id="seismographViewContainer">';
+            
+            // Glossary Modal - Expanded with Valence Maps
+
             html += `
                 <div id="seismographGlossaryModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 p-4" aria-labelledby="glossary-title" role="dialog" aria-modal="true">
                     <div class="bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full p-6 relative border border-indigo-500 overflow-y-auto max-h-[90vh]">
@@ -2894,6 +2901,7 @@ function renderTransitDay(dateStr, items){
                         <h2 id="glossary-title" class="text-2xl font-bold text-indigo-300 mb-4">🌌 Woven Map Glossary (Expanded with Valence Maps)</h2>
                         
                         <div class="space-y-6">
+                            <!-- Core Dimensions -->
                             <div>
                                 <h3 class="text-lg font-semibold text-white mb-3 border-b border-gray-700 pb-2">Core Dimensions</h3>
                                 <ul class="space-y-3 text-sm">
@@ -2910,6 +2918,7 @@ function renderTransitDay(dateStr, items){
                                 </ul>
                             </div>
 
+                            <!-- Negative Valence Types -->
                             <div>
                                 <h3 class="text-lg font-semibold text-rose-300 mb-3 border-b border-gray-700 pb-2">🌑 Map of Negative Valence Types</h3>
                                 <p class="text-xs text-gray-400 mb-3 italic">When energy pulls down, contracts, destabilizes</p>
@@ -2925,6 +2934,7 @@ function renderTransitDay(dateStr, items){
                                 </ul>
                             </div>
 
+                            <!-- Positive Valence Types -->
                             <div>
                                 <h3 class="text-lg font-semibold text-emerald-300 mb-3 border-b border-gray-700 pb-2">🌞 Map of Positive Valence Types</h3>
                                 <p class="text-xs text-gray-400 mb-3 italic">When energy uplifts, harmonizes, expands</p>
@@ -3116,7 +3126,7 @@ function renderTransitDay(dateStr, items){
                     ? hooks.map(h => `${h.p1_name || h.p1_display || '?'} ${h.aspect || h._aspect || '?'} ${h.p2_name || h.p2_display || '?'}`).join(', ')
                     : '—';
                 
-                // Optional correlation badge
+                // Optional correlation score (raw data only - no salience labels)
                 let badge = '';
                 if (healthByDate) {
                     const hb = healthByDate[date];
@@ -3124,13 +3134,11 @@ function renderTransitDay(dateStr, items){
                         const sObj = { magnitude: parseFloat(mag), valence: parseFloat(val), volatility: parseFloat(vol) };
                         try {
                             const score = calculateCorrelationScore(sObj, hb);
-                            let label = '', cls = '';
-                            if (score >= 0.75) { label = '⭐ uncanny'; cls = 'bg-emerald-700 text-emerald-200'; }
-                            else if (score >= 0.60) { label = '▲ strong'; cls = 'bg-amber-700 text-amber-200'; }
-                            else if (score >= 0.45) { label = '△ mild'; cls = 'bg-blue-700 text-blue-200'; }
-                            if (label) {
+                            // Show correlation score without automatic salience interpretation
+                            // User must determine if correlation reflects lived experience
+                            if (score >= 0.45) {
                                 const detail = Object.keys(hb).map(k=>`${k}:${hb[k]}`).join(', ');
-                                badge = `<span class="ml-2 text-[10px] px-1.5 py-0.5 rounded ${cls}" title="health: ${detail}; score=${score.toFixed(3)}">${label}</span>`;
+                                badge = `<span class="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-gray-600 text-gray-300" title="health: ${detail}; correlation=${score.toFixed(3)}">r=${score.toFixed(2)}</span>`;
                             }
                         } catch(_){}
                     }
@@ -3240,7 +3248,7 @@ function renderTransitDay(dateStr, items){
                     ? hooks.map(h => `${h.p1_name || h.p1_display || '?'} ${h.aspect || h._aspect || '?'} ${h.p2_name || h.p2_display || '?'}`).join(', ')
                     : '—';
                 
-                // Optional correlation badge
+                // Optional correlation score (raw data only - no salience labels)
                 let badge = '';
                 if (healthByDate) {
                     const hb = healthByDate[date];
@@ -3248,9 +3256,11 @@ function renderTransitDay(dateStr, items){
                         try {
                             const sObj = { magnitude: parseFloat(mag), valence: parseFloat(val), volatility: parseFloat(vol) };
                             const score = calculateCorrelationScore(sObj, hb);
-                            if (score >= 0.75) badge = `<span class=\"ml-2 text-[10px] px-1.5 py-0.5 rounded bg-emerald-700 text-emerald-200\" title=\"score ${score.toFixed(3)}\">⭐ uncanny</span>`;
-                            else if (score >= 0.60) badge = `<span class=\"ml-2 text-[10px] px-1.5 py-0.5 rounded bg-amber-700 text-amber-200\" title=\"score ${score.toFixed(3)}\">▲ strong</span>`;
-                            else if (score >= 0.45) badge = `<span class=\"ml-2 text-[10px] px-1.5 py-0.5 rounded bg-blue-700 text-blue-200\" title=\"score ${score.toFixed(3)}\">△ mild</span>`;
+                            // Show correlation score without automatic salience interpretation
+                            // User must determine if correlation reflects lived experience
+                            if (score >= 0.45) {
+                                badge = `<span class="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-gray-600 text-gray-300" title="correlation=${score.toFixed(3)}">r=${score.toFixed(2)}</span>`;
+                            }
                         } catch(_){}
                     }
                 }
@@ -6008,7 +6018,7 @@ function renderTransitDay(dateStr, items){
                 seismographTab.classList.add('bg-teal-600', 'text-white');
                 seismographTab.classList.remove('text-gray-300');
                 seismographTab.setAttribute('aria-selected', 'true');
-                modeDescription.innerHTML = '<strong class="text-cyan-300">Seismograph:</strong> Maps symbolic pressure fronts moving through time. Magnitude (0–5) = charge intensity, Valence (-5..+5) = ease vs friction, Volatility (0–5) = rate of change. The trace follows currents across your window.';
+                modeDescription.innerHTML = '<strong class="text-cyan-300">Seismograph:</strong> Maps symbolic pressure fronts moving through time. Magnitude (0–5) = charge intensity, Valence (-5..+5) = ease vs friction, Volatility (0–5) = rate of change. The trace follows currents across your window.<br><small class="text-yellow-300">💡 Queue Analysis & Filters appear after successful seismograph generation.</small>';
                 generateBtn.textContent = 'Generate Seismograph';
                 showWiringBtn.style.display = 'none';
                 

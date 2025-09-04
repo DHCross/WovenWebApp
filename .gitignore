@@ -12,7 +12,7 @@ yarn-error.log*
 .netlify
 
 # Build output
-dist/
+# dist/ - REMOVED: Need to commit compiled CSS for production deployment
 
 # VS Code
 .vscode/
