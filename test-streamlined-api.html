@@ -21,8 +21,10 @@
     <button onclick="testSynastryTransits()">Test Synastry + Transits</button>
     <button onclick="testCompositeTransits()">Test Composite + Transits</button>
     <button onclick="testMissingTransitDates()">Test Missing Transit Dates (Should Fail)</button>
+    <button onclick="toggleRaw()">Toggle Raw JSON</button>
     
     <div id="output" class="output"></div>
+    <pre id="raw-json" style="display:none;background:#2a2a2a;padding:15px;border-radius:5px;"></pre>
 
     <script>
         const apiEndpoint = '/.netlify/functions/astrology-mathbrain';
@@ -32,6 +34,25 @@
             const className = isError ? 'error' : (isSuccess ? 'success' : '');
             output.innerHTML += `<div class="${className}">${new Date().toISOString()}: ${message}</div>`;
             output.scrollTop = output.scrollHeight;
+        }
+
+        function assertBasics(json){
+            const planets = json?.natal?.planets || [];
+            log(`Planet count: ${planets.length}`, planets.length < 11);
+            const houses = json?.natal?.houses || [];
+            log(`House count: ${houses.length}`, houses.length !== 12);
+            const aspects = json?.natal?.aspects || [];
+            log(`Aspect rows: ${aspects.length}`, aspects.length === 0);
+            const angles = json?.natal?.angles || {};
+            const hasAngles = angles.ASC && angles.MC;
+            log(`Angles ASC/MC present: ${hasAngles}`, !hasAngles);
+            const satMoon = aspects.some(a => (a.a === 'Saturn' && a.b === 'Moon') || (a.a === 'Moon' && a.b === 'Saturn'));
+            log(`Saturn↔Moon present: ${satMoon}`, !satMoon);
+        }
+
+        function toggleRaw(){
+            const pre = document.getElementById('raw-json');
+            pre.style.display = pre.style.display === 'none' ? 'block' : 'none';
         }
 
         async function makeApiCall(data, testName) {
@@ -45,16 +66,22 @@
                     body: JSON.stringify(data)
                 });
 
-                const result = await response.json();
-                
-                if (response.ok) {
-                    log(`✅ ${testName} SUCCESS`, false, true);
-                    log(`Response preview: ${JSON.stringify(result).substring(0, 200)}...`);
-                } else {
-                    log(`❌ ${testName} FAILED: ${result.error}`, true);
-                    if (result.missing) {
-                        log(`Missing fields: ${result.missing.join(', ')}`, true);
+                const text = await response.text();
+                try {
+                    const result = JSON.parse(text);
+                    document.getElementById('raw-json').textContent = JSON.stringify(result, null, 2);
+                    if (response.ok) {
+                        log(`✅ ${testName} SUCCESS`, false, true);
+                        log(`Response preview: ${JSON.stringify(result).substring(0, 200)}...`);
+                        assertBasics(result);
+                    } else {
+                        log(`❌ ${testName} FAILED: ${result.error}`, true);
+                        if (result.missing) {
+                            log(`Missing fields: ${result.missing.join(', ')}`, true);
+                        }
                     }
+                } catch(e){
+                    log(`❌ ${testName} JSON parse error: ${e.message}`, true);
                 }
             } catch (error) {
                 log(`❌ ${testName} ERROR: ${error.message}`, true);

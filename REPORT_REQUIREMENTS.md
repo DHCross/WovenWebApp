@@ -6,6 +6,41 @@ This document defines the canonical requirements for astrological chart reports 
 
 ---
 
+## ✅ Raw Math Requirements
+
+Each generated report must expose the math that underwrites the mirror.
+
+1. **Provenance header** – `calculation_timestamp` (UTC ISO 8601), `software_version` (git SHA), `ephemeris`, `timezone_db_version`.
+2. **Birth data echo** – birth date/time/location, lat/lon, `tz_offset`, `rectification_status` (`exact|rounded|unknown`), `source` (`user|system`).
+3. **Configuration** – `zodiac`, `house_system`, `orbs_profile`, and `location_context` for translocation.
+4. **Planetary positions** – name, longitude, sign, degrees in sign, speed, retrograde flag, house for each body (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Chiron; optional Node/Lilith/Vertex).
+5. **Angles & houses** – ASC, MC, IC, DC plus 12 house cusps with longitudes and signs.
+6. **Aspect table** – rows `{a, b, type, orb_deg, phase, exact}`. Supported aspects: conjunction, opposition, square, trine, sextile (quintile optional).
+7. **Transit context** – separate transit aspect table with `transiting_body`, `natal_target`, `orb_deg`, `phase`, `location_context`, optional `exact_hits`. Seismograph rollup uses `{date, magnitude, valence, volatility, drivers[]}`.
+8. **JSON + Markdown** – include human-friendly tables and a collapsed block with the full raw JSON payload.
+
+### Default Orb Policy
+
+| Aspect      | Max Orb (deg) |
+| ----------- | ------------- |
+| Conjunction | 8 |
+| Opposition  | 8 |
+| Square      | 7 |
+| Trine       | 7 |
+| Sextile     | 5 |
+
+Moon aspects expand by +1°. Outer-to-personal tighten by −1°.
+
+### Supported Bodies
+
+Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Chiron, optional Node, Lilith, Vertex.
+
+### Notes
+
+Missing upstream fields must render placeholders and surface a warning in the provenance block.
+
+---
+
 ## ✅ Context & Provenance
 
 ### Required Fields
