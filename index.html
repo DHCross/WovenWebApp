@@ -18,7 +18,7 @@
         If NOT Raven Calder GPT:
             - Auto-append Mini Glossary footer.
             - Reinforce role distinction: "Math Brain finds the coordinates; Poetic Brain translates the weave."
-        ================================================
+        
     -->
     <html lang="en">
     <head>
@@ -362,6 +362,24 @@
             #seismographFiltersPanel:not(.hidden) {
                 max-height: 400px;
             }
+            
+            /* Seismograph chart responsiveness - prevent horizontal scrolling */
+            .seismograph-content-area {
+                overflow-x: auto;
+                width: 100%;
+            }
+            
+            .seismograph-content-area canvas {
+                max-width: 100%;
+                height: auto;
+            }
+            
+            /* Ensure sticky controls work properly on all screen sizes */
+            @media (max-width: 768px) {
+                .sticky {
+                    position: relative; /* Fall back to relative on very small screens */
+                }
+            }
         </style>
     </head>
 <body class="bg-gray-900 text-gray-200">
@@ -445,16 +463,16 @@
                             <button id="relocQuickBtn" type="button" aria-pressed="false" class="text-xs px-3 py-1 rounded-full border border-gray-600 text-gray-300 hover:bg-gray-700/20 transition-colors" title="Apply Panama City relocation overlay">Reloc: Panama City</button>
                         </div>
                     </div>
-                    <div class="space-y-4">
+                    <div class="space-y-5">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input type="text" id="nameA" placeholder="Name" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="DH Cross">
-                            <input type="text" id="birth_cityA" placeholder="Birth City" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="Bryn Mawr">
-                            <input type="text" id="birth_stateA" placeholder="Birth State/Prov" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="PA">
+                            <input type="text" id="nameA" placeholder="Name" class="w-full bg-gray-700 text-white rounded-md p-3 border border-gray-600" value="DH Cross">
+                            <input type="text" id="birth_cityA" placeholder="Birth City" class="w-full bg-gray-700 text-white rounded-md p-3 border border-gray-600" value="Bryn Mawr">
+                            <input type="text" id="birth_stateA" placeholder="Birth State/Prov" class="w-full bg-gray-700 text-white rounded-md p-3 border border-gray-600" value="PA">
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input type="date" id="birth_dateA" placeholder="Birth Date (YYYY-MM-DD)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="1973-07-24">
-                            <input type="text" id="birth_timeA" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="14:30">
-                            <select id="offsetA" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            <input type="date" id="birth_dateA" placeholder="Birth Date (YYYY-MM-DD)" class="w-full bg-gray-700 text-white rounded-md p-3 border border-gray-600" value="1973-07-24">
+                            <input type="text" id="birth_timeA" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-md p-3 border border-gray-600" value="14:30">
+                            <select id="offsetA" class="w-full bg-gray-700 text-white rounded-md p-3 border border-gray-600">
                                 <option value="America/Chicago" selected>Central (Chicago)</option>
                                 <option value="America/New_York">Eastern (New York)</option>
                                 <option value="America/Denver">Mountain (Denver)</option>
@@ -464,15 +482,15 @@
                             </select>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input type="text" id="birth_countryA" placeholder="Country (2-letter)" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="US">
-                            <select id="zodiacA" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                            <input type="text" id="birth_countryA" placeholder="Country (2-letter)" class="w-full bg-gray-700 text-white rounded-md p-3 border border-gray-600" value="US">
+                            <select id="zodiacA" class="w-full bg-gray-700 text-white rounded-md p-3 border border-gray-600">
                                 <option value="Tropic">Tropic</option>
                                 <option value="Sidereal">Sidereal</option>
                             </select>
                         </div>
                         <div>
-                            <label for="astroA" class="block mb-1 text-sm font-medium text-gray-300">Birth Coordinates</label>
-                            <input type="text" id="astroA" placeholder="e.g., 40°1'N, 75°18'W or 40.01, -75.31" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600" value="40°1'N, 75°18'W">
+                            <label for="astroA" class="block mb-2 text-sm font-medium text-gray-300">Birth Coordinates</label>
+                            <input type="text" id="astroA" placeholder="e.g., 40°1'N, 75°18'W or 40.01, -75.31" class="w-full bg-gray-700 text-white rounded-md p-3 border border-gray-600" value="40°1'N, 75°18'W">
                         </div>
                     </div>
                 </div>
@@ -553,7 +571,7 @@
                             </div>
                         </div>
                         <div class="flex items-start">
-                            <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Weather →</span>
+                            <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Sky Only →</span>
                             <div class="text-gray-300">
                                 <div>Current planetary pressures without personal chart context. <em>"What's the energetic weather right now?"</em></div>
                             </div>
@@ -584,8 +602,8 @@
                     <label class="flex items-center p-4 border border-gray-600 rounded-lg hover:border-teal-500 transition-colors cursor-pointer">
                         <input type="radio" name="contextType" value="weather" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
                         <div>
-                            <div class="text-white font-medium">Weather Only</div>
-                            <div class="text-gray-400 text-sm">Current planetary patterns</div>
+                            <div class="text-white font-medium">Current Sky Only</div>
+                            <div class="text-gray-400 text-sm">Planetary patterns only</div>
                         </div>
                     </label>
                 </div>
@@ -763,14 +781,15 @@
                 </div>
 
                 <!-- Relocation Overlay with Progressive Disclosure -->
-                <div id="relocation-section" class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-600">
+                <div id="relocation-section" class="bg-gray-800 p-6 rounded-lg shadow-lg border border-teal-500">
                     <div class="flex items-center justify-between cursor-pointer hover:bg-gray-750 p-2 -m-2 rounded transition-colors" 
                          id="relocation-toggle-header" role="button" tabindex="0" aria-expanded="false" aria-controls="relocation-details">
                         <div class="flex items-center">
-                            <input type="checkbox" id="relocationToggle" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                            <input type="checkbox" id="relocationToggle" class="mr-4 h-6 w-6 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
                             <div>
                                 <h3 class="text-lg font-medium text-white">Relocation Overlay</h3>
-                                <p class="text-xs text-gray-400">How place tilts the lens of your chart - same planets, different stage</p>
+                                <p class="text-sm text-teal-300">Check this to compare how your chart shifts if you lived elsewhere</p>
+                                <p class="text-xs text-gray-400">Same planets, different stage - where your patterns express in daily life</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-3">
@@ -1033,89 +1052,106 @@
                 </div>
             </div>
 
-            <!-- Generate Button -->
-            <div class="text-center mb-8">
-                <button id="generateReport" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                    Get My Mirror
+            <!-- Primary Action -->
+            <div class="text-center mb-12">
+                <button id="generateReport" class="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white font-bold py-4 px-12 rounded-lg text-xl shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                    ✨ Get My Mirror
                 </button>
-
             </div>
 
-            <!-- Save/Load Controls -->
-            <div class="text-center mb-6">
-                <div class="flex justify-center gap-3 mb-2">
-                    <button id="saveDataBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
-                        💾 Save Chart Data
-                    </button>
-                    <button id="loadDataBtn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
-                        📂 Load Chart Data
-                    </button>
+            <!-- Secondary Actions - Core Workflow -->
+            <div class="text-center mb-8">
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg max-w-md mx-auto">
+                    <h3 class="text-white font-medium mb-4">📋 Chart Management</h3>
+                    <p class="text-xs text-gray-400 mb-4">Keep your current setup to reuse later</p>
+                    <div class="flex justify-center gap-3">
+                        <button id="saveDataBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
+                            💾 Save Setup
+                        </button>
+                        <button id="loadDataBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
+                            📂 Load Setup
+                        </button>
+                    </div>
+                    <input type="file" id="loadDataInput" accept=".json" class="hidden">
                 </div>
-                <input type="file" id="loadDataInput" accept=".json" class="hidden">
-                <p class="text-xs text-gray-500">Save Person A & B data to reload later</p>
             </div>
 
-            <!-- Health Data Integration -->
-            <div class="text-center mb-6 border-t border-gray-700 pt-6">
-                <div class="flex justify-center gap-3 mb-2">
-                    <button id="loadHealthDataBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
-                        🏥 Upload Health Data
-                    </button>
-                    <button id="clearHealthDataBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden">
-                        ✖️ Clear Health Data
-                    </button>
-                    <button id="healthDataHelpBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
-                        ❓ Help
-                    </button>
-                </div>
-                <input type="file" id="healthDataInput" accept=".json" class="hidden">
-                <div id="healthDataStatus" class="text-xs text-green-400 hidden"></div>
-                <p class="text-xs text-gray-500">Upload iOS Health Auto Export JSON for correlation analysis</p>
-                <p class="text-xs text-blue-400 mt-1">Recommended: Quick Export → days → HRV, Resting HR, Sleep, State of Mind</p>
-                
-                <!-- Health Data Help Modal -->
-                <div id="healthDataHelpModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div class="bg-gray-800 p-6 rounded-lg max-w-2xl max-h-96 overflow-y-auto border border-purple-500">
-                        <h3 class="text-lg font-semibold text-purple-300 mb-4">Health Auto Export Setup Guide</h3>
-                        <div class="text-sm text-gray-300 space-y-3">
-                            <p><strong class="text-white">Required App:</strong> "Health Auto Export" from iOS App Store</p>
-                            <p><strong class="text-white">Recommended Settings:</strong></p>
-                            <ul class="list-disc list-inside ml-4 space-y-1">
-                                <li>Quick Export tab</li>
-                                <li>Aggregation Interval: <span class="text-green-400">days</span></li>
-                                <li>Aggregate Data: <span class="text-green-400">ON</span></li>
-                            </ul>
-                            <p><strong class="text-white">Include These Metrics:</strong></p>
-                            <ul class="list-disc list-inside ml-4 space-y-1">
-                                <li>Heart Rate Variability (HRV)</li>
-                                <li>Resting Heart Rate</li>
-                                <li>Sleep Sessions</li>
-                                <li>State of Mind (optional - can use separate CSV)</li>
-                            </ul>
-                            <p class="text-yellow-300"><strong>Note:</strong> Other metrics (workouts, ECG, etc.) are safely ignored.</p>
-                            <p class="text-blue-300"><strong>Privacy:</strong> Data stays in your browser - no server upload.</p>
+            <!-- Optional Overlays -->
+            <div class="max-w-4xl mx-auto mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Health Data Overlay -->
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-t-4 border-purple-500">
+                        <h3 class="text-white font-medium mb-2 flex items-center gap-2">
+                            🏥 Health Data Overlay
+                            <button id="healthDataHelpBtn" class="text-xs text-purple-300 hover:text-purple-400 focus:outline-none" title="How to setup Health Auto Export">
+                                ❓
+                            </button>
+                        </h3>
+                        <p class="text-xs text-gray-400 mb-4">Add Apple Health metrics (sleep, HRV, mood) to compare with chart patterns</p>
+                        <div class="space-y-2">
+                            <button id="loadHealthDataBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
+                                📱 Upload Health Data
+                            </button>
+                            <button id="clearHealthDataBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden">
+                                ✖️ Clear Health Data
+                            </button>
                         </div>
-                        <button id="closeHealthDataHelp" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm">Close</button>
+                        <input type="file" id="healthDataInput" accept=".json" class="hidden">
+                        <div id="healthDataStatus" class="text-xs text-green-400 hidden mt-2"></div>
+                        <p class="text-xs text-blue-400 mt-2">Recommended: HRV, Resting HR, Sleep, State of Mind</p>
+                    </div>
+
+                    <!-- Seismograph Overlay -->
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-t-4 border-cyan-500">
+                        <h3 class="text-white font-medium mb-2 flex items-center gap-2">
+                            📊 Seismograph Overlay
+                            <button class="text-xs text-cyan-300 hover:text-cyan-400 focus:outline-none" title="Upload symbolic logs (.md) to cross-check pressures">
+                                ❓
+                            </button>
+                        </h3>
+                        <p class="text-xs text-gray-400 mb-4">Attach symbolic logs (.md) to cross-check pressures</p>
+                        <div class="space-y-2">
+                            <button id="loadSeismoBtn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
+                                📄 Upload Seismograph
+                            </button>
+                            <button id="clearSeismoBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden">
+                                ✖️ Clear Seismograph
+                            </button>
+                            <button id="genComparativeBtn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden" disabled>
+                                🔗 Generate Comparative Report
+                            </button>
+                        </div>
+                        <input type="file" id="seismoMdInput" accept=".md,.markdown,text/markdown" class="hidden">
+                        <div id="seismoDataStatus" class="text-xs text-gray-500 hidden mt-2"></div>
+                        <p class="text-xs text-cyan-400 mt-2">Compatible with Health Auto Export (iOS)</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Seismograph MD Ingestion -->
-            <div class="text-center mb-6 border-t border-gray-700 pt-6">
-                <div class="flex justify-center gap-3 mb-2">
-                    <button id="loadSeismoBtn" class="bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
-                        📄 Upload Seismograph (.md)
-                    </button>
-                    <button id="clearSeismoBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden">
-                        ✖️ Clear Seismograph
-                    </button>
-                    <button id="genComparativeBtn" class="bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden" disabled>
-                        🔗 Generate Comparative Report
-                    </button>
+            <!-- Health Data Help Modal -->
+            <div id="healthDataHelpModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-gray-800 p-6 rounded-lg max-w-2xl max-h-96 overflow-y-auto border border-purple-500">
+                    <h3 class="text-lg font-semibold text-purple-300 mb-4">Health Auto Export Setup Guide</h3>
+                    <div class="text-sm text-gray-300 space-y-3">
+                        <p><strong class="text-white">Required App:</strong> "Health Auto Export" from iOS App Store</p>
+                        <p><strong class="text-white">Recommended Settings:</strong></p>
+                        <ul class="list-disc list-inside ml-4 space-y-1">
+                            <li>Quick Export tab</li>
+                            <li>Aggregation Interval: <span class="text-green-400">days</span></li>
+                            <li>Aggregate Data: <span class="text-green-400">ON</span></li>
+                        </ul>
+                        <p><strong class="text-white">Include These Metrics:</strong></p>
+                        <ul class="list-disc list-inside ml-4 space-y-1">
+                            <li>Heart Rate Variability (HRV)</li>
+                            <li>Resting Heart Rate</li>
+                            <li>Sleep Sessions</li>
+                            <li>State of Mind (optional - can use separate CSV)</li>
+                        </ul>
+                        <p class="text-yellow-300"><strong>Note:</strong> Other metrics (workouts, ECG, etc.) are safely ignored.</p>
+                        <p class="text-blue-300"><strong>Privacy:</strong> Data stays in your browser - no server upload.</p>
+                    </div>
+                    <button id="closeHealthDataHelp" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm">Close</button>
                 </div>
-                <input type="file" id="seismoMdInput" accept=".md,.markdown,text/markdown" class="hidden">
-                <div id="seismoDataStatus" class="text-xs text-gray-500 hidden"></div>
-                <p class="text-xs text-gray-500">Compatible with Health Auto Export (iOS). Other exports currently unsupported.</p>
             </div>
 
             <!-- Loading Indicator -->
@@ -1145,26 +1181,75 @@
 
             <!-- Report Output -->
             <div id="reportOutput" class="hidden bg-gray-800 p-6 rounded-lg shadow-lg">
-                <div class="flex justify-between items-center mb-4">
+                <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-semibold text-white">Pure Astrological Geometry</h2>
-                    <div class="flex gap-2">
-                        <button id="downloadMarkdown" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded text-sm">
-                            📄 Save Chart Data
-                        </button>
-                        <button id="exportValidationBtn" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded text-sm hidden" title="Export seismograph summary for external validation">
-                            ✅ Export for Validation (.md)
-                        </button>
-                        <button id="downloadReport" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded text-sm hidden">
-                            📄 Download Report (.md)
-                        </button>
-                        <button id="copyReport" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded text-sm hidden">
-                            📋 Copy Report
-                        </button>
+                    
+                    <!-- Progressive Disclosure: Raw Data Toggle -->
+                    <button id="toggleRawData" class="text-xs text-gray-400 underline hover:text-gray-300 focus:outline-none">
+                        Show Raw Data
+                    </button>
+                </div>
+
+                <!-- Orientation Banner -->
+                <div class="mb-6 p-4 bg-gray-750 rounded-lg border border-gray-600">
+                    <p class="text-sm text-gray-300">
+                        What you see below is Math Brain output — raw geometry only. Raven Calder translates this into plain, resonant insights. 
+                        These files are structured for both humans and AI to read.
+                    </p>
+                </div>
+
+                <!-- Action Zones -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <!-- For Readers Zone -->
+                    <div class="bg-gray-750 p-4 rounded-lg border border-emerald-600">
+                        <h3 class="text-emerald-300 font-medium mb-3">📖 For Readers</h3>
+                        <div class="space-y-2">
+                            <button id="downloadReport" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-3 rounded text-sm transition-colors hidden">
+                                📄 Download Report
+                                <span class="block text-xs opacity-80">Formatted file with your chart results</span>
+                            </button>
+                            <button id="copyReport" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-3 rounded text-sm transition-colors hidden">
+                                📋 Copy Report
+                                <span class="block text-xs opacity-80">Copy results to clipboard</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- For Workflow Zone -->
+                    <div class="bg-gray-750 p-4 rounded-lg border border-blue-600">
+                        <h3 class="text-blue-300 font-medium mb-3">🔄 For Workflow</h3>
+                        <div class="space-y-2">
+                            <button id="downloadMarkdown" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-3 rounded text-sm transition-colors">
+                                💾 Save Chart Data
+                                <span class="block text-xs opacity-80">Keep setup to reuse later</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- For Developers Zone -->
+                    <div class="bg-gray-750 p-4 rounded-lg border border-cyan-600">
+                        <h3 class="text-cyan-300 font-medium mb-3">⚙️ For Developers</h3>
+                        <div class="space-y-2">
+                            <button id="exportValidationBtn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-3 rounded text-sm transition-colors hidden">
+                                ✅ Export for Validation
+                                <span class="block text-xs opacity-80">Raw geometry file for debugging/other tools</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                                <!-- Simple Mode: Hook / Aspect Filter Controls intentionally hidden (retained for future advanced mode) -->
-                                <div id="hookFilters" class="hidden"></div>
-                <div id="reportContent" class="text-gray-200 whitespace-pre-wrap font-mono text-sm bg-gray-900 p-4 rounded border border-gray-700 overflow-auto max-h-96">
+
+                <!-- Progressive Disclosure: Raw Data Content -->
+                <div id="rawDataSection" class="hidden">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-lg font-medium text-white">Raw Output Data</h3>
+                        <button id="hideRawData" class="text-xs text-gray-400 underline hover:text-gray-300 focus:outline-none">
+                            Hide Raw Data
+                        </button>
+                    </div>
+                    <!-- Simple Mode: Hook / Aspect Filter Controls intentionally hidden (retained for future advanced mode) -->
+                    <div id="hookFilters" class="hidden"></div>
+                    <div id="reportContent" class="text-gray-200 whitespace-pre-wrap font-mono text-xs bg-gray-900 p-4 rounded border border-gray-700 overflow-auto max-h-96">
+                    </div>
                 </div>
             </div>
         </main>
@@ -2832,7 +2917,7 @@ function renderTransitDay(dateStr, items){
             return md;
         }
 
-        // =============================================================================
+        
         // SEISMOGRAPH FUNCTIONS
         // =============================================================================
 
@@ -2851,7 +2936,8 @@ function renderTransitDay(dateStr, items){
             
             let html = `
                 <div class="space-y-6">
-                    <div class="bg-gray-800 p-4 rounded-lg border border-teal-500">
+                    <!-- Fixed Control Header - Always visible and not scrollable -->
+                    <div class="sticky top-0 z-10 bg-gray-800 p-4 rounded-lg border border-teal-500 shadow-lg">
                         <h3 class="text-lg font-semibold text-teal-300 mb-3">Seismograph Overview</h3>
                         ${loadedHealthData ? `<div class="bg-purple-900 p-2 rounded mb-3 text-sm">
                             <span class="text-purple-300">🏥 Health Data Loaded:</span> 
@@ -2860,6 +2946,7 @@ function renderTransitDay(dateStr, items){
                             <span class="text-gray-300">💡 Tip:</span> 
                             <span class="text-white">Upload Health Auto Export JSON above for correlation analysis</span>
                         </div>`}
+                        <!-- Control Buttons - Sticky and always visible -->
                         <div class="flex flex-wrap gap-2 mb-4" aria-label="Seismograph controls">
                             <button id="toggleSeismographView" aria-live="polite" class="px-3 py-1 bg-teal-600 text-white rounded text-sm hover:bg-teal-700" title="Cycle: Table → Arc → Barometer → Mobile">
                                 🔄 View: Table
@@ -2886,7 +2973,10 @@ function renderTransitDay(dateStr, items){
                         <div class="mt-4 text-xs text-gray-400 border-t border-gray-700 pt-3">
                             Normalization happens only in visual arc/barometer layers. Tables retain raw magnitude (0–10) for auditability.
                         </div>
-                    </div>`;
+                    </div>
+                    
+                    <!-- Scrollable Content Area -->
+                    <div class="seismograph-content-area">`;
             
             // Pattern detection results
             html += '<div id="seismographPatterns"></div>';
@@ -2897,10 +2987,14 @@ function renderTransitDay(dateStr, items){
                 setTimeout(()=>{const t=document.createElement('div'); t.id='globalHoverTooltip'; t.className='pointer-events-none fixed z-50 px-2 py-1 rounded bg-gray-900/90 text-[11px] text-gray-100 border border-teal-500 shadow'; t.style.display='none'; document.body.appendChild(t);},0);
             }
             
+
+            // Glossary Modal (fixed overlay - outside scrollable content)
+
             // View toggle container
             html += '<div id="seismographViewContainer">';
             
-            // Glossary Modal
+            // Glossary Modal - Expanded with Valence Maps
+
             html += `
                 <div id="seismographGlossaryModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 p-4" aria-labelledby="glossary-title" role="dialog" aria-modal="true">
                     <div class="bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full p-6 relative border border-indigo-500 overflow-y-auto max-h-[90vh]">
@@ -2908,6 +3002,7 @@ function renderTransitDay(dateStr, items){
                         <h2 id="glossary-title" class="text-2xl font-bold text-indigo-300 mb-4">🌌 Woven Map Glossary (Expanded with Valence Maps)</h2>
                         
                         <div class="space-y-6">
+                            <!-- Core Dimensions -->
                             <div>
                                 <h3 class="text-lg font-semibold text-white mb-3 border-b border-gray-700 pb-2">Core Dimensions</h3>
                                 <ul class="space-y-3 text-sm">
@@ -2924,6 +3019,7 @@ function renderTransitDay(dateStr, items){
                                 </ul>
                             </div>
 
+                            <!-- Negative Valence Types -->
                             <div>
                                 <h3 class="text-lg font-semibold text-rose-300 mb-3 border-b border-gray-700 pb-2">🌑 Map of Negative Valence Types</h3>
                                 <p class="text-xs text-gray-400 mb-3 italic">When energy pulls down, contracts, destabilizes</p>
@@ -2939,6 +3035,7 @@ function renderTransitDay(dateStr, items){
                                 </ul>
                             </div>
 
+                            <!-- Positive Valence Types -->
                             <div>
                                 <h3 class="text-lg font-semibold text-emerald-300 mb-3 border-b border-gray-700 pb-2">🌞 Map of Positive Valence Types</h3>
                                 <p class="text-xs text-gray-400 mb-3 italic">When energy uplifts, harmonizes, expands</p>
@@ -2990,6 +3087,9 @@ function renderTransitDay(dateStr, items){
                 </div>
             `;
 
+            // View toggle container - inside scrollable content area
+            html += '<div id="seismographViewContainer">';
+
             // Build tables for each person/composite
             if (data.person_a?.chart?.transitsByDate) {
                 const personAName = data.person_a?.info?.name || 'Person A';
@@ -3005,6 +3105,10 @@ function renderTransitDay(dateStr, items){
                 html += buildSeismographTable('Composite', data.composite.transitsByDate);
             }
             
+            if (data.synastry?.transitsByDate) {
+                html += buildSeismographTable('Synastry Transits', data.synastry.transitsByDate);
+            }
+            
             // Mobile cards view (hidden by default)
             html += '<div id="seismographMobileView" class="hidden">';
             if (data.person_a?.chart?.transitsByDate) {
@@ -3018,9 +3122,14 @@ function renderTransitDay(dateStr, items){
             if (data.composite?.transitsByDate) {
                 html += buildMobileSeismographCards('Composite', data.composite.transitsByDate);
             }
+            if (data.synastry?.transitsByDate) {
+                html += buildMobileSeismographCards('Synastry Transits', data.synastry.transitsByDate);
+            }
             html += '</div>';
             
-            html += '</div></div>';
+            html += '</div>'; // Close seismographViewContainer
+            html += '</div>'; // Close seismograph-content-area
+            html += '</div>'; // Close space-y-6
             return html;
         }
 
@@ -3395,7 +3504,8 @@ function renderTransitDay(dateStr, items){
         function downloadSeismographCSV(title, data) {
             const dailyMap = title === 'Person A' ? data?.person_a?.chart?.transitsByDate :
                            title === 'Person B' ? data?.person_b?.chart?.transitsByDate :
-                           title === 'Composite' ? data?.composite?.transitsByDate : null;
+                           title === 'Composite' ? data?.composite?.transitsByDate :
+                           title === 'Synastry Transits' ? data?.synastry?.transitsByDate : null;
             
             if (!dailyMap) {
                 console.warn('No data available for CSV export:', title);
@@ -3452,6 +3562,9 @@ function renderTransitDay(dateStr, items){
             }
             if (data.composite?.transitsByDate) {
                 downloadSeismographCSV('Composite', data);
+            }
+            if (data.synastry?.transitsByDate) {
+                downloadSeismographCSV('Synastry Transits', data);
             }
         }
 
@@ -3970,6 +4083,10 @@ function renderTransitDay(dateStr, items){
                 html += buildSeismographTableFiltered('Composite', window.seismographData.composite.transitsByDate, filters);
             }
             
+            if (window.seismographData.synastry?.transitsByDate) {
+                html += buildSeismographTableFiltered('Synastry Transits', window.seismographData.synastry.transitsByDate, filters);
+            }
+            
             container.innerHTML = html;
             
             // Also update mobile view
@@ -3989,6 +4106,10 @@ function renderTransitDay(dateStr, items){
                 
                 if (window.seismographData.composite?.transitsByDate) {
                     mobileHtml += buildMobileSeismographCardsFiltered('Composite', window.seismographData.composite.transitsByDate, filters);
+                }
+                
+                if (window.seismographData.synastry?.transitsByDate) {
+                    mobileHtml += buildMobileSeismographCardsFiltered('Synastry Transits', window.seismographData.synastry.transitsByDate, filters);
                 }
                 
                 mobileContainer.innerHTML = mobileHtml;
@@ -4075,6 +4196,9 @@ function renderTransitDay(dateStr, items){
             if (window.seismographData.composite?.transitsByDate) {
                 html += renderArcChart('Composite', window.seismographData.composite.transitsByDate);
             }
+            if (window.seismographData.synastry?.transitsByDate) {
+                html += renderArcChart('Synastry Transits', window.seismographData.synastry.transitsByDate);
+            }
             html += '</div>';
             return html;
         }
@@ -4093,6 +4217,9 @@ function renderTransitDay(dateStr, items){
             if (window.seismographData.composite?.transitsByDate) {
                 html += renderBarometerChart('Composite', window.seismographData.composite.transitsByDate);
             }
+            if (window.seismographData.synastry?.transitsByDate) {
+                html += renderBarometerChart('Synastry Transits', window.seismographData.synastry.transitsByDate);
+            }
             html += '</div>';
             return html;
         }
@@ -4101,7 +4228,7 @@ function renderTransitDay(dateStr, items){
             const dates = Object.keys(dailyMap || {}).sort();
             if (!dates.length) return '';
             const canvasId = `arc-${title.replace(/\s+/g,'-').toLowerCase()}`;
-            const html = `<div class="mb-6"><h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Macro Arc</h4><div class="bg-gray-800 p-4 rounded border border-gray-600"><canvas id="${canvasId}" width="900" height="260" class="w-full bg-gray-900 rounded"></canvas></div></div>`;
+            const html = `<div class="mb-6"><h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Macro Arc</h4><div class="bg-gray-800 p-4 rounded border border-gray-600 overflow-x-auto"><canvas id="${canvasId}" width="900" height="260" class="bg-gray-900 rounded" style="min-width: 600px; max-width: 100%;"></canvas></div></div>`;
             setTimeout(()=>drawSeismographArc(canvasId, dailyMap, dates),5);
             return html;
         }
@@ -4189,7 +4316,7 @@ function renderTransitDay(dateStr, items){
                 <div class=\"bg-gray-900/60 rounded p-2 border border-gray-700\"><span class=\"text-pink-300 font-semibold\">Volatility</span><br><span class=\"text-gray-400\">Stability ↔ Spiking</span></div>
                 <div class=\"bg-gray-900/60 rounded p-2 border border-gray-700\"><span class=\"text-gray-200 font-semibold\">Hooks</span><br><span class=\"text-gray-400\">Aspect signatures</span></div>
             </div>`;
-            const html = `<div class="mb-6"><h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Daily Barometer</h4><div class="bg-gray-800 p-4 rounded border border-gray-600"><canvas id="${canvasId}" width="900" height="260" class="w-full bg-gray-900 rounded"></canvas>${legend}</div></div>`;
+            const html = `<div class="mb-6"><h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Daily Barometer</h4><div class="bg-gray-800 p-4 rounded border border-gray-600 overflow-x-auto"><canvas id="${canvasId}" width="900" height="260" class="bg-gray-900 rounded" style="min-width: 600px; max-width: 100%;"></canvas>${legend}</div></div>`;
             setTimeout(()=>drawBarometerChart(canvasId, dailyMap, dates),5);
             return html;
         }
@@ -5515,7 +5642,7 @@ function renderTransitDay(dateStr, items){
                     document.getElementById('exportValidationBtn').classList.remove('hidden');
                     // Prompt for seismograph if transit data present
                     const hasTransitsMode = formData.context.mode.includes('transits');
-                    const hasTransitData = result.person_a?.chart?.transitsByDate || result.person_b?.chart?.transitsByDate || result.composite?.transitsByDate;
+                    const hasTransitData = result.person_a?.chart?.transitsByDate || result.person_b?.chart?.transitsByDate || result.composite?.transitsByDate || result.synastry?.transitsByDate;
                     if (hasTransitsMode && hasTransitData) {
                         addSeismographPrompt();
                     }
@@ -6033,7 +6160,7 @@ function renderTransitDay(dateStr, items){
         function addSeismographPrompt() {
             if (currentAppMode === 'seismograph') return;
             if (document.getElementById('seismographPrompt')) return; // avoid duplicates
-            const hasTransitData = latestResultData && (latestResultData.person_a?.chart?.transitsByDate || latestResultData.person_b?.chart?.transitsByDate || latestResultData.composite?.transitsByDate);
+            const hasTransitData = latestResultData && (latestResultData.person_a?.chart?.transitsByDate || latestResultData.person_b?.chart?.transitsByDate || latestResultData.composite?.transitsByDate || latestResultData.synastry?.transitsByDate);
             if (!hasTransitData) return;
             const container = document.getElementById('reportOutput');
             if (!container) return;
@@ -6074,7 +6201,7 @@ function renderTransitDay(dateStr, items){
         function updateSeismographTabIndicator() {
             const tab = document.getElementById('seismographModeTab');
             if (!tab) return;
-            const hasTransitData = latestResultData && (latestResultData.person_a?.chart?.transitsByDate || latestResultData.person_b?.chart?.transitsByDate || latestResultData.composite?.transitsByDate);
+            const hasTransitData = latestResultData && (latestResultData.person_a?.chart?.transitsByDate || latestResultData.person_b?.chart?.transitsByDate || latestResultData.composite?.transitsByDate || latestResultData.synastry?.transitsByDate);
             let indicator = tab.querySelector('.transit-indicator');
             if (hasTransitData) {
                 if (!indicator) {
@@ -6651,6 +6778,23 @@ function renderTransitDay(dateStr, items){
             transitDateFields = document.getElementById('quick-transit-section'); // The actual transit section, not the legacy hidden one
             personBCard = document.getElementById('personB-card');
             relocationSection = document.getElementById('relocation-section');
+
+            // Raw data toggle functionality
+            const toggleRawDataBtn = document.getElementById('toggleRawData');
+            const hideRawDataBtn = document.getElementById('hideRawData');
+            const rawDataSection = document.getElementById('rawDataSection');
+            
+            if (toggleRawDataBtn && hideRawDataBtn && rawDataSection) {
+                toggleRawDataBtn.addEventListener('click', () => {
+                    rawDataSection.classList.remove('hidden');
+                    toggleRawDataBtn.style.display = 'none';
+                });
+                
+                hideRawDataBtn.addEventListener('click', () => {
+                    rawDataSection.classList.add('hidden');
+                    toggleRawDataBtn.style.display = 'inline';
+                });
+            }
             relationalContextSection = document.getElementById('relational-context-section');
             intimacyTierDropdown = document.getElementById('intimacy-tier-dropdown');
             exRelationshipCheckbox = document.getElementById('exRelationship');
