@@ -362,6 +362,24 @@
             #seismographFiltersPanel:not(.hidden) {
                 max-height: 400px;
             }
+            
+            /* Seismograph chart responsiveness - prevent horizontal scrolling */
+            .seismograph-content-area {
+                overflow-x: auto;
+                width: 100%;
+            }
+            
+            .seismograph-content-area canvas {
+                max-width: 100%;
+                height: auto;
+            }
+            
+            /* Ensure sticky controls work properly on all screen sizes */
+            @media (max-width: 768px) {
+                .sticky {
+                    position: relative; /* Fall back to relative on very small screens */
+                }
+            }
         </style>
     </head>
 <body class="bg-gray-900 text-gray-200">
@@ -2817,7 +2835,8 @@ function renderTransitDay(dateStr, items){
             
             let html = `
                 <div class="space-y-6">
-                    <div class="bg-gray-800 p-4 rounded-lg border border-teal-500">
+                    <!-- Fixed Control Header - Always visible and not scrollable -->
+                    <div class="sticky top-0 z-10 bg-gray-800 p-4 rounded-lg border border-teal-500 shadow-lg">
                         <h3 class="text-lg font-semibold text-teal-300 mb-3">Seismograph Overview</h3>
                         ${loadedHealthData ? `<div class="bg-purple-900 p-2 rounded mb-3 text-sm">
                             <span class="text-purple-300">🏥 Health Data Loaded:</span> 
@@ -2826,6 +2845,7 @@ function renderTransitDay(dateStr, items){
                             <span class="text-gray-300">💡 Tip:</span> 
                             <span class="text-white">Upload Health Auto Export JSON above for correlation analysis</span>
                         </div>`}
+                        <!-- Control Buttons - Sticky and always visible -->
                         <div class="flex flex-wrap gap-2 mb-4" aria-label="Seismograph controls">
                             <button id="toggleSeismographView" aria-live="polite" class="px-3 py-1 bg-teal-600 text-white rounded text-sm hover:bg-teal-700" title="Cycle: Table → Arc → Barometer → Mobile">
                                 🔄 View: Table
@@ -2852,7 +2872,10 @@ function renderTransitDay(dateStr, items){
                         <div class="mt-4 text-xs text-gray-400 border-t border-gray-700 pt-3">
                             Normalization happens only in visual arc/barometer layers. Tables retain raw magnitude (0–10) for auditability.
                         </div>
-                    </div>`;
+                    </div>
+                    
+                    <!-- Scrollable Content Area -->
+                    <div class="seismograph-content-area">`;
             
             // Pattern detection results
             html += '<div id="seismographPatterns"></div>';
@@ -2863,10 +2886,14 @@ function renderTransitDay(dateStr, items){
                 setTimeout(()=>{const t=document.createElement('div'); t.id='globalHoverTooltip'; t.className='pointer-events-none fixed z-50 px-2 py-1 rounded bg-gray-900/90 text-[11px] text-gray-100 border border-teal-500 shadow'; t.style.display='none'; document.body.appendChild(t);},0);
             }
             
+
+            // Glossary Modal (fixed overlay - outside scrollable content)
+
             // View toggle container
             html += '<div id="seismographViewContainer">';
             
             // Glossary Modal - Expanded with Valence Maps
+
             html += `
                 <div id="seismographGlossaryModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 p-4" aria-labelledby="glossary-title" role="dialog" aria-modal="true">
                     <div class="bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full p-6 relative border border-indigo-500 overflow-y-auto max-h-[90vh]">
@@ -2959,6 +2986,9 @@ function renderTransitDay(dateStr, items){
                 </div>
             `;
 
+            // View toggle container - inside scrollable content area
+            html += '<div id="seismographViewContainer">';
+
             // Build tables for each person/composite
             if (data.person_a?.chart?.transitsByDate) {
                 const personAName = data.person_a?.info?.name || 'Person A';
@@ -2989,7 +3019,9 @@ function renderTransitDay(dateStr, items){
             }
             html += '</div>';
             
-            html += '</div></div>';
+            html += '</div>'; // Close seismographViewContainer
+            html += '</div>'; // Close seismograph-content-area
+            html += '</div>'; // Close space-y-6
             return html;
         }
 
@@ -4070,7 +4102,7 @@ function renderTransitDay(dateStr, items){
             const dates = Object.keys(dailyMap || {}).sort();
             if (!dates.length) return '';
             const canvasId = `arc-${title.replace(/\s+/g,'-').toLowerCase()}`;
-            const html = `<div class="mb-6"><h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Macro Arc</h4><div class="bg-gray-800 p-4 rounded border border-gray-600"><canvas id="${canvasId}" width="900" height="260" class="w-full bg-gray-900 rounded"></canvas></div></div>`;
+            const html = `<div class="mb-6"><h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Macro Arc</h4><div class="bg-gray-800 p-4 rounded border border-gray-600 overflow-x-auto"><canvas id="${canvasId}" width="900" height="260" class="bg-gray-900 rounded" style="min-width: 600px; max-width: 100%;"></canvas></div></div>`;
             setTimeout(()=>drawSeismographArc(canvasId, dailyMap, dates),5);
             return html;
         }
@@ -4158,7 +4190,7 @@ function renderTransitDay(dateStr, items){
                 <div class=\"bg-gray-900/60 rounded p-2 border border-gray-700\"><span class=\"text-pink-300 font-semibold\">Volatility</span><br><span class=\"text-gray-400\">Stability ↔ Spiking</span></div>
                 <div class=\"bg-gray-900/60 rounded p-2 border border-gray-700\"><span class=\"text-gray-200 font-semibold\">Hooks</span><br><span class=\"text-gray-400\">Aspect signatures</span></div>
             </div>`;
-            const html = `<div class="mb-6"><h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Daily Barometer</h4><div class="bg-gray-800 p-4 rounded border border-gray-600"><canvas id="${canvasId}" width="900" height="260" class="w-full bg-gray-900 rounded"></canvas>${legend}</div></div>`;
+            const html = `<div class="mb-6"><h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Daily Barometer</h4><div class="bg-gray-800 p-4 rounded border border-gray-600 overflow-x-auto"><canvas id="${canvasId}" width="900" height="260" class="bg-gray-900 rounded" style="min-width: 600px; max-width: 100%;"></canvas>${legend}</div></div>`;
             setTimeout(()=>drawBarometerChart(canvasId, dailyMap, dates),5);
             return html;
         }
