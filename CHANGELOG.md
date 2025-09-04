@@ -1,3 +1,61 @@
+## [2025-09-03] CRITICAL ENHANCEMENT: Auto-Chunking System for Large Date Ranges
+
+**Description:**
+Implemented comprehensive auto-chunking solution to handle Netlify's 6MB serverless function response limit while preserving daily granularity for health data correlation analysis.
+
+**Problem Solved:**
+- User requests for large date ranges (e.g., April 2025 daily transit data) were hitting Netlify's 6MB response payload limit
+- Even weekly intervals triggered the limit for month-long periods
+- System failed completely when response exceeded 6MB, providing no data instead of partial results
+
+**Solution Implemented:**
+1. **Intelligent Chunk Sizing:**
+   - Daily data: 10-day chunks (optimal for 6MB limit compliance)
+   - Weekly data: 21-day chunks (3 weeks)
+   - Monthly data: 60-day chunks (2 months)
+
+2. **Automatic Detection & Fallback:**
+   - `calculateDaySpan()` function determines if chunking is needed
+   - Seamlessly falls back to single requests for small date ranges
+   - No change in user experience for existing workflows
+
+3. **Progress Feedback System:**
+   - Real-time "Processing chunk X of Y..." status updates
+   - Loading indicator shows chunking progress
+   - User sees exactly what's happening during multi-chunk operations
+
+4. **Robust Error Handling:**
+   - Individual chunk failures don't terminate entire operation
+   - Partial results returned when some chunks succeed
+   - Detailed error reporting for debugging chunk-specific issues
+
+5. **Result Merging Logic:**
+   - `mergeChunkedResults()` combines all chunks into single coherent response
+   - Preserves exact data structure expected by existing report generation
+   - Maintains compatibility with seismograph and markdown outputs
+
+**Technical Implementation:**
+- Added `generateReportWithChunking()` as primary orchestration function
+- Created `createDateChunks()` for intelligent date range segmentation
+- Implemented 500ms delays between chunks to respect rate limits
+- Added 60-second timeout per chunk with comprehensive error handling
+- Updated main `generateReport()` to use chunking-aware generation
+
+**User Impact:**
+- Large date ranges that previously failed now work seamlessly
+- Daily granularity preserved for health data correlation workflows
+- No change to existing UI or user workflow
+- Transparent chunking - users see progress but don't need to manage chunks
+
+**Files Changed:**
+- `index.html`: Added comprehensive chunking functions and integrated with main generation flow
+
+**Strategic Value:**
+- Removes technical barriers to large-scale transit analysis
+- Enables month-long daily transit studies for health correlation
+- Maintains system reliability under heavy data loads
+- Preserves user experience while solving backend limitations
+
 ## [2025-08-29] Backend: Relationship Context Validation
 
 - Added relationship context schema enforcement in `netlify/functions/astrology-mathbrain.js` for all synastry / composite modes.

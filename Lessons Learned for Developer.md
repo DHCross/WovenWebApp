@@ -139,7 +139,177 @@ The best model depends on your specific coding task and priorities.
 
 ---
 
-### Meta-Lesson: Model Selection for Coding Tasks (GPT-4.1 vs Claude 3.7 Sonnet)
+### Critical Lesson: Serverless Function Response Limits and Auto-Chunking Strategies
+
+**Context:**
+Encountered Netlify's 6MB response payload limit when requesting large date ranges for daily transit data. User needed daily granularity for health data correlation but system failed completely on large requests.
+
+**Core Problem:**
+- Netlify serverless functions have hard 6MB response limit
+- Large date ranges (30+ days of daily transit data) exceed this limit
+- Traditional "request smaller ranges" solutions break user workflows requiring specific date spans
+- System provided no data instead of partial results when limit exceeded
+
+**Strategic Solution - Auto-Chunking:**
+Instead of asking users to change their workflow, we made the system intelligently handle large requests behind the scenes.
+
+**Technical Implementation Lessons:**
+
+1. **Intelligent Chunk Sizing:**
+   ```javascript
+   // Different chunk sizes based on data granularity
+   const chunkSizes = {
+       'daily': 10,     // 10 days for daily data
+       'weekly': 21,    // 3 weeks for weekly data  
+       'monthly': 60    // 2 months for monthly data
+   };
+   ```
+   - Learned: Chunk size must account for data density, not just time span
+   - Daily data is much denser than weekly/monthly, requiring smaller chunks
+
+2. **Transparent Chunking Architecture:**
+   ```javascript
+   // Orchestration pattern that preserves existing API contract
+   async function generateReportWithChunking(formData) {
+       const daySpan = calculateDaySpan(startDate, endDate);
+       if (needsChunking(daySpan, stepSize)) {
+           return processChunks(formData);
+       } else {
+           return directApiCall(formData);
+       }
+   }
+   ```
+   - Learned: Chunking should be invisible to calling code
+   - Preserve exact same response structure as single requests
+
+3. **Progress Feedback Patterns:**
+   ```javascript
+   // User sees progress without understanding technical complexity
+   updateLoadingIndicator(`Processing chunk ${i + 1} of ${chunks.length}...`);
+   ```
+   - Learned: Users need feedback during long operations
+   - Technical details (chunking) should remain hidden
+   - Progress indicators prevent "stuck" perception
+
+4. **Error Handling for Partial Success:**
+   ```javascript
+   // Don't fail everything if one chunk fails
+   if (result.success) {
+       successfulChunks.push(result.data);
+   } else {
+       failedChunks.push({ chunk: i, error: result.error });
+   }
+   ```
+   - Learned: Partial success better than total failure
+   - Provide detailed error info for debugging
+   - Users get maximum possible data even with some failures
+
+**Meta-Lessons for System Design:**
+
+1. **Preserve User Workflows:**
+   - Don't ask users to change successful workflows due to technical limitations
+   - Build intelligence into the system to handle edge cases automatically
+   - User experience should remain identical regardless of backend complexity
+
+2. **Rate Limiting Strategy:**
+   - Added 500ms delays between chunks to respect API rate limits
+   - Learned: Chunking can create rapid-fire requests that trigger rate limiting
+   - Always include deliberate pacing in chunking implementations
+
+3. **Fallback Architecture:**
+   - System gracefully handles both small requests (direct) and large requests (chunked)
+   - No performance penalty for simple use cases
+   - Complex logic only engaged when necessary
+
+**Key Technical Insight:**
+The hardest part wasn't splitting the requests - it was merging the results back into a format that existing code expected. The `mergeChunkedResults()` function had to understand the deep structure of transit data and correctly combine date-keyed objects from multiple chunks.
+
+**Future Applications:**
+This auto-chunking pattern can be applied to any API with payload size limits:
+- File upload chunking
+- Large dataset processing
+- Batch operations with size constraints
+- Time-series data aggregation
+
+**Bottom Line:**
+When hitting infrastructure limits, the solution isn't always "do less" - sometimes it's "do it smarter." Auto-chunking preserves user experience while working within technical constraints.
+
+**Bottom Line:**
+When hitting infrastructure limits, the solution isn't always "do less" - sometimes it's "do it smarter." Auto-chunking preserves user experience while working within technical constraints.
+
+---
+
+## Session Lesson: Collaborative AI Development for Complex Problem Solving
+
+**Context:**
+This development session involved resolving merge conflicts, JavaScript errors, UI cleanup, and ultimately implementing a sophisticated auto-chunking solution for API response size limits.
+
+**Evolution of Problem Scope:**
+1. **Started with:** Critical syntax errors (merge conflicts, undefined variables)
+2. **Progressed to:** UX improvements (removing unnecessary UI elements)
+3. **Culminated in:** Advanced system architecture (auto-chunking for 6MB limits)
+
+**Key Development Patterns:**
+
+1. **Progressive Problem Solving:**
+   - Each fix revealed the next layer of issues
+   - Simple JavaScript errors → UX cleanup → infrastructure limitations
+   - Learned: Allow problems to reveal themselves naturally rather than trying to anticipate everything
+
+2. **Context Preservation in AI Collaboration:**
+   - AI maintained awareness of user's core requirement (daily granularity for health data)
+   - When hitting 6MB limit, solution preserved user workflow rather than suggesting compromise
+   - Learned: Clear communication of non-negotiable requirements enables better AI assistance
+
+3. **Incremental Implementation Strategy:**
+   ```
+   Fix critical errors → Clean UI → Test with real data → Hit limits → Engineer solution
+   ```
+   - Each step built foundation for the next
+   - Testing with real use cases (April 2025 data) revealed actual limitations
+   - Learned: Real-world testing often uncovers issues missed in development
+
+**AI Assistant Effectiveness Patterns:**
+
+1. **Best for Systematic Implementation:**
+   - Excellent at implementing well-defined technical solutions (chunking algorithm)
+   - Strong at maintaining code consistency and patterns
+   - Reliable for error handling and edge case coverage
+
+2. **Collaborative Strength in Problem Definition:**
+   - AI asked clarifying questions about chunk sizes and user requirements
+   - Suggested intelligent defaults based on data characteristics
+   - Helped think through user experience implications
+
+3. **Documentation and Knowledge Transfer:**
+   - AI naturally documented decisions and rationale during implementation
+   - Created clear explanations suitable for future developers
+   - Maintained context across multiple related changes
+
+**Session Meta-Insights:**
+
+1. **Technical Debt Resolution:**
+   - Merge conflicts often indicate deeper workflow issues
+   - JavaScript errors can mask more significant architectural needs
+   - Learned: Fix immediate issues first, but stay alert for patterns indicating larger problems
+
+2. **User-Centric Solution Design:**
+   - 6MB limit could have been "solved" by asking user to request smaller ranges
+   - Better solution preserved user workflow through backend intelligence
+   - Learned: Good engineering often means making complexity invisible to users
+
+3. **Iterative Complexity Management:**
+   - Started with simple bug fixes
+   - Gradually built up to sophisticated chunking architecture
+   - Each step remained manageable while building toward comprehensive solution
+   - Learned: Complex solutions are more maintainable when built incrementally
+
+**Takeaway for Future Development:**
+This session demonstrated that effective AI-assisted development combines human problem prioritization with AI systematic implementation. The key is maintaining clear communication about requirements and constraints while allowing the technical solution to evolve naturally from simple to sophisticated as needs become clear.
+
+---
+
+## Meta-Lesson: Model Selection for Coding Tasks (GPT-4.1 vs Claude 3.7 Sonnet)
 
 **Routine Tasks:**
 - **GPT-4.1** is faster and more efficient for routine coding tasks such as generating API endpoints, data models, or standard UI components. It often delivers results with fewer iterations.

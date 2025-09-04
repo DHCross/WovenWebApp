@@ -743,7 +743,7 @@
                             <h4 class="text-teal-300 font-semibold mb-2">📊 Step Size Explained</h4>
                             <p class="text-gray-200 mb-2">Step size controls how frequently transit calculations are performed within your date range:</p>
                             <ul class="text-gray-300 space-y-1 ml-4">
-                                <li><b>Daily</b>: Calculate transits for every single day (most detailed, max 30 days)</li>
+                                <li><b>Daily</b>: Calculate transits for every single day (most detailed, max 45 days)</li>
                                 <li><b>Weekly</b>: Calculate transits every 7 days (good balance, max 6 months)</li>
                                 <li><b>Monthly</b>: Calculate transits once per month (fastest, max 1 year)</li>
                             </ul>
@@ -755,7 +755,7 @@
                                     <li>• <strong>3-6 months:</strong> Use Monthly for overview</li>
                                     <li>• <strong>Today only:</strong> Daily for current transits</li>
                                 </ul>
-                                <p class="text-yellow-200 mt-2 text-xs"><b>API Protection</b>: Conservative limits prevent excessive API usage. Daily=30 days max, Weekly=6 months max, Monthly=1 year max.</p>
+                                <p class="text-yellow-200 mt-2 text-xs"><b>API Protection</b>: Conservative limits prevent excessive API usage. Daily=45 days max, Weekly=9 months max, Monthly=18 months max.</p>
                             </div>
                             <p class="text-yellow-200 mt-2 text-xs"><b>Performance Note</b>: Longer ranges with finer steps may take more time to process and generate larger datasets.</p>
                         </div>
@@ -1038,11 +1038,7 @@
                 <button id="generateReport" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
                     Get My Mirror
                 </button>
-                <div class="mt-3">
-                    <button id="showWiringBtn" class="text-teal-300 underline hover:text-teal-400 text-sm transition-colors duration-200">
-                        Show Wiring
-                    </button>
-                </div>
+
             </div>
 
             <!-- Save/Load Controls -->
@@ -1059,6 +1055,69 @@
                 <p class="text-xs text-gray-500">Save Person A & B data to reload later</p>
             </div>
 
+            <!-- Health Data Integration -->
+            <div class="text-center mb-6 border-t border-gray-700 pt-6">
+                <div class="flex justify-center gap-3 mb-2">
+                    <button id="loadHealthDataBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
+                        🏥 Upload Health Data
+                    </button>
+                    <button id="clearHealthDataBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden">
+                        ✖️ Clear Health Data
+                    </button>
+                    <button id="healthDataHelpBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
+                        ❓ Help
+                    </button>
+                </div>
+                <input type="file" id="healthDataInput" accept=".json" class="hidden">
+                <div id="healthDataStatus" class="text-xs text-green-400 hidden"></div>
+                <p class="text-xs text-gray-500">Upload iOS Health Auto Export JSON for correlation analysis</p>
+                <p class="text-xs text-blue-400 mt-1">Recommended: Quick Export → days → HRV, Resting HR, Sleep, State of Mind</p>
+                
+                <!-- Health Data Help Modal -->
+                <div id="healthDataHelpModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-gray-800 p-6 rounded-lg max-w-2xl max-h-96 overflow-y-auto border border-purple-500">
+                        <h3 class="text-lg font-semibold text-purple-300 mb-4">Health Auto Export Setup Guide</h3>
+                        <div class="text-sm text-gray-300 space-y-3">
+                            <p><strong class="text-white">Required App:</strong> "Health Auto Export" from iOS App Store</p>
+                            <p><strong class="text-white">Recommended Settings:</strong></p>
+                            <ul class="list-disc list-inside ml-4 space-y-1">
+                                <li>Quick Export tab</li>
+                                <li>Aggregation Interval: <span class="text-green-400">days</span></li>
+                                <li>Aggregate Data: <span class="text-green-400">ON</span></li>
+                            </ul>
+                            <p><strong class="text-white">Include These Metrics:</strong></p>
+                            <ul class="list-disc list-inside ml-4 space-y-1">
+                                <li>Heart Rate Variability (HRV)</li>
+                                <li>Resting Heart Rate</li>
+                                <li>Sleep Sessions</li>
+                                <li>State of Mind (optional - can use separate CSV)</li>
+                            </ul>
+                            <p class="text-yellow-300"><strong>Note:</strong> Other metrics (workouts, ECG, etc.) are safely ignored.</p>
+                            <p class="text-blue-300"><strong>Privacy:</strong> Data stays in your browser - no server upload.</p>
+                        </div>
+                        <button id="closeHealthDataHelp" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm">Close</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seismograph MD Ingestion -->
+            <div class="text-center mb-6 border-t border-gray-700 pt-6">
+                <div class="flex justify-center gap-3 mb-2">
+                    <button id="loadSeismoBtn" class="bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
+                        📄 Upload Seismograph (.md)
+                    </button>
+                    <button id="clearSeismoBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden">
+                        ✖️ Clear Seismograph
+                    </button>
+                    <button id="genComparativeBtn" class="bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden" disabled>
+                        🔗 Generate Comparative Report
+                    </button>
+                </div>
+                <input type="file" id="seismoMdInput" accept=".md,.markdown,text/markdown" class="hidden">
+                <div id="seismoDataStatus" class="text-xs text-gray-500 hidden"></div>
+                <p class="text-xs text-gray-500">Compatible with Health Auto Export (iOS). Other exports currently unsupported.</p>
+            </div>
+
             <!-- Loading Indicator -->
             <div id="loadingIndicator" class="hidden text-center mb-8">
                 <div class="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-teal-600 transition ease-in-out duration-150">
@@ -1066,7 +1125,7 @@
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Computing Astrological Geometry...
+                    <span id="loadingText">Computing Astrological Geometry...</span>
                 </div>
             </div>
 
@@ -1092,6 +1151,9 @@
                         <button id="downloadMarkdown" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded text-sm">
                             📄 Save Chart Data
                         </button>
+                        <button id="exportValidationBtn" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded text-sm hidden" title="Export seismograph summary for external validation">
+                            ✅ Export for Validation (.md)
+                        </button>
                         <button id="downloadReport" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded text-sm hidden">
                             📄 Download Report (.md)
                         </button>
@@ -1113,6 +1175,8 @@
     </div>
 
     <script src="config.js"></script>
+    <script src="src/parsers/seismograph-md.js"></script>
+    <script src="src/reporters/comparative-report.js"></script>
     <script>
 // --- Global row counter for report summary ---
 let totalRowCount = 0;
@@ -1122,6 +1186,41 @@ window.WOVEN_UI_FILTERS = { tightOnly:true, showMinor:false, showHarmonic:false,
 
 // Universal context reference for browser/server compatibility
 const WOVEN_GLOBAL = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : {});
+
+// Step-size limits (centralized + configurable)
+// Defaults are intentionally conservative; warnings trigger at 80% of max.
+const DEFAULT_STEP_LIMITS = {
+    daily:  { max: 45,  warnRatio: 0.8, label: 'daily calculations' },
+    weekly: { max: 270, warnRatio: 0.8, label: 'weekly calculations' },
+    monthly:{ max: 550, warnRatio: 0.8, label: 'monthly calculations' }
+};
+function resolveStepLimits(){
+    try {
+        // Allow overrides via config.js if present
+        const conf = (typeof WovenMapConfig !== 'undefined' && WovenMapConfig && WovenMapConfig.api && WovenMapConfig.api.limits && WovenMapConfig.api.limits.steps)
+            ? WovenMapConfig.api.limits.steps : null;
+        // Allow developer/browser overrides via localStorage
+        const ls = localStorage.getItem('wm_step_limits_override');
+        const lsParsed = ls ? JSON.parse(ls) : null;
+        const merged = JSON.parse(JSON.stringify(DEFAULT_STEP_LIMITS));
+        const apply = (src) => {
+            if (!src) return;
+            ['daily','weekly','monthly'].forEach(k => {
+                if (src[k]) {
+                    if (Number.isFinite(+src[k].max)) merged[k].max = +src[k].max;
+                    if (Number.isFinite(+src[k].warnRatio)) merged[k].warnRatio = Math.max(0, Math.min(1, +src[k].warnRatio));
+                    if (typeof src[k].label === 'string') merged[k].label = src[k].label;
+                }
+            });
+        };
+        apply(conf); apply(lsParsed);
+        return merged;
+    } catch(e){
+        console.warn('Step limits override parse failed; using defaults', e);
+        return DEFAULT_STEP_LIMITS;
+    }
+}
+window.WOVEN_STEP_LIMITS = resolveStepLimits();
 
 // --- Helper for lean/legacy aspect/transit row keys ---
 function rowNamesAndOrb(r) {
@@ -1269,7 +1368,10 @@ function renderTransitDay(dateStr, items){
     return `<h4>${dateStr}</h4><ul><li>${lines.join("</li><li>")}</li></ul>`;
 }
         // Global UI element references
-    let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadMarkdownBtn, downloadReportBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel, exRelationshipCheckbox, relocationPersonBOption, includePersonBRelocationEl, transitStartDate, transitEndDate, transitStep, relocationCoordsInput;
+    let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadMarkdownBtn, downloadReportBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel, exRelationshipCheckbox, relocationPersonBOption, includePersonBRelocationEl, transitStartDate, transitEndDate, transitStep, relocationCoordsInput, loadHealthDataBtn, clearHealthDataBtn, healthDataInput, healthDataStatus, loadSeismoBtn, clearSeismoBtn, seismoMdInput, seismoDataStatus, genComparativeBtn;
+
+        // Store health data for correlation analysis
+        let loadedHealthData = null;
 
         // Defensive check for window/globalThis
         if (typeof window === 'undefined') {
@@ -1454,6 +1556,217 @@ function renderTransitDay(dateStr, items){
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
+        }
+
+        // Chunking functions for handling large date ranges
+        function calculateDaySpan(transitParams) {
+            if (!transitParams?.startDate || !transitParams?.endDate) return 0;
+            const start = new Date(transitParams.startDate);
+            const end = new Date(transitParams.endDate);
+            return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        }
+
+        function createDateChunks(transitParams, chunkSize = 10) {
+            const start = new Date(transitParams.startDate);
+            const end = new Date(transitParams.endDate);
+            const chunks = [];
+            
+            let currentStart = new Date(start);
+            
+            while (currentStart <= end) {
+                let currentEnd = new Date(currentStart);
+                currentEnd.setDate(currentEnd.getDate() + chunkSize - 1);
+                
+                if (currentEnd > end) {
+                    currentEnd = new Date(end);
+                }
+                
+                chunks.push({
+                    startDate: currentStart.toISOString().split('T')[0],
+                    endDate: currentEnd.toISOString().split('T')[0],
+                    step: transitParams.step
+                });
+                
+                // advance to the day after the currentEnd (robust across months/years)
+                currentStart = new Date(currentEnd);
+                currentStart.setDate(currentStart.getDate() + 1);
+            }
+            
+            return chunks;
+        }
+
+        function mergeChunkedResults(results) {
+            // Merge multiple chunked results into a single coherent result
+            if (!results.length) return null;
+            
+            const merged = JSON.parse(JSON.stringify(results[0])); // Deep clone first result
+            
+            // Merge transitsByDate for each entity
+            for (let i = 1; i < results.length; i++) {
+                const result = results[i];
+                
+                // Merge Person A transits
+                if (result.person_a?.chart?.transitsByDate && merged.person_a?.chart?.transitsByDate) {
+                    Object.assign(merged.person_a.chart.transitsByDate, result.person_a.chart.transitsByDate);
+                }
+                
+                // Merge Person B transits
+                if (result.person_b?.chart?.transitsByDate && merged.person_b?.chart?.transitsByDate) {
+                    Object.assign(merged.person_b.chart.transitsByDate, result.person_b.chart.transitsByDate);
+                }
+                
+                // Merge Composite transits
+                if (result.composite?.transitsByDate && merged.composite?.transitsByDate) {
+                    Object.assign(merged.composite.transitsByDate, result.composite.transitsByDate);
+                }
+                
+                // Merge Synastry transits
+                if (result.synastry?.transitsByDate && merged.synastry?.transitsByDate) {
+                    Object.assign(merged.synastry.transitsByDate, result.synastry.transitsByDate);
+                }
+            }
+            
+            return merged;
+        }
+
+        async function generateReportWithChunking(formData) {
+            const daySpan = calculateDaySpan(formData.transitParams);
+            const mode = formData.context.mode;
+            
+            // Auto-chunk for ranges > 15 days to stay under 6MB limit
+            if (daySpan > 15 && mode.includes('transits')) {
+                console.log(`Auto-chunking ${daySpan}-day range into smaller segments`);
+                
+                // Determine optimal chunk size based on step size
+                let chunkSize = 10; // Default: 10 days per chunk
+                if (formData.transitParams.step === '7d' || formData.transitParams.step === 'weekly') {
+                    chunkSize = 21; // 3 weeks per chunk for weekly data
+                } else if (formData.transitParams.step === '1m' || formData.transitParams.step === 'monthly') {
+                    chunkSize = 60; // 2 months per chunk for monthly data
+                }
+                
+                const chunks = createDateChunks(formData.transitParams, chunkSize);
+                const results = [];
+                
+                // Update loading indicator to show progress
+                const loadingText = document.getElementById('loadingText');
+                const originalText = loadingText?.textContent || 'Computing Astrological Geometry...';
+                
+                const failed = [];
+                for (let i = 0; i < chunks.length; i++) {
+                    const chunk = chunks[i];
+                    
+                    // Create a new formData object with chunked transit parameters
+                    // CRITICAL: Don't modify transitParams directly - create new payload per chunk
+                    const chunkData = JSON.parse(JSON.stringify(formData)); // Deep clone
+                    chunkData.transitParams = chunk;
+                    
+                    // Update progress
+                    if (loadingText) {
+                        loadingText.textContent = `Processing chunk ${i + 1} of ${chunks.length} (${chunk.startDate} to ${chunk.endDate})...`;
+                    }
+                    
+                    console.log(`Processing chunk ${i + 1}/${chunks.length}: ${chunk.startDate} to ${chunk.endDate}`);
+                    
+                    try {
+                        const apiEndpoint = WovenMapConfig.getApiEndpoint('astrologyMathBrain');
+                        const timeoutMs = 60000; // Longer timeout for chunked requests
+                        const controller = new AbortController();
+                        const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
+
+                        let response;
+                        try {
+                            response = await fetch(apiEndpoint, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(chunkData),
+                                signal: controller.signal
+                            });
+                        } finally {
+                            clearTimeout(timeoutHandle);
+                        }
+
+                        if (!response.ok) {
+                            const errorBody = await response.text();
+                            throw new Error(`Chunk ${i + 1} failed: HTTP ${response.status} - ${errorBody}`);
+                        }
+
+                        const result = await response.json();
+                        if (result.error) {
+                            throw new Error(`Chunk ${i + 1} error: ${result.error}`);
+                        }
+                        
+                        results.push(result);
+                        
+                        // Brief pause between chunks to avoid overwhelming the server
+                        if (i < chunks.length - 1) {
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        }
+                        
+                    } catch (error) {
+                        console.error(`Chunk ${i + 1} failed:`, error);
+                        failed.push({ index: i + 1, start: chunk.startDate, end: chunk.endDate, message: error.message });
+                        // Continue to try remaining chunks (partial success strategy)
+                    }
+                }
+                
+                // Restore loading text
+                if (loadingText) {
+                    loadingText.textContent = 'Merging results...';
+                    // restore shortly after to base message
+                    setTimeout(()=>{ try{ loadingText.textContent = originalText; } catch(_){} }, 300);
+                }
+                
+                console.log(`Processed ${chunks.length} chunks → success: ${results.length}, failed: ${failed.length}. Merging results...`);
+                if (failed.length) {
+                    console.warn('Chunk failures:', failed);
+                }
+                if (!results.length) {
+                    throw new Error('All chunk requests failed; no data could be retrieved.');
+                }
+                return mergeChunkedResults(results);
+            }
+            
+            // Single request for shorter ranges
+            const apiEndpoint = WovenMapConfig.getApiEndpoint('astrologyMathBrain');
+            const timeoutMs = (WovenMapConfig?.api?.timeout && Number.isFinite(+WovenMapConfig.api.timeout)) ? +WovenMapConfig.api.timeout : 30000;
+            const controller = new AbortController();
+            const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
+
+            let response;
+            try {
+                response = await fetch(apiEndpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData),
+                    signal: controller.signal
+                });
+            } finally {
+                clearTimeout(timeoutHandle);
+            }
+
+            if (!response.ok) {
+                const errorBody = await response.text();
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                try {
+                    const errorJson = JSON.parse(errorBody);
+                    if (errorJson.error) {
+                       errorMessage += ` - ${errorJson.error}`;
+                    } else {
+                       errorMessage += ` - ${errorBody}`;
+                    }
+                } catch (e) {
+                    errorMessage += ` - ${errorBody}`;
+                }
+                throw new Error(errorMessage);
+            }
+
+            const result = await response.json();
+            if (result.error) {
+                throw new Error(result.error);
+            }
+            
+            return result;
         }
 
         function generateMarkdownReport(data) {
@@ -1644,7 +1957,9 @@ function renderTransitDay(dateStr, items){
                 
                 md += `**Temporal Scope**: ${formData.transitParams.startDate} → ${formData.transitParams.endDate}\n`;
                 md += `**Step Resolution**: ${stepHuman} (${daySpan} day span)\n`;
-                md += `**Protocol Check**: ${daySpan <= 30 ? '✓ Within 30-day safety limit' : '⚠ Exceeds recommended span'}\n\n`;
+                const stepKey = (rawStep === '7d' || rawStep === 'weekly') ? 'weekly' : ((rawStep === '1m' || rawStep === '1mo' || rawStep === 'monthly') ? 'monthly' : 'daily');
+                const limit = (window.WOVEN_STEP_LIMITS && window.WOVEN_STEP_LIMITS[stepKey]?.max) || 45;
+                md += `**Protocol Check**: ${daySpan <= limit ? '✓ Within safety limit' : '⚠ Exceeds recommended span'}\n\n`;
             }
 
             // Subject Details (FIELD Layer)
@@ -2324,7 +2639,10 @@ function renderTransitDay(dateStr, items){
             
             // Temporal and Rate Limits
             md += `### Protocol Limits\n\n`;
-            md += `- **Max Date Span**: 30 days per request (current: ${formData.transitParams ? Math.ceil((new Date(formData.transitParams.endDate) - new Date(formData.transitParams.startDate)) / (1000 * 60 * 60 * 24)) : 'N/A'} days)\n`;
+            const dMax = (window.WOVEN_STEP_LIMITS?.daily?.max)||45;
+            const wMaxM = Math.round(((window.WOVEN_STEP_LIMITS?.weekly?.max)||270)/30);
+            const mMaxM = Math.round(((window.WOVEN_STEP_LIMITS?.monthly?.max)||550)/30);
+            md += `- **Max Date Span**: Daily up to ${dMax} days; Weekly up to ${wMaxM} months; Monthly up to ${mMaxM} months (current: ${formData.transitParams ? Math.ceil((new Date(formData.transitParams.endDate) - new Date(formData.transitParams.startDate)) / (1000 * 60 * 60 * 24)) : 'N/A'} days)\n`;
             md += `- **Rate Limits**: 50 transit requests per day per user\n`;
             md += `- **Narrative Hygiene**: No deterministic or fatalistic language permitted\n`;
             md += `- **Falsifiability**: All outputs subject to "Does this land?" validation\n\n`;
@@ -2364,6 +2682,119 @@ function renderTransitDay(dateStr, items){
             md += `*Generated by Woven Map Math Brain — Pure Geometric Scaffolding Engine*\n`;
             md += `*Contract: clear-mirror/1.2 • Protocol: FIELD → MAP → VOICE • Version: ${(data.provenance?.math_brain_version)||'0.x'}*`;
 
+            // Optional: Append Health Correlation if health data is present and we have Person A transits
+            try {
+                if (typeof loadedHealthData === 'object' && loadedHealthData && data.person_a?.chart?.transitsByDate) {
+                    const correlations = correlateHealthWithSeismograph(loadedHealthData, data.person_a.chart.transitsByDate);
+                    if (correlations && correlations.length) {
+                        md += `\n---\n\n`;
+                        md += generateHealthCorrelationTable(correlations);
+                    }
+                }
+            } catch (e) {
+                console.warn('Health correlation append skipped:', e);
+            }
+
+            return md;
+        }
+
+        // --- Validation Export (Seismograph-focused Markdown) ---
+        function generateValidationMarkdown(data){
+            if (!data) throw new Error('No data to export');
+            // Resolve context + dates
+            const form = collectFormData();
+            const mode = form?.context?.mode || 'unknown';
+            const start = form?.transitParams?.startDate || '—';
+            const end   = form?.transitParams?.endDate   || start;
+            const step  = form?.transitParams?.step      || '1d';
+            const now   = new Date().toISOString();
+
+            const title = `# Woven Map – Validation Package\n`;
+            let md = title + `\n`;
+            md += `Generated: ${now}\n`;
+            md += `Context: ${mode.replace(/_/g,' ').toUpperCase()}\n`;
+            md += `Temporal Scope: ${start} → ${end}\n`;
+            md += `Step: ${step}\n`;
+            md += `Contract: validation-v1 (seismograph summary)\n\n`;
+
+            // Helper to emit a compact table for a dataset
+            const emitDataset = (label, dailyMap) => {
+                const dates = Object.keys(dailyMap||{}).sort();
+                if (!dates.length) return '';
+                let out = `## ${label}\n\n`;
+                out += `| Date | Mag | Val | Vol | Top Hooks |\n|---|---:|---:|---:|---|\n`;
+                dates.forEach(d => {
+                    const day = dailyMap[d] || {};
+                    const mag = (day.seismograph?.magnitude ?? 0).toFixed(2);
+                    const val = Math.max(-5, Math.min(5, day.seismograph?.valence ?? 0)).toFixed(2);
+                    const vol = (day.seismograph?.volatility ?? 0).toFixed(2);
+                    const hooks = (day.hooks || []).slice(0,3).map(h => {
+                        const a = h._aspect || h.aspect || '?';
+                        const p1 = h.p1_display || h.p1_name || '?';
+                        const p2 = h.p2_display || h.p2_name || '?';
+                        const ob = Math.abs(h._orb ?? h.orb ?? NaN);
+                        const obTxt = Number.isFinite(ob) ? ob.toFixed(1)+'°' : '—';
+                        return `${p1} ${a} ${p2} (${obTxt})`;
+                    }).join('; ');
+                    out += `| ${d} | ${mag} | ${val} | ${vol} | ${hooks || '—'} |\n`;
+                });
+                out += `\n`;
+                return out;
+            };
+
+            // Datasets
+            const pa = data?.person_a?.chart?.transitsByDate;
+            const pb = data?.person_b?.chart?.transitsByDate;
+            const co = data?.composite?.transitsByDate;
+            if (pa) md += emitDataset((data?.person_a?.details?.name || 'Person A'), pa);
+            if (pb) md += emitDataset((data?.person_b?.details?.name || 'Person B'), pb);
+            if (co) md += emitDataset('Composite', co);
+
+            // Machine-readable appendix (JSON) to ease downstream parsing if desired
+            const extract = (dailyMap) => {
+                const obj = {};
+                Object.keys(dailyMap||{}).sort().forEach(d => {
+                    const day = dailyMap[d] || {};
+                    obj[d] = {
+                        magnitude: +(day.seismograph?.magnitude ?? 0),
+                        valence: +(day.seismograph?.valence ?? 0),
+                        volatility: +(day.seismograph?.volatility ?? 0),
+                        hooks: (day.hooks||[]).slice(0,5).map(h => ({
+                            a: h._aspect || h.aspect || '',
+                            p1: h.p1_display || h.p1_name || '',
+                            p2: h.p2_display || h.p2_name || '',
+                            orb: +(Math.abs(h._orb ?? h.orb ?? NaN))
+                        }))
+                    };
+                });
+                return obj;
+            };
+            const appendix = {
+                meta: { mode, start, end, step, generated: now },
+                person_a: pa ? extract(pa) : undefined,
+                person_b: pb ? extract(pb) : undefined,
+                composite: co ? extract(co) : undefined
+            };
+            md += `---\n\n`;
+            md += `<!-- machine-readable appendix (optional) -->\n`;
+            // Proper fenced JSON block without breaking template literal
+            md += "\n```json\n" + JSON.stringify(appendix, null, 2) + "\n```\n";
+            md += `\n`;
+            
+            // Health Data Correlation Analysis (if available)
+            if (loadedHealthData && data.person_a?.chart?.transitsByDate) {
+                try {
+                    const correlations = correlateHealthWithSeismograph(loadedHealthData, data.person_a.chart.transitsByDate);
+                    if (correlations.length > 0) {
+                        md += `\n---\n\n`;
+                        md += generateHealthCorrelationTable(correlations);
+                    }
+                } catch (error) {
+                    console.error('Error generating health correlation:', error);
+                    md += `\n---\n\n## Health Data Correlation\n\nError processing health data correlation: ${error.message}\n\n`;
+                }
+            }
+            
             return md;
         }
 
@@ -2388,6 +2819,13 @@ function renderTransitDay(dateStr, items){
                 <div class="space-y-6">
                     <div class="bg-gray-800 p-4 rounded-lg border border-teal-500">
                         <h3 class="text-lg font-semibold text-teal-300 mb-3">Seismograph Overview</h3>
+                        ${loadedHealthData ? `<div class="bg-purple-900 p-2 rounded mb-3 text-sm">
+                            <span class="text-purple-300">🏥 Health Data Loaded:</span> 
+                            <span class="text-white">${Object.keys(loadedHealthData).length} metrics available for correlation analysis</span>
+                        </div>` : `<div class="bg-gray-700 p-2 rounded mb-3 text-sm">
+                            <span class="text-gray-300">💡 Tip:</span> 
+                            <span class="text-white">Upload Health Auto Export JSON above for correlation analysis</span>
+                        </div>`}
                         <div class="flex flex-wrap gap-2 mb-4" aria-label="Seismograph controls">
                             <button id="toggleSeismographView" aria-live="polite" class="px-3 py-1 bg-teal-600 text-white rounded text-sm hover:bg-teal-700" title="Cycle: Table → Arc → Barometer → Mobile">
                                 🔄 View: Table
@@ -2641,6 +3079,7 @@ function renderTransitDay(dateStr, items){
                             </thead>
                             <tbody>`;
             
+            const healthByDate = (typeof window !== 'undefined' && window.WM_HEALTH_BY_DATE) ? window.WM_HEALTH_BY_DATE : null;
             dates.forEach(date => {
                 const day = dailyMap[date];
                 if (!day) return;
@@ -2655,6 +3094,24 @@ function renderTransitDay(dateStr, items){
                     ? hooks.map(h => `${h.p1_name || h.p1_display || '?'} ${h.aspect || h._aspect || '?'} ${h.p2_name || h.p2_display || '?'}`).join(', ')
                     : '—';
                 
+                // Optional correlation score (raw data only - no salience labels)
+                let badge = '';
+                if (healthByDate) {
+                    const hb = healthByDate[date];
+                    if (hb) {
+                        const sObj = { magnitude: parseFloat(mag), valence: parseFloat(val), volatility: parseFloat(vol) };
+                        try {
+                            const score = calculateCorrelationScore(sObj, hb);
+                            // Show correlation score without automatic salience interpretation
+                            // User must determine if correlation reflects lived experience
+                            if (score >= 0.45) {
+                                const detail = Object.keys(hb).map(k=>`${k}:${hb[k]}`).join(', ');
+                                badge = `<span class="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-gray-600 text-gray-300" title="health: ${detail}; correlation=${score.toFixed(3)}">r=${score.toFixed(2)}</span>`;
+                            }
+                        } catch(_){}
+                    }
+                }
+
                 // Reduced semantic coloring – keep magnitude emphasis only (valence annotation neutral)
                 const magColor = parseFloat(mag) > 7 ? 'text-red-400' : parseFloat(mag) > 5 ? 'text-yellow-400' : 'text-teal-300';
                 const valColor = 'text-gray-300';
@@ -2662,7 +3119,7 @@ function renderTransitDay(dateStr, items){
                 
                 html += `
                     <tr class="hover:bg-gray-700 transition-colors">
-                        <td class="px-3 py-2 border-b border-gray-700 text-teal-300 whitespace-nowrap">${date}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-teal-300 whitespace-nowrap">${date} ${badge}</td>
                         <td class="px-3 py-2 border-b border-gray-700 text-right ${magColor}" title="Symbolic pressure scalar (independent)">${mag}</td>
                         <td class="px-3 py-2 border-b border-gray-700 text-right ${valColor}" title="Directional tone (headwind vs tailwind)">${val}</td>
                         <td class="px-3 py-2 border-b border-gray-700 text-right ${volColor}" title="Turbulence / spread of activation">${vol}</td>
@@ -2747,6 +3204,7 @@ function renderTransitDay(dateStr, items){
                             </thead>
                             <tbody>`;
             
+            const healthByDate = (typeof window !== 'undefined' && window.WM_HEALTH_BY_DATE) ? window.WM_HEALTH_BY_DATE : null;
             filteredDates.forEach(date => {
                 const day = dailyMap[date];
                 const mag = (day.seismograph?.magnitude || 0).toFixed(1);
@@ -2758,6 +3216,23 @@ function renderTransitDay(dateStr, items){
                     ? hooks.map(h => `${h.p1_name || h.p1_display || '?'} ${h.aspect || h._aspect || '?'} ${h.p2_name || h.p2_display || '?'}`).join(', ')
                     : '—';
                 
+                // Optional correlation score (raw data only - no salience labels)
+                let badge = '';
+                if (healthByDate) {
+                    const hb = healthByDate[date];
+                    if (hb) {
+                        try {
+                            const sObj = { magnitude: parseFloat(mag), valence: parseFloat(val), volatility: parseFloat(vol) };
+                            const score = calculateCorrelationScore(sObj, hb);
+                            // Show correlation score without automatic salience interpretation
+                            // User must determine if correlation reflects lived experience
+                            if (score >= 0.45) {
+                                badge = `<span class="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-gray-600 text-gray-300" title="correlation=${score.toFixed(3)}">r=${score.toFixed(2)}</span>`;
+                            }
+                        } catch(_){}
+                    }
+                }
+
                 // Reduced semantic coloring – magnitude only
                 const magColor = parseFloat(mag) > 7 ? 'text-red-300 font-bold' : parseFloat(mag) > 5 ? 'text-yellow-400' : 'text-teal-300';
                 const valColor = 'text-gray-300';
@@ -2765,7 +3240,7 @@ function renderTransitDay(dateStr, items){
                 
                 html += `
                     <tr class="hover:bg-gray-700 transition-colors">
-                        <td class="px-3 py-2 border-b border-gray-700 text-teal-300 whitespace-nowrap">${date}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-teal-300 whitespace-nowrap">${date} ${badge}</td>
                         <td class="px-3 py-2 border-b border-gray-700 text-right ${magColor}" title="Symbolic pressure scalar (independent)">${mag}</td>
                         <td class="px-3 py-2 border-b border-gray-700 text-right ${valColor}" title="Directional tone (headwind vs tailwind)">${val}</td>
                         <td class="px-3 py-2 border-b border-gray-700 text-right ${volColor}" title="Turbulence / spread of activation">${vol}</td>
@@ -3942,40 +4417,23 @@ function renderTransitDay(dateStr, items){
                 // Date range validation with step size awareness
                 const startDate = new Date(start);
                 const endDate = new Date(end);
-                const daySpan = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                const daySpan = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1);
                 const stepSize = transitStep.value || '1d';
                 
-                // Define maximum ranges based on step size - CONSERVATIVE for API protection
+                // Define maximum ranges based on centralized limits (configurable)
                 let maxDays, warningDays, stepDescription;
-                switch (stepSize) {
-                    case '1d':
-                    case 'daily':
-                        maxDays = 30;        // 30 days max for daily (was 90)
-                        warningDays = 14;    // Warning at 2 weeks (was 30)
-                        stepDescription = 'daily calculations';
-                        break;
-                    case '7d':
-                    case 'weekly':
-                        maxDays = 180;       // 6 months max for weekly (was 365)
-                        warningDays = 90;    // Warning at 3 months (was 180)
-                        stepDescription = 'weekly calculations';
-                        break;
-                    case '1m':
-                    case '1mo':
-                    case 'monthly':
-                        maxDays = 365;       // 1 year max for monthly (was 1095)
-                        warningDays = 180;   // Warning at 6 months (was 730)
-                        stepDescription = 'monthly calculations';
-                        break;
-                    default:
-                        maxDays = 30;
-                        warningDays = 14;
-                        stepDescription = 'calculations';
-                }
+                const stepKey = (stepSize === '7d' || stepSize === 'weekly') ? 'weekly'
+                                 : (stepSize === '1m' || stepSize === '1mo' || stepSize === 'monthly') ? 'monthly'
+                                 : 'daily';
+                const limits = (window.WOVEN_STEP_LIMITS && window.WOVEN_STEP_LIMITS[stepKey]) || { max: 45, warnRatio: 0.8, label: 'calculations' };
+                maxDays = limits.max;
+                warningDays = Math.floor(limits.max * (limits.warnRatio || 0.8));
+                stepDescription = limits.label || 'calculations';
 
                 // Hard limit validation
                 if (daySpan > maxDays) {
-                    showError(`Date range of ${daySpan} days exceeds the ${maxDays}-day limit for ${stepDescription}. Please use a shorter range or change the step size to weekly/monthly for longer periods. (API Protection: Daily=30 days max, Weekly=6 months max, Monthly=1 year max)`);
+                    const limitsMsg = `Daily=${(window.WOVEN_STEP_LIMITS?.daily?.max)||45} days max, Weekly=${Math.round(((window.WOVEN_STEP_LIMITS?.weekly?.max)||270)/30)} months max, Monthly=${Math.round(((window.WOVEN_STEP_LIMITS?.monthly?.max)||550)/30)} months max`;
+                    showError(`Date range of ${daySpan} days exceeds the ${maxDays}-day limit for ${stepDescription}. Please use a shorter range or change the step size to weekly/monthly for longer periods. (API Protection: ${limitsMsg})`);
                     return false;
                 }
 
@@ -3989,7 +4447,7 @@ function renderTransitDay(dateStr, items){
                         `Date range is ${daySpan} days (approximately ${actualSteps} ${stepDescription}).\n\n` +
                         `This may take longer to process and generate a large amount of data.\n\n` +
                         `Consider using:\n` +
-                        `• Weekly step size for ranges over 30 days\n` +
+                        `• Weekly step size for longer ranges\n` +
                         `• Monthly step size for ranges over 6 months\n\n` +
                         `Continue with current settings?`
                     );
@@ -4566,6 +5024,374 @@ function renderTransitDay(dateStr, items){
             reader.readAsText(file);
         }
 
+        // --- Health Data Integration Functions ---
+
+        function parseHealthAutoExportJSON(healthData) {
+            // Auto-detect & normalize Health Auto Export variants (focus: stateOfMind, HRV, Resting HR, Sleep)
+            try {
+                if (!healthData || !healthData.data) return {};
+                const raw = healthData.data;
+                const metrics = {};
+
+                const addMetricPoint = (metricKey, dateISO, value, extra={}) => {
+                    if (value == null || isNaN(value)) return;
+                    if (!metrics[metricKey]) metrics[metricKey] = [];
+                    metrics[metricKey].push({ date: dateISO, value: +value, ...extra });
+                };
+
+                const toDateKey = (ts) => {
+                    if (!ts) return null;
+                    // Accept direct YYYY-MM-DD
+                    if (typeof ts === 'string' && ts.length === 10 && /\d{4}-\d{2}-\d{2}/.test(ts)) return ts;
+                    // Use Central time to compute calendar day
+                    const d = new Date(ts);
+                    if (isNaN(d)) return null;
+                    try {
+                        const fmt = new Intl.DateTimeFormat('en-CA', {
+                            timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit'
+                        });
+                        return fmt.format(d); // en-CA yields YYYY-MM-DD
+                    } catch(_) {
+                        // Fallback to local if Intl/timeZone not available
+                        const year = d.getFullYear();
+                        const m = String(d.getMonth()+1).padStart(2,'0');
+                        const day = String(d.getDate()).padStart(2,'0');
+                        return `${year}-${m}-${day}`;
+                    }
+                };
+
+                // 1. State of Mind (mood / emotion) → mood_valence
+                if (Array.isArray(raw.stateOfMind)) {
+                    const daily = {};
+                    raw.stateOfMind.forEach(entry => {
+                        const dateKey = toDateKey(entry.start || entry.date || entry.end);
+                        if (!dateKey) return;
+                        if (!daily[dateKey]) {
+                            daily[dateKey] = {
+                                totalValence: 0,
+                                count: 0,
+                                labels: new Set(),
+                                associations: new Set(),
+                                classifications: {}
+                            };
+                        }
+                        const bucket = daily[dateKey];
+                        if (typeof entry.valence === 'number') {
+                            bucket.totalValence += entry.valence;
+                            bucket.count += 1;
+                        }
+                        (entry.labels||[]).forEach(l => bucket.labels.add(l));
+                        (entry.associations||[]).forEach(a => bucket.associations.add(a));
+                        const cls = entry.valenceClassification || 'unclassified';
+                        bucket.classifications[cls] = (bucket.classifications[cls]||0)+1;
+                    });
+                    Object.entries(daily).forEach(([date, aggr]) => {
+                        const avg = aggr.count ? aggr.totalValence / aggr.count : null;
+                        if (avg != null) {
+                            // Determine dominant classification
+                            let dominantCls = null, maxC = -1;
+                            Object.entries(aggr.classifications).forEach(([cls,c]) => { if (c>maxC){dominantCls=cls;maxC=c;} });
+                            addMetricPoint('mood_valence', date, avg, {
+                                classification: dominantCls,
+                                labels: Array.from(aggr.labels),
+                                associations: Array.from(aggr.associations)
+                            });
+                        }
+                    });
+                }
+
+                // 2. Generic metrics array (some exports) → expects [{ name, units, data:[{date,value}]}]
+                if (Array.isArray(raw.metrics)) {
+                    raw.metrics.forEach(metric => {
+                        if (!metric || !metric.name || !Array.isArray(metric.data)) return;
+                        const keyNorm = metric.name.toLowerCase();
+                        let targetKey = null;
+                        if (keyNorm.includes('variability') || keyNorm.includes('hrv')) targetKey = 'hrv';
+                        else if (keyNorm.includes('rest') && keyNorm.includes('heart')) targetKey = 'resting_hr';
+                        else if (keyNorm.includes('sleep')) targetKey = 'sleep_hours';
+                        else return; // ignore others for now
+                        metric.data.forEach(dp => {
+                            const dateKey = toDateKey(dp.date);
+                            if (!dateKey) return;
+                            let val = dp.value ?? dp.qty;
+                            if (val == null) return;
+                            if (targetKey === 'sleep_hours' && dp.durationMinutes) {
+                                val = dp.durationMinutes / 60;
+                            }
+                            addMetricPoint(targetKey, dateKey, val, { unit: metric.units });
+                        });
+                    });
+                }
+
+                // 3. Sleep sessions (alternate structure) → sleep_hours
+                // Accept keys like sleepSessions / sleep / sleepData
+                const sleepContainer = raw.sleepSessions || raw.sleep || raw.sleepData;
+                if (Array.isArray(sleepContainer)) {
+                    const byDate = {};
+                    sleepContainer.forEach(s => {
+                        const start = new Date(s.start || s.begin || s.startDate);
+                        const end = new Date(s.end || s.finish || s.endDate);
+                        if (isNaN(start) || isNaN(end)) return;
+                        const durationH = Math.max(0,(end - start) / (1000*60*60));
+                        const dateKey = toDateKey(end.toISOString()); // assign to wake day
+                        byDate[dateKey] = (byDate[dateKey]||0) + durationH;
+                    });
+                    Object.entries(byDate).forEach(([date,val]) => addMetricPoint('sleep_hours', date, val));
+                }
+
+                return metrics;
+            } catch (e) {
+                console.error('Error parsing health data:', e);
+                throw new Error('Invalid health data format');
+            }
+        }
+
+        function correlateHealthWithSeismograph(healthData, seismographData) {
+            const correlations = [];
+            
+            try {
+                // Group health data by date
+                const healthByDate = {};
+                Object.keys(healthData).forEach(metricName => {
+                    healthData[metricName].forEach(point => {
+                        const date = point.date.split('T')[0]; // Get YYYY-MM-DD
+                        if (!healthByDate[date]) healthByDate[date] = {};
+                        healthByDate[date][metricName] = point.value;
+                    });
+                });
+
+                // Correlate with seismograph readings
+                Object.keys(seismographData).forEach(date => {
+                    const seismo = seismographData[date];
+                    const health = healthByDate[date];
+                    
+                    if (health && seismo) {
+                        correlations.push({
+                            date: date,
+                            magnitude: seismo.magnitude || 0,
+                            valence: seismo.valence || 0,
+                            volatility: seismo.volatility || 0,
+                            health: health,
+                            correlationScore: calculateCorrelationScore(seismo, health)
+                        });
+                    }
+                });
+
+                return correlations;
+            } catch (error) {
+                console.error('Error correlating health data:', error);
+                return [];
+            }
+        }
+
+        function calculateCorrelationScore(seismo, health) {
+            // Heuristic similarity score (0..1). Future: replace with rolling Pearson across arrays.
+            let scoreSum = 0, parts = 0;
+            // Mood valence ↔ symbolic valence (directional alignment)
+            if (typeof health.mood_valence === 'number' && typeof seismo.valence === 'number') {
+                const hv = Math.max(-1, Math.min(1, health.mood_valence)); // already approx -1..+1
+                const sv = Math.max(-1, Math.min(1, seismo.valence / 5)); // normalize -5..5 → -1..1
+                const alignment = 1 - Math.abs(hv - sv) / 2; // 1 perfect, 0 worst
+                scoreSum += alignment; parts++;
+            }
+            // HRV (if present) ↔ volatility (change sensitivity) – normalized inverse distance
+            if (typeof health.hrv === 'number' && typeof seismo.volatility === 'number') {
+                const h = Math.min(150, Math.max(0, health.hrv)) / 150; // crude 0..1
+                const v = seismo.volatility / 5; // 0..1
+                scoreSum += 1 - Math.abs(h - v); parts++;
+            }
+            // Sleep hours ↔ magnitude dampening (long sleep might appear with lower magnitude)
+            if (typeof health.sleep_hours === 'number' && typeof seismo.magnitude === 'number') {
+                const sleepN = Math.min(12, Math.max(0, health.sleep_hours)) / 12; // 0..1
+                const magN = seismo.magnitude / 5; // 0..1
+                // Assume moderate inverse relationship (regulation) – treat closeness to (sleepN + magN ≈ 1) as alignment
+                const target = Math.abs((sleepN + magN) - 1);
+                scoreSum += 1 - target; parts++;
+            }
+            return parts ? scoreSum / parts : 0;
+        }
+
+        function generateHealthCorrelationTable(correlations) {
+            if (!correlations || correlations.length === 0) {
+                return "No health data available for correlation analysis.";
+            }
+
+            let table = "## Health Data Correlation Analysis\n\n";
+            table += "| Date | Magnitude | Valence | Volatility | Health Metrics | Correlation Score |\n";
+            table += "|------|-----------|---------|------------|----------------|-------------------|\n";
+
+            correlations.forEach(corr => {
+                const healthSummary = Object.keys(corr.health).map(key => 
+                    `${key}: ${corr.health[key]}`
+                ).join(', ');
+                
+                table += `| ${corr.date} | ${corr.magnitude.toFixed(2)} | ${corr.valence.toFixed(2)} | ${corr.volatility.toFixed(2)} | ${healthSummary} | ${corr.correlationScore.toFixed(3)} |\n`;
+            });
+
+            table += "\n*Correlation scores range from 0 (no correlation) to 1 (perfect correlation)*\n\n";
+            return table;
+        }
+
+        function loadHealthData(file) {
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const healthData = JSON.parse(e.target.result);
+                    const parsedMetrics = parseHealthAutoExportJSON(healthData);
+                    
+                    loadedHealthData = parsedMetrics;
+                    const metricKeys = Object.keys(parsedMetrics);
+                    const coverageParts = metricKeys.map(k => {
+                        const dates = (parsedMetrics[k]||[]).map(p=>p.date).filter(Boolean).sort();
+                        if (!dates.length) return `${k}: —`;
+                        return `${k}: ${dates[0]} → ${dates[dates.length-1]} (${dates.length}d)`;
+                    });
+                    const statusMsg = metricKeys.length
+                      ? `${metricKeys.length} metrics loaded • ${coverageParts.join(' • ')}`
+                      : 'No metrics recognized in file';
+                    updateHealthDataStatus(statusMsg);
+                    // Build per-date map for quick correlation badges
+                    try {
+                        const byDate = {};
+                        metricKeys.forEach(mk => {
+                            (parsedMetrics[mk]||[]).forEach(pt => {
+                                const dkey = (pt.date||'').slice(0,10);
+                                if (!/^\d{4}-\d{2}-\d{2}$/.test(dkey)) return;
+                                if (!byDate[dkey]) byDate[dkey] = {};
+                                byDate[dkey][mk] = pt.value;
+                            });
+                        });
+                        window.WM_HEALTH_BY_DATE = byDate;
+                    } catch(_) { window.WM_HEALTH_BY_DATE = null; }
+                    // Show clear button
+                    clearHealthDataBtn.classList.remove('hidden');
+                    updateComparativeAvailability();
+                    
+                } catch (error) {
+                    console.error('Error loading health data:', error);
+                    alert('Error loading health data: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearHealthData() {
+            loadedHealthData = null;
+            window.WM_HEALTH_BY_DATE = null;
+            updateHealthDataStatus("");
+            clearHealthDataBtn.classList.add('hidden');
+            updateComparativeAvailability();
+            
+            // Visual feedback
+            const clearBtn = clearHealthDataBtn;
+            const originalText = clearBtn.textContent;
+            clearBtn.textContent = '✅ Cleared!';
+            setTimeout(() => { clearBtn.textContent = originalText; }, 2000);
+        }
+
+        function updateHealthDataStatus(message, metrics = null) {
+            if (message) {
+                if (metrics && Object.keys(metrics).length > 0) {
+                    const metricsList = Object.keys(metrics).map(key => {
+                        const count = metrics[key].length;
+                        const displayName = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        return `${displayName} (${count} days)`;
+                    }).join(', ');
+                    healthDataStatus.innerHTML = `<strong>${message}</strong><br><span class="text-xs text-gray-400">${metricsList}</span>`;
+                } else {
+                    healthDataStatus.textContent = message;
+                }
+                healthDataStatus.classList.remove('hidden');
+                healthDataStatus.classList.add('text-green-400');
+            } else {
+                healthDataStatus.classList.add('hidden');
+                healthDataStatus.classList.remove('text-green-400');
+            }
+        }
+
+        // --- Seismograph MD Ingestion ---
+        let loadedSeismographData = null; // map of date -> { magnitude, valence, volatility, hooks }
+
+        function loadSeismographMd(file){
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e){
+                try {
+                    const text = e.target.result;
+                    const parsed = (typeof parseSeismographMarkdown === 'function') ? parseSeismographMarkdown(text) : null;
+                    if (!parsed || !parsed.map || Object.keys(parsed.map).length === 0){
+                        throw new Error('No seismograph table found');
+                    }
+                    loadedSeismographData = parsed.map;
+                    updateSeismoDataStatus(Object.keys(parsed.map).length + ' seismograph days loaded');
+                    clearSeismoBtn.classList.remove('hidden');
+                    updateComparativeAvailability();
+                } catch(err){
+                    console.error('Seismograph parse error:', err);
+                    alert('Error parsing seismograph markdown: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearSeismograph(){
+            loadedSeismographData = null;
+            updateSeismoDataStatus('');
+            clearSeismoBtn.classList.add('hidden');
+            updateComparativeAvailability();
+            const btn = clearSeismoBtn;
+            const originalText = btn.textContent; btn.textContent = '✅ Cleared!';
+            setTimeout(()=> btn.textContent = originalText, 2000);
+        }
+
+        function updateSeismoDataStatus(message){
+            if (message){
+                seismoDataStatus.textContent = message;
+                seismoDataStatus.classList.remove('hidden');
+                seismoDataStatus.classList.add('text-green-400');
+            } else {
+                seismoDataStatus.classList.add('hidden');
+                seismoDataStatus.classList.remove('text-green-400');
+            }
+        }
+
+        function updateComparativeAvailability(){
+            const ready = !!(loadedHealthData && loadedSeismographData);
+            if (ready){
+                genComparativeBtn.classList.remove('hidden');
+                genComparativeBtn.disabled = false;
+            } else {
+                genComparativeBtn.disabled = true;
+                if (loadedHealthData || loadedSeismographData){
+                    genComparativeBtn.classList.remove('hidden');
+                } else {
+                    genComparativeBtn.classList.add('hidden');
+                }
+            }
+        }
+
+        function generateComparativeReport(){
+            try {
+                if (!loadedHealthData || !loadedSeismographData) {
+                    alert('Please load both Health JSON and Seismograph (.md) first.');
+                    return;
+                }
+                if (typeof generateComparativeReportMarkdown !== 'function'){
+                    throw new Error('Comparative reporter not available');
+                }
+                const md = generateComparativeReportMarkdown(loadedSeismographData, loadedHealthData);
+                const fname = `comparative_${new Date().toISOString().slice(0,10)}.md`;
+                downloadFile(md, fname, 'text/markdown');
+                const original = genComparativeBtn.textContent; genComparativeBtn.textContent = '✅ Exported!';
+                setTimeout(()=> genComparativeBtn.textContent = original, 2000);
+            } catch (e){
+                console.error('Comparative export failed:', e);
+                alert('Failed to generate comparative report: ' + e.message);
+            }
+        }
+
         // --- API Call ---
 
         async function generateReport() {
@@ -4605,63 +5431,8 @@ function renderTransitDay(dateStr, items){
                     throw new Error(`Missing required fields for Person A: ${missingFields.join(', ')}`);
                 }
                 
-                const apiEndpoint = WovenMapConfig.getApiEndpoint('astrologyMathBrain');
-                WovenMapConfig.debugLog(`Sending API request to ${apiEndpoint}`);
-                
-                // --- Robust fetch with AbortController (native fetch ignores custom timeout property) ---
-                const timeoutMs = (WovenMapConfig?.api?.timeout && Number.isFinite(+WovenMapConfig.api.timeout)) ? +WovenMapConfig.api.timeout : 30000;
-                const controller = new AbortController();
-                const timeoutHandle = setTimeout(() => {
-                    controller.abort();
-                }, timeoutMs);
-
-                let response;
-                try {
-                    response = await fetch(apiEndpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(formData),
-                        signal: controller.signal
-                    });
-                } catch (fetchErr) {
-                    if (fetchErr.name === 'AbortError') {
-                        throw new Error(`Request timed out after ${Math.round(timeoutMs/1000)}s (network slow or server overloaded)`);
-                    }
-                    throw fetchErr;
-                } finally {
-                    clearTimeout(timeoutHandle);
-                }
-
-                if (!response.ok) {
-                    const errorBody = await response.text();
-                    let errorMessage = `HTTP error! status: ${response.status}`;
-                    try {
-                        // Try to parse as JSON to get a more specific error message
-                        const errorJson = JSON.parse(errorBody);
-                        if (errorJson.error) {
-                           errorMessage += ` - ${errorJson.error}`;
-                           if(errorJson.missing) {
-                             errorMessage += ` (Missing: ${errorJson.missing.join(', ')})`;
-                           }
-                        } else {
-                           errorMessage += ` - ${errorBody}`;
-                        }
-                    } catch (e) {
-                        // If not JSON, just use the text body
-                        errorMessage += ` - ${errorBody}`;
-                    }
-                    throw new Error(errorMessage);
-                }
-
-                let result;
-                try {
-                    result = await response.json();
-                } catch (parseErr) {
-                    throw new Error('Failed to parse JSON response from server');
-                }
-                if (result.error) {
-                    throw new Error(result.error);
-                }
+                // Use chunking-aware generation to handle large date ranges
+                const result = await generateReportWithChunking(formData);
 
                 // --- Shape Harmonization Shim ---
                 (function harmonizeResultShape(r){
@@ -4703,12 +5474,14 @@ function renderTransitDay(dateStr, items){
                     reportContent.innerHTML = html;
                     document.getElementById('copyReport').classList.add('hidden');
                     document.getElementById('downloadReport').classList.add('hidden');
+                    document.getElementById('exportValidationBtn').classList.remove('hidden');
                     setupSeismographEventListeners();
                 } else {
                     const report = generateMarkdownReport(result);
                     reportContent.textContent = report;
                     document.getElementById('copyReport').classList.remove('hidden');
                     document.getElementById('downloadReport').classList.remove('hidden');
+                    document.getElementById('exportValidationBtn').classList.remove('hidden');
                     // Prompt for seismograph if transit data present
                     const hasTransitsMode = formData.context.mode.includes('transits');
                     const hasTransitData = result.person_a?.chart?.transitsByDate || result.person_b?.chart?.transitsByDate || result.composite?.transitsByDate;
@@ -4746,6 +5519,30 @@ function renderTransitDay(dateStr, items){
                 }
             });
 
+            // Health Data buttons
+            document.getElementById('loadHealthDataBtn').addEventListener('click', () => {
+                document.getElementById('healthDataInput').click();
+            });
+            document.getElementById('healthDataInput').addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    loadHealthData(e.target.files[0]);
+                }
+            });
+            document.getElementById('clearHealthDataBtn').addEventListener('click', clearHealthData);
+            
+            // Health Data Help Modal
+            document.getElementById('healthDataHelpBtn').addEventListener('click', () => {
+                document.getElementById('healthDataHelpModal').classList.remove('hidden');
+            });
+            document.getElementById('closeHealthDataHelp').addEventListener('click', () => {
+                document.getElementById('healthDataHelpModal').classList.add('hidden');
+            });
+            document.getElementById('healthDataHelpModal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('healthDataHelpModal')) {
+                    document.getElementById('healthDataHelpModal').classList.add('hidden');
+                }
+            });
+
             // Modal
             mathBrainInfoBtn.addEventListener('click', () => mathBrainModal.classList.remove('hidden'));
             closeMathBrainModal.addEventListener('click', () => mathBrainModal.classList.add('hidden'));
@@ -4773,8 +5570,8 @@ function renderTransitDay(dateStr, items){
                 }
                 try {
                     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-                    const person1Name = document.getElementById('person1-name').value || 'Person1';
-                    const person2Name = document.getElementById('person2-name').value;
+                    const person1Name = document.getElementById('nameA').value || 'PersonA';
+                    const person2Name = document.getElementById('nameB').value;
                     
                     let filename;
                     if (person2Name) {
@@ -4805,6 +5602,27 @@ function renderTransitDay(dateStr, items){
                 }
             });
 
+            // Export Validation Package (seismograph-focused)
+            const exportValidationBtn = document.getElementById('exportValidationBtn');
+            if (exportValidationBtn) {
+                exportValidationBtn.addEventListener('click', () => {
+                    if (!latestResultData) {
+                        showError('No data available. Generate a report first.');
+                        return;
+                    }
+                    try {
+                        const md = generateValidationMarkdown(latestResultData);
+                        const fname = generateFilename('md', latestResultData).replace(/\.md$/, '_validation.md');
+                        downloadFile(md, fname, 'text/markdown');
+                        exportValidationBtn.textContent = '✅ Exported!';
+                        setTimeout(()=> exportValidationBtn.textContent = '✅ Export for Validation (.md)', 2000);
+                    } catch (e) {
+                        console.error('Validation export failed:', e);
+                        showError('Failed to export validation package: ' + e.message);
+                    }
+                });
+            }
+
             // Download Markdown
             downloadMarkdownBtn.addEventListener('click', () => {
                 if (!latestResultData) {
@@ -4824,6 +5642,18 @@ function renderTransitDay(dateStr, items){
                     showError('Failed to generate markdown download: ' + error.message);
                 }
             });
+
+            // Seismograph MD wiring
+            loadSeismoBtn = document.getElementById('loadSeismoBtn');
+            clearSeismoBtn = document.getElementById('clearSeismoBtn');
+            seismoMdInput = document.getElementById('seismoMdInput');
+            seismoDataStatus = document.getElementById('seismoDataStatus');
+            genComparativeBtn = document.getElementById('genComparativeBtn');
+
+            loadSeismoBtn?.addEventListener('click', ()=> seismoMdInput.click());
+            seismoMdInput?.addEventListener('change', (e)=>{ if (e.target.files && e.target.files.length) loadSeismographMd(e.target.files[0]); });
+            clearSeismoBtn?.addEventListener('click', clearSeismograph);
+            genComparativeBtn?.addEventListener('click', generateComparativeReport);
 
             // Toggle mode help panel
             toggleModeHelp.addEventListener('click', () => {
@@ -4862,38 +5692,31 @@ function renderTransitDay(dateStr, items){
                 if (daySpan === 0) return;
                 
                 let maxDays, warningClass = '', warningText = '';
-                switch (stepSize) {
-                    case '1d':
-                    case 'daily':
-                        maxDays = 30;
-                        if (daySpan > 14) {
-                            warningClass = daySpan > maxDays ? 'text-red-400' : 'text-yellow-400';
-                            warningText = daySpan > maxDays ? 
-                                `⚠️ ${daySpan} days exceeds 30-day limit for daily calculations` :
-                                `⚠️ ${daySpan} days is approaching daily limit (30 days max)`;
-                        }
-                        break;
-                    case '7d':
-                    case 'weekly':
-                        maxDays = 180;
-                        if (daySpan > 90) {
-                            warningClass = daySpan > maxDays ? 'text-red-400' : 'text-yellow-400';
-                            warningText = daySpan > maxDays ? 
-                                `⚠️ ${daySpan} days exceeds 6-month limit for weekly calculations` :
-                                `⚠️ ${daySpan} days is a long range (${Math.ceil(daySpan/7)} weeks)`;
-                        }
-                        break;
-                    case '1m':
-                    case '1mo':
-                    case 'monthly':
-                        maxDays = 365;
-                        if (daySpan > 180) {
-                            warningClass = daySpan > maxDays ? 'text-red-400' : 'text-yellow-400';
-                            warningText = daySpan > maxDays ? 
-                                `⚠️ ${daySpan} days exceeds 1-year limit for monthly calculations` :
-                                `⚠️ ${daySpan} days is a long range (${Math.ceil(daySpan/30)} months)`;
-                        }
-                        break;
+                const stepKey = (stepSize === '7d' || stepSize === 'weekly') ? 'weekly'
+                                 : (stepSize === '1m' || stepSize === '1mo' || stepSize === 'monthly') ? 'monthly'
+                                 : 'daily';
+                const limits = (window.WOVEN_STEP_LIMITS && window.WOVEN_STEP_LIMITS[stepKey]) || { max: 45, warnRatio: 0.8 };
+                maxDays = limits.max;
+                const warnDays = Math.floor(limits.max * (limits.warnRatio || 0.8));
+                const isWeekly = stepKey === 'weekly';
+                const isMonthly = stepKey === 'monthly';
+                if (daySpan > warnDays) {
+                    warningClass = daySpan > maxDays ? 'text-red-400' : 'text-yellow-400';
+                    if (daySpan > maxDays) {
+                        const hardMsg = isWeekly
+                            ? `⚠️ ${daySpan} days exceeds ${(Math.round(maxDays/30*10)/10)}-month limit for weekly calculations`
+                            : isMonthly
+                            ? `⚠️ ${daySpan} days exceeds ${(Math.round(maxDays/30*10)/10)}-month limit for monthly calculations`
+                            : `⚠️ ${daySpan} days exceeds ${maxDays}-day limit for daily calculations`;
+                        warningText = hardMsg;
+                    } else {
+                        const softMsg = isWeekly
+                            ? `⚠️ ${daySpan} days is a long range (${Math.ceil(daySpan/7)} weeks)`
+                            : isMonthly
+                            ? `⚠️ ${daySpan} days is a long range (${Math.ceil(daySpan/30)} months)`
+                            : `⚠️ ${daySpan} days is approaching daily limit (${maxDays} days max)`;
+                        warningText = softMsg;
+                    }
                 }
                 
                 // Show warning if needed
@@ -5163,7 +5986,7 @@ function renderTransitDay(dateStr, items){
                 seismographTab.classList.add('bg-teal-600', 'text-white');
                 seismographTab.classList.remove('text-gray-300');
                 seismographTab.setAttribute('aria-selected', 'true');
-                modeDescription.innerHTML = '<strong class="text-cyan-300">Seismograph:</strong> Maps symbolic pressure fronts moving through time. Magnitude (0–5) = charge intensity, Valence (-5..+5) = ease vs friction, Volatility (0–5) = rate of change. The trace follows currents across your window.';
+                modeDescription.innerHTML = '<strong class="text-cyan-300">Seismograph:</strong> Maps symbolic pressure fronts moving through time. Magnitude (0–5) = charge intensity, Valence (-5..+5) = ease vs friction, Volatility (0–5) = rate of change. The trace follows currents across your window.<br><small class="text-yellow-300">💡 Queue Analysis & Filters appear after successful seismograph generation.</small>';
                 generateBtn.textContent = 'Generate Seismograph';
                 showWiringBtn.style.display = 'none';
                 
@@ -5806,11 +6629,33 @@ function renderTransitDay(dateStr, items){
             transitEndDate = document.getElementById('transitEndDate');
             transitStep = document.getElementById('transitStep');
             relocationCoordsInput = document.getElementById('relocationCoords');
+            
+            // Health Data UI elements
+            loadHealthDataBtn = document.getElementById('loadHealthDataBtn');
+            clearHealthDataBtn = document.getElementById('clearHealthDataBtn');
+            healthDataInput = document.getElementById('healthDataInput');
+            healthDataStatus = document.getElementById('healthDataStatus');
             toggleModeHelp = document.getElementById('toggle-mode-help');
             modeHelpPanel = document.getElementById('mode-help-panel');
             prefillTodayBtn = document.getElementById('prefillToday');
             stepSizeHelpBtn = document.getElementById('stepSizeHelp');
             stepSizeHelpPanel = document.getElementById('stepSizeHelpPanel');
+            // Sync help copy with configured limits
+            try {
+                const panel = stepSizeHelpPanel;
+                if (panel) {
+                    const paras = Array.from(panel.querySelectorAll('p'));
+                    const apiProt = paras.find(p => /API Protection/i.test(p.textContent||''));
+                    const dMax = (window.WOVEN_STEP_LIMITS?.daily?.max)||45;
+                    const wMax = (window.WOVEN_STEP_LIMITS?.weekly?.max)||270;
+                    const mMax = (window.WOVEN_STEP_LIMITS?.monthly?.max)||550;
+                    const wMonths = Math.round(wMax/30);
+                    const mMonths = Math.round(mMax/30);
+                    if (apiProt) {
+                        apiProt.innerHTML = `<b>API Protection</b>: Configured limits — Daily=${dMax} days max, Weekly=${wMonths} months max, Monthly=${mMonths} months max.`;
+                    }
+                }
+            } catch(e){ console.warn('Could not refresh Step Size help copy', e); }
             // Relationship role custom field toggle (delegated)
             document.addEventListener('change', (e)=>{
                 if (e.target && e.target.id === 'relationshipRole') {
@@ -5827,8 +6672,16 @@ function renderTransitDay(dateStr, items){
                 transitEndDate: !!transitEndDate,
                 transitStep: !!transitStep,
                 relocationCoordsInput: !!relocationCoordsInput,
+                seismoMdInput: !!document.getElementById('seismoMdInput'),
+                genComparativeBtn: !!document.getElementById('genComparativeBtn'),
                 relocationSection: !!relocationSection
             });
+
+            // Developer hint: override step limits from console if desired
+            try {
+                console.info('Step limits in use:', window.WOVEN_STEP_LIMITS);
+                console.info('To override limits in this browser, run:', "localStorage.setItem('wm_step_limits_override', JSON.stringify({daily:{max:60,warnRatio:0.85},weekly:{max:360},monthly:{max:720}})); location.reload();");
+            } catch(_) {}
 
             setupEventListeners();
             setupProgressiveDisclosureEventListeners(); // New UX improvement functions

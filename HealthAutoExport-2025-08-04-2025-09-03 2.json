@@ -1,0 +1,260 @@
+{
+  "data" : {
+    "stateOfMind" : [
+      {
+        "end" : "2025-09-02T22:04:30Z",
+        "kind" : "daily_mood",
+        "valence" : -0.38703242434731011,
+        "id" : "AAADA0B3-6DF5-4A37-A017-5D6E4B90B0EC",
+        "start" : "2025-09-02T22:04:30Z",
+        "valenceClassification" : "slightly_unpleasant",
+        "labels" : [
+          "anxious",
+          "overwhelmed",
+          "frustrated",
+          "stressed",
+          "disappointed",
+          "drained",
+          "discouraged"
+        ],
+        "associations" : [
+          "health",
+          "self_care",
+          "hobbies",
+          "money",
+          "tasks",
+          "work"
+        ]
+      },
+      {
+        "kind" : "momentary_emotion",
+        "end" : "2025-08-29T22:00:33Z",
+        "id" : "7DB6B89C-55B5-4E5E-B763-2245CDE5178E",
+        "valenceClassification" : "neutral",
+        "valence" : 0,
+        "labels" : [
+          "indifferent"
+        ],
+        "start" : "2025-08-29T22:00:33Z",
+        "associations" : [
+          "self_care",
+          "money",
+          "tasks",
+          "work",
+          "hobbies",
+          "partner",
+          "family"
+        ]
+      },
+      {
+        "valenceClassification" : "slightly_unpleasant",
+        "valence" : -0.2992026413543315,
+        "associations" : [
+          "work",
+          "money",
+          "family",
+          "dating",
+          "self_care",
+          "hobbies",
+          "health"
+        ],
+        "start" : "2025-08-28T22:20:48Z",
+        "labels" : [
+          "frustrated",
+          "stressed",
+          "drained"
+        ],
+        "kind" : "daily_mood",
+        "id" : "90727E21-2C3E-4407-8365-F4C812AB698B",
+        "end" : "2025-08-28T22:20:48Z"
+      },
+      {
+        "valenceClassification" : "neutral",
+        "valence" : -0.059508311597606833,
+        "end" : "2025-08-24T20:55:45Z",
+        "kind" : "daily_mood",
+        "associations" : [
+          "work",
+          "money"
+        ],
+        "id" : "A0311E4F-C5F8-4635-819C-C47E8845C312",
+        "start" : "2025-08-24T20:55:45Z",
+        "labels" : [
+          "discouraged",
+          "drained"
+        ]
+      },
+      {
+        "valenceClassification" : "very_unpleasant",
+        "valence" : -0.7899527864693523,
+        "id" : "80E9B62E-BBA2-43C3-B9B5-A5EEA9504807",
+        "kind" : "momentary_emotion",
+        "end" : "2025-08-20T02:43:52Z",
+        "labels" : [
+          "overwhelmed",
+          "lonely",
+          "disappointed",
+          "discouraged",
+          "sad",
+          "drained",
+          "worried",
+          "stressed"
+        ],
+        "associations" : [
+          "fitness",
+          "self_care",
+          "dating",
+          "work",
+          "money",
+          "tasks",
+          "current_events",
+          "friends",
+          "family",
+          "partner",
+          "health",
+          "identity",
+          "hobbies"
+        ],
+        "start" : "2025-08-20T02:43:52Z"
+      },
+      {
+        "id" : "9737E44F-C238-48EA-8707-78CF97516067",
+        "valence" : -0.35232067510548537,
+        "valenceClassification" : "slightly_unpleasant",
+        "end" : "2025-08-18T20:45:43Z",
+        "labels" : [
+          "overwhelmed",
+          "lonely",
+          "stressed",
+          "frustrated",
+          "discouraged",
+          "sad"
+        ],
+        "kind" : "daily_mood",
+        "start" : "2025-08-18T20:45:43Z",
+        "associations" : [
+          "health",
+          "hobbies",
+          "self_care",
+          "fitness",
+          "partner",
+          "tasks",
+          "work",
+          "money",
+          "travel",
+          "current_events"
+        ]
+      },
+      {
+        "associations" : [
+          "family",
+          "dating",
+          "money",
+          "work",
+          "tasks",
+          "friends"
+        ],
+        "labels" : [
+          "frustrated",
+          "worried",
+          "stressed",
+          "discouraged",
+          "lonely"
+        ],
+        "id" : "12848323-9AFC-487E-AA98-A6CCFC2A424B",
+        "start" : "2025-08-15T22:01:05Z",
+        "kind" : "daily_mood",
+        "end" : "2025-08-15T22:01:05Z",
+        "valenceClassification" : "slightly_unpleasant",
+        "valence" : -0.25439491754845733
+      },
+      {
+        "end" : "2025-08-12T23:19:11Z",
+        "associations" : [
+          "self_care",
+          "fitness",
+          "hobbies",
+          "health",
+          "family",
+          "partner",
+          "dating",
+          "money",
+          "work",
+          "tasks",
+          "current_events"
+        ],
+        "id" : "FFA8A4E2-C3C9-47F6-821E-4981F83D6CDC",
+        "start" : "2025-08-12T23:19:11Z",
+        "valence" : -0.60646153703520578,
+        "valenceClassification" : "unpleasant",
+        "kind" : "daily_mood",
+        "labels" : [
+          "anxious",
+          "overwhelmed",
+          "annoyed",
+          "frustrated",
+          "drained",
+          "lonely",
+          "discouraged"
+        ]
+      },
+      {
+        "kind" : "daily_mood",
+        "end" : "2025-08-08T23:05:31Z",
+        "id" : "5A2F5349-657F-4810-9E1A-0FC7E9C47EF8",
+        "valence" : -0.52905505216574367,
+        "start" : "2025-08-08T23:05:31Z",
+        "associations" : [
+          "health",
+          "self_care",
+          "hobbies",
+          "family",
+          "dating",
+          "tasks",
+          "work",
+          "money"
+        ],
+        "valenceClassification" : "unpleasant",
+        "labels" : [
+          "angry",
+          "ashamed",
+          "overwhelmed",
+          "frustrated",
+          "annoyed",
+          "worried",
+          "stressed",
+          "irritated",
+          "drained",
+          "discouraged",
+          "lonely"
+        ]
+      },
+      {
+        "kind" : "daily_mood",
+        "labels" : [
+          "indifferent",
+          "drained"
+        ],
+        "end" : "2025-08-04T20:46:11Z",
+        "valenceClassification" : "neutral",
+        "valence" : 0.099156118143459926,
+        "id" : "03C77929-66CB-4B6F-8427-84CF7F847575",
+        "associations" : [
+          "health",
+          "self_care",
+          "identity",
+          "partner",
+          "dating",
+          "tasks",
+          "money",
+          "work",
+          "current_events"
+        ],
+        "start" : "2025-08-04T20:46:11Z"
+      }
+    ],
+    "metrics" : [
+
+    ]
+  }
+}

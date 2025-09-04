@@ -1,0 +1,11 @@
+Start,End,Kind,Labels,Associations,Valence,Valence Classification
+2025-09-02 17:04:30 -0500,2025-09-02 17:04:30 -0500,Daily Mood,Anxious | Overwhelmed | Frustrated | Stressed | Disappointed | Drained | Discouraged,Health | Self Care | Hobbies | Money | Tasks | Work,-0.3870324243473101,Slightly Unpleasant,
+2025-08-29 17:00:33 -0500,2025-08-29 17:00:33 -0500,Momentary Emotion,Indifferent,Self Care | Money | Tasks | Work | Hobbies | Partner | Family,0.0,Neutral,
+2025-08-28 17:20:48 -0500,2025-08-28 17:20:48 -0500,Daily Mood,Frustrated | Stressed | Drained,Work | Money | Family | Dating | Self Care | Hobbies | Health,-0.2992026413543315,Slightly Unpleasant,
+2025-08-24 15:55:45 -0500,2025-08-24 15:55:45 -0500,Daily Mood,Discouraged | Drained,Work | Money,-0.05950831159760683,Neutral,
+2025-08-19 21:43:52 -0500,2025-08-19 21:43:52 -0500,Momentary Emotion,Overwhelmed | Lonely | Disappointed | Discouraged | Sad | Drained | Worried | Stressed,Fitness | Self Care | Dating | Work | Money | Tasks | Current Events | Friends | Family | Partner | Health | Identity | Hobbies,-0.7899527864693523,Very Unpleasant,
+2025-08-18 15:45:43 -0500,2025-08-18 15:45:43 -0500,Daily Mood,Overwhelmed | Lonely | Stressed | Frustrated | Discouraged | Sad,Health | Hobbies | Self Care | Fitness | Partner | Tasks | Work | Money | Travel | Current Events,-0.35232067510548537,Slightly Unpleasant,
+2025-08-15 17:01:05 -0500,2025-08-15 17:01:05 -0500,Daily Mood,Frustrated | Worried | Stressed | Discouraged | Lonely,Family | Dating | Money | Work | Tasks | Friends,-0.25439491754845733,Slightly Unpleasant,
+2025-08-12 18:19:11 -0500,2025-08-12 18:19:11 -0500,Daily Mood,Anxious | Overwhelmed | Annoyed | Frustrated | Drained | Lonely | Discouraged,Self Care | Fitness | Hobbies | Health | Family | Partner | Dating | Money | Work | Tasks | Current Events,-0.6064615370352058,Unpleasant,
+2025-08-08 18:05:31 -0500,2025-08-08 18:05:31 -0500,Daily Mood,Angry | Ashamed | Overwhelmed | Frustrated | Annoyed | Worried | Stressed | Irritated | Drained | Discouraged | Lonely,Health | Self Care | Hobbies | Family | Dating | Tasks | Work | Money,-0.5290550521657437,Unpleasant,
+2025-08-04 15:46:11 -0500,2025-08-04 15:46:11 -0500,Daily Mood,Indifferent | Drained,Health | Self Care | Identity | Partner | Dating | Tasks | Money | Work | Current Events,0.09915611814345993,Neutral,
