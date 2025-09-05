@@ -6094,6 +6094,30 @@ function renderTransitDay(dateStr, items){
                 
                 reportOutput.classList.remove('hidden');
 
+                // Auto-focus + reveal animation so user sees the new report immediately
+                try {
+                    // Smooth scroll to the report container
+                    reportOutput.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                    // Apply a transient highlight pulse
+                    reportContent.classList.add('ring-2','ring-teal-400/70','shadow-lg');
+                    setTimeout(() => {
+                        reportContent.classList.add('animate-pulse');
+                    }, 80);
+                    setTimeout(() => {
+                        reportContent.classList.remove('animate-pulse');
+                    }, 1400);
+                    setTimeout(() => {
+                        reportContent.classList.remove('ring-2','ring-teal-400/70','shadow-lg');
+                    }, 2000);
+
+                    // Move keyboard focus for accessibility
+                    if (reportContent?.setAttribute) {
+                        reportContent.setAttribute('tabindex','-1');
+                        reportContent.focus({ preventScroll: true });
+                    }
+                } catch(e) { console.debug('Report reveal UX enhancement skipped', e); }
+
             } catch (error) {
                 console.error('Error generating report:', error);
                 showError(`Failed to generate report: ${error.message}`);
