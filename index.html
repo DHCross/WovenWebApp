@@ -403,6 +403,10 @@
             .report-surface .tag { display:inline-block; background:#164e63; color:#cffafe; padding:2px 6px; margin:1px 3px 1px 0; border-radius:4px; font-size:.55rem; letter-spacing:.5px; }
             .report-surface .faint { color:#64748b; }
             .report-surface .section-break { margin:1rem 0 .55rem; padding-top:.25rem; border-top:1px dashed rgba(94,234,212,.35); }
+            /* Flash highlight for Show Wiring anchor scroll */
+            .flash-wire { outline:3px solid currentColor; outline-offset:2px; animation:flashWire 900ms ease-in-out; }
+            @media (prefers-contrast: more) { .flash-wire { outline-width:4px; } }
+            @keyframes flashWire { 0%{filter:brightness(1.2);} 100%{filter:brightness(1);} }
             @media (min-width:1024px){ .report-surface { font-size:12px; } }
         </style>
     </head>
@@ -433,11 +437,6 @@
                                 data-mode="mirror">
                             Mirror
                         </button>
-                        <button id="geometryModeTab" type="button" role="tab" aria-selected="false" aria-controls="geometry-content"
-                                class="px-6 py-2 text-sm font-medium rounded-md text-gray-300 hover:text-white transition-colors duration-200" 
-                                data-mode="geometry">
-                            Geometry
-                        </button>
                         <button id="seismographModeTab" type="button" role="tab" aria-selected="false" aria-controls="seismograph-content"
                                 class="px-6 py-2 text-sm font-medium rounded-md text-gray-300 hover:text-white transition-colors duration-200" 
                                 data-mode="seismograph">
@@ -447,8 +446,7 @@
                 </div>
                 <div class="mt-2 text-xs text-gray-400 text-center">
                     <span id="modeDescription">
-                        <strong class="text-teal-300">Mirror:</strong> The land seen in reflection—how the shapes form an image when two charts touch. 
-                        <strong class="text-gray-300">Geometry:</strong> The surveyor's ledger—exact measurements without story.
+                        <strong class="text-teal-300">Mirror:</strong> Geometry + reflection in one stream. Always includes the full skeletal ledger (angles, houses, hooks) plus the recognition layer. Use Seismograph for temporal trace.
                     </span>
                 </div>
             </div>
@@ -1978,12 +1976,25 @@ function renderTransitDay(dateStr, items){
             const ephemerisHash = data.provenance?.ephemeris_hash || "unknown";
             const prov = `${ephemerisSource} | hash ${ephemerisHash.slice(0, 8)}…`;
             
+            // Clamp valence for headline; keep raw for debug transparency
+            const rawVal = firstDayData?.seismograph?.valence ?? 0;
+            const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+            const clampedVal = clamp(rawVal,-5,5);
+            // Retrograde breakdown (transiting retro bodies vs retro-tagged aspects)
+            let retroTransitPlanets = 0; let retroTaggedAspects = 0;
+            if (firstDayData) {
+                const retroBodies = new Set();
+                (firstDayData.hooks||[]).forEach(h=>{ if(h.transit_is_retrograde) retroBodies.add(h.p1_name||h.p1_display); if(h.transit_is_retrograde||h.natal_is_retrograde) retroTaggedAspects++; });
+                (firstDayData.filtered_aspects||[]).forEach(a=>{ if(a.transit_is_retrograde) retroBodies.add(a.p1_name||a.p1_display); if(a.transit_is_retrograde||a.natal_is_retrograde) retroTaggedAspects++; });
+                retroTransitPlanets = retroBodies.size;
+            }
             const lines = [
                 `# Exec Summary (${data.provenance?.math_brain_version || '0.2.1'})`,
                 `Date: ${currentDate}  TZ: ${personA?.timezone || 'UTC'}  Context: ${mode?.toUpperCase() || 'N/A'}`,
-                `Magnitude: ${formatNumber(firstDayData?.seismograph?.magnitude)} (${toMagnitudeTerm(firstDayData?.seismograph?.magnitude || 0)}) | Valence: ${getValenceEmoji(firstDayData?.seismograph?.valence || 0)} ${formatNumber(firstDayData?.seismograph?.valence)} (${toValenceTerm(firstDayData?.seismograph?.valence || 0)}) | Volatility: ${formatNumber(firstDayData?.seismograph?.volatility)}`,
-                `Top Hooks: ${hooksStr}`,
-                `Retrogrades: ${firstDayData?.retrograde_count || 0}  OSR: ${(firstDayData?.osr_flags || []).length}`,
+                `Magnitude: ${formatNumber(firstDayData?.seismograph?.magnitude)} (${toMagnitudeTerm(firstDayData?.seismograph?.magnitude || 0)}) | Valence: ${getValenceEmoji(clampedVal)} ${formatNumber(clampedVal)} (${toValenceTerm(clampedVal)}) | Volatility: ${formatNumber(firstDayData?.seismograph?.volatility)}`,
+                `Valence_raw (debug): ${formatNumber(rawVal)}`,
+                `Top Hooks (orb-capped): ${hooksStr} • [Geometry](#geometry-skeleton)`,
+                `Transiting ℞ planets: ${retroTransitPlanets}  ℞-tagged aspects: ${retroTaggedAspects}  OSR: ${(firstDayData?.osr_flags || []).length}`,
                 includeHealthLine ? `Health Link: ${health}` : undefined,
                 includeProvenance ? `Provenance: ${prov}` : undefined
             ].filter(Boolean);
@@ -2426,21 +2437,17 @@ function renderTransitDay(dateStr, items){
                 md += `\n`;
             }
 
-            // Natal Chart Geometry (Structural Identity Patterns)
+            // Unified Geometry Skeleton (always present in Mirror output)
+            md += `## Geometry — The Skeleton of the Land <a id="geometry-skeleton"></a>\n\n`;
             if (data.person_a?.chart && (data.person_a.chart.status === 'OK' || data.person_a.chart.sun)) {
-                md += `## ${personA.name} Natal Geometry — Structural Weave\n\n`;
-                
-                // The chart data can be in different structures depending on API endpoint used
-                const chart = data.person_a.chart.data || data.person_a.chart;
-                md += renderNatalChartData(chart, personA.name);
+                md += `### ${personA.name} Natal Angles & Planet Positions\n\n`;
+                const chartA = data.person_a.chart.data || data.person_a.chart;
+                md += renderNatalChartData(chartA, personA.name);
             }
-
             if (data.person_b?.chart && (data.person_b.chart.status === 'OK' || data.person_b.chart.sun)) {
-                md += `## ${personB.name} Natal Geometry — Structural Weave\n\n`;
-                
-                // The chart data can be in different structures depending on API endpoint used
-                const chart = data.person_b.chart.data || data.person_b.chart;
-                md += renderNatalChartData(chart, personB.name);
+                md += `### ${personB.name} Natal Angles & Planet Positions\n\n`;
+                const chartB = data.person_b.chart.data || data.person_b.chart;
+                md += renderNatalChartData(chartB, personB.name);
             }
 
             // Relocation Chart Summaries (if present)
@@ -2719,8 +2726,14 @@ function renderTransitDay(dateStr, items){
                                                     }
                                                     let summaryLine = `${date} — Majors: ${counts.majors_tight + counts.majors_loose} (tight ${counts.majors_tight}, loose ${counts.majors_loose}) · Minors: ${counts.minors} · Harmonics: ${counts.harmonics}`;
                                                     let out = `<details><summary>${summaryLine}</summary>\n\n`;
-                                                    out += `**Hooks** (orb caps applied; diversity filtered${rawHooksSorted.length>hooks.length?`, ${rawHooksSorted.length-hooks.length} suppressed`:''})\n`;
+                                                    const suppressed = rawHooksSorted.length - hooks.length;
+                                                    out += `**Hooks** (orb caps applied; diversity filtered${suppressed>0?`, ${suppressed} suppressed`:''})\n`;
                                                     hooks.forEach(h=> out += `- ${hookLine(h)}\n`);
+                                                    if (suppressed>0){
+                                                        // Provide extended weighted influences list (may exceed caps)
+                                                        out += `\n**Top Weighted Influences (may exceed caps)**\n`;
+                                                        rawHooksSorted.slice(0,8).forEach(h=>{ if(!hooks.includes(h)) out += `- ${hookLine(h)}\n`; });
+                                                    }
                                                     if (!hooks.length) out += `- —\n`;
                                                     out += `\n**Filtered aspects (${filteredAll.length})**  *Loose majors (>6°) omitted from hooks*\n`;
                                                     filteredAll.forEach(a=>{
@@ -2925,6 +2938,7 @@ function renderTransitDay(dateStr, items){
                                                         out += `| ${d} | ${(day.seismograph?.magnitude??0).toFixed(2)} | ${clampedVal.toFixed(2)} | ${(day.seismograph?.volatility??0).toFixed(2)} | ${peak.replace(/\|/g,'\\|') || '—'} |\n`;
                                                     });
                                                     out += `\nMagnitude=aggregate charge (0–10 est), Valence=net tension (−=friction, +=ease), Volatility=dispersion of charge.\n`;
+                                                    out += `_Valence emoji: 🌑 = frictional flow (−), 🌞 = supportive flow (+)._\n`;
                                                     
                                                     // Add confidence scaling information if available
                                                     const sampleDay = Object.values(dailyMap)[0];
@@ -4701,25 +4715,30 @@ function renderTransitDay(dateStr, items){
         // EMOJI VALENCE LEXICON (Directional charge: positive ↗ / negative ↘)
         // =============================================================================
         
-        function getValenceEmoji(val) {
+        function getValenceEmoji(val, includeAccessibility = false) {
+            const clampedVal = Math.max(-5, Math.min(5, val)); // Always clamp to ±5
+            let emoji, label;
+            
             // 🌑 Negative Valence Types (↘)
-            if (val <= -4.5) return '🌋'; // Pressure / Eruption — compression until release, shadow surges
-            if (val <= -3.5) return '⚔'; // Friction Clash — conflict, heat, accidents  
-            if (val <= -2.5) return '🌊'; // Cross Current — competing priorities, confusion
-            if (val <= -1.5) return '🌀'; // Fog / Dissolution — blurred signals, loss of clarity
-            if (val <= -0.8) return '🌫'; // Entropy Drift — inertia, drain, loss of momentum
-            if (val < -0.2) return '🕰'; // Saturn Weight — heaviness, delay, endurance test
-            
+            if (clampedVal <= -4.5) { emoji = '🌋'; label = 'pressure eruption'; }
+            else if (clampedVal <= -3.5) { emoji = '⚔'; label = 'friction clash'; }
+            else if (clampedVal <= -2.5) { emoji = '🌊'; label = 'cross current'; }
+            else if (clampedVal <= -1.5) { emoji = '🌀'; label = 'fog dissolution'; }
+            else if (clampedVal <= -0.8) { emoji = '🌫'; label = 'entropy drift'; }
+            else if (clampedVal < -0.2) { emoji = '🕰'; label = 'saturn weight'; }
             // Neutral range
-            if (val >= -0.2 && val <= 0.2) return '⚖'; // Neutral balance
-            
+            else if (clampedVal >= -0.2 && clampedVal <= 0.2) { emoji = '⚖'; label = 'neutral balance'; }
             // 🌞 Positive Valence Types (↗)
-            if (val < 0.8) return '🌱'; // Fertile Field — growth, opportunity, new shoots
-            if (val < 1.5) return '🌊'; // Flow Tide — smooth adaptability, emotional ease
-            if (val < 2.5) return '✨'; // Harmonic Resonance — natural ease, things click
-            if (val < 3.5) return '🔥'; // Combustion Clarity — insight breaks through
-            if (val < 4.5) return '🦋'; // Liberation / Release — breakthroughs, freedom
-            return '💎'; // Expansion Lift — abundance, confidence
+            else if (clampedVal < 0.8) { emoji = '🌱'; label = 'fertile field'; }
+            else if (clampedVal < 1.5) { emoji = '🌊'; label = 'flow tide'; }
+            else if (clampedVal < 2.5) { emoji = '✨'; label = 'harmonic resonance'; }
+            else if (clampedVal < 3.5) { emoji = '🔥'; label = 'combustion clarity'; }
+            else if (clampedVal < 4.5) { emoji = '🦋'; label = 'liberation release'; }
+            else { emoji = '💎'; label = 'expansion lift'; }
+            
+            return includeAccessibility ? 
+                `<span class="valence-emoji" role="img" aria-label="${label}">${emoji}</span>` : 
+                emoji;
         }
         
         function getValenceType(val) {
@@ -6530,7 +6549,7 @@ function renderTransitDay(dateStr, items){
         // =============================================================================
         
         // Global state for the app mode
-        let currentAppMode = 'mirror'; // 'mirror', 'geometry', or 'seismograph'
+    let currentAppMode = 'mirror'; // 'mirror' or 'seismograph'
         let currentContextType = 'solo'; // 'solo', 'relational', 'weather'
         
     function updateAppMode(mode) {
@@ -6538,14 +6557,13 @@ function renderTransitDay(dateStr, items){
             
             // Update tab appearance
             const mirrorTab = document.getElementById('mirrorModeTab');
-            const geometryTab = document.getElementById('geometryModeTab');
             const seismographTab = document.getElementById('seismographModeTab');
             const modeDescription = document.getElementById('modeDescription');
             const generateBtn = document.getElementById('generateReport');
             const showWiringBtn = document.getElementById('showWiringBtn');
             
             // Reset all tabs first
-            [mirrorTab, geometryTab, seismographTab].forEach(tab => {
+            [mirrorTab, seismographTab].forEach(tab => {
                 if (tab) {
                     tab.classList.remove('bg-teal-600', 'text-white');
                     tab.classList.add('text-gray-300');
@@ -6564,18 +6582,6 @@ function renderTransitDay(dateStr, items){
                 
                 // Auto-populate today's date in Mirror mode
                 autoPopulateTodayDates();
-                
-            } else if (mode === 'geometry') {
-                geometryTab.classList.add('bg-teal-600', 'text-white');
-                geometryTab.classList.remove('text-gray-300');
-                geometryTab.setAttribute('aria-selected', 'true');
-                
-                modeDescription.innerHTML = '<strong class="text-teal-300">Geometry:</strong> The skeleton of the land—numbers, distances, angles. Silent and exact, measuring rods and compass marks.';
-                generateBtn.textContent = 'Compute Geometry';
-                showWiringBtn.style.display = 'none';
-                
-                // Show advanced options in Geometry mode
-                showAdvancedTransitOptions();
                 
             } else if (mode === 'seismograph') {
                 seismographTab.classList.add('bg-teal-600', 'text-white');
@@ -6876,12 +6882,6 @@ function renderTransitDay(dateStr, items){
                     mathBrainBanner.style.display = 'none';
                 }
                 hideAdvancedTransitOptions();
-            } else if (currentAppMode === 'geometry') {
-                // Show Math Brain banner in Geometry mode
-                if (mathBrainBanner) {
-                    mathBrainBanner.style.display = 'block';
-                }
-                showAdvancedTransitOptions();
             }
         }
         
@@ -6946,14 +6946,10 @@ function renderTransitDay(dateStr, items){
         function setupProgressiveDisclosureEventListeners() {
             // Mirror/Geometry/Seismograph tabs
             const mirrorTab = document.getElementById('mirrorModeTab');
-            const geometryTab = document.getElementById('geometryModeTab');
             const seismographTab = document.getElementById('seismographModeTab');
             
             if (mirrorTab) {
                 mirrorTab.addEventListener('click', () => updateAppMode('mirror'));
-            }
-            if (geometryTab) {
-                geometryTab.addEventListener('click', () => updateAppMode('geometry'));
             }
             if (seismographTab) {
                 seismographTab.addEventListener('click', () => updateAppMode('seismograph'));
@@ -7046,13 +7042,17 @@ function renderTransitDay(dateStr, items){
             const showWiringBtn = document.getElementById('showWiringBtn');
             if (showWiringBtn) {
                 showWiringBtn.addEventListener('click', () => {
-                    // Switch to geometry mode and scroll to report section
-                    updateAppMode('geometry');
-                    
-                    // Scroll to report section if it exists
+                    // Ensure we're in Mirror mode (geometry always embedded now)
+                    if (currentAppMode !== 'mirror') updateAppMode('mirror');
+                    // Scroll to report section and optionally highlight geometry skeleton heading
                     const reportSection = document.getElementById('reportOutput');
                     if (reportSection && !reportSection.classList.contains('hidden')) {
                         reportSection.scrollIntoView({ behavior: 'smooth' });
+                        const geomHeader = reportSection.querySelector('h2, h1');
+                        if (geomHeader) {
+                            geomHeader.classList.add('ring-2','ring-teal-400','ring-offset-2','ring-offset-gray-900');
+                            setTimeout(()=>geomHeader.classList.remove('ring-2','ring-teal-400','ring-offset-2','ring-offset-gray-900'),1800);
+                        }
                     }
                 });
             }
@@ -7216,6 +7216,21 @@ function renderTransitDay(dateStr, items){
 
         // Initial UI setup on page load
         document.addEventListener('DOMContentLoaded', () => {
+            // Legacy deep-link normalization (?mode=geometry -> mirror#geometry-skeleton)
+            try {
+                const params = new URLSearchParams(location.search);
+                const legacyMode = params.get('mode');
+                if (legacyMode === 'geometry') {
+                    // Replace state without adding history entry
+                    const newUrl = location.pathname + '?mode=mirror#geometry-skeleton';
+                    history.replaceState({}, '', newUrl);
+                    // Defer scroll until after first render
+                    setTimeout(()=>{
+                        const anchor = document.getElementById('geometry-skeleton') || document.querySelector('[id="geometry-skeleton"]');
+                        anchor && anchor.scrollIntoView({behavior:'smooth', block:'start'});
+                    }, 1200);
+                }
+            } catch(e){ console.warn('Deep-link normalization failed', e); }
             // DOM Elements assignment
             generateBtn = document.getElementById('generateReport');
             loadingIndicator = document.getElementById('loadingIndicator');
