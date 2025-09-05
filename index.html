@@ -1084,8 +1084,26 @@
                 </div>
             </div>
 
-            <!-- Optional Overlays -->
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="hidden text-center mb-8">
+                <div class="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-teal-600 transition ease-in-out duration-150">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span id="loadingText">Computing Astrological Geometry...</span>
+                </div>
+            </div>
+
+            <!-- Optional Data Overlays (Advanced) -->
             <div class="max-w-4xl mx-auto mb-8">
+                <div class="text-center mb-4">
+                    <h3 class="text-lg font-medium text-gray-300 mb-2">📋 Optional Data Overlays</h3>
+                    <p class="text-sm text-gray-400 max-w-2xl mx-auto">
+                        These are <strong>completely optional</strong> advanced features. Upload data files to overlay correlations with your astrological patterns. 
+                        <br><span class="text-teal-400">Order: Generate your base chart first, then optionally add overlays and regenerate.</span>
+                    </p>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Health Data Overlay -->
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-t-4 border-purple-500">
@@ -1095,7 +1113,8 @@
                                 ❓
                             </button>
                         </h3>
-                        <p class="text-xs text-gray-400 mb-4">Add Apple Health metrics (sleep, HRV, mood) to compare with chart patterns</p>
+                        <p class="text-xs text-gray-400 mb-2">Compare Apple Health metrics (sleep, HRV, mood) with astrological transits</p>
+                        <p class="text-xs text-blue-300 mb-4"><strong>Produces:</strong> Correlation tables showing how your health patterns align with planetary movements</p>
                         <div class="space-y-2">
                             <button id="loadHealthDataBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
                                 📱 Upload Health Data
@@ -1106,7 +1125,7 @@
                         </div>
                         <input type="file" id="healthDataInput" accept=".json" class="hidden">
                         <div id="healthDataStatus" class="text-xs text-green-400 hidden mt-2"></div>
-                        <p class="text-xs text-blue-400 mt-2">Recommended: HRV, Resting HR, Sleep, State of Mind</p>
+                        <p class="text-xs text-purple-400 mt-2">Compatible with iOS "Health Auto Export" app</p>
                     </div>
 
                     <!-- Seismograph Overlay -->
@@ -1117,13 +1136,14 @@
                                 ❓
                             </button>
                         </h3>
-                        <p class="text-xs text-gray-400 mb-4">Attach symbolic logs (.md) to cross-check currents</p>
+                        <p class="text-xs text-gray-400 mb-2">Cross-reference your personal symbolic logs with chart patterns</p>
+                        <p class="text-xs text-cyan-300 mb-4"><strong>Produces:</strong> Comparative analysis showing how your recorded experiences align with astrological indicators</p>
                         <div class="space-y-2">
                             <button id="loadSeismoBtn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
-                                📄 Upload Seismograph
+                                📄 Upload Seismograph Data
                             </button>
                             <button id="clearSeismoBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden">
-                                ✖️ Clear Seismograph
+                                ✖️ Clear Seismograph Data
                             </button>
                             <button id="genComparativeBtn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden" disabled>
                                 🔗 Generate Comparative Report
@@ -1131,7 +1151,7 @@
                         </div>
                         <input type="file" id="seismoMdInput" accept=".md,.markdown,text/markdown" class="hidden">
                         <div id="seismoDataStatus" class="text-xs text-gray-500 hidden mt-2"></div>
-                        <p class="text-xs text-cyan-400 mt-2">Compatible with Health Auto Export (iOS)</p>
+                        <p class="text-xs text-cyan-400 mt-2">Accepts Markdown (.md) files with dated entries</p>
                     </div>
                 </div>
             </div>
@@ -1159,17 +1179,6 @@
                         <p class="text-blue-300"><strong>Privacy:</strong> Data stays in your browser - no server upload.</p>
                     </div>
                     <button id="closeHealthDataHelp" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm">Close</button>
-                </div>
-            </div>
-
-            <!-- Loading Indicator -->
-            <div id="loadingIndicator" class="hidden text-center mb-8">
-                <div class="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-teal-600 transition ease-in-out duration-150">
-                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span id="loadingText">Computing Astrological Geometry...</span>
                 </div>
             </div>
 
@@ -1230,10 +1239,6 @@
                             <button id="downloadMarkdown" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-3 rounded text-sm transition-colors">
                                 💾 Save Chart Data
                                 <span class="block text-xs opacity-80">Keep setup to reuse later</span>
-                            </button>
-                            <button id="exportValidationBtn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-3 rounded text-sm transition-colors hidden">
-                                ✅ Export for Validation
-                                <span class="block text-xs opacity-80">Raw geometry file for debugging/other tools</span>
                             </button>
                         </div>
                     </div>
@@ -1962,7 +1967,7 @@ function renderTransitDay(dateStr, items){
             const lines = [
                 `# Exec Summary (${data.provenance?.math_brain_version || '0.2.1'})`,
                 `Date: ${currentDate}  TZ: ${personA?.timezone || 'UTC'}  Context: ${mode?.toUpperCase() || 'N/A'}`,
-                `Mag/Val/Vol: ${formatNumber(firstDayData?.seismograph?.magnitude)} (${toMagnitudeTerm(firstDayData?.seismograph?.magnitude || 0)})/${getValenceEmoji(firstDayData?.seismograph?.valence || 0)} ${formatNumber(firstDayData?.seismograph?.valence)} (${toValenceTerm(firstDayData?.seismograph?.valence || 0)})/${formatNumber(firstDayData?.seismograph?.volatility)}`,
+                `Magnitude: ${formatNumber(firstDayData?.seismograph?.magnitude)} (${toMagnitudeTerm(firstDayData?.seismograph?.magnitude || 0)}) | Valence: ${getValenceEmoji(firstDayData?.seismograph?.valence || 0)} ${formatNumber(firstDayData?.seismograph?.valence)} (${toValenceTerm(firstDayData?.seismograph?.valence || 0)}) | Volatility: ${formatNumber(firstDayData?.seismograph?.volatility)}`,
                 `Top Hooks: ${hooksStr}`,
                 `Retrogrades: ${firstDayData?.retrograde_count || 0}  OSR: ${(firstDayData?.osr_flags || []).length}`,
                 includeHealthLine ? `Health Link: ${health}` : undefined,
@@ -3104,129 +3109,6 @@ function renderTransitDay(dateStr, items){
             return md;
         }
 
-        // --- Validation Export (Seismograph-focused Markdown) ---
-        function generateValidationMarkdown(data, options = {}){
-            if (!data) throw new Error('No data to export');
-            
-            const {
-                includeJsonAppendix = false,
-                includeProvenance = false
-            } = options;
-            
-            // Resolve context + dates
-            const form = collectFormData();
-            const mode = form?.context?.mode || 'unknown';
-            const start = form?.transitParams?.startDate || '—';
-            const end   = form?.transitParams?.endDate   || start;
-            const step  = form?.transitParams?.step      || '1d';
-            const now   = new Date().toISOString();
-
-            const title = `# Woven Map – Validation Package\n`;
-            let md = title + `\n`;
-            md += `Generated: ${now}\n`;
-            md += `Context: ${mode.replace(/_/g,' ').toUpperCase()}\n`;
-            md += `Temporal Scope: ${start} → ${end}\n`;
-            md += `Step: ${step}\n`;
-            md += `Contract: validation-v1 (seismograph summary)\n\n`;
-
-            // Helper to emit a compact table for a dataset
-            const emitDataset = (label, dailyMap) => {
-                const dates = Object.keys(dailyMap||{}).sort();
-                if (!dates.length) return '';
-                let out = `## ${label}\n\n`;
-                out += `| Date | Mag | Val | Vol | Top Hooks |\n|---|---:|---:|---:|---|\n`;
-                dates.forEach(d => {
-                    const day = dailyMap[d] || {};
-                    const mag = (day.seismograph?.magnitude ?? 0).toFixed(2);
-                    const val = Math.max(-5, Math.min(5, day.seismograph?.valence ?? 0)).toFixed(2);
-                    const vol = (day.seismograph?.volatility ?? 0).toFixed(2);
-                    const hooks = (day.hooks || []).slice(0,3).map(h => {
-                        const a = h._aspect || h.aspect || '?';
-                        const p1 = h.p1_display || h.p1_name || '?';
-                        const p2 = h.p2_display || h.p2_name || '?';
-                        const ob = Math.abs(h._orb ?? h.orb ?? NaN);
-                        const obTxt = Number.isFinite(ob) ? ob.toFixed(1)+'°' : '—';
-                        return `${p1} ${a} ${p2} (${obTxt})`;
-                    }).join('; ');
-                    out += `| ${d} | ${mag} | ${val} | ${vol} | ${hooks || '—'} |\n`;
-                });
-                out += `\n`;
-                return out;
-            };
-
-            // Datasets
-            const sky = data?.sky?.transitsByDate || data?.transitsByDate;
-            const pa = data?.person_a?.chart?.transitsByDate;
-            const pb = data?.person_b?.chart?.transitsByDate;
-            const co = data?.composite?.transitsByDate;
-            if (sky) md += emitDataset('Planetary Weather', sky);
-            if (pa) md += emitDataset((data?.person_a?.details?.name || 'Person A'), pa);
-            if (pb) md += emitDataset((data?.person_b?.details?.name || 'Person B'), pb);
-            if (co) md += emitDataset('Composite', co);
-
-            // Machine-readable appendix (JSON) to ease downstream parsing if desired
-            const extract = (dailyMap) => {
-                const obj = {};
-                Object.keys(dailyMap||{}).sort().forEach(d => {
-                    const day = dailyMap[d] || {};
-                    obj[d] = {
-                        magnitude: +(day.seismograph?.magnitude ?? 0),
-                        valence: +(day.seismograph?.valence ?? 0),
-                        volatility: +(day.seismograph?.volatility ?? 0),
-                        hooks: (day.hooks||[]).slice(0,5).map(h => ({
-                            a: h._aspect || h.aspect || '',
-                            p1: h.p1_display || h.p1_name || '',
-                            p2: h.p2_display || h.p2_name || '',
-                            orb: +(Math.abs(h._orb ?? h.orb ?? NaN))
-                        }))
-                    };
-                });
-                return obj;
-            };
-            const appendix = {
-                meta: { mode, start, end, step, generated: now },
-                sky: sky ? extract(sky) : undefined,
-                person_a: pa ? extract(pa) : undefined,
-                person_b: pb ? extract(pb) : undefined,
-                composite: co ? extract(co) : undefined
-            };
-            md += `---\n\n`;
-            md += `<!-- machine-readable appendix (optional) -->\n`;
-            // Proper fenced JSON block without breaking template literal
-            md += "\n```json\n" + JSON.stringify(appendix, null, 2) + "\n```\n";
-            md += `\n`;
-            
-            // Health Data Correlation Analysis (if available)
-            if (loadedHealthData && data.person_a?.chart?.transitsByDate) {
-                try {
-                    const correlations = correlateHealthWithSeismograph(loadedHealthData, data.person_a.chart.transitsByDate);
-                    if (correlations.length > 0) {
-                        md += `\n---\n\n`;
-                        md += generateHealthCorrelationTable(correlations);
-                    }
-                } catch (error) {
-                    console.error('Error generating health correlation:', error);
-                    md += `\n---\n\n## Health Data Correlation\n\nError processing health data correlation: ${error.message}\n\n`;
-                }
-            }
-            
-            // Add Provenance & Processing Metadata section (validation)
-            if (includeProvenance) {
-                md += '\n\n' + generateProvenance(data, window.lastRunStats || {});
-            }
-            
-            // Add JSON Appendix (validation)
-            if (includeJsonAppendix) {
-                const jsonAppendix = generateJsonAppendix(data, window.lastRunStats || {});
-                md += '\n\n---\n\n## Machine-Readable Appendix (JSON)\n\n';
-                md += '```json\n';
-                md += JSON.stringify(jsonAppendix, null, 2);
-                md += '\n```\n';
-            }
-            
-            return md;
-        }
-
         
         // SEISMOGRAPH FUNCTIONS
         // =============================================================================
@@ -3325,7 +3207,7 @@ function renderTransitDay(dateStr, items){
                                     </li>
                                     <li><strong>Type (🌪️ / 🌊 / 🔥 / 🌱)</strong> → <span class="text-gray-300"><em>Kind of symbolic weather</em>.</span></li>
                                     <li><strong>Magnitude (⚡)</strong> → <span class="text-gray-300"><em>How strong it lands</em> (orb 🎯 + planets 🪐 + natal echo 📡).</span></li>
-                                    <li><strong>Volatility (🌊🔥)</strong> → <span class="text-gray-300"><em>How fast it fluctuates</em>.</span></li>
+                                    <li><strong>Volatility (�)</strong> → <span class="text-gray-300"><em>How fast it fluctuates</em>.</span></li>
                                 </ul>
                             </div>
 
@@ -3378,7 +3260,7 @@ function renderTransitDay(dateStr, items){
                                     <li><strong>1. Valence</strong> = Is it 🌞 lifting or 🌑 pressing?</li>
                                     <li><strong>2. Type</strong> = Which "weather flavor" (🌪️ Recursion, 🌱 Fertility, etc.)?</li>
                                     <li><strong>3. Magnitude</strong> ⚡ = How loud is it?</li>
-                                    <li><strong>4. Volatility</strong> 🌊🔥 = Is it steady or stormy?</li>
+                                    <li><strong>4. Volatility</strong> � = Is it steady or stormy?</li>
                                 </ol>
                             </div>
 
@@ -3532,7 +3414,7 @@ function renderTransitDay(dateStr, items){
                                     <th></th>
                                     <th class="text-right text-gray-400 font-normal">⚡ Mag</th>
                                     <th class="text-right text-gray-400 font-normal">↗︎ Val</th>
-                                    <th class="text-right text-gray-400 font-normal">🌪 Vol</th>
+                                    <th class="text-right text-gray-400 font-normal">📊 Vol</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -3661,7 +3543,7 @@ function renderTransitDay(dateStr, items){
                                     <th></th>
                                     <th class="text-right text-gray-400 font-normal">⚡ Mag</th>
                                     <th class="text-right text-gray-400 font-normal">↗︎ Val</th>
-                                    <th class="text-right text-gray-400 font-normal">🌪 Vol</th>
+                                    <th class="text-right text-gray-400 font-normal">📊 Vol</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -4276,7 +4158,7 @@ function renderTransitDay(dateStr, items){
             const icons = {
                 valence_trend: '📈',
                 magnitude_trend: '⚡',
-                volatility_spike: '🌪️',
+                volatility_spike: '📊',
                 sustained_pressure: '🔥',
                 low_activity: '😴',
                 extreme_ease: '🌟',
@@ -6163,9 +6045,8 @@ function renderTransitDay(dateStr, items){
                 if (currentAppMode === 'seismograph') {
                     const html = buildSeismographDisplay(result);
                     reportContent.innerHTML = html;
-                    document.getElementById('copyReport').classList.add('hidden');
-                    document.getElementById('downloadReport').classList.add('hidden');
-                    document.getElementById('exportValidationBtn').classList.remove('hidden');
+                    document.getElementById('copyReport').classList.remove('hidden');
+                    document.getElementById('downloadReport').classList.remove('hidden');
                     setupSeismographEventListeners();
                 } else {
                     // For display, use basic version without appendices (too long for UI)
@@ -6178,7 +6059,6 @@ function renderTransitDay(dateStr, items){
                     reportContent.textContent = report;
                     document.getElementById('copyReport').classList.remove('hidden');
                     document.getElementById('downloadReport').classList.remove('hidden');
-                    document.getElementById('exportValidationBtn').classList.remove('hidden');
                     // Prompt for seismograph if transit data present
                     const hasTransitsMode = formData.context.mode.includes('transits');
                     const hasTransitData = result.person_a?.chart?.transitsByDate || result.person_b?.chart?.transitsByDate || result.composite?.transitsByDate || result.synastry?.transitsByDate;
@@ -6317,32 +6197,6 @@ function renderTransitDay(dateStr, items){
                     showError('Failed to download report. Please try again.');
                 }
             });
-
-            // Export Validation Package (seismograph-focused)
-            const exportValidationBtn = document.getElementById('exportValidationBtn');
-            if (exportValidationBtn) {
-                exportValidationBtn.addEventListener('click', () => {
-                    if (!latestResultData) {
-                        showError('No data available. Generate a report first.');
-                        return;
-                    }
-                    try {
-                        // For validation export, include JSON appendix and provenance
-                        const validationOptions = {
-                            includeJsonAppendix: true,
-                            includeProvenance: true
-                        };
-                        const md = generateValidationMarkdown(latestResultData, validationOptions);
-                        const fname = generateFilename('md', latestResultData).replace(/\.md$/, '_validation.md');
-                        downloadFile(md, fname, 'text/markdown');
-                        exportValidationBtn.textContent = '✅ Exported!';
-                        setTimeout(()=> exportValidationBtn.textContent = '✅ Export for Validation (.md)', 2000);
-                    } catch (e) {
-                        console.error('Validation export failed:', e);
-                        showError('Failed to export validation package: ' + e.message);
-                    }
-                });
-            }
 
             // Download Markdown
             downloadMarkdownBtn.addEventListener('click', () => {
