@@ -1750,8 +1750,18 @@ function renderTransitDay(dateStr, items){
         }
 
         async function generateReportWithChunking(formData) {
+            const startTime = Date.now();
             const daySpan = calculateDaySpan(formData.transitParams);
             const mode = formData.context.mode;
+            
+            // Initialize run statistics tracking
+            window.lastRunStats = {
+                api_calls: 0,
+                calc_ms: 0,
+                hooks_accepted: 0,
+                hooks_rejected: 0,
+                chunks_processed: 0
+            };
             
             // Auto-chunk for ranges > 15 days to stay under 6MB limit
             if (daySpan > 15 && mode.includes('transits')) {
@@ -1802,6 +1812,8 @@ function renderTransitDay(dateStr, items){
                                 body: JSON.stringify(chunkData),
                                 signal: controller.signal
                             });
+                            // Track API call
+                            window.lastRunStats.api_calls++;
                         } finally {
                             clearTimeout(timeoutHandle);
                         }
@@ -1812,6 +1824,9 @@ function renderTransitDay(dateStr, items){
                         }
 
                         const result = await response.json();
+                        // Track chunk processing
+                        window.lastRunStats.chunks_processed++;
+                        
                         if (result.error) {
                             throw new Error(`Chunk ${i + 1} error: ${result.error}`);
                         }
@@ -1886,16 +1901,238 @@ function renderTransitDay(dateStr, items){
                 throw new Error(result.error);
             }
             
+            // Finalize run statistics for single request
+            window.lastRunStats.calc_ms = Date.now() - startTime;
+            
             return result;
         }
 
-        function generateMarkdownReport(data) {
+        // === EXECUTIVE SUMMARY AND JSON APPENDIX GENERATORS ===
+        
+        // Helper functions for executive summary
+        function aspectSymbol(asp) {
+            const symbols = { 
+                opp: "☍", opposition: "☍",
+                conj: "☌", conjunction: "☌", 
+                trine: "△", sextile: "✧", 
+                square: "□", quinc: "⚼", quincunx: "⚼"
+            };
+            return symbols[asp] || asp;
+        }
+        
+        function formatDegree(n) { 
+            return `${n.toFixed(1)}°`; 
+        }
+        
+        function formatNumber(n) { 
+            return (n ?? NaN).toFixed(2).replace(/NaN/, "—"); 
+        }
+        
+        function generateExecutiveSummary(data, opts = {}) {
+            const { includeHealthLine = true, includeProvenance = true } = opts;
+            
+            // Extract first day seismograph data
+            const firstDayData = data.person_a?.chart?.transitsByDate ? 
+                Object.values(data.person_a.chart.transitsByDate)[0] :
+                data.sky_transits?.transitsByDate ? 
+                Object.values(data.sky_transits.transitsByDate)[0] : null;
+            
+            const formData = collectFormData();
+            const mode = formData.context.mode;
+            const currentDate = new Date().toISOString().split('T')[0];
+            const personA = data.person_a?.details || formData.personA;
+            
+            // Extract top hooks
+            const top = firstDayData?.hooks?.slice(0, 3) || [];
+            const hooksStr = top
+                .map(h => `${h.p1_display || h.p1_name}${aspectSymbol(h._aspect || h.aspect)}${h.p2_display || h.p2_name} (${formatDegree(h._orb || h.orb || 0)})`)
+                .join(", ") || "—";
+            
+            // Health data
+            const healthData = data.health_analysis;
+            const health = healthData?.present ? 
+                `present${healthData.fidelity_index ? ` | Fidelity ${healthData.fidelity_index.toFixed(1)}/5` : ""}` : 
+                "absent";
+            
+            // Provenance
+            const ephemerisSource = data.provenance?.ephemeris_source || "AstrologerAPI-v4";
+            const ephemerisHash = data.provenance?.ephemeris_hash || "unknown";
+            const prov = `${ephemerisSource} | hash ${ephemerisHash.slice(0, 8)}…`;
+            
+            const lines = [
+                `# Exec Summary (${data.provenance?.math_brain_version || '0.2.1'})`,
+                `Date: ${currentDate}  TZ: ${personA?.timezone || 'UTC'}  Context: ${mode?.toUpperCase() || 'N/A'}`,
+                `Mag/Val/Vol: ${formatNumber(firstDayData?.seismograph?.magnitude)}/${formatNumber(firstDayData?.seismograph?.valence)}/${formatNumber(firstDayData?.seismograph?.volatility)}`,
+                `Top Hooks: ${hooksStr}`,
+                `Retrogrades: ${firstDayData?.retrograde_count || 0}  OSR: ${(firstDayData?.osr_flags || []).length}`,
+                includeHealthLine ? `Health Link: ${health}` : undefined,
+                includeProvenance ? `Provenance: ${prov}` : undefined
+            ].filter(Boolean);
+            
+            return lines.join("\n");
+        }
+        
+        function generateJsonAppendix(data, runStats = {}) {
+            const formData = collectFormData();
+            const mode = formData.context.mode;
+            const personA = data.person_a?.details || formData.personA;
+            const currentDateTime = new Date().toISOString();
+            
+            // Extract seismograph data
+            const seismographData = [];
+            const transitsByDate = data.person_a?.chart?.transitsByDate || data.sky_transits?.transitsByDate || {};
+            
+            Object.entries(transitsByDate).forEach(([date, dayData]) => {
+                const seismoEntry = {
+                    date: date,
+                    mag: dayData.seismograph?.magnitude || 0,
+                    val: dayData.seismograph?.valence || 0,
+                    vol: dayData.seismograph?.volatility || 0
+                };
+                
+                // Add top hooks
+                if (dayData.hooks && dayData.hooks.length > 0) {
+                    seismoEntry.top_hooks = dayData.hooks.slice(0, 5).map(h => ({
+                        a: h.p1_display || h.p1_name,
+                        asp: h._aspect || h.aspect,
+                        b: h.p2_display || h.p2_name,
+                        orb: h._orb || h.orb || 0,
+                        phase: h.phase || "unknown"
+                    }));
+                }
+                
+                // Add retrograde and OSR flags
+                if (dayData.retrograde_count !== undefined) seismoEntry.retrograde_count = dayData.retrograde_count;
+                if (dayData.osr_flags) seismoEntry.osr_flags = dayData.osr_flags;
+                
+                seismographData.push(seismoEntry);
+            });
+            
+            // Build the JSON appendix
+            const appendix = {
+                meta: {
+                    wm_schema: "WM-Chart-1.0",
+                    math_brain_version: data.provenance?.math_brain_version || "0.2.1",
+                    generated_utc: currentDateTime,
+                    timezone: personA?.timezone || "UTC",
+                    context: mode?.toUpperCase() || "UNKNOWN",
+                    ephemeris: {
+                        source: data.provenance?.ephemeris_source || "AstrologerAPI-v4",
+                        hash: data.provenance?.ephemeris_hash || "unknown"
+                    },
+                    provenance: {
+                        node_preference: data.provenance?.node_preference || "True",
+                        orb_caps: {
+                            luminaries_deg: data.provenance?.orb_caps?.luminaries || 12,
+                            planets_deg: data.provenance?.orb_caps?.planets || 8,
+                            points_deg: data.provenance?.orb_caps?.points || 6
+                        },
+                        max_ephemeris_delta_deg: data.provenance?.max_ephemeris_delta || 0.01
+                    },
+                    run_stats: {
+                        api_calls: runStats.api_calls || 0,
+                        calc_ms: runStats.calc_ms || 0,
+                        hooks_accepted: runStats.hooks_accepted || 0,
+                        hooks_rejected: runStats.hooks_rejected || 0
+                    }
+                },
+                subject: {
+                    name: personA?.name || "Unknown",
+                    dob: personA?.birth_date || "1970-01-01",
+                    tob: personA?.birth_time || "12:00",
+                    loc: personA?.birth_location || "Unknown",
+                    coords: personA?.coordinates ? {
+                        lat: personA.coordinates.lat,
+                        lon: personA.coordinates.lon
+                    } : undefined
+                },
+                seismograph: seismographData
+            };
+            
+            // Add health link if present
+            const healthData = data.health_analysis;
+            if (healthData) {
+                appendix.health_link = {
+                    present: healthData.present || false,
+                    metrics: healthData.metrics || [],
+                    corr: healthData.correlations || {},
+                    fidelity_index: healthData.fidelity_index
+                };
+            } else {
+                appendix.health_link = { present: false };
+            }
+            
+            return appendix;
+        }
+        
+        function generateProvenance(data, runStats = {}) {
+            const lines = [
+                "## Provenance & Processing Metadata\n",
+                `**Ephemeris Source**: ${data.provenance?.ephemeris_source || 'AstrologerAPI-v4'}`,
+                `**Ephemeris Hash**: ${data.provenance?.ephemeris_hash || 'unknown'}`,
+                `**Node Preference**: ${data.provenance?.node_preference || 'True Node (preferred)'}`,
+                `**Orb Caps Applied**: Luminaries ${data.provenance?.orb_caps?.luminaries || 12}°, Planets ${data.provenance?.orb_caps?.planets || 8}°, Points ${data.provenance?.orb_caps?.points || 6}°`,
+                `**Max Ephemeris Delta**: ±${data.provenance?.max_ephemeris_delta || 0.01}°`,
+                `**Processing Stats**: ${runStats.api_calls || 0} API calls, ${runStats.calc_ms || 0}ms calculation time`,
+                `**Hook Stats**: ${runStats.hooks_accepted || 0} accepted, ${runStats.hooks_rejected || 0} rejected`,
+                `**Deterministic Seed**: ${data.provenance?.deterministic_seed || 'None'}`,
+                `**Error Budget**: Max ephemeris variance within tolerance for geometric fidelity`
+            ];
+            
+            return lines.join("\n");
+        }
+        
+        function validateAppendix(payload) {
+            // Simple validation - check required fields
+            try {
+                if (!payload || typeof payload !== 'object') {
+                    return { ok: false, errors: ['Payload must be an object'] };
+                }
+                
+                const errors = [];
+                
+                // Check meta section
+                if (!payload.meta) errors.push('meta section missing');
+                else {
+                    if (!payload.meta.wm_schema) errors.push('meta.wm_schema missing');
+                    if (!payload.meta.math_brain_version) errors.push('meta.math_brain_version missing');
+                    if (!payload.meta.generated_utc) errors.push('meta.generated_utc missing');
+                    if (!payload.meta.ephemeris) errors.push('meta.ephemeris missing');
+                    if (!payload.meta.run_stats) errors.push('meta.run_stats missing');
+                }
+                
+                // Check subject section
+                if (!payload.subject) errors.push('subject section missing');
+                else {
+                    if (!payload.subject.name) errors.push('subject.name missing');
+                    if (!payload.subject.dob) errors.push('subject.dob missing');
+                    if (!payload.subject.tob) errors.push('subject.tob missing');
+                    if (!payload.subject.loc) errors.push('subject.loc missing');
+                }
+                
+                // Check seismograph section
+                if (!payload.seismograph) errors.push('seismograph section missing');
+                else if (!Array.isArray(payload.seismograph)) errors.push('seismograph must be an array');
+                
+                return errors.length === 0 ? { ok: true } : { ok: false, errors };
+            } catch (e) {
+                return { ok: false, errors: [`Validation error: ${e.message}`] };
+            }
+        }
+
+        function generateMarkdownReport(data, options = {}) {
             // MATH BRAIN COMPLIANCE (PROTOCOL LAYER 1: GEOMETRY ONLY):
             // - Output pure astrological geometry with provenance tracking
             // - Include RAVEN_NUDGE for downstream Poetic Brain (Raven Calder) processing
             // - Layer separation: GEOMETRY ONLY → Clear Mirror → Poetic Codex
             // - NO narrative, interpretation, or advice generation here
             // - Protocol compliance: mirror_ready flags, rejections taxonomy, scaling confidence
+            
+            const {
+                includeExecutiveSummary = false,
+                includeJsonAppendix = false,
+                includeProvenance = false
+            } = options;
             
             const formData = collectFormData();
             const currentDate = new Date().toISOString().split('T')[0];
@@ -1905,8 +2142,16 @@ function renderTransitDay(dateStr, items){
             const mode = formData.context.mode;
             const isSky = mode === 'sky_transits';
             
+            let md = '';
+            
+            // Executive Summary (optional, at top)
+            if (includeExecutiveSummary) {
+                md += generateExecutiveSummary(data, { includeHealthLine: true, includeProvenance: true });
+                md += '\n\n---\n\n';
+            }
+            
             // Protocol Layer Headers
-            let md = `# Woven Map System Report\n\n`;
+            md += `# Woven Map System Report\n\n`;
             md += `## Protocol Layer 1: Geometry Only\n\n`;
             md += `**Generated**: ${currentDate}\n`;
             md += `**Context Mode**: ${mode.replace(/_/g, ' ').toUpperCase()}\n`;
@@ -2835,13 +3080,33 @@ function renderTransitDay(dateStr, items){
             } catch (e) {
                 console.warn('Health correlation append skipped:', e);
             }
+            
+            // Add Provenance & Processing Metadata section
+            if (includeProvenance) {
+                md += '\n\n' + generateProvenance(data, window.lastRunStats || {});
+            }
+            
+            // Add JSON Appendix
+            if (includeJsonAppendix) {
+                const jsonAppendix = generateJsonAppendix(data, window.lastRunStats || {});
+                md += '\n\n---\n\n## Machine-Readable Appendix (JSON)\n\n';
+                md += '```json\n';
+                md += JSON.stringify(jsonAppendix, null, 2);
+                md += '\n```\n';
+            }
 
             return md;
         }
 
         // --- Validation Export (Seismograph-focused Markdown) ---
-        function generateValidationMarkdown(data){
+        function generateValidationMarkdown(data, options = {}){
             if (!data) throw new Error('No data to export');
+            
+            const {
+                includeJsonAppendix = false,
+                includeProvenance = false
+            } = options;
+            
             // Resolve context + dates
             const form = collectFormData();
             const mode = form?.context?.mode || 'unknown';
@@ -2937,6 +3202,20 @@ function renderTransitDay(dateStr, items){
                     console.error('Error generating health correlation:', error);
                     md += `\n---\n\n## Health Data Correlation\n\nError processing health data correlation: ${error.message}\n\n`;
                 }
+            }
+            
+            // Add Provenance & Processing Metadata section (validation)
+            if (includeProvenance) {
+                md += '\n\n' + generateProvenance(data, window.lastRunStats || {});
+            }
+            
+            // Add JSON Appendix (validation)
+            if (includeJsonAppendix) {
+                const jsonAppendix = generateJsonAppendix(data, window.lastRunStats || {});
+                md += '\n\n---\n\n## Machine-Readable Appendix (JSON)\n\n';
+                md += '```json\n';
+                md += JSON.stringify(jsonAppendix, null, 2);
+                md += '\n```\n';
             }
             
             return md;
@@ -5728,7 +6007,13 @@ function renderTransitDay(dateStr, items){
                     document.getElementById('exportValidationBtn').classList.remove('hidden');
                     setupSeismographEventListeners();
                 } else {
-                    const report = generateMarkdownReport(result);
+                    // For display, use basic version without appendices (too long for UI)
+                    const displayOptions = {
+                        includeExecutiveSummary: false,
+                        includeJsonAppendix: false,
+                        includeProvenance: false
+                    };
+                    const report = generateMarkdownReport(result, displayOptions);
                     reportContent.textContent = report;
                     document.getElementById('copyReport').classList.remove('hidden');
                     document.getElementById('downloadReport').classList.remove('hidden');
@@ -5805,7 +6090,18 @@ function renderTransitDay(dateStr, items){
             // Copy report
             copyBtn.addEventListener('click', async () => {
                 try {
-                    await navigator.clipboard.writeText(reportContent.textContent);
+                    // For copy, use enhanced version with executive summary but no JSON appendix (too large)
+                    if (latestResultData) {
+                        const copyOptions = {
+                            includeExecutiveSummary: true,
+                            includeJsonAppendix: false,
+                            includeProvenance: true
+                        };
+                        const fullReport = generateMarkdownReport(latestResultData, copyOptions);
+                        await navigator.clipboard.writeText(fullReport);
+                    } else {
+                        await navigator.clipboard.writeText(reportContent.textContent);
+                    }
                     copyBtn.textContent = 'Copied!';
                     setTimeout(() => { copyBtn.textContent = '📋 Copy Report'; }, 2000);
                 } catch (err) {
@@ -5815,11 +6111,19 @@ function renderTransitDay(dateStr, items){
 
             // Download report as markdown file
             document.getElementById('downloadReport').addEventListener('click', () => {
-                if (!reportContent.textContent) {
+                if (!latestResultData) {
                     showError('No report available for download. Please generate a report first.');
                     return;
                 }
                 try {
+                    // For download, include all enhancements
+                    const downloadOptions = {
+                        includeExecutiveSummary: true,
+                        includeJsonAppendix: true,
+                        includeProvenance: true
+                    };
+                    const fullReport = generateMarkdownReport(latestResultData, downloadOptions);
+                    
                     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
                     const person1Name = document.getElementById('nameA').value || 'PersonA';
                     const person2Name = document.getElementById('nameB').value;
@@ -5831,7 +6135,7 @@ function renderTransitDay(dateStr, items){
                         filename = `report_${person1Name}_${timestamp}.md`;
                     }
                     
-                    const blob = new Blob([reportContent.textContent], { type: 'text/markdown' });
+                    const blob = new Blob([fullReport], { type: 'text/markdown' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
@@ -5862,7 +6166,12 @@ function renderTransitDay(dateStr, items){
                         return;
                     }
                     try {
-                        const md = generateValidationMarkdown(latestResultData);
+                        // For validation export, include JSON appendix and provenance
+                        const validationOptions = {
+                            includeJsonAppendix: true,
+                            includeProvenance: true
+                        };
+                        const md = generateValidationMarkdown(latestResultData, validationOptions);
                         const fname = generateFilename('md', latestResultData).replace(/\.md$/, '_validation.md');
                         downloadFile(md, fname, 'text/markdown');
                         exportValidationBtn.textContent = '✅ Exported!';
@@ -5881,7 +6190,13 @@ function renderTransitDay(dateStr, items){
                     return;
                 }
                 try {
-                    const markdownContent = generateMarkdownReport(latestResultData);
+                    // For downloads, include all enhancements by default
+                    const reportOptions = {
+                        includeExecutiveSummary: true,
+                        includeJsonAppendix: true,
+                        includeProvenance: true
+                    };
+                    const markdownContent = generateMarkdownReport(latestResultData, reportOptions);
                     const filename = generateFilename('md', latestResultData);
                     downloadFile(markdownContent, filename, 'text/markdown');
                     
