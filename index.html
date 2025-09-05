@@ -392,6 +392,14 @@
                 </button>
             </p>
             
+            <!-- Weather Badge (shown when Planetary Weather is selected) -->
+            <div id="weatherBadge" class="hidden mt-4 mb-2">
+                <div class="inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-medium rounded-full border border-blue-500/30">
+                    <span class="text-lg">🌤️</span>
+                    <span>Weather</span>
+                </div>
+            </div>
+            
             <!-- Mirror/Geometry Tab Switch -->
             <div class="mt-6 mb-4">
                 <div class="flex justify-center">
@@ -561,13 +569,13 @@
                         <div class="flex items-start">
                             <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Solo →</span>
                             <div class="text-gray-300">
-                                <div>Your individual astrological architecture and current transits. <em>"What's my inner landscape and how is today pressing on it?"</em></div>
+                                <div>Chart your inner landscape and its current activations. <em>"What patterns am I carrying, and how is today pressing on them?"</em></div>
                             </div>
                         </div>
                         <div class="flex items-start">
                             <span class="inline-block w-20 text-teal-400 font-medium flex-shrink-0">Relational →</span>
                             <div class="text-gray-300">
-                                <div>How two people activate each other, plus current pressures on the dynamic. <em>"What's happening between us?"</em></div>
+                                <div>Map how two charts weave together, plus the pressures moving through that dynamic. <em>"What happens when our patterns touch?"</em></div>
                             </div>
                         </div>
                         <div class="flex items-start">
@@ -589,21 +597,21 @@
                         <input type="radio" name="contextType" value="solo" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700" checked>
                         <div>
                             <div class="text-white font-medium">Solo</div>
-                            <div class="text-gray-400 text-sm">Your chart analysis</div>
+                            <div class="text-gray-400 text-sm">Chart your inner weave</div>
                         </div>
                     </label>
                     <label class="flex items-center p-4 border border-gray-600 rounded-lg hover:border-teal-500 transition-colors cursor-pointer">
                         <input type="radio" name="contextType" value="relational" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
                         <div>
                             <div class="text-white font-medium">Relational</div>
-                            <div class="text-gray-400 text-sm">Two people + current pressures</div>
+                            <div class="text-gray-400 text-sm">Where two patterns touch</div>
                         </div>
                     </label>
                     <label class="flex items-center p-4 border border-gray-600 rounded-lg hover:border-teal-500 transition-colors cursor-pointer">
                         <input type="radio" name="contextType" value="weather" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
                         <div>
                             <div class="text-white font-medium">Planetary Weather Only</div>
-                            <div class="text-gray-400 text-sm">Look only at current planetary movements</div>
+                            <div class="text-gray-400 text-sm">Sky patterns without personal charts</div>
                         </div>
                     </label>
                 </div>
@@ -1199,7 +1207,7 @@
                 </div>
 
                 <!-- Action Zones -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <!-- For Readers Zone -->
                     <div class="bg-gray-750 p-4 rounded-lg border border-emerald-600">
                         <h3 class="text-emerald-300 font-medium mb-3">📖 For Readers</h3>
@@ -1223,13 +1231,6 @@
                                 💾 Save Chart Data
                                 <span class="block text-xs opacity-80">Keep setup to reuse later</span>
                             </button>
-                        </div>
-                    </div>
-
-                    <!-- For Developers Zone -->
-                    <div class="bg-gray-750 p-4 rounded-lg border border-cyan-600">
-                        <h3 class="text-cyan-300 font-medium mb-3">⚙️ For Developers</h3>
-                        <div class="space-y-2">
                             <button id="exportValidationBtn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-3 rounded text-sm transition-colors hidden">
                                 ✅ Export for Validation
                                 <span class="block text-xs opacity-80">Raw geometry file for debugging/other tools</span>
@@ -6314,6 +6315,16 @@ function renderTransitDay(dateStr, items){
         function updateContextType(contextType) {
             currentContextType = contextType;
             console.log('[CTX] Switching contextType ->', contextType);
+            
+            // Update Weather badge visibility
+            const weatherBadge = document.getElementById('weather-badge');
+            if (weatherBadge) {
+                if (contextType === 'weather') {
+                    weatherBadge.classList.remove('hidden');
+                } else {
+                    weatherBadge.classList.add('hidden');
+                }
+            }
             
             // Update the legacy context mode for compatibility
             const contextModeInputs = document.querySelectorAll('input[name="contextMode"]');

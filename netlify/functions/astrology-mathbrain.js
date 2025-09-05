@@ -983,6 +983,7 @@ exports.handler = async function(event) {
     const wantSynastry = modeToken === 'SYNASTRY' || modeToken === 'SYNASTRY_TRANSITS';
     const wantSynastryAspectsOnly = modeToken === 'SYNASTRY_ASPECTS' || event.path?.includes('synastry-aspects-data');
     const wantComposite = modeToken === 'COMPOSITE' || modeToken === 'COMPOSITE_ASPECTS' || modeToken === 'COMPOSITE_TRANSITS' || body.wantComposite === true;
+    const wantSkyTransits = modeToken === 'SKY_TRANSITS' || modeToken === 'WEATHER' || body.context?.type === 'weather';
 
     // --- Relationship Context Validation (Partner / Friend / Family) ---
     // Canonical enumerations supplied by product spec
@@ -1242,7 +1243,41 @@ exports.handler = async function(event) {
     // 2) Transits (optional; raw aspects by date, with advanced options)
     // Skip transit processing for natal_only mode even if date range is provided
     const skipTransits = modeToken === 'NATAL_ONLY';
-    if (haveRange && !skipTransits) {
+    
+    // Sky transits mode - planetary transits without personal natal chart
+    if (wantSkyTransits && haveRange) {
+      logger.debug('Processing sky transits mode:', { start, end, step });
+      
+      // Create a dummy subject for sky-only transits (no personal data)
+      const skySubject = {
+        name: 'Sky Patterns',
+        birth_date: start, // Use start date as reference
+        birth_time: '12:00',
+        birth_location: 'Greenwich, UK', // Neutral location for sky patterns
+        timezone: 'GMT'
+      };
+      
+      try {
+        const { transitsByDate, retroFlagsByDate } = await getTransits(skySubject, { startDate: start, endDate: end, step }, headers, pass);
+        
+        // Apply seismograph analysis to sky transits
+        const seismographData = calculateSeismograph(transitsByDate, retroFlagsByDate);
+        
+        // Store sky transit data
+        result.sky_transits = {
+          transitsByDate: seismographData.daily,
+          derived: {
+            seismograph_summary: seismographData.summary,
+            mode: 'sky_patterns_only'
+          }
+        };
+        
+        logger.debug('Sky transits completed with seismograph analysis');
+      } catch (e) {
+        logger.warn('Sky transits computation failed:', e.message);
+        result.sky_transits = { error: 'Failed to compute sky patterns' };
+      }
+    } else if (haveRange && !skipTransits) {
       // Use new getTransits and seismograph logic with configuration parameters
   const { transitsByDate, retroFlagsByDate } = await getTransits(personA, { startDate: start, endDate: end, step }, headers, pass);
   result.person_a.chart = { ...result.person_a.chart, transitsByDate };
