@@ -380,6 +380,30 @@
                     position: relative; /* Fall back to relative on very small screens */
                 }
             }
+
+            /* ---- Report Reading Surface Enhancements ---- */
+            .report-surface { font-variant-ligatures:none; }
+            .report-surface::-webkit-scrollbar { width:10px; }
+            .report-surface::-webkit-scrollbar-track { background:rgba(31,41,55,.55); border-radius:6px; }
+            .report-surface::-webkit-scrollbar-thumb { background:linear-gradient(to bottom,#0d9488,#0e7490); border-radius:6px; }
+            .report-surface::-webkit-scrollbar-thumb:hover { background:linear-gradient(to bottom,#14b8a6,#06b6d4); }
+            .report-surface h1, .report-surface h2, .report-surface h3 { font-family:'Inter',sans-serif; font-weight:600; letter-spacing:.5px; }
+            .report-surface h1 { font-size:1.05rem; margin-top:.85rem; margin-bottom:.4rem; color:#5eead4; }
+            .report-surface h2 { font-size:.95rem; margin-top:.75rem; margin-bottom:.35rem; color:#67e8f9; }
+            .report-surface h3 { font-size:.85rem; margin-top:.65rem; margin-bottom:.3rem; color:#a5f3fc; }
+            .report-surface code { background:#1e293b; padding:2px 4px; border-radius:4px; font-size:.9em; }
+            .report-surface hr { border:0; border-top:1px solid rgba(148,163,184,.25); margin:.8rem 0; }
+            .report-surface ul { list-style:disc; margin-left:1.1rem; margin-bottom:.4rem; }
+            .report-surface table { border-collapse:collapse; width:100%; font-size:.72rem; margin:.6rem 0 .9rem; }
+            .report-surface th, .report-surface td { border:1px solid rgba(71,85,105,.55); padding:4px 6px; }
+            .report-surface th { background:#0f172a; font-weight:500; color:#7dd3fc; }
+            .report-surface tr:nth-child(even){ background:rgba(30,41,59,.55); }
+            .report-surface a { color:#38bdf8; text-decoration:underline; }
+            .report-surface a:hover { color:#7dd3fc; }
+            .report-surface .tag { display:inline-block; background:#164e63; color:#cffafe; padding:2px 6px; margin:1px 3px 1px 0; border-radius:4px; font-size:.55rem; letter-spacing:.5px; }
+            .report-surface .faint { color:#64748b; }
+            .report-surface .section-break { margin:1rem 0 .55rem; padding-top:.25rem; border-top:1px dashed rgba(94,234,212,.35); }
+            @media (min-width:1024px){ .report-surface { font-size:12px; } }
         </style>
     </head>
 <body class="bg-gray-900 text-gray-200">
@@ -1254,7 +1278,7 @@
                     </div>
                     <!-- Simple Mode: Hook / Aspect Filter Controls intentionally hidden (retained for future advanced mode) -->
                     <div id="hookFilters" class="hidden"></div>
-                    <div id="reportContent" class="text-gray-200 whitespace-pre-wrap font-mono text-xs bg-gray-900 p-4 rounded border border-gray-700 overflow-auto max-h-96">
+                    <div id="reportContent" class="report-surface whitespace-pre-wrap font-mono text-[11px] leading-relaxed bg-gray-900/80 backdrop-blur-sm p-4 rounded-lg border border-gray-700/70 overflow-auto max-h-[34rem] shadow-inner selection:bg-teal-600/40 selection:text-teal-50">
                     </div>
                 </div>
             </div>
