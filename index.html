@@ -1242,6 +1242,10 @@
                                 📄 Download Report
                                 <span class="block text-xs opacity-80">Formatted file with your chart results</span>
                             </button>
+                            <button id="downloadPDF" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-3 rounded text-sm transition-colors hidden">
+                                📑 Download PDF
+                                <span class="block text-xs opacity-80">Professional PDF report</span>
+                            </button>
                             <button id="copyReport" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-3 rounded text-sm transition-colors hidden">
                                 📋 Copy Report
                                 <span class="block text-xs opacity-80">Copy results to clipboard</span>
@@ -1275,6 +1279,9 @@
     <script src="config.js"></script>
     <script src="src/parsers/seismograph-md.js"></script>
     <script src="src/reporters/comparative-report.js"></script>
+    
+    <!-- PDF Generation Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
 // --- Global row counter for report summary ---
 let totalRowCount = 0;
@@ -1488,6 +1495,7 @@ function renderTransitDay(dateStr, items){
             // Hide report action buttons when showing error
             document.getElementById('copyReport').classList.add('hidden');
             document.getElementById('downloadReport').classList.add('hidden');
+            document.getElementById('downloadPDF').classList.add('hidden');
         }
 
         function hideError() {
@@ -6061,6 +6069,69 @@ function renderTransitDay(dateStr, items){
             }
         }
 
+        // Convert markdown to HTML for PDF generation
+        function convertMarkdownToHTML(markdown) {
+            // Simple markdown to HTML conversion
+            let html = markdown
+                // Headers
+                .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+                .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+                .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+                // Bold and italic
+                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+                // Links
+                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+                // Code blocks
+                .replace(/```[\s\S]*?```/g, '<pre><code>$&</code></pre>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                // Lists
+                .replace(/^\- (.*)$/gm, '<li>$1</li>')
+                .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+                // Tables (basic support)
+                .replace(/\|.*\|/g, (match) => {
+                    const cells = match.split('|').filter(cell => cell.trim());
+                    return '<tr>' + cells.map(cell => `<td>${cell.trim()}</td>`).join('') + '</tr>';
+                })
+                .replace(/(<tr>.*<\/tr>)/gs, '<table border="1" style="border-collapse: collapse; width: 100%; margin: 10px 0;">$1</table>')
+                // Line breaks
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+            
+            // Wrap in basic HTML structure with PDF-friendly styling
+            return `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { 
+                            font-family: 'Times New Roman', serif; 
+                            line-height: 1.4; 
+                            color: #333; 
+                            max-width: 100%; 
+                            padding: 20px;
+                            font-size: 12px;
+                        }
+                        h1 { color: #2c5aa0; font-size: 18px; margin: 20px 0 10px 0; }
+                        h2 { color: #2c5aa0; font-size: 16px; margin: 15px 0 8px 0; }
+                        h3 { color: #2c5aa0; font-size: 14px; margin: 12px 0 6px 0; }
+                        p { margin: 8px 0; }
+                        table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 10px; }
+                        td, th { border: 1px solid #ccc; padding: 4px; text-align: left; }
+                        code { background: #f5f5f5; padding: 2px 4px; border-radius: 3px; }
+                        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-wrap: break-word; }
+                        strong { color: #2c5aa0; }
+                        .page-break { page-break-before: always; }
+                    </style>
+                </head>
+                <body>
+                    <p>${html}</p>
+                </body>
+                </html>
+            `;
+        }
+
         // --- API Call ---
 
         async function generateReport() {
@@ -6079,6 +6150,7 @@ function renderTransitDay(dateStr, items){
             // Hide report action buttons when starting new generation
             document.getElementById('copyReport').classList.add('hidden');
             document.getElementById('downloadReport').classList.add('hidden');
+            document.getElementById('downloadPDF').classList.add('hidden');
 
             try {
                 const formData = collectFormData();
@@ -6161,6 +6233,7 @@ function renderTransitDay(dateStr, items){
                 
                 document.getElementById('copyReport').classList.remove('hidden');
                 document.getElementById('downloadReport').classList.remove('hidden');
+                document.getElementById('downloadPDF').classList.remove('hidden');
                 updateSeismographTabIndicator();
                 
                 reportOutput.classList.remove('hidden');
@@ -6328,6 +6401,76 @@ function renderTransitDay(dateStr, items){
                     console.error('Failed to download report: ', err);
                     console.error('Error details:', err.message, err.stack);
                     showError(`Failed to download report: ${err.message}. Please try again.`);
+                }
+            });
+
+            // Download report as PDF
+            document.getElementById('downloadPDF').addEventListener('click', () => {
+                if (!latestResultData) {
+                    showError('No report available for download. Please generate a report first.');
+                    return;
+                }
+                try {
+                    console.log('Starting PDF download process...');
+                    
+                    // Generate markdown report for PDF conversion
+                    const downloadOptions = {
+                        includeExecutiveSummary: true,
+                        includeJsonAppendix: false, // Skip JSON for PDF to keep it readable
+                        includeProvenance: true
+                    };
+                    
+                    console.log('Generating markdown report for PDF...');
+                    const markdownReport = generateMarkdownReport(latestResultData, downloadOptions);
+                    
+                    // Convert markdown to HTML for PDF generation
+                    const htmlContent = convertMarkdownToHTML(markdownReport);
+                    
+                    // Generate filename
+                    const person1Name = document.getElementById('nameA').value || 'PersonA';
+                    const person2Name = document.getElementById('nameB').value;
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                    
+                    let filename;
+                    if (person2Name) {
+                        filename = `WovenMap_${person1Name}_${person2Name}_${timestamp}.pdf`;
+                    } else {
+                        filename = `WovenMap_${person1Name}_${timestamp}.pdf`;
+                    }
+                    
+                    // PDF generation options
+                    const options = {
+                        margin: [10, 10, 10, 10],
+                        filename: filename,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                    };
+                    
+                    // Show loading state
+                    const btn = document.getElementById('downloadPDF');
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '⏳ Generating PDF...';
+                    btn.disabled = true;
+                    
+                    // Generate and download PDF
+                    html2pdf().set(options).from(htmlContent).save().then(() => {
+                        console.log('PDF download completed successfully');
+                        btn.innerHTML = '✅ PDF Downloaded!';
+                        setTimeout(() => { 
+                            btn.innerHTML = originalText; 
+                            btn.disabled = false;
+                        }, 2000);
+                    }).catch((err) => {
+                        console.error('PDF generation failed:', err);
+                        showError(`Failed to generate PDF: ${err.message}. Please try again.`);
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    });
+                    
+                } catch (err) {
+                    console.error('Failed to generate PDF: ', err);
+                    showError(`Failed to generate PDF: ${err.message}. Please try again.`);
                 }
             });
 
