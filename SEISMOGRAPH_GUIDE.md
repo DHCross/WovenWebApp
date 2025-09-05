@@ -3,6 +3,51 @@
 > Geometry-first diagnostic scaffold. Mirror, not mandate.
 
 ## Overview
+The Seismograph is a core innovation of The Woven Map: a quantified lens translating raw planetary geometry into three auditable axes of experiential field dynamics:
+
+- **Magnitude (0–5 normalized)** – Symbolic field intensity using safe lexicon: Whisper, Pulse, Wave, Surge, Peak, Apex. Neutral intensity markers only.
+- **Valence (-5..+5 annotation)** – Directional charge with emoji indicators: 🌑 Negative (🌋⚔🌊🌀🌫🕰) vs 🌞 Positive (🌱🔥✨🦋💎). Rich semantic types.
+- **Volatility (0–5)** – Turbulence / instability (rate + amplitude of change in activation field).
+
+These are **three independent dials**, not a derived chain.
+
+```
+Magnitude → "How intense is the field?" (Whisper → Apex)
+Valence   → "What's the directional charge?" (🌑 vs 🌞)
+Volatility→ "Is it steady or turbulent?"
+```
+
+## Safe Lexicon System
+### Magnitude Terms (Neutral Intensity Only)
+- **Whisper** (0–0.5) - Minimal field activation
+- **Pulse** (0.5–1.5) - Light rhythmic intensity  
+- **Wave** (1.5–2.5) - Moderate field flow
+- **Surge** (2.5–3.5) - Strong current intensity
+- **Peak** (3.5–4.5) - High amplitude activation
+- **Apex** (4.5–5.0) - Maximum field intensity
+
+### Valence Types with Emoji Indicators
+#### 🌑 Negative Valence (Resistance/Challenge)
+- 🌋 **Pressure/Eruption** (-4.5 to -5.0) - Compression until release, shadow surges
+- ⚔ **Friction Clash** (-3.5 to -4.5) - Conflict, heat, accidents
+- 🌊 **Cross Current** (-2.5 to -3.5) - Competing priorities, confusion
+- 🌀 **Fog/Dissolution** (-1.5 to -2.5) - Blurred signals, loss of clarity
+- 🌫 **Entropy Drift** (-0.8 to -1.5) - Inertia, drain, loss of momentum
+- 🕰 **Saturn Weight** (-0.2 to -0.8) - Heaviness, delay, endurance test
+
+#### 🌞 Positive Valence (Support/Flow)
+- 🌱 **Fertile Field** (+0.2 to +0.8) - Growth, opportunity, new shoots
+- 🌊 **Flow Tide** (+0.8 to +1.5) - Smooth adaptability, emotional ease
+- ✨ **Harmonic Resonance** (+1.5 to +2.5) - Natural ease, things click
+- 🔥 **Combustion Clarity** (+2.5 to +3.5) - Insight breaks through
+- 🦋 **Liberation/Release** (+3.5 to +4.5) - Breakthroughs, freedom
+- 💎 **Expansion Lift** (+4.5 to +5.0) - Abundance, confidence
+
+#### ⚖ Neutral Balance (-0.2 to +0.2) - Equilibrium stategraph Guide
+
+> Geometry-first diagnostic scaffold. Mirror, not mandate.
+
+## Overview
 The Seismograph is a core innovation of The Woven Map: a quantified lens translating raw planetary geometry into three auditable axes of experiential pressure:
 
 - **Magnitude (0–5 normalized)** – Symbolic pressure intensity (weighted hook density & alignment). Standalone scalar.

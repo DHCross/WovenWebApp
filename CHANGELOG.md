@@ -1,3 +1,56 @@
+## [2025-09-04] MAJOR ENHANCEMENT: Safe Lexicon Retrofit & Emoji Valence System
+
+**Description:**
+Implemented comprehensive safe lexicon system with emoji-enhanced valence display to ensure magnitude vocabulary remains strictly neutral while enriching directional charge visualization.
+
+**Core Changes:**
+1. **Safe Magnitude Lexicon (6-term system):**
+   - Whisper (0–0.5), Pulse (0.5–1.5), Wave (1.5–2.5), Surge (2.5–3.5), Peak (3.5–4.5), Apex (4.5–5.0)
+   - Eliminated problematic terms: "Quake" → "Peak", "Field" → "Apex"
+   - All magnitude terms are now strictly neutral intensity markers
+
+2. **Enhanced Valence Lexicon (11-term system):**
+   - Collapse, Grind, Friction, Contraction, Drag, Neutral, Lift, Flow, Harmony, Expansion, Liberation
+   - Clear positive/negative directional charge terminology
+   - Maintains rich semantic meaning for valence patterns
+
+3. **Emoji Valence Enhancement (🌞/🌑 System):**
+   - 🌑 Negative Types: 🌋 Pressure/Eruption, ⚔ Friction Clash, 🌊 Cross Current, 🌀 Fog/Dissolution, 🌫 Entropy Drift, 🕰 Saturn Weight
+   - 🌞 Positive Types: 🌱 Fertile Field, 🌊 Flow Tide, ✨ Harmonic Resonance, 🔥 Combustion Clarity, 🦋 Liberation/Release, 💎 Expansion Lift
+   - ⚖ Neutral Balance for center range
+   - Immediate visual recognition of valence polarity and intensity
+
+**Technical Implementation:**
+- `toMagnitudeTerm()` and `toValenceTerm()` mapping functions
+- `getValenceEmoji()` and `getValenceType()` for rich display
+- `migrateMagnitudeTerm()` handles legacy term migration
+- `assertSafeMagnitudePhrase()` validation prevents unsafe metaphors
+- Enhanced seismograph tables show emoji + numeric values (e.g., "🌋 -3.2")
+- Executive Summary includes emoji display: "Mag/Val/Vol: 2.8 (Surge)/🌋 -3.2 (Grind)/1.4"
+
+**Schema Updates:**
+- JSON Schema bumped to WM-Chart-1.1 with Draft 2020-12 compliance
+- Added `magnitude_term` and `valence_term` enum fields
+- Explicit enums for safe lexicon terms in machine-readable output
+- Maintains backward compatibility with v1.0 reports
+
+**Safety & Validation:**
+- Comprehensive validation system tests 401+ valence/magnitude combinations
+- Automatic page-load validation ensures lexicon integrity
+- Banned unsafe metaphors (storm, quake, disaster, tsunami, crash, catastrophe, earthquake) in magnitude contexts
+- Legacy migration with provenance tracking
+
+**UI/UX Enhancements:**
+- Seismograph mode description updated to reference emoji lexicon 🌑/🌞
+- Enhanced tooltips show descriptive valence types (e.g., "Directional tone: friction clash")
+- Barometer heuristics use safe lexicon exclusively
+- All magnitude descriptions use neutral field terminology
+
+**AI Collaboration Notes:**
+*Safe lexicon retrofit successfully completed with GitHub Copilot assistance. The Math Brain now maintains geometric fidelity without valence contamination, while the Poetic Brain gains richer emoji-enhanced expression. Magnitude vocabulary is completely neutral (Whisper→Apex), directional charge lives exclusively in valence (🌑/🌞), and the system includes comprehensive validation guardrails.*
+
+---
+
 ## [2025-09-03] CRITICAL ENHANCEMENT: Auto-Chunking System for Large Date Ranges
 
 **Description:**

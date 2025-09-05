@@ -2,6 +2,20 @@
 
 This is a web-based application designed to generate a detailed astrological report for a primary individual (Person A), with an optional second individual (Person B) for synastry and relationship analysis. It uses a static HTML and JavaScript front-end that communicates with a Netlify serverless function to fetch data from an external astrology API. When a Person B is provided, you can toggle the **Include Synastry Analysis** checkbox to append synastry aspects and house overlays to the generated report.
 
+## **Key Features**
+
+### **Safe Lexicon System**
+- **Neutral Magnitude Terms**: Whisper, Pulse, Wave, Surge, Peak, Apex (strictly intensity-only, no negative bias)
+- **Rich Valence Terms**: Collapse, Grind, Friction, Contraction, Drag, Neutral, Lift, Flow, Harmony, Expansion, Liberation
+- **Emoji Valence Display**: 🌑 Negative (🌋⚔🌊🌀🌫🕰) and 🌞 Positive (🌱🔥✨🦋💎) visual indicators
+- **Schema v1.1**: Machine-readable JSON includes both numeric and term values
+
+### **Seismograph Mode**
+- Maps symbolic field currents over time with Magnitude/Valence/Volatility metrics
+- Enhanced emoji display shows valence polarity at a glance (e.g., "🌋 -3.2")
+- Queue Analysis & Filters for pattern recognition
+- CSV export capability for further analysis
+
 API Page: https://rapidapi.com/gbattaglia/api/astrologer
 
 ## **Core Technology**

@@ -69,11 +69,35 @@ This document outlines the best practices for maintaining, updating, and trouble
 
 ---
 
+## 11. **Safe Lexicon System Maintenance**
+
+**The app uses a safe lexicon system to ensure magnitude terms remain neutral while valence terms carry directional meaning.**
+
+### **Key Functions to Maintain:**
+- `toMagnitudeTerm(mag)` - Maps numeric values to neutral terms (Whisper, Pulse, Wave, Surge, Peak, Apex)
+- `toValenceTerm(val)` - Maps numeric values to directional terms (Collapse...Liberation)
+- `getValenceEmoji(val)` - Maps valence to emoji indicators (🌑 negative, 🌞 positive)
+- `assertSafeMagnitudePhrase(text)` - Validates magnitude descriptions don't contain negative imagery
+
+### **Validation & Safety:**
+- `validateSafeLexicon()` runs on page load to ensure all mappings are complete
+- Never use terms like "storm", "quake", "disaster", "tsunami" in magnitude contexts
+- All magnitude language must be neutral (field intensity, not emotional charge)
+- Directional charge belongs exclusively in valence terminology
+
+### **Schema Version:**
+- Current: WM-Chart-1.1 includes both numeric and term values
+- When updating terms, consider schema version bump if breaking changes
+- Legacy migration: `migrateMagnitudeTerm()` handles old term transitions
+
+---
+
 ## Quick Checklist Before Each Update
 
 - [ ] Update CHANGELOG.md with details of the change.
 - [ ] Ensure dependencies are up-to-date.
 - [ ] Test for errors and validate user flows.
+- [ ] Verify safe lexicon validation passes (check browser console for ✅).
 - [ ] Clean up unused files and double-check .env handling.
 - [ ] Commit with a clear, descriptive message.
 

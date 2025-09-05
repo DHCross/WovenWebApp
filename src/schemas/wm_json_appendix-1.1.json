@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wovenmap.dev/schemas/wm_json_appendix-1.1.json",
+  "title": "Woven Map JSON Appendix",
+  "type": "object",
+  "required": ["meta", "subject", "seismograph"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["wm_schema", "math_brain_version", "generated_utc", "timezone", "ephemeris", "run_stats"],
+      "properties": {
+        "wm_schema": { "type": "string", "enum": ["WM-Chart-1.1"] },
+        "math_brain_version": { "type": "string" },
+        "generated_utc": { "type": "string", "format": "date-time" },
+        "timezone": { "type": "string" },
+        "context": { "type": "string", "enum": ["NATAL", "NATAL_TRANSITS", "SYNASTRY", "COMPOSITE", "SKY_TRANSITS"] },
+        "ephemeris": {
+          "type": "object",
+          "required": ["source", "hash"],
+          "properties": {
+            "source": { "type": "string" },
+            "hash": { "type": "string" }
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "node_preference": { "type": "string", "enum": ["True", "Mean"] },
+            "orb_caps": {
+              "type": "object",
+              "properties": {
+                "luminaries_deg": { "type": "number" },
+                "planets_deg": { "type": "number" },
+                "points_deg": { "type": "number" }
+              }
+            },
+            "deterministic_seed": { "type": "string" },
+            "max_ephemeris_delta_deg": { "type": "number" }
+          },
+          "additionalProperties": false
+        },
+        "run_stats": {
+          "type": "object",
+          "required": ["api_calls", "calc_ms", "hooks_accepted", "hooks_rejected"],
+          "properties": {
+            "api_calls": { "type": "integer" },
+            "calc_ms": { "type": "integer" },
+            "hooks_accepted": { "type": "integer" },
+            "hooks_rejected": { "type": "integer" }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "subject": {
+      "type": "object",
+      "required": ["name", "dob", "tob", "loc"],
+      "properties": {
+        "name": { "type": "string" },
+        "dob": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "tob": { "type": "string", "pattern": "^\\d{2}:\\d{2}$" },
+        "loc": { "type": "string" },
+        "coords": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lon": { "type": "number" }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "seismograph": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["date", "mag", "val", "vol", "magnitude_term", "valence_term"],
+        "properties": {
+          "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+          "mag": { "type": "number" },
+          "val": { "type": "number" },
+          "vol": { "type": "number" },
+          "magnitude_term": {
+            "type": "string",
+            "enum": ["Whisper", "Pulse", "Wave", "Surge", "Peak", "Apex"]
+          },
+          "valence_term": {
+            "type": "string",
+            "enum": ["Collapse", "Grind", "Friction", "Contraction", "Drag", "Neutral", "Lift", "Flow", "Harmony", "Expansion", "Liberation"]
+          },
+          "top_hooks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["a", "asp", "b", "orb"],
+              "properties": {
+                "a": { "type": "string" },
+                "asp": { "type": "string" }, 
+                "b": { "type": "string" },
+                "orb": { "type": "number" },
+                "phase": { "type": "string", "enum": ["applying", "separating"] }
+              },
+              "additionalProperties": false
+            }
+          },
+          "retrograde_count": { "type": "integer" },
+          "osr_flags": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "health_link": {
+      "type": "object",
+      "required": ["present"],
+      "properties": {
+        "present": { "type": "boolean" },
+        "metrics": { "type": "array", "items": { "type": "string" } },
+        "corr": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        },
+        "fidelity_index": { "type": "number" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
