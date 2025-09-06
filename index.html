@@ -5672,6 +5672,27 @@ function renderTransitDay(dateStr, items){
                 console.log('End date element:', endDateElement, 'Value:', endDateElement?.value);
                 console.log('Step element:', stepElement, 'Value:', stepElement?.value);
                 
+                // Auto-fill dates for Balance Meter mode if empty
+                if (mode === 'balance_meter') {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    const defaultEndDate = new Date();
+                    defaultEndDate.setDate(defaultEndDate.getDate() + 7); // 1 week from today
+                    const defaultEndStr = defaultEndDate.toISOString().split('T')[0];
+                    
+                    if (!startDateElement?.value) {
+                        console.log('Auto-filling start date for Balance Meter:', todayStr);
+                        if (startDateElement) startDateElement.value = todayStr;
+                    }
+                    if (!endDateElement?.value) {
+                        console.log('Auto-filling end date for Balance Meter:', defaultEndStr);
+                        if (endDateElement) endDateElement.value = defaultEndStr;
+                    }
+                    if (!stepElement?.value) {
+                        console.log('Auto-filling step for Balance Meter: daily');
+                        if (stepElement) stepElement.value = 'daily';
+                    }
+                }
+                
                 if (startDateElement && endDateElement && stepElement) {
                     formData.transitParams = {
                         startDate: startDateElement.value,
@@ -5682,6 +5703,26 @@ function renderTransitDay(dateStr, items){
                     console.log('Transit data added to form:', formData.transitParams);
                 } else {
                     console.log('WARNING: Transit elements not found or missing values');
+                    console.log('Elements found:', {
+                        startDate: !!startDateElement,
+                        endDate: !!endDateElement,
+                        step: !!stepElement
+                    });
+                    
+                    // For Balance Meter mode, provide fallback transit params
+                    if (mode === 'balance_meter') {
+                        const todayStr = new Date().toISOString().split('T')[0];
+                        const defaultEndDate = new Date();
+                        defaultEndDate.setDate(defaultEndDate.getDate() + 7);
+                        const defaultEndStr = defaultEndDate.toISOString().split('T')[0];
+                        
+                        formData.transitParams = {
+                            startDate: todayStr,
+                            endDate: defaultEndStr,
+                            step: 'daily'
+                        };
+                        console.log('Using fallback transit params for Balance Meter:', formData.transitParams);
+                    }
                 }
                 console.log('=== END FRONTEND TRANSIT DEBUG ===');
             } else if (mode === 'natal_only') {
@@ -6496,6 +6537,12 @@ function renderTransitDay(dateStr, items){
             totalRowCount = 0; // Reset counter for each report
             WovenMapConfig.debugLog("Generate button clicked");
             
+            // Debug: Check current tab mode
+            const currentMode = getCurrentActiveTabMode();
+            console.log("DEBUG: Current active tab mode:", currentMode);
+            console.log("DEBUG: Balance Meter tab aria-selected:", document.getElementById('balanceMeterModeTab')?.getAttribute('aria-selected'));
+            console.log("DEBUG: Mirror tab aria-selected:", document.getElementById('mirrorModeTab')?.getAttribute('aria-selected'));
+            
             if (!validateForm()) {
                 return;
             }
@@ -6513,6 +6560,13 @@ function renderTransitDay(dateStr, items){
 
             try {
                 const formData = collectFormData();
+                
+                // Debug: Log form data structure
+                console.log("DEBUG: Collected form data:");
+                console.log("- Mode:", formData.context?.mode);
+                console.log("- Transit params:", formData.transitParams);
+                console.log("- Person A:", !!formData.personA);
+                console.log("- Full form data:", JSON.stringify(formData, null, 2));
                 
                 // Log the complete data being sent to API
                 console.log("=== SENDING TO API ===");
