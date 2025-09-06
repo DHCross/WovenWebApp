@@ -998,6 +998,7 @@ exports.handler = async function(event) {
     const wantSynastryAspectsOnly = modeToken === 'SYNASTRY_ASPECTS' || event.path?.includes('synastry-aspects-data');
     const wantComposite = modeToken === 'COMPOSITE' || modeToken === 'COMPOSITE_ASPECTS' || modeToken === 'COMPOSITE_TRANSITS' || body.wantComposite === true;
     const wantSkyTransits = modeToken === 'SKY_TRANSITS' || modeToken === 'WEATHER' || body.context?.type === 'weather';
+    const wantBalanceMeter = modeToken === 'BALANCE_METER' || body.context?.mode === 'balance_meter';
 
     // --- Relationship Context Validation (Partner / Friend / Family) ---
     // Canonical enumerations supplied by product spec
@@ -1508,6 +1509,36 @@ exports.handler = async function(event) {
         }
         logger.debug('Composite transits completed with seismograph analysis');
       }
+    }
+
+    // === BALANCE METER MODE ===
+    if (wantBalanceMeter && haveRange && result.person_a?.chart?.transitsByDate) {
+      logger.debug('Processing Balance Meter mode for standalone report');
+      
+      // Balance Meter mode focuses exclusively on the triple-channel data
+      // Already computed in the seismograph pipeline above
+      const balanceMeterReport = {
+        period: {
+          start: startDate,
+          end: endDate,
+          step: stepDays
+        },
+        schema_version: '1.2',
+        channel_summary: result.person_a.derived.seismograph_summary,
+        daily_entries: result.person_a.chart.transitsByDate,
+        person: {
+          name: personA.name || 'Subject',
+          birth_date: personA.birth_date,
+          birth_time: personA.birth_time,
+          birth_location: personA.birth_location
+        }
+      };
+      
+      // Replace standard natal-centric response with Balance Meter focus
+      result.balance_meter = balanceMeterReport;
+      result.mode = 'balance_meter';
+      
+      logger.debug('Balance Meter standalone report generated successfully');
     }
 
     // Post-compute contract assertions: if relationship mode requested ensure presence of person_b/composite

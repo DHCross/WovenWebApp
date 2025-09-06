@@ -1,3 +1,69 @@
+## [2025-09-05] Balance Meter Standalone Mode Added
+
+**Description:**
+Added dedicated Balance Meter mode enabling standalone health-focused reports independent of Mirror auto-append functionality. Users can now generate Balance Meter reports specifically designed for correlation with health metrics.
+
+**New Features:**
+- **Balance Meter contextMode:** New radio button option for standalone mode selection
+- **Backend Processing:** `wantBalanceMeter` mode detection in `astrology-mathbrain.js`
+- **Specialized Report Format:** Dedicated `buildBalanceMeterReport()` function with health-oriented structure
+- **Frontend Integration:** Balance Meter mode detection and report rendering in main UI flow
+
+**Report Structure:**
+- Executive Summary with triple-channel averages and dominant channel analysis
+- Daily entries table with SFD verdicts for health tracking
+- Methodology section explaining triple-channel architecture for health correlation
+- WM-Chart-1.2 schema compliance with focus on SFD patterns
+
+**UI Updates:**
+- Updated mode description: "Balance Meter (Health Data Comparison)"
+- Updated upload button text: "Upload Balance Meter Data"
+- Standalone mode processing separate from Mirror auto-append logic
+
+## [2025-09-05] MAJOR INTEGRATION: Balance Meter v1.2 Triple-Channel Architecture Complete
+
+**Description:**
+Successfully integrated the complete Balance Meter v1.2 system with full narrative rendering across all user touchpoints. The sophisticated triple-channel architecture (Seismograph v1.0 / Balance v1.1 / SFD v1.2) is now fully operational with comprehensive UI display.
+
+**Core Implementation:**
+1. **Triple Channel Helper Functions:**
+   - `sfdVerdict()`: Interprets SFD values as "stabilizers prevail/cut/mixed"
+   - `tripleChannelLine()`: Unified display format for all three channels
+   - `normalizeEntry()`: Backward compatibility with flat legacy data
+   - `fmtSigned()`: Consistent signed number formatting
+
+2. **Enhanced Report Generation:**
+   - Executive Summary: Added triple channel summary line
+   - Seismograph Tables: Consolidated view with verdict interpretation
+   - Auto-Append Reports: Balance/SFD data integrated into Mirror reports
+   - Scaling Notes: Updated to explain triple-channel architecture
+
+3. **Complete UI Integration:**
+   - **Desktop Reports:** `Quake X.X · val ±Y.Y · bal ±Z.Z · [verdict] (SFD ±A.A; S+ B.B/S− C.C)`
+   - **Mobile Cards:** Condensed triple channel summaries with tooltips
+   - **CSV Export:** Stable columns (`bal_val_v1_1`, `sfd_v1_2`, `splus_v1_2`, `sminus_v1_2`)
+   - **Demo Page:** Updated sample data to showcase Balance/SFD functionality
+
+4. **JSON Schema (WM-Chart-1.2):**
+   - Nested object structure with explicit version tracking
+   - Metadata fields: `calibration_boundary`, `engine_versions`, `reconstructed`
+   - Backward compatibility with flat legacy keys
+   - Complete payload contract documentation
+
+**Technical Features:**
+- **Support-Friction Differential (SFD):** Measures net stabilizer survival after targeted friction
+- **Balance Channel:** Rebalanced valence scoring reveals scaffolding without diluting magnitude
+- **Version Tracking:** All three engines properly versioned and documented
+- **Data Normalization:** Seamless handling of nested vs flat data structures
+
+**Documentation Updates:**
+- README: Added comprehensive WM-Chart-1.2 payload contract appendix
+- Balance Meter.txt: Updated status to "IMPLEMENTED & DEPLOYED"
+- JSON Schema validation with comprehensive test coverage
+
+**AI Collaboration Notes:**
+*Balance Meter integration completed successfully following Raven Calder GPT's precise implementation roadmap. The "big gap" between sophisticated computational engine and user-facing narrative is now completely closed. All three channels (v1.0/v1.1/v1.2) render consistently across desktop, mobile, and export formats with full backward compatibility.*
+
 ## [2025-09-04] MAJOR ENHANCEMENT: Safe Lexicon Retrofit & Emoji Valence System
 
 **Description:**

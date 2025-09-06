@@ -16,6 +16,13 @@ This is a web-based application designed to generate a detailed astrological rep
 - Queue Analysis & Filters for pattern recognition
 - CSV export capability for further analysis
 
+### **Balance Meter Mode**
+- Standalone triple-channel reports optimized for health data correlation
+- Focus on Support-Friction Differential (SFD) and Balance Channel patterns
+- Daily verdicts: "stabilizers prevail", "cuts", or "mixed" for health tracking
+- Designed for comparison with heart rate variability, sleep quality, mood data
+- Generates WM-Chart-1.2 compliant reports with methodology section
+
 API Page: https://rapidapi.com/gbattaglia/api/astrologer
 
 ## **Core Technology**
@@ -23,6 +30,76 @@ API Page: https://rapidapi.com/gbattaglia/api/astrologer
 *   **Front-End:** Plain HTML, JavaScript, and Tailwind CSS.
 *   **Back-End:** A single serverless function (`astrology-mathbrain.js`) deployed on Netlify.
 *   **External API:** [Astrologer API on RapidAPI](https://rapidapi.com/tg4-solutions-tg4-solutions-default/api/astrologer)
+
+## **Appendix: Payload Contract (WM-Chart-1.2)**
+
+The Balance Meter system implements a triple-channel architecture that extends the base seismograph with sophisticated pattern analysis:
+
+### **Channel Structure**
+
+**Seismograph v1.0** (Base Layer):
+- `magnitude`: Field intensity (0-10) with enhanced normalization
+- `valence`: Net tension (-5 to +5) with asymmetric amplification  
+- `volatility`: Charge dispersion with weighted planetary factors
+
+**Balance Channel v1.1** (Rebalanced Layer):
+- `balance.valence`: Gentler valence scoring with Moon-Saturn soft aspect handling
+- `balance.magnitude`: Inherits from seismograph for consistency
+- `balance.version`: "v1.1" for tracking
+
+**Support-Friction Differential v1.2** (Advanced Layer):
+- `sfd.sfd`: Final differential (S+ − S−) clamped to -5/+5 range
+- `sfd.sPlus`: Support channel (benefic aspects, stabilizers)
+- `sfd.sMinus`: Counter channel (friction patterns, destabilizers) 
+- `sfd.version`: "v1.2" for tracking
+
+### **JSON Schema (WM-Chart-1.2)**
+
+```json
+{
+  "date": "2025-09-05",
+  "seismograph": {
+    "magnitude": 5.0,
+    "valence": -5.0,
+    "volatility": 4.2,
+    "version": "v1.0"
+  },
+  "balance": {
+    "magnitude": 5.0,
+    "valence": -3.0,
+    "version": "v1.1"
+  },
+  "sfd": {
+    "sfd": -1.5,
+    "sPlus": 1.2,
+    "sMinus": 2.7,
+    "version": "v1.2"
+  },
+  "meta": {
+    "calibration_boundary": "2025-09-05",
+    "engine_versions": {
+      "seismograph": "v1.0",
+      "balance": "v1.1", 
+      "sfd": "v1.2"
+    },
+    "reconstructed": false
+  }
+}
+```
+
+### **UI Display Mapping**
+
+**Reports**: Triple channel line format: `Quake X.X · val ±Y.Y · bal ±Z.Z · [verdict] (SFD ±A.A; S+ B.B/S− C.C)`
+
+**CSV Export**: Stable column names preserve data integrity:
+- `mag_v1_0`, `val_v1_0`, `vol` (seismograph)
+- `bal_val_v1_1` (balance channel)  
+- `sfd_v1_2`, `splus_v1_2`, `sminus_v1_2` (SFD components)
+- `calibration_boundary`, `reconstructed`, `engine_versions`
+
+**Mobile Cards**: Condensed triple channel summary with verdict interpretation
+
+**JSON Appendix**: Nested object structure maintains version tracking and backward compatibility with flat legacy keys
 
 ## **Development**
 

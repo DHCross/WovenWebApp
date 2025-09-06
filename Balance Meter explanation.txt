@@ -21,6 +21,7 @@ All three channels render daily and braid into one synthesized Mirror.
 When symbolic forecast and material crisis coincide, a negative-skewed valence can read like fate. The model needs to distinguish **correlation** from **causation** and surface **scaffolding** alongside strain. The goal is navigation, not prophecy.
 
 ---
+
 ## v1.1 Calibration Note — Rebalance (Valence Only)
 
 **Core principle:** Leave **Magnitude** untouched (intensity is intensity). Re-weight **Valence** so supportive geometry becomes visible and extreme negatives don’t auto-peg.
@@ -232,4 +233,4 @@ A one-sided “Positive” meter could only say **how much green**. SFD says how
 
 ---
 
-**Status:** ✅ **IMPLEMENTED & DEPLOYED** — Triple-channel architecture active in production from Sep 5, 2025 forward. All channels (v1.0/v1.1/v1.2) integrated across UI, reports, mobile, CSV export, and JSON appendix. See README Appendix for payload contract (WM-Chart-1.2).
+**Status:** Ready for implementation and live testing from Sep 2025 forward.

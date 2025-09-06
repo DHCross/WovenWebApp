@@ -251,48 +251,41 @@
             </div>
 
             <div class="seismograph-data">
-                <h3>Sample Seismograph Data (Person A)</h3>
+                <h3>Sample Seismograph Data (Person A) - Triple Channel Display</h3>
                 <table class="data-table">
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Magnitude</th>
-                            <th>Valence</th>
-                            <th>Volatility</th>
+                            <th>Triple Channel</th>
                             <th>Hooks</th>
                         </tr>
                     </thead>
                     <tbody id="dataTable">
                         <tr>
                             <td>2025-09-01</td>
-                            <td class="high-magnitude">4.2</td>
-                            <td class="positive-valence">+2.1</td>
-                            <td>3.8</td>
+                            <td class="positive-valence">Quake 4.2 · val +2.1 · bal +1.8 · stabilizers mixed (SFD +0.3; S+ 2.1/S− 1.8)</td>
                             <td>Mars ⚹ Venus (2.1°)</td>
                         </tr>
                         <tr>
                             <td>2025-09-02</td>
-                            <td>3.7</td>
-                            <td class="negative-valence">-1.5</td>
-                            <td>2.3</td>
+                            <td class="negative-valence">Quake 3.7 · val -1.5 · bal -1.2 · stabilizers cut (SFD -0.8; S+ 1.0/S− 1.8)</td>
                             <td>Jupiter ☐ Saturn (0.8°)</td>
                         </tr>
                         <tr>
                             <td>2025-09-03</td>
-                            <td class="high-magnitude">5.1</td>
-                            <td class="positive-valence">+3.2</td>
-                            <td>4.5</td>
+                            <td class="high-magnitude positive-valence">Quake 5.1 · val +3.2 · bal +2.8 · stabilizers prevail (SFD +1.2; S+ 3.5/S− 2.3)</td>
                             <td>Sun ☌ Mercury (0.3°)</td>
                         </tr>
                         <tr>
                             <td>2025-09-04</td>
-                            <td>2.8</td>
-                            <td class="negative-valence">-2.8</td>
-                            <td>1.9</td>
+                            <td class="negative-valence">Quake 2.8 · val -2.8 · bal -2.1 · stabilizers cut (SFD -1.1; S+ 0.8/S− 1.9)</td>
                             <td>Moon ☍ Pluto (1.2°)</td>
                         </tr>
                     </tbody>
                 </table>
+                <p class="text-gray-400 text-sm mt-2">
+                    <strong>Triple Channel Notes:</strong> Quake = field intensity (0-10), val = net seismograph tension (-5 to +5), bal = balance channel valence, SFD = Support-Friction Differential with verdict
+                </p>
             </div>
 
             <div class="raven-voice" id="ravenVoice" style="display: none;">

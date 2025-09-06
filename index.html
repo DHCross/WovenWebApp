@@ -912,6 +912,10 @@
                         <span class="text-gray-300">Natal Chart + Transits</span>
                     </label>
                     <label class="flex items-center mr-4">
+                        <input type="radio" name="contextMode" value="balance_meter" class="mr-2">
+                        <span class="text-gray-300">Balance Meter (Health Data Comparison)</span>
+                    </label>
+                    <label class="flex items-center mr-4">
                         <input type="radio" name="contextMode" value="composite_transits" class="mr-2">
                         <span class="text-gray-300">Composite + Transits</span>
                     </label>
@@ -1160,7 +1164,7 @@
                         <p class="text-xs text-cyan-300 mb-4"><strong>Produces:</strong> Comparative analysis showing how your recorded experiences align with astrological indicators</p>
                         <div class="space-y-2">
                             <button id="loadSeismoBtn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
-                                📄 Upload Seismograph Data
+                                📄 Upload Balance Meter Data
                             </button>
                             <button id="clearSeismoBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden">
                                 ✖️ Clear Seismograph Data
@@ -1959,10 +1963,12 @@ function renderTransitDay(dateStr, items){
             const { includeHealthLine = true, includeProvenance = true } = opts;
             
             // Extract first day seismograph data
-            const firstDayData = data.person_a?.chart?.transitsByDate ? 
+            const firstDayRaw = data.person_a?.chart?.transitsByDate ? 
                 Object.values(data.person_a.chart.transitsByDate)[0] :
                 data.sky_transits?.transitsByDate ? 
                 Object.values(data.sky_transits.transitsByDate)[0] : null;
+            
+            const firstDayData = firstDayRaw ? normalizeEntry(firstDayRaw) : null;
             
             const formData = collectFormData();
             const mode = formData.context.mode;
@@ -2001,6 +2007,7 @@ function renderTransitDay(dateStr, items){
             const lines = [
                 `# Exec Summary (${data.provenance?.math_brain_version || '0.2.1'})`,
                 `Date: ${currentDate}  TZ: ${personA?.timezone || 'UTC'}  Context: ${mode?.toUpperCase() || 'N/A'}`,
+                `Triple Channel: ${firstDayData ? tripleChannelLine(firstDayData) : 'No data'}`,
                 `Magnitude: ${formatNumber(firstDayData?.seismograph?.magnitude)} (${toMagnitudeTerm(firstDayData?.seismograph?.magnitude || 0)}) | Valence: ${getValenceEmoji(clampedVal)} ${formatNumber(clampedVal)} (${toValenceTerm(clampedVal)}) | Volatility: ${formatNumber(firstDayData?.seismograph?.volatility)}`,
                 `Valence_raw (debug): ${formatNumber(rawVal)}`,
                 `Top Hooks (orb-capped): ${hooksStr} • [Geometry](#geometry-skeleton)`,
@@ -2105,7 +2112,134 @@ function renderTransitDay(dateStr, items){
             }
         }
 
+        // === BALANCE METER / SFD HELPERS ===
+        
+        function sfdVerdict(sfd) {
+            if (sfd == null) return null;
+            if (sfd >= 0.75)  return "stabilizers prevail";
+            if (sfd <= -0.75) return "stabilizers cut";
+            return "stabilizers mixed";
+        }
+        
+        function fmtSigned(n) {
+            if (n == null || Number.isNaN(+n)) return "?";
+            const x = +n;
+            return `${x >= 0 ? "+" : ""}${x.toFixed(1)}`;
+        }
+        
+        function tripleChannelLine({ seismograph, balance, sfd }) {
+            const mag = seismograph?.magnitude?.toFixed?.(1) ?? "?";
+            const val = seismograph?.valence;
+            const parts = [`Quake ${mag}`, `val ${fmtSigned(val)}`];
+
+            if (balance) parts.push(`bal ${fmtSigned(balance.valence)}`);
+
+            if (sfd) {
+                const verdict = sfdVerdict(sfd.sfd);
+                if (verdict) {
+                    parts.push(`${verdict} (SFD ${fmtSigned(sfd.sfd)}; S+ ${sfd.sPlus?.toFixed?.(1)}/S− ${sfd.sMinus?.toFixed?.(1)})`);
+                } else {
+                    parts.push(`SFD ${fmtSigned(sfd.sfd)}`);
+                }
+            }
+
+            return parts.join(" · ");
+        }
+        
+        // Normalize entry for consistent nested data structure
+        function normalizeEntry(e) {
+            const out = { ...e };
+            out.seismograph = e.seismograph ?? { 
+                magnitude: e.magnitude || 0, 
+                valence: e.valence || 0, 
+                volatility: e.volatility || 0,
+                version: "v1.0" 
+            };
+            out.balance = e.balance ?? (
+                Number.isFinite(e.balance_valence) ? { 
+                    magnitude: out.seismograph.magnitude, 
+                    valence: e.balance_valence, 
+                    version: "v1.1" 
+                } : undefined
+            );
+            out.sfd = e.sfd ?? (
+                (e.sfd != null || e.splus != null || e.sminus != null)
+                    ? { sfd: e.sfd || 0, sPlus: e.splus || 0, sMinus: e.sminus || 0, version: "v1.2" }
+                    : undefined
+            );
+            return out;
+        }
+
         // Generate simplified seismograph markdown section for auto-append to Mirror reports
+        function buildBalanceMeterReport(balanceMeterData) {
+            if (!balanceMeterData) return 'No Balance Meter data available.';
+
+            let md = `# Balance Meter Report\n\n`;
+            md += `**Subject**: ${balanceMeterData.person?.name || 'Unknown'}\n`;
+            md += `**Period**: ${balanceMeterData.period?.start} to ${balanceMeterData.period?.end}\n`;
+            md += `**Schema**: WM-Chart-${balanceMeterData.schema_version}\n\n`;
+
+            md += `## Executive Summary\n\n`;
+            
+            const summary = balanceMeterData.channel_summary;
+            if (summary) {
+                md += `**Triple Channel Averages**:\n`;
+                md += `- Seismograph (Crisis-Weighted): ${(summary.seismograph_average || 0).toFixed(2)}\n`;
+                md += `- Balance (Rebalanced Valence): ${(summary.balance_average || 0).toFixed(2)}\n`;
+                md += `- SFD (Support-Friction Differential): ${(summary.sfd_average || 0).toFixed(2)}\n\n`;
+                
+                if (summary.dominant_channel) {
+                    md += `**Dominant Channel**: ${summary.dominant_channel}\n`;
+                }
+                if (summary.volatility_index) {
+                    md += `**Volatility Index**: ${summary.volatility_index.toFixed(2)}\n`;
+                }
+                md += `\n`;
+            }
+
+            md += `## Daily Entries\n\n`;
+            md += `| Date | Triple Channel | SFD Verdict | Top Hooks |\n`;
+            md += `|------|-----------------|-------------|----------|\n`;
+
+            if (balanceMeterData.daily_entries) {
+                const dates = Object.keys(balanceMeterData.daily_entries).sort();
+                
+                dates.forEach(date => {
+                    const day = normalizeEntry(balanceMeterData.daily_entries[date]);
+                    if (!day) return;
+                    
+                    // Generate triple channel display
+                    const channelLine = tripleChannelLine({ 
+                        seismograph: day.seismograph, 
+                        balance: day.balance, 
+                        sfd: day.sfd 
+                    });
+                    
+                    // Get SFD verdict
+                    const verdict = sfdVerdict(day.sfd || {});
+                    
+                    // Get top hooks for this day
+                    const hooks = (day.hooks || []).slice(0, 2);
+                    const topHooks = hooks.map(h => {
+                        const orb = Math.abs(h._orb || h.orb || 0).toFixed(1);
+                        return `${h.p1_name} ${h._aspect || h.aspect} ${h.p2_name} (${orb}°)`;
+                    }).join(', ') || '—';
+                    
+                    md += `| ${date} | ${channelLine.replace(/\|/g, '\\|')} | ${verdict} | ${topHooks.replace(/\|/g, '\\|')} |\n`;
+                });
+            }
+
+            md += `\n## Methodology\n\n`;
+            md += `This Balance Meter report focuses on the **triple-channel architecture** for health-oriented astrological analysis:\n\n`;
+            md += `1. **Seismograph v1.0**: Crisis-weighted transit intensity\n`;
+            md += `2. **Balance v1.1**: Rebalanced valence using planetary locality factors\n`;
+            md += `3. **SFD v1.2**: Support-Friction Differential tracking supportive vs disruptive transits\n\n`;
+            md += `The **SFD Verdict** indicates whether supportive forces ("stabilizers prevail"), disruptive forces ("cuts"), or mixed patterns ("mixed") dominate each day.\n\n`;
+            md += `For correlation with health metrics, focus on SFD patterns and Balance channel trends.\n\n`;
+
+            return md;
+        }
+
         function buildSeismographMarkdownSection(data) {
             if (!data) return 'No seismograph data available.';
 
@@ -2134,17 +2268,19 @@ function renderTransitDay(dateStr, items){
                 if (dates.length === 0) return;
                 
                 md += `### ${title}\n\n`;
-                md += '| Date | Magnitude | Valence | Volatility | Top Hooks |\n';
-                md += '|------|-----------|---------|------------|----------|\n';
+                md += '| Date | Triple Channel | Top Hooks |\n';
+                md += '|------|-----------------|----------|\n';
                 
                 dates.forEach(date => {
-                    const day = transitData[date];
+                    const day = normalizeEntry(transitData[date]);
                     if (!day) return;
                     
-                    const magnitude = (day.seismograph?.magnitude || 0).toFixed(2);
-                    const rawValence = day.seismograph?.valence || 0;
-                    const clampedValence = Math.max(-5, Math.min(5, rawValence)).toFixed(2);
-                    const volatility = (day.seismograph?.volatility || 0).toFixed(2);
+                    // Generate triple channel display
+                    const channelLine = tripleChannelLine({ 
+                        seismograph: day.seismograph, 
+                        balance: day.balance, 
+                        sfd: day.sfd 
+                    });
                     
                     // Get top hooks for this day
                     const hooks = (day.hooks || []).slice(0, 2);
@@ -2153,7 +2289,7 @@ function renderTransitDay(dateStr, items){
                         return `${h.p1_name} ${h._aspect || h.aspect} ${h.p2_name} (${orb}°)`;
                     }).join(', ') || '—';
                     
-                    md += `| ${date} | ${magnitude} | ${clampedValence} | ${volatility} | ${topHooks.replace(/\|/g, '\\|')} |\n`;
+                    md += `| ${date} | ${channelLine.replace(/\|/g, '\\|')} | ${topHooks.replace(/\|/g, '\\|')} |\n`;
                 });
                 
                 md += '\n';
@@ -2162,7 +2298,7 @@ function renderTransitDay(dateStr, items){
             if (datasets.length === 0) {
                 md += 'No transit hooks detected for this time window.\n\n';
             } else {
-                md += '**Scaling Notes**: Magnitude = field intensity (0-10), Valence = net tension (-5 to +5), Volatility = charge dispersion\n\n';
+                md += '**Triple Channel Notes**: Quake = field intensity (0-10), val = net seismograph tension (-5 to +5), bal = balance channel valence, SFD = Support-Friction Differential with verdict\n\n';
             }
             
             return md;
@@ -3708,36 +3844,21 @@ function renderTransitDay(dateStr, items){
             let html = `<div class="mb-6">
                 <h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} - Mobile View (${filteredDates.length}/${dates.length})</h4>
                 <div class="space-y-3">`;
-            
-            // Normalizer for nested/flat
-            function normalizeEntry(e){
-                const seismograph = e.seismograph ?? { magnitude: e.magnitude, valence: e.valence, version: 'v1.0' };
-                const balance = e.balance ?? (
-                    (Number.isFinite(e.balance_valence) || Number.isFinite(e.balanceMagnitude))
-                        ? { magnitude: e.balanceMagnitude ?? seismograph.magnitude, valence: e.balance_valence, version: 'v1.1' }
-                        : undefined
-                );
-                const sfd = e.sfd ?? (
-                    (Number.isFinite(e.sfd_value) || Number.isFinite(e.splus) || Number.isFinite(e.sminus) || Number.isFinite(e.sfd))
-                        ? { sfd: e.sfd ?? e.sfd_value, sPlus: e.splus ?? e.Splus, sMinus: e.sminus ?? e.Sminus, version: 'v1.2' }
-                        : undefined
-                );
-                return { ...e, seismograph, balance, sfd };
-            }
 
             filteredDates.forEach(date => {
-                const day = normalizeEntry(dailyMap[date] || {});
+                const rawDay = dailyMap[date];
+                if (!rawDay) return;
+                
+                const day = normalizeEntry(rawDay);
+                const channelLine = tripleChannelLine({ 
+                    seismograph: day.seismograph, 
+                    balance: day.balance, 
+                    sfd: day.sfd 
+                });
+                
                 const mag = (day.seismograph?.magnitude || 0).toFixed(1);
                 const val = Math.max(-5, Math.min(5, day.seismograph?.valence || 0)).toFixed(1);
                 const vol = (day.seismograph?.volatility || 0).toFixed(1);
-                const fmtSigned = (n)=>`${n>=0?'+':''}${(+n).toFixed(1)}`;
-                let summary = `Mag ${mag} · Val ${fmtSigned(parseFloat(val))}`;
-                if (day.balance && Number.isFinite(day.balance.valence)) summary += ` | Bal ${fmtSigned(day.balance.valence)}`;
-                if (day.sfd && Number.isFinite(day.sfd.sfd)) {
-                    const sp = Number.isFinite(day.sfd.sPlus) ? day.sfd.sPlus.toFixed(1) : '0.0';
-                    const sm = Number.isFinite(day.sfd.sMinus) ? day.sfd.sMinus.toFixed(1) : '0.0';
-                    summary += ` | SFD ${fmtSigned(day.sfd.sfd)} (S+${sp}/S−${sm})`;
-                }
                 
                 const hooks = (day.hooks || []).slice(0, 2);
                 const hookText = hooks.length > 0 
@@ -3755,7 +3876,7 @@ function renderTransitDay(dateStr, items){
                                 M:${mag} V:${val} Vol:${vol}
                             </div>
                         </div>
-                        <div class="text-[10px] text-gray-400 mt-1">${summary}</div>
+                        <div class="text-[10px] text-gray-300 mt-1" title="Triple Channel Summary">${channelLine}</div>
                         <div class="text-sm text-gray-300">${hookText}</div>
                     </div>`;
             });
@@ -3774,21 +3895,20 @@ function renderTransitDay(dateStr, items){
                 <div class="space-y-3">`;
             
             dates.forEach(date => {
-                const day = dailyMap[date];
-                if (!day) return;
+                const rawDay = dailyMap[date];
+                if (!rawDay) return;
                 
+                const day = normalizeEntry(rawDay);
+                const channelLine = tripleChannelLine({ 
+                    seismograph: day.seismograph, 
+                    balance: day.balance, 
+                    sfd: day.sfd 
+                });
+                
+                // Shorter version for mobile
                 const mag = (day.seismograph?.magnitude || 0).toFixed(1);
                 const val = Math.max(-5, Math.min(5, day.seismograph?.valence || 0)).toFixed(1);
                 const vol = (day.seismograph?.volatility || 0).toFixed(1);
-                const fmtSigned = (n)=>`${n>=0?'+':''}${(+n).toFixed(1)}`;
-                // Accommodate nested balance/sfd if present
-                let summary = `Mag ${mag} · Val ${fmtSigned(parseFloat(val))}`;
-                if (day.balance && Number.isFinite(day.balance.valence)) summary += ` | Bal ${fmtSigned(day.balance.valence)}`;
-                if (day.sfd && Number.isFinite(day.sfd.sfd)) {
-                    const sp = Number.isFinite(day.sfd.sPlus) ? day.sfd.sPlus.toFixed(1) : '0.0';
-                    const sm = Number.isFinite(day.sfd.sMinus) ? day.sfd.sMinus.toFixed(1) : '0.0';
-                    summary += ` | SFD ${fmtSigned(day.sfd.sfd)} (S+${sp}/S−${sm})`;
-                }
                 
                 const hooks = (day.hooks || []).slice(0, 2);
                 const hookText = hooks.length > 0 
@@ -3803,7 +3923,7 @@ function renderTransitDay(dateStr, items){
                                 M:${mag} V:${val} Vol:${vol}
                             </div>
                         </div>
-                        <div class="text-[10px] text-gray-400 mt-1">${summary}</div>
+                        <div class="text-[10px] text-gray-300 mt-1" title="Triple Channel Summary">${channelLine}</div>
                         <div class="text-sm text-gray-300">${hookText}</div>
                     </div>`;
             });
@@ -3832,8 +3952,10 @@ function renderTransitDay(dateStr, items){
             const enginesJson = engines ? JSON.stringify(engines).replace(/"/g, '""') : '';
 
             dates.forEach(date => {
-                const day = dailyMap[date];
-                if (!day) return;
+                const rawDay = dailyMap[date];
+                if (!rawDay) return;
+                
+                const day = normalizeEntry(rawDay);
                 const mag = (day.seismograph?.magnitude ?? '').toString();
                 const val = (day.seismograph?.valence ?? '').toString();
                 const vol = (day.seismograph?.volatility ?? '').toString();
@@ -6273,7 +6395,13 @@ function renderTransitDay(dateStr, items){
                 const hasTransitsMode = formData.context.mode.includes('transits');
                 const hasTransitData = result.person_a?.chart?.transitsByDate || result.person_b?.chart?.transitsByDate || result.composite?.transitsByDate || result.synastry?.transitsByDate;
                 
-                if (hasTransitsMode && hasTransitData) {
+                // Handle Balance Meter mode - standalone report focused on triple-channel data
+                if (result.mode === 'balance_meter' && result.balance_meter) {
+                    console.log('=== BALANCE METER MODE ===');
+                    const balanceMeterSection = buildBalanceMeterReport(result.balance_meter);
+                    reportContent.textContent = balanceMeterSection;
+                    console.log('=== END BALANCE METER MODE ===');
+                } else if (hasTransitsMode && hasTransitData) {
                     // Auto-append seismograph section to Mirror report
                     const seismographSection = buildSeismographMarkdownSection(result);
                     reportContent.textContent = report + '\n\n---\n\n' + seismographSection;

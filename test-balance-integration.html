@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Balance Meter Integration Test</title>
+</head>
+<body>
+    <h1>Balance Meter Integration Test</h1>
+    <div id="test-results"></div>
+
+    <script>
+        // Copy the helper functions from index.html
+        function sfdVerdict(sfd) {
+            if (sfd == null) return null;
+            if (sfd >= 0.75)  return "stabilizers prevail";
+            if (sfd <= -0.75) return "stabilizers cut";
+            return "stabilizers mixed";
+        }
+        
+        function fmtSigned(n) {
+            if (n == null || Number.isNaN(+n)) return "?";
+            const x = +n;
+            return `${x >= 0 ? "+" : ""}${x.toFixed(1)}`;
+        }
+        
+        function tripleChannelLine({ seismograph, balance, sfd }) {
+            const mag = seismograph?.magnitude?.toFixed?.(1) ?? "?";
+            const val = seismograph?.valence;
+            const parts = [`Quake ${mag}`, `val ${fmtSigned(val)}`];
+
+            if (balance) parts.push(`bal ${fmtSigned(balance.valence)}`);
+
+            if (sfd) {
+                const verdict = sfdVerdict(sfd.sfd);
+                if (verdict) {
+                    parts.push(`${verdict} (SFD ${fmtSigned(sfd.sfd)}; S+ ${sfd.sPlus?.toFixed?.(1)}/S− ${sfd.sMinus?.toFixed?.(1)})`);
+                } else {
+                    parts.push(`SFD ${fmtSigned(sfd.sfd)}`);
+                }
+            }
+
+            return parts.join(" · ");
+        }
+        
+        function normalizeEntry(e) {
+            const out = { ...e };
+            out.seismograph = e.seismograph ?? { 
+                magnitude: e.magnitude || 0, 
+                valence: e.valence || 0, 
+                volatility: e.volatility || 0,
+                version: "v1.0" 
+            };
+            out.balance = e.balance ?? (
+                Number.isFinite(e.balance_valence) ? { 
+                    magnitude: out.seismograph.magnitude, 
+                    valence: e.balance_valence, 
+                    version: "v1.1" 
+                } : undefined
+            );
+            out.sfd = e.sfd ?? (
+                (e.sfd != null || e.splus != null || e.sminus != null)
+                    ? { sfd: e.sfd || 0, sPlus: e.splus || 0, sMinus: e.sminus || 0, version: "v1.2" }
+                    : undefined
+            );
+            return out;
+        }
+
+        // Test data
+        const testCases = [
+            // Test with nested structure (current format)
+            {
+                name: "Nested Structure (WM-Chart-1.2)",
+                data: {
+                    seismograph: { magnitude: 4.2, valence: 2.1, volatility: 3.8, version: "v1.0" },
+                    balance: { magnitude: 4.2, valence: 1.8, version: "v1.1" },
+                    sfd: { sfd: 0.3, sPlus: 2.1, sMinus: 1.8, version: "v1.2" }
+                }
+            },
+            // Test with flat structure (legacy format) 
+            {
+                name: "Flat Structure (Legacy)",
+                data: {
+                    magnitude: 3.7,
+                    valence: -1.5,
+                    volatility: 2.3,
+                    balance_valence: -1.2,
+                    sfd: -0.8,
+                    splus: 1.0,
+                    sminus: 1.8
+                }
+            },
+            // Test with stabilizers prevail
+            {
+                name: "Stabilizers Prevail",
+                data: {
+                    seismograph: { magnitude: 5.1, valence: 3.2, volatility: 4.5, version: "v1.0" },
+                    balance: { magnitude: 5.1, valence: 2.8, version: "v1.1" },
+                    sfd: { sfd: 1.2, sPlus: 3.5, sMinus: 2.3, version: "v1.2" }
+                }
+            },
+            // Test with stabilizers cut
+            {
+                name: "Stabilizers Cut",
+                data: {
+                    seismograph: { magnitude: 2.8, valence: -2.8, volatility: 1.9, version: "v1.0" },
+                    balance: { magnitude: 2.8, valence: -2.1, version: "v1.1" },
+                    sfd: { sfd: -1.1, sPlus: 0.8, sMinus: 1.9, version: "v1.2" }
+                }
+            }
+        ];
+
+        // Run tests
+        const results = [];
+        testCases.forEach(testCase => {
+            const normalized = normalizeEntry(testCase.data);
+            const channelLine = tripleChannelLine(normalized);
+            results.push(`<h3>${testCase.name}</h3><p><strong>Result:</strong> ${channelLine}</p>`);
+        });
+
+        document.getElementById('test-results').innerHTML = results.join('');
+    </script>
+</body>
+</html>
