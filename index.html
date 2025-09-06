@@ -6608,8 +6608,14 @@ function renderTransitDay(dateStr, items){
             }
             
             // Tab click handlers
-            document.getElementById('mirrorModeTab')?.addEventListener('click', () => switchTab('mirrorModeTab', 'mirror-content'));
-            document.getElementById('balanceMeterModeTab')?.addEventListener('click', () => switchTab('balanceMeterModeTab', 'balance-meter-content'));
+            document.getElementById('mirrorModeTab')?.addEventListener('click', () => {
+                switchTab('mirrorModeTab', 'mirror-content');
+                updateAppMode('mirror');
+            });
+            document.getElementById('balanceMeterModeTab')?.addEventListener('click', () => {
+                switchTab('balanceMeterModeTab', 'balance-meter-content');
+                updateAppMode('balance_meter');
+            });
             
             // Main button
             generateBtn.addEventListener('click', generateReport);
@@ -7207,27 +7213,47 @@ function renderTransitDay(dateStr, items){
         let currentContextType = 'solo'; // 'solo', 'relational', 'weather'
         
         function updateAppMode(mode) {
-            // Always stay in mirror mode - seismograph is embedded when transit hooks exist
-            currentAppMode = 'mirror';
+            currentAppMode = mode || 'mirror';
             
             // Update tab appearance
             const mirrorTab = document.getElementById('mirrorModeTab');
+            const balanceMeterTab = document.getElementById('balanceMeterModeTab');
             const modeDescription = document.getElementById('modeDescription');
             const generateBtn = document.getElementById('generateReport');
             const showWiringBtn = document.getElementById('showWiringBtn');
             
-            if (mirrorTab) {
-                mirrorTab.classList.add('bg-teal-600', 'text-white');
-                mirrorTab.classList.remove('text-gray-300');
-                mirrorTab.setAttribute('aria-selected', 'true');
+            // Reset all tabs
+            [mirrorTab, balanceMeterTab].forEach(tab => {
+                if (tab) {
+                    tab.classList.remove('bg-teal-600', 'text-white');
+                    tab.classList.add('bg-gray-700', 'text-gray-300');
+                    tab.setAttribute('aria-selected', 'false');
+                }
+            });
+            
+            // Activate the current tab
+            const activeTab = currentAppMode === 'balance_meter' ? balanceMeterTab : mirrorTab;
+            if (activeTab) {
+                activeTab.classList.add('bg-teal-600', 'text-white');
+                activeTab.classList.remove('bg-gray-700', 'text-gray-300');
+                activeTab.setAttribute('aria-selected', 'true');
             }
             
-            if (modeDescription) {
-                modeDescription.innerHTML = '<strong class="text-teal-300">Mirror:</strong> Geometry + reflection in one stream. Always includes the full skeletal ledger (angles, houses, hooks) plus the recognition layer. Seismograph trace auto-appends when transit hooks exist.';
-            }
-            
-            if (generateBtn) {
-                generateBtn.textContent = 'Get My Mirror';
+            // Update description and button text based on mode
+            if (currentAppMode === 'balance_meter') {
+                if (modeDescription) {
+                    modeDescription.innerHTML = '<strong class="text-teal-300">Balance Meter:</strong> Triple-channel analysis (Seismograph v1.0, Balance Channel v1.1, SFD v1.2) showing crisis detection, rebalanced perspective, and net support measurement in integrated tables.';
+                }
+                if (generateBtn) {
+                    generateBtn.textContent = '⚖️ Generate Balance Report';
+                }
+            } else {
+                if (modeDescription) {
+                    modeDescription.innerHTML = '<strong class="text-teal-300">Mirror:</strong> Geometry + reflection in one stream. Always includes the full skeletal ledger (angles, houses, hooks) plus the recognition layer. Seismograph trace auto-appends when transit hooks exist.';
+                }
+                if (generateBtn) {
+                    generateBtn.textContent = '✨ Get My Mirror';
+                }
             }
             
             if (showWiringBtn) {
