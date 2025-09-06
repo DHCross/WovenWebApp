@@ -5391,6 +5391,27 @@ function renderTransitDay(dateStr, items){
             return true;
         }
 
+        // Helper function to determine mode based on active tab
+        function getCurrentActiveTabMode() {
+            // Check which tab is currently active
+            const mirrorTab = document.getElementById('mirrorModeTab');
+            const balanceMeterTab = document.getElementById('balanceMeterModeTab');
+            
+            // Check aria-selected attribute to determine active tab
+            if (balanceMeterTab?.getAttribute('aria-selected') === 'true') {
+                return 'balance_meter';
+            }
+            
+            // Fallback: check if Balance Meter checkbox is checked (for legacy compatibility)
+            if (document.getElementById('balanceMeterMode')?.checked) {
+                return 'balance_meter';
+            }
+            
+            // Default to checking context mode radios for relational modes
+            const contextModeChecked = document.querySelector('input[name="contextMode"]:checked');
+            return contextModeChecked?.value || 'natal_transits';
+        }
+
         function collectFormData() {
             console.log("=== COLLECTING FORM DATA ===");
 
@@ -5518,7 +5539,7 @@ function renderTransitDay(dateStr, items){
                 personA,
                 personB: personB,
                 context: {
-                    mode: document.getElementById('balanceMeterMode')?.checked ? 'balance_meter' : document.querySelector('input[name="contextMode"]:checked').value,
+                    mode: getCurrentActiveTabMode(),
                     relationship_type: document.querySelector('input[name="relationshipType"]:checked')?.value,
                     intimacy_tier: document.querySelector('input[name="intimacyTier"]:checked')?.value,
                     contact_channel: document.querySelector('input[name="contactChannel"]:checked')?.value,
@@ -6488,6 +6509,8 @@ function renderTransitDay(dateStr, items){
                     console.log('=== BALANCE METER MODE ===');
                     // Switch to Balance Meter tab for standalone mode
                     document.getElementById('balanceMeterModeTab')?.click();
+                    // Still populate Mirror tab with regular report content
+                    reportContent.textContent = report;
                     console.log('=== END BALANCE METER MODE ===');
                 } else {
                     reportContent.textContent = report;
