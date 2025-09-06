@@ -700,7 +700,7 @@
             </div>
 
             <!-- Context Mode Section (legacy - will be hidden and auto-updated) -->
-            <div id="context-mode-section" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500">
+            <div id="context-mode-section" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8 border border-teal-500 hidden">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-2xl font-semibold text-white">Context Mode</h2>
                     <button id="toggle-mode-help" class="text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none">
@@ -6582,6 +6582,40 @@ function renderTransitDay(dateStr, items){
             
             // Main button
             generateBtn.addEventListener('click', generateReport);
+
+            // Monitor Person B fields to show/hide relational context sections
+            function checkPersonBFields() {
+                const personBName = document.getElementById('nameB');
+                const contextModeSection = document.getElementById('context-mode-section');
+                const relationalContextSection = document.getElementById('relational-context-section');
+                
+                if (personBName && contextModeSection && relationalContextSection) {
+                    const hasPersonB = personBName.value.trim().length > 0;
+                    if (hasPersonB) {
+                        // Show proper relational context section
+                        relationalContextSection.classList.remove('hidden');
+                        // Keep legacy context mode hidden (it's not the right interface)
+                        contextModeSection.classList.add('hidden');
+                    } else {
+                        // Hide both when no Person B
+                        contextModeSection.classList.add('hidden');
+                        relationalContextSection.classList.add('hidden');
+                    }
+                }
+            }
+
+            // Add event listeners to Person B fields
+            const personBFields = ['nameB', 'birth_cityB', 'birth_dateB', 'birth_timeB'];
+            personBFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.addEventListener('input', checkPersonBFields);
+                    field.addEventListener('change', checkPersonBFields);
+                }
+            });
+
+            // Initial check
+            checkPersonBFields();
 
             // Save/Load buttons
             document.getElementById('saveDataBtn').addEventListener('click', saveChartData);
