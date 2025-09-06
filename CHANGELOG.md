@@ -625,3 +625,20 @@ Planning to restructure site architecture to create a proper homepage with navig
 - Consider SEO implications of URL structure changes
 
 **Status:** Planning phase - not yet implemented
+## 2025-09-05
+
+- Cutover to WM-Chart-1.2. The engine now emits a single payload that includes:
+  - Seismograph (v1.0) numbers computed inside the new build (magnitude/valence unchanged).
+  - Balance (v1.1) rebalanced valence and SFD (v1.2) support differential, emitted alongside when computed.
+- Provenance metadata added to every response:
+  - `meta.calibration_boundary: "2025-09-05"`
+  - `meta.engine_versions: { seismograph: "v1.0", balance: "v1.1", sfd: "v1.2" }`
+  - `meta.reconstructed: true` when requested dates precede the boundary (no historical archives; earlier dates are on‑the‑fly recomputations).
+- No external archive exists prior to this date; a single engine and payload format replaces legacy outputs.
+
+### Appendix shape migration
+- JSON Appendix now emits an array of per-day entries using nested channels:
+  - `seismograph: { magnitude, valence, version }`
+  - optional `balance: { magnitude, valence, version }`
+  - optional `sfd: { sfd, sPlus, sMinus, version }`
+- Flat keys (e.g., `balance`, `sfd`, `splus`, `sminus`) are deprecated in appendix output from this date; UI normalizer accepts both during a short bridge.

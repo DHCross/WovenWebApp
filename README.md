@@ -8,7 +8,7 @@ This is a web-based application designed to generate a detailed astrological rep
 - **Neutral Magnitude Terms**: Whisper, Pulse, Wave, Surge, Peak, Apex (strictly intensity-only, no negative bias)
 - **Rich Valence Terms**: Collapse, Grind, Friction, Contraction, Drag, Neutral, Lift, Flow, Harmony, Expansion, Liberation
 - **Emoji Valence Display**: 🌑 Negative (🌋⚔🌊🌀🌫🕰) and 🌞 Positive (🌱🔥✨🦋💎) visual indicators
-- **Schema v1.1**: Machine-readable JSON includes both numeric and term values
+- **Schema v1.2**: Machine-readable JSON includes both numeric and term values
 
 ### **Seismograph Mode**
 - Maps symbolic field currents over time with Magnitude/Valence/Volatility metrics
@@ -511,4 +511,15 @@ pkill -f netlify
 ```
 
 **Remember**: Always review existing documentation before making changes, test thoroughly with `netlify dev`, and maintain the high documentation standards established in this repository.
+### Migration note (2025‑09‑05)
 
+As of 2025‑09‑05 the Seismograph runs inside WM‑Chart‑1.2; prior external “logs” do not exist. Any earlier dates are reconstructed, not historical.
+
+### Appendix shape migration (WM‑Chart‑1.2)
+- Payload adopts nested channels per day: 
+  - `seismograph: { magnitude, valence, version: 'v1.0' }`
+  - optional `balance: { magnitude, valence, version: 'v1.1' }`
+  - optional `sfd: { sfd, sPlus, sMinus, version: 'v1.2' }`
+- Provenance is explicit in every entry: `meta.calibration_boundary`, `meta.engine_versions`, `meta.reconstructed`.
+- Flat keys (e.g., `balance`, `sfd`, `splus`, `sminus`) are deprecated; a short bridge remains via UI normalizer, but consumers should prefer nested.
+- CSV export column map (when present): `mag_v1_0, val_v1_0, bal_val_v1_1, sfd_v1_2, splus_v1_2, sminus_v1_2, calibration_boundary, reconstructed, engine_versions`.

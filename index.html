@@ -2013,102 +2013,41 @@ function renderTransitDay(dateStr, items){
         }
         
         function generateJsonAppendix(data, runStats = {}) {
-            const formData = collectFormData();
-            const mode = formData.context.mode;
-            const personA = data.person_a?.details || formData.personA;
-            const currentDateTime = new Date().toISOString();
-            
-            // Extract seismograph data
-            const seismographData = [];
             const transitsByDate = data.person_a?.chart?.transitsByDate || data.sky_transits?.transitsByDate || {};
-            
-            Object.entries(transitsByDate).forEach(([date, dayData]) => {
-                const mag = dayData.seismograph?.magnitude || 0;
-                const val = dayData.seismograph?.valence || 0;
-                const vol = dayData.seismograph?.volatility || 0;
-                
-                const seismoEntry = {
-                    date: date,
-                    mag: mag,
-                    val: val,
-                    vol: vol,
-                    magnitude_term: toMagnitudeTerm(mag),
-                    valence_term: toValenceTerm(val)
-                };
-                
-                // Add top hooks
-                if (dayData.hooks && dayData.hooks.length > 0) {
-                    seismoEntry.top_hooks = dayData.hooks.slice(0, 5).map(h => ({
-                        a: h.p1_display || h.p1_name,
-                        asp: h._aspect || h.aspect,
-                        b: h.p2_display || h.p2_name,
-                        orb: h._orb || h.orb || 0,
-                        phase: h.phase || "unknown"
-                    }));
-                }
-                
-                // Add retrograde and OSR flags
-                if (dayData.retrograde_count !== undefined) seismoEntry.retrograde_count = dayData.retrograde_count;
-                if (dayData.osr_flags) seismoEntry.osr_flags = dayData.osr_flags;
-                
-                seismographData.push(seismoEntry);
-            });
-            
-            // Build the JSON appendix
-            const appendix = {
-                meta: {
-                    wm_schema: "WM-Chart-1.1",
-                    math_brain_version: data.provenance?.math_brain_version || "0.2.1",
-                    generated_utc: currentDateTime,
-                    timezone: personA?.timezone || "UTC",
-                    context: mode?.toUpperCase() || "UNKNOWN",
-                    ephemeris: {
-                        source: data.provenance?.ephemeris_source || "AstrologerAPI-v4",
-                        hash: data.provenance?.ephemeris_hash || "unknown"
+            const CALIBRATION_BOUNDARY = (data.provenance && data.provenance.calibration_boundary) || '2025-09-05';
+            const engines = data.provenance?.engine_versions || { seismograph: 'v1.0', balance: 'v1.1', sfd: 'v1.2' };
+            const reconstructed = Boolean(data.reconstructed || (Object.keys(transitsByDate).some(d => d < CALIBRATION_BOUNDARY)));
+
+            const entries = Object.entries(transitsByDate).map(([date, day]) => {
+                // Normalize nested/flat balance & sfd
+                const balance = day.balance && typeof day.balance === 'object'
+                    ? day.balance
+                    : (Number.isFinite(day.balance) ? { magnitude: day.seismograph?.magnitude || 0, valence: day.balance, version: 'v1.1' } : undefined);
+                const sfd = day.sfd && typeof day.sfd === 'object'
+                    ? day.sfd
+                    : (Number.isFinite(day.sfd) || Number.isFinite(day.splus) || Number.isFinite(day.sminus))
+                        ? { sfd: day.sfd || 0, sPlus: day.splus || 0, sMinus: day.sminus || 0, version: 'v1.2' }
+                        : undefined;
+
+                return {
+                    schema: 'WM-Chart-1.2',
+                    date,
+                    seismograph: {
+                        magnitude: day.seismograph?.magnitude || 0,
+                        valence: day.seismograph?.valence || 0,
+                        version: 'v1.0'
                     },
-                    provenance: {
-                        node_preference: data.provenance?.node_preference || "True",
-                        orb_caps: {
-                            luminaries_deg: data.provenance?.orb_caps?.luminaries || 12,
-                            planets_deg: data.provenance?.orb_caps?.planets || 8,
-                            points_deg: data.provenance?.orb_caps?.points || 6
-                        },
-                        max_ephemeris_delta_deg: data.provenance?.max_ephemeris_delta || 0.01
-                    },
-                    run_stats: {
-                        api_calls: runStats.api_calls || 0,
-                        calc_ms: runStats.calc_ms || 0,
-                        hooks_accepted: runStats.hooks_accepted || 0,
-                        hooks_rejected: runStats.hooks_rejected || 0
+                    ...(balance ? { balance } : {}),
+                    ...(sfd ? { sfd } : {}),
+                    meta: {
+                        calibration_boundary: CALIBRATION_BOUNDARY,
+                        engine_versions: engines,
+                        reconstructed
                     }
-                },
-                subject: {
-                    name: personA?.name || "Unknown",
-                    dob: personA?.birth_date || "1970-01-01",
-                    tob: personA?.birth_time || "12:00",
-                    loc: personA?.birth_location || "Unknown",
-                    coords: personA?.coordinates ? {
-                        lat: personA.coordinates.lat,
-                        lon: personA.coordinates.lon
-                    } : undefined
-                },
-                seismograph: seismographData
-            };
-            
-            // Add health link if present
-            const healthData = data.health_analysis;
-            if (healthData) {
-                appendix.health_link = {
-                    present: healthData.present || false,
-                    metrics: healthData.metrics || [],
-                    corr: healthData.correlations || {},
-                    fidelity_index: healthData.fidelity_index
                 };
-            } else {
-                appendix.health_link = { present: false };
-            }
-            
-            return appendix;
+            });
+
+            return entries;
         }
         
         function generateProvenance(data, runStats = {}) {
@@ -3521,14 +3460,41 @@ function renderTransitDay(dateStr, items){
                             </thead>
                             <tbody>`;
             
+            // Shape normalizer so UI accepts either flat or nested channel payloads
+            function normalizeEntry(e){
+                const seismograph = e.seismograph ?? { magnitude: e.magnitude, valence: e.valence, version: 'v1.0' };
+                const balance = e.balance ?? (
+                    (Number.isFinite(e.balance_valence) || Number.isFinite(e.balanceMagnitude))
+                        ? { magnitude: e.balanceMagnitude ?? seismograph.magnitude, valence: e.balance_valence, version: 'v1.1' }
+                        : undefined
+                );
+                const sfd = e.sfd ?? (
+                    (Number.isFinite(e.sfd_value) || Number.isFinite(e.splus) || Number.isFinite(e.sminus) || Number.isFinite(e.sfd))
+                        ? { sfd: e.sfd ?? e.sfd_value, sPlus: e.splus ?? e.Splus, sMinus: e.sminus ?? e.Sminus, version: 'v1.2' }
+                        : undefined
+                );
+                return { ...e, seismograph, balance, sfd };
+            }
+
             const healthByDate = (typeof window !== 'undefined' && window.WM_HEALTH_BY_DATE) ? window.WM_HEALTH_BY_DATE : null;
             dates.forEach(date => {
-                const day = dailyMap[date];
-                if (!day) return;
+                const dayRaw = dailyMap[date];
+                if (!dayRaw) return;
+                const day = normalizeEntry(dayRaw);
                 
                 const mag = (day.seismograph?.magnitude || 0).toFixed(1);
                 const val = Math.max(-5, Math.min(5, day.seismograph?.valence || 0)).toFixed(1);
                 const vol = (day.seismograph?.volatility || 0).toFixed(1);
+                
+                // Compact summary line with optional Balance/SFD
+                const fmtSigned = (n)=>`${n>=0?'+':''}${n.toFixed(1)}`;
+                let summary = `Mag ${mag} · Val ${fmtSigned(parseFloat(val))}`;
+                if (day.balance && Number.isFinite(day.balance.valence)) summary += ` | Bal ${fmtSigned(day.balance.valence)}`;
+                if (day.sfd && Number.isFinite(day.sfd.sfd)) {
+                    const sp = Number.isFinite(day.sfd.sPlus) ? day.sfd.sPlus.toFixed(1) : '0.0';
+                    const sm = Number.isFinite(day.sfd.sMinus) ? day.sfd.sMinus.toFixed(1) : '0.0';
+                    summary += ` | SFD ${fmtSigned(day.sfd.sfd)} (S+${sp}/S−${sm})`;
+                }
                 
                 // Get top 3 hooks
                 const hooks = (day.hooks || []).slice(0, 3);
@@ -3568,7 +3534,7 @@ function renderTransitDay(dateStr, items){
                         <td class="px-3 py-2 border-b border-gray-700 text-teal-300 whitespace-nowrap">${date} ${badge}</td>
                         <td class="px-3 py-2 border-b border-gray-700 text-right ${magColor}" title="Symbolic field scalar (independent)">${mag}</td>
                         <td class="px-3 py-2 border-b border-gray-700 text-right ${valColor}" title="Directional tone: ${getValenceType(parseFloat(val))}">${valenceDisplay}</td>
-                        <td class="px-3 py-2 border-b border-gray-700 text-right ${volColor}" title="Turbulence / spread of activation">${vol}</td>
+                        <td class="px-3 py-2 border-b border-gray-700 text-right ${volColor}" title="Turbulence / spread of activation">${vol}<br><span class="text-[10px] text-gray-400">${summary}</span></td>
                         <td class="px-3 py-2 border-b border-gray-700 text-gray-300 text-xs" title="${hookText}">${hookText.length > 50 ? hookText.substring(0, 50) + '...' : hookText}</td>
                     </tr>`;
             });
@@ -3721,11 +3687,11 @@ function renderTransitDay(dateStr, items){
             const filteredDates = dates.filter(date => {
                 const day = dailyMap[date];
                 if (!day || !day.seismograph) return false;
-                
+
                 const mag = day.seismograph.magnitude || 0;
                 const val = day.seismograph.valence || 0;
                 const vol = day.seismograph.volatility || 0;
-                
+
                 return mag >= filters.minMagnitude &&
                        val >= filters.minValence &&
                        val <= filters.maxValence &&
@@ -3743,11 +3709,35 @@ function renderTransitDay(dateStr, items){
                 <h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} - Mobile View (${filteredDates.length}/${dates.length})</h4>
                 <div class="space-y-3">`;
             
+            // Normalizer for nested/flat
+            function normalizeEntry(e){
+                const seismograph = e.seismograph ?? { magnitude: e.magnitude, valence: e.valence, version: 'v1.0' };
+                const balance = e.balance ?? (
+                    (Number.isFinite(e.balance_valence) || Number.isFinite(e.balanceMagnitude))
+                        ? { magnitude: e.balanceMagnitude ?? seismograph.magnitude, valence: e.balance_valence, version: 'v1.1' }
+                        : undefined
+                );
+                const sfd = e.sfd ?? (
+                    (Number.isFinite(e.sfd_value) || Number.isFinite(e.splus) || Number.isFinite(e.sminus) || Number.isFinite(e.sfd))
+                        ? { sfd: e.sfd ?? e.sfd_value, sPlus: e.splus ?? e.Splus, sMinus: e.sminus ?? e.Sminus, version: 'v1.2' }
+                        : undefined
+                );
+                return { ...e, seismograph, balance, sfd };
+            }
+
             filteredDates.forEach(date => {
-                const day = dailyMap[date];
+                const day = normalizeEntry(dailyMap[date] || {});
                 const mag = (day.seismograph?.magnitude || 0).toFixed(1);
                 const val = Math.max(-5, Math.min(5, day.seismograph?.valence || 0)).toFixed(1);
                 const vol = (day.seismograph?.volatility || 0).toFixed(1);
+                const fmtSigned = (n)=>`${n>=0?'+':''}${(+n).toFixed(1)}`;
+                let summary = `Mag ${mag} · Val ${fmtSigned(parseFloat(val))}`;
+                if (day.balance && Number.isFinite(day.balance.valence)) summary += ` | Bal ${fmtSigned(day.balance.valence)}`;
+                if (day.sfd && Number.isFinite(day.sfd.sfd)) {
+                    const sp = Number.isFinite(day.sfd.sPlus) ? day.sfd.sPlus.toFixed(1) : '0.0';
+                    const sm = Number.isFinite(day.sfd.sMinus) ? day.sfd.sMinus.toFixed(1) : '0.0';
+                    summary += ` | SFD ${fmtSigned(day.sfd.sfd)} (S+${sp}/S−${sm})`;
+                }
                 
                 const hooks = (day.hooks || []).slice(0, 2);
                 const hookText = hooks.length > 0 
@@ -3765,6 +3755,7 @@ function renderTransitDay(dateStr, items){
                                 M:${mag} V:${val} Vol:${vol}
                             </div>
                         </div>
+                        <div class="text-[10px] text-gray-400 mt-1">${summary}</div>
                         <div class="text-sm text-gray-300">${hookText}</div>
                     </div>`;
             });
@@ -3789,6 +3780,15 @@ function renderTransitDay(dateStr, items){
                 const mag = (day.seismograph?.magnitude || 0).toFixed(1);
                 const val = Math.max(-5, Math.min(5, day.seismograph?.valence || 0)).toFixed(1);
                 const vol = (day.seismograph?.volatility || 0).toFixed(1);
+                const fmtSigned = (n)=>`${n>=0?'+':''}${(+n).toFixed(1)}`;
+                // Accommodate nested balance/sfd if present
+                let summary = `Mag ${mag} · Val ${fmtSigned(parseFloat(val))}`;
+                if (day.balance && Number.isFinite(day.balance.valence)) summary += ` | Bal ${fmtSigned(day.balance.valence)}`;
+                if (day.sfd && Number.isFinite(day.sfd.sfd)) {
+                    const sp = Number.isFinite(day.sfd.sPlus) ? day.sfd.sPlus.toFixed(1) : '0.0';
+                    const sm = Number.isFinite(day.sfd.sMinus) ? day.sfd.sMinus.toFixed(1) : '0.0';
+                    summary += ` | SFD ${fmtSigned(day.sfd.sfd)} (S+${sp}/S−${sm})`;
+                }
                 
                 const hooks = (day.hooks || []).slice(0, 2);
                 const hookText = hooks.length > 0 
@@ -3803,6 +3803,7 @@ function renderTransitDay(dateStr, items){
                                 M:${mag} V:${val} Vol:${vol}
                             </div>
                         </div>
+                        <div class="text-[10px] text-gray-400 mt-1">${summary}</div>
                         <div class="text-sm text-gray-300">${hookText}</div>
                     </div>`;
             });
@@ -3823,21 +3824,30 @@ function renderTransitDay(dateStr, items){
             }
             
             const dates = Object.keys(dailyMap).sort();
-            let csv = 'Date,Magnitude,Valence,Volatility,Scale_Confidence,Top_Hooks\n';
+            let csv = 'Date,mag_v1_0,val_v1_0,vol,scale_confidence,bal_val_v1_1,sfd_v1_2,splus_v1_2,sminus_v1_2,calibration_boundary,reconstructed,engine_versions,Top_Hooks\n';
             
+            const boundary = (window.seismographData && window.seismographData.provenance && window.seismographData.provenance.calibration_boundary) || '';
+            const reconstructed = (window.seismographData && window.seismographData.reconstructed) ? 'true' : '';
+            const engines = (window.seismographData && window.seismographData.provenance && window.seismographData.provenance.engine_versions) || null;
+            const enginesJson = engines ? JSON.stringify(engines).replace(/"/g, '""') : '';
+
             dates.forEach(date => {
                 const day = dailyMap[date];
                 if (!day) return;
-                
-                const mag = (day.seismograph?.magnitude || 0).toFixed(2);
-                const val = (day.seismograph?.valence || 0).toFixed(2);
-                const vol = (day.seismograph?.volatility || 0).toFixed(2);
-                const conf = (day.seismograph?.scaleConfidence || 0).toFixed(3);
-                
+                const mag = (day.seismograph?.magnitude ?? '').toString();
+                const val = (day.seismograph?.valence ?? '').toString();
+                const vol = (day.seismograph?.volatility ?? '').toString();
+                const conf = (day.seismograph?.scaleConfidence ?? '').toString();
+                const bal = (day.balance && Number.isFinite(day.balance.valence)) ? day.balance.valence.toString() : '';
+                const sfd = (day.sfd && Number.isFinite(day.sfd.sfd)) ? day.sfd.sfd.toString() : '';
+                const splus = (day.sfd && Number.isFinite(day.sfd.sPlus)) ? day.sfd.sPlus.toString() : '';
+                const sminus = (day.sfd && Number.isFinite(day.sfd.sMinus)) ? day.sfd.sMinus.toString() : '';
+
                 const hooks = (day.hooks || []).slice(0, 3);
                 const hookText = hooks.map(h => `${h.p1_name || '?'} ${h.aspect || '?'} ${h.p2_name || '?'}`).join('; ');
-                
-                csv += `${date},${mag},${val},${vol},${conf},"${hookText}"\n`;
+                const hookEsc = `"${hookText.replace(/"/g,'""')}"`;
+
+                csv += `${date},${mag},${val},${vol},${conf},${bal},${sfd},${splus},${sminus},${boundary},${reconstructed},"${enginesJson}",${hookEsc}\n`;
             });
             
             const timestamp = new Date().toISOString().slice(0, 10);

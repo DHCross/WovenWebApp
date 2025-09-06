@@ -1,87 +1,26 @@
-// TypeScript types for Woven Map JSON Appendix v1.0
-// Schema: https://wovenmap.dev/schemas/wm_json_appendix-1.0.json
+// TypeScript types for Woven Map JSON Appendix v1.2 (nested channels)
+// Schema: https://raven-calder/wm-chart-1.2.schema.json
 
-export type WmSchema = "WM-Chart-1.0";
+export type WmSchema = "WM-Chart-1.2";
 
-export interface WmJsonAppendix {
-  meta: {
-    wm_schema: WmSchema;
-    math_brain_version: string;
-    generated_utc: string; // ISO 8601 date-time
-    timezone: string;
-    context?: "NATAL" | "NATAL_TRANSITS" | "SYNASTRY" | "COMPOSITE" | "SKY_TRANSITS";
-    ephemeris: { source: string; hash: string };
-    provenance?: {
-      node_preference?: "True" | "Mean";
-      orb_caps?: { 
-        luminaries_deg?: number; 
-        planets_deg?: number; 
-        points_deg?: number; 
-      };
-      deterministic_seed?: string;
-      max_ephemeris_delta_deg?: number;
-    };
-    run_stats: { 
-      api_calls: number; 
-      calc_ms: number; 
-      hooks_accepted: number; 
-      hooks_rejected: number; 
-    };
-  };
-  subject: {
-    name: string;
-    dob: string; // YYYY-MM-DD
-    tob: string; // HH:MM
-    loc: string;
-    coords?: { lat: number; lon: number };
-  };
-  seismograph: Array<{
-    date: string; // YYYY-MM-DD
-    mag: number;
-    val: number;
-    vol: number;
-    top_hooks?: Array<{ 
-      a: string; 
-      asp: string; 
-      b: string; 
-      orb: number; 
-      phase?: "applying" | "separating" 
-    }>;
-    retrograde_count?: number;
-    osr_flags?: string[];
-  }>;
-  health_link?: {
-    present: boolean;
-    metrics?: string[];
-    corr?: Record<string, number>;
-    fidelity_index?: number;
-  };
+export interface ChannelV1_0 { magnitude: number; valence: number; version: "v1.0"; }
+export interface BalanceV1_1 { magnitude: number; valence: number; version: "v1.1"; }
+export interface SfdV1_2 { sfd: number; sPlus: number; sMinus: number; version: "v1.2"; }
+
+export interface AppendixMeta {
+  calibration_boundary: string; // YYYY-MM-DD
+  engine_versions: { seismograph: "v1.0"; balance: "v1.1"; sfd: "v1.2" };
+  reconstructed: boolean;
+  notes?: string;
 }
 
-export interface ExecSummaryOptions {
-  includeHealthLine?: boolean;
-  includeProvenance?: boolean;
-  width?: number; // wrap hint
+export interface WmAppendixEntry {
+  schema: WmSchema;
+  date: string; // YYYY-MM-DD
+  seismograph: ChannelV1_0;
+  balance?: BalanceV1_1;
+  sfd?: SfdV1_2;
+  meta: AppendixMeta;
 }
 
-export interface ReportOptions {
-  includeExecutiveSummary?: boolean;
-  includeJsonAppendix?: boolean;
-  includeProvenance?: boolean;
-}
-
-// Helper function signatures
-export declare function generateExecutiveSummary(
-  data: WmJsonAppendix,
-  opts?: ExecSummaryOptions
-): string;
-
-export declare function generateJsonAppendix(
-  reportData: any,
-  context: string,
-  runStats: any
-): WmJsonAppendix;
-
-export declare function validateAppendix(
-  payload: unknown
-): { ok: true } | { ok: false; errors: string[] };
+export type WmJsonAppendix = WmAppendixEntry[];

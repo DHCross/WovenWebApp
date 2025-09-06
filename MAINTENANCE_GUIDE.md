@@ -121,3 +121,20 @@ This document outlines the best practices for maintaining, updating, and trouble
 ---
 
 By following these practices, you'll make the Woven Map App easier to maintain, more resilient to mistakes, and welcoming to collaborators.
+
+---
+
+## Balance Meter (v1.1) + SFD (v1.2) — Developer Notes
+
+- Module: `src/balance-meter.js` (wired into engine, always on).
+- Exports:
+  - `computeBalanceValence(dayAspects): number` → normalized −5..+5 (rebalanced valence)
+  - `computeSFD(dayAspects): { SFD, Splus, Sminus }` → all in −5..+5
+- Input shape: array of aspect objects with fields commonly present in our pipeline:
+  - `aspect|type|_aspect` (e.g., `trine`, `square`), `p1_name|transit|a`, `p2_name|natal|b`, `orb|orbit|_orb`
+- Implementation follows Balance Meter.txt (v1.2 Draft): supportive vs counter sets, linear orb taper, symmetric sensitivity boosts, and tanh normalization.
+- Engine emits WM‑Chart‑1.2 unconditionally with per‑day `balance`, `sfd`, `splus`, `sminus` adjacent to Seismograph metrics.
+- Provenance fields added:
+  - `meta.calibration_boundary: "2025-09-05"`
+  - `meta.engine_versions: { seismograph: "v1.0", balance: "v1.1", sfd: "v1.2" }`
+  - `meta.reconstructed: boolean` (true when requested date < boundary)

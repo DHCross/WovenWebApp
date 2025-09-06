@@ -3,6 +3,7 @@
 
 const { aggregate } = require('../../src/seismograph');
 const { _internals: seismoInternals } = require('../../src/seismograph');
+const { computeSFD, computeBalanceValence } = require('../../src/balance-meter');
 const API_BASE_URL = 'https://astrologer.p.rapidapi.com';
 
 const API_ENDPOINTS = {
@@ -50,6 +51,7 @@ function stripGraphicsDeep(obj) {
 // Provenance constants
 const MATH_BRAIN_VERSION = '0.2.1'; // Single source of truth for version
 const EPHEMERIS_SOURCE = 'AstrologerAPI-v4';
+const CALIBRATION_BOUNDARY = '2025-09-05';
 
 function normalizeStep(step) {
   const s = String(step || '').toLowerCase();
@@ -760,7 +762,7 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}) {
       dispersionVol = Math.min(10, Math.sqrt(variance) * 10); // scale
     }
 
-    daily[d] = {
+    const dayEntry = {
       seismograph: { 
         magnitude: agg.magnitude, 
         valence: agg.valence, 
@@ -779,6 +781,18 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}) {
       retrograde_aspects: retrogradeAspects,
       valence_trend: valenceHistory.length > 1 ? calculateTrend(valenceHistory) : 0
     };
+
+    // Balance/SFD computation (always on in WM-Chart-1.2)
+    try {
+      const balanceVal = computeBalanceValence(enriched.filtered);
+      const { SFD, Splus, Sminus } = computeSFD(enriched.filtered);
+      dayEntry.balance = { magnitude: agg.magnitude, valence: balanceVal, version: 'v1.1' };
+      dayEntry.sfd = { sfd: SFD, sPlus: Splus, sMinus: Sminus, version: 'v1.2' };
+    } catch (e) {
+      logger.warn('Balance/SFD computation failed for day', d, e.message);
+    }
+
+    daily[d] = dayEntry;
     prev = { scored: agg.scored, Y_effective: agg.valence };
     prevDayFiltered = enriched.filtered;
   }
@@ -1117,12 +1131,14 @@ exports.handler = async function(event) {
     }
 
     const result = { 
-      schema: 'WM-Chart-1.0', 
+      schema: 'WM-Chart-1.2', 
       provenance: {
         math_brain_version: MATH_BRAIN_VERSION,
         ephemeris_source: EPHEMERIS_SOURCE,
         build_ts: new Date().toISOString(),
-        timezone: personA.timezone || 'UTC'
+        timezone: personA.timezone || 'UTC',
+        calibration_boundary: CALIBRATION_BOUNDARY,
+        engine_versions: { seismograph: 'v1.0', balance: 'v1.1', sfd: 'v1.2' }
       },
       context: { mode: modeToken || 'UNKNOWN' },
       mirror_ready: true,
@@ -1531,3 +1547,9 @@ exports.handler = async function(event) {
     };
   }
 };
+    // Mark reconstructed if any requested date precedes the calibration boundary
+    try {
+      if (start && new Date(start) < new Date(CALIBRATION_BOUNDARY)) {
+        result.reconstructed = true;
+      }
+    } catch (_) { /* noop */ }
