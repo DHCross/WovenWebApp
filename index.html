@@ -6489,13 +6489,20 @@ function renderTransitDay(dateStr, items){
                 // Store result data for downloads
                 latestResultData = result;
 
-                // Generate Mirror report (seismograph auto-appends when transit hooks exist)
-                const displayOptions = {
-                    includeExecutiveSummary: false,
-                    includeJsonAppendix: false,
-                    includeProvenance: false
-                };
-                const report = generateMarkdownReport(result, displayOptions);
+                // Generate report based on mode
+                let report;
+                if (result.mode === 'balance_meter' && result.balance_meter) {
+                    // Generate Balance Meter report for download/copy/PDF
+                    report = buildBalanceMeterReport(result.balance_meter);
+                } else {
+                    // Generate Mirror report (seismograph auto-appends when transit hooks exist)
+                    const displayOptions = {
+                        includeExecutiveSummary: false,
+                        includeJsonAppendix: false,
+                        includeProvenance: false
+                    };
+                    report = generateMarkdownReport(result, displayOptions);
+                }
                 
                 // Check if we have transit hooks that warrant seismograph auto-append
                 const hasTransitsMode = formData.context.mode.includes('transits');
@@ -6509,10 +6516,11 @@ function renderTransitDay(dateStr, items){
                     console.log('=== BALANCE METER MODE ===');
                     // Switch to Balance Meter tab for standalone mode
                     document.getElementById('balanceMeterModeTab')?.click();
-                    // Still populate Mirror tab with regular report content
+                    // Show Balance Meter report in the main content area
                     reportContent.textContent = report;
                     console.log('=== END BALANCE METER MODE ===');
                 } else {
+                    // Show Mirror report in the main content area
                     reportContent.textContent = report;
                 }
                 
