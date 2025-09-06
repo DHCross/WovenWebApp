@@ -64,6 +64,28 @@ Successfully integrated the complete Balance Meter v1.2 system with full narrati
 **AI Collaboration Notes:**
 *Balance Meter integration completed successfully following Raven Calder GPT's precise implementation roadmap. The "big gap" between sophisticated computational engine and user-facing narrative is now completely closed. All three channels (v1.0/v1.1/v1.2) render consistently across desktop, mobile, and export formats with full backward compatibility.*
 
+## [2025-09-06] FIX: Balance Meter Rendering Resilience + Export Parity
+
+**Description:**
+Resolved a regression where Balance Meter reports sometimes failed to render when the server omitted `balance_meter` while still returning daily transits. Cleaned up a malformed `populateTabContent()` block and added a safe client-side synthesis fallback so the Balance Meter tab always renders when Person A transits are present.
+
+**Changes:**
+- Frontend: `index.html`
+   - Rewrote `populateTabContent()` to remove duplicated/invalid try/catch branches and to prefer:
+      1) server `result.balance_meter`, else 2) synthesize from `person_a.chart.transitsByDate`, else 3) friendly empty message.
+   - On Balance Meter tab, if the server omits `balance_meter` but transits exist, attach synthesized payload to `latestResultData.balance_meter` for copy/download/PDF parity.
+   - Confirmed chunking path includes Balance Meter; synthesis uses merged daily entries when chunked.
+   - Minor CSS linter fix: made `.transit-indicator` non-empty.
+
+**Impact:**
+- Balance Meter tab reliably renders with either server payload or synthesized fallback.
+- Copy/Download/PDF actions respect the active tab and export the Balance Meter report consistently.
+- No behavior change for Mirror mode.
+
+**Verification:**
+- Built CSS, no compile errors.
+- Manual smoke: Balance tab active with Person A daily transits → synthesized report appears; when server returns `balance_meter`, server payload is used.
+
 ## [2025-09-04] MAJOR ENHANCEMENT: Safe Lexicon Retrofit & Emoji Valence System
 
 **Description:**
