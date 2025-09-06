@@ -1846,7 +1846,8 @@ function renderTransitDay(dateStr, items){
             };
             
             // Auto-chunk for ranges > 15 days to stay under 6MB limit
-            if (daySpan > 15 && mode.includes('transits')) {
+            // Include balance_meter since it relies on per-day transit calculations
+            if (daySpan > 15 && (mode.includes('transits') || mode === 'balance_meter')) {
                 console.log(`Auto-chunking ${daySpan}-day range into smaller segments`);
                 
                 // Determine optimal chunk size based on step size
@@ -6428,14 +6429,82 @@ function renderTransitDay(dateStr, items){
                             pre.textContent = JSON.stringify(result.balance_meter, null, 2);
                             balanceWrap.appendChild(pre);
                         }
+                                if (result && result.balance_meter) {
+                        // Frontend synthesis: create a minimal Balance Meter payload when server omitted it
+                        try {
+                            const synthetic = synthesizeBalanceMeterPayload(result, formData);
+                            const md = buildBalanceMeterReport(synthetic);
+                            const pre = document.createElement('pre');
+                            pre.className = 'whitespace-pre-wrap text-sm text-gray-200 bg-gray-900/60 p-4 rounded border border-gray-700';
+                            pre.textContent = md;
+                            balanceWrap.appendChild(pre);
+                        } catch (e) {
+                            console.warn('Synthetic Balance Meter render failed:', e);
+                            balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter data for this selection.</p>';
+                        }
                     // No separate seismograph mode; content renders only for Balance Meter
                     } else {
                         balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter data for this selection.</p>';
                     }
-                }
+                                    // Try synthesizing a Balance Meter payload from available transits
+                                    try {
+                                        const activeTab = (typeof getCurrentActiveTabMode === 'function') ? getCurrentActiveTabMode() : 'mirror';
+                                        if (activeTab === 'balance_meter' && (result?.person_a?.chart?.transitsByDate)) {
+                                            const synth = synthesizeBalanceMeterPayload(result, formData);
+                                            if (synth) {
+                                                const md = buildBalanceMeterReport(synth);
+                                                const pre = document.createElement('pre');
+                                                pre.className = 'whitespace-pre-wrap text-sm text-gray-200 bg-gray-900/60 p-4 rounded border border-gray-700';
+                                                pre.textContent = md;
+                                                balanceWrap.appendChild(pre);
+                                            } else {
+                                                balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter data for this selection.</p>';
+                                            }
+                                        } else {
+                                            balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter data for this selection.</p>';
+                                        }
+                                    } catch (synthErr) {
+                                        console.warn('Balance Meter synthesis failed:', synthErr);
+                                        balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter data for this selection.</p>';
+                                    }
             } catch (e) {
                 console.warn('populateTabContent encountered an issue:', e);
             }
+        }
+
+        // Build a minimal Balance Meter payload from existing transit seismograph entries
+        function synthesizeBalanceMeterPayload(result, formData) {
+            const daily_entries = result?.person_a?.chart?.transitsByDate || {};
+            // Derive simple averages for summary when not provided by backend
+            let seismoAvg = 0, balAvg = 0, sfdAvg = 0, count = 0; 
+            Object.values(daily_entries).forEach(d => {
+                const s = d?.seismograph; const b = d?.balance; const f = d?.sfd;
+                if (s && typeof s.valence === 'number') seismoAvg += s.valence;
+                if (b && typeof b.valence === 'number') balAvg += b.valence;
+                if (f && typeof f.sfd === 'number') sfdAvg += f.sfd;
+                count++;
+            });
+            const channel_summary = count > 0 ? {
+                seismograph_average: +(seismoAvg / count).toFixed(2),
+                balance_average: +(balAvg / count).toFixed(2),
+                sfd_average: +(sfdAvg / count).toFixed(2),
+                dominant_channel: 'derived',
+                volatility_index: (result?.person_a?.derived?.seismograph_summary?.volatility) || undefined
+            } : null;
+
+            const period = {
+                start: formData?.transitParams?.startDate || Object.keys(daily_entries).sort()[0],
+                end: formData?.transitParams?.endDate || Object.keys(daily_entries).sort().slice(-1)[0],
+                step: formData?.transitParams?.step || 'daily'
+            };
+
+            return {
+                period,
+                schema_version: '1.2',
+                channel_summary,
+                daily_entries,
+                person: { name: result?.person_a?.details?.name || 'Subject' }
+            };
         }
 
         // --- API Call ---
@@ -6521,10 +6590,13 @@ function renderTransitDay(dateStr, items){
                 // Generate report based on mode
                 let report;
                 const activeTabMode = (typeof getCurrentActiveTabMode === 'function') ? getCurrentActiveTabMode() : 'mirror';
-                const shouldRenderBalance = Boolean(result.balance_meter) && (result.mode === 'balance_meter' || activeTabMode === 'balance_meter');
+                const hasServerBalance = Boolean(result.balance_meter);
+                const shouldRenderBalance = (hasServerBalance && (result.mode === 'balance_meter' || activeTabMode === 'balance_meter'))
+                    || (!hasServerBalance && activeTabMode === 'balance_meter' && (result?.person_a?.chart?.transitsByDate));
                 if (shouldRenderBalance) {
                     // Generate Balance Meter report for download/copy/PDF
-                    report = buildBalanceMeterReport(result.balance_meter);
+                    const payload = hasServerBalance ? result.balance_meter : synthesizeBalanceMeterPayload(result, formData);
+                    report = buildBalanceMeterReport(payload);
                 } else {
                     // Generate Mirror report (seismograph auto-appends when transit hooks exist)
                     const displayOptions = {
