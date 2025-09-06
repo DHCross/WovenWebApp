@@ -6354,6 +6354,40 @@ function renderTransitDay(dateStr, items){
             `;
         }
 
+        // Populate Mirror/Balance Meter tab content based on result
+        function populateTabContent(result, formData, report, hasTransitsMode, hasTransitData) {
+            try {
+                const balanceWrap = document.getElementById('balanceMeterTabContent');
+                if (balanceWrap) {
+                    // Clear previous content
+                    balanceWrap.innerHTML = '';
+
+                    // If in dedicated Balance Meter mode and data present, render Balance Meter report
+                    if (result && result.mode === 'balance_meter' && result.balance_meter) {
+                        try {
+                            const md = buildBalanceMeterReport(result.balance_meter);
+                            // Render as simple preformatted text to preserve Markdown readability
+                            const pre = document.createElement('pre');
+                            pre.className = 'whitespace-pre-wrap text-sm text-gray-200 bg-gray-900/60 p-4 rounded border border-gray-700';
+                            pre.textContent = md;
+                            balanceWrap.appendChild(pre);
+                        } catch (e) {
+                            console.warn('Balance Meter render failed, falling back to JSON view:', e);
+                            const pre = document.createElement('pre');
+                            pre.className = 'whitespace-pre-wrap text-xs text-gray-300 bg-gray-900/60 p-4 rounded border border-gray-700';
+                            pre.textContent = JSON.stringify(result.balance_meter, null, 2);
+                            balanceWrap.appendChild(pre);
+                        }
+                    // No separate seismograph mode; content renders only for Balance Meter
+                    } else {
+                        balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter or seismograph data for this selection.</p>';
+                    }
+                }
+            } catch (e) {
+                console.warn('populateTabContent encountered an issue:', e);
+            }
+        }
+
         // --- API Call ---
 
         async function generateReport() {
@@ -6455,10 +6489,6 @@ function renderTransitDay(dateStr, items){
                     // Switch to Balance Meter tab for standalone mode
                     document.getElementById('balanceMeterModeTab')?.click();
                     console.log('=== END BALANCE METER MODE ===');
-                } else if (hasTransitsMode && hasTransitData) {
-                    // Auto-append seismograph section to Mirror report
-                    const seismographSection = buildSeismographMarkdownSection(result);
-                    reportContent.textContent = report + '\n\n---\n\n' + seismographSection;
                 } else {
                     reportContent.textContent = report;
                 }
