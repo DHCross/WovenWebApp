@@ -431,7 +431,7 @@
                 </div>
             </div>
             
-            <!-- Mirror/Geometry Tab Switch -->
+            <!-- Mirror/Seismograph/Balance Meter Tab Switch -->
             <div class="mt-6 mb-4">
                 <div class="flex justify-center">
                     <div class="bg-gray-800 p-1 rounded-lg border border-gray-600 inline-flex" role="tablist" aria-label="Output Mode">
@@ -439,6 +439,11 @@
                                 class="px-6 py-2 text-sm font-medium rounded-md bg-teal-600 text-white transition-colors duration-200" 
                                 data-mode="mirror">
                             Mirror
+                        </button>
+                        <button id="balanceMeterModeTab" type="button" role="tab" aria-selected="false" aria-controls="balance-meter-content" 
+                                class="px-6 py-2 text-sm font-medium rounded-md bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors duration-200" 
+                                data-mode="balance_meter">
+                            Balance Meter
                         </button>
                     </div>
                 </div>
@@ -1254,22 +1259,25 @@
 
             <!-- Report Output -->
             <div id="reportOutput" class="hidden bg-gray-800 p-6 rounded-lg shadow-lg">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-semibold text-white">Pure Astrological Geometry</h2>
-                    
-                    <!-- Progressive Disclosure: Raw Data Toggle -->
-                    <button id="toggleRawData" class="text-xs text-gray-400 underline hover:text-gray-300 focus:outline-none">
-                        Show Raw Data
-                    </button>
-                </div>
+                
+                <!-- Tab Content Areas -->
+                <div id="mirror-content" role="tabpanel" aria-labelledby="mirrorModeTab">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-semibold text-white">Pure Astrological Geometry</h2>
+                        
+                        <!-- Progressive Disclosure: Raw Data Toggle -->
+                        <button id="toggleRawData" class="text-xs text-gray-400 underline hover:text-gray-300 focus:outline-none">
+                            Show Raw Data
+                        </button>
+                    </div>
 
-                <!-- Orientation Banner -->
-                <div class="mb-6 p-4 bg-gray-750 rounded-lg border border-gray-600">
-                    <p class="text-sm text-gray-300">
-                        What you see below is Math Brain output — raw geometry only. Raven Calder translates this into plain, resonant insights. 
-                        These files are structured for both humans and AI to read.
-                    </p>
-                </div>
+                    <!-- Orientation Banner -->
+                    <div class="mb-6 p-4 bg-gray-750 rounded-lg border border-gray-600">
+                        <p class="text-sm text-gray-300">
+                            What you see below is Math Brain output — raw geometry only. Raven Calder translates this into plain, resonant insights. 
+                            These files are structured for both humans and AI to read.
+                        </p>
+                    </div>
 
                 <!-- Action Zones -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -1313,6 +1321,17 @@
                     <div id="reportContent" class="report-surface whitespace-pre-wrap font-mono text-[11px] leading-relaxed bg-gray-900/80 backdrop-blur-sm p-4 rounded-lg border border-gray-700/70 overflow-auto max-h-[34rem] shadow-inner selection:bg-teal-600/40 selection:text-teal-50">
                     </div>
                 </div>
+                
+                <!-- Balance Meter Tab Content -->
+                <div id="balance-meter-content" role="tabpanel" aria-labelledby="balanceMeterModeTab" class="hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-semibold text-white">Balance Meter</h2>
+                    </div>
+                    <div id="balanceMeterTabContent" class="space-y-6">
+                        <!-- Balance Meter content will be populated dynamically -->
+                    </div>
+                </div>
+                
             </div>
         </main>
 
@@ -6427,11 +6446,14 @@ function renderTransitDay(dateStr, items){
                 const hasTransitsMode = formData.context.mode.includes('transits');
                 const hasTransitData = result.person_a?.chart?.transitsByDate || result.person_b?.chart?.transitsByDate || result.composite?.transitsByDate || result.synastry?.transitsByDate;
                 
+                // Populate all tab content
+                populateTabContent(result, formData, report, hasTransitsMode, hasTransitData);
+                
                 // Handle Balance Meter mode - standalone report focused on triple-channel data
                 if (result.mode === 'balance_meter' && result.balance_meter) {
                     console.log('=== BALANCE METER MODE ===');
-                    const balanceMeterSection = buildBalanceMeterReport(result.balance_meter);
-                    reportContent.textContent = balanceMeterSection;
+                    // Switch to Balance Meter tab for standalone mode
+                    document.getElementById('balanceMeterModeTab')?.click();
                     console.log('=== END BALANCE METER MODE ===');
                 } else if (hasTransitsMode && hasTransitData) {
                     // Auto-append seismograph section to Mirror report
@@ -6485,6 +6507,49 @@ function renderTransitDay(dateStr, items){
         // --- Event Listeners & UI Updates ---
 
         function setupEventListeners() {
+            // Tab switching functionality
+            function switchTab(activeTabId, activeContentId) {
+                // Hide all tab content
+                const allTabContent = ['mirror-content', 'balance-meter-content'];
+                allTabContent.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) element.classList.add('hidden');
+                });
+                
+                // Reset all tab buttons
+                const allTabs = ['mirrorModeTab', 'balanceMeterModeTab'];
+                allTabs.forEach(id => {
+                    const tab = document.getElementById(id);
+                    if (tab) {
+                        tab.setAttribute('aria-selected', 'false');
+                        tab.className = 'px-6 py-2 text-sm font-medium rounded-md bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors duration-200';
+                    }
+                });
+                
+                // Activate selected tab
+                const activeTab = document.getElementById(activeTabId);
+                const activeContent = document.getElementById(activeContentId);
+                if (activeTab && activeContent) {
+                    activeTab.setAttribute('aria-selected', 'true');
+                    activeTab.className = 'px-6 py-2 text-sm font-medium rounded-md bg-teal-600 text-white transition-colors duration-200';
+                    activeContent.classList.remove('hidden');
+                    
+                    // Update mode description
+                    const descriptions = {
+                        'mirrorModeTab': '<strong class="text-teal-300">Mirror:</strong> Geometry + reflection in one stream. Always includes the full skeletal ledger (angles, houses, hooks) plus the recognition layer. Seismograph trace auto-appends when transit hooks exist.',
+                        'balanceMeterModeTab': '<strong class="text-teal-300">Balance Meter:</strong> Triple-channel analysis (Seismograph v1.0, Balance Channel v1.1, SFD v1.2) showing crisis detection, rebalanced perspective, and net support measurement in integrated tables.'
+                    };
+                    const modeDesc = document.getElementById('modeDescription');
+                    if (modeDesc && descriptions[activeTabId]) {
+                        modeDesc.innerHTML = descriptions[activeTabId];
+                    }
+                }
+            }
+            
+            // Tab click handlers
+            document.getElementById('mirrorModeTab')?.addEventListener('click', () => switchTab('mirrorModeTab', 'mirror-content'));
+            document.getElementById('balanceMeterModeTab')?.addEventListener('click', () => switchTab('balanceMeterModeTab', 'balance-meter-content'));
+            
             // Main button
             generateBtn.addEventListener('click', generateReport);
 
