@@ -6707,7 +6707,12 @@ function renderTransitDay(dateStr, items){
                             includeJsonAppendix: false,
                             includeProvenance: true
                         };
-                        const fullReport = generateMarkdownReport(latestResultData, copyOptions);
+                        const isBalanceMode = (latestResultData?.mode === 'balance_meter') ||
+                                              (typeof getCurrentActiveTabMode === 'function' && getCurrentActiveTabMode() === 'balance_meter') ||
+                                              (window.currentAppMode === 'balance_meter');
+                        const fullReport = (isBalanceMode && latestResultData.balance_meter)
+                            ? buildBalanceMeterReport(latestResultData.balance_meter)
+                            : generateMarkdownReport(latestResultData, copyOptions);
                         await navigator.clipboard.writeText(fullReport);
                     } else {
                         await navigator.clipboard.writeText(reportContent.textContent);
@@ -6736,7 +6741,12 @@ function renderTransitDay(dateStr, items){
                     };
                     
                     console.log('Generating markdown report...');
-                    const fullReport = generateMarkdownReport(latestResultData, downloadOptions);
+                    const isBalanceMode = (latestResultData?.mode === 'balance_meter') ||
+                                          (typeof getCurrentActiveTabMode === 'function' && getCurrentActiveTabMode() === 'balance_meter') ||
+                                          (window.currentAppMode === 'balance_meter');
+                    const fullReport = (isBalanceMode && latestResultData.balance_meter)
+                        ? buildBalanceMeterReport(latestResultData.balance_meter)
+                        : generateMarkdownReport(latestResultData, downloadOptions);
                     console.log('Markdown report generated successfully, length:', fullReport.length);
                     
                     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -6798,7 +6808,12 @@ function renderTransitDay(dateStr, items){
                     };
                     
                     console.log('Generating markdown report for PDF...');
-                    const markdownReport = generateMarkdownReport(latestResultData, downloadOptions);
+                    const isBalanceMode = (latestResultData?.mode === 'balance_meter') ||
+                                          (typeof getCurrentActiveTabMode === 'function' && getCurrentActiveTabMode() === 'balance_meter') ||
+                                          (window.currentAppMode === 'balance_meter');
+                    const markdownReport = (isBalanceMode && latestResultData.balance_meter)
+                        ? buildBalanceMeterReport(latestResultData.balance_meter)
+                        : generateMarkdownReport(latestResultData, downloadOptions);
                     
                     // Check if html2pdf is available
                     if (typeof html2pdf === 'undefined') {
