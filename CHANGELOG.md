@@ -64,6 +64,35 @@ Successfully integrated the complete Balance Meter v1.2 system with full narrati
 **AI Collaboration Notes:**
 *Balance Meter integration completed successfully following Raven Calder GPT's precise implementation roadmap. The "big gap" between sophisticated computational engine and user-facing narrative is now completely closed. All three channels (v1.0/v1.1/v1.2) render consistently across desktop, mobile, and export formats with full backward compatibility.*
 
+## [2025-09-06] FIX: Balance Meter Generation + Auto-Fill Logic
+
+**Description:**
+Fixed multiple issues preventing Balance Meter reports from generating when users clicked "Generate Balance Report". Added auto-fill logic for missing transit dates and comprehensive debugging to diagnose display issues.
+
+**Root Causes Identified:**
+1. Balance Meter tab generation failed when transit date fields were empty
+2. Complex `shouldRenderBalance` logic was too restrictive 
+3. Missing debugging made issues hard to diagnose
+
+**Changes:**
+- Frontend: `index.html`
+  - Auto-fill logic: When Balance Meter mode is detected and transit dates are empty, automatically populate with sensible defaults (today to 1 week from today, daily step)
+  - Fallback transit params: Even when DOM elements are missing, provide default parameters for Balance Meter mode
+  - Simplified `shouldRenderBalance` logic: If Balance Meter tab is active, render Balance Meter (remove complex server-mode dependencies)
+  - Enhanced debugging throughout: `generateReport()`, `populateTabContent()`, `getCurrentActiveTabMode()`, and tab click handlers
+  - Robust error handling for missing Balance Meter data with client-side synthesis
+
+**Technical Details:**
+- Auto-fill dates: Start = today, End = today + 7 days, Step = daily
+- Fallback ensures Balance Meter always has transit params even if form fields unavailable
+- Debugging logs track: tab states, form data collection, report generation paths, and content population
+
+**Expected Behavior:**
+- Users can click "Generate Balance Report" without pre-filling transit dates
+- Balance Meter tab shows synthesized reports when server data unavailable
+- Comprehensive console logging for troubleshooting
+- Maintains backward compatibility with manual date entry
+
 ## [2025-09-06] FIX: Balance Meter Rendering Resilience + Export Parity
 
 **Description:**

@@ -5428,19 +5428,28 @@ function renderTransitDay(dateStr, items){
             const mirrorTab = document.getElementById('mirrorModeTab');
             const balanceMeterTab = document.getElementById('balanceMeterModeTab');
             
+            const mirrorSelected = mirrorTab?.getAttribute('aria-selected');
+            const balanceSelected = balanceMeterTab?.getAttribute('aria-selected');
+            
+            console.log('Tab states - Mirror:', mirrorSelected, 'Balance:', balanceSelected);
+            
             // Check aria-selected attribute to determine active tab
             if (balanceMeterTab?.getAttribute('aria-selected') === 'true') {
+                console.log('getCurrentActiveTabMode returning: balance_meter');
                 return 'balance_meter';
             }
             
             // Fallback: check if Balance Meter checkbox is checked (for legacy compatibility)
             if (document.getElementById('balanceMeterMode')?.checked) {
+                console.log('getCurrentActiveTabMode returning: balance_meter (legacy)');
                 return 'balance_meter';
             }
             
             // Default to checking context mode radios for relational modes
             const contextModeChecked = document.querySelector('input[name="contextMode"]:checked');
-            return contextModeChecked?.value || 'natal_transits';
+            const result = contextModeChecked?.value || 'natal_transits';
+            console.log('getCurrentActiveTabMode returning:', result);
+            return result;
         }
 
         function collectFormData() {
@@ -6449,24 +6458,38 @@ function renderTransitDay(dateStr, items){
 
         // Populate Mirror/Balance Meter tab content based on result
         function populateTabContent(result, formData, report, hasTransitsMode, hasTransitData) {
+            console.log('=== POPULATE TAB CONTENT DEBUG ===');
+            console.log('Has balance_meter in result:', Boolean(result?.balance_meter));
+            console.log('Has person A transits:', Boolean(result?.person_a?.chart?.transitsByDate));
+            console.log('Report length:', report?.length);
+            
             try {
                 const balanceWrap = document.getElementById('balanceMeterTabContent');
-                if (!balanceWrap) return;
+                if (!balanceWrap) {
+                    console.log('ERROR: balanceMeterTabContent element not found');
+                    return;
+                }
+                
+                console.log('Found balance wrap element:', balanceWrap);
                 
                 // Clear previous content
                 balanceWrap.innerHTML = '';
                 
                 // Decide what to render for the Balance Meter tab
                 const activeTab = (typeof getCurrentActiveTabMode === 'function') ? getCurrentActiveTabMode() : 'mirror';
+                console.log('Active tab for populate:', activeTab);
                 
                 if (result && result.balance_meter) {
+                    console.log('Rendering server-provided Balance Meter payload');
                     // Render server-provided Balance Meter payload
                     try {
                         const md = buildBalanceMeterReport(result.balance_meter);
+                        console.log('Built Balance Meter markdown, length:', md?.length);
                         const pre = document.createElement('pre');
                         pre.className = 'whitespace-pre-wrap text-sm text-gray-200 bg-gray-900/60 p-4 rounded border border-gray-700';
                         pre.textContent = md;
                         balanceWrap.appendChild(pre);
+                        console.log('Appended Balance Meter content to tab');
                     } catch (e) {
                         console.warn('Balance Meter render failed, falling back to JSON view:', e);
                         const pre = document.createElement('pre');
@@ -6475,22 +6498,28 @@ function renderTransitDay(dateStr, items){
                         balanceWrap.appendChild(pre);
                     }
                 } else if (activeTab === 'balance_meter' && (result?.person_a?.chart?.transitsByDate)) {
+                    console.log('Synthesizing Balance Meter payload from transits');
                     // Synthesize a minimal Balance Meter payload from available transits
                     try {
                         const synthetic = synthesizeBalanceMeterPayload(result, formData);
+                        console.log('Synthesized payload:', synthetic ? 'success' : 'failed');
                         const md = buildBalanceMeterReport(synthetic);
+                        console.log('Built synthetic Balance Meter markdown, length:', md?.length);
                         const pre = document.createElement('pre');
                         pre.className = 'whitespace-pre-wrap text-sm text-gray-200 bg-gray-900/60 p-4 rounded border border-gray-700';
                         pre.textContent = md;
                         balanceWrap.appendChild(pre);
+                        console.log('Appended synthetic Balance Meter content to tab');
                     } catch (e) {
                         console.warn('Synthetic Balance Meter render failed:', e);
                         balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter data for this selection.</p>';
                     }
                 } else {
+                    console.log('No Balance Meter data available, showing message');
                     // No separate seismograph mode; content renders only for Balance Meter
                     balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter data for this selection.</p>';
                 }
+                console.log('=== END POPULATE TAB CONTENT DEBUG ===');
             } catch (e) {
                 console.warn('populateTabContent encountered an issue:', e);
             }
@@ -6635,12 +6664,24 @@ function renderTransitDay(dateStr, items){
                 let report;
                 const activeTabMode = (typeof getCurrentActiveTabMode === 'function') ? getCurrentActiveTabMode() : 'mirror';
                 const hasServerBalance = Boolean(result.balance_meter);
-                const shouldRenderBalance = (hasServerBalance && (result.mode === 'balance_meter' || activeTabMode === 'balance_meter'))
-                    || (!hasServerBalance && activeTabMode === 'balance_meter' && (result?.person_a?.chart?.transitsByDate));
+                
+                console.log('=== REPORT GENERATION DEBUG ===');
+                console.log('Active tab mode:', activeTabMode);
+                console.log('Result mode:', result.mode);
+                console.log('Has server balance:', hasServerBalance);
+                console.log('Has person A transits:', Boolean(result?.person_a?.chart?.transitsByDate));
+                
+                // Simplified logic: if Balance Meter tab is active, try to render Balance Meter
+                const shouldRenderBalance = activeTabMode === 'balance_meter';
+                
+                console.log('Should render balance:', shouldRenderBalance);
+                console.log('=== END REPORT GENERATION DEBUG ===');
+                
                 if (shouldRenderBalance) {
                     // Generate Balance Meter report for download/copy/PDF
                     const payload = hasServerBalance ? result.balance_meter : synthesizeBalanceMeterPayload(result, formData);
                     report = buildBalanceMeterReport(payload);
+                    console.log('Generated Balance Meter report, length:', report?.length);
                 } else {
                     // Generate Mirror report (seismograph auto-appends when transit hooks exist)
                     const displayOptions = {
@@ -6649,6 +6690,7 @@ function renderTransitDay(dateStr, items){
                         includeProvenance: false
                     };
                     report = generateMarkdownReport(result, displayOptions);
+                    console.log('Generated Mirror report, length:', report?.length);
                 }
                 
                 // Check if we have transit hooks that warrant seismograph auto-append
@@ -6760,8 +6802,10 @@ function renderTransitDay(dateStr, items){
                 updateAppMode('mirror');
             });
             document.getElementById('balanceMeterModeTab')?.addEventListener('click', () => {
+                console.log('Balance Meter tab clicked');
                 switchTab('balanceMeterModeTab', 'balance-meter-content');
                 updateAppMode('balance_meter');
+                console.log('Balance Meter tab mode updated');
             });
             
             // Main button
