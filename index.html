@@ -1204,7 +1204,7 @@
                                 📄 Upload Balance Meter Data
                             </button>
                             <button id="clearSeismoBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden">
-                                ✖️ Clear Seismograph Data
+                                ✖️ Clear Balance Meter Data
                             </button>
                             <button id="genComparativeBtn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden" disabled>
                                 🔗 Generate Comparative Report
@@ -6380,7 +6380,7 @@ function renderTransitDay(dateStr, items){
                         }
                     // No separate seismograph mode; content renders only for Balance Meter
                     } else {
-                        balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter or seismograph data for this selection.</p>';
+                        balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter data for this selection.</p>';
                     }
                 }
             } catch (e) {
@@ -7206,8 +7206,8 @@ function renderTransitDay(dateStr, items){
                 }
                 
                 if (hasTransitHooks) {
-                    // Seismograph data will be included automatically in Mirror generation
-                    console.log('✅ Transit hooks detected - Seismograph will auto-append to Mirror');
+                    // Triple-channel data now accessed via Balance Meter only
+                    console.log('✅ Transit hooks detected - Balance Meter triple-channel available');
                 } else {
                     console.log('ℹ️ No transit hooks found - Mirror only');
                 }
@@ -7215,8 +7215,8 @@ function renderTransitDay(dateStr, items){
         }
 
         function updateSeismographTabIndicator() {
-            // No longer needed - seismograph auto-appends to Mirror when transit hooks exist
-            console.log('Seismograph auto-append mode - no separate tab indicator needed');
+            // No separate seismograph tab; indicator not used
+            console.log('Seismograph folded into Balance Meter; no tab indicator');
         }
         
         function updateContextType(contextType) {
