@@ -18,10 +18,7 @@ All three channels render daily and braid into one synthesized Mirror.
 
 ## Problem Statement — The Red Tilt & Fatalism Feedback Loop
 
-When symbolic forecast and material crisis coincide, a negative-skewed valence can read like fate. The model needs to distinguish **correlation** from **causation** and surface **scaffolding** alongside strain. The goal is navigation, not prophecy.
-
----
-
+When symbolic forecast and material crisis coincide, a negative-skewed valence can read like fate. The model needs to distinguish **correlation** from **causation** and surface **scaffolding** alongside strain. The goal is navigation, n
 ## v1.1 Calibration Note — Rebalance (Valence Only)
 
 **Core principle:** Leave **Magnitude** untouched (intensity is intensity). Re-weight **Valence** so supportive geometry becomes visible and extreme negatives don’t auto-peg.
