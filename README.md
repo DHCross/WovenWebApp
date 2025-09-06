@@ -93,7 +93,7 @@ The Balance Meter system implements a triple-channel architecture that extends t
 
 **CSV Export**: Stable column names preserve data integrity:
 - `mag_v1_0`, `val_v1_0`, `vol` (seismograph)
-- `bal_val_v1_1` (balance channel)  
+- `bal_val_v1_1` (Balance Channel)  
 - `sfd_v1_2`, `splus_v1_2`, `sminus_v1_2` (SFD components)
 - `calibration_boundary`, `reconstructed`, `engine_versions`
 
