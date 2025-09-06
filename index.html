@@ -740,6 +740,24 @@
                     </div>
                 </div>
                 
+                <!-- Context Mode Selection -->
+                <div class="flex flex-wrap items-center gap-4 mb-4">
+                    <label class="flex items-center mr-4">
+                        <input type="radio" name="contextMode" value="natal_transits" class="mr-2" checked>
+                        <span class="text-gray-300">Natal Chart + Transits</span>
+                    </label>
+                    <label class="flex items-center mr-4">
+                        <input type="radio" name="contextMode" value="composite_transits" class="mr-2">
+                        <span class="text-gray-300">Composite + Transits</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="contextMode" value="synastry_transits" class="mr-2">
+                        <span class="text-gray-300">Synastry + Transits</span>
+                    </label>
+                </div>
+                
+            </div>
+            
             <!-- Progressive Disclosure Sections -->
             
             <!-- Transit Date Range with Progressive Disclosure -->
@@ -1152,16 +1170,30 @@
                         <p class="text-xs text-purple-400 mt-2">Compatible with iOS "Health Auto Export" app</p>
                     </div>
 
-                    <!-- Seismograph Overlay -->
+                    <!-- Balance Meter -->
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-t-4 border-cyan-500">
                         <h3 class="text-white font-medium mb-2 flex items-center gap-2">
-                            📊 Seismograph Overlay
+                            📊 Balance Meter
                             <button class="text-xs text-cyan-300 hover:text-cyan-400 focus:outline-none" title="Upload symbolic logs (.md) to cross-check currents">
                                 ❓
                             </button>
                         </h3>
                         <p class="text-xs text-gray-400 mb-2">Cross-reference your personal symbolic logs with chart patterns</p>
                         <p class="text-xs text-cyan-300 mb-4"><strong>Produces:</strong> Comparative analysis showing how your recorded experiences align with astrological indicators</p>
+                        
+                        <!-- Balance Meter Mode Option -->
+                        <div class="mb-4 p-3 bg-gray-750 rounded border border-cyan-600">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="balanceMeterMode" class="mr-3 h-4 w-4 text-cyan-600 focus:ring-cyan-500 border-gray-600 rounded bg-gray-700">
+                                <span class="text-gray-300 font-medium">
+                                    Generate Balance Meter Report
+                                    <span class="text-xs text-gray-400 block">
+                                        Focus on triple-channel analysis (Seismograph, Balance Channel, SFD) for health correlation
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                        
                         <div class="space-y-2">
                             <button id="loadSeismoBtn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
                                 📄 Upload Balance Meter Data
@@ -5467,7 +5499,7 @@ function renderTransitDay(dateStr, items){
                 personA,
                 personB: personB,
                 context: {
-                    mode: document.querySelector('input[name="contextMode"]:checked').value,
+                    mode: document.getElementById('balanceMeterMode')?.checked ? 'balance_meter' : document.querySelector('input[name="contextMode"]:checked').value,
                     relationship_type: document.querySelector('input[name="relationshipType"]:checked')?.value,
                     intimacy_tier: document.querySelector('input[name="intimacyTier"]:checked')?.value,
                     contact_channel: document.querySelector('input[name="contactChannel"]:checked')?.value,
