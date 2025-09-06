@@ -1512,33 +1512,49 @@ exports.handler = async function(event) {
     }
 
     // === BALANCE METER MODE ===
-    if (wantBalanceMeter && haveRange && result.person_a?.chart?.transitsByDate) {
+    if (wantBalanceMeter && haveRange) {
       logger.debug('Processing Balance Meter mode for standalone report');
-      
-      // Balance Meter mode focuses exclusively on the triple-channel data
-      // Already computed in the seismograph pipeline above
-      const balanceMeterReport = {
-        period: {
-          start: startDate,
-          end: endDate,
-          step: stepDays
-        },
-        schema_version: '1.2',
-        channel_summary: result.person_a.derived.seismograph_summary,
-        daily_entries: result.person_a.chart.transitsByDate,
-        person: {
-          name: personA.name || 'Subject',
-          birth_date: personA.birth_date,
-          birth_time: personA.birth_time,
-          birth_location: personA.birth_location
+
+      // Ensure Person A transit seismograph exists; compute if missing
+      if (!result.person_a?.chart?.transitsByDate) {
+        try {
+          const { transitsByDate, retroFlagsByDate } = await getTransits(personA, { startDate: start, endDate: end, step }, headers, pass);
+          const seismographData = calculateSeismograph(transitsByDate, retroFlagsByDate);
+          result.person_a = result.person_a || {};
+          result.person_a.derived = result.person_a.derived || {};
+          result.person_a.derived.seismograph_summary = seismographData.summary;
+          result.person_a.chart = { ...(result.person_a.chart || {}), transitsByDate: seismographData.daily };
+        } catch (e) {
+          logger.warn('Balance Meter fallback transit compute failed:', e.message);
         }
-      };
-      
-      // Replace standard natal-centric response with Balance Meter focus
-      result.balance_meter = balanceMeterReport;
-      result.mode = 'balance_meter';
-      
-      logger.debug('Balance Meter standalone report generated successfully');
+      }
+
+      if (result.person_a?.chart?.transitsByDate) {
+        // Balance Meter report focuses on triple-channel seismograph outputs
+        const balanceMeterReport = {
+          period: {
+            start: start,
+            end: end,
+            step: step
+          },
+          schema_version: '1.2',
+          channel_summary: result.person_a.derived?.seismograph_summary || null,
+          daily_entries: result.person_a.chart.transitsByDate,
+          person: {
+            name: personA.name || 'Subject',
+            birth_date: personA.birth_date,
+            birth_time: personA.birth_time,
+            birth_location: personA.birth_location
+          }
+        };
+
+        // Replace standard natal-centric response with Balance Meter focus
+        result.balance_meter = balanceMeterReport;
+        result.mode = 'balance_meter';
+        logger.debug('Balance Meter standalone report generated successfully');
+      } else {
+        logger.warn('Balance Meter requested but no transits available to compute report');
+      }
     }
 
     // Post-compute contract assertions: if relationship mode requested ensure presence of person_b/composite
