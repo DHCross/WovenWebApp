@@ -3425,16 +3425,16 @@ function renderTransitDay(dateStr, items){
                             <div>
                                 <h3 class="text-lg font-semibold text-white mb-3 border-b border-gray-700 pb-2">Core Dimensions</h3>
                                 <ul class="space-y-3 text-sm">
-                                    <li><strong>Valence (🌞 / 🌑 / 🌗)</strong> → <span class="text-gray-300"><em>Emotional / symbolic charge</em> of an aspect.</span>
+                    <li><strong>Magnitude ⚡ (0–5)</strong> — <span class="text-gray-300">Size of symbolic pressure. Neutral in tone (how much, not which way); ceiling scale ensures comparability.</span></li>
+                    <li><strong>Valence 🌞🌑🌗</strong> — <span class="text-gray-300">Directional tilt of pressure (supportive / restrictive / mixed).</span>
                                         <ul class="ml-4 mt-2 space-y-1 text-xs text-gray-400">
-                                            <li><strong>Positive (+):</strong> opens, harmonizes, lifts.</li>
-                                            <li><strong>Negative (–):</strong> presses, contracts, destabilizes.</li>
-                                            <li><strong>Neutral (0):</strong> background hum.</li>
+                        <li><strong>🌞 Positive:</strong> harmonizes, stabilizes, opens pathways.</li>
+                        <li><strong>🌑 Negative:</strong> constrains, destabilizes, blocks.</li>
+                        <li><strong>🌗 Mixed:</strong> simultaneous support and strain.</li>
                                         </ul>
-                                    </li>
-                                    <li><strong>Type (🌪️ / 🌊 / 🔥 / 🌱)</strong> → <span class="text-gray-300"><em>Kind of symbolic weather</em>.</span></li>
-                                    <li><strong>Magnitude (⚡)</strong> → <span class="text-gray-300"><em>How strong it lands</em> (orb 🎯 + planets 🪐 + natal echo 📡).</span></li>
-                                    <li><strong>Volatility (🌊🔥)</strong> → <span class="text-gray-300"><em>How fast it fluctuates</em>.</span></li>
+                    </li>
+                    <li><strong>Volatility 🌪️</strong> — <span class="text-gray-300">Distribution of pressure (low = concentrated; high = scattered/stormy).</span></li>
+                    <li><strong>SFD (Support–Friction Differential)</strong> — <span class="text-gray-300">Splits S+ vs S−, nets the differential.</span></li>
                                 </ul>
                             </div>
 
@@ -3443,7 +3443,7 @@ function renderTransitDay(dateStr, items){
                                 <h3 class="text-lg font-semibold text-rose-300 mb-3 border-b border-gray-700 pb-2">🌑 Map of Negative Valence Types</h3>
                                 <p class="text-xs text-gray-400 mb-3 italic">When energy pulls down, contracts, destabilizes</p>
                                 <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                                    <li>♻️ <strong>Recursion Pull</strong> — <span class="text-gray-300">Old cycles re-emerge, karmic gravity, déjà vu themes.</span></li>
+                                    <li>♾️ <strong>Recursion Pull</strong> — <span class="text-gray-300">Old cycles resurface; déjà vu gravity.</span></li>
                                     <li>⚔️ <strong>Friction Clash</strong> — <span class="text-gray-300">Mars-style conflict, arguments, accidents, heat.</span></li>
                                     <li>↔️ <strong>Cross Current</strong> — <span class="text-gray-300">Competing priorities, mixed flows, confusion.</span></li>
                                     <li>🌫️ <strong>Fog / Dissolution</strong> — <span class="text-gray-300">Blurred boundaries, scattered signal.</span></li>
@@ -3477,7 +3477,7 @@ function renderTransitDay(dateStr, items){
                                     <li><strong>Aspect Type (🌀)</strong> → <span class="text-gray-300">Major = thunder, Minor = whispers.</span></li>
                                     <li><strong>Planetary Potency (🪐)</strong> → <span class="text-gray-300">Fast planets = sparks, slow planets = tectonic.</span></li>
                                     <li><strong>Natal Resonance (📡)</strong> → <span class="text-gray-300">Hits angles, luminaries, nodes = amplified.</span></li>
-                                    <li><strong>Recursion Stack (🎶)</strong> → <span class="text-gray-300">Multiple repeating themes = louder echo.</span></li>
+                                    <li><strong>Recursion (♾️)</strong> → <span class="text-gray-300">Overlapping themes echo louder.</span></li>
                                 </ul>
                             </div>
 
@@ -3487,7 +3487,7 @@ function renderTransitDay(dateStr, items){
                                     <li><strong>1. Valence</strong> = Is it 🌞 lifting, 🌑 pressing, or 🌗 neutral?</li>
                                     <li><strong>2. Type</strong> = Which "weather flavor" (🌪️ Recursion, 🌱 Fertility, etc.)?</li>
                                     <li><strong>3. Magnitude</strong> ⚡ = How loud is it?</li>
-                                    <li><strong>4. Volatility</strong> 🌊🔥 = Is it steady or stormy?</li>
+                                    <li><strong>4. Volatility</strong> 🌪️ = Is it steady or stormy?</li>
                                 </ol>
                             </div>
 
@@ -4987,7 +4987,7 @@ function renderTransitDay(dateStr, items){
             // 🌑 Negative Valence Types (↘)
             if (clampedVal <= -4.5) { emoji = '🌋'; label = 'Pressure / Eruption'; }
             else if (clampedVal <= -3.5) { emoji = '⚔️'; label = 'Friction Clash'; }
-            else if (clampedVal <= -2.8) { emoji = '♻️'; label = 'Recursion Pull'; }
+            else if (clampedVal <= -2.8) { emoji = '♾️'; label = 'Recursion Pull'; }
             else if (clampedVal <= -2.1) { emoji = '↔️'; label = 'Cross Current'; }
             else if (clampedVal <= -1.6) { emoji = '🧩'; label = 'Fragmentation'; }
             else if (clampedVal <= -1.0) { emoji = '🌫️'; label = 'Fog / Dissolution'; }
