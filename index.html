@@ -160,6 +160,7 @@
             /* Tab indicator - uses Tailwind's animate-pulse utility */
             .transit-indicator {
                 /* Tailwind handles pulse animation via animate-pulse class */
+                display: inline-block; /* ensure non-empty ruleset to satisfy linters */
             }
 
 
@@ -6409,64 +6410,46 @@ function renderTransitDay(dateStr, items){
         function populateTabContent(result, formData, report, hasTransitsMode, hasTransitData) {
             try {
                 const balanceWrap = document.getElementById('balanceMeterTabContent');
-                if (balanceWrap) {
-                    // Clear previous content
-                    balanceWrap.innerHTML = '';
-
-                    // If Balance Meter payload exists, render it (mode flag may be missing in some responses)
-                    if (result && result.balance_meter) {
-                        try {
-                            const md = buildBalanceMeterReport(result.balance_meter);
-                            // Render as simple preformatted text to preserve Markdown readability
-                            const pre = document.createElement('pre');
-                            pre.className = 'whitespace-pre-wrap text-sm text-gray-200 bg-gray-900/60 p-4 rounded border border-gray-700';
-                            pre.textContent = md;
-                            balanceWrap.appendChild(pre);
-                        } catch (e) {
-                            console.warn('Balance Meter render failed, falling back to JSON view:', e);
-                            const pre = document.createElement('pre');
-                            pre.className = 'whitespace-pre-wrap text-xs text-gray-300 bg-gray-900/60 p-4 rounded border border-gray-700';
-                            pre.textContent = JSON.stringify(result.balance_meter, null, 2);
-                            balanceWrap.appendChild(pre);
-                        }
-                                if (result && result.balance_meter) {
-                        // Frontend synthesis: create a minimal Balance Meter payload when server omitted it
-                        try {
-                            const synthetic = synthesizeBalanceMeterPayload(result, formData);
-                            const md = buildBalanceMeterReport(synthetic);
-                            const pre = document.createElement('pre');
-                            pre.className = 'whitespace-pre-wrap text-sm text-gray-200 bg-gray-900/60 p-4 rounded border border-gray-700';
-                            pre.textContent = md;
-                            balanceWrap.appendChild(pre);
-                        } catch (e) {
-                            console.warn('Synthetic Balance Meter render failed:', e);
-                            balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter data for this selection.</p>';
-                        }
-                    // No separate seismograph mode; content renders only for Balance Meter
-                    } else {
+                if (!balanceWrap) return;
+                
+                // Clear previous content
+                balanceWrap.innerHTML = '';
+                
+                // Decide what to render for the Balance Meter tab
+                const activeTab = (typeof getCurrentActiveTabMode === 'function') ? getCurrentActiveTabMode() : 'mirror';
+                
+                if (result && result.balance_meter) {
+                    // Render server-provided Balance Meter payload
+                    try {
+                        const md = buildBalanceMeterReport(result.balance_meter);
+                        const pre = document.createElement('pre');
+                        pre.className = 'whitespace-pre-wrap text-sm text-gray-200 bg-gray-900/60 p-4 rounded border border-gray-700';
+                        pre.textContent = md;
+                        balanceWrap.appendChild(pre);
+                    } catch (e) {
+                        console.warn('Balance Meter render failed, falling back to JSON view:', e);
+                        const pre = document.createElement('pre');
+                        pre.className = 'whitespace-pre-wrap text-xs text-gray-300 bg-gray-900/60 p-4 rounded border border-gray-700';
+                        pre.textContent = JSON.stringify(result.balance_meter, null, 2);
+                        balanceWrap.appendChild(pre);
+                    }
+                } else if (activeTab === 'balance_meter' && (result?.person_a?.chart?.transitsByDate)) {
+                    // Synthesize a minimal Balance Meter payload from available transits
+                    try {
+                        const synthetic = synthesizeBalanceMeterPayload(result, formData);
+                        const md = buildBalanceMeterReport(synthetic);
+                        const pre = document.createElement('pre');
+                        pre.className = 'whitespace-pre-wrap text-sm text-gray-200 bg-gray-900/60 p-4 rounded border border-gray-700';
+                        pre.textContent = md;
+                        balanceWrap.appendChild(pre);
+                    } catch (e) {
+                        console.warn('Synthetic Balance Meter render failed:', e);
                         balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter data for this selection.</p>';
                     }
-                                    // Try synthesizing a Balance Meter payload from available transits
-                                    try {
-                                        const activeTab = (typeof getCurrentActiveTabMode === 'function') ? getCurrentActiveTabMode() : 'mirror';
-                                        if (activeTab === 'balance_meter' && (result?.person_a?.chart?.transitsByDate)) {
-                                            const synth = synthesizeBalanceMeterPayload(result, formData);
-                                            if (synth) {
-                                                const md = buildBalanceMeterReport(synth);
-                                                const pre = document.createElement('pre');
-                                                pre.className = 'whitespace-pre-wrap text-sm text-gray-200 bg-gray-900/60 p-4 rounded border border-gray-700';
-                                                pre.textContent = md;
-                                                balanceWrap.appendChild(pre);
-                                            } else {
-                                                balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter data for this selection.</p>';
-                                            }
-                                        } else {
-                                            balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter data for this selection.</p>';
-                                        }
-                                    } catch (synthErr) {
-                                        console.warn('Balance Meter synthesis failed:', synthErr);
-                                        balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter data for this selection.</p>';
-                                    }
+                } else {
+                    // No separate seismograph mode; content renders only for Balance Meter
+                    balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter data for this selection.</p>';
+                }
             } catch (e) {
                 console.warn('populateTabContent encountered an issue:', e);
             }
@@ -6586,6 +6569,13 @@ function renderTransitDay(dateStr, items){
 
                 // Store result data for downloads
                 latestResultData = result;
+                // If we're in the Balance tab and server omitted balance_meter, attach a synthesized payload for export parity
+                try {
+                    const activeTabMode2 = (typeof getCurrentActiveTabMode === 'function') ? getCurrentActiveTabMode() : 'mirror';
+                    if (!latestResultData.balance_meter && activeTabMode2 === 'balance_meter' && latestResultData?.person_a?.chart?.transitsByDate) {
+                        latestResultData.balance_meter = synthesizeBalanceMeterPayload(latestResultData, formData);
+                    }
+                } catch(e) { console.debug('Optional attach of synthesized balance_meter skipped', e); }
 
                 // Generate report based on mode
                 let report;
