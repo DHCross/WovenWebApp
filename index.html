@@ -2179,16 +2179,23 @@ function renderTransitDay(dateStr, items){
         }
         
         function tripleChannelLine({ seismograph, balance, sfd }) {
-            const mag = seismograph?.magnitude?.toFixed?.(1) ?? "?";
+            const mag = seismograph?.magnitude;
+            const magTxt = Number.isFinite(mag) ? mag.toFixed(1) : "?";
             const val = seismograph?.valence;
-            const parts = [`Quake ${mag}`, `val ${fmtSigned(val)}`];
+            const valEmoji = Number.isFinite(val) ? getValenceEmoji(Math.max(-5, Math.min(5, val))) : '';
+            const parts = [`⚡ ${magTxt}`, `Val ${valEmoji} ${fmtSigned(val)}`];
 
-            if (balance) parts.push(`bal ${fmtSigned(balance.valence)}`);
+            if (balance && Number.isFinite(balance.valence)) {
+                const balEmoji = getValenceEmoji(Math.max(-5, Math.min(5, balance.valence)));
+                parts.push(`Bal ${balEmoji} ${fmtSigned(balance.valence)}`);
+            }
 
-            if (sfd) {
+            if (sfd && Number.isFinite(sfd.sfd)) {
                 const verdict = sfdVerdict(sfd.sfd);
                 if (verdict) {
-                    parts.push(`${verdict} (SFD ${fmtSigned(sfd.sfd)}; S+ ${sfd.sPlus?.toFixed?.(1)}/S− ${sfd.sMinus?.toFixed?.(1)})`);
+                    const sPlus = Number.isFinite(sfd.sPlus) ? sfd.sPlus.toFixed(1) : '?';
+                    const sMinus = Number.isFinite(sfd.sMinus) ? sfd.sMinus.toFixed(1) : '?';
+                    parts.push(`${verdict} (SFD ${fmtSigned(sfd.sfd)}; S+ ${sPlus}/S− ${sMinus})`);
                 } else {
                     parts.push(`SFD ${fmtSigned(sfd.sfd)}`);
                 }
@@ -2234,16 +2241,20 @@ function renderTransitDay(dateStr, items){
             
             const summary = balanceMeterData.channel_summary;
             if (summary) {
+                const seisAvg = Number.isFinite(summary.seismograph_average) ? summary.seismograph_average : 0;
+                const balAvg = Number.isFinite(summary.balance_average) ? summary.balance_average : 0;
+                const seisEmoji = getValenceEmoji(Math.max(-5, Math.min(5, seisAvg)));
+                const balEmoji = getValenceEmoji(Math.max(-5, Math.min(5, balAvg)));
                 md += `**Triple Channel Averages**:\n`;
-                md += `- Seismograph (Crisis-Weighted): ${(summary.seismograph_average || 0).toFixed(2)}\n`;
-                md += `- Balance (Rebalanced Valence): ${(summary.balance_average || 0).toFixed(2)}\n`;
-                md += `- SFD (Support-Friction Differential): ${(summary.sfd_average || 0).toFixed(2)}\n\n`;
+                md += `- Seismograph (valence): ${seisEmoji} ${seisAvg.toFixed(2)}\n`;
+                md += `- Balance (valence): ${balEmoji} ${balAvg.toFixed(2)}\n`;
+                md += `- SFD (support–friction): ${(Number.isFinite(summary.sfd_average) ? summary.sfd_average : 0).toFixed(2)}\n\n`;
                 
                 if (summary.dominant_channel) {
                     md += `**Dominant Channel**: ${summary.dominant_channel}\n`;
                 }
-                if (summary.volatility_index) {
-                    md += `**Volatility Index**: ${summary.volatility_index.toFixed(2)}\n`;
+                if (Number.isFinite(summary.volatility_index)) {
+                    md += `**Volatility Index**: 🌪️ ${summary.volatility_index.toFixed(2)}\n`;
                 }
                 md += `\n`;
             }
@@ -2349,7 +2360,7 @@ function renderTransitDay(dateStr, items){
             if (datasets.length === 0) {
                 md += 'No transit hooks detected for this time window.\n\n';
             } else {
-                md += '**Triple Channel Notes**: Quake = field intensity (0-10), val = net seismograph tension (-5 to +5), bal = balance channel valence, SFD = Support-Friction Differential with verdict\n\n';
+                md += '**Triple Channel Notes**: ⚡ = magnitude (0–5), Val = net seismograph valence (−5…+5), Bal = balance channel valence (−5…+5), SFD = Support–Friction Differential with verdict\n\n';
             }
             
             return md;
