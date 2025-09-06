@@ -5630,13 +5630,13 @@ function renderTransitDay(dateStr, items){
             }
 
             const mode = formData.context.mode;
-            if (mode === 'natal_transits' || mode === 'synastry_transits' || mode === 'composite_transits') {
+            if (mode === 'natal_transits' || mode === 'synastry_transits' || mode === 'composite_transits' || mode === 'balance_meter') {
                 const startDateElement = document.getElementById('transitStartDate');
                 const endDateElement = document.getElementById('transitEndDate');
                 const stepElement = document.getElementById('transitStep');
                 
                 console.log('=== FRONTEND TRANSIT DEBUG ===');
-                console.log('Transit mode detected:', mode);
+                console.log('Transit mode detected (including balance_meter):', mode);
                 console.log('Start date element:', startDateElement, 'Value:', startDateElement?.value);
                 console.log('End date element:', endDateElement, 'Value:', endDateElement?.value);
                 console.log('Step element:', stepElement, 'Value:', stepElement?.value);
@@ -6383,8 +6383,8 @@ function renderTransitDay(dateStr, items){
                     // Clear previous content
                     balanceWrap.innerHTML = '';
 
-                    // If in dedicated Balance Meter mode and data present, render Balance Meter report
-                    if (result && result.mode === 'balance_meter' && result.balance_meter) {
+                    // If Balance Meter payload exists, render it (mode flag may be missing in some responses)
+                    if (result && result.balance_meter) {
                         try {
                             const md = buildBalanceMeterReport(result.balance_meter);
                             // Render as simple preformatted text to preserve Markdown readability
@@ -6491,7 +6491,9 @@ function renderTransitDay(dateStr, items){
 
                 // Generate report based on mode
                 let report;
-                if (result.mode === 'balance_meter' && result.balance_meter) {
+                const activeTabMode = (typeof getCurrentActiveTabMode === 'function') ? getCurrentActiveTabMode() : 'mirror';
+                const shouldRenderBalance = Boolean(result.balance_meter) && (result.mode === 'balance_meter' || activeTabMode === 'balance_meter');
+                if (shouldRenderBalance) {
                     // Generate Balance Meter report for download/copy/PDF
                     report = buildBalanceMeterReport(result.balance_meter);
                 } else {
@@ -6512,7 +6514,7 @@ function renderTransitDay(dateStr, items){
                 populateTabContent(result, formData, report, hasTransitsMode, hasTransitData);
                 
                 // Handle Balance Meter mode - standalone report focused on triple-channel data
-                if (result.mode === 'balance_meter' && result.balance_meter) {
+                if (shouldRenderBalance) {
                     console.log('=== BALANCE METER MODE ===');
                     // Switch to Balance Meter tab for standalone mode
                     document.getElementById('balanceMeterModeTab')?.click();
