@@ -2864,6 +2864,11 @@ function renderTransitDay(dateStr, items){
             md += `### 🎯 AI Poetic Brain Translation Layer\n\n`;
             md += `*Essential data feed for AI mirror writing (per Raven Calder guidance):*\n\n`;
             
+            // Extract seismograph data
+            const magnitude = firstDayData.seismograph?.magnitude || 0;
+            const valence = firstDayData.seismograph?.valence || 0;
+            const volatility = firstDayData.seismograph?.volatility || 0;
+            
             // Top Hooks (Essential)
             const topHooks = (firstDayData.hooks || []).slice(0, 3);
             if (topHooks.length > 0) {
