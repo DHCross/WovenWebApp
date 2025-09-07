@@ -1260,27 +1260,7 @@
 
             <!-- Report Output -->
             <div id="reportOutput" class="hidden bg-gray-800 p-6 rounded-lg shadow-lg">
-                
-                <!-- Tab Content Areas -->
-                <div id="mirror-content" role="tabpanel" aria-labelledby="mirrorModeTab">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-semibold text-white">Pure Astrological Geometry</h2>
-                        
-                        <!-- Progressive Disclosure: Raw Data Toggle -->
-                        <button id="toggleRawData" class="text-xs text-gray-400 underline hover:text-gray-300 focus:outline-none">
-                            Show Raw Data
-                        </button>
-                    </div>
-
-                    <!-- Orientation Banner -->
-                    <div class="mb-6 p-4 bg-gray-750 rounded-lg border border-gray-600">
-                        <p class="text-sm text-gray-300">
-                            What you see below is Math Brain output — raw geometry only. Raven Calder translates this into plain, resonant insights. 
-                            These files are structured for both humans and AI to read.
-                        </p>
-                    </div>
-
-                <!-- Action Zones -->
+                <!-- Action Zones (Moved here to be globally visible for all tabs) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <!-- For Readers Zone -->
                     <div class="bg-gray-750 p-4 rounded-lg border border-emerald-600">
@@ -1306,8 +1286,26 @@
                             </button>
                         </div>
                     </div>
-
                 </div>
+                
+                <!-- Tab Content Areas -->
+                <div id="mirror-content" role="tabpanel" aria-labelledby="mirrorModeTab">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-semibold text-white">Pure Astrological Geometry</h2>
+                        
+                        <!-- Progressive Disclosure: Raw Data Toggle -->
+                        <button id="toggleRawData" class="text-xs text-gray-400 underline hover:text-gray-300 focus:outline-none">
+                            Show Raw Data
+                        </button>
+                    </div>
+
+                    <!-- Orientation Banner -->
+                    <div class="mb-6 p-4 bg-gray-750 rounded-lg border border-gray-600">
+                        <p class="text-sm text-gray-300">
+                            What you see below is Math Brain output — raw geometry only. Raven Calder translates this into plain, resonant insights. 
+                            These files are structured for both humans and AI to read.
+                        </p>
+                    </div>
 
                 <!-- Progressive Disclosure: Raw Data Content -->
                 <div id="rawDataSection" class="hidden">
@@ -6723,22 +6721,30 @@ function renderTransitDay(dateStr, items){
                 // Populate all tab content (now that the intended tab is active)
                 populateTabContent(result, formData, report, hasTransitsMode, hasTransitData);
 
-                // Debug: Check final state
-                console.log('🔍 DEBUG: Final Balance Meter tab state:');
-                console.log('- Balance Meter tab aria-selected:', document.getElementById('balanceMeterModeTab')?.getAttribute('aria-selected'));
-                console.log('- Balance Meter content hidden:', document.getElementById('balance-meter-content')?.classList.contains('hidden'));
-                console.log('- Balance Meter tab content has children:', document.getElementById('balanceMeterTabContent')?.children.length);
+                // Check if ANY report was generated (Mirror or Balance Meter)
+                const mirrorReportExists = report && report.length > 0;
+                const balanceMeterReportExists = result.reports?.balance_meter_report && result.reports.balance_meter_report.length > 0;
+
+                if (mirrorReportExists || balanceMeterReportExists) {
+                    // If mirror report exists, populate the main text content area for copy/paste.
+                    // Otherwise, use the balance meter report for the copy/paste buffer.
+                    if (mirrorReportExists) {
+                        reportContent.textContent = report;
+                    } else {
+                        reportContent.textContent = result.reports.balance_meter_report;
+                    }
+
+                    reportOutput.classList.remove('hidden');
+                    
+                    document.getElementById('copyReport').classList.remove('hidden');
+                    document.getElementById('downloadReport').classList.remove('hidden');
+                    document.getElementById('downloadPDF').classList.remove('hidden');
+                    document.getElementById('pdfOptions').classList.remove('hidden');
+                } else {
+                    reportOutput.classList.add('hidden');
+                }
                 
-                // Reflect the generated text into the main report surface (used for copy/download preview)
-                reportContent.textContent = report;
-                
-                document.getElementById('copyReport').classList.remove('hidden');
-                document.getElementById('downloadReport').classList.remove('hidden');
-                document.getElementById('downloadPDF').classList.remove('hidden');
-                document.getElementById('pdfOptions').classList.remove('hidden');
                 updateSeismographTabIndicator();
-                
-                reportOutput.classList.remove('hidden');
 
                 // Auto-focus + reveal animation so user sees the new report immediately
                 try {
