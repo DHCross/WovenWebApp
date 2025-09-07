@@ -1627,20 +1627,8 @@ function renderTransitDay(dateStr, items){
                     indicator.title = 'Bonus Balance Meter analysis available!';
                     balanceTab.appendChild(indicator);
                 }
-            } else if (currentMode === 'balance_meter' && hasMirrorReport) {
-                notificationMessage = '🎁 Bonus: Mirror report is also available! Check the Mirror tab.';
-                shouldShow = true;
-                
-                // Add indicator to Mirror tab
-                const mirrorTab = document.getElementById('mirrorModeTab');
-                if (mirrorTab && !mirrorTab.querySelector('.bonus-indicator')) {
-                    const indicator = document.createElement('span');
-                    indicator.className = 'bonus-indicator bg-teal-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-2';
-                    indicator.textContent = 'NEW';
-                    indicator.title = 'Bonus Mirror report available!';
-                    mirrorTab.appendChild(indicator);
-                }
             }
+            // Note: Mirror report cross-notification removed due to availability issues
             
             if (shouldShow) {
                 // Create notification element
