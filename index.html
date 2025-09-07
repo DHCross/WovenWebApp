@@ -647,6 +647,8 @@
                 <div></div> <!-- Empty div for spacing -->
                 <h1 class="text-4xl font-bold text-white">Woven Map Math Brain</h1>
                 <div class="flex gap-2">
+                    <button id="google-login-button" class="auth-button bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-semibold" title="Sign in with Google">Continue with Google</button>
+                    <button id="login-popup-button" class="auth-button bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm font-semibold" title="Use a popup for local testing">Login (Popup)</button>
                     <button id="login-button" class="auth-button bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-semibold">Log In</button>
                     <button id="logout-button" class="auth-button bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-semibold hidden">Log Out</button>
                 </div>
@@ -10530,6 +10532,8 @@ function renderTransitDay(dateStr, items){
                 const responseContainer = document.getElementById('poetic-response-container');
                 const responseEl = document.getElementById('poetic-response');
                 const loginButton = document.getElementById('login-button');
+                const loginPopupButton = document.getElementById('login-popup-button');
+                const googleLoginButton = document.getElementById('google-login-button');
                 const logoutButton = document.getElementById('logout-button');
 
                 // Check if we're returning from login
@@ -10557,6 +10561,37 @@ function renderTransitDay(dateStr, items){
                         }
                     });
                 });
+
+                // Popup login (useful for local dev; less redirect hassle)
+                if (loginPopupButton) {
+                    loginPopupButton.addEventListener('click', async () => {
+                        try {
+                            await auth0.loginWithPopup({
+                                authorizationParams: {
+                                    audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/',
+                                    prompt: 'select_account'
+                                }
+                            });
+                            await updateAuthUI();
+                        } catch (e) {
+                            console.error('Popup login failed:', e);
+                            alert('Popup login was blocked or failed. Please try normal login.');
+                        }
+                    });
+                }
+
+                // Dedicated Google login (uses the google-oauth2 connection)
+                if (googleLoginButton) {
+                    googleLoginButton.addEventListener('click', async () => {
+                        await auth0.loginWithRedirect({
+                            authorizationParams: {
+                                redirect_uri: window.location.origin,
+                                connection: 'google-oauth2',
+                                prompt: 'select_account'
+                            }
+                        });
+                    });
+                }
 
                 logoutButton.addEventListener('click', () => {
                     auth0.logout({
@@ -10625,9 +10660,11 @@ function renderTransitDay(dateStr, items){
                     const isAuthenticated = await auth0.isAuthenticated();
                     const poeticBrainSection = document.getElementById('poetic-brain-section');
                     const loginButton = document.getElementById('login-button');
+                    const loginPopupButton = document.getElementById('login-popup-button');
                     const logoutButton = document.getElementById('logout-button');
 
                     loginButton.classList.toggle('hidden', isAuthenticated);
+                    if (loginPopupButton) loginPopupButton.classList.toggle('hidden', isAuthenticated);
                     logoutButton.classList.toggle('hidden', !isAuthenticated);
                     poeticBrainSection.style.display = isAuthenticated ? 'block' : 'none';
 
@@ -10635,6 +10672,16 @@ function renderTransitDay(dateStr, items){
                         console.log('User is authenticated');
                     }
                 }
+
+                // Dev origin hint (helps when Allowed Web Origins aren’t set yet)
+                try {
+                    const origin = window.location.origin;
+                    const okLocal = /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)/.test(origin);
+                    if (!okLocal && location.protocol === 'file:') {
+                        console.warn('Auth0 requires http(s) origin. Please run a local server.');
+                        showNotification('Run via http(s); Auth0 login will not work over file://', 'error');
+                    }
+                } catch (_) {}
 
             } catch (error) {
                 console.error('Auth0 initialization error:', error);
