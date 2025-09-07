@@ -1165,15 +1165,15 @@
                         <p class="text-xs text-blue-300 mb-4"><strong>Produces:</strong> Correlation tables showing how your health patterns align with planetary movements</p>
                         <div class="space-y-2">
                             <button id="loadHealthDataBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
-                                📱 Upload Health Data
+                                📱 Upload Health Data (.json)
                             </button>
                             <button id="clearHealthDataBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden">
                                 ✖️ Clear Health Data
                             </button>
                         </div>
-                        <input type="file" id="healthDataInput" accept=".json" class="hidden">
+                        <input type="file" id="healthDataInput" accept=".json,application/json" class="hidden">
                         <div id="healthDataStatus" class="text-xs text-green-400 hidden mt-2"></div>
-                        <p class="text-xs text-purple-400 mt-2">Compatible with iOS "Health Auto Export" app</p>
+                        <p class="text-xs text-purple-400 mt-2">Compatible with iOS "Health Auto Export" app (.json format)</p>
                     </div>
 
                     <!-- Symbolic Log Correlation -->
@@ -2232,7 +2232,200 @@ function renderTransitDay(dateStr, items){
         }
 
         // Generate simplified seismograph markdown section for auto-append to Mirror reports
-        function buildBalanceMeterReport(balanceMeterData) {
+        // Resilience & Depletion Layer Functions
+        function calculateNatalResilienceProfile(natalChart) {
+            if (!natalChart?.aspects) return { scaffoldingStrength: 3.0, recoveryRate: 0.85, volatilityProne: false };
+            
+            let stabilizerPoints = 0;
+            let volatilityPoints = 0;
+            let saturnIntegration = 0;
+            let dominanceFactors = { uranus: 0, pluto: 0, mars: 0 };
+            
+            natalChart.aspects.forEach(aspect => {
+                const aspectType = aspect.aspect || aspect.aspect_name || aspect.name || '';
+                const orb = Math.abs(aspect.orb || aspect.orbit || aspect.diff || 0);
+                const p1 = aspect.p1_name || aspect.planet_a || '';
+                const p2 = aspect.p2_name || aspect.planet_b || '';
+                
+                // Skip if orb too wide (focus on tight aspects)
+                if (orb > 8) return;
+                
+                // Weight by orb tightness (tighter = stronger influence)
+                const orbWeight = Math.max(0.3, 1 - (orb / 8));
+                
+                // Stabilizer-friendly patterns (per Raven's criteria)
+                if (aspectType.toLowerCase().includes('trine')) {
+                    stabilizerPoints += 2.0 * orbWeight;
+                }
+                if (aspectType.toLowerCase().includes('sextile')) {
+                    stabilizerPoints += 1.0 * orbWeight;
+                }
+                
+                // Saturn integration assessment
+                if (p1.toLowerCase().includes('saturn') || p2.toLowerCase().includes('saturn')) {
+                    if (aspectType.toLowerCase().includes('trine') || aspectType.toLowerCase().includes('sextile')) {
+                        saturnIntegration += 1.5 * orbWeight; // Well-integrated Saturn
+                    } else if (aspectType.toLowerCase().includes('conjunction')) {
+                        saturnIntegration += 1.0 * orbWeight; // Neutral Saturn
+                    }
+                    // Squares/oppositions to Saturn don't add integration points but aren't penalties either
+                }
+                
+                // Volatility-prone patterns
+                if (aspectType.toLowerCase().includes('opposition') || aspectType.toLowerCase().includes('square')) {
+                    // Check if there are compensating stabilizer aspects
+                    const hasStabilizerCompensation = stabilizerPoints >= 2.0;
+                    if (!hasStabilizerCompensation) {
+                        volatilityPoints += 1.5 * orbWeight;
+                    } else {
+                        volatilityPoints += 0.5 * orbWeight; // Reduced penalty with stabilizer compensation
+                    }
+                }
+                
+                // Uranus/Pluto dominance tracking
+                if (p1.toLowerCase().includes('uranus') || p2.toLowerCase().includes('uranus')) {
+                    dominanceFactors.uranus += orbWeight;
+                }
+                if (p1.toLowerCase().includes('pluto') || p2.toLowerCase().includes('pluto')) {
+                    dominanceFactors.pluto += orbWeight;
+                }
+                if (p1.toLowerCase().includes('mars') || p2.toLowerCase().includes('mars')) {
+                    dominanceFactors.mars += orbWeight;
+                }
+            });
+            
+            // Calculate scaffolding strength (1.0 - 5.0 scale)
+            const baseScaffolding = 3.0;
+            const stabilizerBonus = Math.min(2.0, stabilizerPoints * 0.3);
+            const saturnBonus = Math.min(1.0, saturnIntegration * 0.4);
+            const volatilityPenalty = Math.min(2.0, volatilityPoints * 0.25);
+            
+            const scaffoldingStrength = Math.max(1.0, Math.min(5.0, 
+                baseScaffolding + stabilizerBonus + saturnBonus - volatilityPenalty
+            ));
+            
+            // Recovery rate (0.6 to 0.95 range - higher = faster decay/recovery)
+            const baseRecoveryRate = 0.85;
+            const recoveryBonus = (scaffoldingStrength - 3.0) * 0.025; // ±0.05 range
+            const recoveryRate = Math.max(0.6, Math.min(0.95, baseRecoveryRate + recoveryBonus));
+            
+            // Volatility proneness
+            const uranusPlutoDominance = dominanceFactors.uranus + dominanceFactors.pluto;
+            const volatilityProne = uranusPlutoDominance >= 3.0 || volatilityPoints >= 4.0;
+            
+            return {
+                scaffoldingStrength: Math.round(scaffoldingStrength * 10) / 10,
+                recoveryRate: Math.round(recoveryRate * 1000) / 1000,
+                volatilityProne: volatilityProne,
+                // Debug info
+                _debug: {
+                    stabilizerPoints: Math.round(stabilizerPoints * 10) / 10,
+                    volatilityPoints: Math.round(volatilityPoints * 10) / 10,
+                    saturnIntegration: Math.round(saturnIntegration * 10) / 10,
+                    dominanceFactors: dominanceFactors
+                }
+            };
+        }
+        
+        function calculateResilienceMetrics(balanceMeterData, sourceData = null) {
+            if (!balanceMeterData?.daily_entries) return {};
+            
+            // Extract natal scaffolding profile
+            const natalChart = sourceData?.person_a?.chart;
+            const natalProfile = calculateNatalResilienceProfile(natalChart);
+            
+            const dates = Object.keys(balanceMeterData.daily_entries).sort();
+            const resilience = {};
+            let cumulativeLoad = 0;
+            let resilienceBaseline = natalProfile.scaffoldingStrength; // Smoothed baseline
+            let recoveryMomentum = 0; // Continuous recovery state
+            
+            dates.forEach((date, index) => {
+                const day = normalizeEntry(balanceMeterData.daily_entries[date]);
+                if (!day) return;
+                
+                // Extract metrics from day
+                const magnitude = day.seismograph?.magnitude || 0;
+                const valence = day.seismograph?.valence || 0;
+                const balanceVal = day.balance?.valence || valence;
+                const sfd = day.sfd?.sfd || 0;
+                
+                // 1. Stress Detection (high magnitude + negative valence)
+                const stressLevel = magnitude * Math.max(0, -valence) / 5; // 0-5 scale
+                
+                // 2. SMOOTHED Load Accumulation (natal-modulated decay)
+                cumulativeLoad = cumulativeLoad * natalProfile.recoveryRate + stressLevel;
+                
+                // 3. CONTINUOUS Recovery Signal (no binary threshold)
+                const positiveSignals = Math.max(0, balanceVal) + Math.max(0, sfd);
+                const stressWeight = Math.max(0.1, 1 - (stressLevel / 5)); // Less recovery during active stress
+                const rawRecoverySignal = positiveSignals * stressWeight;
+                
+                // 4. SMOOTHED Recovery Momentum (natal-modulated decay curve)
+                const recoveryDecay = natalProfile.volatilityProne ? 0.75 : 0.85; // Volatile charts lose momentum faster
+                const recoveryGain = natalProfile.scaffoldingStrength / 3.0; // 0.33-1.67 multiplier
+                recoveryMomentum = (recoveryMomentum * recoveryDecay) + (rawRecoverySignal * recoveryGain * 0.3);
+                
+                // 5. SMOOTHED Resilience Baseline (adaptive baseline with momentum)
+                const baselineDecay = 0.95; // Very slow baseline changes
+                const loadStress = Math.min(1.0, cumulativeLoad / 5.0); // 0-1 stress factor
+                const targetBaseline = natalProfile.scaffoldingStrength * (1 - loadStress * 0.4); // Max 40% reduction
+                resilienceBaseline = (resilienceBaseline * baselineDecay) + (targetBaseline * (1 - baselineDecay));
+                
+                // 6. CONTINUOUS Resilience Score (no step functions)
+                const recoveryBonus = Math.min(1.5, recoveryMomentum * 0.6); // Capped momentum bonus
+                const resilienceScore = Math.max(0.5, resilienceBaseline + recoveryBonus);
+                
+                // 7. SMOOTHED Depletion Risk (continuous curve)
+                const depletionThreshold = natalProfile.volatilityProne ? 2.5 : 3.0;
+                let depletionRisk = 0;
+                if (cumulativeLoad > depletionThreshold) {
+                    const excessLoad = cumulativeLoad - depletionThreshold;
+                    const volatilityMultiplier = natalProfile.volatilityProne ? 1.4 : 1.0;
+                    const recoveryProtection = Math.min(0.5, recoveryMomentum * 0.2); // Recovery reduces depletion
+                    depletionRisk = Math.max(0, (excessLoad * 1.5 * volatilityMultiplier) - recoveryProtection);
+                }
+                
+                // 8. SMOOTHED Narrative (based on continuous values, not thresholds)
+                let narrative = "Stable";
+                const normalizedResilience = resilienceScore / natalProfile.scaffoldingStrength;
+                
+                if (depletionRisk >= 2.5) {
+                    narrative = natalProfile.volatilityProne ? "Deep depletion risk" : "Depletion risk";
+                } else if (stressLevel >= 2.0) {
+                    if (normalizedResilience >= 1.1 && recoveryMomentum >= 1.0) {
+                        narrative = natalProfile.scaffoldingStrength >= 4.0 ? "Quick rebound" : "Stress with rebound";
+                    } else {
+                        narrative = natalProfile.volatilityProne ? "Intense stress" : "Active stress";
+                    }
+                } else if (recoveryMomentum >= 1.2) {
+                    narrative = natalProfile.scaffoldingStrength >= 4.0 ? "Strong recovery" : "Recovery phase";
+                } else if (normalizedResilience <= 0.8) {
+                    narrative = natalProfile.volatilityProne ? "Load building" : "Load accumulating";
+                } else if (recoveryMomentum >= 0.5) {
+                    narrative = "Gentle recovery";
+                }
+                
+                resilience[date] = {
+                    recovery: Math.round(recoveryMomentum * 10) / 10,
+                    resilience: Math.round(resilienceScore * 10) / 10,
+                    depletionIndex: Math.round(depletionRisk * 10) / 10,
+                    narrative: narrative,
+                    // Debug info (not shown in report)
+                    _debug: {
+                        stressLevel: Math.round(stressLevel * 10) / 10,
+                        cumulativeLoad: Math.round(cumulativeLoad * 10) / 10,
+                        resilienceBaseline: Math.round(resilienceBaseline * 10) / 10,
+                        recoveryMomentum: Math.round(recoveryMomentum * 10) / 10,
+                        natalProfile: index === 0 ? natalProfile : undefined // Only show on first day
+                    }
+                };
+            });
+            
+            return resilience;
+        }
+
+        function buildBalanceMeterReport(balanceMeterData, sourceData = null) {
             if (!balanceMeterData) return 'No Balance Meter data available.';
 
             let md = `# Balance Meter Report\n\n`;
@@ -2262,9 +2455,37 @@ function renderTransitDay(dateStr, items){
                 md += `\n`;
             }
 
+            // Add resilience summary
+            const resilienceMetrics = calculateResilienceMetrics(balanceMeterData, sourceData);
+            if (Object.keys(resilienceMetrics).length > 0) {
+                const resilienceValues = Object.values(resilienceMetrics);
+                const avgResilience = resilienceValues.reduce((sum, r) => sum + r.resilience, 0) / resilienceValues.length;
+                const maxDepletion = Math.max(...resilienceValues.map(r => r.depletionIndex));
+                const depletionDays = resilienceValues.filter(r => r.depletionIndex >= 3.0).length;
+                const stressDays = resilienceValues.filter(r => r.narrative.includes('stress')).length;
+                const recoveryDays = resilienceValues.filter(r => r.narrative.includes('Recovery')).length;
+                
+                // Check if natal scaffolding was available
+                const firstDayDebug = resilienceValues[0]?._debug?.natalProfile;
+                const hasNatalScaffolding = Boolean(firstDayDebug);
+                
+                md += `**Resilience & Depletion Summary**${hasNatalScaffolding ? ' (Personalized)' : ' (Generic)'}:\n`;
+                md += `- Average Resilience: ${avgResilience.toFixed(2)} (0-5 scale)\n`;
+                md += `- Peak Depletion Risk: ${maxDepletion.toFixed(1)}\n`;
+                md += `- Pattern Breakdown: ${stressDays} stress days, ${recoveryDays} recovery days, ${depletionDays} depletion risk days\n`;
+                
+                if (hasNatalScaffolding) {
+                    md += `- Natal Scaffolding: ${firstDayDebug.scaffoldingStrength}/5.0 strength, ${firstDayDebug.volatilityProne ? 'volatility-prone' : 'stable'} profile\n`;
+                }
+                md += `\n`;
+            }
+
             md += `## Daily Entries\n\n`;
-            md += `| Date | Triple Channel | SFD Verdict | Top Hooks |\n`;
-            md += `|------|-----------------|-------------|----------|\n`;
+            md += `| Date | Triple Channel | SFD Verdict | Recovery | Resilience | DepletionIndex | Narrative | Top Hooks |\n`;
+            md += `|------|-----------------|-------------|----------|------------|----------------|-----------|----------|\n`;
+
+            // Calculate resilience metrics for all days (reuse from summary)
+            const dailyResilienceMetrics = resilienceMetrics || calculateResilienceMetrics(balanceMeterData);
 
             if (balanceMeterData.daily_entries) {
                 const dates = Object.keys(balanceMeterData.daily_entries).sort();
@@ -2283,6 +2504,13 @@ function renderTransitDay(dateStr, items){
                     // Get SFD verdict
                     const verdict = sfdVerdict(day.sfd || {});
                     
+                    // Get resilience metrics for this day
+                    const resilience = dailyResilienceMetrics[date];
+                    const recovery = resilience ? resilience.recovery.toFixed(1) : '—';
+                    const resilienceScore = resilience ? resilience.resilience.toFixed(1) : '—';
+                    const depletionIndex = resilience ? resilience.depletionIndex.toFixed(1) : '—';
+                    const narrative = resilience ? resilience.narrative : '—';
+                    
                     // Get top hooks for this day
                     const hooks = (day.hooks || []).slice(0, 2);
                     const topHooks = hooks.map(h => {
@@ -2290,17 +2518,28 @@ function renderTransitDay(dateStr, items){
                         return `${h.p1_name} ${h._aspect || h.aspect} ${h.p2_name} (${orb}°)`;
                     }).join(', ') || '—';
                     
-                    md += `| ${date} | ${channelLine.replace(/\|/g, '\\|')} | ${verdict} | ${topHooks.replace(/\|/g, '\\|')} |\n`;
+                    md += `| ${date} | ${channelLine.replace(/\|/g, '\\|')} | ${verdict} | ${recovery} | ${resilienceScore} | ${depletionIndex} | ${narrative} | ${topHooks.replace(/\|/g, '\\|')} |\n`;
                 });
             }
 
             md += `\n## Methodology\n\n`;
-            md += `This Balance Meter report focuses on the **triple-channel architecture** for health-oriented astrological analysis:\n\n`;
+            md += `This Balance Meter report integrates the **triple-channel architecture** with a **Resilience & Depletion Layer** for comprehensive health-oriented astrological analysis:\n\n`;
+            md += `### Core Channels\n`;
             md += `1. **Seismograph v1.0**: Crisis-weighted transit intensity\n`;
             md += `2. **Balance v1.1**: Rebalanced valence using planetary locality factors\n`;
             md += `3. **SFD v1.2**: Support-Friction Differential tracking supportive vs disruptive transits\n\n`;
+            md += `### Resilience & Depletion Layer (Natal-Scaffolding Enhanced)\n`;
+            md += `4. **Recovery**: Continuous momentum-based recovery signal with natal-modulated decay curves (0-5 scale)\n`;
+            md += `5. **Resilience**: Adaptive capacity with smoothed baseline that responds gradually to load changes (0-5 scale)\n`;
+            md += `6. **DepletionIndex**: Risk assessment using continuous curves with recovery protection factors (0-5 scale)\n`;
+            md += `7. **Narrative**: Contextual state summary based on continuous thresholds, not binary switches\n\n`;
+            md += `**Natal Scaffolding Analysis**: Recovery speed and resilience baseline determined by natal patterns:\n`;
+            md += `- **Stabilizer-Friendly Charts** (strong trines, domicile planets, integrated Saturn): Faster momentum decay (0.85), higher baseline resilience\n`;
+            md += `- **Volatility-Prone Charts** (oppositions/squares without stabilizers, Uranus/Pluto dominance): Slower momentum decay (0.75), extended vulnerability windows\n\n`;
+            md += `**Continuous Channel Design**: Unlike binary rebound detection, the resilience system uses smoothed decay curves modulated by natal factors. This creates natural momentum and prevents step-function jumps, making the resilience score feel like a living biological system.\n\n`;
             md += `The **SFD Verdict** indicates whether supportive forces ("stabilizers prevail"), disruptive forces ("cuts"), or mixed patterns ("mixed") dominate each day.\n\n`;
-            md += `For correlation with health metrics, focus on SFD patterns and Balance Channel trends.\n\n`;
+            md += `**Resilience calculations** use precise natal chart geometry to personalize stress accumulation, recovery patterns, and depletion vulnerability. Two people experiencing identical transits will show different recovery arcs based on their natal wiring.\n\n`;
+            md += `For correlation with health metrics, focus on SFD patterns, Balance Channel trends, and personalized Resilience/Depletion patterns.\n\n`;
 
             return md;
         }
@@ -6586,7 +6825,7 @@ function renderTransitDay(dateStr, items){
                     console.log('Rendering server-provided Balance Meter payload');
                     // Render server-provided Balance Meter payload
                     try {
-                        const md = buildBalanceMeterReport(result.balance_meter);
+                        const md = buildBalanceMeterReport(result.balance_meter, result);
                         console.log('Built Balance Meter markdown, length:', md?.length);
                         const pre = document.createElement('pre');
                         pre.className = 'whitespace-pre-wrap text-sm text-gray-200 bg-gray-900/60 p-4 rounded border border-gray-700';
@@ -7027,7 +7266,7 @@ function renderTransitDay(dateStr, items){
                                               (typeof getCurrentActiveTabMode === 'function' && getCurrentActiveTabMode() === 'balance_meter') ||
                                               (window.currentAppMode === 'balance_meter');
                         const fullReport = (isBalanceMode && latestResultData.balance_meter)
-                            ? buildBalanceMeterReport(latestResultData.balance_meter)
+                            ? buildBalanceMeterReport(latestResultData.balance_meter, latestResultData)
                             : generateMarkdownReport(latestResultData, copyOptions);
                         await navigator.clipboard.writeText(fullReport);
                     } else {
@@ -7061,7 +7300,7 @@ function renderTransitDay(dateStr, items){
                                           (typeof getCurrentActiveTabMode === 'function' && getCurrentActiveTabMode() === 'balance_meter') ||
                                           (window.currentAppMode === 'balance_meter');
                     const fullReport = (isBalanceMode && latestResultData.balance_meter)
-                        ? buildBalanceMeterReport(latestResultData.balance_meter)
+                        ? buildBalanceMeterReport(latestResultData.balance_meter, latestResultData)
                         : generateMarkdownReport(latestResultData, downloadOptions);
                     console.log('Markdown report generated successfully, length:', fullReport.length);
                     
@@ -7143,7 +7382,7 @@ function renderTransitDay(dateStr, items){
                                           (typeof getCurrentActiveTabMode === 'function' && getCurrentActiveTabMode() === 'balance_meter') ||
                                           (window.currentAppMode === 'balance_meter');
                     const markdownReport = (isBalanceMode && latestResultData.balance_meter)
-                        ? buildBalanceMeterReport(latestResultData.balance_meter)
+                        ? buildBalanceMeterReport(latestResultData.balance_meter, latestResultData)
                         : generateMarkdownReport(latestResultData, downloadOptions);
                     
                     // Check if html2pdf is available
