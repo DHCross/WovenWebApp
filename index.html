@@ -5282,7 +5282,7 @@ function renderTransitDay(dateStr, items){
             }
 
             // Validate transit dates if required by mode (skip for natal_only)
-            if (mode === 'natal_transits' || mode === 'synastry_transits' || mode === 'composite_transits') {
+        if (mode === 'natal_transits' || mode === 'synastry_transits' || mode === 'composite_transits' || mode === 'balance_meter') {
                 const start = transitStartDate.value;
                 const end = transitEndDate.value;
                 if (!start || !end) {
