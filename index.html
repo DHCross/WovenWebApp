@@ -1208,35 +1208,36 @@
                     <!-- Symbolic Log Correlation -->
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-t-4 border-cyan-500">
                         <h3 class="text-white font-medium mb-2 flex items-center gap-2">
-                            📊 Symbolic Log Correlation
-                            <button class="text-xs text-cyan-300 hover:text-cyan-400 focus:outline-none" title="Upload symbolic logs (.json) to cross-check with Balance Meter reports">
+                            📊 Balance Meter Correlation
+                            <button class="text-xs text-cyan-300 hover:text-cyan-400 focus:outline-none" title="Upload Balance Meter report (.json) to correlate with health data">
                                 ❓
                             </button>
                         </h3>
-                        <p class="text-xs text-gray-400 mb-2">Correlate your personal symbolic logs with Balance Meter triple-channel data</p>
-                        <p class="text-xs text-cyan-300 mb-4"><strong>Produces:</strong> Comparative analysis showing how your recorded experiences align with astrological patterns</p>
+                        <p class="text-xs text-gray-400 mb-2">Cross-correlate Balance Meter symbolic data with health metrics for pattern analysis</p>
+                        <p class="text-xs text-cyan-300 mb-4"><strong>Produces:</strong> Three-axis overlay showing valence, magnitude, and volatility alignment with health patterns</p>
                         
-                        <!-- Prerequisites Notice -->
+                        <!-- Requirements Notice -->
                         <div class="mb-4 p-3 bg-gray-750 rounded border border-cyan-600">
                             <p class="text-gray-300 font-medium text-sm">
-                                📋 Prerequisites:
+                                📋 Requirements (upload order doesn't matter):
                                 <span class="text-xs text-gray-400 block mt-1">
-                                    1. Generate a Balance Meter report first (use Balance Meter tab)<br>
-                                    2. Upload your symbolic logs below for correlation analysis
+                                    • Balance Meter report JSON (from Download JSON above)<br>
+                                    • Health Auto Export JSON (from iOS Health app)<br>
+                                    • Both files should cover overlapping date ranges for correlation
                                 </span>
                             </p>
                         </div>
                         
                         <div class="space-y-2">
                             <button id="loadSeismoBtn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
-                                📄 Upload Symbolic Logs
+                                📄 Upload Balance Meter Report
                             </button>
                             <button id="clearSeismoBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden">
-                                ✖️ Clear Symbolic Logs
+                                ✖️ Clear Balance Meter Data
                             </button>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                                 <button id="genComparativeBtn" class="bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden" disabled>
-                                    � Download Correlation (.json)
+                                    📝 Download Correlation (.md)
                                 </button>
                                 <button id="genComparativePdfBtn" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden" disabled>
                                     📑 Download Correlation (.pdf)
@@ -1245,7 +1246,7 @@
                         </div>
                         <input type="file" id="seismoMdInput" accept=".json,application/json" class="hidden">
                         <div id="seismoDataStatus" class="text-xs text-gray-500 hidden mt-2"></div>
-                        <p class="text-xs text-cyan-400 mt-2">Accepts JSON files with seismograph data</p>
+                        <p class="text-xs text-cyan-400 mt-2">Accepts Balance Meter JSON reports from this app</p>
                     </div>
                 </div>
             </div>
