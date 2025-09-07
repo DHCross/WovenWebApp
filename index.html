@@ -26,6 +26,18 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Woven Web App - Astrological Geometry</title>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.4/auth0-spa-js.production.js" onerror="document.body.insertAdjacentHTML('afterbegin', '<div style=\'background:#ef4444;color:white;padding:1em;text-align:center;z-index:9999;position:relative;\'>Auth0 library failed to load. Please check your network or try disabling browser extensions that block CDNs.</div>')"></script>
+    <script>
+      // SDK presence check (runs immediately after CDN tag)
+      (function(){
+        if (typeof createAuth0Client === 'function') {
+          console.info('[Auth0] SDK present');
+          window.__AUTH0_SDK_OK__ = true;
+        } else {
+          console.error('[Auth0] SDK missing — check CSP/network for https://cdn.auth0.com');
+          window.__AUTH0_SDK_OK__ = false;
+        }
+      })();
+    </script>
         
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="dist/output.css">
@@ -305,6 +317,8 @@
             .auth-button:hover {
                 background-color: #434190;
             }
+            .auth-button[disabled]{opacity:.55;cursor:not-allowed;filter:grayscale(15%)}
+            .auth-button[disabled]:hover{transform:none}
             .poetic-brain-section {
                 display: none;
             }
@@ -522,12 +536,14 @@
         <header class="text-center mb-8">
             <div class="flex justify-between items-center mb-4">
                 <div></div> <!-- Empty div for spacing -->
-                <h1 class="text-4xl font-bold text-white">Woven Map Math Brain</h1>
+                                <h1 class="text-4xl font-bold text-white">Woven Map Math Brain
+                                    <div id="auth-debug-origin" class="hidden text-xs text-gray-400 ml-2 select-all" title="Current origin used as redirect_uri"></div>
+                                </h1>
                 <div class="flex gap-2">
-                    <button id="google-login-button" class="auth-button bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-semibold" title="Sign in with Google">Continue with Google</button>
-                    <button id="login-popup-button" class="auth-button bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm font-semibold" title="Use a popup for local testing">Login (Popup)</button>
-                    <button id="login-button" class="auth-button bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-semibold">Log In</button>
-                    <button id="logout-button" class="auth-button bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-semibold hidden">Log Out</button>
+                    <button id="google-login-button" class="auth-button bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-semibold auth-btn" title="Sign in with Google" disabled>Continue with Google</button>
+                    <button id="login-popup-button" class="auth-button bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm font-semibold auth-btn" title="Use a popup for local testing" disabled>Login (Popup)</button>
+                    <button id="login-button" class="auth-button bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-semibold auth-btn" disabled>Log In</button>
+                    <button id="logout-button" class="auth-button bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-semibold auth-btn hidden" disabled>Log Out</button>
                 </div>
             </div>
             <p class="text-gray-400 mt-2 flex items-center justify-center gap-2">Pure Astrological Geometry Computation
@@ -1506,6 +1522,130 @@ let totalRowCount = 0;
 // Simple Mode defaults (no user toggles rendered)
 window.WOVEN_UI_FILTERS = { tightOnly:true, showMinor:false, showHarmonic:false, showSelf:false };
 // ...existing code...
+  <script>
+    // === Auth0 runtime: single source of truth ===
+    (function () {
+      console.info('[Auth0] Runtime wiring booting…');
+      const qs = new URLSearchParams(window.location.search);
+      const $ = id => document.getElementById(id);
+
+      async function getOrCreateClient() {
+        if (!window.__AUTH0_SDK_OK__) {
+          console.error('[Auth0] SDK not available — aborting init');
+          return null;
+        }
+        if (window.auth0Client) return window.auth0Client;
+        window.auth0Client = await createAuth0Client({
+          domain: 'dev-z8gw1uk6zgsrzubk.us.auth0.com',
+          clientId: '0nV0L41xZijfc8HTKtoROPgyqgMttJYT',
+          authorizationParams: {
+            audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/',
+            redirect_uri: window.location.origin
+          },
+          cacheLocation: 'localstorage',
+          useRefreshTokens: true
+        });
+        return window.auth0Client;
+      }
+
+      function setAuthUI(isAuthed, user) {
+        const loginBtn = $('login-button');
+        const loginPopupBtn = $('login-popup-button');
+        const googleBtn = $('google-login-button');
+        const logoutBtn = $('logout-button');
+        const pill = $('auth-status-pill');
+        if (!loginBtn || !logoutBtn) return;
+
+        if (isAuthed) {
+          loginBtn.classList.add('hidden');
+          loginPopupBtn && loginPopupBtn.classList.add('hidden');
+          googleBtn && googleBtn.classList.add('hidden');
+          logoutBtn.classList.remove('hidden');
+
+          const modeDesc = document.getElementById('modeDescription');
+          if (modeDesc && user) {
+            modeDesc.innerHTML = `<strong class="text-teal-300">Signed in:</strong> ${user.name || user.email}`;
+          }
+          if (pill) {
+            pill.classList.remove('hidden');
+            pill.classList.remove('bg-red-600','border-red-400');
+            pill.classList.add('bg-green-600','border-green-400');
+            pill.title = 'Authenticated';
+            pill.querySelector('span:last-child').textContent = `Signed in: ${user?.name || user?.email || 'Unknown'}`;
+          }
+        } else {
+          loginBtn.classList.remove('hidden');
+          loginPopupBtn && loginPopupBtn.classList.remove('hidden');
+          googleBtn && googleBtn.classList.remove('hidden');
+          logoutBtn.classList.add('hidden');
+
+          if (pill) {
+            pill.classList.remove('hidden');
+            pill.classList.remove('bg-green-600','border-green-400');
+            pill.classList.add('bg-red-600','border-red-400');
+            pill.title = 'Not authenticated';
+            pill.querySelector('span:last-child').textContent = 'Logged out';
+          }
+        }
+      }
+
+      // Prevent duplicate listeners by cloning nodes once
+      function bindOnce(nodeId, type, handler) {
+        const old = $(nodeId);
+        if (!old) return;
+        const clone = old.cloneNode(true);
+        old.parentNode.replaceChild(clone, old);
+        clone.addEventListener(type, handler);
+      }
+
+      async function initAuth() {
+        try {
+          console.info('[Auth0] initAuth() start');
+          const auth0 = await getOrCreateClient();
+          if (!auth0) return;
+          console.info('[Auth0] client ready');
+
+          // Redirect return
+          if (qs.get('code') && qs.get('state')) {
+            try { await auth0.handleRedirectCallback(); }
+            catch (e) { console.warn('Auth0 redirect handling failed:', e); }
+            finally {
+              const url = new URL(window.location.href); url.search = ''; history.replaceState({}, document.title, url.toString());
+            }
+          }
+
+          // Wire buttons
+          bindOnce('login-button', 'click', async () => {
+            console.debug('[Auth0] loginWithRedirect click');
+            try { await auth0.loginWithRedirect(); } catch (e) { console.warn(e); }
+          });
+          bindOnce('login-popup-button', 'click', async () => {
+            console.debug('[Auth0] loginWithPopup click');
+            try { await auth0.loginWithPopup(); const user = await auth0.getUser(); setAuthUI(true, user); } catch (e) { console.warn(e); }
+          });
+          bindOnce('google-login-button', 'click', async () => {
+            console.debug('[Auth0] google-oauth2 redirect click');
+            try {
+              await auth0.loginWithRedirect({ authorizationParams: { connection: 'google-oauth2', audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/' } });
+            } catch (e) { console.warn(e); }
+          });
+          bindOnce('logout-button', 'click', async () => {
+            console.debug('[Auth0] logout click');
+            try { await auth0.logout({ logoutParams: { returnTo: window.location.origin } }); setAuthUI(false); } catch (e) { console.warn(e); }
+          });
+
+          const ok = await auth0.isAuthenticated();
+          const user = ok ? await auth0.getUser() : null;
+          console.info('[Auth0] state', { isAuthenticated: ok, user });
+          setAuthUI(ok, user);
+        } catch (e) {
+          console.warn('Auth init failed at runtime:', e);
+        }
+      }
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAuth); else initAuth();
+    })();
+  </script>
 </body>
 <script>
     (function () {
