@@ -1,3 +1,57 @@
+## [2025-09-07] ACCESSIBILITY & JSON EXPORT ENHANCEMENT: Math Brain ↔ Poetic Brain Architecture Refinement
+
+**Description:**
+Enhanced accessibility standards, refined JSON export architecture for strict Math Brain ↔ Poetic Brain separation, and added user annotation capture for machine-readable reports.
+
+**Accessibility Improvements:**
+1. **Modal Accessibility:**
+   - Added `role="dialog"`, `aria-modal="true"`, `aria-labelledby` to all modals
+   - Implemented focus management: focus modal content on open, restore on close
+   - Added Escape key support for modal dismissal
+   - Made modal content focusable with `tabindex="-1"`
+
+2. **Live Region Announcements:**
+   - Error displays now use `role="alert"` with `aria-live="assertive"`
+   - Loading indicators toggle `aria-busy` true/false during processing
+   - Added `role="status"` with `aria-live="polite"` for non-disruptive updates
+   - Error displays auto-focus for immediate screen reader attention
+
+3. **Keyboard Navigation:**
+   - Enhanced tab navigation through form elements
+   - Proper ARIA labeling for form sections and inputs
+   - Focus management prevents keyboard traps in modals
+
+**JSON Export Architecture Refinement:**
+1. **Reader Notes Integration:**
+   - Added optional "Reader Notes" textarea in download panel
+   - User annotations captured via `window.userNotesForDay` before JSON generation
+   - Notes flow into `balance_meter.notes[]` arrays in exported JSON
+   - Maintains Math Brain boundary: user input separate from automated calculations
+
+2. **Math Brain ↔ Poetic Brain Compliance:**
+   - JSON exports prepared for strict prose elimination (implementation pending)
+   - Documentation added for triple-channel architecture (v1.0/v1.1/v1.2)
+   - Export strategy clarified: Copy→Markdown (humans), Download→JSON (AI processing)
+   - Valence normalization requirements documented for -5 to +5 range
+
+**UX Enhancements:**
+- Loading states provide better feedback during long operations
+- Error announcements immediate and accessible
+- Modal interactions more intuitive with keyboard support
+- User annotations bridge human input and machine processing appropriately
+
+**Technical Infrastructure:**
+- Enhanced `buildRavenJsonReport()` to accept user notes
+- Improved modal event handling with graceful degradation
+- Better error focus management for screen reader users
+- ARIA attributes applied consistently across UI components
+
+**Documentation Updates:**
+- Added Math Brain ↔ Poetic Brain architecture lessons to developer docs
+- Documented accessibility best practices for modal implementations
+- Updated maintenance guide with JSON export standards
+- Recorded lessons learned for future AI collaboration sessions
+
 ## [2025-09-07] MAJOR RESTRUCTURE: Clear Mirror Report Inverted Pyramid + Comprehensive Typological Integration
 
 **Description:**

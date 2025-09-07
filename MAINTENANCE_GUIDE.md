@@ -92,12 +92,60 @@ This document outlines the best practices for maintaining, updating, and trouble
 
 ---
 
+## 12. **Math Brain ↔ Poetic Brain Export Standards**
+
+**Maintain strict separation between geometric data (Math Brain) and interpretive narrative (Poetic Brain).**
+
+### **JSON Export Requirements:**
+- **Pure data only:** Numbers, enums, glyphs, confidence scores
+- **No prose:** Remove all narrative strings, titles, annotations  
+- **Normalized values:** Valence clamped to -5 to +5 range
+- **Enum consistency:** Use safe lexicon terms exclusively
+- **Channel versioning:** Explicit v1.0/v1.1/v1.2 labels
+
+### **Dual-Channel Architecture:**
+- **Copy Button:** Markdown with full narrative (human-readable)
+- **Download Button:** Clean JSON wrapper (machine-readable)
+- **Reader Notes:** User annotations flow into JSON but remain separate from calculations
+
+### **Key Functions to Monitor:**
+- `buildRavenJsonReport()` - Must output prose-free geometric data only
+- `buildTriad()` - Creates measurement triads (magnitude/valence/volatility)
+- Export validation ensures Math Brain boundaries aren't violated
+
+---
+
+## 13. **Accessibility & UX Standards**
+
+**Ensure inclusive design through proper ARIA implementation and keyboard support.**
+
+### **Modal Best Practices:**
+- Add `role="dialog"`, `aria-modal="true"`, proper labeling
+- Focus management: focus content on open, restore focus on close
+- Keyboard support: Escape key closes, tab navigation contained
+- Click-outside-to-close behavior
+
+### **Loading States:**
+- Toggle `aria-busy` during processing operations
+- Use `aria-live="polite"` for non-critical status updates
+- Use `aria-live="assertive"` for error announcements
+- Focus error displays when shown for immediate screen reader attention
+
+### **Form Validation:**
+- Real-time validation with `aria-live` feedback
+- Clear error descriptions with `aria-describedby`
+- Required field indication through proper labeling
+
+---
+
 ## Quick Checklist Before Each Update
 
 - [ ] Update CHANGELOG.md with details of the change.
 - [ ] Ensure dependencies are up-to-date.
 - [ ] Test for errors and validate user flows.
 - [ ] Verify safe lexicon validation passes (check browser console for ✅).
+- [ ] Check JSON exports contain no prose (only enums/numbers/glyphs).
+- [ ] Test accessibility features (keyboard navigation, screen reader announcements).
 - [ ] Clean up unused files and double-check .env handling.
 - [ ] Commit with a clear, descriptive message.
 

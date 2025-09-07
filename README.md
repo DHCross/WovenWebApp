@@ -31,6 +31,34 @@ API Page: https://rapidapi.com/gbattaglia/api/astrologer
 *   **Back-End:** A single serverless function (`astrology-mathbrain.js`) deployed on Netlify.
 *   **External API:** [Astrologer API on RapidAPI](https://rapidapi.com/tg4-solutions-tg4-solutions-default/api/astrologer)
 
+## **Documentation Structure**
+
+### **Core Documentation**
+- **README.md** (this file) - Main application overview and features
+- **MAINTENANCE_GUIDE.md** - Operational guidelines and best practices
+- **CHANGELOG.md** - Change history and development timeline
+- **Lessons Learned for Developer.md** - Development insights and architecture
+- **MATH_BRAIN_COMPLIANCE.md** - Technical compliance requirements
+- **copilot_fix_recovery.md** - Emergency recovery procedures
+
+### **User & Technical Guides**
+- **QUEUE_ANALYSIS_FILTERS_GUIDE.md** - User guide for seismograph features
+- **SEISMOGRAPH_GUIDE.md** - Technical seismograph implementation
+- **REPORT_REQUIREMENTS.md** - Report specification requirements
+- **API_REFERENCE.md** - Focused API reference for endpoints we use
+- **API_INTEGRATION_GUIDE.md** - Integration patterns and examples
+- **GIT_MERGE_CONFLICT_BEST_PRACTICES.md** - Git workflow template
+
+### **Implementation Guides**
+- **BACKEND_DEVELOPMENT_GUIDE.md** - Comprehensive backend development guide
+  - Consolidates improvements, debugging, testing, and production readiness
+  - Includes transit debugging procedures and performance optimization
+  - Error handling matrix and monitoring strategies
+
+### **Planning & Theoretical**
+- **docs/planning/HOMEPAGE_PLANNING.md** - Website restructuring plans
+- **docs/planning/PRECISION_MYSTICISM_NOTES.md** - Theoretical foundations
+
 ## **Appendix: Payload Contract (WM-Chart-1.2)**
 
 The Balance Meter system implements a triple-channel architecture that extends the base seismograph with sophisticated pattern analysis:
