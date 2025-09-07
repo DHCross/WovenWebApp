@@ -34,8 +34,12 @@
               window.auth0Client = await createAuth0Client({
                 domain: 'dev-z8gw1uk6zgsrzubk.us.auth0.com',
                 clientId: '0nV0L41xZijfc8HTKtoROPgyqgMttJYT',
-                audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/',
-                redirect_uri: window.location.origin
+                authorizationParams: {
+                  audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/',
+                  redirect_uri: window.location.origin
+                },
+                cacheLocation: 'localstorage',
+                useRefreshTokens: true
               });
             } catch (e) {
               console.warn('Auth0 init failed:', e);
@@ -10721,4 +10725,119 @@ function renderTransitDay(dateStr, items){
         }
     </script>
 </body>
+  <script>
+    (function () {
+      const qs = new URLSearchParams(window.location.search);
+
+      async function ensureClient() {
+        if (window.auth0Client) return window.auth0Client;
+        await new Promise(r => setTimeout(r, 50));
+        return ensureClient();
+      }
+
+      function byId(id) { return document.getElementById(id); }
+
+      function setAuthUI(isAuthenticated, user) {
+        const loginBtn = byId('login-button');
+        const loginPopupBtn = byId('login-popup-button');
+        const googleBtn = byId('google-login-button');
+        const logoutBtn = byId('logout-button');
+        if (!loginBtn || !logoutBtn) return;
+        if (isAuthenticated) {
+          loginBtn.classList.add('hidden');
+          loginPopupBtn && loginPopupBtn.classList.add('hidden');
+          googleBtn && googleBtn.classList.add('hidden');
+          logoutBtn.classList.remove('hidden');
+          // Optional: show user name/email in header subtitle
+          const modeDesc = document.getElementById('modeDescription');
+          if (modeDesc && user) {
+            modeDesc.innerHTML = `<strong class="text-teal-300">Signed in:</strong> ${user.name || user.email}`;
+          }
+        } else {
+          loginBtn.classList.remove('hidden');
+          loginPopupBtn && loginPopupBtn.classList.remove('hidden');
+          googleBtn && googleBtn.classList.remove('hidden');
+          logoutBtn.classList.add('hidden');
+        }
+      }
+
+      async function initAuth() {
+        try {
+          const auth0 = await ensureClient();
+
+          // If returning from Auth0 redirect, handle it
+          if (qs.get('code') && qs.get('state')) {
+            try {
+              await auth0.handleRedirectCallback();
+            } catch (e) {
+              console.warn('Auth0 redirect handling failed:', e);
+            } finally {
+              // Clean the query params from the URL
+              const url = new URL(window.location.href);
+              url.search = '';
+              window.history.replaceState({}, document.title, url.toString());
+            }
+          }
+
+          // Wire buttons
+          const loginBtn = byId('login-button');
+          const loginPopupBtn = byId('login-popup-button');
+          const googleBtn = byId('google-login-button');
+          const logoutBtn = byId('logout-button');
+
+          if (loginBtn) {
+            loginBtn.addEventListener('click', async () => {
+              try {
+                await auth0.loginWithRedirect();
+              } catch (e) { console.warn('loginWithRedirect error', e); }
+            });
+          }
+
+          if (loginPopupBtn) {
+            loginPopupBtn.addEventListener('click', async () => {
+              try {
+                await auth0.loginWithPopup();
+                const user = await auth0.getUser();
+                setAuthUI(true, user);
+              } catch (e) { console.warn('loginWithPopup error', e); }
+            });
+          }
+
+          if (googleBtn) {
+            googleBtn.addEventListener('click', async () => {
+              try {
+                await auth0.loginWithRedirect({
+                  authorizationParams: {
+                    connection: 'google-oauth2',
+                    audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/'
+                  }
+                });
+              } catch (e) { console.warn('google login error', e); }
+            });
+          }
+
+          if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+              try {
+                await auth0.logout({ logoutParams: { returnTo: window.location.origin } });
+                setAuthUI(false);
+              } catch (e) { console.warn('logout error', e); }
+            });
+          }
+
+          const isAuthenticated = await auth0.isAuthenticated();
+          const user = isAuthenticated ? await auth0.getUser() : null;
+          setAuthUI(!!isAuthenticated, user);
+        } catch (e) {
+          console.warn('Auth init failed at runtime:', e);
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAuth);
+      } else {
+        initAuth();
+      }
+    })();
+  </script>
 </html>
