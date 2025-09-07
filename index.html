@@ -25,19 +25,16 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Woven Web App - Astrological Geometry</title>
-    <script src="https://cdn.auth0.com/js/auth0-spa-js/2.4/auth0-spa-js.production.js" onerror="document.body.insertAdjacentHTML('afterbegin', '<div style=\'background:#ef4444;color:white;padding:1em;text-align:center;z-index:9999;position:relative;\'>Auth0 library failed to load. Please check your network or try disabling browser extensions that block CDNs.</div>')"></script>
-    <script>
-      // SDK presence check (runs immediately after CDN tag)
-      (function(){
-        if (typeof createAuth0Client === 'function') {
-          console.info('[Auth0] SDK present');
-          window.__AUTH0_SDK_OK__ = true;
-        } else {
-          console.error('[Auth0] SDK missing — check CSP/network for https://cdn.auth0.com');
-          window.__AUTH0_SDK_OK__ = false;
-        }
-      })();
-    </script>
+    <script src="https://cdn.auth0.com/js/auth0-spa-js/2.4/auth0-spa-js.production.js" defer crossorigin="anonymous" onerror="(function(){
+      var insert = function(){
+        var el = document.createElement('div');
+        el.style.cssText = 'background:#ef4444;color:white;padding:1em;text-align:center;z-index:9999;position:relative;';
+        el.textContent = 'Auth0 library failed to load. Please check your network or try disabling browser extensions that block CDNs.';
+        (document.body || document.documentElement).insertAdjacentElement('afterbegin', el);
+      };
+      if (document.body) insert(); else document.addEventListener('DOMContentLoaded', insert);
+    })()"></script>
+
         
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="dist/output.css">
@@ -53,6 +50,7 @@
                 --bg-card-hover: rgba(255, 255, 255, 0.05);
                 --border-subtle: rgba(255, 255, 255, 0.08);
                 --border-active: rgba(102, 126, 234, 0.5);
+                --text-primary: #e5e7eb;
             }
             /* Tailwind handles pulse animation via animate-pulse class */
 
@@ -536,9 +534,8 @@
         <header class="text-center mb-8">
             <div class="flex justify-between items-center mb-4">
                 <div></div> <!-- Empty div for spacing -->
-                                <h1 class="text-4xl font-bold text-white">Woven Map Math Brain
-                                    <div id="auth-debug-origin" class="hidden text-xs text-gray-400 ml-2 select-all" title="Current origin used as redirect_uri"></div>
-                                </h1>
+                <h1 class="text-4xl font-bold text-white">Woven Map Math Brain</h1>
+                <div id="auth-debug-origin" class="hidden text-xs text-gray-400 ml-2 select-all" title="Current origin used as redirect_uri"></div>
                 <div class="flex gap-2">
                     <button id="google-login-button" class="auth-button bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-semibold auth-btn" title="Sign in with Google" disabled>Continue with Google</button>
                     <button id="login-popup-button" class="auth-button bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm font-semibold auth-btn" title="Use a popup for local testing" disabled>Login (Popup)</button>
