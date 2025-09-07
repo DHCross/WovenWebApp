@@ -6613,7 +6613,22 @@ function renderTransitDay(dateStr, items){
                 // Check if html2pdf is available
                 if (typeof html2pdf === 'undefined') {
                     console.error('html2pdf library not loaded');
-                    alert('PDF generation library not loaded. Please try the markdown download instead.');
+                    
+                    // Wait and retry approach for correlation reports
+                    const userWantsToWait = confirm(
+                        'PDF generation library is still loading. Would you like to wait a moment and try again?\n\n' +
+                        'Click OK to wait and retry, or Cancel to use markdown download instead.'
+                    );
+                    
+                    if (userWantsToWait) {
+                        // Wait a bit and try again
+                        setTimeout(() => {
+                            document.getElementById('genComparativePdfBtn').click();
+                        }, 2000);
+                    } else {
+                        // Fall back to markdown download
+                        alert('Please use the regular markdown download for now.');
+                    }
                     return;
                 }
 
@@ -7305,12 +7320,25 @@ function renderTransitDay(dateStr, items){
                     console.log('Markdown report generated successfully, length:', fullReport.length);
                     
                     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-                    const person1Name = document.getElementById('nameA').value || 'PersonA';
+                    let person1Name = document.getElementById('nameA').value || 'PersonA';
                     const person2Name = document.getElementById('nameB').value;
                     
-                    // Get date range from form
-                    const startDate = document.getElementById('transitStartDate').value;
-                    const endDate = document.getElementById('transitEndDate').value;
+                    // For Balance Meter reports, try to get the actual person name from the data
+                    if (isBalanceMode && latestResultData.balance_meter?.person?.name) {
+                        person1Name = latestResultData.balance_meter.person.name;
+                    } else if (isBalanceMode && latestResultData.person_a?.details?.name) {
+                        person1Name = latestResultData.person_a.details.name;
+                    }
+                    
+                    // Get date range from form, but also try Balance Meter period if available
+                    let startDate = document.getElementById('transitStartDate').value;
+                    let endDate = document.getElementById('transitEndDate').value;
+                    
+                    // If no form dates but Balance Meter has period, use that
+                    if (isBalanceMode && latestResultData.balance_meter?.period && (!startDate || !endDate)) {
+                        startDate = latestResultData.balance_meter.period.start;
+                        endDate = latestResultData.balance_meter.period.end;
+                    }
                     let dateRange = '';
                     if (startDate && endDate) {
                         if (startDate === endDate) {
@@ -7389,6 +7417,20 @@ function renderTransitDay(dateStr, items){
                     if (typeof html2pdf === 'undefined') {
                         console.error('html2pdf library not loaded');
                         
+                        // Wait and retry approach first
+                        const userWantsToWait = confirm(
+                            'PDF generation library is still loading. Would you like to wait a moment and try again?\n\n' +
+                            'Click OK to wait and retry, or Cancel to use print-to-PDF fallback.'
+                        );
+                        
+                        if (userWantsToWait) {
+                            // Wait a bit and try again
+                            setTimeout(() => {
+                                document.getElementById('downloadPDF').click();
+                            }, 2000);
+                            return;
+                        }
+                        
                         // Offer print-to-PDF fallback
                         const userWantsPrintFallback = confirm(
                             'PDF generation library not loaded. Would you like to use your browser\'s print function instead?\n\n' +
@@ -7406,13 +7448,26 @@ function renderTransitDay(dateStr, items){
                     const htmlContent = convertMarkdownToHTML(markdownReport);
                     
                     // Generate filename
-                    const person1Name = document.getElementById('nameA').value || 'PersonA';
+                    let person1Name = document.getElementById('nameA').value || 'PersonA';
                     const person2Name = document.getElementById('nameB').value;
                     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
                     
-                    // Get date range from form
-                    const startDate = document.getElementById('transitStartDate').value;
-                    const endDate = document.getElementById('transitEndDate').value;
+                    // For Balance Meter reports, try to get the actual person name from the data
+                    if (isBalanceMode && latestResultData.balance_meter?.person?.name) {
+                        person1Name = latestResultData.balance_meter.person.name;
+                    } else if (isBalanceMode && latestResultData.person_a?.details?.name) {
+                        person1Name = latestResultData.person_a.details.name;
+                    }
+                    
+                    // Get date range from form, but also try Balance Meter period if available
+                    let startDate = document.getElementById('transitStartDate').value;
+                    let endDate = document.getElementById('transitEndDate').value;
+                    
+                    // If no form dates but Balance Meter has period, use that
+                    if (isBalanceMode && latestResultData.balance_meter?.period && (!startDate || !endDate)) {
+                        startDate = latestResultData.balance_meter.period.start;
+                        endDate = latestResultData.balance_meter.period.end;
+                    }
                     let dateRange = '';
                     if (startDate && endDate) {
                         if (startDate === endDate) {
