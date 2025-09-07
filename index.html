@@ -2740,54 +2740,208 @@ function renderTransitDay(dateStr, items){
             return md;
         }
         
+        // Helper function to generate insights from aspects
+        function generateInsightFromAspect(aspect) {
+            if (!aspect) return "Transit patterns suggest a day of internal reflection and recalibration.";
+            
+            const p1 = aspect.p1_name || aspect.p1_display || "Planet";
+            const p2 = aspect.p2_name || aspect.p2_display || "Planet";
+            const aspectType = aspect.aspect || aspect._aspect || "conjunction";
+            const orb = Math.abs(aspect.orbit || aspect._orb || 0);
+            
+            // Generate contextual insight based on aspect type and planets
+            const tensionAspects = ['square', 'opposition', 'sesquiquadrate'];
+            const supportiveAspects = ['trine', 'sextile', 'quintile'];
+            
+            if (tensionAspects.includes(aspectType)) {
+                return `Today features ${orb < 2 ? 'precise' : 'building'} tension between ${p1.toLowerCase()} and ${p2.toLowerCase()}, creating dynamic pressure that can catalyze growth through conscious engagement.`;
+            } else if (supportiveAspects.includes(aspectType)) {
+                return `The day flows with ${orb < 2 ? 'exact' : 'approaching'} harmony between ${p1.toLowerCase()} and ${p2.toLowerCase()}, offering opportunities for integration and natural progress.`;
+            } else {
+                return `A ${orb < 2 ? 'precise' : 'developing'} ${aspectType} between ${p1.toLowerCase()} and ${p2.toLowerCase()} creates a potent field for transformation and new possibilities.`;
+            }
+        }
+
         function generatePersonClearMirror(personData, personDetails, label) {
             let md = `## ${label}: ${personDetails.name}\n\n`;
             
-            // Hook Stack Section
-            md += `### Hook Stack\n\n`;
+            // === 1. THE BOTTOM LINE (Executive Summary) ===
+            md += `### The Bottom Line (Executive Summary)\n\n`;
             
-            // Get major aspects for Hook Stack (using top aspects or hooks if available)
+            // Get seismograph data for overall vibe assessment
+            const firstDayData = personData?.chart?.transitsByDate ? 
+                Object.values(personData.chart.transitsByDate)[0] : null;
+            
+            if (firstDayData) {
+                const magnitude = firstDayData.seismograph?.magnitude || 0;
+                const valence = firstDayData.seismograph?.valence || 0;
+                const volatility = firstDayData.seismograph?.volatility || 0;
+                
+                const magnitudeTerm = toMagnitudeTerm(magnitude);
+                const valenceTerm = toValenceTerm(valence);
+                const valenceEmoji = getValenceEmoji(valence);
+                
+                md += `**Overall Intensity**: ${magnitude.toFixed(1)} / 5.0 (**${magnitudeTerm}**)\n\n`;
+                md += `**Emotional Vibe**: ${valenceEmoji} ${valence.toFixed(1)} / 5.0 (**${valenceTerm}**)\n\n`;
+                md += `**Energy State**: ${volatility > 3 ? 'High Volatility' : 'Focused Pressure'} (Volatility: ${volatility.toFixed(2)})\n\n`;
+                
+                // Generate key insight from top aspects
+                const topAspects = getTopAspectsForPerson(personData).slice(0, 2);
+                if (topAspects.length > 0) {
+                    const primaryPattern = generateInsightFromAspect(topAspects[0]);
+                    md += `**Key Insight**: ${primaryPattern}\n\n`;
+                }
+            } else {
+                md += `**Today's Weather**: Transit data processing... check back for live insights.\n\n`;
+            }
+            
+            md += `⸻\n\n`;
+            
+            // === 2. THE MAIN EVENTS (Key Drivers) ===
+            md += `### Key Patterns in Play\n\n`;
+            md += `*These are the most significant active energies for today.*\n\n`;
+            
+            // Get major aspects for Key Drivers (using top aspects or hooks if available)
             const aspects = getTopAspectsForPerson(personData);
-            const hookStackItems = aspects.slice(0, 4); // Top 4 for Hook Stack
+            const keyDrivers = aspects.slice(0, 4); // Top 4 for Key Drivers
             
-            hookStackItems.forEach((aspect, index) => {
+            keyDrivers.forEach((aspect, index) => {
+                const driverType = index === 0 ? 'Primary Tension' : 
+                                 index === 1 ? 'Helpful Insight' : 
+                                 index === 2 ? 'Background Support' : 'Secondary Theme';
+                
                 const polarity = generatePolarityFromAspect(aspect, index + 1);
-                md += `**[${polarity.title}]**\n\n`;
-                md += `FIELD (felt tone): ${polarity.field}\n\n`;
-                md += `MAP (geometry): ${polarity.map}\n\n`;
-                md += `VOICE (user-facing): ${polarity.voice}\n\n`;
-                if (index < hookStackItems.length - 1) md += `⸻\n\n`;
+                md += `**${driverType}**: **${polarity.title}**\n\n`;
+                md += `${polarity.voice}\n\n`;
             });
             
-            md += `\n⸻\n\n`;
+            // Add recursive pattern note if many retrograde aspects
+            if (firstDayData) {
+                const retroCount = (firstDayData.hooks || []).filter(h => 
+                    h.transit_is_retrograde || h.natal_is_retrograde).length;
+                if (retroCount > 3) {
+                    md += `**Overarching Theme**: **Retrograde Recursion Pattern** (${retroCount} aspects detected)\n\n`;
+                    md += `A significant emphasis on internal review, revision, and processing of past patterns. Energy is directed inward, not outward.\n\n`;
+                }
+            }
             
-            // Polarity Cards Section
-            md += `### Polarity Cards\n\n`;
+            md += `⸻\n\n`;
             
-            const polarityCards = aspects.slice(0, 4); // Use same or different aspects
+            // === 3. HOW TO READ THIS (Glossary & Method) ===
+            md += `<details>\n`;
+            md += `<summary><strong>How to Read This Report</strong></summary>\n\n`;
+            md += `### Agency Statement\n\n`;
+            md += `This analysis describes symbolic weather patterns, not deterministic outcomes. The map is a tool to support your agency; it never overrides it. You are the author of your choices.\n\n`;
+            md += `### Key Terms\n\n`;
+            md += `- **Magnitude**: Overall intensity level (0-5 scale)\n`;
+            md += `- **Valence**: Emotional tone from challenging (-5) to supportive (+5)\n`;
+            md += `- **Volatility**: How quickly energy shifts (higher = more unpredictable)\n`;
+            md += `- **Aspects**: Geometric relationships between planets creating specific energies\n`;
+            md += `- **Retrograde**: Apparent backward motion indicating internal/review themes\n\n`;
+            md += `### System Notes\n\n`;
+            md += `- **Math Brain**: Calculates precise planetary geometry (this report)\n`;
+            md += `- **Raven Calder**: Translates geometry into felt language and poetry\n`;
+            md += `- **Mirror Principle**: Reflects patterns for recognition, not prediction\n\n`;
+            md += `</details>\n\n`;
             
-            polarityCards.forEach((aspect, index) => {
-                const polarity = generatePolarityCardFromAspect(aspect);
-                md += `**[${polarity.nameA} / ${polarity.nameB}]**\n\n`;
-                md += `FIELD: ${polarity.field}\n\n`;
-                md += `MAP: ${polarity.map}\n\n`;
-                md += `VOICE: ${polarity.voice}\n\n`;
-                if (index < polarityCards.length - 1) md += `\n`;
+            md += `⸻\n\n`;
+            
+            // === 4. THE BLUEPRINT (Reference Data) ===
+            md += `<details>\n`;
+            md += `<summary><strong>Technical Blueprint & Reference Data</strong></summary>\n\n`;
+            
+            // === NATAL CHART FOUNDATION ===
+            md += `### Natal Chart Foundation\n\n`;
+            
+            // Extract natal chart data
+            const chartData = extractChartDataForTypology(personData);
+            
+            md += `**Core Planetary Positions**\n\n`;
+            md += `| Planet | Sign | House | Degree | Element | Quality |\n`;
+            md += `|--------|------|-------|--------|---------|----------|\n`;
+            
+            const planets = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'ascendant'];
+            planets.forEach(planet => {
+                const planetData = chartData[planet] || {};
+                const sign = planetData.sign || 'Unknown';
+                const house = planetData.house || 'Unknown';
+                const position = planetData.position ? planetData.position.toFixed(1) + '°' : 'Unknown';
+                const element = planetData.element || 'Unknown';
+                const quality = planetData.quality || 'Unknown';
+                const retrograde = planetData.retrograde ? ' ℞' : '';
+                
+                md += `| ${planet.charAt(0).toUpperCase() + planet.slice(1)}${retrograde} | ${sign} | ${house} | ${position} | ${element} | ${quality} |\n`;
             });
             
-            md += `\n⸻\n\n`;
+            md += `\n`;
             
-            // Mirror Voice (Stitched Reflection)
-            md += `### Mirror Voice (Stitched Reflection)\n\n`;
+            // === DAILY TRANSIT ANALYSIS ===
+            md += `### Daily Transit Analysis\n\n`;
+            
+            if (firstDayData) {
+                md += `**Seismograph Metrics**\n\n`;
+                md += `- **Magnitude**: ${(firstDayData.seismograph?.magnitude || 0).toFixed(2)} (intensity scale)\n`;
+                md += `- **Valence**: ${(firstDayData.seismograph?.valence || 0).toFixed(2)} (emotional tone)\n`;
+                md += `- **Volatility**: ${(firstDayData.seismograph?.volatility || 0).toFixed(2)} (stability index)\n\n`;
+                
+                // Detailed aspect breakdown
+                const allAspects = getTopAspectsForPerson(personData);
+                if (allAspects.length > 0) {
+                    md += `**Complete Aspect List** (${allAspects.length} total)\n\n`;
+                    md += `| Transit Planet | Aspect | Natal Planet | Orb | Type | Applying/Separating |\n`;
+                    md += `|----------------|---------|--------------|-----|------|---------------------|\n`;
+                    
+                    allAspects.slice(0, 12).forEach(aspect => {
+                        const p1 = aspect.p1_name || aspect.p1_display || 'Unknown';
+                        const p2 = aspect.p2_name || aspect.p2_display || 'Unknown';
+                        const aspectType = aspect.aspect || aspect._aspect || 'conjunction';
+                        const orb = Math.abs(aspect.orbit || aspect._orb || 0).toFixed(1) + '°';
+                        const classification = aspect.classification || 'major';
+                        const phase = aspect.phase || (orb < 1 ? 'exact' : 'approaching');
+                        
+                        md += `| ${p1} | ${aspectType} | ${p2} | ${orb} | ${classification} | ${phase} |\n`;
+                    });
+                    
+                    if (allAspects.length > 12) {
+                        md += `\n*...and ${allAspects.length - 12} additional aspects*\n`;
+                    }
+                }
+                
+                md += `\n`;
+                
+                // Retrograde analysis
+                const retroPlanets = [];
+                const retroAspects = [];
+                
+                (firstDayData.hooks || []).forEach(h => {
+                    if (h.transit_is_retrograde) retroPlanets.push(h.p1_name || h.p1_display);
+                    if (h.natal_is_retrograde || h.transit_is_retrograde) retroAspects.push(h);
+                });
+                
+                if (retroPlanets.length > 0 || retroAspects.length > 0) {
+                    md += `**Retrograde Analysis**\n\n`;
+                    md += `- **Transiting Retrograde Planets**: ${[...new Set(retroPlanets)].join(', ') || 'None'}\n`;
+                    md += `- **Retrograde-Tagged Aspects**: ${retroAspects.length}\n`;
+                    md += `- **Recursion Themes**: Internal revision, reworking patterns, deeper integration\n\n`;
+                }
+            }
+            
+            // === POETIC BRAIN TRANSLATION SCAFFOLDING ===
+            md += `### Poetic Brain Translation Scaffolding\n\n`;
+            
+            // Mirror Voice Section (technical analysis)
+            md += `**FIELD → MAP → VOICE Analysis**\n\n`;
             
             const mirrorVoice = generateMirrorVoiceForPerson(personData, personDetails);
-            md += `FIELD: ${mirrorVoice.field}\n\n`;
-            md += `MAP: ${mirrorVoice.map}\n\n`;
-            md += `VOICE: ${mirrorVoice.voice} *All requires The Poetic Brain to translate further and the user/client to verify if any of it resonates.*\n\n`;
+            md += `**FIELD**: ${mirrorVoice.field}\n\n`;
+            md += `**MAP**: ${mirrorVoice.map}\n\n`;
+            md += `**VOICE**: ${mirrorVoice.voice}\n\n`;
             
-            // Add Typological Profile section
+            md += `*This technical scaffolding provides the raw material for The Poetic Brain to translate into felt language and meaningful narrative.*\n\n`;
+            
+            // === TYPOLOGICAL PROFILE COMPLETE ===
             md += `⸻\n\n`;
-            md += `### Typological Profile Input Template (Math Brain → Raven Calder)\n\n`;
+            md += `### Complete Typological Profile (Math Brain → Raven Calder)\n\n`;
             
             const typologyProfile = generateTypologicalProfile(personData, personDetails);
             
@@ -2816,6 +2970,23 @@ function renderTransitDay(dateStr, items){
             md += `Secondary orientation: ${typologyProfile.ravenTranslation.secondary}\n\n`;
             md += `Shadow orientation: ${typologyProfile.ravenTranslation.shadow}\n\n`;
             md += `Constitutional climate: ${typologyProfile.ravenTranslation.climate}\n\n`;
+            
+            // === SYNTHESIS DIRECTIVES FOR AI ===
+            md += `⸻\n\n`;
+            md += `### Synthesis Directives for AI Poetic Brain\n\n`;
+            
+            md += `**Translation Protocol**: Use the above geometric scaffolding to generate felt-sense language that honors both precision and poetry.\n\n`;
+            
+            md += `**Key Elements to Synthesize**:\n`;
+            md += `- Combine seismograph metrics with typological climate for overall tone\n`;
+            md += `- Weave natal foundations with daily transits for temporal context\n`;
+            md += `- Transform aspect orbs and classifications into timing and intensity language\n`;
+            md += `- Translate retrograde patterns into internal/external orientation guidance\n`;
+            md += `- Honor the Mirror Principle: reflect for recognition, never predict or determine\n\n`;
+            
+            md += `**Agency Reinforcement**: All translations must support user agency and require verification through personal resonance testing.\n\n`;
+            
+            md += `</details>\n\n`;
             
             return md;
         }
