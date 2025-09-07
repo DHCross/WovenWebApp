@@ -7083,10 +7083,6 @@ function renderTransitDay(dateStr, items){
 
                 // Store result data for downloads
                 latestResultData = result;
-                // Store the Mirror report for tab switching
-                if (report && report.length > 0) {
-                    latestResultData.mirror_report = report;
-                }
                 // If we're in the Balance tab and server omitted balance_meter, attach a synthesized payload for export parity
                 try {
                     const activeTabMode2 = (typeof getCurrentActiveTabMode === 'function') ? getCurrentActiveTabMode() : 'mirror';
@@ -7126,6 +7122,17 @@ function renderTransitDay(dateStr, items){
                     };
                     report = generateMarkdownReport(result, displayOptions);
                     console.log('Generated Mirror report, length:', report?.length);
+                }
+                
+                // Store the generated report for tab switching
+                if (report && report.length > 0) {
+                    if (shouldRenderBalance) {
+                        // Store Balance Meter report
+                        latestResultData.balance_meter_report = report;
+                    } else {
+                        // Store Mirror report
+                        latestResultData.mirror_report = report;
+                    }
                 }
                 
                 // Check if we have transit hooks that warrant seismograph auto-append
