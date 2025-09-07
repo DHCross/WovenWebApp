@@ -195,22 +195,33 @@ Case‑insensitive, alias matching — no manual toggles needed:
 |---------|----------------------------|
 | HRV | `heartRateVariability`, contains `variability`, units `ms` |
 | Resting HR | `restingHeartRate`, contains `rest` + `heart` |
+| Heart rate | `heart_rate` (generic streams) |
+| Walking HR avg | contains `walking` + `heart` + `average` |
+| Active energy | `active_energy`, `active kilocalories`, `active calories` |
+| Sleep temp | `wrist`/`skin` temperature during sleep |
+| Walking distance | contains `walking`/`running` + `distance` |
+| Gait metrics | `walking_asymmetry`, `double_support` |
+| Exercise / Stand / Mindful minutes | `exercise_time`, `stand_time`, `mindful_minutes` |
 | Sleep | `sleepSessions`, `sleep`, `sleepData` (start/end aggregated → hours on wake day) |
-| Mood Valence | `stateOfMind` entries (`daily_mood`, `momentary_emotion`) averaged per calendar day |
+| Mood Valence | `stateOfMind` entries averaged per calendar day + `mood_label_count` |
 | Date | Any ISO timestamp (timezone localized to America/Chicago unless specified) |
 
 Unused streams (for now) are ignored: workouts, cycle tracking, ECG, heart notifications, symptoms. They can be included safely.
 
-### Two Gotchas
-* Keep timezone consistent with charting (Central / America/Chicago by default).
-* If Seismograph Magnitude is statistically flat (near‑zero variance) the system automatically shifts primary comparison emphasis to Volatility.
+### Normalization & Rules
+* Same‑day alignment: Health dates are bucketed in America/Chicago; symbolic bars are date‑local too.
+* Per‑window min–max (supplementals): Each supplemental overlay is normalized within the comparison window; flat series become N/A.
+* Missing data ≠ zero: Missing days are excluded from that channel; they don’t drag similarity.
+* Units unchanged: bpm/kcal/minutes/° are not converted; normalization is explicit for supplemental comparisons.
+* Tiny windows (≤3 days): Shuffle p‑value is suppressed with a “sample too small” note.
 
 ### Output (When Comparative Mode Implemented)
 Generates a markdown report containing:
 
 * Range header and timezone
 * Daily comparative table: physiological metrics + symbolic metrics + hooks
-* Overlay charts (e.g., HRV ↔ Magnitude / Volatility; Sleep ↔ Volatility)
+* Overlay lines (core): Valence ↔ Mood, Magnitude ↔ intensity proxy, Volatility ↔ swings/HRV
+* Supplemental overlays (labeled “supplemental”): Magnitude ↔ Resting HR, Magnitude ↔ Active energy, Volatility ↔ Wrist temp Δ
 * Optional “Uncanny Window Audit” (rolling correlation windows; six‑factor scoring)
 
 ### Privacy & Handling
@@ -236,6 +247,14 @@ Mirror, not mandate: outputs are reflective pattern summaries, **not** medical a
 * Additional metric channels (HRV SDNN vs RMSSD detection, HRV trend slope, sleep efficiency)
 
 > If a new key appears in your export that is not recognized, the parser can be extended with a single alias entry—no architectural change required.
+
+### Balance Meter Correlation Workflow
+1. Generate a Balance Meter report for Person A and download the JSON (includes `seismograph_by_date`).
+2. In “Balance Meter Correlation,” upload:
+  - The Balance Meter JSON (or legacy `map` shape), and
+  - Your Health Auto Export JSON.
+3. Generate the comparative markdown. The core trio and p‑value are reported, with supplemental overlays added when metrics are present.
+4. For small windows (≤3 days), the shuffle test is suppressed and annotated.
 
 ---
 

@@ -1,0 +1,3609 @@
+{
+  "data" : {
+    "stateOfMind" : [
+      {
+        "kind" : "daily_mood",
+        "start" : "2025-09-06T22:43:03Z",
+        "id" : "36243EB7-2E6E-4D2E-8BD6-8FB1E73B69A3",
+        "valence" : -0.32951741278926028,
+        "valenceClassification" : "slightly_unpleasant",
+        "labels" : [
+          "anxious",
+          "drained",
+          "discouraged",
+          "stressed",
+          "sad"
+        ],
+        "associations" : [
+          "family",
+          "partner",
+          "work",
+          "tasks",
+          "money",
+          "health",
+          "self_care",
+          "fitness"
+        ],
+        "end" : "2025-09-06T22:43:03Z"
+      },
+      {
+        "end" : "2025-09-04T21:55:17Z",
+        "valence" : -0.45569620253164556,
+        "labels" : [
+          "anxious",
+          "stressed",
+          "drained",
+          "discouraged"
+        ],
+        "id" : "E2F7414B-54BF-42EE-8F21-A3E392FB4D40",
+        "associations" : [
+          "health",
+          "self_care",
+          "family",
+          "dating",
+          "money",
+          "tasks",
+          "work"
+        ],
+        "valenceClassification" : "unpleasant",
+        "kind" : "momentary_emotion",
+        "start" : "2025-09-04T21:55:17Z"
+      },
+      {
+        "labels" : [
+          "stressed"
+        ],
+        "id" : "04C10202-5F16-4F07-9962-FCD2C12E1F43",
+        "kind" : "momentary_emotion",
+        "end" : "2025-09-04T16:17:30Z",
+        "valenceClassification" : "unpleasant",
+        "metadata" : {
+          "swhrv" : "DB3A7F1A-4AFA-4F06-8C46-9ABA686E63D2",
+          "swdata" : "HnVNUD4raFY4SWsMMxsLaG95X1MFe1FlCAdtaWZODVMkAHUDExA2OQMOXCAEdRUTPj0kCAZAa191WF01ejdAGBAgAXUDAG5reVxUAHpcZwsEb3RoAgJfLEdtG38wOyUYClwsR3sbVjw2LgkREHNHNlVdeyVmF0FVLAszXEN7YmgND15rSXVQVXtie11aHmsEJEpeOjErGApdJ0dtG0E4Kj4CBkBrSXVXUDQ9aFZBwtbO1RlhOCo+AgZAaxh7QhM+PSQIBkBrX3VYXTV6Zk4KVmtfZgkBdXorHxBdKgw2TVg2NmhWQUUmFzwbHXs2KwEGEHNHp6aWyLrK4ZOt2953bl4rM2gRT0lrAjJXVTwqaFZBUyUJdRUTMDxoVlIDeUl1WEIqNykFAkYgCjkbC3s8KxgKXC5HextfODUvTlkQufrFqBEdOT4FDVVrGHtCEz49JAgGQGtfdVhdNXpmTgpWa19mCAB1eisfEF0qDDZNWDY2aFZBVCgIPlVIe3RoAgJfLEdtG8HG1+pMJVMkDDtAEyR0MU4EVycBMksTY3orAA8QZUc+XRNjaXpVTxAoFiRWUjA5PgUMXGtfdVReNz0zTk8QJwQ6XBNjerrz8YJpKDhXVCB6NzFPECEXIWtUODwjAgQQc1RvFwlpb3JaWgFwUGELA2lhc0BBVCwAO1BfPitoVkEQZUczWEU8enBdVAd+VWcLB2xoZFxUBX9UYQsdez0nAxdbJgs2VWItOT4JQQgSHnVVUDs9Jk5ZEDoRJVxCKj0uTk8QIAF1AwBqdGgABkQsCXUDEzc9LQ0XWz8AdRUTLSE6CUEIawA6VkUwNyQNDxBlRz5aXjcMMxwGEHNHM1xXOC0mGEEeaws2VFR7Ymg\/F0AsFiRcVXslF0BBQiEcJFBSODQZGAJGLEdtYkp7MS5OWQN+UGAJAW1pfV9XAntJdVVULz0mTlkQJwAwWEUwLi9OTxA9HCdcE2N6OgQaQSAGNlUTdXojDwxcHRwnXBNjei4JBVM8CSMbHXs2KwEGEHNHE0tQMDYvCEFPFBg="
+        },
+        "valence" : -0.5,
+        "associations" : [
+          "work",
+          "dating",
+          "family",
+          "money"
+        ],
+        "start" : "2025-09-04T16:17:30Z"
+      },
+      {
+        "labels" : [
+          "anxious",
+          "overwhelmed",
+          "frustrated",
+          "stressed",
+          "disappointed",
+          "drained",
+          "discouraged"
+        ],
+        "valence" : -0.38703242434731011,
+        "valenceClassification" : "slightly_unpleasant",
+        "kind" : "daily_mood",
+        "id" : "AAADA0B3-6DF5-4A37-A017-5D6E4B90B0EC",
+        "associations" : [
+          "health",
+          "self_care",
+          "hobbies",
+          "money",
+          "tasks",
+          "work"
+        ],
+        "start" : "2025-09-02T22:04:30Z",
+        "end" : "2025-09-02T22:04:30Z"
+      },
+      {
+        "valence" : 0,
+        "kind" : "momentary_emotion",
+        "start" : "2025-08-29T22:00:33Z",
+        "associations" : [
+          "self_care",
+          "money",
+          "tasks",
+          "work",
+          "hobbies",
+          "partner",
+          "family"
+        ],
+        "labels" : [
+          "indifferent"
+        ],
+        "end" : "2025-08-29T22:00:33Z",
+        "valenceClassification" : "neutral",
+        "id" : "7DB6B89C-55B5-4E5E-B763-2245CDE5178E"
+      },
+      {
+        "associations" : [
+          "work",
+          "money",
+          "family",
+          "dating",
+          "self_care",
+          "hobbies",
+          "health"
+        ],
+        "valence" : -0.2992026413543315,
+        "kind" : "daily_mood",
+        "valenceClassification" : "slightly_unpleasant",
+        "end" : "2025-08-28T22:20:48Z",
+        "id" : "90727E21-2C3E-4407-8365-F4C812AB698B",
+        "labels" : [
+          "frustrated",
+          "stressed",
+          "drained"
+        ],
+        "start" : "2025-08-28T22:20:48Z"
+      },
+      {
+        "id" : "A0311E4F-C5F8-4635-819C-C47E8845C312",
+        "start" : "2025-08-24T20:55:45Z",
+        "associations" : [
+          "work",
+          "money"
+        ],
+        "kind" : "daily_mood",
+        "valence" : -0.059508311597606833,
+        "end" : "2025-08-24T20:55:45Z",
+        "valenceClassification" : "neutral",
+        "labels" : [
+          "discouraged",
+          "drained"
+        ]
+      },
+      {
+        "associations" : [
+          "fitness",
+          "self_care",
+          "dating",
+          "work",
+          "money",
+          "tasks",
+          "current_events",
+          "friends",
+          "family",
+          "partner",
+          "health",
+          "identity",
+          "hobbies"
+        ],
+        "kind" : "momentary_emotion",
+        "valence" : -0.7899527864693523,
+        "id" : "80E9B62E-BBA2-43C3-B9B5-A5EEA9504807",
+        "valenceClassification" : "very_unpleasant",
+        "end" : "2025-08-20T02:43:52Z",
+        "start" : "2025-08-20T02:43:52Z",
+        "labels" : [
+          "overwhelmed",
+          "lonely",
+          "disappointed",
+          "discouraged",
+          "sad",
+          "drained",
+          "worried",
+          "stressed"
+        ]
+      },
+      {
+        "kind" : "daily_mood",
+        "start" : "2025-08-18T20:45:43Z",
+        "associations" : [
+          "health",
+          "hobbies",
+          "self_care",
+          "fitness",
+          "partner",
+          "tasks",
+          "work",
+          "money",
+          "travel",
+          "current_events"
+        ],
+        "labels" : [
+          "overwhelmed",
+          "lonely",
+          "stressed",
+          "frustrated",
+          "discouraged",
+          "sad"
+        ],
+        "end" : "2025-08-18T20:45:43Z",
+        "valenceClassification" : "slightly_unpleasant",
+        "valence" : -0.35232067510548537,
+        "id" : "9737E44F-C238-48EA-8707-78CF97516067"
+      },
+      {
+        "valence" : -0.25439491754845733,
+        "end" : "2025-08-15T22:01:05Z",
+        "valenceClassification" : "slightly_unpleasant",
+        "labels" : [
+          "frustrated",
+          "worried",
+          "stressed",
+          "discouraged",
+          "lonely"
+        ],
+        "associations" : [
+          "family",
+          "dating",
+          "money",
+          "work",
+          "tasks",
+          "friends"
+        ],
+        "kind" : "daily_mood",
+        "start" : "2025-08-15T22:01:05Z",
+        "id" : "12848323-9AFC-487E-AA98-A6CCFC2A424B"
+      },
+      {
+        "id" : "FFA8A4E2-C3C9-47F6-821E-4981F83D6CDC",
+        "start" : "2025-08-12T23:19:11Z",
+        "valenceClassification" : "unpleasant",
+        "labels" : [
+          "anxious",
+          "overwhelmed",
+          "annoyed",
+          "frustrated",
+          "drained",
+          "lonely",
+          "discouraged"
+        ],
+        "valence" : -0.60646153703520578,
+        "end" : "2025-08-12T23:19:11Z",
+        "kind" : "daily_mood",
+        "associations" : [
+          "self_care",
+          "fitness",
+          "hobbies",
+          "health",
+          "family",
+          "partner",
+          "dating",
+          "money",
+          "work",
+          "tasks",
+          "current_events"
+        ]
+      },
+      {
+        "kind" : "daily_mood",
+        "end" : "2025-08-08T23:05:31Z",
+        "labels" : [
+          "angry",
+          "ashamed",
+          "overwhelmed",
+          "frustrated",
+          "annoyed",
+          "worried",
+          "stressed",
+          "irritated",
+          "drained",
+          "discouraged",
+          "lonely"
+        ],
+        "start" : "2025-08-08T23:05:31Z",
+        "id" : "5A2F5349-657F-4810-9E1A-0FC7E9C47EF8",
+        "associations" : [
+          "health",
+          "self_care",
+          "hobbies",
+          "family",
+          "dating",
+          "tasks",
+          "work",
+          "money"
+        ],
+        "valence" : -0.52905505216574367,
+        "valenceClassification" : "unpleasant"
+      }
+    ],
+    "metrics" : [
+      {
+        "data" : [
+          {
+            "date" : "2025-08-11 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch",
+            "qty" : 2
+          },
+          {
+            "date" : "2025-08-12 00:00:00 -0500",
+            "qty" : 32,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "date" : "2025-08-21 00:00:00 -0500",
+            "qty" : 1,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "date" : "2025-08-23 00:00:00 -0500",
+            "qty" : 5,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "date" : "2025-08-25 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch",
+            "qty" : 5
+          },
+          {
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-27 00:00:00 -0500",
+            "qty" : 1
+          },
+          {
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-28 00:00:00 -0500",
+            "qty" : 1
+          },
+          {
+            "qty" : 1,
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-29 00:00:00 -0500"
+          },
+          {
+            "qty" : 4,
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-30 00:00:00 -0500"
+          },
+          {
+            "qty" : 19,
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-09-02 00:00:00 -0500"
+          }
+        ],
+        "name" : "apple_exercise_time",
+        "units" : "min"
+      },
+      {
+        "name" : "apple_stand_time",
+        "units" : "min",
+        "data" : [
+          {
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-08 00:00:00 -0500",
+            "qty" : 22
+          },
+          {
+            "date" : "2025-08-09 00:00:00 -0500",
+            "qty" : 29,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-10 00:00:00 -0500",
+            "qty" : 8
+          },
+          {
+            "qty" : 13,
+            "date" : "2025-08-11 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "date" : "2025-08-12 00:00:00 -0500",
+            "qty" : 45,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "qty" : 15,
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-13 00:00:00 -0500"
+          },
+          {
+            "qty" : 7,
+            "date" : "2025-08-14 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "date" : "2025-08-15 00:00:00 -0500",
+            "qty" : 21,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-16 00:00:00 -0500",
+            "qty" : 9
+          },
+          {
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-17 00:00:00 -0500",
+            "qty" : 6
+          },
+          {
+            "date" : "2025-08-18 00:00:00 -0500",
+            "qty" : 13,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "qty" : 28,
+            "date" : "2025-08-19 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "date" : "2025-08-20 00:00:00 -0500",
+            "qty" : 26,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "qty" : 19,
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-21 00:00:00 -0500"
+          },
+          {
+            "source" : "Dan’s Apple Watch",
+            "qty" : 92,
+            "date" : "2025-08-23 00:00:00 -0500"
+          },
+          {
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-24 00:00:00 -0500",
+            "qty" : 39
+          },
+          {
+            "qty" : 46,
+            "date" : "2025-08-25 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "qty" : 51,
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-26 00:00:00 -0500"
+          },
+          {
+            "qty" : 55,
+            "date" : "2025-08-27 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "date" : "2025-08-28 00:00:00 -0500",
+            "qty" : 21,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "date" : "2025-08-29 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch",
+            "qty" : 24
+          },
+          {
+            "date" : "2025-08-30 00:00:00 -0500",
+            "qty" : 35,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "qty" : 7,
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-31 00:00:00 -0500"
+          },
+          {
+            "source" : "Dan’s Apple Watch",
+            "qty" : 77,
+            "date" : "2025-09-02 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-03 00:00:00 -0500",
+            "qty" : 19,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-09-04 00:00:00 -0500",
+            "qty" : 21
+          },
+          {
+            "date" : "2025-09-05 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch",
+            "qty" : 45
+          },
+          {
+            "date" : "2025-09-06 00:00:00 -0500",
+            "qty" : 26,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "date" : "2025-09-07 00:00:00 -0500",
+            "qty" : 4,
+            "source" : "Dan’s Apple Watch"
+          }
+        ]
+      },
+      {
+        "units" : "degF",
+        "name" : "apple_sleeping_wrist_temperature",
+        "data" : [
+          {
+            "date" : "2025-08-08 00:00:00 -0500",
+            "qty" : 98.518550109863213
+          },
+          {
+            "date" : "2025-08-09 00:00:00 -0500",
+            "qty" : 97.493587493896413
+          },
+          {
+            "qty" : 98.097794342040942,
+            "date" : "2025-08-10 00:00:00 -0500"
+          },
+          {
+            "qty" : 97.48065795898431,
+            "date" : "2025-08-12 00:00:00 -0500"
+          },
+          {
+            "qty" : 98.266606140136645,
+            "date" : "2025-08-14 00:00:00 -0500"
+          },
+          {
+            "qty" : 97.481152343749926,
+            "date" : "2025-08-15 00:00:00 -0500"
+          },
+          {
+            "qty" : 96.68033828735345,
+            "date" : "2025-08-16 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-17 00:00:00 -0500",
+            "qty" : 97.352907562255794
+          },
+          {
+            "date" : "2025-08-18 00:00:00 -0500",
+            "qty" : 97.674511718749926
+          },
+          {
+            "qty" : 98.139741516113219,
+            "date" : "2025-08-19 00:00:00 -0500"
+          },
+          {
+            "qty" : 97.428266906738216,
+            "date" : "2025-08-20 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-21 00:00:00 -0500",
+            "qty" : 96.931231689453057
+          },
+          {
+            "date" : "2025-08-24 00:00:00 -0500",
+            "qty" : 98.246096038818294
+          },
+          {
+            "qty" : 97.436383056640551,
+            "date" : "2025-08-26 00:00:00 -0500"
+          },
+          {
+            "qty" : 96.882136535644463,
+            "date" : "2025-08-28 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-29 00:00:00 -0500",
+            "qty" : 97.840796661376885
+          },
+          {
+            "date" : "2025-08-30 00:00:00 -0500",
+            "qty" : 97.970229339599541
+          },
+          {
+            "date" : "2025-08-31 00:00:00 -0500",
+            "qty" : 96.884347534179625
+          },
+          {
+            "qty" : 97.3653358459472,
+            "date" : "2025-09-02 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-03 00:00:00 -0500",
+            "qty" : 96.061643218994078
+          },
+          {
+            "qty" : 96.637814331054614,
+            "date" : "2025-09-05 00:00:00 -0500"
+          },
+          {
+            "qty" : 99.316651916503844,
+            "date" : "2025-09-06 00:00:00 -0500"
+          },
+          {
+            "qty" : 97.427573394775322,
+            "date" : "2025-09-07 00:00:00 -0500"
+          }
+        ]
+      },
+      {
+        "units" : "min",
+        "data" : [
+          {
+            "date" : "2025-08-19 00:00:00 -0500",
+            "qty" : 1.8778683344523113
+          }
+        ],
+        "name" : "mindful_minutes"
+      },
+      {
+        "units" : "count\/min",
+        "data" : [
+          {
+            "date" : "2025-08-08 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch",
+            "Avg" : 86.458161773464624,
+            "Max" : 125.00000000000001,
+            "Min" : 58
+          },
+          {
+            "Max" : 108,
+            "Min" : 50,
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-09 00:00:00 -0500",
+            "Avg" : 77.439015186045623
+          },
+          {
+            "Avg" : 75.873975075598935,
+            "Max" : 100,
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-10 00:00:00 -0500",
+            "Min" : 55
+          },
+          {
+            "source" : "Dan’s Apple Watch",
+            "Max" : 118,
+            "Avg" : 79.051817555172946,
+            "Min" : 52,
+            "date" : "2025-08-11 00:00:00 -0500"
+          },
+          {
+            "Min" : 53,
+            "source" : "Dan’s Apple Watch",
+            "Avg" : 81.143125206273069,
+            "Max" : 128.92962646484375,
+            "date" : "2025-08-12 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-13 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch",
+            "Avg" : 79.409065092269742,
+            "Max" : 110,
+            "Min" : 52
+          },
+          {
+            "Max" : 130,
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-14 00:00:00 -0500",
+            "Min" : 53,
+            "Avg" : 86.011060992446559
+          },
+          {
+            "Avg" : 82.485022289658033,
+            "Max" : 127,
+            "date" : "2025-08-15 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch",
+            "Min" : 55
+          },
+          {
+            "Min" : 58,
+            "date" : "2025-08-16 00:00:00 -0500",
+            "Max" : 118,
+            "source" : "Dan’s Apple Watch",
+            "Avg" : 80.252876722612953
+          },
+          {
+            "date" : "2025-08-17 00:00:00 -0500",
+            "Min" : 53,
+            "Avg" : 80.735733015413771,
+            "Max" : 119,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "Min" : 50,
+            "Max" : 120,
+            "source" : "Dan’s Apple Watch",
+            "Avg" : 84.699341721829398,
+            "date" : "2025-08-18 00:00:00 -0500"
+          },
+          {
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-19 00:00:00 -0500",
+            "Min" : 59,
+            "Avg" : 84.728521159109633,
+            "Max" : 129
+          },
+          {
+            "date" : "2025-08-20 00:00:00 -0500",
+            "Avg" : 82.373181166041462,
+            "Min" : 52,
+            "source" : "Dan’s Apple Watch",
+            "Max" : 125.00000000000001
+          },
+          {
+            "source" : "Dan’s Apple Watch",
+            "Max" : 127,
+            "Avg" : 84.914776853808092,
+            "date" : "2025-08-21 00:00:00 -0500",
+            "Min" : 58
+          },
+          {
+            "Avg" : 86.198396046956375,
+            "source" : "Dan’s Apple Watch",
+            "Max" : 100,
+            "date" : "2025-08-22 00:00:00 -0500",
+            "Min" : 69
+          },
+          {
+            "date" : "2025-08-23 00:00:00 -0500",
+            "Max" : 127,
+            "Min" : 72,
+            "Avg" : 96.307379316184822,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "date" : "2025-08-24 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch",
+            "Max" : 116,
+            "Min" : 50,
+            "Avg" : 77.433048562877815
+          },
+          {
+            "Avg" : 79.012146375086374,
+            "date" : "2025-08-25 00:00:00 -0500",
+            "Min" : 52,
+            "Max" : 116,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "Avg" : 79.909074771613433,
+            "source" : "Dan’s Apple Watch",
+            "Max" : 121,
+            "date" : "2025-08-26 00:00:00 -0500",
+            "Min" : 54
+          },
+          {
+            "date" : "2025-08-27 00:00:00 -0500",
+            "Max" : 128,
+            "source" : "Dan’s Apple Watch",
+            "Avg" : 77.306098336291342,
+            "Min" : 51
+          },
+          {
+            "Min" : 47,
+            "Max" : 122,
+            "date" : "2025-08-28 00:00:00 -0500",
+            "Avg" : 83.752226696404279,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "Avg" : 85.963510094702784,
+            "Max" : 119,
+            "Min" : 55,
+            "date" : "2025-08-29 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "date" : "2025-08-30 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "Max" : 122.99999999999999,
+            "Min" : 50,
+            "Avg" : 88.136417066054506
+          },
+          {
+            "Max" : 108,
+            "Min" : 54,
+            "Avg" : 76.670799806670772,
+            "date" : "2025-08-31 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "Avg" : 85.868166542632551,
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "Max" : 119,
+            "date" : "2025-09-01 00:00:00 -0500",
+            "Min" : 54
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "Min" : 59,
+            "Avg" : 89.216614342076568,
+            "Max" : 122,
+            "date" : "2025-09-02 00:00:00 -0500"
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-09-03 00:00:00 -0500",
+            "Max" : 121,
+            "Avg" : 87.337830004359006,
+            "Min" : 59
+          },
+          {
+            "Avg" : 91.816195406516087,
+            "Min" : 78,
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-09-04 00:00:00 -0500",
+            "Max" : 137
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "Min" : 49,
+            "Max" : 131,
+            "date" : "2025-09-05 00:00:00 -0500",
+            "Avg" : 86.346180021815371
+          },
+          {
+            "Avg" : 81.08037698139114,
+            "Min" : 59,
+            "date" : "2025-09-06 00:00:00 -0500",
+            "Max" : 109,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "Min" : 52,
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "Max" : 89,
+            "Avg" : 65.116267321165466,
+            "date" : "2025-09-07 00:00:00 -0500"
+          }
+        ],
+        "name" : "heart_rate"
+      },
+      {
+        "name" : "basal_energy_burned",
+        "data" : [
+          {
+            "date" : "2025-08-08 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "qty" : 1640.7169781080879
+          },
+          {
+            "date" : "2025-08-09 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "qty" : 1658.0281910515903
+          },
+          {
+            "date" : "2025-08-10 00:00:00 -0500",
+            "qty" : 1579.6253228945677,
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-11 00:00:00 -0500",
+            "qty" : 1671.7188732561415
+          },
+          {
+            "date" : "2025-08-12 00:00:00 -0500",
+            "qty" : 1623.1663508761897,
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-13 00:00:00 -0500",
+            "qty" : 1649.8241831017667
+          },
+          {
+            "qty" : 1661.6350728038451,
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-14 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-15 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "qty" : 1662.745535192541
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "qty" : 1636.0752595549432,
+            "date" : "2025-08-16 00:00:00 -0500"
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "qty" : 1640.7781573509203,
+            "date" : "2025-08-17 00:00:00 -0500"
+          },
+          {
+            "qty" : 1634.4408386858665,
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-18 00:00:00 -0500"
+          },
+          {
+            "qty" : 1670.6111713229279,
+            "date" : "2025-08-19 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "qty" : 1676.5661565834605,
+            "date" : "2025-08-20 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-21 00:00:00 -0500",
+            "qty" : 1698.8696890821809
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-22 00:00:00 -0500",
+            "qty" : 1521.9406075784132
+          },
+          {
+            "date" : "2025-08-23 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "qty" : 1659.6785656594516
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-24 00:00:00 -0500",
+            "qty" : 1668.5020425767475
+          },
+          {
+            "date" : "2025-08-25 00:00:00 -0500",
+            "qty" : 1666.5296385410543,
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "qty" : 1659.2381122926799,
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-26 00:00:00 -0500"
+          },
+          {
+            "qty" : 1662.6789201293564,
+            "date" : "2025-08-27 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "date" : "2025-08-28 00:00:00 -0500",
+            "qty" : 1671.1679383652045,
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "date" : "2025-08-29 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "qty" : 1663.8401863072418
+          },
+          {
+            "qty" : 1690.6235522051854,
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-30 00:00:00 -0500"
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-31 00:00:00 -0500",
+            "qty" : 1590.9415798028999
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-09-01 00:00:00 -0500",
+            "qty" : 1668.6743894615684
+          },
+          {
+            "date" : "2025-09-02 00:00:00 -0500",
+            "qty" : 1672.0782544451122,
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "qty" : 1683.1262565152917,
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-09-03 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-04 00:00:00 -0500",
+            "qty" : 1714.5021224565053,
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "date" : "2025-09-05 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "qty" : 1716.7767980076296
+          },
+          {
+            "date" : "2025-09-06 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "qty" : 1675.9347654225478
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-09-07 00:00:00 -0500",
+            "qty" : 794.58170591164526
+          }
+        ],
+        "units" : "kcal"
+      },
+      {
+        "data" : [
+          {
+            "qty" : 4,
+            "date" : "2025-08-08 00:00:00 -0500"
+          },
+          {
+            "qty" : 11,
+            "date" : "2025-08-09 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-10 00:00:00 -0500",
+            "qty" : 4
+          },
+          {
+            "qty" : 5,
+            "date" : "2025-08-11 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-12 00:00:00 -0500",
+            "qty" : 4
+          },
+          {
+            "date" : "2025-08-13 00:00:00 -0500",
+            "qty" : 6
+          },
+          {
+            "qty" : 5,
+            "date" : "2025-08-14 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-15 00:00:00 -0500",
+            "qty" : 6
+          },
+          {
+            "qty" : 5,
+            "date" : "2025-08-16 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-17 00:00:00 -0500",
+            "qty" : 4
+          },
+          {
+            "date" : "2025-08-18 00:00:00 -0500",
+            "qty" : 7
+          },
+          {
+            "date" : "2025-08-19 00:00:00 -0500",
+            "qty" : 7
+          },
+          {
+            "date" : "2025-08-20 00:00:00 -0500",
+            "qty" : 8
+          },
+          {
+            "qty" : 6,
+            "date" : "2025-08-21 00:00:00 -0500"
+          },
+          {
+            "qty" : 8,
+            "date" : "2025-08-23 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-24 00:00:00 -0500",
+            "qty" : 10
+          },
+          {
+            "date" : "2025-08-25 00:00:00 -0500",
+            "qty" : 11
+          },
+          {
+            "qty" : 11,
+            "date" : "2025-08-26 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-27 00:00:00 -0500",
+            "qty" : 8
+          },
+          {
+            "qty" : 9,
+            "date" : "2025-08-28 00:00:00 -0500"
+          },
+          {
+            "qty" : 10,
+            "date" : "2025-08-29 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-30 00:00:00 -0500",
+            "qty" : 10
+          },
+          {
+            "date" : "2025-08-31 00:00:00 -0500",
+            "qty" : 3
+          },
+          {
+            "date" : "2025-09-02 00:00:00 -0500",
+            "qty" : 7
+          },
+          {
+            "qty" : 4,
+            "date" : "2025-09-03 00:00:00 -0500"
+          },
+          {
+            "qty" : 11,
+            "date" : "2025-09-04 00:00:00 -0500"
+          },
+          {
+            "qty" : 15,
+            "date" : "2025-09-05 00:00:00 -0500"
+          },
+          {
+            "qty" : 8,
+            "date" : "2025-09-06 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-07 00:00:00 -0500",
+            "qty" : 3
+          }
+        ],
+        "name" : "apple_stand_hour",
+        "units" : "count"
+      },
+      {
+        "units" : "count\/min",
+        "name" : "resting_heart_rate",
+        "data" : [
+          {
+            "qty" : 75,
+            "date" : "2025-08-08 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-09 00:00:00 -0500",
+            "qty" : 72
+          },
+          {
+            "qty" : 63,
+            "date" : "2025-08-10 00:00:00 -0500"
+          },
+          {
+            "qty" : 64,
+            "date" : "2025-08-11 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-12 00:00:00 -0500",
+            "qty" : 72
+          },
+          {
+            "qty" : 72,
+            "date" : "2025-08-13 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-14 00:00:00 -0500",
+            "qty" : 74
+          },
+          {
+            "date" : "2025-08-15 00:00:00 -0500",
+            "qty" : 73
+          },
+          {
+            "qty" : 74,
+            "date" : "2025-08-16 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-17 00:00:00 -0500",
+            "qty" : 73
+          },
+          {
+            "qty" : 67,
+            "date" : "2025-08-18 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-19 00:00:00 -0500",
+            "qty" : 74
+          },
+          {
+            "qty" : 79,
+            "date" : "2025-08-20 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-21 00:00:00 -0500",
+            "qty" : 84
+          },
+          {
+            "qty" : 80,
+            "date" : "2025-08-23 00:00:00 -0500"
+          },
+          {
+            "qty" : 72,
+            "date" : "2025-08-24 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-25 00:00:00 -0500",
+            "qty" : 72
+          },
+          {
+            "qty" : 72,
+            "date" : "2025-08-26 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-27 00:00:00 -0500",
+            "qty" : 74
+          },
+          {
+            "qty" : 71,
+            "date" : "2025-08-28 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-29 00:00:00 -0500",
+            "qty" : 80
+          },
+          {
+            "qty" : 75,
+            "date" : "2025-08-30 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-31 00:00:00 -0500",
+            "qty" : 78
+          },
+          {
+            "date" : "2025-09-01 00:00:00 -0500",
+            "qty" : 79
+          },
+          {
+            "qty" : 73,
+            "date" : "2025-09-02 00:00:00 -0500"
+          },
+          {
+            "qty" : 89,
+            "date" : "2025-09-03 00:00:00 -0500"
+          },
+          {
+            "qty" : 84,
+            "date" : "2025-09-04 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-05 00:00:00 -0500",
+            "qty" : 72
+          },
+          {
+            "date" : "2025-09-06 00:00:00 -0500",
+            "qty" : 69
+          },
+          {
+            "date" : "2025-09-07 00:00:00 -0500",
+            "qty" : 54
+          }
+        ]
+      },
+      {
+        "units" : "mi",
+        "name" : "walking_running_distance",
+        "data" : [
+          {
+            "qty" : 0.60497926282442982,
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-08 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-09 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "qty" : 0.46620232319217009
+          },
+          {
+            "date" : "2025-08-10 00:00:00 -0500",
+            "qty" : 0.083750663693093197,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "qty" : 0.32355824119145477,
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-11 00:00:00 -0500"
+          },
+          {
+            "qty" : 1.1800417392972655,
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-12 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-13 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "qty" : 0.41128679393331596
+          },
+          {
+            "date" : "2025-08-14 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "qty" : 0.36416769009826161
+          },
+          {
+            "date" : "2025-08-15 00:00:00 -0500",
+            "qty" : 0.51415375415187259,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-16 00:00:00 -0500",
+            "qty" : 0.26171901805923858
+          },
+          {
+            "qty" : 0.10236237722431833,
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-17 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-18 00:00:00 -0500",
+            "qty" : 0.41869361492295248,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "date" : "2025-08-19 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "qty" : 0.50984827515314401
+          },
+          {
+            "qty" : 0.72865850054448433,
+            "date" : "2025-08-20 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "qty" : 0.54862586160780069,
+            "date" : "2025-08-21 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "qty" : 0.30063199725572404,
+            "date" : "2025-08-22 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "date" : "2025-08-23 00:00:00 -0500",
+            "qty" : 1.8963816434340739,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-24 00:00:00 -0500",
+            "qty" : 0.66798562773602788
+          },
+          {
+            "qty" : 0.99334635137084826,
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-25 00:00:00 -0500"
+          },
+          {
+            "qty" : 0.94230564390909555,
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-26 00:00:00 -0500"
+          },
+          {
+            "qty" : 1.3076918083226867,
+            "date" : "2025-08-27 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "qty" : 0.55975346631309442,
+            "date" : "2025-08-28 00:00:00 -0500"
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-29 00:00:00 -0500",
+            "qty" : 0.63295062695588666
+          },
+          {
+            "date" : "2025-08-30 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "qty" : 1.2305155379526393
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-31 00:00:00 -0500",
+            "qty" : 0.77462210667734632
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "qty" : 0.20315385172302722,
+            "date" : "2025-09-01 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-02 00:00:00 -0500",
+            "qty" : 2.5012907201789454,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "qty" : 0.63201736552715082,
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-09-03 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-04 00:00:00 -0500",
+            "qty" : 0.70157696832745997,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-09-05 00:00:00 -0500",
+            "qty" : 1.2455866119593082
+          },
+          {
+            "qty" : 0.73274267303825424,
+            "date" : "2025-09-06 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "date" : "2025-09-07 00:00:00 -0500",
+            "qty" : 0.073612425972365933,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          }
+        ]
+      },
+      {
+        "units" : "count\/min",
+        "data" : [
+          {
+            "date" : "2025-08-08 00:00:00 -0500",
+            "qty" : 121
+          },
+          {
+            "date" : "2025-08-09 00:00:00 -0500",
+            "qty" : 94
+          },
+          {
+            "qty" : 107,
+            "date" : "2025-08-11 00:00:00 -0500"
+          },
+          {
+            "qty" : 110,
+            "date" : "2025-08-12 00:00:00 -0500"
+          },
+          {
+            "qty" : 100,
+            "date" : "2025-08-13 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-14 00:00:00 -0500",
+            "qty" : 118.5
+          },
+          {
+            "date" : "2025-08-15 00:00:00 -0500",
+            "qty" : 115
+          },
+          {
+            "date" : "2025-08-18 00:00:00 -0500",
+            "qty" : 115
+          },
+          {
+            "qty" : 105,
+            "date" : "2025-08-19 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-20 00:00:00 -0500",
+            "qty" : 117.00000000000001
+          },
+          {
+            "qty" : 113,
+            "date" : "2025-08-21 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-22 00:00:00 -0500",
+            "qty" : 100
+          },
+          {
+            "qty" : 109.5,
+            "date" : "2025-08-23 00:00:00 -0500"
+          },
+          {
+            "qty" : 96,
+            "date" : "2025-08-24 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-25 00:00:00 -0500",
+            "qty" : 108.49999999999999
+          },
+          {
+            "qty" : 101,
+            "date" : "2025-08-26 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-27 00:00:00 -0500",
+            "qty" : 111
+          },
+          {
+            "date" : "2025-08-28 00:00:00 -0500",
+            "qty" : 114
+          },
+          {
+            "qty" : 106,
+            "date" : "2025-08-29 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-30 00:00:00 -0500",
+            "qty" : 111
+          },
+          {
+            "qty" : 102,
+            "date" : "2025-09-02 00:00:00 -0500"
+          },
+          {
+            "qty" : 103,
+            "date" : "2025-09-04 00:00:00 -0500"
+          },
+          {
+            "qty" : 113,
+            "date" : "2025-09-05 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-06 00:00:00 -0500",
+            "qty" : 89
+          }
+        ],
+        "name" : "walking_heart_rate_average"
+      },
+      {
+        "data" : [
+          {
+            "date" : "2025-08-08 00:00:00 -0500",
+            "qty" : 3.6666666666666665
+          },
+          {
+            "date" : "2025-08-09 00:00:00 -0500",
+            "qty" : 21.5
+          },
+          {
+            "qty" : 4,
+            "date" : "2025-08-11 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-12 00:00:00 -0500",
+            "qty" : 36.615384615384613
+          },
+          {
+            "qty" : 8.5,
+            "date" : "2025-08-13 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-14 00:00:00 -0500",
+            "qty" : 4
+          },
+          {
+            "date" : "2025-08-15 00:00:00 -0500",
+            "qty" : 4.2857142857142856
+          },
+          {
+            "date" : "2025-08-18 00:00:00 -0500",
+            "qty" : 9.5
+          },
+          {
+            "qty" : 8.5999999999999996,
+            "date" : "2025-08-19 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-20 00:00:00 -0500",
+            "qty" : 4.875
+          },
+          {
+            "date" : "2025-08-21 00:00:00 -0500",
+            "qty" : 13.666666666666666
+          },
+          {
+            "qty" : 52,
+            "date" : "2025-08-22 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-23 00:00:00 -0500",
+            "qty" : 37.857142857142854
+          },
+          {
+            "date" : "2025-08-24 00:00:00 -0500",
+            "qty" : 9.25
+          },
+          {
+            "date" : "2025-08-25 00:00:00 -0500",
+            "qty" : 4.333333333333333
+          },
+          {
+            "qty" : 18,
+            "date" : "2025-08-26 00:00:00 -0500"
+          },
+          {
+            "qty" : 12.333333333333334,
+            "date" : "2025-08-27 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-28 00:00:00 -0500",
+            "qty" : 4
+          },
+          {
+            "qty" : 12.199999999999999,
+            "date" : "2025-08-29 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-30 00:00:00 -0500",
+            "qty" : 5.0999999999999996
+          },
+          {
+            "qty" : 4.4545454545454541,
+            "date" : "2025-08-31 00:00:00 -0500"
+          },
+          {
+            "qty" : 29.25,
+            "date" : "2025-09-02 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-03 00:00:00 -0500",
+            "qty" : 13.4
+          },
+          {
+            "date" : "2025-09-04 00:00:00 -0500",
+            "qty" : 9.3333333333333339
+          },
+          {
+            "qty" : 0,
+            "date" : "2025-09-05 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-06 00:00:00 -0500",
+            "qty" : 4
+          }
+        ],
+        "name" : "walking_asymmetry_percentage",
+        "units" : "%"
+      },
+      {
+        "units" : "%",
+        "name" : "walking_double_support_percentage",
+        "data" : [
+          {
+            "qty" : 30.300000000000001,
+            "date" : "2025-08-08 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-09 00:00:00 -0500",
+            "qty" : 30.033333333333331
+          },
+          {
+            "qty" : 29.666666666666668,
+            "date" : "2025-08-11 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-12 00:00:00 -0500",
+            "qty" : 31.354545454545462
+          },
+          {
+            "date" : "2025-08-13 00:00:00 -0500",
+            "qty" : 30.416666666666668
+          },
+          {
+            "date" : "2025-08-14 00:00:00 -0500",
+            "qty" : 28.999999999999996
+          },
+          {
+            "date" : "2025-08-15 00:00:00 -0500",
+            "qty" : 29.830769230769235
+          },
+          {
+            "qty" : 31.199999999999999,
+            "date" : "2025-08-16 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-18 00:00:00 -0500",
+            "qty" : 30.949999999999999
+          },
+          {
+            "qty" : 30.444444444444443,
+            "date" : "2025-08-19 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-20 00:00:00 -0500",
+            "qty" : 29.699999999999999
+          },
+          {
+            "date" : "2025-08-21 00:00:00 -0500",
+            "qty" : 29.416666666666668
+          },
+          {
+            "qty" : 31.466666666666669,
+            "date" : "2025-08-22 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-23 00:00:00 -0500",
+            "qty" : 30.355555555555554
+          },
+          {
+            "date" : "2025-08-24 00:00:00 -0500",
+            "qty" : 30.163636363636364
+          },
+          {
+            "date" : "2025-08-25 00:00:00 -0500",
+            "qty" : 30.005882352941178
+          },
+          {
+            "date" : "2025-08-26 00:00:00 -0500",
+            "qty" : 30.481818181818188
+          },
+          {
+            "qty" : 29.734999999999996,
+            "date" : "2025-08-27 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-28 00:00:00 -0500",
+            "qty" : 28.800000000000001
+          },
+          {
+            "qty" : 29.212500000000002,
+            "date" : "2025-08-29 00:00:00 -0500"
+          },
+          {
+            "qty" : 29.243750000000002,
+            "date" : "2025-08-30 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-31 00:00:00 -0500",
+            "qty" : 29.552941176470583
+          },
+          {
+            "date" : "2025-09-02 00:00:00 -0500",
+            "qty" : 30.412500000000001
+          },
+          {
+            "qty" : 28.899999999999999,
+            "date" : "2025-09-03 00:00:00 -0500"
+          },
+          {
+            "qty" : 30.150000000000002,
+            "date" : "2025-09-04 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-05 00:00:00 -0500",
+            "qty" : 27.990909090909096
+          },
+          {
+            "date" : "2025-09-06 00:00:00 -0500",
+            "qty" : 29.205882352941185
+          }
+        ]
+      },
+      {
+        "units" : "count",
+        "name" : "breathing_disturbances",
+        "data" : [
+          {
+            "date" : "2025-08-08 00:00:00 -0500",
+            "qty" : 1.4309948682785034
+          },
+          {
+            "date" : "2025-08-09 00:00:00 -0500",
+            "qty" : 1.7741935253143311
+          },
+          {
+            "qty" : 0.81443703174591064,
+            "date" : "2025-08-10 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-11 00:00:00 -0500",
+            "qty" : 1.049243688583374
+          },
+          {
+            "date" : "2025-08-12 00:00:00 -0500",
+            "qty" : 1.4861721992492676
+          },
+          {
+            "date" : "2025-08-13 00:00:00 -0500",
+            "qty" : 1.7945902347564697
+          },
+          {
+            "date" : "2025-08-14 00:00:00 -0500",
+            "qty" : 1.4249804019927979
+          },
+          {
+            "date" : "2025-08-15 00:00:00 -0500",
+            "qty" : 1.257355809211731
+          },
+          {
+            "qty" : 2.8858828544616699,
+            "date" : "2025-08-16 00:00:00 -0500"
+          },
+          {
+            "qty" : 2.3956403732299805,
+            "date" : "2025-08-17 00:00:00 -0500"
+          },
+          {
+            "qty" : 2.3086559772491455,
+            "date" : "2025-08-18 00:00:00 -0500"
+          },
+          {
+            "qty" : 0.9355120062828064,
+            "date" : "2025-08-19 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-20 00:00:00 -0500",
+            "qty" : 1.1135718822479248
+          },
+          {
+            "date" : "2025-08-21 00:00:00 -0500",
+            "qty" : 1.9813439846038818
+          },
+          {
+            "qty" : 2.8566207885742188,
+            "date" : "2025-08-24 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-25 00:00:00 -0500",
+            "qty" : 2.8572139739990234
+          },
+          {
+            "qty" : 5.573941707611084,
+            "date" : "2025-08-26 00:00:00 -0500"
+          },
+          {
+            "qty" : 2.8450019359588623,
+            "date" : "2025-08-27 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-28 00:00:00 -0500",
+            "qty" : 2.8966953754425049
+          },
+          {
+            "date" : "2025-08-29 00:00:00 -0500",
+            "qty" : 4.7406215667724609
+          },
+          {
+            "date" : "2025-08-31 00:00:00 -0500",
+            "qty" : 2.4301295280456543
+          },
+          {
+            "date" : "2025-09-01 00:00:00 -0500",
+            "qty" : 2.8127827644348145
+          },
+          {
+            "qty" : 2.6613044738769531,
+            "date" : "2025-09-02 00:00:00 -0500"
+          },
+          {
+            "qty" : 4.8435969352722168,
+            "date" : "2025-09-03 00:00:00 -0500"
+          },
+          {
+            "qty" : 2.7041492462158203,
+            "date" : "2025-09-04 00:00:00 -0500"
+          },
+          {
+            "qty" : 5.7630305290222168,
+            "date" : "2025-09-06 00:00:00 -0500"
+          }
+        ]
+      },
+      {
+        "data" : [
+          {
+            "date" : "2025-08-08 00:00:00 -0500",
+            "qty" : 23.729420186113103
+          },
+          {
+            "date" : "2025-08-09 00:00:00 -0500",
+            "qty" : 23.184601924759406
+          },
+          {
+            "date" : "2025-08-11 00:00:00 -0500",
+            "qty" : 23.326771653543307
+          },
+          {
+            "date" : "2025-08-12 00:00:00 -0500",
+            "qty" : 22.200349956255469
+          },
+          {
+            "date" : "2025-08-13 00:00:00 -0500",
+            "qty" : 21.850393700787404
+          },
+          {
+            "date" : "2025-08-14 00:00:00 -0500",
+            "qty" : 24.409448818897637
+          },
+          {
+            "qty" : 24.136886735311936,
+            "date" : "2025-08-15 00:00:00 -0500"
+          },
+          {
+            "qty" : 20.866141732283467,
+            "date" : "2025-08-16 00:00:00 -0500"
+          },
+          {
+            "qty" : 23.556430446194227,
+            "date" : "2025-08-18 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-19 00:00:00 -0500",
+            "qty" : 23.359580052493438
+          },
+          {
+            "date" : "2025-08-20 00:00:00 -0500",
+            "qty" : 24.089566929133866
+          },
+          {
+            "date" : "2025-08-21 00:00:00 -0500",
+            "qty" : 25.262467191601051
+          },
+          {
+            "qty" : 23.523622047244096,
+            "date" : "2025-08-22 00:00:00 -0500"
+          },
+          {
+            "qty" : 23.352080989876267,
+            "date" : "2025-08-23 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-24 00:00:00 -0500",
+            "qty" : 23.734533183352081
+          },
+          {
+            "date" : "2025-08-25 00:00:00 -0500",
+            "qty" : 24.475065616797899
+          },
+          {
+            "date" : "2025-08-26 00:00:00 -0500",
+            "qty" : 23.561477892186552
+          },
+          {
+            "date" : "2025-08-27 00:00:00 -0500",
+            "qty" : 24.062992125984252
+          },
+          {
+            "qty" : 24.251968503937007,
+            "date" : "2025-08-28 00:00:00 -0500"
+          },
+          {
+            "qty" : 25.275590551181104,
+            "date" : "2025-08-29 00:00:00 -0500"
+          },
+          {
+            "qty" : 24.746906636670413,
+            "date" : "2025-08-30 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-31 00:00:00 -0500",
+            "qty" : 24.409448818897641
+          },
+          {
+            "date" : "2025-09-02 00:00:00 -0500",
+            "qty" : 23.725652714463326
+          },
+          {
+            "qty" : 24.566929133858267,
+            "date" : "2025-09-03 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-04 00:00:00 -0500",
+            "qty" : 22.497187851518561
+          },
+          {
+            "date" : "2025-09-05 00:00:00 -0500",
+            "qty" : 25.229658792650913
+          },
+          {
+            "date" : "2025-09-06 00:00:00 -0500",
+            "qty" : 23.413617415470128
+          }
+        ],
+        "name" : "walking_step_length",
+        "units" : "in"
+      },
+      {
+        "units" : "mi\/hr",
+        "data" : [
+          {
+            "qty" : 2.1718617817400925,
+            "date" : "2025-08-08 00:00:00 -0500"
+          },
+          {
+            "qty" : 2.02069911715581,
+            "date" : "2025-08-09 00:00:00 -0500"
+          },
+          {
+            "qty" : 2.1250894774516822,
+            "date" : "2025-08-11 00:00:00 -0500"
+          },
+          {
+            "qty" : 1.6379344627376125,
+            "date" : "2025-08-12 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-13 00:00:00 -0500",
+            "qty" : 1.9293575518969222
+          },
+          {
+            "qty" : 2.1787759484609879,
+            "date" : "2025-08-14 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-15 00:00:00 -0500",
+            "qty" : 2.2059633280105717
+          },
+          {
+            "qty" : 1.8790264853256979,
+            "date" : "2025-08-16 00:00:00 -0500"
+          },
+          {
+            "qty" : 2.0542531615366264,
+            "date" : "2025-08-18 00:00:00 -0500"
+          },
+          {
+            "qty" : 2.2095959595959598,
+            "date" : "2025-08-19 00:00:00 -0500"
+          },
+          {
+            "qty" : 2.2425286327845382,
+            "date" : "2025-08-20 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-21 00:00:00 -0500",
+            "qty" : 2.3599677881173946
+          },
+          {
+            "date" : "2025-08-22 00:00:00 -0500",
+            "qty" : 1.8958035075161062
+          },
+          {
+            "date" : "2025-08-23 00:00:00 -0500",
+            "qty" : 1.7818795377850494
+          },
+          {
+            "date" : "2025-08-24 00:00:00 -0500",
+            "qty" : 1.9860798650168729
+          },
+          {
+            "date" : "2025-08-25 00:00:00 -0500",
+            "qty" : 2.2555774278215219
+          },
+          {
+            "qty" : 1.990873299928418,
+            "date" : "2025-08-26 00:00:00 -0500"
+          },
+          {
+            "qty" : 2.2306728704366496,
+            "date" : "2025-08-27 00:00:00 -0500"
+          },
+          {
+            "qty" : 2.4651037938439515,
+            "date" : "2025-08-28 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-29 00:00:00 -0500",
+            "qty" : 2.3219398711524697
+          },
+          {
+            "qty" : 2.3413266523502743,
+            "date" : "2025-08-30 00:00:00 -0500"
+          },
+          {
+            "qty" : 2.2348058765381595,
+            "date" : "2025-08-31 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-02 00:00:00 -0500",
+            "qty" : 1.9025731831367971
+          },
+          {
+            "date" : "2025-09-03 00:00:00 -0500",
+            "qty" : 2.3085182534001429
+          },
+          {
+            "qty" : 2.2241537989569484,
+            "date" : "2025-09-04 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-05 00:00:00 -0500",
+            "qty" : 2.5035045335242185
+          },
+          {
+            "qty" : 2.3356246578803317,
+            "date" : "2025-09-06 00:00:00 -0500"
+          }
+        ],
+        "name" : "walking_speed"
+      },
+      {
+        "data" : [
+          {
+            "qty" : 96.166666666666671,
+            "date" : "2025-08-30 00:00:00 -0500"
+          },
+          {
+            "qty" : 94.333333333333329,
+            "date" : "2025-08-31 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-01 00:00:00 -0500",
+            "qty" : 97.666666666666671
+          },
+          {
+            "date" : "2025-09-02 00:00:00 -0500",
+            "qty" : 96.5
+          },
+          {
+            "qty" : 97,
+            "date" : "2025-09-03 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-04 00:00:00 -0500",
+            "qty" : 96
+          },
+          {
+            "date" : "2025-09-05 00:00:00 -0500",
+            "qty" : 96.400000000000006
+          },
+          {
+            "qty" : 95.458333333333329,
+            "date" : "2025-09-06 00:00:00 -0500"
+          },
+          {
+            "qty" : 97.333333333333329,
+            "date" : "2025-09-07 00:00:00 -0500"
+          }
+        ],
+        "name" : "blood_oxygen_saturation",
+        "units" : "%"
+      },
+      {
+        "data" : [
+          {
+            "date" : "2025-08-08 00:00:00 -0500",
+            "qty" : 33.191067117176082
+          },
+          {
+            "date" : "2025-08-09 00:00:00 -0500",
+            "qty" : 45.047967269126822
+          },
+          {
+            "qty" : 43.735188580555509,
+            "date" : "2025-08-10 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-11 00:00:00 -0500",
+            "qty" : 43.439375348490124
+          },
+          {
+            "qty" : 41.667220174064795,
+            "date" : "2025-08-12 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-13 00:00:00 -0500",
+            "qty" : 42.899328466141597
+          },
+          {
+            "date" : "2025-08-14 00:00:00 -0500",
+            "qty" : 35.176469042358526
+          },
+          {
+            "qty" : 36.47279924307594,
+            "date" : "2025-08-15 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-16 00:00:00 -0500",
+            "qty" : 46.526801471793398
+          },
+          {
+            "date" : "2025-08-17 00:00:00 -0500",
+            "qty" : 32.427965972008913
+          },
+          {
+            "date" : "2025-08-18 00:00:00 -0500",
+            "qty" : 26.351525606043506
+          },
+          {
+            "date" : "2025-08-19 00:00:00 -0500",
+            "qty" : 36.856479295079815
+          },
+          {
+            "date" : "2025-08-20 00:00:00 -0500",
+            "qty" : 37.908378038912353
+          },
+          {
+            "date" : "2025-08-21 00:00:00 -0500",
+            "qty" : 42.795109969922031
+          },
+          {
+            "date" : "2025-08-22 00:00:00 -0500",
+            "qty" : 16.090850016268423
+          },
+          {
+            "date" : "2025-08-23 00:00:00 -0500",
+            "qty" : 29.816694959981763
+          },
+          {
+            "date" : "2025-08-24 00:00:00 -0500",
+            "qty" : 50.281578755979417
+          },
+          {
+            "date" : "2025-08-25 00:00:00 -0500",
+            "qty" : 48.718759007159399
+          },
+          {
+            "date" : "2025-08-26 00:00:00 -0500",
+            "qty" : 50.530653907196488
+          },
+          {
+            "qty" : 51.657341137376541,
+            "date" : "2025-08-27 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-28 00:00:00 -0500",
+            "qty" : 31.914821593417482
+          },
+          {
+            "date" : "2025-08-29 00:00:00 -0500",
+            "qty" : 32.126835055888826
+          },
+          {
+            "date" : "2025-08-30 00:00:00 -0500",
+            "qty" : 32.659715251522982
+          },
+          {
+            "date" : "2025-08-31 00:00:00 -0500",
+            "qty" : 37.074156706399279
+          },
+          {
+            "date" : "2025-09-01 00:00:00 -0500",
+            "qty" : 29.948392416241191
+          },
+          {
+            "date" : "2025-09-02 00:00:00 -0500",
+            "qty" : 27.251662686804185
+          },
+          {
+            "qty" : 29.778769680985608,
+            "date" : "2025-09-03 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-04 00:00:00 -0500",
+            "qty" : 28.837571293105892
+          },
+          {
+            "date" : "2025-09-05 00:00:00 -0500",
+            "qty" : 37.115035285428732
+          },
+          {
+            "qty" : 36.885004846699808,
+            "date" : "2025-09-06 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-07 00:00:00 -0500",
+            "qty" : 61.711862284091346
+          }
+        ],
+        "name" : "heart_rate_variability",
+        "units" : "ms"
+      },
+      {
+        "units" : "hr",
+        "data" : [
+          {
+            "totalSleep" : 6.3637945119208759,
+            "date" : "2025-08-08 00:00:00 -0500",
+            "sleepStart" : "2025-08-08 05:38:50 -0500",
+            "asleep" : 0,
+            "core" : 4.3453879458043314,
+            "rem" : 0,
+            "inBed" : 0,
+            "source" : "Dan’s Apple Watch",
+            "inBedEnd" : "2025-08-08 12:01:09 -0500",
+            "awake" : 0.0083405333426263602,
+            "deep" : 2.0184065661165449,
+            "inBedStart" : "2025-08-08 05:38:50 -0500",
+            "sleepEnd" : "2025-08-08 12:01:09 -0500"
+          },
+          {
+            "awake" : 0.23353722989559172,
+            "source" : "Dan’s Apple Watch",
+            "rem" : 0.23354072458214231,
+            "core" : 6.2138966968324443,
+            "inBed" : 0,
+            "date" : "2025-08-09 00:00:00 -0500",
+            "deep" : 0.93419105095995802,
+            "sleepStart" : "2025-08-09 04:32:49 -0500",
+            "totalSleep" : 7.3816284723745449,
+            "sleepEnd" : "2025-08-09 12:09:44 -0500",
+            "inBedEnd" : "2025-08-09 12:09:44 -0500",
+            "asleep" : 0,
+            "inBedStart" : "2025-08-09 04:32:49 -0500"
+          },
+          {
+            "totalSleep" : 6.1386905259556235,
+            "inBedEnd" : "2025-08-10 12:32:38 -0500",
+            "deep" : 1.0342706899841627,
+            "inBedStart" : "2025-08-10 06:21:49 -0500",
+            "awake" : 0.04170320891671711,
+            "sleepStart" : "2025-08-10 06:21:49 -0500",
+            "sleepEnd" : "2025-08-10 12:32:38 -0500",
+            "rem" : 0.36697445611159007,
+            "date" : "2025-08-10 00:00:00 -0500",
+            "inBed" : 0,
+            "core" : 4.7374453798598708,
+            "source" : "Dan’s Apple Watch",
+            "asleep" : 0
+          },
+          {
+            "rem" : 0.53381330248382364,
+            "core" : 2.9609945380687717,
+            "sleepStart" : "2025-08-11 07:13:03 -0500",
+            "deep" : 2.7191440858443578,
+            "source" : "Dan’s Apple Watch",
+            "asleep" : 0,
+            "inBed" : 0,
+            "date" : "2025-08-11 00:00:00 -0500",
+            "sleepEnd" : "2025-08-11 13:30:24 -0500",
+            "inBedStart" : "2025-08-11 07:13:03 -0500",
+            "awake" : 0.075067336691750419,
+            "totalSleep" : 6.2139519263969536,
+            "inBedEnd" : "2025-08-11 13:30:24 -0500"
+          },
+          {
+            "inBedEnd" : "2025-08-12 11:28:21 -0500",
+            "sleepStart" : "2025-08-12 06:14:04 -0500",
+            "deep" : 2.026852656536632,
+            "inBedStart" : "2025-08-12 06:14:04 -0500",
+            "awake" : 0.0083409859736760465,
+            "sleepEnd" : "2025-08-12 11:28:21 -0500",
+            "rem" : 0.83409014225006106,
+            "date" : "2025-08-12 00:00:00 -0500",
+            "core" : 2.3688293030526903,
+            "source" : "Dan’s Apple Watch",
+            "asleep" : 0,
+            "inBed" : 0,
+            "totalSleep" : 5.2297721018393837
+          },
+          {
+            "awake" : 0.31693686929013992,
+            "core" : 2.4520326832930248,
+            "inBed" : 0,
+            "inBedEnd" : "2025-08-13 11:00:29 -0500",
+            "asleep" : 2.4605242597394517,
+            "date" : "2025-08-13 00:00:00 -0500",
+            "totalSleep" : 6.5305831256839966,
+            "source" : "Dan’s Apple Watch",
+            "sleepStart" : "2025-08-13 04:06:14 -0500",
+            "inBedStart" : "2025-08-13 04:06:14 -0500",
+            "rem" : 0,
+            "sleepEnd" : "2025-08-13 11:00:29 -0500",
+            "deep" : 1.6180261826515197
+          },
+          {
+            "awake" : 0.016681086122989654,
+            "core" : 3.5363754590683518,
+            "source" : "Dan’s Apple Watch",
+            "inBedStart" : "2025-08-14 03:59:15 -0500",
+            "rem" : 0.58383136179712081,
+            "date" : "2025-08-14 00:00:00 -0500",
+            "sleepEnd" : "2025-08-14 08:36:29 -0500",
+            "asleep" : 0,
+            "inBed" : 0,
+            "deep" : 0.48374955849515067,
+            "sleepStart" : "2025-08-14 03:59:15 -0500",
+            "inBedEnd" : "2025-08-14 08:36:29 -0500",
+            "totalSleep" : 4.603956379360624
+          },
+          {
+            "sleepEnd" : "2025-08-15 11:59:05 -0500",
+            "deep" : 2.2602705316411122,
+            "awake" : 0.041702657507525553,
+            "totalSleep" : 5.8716474478774598,
+            "inBedStart" : "2025-08-15 06:04:17 -0500",
+            "sleepStart" : "2025-08-15 06:04:17 -0500",
+            "asleep" : 0,
+            "core" : 2.7523304149839611,
+            "inBed" : 0,
+            "inBedEnd" : "2025-08-15 11:59:05 -0500",
+            "source" : "Dan’s Apple Watch",
+            "rem" : 0.85904650125238624,
+            "date" : "2025-08-15 00:00:00 -0500"
+          },
+          {
+            "sleepStart" : "2025-08-16 08:29:45 -0500",
+            "inBedStart" : "2025-08-16 08:29:45 -0500",
+            "totalSleep" : 4.0785639855596756,
+            "deep" : 0.97583208431800217,
+            "source" : "Dan’s Apple Watch",
+            "asleep" : 0,
+            "inBedEnd" : "2025-08-16 12:37:28 -0500",
+            "rem" : 0.95918112499846342,
+            "date" : "2025-08-16 00:00:00 -0500",
+            "core" : 2.14355077624321,
+            "inBed" : 0,
+            "sleepEnd" : "2025-08-16 12:37:28 -0500",
+            "awake" : 0.050044351120789844
+          },
+          {
+            "core" : 5.6107150420877669,
+            "source" : "Dan’s Apple Watch",
+            "deep" : 0.80983348084820639,
+            "rem" : 0.50093388222985802,
+            "totalSleep" : 6.9214824051658317,
+            "sleepStart" : "2025-08-17 06:29:07 -0500",
+            "inBedEnd" : "2025-08-17 13:32:56 -0500",
+            "date" : "2025-08-17 00:00:00 -0500",
+            "inBed" : 0,
+            "inBedStart" : "2025-08-17 06:29:07 -0500",
+            "asleep" : 0,
+            "sleepEnd" : "2025-08-17 13:32:56 -0500",
+            "awake" : 0.14191240820619797
+          },
+          {
+            "date" : "2025-08-18 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch",
+            "totalSleep" : 5.3714474097225393,
+            "sleepEnd" : "2025-08-18 11:38:13 -0500",
+            "core" : 4.2037342126170794,
+            "inBedStart" : "2025-08-18 06:12:26 -0500",
+            "deep" : 0.85077096627818205,
+            "awake" : 0.058384323053889804,
+            "asleep" : 0,
+            "sleepStart" : "2025-08-18 06:12:26 -0500",
+            "inBed" : 0,
+            "inBedEnd" : "2025-08-18 11:38:13 -0500",
+            "rem" : 0.31694223082727857
+          },
+          {
+            "rem" : 0.77567329638534122,
+            "core" : 4.8208165118098263,
+            "inBedEnd" : "2025-08-19 11:01:10 -0500",
+            "inBedStart" : "2025-08-19 03:41:17 -0500",
+            "sleepStart" : "2025-08-19 03:41:17 -0500",
+            "sleepEnd" : "2025-08-19 11:01:10 -0500",
+            "source" : "Dan’s Apple Watch",
+            "inBed" : 0,
+            "awake" : 0.041702451109886171,
+            "date" : "2025-08-19 00:00:00 -0500",
+            "totalSleep" : 7.289619998501407,
+            "asleep" : 0,
+            "deep" : 1.6931301903062397
+          },
+          {
+            "totalSleep" : 5.922068420449893,
+            "core" : 3.2863311953014795,
+            "source" : "Dan’s Apple Watch",
+            "deep" : 1.7849664725197687,
+            "inBed" : 0,
+            "asleep" : 0,
+            "date" : "2025-08-20 00:00:00 -0500",
+            "sleepEnd" : "2025-08-20 13:36:07 -0500",
+            "inBedEnd" : "2025-08-20 13:36:07 -0500",
+            "awake" : 0,
+            "sleepStart" : "2025-08-20 07:40:48 -0500",
+            "rem" : 0.85077075262864432,
+            "inBedStart" : "2025-08-20 07:40:48 -0500"
+          },
+          {
+            "core" : 2.7606976862748462,
+            "inBed" : 0,
+            "deep" : 1.0091783276531432,
+            "sleepStart" : "2025-08-21 08:36:17 -0500",
+            "sleepEnd" : "2025-08-21 12:59:31 -0500",
+            "inBedEnd" : "2025-08-21 12:59:31 -0500",
+            "awake" : 0.033361661401059894,
+            "rem" : 0.58383805665704935,
+            "source" : "Dan’s Apple Watch",
+            "inBedStart" : "2025-08-21 08:36:17 -0500",
+            "date" : "2025-08-21 00:00:00 -0500",
+            "asleep" : 0,
+            "totalSleep" : 4.3537140705850383
+          },
+          {
+            "inBedStart" : "2025-08-24 01:48:33 -0500",
+            "inBed" : 0,
+            "rem" : 0.30860061956776513,
+            "sleepStart" : "2025-08-24 01:48:33 -0500",
+            "totalSleep" : 8.2069642570283659,
+            "inBedEnd" : "2025-08-24 10:08:58 -0500",
+            "asleep" : 0,
+            "deep" : 1.7181554111176065,
+            "date" : "2025-08-24 00:00:00 -0500",
+            "awake" : 0.13344406498803033,
+            "source" : "Dan’s Apple Watch",
+            "sleepEnd" : "2025-08-24 10:08:58 -0500",
+            "core" : 6.1802082263429954
+          },
+          {
+            "sleepStart" : "2025-08-25 02:19:12 -0500",
+            "date" : "2025-08-25 00:00:00 -0500",
+            "awake" : 0.083405295544200467,
+            "sleepEnd" : "2025-08-25 10:28:07 -0500",
+            "inBedStart" : "2025-08-25 02:19:12 -0500",
+            "deep" : 1.3845871868729591,
+            "core" : 6.0719483893116317,
+            "rem" : 0.60886515945196151,
+            "totalSleep" : 8.0654007356365511,
+            "source" : "Dan’s Apple Watch",
+            "inBed" : 0,
+            "asleep" : 0,
+            "inBedEnd" : "2025-08-25 10:28:07 -0500"
+          },
+          {
+            "awake" : 0.075065012474854781,
+            "source" : "Dan’s Apple Watch",
+            "sleepStart" : "2025-08-26 00:51:42 -0500",
+            "core" : 4.6623894580536414,
+            "sleepEnd" : "2025-08-26 07:28:33 -0500",
+            "inBedStart" : "2025-08-26 00:51:42 -0500",
+            "totalSleep" : 6.5390363458130096,
+            "asleep" : 0,
+            "rem" : 0.62553679303990473,
+            "deep" : 1.2511100947194631,
+            "date" : "2025-08-26 00:00:00 -0500",
+            "inBed" : 0,
+            "inBedEnd" : "2025-08-26 07:28:33 -0500"
+          },
+          {
+            "asleep" : 0,
+            "rem" : 0.56714494612481858,
+            "source" : "Dan’s Apple Watch",
+            "inBed" : 0,
+            "date" : "2025-08-27 00:00:00 -0500",
+            "sleepEnd" : "2025-08-27 08:44:52 -0500",
+            "totalSleep" : 5.9883973750140935,
+            "deep" : 1.2594036934773127,
+            "inBedEnd" : "2025-08-27 08:44:52 -0500",
+            "core" : 4.1618487354119624,
+            "sleepStart" : "2025-08-27 00:56:29 -0500",
+            "awake" : 1.8181928804185656,
+            "inBedStart" : "2025-08-27 00:56:29 -0500"
+          },
+          {
+            "sleepEnd" : "2025-08-28 10:46:26 -0500",
+            "source" : "Dan’s Apple Watch",
+            "deep" : 1.3344569907254642,
+            "asleep" : 0,
+            "awake" : 0.18348696582847174,
+            "inBedEnd" : "2025-08-28 10:46:26 -0500",
+            "rem" : 0.90074620362785129,
+            "sleepStart" : "2025-08-28 05:18:09 -0500",
+            "inBedStart" : "2025-08-28 05:18:09 -0500",
+            "inBed" : 0,
+            "totalSleep" : 5.2877566121353032,
+            "core" : 3.0525534177819882,
+            "date" : "2025-08-28 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-29 00:00:00 -0500",
+            "sleepEnd" : "2025-08-29 12:53:28 -0500",
+            "inBedEnd" : "2025-08-29 12:53:28 -0500",
+            "core" : 3.6198829752537938,
+            "totalSleep" : 6.0637200409505105,
+            "deep" : 1.3428674714101687,
+            "inBed" : 0,
+            "sleepStart" : "2025-08-29 06:49:39 -0500",
+            "rem" : 1.1009695942865478,
+            "inBedStart" : "2025-08-29 06:49:39 -0500",
+            "source" : "Dan’s Apple Watch",
+            "awake" : 0,
+            "asleep" : 0
+          },
+          {
+            "inBedEnd" : "2025-08-30 07:42:30 -0500",
+            "deep" : 1.3356523613797293,
+            "asleep" : 0,
+            "totalSleep" : 3.2969340702560213,
+            "inBed" : 0,
+            "awake" : 0.033390921122497981,
+            "date" : "2025-08-30 00:00:00 -0500",
+            "rem" : 0.1753233469525973,
+            "sleepStart" : "2025-08-30 04:22:41 -0500",
+            "sleepEnd" : "2025-08-30 07:42:30 -0500",
+            "inBedStart" : "2025-08-30 04:22:41 -0500",
+            "core" : 1.7859583619236947,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "inBedStart" : "2025-08-31 06:07:11 -0500",
+            "asleep" : 0,
+            "totalSleep" : 7.3981068495578235,
+            "date" : "2025-08-31 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch",
+            "rem" : 1.5680472284886571,
+            "sleepEnd" : "2025-08-31 13:32:04 -0500",
+            "sleepStart" : "2025-08-31 06:07:11 -0500",
+            "core" : 3.2278033669127359,
+            "awake" : 0.016681367622481451,
+            "inBedEnd" : "2025-08-31 13:32:04 -0500",
+            "deep" : 2.6022562541564307,
+            "inBed" : 0
+          },
+          {
+            "awake" : 0.016681779987282222,
+            "sleepStart" : "2025-09-01 07:28:54 -0500",
+            "sleepEnd" : "2025-09-01 11:38:08 -0500",
+            "core" : 1.5596845090058116,
+            "deep" : 1.734853164454301,
+            "source" : "Dan’s Apple Watch",
+            "inBedEnd" : "2025-09-01 11:38:08 -0500",
+            "inBed" : 0,
+            "totalSleep" : 4.1369488477375773,
+            "asleep" : 0,
+            "rem" : 0.84241117427746448,
+            "date" : "2025-09-01 00:00:00 -0500",
+            "inBedStart" : "2025-09-01 07:28:54 -0500"
+          },
+          {
+            "deep" : 2.7441071857015293,
+            "asleep" : 0,
+            "inBedEnd" : "2025-09-02 11:16:13 -0500",
+            "sleepStart" : "2025-09-02 05:22:24 -0500",
+            "awake" : 0.025022261937459309,
+            "rem" : 1.5180103289087614,
+            "inBedStart" : "2025-09-02 05:22:24 -0500",
+            "inBed" : 0,
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-09-02 00:00:00 -0500",
+            "sleepEnd" : "2025-09-02 11:16:13 -0500",
+            "core" : 1.6097236784630349,
+            "totalSleep" : 5.8718411930733261
+          },
+          {
+            "rem" : 2.1852198948793946,
+            "asleep" : 0,
+            "core" : 3.6364503987299073,
+            "source" : "Dan’s Apple Watch",
+            "deep" : 1.6014139399925869,
+            "inBedStart" : "2025-09-03 05:59:46 -0500",
+            "totalSleep" : 7.4230842336018883,
+            "sleepStart" : "2025-09-03 05:59:46 -0500",
+            "inBed" : 0,
+            "sleepEnd" : "2025-09-03 13:38:10 -0500",
+            "inBedEnd" : "2025-09-03 13:38:10 -0500",
+            "date" : "2025-09-03 00:00:00 -0500",
+            "awake" : 0.21684908363554212
+          },
+          {
+            "date" : "2025-09-04 00:00:00 -0500",
+            "inBedStart" : "2025-09-04 07:09:04 -0500",
+            "deep" : 1.0092604965302678,
+            "source" : "Dan’s Apple Watch",
+            "totalSleep" : 3.4948204714390965,
+            "sleepStart" : "2025-09-04 07:09:04 -0500",
+            "asleep" : 0,
+            "inBedEnd" : "2025-09-04 11:28:48 -0500",
+            "core" : 2.1519205805990431,
+            "rem" : 0.33363939430978562,
+            "awake" : 0.83406628068950439,
+            "sleepEnd" : "2025-09-04 11:28:48 -0500",
+            "inBed" : 0
+          },
+          {
+            "deep" : 0,
+            "sleepEnd" : "2025-09-05 07:03:00 -0500",
+            "asleep" : 1.3500000000000001,
+            "inBed" : 1.8,
+            "totalSleep" : 1.3500000000000001,
+            "awake" : 0,
+            "sleepStart" : "2025-09-04 23:15:00 -0500",
+            "inBedStart" : "2025-09-04 23:15:00 -0500",
+            "source" : "NapBot",
+            "core" : 0,
+            "rem" : 0,
+            "inBedEnd" : "2025-09-05 07:03:00 -0500",
+            "date" : "2025-09-05 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-06 00:00:00 -0500",
+            "sleepStart" : "2025-09-06 00:39:31 -0500",
+            "inBedEnd" : "2025-09-06 11:01:33 -0500",
+            "deep" : 0.48374218983782663,
+            "inBed" : 0,
+            "source" : "Dan’s Apple Watch",
+            "inBedStart" : "2025-09-06 00:39:31 -0500",
+            "totalSleep" : 9.9083711843027018,
+            "core" : 5.7715491027964489,
+            "asleep" : 0,
+            "awake" : 0.45872568892108068,
+            "sleepEnd" : "2025-09-06 11:01:33 -0500",
+            "rem" : 3.6530798916684257
+          },
+          {
+            "deep" : 1.6014089055193796,
+            "sleepStart" : "2025-09-07 05:09:01 -0500",
+            "sleepEnd" : "2025-09-07 12:00:53 -0500",
+            "inBedStart" : "2025-09-07 05:09:01 -0500",
+            "core" : 2.8274460090200111,
+            "inBed" : 0,
+            "source" : "Dan’s Apple Watch",
+            "inBedEnd" : "2025-09-07 12:00:53 -0500",
+            "totalSleep" : 6.6974834480219423,
+            "awake" : 0.16680841111474565,
+            "asleep" : 0,
+            "rem" : 2.2686285334825511,
+            "date" : "2025-09-07 00:00:00 -0500"
+          }
+        ],
+        "name" : "sleep_analysis"
+      },
+      {
+        "name" : "time_in_daylight",
+        "data" : [
+          {
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-09 00:00:00 -0500",
+            "qty" : 7
+          },
+          {
+            "qty" : 2,
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-15 00:00:00 -0500"
+          },
+          {
+            "qty" : 12,
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-23 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-26 00:00:00 -0500",
+            "qty" : 5,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "qty" : 13,
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-27 00:00:00 -0500"
+          },
+          {
+            "source" : "Dan’s Apple Watch",
+            "qty" : 58,
+            "date" : "2025-08-28 00:00:00 -0500"
+          },
+          {
+            "source" : "Dan’s Apple Watch",
+            "qty" : 4,
+            "date" : "2025-08-30 00:00:00 -0500"
+          },
+          {
+            "qty" : 2,
+            "date" : "2025-08-31 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-09-04 00:00:00 -0500",
+            "qty" : 4
+          },
+          {
+            "source" : "Dan’s Apple Watch",
+            "qty" : 3,
+            "date" : "2025-09-06 00:00:00 -0500"
+          }
+        ],
+        "units" : "min"
+      },
+      {
+        "name" : "vo2_max",
+        "units" : "ml\/(kg·min)",
+        "data" : [
+          {
+            "date" : "2025-08-12 00:00:00 -0500",
+            "qty" : 25.079999999999998
+          },
+          {
+            "date" : "2025-08-23 00:00:00 -0500",
+            "qty" : 24.899999999999999
+          },
+          {
+            "qty" : 25.460000000000001,
+            "date" : "2025-09-02 00:00:00 -0500"
+          }
+        ]
+      },
+      {
+        "data" : [
+          {
+            "date" : "2025-08-27 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "qty" : 1
+          }
+        ],
+        "name" : "flights_climbed",
+        "units" : "count"
+      },
+      {
+        "data" : [
+          {
+            "qty" : 15.855263157894736,
+            "date" : "2025-08-08 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-09 00:00:00 -0500",
+            "qty" : 15.15625
+          },
+          {
+            "qty" : 15.513157894736842,
+            "date" : "2025-08-10 00:00:00 -0500"
+          },
+          {
+            "qty" : 15.4,
+            "date" : "2025-08-11 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-12 00:00:00 -0500",
+            "qty" : 15.972222222222221
+          },
+          {
+            "date" : "2025-08-13 00:00:00 -0500",
+            "qty" : 17.611111111111111
+          },
+          {
+            "qty" : 16.716666666666665,
+            "date" : "2025-08-14 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-15 00:00:00 -0500",
+            "qty" : 16.137499999999999
+          },
+          {
+            "date" : "2025-08-16 00:00:00 -0500",
+            "qty" : 16.535714285714285
+          },
+          {
+            "date" : "2025-08-17 00:00:00 -0500",
+            "qty" : 16.655555555555555
+          },
+          {
+            "qty" : 17.435897435897434,
+            "date" : "2025-08-18 00:00:00 -0500"
+          },
+          {
+            "qty" : 16.622448979591837,
+            "date" : "2025-08-19 00:00:00 -0500"
+          },
+          {
+            "qty" : 16.644736842105264,
+            "date" : "2025-08-20 00:00:00 -0500"
+          },
+          {
+            "qty" : 16.428571428571427,
+            "date" : "2025-08-21 00:00:00 -0500"
+          },
+          {
+            "qty" : 15.358490566037736,
+            "date" : "2025-08-24 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-25 00:00:00 -0500",
+            "qty" : 15.245098039215685
+          },
+          {
+            "date" : "2025-08-26 00:00:00 -0500",
+            "qty" : 15.293478260869565
+          },
+          {
+            "date" : "2025-08-27 00:00:00 -0500",
+            "qty" : 13.914893617021276
+          },
+          {
+            "date" : "2025-08-28 00:00:00 -0500",
+            "qty" : 15.064102564102564
+          },
+          {
+            "qty" : 16.524999999999999,
+            "date" : "2025-08-29 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-30 00:00:00 -0500",
+            "qty" : 18.547619047619047
+          },
+          {
+            "qty" : 16,
+            "date" : "2025-08-31 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-01 00:00:00 -0500",
+            "qty" : 16.634615384615383
+          },
+          {
+            "qty" : 16.153846153846153,
+            "date" : "2025-09-02 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-03 00:00:00 -0500",
+            "qty" : 16.957446808510639
+          },
+          {
+            "date" : "2025-09-04 00:00:00 -0500",
+            "qty" : 16.592592592592592
+          },
+          {
+            "date" : "2025-09-06 00:00:00 -0500",
+            "qty" : 15.507352941176471
+          }
+        ],
+        "units" : "count\/min",
+        "name" : "respiratory_rate"
+      },
+      {
+        "units" : "count",
+        "name" : "step_count",
+        "data" : [
+          {
+            "date" : "2025-08-08 00:00:00 -0500",
+            "qty" : 1384.4215221851093,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-09 00:00:00 -0500",
+            "qty" : 1060.7089232752483
+          },
+          {
+            "date" : "2025-08-10 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "qty" : 190
+          },
+          {
+            "qty" : 752.51756157147611,
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-11 00:00:00 -0500"
+          },
+          {
+            "qty" : 2854,
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-12 00:00:00 -0500"
+          },
+          {
+            "qty" : 940,
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-13 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-14 00:00:00 -0500",
+            "qty" : 833,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "date" : "2025-08-15 00:00:00 -0500",
+            "qty" : 1211,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-16 00:00:00 -0500",
+            "qty" : 633.43280327289926
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "qty" : 233,
+            "date" : "2025-08-17 00:00:00 -0500"
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-18 00:00:00 -0500",
+            "qty" : 960
+          },
+          {
+            "qty" : 1148.9177767921742,
+            "date" : "2025-08-19 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "date" : "2025-08-20 00:00:00 -0500",
+            "qty" : 1657,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "date" : "2025-08-21 00:00:00 -0500",
+            "qty" : 1249,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "date" : "2025-08-22 00:00:00 -0500",
+            "qty" : 687,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "date" : "2025-08-23 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "qty" : 4635
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "qty" : 1529,
+            "date" : "2025-08-24 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-25 00:00:00 -0500",
+            "qty" : 2274,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "date" : "2025-08-26 00:00:00 -0500",
+            "qty" : 2209,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "date" : "2025-08-27 00:00:00 -0500",
+            "qty" : 3013,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "date" : "2025-08-28 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "qty" : 1227
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-29 00:00:00 -0500",
+            "qty" : 1442
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-30 00:00:00 -0500",
+            "qty" : 2791.2589619441437
+          },
+          {
+            "qty" : 1884,
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-08-31 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-01 00:00:00 -0500",
+            "qty" : 466,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-09-02 00:00:00 -0500",
+            "qty" : 6023
+          },
+          {
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-09-03 00:00:00 -0500",
+            "qty" : 1537.8399327790103
+          },
+          {
+            "date" : "2025-09-04 00:00:00 -0500",
+            "qty" : 1574.1600672209897,
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "qty" : 2875.224902575796,
+            "source" : "Dan’s Apple Watch|DHIphone",
+            "date" : "2025-09-05 00:00:00 -0500"
+          },
+          {
+            "qty" : 1672.775097424204,
+            "date" : "2025-09-06 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone"
+          },
+          {
+            "qty" : 174,
+            "date" : "2025-09-07 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|DHIphone"
+          }
+        ]
+      },
+      {
+        "units" : "kcal",
+        "data" : [
+          {
+            "qty" : 207.65758359488851,
+            "source" : "Dan’s Apple Watch",
+            "date" : "2025-08-08 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-09 00:00:00 -0500",
+            "qty" : 203.67370528711663,
+            "source" : "Dan’s Apple Watch"
+          },
+          {
+            "date" : "2025-08-10 00:00:00 -0500",
+            "qty" : 97.370504372728732,
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "date" : "2025-08-11 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "qty" : 209.73297861304016
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "qty" : 228.99722813222618,
+            "date" : "2025-08-12 00:00:00 -0500"
+          },
+          {
+            "qty" : 190.74058927587629,
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-13 00:00:00 -0500"
+          },
+          {
+            "qty" : 205.44641072412367,
+            "date" : "2025-08-14 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "qty" : 219.36214837850062,
+            "date" : "2025-08-15 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-16 00:00:00 -0500",
+            "qty" : 168.50799979581461
+          },
+          {
+            "qty" : 167.29830650788543,
+            "date" : "2025-08-17 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "qty" : 167.58975670003045,
+            "date" : "2025-08-18 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-19 00:00:00 -0500",
+            "qty" : 221.87750011812429,
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "date" : "2025-08-20 00:00:00 -0500",
+            "qty" : 239.82128849964482,
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-21 00:00:00 -0500",
+            "qty" : 253.38542817525982
+          },
+          {
+            "qty" : 9.7195718247403065,
+            "date" : "2025-08-22 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "qty" : 273.50628196880115,
+            "date" : "2025-08-23 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "qty" : 219.95271803119897,
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-24 00:00:00 -0500"
+          },
+          {
+            "qty" : 233.27145543877037,
+            "date" : "2025-08-25 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-26 00:00:00 -0500",
+            "qty" : 222.61658302772577
+          },
+          {
+            "date" : "2025-08-27 00:00:00 -0500",
+            "qty" : 234.921961533504,
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "qty" : 223.53212584234288,
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-28 00:00:00 -0500"
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-29 00:00:00 -0500",
+            "qty" : 220.60502434546999
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-30 00:00:00 -0500",
+            "qty" : 255.21763536699115
+          },
+          {
+            "qty" : 107.57021444519592,
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-08-31 00:00:00 -0500"
+          },
+          {
+            "qty" : 191.76535478610029,
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-09-01 00:00:00 -0500"
+          },
+          {
+            "qty" : 320.37410053001548,
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-09-02 00:00:00 -0500"
+          },
+          {
+            "qty" : 221.18618746620658,
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-09-03 00:00:00 -0500"
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-09-04 00:00:00 -0500",
+            "qty" : 280.19657203020267
+          },
+          {
+            "date" : "2025-09-05 00:00:00 -0500",
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "qty" : 294.10120731132616
+          },
+          {
+            "date" : "2025-09-06 00:00:00 -0500",
+            "qty" : 223.97747693544866,
+            "source" : "Dan’s Apple Watch|Nathal Ipad"
+          },
+          {
+            "source" : "Dan’s Apple Watch|Nathal Ipad",
+            "date" : "2025-09-07 00:00:00 -0500",
+            "qty" : 59.303100940698066
+          }
+        ],
+        "name" : "active_energy"
+      },
+      {
+        "name" : "headphone_audio_exposure",
+        "units" : "dBASPL",
+        "data" : [
+          {
+            "date" : "2025-08-08 00:00:00 -0500",
+            "qty" : 68.789415133395309
+          },
+          {
+            "date" : "2025-08-09 00:00:00 -0500",
+            "qty" : 58.20778312642247
+          },
+          {
+            "qty" : 74.170229045024456,
+            "date" : "2025-08-10 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-11 00:00:00 -0500",
+            "qty" : 74.076363899910206
+          },
+          {
+            "date" : "2025-08-12 00:00:00 -0500",
+            "qty" : 70.907505919187201
+          },
+          {
+            "date" : "2025-08-13 00:00:00 -0500",
+            "qty" : 77.166353277912023
+          },
+          {
+            "date" : "2025-08-14 00:00:00 -0500",
+            "qty" : 81.370794086154191
+          },
+          {
+            "qty" : 69.520689469112412,
+            "date" : "2025-08-15 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-16 00:00:00 -0500",
+            "qty" : 84.314561593482864
+          },
+          {
+            "qty" : 72.355742740644217,
+            "date" : "2025-08-17 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-18 00:00:00 -0500",
+            "qty" : 71.208512320523525
+          },
+          {
+            "date" : "2025-08-19 00:00:00 -0500",
+            "qty" : 65.772633098733976
+          },
+          {
+            "qty" : 77.557001864050434,
+            "date" : "2025-08-20 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-21 00:00:00 -0500",
+            "qty" : 74.779104073065028
+          },
+          {
+            "qty" : 61.430158771366678,
+            "date" : "2025-08-22 00:00:00 -0500"
+          },
+          {
+            "qty" : 67.17682289749095,
+            "date" : "2025-08-23 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-24 00:00:00 -0500",
+            "qty" : 48.69717549992
+          },
+          {
+            "qty" : 62.547817815639689,
+            "date" : "2025-08-25 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-26 00:00:00 -0500",
+            "qty" : 66.747402562132052
+          },
+          {
+            "date" : "2025-08-27 00:00:00 -0500",
+            "qty" : 64.091412121461644
+          },
+          {
+            "date" : "2025-08-28 00:00:00 -0500",
+            "qty" : 74.15815151373323
+          },
+          {
+            "date" : "2025-08-29 00:00:00 -0500",
+            "qty" : 79.276801300628748
+          },
+          {
+            "date" : "2025-08-30 00:00:00 -0500",
+            "qty" : 65.132150274925877
+          },
+          {
+            "qty" : 77.386749224943728,
+            "date" : "2025-08-31 00:00:00 -0500"
+          },
+          {
+            "qty" : 77.863714896745478,
+            "date" : "2025-09-01 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-02 00:00:00 -0500",
+            "qty" : 78.250294933978395
+          },
+          {
+            "date" : "2025-09-03 00:00:00 -0500",
+            "qty" : 83.201053294150398
+          },
+          {
+            "qty" : 69.647718934538048,
+            "date" : "2025-09-04 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-05 00:00:00 -0500",
+            "qty" : 67.85752661739167
+          },
+          {
+            "qty" : 62.86713613496137,
+            "date" : "2025-09-06 00:00:00 -0500"
+          },
+          {
+            "qty" : 73.394523325631909,
+            "date" : "2025-09-07 00:00:00 -0500"
+          }
+        ]
+      },
+      {
+        "data" : [
+          {
+            "date" : "2025-08-07 00:00:00 -0500",
+            "qty" : 54.426271178749126
+          },
+          {
+            "date" : "2025-08-08 00:00:00 -0500",
+            "qty" : 54.124355579663508
+          },
+          {
+            "date" : "2025-08-09 00:00:00 -0500",
+            "qty" : 56.678159792615133
+          },
+          {
+            "qty" : 51.763951926294347,
+            "date" : "2025-08-10 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-11 00:00:00 -0500",
+            "qty" : 51.234139671877529
+          },
+          {
+            "date" : "2025-08-12 00:00:00 -0500",
+            "qty" : 51.423953444815893
+          },
+          {
+            "qty" : 52.172790225226201,
+            "date" : "2025-08-13 00:00:00 -0500"
+          },
+          {
+            "qty" : 56.174232642570558,
+            "date" : "2025-08-14 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-15 00:00:00 -0500",
+            "qty" : 55.492792729236392
+          },
+          {
+            "qty" : 50.20711324558809,
+            "date" : "2025-08-16 00:00:00 -0500"
+          },
+          {
+            "qty" : 50.214416556255394,
+            "date" : "2025-08-17 00:00:00 -0500"
+          },
+          {
+            "qty" : 51.526932240629776,
+            "date" : "2025-08-18 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-19 00:00:00 -0500",
+            "qty" : 55.595627847943533
+          },
+          {
+            "date" : "2025-08-20 00:00:00 -0500",
+            "qty" : 52.620476915609778
+          },
+          {
+            "qty" : 52.893803631321809,
+            "date" : "2025-08-21 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-22 00:00:00 -0500",
+            "qty" : 70.084926267420585
+          },
+          {
+            "date" : "2025-08-23 00:00:00 -0500",
+            "qty" : 63.118709141575259
+          },
+          {
+            "qty" : 58.365379537058821,
+            "date" : "2025-08-24 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-25 00:00:00 -0500",
+            "qty" : 58.56772703477565
+          },
+          {
+            "date" : "2025-08-26 00:00:00 -0500",
+            "qty" : 54.994501376098079
+          },
+          {
+            "qty" : 61.944228228618684,
+            "date" : "2025-08-27 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-28 00:00:00 -0500",
+            "qty" : 60.397542191944353
+          },
+          {
+            "date" : "2025-08-29 00:00:00 -0500",
+            "qty" : 57.969921254442546
+          },
+          {
+            "date" : "2025-08-30 00:00:00 -0500",
+            "qty" : 64.94055741233305
+          },
+          {
+            "date" : "2025-08-31 00:00:00 -0500",
+            "qty" : 51.116819592622996
+          },
+          {
+            "date" : "2025-09-01 00:00:00 -0500",
+            "qty" : 52.452387879709597
+          },
+          {
+            "qty" : 57.67780477638189,
+            "date" : "2025-09-02 00:00:00 -0500"
+          },
+          {
+            "qty" : 51.38432532076407,
+            "date" : "2025-09-03 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-04 00:00:00 -0500",
+            "qty" : 57.878135468094648
+          },
+          {
+            "qty" : 59.12035681906309,
+            "date" : "2025-09-05 00:00:00 -0500"
+          },
+          {
+            "qty" : 54.950656898411729,
+            "date" : "2025-09-06 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-07 00:00:00 -0500",
+            "qty" : 48.903655661865585
+          }
+        ],
+        "name" : "environmental_audio_exposure",
+        "units" : "dBASPL"
+      },
+      {
+        "units" : "kcal\/hr·kg",
+        "name" : "physical_effort",
+        "data" : [
+          {
+            "qty" : 1.3999999761581421,
+            "date" : "2025-08-07 00:00:00 -0500"
+          },
+          {
+            "qty" : 2.477108419659626,
+            "date" : "2025-08-08 00:00:00 -0500"
+          },
+          {
+            "qty" : 2.3118643982935758,
+            "date" : "2025-08-09 00:00:00 -0500"
+          },
+          {
+            "qty" : 1.8173913281896841,
+            "date" : "2025-08-10 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-11 00:00:00 -0500",
+            "qty" : 2.2130434798157732
+          },
+          {
+            "date" : "2025-08-12 00:00:00 -0500",
+            "qty" : 2.3084745851613708
+          },
+          {
+            "qty" : 2.2166666653421192,
+            "date" : "2025-08-13 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-14 00:00:00 -0500",
+            "qty" : 2.3983606627730074
+          },
+          {
+            "qty" : 2.2078124899417162,
+            "date" : "2025-08-15 00:00:00 -0500"
+          },
+          {
+            "qty" : 2.069696964639606,
+            "date" : "2025-08-16 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-17 00:00:00 -0500",
+            "qty" : 1.809375025331974
+          },
+          {
+            "qty" : 2.3480769304128795,
+            "date" : "2025-08-18 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-19 00:00:00 -0500",
+            "qty" : 2.5637681242348491
+          },
+          {
+            "date" : "2025-08-20 00:00:00 -0500",
+            "qty" : 2.6864864912119
+          },
+          {
+            "qty" : 2.347619052917238,
+            "date" : "2025-08-21 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-22 00:00:00 -0500",
+            "qty" : 3.1333334048589072
+          },
+          {
+            "date" : "2025-08-23 00:00:00 -0500",
+            "qty" : 2.7116564431804822
+          },
+          {
+            "qty" : 2.4195122064613717,
+            "date" : "2025-08-24 00:00:00 -0500"
+          },
+          {
+            "qty" : 2.6989795991352628,
+            "date" : "2025-08-25 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-26 00:00:00 -0500",
+            "qty" : 2.6306930804016568
+          },
+          {
+            "date" : "2025-08-27 00:00:00 -0500",
+            "qty" : 2.684920644949353
+          },
+          {
+            "qty" : 2.6310810913910738,
+            "date" : "2025-08-28 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-08-29 00:00:00 -0500",
+            "qty" : 2.6852272992784325
+          },
+          {
+            "date" : "2025-08-30 00:00:00 -0500",
+            "qty" : 2.8123188580291858
+          },
+          {
+            "date" : "2025-08-31 00:00:00 -0500",
+            "qty" : 1.8521739348121311
+          },
+          {
+            "date" : "2025-09-01 00:00:00 -0500",
+            "qty" : 1.5800000000000001
+          },
+          {
+            "qty" : 2.6402877654960686,
+            "date" : "2025-09-02 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-03 00:00:00 -0500",
+            "qty" : 2.5550000031789142
+          },
+          {
+            "date" : "2025-09-04 00:00:00 -0500",
+            "qty" : 2.4776315798884943
+          },
+          {
+            "qty" : 2.8970588208997952,
+            "date" : "2025-09-05 00:00:00 -0500"
+          },
+          {
+            "date" : "2025-09-06 00:00:00 -0500",
+            "qty" : 2.7741666853427889
+          },
+          {
+            "date" : "2025-09-07 00:00:00 -0500",
+            "qty" : 1.1181818246841431
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,3 +1,41 @@
+## [2025-09-07] CHANGE: Balance Meter Correlation – Supplemental Overlays, Parser Expansion, and Method Rigor
+
+**Summary**
+Enhanced the Balance Meter comparative workflow with additional health signal overlays, stronger normalization rules, and clearer method notes—without changing the core three‑axis composite or significance testing.
+
+**What’s New**
+- Supplemental overlay lines (opt‑in, informational):
+   - Magnitude ↔ Resting HR (intensity proxy)
+   - Magnitude ↔ Active energy (load proxy)
+   - Volatility ↔ Wrist temperature Δ (night‑to‑night swings)
+- Per‑window min–max normalization for supplemental overlays (guards against flat series; marks channel N/A when min==max).
+- Missing data is treated as null and excluded from that channel’s similarity (no implicit zeros).
+- Shuffle test: Suppress p‑value on tiny windows (≤3 days) with a “sample too small” note.
+- Labeling and legend clean‑ups: supplemental lines are clearly marked and table headers clarify units (e.g., RestHR (bpm), TempΔ).
+
+**Health Parser Expansion (iOS Health Auto Export)**
+- Added detection for: `resting_hr`, `heart_rate`, `walking_hr_avg`, `sleep_temp` (wrist/skin), `walking_distance`, `walk_asym_pct`, `walk_double_support_pct`, `exercise_minutes`, `stand_minutes`, `stand_hours`, `active_energy`, `mindful_minutes`, and `mood_label_count` (from State of Mind daily aggregation).
+- Timezone bucketing: All health dates localized to America/Chicago, matching symbolic daily bars to avoid off‑by‑one rollovers.
+
+**Core Composite & Rigor**
+- The core three‑axis overlay (Valence, Magnitude, Volatility) and permutation‑based shuffle test (p‑value) are unchanged.
+- Added a plain‑English Method note to the comparative markdown clarifying how supplemental lines are used and normalized within the window.
+
+**Files Changed**
+- `index.html`: Extended health parser with additional metrics; kept Chicago date bucketing; mood_label_count aggregation.
+- `src/reporters/comparative-report.js`: Supplemental overlays with per‑window min–max normalization; small‑sample guard for shuffle; labeling and notes.
+- `README.md`: Comparative section updated with usage, normalization rules, and small‑sample behavior.
+
+**Validation**
+- Manual checks on Aug 24 → Sep 7 window:
+   - RHR ↔ Magnitude overlay prints; similarity in expected range per prior prototype.
+   - TempΔ ↔ Volatility appears only when consecutive nights exist; missing nights excluded.
+   - Active energy ↔ Magnitude moves in same direction as RHR but not identically (lag tolerated).
+   - Core composite and shuffle test unaffected by supplemental lines.
+
+**Notes**
+- Balance Meter JSON (with `seismograph_by_date`) remains the canonical “Symbolic Logs” upload for correlation. Order of uploads does not matter.
+
 ## [2025-09-07] ACCESSIBILITY & JSON EXPORT ENHANCEMENT: Math Brain ↔ Poetic Brain Architecture Refinement
 
 **Description:**
