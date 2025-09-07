@@ -25,7 +25,8 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Woven Web App - Astrological Geometry</title>
-        <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
+    <script src="https://cdn.auth0.com/js/auth0-spa-js/2.4/auth0-spa-js.production.js" onerror="document.body.insertAdjacentHTML('afterbegin', '<div style=\'background:#ef4444;color:white;padding:1em;text-align:center;z-index:9999;position:relative;\'>Auth0 library failed to load. Please check your network or try disabling browser extensions that block CDNs.</div>')"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
         <!-- Tailwind CSS: upgrade to v3 Play CDN so modern utilities work -->
         <script>
             // Tailwind Play CDN config (before the CDN script) to add custom shades, etc.
@@ -43,7 +44,7 @@
                 }
             };
         </script>
-        <script src="https://cdn.tailwindcss.com"></script>
+        
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
             /* Fallback: ensure bg-gray-750 exists even if Tailwind config fails to load */
