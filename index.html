@@ -7083,6 +7083,10 @@ function renderTransitDay(dateStr, items){
 
                 // Store result data for downloads
                 latestResultData = result;
+                // Store the Mirror report for tab switching
+                if (report && report.length > 0) {
+                    latestResultData.mirror_report = report;
+                }
                 // If we're in the Balance tab and server omitted balance_meter, attach a synthesized payload for export parity
                 try {
                     const activeTabMode2 = (typeof getCurrentActiveTabMode === 'function') ? getCurrentActiveTabMode() : 'mirror';
@@ -7157,19 +7161,27 @@ function renderTransitDay(dateStr, items){
                 const balanceMeterReportExists = result.reports?.balance_meter_report && result.reports.balance_meter_report.length > 0;
 
                 if (mirrorReportExists || balanceMeterReportExists) {
-                    // If mirror report exists, populate the main text content area for copy/paste.
-                    // Otherwise, use the balance meter report for the copy/paste buffer.
-                    if (mirrorReportExists) {
+                    // Determine which report to show in the global reportContent based on active tab
+                    const currentMode = (typeof getCurrentActiveTabMode === 'function') ? getCurrentActiveTabMode() : 'mirror';
+                    const isCurrentlyBalanceMode = currentMode === 'balance_meter';
+                    
+                    // Populate the global reportContent based on currently active tab
+                    if (isCurrentlyBalanceMode && balanceMeterReportExists) {
+                        reportContent.textContent = result.reports.balance_meter_report;
+                    } else if (mirrorReportExists) {
                         reportContent.textContent = report;
-                        // Also populate the visible Mirror tab report area
+                    } else if (balanceMeterReportExists) {
+                        reportContent.textContent = result.reports.balance_meter_report;
+                    }
+                    
+                    // Always populate the Mirror tab's visible report area if Mirror report exists
+                    if (mirrorReportExists) {
                         const mirrorReportContent = document.getElementById('mirrorReportContent');
                         const mirrorReportDisplay = document.getElementById('mirrorReportDisplay');
                         if (mirrorReportContent && mirrorReportDisplay) {
                             mirrorReportContent.textContent = report;
                             mirrorReportDisplay.classList.remove('hidden');
                         }
-                    } else {
-                        reportContent.textContent = result.reports.balance_meter_report;
                     }
 
                     reportOutput.classList.remove('hidden');
@@ -7259,6 +7271,22 @@ function renderTransitDay(dateStr, items){
                     activeTab.setAttribute('aria-selected', 'true');
                     activeTab.className = 'px-6 py-2 text-sm font-medium rounded-md bg-teal-600 text-white transition-colors duration-200';
                     activeContent.classList.remove('hidden');
+                    
+                    // Update global reportContent based on active tab for downloads/copy
+                    if (latestResultData) {
+                        const reportContent = document.getElementById('reportContent');
+                        if (reportContent && activeTabId === 'balanceMeterModeTab') {
+                            // Switch to Balance Meter content if available
+                            if (latestResultData.reports?.balance_meter_report) {
+                                reportContent.textContent = latestResultData.reports.balance_meter_report;
+                            }
+                        } else if (reportContent && activeTabId === 'mirrorModeTab') {
+                            // Switch to Mirror content if available
+                            if (latestResultData.mirror_report) {
+                                reportContent.textContent = latestResultData.mirror_report;
+                            }
+                        }
+                    }
                     
                     // Update mode description
                     const descriptions = {
