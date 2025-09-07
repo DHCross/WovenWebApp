@@ -425,6 +425,24 @@
             @media (prefers-contrast: more) { .flash-wire { outline-width:4px; } }
             @keyframes flashWire { 0%{filter:brightness(1.2);} 100%{filter:brightness(1);} }
             @media (min-width:1024px){ .report-surface { font-size:12px; } }
+            
+            /* Auth0 and Poetic Brain Styles */
+            .auth-button {
+                background-color: #4c51bf;
+                color: white;
+                padding: 0.5rem 1rem;
+                border-radius: 0.375rem;
+                font-weight: 600;
+                cursor: pointer;
+                border: none;
+                transition: background-color 0.2s;
+            }
+            .auth-button:hover {
+                background-color: #434190;
+            }
+            .poetic-brain-section {
+                display: none;
+            }
         </style>
         
         <!-- PDF Generation Library - Load early with fallback -->
@@ -605,7 +623,14 @@
 <body class="bg-gray-900 text-gray-200">
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-white">Woven Map Math Brain</h1>
+            <div class="flex justify-between items-center mb-4">
+                <div></div> <!-- Empty div for spacing -->
+                <h1 class="text-4xl font-bold text-white">Woven Map Math Brain</h1>
+                <div class="flex gap-2">
+                    <button id="login-button" class="auth-button bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-semibold">Log In</button>
+                    <button id="logout-button" class="auth-button bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-semibold hidden">Log Out</button>
+                </div>
+            </div>
             <p class="text-gray-400 mt-2 flex items-center justify-center gap-2">Pure Astrological Geometry Computation
                 <button id="math-brain-info-btn" class="ml-2 text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none" type="button">
                     What is Math Brain? (Glossary)
@@ -1343,6 +1368,19 @@
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                     <span id="loadingText">Computing Astrological Geometry...</span>
+                </div>
+            </div>
+
+            <!-- Poetic Brain Section (requires login) -->
+            <div id="poetic-brain-section" class="poetic-brain-section max-w-4xl mx-auto mb-8 bg-gray-800 p-6 rounded-lg shadow-lg border-t-4 border-indigo-500">
+                <h2 class="text-2xl font-semibold text-white mb-4">🐦‍⬛ Poetic Brain - Raven Calder</h2>
+                <p class="text-gray-400 mb-4">Welcome. You have access to the Poetic Brain. Ask a question to receive a reflection from Raven Calder.</p>
+                <div class="flex gap-4">
+                    <input type="text" id="poetic-prompt" placeholder="What weighs on your soul?" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600">
+                    <button id="ask-poetic-brain" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">Ask</button>
+                </div>
+                <div id="poetic-response-container" class="mt-4 p-4 bg-gray-900 rounded-lg hidden">
+                    <pre id="poetic-response" class="whitespace-pre-wrap font-mono text-sm text-gray-300"></pre>
                 </div>
             </div>
 
@@ -10377,6 +10415,9 @@ function renderTransitDay(dateStr, items){
             // Mobile-specific initialization
             initializeMobileSupport();
             
+            // Auth0 & Poetic Brain Integration
+            initializeAuth0();
+            
             // Validate safe lexicon implementation
             validateSafeLexicon();
         });
@@ -10445,6 +10486,138 @@ function renderTransitDay(dateStr, items){
                 });
                 
                 console.log('Mobile support initialized');
+            }
+        }
+
+        // Auth0 Integration
+        let auth0 = null;
+
+        async function initializeAuth0() {
+            try {
+                // Configure Auth0 client
+                auth0 = await createAuth0Client({
+                    domain: 'dev-z8gw1uk6zgsrzubk.us.auth0.com',
+                    clientId: '0nV0L41xZijfc8HTKtoROPgyqgMttJYT',
+                    authorizationParams: {
+                        audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/'
+                    }
+                });
+
+                // Get DOM elements
+                const poeticBrainSection = document.getElementById('poetic-brain-section');
+                const askButton = document.getElementById('ask-poetic-brain');
+                const promptInput = document.getElementById('poetic-prompt');
+                const responseContainer = document.getElementById('poetic-response-container');
+                const responseEl = document.getElementById('poetic-response');
+                const loginButton = document.getElementById('login-button');
+                const logoutButton = document.getElementById('logout-button');
+
+                // Check if we're returning from login
+                const isAuthenticated = await auth0.isAuthenticated();
+                if (isAuthenticated) {
+                    await updateAuthUI();
+                } else {
+                    const query = window.location.search;
+                    if (query.includes("code=") && query.includes("state=")) {
+                        try {
+                            await auth0.handleRedirectCallback();
+                            await updateAuthUI();
+                            window.history.replaceState({}, document.title, "/");
+                        } catch (error) {
+                            console.error('Auth callback error:', error);
+                        }
+                    }
+                }
+
+                // Set up event listeners
+                loginButton.addEventListener('click', async () => {
+                    await auth0.loginWithRedirect({
+                        authorizationParams: {
+                            redirect_uri: window.location.origin
+                        }
+                    });
+                });
+
+                logoutButton.addEventListener('click', () => {
+                    auth0.logout({
+                        logoutParams: {
+                            returnTo: window.location.origin
+                        }
+                    });
+                });
+
+                // Handle Poetic Brain submission
+                askButton.addEventListener('click', async () => {
+                    const prompt = promptInput.value.trim();
+                    if (!prompt) {
+                        alert('Please enter a prompt.');
+                        return;
+                    }
+
+                    const isAuthenticated = await auth0.isAuthenticated();
+                    if (!isAuthenticated) {
+                        alert('You must be logged in to use the Poetic Brain.');
+                        return;
+                    }
+
+                    askButton.disabled = true;
+                    askButton.textContent = 'Thinking...';
+                    responseContainer.classList.add('hidden');
+
+                    try {
+                        const accessToken = await auth0.getTokenSilently();
+                        const res = await fetch('/.netlify/functions/poetic-brain', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${accessToken}`
+                            },
+                            body: JSON.stringify({ prompt })
+                        });
+
+                        if (!res.ok) {
+                            const errorData = await res.json();
+                            throw new Error(errorData.error || 'An unknown error occurred.');
+                        }
+
+                        const data = await res.json();
+                        responseEl.textContent = data.response;
+                        responseContainer.classList.remove('hidden');
+                        promptInput.value = '';
+
+                    } catch (error) {
+                        alert(`Error: ${error.message}`);
+                    } finally {
+                        askButton.disabled = false;
+                        askButton.textContent = 'Ask';
+                    }
+                });
+
+                // Allow Enter key to submit
+                promptInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        askButton.click();
+                    }
+                });
+
+                // Update UI based on auth state
+                async function updateAuthUI() {
+                    const isAuthenticated = await auth0.isAuthenticated();
+                    const poeticBrainSection = document.getElementById('poetic-brain-section');
+                    const loginButton = document.getElementById('login-button');
+                    const logoutButton = document.getElementById('logout-button');
+
+                    loginButton.classList.toggle('hidden', isAuthenticated);
+                    logoutButton.classList.toggle('hidden', !isAuthenticated);
+                    poeticBrainSection.style.display = isAuthenticated ? 'block' : 'none';
+
+                    if (isAuthenticated) {
+                        console.log('User is authenticated');
+                    }
+                }
+
+            } catch (error) {
+                console.error('Auth0 initialization error:', error);
             }
         }
     </script>
