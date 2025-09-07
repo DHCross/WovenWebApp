@@ -2958,7 +2958,9 @@ function renderTransitDay(dateStr, items){
                 const balance = (firstDayData.balance && typeof firstDayData.balance === 'object') 
                     ? firstDayData.balance.valence || 0 
                     : (typeof firstDayData.balance === 'number' ? firstDayData.balance : valence || 0);
-                const sfd = firstDayData.sfd || 0;
+                const sfd = (firstDayData.sfd && typeof firstDayData.sfd === 'object') 
+                    ? firstDayData.sfd.sfd || 0 
+                    : (typeof firstDayData.sfd === 'number' ? firstDayData.sfd : 0);
                 
                 const magnitudeEmoji = magnitude > 4 ? '⚡' : magnitude > 2 ? '🔥' : '💧';
                 const valenceEmoji = getValenceEmoji(valence);
