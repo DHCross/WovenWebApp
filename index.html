@@ -1143,13 +1143,13 @@
                 </div>
             </div>
 
-            <!-- Optional Data Overlays (Advanced) -->
+            <!-- Optional Data Correlations (Advanced) -->
             <div class="max-w-4xl mx-auto mb-8">
                 <div class="text-center mb-4">
-                    <h3 class="text-lg font-medium text-gray-300 mb-2">📋 Optional Data Overlays</h3>
+                    <h3 class="text-lg font-medium text-gray-300 mb-2">📋 Optional Data Correlations</h3>
                     <p class="text-sm text-gray-400 max-w-2xl mx-auto">
-                        These are <strong>completely optional</strong> advanced features. Upload data files to overlay correlations with your astrological patterns. 
-                        <br><span class="text-teal-400">Order: Generate your base chart first, then optionally add overlays and regenerate.</span>
+                        These are <strong>completely optional</strong> advanced features. Upload data files to correlate external data with your astrological patterns. 
+                        <br><span class="text-teal-400">Workflow: 1) Generate your base chart, 2) Optionally upload data for correlation analysis.</span>
                     </p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1176,39 +1176,37 @@
                         <p class="text-xs text-purple-400 mt-2">Compatible with iOS "Health Auto Export" app</p>
                     </div>
 
-                    <!-- Balance Meter -->
+                    <!-- Symbolic Log Correlation -->
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-t-4 border-cyan-500">
                         <h3 class="text-white font-medium mb-2 flex items-center gap-2">
-                            📊 Balance Meter
-                            <button class="text-xs text-cyan-300 hover:text-cyan-400 focus:outline-none" title="Upload symbolic logs (.md) to cross-check currents">
+                            📊 Symbolic Log Correlation
+                            <button class="text-xs text-cyan-300 hover:text-cyan-400 focus:outline-none" title="Upload symbolic logs (.md) to cross-check with Balance Meter reports">
                                 ❓
                             </button>
                         </h3>
-                        <p class="text-xs text-gray-400 mb-2">Cross-reference your personal symbolic logs with chart patterns</p>
-                        <p class="text-xs text-cyan-300 mb-4"><strong>Produces:</strong> Comparative analysis showing how your recorded experiences align with astrological indicators</p>
+                        <p class="text-xs text-gray-400 mb-2">Correlate your personal symbolic logs with Balance Meter triple-channel data</p>
+                        <p class="text-xs text-cyan-300 mb-4"><strong>Produces:</strong> Comparative analysis showing how your recorded experiences align with astrological patterns</p>
                         
-                        <!-- Balance Meter Mode Option -->
+                        <!-- Prerequisites Notice -->
                         <div class="mb-4 p-3 bg-gray-750 rounded border border-cyan-600">
-                            <label class="flex items-center">
-                                <input type="checkbox" id="balanceMeterMode" class="mr-3 h-4 w-4 text-cyan-600 focus:ring-cyan-500 border-gray-600 rounded bg-gray-700">
-                                <span class="text-gray-300 font-medium">
-                                    Generate Balance Meter Report
-                                    <span class="text-xs text-gray-400 block">
-                                        Focus on triple-channel analysis (Seismograph, Balance Channel, SFD) for health correlation
-                                    </span>
+                            <p class="text-gray-300 font-medium text-sm">
+                                📋 Prerequisites:
+                                <span class="text-xs text-gray-400 block mt-1">
+                                    1. Generate a Balance Meter report first (use Balance Meter tab)<br>
+                                    2. Upload your symbolic logs below for correlation analysis
                                 </span>
-                            </label>
+                            </p>
                         </div>
                         
                         <div class="space-y-2">
                             <button id="loadSeismoBtn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200">
-                                📄 Upload Balance Meter Data
+                                📄 Upload Symbolic Logs
                             </button>
                             <button id="clearSeismoBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden">
-                                ✖️ Clear Balance Meter Data
+                                ✖️ Clear Symbolic Logs
                             </button>
                             <button id="genComparativeBtn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden" disabled>
-                                🔗 Generate Comparative Report
+                                🔗 Generate Correlation Analysis
                             </button>
                         </div>
                         <input type="file" id="seismoMdInput" accept=".md,.markdown,text/markdown" class="hidden">
