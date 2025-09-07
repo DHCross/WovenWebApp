@@ -2765,12 +2765,62 @@ function renderTransitDay(dateStr, items){
         function generatePersonClearMirror(personData, personDetails, label) {
             let md = `## ${label}: ${personDetails.name}\n\n`;
             
-            // === 1. THE BOTTOM LINE (Executive Summary) ===
-            md += `### The Bottom Line (Executive Summary)\n\n`;
+            // === 1. PERSONALITY PROFILE (What People Want First) ===
+            md += `### Personality Profile\n\n`;
             
-            // Get seismograph data for overall vibe assessment
+            const typologyProfile = generateTypologicalProfile(personData, personDetails);
+            
+            md += `**Your Constitutional Climate**\n\n`;
+            md += `${typologyProfile.ravenTranslation.climate}\n\n`;
+            
+            md += `**Dominant Operating Style**\n\n`;
+            md += `${typologyProfile.ravenTranslation.dominant}\n\n`;
+            
+            md += `**Secondary Support System**\n\n`;
+            md += `${typologyProfile.ravenTranslation.secondary}\n\n`;
+            
+            md += `**Shadow Integration Work**\n\n`;
+            md += `${typologyProfile.ravenTranslation.shadow}\n\n`;
+            
+            md += `*This profile describes your core psychological patterns and natural operating style, derived from your natal planetary positions.*\n\n`;
+            
+            md += `⸻\n\n`;
+            
+            // === 2. KEY PATTERNS IN PLAY (Transit Activations) ===
+            md += `### Key Patterns in Play\n\n`;
+            md += `*These are the most significant active energies for today.*\n\n`;
+            
+            // Get major aspects for Key Drivers (using top aspects or hooks if available)
+            const aspects = getTopAspectsForPerson(personData);
+            const keyDrivers = aspects.slice(0, 4); // Top 4 for Key Drivers
+            
+            keyDrivers.forEach((aspect, index) => {
+                const driverType = index === 0 ? 'Primary Tension' : 
+                                 index === 1 ? 'Helpful Insight' : 
+                                 index === 2 ? 'Background Support' : 'Secondary Theme';
+                
+                const polarity = generatePolarityFromAspect(aspect, index + 1);
+                md += `**${driverType}**: **${polarity.title}**\n\n`;
+                md += `${polarity.voice}\n\n`;
+            });
+            
+            // Add recursive pattern note if many retrograde aspects
             const firstDayData = personData?.chart?.transitsByDate ? 
                 Object.values(personData.chart.transitsByDate)[0] : null;
+                
+            if (firstDayData) {
+                const retroCount = (firstDayData.hooks || []).filter(h => 
+                    h.transit_is_retrograde || h.natal_is_retrograde).length;
+                if (retroCount > 3) {
+                    md += `**Overarching Theme**: **Retrograde Recursion Pattern** (${retroCount} aspects detected)\n\n`;
+                    md += `A significant emphasis on internal review, revision, and processing of past patterns. Energy is directed inward, not outward.\n\n`;
+                }
+            }
+            
+            md += `⸻\n\n`;
+            
+            // === 3. THE BOTTOM LINE (Executive Summary) ===
+            md += `### The Bottom Line (Executive Summary)\n\n`;
             
             if (firstDayData) {
                 const magnitude = firstDayData.seismograph?.magnitude || 0;
@@ -2793,36 +2843,6 @@ function renderTransitDay(dateStr, items){
                 }
             } else {
                 md += `**Today's Weather**: Transit data processing... check back for live insights.\n\n`;
-            }
-            
-            md += `⸻\n\n`;
-            
-            // === 2. THE MAIN EVENTS (Key Drivers) ===
-            md += `### Key Patterns in Play\n\n`;
-            md += `*These are the most significant active energies for today.*\n\n`;
-            
-            // Get major aspects for Key Drivers (using top aspects or hooks if available)
-            const aspects = getTopAspectsForPerson(personData);
-            const keyDrivers = aspects.slice(0, 4); // Top 4 for Key Drivers
-            
-            keyDrivers.forEach((aspect, index) => {
-                const driverType = index === 0 ? 'Primary Tension' : 
-                                 index === 1 ? 'Helpful Insight' : 
-                                 index === 2 ? 'Background Support' : 'Secondary Theme';
-                
-                const polarity = generatePolarityFromAspect(aspect, index + 1);
-                md += `**${driverType}**: **${polarity.title}**\n\n`;
-                md += `${polarity.voice}\n\n`;
-            });
-            
-            // Add recursive pattern note if many retrograde aspects
-            if (firstDayData) {
-                const retroCount = (firstDayData.hooks || []).filter(h => 
-                    h.transit_is_retrograde || h.natal_is_retrograde).length;
-                if (retroCount > 3) {
-                    md += `**Overarching Theme**: **Retrograde Recursion Pattern** (${retroCount} aspects detected)\n\n`;
-                    md += `A significant emphasis on internal review, revision, and processing of past patterns. Energy is directed inward, not outward.\n\n`;
-                }
             }
             
             md += `⸻\n\n`;
@@ -2851,26 +2871,74 @@ function renderTransitDay(dateStr, items){
             md += `<summary><strong>Technical Blueprint & Reference Data</strong></summary>\n\n`;
             
             // === NATAL CHART FOUNDATION ===
-            md += `### Natal Chart Foundation\n\n`;
+            md += `### Subject Details — Reveal the Weave\n\n`;
+            
+            md += `**Primary Subject**: ${personDetails.name}\n\n`;
+            md += `- **Birth Date**: ${personDetails.year}-${String(personDetails.month).padStart(2, '0')}-${String(personDetails.day).padStart(2, '0')}\n`;
+            md += `- **Birth Time**: ${String(personDetails.hour).padStart(2, '0')}:${String(personDetails.minute).padStart(2, '0')}\n`;
+            md += `- **Location**: ${personDetails.city}, ${personDetails.nation}\n`;
+            md += `- **Coordinates**: ${personDetails.lat}, ${personDetails.lng}\n`;
+            md += `- **Timezone**: ${personDetails.timezone || 'UTC'}\n`;
+            md += `- **Zodiac Type**: Tropic\n\n`;
+            
+            md += `### Geometry — The Skeleton of the Land\n\n`;
             
             // Extract natal chart data
             const chartData = extractChartDataForTypology(personData);
             
-            md += `**Core Planetary Positions**\n\n`;
-            md += `| Planet | Sign | House | Degree | Element | Quality |\n`;
-            md += `|--------|------|-------|--------|---------|----------|\n`;
+            md += `#### Chart Angles\n\n`;
+            const asc = chartData.ascendant || {};
+            const dsc = { sign: asc.sign === 'Vir' ? 'Pis' : 'Unknown', position: asc.position }; // Opposite sign logic would be more complex
+            md += `- **Ascendant (ASC)**: ${asc.sign || 'Unknown'} ${(asc.position || 0).toFixed(2)}°\n`;
+            md += `- **Descendant (DSC)**: ${dsc.sign} ${(dsc.position || 0).toFixed(2)}°\n`;
+            md += `- **Midheaven (MC)**: ${(chartData.midheaven?.sign || 'Unknown')} ${(chartData.midheaven?.position || 0).toFixed(2)}°\n`;
+            md += `- **Imum Coeli (IC)**: ${(chartData.midheaven?.sign || 'Unknown')} ${(chartData.midheaven?.position || 0).toFixed(2)}°\n\n`;
             
-            const planets = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'ascendant'];
+            md += `#### Natal Planet Positions\n\n`;
+            const planets = [
+                { key: 'sun', name: 'Sun' },
+                { key: 'moon', name: 'Moon' },
+                { key: 'mercury', name: 'Mercury' },
+                { key: 'venus', name: 'Venus' },
+                { key: 'mars', name: 'Mars' },
+                { key: 'jupiter', name: 'Jupiter' },
+                { key: 'saturn', name: 'Saturn' },
+                { key: 'uranus', name: 'Uranus' },
+                { key: 'neptune', name: 'Neptune' },
+                { key: 'pluto', name: 'Pluto' }
+            ];
+            
             planets.forEach(planet => {
-                const planetData = chartData[planet] || {};
+                const planetData = chartData[planet.key] || {};
                 const sign = planetData.sign || 'Unknown';
+                const position = (planetData.position || 0).toFixed(2);
                 const house = planetData.house || 'Unknown';
-                const position = planetData.position ? planetData.position.toFixed(1) + '°' : 'Unknown';
-                const element = planetData.element || 'Unknown';
-                const quality = planetData.quality || 'Unknown';
                 const retrograde = planetData.retrograde ? ' ℞' : '';
                 
-                md += `| ${planet.charAt(0).toUpperCase() + planet.slice(1)}${retrograde} | ${sign} | ${house} | ${position} | ${element} | ${quality} |\n`;
+                md += `- **${planet.name}**: ${sign} ${position}° (House ${house})${retrograde}\n`;
+            });
+            
+            md += `\n`;
+            
+            md += `#### House Cusps\n\n`;
+            const houses = [
+                { num: '1st', name: 'Identity, Stance' },
+                { num: '2nd', name: 'Resource, Security' },
+                { num: '3rd', name: 'Exchange, Signals' },
+                { num: '4th', name: 'Root, Anchor' },
+                { num: '5th', name: 'Creative, Expression' },
+                { num: '6th', name: 'Craft, Rhythm' },
+                { num: '7th', name: 'Relational, Mirror' },
+                { num: '8th', name: 'Depth, Crossing' },
+                { num: '9th', name: 'Horizon, Philosophy' },
+                { num: '10th', name: 'Apex, Projection' },
+                { num: '11th', name: 'Network, Belonging' },
+                { num: '12th', name: 'Dream, Spirit' }
+            ];
+            
+            houses.forEach(house => {
+                // This would need actual house cusp data from API, using placeholder
+                md += `- **${house.num} House**: Unknown Sign 0.00° (${house.name})\n`;
             });
             
             md += `\n`;
@@ -2879,51 +2947,83 @@ function renderTransitDay(dateStr, items){
             md += `### Daily Transit Analysis\n\n`;
             
             if (firstDayData) {
+                md += `**Executive Summary (Math Brain Protocol)**\n\n`;
+                const currentDate = new Date().toISOString().split('T')[0];
+                md += `Date: ${currentDate} TZ: ${personDetails.timezone || 'UTC'} Context: NATAL_TRANSITS\n\n`;
+                
+                // Triple Channel breakdown
+                const magnitude = firstDayData.seismograph?.magnitude || 0;
+                const valence = firstDayData.seismograph?.valence || 0;
+                const volatility = firstDayData.seismograph?.volatility || 0;
+                const balance = firstDayData.balance || valence; // fallback
+                const sfd = firstDayData.sfd || 0;
+                
+                const magnitudeEmoji = magnitude > 4 ? '⚡' : magnitude > 2 ? '🔥' : '💧';
+                const valenceEmoji = getValenceEmoji(valence);
+                const balanceEmoji = balance > 0 ? '💎' : balance < 0 ? '⚔️' : '⚖️';
+                
+                md += `Triple Channel: ${magnitudeEmoji} ${magnitude.toFixed(1)} · Val ${valenceEmoji} ${valence.toFixed(1)} · Bal ${balanceEmoji} ${balance.toFixed(1)} · stabilizers mixed (SFD ${sfd >= 0 ? '+' : ''}${sfd.toFixed(1)})\n\n`;
+                
                 md += `**Seismograph Metrics**\n\n`;
-                md += `- **Magnitude**: ${(firstDayData.seismograph?.magnitude || 0).toFixed(2)} (intensity scale)\n`;
-                md += `- **Valence**: ${(firstDayData.seismograph?.valence || 0).toFixed(2)} (emotional tone)\n`;
-                md += `- **Volatility**: ${(firstDayData.seismograph?.volatility || 0).toFixed(2)} (stability index)\n\n`;
+                md += `- **Magnitude**: ${magnitude.toFixed(2)} (${toMagnitudeTerm(magnitude)})\n`;
+                md += `- **Valence**: ${valenceEmoji} ${valence.toFixed(2)} (${toValenceTerm(valence)})\n`;
+                md += `- **Volatility**: ${volatility.toFixed(2)}\n`;
+                md += `- **Valence_raw (debug)**: ${valence.toFixed(2)}\n\n`;
                 
-                // Detailed aspect breakdown
-                const allAspects = getTopAspectsForPerson(personData);
-                if (allAspects.length > 0) {
-                    md += `**Complete Aspect List** (${allAspects.length} total)\n\n`;
-                    md += `| Transit Planet | Aspect | Natal Planet | Orb | Type | Applying/Separating |\n`;
-                    md += `|----------------|---------|--------------|-----|------|---------------------|\n`;
-                    
-                    allAspects.slice(0, 12).forEach(aspect => {
-                        const p1 = aspect.p1_name || aspect.p1_display || 'Unknown';
-                        const p2 = aspect.p2_name || aspect.p2_display || 'Unknown';
-                        const aspectType = aspect.aspect || aspect._aspect || 'conjunction';
-                        const orb = Math.abs(aspect.orbit || aspect._orb || 0).toFixed(1) + '°';
-                        const classification = aspect.classification || 'major';
-                        const phase = aspect.phase || (orb < 1 ? 'exact' : 'approaching');
-                        
-                        md += `| ${p1} | ${aspectType} | ${p2} | ${orb} | ${classification} | ${phase} |\n`;
-                    });
-                    
-                    if (allAspects.length > 12) {
-                        md += `\n*...and ${allAspects.length - 12} additional aspects*\n`;
-                    }
+                // Top Hooks with precise formatting
+                const topHooks = (firstDayData.hooks || []).slice(0, 3);
+                if (topHooks.length > 0) {
+                    const hooksText = topHooks.map(h => {
+                        const p1 = h.p1_name || h.p1_display || 'Unknown';
+                        const p2 = h.p2_name || h.p2_display || 'Unknown';
+                        const aspect = aspectSymbol(h.aspect || h._aspect || 'conjunction');
+                        const orb = (h.orbit || h._orb || 0).toFixed(1);
+                        return `${p1}${aspect}${p2} (${orb < 0 ? '' : '+'}${orb}°)`;
+                    }).join(', ');
+                    md += `**Top Hooks (orb-capped)**: ${hooksText}\n\n`;
                 }
-                
-                md += `\n`;
                 
                 // Retrograde analysis
                 const retroPlanets = [];
                 const retroAspects = [];
+                const osrFlags = firstDayData.osr_flags || [];
                 
                 (firstDayData.hooks || []).forEach(h => {
                     if (h.transit_is_retrograde) retroPlanets.push(h.p1_name || h.p1_display);
                     if (h.natal_is_retrograde || h.transit_is_retrograde) retroAspects.push(h);
                 });
                 
-                if (retroPlanets.length > 0 || retroAspects.length > 0) {
-                    md += `**Retrograde Analysis**\n\n`;
-                    md += `- **Transiting Retrograde Planets**: ${[...new Set(retroPlanets)].join(', ') || 'None'}\n`;
-                    md += `- **Retrograde-Tagged Aspects**: ${retroAspects.length}\n`;
-                    md += `- **Recursion Themes**: Internal revision, reworking patterns, deeper integration\n\n`;
+                md += `**Transit Status**\n\n`;
+                md += `- **Transiting ℞ planets**: ${[...new Set(retroPlanets)].length}\n`;
+                md += `- **℞-tagged aspects**: ${retroAspects.length}\n`;
+                md += `- **OSR**: ${osrFlags.length}\n\n`;
+                
+                // Detailed aspect breakdown
+                const allAspects = getTopAspectsForPerson(personData);
+                if (allAspects.length > 0) {
+                    md += `**Complete Aspect Analysis** (${allAspects.length} total)\n\n`;
+                    md += `| Transit Planet | Aspect | Natal Planet | Orb | Type | Phase | Weight |\n`;
+                    md += `|----------------|---------|--------------|-----|------|-------|--------|\n`;
+                    
+                    allAspects.slice(0, 20).forEach(aspect => {
+                        const p1 = aspect.p1_name || aspect.p1_display || 'Unknown';
+                        const p2 = aspect.p2_name || aspect.p2_display || 'Unknown';
+                        const aspectType = aspect.aspect || aspect._aspect || 'conjunction';
+                        const orb = (aspect.orbit || aspect._orb || 0).toFixed(1) + '°';
+                        const classification = aspect.classification || 'major';
+                        const phase = aspect.phase || (Math.abs(aspect.orbit || aspect._orb || 0) < 1 ? 'exact' : 'approaching');
+                        const weight = aspect.weight ? `w=${aspect.weight.toFixed(2)}` : 'w=1.00';
+                        const retroFlag = (aspect.transit_is_retrograde || aspect.natal_is_retrograde) ? ' ℞' : '';
+                        
+                        md += `| ${p1}${retroFlag} | ${aspectType} | ${p2} | ${orb} | ${classification} | ${phase} | ${weight} |\n`;
+                    });
+                    
+                    if (allAspects.length > 20) {
+                        md += `\n*...and ${allAspects.length - 20} additional aspects*\n`;
+                    }
                 }
+                
+                md += `\n`;
             }
             
             // === POETIC BRAIN TRANSLATION SCAFFOLDING ===
@@ -2943,7 +3043,7 @@ function renderTransitDay(dateStr, items){
             md += `⸻\n\n`;
             md += `### Complete Typological Profile (Math Brain → Raven Calder)\n\n`;
             
-            const typologyProfile = generateTypologicalProfile(personData, personDetails);
+            // Use the typologyProfile variable already declared at the top
             
             md += `**1. Dominant Orientation (Sun, Mercury, Ascendant drivers)**\n\n`;
             md += `Raw placements: ${typologyProfile.dominant.rawPlacements}\n\n`;
