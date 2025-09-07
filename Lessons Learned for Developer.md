@@ -26,6 +26,88 @@ Both of your AI assistants were correct. One was describing the car you're drivi
 
 ---
 
+## [2025-09-07] CRITICAL LESSON: Report Structure & User Experience Design
+
+### The Inverted Pyramid Principle in Technical Reports
+
+**Discovery:** Users don't want raw data first—they want conclusions first, then supporting evidence.
+
+**What We Learned:**
+- **Wrong Order**: Technical metrics → Daily patterns → Personality insights
+- **Right Order**: Personality insights → Daily patterns → Technical summary → Raw data
+
+**Implementation Pattern:**
+```javascript
+// WRONG: Technical-first structure
+function generateReport() {
+    showSeismographMetrics();  // Users don't care about this first
+    showDailyTransits();       // They can't interpret this without context
+    showPersonalityInfo();     // This is what they actually want to see
+}
+
+// RIGHT: User-first structure  
+function generateReport() {
+    showPersonalityProfile();   // Answer "Who am I?" first
+    showKeyPatterns();         // Then "What's happening to me?"
+    showBottomLineSummary();   // Then "What are the numbers?"
+    showTechnicalBlueprint();  // Finally "How does this work?" (collapsible)
+}
+```
+
+**Key Insight:** The same data can be presented in multiple ways for different audiences:
+- **Users**: Want personality insights and actionable patterns
+- **AI Poetic Brain**: Needs comprehensive geometric scaffolding
+- **Developers**: Require technical metadata and processing logs
+
+**Solution**: Progressive disclosure with collapsible sections maintains both accessibility and completeness.
+
+---
+
+## [2025-09-07] CRITICAL LESSON: API Data Structure Debugging
+
+### The "Unknown" Values Problem
+
+**Problem**: Typological profile showing `"Unknown"` for all planetary data despite API returning complete information.
+
+**Root Causes:**
+1. **Wrong Data Path**: Function expected `personData?.chart?.data?.subject` but actual structure was `personData?.chart`
+2. **Sign Name Mismatch**: Function mapped full names (`'Aries'`) but API returned abbreviations (`'Ari'`)
+3. **House Format Difference**: Function expected numbers (`1`) but API returned names (`'First_House'`)
+
+**Debugging Process:**
+```javascript
+// Step 1: Trace data flow from API response to function
+console.log("API Response Structure:", result.person_a);
+console.log("Chart Data Path:", result.person_a.chart);
+
+// Step 2: Examine expected vs actual field names
+console.log("Expected:", personData?.chart?.data?.subject?.sun);
+console.log("Actual:", personData?.chart?.sun);
+
+// Step 3: Compare value formats
+console.log("Expected sign:", 'Aries');
+console.log("Actual sign:", 'Ari');
+```
+
+**Fix Pattern:**
+```javascript
+// Before: Assumptions about data structure
+const chart = personData?.chart?.data?.subject || {};
+
+// After: Match actual API response structure  
+const chart = personData?.chart || {};
+
+// Before: Hardcoded mappings
+'Aries': 'Intuition'
+
+// After: API-compatible mappings
+'Ari': 'Intuition'
+```
+
+**Key Lesson:** Always verify actual API response structure rather than assuming documentation accuracy. Use browser dev tools and console logging to trace data flow from API → backend → frontend → display.
+
+---
+
 ### Next Steps & Future Options
 
 *   **Current Path (Recommended for now):** Continue using the **RapidAPI Astrologer API**. It's working, and your code is already set up for it.

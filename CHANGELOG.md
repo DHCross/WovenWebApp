@@ -1,3 +1,47 @@
+## [2025-09-07] MAJOR RESTRUCTURE: Clear Mirror Report Inverted Pyramid + Comprehensive Typological Integration
+
+**Description:**
+Complete overhaul of Clear Mirror report structure implementing inverted pyramid journalism principles (conclusion first, details last) while integrating comprehensive Jungian typological profiles and restoring full Math Brain geometric detail for AI Poetic Brain translation.
+
+**Core Restructuring:**
+1. **Inverted Pyramid Report Flow:**
+   - **Section 1: Personality Profile** (What people want first) - Constitutional climate, dominant operating style, secondary support, shadow integration
+   - **Section 2: Key Patterns in Play** - Daily transit activations with Primary Tension, Helpful Insight, Background Support
+   - **Section 3: The Bottom Line** - Executive summary with seismograph metrics (intensity, emotional vibe, energy state)
+   - **Section 4: Technical Blueprint** - Comprehensive Math Brain data in collapsible sections
+
+2. **Jungian Typological Profile Integration:**
+   - **API Data Extraction:** Fixed `extractChartDataForTypology()` to properly access `personData.chart` structure
+   - **Sign Mapping:** Updated function maps to use API's abbreviated signs (`'Ari'`, `'Tau'`, `'Gem'` vs full names)
+   - **House Conversion:** Added house name-to-number mapping (`'First_House'` → 1, etc.) for orientation analysis
+   - **Jung Function Analysis:** Fire→Intuition, Earth→Sensation, Air→Thinking, Water→Feeling
+   - **Constitutional Climate:** Complete psychological weather pattern synthesis
+
+3. **Enhanced Technical Blueprint for AI Translation:**
+   - **Executive Summary (Math Brain Protocol):** Triple Channel display, seismograph metrics, top hooks with precise orbs
+   - **Complete Aspect Analysis:** 20+ aspects with orb, type, phase, weight, retrograde flags in table format
+   - **Subject Details:** Full birth data, chart angles, natal planet positions, house cusps with meanings  
+   - **Transit Status Tracking:** Retrograde planet counts, aspect flags, OSR indicators
+   - **Synthesis Directives:** Specific instructions for AI Poetic Brain translation
+
+**Technical Fixes:**
+- **Variable Redeclaration:** Fixed `typologyProfile` scope issue by reusing declaration
+- **Data Structure Compatibility:** Ensured API response paths match function expectations
+- **Aspect Symbol Integration:** Added `aspectSymbol()` helper for consistent notation
+- **Phase Indicators:** Restored applying/separating aspect analysis
+
+**User Experience Improvements:**
+- **Progressive Disclosure:** Essential personality info first, technical data in collapsible sections
+- **Mobile-Friendly:** Collapsible sections prevent information overload
+- **Immediate Value:** Users see constitutional insights within first 30 seconds
+- **AI-Ready:** Comprehensive geometric scaffolding available for advanced interpretation
+
+**AI Poetic Brain Benefits:**
+- **Complete Geometric Precision:** Exact degrees, orbs, classifications for accurate translation
+- **Temporal Context:** Retrograde patterns, applying/separating phases for timing language
+- **Constitutional Foundation:** Jung function mapping for personality-aware narrative generation
+- **Translation Protocol:** Clear directives for transforming math into felt-sense poetry
+
 ## [2025-09-05] Balance Meter Standalone Mode Added
 
 **Description:**
