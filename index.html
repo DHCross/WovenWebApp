@@ -1299,8 +1299,8 @@
                         <h3 class="text-emerald-300 font-medium mb-3">📖 For Readers</h3>
                         <div class="space-y-2">
                             <button id="downloadReport" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-3 rounded text-sm transition-colors hidden">
-                                📄 Download Report
-                                <span class="block text-xs opacity-80">Formatted file with your chart results</span>
+                                📄 Download JSON
+                                <span class="block text-xs opacity-80">Machine‑readable report for Raven</span>
                             </button>
                             <button id="downloadPDF" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-3 rounded text-sm transition-colors hidden">
                                 📑 Download PDF
@@ -2288,6 +2288,47 @@ function renderTransitDay(dateStr, items){
             return parts.join(" · ");
         }
         
+        // === TRANSITS HELPERS (Standardized extractors to avoid scope errors) ===
+        function resolveTransitsByDate(root){
+            if (!root || typeof root !== 'object') return null;
+            // Common shapes
+            if (root.chart?.transitsByDate) return root.chart.transitsByDate;
+            if (root.transitsByDate) return root.transitsByDate;
+            if (root.person_a?.chart?.transitsByDate) return root.person_a.chart.transitsByDate;
+            if (root.sky_transits?.transitsByDate) return root.sky_transits.transitsByDate;
+            if (root.composite?.transitsByDate) return root.composite.transitsByDate;
+            if (root.synastry?.transitsByDate) return root.synastry.transitsByDate;
+            return null;
+        }
+
+        function getFirstDayData(root){
+            const tbd = resolveTransitsByDate(root);
+            if (!tbd) return { firstDate: null, firstDayData: null, transitsByDate: null };
+            let firstDate = null;
+            let raw = null;
+            if (Array.isArray(tbd)){
+                raw = tbd[0] ?? null;
+            } else {
+                const keys = Object.keys(tbd);
+                firstDate = keys.length ? keys[0] : null;
+                raw = firstDate ? tbd[firstDate] : null;
+            }
+            let firstDayData = raw;
+            try {
+                if (typeof normalizeEntry === 'function' && raw) firstDayData = normalizeEntry(raw);
+            } catch(_e) { /* ignore */ }
+            return { firstDate, firstDayData, transitsByDate: tbd };
+        }
+
+        function countAspectsForDay(day){
+            if (!day) return 0;
+            if (Array.isArray(day)) return day.length;
+            const a = Array.isArray(day.aspects) ? day.aspects.length : 0;
+            const f = Array.isArray(day.filtered_aspects) ? day.filtered_aspects.length : 0;
+            const h = Array.isArray(day.hooks) ? day.hooks.length : 0;
+            return a || (f + h);
+        }
+
         // Normalize entry for consistent nested data structure
         function normalizeEntry(e) {
             const out = { ...e };
@@ -2864,13 +2905,16 @@ function renderTransitDay(dateStr, items){
             md += `### 🎯 AI Poetic Brain Translation Layer\n\n`;
             md += `*Essential data feed for AI mirror writing (per Raven Calder guidance):*\n\n`;
             
+            // Resolve first day using standardized helpers
+            const { firstDate: tlFirstDate, firstDayData: tlFirstDay, transitsByDate: tlTbd } = getFirstDayData(personData);
+            const firstDayTL = tlFirstDay || firstDayData || {};
             // Extract seismograph data
-            const magnitude = firstDayData.seismograph?.magnitude || 0;
-            const valence = firstDayData.seismograph?.valence || 0;
-            const volatility = firstDayData.seismograph?.volatility || 0;
+            const magnitude = firstDayTL.seismograph?.magnitude || 0;
+            const valence = firstDayTL.seismograph?.valence || 0;
+            const volatility = firstDayTL.seismograph?.volatility || 0;
             
             // Top Hooks (Essential)
-            const topHooks = (firstDayData.hooks || []).slice(0, 3);
+            const topHooks = (firstDayTL.hooks || []).slice(0, 3);
             if (topHooks.length > 0) {
                 const hooksText = topHooks.map(h => {
                     const p1 = h.p1_name || h.p1_display || 'Unknown';
@@ -2885,31 +2929,32 @@ function renderTransitDay(dateStr, items){
             md += `**Seismograph Triple Lens**: Magnitude ${magnitude.toFixed(2)}, Valence ${valence >= 0 ? '+' : ''}${valence.toFixed(2)}, Volatility ${volatility.toFixed(2)}\n\n`;
             
             // Balance Refinements (Essential)
-            const sfdValue = (firstDayData.sfd && typeof firstDayData.sfd === 'object') 
-                ? firstDayData.sfd.sfd || 0 
-                : (typeof firstDayData.sfd === 'number' ? firstDayData.sfd : 0);
+            const sfdValue = (firstDayTL.sfd && typeof firstDayTL.sfd === 'object') 
+                ? firstDayTL.sfd.sfd || 0 
+                : (typeof firstDayTL.sfd === 'number' ? firstDayTL.sfd : 0);
             const sfdVerdict = sfdValue >= 0.75 ? "stabilizers prevail" : 
                               sfdValue <= -0.75 ? "stabilizers cut" : "stabilizers mixed";
             md += `**Balance Refinements**: SFD ${sfdValue >= 0 ? '+' : ''}${sfdValue.toFixed(1)}, "${sfdVerdict}"\n\n`;
             
             // Retrograde Recursion Flag (Essential)
-            const totalAspects = transitsByDate[firstDate]?.length || 0;
+            const totalAspects = countAspectsForDay(firstDayTL);
             md += `**Retrograde Recursion Flag**: ${totalAspects} aspects (${totalAspects > 50 ? 'heavy' : totalAspects > 25 ? 'moderate' : 'light'} day)\n\n`;
             
             // Natal Scaffolding (Essential) - Extract key planetary positions
+            const chartDataTL = extractChartDataForTypology(personData);
             md += `**Natal Scaffolding**:\n`;
-            md += `- **Asc**: ${chartData.ascendant?.sign || 'Unknown'} ${(chartData.ascendant?.position || 0).toFixed(1)}°\n`;
-            md += `- **Sun**: ${chartData.sun?.sign || 'Unknown'} ${(chartData.sun?.position || 0).toFixed(1)}°\n`;
-            md += `- **Moon**: ${chartData.moon?.sign || 'Unknown'} ${(chartData.moon?.position || 0).toFixed(1)}°\n`;
-            md += `- **Mercury**: ${chartData.mercury?.sign || 'Unknown'} ${(chartData.mercury?.position || 0).toFixed(1)}°\n`;
-            md += `- **Venus**: ${chartData.venus?.sign || 'Unknown'} ${(chartData.venus?.position || 0).toFixed(1)}°\n`;
-            md += `- **Mars**: ${chartData.mars?.sign || 'Unknown'} ${(chartData.mars?.position || 0).toFixed(1)}°\n`;
-            md += `- **Jupiter**: ${chartData.jupiter?.sign || 'Unknown'} ${(chartData.jupiter?.position || 0).toFixed(1)}°\n`;
-            md += `- **Saturn**: ${chartData.saturn?.sign || 'Unknown'} ${(chartData.saturn?.position || 0).toFixed(1)}°\n`;
-            md += `- **Uranus**: ${chartData.uranus?.sign || 'Unknown'} ${(chartData.uranus?.position || 0).toFixed(1)}°\n`;
-            md += `- **Neptune**: ${chartData.neptune?.sign || 'Unknown'} ${(chartData.neptune?.position || 0).toFixed(1)}°\n`;
-            md += `- **Pluto**: ${chartData.pluto?.sign || 'Unknown'} ${(chartData.pluto?.position || 0).toFixed(1)}°\n`;
-            md += `- **True Node**: ${chartData.true_node?.sign || 'Unknown'} ${(chartData.true_node?.position || 0).toFixed(1)}°\n\n`;
+            md += `- **Asc**: ${chartDataTL.ascendant?.sign || 'Unknown'} ${(chartDataTL.ascendant?.position || 0).toFixed(1)}°\n`;
+            md += `- **Sun**: ${chartDataTL.sun?.sign || 'Unknown'} ${(chartDataTL.sun?.position || 0).toFixed(1)}°\n`;
+            md += `- **Moon**: ${chartDataTL.moon?.sign || 'Unknown'} ${(chartDataTL.moon?.position || 0).toFixed(1)}°\n`;
+            md += `- **Mercury**: ${chartDataTL.mercury?.sign || 'Unknown'} ${(chartDataTL.mercury?.position || 0).toFixed(1)}°\n`;
+            md += `- **Venus**: ${chartDataTL.venus?.sign || 'Unknown'} ${(chartDataTL.venus?.position || 0).toFixed(1)}°\n`;
+            md += `- **Mars**: ${chartDataTL.mars?.sign || 'Unknown'} ${(chartDataTL.mars?.position || 0).toFixed(1)}°\n`;
+            md += `- **Jupiter**: ${chartDataTL.jupiter?.sign || 'Unknown'} ${(chartDataTL.jupiter?.position || 0).toFixed(1)}°\n`;
+            md += `- **Saturn**: ${chartDataTL.saturn?.sign || 'Unknown'} ${(chartDataTL.saturn?.position || 0).toFixed(1)}°\n`;
+            md += `- **Uranus**: ${chartDataTL.uranus?.sign || 'Unknown'} ${(chartDataTL.uranus?.position || 0).toFixed(1)}°\n`;
+            md += `- **Neptune**: ${chartDataTL.neptune?.sign || 'Unknown'} ${(chartDataTL.neptune?.position || 0).toFixed(1)}°\n`;
+            md += `- **Pluto**: ${chartDataTL.pluto?.sign || 'Unknown'} ${(chartDataTL.pluto?.position || 0).toFixed(1)}°\n`;
+            md += `- **True Node**: ${chartDataTL.true_node?.sign || 'Unknown'} ${(chartDataTL.true_node?.position || 0).toFixed(1)}°\n\n`;
             
             md += `*Everything below this point is engine room / audit data that AI translation can safely ignore.*\n\n`;
             
@@ -4716,6 +4761,158 @@ function renderTransitDay(dateStr, items){
             }
 
             return md;
+        }
+
+        // Build Raven-style JSON wrapper for main download
+    function buildRavenJsonReport(data){
+            try {
+                const form = collectFormData();
+                const mode = form?.context?.mode || data?.mode || '';
+                const report_date = new Date().toISOString().split('T')[0];
+
+                // Context block
+                const context = {};
+                const solo = !form?.personB?.name && !data?.person_b?.details;
+                if (solo) {
+                    context.type = 'solo';
+                    const p = data?.person_a?.details || form?.personA || {};
+                    context.natal = {
+                        name: p.name || 'Unknown',
+                        birth_date: p.year && p.month && p.day ? `${p.year}-${String(p.month).padStart(2,'0')}-${String(p.day).padStart(2,'0')}` : (p.birth_date || ''),
+                        birth_time: p.hour!=null && p.minute!=null ? `${String(p.hour).padStart(2,'0')}:${String(p.minute).padStart(2,'0')}` : (p.birth_time || ''),
+                        birth_place: [p.city, p.state || p.region, p.nation || p.country].filter(Boolean).join(', ')
+                    };
+                    // Translocation
+                    const reloc = data?.relocation_a;
+                    context.translocation = {
+                        applies: reloc?.status === 'OK',
+                        current_location: form?.relocation?.city ? `${form.relocation.city}, ${form.relocation.state || ''}`.trim() : undefined
+                    };
+                } else {
+                    context.type = 'relational';
+                    const a = data?.person_a?.details || form?.personA || {};
+                    const b = data?.person_b?.details || form?.personB || {};
+                    context.natal_A = {
+                        name: a.name || 'A',
+                        birth_date: a.year && a.month && a.day ? `${a.year}-${String(a.month).padStart(2,'0')}-${String(a.day).padStart(2,'0')}` : (a.birth_date || ''),
+                        birth_time: a.hour!=null && a.minute!=null ? `${String(a.hour).padStart(2,'0')}:${String(a.minute).padStart(2,'0')}` : (a.birth_time || ''),
+                        birth_place: [a.city, a.state || a.region, a.nation || a.country].filter(Boolean).join(', ')
+                    };
+                    context.natal_B = {
+                        name: b.name || 'B',
+                        birth_date: b.year && b.month && b.day ? `${b.year}-${String(b.month).padStart(2,'0')}-${String(b.day).padStart(2,'0')}` : (b.birth_date || ''),
+                        birth_time: b.hour!=null && b.minute!=null ? `${String(b.hour).padStart(2,'0')}:${String(b.minute).padStart(2,'0')}` : (b.birth_time || ''),
+                        birth_place: [b.city, b.state || b.region, b.nation || b.country].filter(Boolean).join(', ')
+                    };
+                    context.translocation = {
+                        applies: (data?.relocation_a?.status === 'OK') || (data?.relocation_b?.status === 'OK'),
+                        current_location_A: form?.relocation?.city || undefined,
+                        current_location_B: undefined
+                    };
+                }
+
+                // Helper: triad builder for a given root
+                const buildTriad = (root) => {
+                    const { firstDayData } = getFirstDayData(root);
+                    const mag = Number(firstDayData?.seismograph?.magnitude) || 0;
+                    const val = Number(firstDayData?.seismograph?.valence) || 0;
+                    const vol = Number(firstDayData?.seismograph?.volatility) || 0;
+                    const valEmoji = getValenceEmoji(Math.max(-5, Math.min(5, val)));
+                    const confidence = typeof firstDayData?.seismograph?.scaleConfidence === 'number'
+                        ? firstDayData.seismograph.scaleConfidence
+                        : (typeof data?.provenance?.scale_confidence === 'number' ? data.provenance.scale_confidence : 0.9);
+                    const glyphs = [];
+                    if (Math.abs(val) >= 3) glyphs.push('⚡');
+                    const anyHard = (firstDayData?.hooks || []).some(h => {
+                        const a = (h._aspect || h.aspect || '').toLowerCase();
+                        return a === 'opposition' || a === 'square';
+                    });
+                    if (anyHard && val < 0) glyphs.push('☍');
+                    const quadrant = `${mag >= 3 ? 'High' : 'Low'} Mag / ${val < 0 ? '-' : '+'} Val`;
+                    return {
+                        magnitude: { value: mag, term: toMagnitudeTerm(mag) },
+                        valence: { value: val, term: toValenceTerm(val), emoji: valEmoji },
+                        volatility: { value: vol, term: vol>=4? 'Very high turbulence' : vol>=3? 'High turbulence' : vol>=2? 'Variable' : vol>=1? 'Settling' : 'Stable' },
+                        confidence,
+                        glyphs,
+                        quadrant,
+                        notes: window.userNotesForDay || []
+                    };
+                };
+
+                // Build balance meter: solo vs relational (shared + per-party)
+                let balance_meter;
+                if (context.type === 'relational') {
+                    const sharedRoot = data.composite || data.synastry || (data.person_a || {}); // prefer composite, else synastry
+                    balance_meter = {
+                        shared: buildTriad(sharedRoot),
+                        party_A: buildTriad(data.person_a || data),
+                        party_B: buildTriad(data.person_b || data)
+                    };
+                } else {
+                    balance_meter = buildTriad(data.person_a || data);
+                }
+
+                // Macro and micro views (lightweight heuristics)
+                const tbd = resolveTransitsByDate(data.person_a || data) || {};
+                const dates = Array.isArray(tbd) ? [] : Object.keys(tbd).sort();
+                let activation_curve = undefined, valence_drift = undefined, volatility_pattern = undefined;
+                if (dates.length >= 2) {
+                    const first = tbd[dates[0]]?.seismograph || {};
+                    const last = tbd[dates[dates.length-1]]?.seismograph || {};
+                    const magFrom = Number(first.magnitude)||0, magTo = Number(last.magnitude)||0;
+                    activation_curve = `Magnitude trending ${magFrom.toFixed(1)} → ${magTo.toFixed(1)} (${toMagnitudeTerm(magFrom).split(' / ')[0]} → ${toMagnitudeTerm(magTo).split(' / ')[0]})`;
+                    const valFrom = Number(first.valence)||0, valTo = Number(last.valence)||0;
+                    const driftFrom = getValenceEmoji(Math.max(-5,Math.min(5,valFrom)));
+                    const driftTo = getValenceEmoji(Math.max(-5,Math.min(5,valTo)));
+                    const driftLabelFrom = toValenceTerm(valFrom);
+                    const driftLabelTo = toValenceTerm(valTo);
+                    valence_drift = `${driftLabelFrom} ${driftFrom} → ${driftLabelTo} ${driftTo}`;
+                    const volFrom = Number(first.volatility)||0, volTo = Number(last.volatility)||0;
+                    volatility_pattern = volTo>volFrom? 'Spiking later' : volTo<volFrom? 'Settling later' : 'Stable band';
+                }
+
+                // Micro view: allow per-party when relational
+                let micro_view;
+                if (context.type === 'relational') {
+                    const triA = balance_meter.party_A;
+                    const triB = balance_meter.party_B;
+                    const heurA = generateBarometerHeuristics(triA.magnitude.value, triA.valence.value, triA.volatility.value, {});
+                    const heurB = generateBarometerHeuristics(triB.magnitude.value, triB.valence.value, triB.volatility.value, {});
+                    micro_view = {
+                        daily_bar_pulse: { shared: balance_meter.shared.magnitude.value, party_A: triA.magnitude.value, party_B: triB.magnitude.value },
+                        valence_annotation: { shared: balance_meter.shared.valence.value, party_A: triA.valence.value, party_B: triB.valence.value },
+                        semantic_snapshot: { title: 'Shared field snapshot', glyphs: balance_meter.shared.glyphs, annotation: '' },
+                        party_A_snapshot: { title: heurA.title, glyphs: heurA.glyphs? heurA.glyphs.split('') : triA.glyphs, annotation: heurA.annotation },
+                        party_B_snapshot: { title: heurB.title, glyphs: heurB.glyphs? heurB.glyphs.split('') : triB.glyphs, annotation: heurB.annotation }
+                    };
+                } else {
+                    const tri = balance_meter;
+                    const heur = generateBarometerHeuristics(tri.magnitude.value, tri.valence.value, tri.volatility.value, {});
+                    micro_view = {
+                        daily_bar_pulse: tri.magnitude.value,
+                        valence_annotation: tri.valence.value,
+                        semantic_snapshot: { title: heur.title, glyphs: heur.glyphs? heur.glyphs.split('') : tri.glyphs, annotation: heur.annotation }
+                    };
+                }
+
+                const macro_view = {
+                    activation_curve,
+                    valence_drift,
+                    volatility_pattern
+                };
+
+                return {
+                    report_date,
+                    context,
+                    balance_meter,
+                    macro_view,
+                    micro_view
+                };
+            } catch (e) {
+                console.warn('Raven JSON build failed, falling back to minimal shell', e);
+                return { report_date: new Date().toISOString().split('T')[0], context: { type: 'solo' } };
+            }
         }
 
         
@@ -8504,39 +8701,23 @@ function renderTransitDay(dateStr, items){
                 }
             });
 
-            // Download report as markdown file
+            // Download report as JSON file (Raven wrapper)
             document.getElementById('downloadReport').addEventListener('click', () => {
                 if (!latestResultData) {
                     showError('No report available for download. Please generate a report first.');
                     return;
                 }
                 try {
-                    console.log('Starting download process...');
-                    
-                    // For download, include all enhancements
-                    const downloadOptions = {
-                        includeExecutiveSummary: true,
-                        includeJsonAppendix: true,
-                        includeProvenance: true
-                    };
-                    
-                    console.log('Generating markdown report...');
-                    const isBalanceMode = (latestResultData?.mode === 'balance_meter') ||
-                                          (typeof getCurrentActiveTabMode === 'function' && getCurrentActiveTabMode() === 'balance_meter') ||
-                                          (window.currentAppMode === 'balance_meter');
-                    const fullReport = (isBalanceMode && latestResultData.balance_meter)
-                        ? buildBalanceMeterReport(latestResultData.balance_meter, latestResultData)
-                        : generateMarkdownReport(latestResultData, downloadOptions);
-                    console.log('Markdown report generated successfully, length:', fullReport.length);
-                    
+                    console.log('Starting JSON download process...');
+
                     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
                     let person1Name = document.getElementById('nameA').value || 'PersonA';
                     const person2Name = document.getElementById('nameB').value;
                     
-                    // For Balance Meter reports, try to get the actual person name from the data
-                    if (isBalanceMode && latestResultData.balance_meter?.person?.name) {
+                    // Try to get authoritative subject names from latestResultData
+                    if (latestResultData.balance_meter?.person?.name) {
                         person1Name = latestResultData.balance_meter.person.name;
-                    } else if (isBalanceMode && latestResultData.person_a?.details?.name) {
+                    } else if (latestResultData.person_a?.details?.name) {
                         person1Name = latestResultData.person_a.details.name;
                     }
                     
@@ -8545,7 +8726,7 @@ function renderTransitDay(dateStr, items){
                     let endDate = document.getElementById('transitEndDate').value;
                     
                     // If no form dates but Balance Meter has period, use that
-                    if (isBalanceMode && latestResultData.balance_meter?.period && (!startDate || !endDate)) {
+                    if (latestResultData.balance_meter?.period && (!startDate || !endDate)) {
                         startDate = latestResultData.balance_meter.period.start;
                         endDate = latestResultData.balance_meter.period.end;
                     }
@@ -8558,18 +8739,22 @@ function renderTransitDay(dateStr, items){
                         }
                     }
                     
-                    // Determine report type
-                    const reportType = isBalanceMode ? '_balance_meter' : '_mirror';
-                    
+                    // Build Raven wrapper JSON
+                    const ravenJson = buildRavenJsonReport(latestResultData);
+
+                    // Determine report type label
+                    const isRel = Boolean(ravenJson?.context?.type === 'relational' || person2Name);
+                    const reportType = isRel ? '_relational' : '_solo';
+
                     let filename;
                     if (person2Name) {
-                        filename = `report_${person1Name}_${person2Name}${reportType}${dateRange}_${timestamp}.md`;
+                        filename = `report_${person1Name}_${person2Name}${reportType}${dateRange}_${timestamp}.json`;
                     } else {
-                        filename = `report_${person1Name}${reportType}${dateRange}_${timestamp}.md`;
+                        filename = `report_${person1Name}${reportType}${dateRange}_${timestamp}.json`;
                     }
                     
-                    console.log('Creating blob and download link...');
-                    const blob = new Blob([fullReport], { type: 'text/markdown' });
+                    console.log('Creating JSON blob and download link...');
+                    const blob = new Blob([JSON.stringify(ravenJson, null, 2)], { type: 'application/json' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
@@ -8579,18 +8764,18 @@ function renderTransitDay(dateStr, items){
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
                     
-                    console.log('Download completed successfully');
+                    console.log('JSON download completed successfully');
                     
                     // Brief visual feedback
                     const btn = document.getElementById('downloadReport');
-                    btn.textContent = '✅ Downloaded!';
-                    setTimeout(() => { btn.textContent = '📄 Download Report (.md)'; }, 2000);
+                    btn.textContent = '✅ JSON saved!';
+                    setTimeout(() => { btn.textContent = '📄 Download JSON'; }, 2000);
                     
                     // Safe logging
                     if (typeof logger !== 'undefined') {
-                        logger.info('Report downloaded', { filename, size: fullReport.length });
+                        logger.info('Report downloaded', { filename, size: blob.size, kind: 'json' });
                     } else {
-                        console.log('Report downloaded:', { filename, size: fullReport.length });
+                        console.log('Report downloaded:', { filename, size: blob.size, kind: 'json' });
                     }
                 } catch (err) {
                     console.error('Failed to download report: ', err);

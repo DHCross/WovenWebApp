@@ -1,0 +1,104 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wovenmap.app/schemas/wm_json_appendix-1.3.raven-wrapper.schema.json",
+  "title": "Woven Map Raven Wrapper Report",
+  "type": "object",
+  "required": ["report_date", "context", "balance_meter"],
+  "properties": {
+    "report_date": { "type": "string", "format": "date" },
+    "context": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string", "enum": ["solo", "relational", "family"] },
+        "natal": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "birth_date": { "type": "string" },
+            "birth_time": { "type": "string" },
+            "birth_place": { "type": "string" }
+          },
+          "required": ["name"],
+          "additionalProperties": true
+        },
+        "natal_A": { "$ref": "#/properties/context/properties/natal" },
+        "natal_B": { "$ref": "#/properties/context/properties/natal" },
+        "translocation": {
+          "type": "object",
+          "properties": {
+            "applies": { "type": "boolean" },
+            "current_location": { "type": "string" },
+            "current_location_A": { "type": "string" },
+            "current_location_B": { "type": "string" }
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "balance_meter": {
+      "type": "object",
+      "oneOf": [
+        {
+          "required": ["magnitude", "valence", "volatility", "confidence"],
+          "properties": {
+            "magnitude": {
+              "type": "object",
+              "properties": { "value": { "type": "number" }, "term": { "type": "string" } },
+              "required": ["value"]
+            },
+            "valence": {
+              "type": "object",
+              "properties": { "value": { "type": "number" }, "term": { "type": "string" }, "emoji": { "type": "string" } },
+              "required": ["value"]
+            },
+            "volatility": {
+              "type": "object",
+              "properties": { "value": { "type": "number" }, "term": { "type": "string" } },
+              "required": ["value"]
+            },
+            "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+            "glyphs": { "type": "array", "items": { "type": "string" } },
+            "quadrant": { "type": "string" },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        {
+          "required": ["shared"],
+          "properties": {
+            "shared": { "$ref": "#/properties/balance_meter/oneOf/0" },
+            "party_A": { "$ref": "#/properties/balance_meter/oneOf/0" },
+            "party_B": { "$ref": "#/properties/balance_meter/oneOf/0" }
+          }
+        }
+      ]
+    },
+    "macro_view": {
+      "type": "object",
+      "properties": {
+        "activation_curve": { "type": ["string", "null"] },
+        "valence_drift": { "type": ["string", "null"] },
+        "volatility_pattern": { "type": ["string", "null"] }
+      }
+    },
+  "micro_view": {
+      "type": "object",
+      "properties": {
+    "daily_bar_pulse": { "type": ["number", "object"] },
+    "valence_annotation": { "type": ["number", "object"] },
+    "semantic_snapshot": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string" },
+            "glyphs": { "type": "array", "items": { "type": "string" } },
+            "annotation": { "type": "string" }
+          },
+          "required": ["title"]
+    },
+    "party_A_snapshot": { "$ref": "#/properties/micro_view/properties/semantic_snapshot" },
+    "party_B_snapshot": { "$ref": "#/properties/micro_view/properties/semantic_snapshot" }
+      }
+    }
+  },
+  "additionalProperties": true
+}
