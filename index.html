@@ -412,7 +412,36 @@
         </style>
         
         <!-- PDF Generation Library - Load early -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" async defer></script>
+        
+        <!-- PDF Library Loading Verification -->
+        <script>
+            // Function to check if PDF library is ready
+            function isPDFLibraryReady() {
+                return typeof html2pdf !== 'undefined' && typeof html2pdf().constructor === 'function';
+            }
+            
+            // Function to wait for PDF library to load
+            function waitForPDFLibrary(maxWaitTime = 10000) {
+                return new Promise((resolve, reject) => {
+                    if (isPDFLibraryReady()) {
+                        resolve(true);
+                        return;
+                    }
+                    
+                    const startTime = Date.now();
+                    const checkInterval = setInterval(() => {
+                        if (isPDFLibraryReady()) {
+                            clearInterval(checkInterval);
+                            resolve(true);
+                        } else if (Date.now() - startTime > maxWaitTime) {
+                            clearInterval(checkInterval);
+                            reject(new Error('PDF library failed to load within timeout'));
+                        }
+                    }, 100);
+                });
+            }
+        </script>
     </head>
 <body class="bg-gray-900 text-gray-200">
     <div class="container mx-auto p-4 md:p-8">
@@ -6674,26 +6703,37 @@ function renderTransitDay(dateStr, items){
                     throw new Error('Comparative reporter not available');
                 }
                 
-                // Check if html2pdf is available
-                if (typeof html2pdf === 'undefined') {
-                    console.error('html2pdf library not loaded');
+                // Check if html2pdf is available with enhanced loading check
+                if (!isPDFLibraryReady()) {
+                    console.error('html2pdf library not loaded for comparative report, attempting to wait...');
                     
-                    // Wait and retry approach for correlation reports
-                    const userWantsToWait = confirm(
-                        'PDF generation library is still loading. Would you like to wait a moment and try again?\n\n' +
-                        'Click OK to wait and retry, or Cancel to use markdown download instead.'
-                    );
-                    
-                    if (userWantsToWait) {
-                        // Wait a bit and try again
-                        setTimeout(() => {
-                            document.getElementById('genComparativePdfBtn').click();
-                        }, 2000);
-                    } else {
-                        // Fall back to markdown download
-                        alert('Please use the regular markdown download for now.');
+                    try {
+                        // Try waiting for the library to load
+                        await waitForPDFLibrary(5000);
+                        console.log('PDF library loaded successfully for comparative report');
+                    } catch (error) {
+                        console.error('PDF library failed to load for comparative report:', error);
+                        
+                        // Wait and retry approach for correlation reports
+                        const userWantsToWait = confirm(
+                            'PDF generation library is taking longer than expected to load.\n\n' +
+                            'Click OK to wait longer and retry, or Cancel to use markdown download instead.'
+                        );
+                        
+                        if (userWantsToWait) {
+                            try {
+                                await waitForPDFLibrary(10000);
+                                console.log('PDF library loaded after extended wait for comparative report');
+                            } catch (extendedError) {
+                                alert('PDF generation library could not be loaded. Please try refreshing the page or use the markdown download option.');
+                                return;
+                            }
+                        } else {
+                            // Fall back to markdown download
+                            alert('Please use the regular markdown download for now.');
+                            return;
+                        }
                     }
-                    return;
                 }
 
                 const btn = document.getElementById('genComparativePdfBtn');
@@ -7545,35 +7585,54 @@ function renderTransitDay(dateStr, items){
                         ? buildBalanceMeterReport(latestResultData.balance_meter, latestResultData)
                         : generateMarkdownReport(latestResultData, downloadOptions);
                     
-                    // Check if html2pdf is available
-                    if (typeof html2pdf === 'undefined') {
-                        console.error('html2pdf library not loaded');
+                    // Check if html2pdf is available with enhanced loading check
+                    if (!isPDFLibraryReady()) {
+                        console.error('html2pdf library not loaded, attempting to wait for it...');
                         
-                        // Wait and retry approach first
-                        const userWantsToWait = confirm(
-                            'PDF generation library is still loading. Would you like to wait a moment and try again?\n\n' +
-                            'Click OK to wait and retry, or Cancel to use print-to-PDF fallback.'
-                        );
-                        
-                        if (userWantsToWait) {
-                            // Wait a bit and try again
-                            setTimeout(() => {
-                                document.getElementById('downloadPDF').click();
-                            }, 2000);
-                            return;
+                        try {
+                            // Try waiting for the library to load
+                            await waitForPDFLibrary(5000); // Wait up to 5 seconds
+                            console.log('PDF library loaded successfully after waiting');
+                        } catch (error) {
+                            console.error('PDF library failed to load:', error);
+                            
+                            // Show user options for handling the failure
+                            const userWantsToWait = confirm(
+                                'PDF generation library is taking longer than expected to load. This can happen with slow internet connections.\n\n' +
+                                'Click OK to wait longer and retry, or Cancel to use print-to-PDF fallback.'
+                            );
+                            
+                            if (userWantsToWait) {
+                                // Wait longer and try again
+                                try {
+                                    await waitForPDFLibrary(10000); // Wait up to 10 more seconds
+                                    console.log('PDF library loaded successfully after extended wait');
+                                } catch (extendedError) {
+                                    console.error('PDF library still failed to load after extended wait');
+                                    // Offer print-to-PDF fallback
+                                    const userWantsPrintFallback = confirm(
+                                        'PDF generation library could not be loaded. Would you like to use your browser\'s print function instead?\n\n' +
+                                        'This will open a print dialog where you can "Save as PDF".'
+                                    );
+                                    
+                                    if (userWantsPrintFallback) {
+                                        printReportAsPDF(markdownReport);
+                                    }
+                                    return;
+                                }
+                            } else {
+                                // Offer print-to-PDF fallback
+                                const userWantsPrintFallback = confirm(
+                                    'Would you like to use your browser\'s print function instead?\n\n' +
+                                    'This will open a print dialog where you can "Save as PDF".'
+                                );
+                                
+                                if (userWantsPrintFallback) {
+                                    printReportAsPDF(markdownReport);
+                                }
+                                return;
+                            }
                         }
-                        
-                        // Offer print-to-PDF fallback
-                        const userWantsPrintFallback = confirm(
-                            'PDF generation library not loaded. Would you like to use your browser\'s print function instead?\n\n' +
-                            'This will open a print dialog where you can "Save as PDF".'
-                        );
-                        
-                        if (userWantsPrintFallback) {
-                            // Use browser print for PDF fallback
-                            printReportAsPDF(markdownReport);
-                        }
-                        return;
                     }
                     
                     // Convert markdown to HTML for PDF generation
@@ -8699,6 +8758,21 @@ function renderTransitDay(dateStr, items){
                     toggleRawDataBtn.style.display = 'inline';
                 });
             }
+            
+            // PDF Library Readiness Check
+            setTimeout(() => {
+                if (!isPDFLibraryReady()) {
+                    console.warn('PDF library not yet ready, will wait for it when needed');
+                    // Optionally, you could preload it here:
+                    waitForPDFLibrary(10000).then(() => {
+                        console.log('PDF library successfully loaded in background');
+                    }).catch((error) => {
+                        console.warn('PDF library failed to load in background:', error);
+                    });
+                } else {
+                    console.log('PDF library ready at page load');
+                }
+            }, 1000);
             relationalContextSection = document.getElementById('relational-context-section');
             intimacyTierDropdown = document.getElementById('intimacy-tier-dropdown');
             exRelationshipCheckbox = document.getElementById('exRelationship');
