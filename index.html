@@ -2701,6 +2701,709 @@ function renderTransitDay(dateStr, items){
             return md;
         }
 
+        function generateClearMirrorReport(data, options = {}) {
+            // CLEAR MIRROR — SOLO TEMPLATE (FIELD → MAP → VOICE Skeleton)
+            // This function generates reports using the standardized Clear Mirror format
+            // for both solo and relational contexts
+            
+            const formData = collectFormData();
+            const currentDate = new Date().toISOString().split('T')[0];
+            const personA = (data.person_a && data.person_a.details) ? data.person_a.details : formData.personA;
+            const personB = (data.person_b && data.person_b.details) ? data.person_b.details : formData.personB;
+            const mode = formData.context.mode;
+            const isRelational = personB && personB.name && personB.name.trim();
+            
+            let md = '';
+            
+            // Header
+            md += `# Clear Mirror — ${isRelational ? 'Relational' : 'Solo'} Template\n\n`;
+            md += `**FIELD → MAP → VOICE Skeleton**\n\n`;
+            md += `Generated: ${currentDate}  \n`;
+            md += `Context: ${mode.replace(/_/g, ' ').toUpperCase()}  \n`;
+            md += `Subject${isRelational ? 's' : ''}: ${personA.name}${isRelational ? ` & ${personB.name}` : ''}  \n\n`;
+            
+            // Generate report for Person A
+            md += generatePersonClearMirror(data.person_a, personA, 'Person A');
+            
+            // Generate report for Person B if relational
+            if (isRelational && data.person_b) {
+                md += '\n\n---\n\n';
+                md += generatePersonClearMirror(data.person_b, personB, 'Person B');
+            }
+            
+            // Relational synthesis if applicable
+            if (isRelational && data.synastry) {
+                md += '\n\n---\n\n';
+                md += generateRelationalMirror(data, personA, personB);
+            }
+            
+            return md;
+        }
+        
+        function generatePersonClearMirror(personData, personDetails, label) {
+            let md = `## ${label}: ${personDetails.name}\n\n`;
+            
+            // Hook Stack Section
+            md += `### Hook Stack\n\n`;
+            
+            // Get major aspects for Hook Stack (using top aspects or hooks if available)
+            const aspects = getTopAspectsForPerson(personData);
+            const hookStackItems = aspects.slice(0, 4); // Top 4 for Hook Stack
+            
+            hookStackItems.forEach((aspect, index) => {
+                const polarity = generatePolarityFromAspect(aspect, index + 1);
+                md += `**[${polarity.title}]**\n\n`;
+                md += `FIELD (felt tone): ${polarity.field}\n\n`;
+                md += `MAP (geometry): ${polarity.map}\n\n`;
+                md += `VOICE (user-facing): ${polarity.voice}\n\n`;
+                if (index < hookStackItems.length - 1) md += `⸻\n\n`;
+            });
+            
+            md += `\n⸻\n\n`;
+            
+            // Polarity Cards Section
+            md += `### Polarity Cards\n\n`;
+            
+            const polarityCards = aspects.slice(0, 4); // Use same or different aspects
+            
+            polarityCards.forEach((aspect, index) => {
+                const polarity = generatePolarityCardFromAspect(aspect);
+                md += `**[${polarity.nameA} / ${polarity.nameB}]**\n\n`;
+                md += `FIELD: ${polarity.field}\n\n`;
+                md += `MAP: ${polarity.map}\n\n`;
+                md += `VOICE: ${polarity.voice}\n\n`;
+                if (index < polarityCards.length - 1) md += `\n`;
+            });
+            
+            md += `\n⸻\n\n`;
+            
+            // Mirror Voice (Stitched Reflection)
+            md += `### Mirror Voice (Stitched Reflection)\n\n`;
+            
+            const mirrorVoice = generateMirrorVoiceForPerson(personData, personDetails);
+            md += `FIELD: ${mirrorVoice.field}\n\n`;
+            md += `MAP: ${mirrorVoice.map}\n\n`;
+            md += `VOICE: ${mirrorVoice.voice} *All requires The Poetic Brain to translate further and the user/client to verify if any of it resonates.*\n\n`;
+            
+            // Add Typological Profile section
+            md += `⸻\n\n`;
+            md += `### Typological Profile Input Template (Math Brain → Raven Calder)\n\n`;
+            
+            const typologyProfile = generateTypologicalProfile(personData, personDetails);
+            
+            md += `**1. Dominant Orientation (Sun, Mercury, Ascendant drivers)**\n\n`;
+            md += `Raw placements: ${typologyProfile.dominant.rawPlacements}\n\n`;
+            md += `Functional emphasis: ${typologyProfile.dominant.functionalEmphasis}\n\n`;
+            md += `Orientation: ${typologyProfile.dominant.orientation}\n\n`;
+            
+            md += `**2. Secondary Orientation (Moon + auxiliary aspects)**\n\n`;
+            md += `Raw placements: ${typologyProfile.secondary.rawPlacements}\n\n`;
+            md += `Functional emphasis: ${typologyProfile.secondary.functionalEmphasis}\n\n`;
+            md += `Orientation cue: ${typologyProfile.secondary.orientationCue}\n\n`;
+            
+            md += `**3. Shadow / Inferior Orientation (Mars, Saturn, Neptune, outer-planet entanglements)**\n\n`;
+            md += `Raw placements: ${typologyProfile.shadow.rawPlacements}\n\n`;
+            md += `Inferior functions implicated: ${typologyProfile.shadow.inferiorFunctions}\n\n`;
+            md += `Pressure description: ${typologyProfile.shadow.pressureDescription}\n\n`;
+            
+            md += `**4. Constitutional Climate Summary**\n\n`;
+            md += `Math Brain notes: ${typologyProfile.climate.mathBrainNotes}\n\n`;
+            md += `Climate tags: ${typologyProfile.climate.climateTags}\n\n`;
+            
+            md += `**Raven Translation Output (VOICE)**\n\n`;
+            md += `**Typological Profile (Plain Language)**\n\n`;
+            md += `Dominant orientation: ${typologyProfile.ravenTranslation.dominant}\n\n`;
+            md += `Secondary orientation: ${typologyProfile.ravenTranslation.secondary}\n\n`;
+            md += `Shadow orientation: ${typologyProfile.ravenTranslation.shadow}\n\n`;
+            md += `Constitutional climate: ${typologyProfile.ravenTranslation.climate}\n\n`;
+            
+            return md;
+        }
+        
+        function generateRelationalMirror(data, personA, personB) {
+            let md = `## Relational Mirror Synthesis\n\n`;
+            
+            // Relational Hook Stack
+            md += `### Relational Hook Stack\n\n`;
+            
+            const relationalAspects = getTopRelationalAspects(data);
+            const relationalHooks = relationalAspects.slice(0, 3);
+            
+            relationalHooks.forEach((aspect, index) => {
+                const polarity = generateRelationalPolarityFromAspect(aspect, personA.name, personB.name);
+                md += `**[${polarity.title}]**\n\n`;
+                md += `FIELD (felt tone): ${polarity.field}\n\n`;
+                md += `MAP (geometry): ${polarity.map}\n\n`;
+                md += `VOICE (user-facing): ${polarity.voice}\n\n`;
+                if (index < relationalHooks.length - 1) md += `⸻\n\n`;
+            });
+            
+            md += `\n⸻\n\n`;
+            
+            // Relational Polarity Cards
+            md += `### Relational Polarity Cards\n\n`;
+            
+            relationalAspects.slice(0, 3).forEach((aspect, index) => {
+                const polarity = generateRelationalPolarityCard(aspect, personA.name, personB.name);
+                md += `**[${polarity.nameA} / ${polarity.nameB}]**\n\n`;
+                md += `FIELD: ${polarity.field}\n\n`;
+                md += `MAP: ${polarity.map}\n\n`;
+                md += `VOICE: ${polarity.voice}\n\n`;
+                if (index < relationalAspects.slice(0, 3).length - 1) md += `\n`;
+            });
+            
+            md += `\n⸻\n\n`;
+            
+            // Relational Mirror Voice
+            md += `### Mirror Voice (Relational Synthesis)\n\n`;
+            
+            const relationalMirror = generateRelationalMirrorVoice(data, personA, personB);
+            md += `FIELD: ${relationalMirror.field}\n\n`;
+            md += `MAP: ${relationalMirror.map}\n\n`;
+            md += `VOICE: ${relationalMirror.voice} *All requires The Poetic Brain to translate further and the user/client to verify if any of it resonates.*\n\n`;
+            
+            return md;
+        }
+        
+        // Helper functions for Clear Mirror template generation
+        
+        function getTopAspectsForPerson(personData) {
+            // Extract and prioritize aspects for this person
+            const aspects = [];
+            
+            // Check for transit aspects first (if available)
+            if (personData?.chart?.transitsByDate) {
+                const firstDay = Object.values(personData.chart.transitsByDate)[0];
+                if (firstDay?.hooks) {
+                    aspects.push(...firstDay.hooks.map(h => ({...h, type: 'transit_hook'})));
+                }
+                if (firstDay?.filtered_aspects) {
+                    aspects.push(...firstDay.filtered_aspects.map(a => ({...a, type: 'transit_aspect'})));
+                }
+            }
+            
+            // Add natal aspects if available
+            if (personData?.chart?.aspects) {
+                aspects.push(...personData.chart.aspects.map(a => ({...a, type: 'natal_aspect'})));
+            }
+            
+            // Sort by orb (tighter aspects first)
+            return aspects.sort((a, b) => {
+                const orbA = Math.abs(a.orb || a.orbit || a.diff || 10);
+                const orbB = Math.abs(b.orb || b.orbit || b.diff || 10);
+                return orbA - orbB;
+            });
+        }
+        
+        function getTopRelationalAspects(data) {
+            const aspects = [];
+            
+            // Synastry aspects
+            if (data.synastry?.aspects) {
+                aspects.push(...data.synastry.aspects.map(a => ({...a, type: 'synastry'})));
+            }
+            
+            // Composite aspects
+            if (data.composite?.chart?.aspects) {
+                aspects.push(...data.composite.chart.aspects.map(a => ({...a, type: 'composite'})));
+            }
+            
+            // Sort by orb (tighter aspects first)
+            return aspects.sort((a, b) => {
+                const orbA = Math.abs(a.orb || a.orbit || a.diff || 10);
+                const orbB = Math.abs(b.orb || b.orbit || b.diff || 10);
+                return orbA - orbB;
+            });
+        }
+        
+        function generatePolarityFromAspect(aspect, index) {
+            const p1 = aspect.p1_name || aspect.planet_a || aspect.transit_body || 'Unknown';
+            const p2 = aspect.p2_name || aspect.planet_b || aspect.natal_target || 'Unknown';
+            const aspectName = aspect.aspect || aspect.aspect_name || aspect.name || 'conjunction';
+            const orb = Math.abs(aspect.orb || aspect.orbit || aspect.diff || 0);
+            
+            // Generate polarity titles based on planets and aspect
+            const title = generatePolarityTitle(p1, p2, aspectName);
+            
+            // Generate FIELD content (felt tone)
+            const field = generateFieldContent(p1, p2, aspectName);
+            
+            // Generate MAP content (geometry)
+            const map = `${p1} ${aspectName} ${p2} (${orb.toFixed(1)}° orb)`;
+            
+            // Generate VOICE content (user-facing description)
+            const voice = generateVoiceContent(p1, p2, aspectName);
+            
+            return { title, field, map, voice };
+        }
+        
+        function generatePolarityCardFromAspect(aspect) {
+            const p1 = aspect.p1_name || aspect.planet_a || aspect.transit_body || 'Unknown';
+            const p2 = aspect.p2_name || aspect.planet_b || aspect.natal_target || 'Unknown';
+            const aspectName = aspect.aspect || aspect.aspect_name || aspect.name || 'conjunction';
+            const orb = Math.abs(aspect.orb || aspect.orbit || aspect.diff || 0);
+            
+            // Generate polarity names
+            const nameA = generatePolarityName(p1, aspectName, 'A');
+            const nameB = generatePolarityName(p2, aspectName, 'B');
+            
+            // Generate content
+            const field = generateCardFieldContent(p1, p2, aspectName);
+            const map = `${p1} ${aspectName} ${p2} (${orb.toFixed(1)}° orb)`;
+            const voice = generateCardVoiceContent(p1, p2, aspectName);
+            
+            return { nameA, nameB, field, map, voice };
+        }
+        
+        function generateRelationalPolarityFromAspect(aspect, personAName, personBName) {
+            const p1 = aspect.p1_name || aspect.planet_a || 'Unknown';
+            const p2 = aspect.p2_name || aspect.planet_b || 'Unknown';
+            const aspectName = aspect.aspect || aspect.aspect_name || 'conjunction';
+            const orb = Math.abs(aspect.orb || aspect.orbit || 0);
+            
+            // Determine which person owns which planet
+            const p1Owner = aspect.p1_owner || personAName;
+            const p2Owner = aspect.p2_owner || personBName;
+            
+            const title = `${p1Owner}'s ${p1} ${aspectName} ${p2Owner}'s ${p2}`;
+            const field = generateRelationalFieldContent(p1, p2, aspectName, p1Owner, p2Owner);
+            const map = `${p1Owner} ${p1} ${aspectName} ${p2Owner} ${p2} (${orb.toFixed(1)}° orb)`;
+            const voice = generateRelationalVoiceContent(p1, p2, aspectName, p1Owner, p2Owner);
+            
+            return { title, field, map, voice };
+        }
+        
+        function generateRelationalPolarityCard(aspect, personAName, personBName) {
+            const p1 = aspect.p1_name || aspect.planet_a || 'Unknown';
+            const p2 = aspect.p2_name || aspect.planet_b || 'Unknown';
+            const aspectName = aspect.aspect || aspect.aspect_name || 'conjunction';
+            const orb = Math.abs(aspect.orb || aspect.orbit || 0);
+            
+            const p1Owner = aspect.p1_owner || personAName;
+            const p2Owner = aspect.p2_owner || personBName;
+            
+            const nameA = `${p1Owner}'s ${p1}`;
+            const nameB = `${p2Owner}'s ${p2}`;
+            const field = generateRelationalCardFieldContent(p1, p2, aspectName, p1Owner, p2Owner);
+            const map = `${p1Owner} ${p1} ${aspectName} ${p2Owner} ${p2} (${orb.toFixed(1)}° orb)`;
+            const voice = generateRelationalCardVoiceContent(p1, p2, aspectName, p1Owner, p2Owner);
+            
+            return { nameA, nameB, field, map, voice };
+        }
+        
+        function generateMirrorVoiceForPerson(personData, personDetails) {
+            // Generate overall synthesis for individual
+            const field = "Overall structural climate synthesizing multiple planetary tensions and supports";
+            const map = "Connecting aspects forming the core personality framework";
+            const voice = `${personDetails.name}'s chart reveals structural tension patterns that serve as growth edges rather than limitations. The geometry suggests areas where dialogue between opposing forces creates movement and development. This tension is structural, not a flaw.`;
+            
+            return { field, map, voice };
+        }
+        
+        function generateRelationalMirrorVoice(data, personA, personB) {
+            // Generate relational synthesis
+            const field = "Combined relational climate showing where two systems intersect and create dynamic tension";
+            const map = "Cross-chart aspects forming the relational geometry between both individuals";
+            const voice = `The relationship between ${personA.name} and ${personB.name} creates a structural field where individual patterns interact. The tension points revealed here are not problems to solve but dynamics to navigate consciously. Growth often emerges from the dialogue between different approaches to the same universal themes.`;
+            
+            return { field, map, voice };
+        }
+
+        // Content generation helper functions
+        
+        function generatePolarityTitle(p1, p2, aspect) {
+            const planetMeanings = {
+                'Sun': 'Identity', 'Moon': 'Feeling', 'Mercury': 'Communication',
+                'Venus': 'Values', 'Mars': 'Action', 'Jupiter': 'Expansion',
+                'Saturn': 'Structure', 'Uranus': 'Innovation', 'Neptune': 'Intuition',
+                'Pluto': 'Transformation'
+            };
+            
+            const p1Meaning = planetMeanings[p1] || p1;
+            const p2Meaning = planetMeanings[p2] || p2;
+            
+            return `${p1Meaning} / ${p2Meaning} Dynamic`;
+        }
+        
+        function generateFieldContent(p1, p2, aspect) {
+            // Generate felt sense descriptions based on planetary combinations
+            const fieldTemplates = {
+                'conjunction': 'Merging energies creating unified but potentially overwhelming sensation',
+                'opposition': 'Pull between two directions creating productive tension',
+                'square': 'Friction generating movement and growth through challenge',
+                'trine': 'Natural flow creating ease and harmony',
+                'sextile': 'Opportunity for integration through conscious effort'
+            };
+            
+            return fieldTemplates[aspect] || 'Dynamic interaction between planetary energies';
+        }
+        
+        function generateVoiceContent(p1, p2, aspect) {
+            // Generate user-facing descriptions
+            const aspectMeanings = {
+                'conjunction': 'These energies blend together, sometimes harmoniously, sometimes creating intensity that needs conscious direction.',
+                'opposition': 'These energies pull in different directions, creating awareness through contrast and the need to find balance.',
+                'square': 'These energies create friction that generates movement - challenge that promotes growth when engaged consciously.',
+                'trine': 'These energies flow naturally together, creating ease and supporting natural expression.',
+                'sextile': 'These energies offer opportunities for integration through conscious engagement and effort.'
+            };
+            
+            return aspectMeanings[aspect] || 'These planetary energies interact in ways that create opportunities for conscious awareness and growth.';
+        }
+        
+        function generatePolarityName(planet, aspect, side) {
+            const polarities = {
+                'Sun': { A: 'Core Self', B: 'Expressed Identity' },
+                'Moon': { A: 'Inner Feeling', B: 'Emotional Response' },
+                'Mercury': { A: 'Mental Process', B: 'Communication Style' },
+                'Venus': { A: 'Personal Values', B: 'Relational Expression' },
+                'Mars': { A: 'Inner Drive', B: 'Outward Action' }
+            };
+            
+            return polarities[planet]?.[side] || `${planet} ${side}`;
+        }
+        
+        function generateCardFieldContent(p1, p2, aspect) {
+            return `Felt experience of ${p1}-${p2} tension manifesting as bodily sensation or emotional climate`;
+        }
+        
+        function generateCardVoiceContent(p1, p2, aspect) {
+            return `How this ${p1}-${p2} dynamic usually expresses in daily life, and what helps balance or redirect the energy when it becomes overwhelming.`;
+        }
+        
+        function generateRelationalFieldContent(p1, p2, aspect, owner1, owner2) {
+            return `Interpersonal felt sense when ${owner1}'s ${p1} meets ${owner2}'s ${p2} energy`;
+        }
+        
+        function generateRelationalVoiceContent(p1, p2, aspect, owner1, owner2) {
+            return `How ${owner1}'s ${p1} and ${owner2}'s ${p2} interact in relationship, creating both connection points and areas where different approaches meet.`;
+        }
+        
+        function generateRelationalCardFieldContent(p1, p2, aspect, owner1, owner2) {
+            return `Relational climate created when these two planetary energies interact between ${owner1} and ${owner2}`;
+        }
+        
+        function generateRelationalCardVoiceContent(p1, p2, aspect, owner1, owner2) {
+            return `How this cross-chart connection typically plays out in the relationship, showing both the gifts and challenges of this particular energetic meeting point.`;
+        }
+        
+        // Typological Profile Generation Functions
+        
+        function generateTypologicalProfile(personData, personDetails) {
+            // Extract key chart data
+            const chartData = extractChartDataForTypology(personData);
+            
+            // Analyze dominant orientation (Sun, Mercury, Ascendant)
+            const dominant = analyzeDominantOrientation(chartData);
+            
+            // Analyze secondary orientation (Moon + auxiliary)
+            const secondary = analyzeSecondaryOrientation(chartData);
+            
+            // Analyze shadow/inferior orientation (Mars, Saturn, Neptune, outer planets)
+            const shadow = analyzeShadowOrientation(chartData);
+            
+            // Generate constitutional climate summary
+            const climate = generateConstitutionalClimate(chartData);
+            
+            // Generate Raven translation (VOICE)
+            const ravenTranslation = generateRavenTranslation(dominant, secondary, shadow, climate, personDetails);
+            
+            return {
+                dominant,
+                secondary,
+                shadow,
+                climate,
+                ravenTranslation
+            };
+        }
+        
+        function extractChartDataForTypology(personData) {
+            const chart = personData?.chart?.data?.subject || {};
+            const aspects = personData?.chart?.aspects || [];
+            
+            return {
+                sun: chart.sun || {},
+                moon: chart.moon || {},
+                mercury: chart.mercury || {},
+                venus: chart.venus || {},
+                mars: chart.mars || {},
+                jupiter: chart.jupiter || {},
+                saturn: chart.saturn || {},
+                uranus: chart.uranus || {},
+                neptune: chart.neptune || {},
+                pluto: chart.pluto || {},
+                ascendant: chart.ascendant || {},
+                midheaven: chart.midheaven || {},
+                aspects: aspects
+            };
+        }
+        
+        function analyzeDominantOrientation(chartData) {
+            // Focus on Sun, Mercury, and Ascendant for dominant function
+            const sun = chartData.sun;
+            const mercury = chartData.mercury;
+            const ascendant = chartData.ascendant;
+            
+            // Build raw placements description
+            const rawPlacements = [
+                `Sun in ${sun.sign || 'Unknown'} (${sun.house || 'Unknown'})`,
+                `Mercury in ${mercury.sign || 'Unknown'} (${mercury.house || 'Unknown'})${mercury.retrograde ? ' ℞' : ''}`,
+                `Ascendant in ${ascendant.sign || 'Unknown'}`
+            ].join(', ');
+            
+            // Determine functional emphasis
+            const functionalEmphasis = determineFunctionalEmphasis(sun, mercury, ascendant);
+            
+            // Determine orientation (Introverted/Extraverted)
+            const orientation = determineOrientation(sun, mercury, ascendant);
+            
+            return {
+                rawPlacements,
+                functionalEmphasis,
+                orientation
+            };
+        }
+        
+        function analyzeSecondaryOrientation(chartData) {
+            const moon = chartData.moon;
+            
+            // Find auxiliary aspects to Moon
+            const moonAspects = chartData.aspects.filter(aspect => 
+                aspect.p1_name === 'Moon' || aspect.p2_name === 'Moon'
+            ).slice(0, 3);
+            
+            const aspectsText = moonAspects.length > 0 
+                ? moonAspects.map(a => `${a.p1_name || ''} ${a.aspect || ''} ${a.p2_name || ''}`).join(', ')
+                : 'No major aspects';
+            
+            const rawPlacements = `Moon in ${moon.sign || 'Unknown'} (${moon.house || 'Unknown'}), aspects: ${aspectsText}`;
+            
+            const functionalEmphasis = determineSecondaryFunction(moon);
+            const orientationCue = determineSecondaryOrientation(moon);
+            
+            return {
+                rawPlacements,
+                functionalEmphasis,
+                orientationCue
+            };
+        }
+        
+        function analyzeShadowOrientation(chartData) {
+            // Focus on Mars, Saturn, Neptune, and outer planets for shadow/inferior
+            const mars = chartData.mars;
+            const saturn = chartData.saturn;
+            const neptune = chartData.neptune;
+            const uranus = chartData.uranus;
+            const pluto = chartData.pluto;
+            
+            // Find challenging aspects
+            const challengingAspects = chartData.aspects.filter(aspect => 
+                (aspect.aspect === 'square' || aspect.aspect === 'opposition' || aspect.aspect === 'quincunx') &&
+                (aspect.p1_name === 'Mars' || aspect.p1_name === 'Saturn' || aspect.p1_name === 'Neptune' ||
+                 aspect.p2_name === 'Mars' || aspect.p2_name === 'Saturn' || aspect.p2_name === 'Neptune')
+            ).slice(0, 4);
+            
+            const rawPlacements = [
+                `Mars in ${mars.sign || 'Unknown'} (${mars.house || 'Unknown'})`,
+                `Saturn in ${saturn.sign || 'Unknown'} (${saturn.house || 'Unknown'})`,
+                `Neptune in ${neptune.sign || 'Unknown'} (${neptune.house || 'Unknown'})`
+            ].join(', ') + (challengingAspects.length > 0 ? '; Challenging aspects: ' + 
+                challengingAspects.map(a => `${a.p1_name} ${a.aspect} ${a.p2_name}`).join(', ') : '');
+            
+            const inferiorFunctions = determineInferiorFunctions(mars, saturn, neptune);
+            const pressureDescription = generatePressureDescription(challengingAspects, mars, saturn, neptune);
+            
+            return {
+                rawPlacements,
+                inferiorFunctions,
+                pressureDescription
+            };
+        }
+        
+        function generateConstitutionalClimate(chartData) {
+            // Create shorthand geometric summary
+            const mathBrainNotes = createMathBrainShorthand(chartData);
+            
+            // Generate climate tags
+            const climateTags = generateClimateTags(chartData);
+            
+            return {
+                mathBrainNotes,
+                climateTags
+            };
+        }
+        
+        function generateRavenTranslation(dominant, secondary, shadow, climate, personDetails) {
+            return {
+                dominant: translateDominantOrientation(dominant),
+                secondary: translateSecondaryOrientation(secondary),
+                shadow: translateShadowOrientation(shadow),
+                climate: translateConstitutionalClimate(climate, personDetails.name)
+            };
+        }
+        
+        // Helper functions for typological analysis
+        
+        function determineFunctionalEmphasis(sun, mercury, ascendant) {
+            // Map signs to psychological functions
+            const functionMap = {
+                // Fire signs -> Intuition
+                'Aries': 'Intuition', 'Leo': 'Intuition', 'Sagittarius': 'Intuition',
+                // Earth signs -> Sensation
+                'Taurus': 'Sensation', 'Virgo': 'Sensation', 'Capricorn': 'Sensation',
+                // Air signs -> Thinking
+                'Gemini': 'Thinking', 'Libra': 'Thinking', 'Aquarius': 'Thinking',
+                // Water signs -> Feeling
+                'Cancer': 'Feeling', 'Scorpio': 'Feeling', 'Pisces': 'Feeling'
+            };
+            
+            const sunFunction = functionMap[sun.sign] || 'Unknown';
+            const mercuryFunction = functionMap[mercury.sign] || 'Unknown';
+            const ascFunction = functionMap[ascendant.sign] || 'Unknown';
+            
+            // Primary emphasis based on Sun, modified by Mercury and Ascendant
+            return `${sunFunction} (Sun), supported by ${mercuryFunction} (Mercury) and ${ascFunction} (Ascendant)`;
+        }
+        
+        function determineOrientation(sun, mercury, ascendant) {
+            // Simple heuristic: even houses = introverted, odd houses = extraverted
+            const sunHouse = parseInt(sun.house) || 1;
+            const mercuryHouse = parseInt(mercury.house) || 1;
+            const ascHouse = 1; // Ascendant is always 1st house
+            
+            const introvertedCount = [sunHouse, mercuryHouse, ascHouse].filter(h => h % 2 === 0).length;
+            
+            return introvertedCount >= 2 ? 'Introverted' : 'Extraverted';
+        }
+        
+        function determineSecondaryFunction(moon) {
+            const functionMap = {
+                'Aries': 'Intuition', 'Leo': 'Intuition', 'Sagittarius': 'Intuition',
+                'Taurus': 'Sensation', 'Virgo': 'Sensation', 'Capricorn': 'Sensation',
+                'Gemini': 'Thinking', 'Libra': 'Thinking', 'Aquarius': 'Thinking',
+                'Cancer': 'Feeling', 'Scorpio': 'Feeling', 'Pisces': 'Feeling'
+            };
+            
+            return functionMap[moon.sign] || 'Unknown';
+        }
+        
+        function determineSecondaryOrientation(moon) {
+            const moonHouse = parseInt(moon.house) || 1;
+            return moonHouse <= 6 ? 'inner/emotional' : 'outer/social';
+        }
+        
+        function determineInferiorFunctions(mars, saturn, neptune) {
+            // Inferior function is typically opposite to dominant
+            const inferiorMap = {
+                'Thinking': 'Feeling', 'Feeling': 'Thinking',
+                'Sensation': 'Intuition', 'Intuition': 'Sensation'
+            };
+            
+            return 'Usually opposite of dominant function (determined by pressure aspects)';
+        }
+        
+        function generatePressureDescription(challengingAspects, mars, saturn, neptune) {
+            if (challengingAspects.length === 0) {
+                return 'Minimal pressure aspects detected';
+            }
+            
+            const pressureTypes = [];
+            challengingAspects.forEach(aspect => {
+                if (aspect.p1_name === 'Saturn' || aspect.p2_name === 'Saturn') {
+                    pressureTypes.push('constraint');
+                }
+                if (aspect.p1_name === 'Mars' || aspect.p2_name === 'Mars') {
+                    pressureTypes.push('volatility');
+                }
+                if (aspect.p1_name === 'Neptune' || aspect.p2_name === 'Neptune') {
+                    pressureTypes.push('dissolution');
+                }
+            });
+            
+            return pressureTypes.length > 0 ? pressureTypes.join(', ') : 'mixed pressure patterns';
+        }
+        
+        function createMathBrainShorthand(chartData) {
+            const sun = chartData.sun;
+            const moon = chartData.moon;
+            const mercury = chartData.mercury;
+            
+            return `${sun.sign || '?'} Sun (${sun.house || '?'}) + ${moon.sign || '?'} Moon (${moon.house || '?'}) + ${mercury.sign || '?'} Mercury (${mercury.house || '?'})`;
+        }
+        
+        function generateClimateTags(chartData) {
+            const tags = [];
+            
+            // Analyze elemental balance
+            const elements = ['fire', 'earth', 'air', 'water'];
+            const elementCounts = {};
+            
+            [chartData.sun, chartData.moon, chartData.mercury].forEach(planet => {
+                const element = getElementForSign(planet.sign);
+                elementCounts[element] = (elementCounts[element] || 0) + 1;
+            });
+            
+            // Dominant element influences climate
+            const dominantElement = Object.keys(elementCounts).reduce((a, b) => 
+                elementCounts[a] > elementCounts[b] ? a : b
+            );
+            
+            const climateMap = {
+                'fire': 'dynamic',
+                'earth': 'structured', 
+                'air': 'fluid',
+                'water': 'tidal'
+            };
+            
+            tags.push(climateMap[dominantElement] || 'mixed');
+            
+            // Add complexity tags based on aspects
+            if (chartData.aspects.length > 15) tags.push('complex');
+            if (chartData.aspects.filter(a => a.aspect === 'opposition').length >= 2) tags.push('tension-rich');
+            
+            return tags.join(', ');
+        }
+        
+        function getElementForSign(sign) {
+            const elementMap = {
+                'Aries': 'fire', 'Leo': 'fire', 'Sagittarius': 'fire',
+                'Taurus': 'earth', 'Virgo': 'earth', 'Capricorn': 'earth',
+                'Gemini': 'air', 'Libra': 'air', 'Aquarius': 'air',
+                'Cancer': 'water', 'Scorpio': 'water', 'Pisces': 'water'
+            };
+            return elementMap[sign] || 'unknown';
+        }
+        
+        function translateDominantOrientation(dominant) {
+            return `Primary lens operates through ${dominant.functionalEmphasis.split(' ')[0].toLowerCase()} with ${dominant.orientation.toLowerCase()} attitude, creating the main perceptual climate.`;
+        }
+        
+        function translateSecondaryOrientation(secondary) {
+            return `Supporting current flows through ${secondary.functionalEmphasis.toLowerCase()} with ${secondary.orientationCue} emphasis, providing auxiliary navigation.`;
+        }
+        
+        function translateShadowOrientation(shadow) {
+            return `Pressure field involves ${shadow.pressureDescription}, activating inferior function dynamics that require conscious integration.`;
+        }
+        
+        function translateConstitutionalClimate(climate, name) {
+            return `${name}'s constitutional weather: ${climate.climateTags} — like ${generateWeatherMetaphor(climate.climateTags)}.`;
+        }
+        
+        function generateWeatherMetaphor(climateTags) {
+            const metaphors = {
+                'structured': 'a well-built house with reliable heating',
+                'dynamic': 'a crackling fire that needs tending',
+                'fluid': 'changeable winds through an open landscape', 
+                'tidal': 'rhythmic ocean currents with deep undercurrents',
+                'complex': 'layered weather systems with multiple fronts',
+                'tension-rich': 'atmospheric pressure creating dynamic weather patterns'
+            };
+            
+            const primaryTag = climateTags.split(',')[0].trim();
+            return metaphors[primaryTag] || 'unique weather patterns that require individual attention';
+        }
+
         function generateMarkdownReport(data, options = {}) {
             // MATH BRAIN COMPLIANCE (PROTOCOL LAYER 1: GEOMETRY ONLY):
             // - Output pure astrological geometry with provenance tracking
@@ -7154,14 +7857,16 @@ function renderTransitDay(dateStr, items){
                     report = buildBalanceMeterReport(payload);
                     console.log('Generated Balance Meter report, length:', report?.length);
                 } else {
-                    // Generate Mirror report (seismograph auto-appends when transit hooks exist)
+                    // Generate Mirror report using Clear Mirror template
                     const displayOptions = {
                         includeExecutiveSummary: false,
                         includeJsonAppendix: false,
                         includeProvenance: false
                     };
-                    report = generateMarkdownReport(result, displayOptions);
-                    console.log('Generated Mirror report, length:', report?.length);
+                    
+                    // Use Clear Mirror template for user-facing reports
+                    report = generateClearMirrorReport(result, displayOptions);
+                    console.log('Generated Clear Mirror report, length:', report?.length);
                 }
                 
                 // Store the generated report for tab switching
