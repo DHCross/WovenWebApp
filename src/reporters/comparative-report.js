@@ -59,6 +59,61 @@
 
     let md = `# Comparative Report (Seismograph × Health)\n\n`;
     md += `Temporal Scope: ${start||'—'} → ${end||start||'—'}\n\n`;
+
+    // --- Three-axis overlay summary ---
+    // Build arrays for each channel and their health analogues to compute similarity (1 - mean absolute diff)
+    const arr = {
+      s_val: [], h_val: [], // valence ↔ mood valence (normalized -1..1)
+      s_mag: [], h_mag: [], // magnitude ↔ intensity proxy (label count if present else inverted sleep gap)
+      s_vol: [], h_vol: []  // volatility ↔ day-to-day swings (if we had it) or HRV as a correlate
+    };
+    // Helpers to safe-push pairs only when both exist
+    function pushPair(sa, ha, sv, hv){ if (sa!=null && ha!=null) { arr[sv].push(sa); arr[hv].push(ha); } }
+    // Build per-day inputs
+    let lastMood = null;
+    dates.forEach(d => {
+      const s = seismoMap[d]||{}; const h = healthByDate[d]||{};
+      // Valence normalization
+      const sv = typeof s.valence==='number' ? Math.max(-1, Math.min(1, (s.valence||0)/5)) : null;
+      const hv = typeof h.mood_valence==='number' ? Math.max(-1, Math.min(1, h.mood_valence)) : null;
+      if (sv!=null && hv!=null) { arr.s_val.push(sv); arr.h_val.push(hv); }
+      // Magnitude vs intensity proxy: prefer mood_label_count if present; else derive from sleep inverse to keep example minimal
+      const sm = typeof s.magnitude==='number' ? Math.max(0, Math.min(1, (s.magnitude||0)/5)) : null;
+      const labelCount = typeof h.mood_label_count==='number' ? h.mood_label_count : null;
+      const labelNorm = labelCount!=null ? Math.max(0, Math.min(1, labelCount/10)) : null; // crude cap at 10
+      const sleepH = typeof h.sleep_hours==='number' ? Math.max(0, Math.min(12, h.sleep_hours))/12 : null;
+      const intensityProxy = (labelNorm!=null) ? labelNorm : (sleepH!=null ? 1-Math.abs((sleepH + (sm!=null?sm:0)) - 1) : null);
+      if (sm!=null && intensityProxy!=null) { arr.s_mag.push(sm); arr.h_mag.push(intensityProxy); }
+      // Volatility vs swings/HRV
+      const svv = typeof s.volatility==='number' ? Math.max(0, Math.min(1, s.volatility/5)) : null;
+      let swing = null;
+      if (typeof h.mood_valence==='number' && lastMood!=null) {
+        swing = Math.min(1, Math.abs(h.mood_valence - lastMood));
+      }
+      lastMood = typeof h.mood_valence==='number' ? h.mood_valence : lastMood;
+      const hrvNorm = typeof h.hrv==='number' ? Math.max(0, Math.min(1, h.hrv/150)) : null;
+      const volProxy = swing!=null ? swing : hrvNorm;
+      if (svv!=null && volProxy!=null) { arr.s_vol.push(svv); arr.h_vol.push(volProxy); }
+    });
+
+    function similarity(a,b){
+      if (!a.length || a.length!==b.length) return null;
+      let sum=0; for (let i=0;i<a.length;i++){ sum += Math.abs((a[i]??0) - (b[i]??0)); }
+      const mean = sum / a.length; return +(1-mean).toFixed(2);
+    }
+    const simVal = similarity(arr.s_val, arr.h_val);
+    const simMag = similarity(arr.s_mag, arr.h_mag);
+    const simVol = similarity(arr.s_vol, arr.h_vol);
+    const sims = [simVal, simMag, simVol].filter(x=>x!=null);
+    const composite = sims.length ? +(sims.reduce((a,c)=>a+c,0)/sims.length).toFixed(2) : null;
+
+    if (sims.length) {
+      md += `### Three‑axis overlay\n`;
+      if (simVal!=null) md += `- Valence ↔ Mood valence: ${simVal}\n`;
+      if (simMag!=null) md += `- Magnitude ↔ Intensity proxy: ${simMag}\n`;
+      if (simVol!=null) md += `- Volatility ↔ Swings/HRV: ${simVol}\n`;
+      if (composite!=null) md += `- Composite uncanny score: ~${composite}\n\n`;
+    }
     md += `| Date | Mag | Val | Vol ${hasHRV?'| HRV ':''}${hasRest?'| RestHR ':''}${hasSleep?'| Sleep ':''}${hasMood?'| Mood ':''}| Score |\n`;
     md += `|------|----:|----:|----: ${hasHRV?'|----: ':''}${hasRest?'|------: ':''}${hasSleep?'|------: ':''}${hasMood?'|-----: ':''}|------:|\n`;
 

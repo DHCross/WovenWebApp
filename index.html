@@ -4908,12 +4908,33 @@ function renderTransitDay(dateStr, items){
                     volatility_pattern
                 };
 
+                // Extract daily seismograph map for Person A (if present)
+                let seismograph_by_date = undefined;
+                try {
+                    const tbd = resolveTransitsByDate(data.person_a || data) || {};
+                    if (tbd && typeof tbd === 'object' && !Array.isArray(tbd)) {
+                        const map = {};
+                        Object.keys(tbd).forEach(d => {
+                            const s = tbd[d]?.seismograph;
+                            if (s && typeof s === 'object') {
+                                map[d] = {
+                                    magnitude: Number(s.magnitude) || 0,
+                                    valence: Number(s.valence) || 0,
+                                    volatility: Number(s.volatility) || 0
+                                };
+                            }
+                        });
+                        if (Object.keys(map).length) seismograph_by_date = map;
+                    }
+                } catch(e) { /* noop */ }
+
                 return {
                     report_date,
                     context,
                     balance_meter,
                     macro_view,
-                    micro_view
+                    micro_view,
+                    seismograph_by_date
                 };
             } catch (e) {
                 console.warn('Raven JSON build failed, falling back to minimal shell', e);
@@ -7846,10 +7867,10 @@ function renderTransitDay(dateStr, items){
             }
         }
 
-        // --- Seismograph MD Ingestion ---
-        let loadedSeismographData = null; // map of date -> { magnitude, valence, volatility, hooks }
+    // --- Balance Meter Log Ingestion ---
+    let loadedSeismographData = null; // date -> { magnitude, valence, volatility }
 
-        function loadSeismographJson(file){
+    function loadSeismographJson(file){
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e){
@@ -7857,18 +7878,36 @@ function renderTransitDay(dateStr, items){
                     const text = e.target.result;
                     const parsed = JSON.parse(text);
                     
-                    // Validate the JSON structure
-                    if (!parsed || typeof parsed !== 'object') {
-                        throw new Error('Invalid JSON structure');
-                    }
-                    
-                    // Check for required 'map' property
-                    if (!parsed.map || typeof parsed.map !== 'object') {
-                        throw new Error('JSON must contain a "map" object with date keys');
-                    }
+                                        // Validate the JSON structure and support three shapes:
+                                        // 1) { map: { YYYY-MM-DD: { magnitude,valence,volatility } } }
+                                        // 2) Raven wrapper with { seismograph_by_date: { ... } }
+                                        // 3) Raven Balance Meter with { balance_meter: { daily_entries: { YYYY-MM-DD: { seismograph:{...} | magnitude/valence/volatility } } } }
+                                        if (!parsed || typeof parsed !== 'object') throw new Error('Invalid JSON structure');
+                                        let candidateMap = null;
+                                        if (parsed.map && typeof parsed.map === 'object') {
+                                            candidateMap = parsed.map;
+                                        } else if (parsed.seismograph_by_date && typeof parsed.seismograph_by_date === 'object') {
+                                            candidateMap = parsed.seismograph_by_date;
+                                        } else if (parsed.balance_meter?.daily_entries && typeof parsed.balance_meter.daily_entries === 'object') {
+                                            const raw = parsed.balance_meter.daily_entries;
+                                            const out = {};
+                                            Object.keys(raw).forEach(date => {
+                                                const entry = raw[date];
+                                                if (!entry || typeof entry !== 'object') return;
+                                                const s = entry.seismograph && typeof entry.seismograph === 'object' ? entry.seismograph : entry;
+                                                const mag = Number(s.magnitude);
+                                                const val = Number(s.valence);
+                                                const vol = Number(s.volatility);
+                                                if (Number.isFinite(mag) && Number.isFinite(val) && Number.isFinite(vol)) {
+                                                    out[date] = { magnitude: mag, valence: val, volatility: vol };
+                                                }
+                                            });
+                                            if (Object.keys(out).length) candidateMap = out;
+                                        }
+                                        if (!candidateMap) throw new Error('File must contain Balance Meter daily bars via "seismograph_by_date", "map", or "balance_meter.daily_entries"');
                     
                     // Validate that map has date entries
-                    const dates = Object.keys(parsed.map);
+                    const dates = Object.keys(candidateMap);
                     if (dates.length === 0) {
                         throw new Error('No date entries found in JSON map');
                     }
@@ -7879,7 +7918,7 @@ function renderTransitDay(dateStr, items){
                             throw new Error(`Invalid date format: ${date}. Expected YYYY-MM-DD`);
                         }
                         
-                        const entry = parsed.map[date];
+                        const entry = candidateMap[date];
                         if (!entry || typeof entry !== 'object') {
                             throw new Error(`Invalid entry for date ${date}`);
                         }
@@ -7897,13 +7936,13 @@ function renderTransitDay(dateStr, items){
                         }
                     }
                     
-                    loadedSeismographData = parsed.map;
-                    updateSeismoDataStatus(dates.length + ' seismograph days loaded');
+                    loadedSeismographData = candidateMap;
+                    updateSeismoDataStatus(dates.length + ' Balance Meter days loaded');
                     clearSeismoBtn.classList.remove('hidden');
                     updateComparativeAvailability();
                 } catch(err){
-                    console.error('Seismograph JSON parse error:', err);
-                    alert('Error parsing seismograph JSON: ' + err.message);
+                    console.error('Balance Meter JSON parse error:', err);
+                    alert('Error parsing Balance Meter JSON: ' + err.message);
                 }
             };
             reader.readAsText(file);
@@ -7960,8 +7999,8 @@ function renderTransitDay(dateStr, items){
                     throw new Error('Comparative reporter not available');
                 }
                 const md = generateComparativeReportMarkdown(loadedSeismographData, loadedHealthData);
-                const fname = `comparative_${new Date().toISOString().slice(0,10)}.json`;
-                downloadFile(md, fname, 'application/json');
+                const fname = `comparative_${new Date().toISOString().slice(0,10)}.md`;
+                downloadFile(md, fname, 'text/markdown');
                 const original = genComparativeBtn.textContent; genComparativeBtn.textContent = '✅ Exported!';
                 setTimeout(()=> genComparativeBtn.textContent = original, 2000);
             } catch (e){
@@ -8267,28 +8306,11 @@ function renderTransitDay(dateStr, items){
             }
         }
 
-        // Build a minimal Balance Meter payload from existing transit seismograph entries
+        // Build a minimal, consistent Balance Meter payload from existing transit seismograph entries
         function synthesizeBalanceMeterPayload(result, formData) {
             const daily_entries = result?.person_a?.chart?.transitsByDate || {};
 
-            // For comparative reports, return daily seismograph data directly
-            // Check if this is being called for comparative analysis (when health data is loaded)
-            if (window.loadedHealthData && Object.keys(window.loadedHealthData).length > 0) {
-                // Return daily seismograph data in the format expected by comparative reports
-                const dailySeismoMap = {};
-                Object.entries(daily_entries).forEach(([date, dayData]) => {
-                    if (dayData?.seismograph) {
-                        dailySeismoMap[date] = {
-                            magnitude: dayData.seismograph.magnitude || 0,
-                            valence: dayData.seismograph.valence || 0,
-                            volatility: dayData.seismograph.volatility || 0
-                        };
-                    }
-                });
-                return dailySeismoMap;
-            }
-
-            // Original balance meter synthesis for non-comparative use
+            // Derive simple channel averages (for summary cards)
             let seismoAvg = 0, balAvg = 0, sfdAvg = 0, count = 0;
             Object.values(daily_entries).forEach(d => {
                 const s = d?.seismograph; const b = d?.balance; const f = d?.sfd;
@@ -8305,9 +8327,10 @@ function renderTransitDay(dateStr, items){
                 volatility_index: (result?.person_a?.derived?.seismograph_summary?.volatility) || undefined
             } : null;
 
+            const sortedKeys = Object.keys(daily_entries).sort();
             const period = {
-                start: formData?.transitParams?.startDate || Object.keys(daily_entries).sort()[0],
-                end: formData?.transitParams?.endDate || Object.keys(daily_entries).sort().slice(-1)[0],
+                start: formData?.transitParams?.startDate || sortedKeys[0],
+                end: formData?.transitParams?.endDate || sortedKeys[sortedKeys.length - 1],
                 step: formData?.transitParams?.step || 'daily'
             };
 
