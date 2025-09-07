@@ -1209,7 +1209,7 @@
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-t-4 border-cyan-500">
                         <h3 class="text-white font-medium mb-2 flex items-center gap-2">
                             📊 Symbolic Log Correlation
-                            <button class="text-xs text-cyan-300 hover:text-cyan-400 focus:outline-none" title="Upload symbolic logs (.md) to cross-check with Balance Meter reports">
+                            <button class="text-xs text-cyan-300 hover:text-cyan-400 focus:outline-none" title="Upload symbolic logs (.json) to cross-check with Balance Meter reports">
                                 ❓
                             </button>
                         </h3>
@@ -1236,16 +1236,16 @@
                             </button>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                                 <button id="genComparativeBtn" class="bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden" disabled>
-                                    � Download Correlation (.md)
+                                    � Download Correlation (.json)
                                 </button>
                                 <button id="genComparativePdfBtn" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden" disabled>
                                     📑 Download Correlation (.pdf)
                                 </button>
                             </div>
                         </div>
-                        <input type="file" id="seismoMdInput" accept=".md,.markdown,text/markdown" class="hidden">
+                        <input type="file" id="seismoMdInput" accept=".json,application/json" class="hidden">
                         <div id="seismoDataStatus" class="text-xs text-gray-500 hidden mt-2"></div>
-                        <p class="text-xs text-cyan-400 mt-2">Accepts Markdown (.md) files with dated entries</p>
+                        <p class="text-xs text-cyan-400 mt-2">Accepts JSON files with seismograph data</p>
                     </div>
                 </div>
             </div>
@@ -7849,23 +7849,61 @@ function renderTransitDay(dateStr, items){
         // --- Seismograph MD Ingestion ---
         let loadedSeismographData = null; // map of date -> { magnitude, valence, volatility, hooks }
 
-        function loadSeismographMd(file){
+        function loadSeismographJson(file){
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e){
                 try {
                     const text = e.target.result;
-                    const parsed = (typeof parseSeismographMarkdown === 'function') ? parseSeismographMarkdown(text) : null;
-                    if (!parsed || !parsed.map || Object.keys(parsed.map).length === 0){
-                        throw new Error('No seismograph table found');
+                    const parsed = JSON.parse(text);
+                    
+                    // Validate the JSON structure
+                    if (!parsed || typeof parsed !== 'object') {
+                        throw new Error('Invalid JSON structure');
                     }
+                    
+                    // Check for required 'map' property
+                    if (!parsed.map || typeof parsed.map !== 'object') {
+                        throw new Error('JSON must contain a "map" object with date keys');
+                    }
+                    
+                    // Validate that map has date entries
+                    const dates = Object.keys(parsed.map);
+                    if (dates.length === 0) {
+                        throw new Error('No date entries found in JSON map');
+                    }
+                    
+                    // Validate date format and data structure
+                    for (const date of dates) {
+                        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                            throw new Error(`Invalid date format: ${date}. Expected YYYY-MM-DD`);
+                        }
+                        
+                        const entry = parsed.map[date];
+                        if (!entry || typeof entry !== 'object') {
+                            throw new Error(`Invalid entry for date ${date}`);
+                        }
+                        
+                        // Ensure required numeric fields
+                        ['magnitude', 'valence', 'volatility'].forEach(field => {
+                            if (typeof entry[field] !== 'number' || !Number.isFinite(entry[field])) {
+                                throw new Error(`Invalid ${field} for date ${date}: must be a finite number`);
+                            }
+                        });
+                        
+                        // Ensure hooks is an array if present
+                        if (entry.hooks && !Array.isArray(entry.hooks)) {
+                            throw new Error(`Invalid hooks for date ${date}: must be an array`);
+                        }
+                    }
+                    
                     loadedSeismographData = parsed.map;
-                    updateSeismoDataStatus(Object.keys(parsed.map).length + ' seismograph days loaded');
+                    updateSeismoDataStatus(dates.length + ' seismograph days loaded');
                     clearSeismoBtn.classList.remove('hidden');
                     updateComparativeAvailability();
                 } catch(err){
-                    console.error('Seismograph parse error:', err);
-                    alert('Error parsing seismograph markdown: ' + err.message);
+                    console.error('Seismograph JSON parse error:', err);
+                    alert('Error parsing seismograph JSON: ' + err.message);
                 }
             };
             reader.readAsText(file);
@@ -7915,15 +7953,15 @@ function renderTransitDay(dateStr, items){
         function generateComparativeReport(){
             try {
                 if (!loadedHealthData || !loadedSeismographData) {
-                    alert('Please load both Health JSON and Seismograph (.md) first.');
+                    alert('Please load both Health JSON and Seismograph JSON first.');
                     return;
                 }
                 if (typeof generateComparativeReportMarkdown !== 'function'){
                     throw new Error('Comparative reporter not available');
                 }
                 const md = generateComparativeReportMarkdown(loadedSeismographData, loadedHealthData);
-                const fname = `comparative_${new Date().toISOString().slice(0,10)}.md`;
-                downloadFile(md, fname, 'text/markdown');
+                const fname = `comparative_${new Date().toISOString().slice(0,10)}.json`;
+                downloadFile(md, fname, 'application/json');
                 const original = genComparativeBtn.textContent; genComparativeBtn.textContent = '✅ Exported!';
                 setTimeout(()=> genComparativeBtn.textContent = original, 2000);
             } catch (e){
@@ -7935,7 +7973,7 @@ function renderTransitDay(dateStr, items){
         async function generateComparativeReportPDF(){
             try {
                 if (!loadedHealthData || !loadedSeismographData) {
-                    alert('Please load both Health JSON and Seismograph (.md) first.');
+                    alert('Please load both Health JSON and Seismograph JSON first.');
                     return;
                 }
                 if (typeof generateComparativeReportMarkdown !== 'function'){
@@ -7956,7 +7994,7 @@ function renderTransitDay(dateStr, items){
                         // Wait and retry approach for correlation reports
                         const userWantsToWait = confirm(
                             'PDF generation library is taking longer than expected to load.\n\n' +
-                            'Click OK to wait longer and retry, or Cancel to use markdown download instead.'
+                            'Click OK to wait longer and retry, or Cancel to use JSON download instead.'
                         );
                         
                         if (userWantsToWait) {
@@ -7964,12 +8002,12 @@ function renderTransitDay(dateStr, items){
                                 await waitForPDFLibrary(10000);
                                 console.log('PDF library loaded after extended wait for comparative report');
                             } catch (extendedError) {
-                                alert('PDF generation library could not be loaded. Please try refreshing the page or use the markdown download option.');
+                                alert('PDF generation library could not be loaded. Please try refreshing the page or use the JSON download option.');
                                 return;
                             }
                         } else {
-                            // Fall back to markdown download
-                            alert('Please use the regular markdown download for now.');
+                            // Fall back to JSON download
+                            alert('Please use the regular JSON download for now.');
                             return;
                         }
                     }
@@ -8232,8 +8270,26 @@ function renderTransitDay(dateStr, items){
         // Build a minimal Balance Meter payload from existing transit seismograph entries
         function synthesizeBalanceMeterPayload(result, formData) {
             const daily_entries = result?.person_a?.chart?.transitsByDate || {};
-            // Derive simple averages for summary when not provided by backend
-            let seismoAvg = 0, balAvg = 0, sfdAvg = 0, count = 0; 
+
+            // For comparative reports, return daily seismograph data directly
+            // Check if this is being called for comparative analysis (when health data is loaded)
+            if (window.loadedHealthData && Object.keys(window.loadedHealthData).length > 0) {
+                // Return daily seismograph data in the format expected by comparative reports
+                const dailySeismoMap = {};
+                Object.entries(daily_entries).forEach(([date, dayData]) => {
+                    if (dayData?.seismograph) {
+                        dailySeismoMap[date] = {
+                            magnitude: dayData.seismograph.magnitude || 0,
+                            valence: dayData.seismograph.valence || 0,
+                            volatility: dayData.seismograph.volatility || 0
+                        };
+                    }
+                });
+                return dailySeismoMap;
+            }
+
+            // Original balance meter synthesis for non-comparative use
+            let seismoAvg = 0, balAvg = 0, sfdAvg = 0, count = 0;
             Object.values(daily_entries).forEach(d => {
                 const s = d?.seismograph; const b = d?.balance; const f = d?.sfd;
                 if (s && typeof s.valence === 'number') seismoAvg += s.valence;
@@ -9009,7 +9065,7 @@ function renderTransitDay(dateStr, items){
                 }
             });
 
-            // (Removed deprecated markdown download button logic)
+            // (Removed deprecated JSON download button logic)
 
             // Seismograph MD wiring
             loadSeismoBtn = document.getElementById('loadSeismoBtn');
@@ -9020,7 +9076,7 @@ function renderTransitDay(dateStr, items){
             genComparativePdfBtn = document.getElementById('genComparativePdfBtn');
 
             loadSeismoBtn?.addEventListener('click', ()=> seismoMdInput.click());
-            seismoMdInput?.addEventListener('change', (e)=>{ if (e.target.files && e.target.files.length) loadSeismographMd(e.target.files[0]); });
+            seismoMdInput?.addEventListener('change', (e)=>{ if (e.target.files && e.target.files.length) loadSeismographJson(e.target.files[0]); });
             clearSeismoBtn?.addEventListener('click', clearSeismograph);
             genComparativeBtn?.addEventListener('click', generateComparativeReport);
             genComparativePdfBtn?.addEventListener('click', generateComparativeReportPDF);
