@@ -3118,8 +3118,10 @@ function renderTransitDay(dateStr, items){
         }
         
         function extractChartDataForTypology(personData) {
-            const chart = personData?.chart?.data?.subject || {};
-            const aspects = personData?.chart?.aspects || [];
+            // The chart data structure from API: personData.chart contains the planetary data
+            // and personData.aspects contains the aspects array
+            const chart = personData?.chart || {};
+            const aspects = personData?.aspects || [];
             
             return {
                 sun: chart.sun || {},
@@ -3132,8 +3134,8 @@ function renderTransitDay(dateStr, items){
                 uranus: chart.uranus || {},
                 neptune: chart.neptune || {},
                 pluto: chart.pluto || {},
-                ascendant: chart.ascendant || {},
-                midheaven: chart.midheaven || {},
+                ascendant: chart.asc || chart.ascendant || {},
+                midheaven: chart.mc || chart.midheaven || {},
                 aspects: aspects
             };
         }
@@ -3245,16 +3247,16 @@ function renderTransitDay(dateStr, items){
         // Helper functions for typological analysis
         
         function determineFunctionalEmphasis(sun, mercury, ascendant) {
-            // Map signs to psychological functions
+            // Map signs to psychological functions - using API's abbreviated sign names
             const functionMap = {
                 // Fire signs -> Intuition
-                'Aries': 'Intuition', 'Leo': 'Intuition', 'Sagittarius': 'Intuition',
-                // Earth signs -> Sensation
-                'Taurus': 'Sensation', 'Virgo': 'Sensation', 'Capricorn': 'Sensation',
+                'Ari': 'Intuition', 'Leo': 'Intuition', 'Sag': 'Intuition',
+                // Earth signs -> Sensation  
+                'Tau': 'Sensation', 'Vir': 'Sensation', 'Cap': 'Sensation',
                 // Air signs -> Thinking
-                'Gemini': 'Thinking', 'Libra': 'Thinking', 'Aquarius': 'Thinking',
+                'Gem': 'Thinking', 'Lib': 'Thinking', 'Aqu': 'Thinking',
                 // Water signs -> Feeling
-                'Cancer': 'Feeling', 'Scorpio': 'Feeling', 'Pisces': 'Feeling'
+                'Can': 'Feeling', 'Sco': 'Feeling', 'Pis': 'Feeling'
             };
             
             const sunFunction = functionMap[sun.sign] || 'Unknown';
@@ -3266,11 +3268,18 @@ function renderTransitDay(dateStr, items){
         }
         
         function determineOrientation(sun, mercury, ascendant) {
-            // Simple heuristic: even houses = introverted, odd houses = extraverted
-            const sunHouse = parseInt(sun.house) || 1;
-            const mercuryHouse = parseInt(mercury.house) || 1;
+            // Convert house names to numbers: "First_House" -> 1, "Second_House" -> 2, etc.
+            const houseNameToNumber = {
+                'First_House': 1, 'Second_House': 2, 'Third_House': 3, 'Fourth_House': 4,
+                'Fifth_House': 5, 'Sixth_House': 6, 'Seventh_House': 7, 'Eighth_House': 8,
+                'Ninth_House': 9, 'Tenth_House': 10, 'Eleventh_House': 11, 'Twelfth_House': 12
+            };
+            
+            const sunHouse = houseNameToNumber[sun.house] || parseInt(sun.house) || 1;
+            const mercuryHouse = houseNameToNumber[mercury.house] || parseInt(mercury.house) || 1;
             const ascHouse = 1; // Ascendant is always 1st house
             
+            // Simple heuristic: even houses = introverted, odd houses = extraverted
             const introvertedCount = [sunHouse, mercuryHouse, ascHouse].filter(h => h % 2 === 0).length;
             
             return introvertedCount >= 2 ? 'Introverted' : 'Extraverted';
@@ -3278,17 +3287,23 @@ function renderTransitDay(dateStr, items){
         
         function determineSecondaryFunction(moon) {
             const functionMap = {
-                'Aries': 'Intuition', 'Leo': 'Intuition', 'Sagittarius': 'Intuition',
-                'Taurus': 'Sensation', 'Virgo': 'Sensation', 'Capricorn': 'Sensation',
-                'Gemini': 'Thinking', 'Libra': 'Thinking', 'Aquarius': 'Thinking',
-                'Cancer': 'Feeling', 'Scorpio': 'Feeling', 'Pisces': 'Feeling'
+                'Ari': 'Intuition', 'Leo': 'Intuition', 'Sag': 'Intuition',
+                'Tau': 'Sensation', 'Vir': 'Sensation', 'Cap': 'Sensation',
+                'Gem': 'Thinking', 'Lib': 'Thinking', 'Aqu': 'Thinking',
+                'Can': 'Feeling', 'Sco': 'Feeling', 'Pis': 'Feeling'
             };
             
             return functionMap[moon.sign] || 'Unknown';
         }
         
         function determineSecondaryOrientation(moon) {
-            const moonHouse = parseInt(moon.house) || 1;
+            const houseNameToNumber = {
+                'First_House': 1, 'Second_House': 2, 'Third_House': 3, 'Fourth_House': 4,
+                'Fifth_House': 5, 'Sixth_House': 6, 'Seventh_House': 7, 'Eighth_House': 8,
+                'Ninth_House': 9, 'Tenth_House': 10, 'Eleventh_House': 11, 'Twelfth_House': 12
+            };
+            
+            const moonHouse = houseNameToNumber[moon.house] || parseInt(moon.house) || 1;
             return moonHouse <= 6 ? 'inner/emotional' : 'outer/social';
         }
         
