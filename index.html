@@ -1310,6 +1310,14 @@
                         </p>
                     </div>
 
+                    <!-- Mirror Report Display Area -->
+                    <div id="mirrorReportDisplay" class="hidden">
+                        <div class="bg-gray-900/80 backdrop-blur-sm p-4 rounded-lg border border-gray-700/70 mb-6">
+                            <div id="mirrorReportContent" class="report-surface whitespace-pre-wrap font-mono text-[11px] leading-relaxed overflow-auto max-h-[34rem] shadow-inner selection:bg-teal-600/40 selection:text-teal-50">
+                            </div>
+                        </div>
+                    </div>
+
                 <!-- Progressive Disclosure: Raw Data Content -->
                 <div id="rawDataSection" class="hidden">
                     <div class="flex justify-between items-center mb-2">
@@ -1564,6 +1572,62 @@ function renderTransitDay(dateStr, items){
 
         function hideError() {
             errorDisplay.classList.add('hidden');
+        }
+        
+        function showBonusReportNotification(hasMirrorReport, hasBalanceMeterData, currentMode) {
+            // Remove any existing notifications and tab indicators
+            const existingNotifications = document.querySelectorAll('.bonus-report-notification');
+            existingNotifications.forEach(n => n.remove());
+            
+            const existingIndicators = document.querySelectorAll('.bonus-indicator');
+            existingIndicators.forEach(i => i.remove());
+            
+            let notificationMessage = '';
+            let shouldShow = false;
+            
+            if (currentMode === 'mirror' && hasBalanceMeterData) {
+                notificationMessage = '🎁 Bonus: Balance Meter analysis is also available! Check the Balance Meter tab.';
+                shouldShow = true;
+                
+                // Add indicator to Balance Meter tab
+                const balanceTab = document.getElementById('balanceMeterModeTab');
+                if (balanceTab && !balanceTab.querySelector('.bonus-indicator')) {
+                    const indicator = document.createElement('span');
+                    indicator.className = 'bonus-indicator bg-teal-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-2';
+                    indicator.textContent = 'NEW';
+                    indicator.title = 'Bonus Balance Meter analysis available!';
+                    balanceTab.appendChild(indicator);
+                }
+            } else if (currentMode === 'balance_meter' && hasMirrorReport) {
+                notificationMessage = '🎁 Bonus: Mirror report is also available! Check the Mirror tab.';
+                shouldShow = true;
+                
+                // Add indicator to Mirror tab
+                const mirrorTab = document.getElementById('mirrorModeTab');
+                if (mirrorTab && !mirrorTab.querySelector('.bonus-indicator')) {
+                    const indicator = document.createElement('span');
+                    indicator.className = 'bonus-indicator bg-teal-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-2';
+                    indicator.textContent = 'NEW';
+                    indicator.title = 'Bonus Mirror report available!';
+                    mirrorTab.appendChild(indicator);
+                }
+            }
+            
+            if (shouldShow) {
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.className = 'bonus-report-notification bg-teal-900/50 border border-teal-500/30 text-teal-200 px-4 py-3 rounded mb-4 text-sm flex items-center gap-2';
+                notification.innerHTML = `
+                    <span class="flex-1">${notificationMessage}</span>
+                    <button onclick="this.parentElement.remove()" class="text-teal-400 hover:text-teal-200 ml-2">✕</button>
+                `;
+                
+                // Insert notification at the top of the report output area
+                const reportOutput = document.getElementById('reportOutput');
+                if (reportOutput) {
+                    reportOutput.insertBefore(notification, reportOutput.firstChild);
+                }
+            }
         }
 
         // Non-destructive error notification for non-critical failures (like download issues)
@@ -6943,6 +7007,11 @@ function renderTransitDay(dateStr, items){
             generateBtn.disabled = true;
             loadingIndicator.classList.remove('hidden');
             reportOutput.classList.add('hidden');
+            // Hide Mirror tab report display when starting new generation
+            const mirrorReportDisplay = document.getElementById('mirrorReportDisplay');
+            if (mirrorReportDisplay) {
+                mirrorReportDisplay.classList.add('hidden');
+            }
             // Hide report action buttons when starting new generation
             document.getElementById('copyReport').classList.add('hidden');
             document.getElementById('downloadReport').classList.add('hidden');
@@ -7075,6 +7144,14 @@ function renderTransitDay(dateStr, items){
                 // Populate all tab content (now that the intended tab is active)
                 populateTabContent(result, formData, report, hasTransitsMode, hasTransitData);
 
+                // Check for bonus reports and notify user
+                const hasMirrorReport = report && report.length > 0;
+                const hasBalanceMeterData = Boolean(result.balance_meter) || Boolean(result?.person_a?.chart?.transitsByDate);
+                const currentMode = (typeof getCurrentActiveTabMode === 'function') ? getCurrentActiveTabMode() : 'mirror';
+                
+                // Show notification about bonus reports available
+                showBonusReportNotification(hasMirrorReport, hasBalanceMeterData, currentMode);
+
                 // Check if ANY report was generated (Mirror or Balance Meter)
                 const mirrorReportExists = report && report.length > 0;
                 const balanceMeterReportExists = result.reports?.balance_meter_report && result.reports.balance_meter_report.length > 0;
@@ -7084,6 +7161,13 @@ function renderTransitDay(dateStr, items){
                     // Otherwise, use the balance meter report for the copy/paste buffer.
                     if (mirrorReportExists) {
                         reportContent.textContent = report;
+                        // Also populate the visible Mirror tab report area
+                        const mirrorReportContent = document.getElementById('mirrorReportContent');
+                        const mirrorReportDisplay = document.getElementById('mirrorReportDisplay');
+                        if (mirrorReportContent && mirrorReportDisplay) {
+                            mirrorReportContent.textContent = report;
+                            mirrorReportDisplay.classList.remove('hidden');
+                        }
                     } else {
                         reportContent.textContent = result.reports.balance_meter_report;
                     }
@@ -7096,6 +7180,11 @@ function renderTransitDay(dateStr, items){
                     document.getElementById('pdfOptions').classList.remove('hidden');
                 } else {
                     reportOutput.classList.add('hidden');
+                    // Also hide the Mirror tab report display
+                    const mirrorReportDisplay = document.getElementById('mirrorReportDisplay');
+                    if (mirrorReportDisplay) {
+                        mirrorReportDisplay.classList.add('hidden');
+                    }
                 }
                 
                 updateSeismographTabIndicator();
@@ -7145,13 +7234,21 @@ function renderTransitDay(dateStr, items){
                     if (element) element.classList.add('hidden');
                 });
                 
-                // Reset all tab buttons
+                // Reset all tab buttons and clean up bonus indicators for clicked tab
                 const allTabs = ['mirrorModeTab', 'balanceMeterModeTab'];
                 allTabs.forEach(id => {
                     const tab = document.getElementById(id);
                     if (tab) {
                         tab.setAttribute('aria-selected', 'false');
                         tab.className = 'px-6 py-2 text-sm font-medium rounded-md bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors duration-200';
+                        
+                        // Remove bonus indicator from the tab that's being activated (user has seen it)
+                        if (id === activeTabId) {
+                            const bonusIndicator = tab.querySelector('.bonus-indicator');
+                            if (bonusIndicator) {
+                                bonusIndicator.remove();
+                            }
+                        }
                     }
                 });
                 
