@@ -2860,6 +2860,54 @@ function renderTransitDay(dateStr, items){
             
             md += `💡 **For Complete Balance Analysis**: This Clear Mirror report includes Balance Channel (v1.1) and Support–Friction Differential (v1.2) data in the Triple Channel metrics. For comprehensive Resilience & Depletion layer analysis, generate a dedicated report using **Balance Meter mode** in the app interface.\n\n`;
             
+            // === RAVEN TRANSLATION LAYER ===
+            md += `### 🎯 AI Poetic Brain Translation Layer\n\n`;
+            md += `*Essential data feed for AI mirror writing (per Raven Calder guidance):*\n\n`;
+            
+            // Top Hooks (Essential)
+            const topHooks = (firstDayData.hooks || []).slice(0, 3);
+            if (topHooks.length > 0) {
+                const hooksText = topHooks.map(h => {
+                    const p1 = h.p1_name || h.p1_display || 'Unknown';
+                    const p2 = h.p2_name || h.p2_display || 'Unknown';
+                    const aspect = aspectSymbol(h.aspect || h._aspect || 'conjunction');
+                    return `${p1}${aspect}${p2}`;
+                }).join(', ');
+                md += `**Top Hooks (orb-capped)**: ${hooksText}\n\n`;
+            }
+            
+            // Seismograph Triple Lens (Essential)
+            md += `**Seismograph Triple Lens**: Magnitude ${magnitude.toFixed(2)}, Valence ${valence >= 0 ? '+' : ''}${valence.toFixed(2)}, Volatility ${volatility.toFixed(2)}\n\n`;
+            
+            // Balance Refinements (Essential)
+            const sfdValue = (firstDayData.sfd && typeof firstDayData.sfd === 'object') 
+                ? firstDayData.sfd.sfd || 0 
+                : (typeof firstDayData.sfd === 'number' ? firstDayData.sfd : 0);
+            const sfdVerdict = sfdValue >= 0.75 ? "stabilizers prevail" : 
+                              sfdValue <= -0.75 ? "stabilizers cut" : "stabilizers mixed";
+            md += `**Balance Refinements**: SFD ${sfdValue >= 0 ? '+' : ''}${sfdValue.toFixed(1)}, "${sfdVerdict}"\n\n`;
+            
+            // Retrograde Recursion Flag (Essential)
+            const totalAspects = transitsByDate[firstDate]?.length || 0;
+            md += `**Retrograde Recursion Flag**: ${totalAspects} aspects (${totalAspects > 50 ? 'heavy' : totalAspects > 25 ? 'moderate' : 'light'} day)\n\n`;
+            
+            // Natal Scaffolding (Essential) - Extract key planetary positions
+            md += `**Natal Scaffolding**:\n`;
+            md += `- **Asc**: ${chartData.ascendant?.sign || 'Unknown'} ${(chartData.ascendant?.position || 0).toFixed(1)}°\n`;
+            md += `- **Sun**: ${chartData.sun?.sign || 'Unknown'} ${(chartData.sun?.position || 0).toFixed(1)}°\n`;
+            md += `- **Moon**: ${chartData.moon?.sign || 'Unknown'} ${(chartData.moon?.position || 0).toFixed(1)}°\n`;
+            md += `- **Mercury**: ${chartData.mercury?.sign || 'Unknown'} ${(chartData.mercury?.position || 0).toFixed(1)}°\n`;
+            md += `- **Venus**: ${chartData.venus?.sign || 'Unknown'} ${(chartData.venus?.position || 0).toFixed(1)}°\n`;
+            md += `- **Mars**: ${chartData.mars?.sign || 'Unknown'} ${(chartData.mars?.position || 0).toFixed(1)}°\n`;
+            md += `- **Jupiter**: ${chartData.jupiter?.sign || 'Unknown'} ${(chartData.jupiter?.position || 0).toFixed(1)}°\n`;
+            md += `- **Saturn**: ${chartData.saturn?.sign || 'Unknown'} ${(chartData.saturn?.position || 0).toFixed(1)}°\n`;
+            md += `- **Uranus**: ${chartData.uranus?.sign || 'Unknown'} ${(chartData.uranus?.position || 0).toFixed(1)}°\n`;
+            md += `- **Neptune**: ${chartData.neptune?.sign || 'Unknown'} ${(chartData.neptune?.position || 0).toFixed(1)}°\n`;
+            md += `- **Pluto**: ${chartData.pluto?.sign || 'Unknown'} ${(chartData.pluto?.position || 0).toFixed(1)}°\n`;
+            md += `- **True Node**: ${chartData.true_node?.sign || 'Unknown'} ${(chartData.true_node?.position || 0).toFixed(1)}°\n\n`;
+            
+            md += `*Everything below this point is engine room / audit data that AI translation can safely ignore.*\n\n`;
+            
             // === NATAL CHART FOUNDATION ===
             md += `### Subject Details — Reveal the Weave\n\n`;
             
