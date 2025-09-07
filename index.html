@@ -1205,9 +1205,14 @@
                             <button id="clearSeismoBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden">
                                 ✖️ Clear Symbolic Logs
                             </button>
-                            <button id="genComparativeBtn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden" disabled>
-                                🔗 Generate Correlation Analysis
-                            </button>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <button id="genComparativeBtn" class="bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden" disabled>
+                                    � Download Correlation (.md)
+                                </button>
+                                <button id="genComparativePdfBtn" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors duration-200 hidden" disabled>
+                                    📑 Download Correlation (.pdf)
+                                </button>
+                            </div>
                         </div>
                         <input type="file" id="seismoMdInput" accept=".md,.markdown,text/markdown" class="hidden">
                         <div id="seismoDataStatus" class="text-xs text-gray-500 hidden mt-2"></div>
@@ -1531,7 +1536,7 @@ function renderTransitDay(dateStr, items){
     return `<h4>${dateStr}</h4><ul><li>${lines.join("</li><li>")}</li></ul>`;
 }
         // Global UI element references
-    let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadReportBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel, exRelationshipCheckbox, relocationPersonBOption, includePersonBRelocationEl, transitStartDate, transitEndDate, transitStep, relocationCoordsInput, loadHealthDataBtn, clearHealthDataBtn, healthDataInput, healthDataStatus, loadSeismoBtn, clearSeismoBtn, seismoMdInput, seismoDataStatus, genComparativeBtn;
+    let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadReportBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel, exRelationshipCheckbox, relocationPersonBOption, includePersonBRelocationEl, transitStartDate, transitEndDate, transitStep, relocationCoordsInput, loadHealthDataBtn, clearHealthDataBtn, healthDataInput, healthDataStatus, loadSeismoBtn, clearSeismoBtn, seismoMdInput, seismoDataStatus, genComparativeBtn, genComparativePdfBtn;
 
         // Store health data for correlation analysis
         let loadedHealthData = null;
@@ -6321,12 +6326,17 @@ function renderTransitDay(dateStr, items){
             if (ready){
                 genComparativeBtn.classList.remove('hidden');
                 genComparativeBtn.disabled = false;
+                genComparativePdfBtn.classList.remove('hidden');
+                genComparativePdfBtn.disabled = false;
             } else {
                 genComparativeBtn.disabled = true;
+                genComparativePdfBtn.disabled = true;
                 if (loadedHealthData || loadedSeismographData){
                     genComparativeBtn.classList.remove('hidden');
+                    genComparativePdfBtn.classList.remove('hidden');
                 } else {
                     genComparativeBtn.classList.add('hidden');
+                    genComparativePdfBtn.classList.add('hidden');
                 }
             }
         }
@@ -6348,6 +6358,98 @@ function renderTransitDay(dateStr, items){
             } catch (e){
                 console.error('Comparative export failed:', e);
                 alert('Failed to generate comparative report: ' + e.message);
+            }
+        }
+
+        async function generateComparativeReportPDF(){
+            try {
+                if (!loadedHealthData || !loadedSeismographData) {
+                    alert('Please load both Health JSON and Seismograph (.md) first.');
+                    return;
+                }
+                if (typeof generateComparativeReportMarkdown !== 'function'){
+                    throw new Error('Comparative reporter not available');
+                }
+                
+                // Check if html2pdf is available
+                if (typeof html2pdf === 'undefined') {
+                    console.error('html2pdf library not loaded');
+                    alert('PDF generation library not loaded. Please try the markdown download instead.');
+                    return;
+                }
+
+                const btn = document.getElementById('genComparativePdfBtn');
+                const originalText = btn.textContent;
+                btn.textContent = '⏳ Generating PDF...';
+                btn.disabled = true;
+
+                // Generate markdown report
+                const md = generateComparativeReportMarkdown(loadedSeismographData, loadedHealthData);
+                
+                // Convert to HTML
+                const htmlContent = convertMarkdownToHTML(md);
+                
+                // Generate filename
+                const person1Name = document.getElementById('nameA').value || 'PersonA';
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                const filename = `correlation_analysis_${person1Name}_${timestamp}.pdf`;
+                
+                // Create temporary element for PDF generation
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlContent;
+                tempDiv.style.position = 'absolute';
+                tempDiv.style.left = '-9999px';
+                tempDiv.style.top = '-9999px';
+                document.body.appendChild(tempDiv);
+                
+                // PDF generation options
+                const options = {
+                    margin: [10, 10, 10, 10],
+                    filename: filename,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { 
+                        scale: 2, 
+                        useCORS: true,
+                        letterRendering: true,
+                        allowTaint: false
+                    },
+                    jsPDF: { 
+                        unit: 'mm', 
+                        format: 'a4', 
+                        orientation: 'portrait',
+                        compress: true
+                    },
+                    pagebreak: { mode: 'avoid-all', before: '.page-break' }
+                };
+                
+                // Generate and download PDF
+                const pdfBlob = await html2pdf().set(options).from(tempDiv).outputPdf('blob');
+                
+                // Create download link and trigger
+                const url = URL.createObjectURL(pdfBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                // Clean up
+                document.body.removeChild(tempDiv);
+                
+                // Success feedback
+                btn.textContent = '✅ Downloaded!';
+                setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+                
+            } catch (e){
+                console.error('Comparative PDF export failed:', e);
+                alert('Failed to generate correlation PDF: ' + e.message);
+                
+                // Restore button state
+                const btn = document.getElementById('genComparativePdfBtn');
+                btn.textContent = '📑 Download Correlation (.pdf)';
+                btn.disabled = false;
             }
         }
 
@@ -7182,11 +7284,13 @@ function renderTransitDay(dateStr, items){
             seismoMdInput = document.getElementById('seismoMdInput');
             seismoDataStatus = document.getElementById('seismoDataStatus');
             genComparativeBtn = document.getElementById('genComparativeBtn');
+            genComparativePdfBtn = document.getElementById('genComparativePdfBtn');
 
             loadSeismoBtn?.addEventListener('click', ()=> seismoMdInput.click());
             seismoMdInput?.addEventListener('change', (e)=>{ if (e.target.files && e.target.files.length) loadSeismographMd(e.target.files[0]); });
             clearSeismoBtn?.addEventListener('click', clearSeismograph);
             genComparativeBtn?.addEventListener('click', generateComparativeReport);
+            genComparativePdfBtn?.addEventListener('click', generateComparativeReportPDF);
 
             // Toggle mode help panel
             toggleModeHelp.addEventListener('click', () => {
