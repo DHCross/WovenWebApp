@@ -5439,12 +5439,6 @@ function renderTransitDay(dateStr, items){
                 return 'balance_meter';
             }
             
-            // Fallback: check if Balance Meter checkbox is checked (for legacy compatibility)
-            if (document.getElementById('balanceMeterMode')?.checked) {
-                console.log('getCurrentActiveTabMode returning: balance_meter (legacy)');
-                return 'balance_meter';
-            }
-            
             // Default to checking context mode radios for relational modes
             const contextModeChecked = document.querySelector('input[name="contextMode"]:checked');
             const result = contextModeChecked?.value || 'natal_transits';
@@ -6478,6 +6472,17 @@ function renderTransitDay(dateStr, items){
                 // Decide what to render for the Balance Meter tab
                 const activeTab = (typeof getCurrentActiveTabMode === 'function') ? getCurrentActiveTabMode() : 'mirror';
                 console.log('Active tab for populate:', activeTab);
+                console.log('Balance Meter tab content element:', document.getElementById('balance-meter-content'));
+                console.log('Balance Meter tab content hidden class:', document.getElementById('balance-meter-content')?.classList.contains('hidden'));
+                
+                // Force check the actual DOM state
+                const balanceTabElement = document.getElementById('balanceMeterModeTab');
+                const mirrorTabElement = document.getElementById('mirrorModeTab');
+                console.log('DOM state check:');
+                console.log('- Balance tab aria-selected:', balanceTabElement?.getAttribute('aria-selected'));
+                console.log('- Mirror tab aria-selected:', mirrorTabElement?.getAttribute('aria-selected'));
+                console.log('- Balance content hidden:', document.getElementById('balance-meter-content')?.classList.contains('hidden'));
+                console.log('- Mirror content hidden:', document.getElementById('mirror-content')?.classList.contains('hidden'));
                 
                 if (result && result.balance_meter) {
                     console.log('Rendering server-provided Balance Meter payload');
@@ -6497,8 +6502,8 @@ function renderTransitDay(dateStr, items){
                         pre.textContent = JSON.stringify(result.balance_meter, null, 2);
                         balanceWrap.appendChild(pre);
                     }
-                } else if (activeTab === 'balance_meter' && (result?.person_a?.chart?.transitsByDate)) {
-                    console.log('Synthesizing Balance Meter payload from transits');
+                } else if ((activeTab === 'balance_meter' || balanceTabElement?.getAttribute('aria-selected') === 'true') && (result?.person_a?.chart?.transitsByDate)) {
+                    console.log('Synthesizing Balance Meter payload from transits (using DOM check)');
                     // Synthesize a minimal Balance Meter payload from available transits
                     try {
                         const synthetic = synthesizeBalanceMeterPayload(result, formData);
@@ -6516,6 +6521,10 @@ function renderTransitDay(dateStr, items){
                     }
                 } else {
                     console.log('No Balance Meter data available, showing message');
+                    console.log('Conditions not met:');
+                    console.log('- activeTab === balance_meter:', activeTab === 'balance_meter');
+                    console.log('- balanceTabElement aria-selected === true:', balanceTabElement?.getAttribute('aria-selected') === 'true');
+                    console.log('- has person A transits:', Boolean(result?.person_a?.chart?.transitsByDate));
                     // No separate seismograph mode; content renders only for Balance Meter
                     balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter data for this selection.</p>';
                 }
@@ -6568,15 +6577,16 @@ function renderTransitDay(dateStr, items){
             
             // Debug: Check current tab mode
             const currentMode = getCurrentActiveTabMode();
-            console.log("DEBUG: Current active tab mode:", currentMode);
-            console.log("DEBUG: Balance Meter tab aria-selected:", document.getElementById('balanceMeterModeTab')?.getAttribute('aria-selected'));
-            console.log("DEBUG: Mirror tab aria-selected:", document.getElementById('mirrorModeTab')?.getAttribute('aria-selected'));
+            console.log("🔍 DEBUG: Current active tab mode:", currentMode);
+            console.log("🔍 DEBUG: Balance Meter tab aria-selected:", document.getElementById('balanceMeterModeTab')?.getAttribute('aria-selected'));
+            console.log("🔍 DEBUG: Mirror tab aria-selected:", document.getElementById('mirrorModeTab')?.getAttribute('aria-selected'));
             
             if (!validateForm()) {
+                console.log("❌ DEBUG: Form validation failed");
                 return;
             }
 
-            WovenMapConfig.debugLog("Form is valid, preparing API request");
+            console.log("✅ DEBUG: Form validation passed");
             hideError();
             generateBtn.disabled = true;
             loadingIndicator.classList.remove('hidden');
@@ -6699,14 +6709,26 @@ function renderTransitDay(dateStr, items){
 
                 // If Balance tab is the target, switch to it BEFORE populating so active-tab checks work
                 if (shouldRenderBalance) {
+                    console.log('🔍 DEBUG: Switching to Balance Meter tab');
                     document.getElementById('balanceMeterModeTab')?.click();
+                    console.log('🔍 DEBUG: Balance Meter tab clicked, checking if content is visible');
+                    setTimeout(() => {
+                        console.log('🔍 DEBUG: Balance Meter content visibility after tab switch:', !document.getElementById('balance-meter-content')?.classList.contains('hidden'));
+                    }, 100);
                 } else {
+                    console.log('🔍 DEBUG: Switching to Mirror tab');
                     document.getElementById('mirrorModeTab')?.click();
                 }
 
                 // Populate all tab content (now that the intended tab is active)
                 populateTabContent(result, formData, report, hasTransitsMode, hasTransitData);
 
+                // Debug: Check final state
+                console.log('🔍 DEBUG: Final Balance Meter tab state:');
+                console.log('- Balance Meter tab aria-selected:', document.getElementById('balanceMeterModeTab')?.getAttribute('aria-selected'));
+                console.log('- Balance Meter content hidden:', document.getElementById('balance-meter-content')?.classList.contains('hidden'));
+                console.log('- Balance Meter tab content has children:', document.getElementById('balanceMeterTabContent')?.children.length);
+                
                 // Reflect the generated text into the main report surface (used for copy/download preview)
                 reportContent.textContent = report;
                 
