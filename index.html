@@ -485,11 +485,11 @@
             </div>
         </header>
 
-        <!-- Glossary Modal -->
-        <div id="math-brain-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
-          <div class="bg-gray-900 rounded-lg shadow-xl max-w-lg w-full p-6 relative border border-teal-500">
+                <!-- Glossary Modal -->
+                <div id="math-brain-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden" role="dialog" aria-modal="true" aria-labelledby="math-brain-modal-title">
+                    <div id="math-brain-modal-content" class="bg-gray-900 rounded-lg shadow-xl max-w-lg w-full p-6 relative border border-teal-500" tabindex="-1">
             <button id="close-math-brain-modal" class="absolute top-2 right-2 text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
-            <h2 class="text-xl font-bold text-teal-300 mb-2">Math Brain & Poetic Brain: The Woven Map Framework</h2>
+                        <h2 id="math-brain-modal-title" class="text-xl font-bold text-teal-300 mb-2">Math Brain & Poetic Brain: The Woven Map Framework</h2>
             <p class="text-sm text-gray-200 mb-3">
               <b>Math Brain</b>: computes planetary positions, aspects, house placements. Outputs geometry, no meaning.<br>
               <b>Poetic Brain</b>: translates geometry into felt/narrative language. Diagnostic, not predictive.<br>
@@ -1162,7 +1162,7 @@
             </div>
 
             <!-- Loading Indicator -->
-            <div id="loadingIndicator" class="hidden text-center mb-8">
+            <div id="loadingIndicator" class="hidden text-center mb-8" role="status" aria-live="polite" aria-atomic="true" aria-busy="false">
                 <div class="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-teal-600 transition ease-in-out duration-150">
                     <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -1251,9 +1251,9 @@
             </div>
 
             <!-- Health Data Help Modal -->
-            <div id="healthDataHelpModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div class="bg-gray-800 p-6 rounded-lg max-w-2xl max-h-96 overflow-y-auto border border-purple-500">
-                    <h3 class="text-lg font-semibold text-purple-300 mb-4">Health Auto Export Setup Guide</h3>
+            <div id="healthDataHelpModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="health-data-help-title">
+                <div id="healthDataHelpContent" class="bg-gray-800 p-6 rounded-lg max-w-2xl max-h-96 overflow-y-auto border border-purple-500" tabindex="-1">
+                    <h3 id="health-data-help-title" class="text-lg font-semibold text-purple-300 mb-4">Health Auto Export Setup Guide</h3>
                     <div class="text-sm text-gray-300 space-y-3">
                         <p><strong class="text-white">Required App:</strong> "Health Auto Export" from iOS App Store</p>
                         <p><strong class="text-white">Recommended Settings:</strong></p>
@@ -1277,7 +1277,7 @@
             </div>
 
             <!-- Error Display -->
-            <div id="errorDisplay" class="hidden bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded mb-8">
+            <div id="errorDisplay" class="hidden bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded mb-8" role="alert" aria-live="assertive" aria-atomic="true" aria-describedby="errorMessage" tabindex="-1">
                 <div class="flex">
                     <div class="flex-shrink-0">
                         <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -1316,6 +1316,11 @@
                                 📋 Copy Report
                                 <span class="block text-xs opacity-80">Copy results to clipboard</span>
                             </button>
+                             <!-- Reader Notes (exported in JSON balance_meter.notes) -->
+                             <div class="mt-3">
+                                 <label for="readerNotes" class="block text-xs font-medium text-gray-300">Reader Notes (optional, exported)</label>
+                                 <textarea id="readerNotes" rows="2" class="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 text-xs" placeholder="Jot quick context or reactions; saved into the JSON notes array."></textarea>
+                             </div>
                         </div>
                     </div>
                 </div>
@@ -1592,6 +1597,7 @@ function renderTransitDay(dateStr, items){
             errorMessage.textContent = message;
             errorDisplay.classList.remove('hidden');
             reportOutput.classList.add('hidden');
+            try { errorDisplay.focus({ preventScroll: true }); } catch(_){}
             // Hide report action buttons when showing error
             document.getElementById('copyReport').classList.add('hidden');
             document.getElementById('downloadReport').classList.add('hidden');
@@ -8279,6 +8285,7 @@ function renderTransitDay(dateStr, items){
             hideError();
             generateBtn.disabled = true;
             loadingIndicator.classList.remove('hidden');
+            try { loadingIndicator.setAttribute('aria-busy','true'); } catch(_){}
             reportOutput.classList.add('hidden');
             // Hide Mirror tab report display when starting new generation
             const mirrorReportDisplay = document.getElementById('mirrorReportDisplay');
@@ -8513,6 +8520,7 @@ function renderTransitDay(dateStr, items){
             } finally {
                 generateBtn.disabled = false;
                 loadingIndicator.classList.add('hidden');
+                try { loadingIndicator.setAttribute('aria-busy','false'); } catch(_){}
             }
         }
 
@@ -8667,11 +8675,20 @@ function renderTransitDay(dateStr, items){
             });
 
             // Modal
-            mathBrainInfoBtn.addEventListener('click', () => mathBrainModal.classList.remove('hidden'));
+            mathBrainInfoBtn.addEventListener('click', () => {
+                mathBrainModal.classList.remove('hidden');
+                try { document.getElementById('math-brain-modal-content')?.focus({ preventScroll: true }); } catch(_){}
+            });
             closeMathBrainModal.addEventListener('click', () => mathBrainModal.classList.add('hidden'));
             closeMathBrainModalBottom.addEventListener('click', () => mathBrainModal.classList.add('hidden'));
             mathBrainModal.addEventListener('click', (e) => {
                 if (e.target === mathBrainModal) mathBrainModal.classList.add('hidden');
+            });
+            // Close Math Brain modal on Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !mathBrainModal.classList.contains('hidden')) {
+                    mathBrainModal.classList.add('hidden');
+                }
             });
 
             // Copy report
@@ -8709,6 +8726,14 @@ function renderTransitDay(dateStr, items){
                 }
                 try {
                     console.log('Starting JSON download process...');
+                    // Capture optional reader notes into exported JSON
+                    try {
+                        const notesEl = document.getElementById('readerNotes');
+                        const note = (notesEl && notesEl.value && notesEl.value.trim()) ? notesEl.value.trim() : null;
+                        if (note) {
+                            window.userNotesForDay = Array.isArray(window.userNotesForDay) ? [...window.userNotesForDay, note] : [note];
+                        }
+                    } catch(_){}
 
                     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
                     let person1Name = document.getElementById('nameA').value || 'PersonA';

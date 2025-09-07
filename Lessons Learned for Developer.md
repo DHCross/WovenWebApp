@@ -321,6 +321,105 @@ When hitting infrastructure limits, the solution isn't always "do less" - someti
 
 ---
 
+## [2025-09-07] Math Brain ↔ Poetic Brain Architecture Lessons
+
+### Strict Boundary Enforcement
+
+**Core Principle:** Math Brain outputs pure geometry/enums/glyphs only. All prose and interpretation happens downstream in Poetic Brain.
+
+**Current Issue:** The `buildRavenJsonReport()` function includes narrative elements that violate this boundary:
+```javascript
+// WRONG: Prose in Math Brain export
+{
+  "semantic_snapshot": { 
+    "title": "Shared field snapshot",  // ← Narrative title
+    "annotation": "Built to stabilize under load" // ← Interpretive prose
+  }
+}
+
+// RIGHT: Pure data in Math Brain export  
+{
+  "snapshot_code": "strike_day",     // ← Enum code
+  "snapshot_glyphs": ["⚡","☍","⧖"]  // ← Visual symbols
+}
+```
+
+**Implementation Fixes Needed:**
+1. **Remove all narrative strings** from JSON exports
+2. **Normalize valence range** to exactly -5 to +5 
+3. **Use only safe lexicon enums** for terms
+4. **Add explicit channel versioning** (v1.0, v1.1, v1.2)
+5. **Include confidence scores** per channel
+
+### Export Strategy Evolution
+
+**Dual-Channel Architecture:**
+- **Copy Button** → Markdown with full narrative (for humans)
+- **Download Button** → Clean JSON wrapper (for AI processing)
+
+**Key Insight:** Same geometric data serves different audiences through different formats. Math Brain calculates once, exports multiple ways.
+
+**Success Pattern:**
+```javascript
+// In download handler, capture user notes appropriately
+const notesEl = document.getElementById('readerNotes');
+const note = (notesEl && notesEl.value && notesEl.value.trim()) ? notesEl.value.trim() : null;
+if (note) {
+    window.userNotesForDay = Array.isArray(window.userNotesForDay) ? [...window.userNotesForDay, note] : [note];
+}
+```
+
+**Reader Notes Integration:** User annotations flow into JSON export via `window.userNotesForDay` but remain separate from automated geometric calculations.
+
+### Triple-Channel Architecture Implementation
+
+**Current State:** Single seismograph channel
+**Target State:** Three distinct measurement channels:
+
+1. **Seismograph v1.0:** Crisis-weighted baseline 
+2. **Balance Channel v1.1:** Rebalanced valence revealing scaffolding
+3. **SFD v1.2:** Support-Friction Differential
+
+**JSON Structure Goal:**
+```json
+{
+  "balance_meter": {
+    "solo": {
+      "seismograph_v1_0": { "magnitude": {...}, "valence": {...}, "confidence": 0.90 },
+      "balance_channel_v1_1": { "magnitude": {...}, "valence": {...}, "confidence": 0.90 },
+      "sfd_v1_2": { "SFD": -1.5, "Splus": 1.2, "Sminus": 2.7, "confidence": 0.88 }
+    }
+  }
+}
+```
+
+### Accessibility & UX Polish Lessons
+
+**Modal Best Practices:**
+- Add `role="dialog"`, `aria-modal="true"`, `aria-labelledby`
+- Focus management: focus modal content on open
+- Keyboard support: Escape key to close
+- Screen reader announcements via `aria-live` regions
+
+**Loading State Management:**
+- Toggle `aria-busy="true"` during processing
+- Use `role="status"` with `aria-live="polite"` for non-disruptive announcements
+- Focus error displays when shown for immediate screen reader attention
+
+**Progressive Enhancement Pattern:**
+```javascript
+// Focus management with graceful degradation
+try { 
+    errorDisplay.focus({ preventScroll: true }); 
+} catch(_) {
+    // Silently continue if focus management unavailable
+}
+```
+
+**Reader Notes Integration:** Simple textarea that flows into JSON export creates bridge between human input and machine processing without violating Math Brain boundaries.
+
+---
+
 ## Session Lesson: Collaborative AI Development for Complex Problem Solving
 
 **Context:**
