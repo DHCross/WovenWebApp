@@ -6967,11 +6967,26 @@ function renderTransitDay(dateStr, items){
                     const person1Name = document.getElementById('nameA').value || 'PersonA';
                     const person2Name = document.getElementById('nameB').value;
                     
+                    // Get date range from form
+                    const startDate = document.getElementById('transitStartDate').value;
+                    const endDate = document.getElementById('transitEndDate').value;
+                    let dateRange = '';
+                    if (startDate && endDate) {
+                        if (startDate === endDate) {
+                            dateRange = `_${startDate}`;
+                        } else {
+                            dateRange = `_${startDate}_to_${endDate}`;
+                        }
+                    }
+                    
+                    // Determine report type
+                    const reportType = isBalanceMode ? '_balance_meter' : '_mirror';
+                    
                     let filename;
                     if (person2Name) {
-                        filename = `report_${person1Name}_${person2Name}_${timestamp}.md`;
+                        filename = `report_${person1Name}_${person2Name}${reportType}${dateRange}_${timestamp}.md`;
                     } else {
-                        filename = `report_${person1Name}_${timestamp}.md`;
+                        filename = `report_${person1Name}${reportType}${dateRange}_${timestamp}.md`;
                     }
                     
                     console.log('Creating blob and download link...');
@@ -7054,11 +7069,26 @@ function renderTransitDay(dateStr, items){
                     const person2Name = document.getElementById('nameB').value;
                     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
                     
+                    // Get date range from form
+                    const startDate = document.getElementById('transitStartDate').value;
+                    const endDate = document.getElementById('transitEndDate').value;
+                    let dateRange = '';
+                    if (startDate && endDate) {
+                        if (startDate === endDate) {
+                            dateRange = `_${startDate}`;
+                        } else {
+                            dateRange = `_${startDate}_to_${endDate}`;
+                        }
+                    }
+                    
+                    // Determine report type
+                    const reportType = isBalanceMode ? '_balance_meter' : '_mirror';
+                    
                     let filename;
                     if (person2Name) {
-                        filename = `WovenMap_${person1Name}_${person2Name}_${timestamp}.pdf`;
+                        filename = `WovenMap_${person1Name}_${person2Name}${reportType}${dateRange}_${timestamp}.pdf`;
                     } else {
-                        filename = `WovenMap_${person1Name}_${timestamp}.pdf`;
+                        filename = `WovenMap_${person1Name}${reportType}${dateRange}_${timestamp}.pdf`;
                     }
                     
                     // Show loading state
