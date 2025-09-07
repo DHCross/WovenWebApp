@@ -6696,22 +6696,19 @@ function renderTransitDay(dateStr, items){
                 // Check if we have transit hooks that warrant seismograph auto-append
                 const hasTransitsMode = formData.context.mode.includes('transits');
                 const hasTransitData = result.person_a?.chart?.transitsByDate || result.person_b?.chart?.transitsByDate || result.composite?.transitsByDate || result.synastry?.transitsByDate;
-                
-                // Populate all tab content
-                populateTabContent(result, formData, report, hasTransitsMode, hasTransitData);
-                
-                // Handle Balance Meter mode - standalone report focused on triple-channel data
+
+                // If Balance tab is the target, switch to it BEFORE populating so active-tab checks work
                 if (shouldRenderBalance) {
-                    console.log('=== BALANCE METER MODE ===');
-                    // Switch to Balance Meter tab for standalone mode
                     document.getElementById('balanceMeterModeTab')?.click();
-                    // Show Balance Meter report in the main content area
-                    reportContent.textContent = report;
-                    console.log('=== END BALANCE METER MODE ===');
                 } else {
-                    // Show Mirror report in the main content area
-                    reportContent.textContent = report;
+                    document.getElementById('mirrorModeTab')?.click();
                 }
+
+                // Populate all tab content (now that the intended tab is active)
+                populateTabContent(result, formData, report, hasTransitsMode, hasTransitData);
+
+                // Reflect the generated text into the main report surface (used for copy/download preview)
+                reportContent.textContent = report;
                 
                 document.getElementById('copyReport').classList.remove('hidden');
                 document.getElementById('downloadReport').classList.remove('hidden');
