@@ -10,6 +10,10 @@
     if (s === 'valence' || s === 'val') return 'valence';
     if (s === 'volatility' || s === 'vol') return 'volatility';
     if (s.includes('hook')) return 'hooks';
+    // New Balance Meter format columns
+    if (s === 'triple channel') return 'triple_channel';
+    if (s === 'sfd verdict') return 'sfd_verdict';
+    if (s === 'top hooks') return 'hooks';
     return s;
   }
 
@@ -29,7 +33,9 @@
     const lines = md.split(/\r?\n/);
     let headerIdx = -1;
     for (let i=0;i<lines.length;i++){
-      if (/^\|/.test(lines[i]) && /date/i.test(lines[i]) && /mag|magnitude/i.test(lines[i])){
+      // Look for old seismograph format OR new Balance Meter format
+      if (/^\|/.test(lines[i]) && /date/i.test(lines[i]) && 
+          (/mag|magnitude/i.test(lines[i]) || /triple channel/i.test(lines[i]))){
         headerIdx = i; break;
       }
     }
@@ -66,6 +72,30 @@
     return meta;
   }
 
+  function parseTripleChannelData(tripleChannelText){
+    // Parse Balance Meter format: "⚡ 5.0 · Val 🌋 -10.9 · Bal 💎 +5.0 · stabilizers mixed (SFD +0.5; S+ 5.0/S− 4.5)"
+    const defaults = { magnitude: 0, valence: 0, balance: 0 };
+    if (!tripleChannelText) return defaults;
+    
+    // Extract magnitude (⚡ X.X)
+    const magMatch = tripleChannelText.match(/⚡\s*([0-9.+-]+)/);
+    const magnitude = magMatch ? parseFloat(magMatch[1]) : 0;
+    
+    // Extract valence (Val 🌋 X.X)
+    const valMatch = tripleChannelText.match(/Val\s*🌋\s*([0-9.+-]+)/);
+    const valence = valMatch ? parseFloat(valMatch[1]) : 0;
+    
+    // Extract balance (Bal 💎 X.X)
+    const balMatch = tripleChannelText.match(/Bal\s*[💎🦋🔥]\s*([0-9.+-]+)/);
+    const balance = balMatch ? parseFloat(balMatch[1]) : 0;
+    
+    return {
+      magnitude: Number.isFinite(magnitude) ? magnitude : 0,
+      valence: Number.isFinite(valence) ? valence : 0,
+      balance: Number.isFinite(balance) ? balance : 0
+    };
+  }
+
   function parseHooksCell(cell){
     if (!cell) return [];
     // split on ; first, then on , if needed, trim empties
@@ -76,22 +106,39 @@
 
   function parseSeismographMarkdown(md){
     if (typeof md !== 'string') throw new Error('Invalid Markdown input');
-    // Quick identity check
+    // Quick identity check - accept Balance Meter reports too
     const first = md.split(/\r?\n/,1)[0] || '';
-    if (!/^#\s*(Woven Map|Psycho)/i.test(first)){
+    if (!/^#\s*(Woven Map|Psycho|Balance Meter)/i.test(first)){
       // still try to parse, but flag might be useful upstream
     }
     const meta = parseHeaderMeta(md);
     const { headers, rows } = parseTable(md);
-    if (!rows.length) return { map:{}, meta };
+    if (!rows.length) throw new Error('No seismograph table found');
     const map = {};
+    
     rows.forEach(r => {
       const date = normalizeDate(r.date || r.Date);
       if (!date) return;
-      const magnitude = parseFloat((r.magnitude || '').replace(/[^0-9.+-]/g,''));
-      const valence = parseFloat((r.valence || '').replace(/[^0-9.+-]/g,''));
-      const volatility = parseFloat((r.volatility || '').replace(/[^0-9.+-]/g,''));
-      const hooks = parseHooksCell(r.hooks);
+      
+      let magnitude, valence, volatility = 0;
+      let hooks = [];
+      
+      // Handle old seismograph format
+      if (r.magnitude !== undefined) {
+        magnitude = parseFloat((r.magnitude || '').replace(/[^0-9.+-]/g,''));
+        valence = parseFloat((r.valence || '').replace(/[^0-9.+-]/g,''));
+        volatility = parseFloat((r.volatility || '').replace(/[^0-9.+-]/g,''));
+        hooks = parseHooksCell(r.hooks);
+      }
+      // Handle new Balance Meter format
+      else if (r.triple_channel) {
+        const tripleData = parseTripleChannelData(r.triple_channel);
+        magnitude = tripleData.magnitude;
+        valence = tripleData.valence;
+        volatility = tripleData.balance; // Use balance as volatility substitute
+        hooks = parseHooksCell(r.hooks);
+      }
+      
       map[date] = {
         magnitude: Number.isFinite(magnitude) ? magnitude : 0,
         valence: Number.isFinite(valence) ? valence : 0,
