@@ -26,26 +26,25 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Woven Web App - Astrological Geometry</title>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.4/auth0-spa-js.production.js" onerror="document.body.insertAdjacentHTML('afterbegin', '<div style=\'background:#ef4444;color:white;padding:1em;text-align:center;z-index:9999;position:relative;\'>Auth0 library failed to load. Please check your network or try disabling browser extensions that block CDNs.</div>')"></script>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-        <!-- Tailwind CSS: upgrade to v3 Play CDN so modern utilities work -->
+    
+        <!-- Tailwind CSS (local build) -->
         <script>
-            // Tailwind Play CDN config (before the CDN script) to add custom shades, etc.
-            window.tailwind = window.tailwind || {};
-            tailwind.config = {
-                theme: {
-                    extend: {
-                        colors: {
-                            gray: {
-                                // Custom mid-step used throughout markup
-                                750: '#2a2f3a'
-                            }
-                        }
-                    }
-                }
-            };
+          window.addEventListener('DOMContentLoaded', async () => {
+            try {
+              window.auth0Client = await createAuth0Client({
+                domain: 'dev-z8gw1uk6zgsrzubk.us.auth0.com',
+                clientId: '0nV0L41xZijfc8HTKtoROPgyqgMttJYT',
+                audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/',
+                redirect_uri: window.location.origin
+              });
+            } catch (e) {
+              console.warn('Auth0 init failed:', e);
+            }
+          });
         </script>
         
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="dist/output.css">
         <style>
             /* Fallback: ensure bg-gray-750 exists even if Tailwind config fails to load */
             .bg-gray-750 { background-color: #2a2f3a !important; }
@@ -464,6 +463,38 @@
             .poetic-brain-section {
                 display: none;
             }
+            /* --- Minimal Utility Shim (when Tailwind is blocked) --- */
+            .container{max-width:1200px;margin-left:auto;margin-right:auto}
+            .mx-auto{margin-left:auto;margin-right:auto}
+            .p-2{padding:.5rem}.p-3{padding:.75rem}.p-4{padding:1rem}.p-6{padding:1.5rem}.p-8{padding:2rem}
+            .px-4{padding-left:1rem;padding-right:1rem}.py-2{padding-top:.5rem;padding-bottom:.5rem}
+            .mb-4{margin-bottom:1rem}.mb-6{margin-bottom:1.5rem}.mb-8{margin-bottom:2rem}
+            .mt-2{margin-top:.5rem}.mt-4{margin-top:1rem}.mt-6{margin-top:1.5rem}.mt-8{margin-top:2rem}
+            .text-xs{font-size:.75rem}.text-sm{font-size:.875rem}.text-lg{font-size:1.125rem}
+            .text-2xl{font-size:1.5rem}.text-4xl{font-size:2.25rem}
+            .font-medium{font-weight:500}.font-semibold{font-weight:600}.font-bold{font-weight:700}
+            .rounded{border-radius:.375rem}.rounded-md{border-radius:.375rem}.rounded-lg{border-radius:.75rem}
+            .shadow-lg{box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05)}
+            .border{border:1px solid var(--border-subtle)}.border-b{border-bottom:1px solid var(--border-subtle)}
+            .grid{display:grid}.grid-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))}
+            .gap-4{grid-gap:1rem}.gap-8{grid-gap:2rem}
+            .flex{display:flex}.items-center{align-items:center}.justify-between{justify-content:space-between}.justify-center{justify-content:center}
+            .hidden{display:none}.inline-flex{display:inline-flex}
+            @media(min-width:1024px){.lg\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+            /* Color shims (already styled above, ensure presence) */
+            .bg-gray-900{background-color:#111827}.bg-gray-800{background:var(--bg-card)}.bg-gray-700{background:var(--bg-card)}
+            .text-white{color:#fff}.text-gray-200{color:#e5e7eb}.text-gray-300{color:#d1d5db}.text-gray-400{color:#9ca3af}
+            .border-gray-600{border-color:var(--border-subtle)}.border-gray-700{border-color:var(--border-subtle)}
+            .bg-teal-600{background:var(--primary-gradient)}.hover\:bg-teal-700:hover{filter:brightness(1.05)}
+            .bg-indigo-600{background:#4f46e5}.hover\:bg-indigo-700:hover{filter:brightness(.9)}
+            .bg-gray-500{background:#6b7280}.hover\:bg-gray-600:hover{filter:brightness(.9)}
+            .bg-gray-600{background:#4b5563}.hover\:bg-gray-700:hover{filter:brightness(.9)}
+            .text-teal-300{color:#5eead4}.text-teal-200{color:#99f6e4}
+            .border-teal-500{border-color:rgba(20,184,166,.3)}
+            .rounded-full{border-radius:9999px}
+            .underline{text-decoration:underline}
+            .transition-colors{transition:background-color .2s ease,color .2s ease}
+            .space-y-1>*+*{margin-top:.25rem}.space-y-2>*+*{margin-top:.5rem}.space-y-3>*+*{margin-top:.75rem}.space-y-4>*+*{margin-top:1rem}.space-y-5>*+*{margin-top:1.25rem}
         </style>
         
         <!-- PDF Generation Library - Load early with fallback -->
