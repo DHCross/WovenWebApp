@@ -411,24 +411,101 @@
             @media (min-width:1024px){ .report-surface { font-size:12px; } }
         </style>
         
-        <!-- PDF Generation Library - Load early -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" async defer></script>
+        <!-- PDF Generation Library - Load early with fallback -->
+        <script>
+            // Enhanced PDF loading with multiple fallback strategies
+            let pdfLibraryStatus = 'loading';
+            let pdfLoadPromise = null;
+            
+            function createPDFLoadPromise() {
+                if (pdfLoadPromise) return pdfLoadPromise;
+                
+                pdfLoadPromise = new Promise((resolve, reject) => {
+                    // Check if already loaded
+                    if (isPDFLibraryReady()) {
+                        pdfLibraryStatus = 'ready';
+                        resolve();
+                        return;
+                    }
+                    
+                    // Load from CDN
+                    const script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+                    script.async = true;
+                    script.defer = true;
+                    
+                    script.onload = () => {
+                        // Give it a moment to initialize
+                        setTimeout(() => {
+                            if (isPDFLibraryReady()) {
+                                pdfLibraryStatus = 'ready';
+                                resolve();
+                            } else {
+                                pdfLibraryStatus = 'error';
+                                reject(new Error('PDF library loaded but not functional'));
+                            }
+                        }, 500);
+                    };
+                    
+                    script.onerror = () => {
+                        pdfLibraryStatus = 'error';
+                        reject(new Error('Failed to load PDF library from CDN'));
+                    };
+                    
+                    document.head.appendChild(script);
+                    
+                    // Global timeout
+                    setTimeout(() => {
+                        if (pdfLibraryStatus === 'loading') {
+                            pdfLibraryStatus = 'timeout';
+                            reject(new Error('PDF library load timeout'));
+                        }
+                    }, 15000);
+                });
+                
+                return pdfLoadPromise;
+            }
+            
+            // Start loading immediately
+            createPDFLoadPromise().catch(() => {
+                console.warn('PDF library failed to preload, will use fallback methods');
+            });
+        </script>
         
         <!-- PDF Library Loading Verification -->
         <script>
             // Function to check if PDF library is ready
             function isPDFLibraryReady() {
-                return typeof html2pdf !== 'undefined' && typeof html2pdf().constructor === 'function';
+                return typeof html2pdf !== 'undefined' && html2pdf && typeof html2pdf().from === 'function';
             }
             
             // Function to wait for PDF library to load
-            function waitForPDFLibrary(maxWaitTime = 10000) {
+            function waitForPDFLibrary(maxWaitTime = 5000) {
                 return new Promise((resolve, reject) => {
                     if (isPDFLibraryReady()) {
                         resolve(true);
                         return;
                     }
                     
+                    // Try to use the preload promise first
+                    if (pdfLoadPromise && pdfLibraryStatus === 'loading') {
+                        pdfLoadPromise.then(resolve).catch(() => {
+                            // If preload failed, try manual check
+                            const startTime = Date.now();
+                            const checkInterval = setInterval(() => {
+                                if (isPDFLibraryReady()) {
+                                    clearInterval(checkInterval);
+                                    resolve(true);
+                                } else if (Date.now() - startTime > maxWaitTime) {
+                                    clearInterval(checkInterval);
+                                    reject(new Error('PDF library failed to load within timeout'));
+                                }
+                            }, 200);
+                        });
+                        return;
+                    }
+                    
+                    // Fallback to manual polling
                     const startTime = Date.now();
                     const checkInterval = setInterval(() => {
                         if (isPDFLibraryReady()) {
@@ -438,8 +515,74 @@
                             clearInterval(checkInterval);
                             reject(new Error('PDF library failed to load within timeout'));
                         }
-                    }, 100);
+                    }, 200);
                 });
+            }
+            
+            // Improved print-to-PDF fallback
+            function printReportAsPDF(markdownReport, filename) {
+                try {
+                    const htmlContent = convertMarkdownToHTML(markdownReport);
+                    const printWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+                    
+                    if (!printWindow) {
+                        // Fallback: try to copy to clipboard
+                        if (navigator.clipboard) {
+                            navigator.clipboard.writeText(markdownReport).then(() => {
+                                alert('Pop-up blocked. Report copied to clipboard - paste into a document and print.');
+                            });
+                        } else {
+                            alert('Pop-up blocked and clipboard unavailable. Please enable pop-ups or use the Download JSON option.');
+                        }
+                        return;
+                    }
+                    
+                    printWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>${filename || 'Report'}</title>
+                            <style>
+                                @media print {
+                                    body { font-size: 11px; line-height: 1.4; margin: 0.5in; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; color: black; }
+                                    h1, h2, h3 { break-after: avoid; margin-top: 1em; color: black; }
+                                    table { break-inside: avoid; page-break-inside: avoid; width: 100%; border-collapse: collapse; margin: 1em 0; }
+                                    th, td { border: 1px solid #333; padding: 4px 6px; text-align: left; }
+                                    th { background-color: #f0f0f0; font-weight: bold; }
+                                    tr { break-inside: avoid; page-break-inside: avoid; }
+                                    .page-break { page-break-before: always; }
+                                    * { color: black !important; }
+                                }
+                                @media screen {
+                                    body { font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; line-height: 1.5; }
+                                    table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+                                    th, td { border: 1px solid #ddd; padding: 8px; }
+                                    th { background-color: #f2f2f2; }
+                                    .print-instructions { background: #e7f3ff; padding: 15px; margin: 20px 0; border-radius: 5px; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="print-instructions">
+                                <strong>Print Instructions:</strong> Use your browser's Print function (Ctrl+P / Cmd+P) and select "Save as PDF" as the destination.
+                            </div>
+                            ${htmlContent}
+                        </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                    
+                    printWindow.onload = () => {
+                        setTimeout(() => {
+                            printWindow.focus();
+                            printWindow.print();
+                        }, 800);
+                    };
+                    
+                } catch (error) {
+                    console.error('Print fallback failed:', error);
+                    alert('Print fallback failed. Please use the Download JSON option instead.');
+                }
             }
         </script>
     </head>
@@ -8022,34 +8165,27 @@ function renderTransitDay(dateStr, items){
                 
                 // Check if html2pdf is available with enhanced loading check
                 if (!isPDFLibraryReady()) {
-                    console.error('html2pdf library not loaded for comparative report, attempting to wait...');
+                    console.error('html2pdf library not loaded, attempting to wait for it...');
                     
                     try {
-                        // Try waiting for the library to load
-                        await waitForPDFLibrary(5000);
-                        console.log('PDF library loaded successfully for comparative report');
+                        // Try waiting for the library to load with shorter timeout
+                        await waitForPDFLibrary(3000);
+                        console.log('PDF library loaded successfully after waiting');
                     } catch (error) {
-                        console.error('PDF library failed to load for comparative report:', error);
+                        console.error('PDF library failed to load:', error);
                         
-                        // Wait and retry approach for correlation reports
-                        const userWantsToWait = confirm(
-                            'PDF generation library is taking longer than expected to load.\n\n' +
-                            'Click OK to wait longer and retry, or Cancel to use JSON download instead.'
-                        );
+                        // Direct fallback to print without confusing user with dialogs
+                        console.log('Using print-to-PDF fallback');
+                        const person1Name = document.getElementById('nameA').value || 'PersonA';
+                        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                        const filename = `correlation_analysis_${person1Name}_${timestamp}.pdf`;
                         
-                        if (userWantsToWait) {
-                            try {
-                                await waitForPDFLibrary(10000);
-                                console.log('PDF library loaded after extended wait for comparative report');
-                            } catch (extendedError) {
-                                alert('PDF generation library could not be loaded. Please try refreshing the page or use the JSON download option.');
-                                return;
-                            }
-                        } else {
-                            // Fall back to JSON download
-                            alert('Please use the regular JSON download for now.');
-                            return;
-                        }
+                        printReportAsPDF(md, filename);
+                        
+                        // Update button state
+                        btn.textContent = '✅ Print Dialog Opened!';
+                        setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 3000);
+                        return;
                     }
                 }
 
@@ -8128,37 +8264,7 @@ function renderTransitDay(dateStr, items){
             }
         }
 
-        // Fallback print-to-PDF function
-        function printReportAsPDF(markdownReport) {
-            // Convert markdown to HTML for printing
-            const htmlContent = convertMarkdownToHTML(markdownReport);
-            
-            // Create a new window for printing
-            const printWindow = window.open('', '_blank', 'width=800,height=600');
-            printWindow.document.write(htmlContent);
-            printWindow.document.close();
-            
-            // Add print-specific styles
-            const printStyle = printWindow.document.createElement('style');
-            printStyle.textContent = `
-                @media print {
-                    body { font-size: 11px; line-height: 1.3; }
-                    h1, h2, h3 { break-after: avoid; }
-                    table { break-inside: avoid; page-break-inside: avoid; }
-                    tr { break-inside: avoid; page-break-inside: avoid; }
-                }
-            `;
-            printWindow.document.head.appendChild(printStyle);
-            
-            // Trigger print dialog
-            printWindow.focus();
-            printWindow.print();
-            
-            // Close the window after printing (optional)
-            setTimeout(() => {
-                printWindow.close();
-            }, 1000);
-        }
+        // Note: Enhanced printReportAsPDF function is defined in the head section
 
         // Convert markdown to HTML for PDF generation
         function convertMarkdownToHTML(markdown) {
@@ -8918,48 +9024,22 @@ function renderTransitDay(dateStr, items){
                         console.error('html2pdf library not loaded, attempting to wait for it...');
                         
                         try {
-                            // Try waiting for the library to load
-                            await waitForPDFLibrary(5000); // Wait up to 5 seconds
+                            // Try waiting for the library to load with shorter timeout
+                            await waitForPDFLibrary(3000);
                             console.log('PDF library loaded successfully after waiting');
                         } catch (error) {
                             console.error('PDF library failed to load:', error);
                             
-                            // Show user options for handling the failure
-                            const userWantsToWait = confirm(
-                                'PDF generation library is taking longer than expected to load. This can happen with slow internet connections.\n\n' +
-                                'Click OK to wait longer and retry, or Cancel to use print-to-PDF fallback.'
-                            );
+                            // Direct fallback to print without confusing user with dialogs
+                            console.log('Using print-to-PDF fallback for main report');
+                            printReportAsPDF(markdownReport, filename);
                             
-                            if (userWantsToWait) {
-                                // Wait longer and try again
-                                try {
-                                    await waitForPDFLibrary(10000); // Wait up to 10 more seconds
-                                    console.log('PDF library loaded successfully after extended wait');
-                                } catch (extendedError) {
-                                    console.error('PDF library still failed to load after extended wait');
-                                    // Offer print-to-PDF fallback
-                                    const userWantsPrintFallback = confirm(
-                                        'PDF generation library could not be loaded. Would you like to use your browser\'s print function instead?\n\n' +
-                                        'This will open a print dialog where you can "Save as PDF".'
-                                    );
-                                    
-                                    if (userWantsPrintFallback) {
-                                        printReportAsPDF(markdownReport);
-                                    }
-                                    return;
-                                }
-                            } else {
-                                // Offer print-to-PDF fallback
-                                const userWantsPrintFallback = confirm(
-                                    'Would you like to use your browser\'s print function instead?\n\n' +
-                                    'This will open a print dialog where you can "Save as PDF".'
-                                );
-                                
-                                if (userWantsPrintFallback) {
-                                    printReportAsPDF(markdownReport);
-                                }
-                                return;
-                            }
+                            // Update button state
+                            btn.innerHTML = '✅ Print Dialog Opened!';
+                            setTimeout(() => {
+                                btn.innerHTML = '📑 Download PDF<span class="block text-xs opacity-80">Professional PDF report</span>';
+                            }, 3000);
+                            return;
                         }
                     }
                     
