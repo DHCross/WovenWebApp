@@ -2955,7 +2955,9 @@ function renderTransitDay(dateStr, items){
                 const magnitude = firstDayData.seismograph?.magnitude || 0;
                 const valence = firstDayData.seismograph?.valence || 0;
                 const volatility = firstDayData.seismograph?.volatility || 0;
-                const balance = firstDayData.balance || valence; // fallback
+                const balance = (firstDayData.balance && typeof firstDayData.balance === 'object') 
+                    ? firstDayData.balance.valence || 0 
+                    : (typeof firstDayData.balance === 'number' ? firstDayData.balance : valence || 0);
                 const sfd = firstDayData.sfd || 0;
                 
                 const magnitudeEmoji = magnitude > 4 ? '⚡' : magnitude > 2 ? '🔥' : '💧';
