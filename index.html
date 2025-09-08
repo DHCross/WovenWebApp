@@ -25,15 +25,9 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Woven Web App - Astrological Geometry</title>
-    <script src="https://cdn.auth0.com/js/auth0-spa-js/2.4/auth0-spa-js.production.js" defer crossorigin="anonymous" onerror="(function(){
-      var insert = function(){
-        var el = document.createElement('div');
-        el.style.cssText = 'background:#ef4444;color:white;padding:1em;text-align:center;z-index:9999;position:relative;';
-        el.textContent = 'Auth0 library failed to load. Please check your network or try disabling browser extensions that block CDNs.';
-        (document.body || document.documentElement).insertAdjacentElement('afterbegin', el);
-      };
-      if (document.body) insert(); else document.addEventListener('DOMContentLoaded', insert);
-    })()"></script>
+        
+        <!-- Self-hosted Auth0 SDK - no more CDN 403 issues -->
+        <script src="/vendor/auth0-spa-js.production.js" defer></script>
 
         
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1527,11 +1521,20 @@ window.WOVEN_UI_FILTERS = { tightOnly:true, showMinor:false, showHarmonic:false,
       const $ = id => document.getElementById(id);
 
       async function getOrCreateClient() {
-        if (!window.__AUTH0_SDK_OK__) {
-          console.error('[Auth0] SDK not available — aborting init');
+        if (window.auth0Client) return window.auth0Client;
+        
+        if (typeof createAuth0Client !== 'function') {
+          console.error('Auth0 SPA SDK not loaded — expected /vendor/auth0-spa-js.production.js');
+          // Graceful UX: enable buttons, but explain
+          document.querySelectorAll('.auth-btn').forEach(btn => {
+            if (!btn) return;
+            btn.disabled = false;
+            btn.addEventListener('click', () =>
+              alert('Auth is unavailable because the local Auth0 SDK did not load. Verify /vendor/auth0-spa-js.production.js exists and is served.'));
+          });
           return null;
         }
-        if (window.auth0Client) return window.auth0Client;
+        
         window.auth0Client = await createAuth0Client({
           domain: 'dev-z8gw1uk6zgsrzubk.us.auth0.com',
           clientId: '0nV0L41xZijfc8HTKtoROPgyqgMttJYT',
@@ -1584,6 +1587,11 @@ window.WOVEN_UI_FILTERS = { tightOnly:true, showMinor:false, showHarmonic:false,
             pill.querySelector('span:last-child').textContent = 'Logged out';
           }
         }
+        
+        // Enable buttons when client is ready
+        document.querySelectorAll('.auth-btn').forEach(btn => {
+          if (btn) btn.disabled = false;
+        });
       }
 
       // Prevent duplicate listeners by cloning nodes once
@@ -1598,6 +1606,14 @@ window.WOVEN_UI_FILTERS = { tightOnly:true, showMinor:false, showHarmonic:false,
       async function initAuth() {
         try {
           console.info('[Auth0] initAuth() start');
+          
+          // Show redirect URI debug info
+          const originEl = document.getElementById('auth-debug-origin');
+          if (originEl) { 
+            originEl.textContent = `redirect_uri → ${window.location.origin}`; 
+            originEl.classList.remove('hidden'); 
+          }
+          
           const auth0 = await getOrCreateClient();
           if (!auth0) return;
           console.info('[Auth0] client ready');
