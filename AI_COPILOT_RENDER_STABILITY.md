@@ -19,3 +19,12 @@ Smoke test
 
 Notes
 - Chicago baseline remains for bucketing rationale in docs; Person A defaults to Eastern when Bryn Mawr, PA or Eastern coords are detected. This never overwrites a user-changed timezone.
+
+Auth0 app settings quickcheck
+- Application Type: Single Page Application
+- Domain: dev-z8gw1uk6zgsrzubk.us.auth0.com
+- Client ID: 0nV0L41xZijfc8HTKtoROPgyqgMttJYT
+- Allowed Callback URLs: http://localhost:8888/, https://<your-domain>/
+- Allowed Logout URLs: http://localhost:8888/, https://<your-domain>/
+- Allowed Web Origins: http://localhost:8888, https://<your-domain>
+- After changes, hard-refresh or test in an incognito window to avoid cached state.
