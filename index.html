@@ -1574,10 +1574,7 @@
                                     <span>Auto-download (no filename prompt)</span>
                                 </label>
                             </div>
-                            <button id="copyReport" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-3 rounded text-sm transition-colors hidden">
-                                📋 Copy Report
-                                <span class="block text-xs opacity-80">Copy results to clipboard</span>
-                            </button>
+                            <!-- Copy Report removed per product decision: JSON/PDF only -->
                              <!-- Reader Notes (exported in JSON balance_meter.notes) -->
                              <div class="mt-3">
                                  <label for="readerNotes" class="block text-xs font-medium text-gray-300">Reader Notes (optional, exported)</label>
@@ -1843,7 +1840,7 @@ function renderTransitDay(dateStr, items){
     return `<h4>${dateStr}</h4><ul><li>${lines.join("</li><li>")}</li></ul>`;
 }
         // Global UI element references
-    let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, copyBtn, downloadReportBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel, exRelationshipCheckbox, relocationPersonBOption, includePersonBRelocationEl, transitStartDate, transitEndDate, transitStep, relocationCoordsInput, loadHealthDataBtn, clearHealthDataBtn, healthDataInput, healthDataStatus, loadSeismoBtn, clearSeismoBtn, seismoMdInput, seismoDataStatus, genComparativeBtn, genComparativePdfBtn;
+    let generateBtn, loadingIndicator, errorDisplay, errorMessage, reportOutput, reportContent, downloadReportBtn, mathBrainInfoBtn, mathBrainModal, closeMathBrainModal, closeMathBrainModalBottom, relocationToggle, relocationFields, transitDateFields, personBCard, relocationSection, relationalContextSection, intimacyTierDropdown, toggleModeHelp, modeHelpPanel, prefillTodayBtn, stepSizeHelpBtn, stepSizeHelpPanel, exRelationshipCheckbox, relocationPersonBOption, includePersonBRelocationEl, transitStartDate, transitEndDate, transitStep, relocationCoordsInput, loadHealthDataBtn, clearHealthDataBtn, healthDataInput, healthDataStatus, loadSeismoBtn, clearSeismoBtn, seismoMdInput, seismoDataStatus, genComparativeBtn, genComparativePdfBtn;
 
         // Store health data for correlation analysis
         let loadedHealthData = null;
@@ -1864,7 +1861,7 @@ function renderTransitDay(dateStr, items){
             reportOutput.classList.add('hidden');
             try { errorDisplay.focus({ preventScroll: true }); } catch(_){}
             // Hide report action buttons when showing error
-            document.getElementById('copyReport').classList.add('hidden');
+            // Copy report removed
             document.getElementById('downloadReport').classList.add('hidden');
             document.getElementById('downloadPDF').classList.add('hidden');
             document.getElementById('pdfOptions').classList.add('hidden');
@@ -2840,7 +2837,20 @@ function renderTransitDay(dateStr, items){
             if (!balanceMeterData) return 'No Balance Meter data available.';
 
             let md = `# Balance Meter Report\n\n`;
-            md += `**Subject**: ${balanceMeterData.person?.name || 'Unknown'}\n`;
+            const personDetails = sourceData?.person_a?.details || null;
+            const subjectName = balanceMeterData.person?.name || personDetails?.name || 'Unknown';
+            md += `**Subject**: ${subjectName}\n`;
+            // Always include birth identity info if available
+            try {
+                if (personDetails && typeof generateBirthLabel === 'function') {
+                    md += `**Birth**: ${generateBirthLabel({
+                        birthDate: personDetails.birthDate || `${personDetails.year}-${String(personDetails.month).padStart(2,'0')}-${String(personDetails.day).padStart(2,'0')}`,
+                        birthTime: personDetails.birthTime || `${String(personDetails.hour||'00').padStart(2,'0')}:${String(personDetails.minute||'00').padStart(2,'0')}`,
+                        birthCity: personDetails.birthCity || personDetails.city || 'Unknown City',
+                        birthState: personDetails.birthState || personDetails.nation || 'Unknown'
+                    })}\n`;
+                }
+            } catch(_) {}
             md += `**Period**: ${balanceMeterData.period?.start} to ${balanceMeterData.period?.end}\n`;
             md += `**Schema**: WM-Chart-${balanceMeterData.schema_version}\n\n`;
 
@@ -2939,6 +2949,219 @@ function renderTransitDay(dateStr, items){
             md += `1. **Seismograph v1.0**: Crisis-weighted transit intensity\n`;
 
             return md;
+        }
+
+        // --- Empty Template Generators (v1.4) ---
+        function buildSoloMirrorEmptyTemplate(context) {
+            const today = new Date().toISOString().split('T')[0];
+            const personA = context?.personA || {};
+            const birthLabel = (typeof generateBirthLabel === 'function' && personA?.birthDate)
+                ? generateBirthLabel(personA)
+                : '[date time place]';
+            const relocationOn = context?.relocation?.enabled ? 'on' : 'off';
+            const tz = personA?.timezone || 'America/Chicago';
+            return (
+`# Solo Mirror — Empty Template (v1.4)\n\n`+
+`## Typological Profile (Constitutional Climate Layer)\n\n`+
+`### Dominant Orientation\n\n`+
+`[Function: Thinking/Feeling/Sensation/Intuition] organized by [major planets, signs, houses, aspects]. Often shows up as [concrete behavioral patterns: structuring/analyzing/attuning/perceiving].\n\n`+
+`### Secondary Orientation\n\n`+
+`A background current of [function] ([Moon, Venus, auxiliary aspects, daily rhythm houses]) that surfaces as [conditional behaviors, relational modes, imaginal flashes].\n\n`+
+`### Shadow Orientation\n\n`+
+`Constitutional friction concentrates around [function(s)] ([squares, oppositions, Saturn/Pluto/Neptune knots, retrogrades]). Often felt as [doubt, fog, overdrive, timing snags, vulnerability, paradox].\n\n`+
+`### Constitutional Climate (Summary Hook)\n\n`+
+`“A [metaphor for dominant] working alongside a [metaphor for secondary/shadow].”\n\n`+
+`—\n\n`+
+`## Recognition Hierarchy (based on Hook Stack)\n\n`+
+`“[Polarity hook 1]” • “[Polarity hook 2]” • “[Polarity hook 3]”\n\n`+
+`**Recognition Layer: Where Tension Is Felt (frontstage)**\n\n`+
+`- [Paragraph 1: 2–4 sentences, conditional, lived friction + behavioral edge]\n`+
+`- [Paragraph 2: 2–4 sentences]\n`+
+`- [Paragraph 3: 2–4 sentences]\n\n`+
+`## SST Clause (Falsifiability)\n\n`+
+`- WB — [rationale/ping]\n`+
+`- ABE — [inversion/tonal/directional note]\n`+
+`- OSR — [null confirmation]\n\n`+
+`SST prompt (frontstage): Did this land? Mark WB / ABE / OSR.\n\n`+
+`## Balance Meter (Full Stack) in Plain-Weather\n\n`+
+`### Today’s Reading\n\n`+
+`- [Pressure band narrative, direction] ([high/medium/low], [supportive 🌞 / restrictive 🌑 / mixed 🌗])\n`+
+`- [Support cut/holding/prevailing] ([scaffolding present/challenged/absent])\n`+
+`- [Depleted/resilient/rebounding] ([reserves + recovery narrative])\n\n`+
+`### Climate Line\n\n`+
+`[How typological baseline responds to current transits — constitutional weather dance]\n\n`+
+`## Relocation Context\n\n`+
+`Mode: [none | A_local]\n`+
+`Notes: [Angles/houses relocate; typology remains natal]\n`+
+`House System: [WholeSign | Placidus]\n`+
+`Birth Time Confidence: [exact | approximate | unknown]\n`+
+`House Confidence: [high | medium | low]\n`+
+`Lens Location: [City, Region] • Time Zone: ${tz}\n\n`+
+`## Vector-Integrity Check (Mandatory if structurally qualified)\n\n`+
+`- [Latent/Suppressed/Dormant]: [Vector name] — [structural presence; currently contained/waiting]\n`+
+`- [Latent/Suppressed/Dormant]: [Vector name] — [compensated by X placements]\n`+
+`- [Latent/Suppressed/Dormant]: [Vector name] — [awaits activation window (e.g., Saturn return)]\n\n`+
+`## Polarity Cards (FIELD → MAP → VOICE)\n\n`+
+`1) [Polarity A] ↔ [Polarity B]\n`+
+`FIELD: [somatic/sensory texture]\n`+
+`MAP (operator): [planets, aspect, sign/house; lens flag]\n`+
+`VOICE: [conditional behavioral description with both poles]\n\n`+
+`2) [Polarity A] ↔ [Polarity B]\n`+
+`FIELD: [embodied feel]\n`+
+`MAP (operator): [symbolic source]\n`+
+`VOICE: [plain-language both-side rendering]\n\n`+
+`3) [Polarity A] ↔ [Polarity B]\n`+
+`FIELD: [felt tone]\n`+
+`MAP (operator): [exact geometry]\n`+
+`VOICE: [everyday surfacing description]\n\n`+
+`## Mirror Voice (Stitched Reflection)\n\n`+
+`[Constitutional climate ↔ current weather interplay]\n`+
+`[Support vs. friction: SFD narrative]\n`+
+`[Relocation one-liner if applicable]\n`+
+`[Reframe tension as engine, not flaw]\n`+
+`[Close with optional invitation that honors both poles]\n\n`+
+`## Agency + Hygiene\n\n`+
+`If this doesn’t land, it doesn’t count (OSR valid). Language stays conditional. SST classification depends on lived confirmation.\n\n`+
+`## Context & Accessibility (frontstage metadata)\n\n`+
+`Birth-time status: [exact | approximate | unknown → solar]\n`+
+`Relocation: ${relocationOn}\n`+
+`Emoji alts present: true\n\n`+
+`## Frontstage Metadata (Version Control)\n\n`+
+`Template Version: SoloMirror-v1.4.0 • Schema: mirror-draft-2025-09 • Emoji Lexicon: 1.0\n`+
+`Build ID: ${today}_[hash]\n`+
+`Parent Build ID: null\n`+
+`Min Raven: ≥2025.09\n\n`+
+`## Subject\n\n`+
+`Name: ${personA?.name || '[Name]'}\n`+
+`Birth: ${birthLabel}\n`);
+        }
+
+        function buildRelationalMirrorEmptyTemplate(context) {
+            const today = new Date().toISOString().split('T')[0];
+            const A = context?.personA || {};
+            const B = context?.personB || {};
+            const aLabel = (typeof generateBirthLabel === 'function' && A?.birthDate) ? generateBirthLabel(A) : '[date time place]';
+            const bLabel = (typeof generateBirthLabel === 'function' && B?.birthDate) ? generateBirthLabel(B) : '[date time place]';
+            return (
+`# Relational Mirror — Empty Template (v1.4)\n\n`+
+`## Relational Tier & Consent\n\n`+
+`Tier: [partner | friend/colleague | family | acquaintance]\n`+
+`Consent Status: [mutual | single-sided | anonymized]\n`+
+`Cultural/Lens Calibration: [tropical | sidereal | animist | nondual] (function-first)\n\n`+
+`## Dyadic Typological Snapshot (Constitutional)\n\n`+
+`Person A: [Dominant/Secondary/Shadow summaries]\n`+
+`Person B: [Dominant/Secondary/Shadow summaries]\n`+
+`Polarity Hook (shared): "[A vs. B tension name]"\n\n`+
+`## Recognition Layer — Where It’s Felt (A & B)\n\n`+
+`[Short paragraph: daily friction zone that both notice]\n`+
+`[Short paragraph: zone unique to A]\n`+
+`[Short paragraph: zone unique to B]\n\n`+
+`## Bidirectional Vector Mirrors (Mandatory A→B and B→A)\n\n`+
+`Vector 1\n\n`+
+`A → B (frontstage): [ ]\n`+
+`B → A (frontstage): [ ]\n`+
+`MAP (operator): [ ]\n`+
+`SST: [WB/ABE/OSR for each direction + rationale]\n\n`+
+`Vector 2\n\n`+
+`A → B: [ ]\n`+
+`B → A: [ ]\n`+
+`MAP: [ ]\n`+
+`SST: [ ]\n\n`+
+`Vector 3\n\n`+
+`A → B: [ ]\n`+
+`B → A: [ ]\n`+
+`MAP: [ ]\n`+
+`SST: [ ]\n\n`+
+`## Balance Meter (Relational Climate)\n\n`+
+`### Today’s Dyadic Reading\n\n`+
+`- [Pressure on the bond] ([high/medium/low], [supportive 🌞 / restrictive 🌑 / mixed 🌗])\n`+
+`- [Shared Scaffolding] ([present/challenged/absent])\n`+
+`- [Bond Resilience] ([resilient/depleted/rebounding])\n`+
+`- [Volatility] ([steady / scattered / storm-class 🌪️])\n\n`+
+`### Bond Climate Line\n\n`+
+`[How A’s baseline meets B’s baseline under current sky; where ease vs. drag concentrates]\n\n`+
+`## Relocation Context (Relational)\n\n`+
+`Mode: [none | A_local | B_local | midpoint]\n`+
+`Notes: [Angles/houses relocate; individual typologies remain natal]\n`+
+`House System: [WholeSign | Placidus]\n`+
+`Birth Time Confidence (A/B): [ ] / [ ]\n`+
+`House Confidence (A/B): [ ] / [ ]\n`+
+`Lens Location: [City choice + rationale]\n\n`+
+`## Vector-Integrity Check (Latent/Suppressed)\n\n`+
+`- [Latent]: [A→B vector name] — [structural, not yet behaviorally pinged]\n`+
+`- [Suppressed]: [B→A vector name] — [compensated by X placements]\n\n`+
+`## Polarity Cards (Shared FIELD → MAP → VOICE)\n\n`+
+`[Polarity Name of the Bond]\n\n`+
+`FIELD: [somatic tone between A & B]\n`+
+`MAP (operator): [cross-chart geometry; lens flag]\n`+
+`VOICE: [conditional mirror that honors both sides without advice]\n\n`+
+`## Mirror Voice (Stitched Dyadic Reflection)\n\n`+
+`[What the bond tends to amplify under this sky]\n`+
+`[Where scaffolding holds vs. where friction cuts]\n`+
+`[Relocation one-liner if used]\n`+
+`[Close with non-prescriptive invitation that preserves agency on both sides]\n\n`+
+`## Agency + Hygiene\n\n`+
+`OSR is valid data. Conditional phrasing only. Bidirectional SST logging required for each named vector.\n\n`+
+`## Frontstage Identity\n\n`+
+`Person A: ${A?.name || '[Name]'} — ${aLabel}\n`+
+`Person B: ${B?.name || '[Name]'} — ${bLabel}\n`);
+        }
+
+        function buildSoloBalanceEmptyTemplate(context) {
+            const today = new Date().toISOString().split('T')[0];
+            const A = context?.personA || {};
+            const aLabel = (typeof generateBirthLabel === 'function' && A?.birthDate) ? generateBirthLabel(A) : '[date time place]';
+            return (
+`# Solo Balance Report — Empty Template (v1.4)\n\n`+
+`## Balance Meter Frontstage (Plain-Weather Only)\n\n`+
+`### Today’s Reading\n\n`+
+`- Pressure: [high/medium/low] ([supportive 🌞 / restrictive 🌑 / mixed 🌗])\n`+
+`- Support/Scaffolding: [present/challenged/absent]\n`+
+`- Resilience: [resilient/depleted/rebounding]\n`+
+`- Volatility: [steady / scattered / storm-class 🌪️]\n\n`+
+`### Climate Line\n\n`+
+`[Narrative of how pressure distributes; key cross-currents; where air clears]\n\n`+
+`## Support–Friction Differential (SFD)\n\n`+
+`[Where support outweighs friction / where friction outweighs support; one paragraph]\n\n`+
+`## Vector Flags (If Any)\n\n`+
+`- [Latent/Suppressed/Dormant]: [Vector name] — [note]\n\n`+
+`## Relocation Note (If On)\n\n`+
+`[City] — [one line disclosure]\n\n`+
+`## Frontstage Metadata\n\n`+
+`Template Version: SoloBalance-v1.4.0 • Schema: bm-plainweather-2025-09 • Build ID: ${today}_[id]\n\n`+
+`## Subject\n\n`+
+`Name: ${A?.name || '[Name]'}\n`+
+`Birth: ${aLabel}\n`);
+        }
+
+        function buildRelationalBalanceEmptyTemplate(context) {
+            const today = new Date().toISOString().split('T')[0];
+            const A = context?.personA || {};
+            const B = context?.personB || {};
+            const aLabel = (typeof generateBirthLabel === 'function' && A?.birthDate) ? generateBirthLabel(A) : '[date time place]';
+            const bLabel = (typeof generateBirthLabel === 'function' && B?.birthDate) ? generateBirthLabel(B) : '[date time place]';
+            return (
+`# Relational Balance Report — Empty Template (v1.4)\n\n`+
+`## Dyadic Balance Meter (Plain-Weather)\n\n`+
+`### Today’s Bond Reading\n\n`+
+`- Pressure on the Bond: [high/medium/low] ([supportive 🌞 / restrictive 🌑 / mixed 🌗])\n`+
+`- Shared Scaffolding: [present/challenged/absent]\n`+
+`- Bond Resilience: [resilient/depleted/rebounding]\n`+
+`- Volatility: [steady / scattered / storm-class 🌪️]\n\n`+
+`### Bond Climate Line\n\n`+
+`[Narrative: how A’s field meets B’s field today; where coupling adds lift vs. drag]\n\n`+
+`## SFD for the Bond\n\n`+
+`[Explain net balance between stabilizers and stressors across the connection]\n\n`+
+`## Dyadic Vector Flags (If Any)\n\n`+
+`- [Latent/Suppressed/Dormant]: [A→B vector] — [note]\n`+
+`- [Latent/Suppressed/Dormant]: [B→A vector] — [note]\n\n`+
+`## Relocation Note (If On)\n\n`+
+`Mode: [A_local | B_local | midpoint] — [one-line disclosure]\n\n`+
+`## Frontstage Metadata\n\n`+
+`Template Version: RelationalBalance-v1.4.0 • Schema: bm-relational-2025-09 • Build ID: ${today}_[id]\n\n`+
+`## Frontstage Identity\n\n`+
+`Person A: ${A?.name || '[Name]'} — ${aLabel}\n`+
+`Person B: ${B?.name || '[Name]'} — ${bLabel}\n`);
         }
 
         // NEW: Render Balance Meter data as styled HTML instead of markdown
@@ -3345,12 +3568,17 @@ function renderTransitDay(dateStr, items){
             md += `**Report_Type:** "${isRelational ? 'Relational_Mirror' : 'Solo_Mirror'}"\n`;
             md += `**Report_Date:** "${currentDate}"\n\n`;
             
-            // Context (for relational)
+            // Context (subject identity always; relational has both)
             if (isRelational) {
                 md += `## Context\n\n`;
                 md += `**Person_A:** {name: "${personA.name}", birth_label: "${generateBirthLabel(personA)}"}\n`;
                 md += `**Person_B:** {name: "${personB.name}", birth_label: "${generateBirthLabel(personB)}"}\n`;
                 md += `**Relational_Tier:** "[Partner | Family | Friend | Acquaintance]" // Math Brain cannot determine—requires user input\n\n`;
+            } else {
+                md += `## Context\n\n`;
+                if (personA?.name) {
+                    md += `**Subject:** {name: "${personA.name}", birth_label: "${generateBirthLabel(personA)}"}\n\n`;
+                }
             }
             
             // Typological Profile (Constitutional Climate Layer)
@@ -6027,13 +6255,22 @@ function renderTransitDay(dateStr, items){
                     }
                 } catch(e) { /* noop */ }
 
+                // Attach any prebuilt reports/templates if present
+                const reports = {};
+                try {
+                    if (data?.reports?.mirror_report) reports.mirror_report = data.reports.mirror_report;
+                    if (data?.reports?.balance_meter_report) reports.balance_meter_report = data.reports.balance_meter_report;
+                    if (data?.reports?.templates) reports.templates = data.reports.templates;
+                } catch(_){}
+
                 return {
                     report_date,
                     context,
                     balance_meter,
                     macro_view,
                     micro_view,
-                    seismograph_by_date
+                    seismograph_by_date,
+                    reports: Object.keys(reports).length ? reports : undefined
                 };
             } catch (e) {
                 console.warn('Raven JSON build failed, falling back to minimal shell', e);
@@ -9464,7 +9701,7 @@ function renderTransitDay(dateStr, items){
                 mirrorReportDisplay.classList.add('hidden');
             }
             // Hide report action buttons when starting new generation
-            document.getElementById('copyReport').classList.add('hidden');
+            // Copy report removed
             document.getElementById('downloadReport').classList.add('hidden');
             document.getElementById('downloadPDF').classList.add('hidden');
             document.getElementById('pdfOptions').classList.add('hidden');
@@ -9534,6 +9771,37 @@ function renderTransitDay(dateStr, items){
 
                 // Store result data for downloads
                 latestResultData = result;
+                // Attach v1.4 Empty Templates into result.reports for JSON download parity
+                try {
+                    const formDataContext = collectFormData();
+                    const aDetails = result?.person_a?.details || formDataContext?.personA || {};
+                    const bDetails = result?.person_b?.details || formDataContext?.personB || {};
+                    // Normalize to birthDate/time/city/state where possible
+                    const normA = {
+                        name: aDetails.name,
+                        birthDate: aDetails.birthDate || (aDetails.year ? `${aDetails.year}-${String(aDetails.month||'').padStart(2,'0')}-${String(aDetails.day||'').padStart(2,'0')}` : undefined),
+                        birthTime: aDetails.birthTime || ((aDetails.hour!=null && aDetails.minute!=null) ? `${String(aDetails.hour).padStart(2,'0')}:${String(aDetails.minute).padStart(2,'0')}` : undefined),
+                        birthCity: aDetails.birthCity || aDetails.city,
+                        birthState: aDetails.birthState || aDetails.nation,
+                        timezone: aDetails.timezone
+                    };
+                    const normB = {
+                        name: bDetails.name,
+                        birthDate: bDetails.birthDate || (bDetails.year ? `${bDetails.year}-${String(bDetails.month||'').padStart(2,'0')}-${String(bDetails.day||'').padStart(2,'0')}` : undefined),
+                        birthTime: bDetails.birthTime || ((bDetails.hour!=null && bDetails.minute!=null) ? `${String(bDetails.hour).padStart(2,'0')}:${String(bDetails.minute).padStart(2,'0')}` : undefined),
+                        birthCity: bDetails.birthCity || bDetails.city,
+                        birthState: bDetails.birthState || bDetails.nation,
+                        timezone: bDetails.timezone
+                    };
+                    const templateCtx = { personA: normA, personB: normB, relocation: formDataContext?.relocation };
+                    result.reports = result.reports || {};
+                    result.reports.templates = {
+                        solo_mirror: buildSoloMirrorEmptyTemplate(templateCtx),
+                        relational_mirror: buildRelationalMirrorEmptyTemplate(templateCtx),
+                        solo_balance: buildSoloBalanceEmptyTemplate(templateCtx),
+                        relational_balance: buildRelationalBalanceEmptyTemplate(templateCtx)
+                    };
+                } catch (e) { console.debug('Template scaffolds attach skipped', e); }
                 // If we're in the Balance tab and server omitted balance_meter, attach a synthesized payload for export parity
                 try {
                     const activeTabMode2 = (typeof getCurrentActiveTabMode === 'function') ? getCurrentActiveTabMode() : 'mirror';
@@ -9646,7 +9914,6 @@ function renderTransitDay(dateStr, items){
 
                     reportOutput.classList.remove('hidden');
                     
-                    document.getElementById('copyReport').classList.remove('hidden');
                     document.getElementById('downloadReport').classList.remove('hidden');
                     document.getElementById('downloadPDF').classList.remove('hidden');
                     document.getElementById('pdfOptions').classList.remove('hidden');
@@ -9874,8 +10141,8 @@ function renderTransitDay(dateStr, items){
                 }
             });
 
-            // Copy report
-            copyBtn.addEventListener('click', async () => {
+            // Copy report removed; keep stub if reintroduced later
+            if (false && copyBtn) copyBtn.addEventListener('click', async () => {
                 try {
                     // For copy, use enhanced version with executive summary but no JSON appendix (too large)
                     if (latestResultData) {
@@ -9894,8 +10161,10 @@ function renderTransitDay(dateStr, items){
                     } else {
                         await navigator.clipboard.writeText(reportContent.textContent);
                     }
-                    copyBtn.textContent = 'Copied!';
-                    setTimeout(() => { copyBtn.textContent = '📋 Copy Report'; }, 2000);
+                    if (copyBtn) {
+                        copyBtn.textContent = 'Copied!';
+                        setTimeout(() => { if (copyBtn) copyBtn.textContent = '📋 Copy Report'; }, 2000);
+                    }
                 } catch (err) {
                     console.error('Failed to copy text: ', err);
                 }
@@ -11132,7 +11401,7 @@ function renderTransitDay(dateStr, items){
             errorMessage = document.getElementById('errorMessage');
             reportOutput = document.getElementById('reportOutput');
             reportContent = document.getElementById('reportContent');
-            copyBtn = document.getElementById('copyReport');
+            // copyBtn removed (Copy Report button no longer present)
             downloadReportBtn = document.getElementById('downloadReport');
             mathBrainInfoBtn = document.getElementById('math-brain-info-btn');
             mathBrainModal = document.getElementById('math-brain-modal');
