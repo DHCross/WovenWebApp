@@ -43,29 +43,50 @@
                 </script>
         
 
-        <!-- Self-hosted Auth0 SDK - no more CDN 403 issues -->
+        <!-- Self-hosted Auth0 SDK - sequential load with readiness promise -->
                     <script>
                         (function(){
-                            // Try both common static paths for self-hosting
-                            var candidates = ['/vendor/auth0-spa-js.production.js','/public/vendor/auth0-spa-js.production.js'];
-                            function tryFetch(url){
-                                return fetch(url, { method:'GET', cache:'no-store' })
-                                    .then(function(res){ if(!res.ok) throw new Error('HTTP '+res.status+' for '+url); return res.text().then(t=>({text:t,url:url})); });
+                            var resolveReady, rejectReady;
+                            window.__auth0Ready = new Promise(function(res, rej){ resolveReady = res; rejectReady = rej; });
+                            function injectScript(url){
+                                return new Promise(function(res, rej){
+                                    var s = document.createElement('script');
+                                    s.src = url;
+                                    s.onload = function(){
+                                        if (typeof createAuth0Client === 'function') {
+                                            console.info('[Auth0] SDK loaded from', url);
+                                            res(true);
+                                        } else {
+                                            rej(new Error('SDK loaded but createAuth0Client missing'));
+                                        }
+                                    };
+                                    s.onerror = function(e){ rej(new Error('Failed to load '+url)); };
+                                    document.head.appendChild(s);
+                                });
                             }
-                            Promise.any(candidates.map(tryFetch)).then(function(r){
-                                var looksJS = /createAuth0Client\s*=/.test(r.text) || r.text.indexOf('Auth0Client') !== -1;
-                                if (looksJS) {
-                                    // Inject the script from the successful path so defer/ordering doesn’t bite us
-                                    var s = document.createElement('script'); s.src = r.url; s.defer = true; document.head.appendChild(s);
-                                    console.info('[Auth0] Self-hosted SDK verified at', r.url);
-                                } else {
-                                    console.warn('[Auth0] SDK file did not look like JS. Check _redirects and vendor path.');
-                                    try { document.querySelectorAll('.auth-btn').forEach(function(btn){ if(btn){ btn.disabled=false; btn.addEventListener('click', function(){ alert('Auth is unavailable because the Auth0 SDK did not load. Verify /vendor or /public/vendor and _redirects.'); }); } }); } catch(_){}
+                            function fetchText(url){
+                                return fetch(url, { method:'GET', cache:'no-store' })
+                                    .then(function(res){ if(!res.ok) throw new Error('HTTP '+res.status+' for '+url); return res.text(); });
+                            }
+                            (async function(){
+                                var paths = ['/public/vendor/auth0-spa-js.production.js','/vendor/auth0-spa-js.production.js'];
+                                for (var i=0;i<paths.length;i++){
+                                    var url = paths[i];
+                                    try{
+                                        var txt = await fetchText(url);
+                                        var looksJS = /createAuth0Client\s*=/.test(txt) || txt.indexOf('Auth0Client') !== -1;
+                                        if (!looksJS) { console.warn('[Auth0] Not JS at', url); continue; }
+                                        await injectScript(url);
+                                        resolveReady(true);
+                                        return;
+                                    } catch(e){
+                                        console.warn('[Auth0] Loader attempt failed for', url, e.message || e);
+                                    }
                                 }
-                            }).catch(function(err){
-                                console.warn('[Auth0] SDK fetch failed for all candidates:', err);
-                                try { document.querySelectorAll('.auth-btn').forEach(function(btn){ if(btn){ btn.disabled=false; btn.addEventListener('click', function(){ alert('Auth is unavailable because the Auth0 SDK could not be fetched. Check network and _redirects.'); }); } }); } catch(_){}
-                            });
+                                console.error('[Auth0] Unable to load SDK from any known path');
+                                rejectReady(new Error('Auth0 SDK not loaded'));
+                                try { document.querySelectorAll('.auth-btn').forEach(function(btn){ if(btn){ btn.disabled=false; btn.addEventListener('click', function(){ alert('Auth is unavailable because the Auth0 SDK did not load. Verify /public/vendor path and _redirects.'); }); } }); } catch(_){ }
+                            })();
                         })();
                     </script>
                 <style>
@@ -10296,7 +10317,11 @@ function renderTransitDay(dateStr, items){
             } catch (e) { console.debug('tz auto-map skipped:', e); }
 
             // Auth0 & Poetic Brain Integration
-            initializeAuth0();
+            (window.__auth0Ready || Promise.reject()).then(() => {
+                initializeAuth0();
+            }).catch((e) => {
+                console.warn('Auth0 SDK not ready; auth features disabled until available.', e?.message || e);
+            });
             
             // Validate safe lexicon implementation
             validateSafeLexicon();
@@ -10374,6 +10399,9 @@ function renderTransitDay(dateStr, items){
 
     async function initializeAuth0() {
             try {
+                if (typeof createAuth0Client !== 'function') {
+                    throw new ReferenceError('createAuth0Client is not defined (Auth0 SDK not loaded)');
+                }
                 // Configure Auth0 client
         auth0 = await createAuth0Client({
                     domain: 'dev-z8gw1uk6zgsrzubk.us.auth0.com',
