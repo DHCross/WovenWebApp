@@ -10421,8 +10421,23 @@ function renderTransitDay(dateStr, items){
                     throw new ReferenceError('createAuth0Client is not defined (Auth0 SDK not loaded)');
                 }
                 // Configure Auth0 client
-    const ac = (window.__AUTH0_PUBLIC || {});
-    const domain = ac.domain || 'dev-z8gw1uk6zgsrzubk.us.auth0.com';
+        const ac = (window.__AUTH0_PUBLIC || {});
+        // Sanitize domain from config: strip protocols and smart quotes that can break redirects (e.g., https’s)
+        function sanitizeDomain(d){
+            if (!d || typeof d !== 'string') return 'dev-z8gw1uk6zgsrzubk.us.auth0.com';
+            let raw = d.trim().replace(/[\u2018\u2019\u201A\u201B]/g, "'");
+            // If a full URL was provided (with or without stray quotes), parse and reduce to host
+            const tryParse = raw.replace(/'/g, '');
+            if (/^https?/i.test(tryParse)) {
+                try { raw = new URL(tryParse).host; } catch(e) {
+                    raw = tryParse.replace(/^https?:\/\//i, '').split('/')[0];
+                }
+            }
+            // Final safety: remove any path fragments
+            raw = raw.split('/')[0];
+            return raw;
+        }
+        const domain = sanitizeDomain(ac.domain) || 'dev-z8gw1uk6zgsrzubk.us.auth0.com';
     const clientId = ac.clientId || '0nV0L41xZijfc8HTKtoROPgyqgMttJYT';
         const audience = ac.audience || null; // Avoid defaulting to Management API
     auth0 = await createAuth0Client({
