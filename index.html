@@ -10317,7 +10317,19 @@ function renderTransitDay(dateStr, items){
             } catch (e) { console.debug('tz auto-map skipped:', e); }
 
             // Auth0 & Poetic Brain Integration
-            (window.__auth0Ready || Promise.reject()).then(() => {
+            (window.__auth0Ready || Promise.reject()).then(async () => {
+                try {
+                    const res = await fetch('/.netlify/functions/auth-config', { cache: 'no-store' });
+                    if (res.ok) {
+                        const cfg = await res.json();
+                        window.__AUTH0_PUBLIC = cfg;
+                        console.info('[Auth0] Loaded public config', { domain: cfg.domain });
+                    } else {
+                        console.warn('[Auth0] auth-config returned', res.status);
+                    }
+                } catch (e) {
+                    console.warn('[Auth0] Failed to fetch public config', e?.message || e);
+                }
                 initializeAuth0();
             }).catch((e) => {
                 console.warn('Auth0 SDK not ready; auth features disabled until available.', e?.message || e);
@@ -10403,12 +10415,16 @@ function renderTransitDay(dateStr, items){
                     throw new ReferenceError('createAuth0Client is not defined (Auth0 SDK not loaded)');
                 }
                 // Configure Auth0 client
-        auth0 = await createAuth0Client({
-                    domain: 'dev-z8gw1uk6zgsrzubk.us.auth0.com',
-                    clientId: '0nV0L41xZijfc8HTKtoROPgyqgMttJYT',
-                    authorizationParams: {
-            audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/'
-            },
+    const ac = (window.__AUTH0_PUBLIC || {});
+    const domain = ac.domain || 'dev-z8gw1uk6zgsrzubk.us.auth0.com';
+    const clientId = ac.clientId || '0nV0L41xZijfc8HTKtoROPgyqgMttJYT';
+    const audience = ac.audience || `https://${domain}/api/v2/`;
+    auth0 = await createAuth0Client({
+            domain,
+            clientId,
+            authorizationParams: {
+        audience
+        },
             cacheLocation: 'localstorage',
             useRefreshTokens: true
                 });
@@ -10448,9 +10464,11 @@ function renderTransitDay(dateStr, items){
 
                 // Set up event listeners
                 loginButton.addEventListener('click', async () => {
+                    console.debug('[Auth0] login redirect clicked');
                     await auth0.loginWithRedirect({
                         authorizationParams: {
-                            redirect_uri: window.location.origin
+                            redirect_uri: window.location.origin,
+                            client_id: clientId
                         }
                     });
                 });
@@ -10459,10 +10477,11 @@ function renderTransitDay(dateStr, items){
                 if (loginPopupButton) {
                     loginPopupButton.addEventListener('click', async () => {
                         try {
-                            await auth0.loginWithPopup({
+                await auth0.loginWithPopup({
                                 authorizationParams: {
-                                    audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/',
-                                    prompt: 'select_account'
+                    audience,
+                    prompt: 'select_account',
+                    client_id: clientId
                                 }
                             });
                             await updateAuthUI();
@@ -10476,11 +10495,13 @@ function renderTransitDay(dateStr, items){
                 // Dedicated Google login (uses the google-oauth2 connection)
                 if (googleLoginButton) {
                     googleLoginButton.addEventListener('click', async () => {
+                        console.debug('[Auth0] google login clicked');
                         await auth0.loginWithRedirect({
                             authorizationParams: {
                                 redirect_uri: window.location.origin,
                                 connection: 'google-oauth2',
-                                prompt: 'select_account'
+                                prompt: 'select_account',
+                                client_id: clientId
                             }
                         });
                     });

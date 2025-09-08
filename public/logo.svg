@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 150 150" role="img" aria-labelledby="title desc">
+  <title>Ravencalder Logo</title>
+  <desc>Emoji-based logo: black bird.</desc>
+  <rect width="150" height="150" rx="24" fill="#111827"/>
+  <text x="50%" y="52%" text-anchor="middle" dominant-baseline="middle"
+        font-family="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, EmojiOne Color, Twemoji Mozilla, sans-serif"
+        font-size="96">🐦‍⬛</text>
+</svg>

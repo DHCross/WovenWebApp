@@ -371,6 +371,14 @@ To run this project, you must set the following environment variable in the Netl
 * **Key:** RAPIDAPI\_KEY  
 * **Value:** Your secret key from RapidAPI for the Astrologer API.
 
+Additionally, for authentication:
+
+* AUTH0_DOMAIN – your Auth0 tenant domain (e.g., dev-xxxx.us.auth0.com)
+* AUTH0_CLIENT_ID – your SPA Application Client ID
+* AUTH0_AUDIENCE – your API audience (defaults to https://<domain>/api/v2/ if unset)
+
+The SPA loads these public values at runtime from `/.netlify/functions/auth-config`, allowing tenant switches without code edits.
+
 ### **Local Development Instructions**
 
 To run this project locally using Netlify CLI:

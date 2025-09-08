@@ -28,3 +28,7 @@ Auth0 app settings quickcheck
 - Allowed Logout URLs: http://localhost:8888/, https://<your-domain>/
 - Allowed Web Origins: http://localhost:8888, https://<your-domain>
 - After changes, hard-refresh or test in an incognito window to avoid cached state.
+
+Auth config quickcheck
+- GET /.netlify/functions/auth-config returns JSON with { domain, clientId, audience }
+- If it fails, ensure AUTH0_DOMAIN / AUTH0_CLIENT_ID / AUTH0_AUDIENCE are set in Netlify env or .env for `netlify dev`

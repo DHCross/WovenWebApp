@@ -1,7 +1,7 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://s.gravatar.com https://cdn.auth0.com; connect-src 'self' https://dev-z8gw1uk6zgsrzubk.us.auth0.com https://*.auth0.com https://*.rapidapi.com; frame-src https://dev-z8gw1uk6zgsrzubk.us.auth0.com https://*.auth0.com; frame-ancestors 'self';"
+  Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://s.gravatar.com https://cdn.auth0.com; connect-src 'self' https://dev-z8gw1uk6zgsrzubk.us.auth0.com https://*.auth0.com https://*.rapidapi.com; frame-src https://dev-z8gw1uk6zgsrzubk.us.auth0.com https://*.auth0.com; frame-ancestors 'self';"
 [build]
   command = "npm run build:css"
   publish = "."
@@ -19,4 +19,9 @@
 [[redirects]]
   from = "/api/astrology-mathbrain"
   to = "/.netlify/functions/astrology-mathbrain"
+  status = 200
+
+[[redirects]]
+  from = "/api/auth-config"
+  to = "/.netlify/functions/auth-config"
   status = 200
