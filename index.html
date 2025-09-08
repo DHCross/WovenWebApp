@@ -25,38 +25,49 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Woven Web App - Astrological Geometry</title>
+                <!-- Tailwind CSS (compiled) -->
+                <link href="/dist/output.css" rel="stylesheet">
+                <script>
+                    // Warn if Tailwind didn’t load (class not applied within a tick)
+                    window.addEventListener('DOMContentLoaded', function(){
+                        const probe = document.createElement('div');
+                        probe.className = 'hidden bg-gray-800';
+                        document.body.appendChild(probe);
+                        const style = window.getComputedStyle(probe);
+                        const looksTailwind = style && style.backgroundColor && style.backgroundColor !== 'rgba(0, 0, 0, 0)';
+                        if (!looksTailwind) {
+                            console.warn('[Tailwind] Compiled CSS might not be loaded (check /dist/output.css 200).');
+                        }
+                        probe.remove();
+                    });
+                </script>
         
 
         <!-- Self-hosted Auth0 SDK - no more CDN 403 issues -->
-            <script src="/public/vendor/auth0-spa-js.production.js" defer></script>
-                <script>
-                    (function(){
-                        // Verify the self-hosted SDK is actually being served as JS
-                        fetch('/public/vendor/auth0-spa-js.production.js', { method:'GET', cache:'no-store' })
-                            .then(function(res){ if(!res.ok) throw new Error('HTTP '+res.status); return res.text(); })
-                                            .then(function(txt){
-                                                var looksJS = /createAuth0Client\s*=/.test(txt) || txt.indexOf('Auth0Client') !== -1;
-                                                if (looksJS) {
-                                                    console.info('[Auth0] Self-hosted SDK verified');
-                                                } else {
-                                                    console.warn('[Auth0] SDK file did not look like JS. Check _redirects and /public/vendor path.');
-                                                    try { document.querySelectorAll('.auth-btn').forEach(function(btn){
-                                                        if (!btn) return; btn.disabled = false; btn.addEventListener('click', function(){
-                                                            alert('Auth is unavailable because the local Auth0 SDK did not load. Verify /public/vendor/auth0-spa-js.production.js and _redirects.');
-                                                        });
-                                                    }); } catch(_){}
-                                                }
-                                            })
-                                            .catch(function(err){
-                                                console.warn('[Auth0] SDK fetch failed:', err);
-                                                try { document.querySelectorAll('.auth-btn').forEach(function(btn){
-                                                    if (!btn) return; btn.disabled = false; btn.addEventListener('click', function(){
-                                                        alert('Auth is unavailable because the local Auth0 SDK could not be fetched. Check network and _redirects.');
-                                                    });
-                                                }); } catch(_){}
-                                            });
-                    })();
-                </script>
+                    <script>
+                        (function(){
+                            // Try both common static paths for self-hosting
+                            var candidates = ['/vendor/auth0-spa-js.production.js','/public/vendor/auth0-spa-js.production.js'];
+                            function tryFetch(url){
+                                return fetch(url, { method:'GET', cache:'no-store' })
+                                    .then(function(res){ if(!res.ok) throw new Error('HTTP '+res.status+' for '+url); return res.text().then(t=>({text:t,url:url})); });
+                            }
+                            Promise.any(candidates.map(tryFetch)).then(function(r){
+                                var looksJS = /createAuth0Client\s*=/.test(r.text) || r.text.indexOf('Auth0Client') !== -1;
+                                if (looksJS) {
+                                    // Inject the script from the successful path so defer/ordering doesn’t bite us
+                                    var s = document.createElement('script'); s.src = r.url; s.defer = true; document.head.appendChild(s);
+                                    console.info('[Auth0] Self-hosted SDK verified at', r.url);
+                                } else {
+                                    console.warn('[Auth0] SDK file did not look like JS. Check _redirects and vendor path.');
+                                    try { document.querySelectorAll('.auth-btn').forEach(function(btn){ if(btn){ btn.disabled=false; btn.addEventListener('click', function(){ alert('Auth is unavailable because the Auth0 SDK did not load. Verify /vendor or /public/vendor and _redirects.'); }); } }); } catch(_){}
+                                }
+                            }).catch(function(err){
+                                console.warn('[Auth0] SDK fetch failed for all candidates:', err);
+                                try { document.querySelectorAll('.auth-btn').forEach(function(btn){ if(btn){ btn.disabled=false; btn.addEventListener('click', function(){ alert('Auth is unavailable because the Auth0 SDK could not be fetched. Check network and _redirects.'); }); } }); } catch(_){}
+                            });
+                        })();
+                    </script>
                 <style>
                         /* Custom scrollbar */
             ::-webkit-scrollbar {
@@ -10026,7 +10037,7 @@ function renderTransitDay(dateStr, items){
         }
 
         // Initial UI setup on page load
-        document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', () => {
             // Legacy deep-link normalization (?mode=geometry -> mirror#geometry-skeleton)
             try {
                 const params = new URLSearchParams(location.search);
@@ -10244,6 +10255,46 @@ function renderTransitDay(dateStr, items){
             // Mobile-specific initialization
             initializeMobileSupport();
             
+            // Gentle auto-timezone mapping for Person A (Bryn Mawr → Eastern)
+            try {
+                const tzSelect = document.getElementById('offsetA');
+                const city = document.getElementById('birth_cityA');
+                const state = document.getElementById('birth_stateA');
+                const coords = document.getElementById('astroA');
+                const userTouched = { value: false };
+                if (tzSelect) {
+                    tzSelect.addEventListener('change', () => { userTouched.value = true; }, { once: true });
+                }
+                const maybeSetEastern = () => {
+                    if (!tzSelect || userTouched.value) return;
+                    const cityVal = (city?.value || '').trim().toLowerCase();
+                    const stateVal = (state?.value || '').trim().toUpperCase();
+                    const coordVal = (coords?.value || '').trim();
+                    let shouldEastern = false;
+                    // City/state hint
+                    if (cityVal === 'bryn mawr' && (stateVal === 'PA' || stateVal === 'PENNSYLVANIA')) shouldEastern = true;
+                    // Rough coord hint for Eastern US (lon between -67 and -82, lat between 25 and 47)
+                    if (!shouldEastern && coordVal) {
+                        const m = coordVal.match(/-?\d+\.?\d*/g);
+                        if (m && m.length >= 2) {
+                            const lat = parseFloat(m[0]);
+                            const lon = parseFloat(m[1]);
+                            if (isFinite(lat) && isFinite(lon) && lon <= -67 && lon >= -82 && lat >= 25 && lat <= 47) {
+                                shouldEastern = true;
+                            }
+                        }
+                    }
+                    if (shouldEastern && tzSelect.value !== 'America/New_York') {
+                        tzSelect.value = 'America/New_York';
+                    }
+                };
+                // Run once on load; also re-run when user pastes coords or edits city/state (but don't override after manual change)
+                maybeSetEastern();
+                city?.addEventListener('blur', maybeSetEastern);
+                state?.addEventListener('blur', maybeSetEastern);
+                coords?.addEventListener('change', maybeSetEastern);
+            } catch (e) { console.debug('tz auto-map skipped:', e); }
+
             // Auth0 & Poetic Brain Integration
             initializeAuth0();
             
