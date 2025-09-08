@@ -24,9 +24,211 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Woven Web App - Astrological Geometry</title>
+        <title>Woven Map Math Brain - Pure Astrological Geometry</title>
                 <!-- Tailwind CSS (compiled) -->
                 <link href="/dist/output.css" rel="stylesheet">
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+                <style>
+            :root {
+                /* Modern color palette */
+                --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                --bg-dark: #0f0f14;
+                --bg-card: rgba(255, 255, 255, 0.03);
+                --bg-card-hover: rgba(255, 255, 255, 0.05);
+                --border-subtle: rgba(255, 255, 255, 0.08);
+                --border-active: rgba(102, 126, 234, 0.5);
+                --text-primary: #f3f4f6;
+                --text-secondary: #9ca3af;
+                --text-muted: #6b7280;
+                --accent-teal: #14b8a6;
+                --accent-purple: #8b5cf6;
+                --accent-blue: #3b82f6;
+                --success: #10b981;
+                --warning: #f59e0b;
+                --danger: #ef4444;
+            }
+
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+                background-color: var(--bg-dark);
+                background: var(--bg-dark);
+                color: var(--text-primary);
+                line-height: 1.6;
+                min-height: 100vh;
+                position: relative;
+                overflow-x: hidden;
+            }
+
+            /* Subtle background gradient */
+            body::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.08) 0%, transparent 50%),
+                            radial-gradient(circle at 40% 40%, rgba(20, 184, 166, 0.04) 0%, transparent 50%);
+                pointer-events: none;
+            }
+
+            /* Modern container styling */
+            .container {
+                position: relative;
+                z-index: 1;
+            }
+
+            /* Enhanced header styling */
+            header h1 {
+                background: var(--primary-gradient);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                letter-spacing: -0.02em;
+                line-height: 1.2;
+            }
+
+            /* Tab navigation with modern styling */
+            .bg-gray-800 {
+                background: var(--bg-card) !important;
+                border: 1px solid var(--border-subtle);
+                backdrop-filter: blur(10px);
+            }
+
+            /* Modern button styling */
+            .bg-teal-600 {
+                background: var(--primary-gradient) !important;
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            }
+
+            .hover\:bg-teal-700:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4) !important;
+            }
+
+            /* Form enhancements */
+            .bg-gray-700 {
+                background: var(--bg-card) !important;
+                border: 1px solid var(--border-subtle);
+                backdrop-filter: blur(10px);
+            }
+
+            .bg-gray-700:hover {
+                background: var(--bg-card-hover) !important;
+                border-color: rgba(255, 255, 255, 0.1);
+            }
+
+            /* Input field styling */
+            input, select, textarea {
+                background: rgba(255, 255, 255, 0.05) !important;
+                border: 2px solid var(--border-subtle) !important;
+                border-radius: 12px !important;
+                color: var(--text-primary) !important;
+                transition: all 0.3s ease;
+            }
+
+            input:focus, select:focus, textarea:focus {
+                background: rgba(255, 255, 255, 0.08) !important;
+                border-color: var(--border-active) !important;
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+                outline: none !important;
+            }
+
+            input:hover, select:hover, textarea:hover {
+                border-color: rgba(255, 255, 255, 0.15) !important;
+            }
+
+            /* Enhanced radio button labels */
+            label {
+                background: var(--bg-card) !important;
+                border: 2px solid var(--border-subtle) !important;
+                border-radius: 12px !important;
+                transition: all 0.3s ease !important;
+                cursor: pointer !important;
+                backdrop-filter: blur(10px) !important;
+            }
+
+            label:hover {
+                background: var(--bg-card-hover) !important;
+                border-color: var(--accent-teal) !important;
+                transform: translateY(-1px) !important;
+                box-shadow: 0 4px 12px rgba(20, 184, 166, 0.2) !important;
+            }
+
+            /* Card styling enhancements */
+            .rounded-lg {
+                border-radius: 16px !important;
+            }
+
+            .rounded {
+                border-radius: 12px !important;
+            }
+
+            /* Smooth transitions for interactive elements */
+            a, button, input, select, textarea, .clickable {
+                transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            /* Button improvements */
+            button:hover {
+                transform: translateY(-1px);
+            }
+
+            button:active {
+                transform: translateY(0);
+            }
+
+            /* Custom scrollbar */
+            ::-webkit-scrollbar {
+                width: 10px;
+            }
+
+            ::-webkit-scrollbar-track {
+                background: var(--bg-dark);
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: var(--border-subtle);
+                border-radius: 5px;
+            }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: var(--border-active);
+            }
+
+            /* Animation utilities */
+            .animate-fade-in-out {
+                animation: fadeInOut 8s ease-in-out forwards;
+            }
+
+            @keyframes fadeInOut {
+                0%, 100% { opacity: 0; transform: translateY(-20px); }
+                10%, 90% { opacity: 1; transform: translateY(0); }
+            }
+
+            /* Loading states */
+            .loading::after {
+                content: '';
+                width: 1rem;
+                height: 1rem;
+                border: 2px solid transparent;
+                border-top-color: currentColor;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+                display: inline-block;
+                margin-left: 0.5rem;
+            }
+
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+        </style>
                 <script>
                     // Warn if Tailwind didn’t load (class not applied within a tick)
                     window.addEventListener('DOMContentLoaded', function(){
@@ -559,14 +761,14 @@
                     </div>
                     <div class="space-y-5">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input type="text" id="nameA" placeholder="Name" class="w-full bg-gray-700 text-white rounded-md p-3 border border-gray-600" value="DH Cross">
-                            <input type="text" id="birth_cityA" placeholder="Birth City" class="w-full bg-gray-700 text-white rounded-md p-3 border border-gray-600" value="Bryn Mawr">
-                            <input type="text" id="birth_stateA" placeholder="Birth State/Prov" class="w-full bg-gray-700 text-white rounded-md p-3 border border-gray-600" value="PA">
+                            <input type="text" id="nameA" placeholder="Name" class="w-full bg-gray-700 text-white rounded-lg p-3 border-2 border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all duration-200 hover:border-gray-500" value="DH Cross">
+                            <input type="text" id="birth_cityA" placeholder="Birth City" class="w-full bg-gray-700 text-white rounded-lg p-3 border-2 border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all duration-200 hover:border-gray-500" value="Bryn Mawr">
+                            <input type="text" id="birth_stateA" placeholder="Birth State/Prov" class="w-full bg-gray-700 text-white rounded-lg p-3 border-2 border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all duration-200 hover:border-gray-500" value="PA">
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input type="date" id="birth_dateA" placeholder="Birth Date (YYYY-MM-DD)" class="w-full bg-gray-700 text-white rounded-md p-3 border border-gray-600" value="1973-07-24">
-                            <input type="text" id="birth_timeA" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-md p-3 border border-gray-600" value="14:30">
-                            <select id="offsetA" class="w-full bg-gray-700 text-white rounded-md p-3 border border-gray-600">
+                            <input type="date" id="birth_dateA" placeholder="Birth Date (YYYY-MM-DD)" class="w-full bg-gray-700 text-white rounded-lg p-3 border-2 border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all duration-200 hover:border-gray-500" value="1973-07-24">
+                            <input type="text" id="birth_timeA" placeholder="Time (24h HH:MM)" class="w-full bg-gray-700 text-white rounded-lg p-3 border-2 border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all duration-200 hover:border-gray-500" value="14:30">
+                            <select id="offsetA" class="w-full bg-gray-700 text-white rounded-lg p-3 border-2 border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all duration-200 hover:border-gray-500">
                                 <option value="America/Chicago" selected>Central (Chicago)</option>
                                 <option value="America/New_York">Eastern (New York)</option>
                                 <option value="America/Denver">Mountain (Denver)</option>
@@ -694,45 +896,45 @@
                 </div>
                 
                 <div id="context-selection" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <label class="flex items-center p-4 border border-gray-600 rounded-lg hover:border-teal-500 transition-colors cursor-pointer">
-                        <input type="radio" name="contextType" value="solo" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700" checked>
+                    <label class="flex items-center p-4 border-2 border-gray-600 rounded-lg hover:border-teal-500 hover:bg-gray-700/30 transition-all duration-200 cursor-pointer bg-gray-800/50 backdrop-blur-sm">
+                        <input type="radio" name="contextType" value="solo" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 focus:ring-2 border-gray-600 rounded bg-gray-700" checked>
                         <div>
-                            <div class="text-white font-medium">Solo</div>
-                            <div class="text-gray-400 text-sm">Chart your inner weave</div>
+                            <div class="text-white font-semibold text-base">Solo</div>
+                            <div class="text-gray-300 text-sm mt-1">Chart your inner weave</div>
                         </div>
                     </label>
-                    <label class="flex items-center p-4 border border-gray-600 rounded-lg hover:border-teal-500 transition-colors cursor-pointer">
-                        <input type="radio" name="contextType" value="relational" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                    <label class="flex items-center p-4 border-2 border-gray-600 rounded-lg hover:border-teal-500 hover:bg-gray-700/30 transition-all duration-200 cursor-pointer bg-gray-800/50 backdrop-blur-sm">
+                        <input type="radio" name="contextType" value="relational" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 focus:ring-2 border-gray-600 rounded bg-gray-700">
                         <div>
-                            <div class="text-white font-medium">Relational</div>
-                            <div class="text-gray-400 text-sm">Where two patterns touch</div>
+                            <div class="text-white font-semibold text-base">Relational</div>
+                            <div class="text-gray-300 text-sm mt-1">Where two patterns touch</div>
                         </div>
                     </label>
-                    <label class="flex items-center p-4 border border-gray-600 rounded-lg hover:border-teal-500 transition-colors cursor-pointer">
-                        <input type="radio" name="contextType" value="weather" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                    <label class="flex items-center p-4 border-2 border-gray-600 rounded-lg hover:border-teal-500 hover:bg-gray-700/30 transition-all duration-200 cursor-pointer bg-gray-800/50 backdrop-blur-sm">
+                        <input type="radio" name="contextType" value="weather" class="mr-3 h-5 w-5 text-teal-600 focus:ring-teal-500 focus:ring-2 border-gray-600 rounded bg-gray-700">
                         <div>
-                            <div class="text-white font-medium">Planetary Weather Only</div>
-                            <div class="text-gray-400 text-sm">Sky patterns without personal charts</div>
+                            <div class="text-white font-semibold text-base">Planetary Weather Only</div>
+                            <div class="text-gray-300 text-sm mt-1">Sky patterns without personal charts</div>
                         </div>
                     </label>
                 </div>
                 
                 <!-- Solo Subtype Selection (initially visible for solo mode) -->
-                <div id="solo-subtypes" class="mt-4 p-4 bg-gray-750 rounded-lg border border-gray-600">
-                    <h3 class="text-sm font-medium text-white mb-3">What type of solo analysis?</h3>
+                <div id="solo-subtypes" class="mt-4 p-4 bg-gray-800/60 rounded-lg border-2 border-gray-600 backdrop-blur-sm">
+                    <h3 class="text-sm font-semibold text-white mb-3">What type of solo analysis?</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
-                            <input type="radio" name="soloSubtype" value="natal_only" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
+                        <label class="flex items-center p-3 border-2 border-gray-600 rounded-lg hover:border-teal-500 hover:bg-gray-700/30 transition-all duration-200 cursor-pointer bg-gray-700/20">
+                            <input type="radio" name="soloSubtype" value="natal_only" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 focus:ring-2 border-gray-600 rounded bg-gray-700">
                             <div>
-                                <div class="text-white text-sm">Chart Only</div>
-                                <div class="text-gray-400 text-xs">Foundational natal architecture</div>
+                                <div class="text-white text-sm font-medium">Chart Only</div>
+                                <div class="text-gray-300 text-xs mt-1">Foundational natal architecture</div>
                             </div>
                         </label>
-                        <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
-                            <input type="radio" name="soloSubtype" value="natal_transits" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700" checked>
+                        <label class="flex items-center p-3 border-2 border-gray-600 rounded-lg hover:border-teal-500 hover:bg-gray-700/30 transition-all duration-200 cursor-pointer bg-gray-700/20">
+                            <input type="radio" name="soloSubtype" value="natal_transits" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 focus:ring-2 border-gray-600 rounded bg-gray-700" checked>
                             <div>
-                                <div class="text-white text-sm">Chart + Transits</div>
-                                <div class="text-gray-400 text-xs">Your chart + current currents</div>
+                                <div class="text-white text-sm font-medium">Chart + Transits</div>
+                                <div class="text-gray-300 text-xs mt-1">Your chart + current currents</div>
                             </div>
                         </label>
                     </div>
@@ -1399,7 +1601,7 @@
                     <!-- Orientation Banner -->
                     <div class="mb-6 p-4 bg-gray-750 rounded-lg border border-gray-600">
                         <p class="text-sm text-gray-300">
-                            What you see below is Math Brain output — raw geometry only. Raven Calder translates this into plain, resonant insights. 
+                            <strong>Complete Mirror Report:</strong> Math Brain geometry + Poetic Brain narrative elements. 
                             These files are structured for both humans and AI to read.
                         </p>
                     </div>
@@ -2725,6 +2927,265 @@ function renderTransitDay(dateStr, items){
             md += `This Balance Meter report integrates the **triple-channel architecture** with a **Resilience & Depletion Layer** for comprehensive health-oriented astrological analysis:\n\n`;
             md += `### Core Channels\n`;
             md += `1. **Seismograph v1.0**: Crisis-weighted transit intensity\n`;
+
+            return md;
+        }
+
+        // NEW: Render Balance Meter data as styled HTML instead of markdown
+        function renderBalanceMeterHTML(balanceMeterData, sourceData = null) {
+            if (!balanceMeterData) return '<p class="text-gray-400 text-sm">No Balance Meter data available.</p>';
+
+            let html = `<div class="space-y-6">`;
+            
+            // Header with enhanced visual design
+            html += `<div class="bg-gradient-to-r from-teal-600 to-teal-700 p-6 rounded-xl shadow-lg">`;
+            html += `<div class="flex items-center gap-3 mb-3">`;
+            html += `<span class="text-4xl">⚖️</span>`;
+            html += `<h1 class="text-3xl font-bold text-white">Balance Meter Report</h1>`;
+            html += `</div>`;
+            html += `<div class="text-teal-100 text-sm space-y-1 bg-teal-800/30 p-3 rounded-lg">`;
+            html += `<p><strong>Subject:</strong> ${balanceMeterData.person?.name || 'Unknown'}</p>`;
+            html += `<p><strong>Period:</strong> ${balanceMeterData.period?.start} to ${balanceMeterData.period?.end}</p>`;
+            html += `<p><strong>Schema:</strong> WM-Chart-${balanceMeterData.schema_version}</p>`;
+            html += `</div></div>`;
+
+            // Executive Summary with enhanced color coding
+            html += `<div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">`;
+            html += `<div class="flex items-center gap-2 mb-4">`;
+            html += `<span class="text-2xl">📊</span>`;
+            html += `<h2 class="text-2xl font-semibold text-cyan-300">Executive Summary</h2>`;
+            html += `</div>`;
+            
+            const summary = balanceMeterData.channel_summary;
+            if (summary) {
+                const seisAvg = Number.isFinite(summary.seismograph_average) ? summary.seismograph_average : 0;
+                const balAvg = Number.isFinite(summary.balance_average) ? summary.balance_average : 0;
+                const sfdAvg = Number.isFinite(summary.sfd_average) ? summary.sfd_average : 0;
+                const seisEmoji = getValenceEmoji(Math.max(-5, Math.min(5, seisAvg)));
+                const balEmoji = getValenceEmoji(Math.max(-5, Math.min(5, balAvg)));
+                
+                html += `<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">`;
+                
+                // Seismograph Average with enhanced styling
+                html += `<div class="bg-gradient-to-br from-purple-900 to-purple-800 p-4 rounded-lg border-l-4 border-purple-400 shadow-inner">`;
+                html += `<div class="flex items-center gap-2 mb-2">`;
+                html += `<span class="text-lg">⚡</span>`;
+                html += `<h4 class="text-purple-300 font-semibold">Seismograph Average</h4>`;
+                html += `</div>`;
+                html += `<p class="text-3xl font-bold text-white mb-1">${seisEmoji} ${seisAvg.toFixed(2)}</p>`;
+                html += `<p class="text-xs text-purple-200">Crisis-weighted intensity</p>`;
+                html += `</div>`;
+                
+                // Balance Average with enhanced styling
+                html += `<div class="bg-gradient-to-br from-teal-900 to-teal-800 p-4 rounded-lg border-l-4 border-teal-400 shadow-inner">`;
+                html += `<div class="flex items-center gap-2 mb-2">`;
+                html += `<span class="text-lg">⚖️</span>`;
+                html += `<h4 class="text-teal-300 font-semibold">Balance Average</h4>`;
+                html += `</div>`;
+                html += `<p class="text-3xl font-bold text-white mb-1">${balEmoji} ${balAvg.toFixed(2)}</p>`;
+                html += `<p class="text-xs text-teal-200">Rebalanced perspective</p>`;
+                html += `</div>`;
+                
+                // SFD Average with enhanced styling
+                html += `<div class="bg-gradient-to-br from-amber-900 to-amber-800 p-4 rounded-lg border-l-4 border-amber-400 shadow-inner">`;
+                html += `<div class="flex items-center gap-2 mb-2">`;
+                html += `<span class="text-lg">🔄</span>`;
+                html += `<h4 class="text-amber-300 font-semibold">SFD Average</h4>`;
+                html += `</div>`;
+                html += `<p class="text-3xl font-bold text-white mb-1">${sfdAvg.toFixed(2)}</p>`;
+                html += `<p class="text-xs text-amber-200">Support-Friction Differential</p>`;
+                html += `</div>`;
+                
+                html += `</div>`;
+                
+                // Additional summary info with better styling
+                if (summary.dominant_channel || Number.isFinite(summary.volatility_index)) {
+                    html += `<div class="bg-gray-700/50 p-4 rounded-lg border border-gray-600">`;
+                    html += `<div class="flex flex-wrap gap-4 text-sm">`;
+                    if (summary.dominant_channel) {
+                        html += `<div class="flex items-center gap-2">`;
+                        html += `<span class="w-3 h-3 bg-cyan-500 rounded-full"></span>`;
+                        html += `<span class="text-gray-300"><strong class="text-cyan-300">Dominant Channel:</strong> ${summary.dominant_channel}</span>`;
+                        html += `</div>`;
+                    }
+                    if (Number.isFinite(summary.volatility_index)) {
+                        html += `<div class="flex items-center gap-2">`;
+                        html += `<span class="text-lg">🌪️</span>`;
+                        html += `<span class="text-gray-300"><strong class="text-yellow-300">Volatility Index:</strong> ${summary.volatility_index.toFixed(2)}</span>`;
+                        html += `</div>`;
+                    }
+                    html += `</div></div>`;
+                }
+            }
+            html += `</div>`;
+
+            // Resilience Summary with enhanced visual appeal
+            const resilienceMetrics = calculateResilienceMetrics(balanceMeterData, sourceData);
+            if (Object.keys(resilienceMetrics).length > 0) {
+                const resilienceValues = Object.values(resilienceMetrics);
+                const avgResilience = resilienceValues.reduce((sum, r) => sum + r.resilience, 0) / resilienceValues.length;
+                const maxDepletion = Math.max(...resilienceValues.map(r => r.depletionIndex));
+                const depletionDays = resilienceValues.filter(r => r.depletionIndex >= 3.0).length;
+                const stressDays = resilienceValues.filter(r => r.narrative.includes('stress')).length;
+                const recoveryDays = resilienceValues.filter(r => r.narrative.includes('Recovery')).length;
+                
+                const firstDayDebug = resilienceValues[0]?._debug?.natalProfile;
+                const hasNatalScaffolding = Boolean(firstDayDebug);
+                
+                html += `<div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">`;
+                html += `<div class="flex items-center gap-2 mb-4">`;
+                html += `<span class="text-2xl">🛡️</span>`;
+                html += `<h2 class="text-2xl font-semibold text-emerald-300">Resilience & Depletion Summary</h2>`;
+                if (hasNatalScaffolding) {
+                    html += `<span class="px-2 py-1 bg-emerald-900/30 text-emerald-300 text-xs rounded-full border border-emerald-600">Personalized</span>`;
+                } else {
+                    html += `<span class="px-2 py-1 bg-gray-700 text-gray-400 text-xs rounded-full border border-gray-600">Generic</span>`;
+                }
+                html += `</div>`;
+                
+                html += `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">`;
+                // Resilience card
+                html += `<div class="bg-emerald-900/30 p-3 rounded-lg text-center border border-emerald-600 hover:bg-emerald-900/50 transition-colors">`;
+                html += `<div class="flex items-center justify-center gap-1 mb-1">`;
+                html += `<span class="text-emerald-400">🛡️</span>`;
+                html += `<p class="text-xs text-emerald-300 font-medium">Avg Resilience</p>`;
+                html += `</div>`;
+                html += `<p class="text-2xl font-bold text-white">${avgResilience.toFixed(2)}</p>`;
+                html += `<p class="text-xs text-emerald-200">0-5 scale</p>`;
+                html += `</div>`;
+                
+                // Depletion card
+                html += `<div class="bg-red-900/30 p-3 rounded-lg text-center border border-red-500 hover:bg-red-900/50 transition-colors">`;
+                html += `<div class="flex items-center justify-center gap-1 mb-1">`;
+                html += `<span class="text-red-400">⚠️</span>`;
+                html += `<p class="text-xs text-red-300 font-medium">Peak Depletion</p>`;
+                html += `</div>`;
+                html += `<p class="text-2xl font-bold text-white">${maxDepletion.toFixed(1)}</p>`;
+                html += `<p class="text-xs text-red-200">${depletionDays} risk days</p>`;
+                html += `</div>`;
+                
+                // Stress days card
+                html += `<div class="bg-yellow-900/30 p-3 rounded-lg text-center border border-yellow-500 hover:bg-yellow-900/50 transition-colors">`;
+                html += `<div class="flex items-center justify-center gap-1 mb-1">`;
+                html += `<span class="text-yellow-400">⚡</span>`;
+                html += `<p class="text-xs text-yellow-300 font-medium">Stress Days</p>`;
+                html += `</div>`;
+                html += `<p class="text-2xl font-bold text-white">${stressDays}</p>`;
+                html += `<p class="text-xs text-yellow-200">Active stress</p>`;
+                html += `</div>`;
+                
+                // Recovery days card
+                html += `<div class="bg-green-900/30 p-3 rounded-lg text-center border border-green-500 hover:bg-green-900/50 transition-colors">`;
+                html += `<div class="flex items-center justify-center gap-1 mb-1">`;
+                html += `<span class="text-green-400">🌱</span>`;
+                html += `<p class="text-xs text-green-300 font-medium">Recovery Days</p>`;
+                html += `</div>`;
+                html += `<p class="text-2xl font-bold text-white">${recoveryDays}</p>`;
+                html += `<p class="text-xs text-green-200">Positive momentum</p>`;
+                html += `</div>`;
+                html += `</div>`;
+                
+                if (hasNatalScaffolding) {
+                    html += `<div class="bg-gray-700/50 p-3 rounded-lg border border-gray-600">`;
+                    html += `<p class="text-gray-200 text-sm"><strong class="text-cyan-300">Natal Scaffolding:</strong> ${firstDayDebug.scaffoldingStrength}/5.0 strength, ${firstDayDebug.volatilityProne ? '<span class="text-orange-300">volatility-prone</span>' : '<span class="text-green-300">stable</span>'} profile</p>`;
+                    html += `</div>`;
+                }
+                html += `</div>`;
+            }
+
+            // Daily Entries Table with enhanced styling
+            html += `<div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">`;
+            html += `<div class="flex items-center gap-2 mb-4">`;
+            html += `<span class="text-2xl">📅</span>`;
+            html += `<h2 class="text-2xl font-semibold text-blue-300">Daily Entries</h2>`;
+            html += `</div>`;
+            html += `<div class="overflow-x-auto bg-gray-900/50 rounded-lg border border-gray-600">`;
+            html += `<table class="w-full text-sm border-collapse">`;
+            html += `<thead class="bg-gradient-to-r from-gray-700 to-gray-600">`;
+            html += `<tr class="text-gray-100">`;
+            html += `<th class="border border-gray-500 px-3 py-2 text-left font-semibold">Date</th>`;
+            html += `<th class="border border-gray-500 px-3 py-2 text-left font-semibold">Triple Channel</th>`;
+            html += `<th class="border border-gray-500 px-3 py-2 text-left font-semibold">SFD Verdict</th>`;
+            html += `<th class="border border-gray-500 px-3 py-2 text-center font-semibold">Recovery</th>`;
+            html += `<th class="border border-gray-500 px-3 py-2 text-center font-semibold">Resilience</th>`;
+            html += `<th class="border border-gray-500 px-3 py-2 text-center font-semibold">Depletion</th>`;
+            html += `<th class="border border-gray-500 px-3 py-2 text-left font-semibold">Narrative</th>`;
+            html += `<th class="border border-gray-500 px-3 py-2 text-left font-semibold">Top Hooks</th>`;
+            html += `</tr></thead><tbody>`;
+
+            const dailyResilienceMetrics = resilienceMetrics || calculateResilienceMetrics(balanceMeterData);
+
+            if (balanceMeterData.daily_entries) {
+                const dates = Object.keys(balanceMeterData.daily_entries).sort();
+                
+                dates.forEach((date, index) => {
+                    const day = normalizeEntry(balanceMeterData.daily_entries[date]);
+                    if (!day) return;
+                    
+                    const channelLine = tripleChannelLine({ 
+                        seismograph: day.seismograph, 
+                        balance: day.balance, 
+                        sfd: day.sfd 
+                    });
+                    
+                    const verdict = sfdVerdict(day.sfd || {}) || '—';
+                    
+                    const resilience = dailyResilienceMetrics[date];
+                    const recovery = resilience ? resilience.recovery.toFixed(1) : '—';
+                    const resilienceScore = resilience ? resilience.resilience.toFixed(1) : '—';
+                    const depletionIndex = resilience ? resilience.depletionIndex.toFixed(1) : '—';
+                    const narrative = resilience ? resilience.narrative : '—';
+                    
+                    const hooks = (day.hooks || []).slice(0, 2);
+                    const topHooks = hooks.map(h => {
+                        const orb = Math.abs(h._orb || h.orb || 0).toFixed(1);
+                        return `${h.p1_name} ${h._aspect || h.aspect} ${h.p2_name} (${orb}°)`;
+                    }).join(', ') || '—';
+                    
+                    const rowClass = index % 2 === 0 ? 'bg-gray-800/60 hover:bg-gray-700/60' : 'bg-gray-900/60 hover:bg-gray-800/60';
+                    html += `<tr class="${rowClass} text-gray-200 transition-colors">`;
+                    html += `<td class="border border-gray-600 px-3 py-2 font-medium text-cyan-300">${date}</td>`;
+                    html += `<td class="border border-gray-600 px-3 py-2 text-xs font-mono">${channelLine}</td>`;
+                    html += `<td class="border border-gray-600 px-3 py-2 text-xs">${verdict}</td>`;
+                    html += `<td class="border border-gray-600 px-3 py-2 text-center font-semibold">${recovery}</td>`;
+                    html += `<td class="border border-gray-600 px-3 py-2 text-center font-semibold">${resilienceScore}</td>`;
+                    html += `<td class="border border-gray-600 px-3 py-2 text-center font-semibold">${depletionIndex}</td>`;
+                    html += `<td class="border border-gray-600 px-3 py-2 text-xs">${narrative}</td>`;
+                    html += `<td class="border border-gray-600 px-3 py-2 text-xs">${topHooks}</td>`;
+                    html += `</tr>`;
+                });
+            }
+            
+            html += `</tbody></table></div></div>`;
+
+            // Methodology with enhanced design
+            html += `<div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">`;
+            html += `<div class="flex items-center gap-2 mb-4">`;
+            html += `<span class="text-2xl">🔬</span>`;
+            html += `<h2 class="text-2xl font-semibold text-indigo-300">Methodology</h2>`;
+            html += `</div>`;
+            html += `<p class="text-gray-200 mb-4 leading-relaxed">This Balance Meter report integrates the <strong class="text-cyan-300">triple-channel architecture</strong> with a <strong class="text-emerald-300">Resilience & Depletion Layer</strong> for comprehensive health-oriented astrological analysis.</p>`;
+            html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">`;
+            html += `<div class="bg-purple-900/20 p-4 rounded-lg border border-purple-500/30">`;
+            html += `<h4 class="font-semibold text-purple-300 mb-2 flex items-center gap-2"><span>⚡</span> Seismograph v1.0</h4>`;
+            html += `<p class="text-gray-300">Crisis-weighted transit intensity measurement</p>`;
+            html += `</div>`;
+            html += `<div class="bg-teal-900/20 p-4 rounded-lg border border-teal-500/30">`;
+            html += `<h4 class="font-semibold text-teal-300 mb-2 flex items-center gap-2"><span>⚖️</span> Balance Channel v1.1</h4>`;
+            html += `<p class="text-gray-300">Rebalanced perspective with gentler valence calculation</p>`;
+            html += `</div>`;
+            html += `<div class="bg-amber-900/20 p-4 rounded-lg border border-amber-500/30">`;
+            html += `<h4 class="font-semibold text-amber-300 mb-2 flex items-center gap-2"><span>🔄</span> SFD v1.2</h4>`;
+            html += `<p class="text-gray-300">Support-Friction Differential measuring stabilizer efficacy</p>`;
+            html += `</div>`;
+            html += `<div class="bg-emerald-900/20 p-4 rounded-lg border border-emerald-500/30">`;
+            html += `<h4 class="font-semibold text-emerald-300 mb-2 flex items-center gap-2"><span>🛡️</span> Resilience Layer</h4>`;
+            html += `<p class="text-gray-300">Personalized stress recovery patterns based on natal scaffolding</p>`;
+            html += `</div>`;
+            html += `</div></div>`;
+            
+            html += `</div>`;
+            return html;
             md += `2. **Balance v1.1**: Rebalanced valence using planetary locality factors\n`;
             md += `3. **SFD v1.2**: Support-Friction Differential tracking supportive vs disruptive transits\n\n`;
             md += `### Resilience & Depletion Layer (Natal-Scaffolding Enhanced)\n`;
@@ -8307,12 +8768,9 @@ function renderTransitDay(dateStr, items){
                     console.log('Rendering server-provided Balance Meter payload');
                     // Render server-provided Balance Meter payload
                     try {
-                        const md = buildBalanceMeterReport(result.balance_meter, result);
-                        console.log('Built Balance Meter markdown, length:', md?.length);
-                        const pre = document.createElement('pre');
-                        pre.className = 'whitespace-pre-wrap text-sm text-gray-200 bg-gray-900/60 p-4 rounded border border-gray-700';
-                        pre.textContent = md;
-                        balanceWrap.appendChild(pre);
+                        const balanceHTML = renderBalanceMeterHTML(result.balance_meter, result);
+                        console.log('Built Balance Meter HTML, length:', balanceHTML?.length);
+                        balanceWrap.innerHTML = balanceHTML;
                         console.log('Appended Balance Meter content to tab');
                     } catch (e) {
                         console.warn('Balance Meter render failed, falling back to JSON view:', e);
@@ -8327,12 +8785,9 @@ function renderTransitDay(dateStr, items){
                     try {
                         const synthetic = synthesizeBalanceMeterPayload(result, formData);
                         console.log('Synthesized payload:', synthetic ? 'success' : 'failed');
-                        const md = buildBalanceMeterReport(synthetic);
-                        console.log('Built synthetic Balance Meter markdown, length:', md?.length);
-                        const pre = document.createElement('pre');
-                        pre.className = 'whitespace-pre-wrap text-sm text-gray-200 bg-gray-900/60 p-4 rounded border border-gray-700';
-                        pre.textContent = md;
-                        balanceWrap.appendChild(pre);
+                        const balanceHTML = renderBalanceMeterHTML(synthetic);
+                        console.log('Built synthetic Balance Meter HTML, length:', balanceHTML?.length);
+                        balanceWrap.innerHTML = balanceHTML;
                         console.log('Appended synthetic Balance Meter content to tab');
                     } catch (e) {
                         console.warn('Synthetic Balance Meter render failed:', e);
@@ -8344,8 +8799,31 @@ function renderTransitDay(dateStr, items){
                     console.log('- activeTab === balance_meter:', activeTab === 'balance_meter');
                     console.log('- balanceTabElement aria-selected === true:', balanceTabElement?.getAttribute('aria-selected') === 'true');
                     console.log('- has person A transits:', Boolean(result?.person_a?.chart?.transitsByDate));
-                    // No separate seismograph mode; content renders only for Balance Meter
-                    balanceWrap.innerHTML = '<p class="text-gray-400 text-sm">No Balance Meter data for this selection.</p>';
+                    // Enhanced placeholder with guidance
+                    balanceWrap.innerHTML = `
+                        <div class="bg-gray-800 p-8 rounded-xl border border-gray-700 text-center">
+                            <div class="mb-4">
+                                <span class="text-6xl">⚖️</span>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-300 mb-3">Balance Meter Analysis</h3>
+                            <p class="text-gray-400 mb-4">Triple-channel architecture combining Seismograph, Balance Channel, and SFD measurements</p>
+                            <div class="bg-gray-700/50 p-4 rounded-lg border border-gray-600 mb-4">
+                                <p class="text-sm text-gray-300 mb-2">To generate Balance Meter data:</p>
+                                <ol class="text-sm text-gray-400 text-left space-y-1">
+                                    <li>1. Enter birth data and location</li>
+                                    <li>2. Set a date range for transit analysis</li>
+                                    <li>3. Click "Get My Mirror" to generate reports</li>
+                                    <li>4. Balance Meter will appear alongside other analyses</li>
+                                </ol>
+                            </div>
+                            <div class="flex items-center justify-center gap-4 text-xs text-gray-500">
+                                <span class="flex items-center gap-1"><span class="w-2 h-2 bg-purple-500 rounded-full"></span> Seismograph v1.0</span>
+                                <span class="flex items-center gap-1"><span class="w-2 h-2 bg-teal-500 rounded-full"></span> Balance v1.1</span>
+                                <span class="flex items-center gap-1"><span class="w-2 h-2 bg-amber-500 rounded-full"></span> SFD v1.2</span>
+                                <span class="flex items-center gap-1"><span class="w-2 h-2 bg-emerald-500 rounded-full"></span> Resilience Layer</span>
+                            </div>
+                        </div>
+                    `;
                 }
                 console.log('=== END POPULATE TAB CONTENT DEBUG ===');
             } catch (e) {

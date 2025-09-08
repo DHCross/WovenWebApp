@@ -39,6 +39,18 @@ Verify Setup
   - curl -s https://<your-site>.netlify.app/.netlify/functions/auth-config
 - You should see: { domain, clientId, audience? }. If domain/clientId are absent, set env vars and redeploy/restart.
 
+Understanding the Two-Layer System
+- **Math Brain (Layer 1)**: Pure geometry—angles, houses, aspects, Balance Meter metrics. Always runs first.
+- **Poetic Brain (Layer 2)**: Raven Calder's narrative translation—typological profile, hook stack, climate voice. Requires login and explicit activation.
+
+What Each Layer Produces:
+- **Math Brain Only**: Geometry tables, Balance Meter scores, daily hooks flagged, retrograde analysis, SFD readings. Technical but complete for analysis.
+- **Math Brain + Poetic Brain**: All of the above PLUS typological mirror, recognition-first polarity cards, shareable weather narrative, plain-language description.
+
+If you see "Protocol tags confirming readiness for translation" but no narrative voice, you have Layer 1 complete but Layer 2 hasn't run yet. Use the Poetic Brain section (requires login) to translate the geometry into felt language.
+
 Common Issues
 - 401 calling serverless API: Ensure AUTH0_AUDIENCE matches your API Identifier exactly and that your SPA is authorized for that API in Auth0.
 - Callback errors: Verify exact origins and URLs in the Auth0 Dashboard (no stray spaces, correct scheme/host).
+- "https's server IP address could not be found": AUTH0_DOMAIN contains malformed characters or protocol. Set to bare host only: your-tenant.us.auth0.com
+- Have geometry but no narrative: This is expected—Math Brain runs without login, Poetic Brain requires authentication to translate the data.
