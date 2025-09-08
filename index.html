@@ -3316,9 +3316,9 @@ function renderTransitDay(dateStr, items){
         }
 
         function generateClearMirrorReport(data, options = {}) {
-            // CLEAR MIRROR — SOLO TEMPLATE (FIELD → MAP → VOICE Skeleton)
-            // This function generates reports using the standardized Clear Mirror format
-            // for both solo and relational contexts
+            // RAVEN CALDER PAYLOAD GENERATOR — SOLO MIRROR SKELETON
+            // Math Brain's job: provide clean structural containers + standardized tokens
+            // Raven's job: weave into narrative via FIELD → MAP → VOICE
             
             const formData = collectFormData();
             const currentDate = new Date().toISOString().split('T')[0];
@@ -3326,32 +3326,541 @@ function renderTransitDay(dateStr, items){
             const personB = (data.person_b && data.person_b.details) ? data.person_b.details : formData.personB;
             const mode = formData.context.mode;
             const isRelational = personB && personB.name && personB.name.trim();
+            const hasRelocation = formData.relocation && formData.relocation.enabled;
             
             let md = '';
             
-            // Header
-            md += `# Clear Mirror — ${isRelational ? 'Relational' : 'Solo'} Template\n\n`;
-            md += `**FIELD → MAP → VOICE Skeleton**\n\n`;
-            md += `Generated: ${currentDate}  \n`;
-            md += `Context: ${mode.replace(/_/g, ' ').toUpperCase()}  \n`;
-            md += `Subject${isRelational ? 's' : ''}: ${personA.name}${isRelational ? ` & ${personB.name}` : ''}  \n\n`;
+            // Report Type Declaration
+            md += `# ${isRelational ? 'Relational' : 'Solo'} Mirror — Raven Calder Payload\n\n`;
+            md += `**Report_Type:** "${isRelational ? 'Relational_Mirror' : 'Solo_Mirror'}"\n`;
+            md += `**Report_Date:** "${currentDate}"\n\n`;
             
-            // Generate report for Person A
-            md += generatePersonClearMirror(data.person_a, personA, 'Person A');
-            
-            // Generate report for Person B if relational
-            if (isRelational && data.person_b) {
-                md += '\n\n---\n\n';
-                md += generatePersonClearMirror(data.person_b, personB, 'Person B');
+            // Context (for relational)
+            if (isRelational) {
+                md += `## Context\n\n`;
+                md += `**Person_A:** {name: "${personA.name}", birth_label: "${generateBirthLabel(personA)}"}\n`;
+                md += `**Person_B:** {name: "${personB.name}", birth_label: "${generateBirthLabel(personB)}"}\n`;
+                md += `**Relational_Tier:** "[Partner | Family | Friend | Acquaintance]" // Math Brain cannot determine—requires user input\n\n`;
             }
             
-            // Relational synthesis if applicable
-            if (isRelational && data.synastry) {
-                md += '\n\n---\n\n';
-                md += generateRelationalMirror(data, personA, personB);
+            // Typological Profile (Constitutional Climate Layer)
+            md += generateTypologicalProfile(data.person_a, personA);
+            
+            if (isRelational && data.person_b) {
+                md += generateTypologicalProfile(data.person_b, personB, 'Person_B');
+            }
+            
+            // Hook Stack (Recognition Hierarchy)
+            md += generateHookStack(data, isRelational);
+            
+            // Balance Meter (Full Stack) in Plain-Weather
+            md += generateBalanceMeterClimate(data, formData);
+            
+            // Relocation Context (if applicable)
+            if (hasRelocation) {
+                md += generateRelocationContext(formData);
+            }
+            
+            // Vector-Integrity Check
+            md += generateVectorIntegrityCheck(data);
+            
+            // Polarity Cards (FIELD → MAP → VOICE)
+            md += generatePolarityCards(data, isRelational);
+            
+            // Mirror Voice Container (empty for Raven to fill)
+            md += generateMirrorVoiceContainer(isRelational);
+            
+            // SST Clause (Falsifiability)
+            md += generateSSTClause();
+            
+            // Agency + Hygiene
+            md += generateAgencyHygiene();
+            
+            // Metadata (Version Control)
+            md += generateMetadata();
+            
+            return md;
+        }
+        
+        function generateBirthLabel(person) {
+            return `${person.birthDate} ${person.birthTime} ${person.birthCity}, ${person.birthState}`;
+        }
+        
+        function generateTypologicalProfile(personData, personDetails, label = 'Solo') {
+            let md = '';
+            
+            if (label !== 'Solo') {
+                md += `## Typological_Profile_${label}\n\n`;
+            } else {
+                md += `## Typological_Profile\n\n`;
+            }
+            
+            // Extract chart data for typological analysis
+            const chartData = extractChartDataForTypology(personData);
+            const dominant = analyzeDominantOrientation(chartData);
+            const secondary = analyzeSecondaryOrientation(chartData);
+            const shadow = analyzeShadowOrientation(chartData);
+            
+            md += `**Dominant:** "[${dominant.functionalEmphasis}: ${dominant.orientation}] organized by [${dominant.rawPlacements}]. Often shows up as [${generateBehavioralPatterns(dominant)}]."\n\n`;
+            
+            md += `**Secondary:** "A background current of [${secondary.functionalEmphasis}] ([${secondary.rawPlacements}]) that surfaces as [${generateSecondaryPatterns(secondary)}]."\n\n`;
+            
+            md += `**Shadow:** "Constitutional friction concentrates around [${shadow.functionalEmphasis}] ([${shadow.rawPlacements}]). Often felt as [${generateShadowPatterns(shadow)}]."\n\n`;
+            
+            md += `**Constitutional_Climate:** "A [${generateDominantMetaphor(dominant)}] working alongside a [${generateSecondaryMetaphor(secondary, shadow)}]."\n\n`;
+            
+            return md;
+        }
+        
+        function generateHookStack(data, isRelational) {
+            let md = `## Hook_Stack\n\n`;
+            md += `**Order_Rule:** "${isRelational ? 'relational hooks then personal hooks' : 'personal-outer hard → angles → anaretic → anchors'}"\n\n`;
+            
+            const hooks = extractTopHooks(data, isRelational);
+            md += `**Hooks:**\n`;
+            hooks.forEach((hook, index) => {
+                md += `  - "[${hook.description}]"\n`;
+            });
+            md += `\n`;
+            
+            return md;
+        }
+        
+        function generateBalanceMeterClimate(data, formData) {
+            let md = `## Balance_Meter_Narrative\n\n`;
+            
+            // Extract Balance Meter data if available
+            const balanceData = data.balance_meter || synthesizeBalanceMeterFromTransits(data);
+            
+            if (balanceData) {
+                const climateReading = generateClimateReading(balanceData);
+                const supportStatus = generateSupportStatus(balanceData);
+                const systemEnergy = generateSystemEnergy(balanceData);
+                const seismographTag = generateSeismographTag(balanceData);
+                
+                md += `**Climate_Line:** "[${climateReading}]"\n`;
+                md += `**Support_Status:** "[${supportStatus}]"\n`;
+                md += `**System_Energy:** "[${systemEnergy}]"\n`;
+                md += `**Seismograph_Tag:** "[${seismographTag}]"\n`;
+                md += `**Depletion_Note:** "[Narrative on reserves and recovery]"\n\n`;
+            } else {
+                md += `**Climate_Line:** "[No transit data available]"\n`;
+                md += `**Support_Status:** "[Unknown]"\n`;
+                md += `**System_Energy:** "[Unknown]"\n`;
+                md += `**Seismograph_Tag:** "[Unknown]"\n`;
+                md += `**Depletion_Note:** "[No data available]"\n\n`;
             }
             
             return md;
+        }
+        
+        function generateRelocationContext(formData) {
+            let md = `## Relocation_Context\n\n`;
+            
+            const reloc = formData.relocation;
+            md += `**Mode:** "${reloc.personA ? 'A_local' : 'none'}"\n`;
+            md += `**Notes:** "Angles/houses relocate under this lens; typology remains natal."\n`;
+            md += `**House_System:** "[${reloc.houseSystem || 'Placidus'}]"\n`;
+            md += `**Birth_Time_Confidence:** "[${reloc.birthTimeConfidence || 'approximate'}]"\n`;
+            md += `**House_Confidence:** "[${reloc.houseConfidence || 'medium'}]"\n\n`;
+            
+            if (reloc.personA) {
+                md += `**Lens_Location:**\n`;
+                md += `  - **Name:** "${reloc.city}, ${reloc.state}"\n`;
+                md += `  - **Time_Zone:** "${reloc.timezone || 'Unknown'}"\n\n`;
+            }
+            
+            return md;
+        }
+        
+        function generateVectorIntegrityCheck(data) {
+            let md = `## Vector_Integrity_Check\n\n`;
+            
+            // Check for latent/suppressed vectors
+            const vectors = identifyLatentVectors(data);
+            
+            if (vectors.length > 0) {
+                vectors.forEach(vector => {
+                    md += `**[${vector.status}]: ${vector.name}** — "[${vector.description}]"\n`;
+                });
+            } else {
+                md += `**[No latent vectors detected]**\n`;
+            }
+            md += `\n`;
+            
+            return md;
+        }
+        
+        function generatePolarityCards(data, isRelational) {
+            let md = `## Polarity_Cards\n\n`;
+            
+            const polarities = extractTopPolarities(data, isRelational);
+            
+            polarities.forEach((polarity, index) => {
+                md += `### ${index + 1}) **${polarity.nameA}** ↔ **${polarity.nameB}**\n`;
+                
+                if (isRelational) {
+                    md += `**FIELD:**\n`;
+                    md += `  - **Person_A:** "[${polarity.fieldA}]"\n`;
+                    md += `  - **Person_B:** "[${polarity.fieldB}]"\n`;
+                    md += `**MAP:** [Operator only: ${polarity.map}]\n`;
+                    md += `**VOICE:**\n`;
+                    md += `  - **Person_A:** "[Conditional behavioral pattern]"\n`;
+                    md += `  - **Person_B:** "[Conditional behavioral pattern]"\n\n`;
+                } else {
+                    md += `**FIELD:** "[${polarity.field}]"\n`;
+                    md += `**MAP:** [Operator only: ${polarity.map}]\n`;
+                    md += `**VOICE:** "[Conditional behavioral description using may/might/could with both poles]"\n\n`;
+                }
+            });
+            
+            return md;
+        }
+        
+        function generateMirrorVoiceContainer(isRelational) {
+            let md = `## ${isRelational ? 'Relational_' : ''}Mirror_Voice\n\n`;
+            md += `"[${isRelational ? 'Bidirectional stitched reflection — conditional, tier-aware; invites both sides to check resonance' : 'Stitched reflection tying Typology → Balance Meter → Polarities; inviting dialogue not mandate'}]"\n\n`;
+            return md;
+        }
+        
+        function generateSSTClause() {
+            let md = `## SST_Clause\n\n`;
+            md += `**Resonance_Rule:** "If it doesn't ping, it doesn't count (OSR valid)."\n`;
+            md += `**SST_Prompt:** "Ask user: did this land? (WB / ABE / OSR)"\n`;
+            md += `**Conditional_Language:** "All phrasing uses may / might / could."\n\n`;
+            return md;
+        }
+        
+        function generateAgencyHygiene() {
+            let md = `## Agency_Hygiene\n\n`;
+            md += `If this doesn't land, it doesn't count (OSR valid).\n`;
+            md += `All phrasing remains conditional (may/might/could).\n`;
+            md += `The SST classification depends entirely on your lived experience confirmation.\n\n`;
+            return md;
+        }
+        
+        function generateMetadata() {
+            let md = `## Frontstage_Metadata\n\n`;
+            md += `**Template_Version:** "SoloMirror-v1.4.0"\n`;
+            md += `**Schema_Version:** "mirror-draft-2025-09"\n`;
+            md += `**Render_Profile:** "woven-web-app-2025-09"\n`;
+            md += `**Emoji_Lexicon_Version:** "1.0"\n`;
+            md += `**Build_ID:** "${new Date().toISOString()}"\n`;
+            md += `**Min_Raven_Version:** ">=2025.09"\n\n`;
+            return md;
+        }
+        
+        // STANDARDIZED TOKEN GENERATORS FOR CLEAN STRUCTURAL PAYLOAD
+        // These functions provide approved descriptors, not improvised prose
+        
+        function generateBehavioralPatterns(dominant) {
+            // Standardized behavioral pattern descriptors based on function + orientation
+            const patterns = {
+                'Thinking_Introverted': 'structuring, analyzing, systematizing',
+                'Thinking_Extraverted': 'organizing, directing, implementing',
+                'Feeling_Introverted': 'attuning, harmonizing, value-sensing',
+                'Feeling_Extraverted': 'connecting, facilitating, group-harmonizing',
+                'Sensation_Introverted': 'grounding, stabilizing, detail-tracking',
+                'Sensation_Extraverted': 'engaging, experiencing, action-taking',
+                'Intuition_Introverted': 'perceiving, visioning, pattern-sensing',
+                'Intuition_Extraverted': 'exploring, possibility-generating, inspiring'
+            };
+            
+            const key = `${dominant.functionalEmphasis}_${dominant.orientation}`;
+            return patterns[key] || 'mixed functional patterns';
+        }
+        
+        function generateSecondaryPatterns(secondary) {
+            // Standardized secondary pattern descriptors
+            const patterns = {
+                'Feeling': 'conditional behaviors, relational modes, emotional rhythms',
+                'Thinking': 'analytical flashes, cognitive structuring, logical checks',
+                'Sensation': 'sensory awareness, grounding moments, practical adjustments',
+                'Intuition': 'imaginal flashes, pattern recognition, possibility sensing'
+            };
+            
+            return patterns[secondary.functionalEmphasis] || 'auxiliary patterns';
+        }
+        
+        function generateShadowPatterns(shadow) {
+            // Standardized shadow friction descriptors
+            const patterns = {
+                'Thinking': 'doubt, analysis paralysis, over-structuring',
+                'Feeling': 'emotional overwhelm, boundary fog, value conflicts',
+                'Sensation': 'sensory overload, grounding loss, detail fixation',
+                'Intuition': 'vision scatter, timing snags, possibility overwhelm'
+            };
+            
+            return patterns[shadow.functionalEmphasis] || 'constitutional friction points';
+        }
+        
+        function generateDominantMetaphor(dominant) {
+            // Clean metaphors for dominant orientation (no flourish words)
+            const metaphors = {
+                'Thinking_Introverted': 'architect',
+                'Thinking_Extraverted': 'director',
+                'Feeling_Introverted': 'tuning fork',
+                'Feeling_Extraverted': 'bridge',
+                'Sensation_Introverted': 'anchor',
+                'Sensation_Extraverted': 'current',
+                'Intuition_Introverted': 'lens',
+                'Intuition_Extraverted': 'explorer'
+            };
+            
+            const key = `${dominant.functionalEmphasis}_${dominant.orientation}`;
+            return metaphors[key] || 'constitutional foundation';
+        }
+        
+        function generateSecondaryMetaphor(secondary, shadow) {
+            // Clean metaphors for secondary/shadow interaction
+            const metaphors = {
+                'Feeling': 'tide-puller',
+                'Thinking': 'grid-keeper',
+                'Sensation': 'ground-anchor',
+                'Intuition': 'wind-reader'
+            };
+            
+            return metaphors[secondary.functionalEmphasis] || 'background current';
+        }
+        
+        function extractTopHooks(data, isRelational) {
+            // Extract top 3 hooks using standardized recognition hierarchy
+            const hooks = [];
+            
+            // Personal-outer hard aspects first
+            const hardAspects = extractHardAspects(data);
+            hardAspects.slice(0, 2).forEach(aspect => {
+                hooks.push({
+                    description: `${aspect.p1_name} ${aspect.aspect} ${aspect.p2_name} (${Math.abs(aspect.orb || 0).toFixed(1)}°)`
+                });
+            });
+            
+            // Angles if available
+            const angleAspects = extractAngleAspects(data);
+            if (angleAspects.length > 0 && hooks.length < 3) {
+                hooks.push({
+                    description: `${angleAspects[0].description} (angular)`
+                });
+            }
+            
+            // Fill to 3 hooks minimum
+            while (hooks.length < 3) {
+                hooks.push({
+                    description: `[Additional hook placeholder]`
+                });
+            }
+            
+            return hooks.slice(0, 3);
+        }
+        
+        function generateClimateReading(balanceData) {
+            // Generate standardized climate reading using approved descriptors
+            const summary = balanceData?.channel_summary;
+            if (!summary) return "Transit patterns suggest internal recalibration";
+            
+            const magnitude = summary.seismograph_average || 0;
+            const valence = summary.balance_average || 0;
+            
+            const magnitudeDesc = magnitude > 3 ? 'high pressure' : magnitude > 1.5 ? 'moderate pressure' : 'low pressure';
+            const valenceEmoji = valence > 0 ? '🌞' : valence < 0 ? '🌑' : '🌗';
+            const direction = valence > 0 ? 'supportive' : valence < 0 ? 'restrictive' : 'mixed';
+            
+            return `${magnitudeDesc} band, ${direction} ${valenceEmoji}`;
+        }
+        
+        function generateSupportStatus(balanceData) {
+            // Generate standardized support status using approved descriptors
+            const sfdAvg = balanceData?.channel_summary?.sfd_average || 0;
+            
+            if (sfdAvg > 1) return "scaffolding prevailing";
+            if (sfdAvg > -1) return "scaffolding holding";
+            return "support cut";
+        }
+        
+        function generateSystemEnergy(balanceData) {
+            // Generate standardized system energy status
+            const summary = balanceData?.channel_summary;
+            if (!summary) return "energy status unknown";
+            
+            const resilience = summary.resilience_average || 0;
+            const depletion = summary.depletion_average || 0;
+            
+            if (resilience > 3 && depletion < 2) return "resilient";
+            if (depletion > 3) return "depleted";
+            return "rebounding";
+        }
+        
+        function generateSeismographTag(balanceData) {
+            // Generate standardized seismograph tag
+            const magnitude = balanceData?.channel_summary?.seismograph_average || 0;
+            
+            if (magnitude > 3.5) return "high";
+            if (magnitude > 2) return "med";
+            return "low";
+        }
+        
+        function extractHardAspects(data) {
+            // Extract hard aspects (squares, oppositions) from chart data
+            const aspects = [];
+            
+            // Check person_a transits/chart
+            if (data.person_a?.chart?.aspects) {
+                data.person_a.chart.aspects.forEach(aspect => {
+                    if (['square', 'opposition', 'conjunction'].includes(aspect.aspect?.toLowerCase())) {
+                        aspects.push(aspect);
+                    }
+                });
+            }
+            
+            return aspects.sort((a, b) => Math.abs(a.orb || 0) - Math.abs(b.orb || 0));
+        }
+        
+        function extractAngleAspects(data) {
+            // Extract angular aspects (ASC, MC, DSC, IC)
+            const angles = [];
+            // Implementation depends on how angular data is stored in chart
+            // TODO: Add implementation based on actual data structure
+            return angles;
+        }
+        
+        function identifyLatentVectors(data) {
+            // Identify structurally present but behaviorally quiet vectors
+            const vectors = [];
+            
+            // Check for strong aspects with wide orbs
+            if (data.person_a?.chart?.aspects) {
+                data.person_a.chart.aspects.forEach(aspect => {
+                    const orb = Math.abs(aspect.orb || 0);
+                    if (orb > 4 && orb < 8) {  // Wide but within orb
+                        vectors.push({
+                            status: 'Latent',
+                            name: `${aspect.p1_name} ${aspect.aspect} ${aspect.p2_name}`,
+                            description: 'structural presence but contained/waiting'
+                        });
+                    }
+                });
+            }
+            
+            return vectors.slice(0, 3); // Maximum 3 vectors
+        }
+        
+        function extractTopPolarities(data, isRelational) {
+            // Extract top 3 polarities for FIELD → MAP → VOICE cards
+            const polarities = [];
+            
+            if (data.person_a?.chart?.aspects) {
+                data.person_a.chart.aspects.slice(0, 3).forEach(aspect => {
+                    polarities.push({
+                        nameA: aspect.p1_name,
+                        nameB: aspect.p2_name,
+                        field: generatePolarityField(aspect),
+                        map: `${aspect.p1_name} ${aspect.aspect} ${aspect.p2_name}, ${Math.abs(aspect.orb || 0).toFixed(1)}° orb`,
+                        fieldA: isRelational ? generatePolarityField(aspect, 'A') : null,
+                        fieldB: isRelational ? generatePolarityField(aspect, 'B') : null
+                    });
+                });
+            }
+            
+            // Fill to 3 polarities
+            while (polarities.length < 3) {
+                polarities.push({
+                    nameA: '[Polarity A]',
+                    nameB: '[Polarity B]',
+                    field: '[Somatic/sensory texture placeholder]',
+                    map: '[Geometric source placeholder]',
+                    fieldA: isRelational ? '[Field texture for A]' : null,
+                    fieldB: isRelational ? '[Field texture for B]' : null
+                });
+            }
+            
+            return polarities;
+        }
+        
+        function generatePolarityField(aspect, person = null) {
+            // Generate standardized FIELD descriptions (somatic/sensory texture)
+            const aspectType = aspect.aspect?.toLowerCase();
+            
+            const fieldTextures = {
+                'conjunction': 'fusion pressure, merging pull',
+                'opposition': 'pull-apart tension, polarizing stretch',
+                'square': 'friction heat, resistance pressure',
+                'trine': 'flowing ease, supportive current',
+                'sextile': 'opportunity spark, gentle activation'
+            };
+            
+            return fieldTextures[aspectType] || 'energetic texture';
+        }
+        
+        function synthesizeBalanceMeterFromTransits(data) {
+            // Synthesize Balance Meter data from available transit information
+            if (!data.transitsByDate) return null;
+            
+            const dates = Object.keys(data.transitsByDate);
+            if (dates.length === 0) return null;
+            
+            // Calculate basic averages from transit data
+            let totalMagnitude = 0;
+            let totalValence = 0;
+            let count = 0;
+            
+            dates.forEach(date => {
+                const dayData = data.transitsByDate[date];
+                if (dayData.seismograph) {
+                    totalMagnitude += dayData.seismograph.magnitude || 0;
+                    totalValence += dayData.seismograph.valence || 0;
+                    count++;
+                }
+            });
+            
+            if (count === 0) return null;
+            
+            return {
+                channel_summary: {
+                    seismograph_average: totalMagnitude / count,
+                    balance_average: totalValence / count,
+                    sfd_average: 0, // Default neutral
+                    resilience_average: 2.5, // Default moderate
+                    depletion_average: 2.0 // Default low-moderate
+                }
+            };
+        }
+        
+        function extractChartDataForTypology(personData) {
+            // Extract chart data needed for typological analysis
+            // TODO: Implement based on actual chart data structure
+            return {
+                planets: personData?.chart?.planets || [],
+                houses: personData?.chart?.houses || [],
+                signs: personData?.chart?.signs || []
+            };
+        }
+        
+        function analyzeDominantOrientation(chartData) {
+            // Analyze dominant psychological orientation from chart data
+            // TODO: Implement based on actual chart structure and Jungian analysis
+            return {
+                functionalEmphasis: 'Thinking', // placeholder
+                orientation: 'Introverted', // placeholder
+                rawPlacements: 'Sun Virgo, Mercury Virgo' // placeholder
+            };
+        }
+        
+        function analyzeSecondaryOrientation(chartData) {
+            // Analyze secondary psychological orientation
+            // TODO: Implement based on actual chart structure
+            return {
+                functionalEmphasis: 'Sensation', // placeholder
+                rawPlacements: 'Moon Taurus, Venus Taurus' // placeholder
+            };
+        }
+        
+        function analyzeShadowOrientation(chartData) {
+            // Analyze shadow psychological orientation
+            // TODO: Implement based on actual chart structure
+            return {
+                functionalEmphasis: 'Intuition', // placeholder
+                rawPlacements: 'Neptune Sagittarius, Uranus Sagittarius' // placeholder
+            };
         }
         
         // Helper function to generate insights from aspects
