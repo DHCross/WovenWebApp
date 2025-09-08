@@ -409,6 +409,8 @@ This will proxy requests to your serverless function and allow full front-end + 
 
 - **Relational drop-down hidden**: The relationship options only appear when both Person A and Person B fields are fully populated. Ensure each date is in `MM-DD-YYYY` format and each time is `HH:MM`. Invalid or missing data will keep the drop-down collapsed.
 - **External API error**: This message indicates the serverless function could not reach the Astrologer API. Double‑check that the `RAPIDAPI_KEY` environment variable is defined in your Netlify site settings or a local `.env` file (copy `.env.example` to `.env`). After updating the variable, restart `netlify dev` (or redeploy) so the new environment is loaded.
+
+- **Auth: 401/403 “You don't have permissions to access the resource”**: Your SPA token likely lacks the API audience. Set `AUTH0_AUDIENCE` (your custom API identifier) in Netlify env, add it to your Application’s Allowed Web Origins/Callbacks, and enable that API in the Application (Auth0 Dashboard → Applications → Your App → APIs → Authorized). Then hard refresh and login again.
 ## 🌀 Raven Calder Synastry Glossary (for Poetic Brain Compatibility)
 
 | Term | Definition |

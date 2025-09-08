@@ -10418,12 +10418,12 @@ function renderTransitDay(dateStr, items){
     const ac = (window.__AUTH0_PUBLIC || {});
     const domain = ac.domain || 'dev-z8gw1uk6zgsrzubk.us.auth0.com';
     const clientId = ac.clientId || '0nV0L41xZijfc8HTKtoROPgyqgMttJYT';
-    const audience = ac.audience || `https://${domain}/api/v2/`;
+        const audience = ac.audience || null; // Avoid defaulting to Management API
     auth0 = await createAuth0Client({
             domain,
             clientId,
             authorizationParams: {
-        audience
+            ...(audience ? { audience } : {})
         },
             cacheLocation: 'localstorage',
             useRefreshTokens: true
@@ -10479,7 +10479,7 @@ function renderTransitDay(dateStr, items){
                         try {
                 await auth0.loginWithPopup({
                                 authorizationParams: {
-                    audience,
+                    ...(audience ? { audience } : {}),
                     prompt: 'select_account',
                     client_id: clientId
                                 }
@@ -10534,7 +10534,10 @@ function renderTransitDay(dateStr, items){
                     responseContainer.classList.add('hidden');
 
                     try {
-                        const accessToken = await auth0.getTokenSilently();
+                        // Request token with audience if configured; otherwise fallback to OIDC token for userinfo only
+                        const accessToken = await auth0.getTokenSilently({
+                            ...(audience ? { authorizationParams: { audience } } : {})
+                        });
                         const res = await fetch('/.netlify/functions/poetic-brain', {
                             method: 'POST',
                             headers: {
@@ -10545,8 +10548,11 @@ function renderTransitDay(dateStr, items){
                         });
 
                         if (!res.ok) {
-                            const errorData = await res.json();
-                            throw new Error(errorData.error || 'An unknown error occurred.');
+                            const errorData = await res.json().catch(() => ({}));
+                            if (res.status === 401 || res.status === 403) {
+                                throw new Error(errorData.error || 'Unauthorized. Your login is valid, but this resource requires an API audience-enabled token. Ask admin to set AUTH0_AUDIENCE and enable it for your app.');
+                            }
+                            throw new Error(errorData.error || `Request failed (${res.status}).`);
                         }
 
                         const data = await res.json();
