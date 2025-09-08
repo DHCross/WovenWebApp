@@ -9016,11 +9016,16 @@ function renderTransitDay(dateStr, items){
         function setupEventListeners() {
             // Tab switching functionality
             function switchTab(activeTabId, activeContentId) {
+                console.log('🔧 DEBUG: switchTab called with:', activeTabId, activeContentId);
+                
                 // Hide all tab content
                 const allTabContent = ['mirror-content', 'balance-meter-content'];
                 allTabContent.forEach(id => {
                     const element = document.getElementById(id);
-                    if (element) element.classList.add('hidden');
+                    if (element) {
+                        element.classList.add('hidden');
+                        console.log('🔧 DEBUG: Hidden content:', id);
+                    }
                 });
                 
                 // Reset all tab buttons and clean up bonus indicators for clicked tab
@@ -9044,10 +9049,13 @@ function renderTransitDay(dateStr, items){
                 // Activate selected tab
                 const activeTab = document.getElementById(activeTabId);
                 const activeContent = document.getElementById(activeContentId);
+                console.log('🔧 DEBUG: Found elements - activeTab:', !!activeTab, 'activeContent:', !!activeContent);
+                
                 if (activeTab && activeContent) {
                     activeTab.setAttribute('aria-selected', 'true');
                     activeTab.className = 'px-6 py-2 text-sm font-medium rounded-md bg-teal-600 text-white transition-colors duration-200';
                     activeContent.classList.remove('hidden');
+                    console.log('🔧 DEBUG: Successfully activated tab:', activeTabId, 'and content:', activeContentId);
                     
                     // Update global reportContent based on active tab for downloads/copy
                     if (latestResultData) {
@@ -9083,10 +9091,14 @@ function renderTransitDay(dateStr, items){
                 updateAppMode('mirror');
             });
             document.getElementById('balanceMeterModeTab')?.addEventListener('click', () => {
-                console.log('Balance Meter tab clicked');
-                switchTab('balanceMeterModeTab', 'balance-meter-content');
-                updateAppMode('balance_meter');
-                console.log('Balance Meter tab mode updated');
+                console.log('🔧 DEBUG: Balance Meter tab clicked');
+                try {
+                    switchTab('balanceMeterModeTab', 'balance-meter-content');
+                    updateAppMode('balance_meter');
+                    console.log('🔧 DEBUG: Balance Meter tab mode updated successfully');
+                } catch (error) {
+                    console.error('🔧 DEBUG: Error in Balance Meter tab click:', error);
+                }
             });
             
             // Main button
@@ -10151,12 +10163,7 @@ function renderTransitDay(dateStr, items){
         }
         
         function setupProgressiveDisclosureEventListeners() {
-            // Mirror mode (only mode now - seismograph auto-appends)
-            const mirrorTab = document.getElementById('mirrorModeTab');
-            
-            if (mirrorTab) {
-                mirrorTab.addEventListener('click', () => updateAppMode('mirror'));
-            }
+            console.log('🔧 DEBUG: Setting up progressive disclosure event listeners');
             
             // Context type selection
             document.querySelectorAll('input[name="contextType"]').forEach(radio => {
