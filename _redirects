@@ -1,3 +1,5 @@
+/api/auth-config              /.netlify/functions/auth-config            200
+/api/astrology-mathbrain      /.netlify/functions/astrology-mathbrain    200
 /vendor/*   /vendor/:splat   200!
 /public/vendor/*   /public/vendor/:splat   200!
 /*   /index.html   200

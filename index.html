@@ -1985,6 +1985,40 @@ function renderTransitDay(dateStr, items){
             return merged;
         }
 
+        // Resilient API POST helper with fallback
+        async function postMathBrain(payload, timeoutMs = 30000) {
+            const primary = WovenMapConfig.getApiEndpoint('astrologyMathBrain'); // usually /api/astrology-mathbrain
+            const fallback = '/.netlify/functions/astrology-mathbrain'; // direct function path
+            const doFetch = async (url) => {
+                const controller = new AbortController();
+                const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
+                try {
+                    return await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                        signal: controller.signal
+                    });
+                } finally {
+                    clearTimeout(timeoutHandle);
+                }
+            };
+
+            let res = await doFetch(primary);
+            if (res.status === 404) {
+                // If 404 returns Netlify HTML, SPA route likely intercepted; retry direct function path
+                const ct = (res.headers && res.headers.get && res.headers.get('content-type')) || '';
+                let txt = '';
+                try { txt = await res.clone().text(); } catch(_) {}
+                const looksHtml404 = ct.includes('text/html') || (txt && /^<!DOCTYPE html>/i.test(txt.trim()));
+                if (looksHtml404) {
+                    console.warn('[API] /api route returned 404 HTML. Retrying direct function path.');
+                    res = await doFetch(fallback);
+                }
+            }
+            return res;
+        }
+
         async function generateReportWithChunking(formData) {
             const startTime = Date.now();
             const daySpan = calculateDaySpan(formData.transitParams);
@@ -2036,24 +2070,10 @@ function renderTransitDay(dateStr, items){
                     console.log(`Processing chunk ${i + 1}/${chunks.length}: ${chunk.startDate} to ${chunk.endDate}`);
                     
                     try {
-                        const apiEndpoint = WovenMapConfig.getApiEndpoint('astrologyMathBrain');
                         const timeoutMs = 60000; // Longer timeout for chunked requests
-                        const controller = new AbortController();
-                        const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
-
-                        let response;
-                        try {
-                            response = await fetch(apiEndpoint, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(chunkData),
-                                signal: controller.signal
-                            });
-                            // Track API call
-                            window.lastRunStats.api_calls++;
-                        } finally {
-                            clearTimeout(timeoutHandle);
-                        }
+                        const response = await postMathBrain(chunkData, timeoutMs);
+                        // Track API call
+                        window.lastRunStats.api_calls++;
 
                         if (!response.ok) {
                             const errorBody = await response.text();
@@ -2100,22 +2120,8 @@ function renderTransitDay(dateStr, items){
             }
             
             // Single request for shorter ranges
-            const apiEndpoint = WovenMapConfig.getApiEndpoint('astrologyMathBrain');
             const timeoutMs = (WovenMapConfig?.api?.timeout && Number.isFinite(+WovenMapConfig.api.timeout)) ? +WovenMapConfig.api.timeout : 30000;
-            const controller = new AbortController();
-            const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
-
-            let response;
-            try {
-                response = await fetch(apiEndpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData),
-                    signal: controller.signal
-                });
-            } finally {
-                clearTimeout(timeoutHandle);
-            }
+            const response = await postMathBrain(formData, timeoutMs);
 
             if (!response.ok) {
                 const errorBody = await response.text();
