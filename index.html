@@ -2949,6 +2949,53 @@ function renderTransitDay(dateStr, items){
             html += `<p><strong>Schema:</strong> WM-Chart-${balanceMeterData.schema_version}</p>`;
             html += `</div></div>`;
 
+            // Raven Calder Emoji Legend
+            html += `<div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">`;
+            html += `<div class="flex items-center gap-2 mb-4">`;
+            html += `<span class="text-2xl">🗝️</span>`;
+            html += `<h2 class="text-xl font-semibold text-purple-300">Raven Calder Emoji Reference</h2>`;
+            html += `</div>`;
+            html += `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">`;
+            
+            // Core Metrics
+            html += `<div class="bg-gray-700/50 p-3 rounded-lg">`;
+            html += `<h3 class="text-cyan-300 font-medium mb-2">Core Metrics</h3>`;
+            html += `<div class="space-y-1 text-gray-200">`;
+            html += `<div>⚡ <span class="text-gray-300">Magnitude (intensity)</span></div>`;
+            html += `<div>🌪️ <span class="text-gray-300">Volatility (instability)</span></div>`;
+            html += `<div>🌞 🌑 🌗 <span class="text-gray-300">Valence (positive/negative/mixed)</span></div>`;
+            html += `</div></div>`;
+            
+            // Positive Valence Modes
+            html += `<div class="bg-gray-700/50 p-3 rounded-lg">`;
+            html += `<h3 class="text-green-300 font-medium mb-2">Positive Modes 🌞</h3>`;
+            html += `<div class="space-y-1 text-gray-200 text-xs">`;
+            html += `<div>🌱 Fertile Field</div>`;
+            html += `<div>✨ Harmonic Resonance</div>`;
+            html += `<div>💎 Expansion Lift</div>`;
+            html += `<div>🔥 Combustion Clarity</div>`;
+            html += `<div>🦋 Liberation/Release</div>`;
+            html += `<div>⚖️ Integration</div>`;
+            html += `<div>🌊 Flow Tide</div>`;
+            html += `<div>🌈 Visionary Spark</div>`;
+            html += `</div></div>`;
+            
+            // Negative Valence Modes
+            html += `<div class="bg-gray-700/50 p-3 rounded-lg">`;
+            html += `<h3 class="text-red-300 font-medium mb-2">Negative Modes 🌑</h3>`;
+            html += `<div class="space-y-1 text-gray-200 text-xs">`;
+            html += `<div>♾️ Recursion Pull</div>`;
+            html += `<div>⚔️ Friction Clash</div>`;
+            html += `<div>↔️ Cross Current</div>`;
+            html += `<div>🌫️ Fog/Dissolution</div>`;
+            html += `<div>🌋 Pressure/Eruption</div>`;
+            html += `<div>⏳ Saturn Weight</div>`;
+            html += `<div>🧩 Fragmentation</div>`;
+            html += `<div>🕳️ Entropy Drift</div>`;
+            html += `</div></div>`;
+            
+            html += `</div></div>`;
+
             // Executive Summary with enhanced color coding
             html += `<div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">`;
             html += `<div class="flex items-center gap-2 mb-4">`;
@@ -3588,11 +3635,12 @@ function renderTransitDay(dateStr, items){
                     ? firstDayData.sfd.sfd || 0 
                     : (typeof firstDayData.sfd === 'number' ? firstDayData.sfd : 0);
                 
-                const magnitudeEmoji = magnitude > 4 ? '⚡' : magnitude > 2 ? '🔥' : '💧';
+                const magnitudeEmoji = '⚡'; // Official Raven Calder magnitude emoji
                 const valenceEmoji = getValenceEmoji(valence);
-                const balanceEmoji = balance > 0 ? '💎' : balance < 0 ? '⚔️' : '⚖️';
+                const balanceEmoji = balance > 0 ? '🌞' : balance < 0 ? '🌑' : '🌗'; // Official valence emojis
+                const volatilityEmoji = volatility > 7 ? ' 🌪️' : '';
                 
-                md += `Triple Channel: ${magnitudeEmoji} ${magnitude.toFixed(1)} · Val ${valenceEmoji} ${valence.toFixed(1)} · Bal ${balanceEmoji} ${balance.toFixed(1)} · stabilizers mixed (SFD ${sfd >= 0 ? '+' : ''}${sfd.toFixed(1)})\n\n`;
+                md += `Triple Channel: ${magnitudeEmoji} ${magnitude.toFixed(1)} · Val ${valenceEmoji} ${valence.toFixed(1)} · Bal ${balanceEmoji} ${balance.toFixed(1)}${volatilityEmoji} · stabilizers mixed (SFD ${sfd >= 0 ? '+' : ''}${sfd.toFixed(1)})\n\n`;
                 
                 md += `**Seismograph Metrics**\n\n`;
                 md += `- **Magnitude**: ${magnitude.toFixed(2)} (${toMagnitudeTerm(magnitude)})\n`;
