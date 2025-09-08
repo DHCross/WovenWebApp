@@ -27,3 +27,57 @@ Application Logo
 - Public URL after deploy (Netlify): `https://<your-domain>/logo.svg`
 - Use this URL in Auth0: Applications → Ravencalder → Settings → Application Logo
 - You can also reference it in your HTML: `<link rel="icon" href="/logo.svg" type="image/svg+xml">`
+
+---
+
+Common Pitfalls & Fixes
+
+- Missing or wrong Audience → 401/403
+  - Symptom: “You don't have permissions to access the resource.”
+  - Fix: Create a custom API in Auth0 (APIs → Create API). Use its Identifier as `AUTH0_AUDIENCE` (e.g., `https://ravencalder.com/poetic-brain`). Authorize your SPA for that API. Ensure the SPA requests that audience.
+  - Don’t use the Management API audience (`https://<tenant>/api/v2/`).
+
+- App not authorized for API
+  - Symptom: Auth succeeds but API calls still 403.
+  - Fix: Applications → Your SPA → APIs tab → Authorize the custom API.
+
+- Origins/Callbacks not set
+  - Symptom: CORS/redirect errors or silent failures.
+  - Fix: Add both envs:
+    - Allowed Callback URLs: `http://localhost:8888/`, `https://<your-domain>/`
+    - Allowed Logout URLs: `http://localhost:8888/`, `https://<your-domain>/`
+    - Allowed Web Origins: `http://localhost:8888`, `https://<your-domain>`
+
+- SDK served as HTML (SPA rewrite)
+  - Symptom: `Unexpected token '<'` / `createAuth0Client is not defined`.
+  - Fix: `_redirects` must bypass SPA for vendor assets:
+    - `/vendor/*   /vendor/:splat   200!`
+    - `/public/vendor/*   /public/vendor/:splat   200!`
+
+- Wrong tenant/app mix
+  - Symptom: `invalid_client` or login loop.
+  - Fix: `AUTH0_DOMAIN` and `AUTH0_CLIENT_ID` must belong to the same tenant and the intended SPA application.
+
+- Audience not flowing to token
+  - Symptom: Token verifies iss but aud mismatch on backend.
+  - Fix: Confirm Network → `/authorize` includes `audience=<your API Identifier>`. In this app, audience is loaded from `/.netlify/functions/auth-config` (set `AUTH0_AUDIENCE` env and redeploy).
+
+- RS256 vs HS256
+  - Symptom: Backend verification fails.
+  - Fix: Use RS256 for your API. The function validates with JWKS (`jwks-rsa`).
+
+- Silent auth/popup quirks
+  - Symptom: Popup blocked (Safari/ITP) or third‑party cookie limits.
+  - Fix: Prefer redirect login in production; we keep `cacheLocation: 'localstorage'` and `useRefreshTokens: true` for SPA resilience.
+
+- Time skew
+  - Symptom: “token expired” immediately.
+  - Fix: Sync system clock (NTP) on dev machine.
+
+- Google OAuth dev keys in prod
+  - Symptom: “This app is not configured for Google” warnings.
+  - Fix: In Auth0 → Connections → Google, supply your own Google Client ID/Secret; add the Auth0 callback URL in Google Cloud console.
+
+- Auth config endpoint missing
+  - Symptom: `/\.netlify/functions/auth-config` 404 or `hasAudience: false`.
+  - Fix: Ensure Netlify env vars set (AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_AUDIENCE). Restart `netlify dev` or redeploy.
