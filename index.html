@@ -26,8 +26,34 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Woven Web App - Astrological Geometry</title>
         
+
         <!-- Self-hosted Auth0 SDK - no more CDN 403 issues -->
         <script src="/vendor/auth0-spa-js.production.js" defer></script>
+        <script>
+          (function(){
+            // Verify the self-hosted SDK is actually being served as JS
+            fetch('/vendor/auth0-spa-js.production.js', { method:'GET', cache:'no-store' })
+              .then(function(res){ if(!res.ok) throw new Error('HTTP '+res.status); return res.text(); })
+              .then(function(txt){
+                var looksJS = /createAuth0Client\s*=/.test(txt) || txt.indexOf('Auth0Client') !== -1;
+                if (looksJS && typeof createAuth0Client === 'function') {
+                  console.info('[Auth0] Self-hosted SDK verified');
+                  window.__AUTH0_SDK_OK__ = true;
+                } else if (looksJS) {
+                  console.warn('[Auth0] SDK file fetched but createAuth0Client is not available yet.');
+                } else {
+                  console.error('[Auth0] SDK path served non-JS content (likely HTML). Check your publish directory.');
+                }
+              })
+              .catch(function(err){
+                console.error('[Auth0] Self-hosted SDK fetch failed:', err);
+                var el = document.createElement('div');
+                el.style.cssText='background:#b91c1c;color:white;padding:10px;text-align:center;position:relative;z-index:9999';
+                el.textContent='Auth0 SDK is missing at /vendor/auth0-spa-js.production.js — check filename/path and Netlify publish dir.';
+                (document.body||document.documentElement).insertAdjacentElement('afterbegin', el);
+              });
+          })();
+        </script>
 
         
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
