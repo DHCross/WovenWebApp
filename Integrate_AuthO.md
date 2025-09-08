@@ -1,22 +1,44 @@
-Auth0 & Netlify Integration GuideIntegrating Auth0 with a Netlify-hosted Single Page Application (SPA) requires a specific setup to ensure your application can access the necessary credentials securely during deployment.Key ConceptsSingle Page Application (SPA): Your website is an SPA, which means it loads a single HTML file and then dynamically updates the content. This provides a fast, seamless user experience.Environment Variables: Netlify's recommended way to handle sensitive data like API keys and client secrets is through environment variables, which are stored securely on the Netlify platform. Your code can then access these variables during the build process.The Problem: Your local application code needs to know the Auth0 clientId and domain. When you deploy to Netlify, your local credentials aren't available, and you can't hard-code them for security reasons. The solution is to get the credentials from Netlify's environment variables.Steps for a Successful IntegrationStep 1: Securely Store Your Credentials in NetlifyYou must add your Auth0 credentials as environment variables in the Netlify dashboard for your site. This is a crucial step to avoid hard-coding sensitive information directly into your application's source code.Log in to your Netlify Dashboard.Navigate to your site's settings.Go to Site configuration > Environment variables.Click Add a variable and create two new variables:Key: AUTH0_CLIENT_ID | Value: $$Your Auth0 Client ID* **Key:** `AUTH0_DOMAIN` | **Value:** $$
-Your Auth0 DomainStep 2: Configure the Build Process to Use These VariablesYour application needs a way to read these new environment variables during the build. The most common solution for SPAs is to have the build command generate a configuration file that your application can then read.In your Netlify dashboard, go to Site configuration > Build & deploy > Build settings.Locate the Build command field.Modify the build command to include a script that creates a JSON file. A common pattern is to create a file named auth_config.json.Example Build Command:echo "{\"clientId\": \"${AUTH0_CLIENT_ID}\", \"domain\": \"${AUTH0_DOMAIN}\"}" > src/auth_config.json && npm run buildecho ...: This command creates the auth_config.json file.\${...}: This is the syntax for telling the shell to substitute the environment variable's value.&& npm run build: This ensures that your main build command runs only after the configuration file has been created.Step 3: Update Your Application CodeFinally, your application's JavaScript code needs to be updated to read the Auth0 credentials from the new auth_config.json file instead of using hard-coded values.// In your main application file (e.g., index.js)
+Auth0 + Netlify: Secure SPA Integration
 
-// Fetch the configuration file during app initialization
-async function fetchAuthConfig() {
-  const response = await fetch('/auth_config.json');
-  return response.json();
-}
+Overview
+- SPA reads Auth0 public config at runtime from a Netlify Function, not from hardcoded values or a build-time JSON file.
+- Only non-secret values are exposed: AUTH0_DOMAIN, AUTH0_CLIENT_ID, and optional AUTH0_AUDIENCE.
+- If config is missing, the UI disables auth and shows a helpful notice.
 
-// Then, use the fetched config to create the Auth0 client
-async function initAuth() {
-  const config = await fetchAuthConfig();
-  const auth0Client = await createAuth0Client({
-    domain: config.domain,
-    clientId: config.clientId
-  });
-  // ... continue with your application logic
-}
+Environment Variables
+- Netlify dashboard → Site configuration → Environment variables:
+  - AUTH0_DOMAIN: your-tenant.us.auth0.com
+  - AUTH0_CLIENT_ID: SPA client ID
+  - AUTH0_AUDIENCE: API Identifier (optional; set if your API requires it)
+- Local development: create a `.env` for `netlify dev` with the same keys.
 
-initAuth();
+Runtime Config Endpoint
+- The SPA fetches `/.netlify/functions/auth-config` and uses that response to initialize the Auth0 SDK.
+- There is no build step generating `auth_config.json` anymore; that approach has been replaced by the function.
 
-How to Fix the "Invalid URI" ErrorIf you encountered a "callbacks must be a valid uri" error, it's a formatting issue in the Auth0 Dashboard. To fix it, carefully check the Allowed Callback URLs field.The list must be comma-separated without any extra spaces. Use this exact list for your application:Copy and paste this string:http://localhost:8888,https://dev-z8gw1uk6zgsrzubk.us.auth0.com/login/callbackBy following these steps, you create a robust and secure deployment process where your application's credentials are not stored in the public source code, and your app can successfully authenticate users whether it's running locally or deployed on Netlify.What the AI Has DoneThe AI in your VS Code has made the following changes to improve your application's security and robustness:Patched Auth0 config and client code: The AI has improved how your application's settings and code communicate with Auth0.Avoided using the Management API audience: This ensures your application does not request a token with permissions for administrative tasks, which is a key security practice.Passed audience explicitly in token requests: This ensures that your application is requesting a token for the correct audience, a key part of the OAuth 2.0 and OIDC protocols.Improved error messages: This makes it easier for you to debug any future issues.Left a quick note in the docs: This provides a record of the changes that were made.The New Debugging PlanIt looks like you've encountered a new permissions error. Here is a clear checklist and plan to trace and fix the "You don’t have permissions to access the resource" error.Checklist:Identify the cause: is the token missing the correct API audience, or is the app not authorized for that API?Set the Auth0 API Identifier, authorize your SPA, and set the environment variables.Verify the runtime config endpoint and login flow are correctly passing the audience.Retry the Poetic Brain function; if it still fails, check the common pitfalls below.What's Happening:The Poetic Brain function is designed to verify an RS256 JWT token against your AUTH0_DOMAIN and AUTH0_AUDIENCE. If your SPA isn’t requesting a token for that specific audience, the backend will reject the request with a 401 or 403 error.An Auth-config endpoint has been added, and the default to the Management API audience has been removed. You now need to set a real API audience for this to work.Do this (Auth0 Dashboard):Create an API (if you don’t have one yet)Go to APIs → Create APIName: WovenWeb Poetic BrainIdentifier (this is your audience): https://ravencalder.com/poetic-brainSigning Algorithm: RS256Authorize your SPA for this APIGo to Applications → Applications → Your SPA → APIs tabAuthorize the API you just created.Application settingsAllowed Callback URLs: http://localhost:8888, https://<your-domain>/Allowed Logout URLs: http://localhost:8888, https://<your-domain>/Allowed Web Origins: http://localhost:8888, https://<your-domain>Do this (env vars):In Netlify environment variables (and/or a local .env file for Netlify dev):AUTH0_DOMAIN = your-tenant.us.auth0.comAUTH0_CLIENT_ID = your SPA app Client IDAUTH0_AUDIENCE = https://ravencalder.com/poetic-brain (the API Identifier from step 1)Redeploy or restart your local development server after setting these environment variables.Validate quickly:Open: /.netlify/functions/auth-configIt should return JSON with your domain, clientId, and "hasAudience": true.Hard refresh the application and log in.In the browser's Network tab, the Auth0 /authorize request should include audience=https://ravencalder.com/poetic-brain.Click “Ask” in Poetic Brain again.Common pitfalls if it still fails:Audience mismatch: AUTH0_AUDIENCE must exactly equal the API Identifier you created.Wrong tenant/app: AUTH0_DOMAIN and AUTH0_CLIENT_ID must be from the same tenant and the correct SPA application.Origins/callbacks not set: Missing http://localhost:8888 in Allowed Web Origins or Callbacks will break token issuance.Using Management API audience: Do not use https://<tenant>/api/v2/ as your audience; that's the Management API and not needed here.Notes on recent changes:Added a /.netlify/functions/auth-config endpoint and updated the SPA to load domain/clientId/audience at runtime.Removed the default to the Management API audience to prevent accidental 403 errors.Improved error text on 401/403 to point to audience configuration.If you want, I can switch the app to your new Auth0 tenant/client now—just confirm the values to set for AUTH0_DOMAIN, AUTH0_CLIENT_ID, and AUTH0_AUDIENCE.Quick Triage Against Grok FlagsHere's a quick triage against the likely "Grok" flags, plus what I've verified and what needs attention.Checklist:CSP and external librariesAuth0 audience/token flowFunctions and redirectsAssets and build artifactsEnv/config sanityFindings:CSP: html2pdf loads from cdnjs; I added cdnjs to script-src in netlify.toml so it won’t get blocked.Auth0 audience: Frontend now fetches public config from /.netlify/functions/auth-config and only requests an audience if you set AUTH0_AUDIENCE. This prevents accidental Management API usage and 403 errors. You must set AUTH0_DOMAIN, AUTH0_CLIENT_ID, and AUTH0_AUDIENCE in Netlify.Functions/redirects:  - [[redirects]] /api/astrology -> /.netlify/functions/astrology exists, but there’s no netlify/functions/astrology.js. That route will 404. Either remove that redirect or add the function.  - Other functions exist: astrology-mathbrain.js, astrology-health.js, poetic-brain.js, auth-config.js.Poetic Brain verification: The backend verifies tokens against AUTH0_DOMAIN and AUTH0_AUDIENCE. If those aren’t set, requests will fail. This is correct behavior; just ensure both environment variables are present and your SPA is authorized for your custom API.Vendor SDK: A self-hosted Auth0 SPA SDK is present at auth0-spa-js.production.js, and _redirects bypasses SPA routing for vendor paths. The loader waits for SDK readiness before initialization, so a race condition is avoided.Tailwind build: output.css exists and is linked. A runtime probe warns in the console if it doesn’t load.Logo: logo.svg is available for the Auth0 Application Logo and can be used as a favicon.Recommended fixes:Remove or implement the missing astrology function:  - Quickest: delete the stale redirect in netlify.toml if it's unused.  - Or add netlify/functions/astrology.js to match that endpoint.Ensure Netlify env is set:  - AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_AUDIENCE (your custom API Identifier)  - RAPIDAPI_KEY (for the math brain function) and GEMINI_API_KEY (for the poetic brain function)Optional hardening:  - Add clear 500 error with guidance if AUTH0_DOMAIN/AUTH0_AUDIENCE are missing in poetic-brain.js (currently will reject due to verification).Quick verify:Visit /.netlify/functions/auth-config → expect JSON with domain/clientId and hasAudience: true.Log in and check the Network tab: /authorize should include audience=<your API Identifier>.Call Poetic Brain after login → expect 200 with a response. A 401/403 means audience/config is not set or authorized correctly.Check _redirects and confirm vendor assets load with 200, with no "Unexpected token ‘<’" error.
+Auth0 Dashboard Settings
+- Allowed Callback URLs:
+  - http://localhost:8888
+  - https://<your-site>.netlify.app
+- Allowed Logout URLs:
+  - http://localhost:8888
+  - https://<your-site>.netlify.app
+- Allowed Web Origins:
+  - http://localhost:8888
+  - https://<your-site>.netlify.app
+
+Security Notes
+- No fallbacks to real domain/client ID exist in code; env is required.
+- CSP allows only the minimum needed for Auth0:
+  - connect-src 'self' https://*.auth0.com
+  - frame-src https://*.auth0.com
+- Tokens are cached in localStorage for persistence; consider in‑memory cache if you want to reduce exposure to XSS (trade-off vs. UX).
+
+Verify Setup
+- Check the config function (replace origin as needed):
+  - curl -s https://<your-site>.netlify.app/.netlify/functions/auth-config
+- You should see: { domain, clientId, audience? }. If domain/clientId are absent, set env vars and redeploy/restart.
+
+Common Issues
+- 401 calling serverless API: Ensure AUTH0_AUDIENCE matches your API Identifier exactly and that your SPA is authorized for that API in Auth0.
+- Callback errors: Verify exact origins and URLs in the Auth0 Dashboard (no stray spaces, correct scheme/host).

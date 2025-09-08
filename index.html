@@ -10424,7 +10424,7 @@ function renderTransitDay(dateStr, items){
         const ac = (window.__AUTH0_PUBLIC || {});
         // Sanitize domain from config: strip protocols and smart quotes that can break redirects (e.g., https’s)
         function sanitizeDomain(d){
-            if (!d || typeof d !== 'string') return 'dev-z8gw1uk6zgsrzubk.us.auth0.com';
+            if (!d || typeof d !== 'string') return '';
             let raw = d.trim().replace(/[\u2018\u2019\u201A\u201B]/g, "'");
             // If a full URL was provided (with or without stray quotes), parse and reduce to host
             const tryParse = raw.replace(/'/g, '');
@@ -10437,13 +10437,20 @@ function renderTransitDay(dateStr, items){
             raw = raw.split('/')[0];
             return raw;
         }
-        const domain = sanitizeDomain(ac.domain) || 'dev-z8gw1uk6zgsrzubk.us.auth0.com';
-    const clientId = ac.clientId || '0nV0L41xZijfc8HTKtoROPgyqgMttJYT';
+        const domain = sanitizeDomain(ac.domain) || '';
+    const clientId = ac.clientId || '';
         const audience = ac.audience || null; // Avoid defaulting to Management API
+        if (!domain || !clientId) {
+            console.warn('[Auth0] Missing domain or clientId from public config; auth features disabled.');
+            try { document.querySelectorAll('.auth-btn').forEach(btn => { if (btn) btn.disabled = true; }); } catch(_) {}
+            try { showNotification('Auth is not configured. Ask admin to set AUTH0_DOMAIN and AUTH0_CLIENT_ID in Netlify.', 'error'); } catch(_){}
+            return;
+        }
     auth0 = await createAuth0Client({
             domain,
             clientId,
             authorizationParams: {
+            redirect_uri: window.location.origin,
             ...(audience ? { audience } : {})
         },
             cacheLocation: 'localstorage',
@@ -10488,8 +10495,7 @@ function renderTransitDay(dateStr, items){
                     console.debug('[Auth0] login redirect clicked');
                     await auth0.loginWithRedirect({
                         authorizationParams: {
-                            redirect_uri: window.location.origin,
-                            client_id: clientId
+                            redirect_uri: window.location.origin
                         }
                     });
                 });
@@ -10501,8 +10507,7 @@ function renderTransitDay(dateStr, items){
                 await auth0.loginWithPopup({
                                 authorizationParams: {
                     ...(audience ? { audience } : {}),
-                    prompt: 'select_account',
-                    client_id: clientId
+                    prompt: 'select_account'
                                 }
                             });
                             await updateAuthUI();
@@ -10521,8 +10526,7 @@ function renderTransitDay(dateStr, items){
                             authorizationParams: {
                                 redirect_uri: window.location.origin,
                                 connection: 'google-oauth2',
-                                prompt: 'select_account',
-                                client_id: clientId
+                                prompt: 'select_account'
                             }
                         });
                     });
