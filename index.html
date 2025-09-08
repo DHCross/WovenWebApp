@@ -28,154 +28,37 @@
         
 
         <!-- Self-hosted Auth0 SDK - no more CDN 403 issues -->
-        <script src="/vendor/auth0-spa-js.production.js" defer></script>
-        <script>
-          (function(){
-            // Verify the self-hosted SDK is actually being served as JS
-            fetch('/vendor/auth0-spa-js.production.js', { method:'GET', cache:'no-store' })
-              .then(function(res){ if(!res.ok) throw new Error('HTTP '+res.status); return res.text(); })
-              .then(function(txt){
-                var looksJS = /createAuth0Client\s*=/.test(txt) || txt.indexOf('Auth0Client') !== -1;
-                if (looksJS && typeof createAuth0Client === 'function') {
-                  console.info('[Auth0] Self-hosted SDK verified');
-                  window.__AUTH0_SDK_OK__ = true;
-                } else if (looksJS) {
-                  console.warn('[Auth0] SDK file fetched but createAuth0Client is not available yet.');
-                } else {
-                  console.error('[Auth0] SDK path served non-JS content (likely HTML). Check your publish directory.');
-                }
-              })
-              .catch(function(err){
-                console.error('[Auth0] Self-hosted SDK fetch failed:', err);
-                var el = document.createElement('div');
-                el.style.cssText='background:#b91c1c;color:white;padding:10px;text-align:center;position:relative;z-index:9999';
-                el.textContent='Auth0 SDK is missing at /vendor/auth0-spa-js.production.js — check filename/path and Netlify publish dir.';
-                (document.body||document.documentElement).insertAdjacentElement('afterbegin', el);
-              });
-          })();
-        </script>
-
-        
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="dist/output.css">
-        <style>
-            /* Fallback: ensure bg-gray-750 exists even if Tailwind config fails to load */
-            .bg-gray-750 { background-color: #2a2f3a !important; }
-
-            :root {
-                /* Modern color palette */
-                --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                --bg-dark: #0f0f14;
-                --bg-card: rgba(255, 255, 255, 0.03);
-                --bg-card-hover: rgba(255, 255, 255, 0.05);
-                --border-subtle: rgba(255, 255, 255, 0.08);
-                --border-active: rgba(102, 126, 234, 0.5);
-                --text-primary: #e5e7eb;
-            }
-            /* Tailwind handles pulse animation via animate-pulse class */
-
-
-
-            /* Table improvements */
-            table {
-                border-collapse: separate;
-                border-spacing: 0;
-            }
-
-            th {
-                background: rgba(102, 126, 234, 0.1) !important;
-                font-weight: 600;
-            }
-
-            tr:hover td {
-                background: var(--bg-card-hover) !important;
-            }
-
-            /* Pattern card styling */
-            .pattern-card {
-                transition: all 0.3s ease;
-                border-radius: 12px !important;
-            }
-
-            .pattern-card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-            }
-
-            /* Mobile optimizations */
-            @media (max-width: 768px) {
-                /* Date input styling on mobile */
-                input[type="date"] {
-                    -webkit-appearance: none;
-                    -moz-appearance: none;
-                    appearance: none;
-                    background-color: rgba(255, 255, 255, 0.05) !important;
-                    color: var(--text-primary) !important;
-                    border: 1px solid var(--border-subtle) !important;
-                    padding: 0.75rem !important;
-                    border-radius: 12px !important;
-                    font-size: 16px;
-                    text-align: left !important;
-                }
-
-                input[type="date"]::-webkit-datetime-edit-text,
-                input[type="date"]::-webkit-datetime-edit-month-field,
-                input[type="date"]::-webkit-datetime-edit-day-field,
-                input[type="date"]::-webkit-datetime-edit-year-field {
-                    color: var(--text-primary);
-                }
-
-                input[type="date"]::-webkit-calendar-picker-indicator {
-                    background-color: var(--text-primary);
-                    border-radius: 3px;
-                    cursor: pointer;
-                    opacity: 0.8;
-                }
-
-                input[type="time"] {
-                    -webkit-appearance: none;
-                    -moz-appearance: none;
-                    appearance: none;
-                    background-color: rgba(255, 255, 255, 0.05) !important;
-                    color: var(--text-primary) !important;
-                    border: 1px solid var(--border-subtle) !important;
-                    text-align: left !important;
-                }
-
-                /* Mobile tap targets */
-                input[type="radio"], input[type="checkbox"] {
-                    min-width: 20px;
-                    min-height: 20px;
-                    margin-right: 12px;
-                }
-
-                label {
-                    min-height: 44px;
-                    display: flex;
-                    align-items: center;
-                }
-
-                /* Seismograph mobile optimizations */
-                .swipeable-card {
-                    touch-action: pan-x;
-                    transition: transform 0.2s ease;
-                }
-
-                .swipeable-card:active {
-                    transform: scale(0.98);
-                }
-
-                .overflow-x-auto {
-                    -webkit-overflow-scrolling: touch;
-                }
-
-                button {
-                    min-height: 44px;
-                    touch-action: manipulation;
-                }
-            }
-
-            /* Custom scrollbar */
+            <script src="/public/vendor/auth0-spa-js.production.js" defer></script>
+                <script>
+                    (function(){
+                        // Verify the self-hosted SDK is actually being served as JS
+                        fetch('/public/vendor/auth0-spa-js.production.js', { method:'GET', cache:'no-store' })
+                            .then(function(res){ if(!res.ok) throw new Error('HTTP '+res.status); return res.text(); })
+                                            .then(function(txt){
+                                                var looksJS = /createAuth0Client\s*=/.test(txt) || txt.indexOf('Auth0Client') !== -1;
+                                                if (looksJS) {
+                                                    console.info('[Auth0] Self-hosted SDK verified');
+                                                } else {
+                                                    console.warn('[Auth0] SDK file did not look like JS. Check _redirects and /public/vendor path.');
+                                                    try { document.querySelectorAll('.auth-btn').forEach(function(btn){
+                                                        if (!btn) return; btn.disabled = false; btn.addEventListener('click', function(){
+                                                            alert('Auth is unavailable because the local Auth0 SDK did not load. Verify /public/vendor/auth0-spa-js.production.js and _redirects.');
+                                                        });
+                                                    }); } catch(_){}
+                                                }
+                                            })
+                                            .catch(function(err){
+                                                console.warn('[Auth0] SDK fetch failed:', err);
+                                                try { document.querySelectorAll('.auth-btn').forEach(function(btn){
+                                                    if (!btn) return; btn.disabled = false; btn.addEventListener('click', function(){
+                                                        alert('Auth is unavailable because the local Auth0 SDK could not be fetched. Check network and _redirects.');
+                                                    });
+                                                }); } catch(_){}
+                                            });
+                    })();
+                </script>
+                <style>
+                        /* Custom scrollbar */
             ::-webkit-scrollbar {
                 width: 10px;
             }
@@ -1539,290 +1422,8 @@ let totalRowCount = 0;
 // Simple Mode defaults (no user toggles rendered)
 window.WOVEN_UI_FILTERS = { tightOnly:true, showMinor:false, showHarmonic:false, showSelf:false };
 // ...existing code...
-  <script>
-    // === Auth0 runtime: single source of truth ===
-    (function () {
-      console.info('[Auth0] Runtime wiring booting…');
-      const qs = new URLSearchParams(window.location.search);
-      const $ = id => document.getElementById(id);
-
-      async function getOrCreateClient() {
-        if (window.auth0Client) return window.auth0Client;
-        
-        if (typeof createAuth0Client !== 'function') {
-          console.error('Auth0 SPA SDK not loaded — expected /vendor/auth0-spa-js.production.js');
-          // Graceful UX: enable buttons, but explain
-          document.querySelectorAll('.auth-btn').forEach(btn => {
-            if (!btn) return;
-            btn.disabled = false;
-            btn.addEventListener('click', () =>
-              alert('Auth is unavailable because the local Auth0 SDK did not load. Verify /vendor/auth0-spa-js.production.js exists and is served.'));
-          });
-          return null;
-        }
-        
-        window.auth0Client = await createAuth0Client({
-          domain: 'dev-z8gw1uk6zgsrzubk.us.auth0.com',
-          clientId: '0nV0L41xZijfc8HTKtoROPgyqgMttJYT',
-          authorizationParams: {
-            audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/',
-            redirect_uri: window.location.origin
-          },
-          cacheLocation: 'localstorage',
-          useRefreshTokens: true
-        });
-        return window.auth0Client;
-      }
-
-      function setAuthUI(isAuthed, user) {
-        const loginBtn = $('login-button');
-        const loginPopupBtn = $('login-popup-button');
-        const googleBtn = $('google-login-button');
-        const logoutBtn = $('logout-button');
-        const pill = $('auth-status-pill');
-        if (!loginBtn || !logoutBtn) return;
-
-        if (isAuthed) {
-          loginBtn.classList.add('hidden');
-          loginPopupBtn && loginPopupBtn.classList.add('hidden');
-          googleBtn && googleBtn.classList.add('hidden');
-          logoutBtn.classList.remove('hidden');
-
-          const modeDesc = document.getElementById('modeDescription');
-          if (modeDesc && user) {
-            modeDesc.innerHTML = `<strong class="text-teal-300">Signed in:</strong> ${user.name || user.email}`;
-          }
-          if (pill) {
-            pill.classList.remove('hidden');
-            pill.classList.remove('bg-red-600','border-red-400');
-            pill.classList.add('bg-green-600','border-green-400');
-            pill.title = 'Authenticated';
-            pill.querySelector('span:last-child').textContent = `Signed in: ${user?.name || user?.email || 'Unknown'}`;
-          }
-        } else {
-          loginBtn.classList.remove('hidden');
-          loginPopupBtn && loginPopupBtn.classList.remove('hidden');
-          googleBtn && googleBtn.classList.remove('hidden');
-          logoutBtn.classList.add('hidden');
-
-          if (pill) {
-            pill.classList.remove('hidden');
-            pill.classList.remove('bg-green-600','border-green-400');
-            pill.classList.add('bg-red-600','border-red-400');
-            pill.title = 'Not authenticated';
-            pill.querySelector('span:last-child').textContent = 'Logged out';
-          }
-        }
-        
-        // Enable buttons when client is ready
-        document.querySelectorAll('.auth-btn').forEach(btn => {
-          if (btn) btn.disabled = false;
-        });
-      }
-
-      // Prevent duplicate listeners by cloning nodes once
-      function bindOnce(nodeId, type, handler) {
-        const old = $(nodeId);
-        if (!old) return;
-        const clone = old.cloneNode(true);
-        old.parentNode.replaceChild(clone, old);
-        clone.addEventListener(type, handler);
-      }
-
-      async function initAuth() {
-        try {
-          console.info('[Auth0] initAuth() start');
-          
-          // Show redirect URI debug info
-          const originEl = document.getElementById('auth-debug-origin');
-          if (originEl) { 
-            originEl.textContent = `redirect_uri → ${window.location.origin}`; 
-            originEl.classList.remove('hidden'); 
-          }
-          
-          const auth0 = await getOrCreateClient();
-          if (!auth0) return;
-          console.info('[Auth0] client ready');
-
-          // Redirect return
-          if (qs.get('code') && qs.get('state')) {
-            try { await auth0.handleRedirectCallback(); }
-            catch (e) { console.warn('Auth0 redirect handling failed:', e); }
-            finally {
-              const url = new URL(window.location.href); url.search = ''; history.replaceState({}, document.title, url.toString());
-            }
-          }
-
-          // Wire buttons
-          bindOnce('login-button', 'click', async () => {
-            console.debug('[Auth0] loginWithRedirect click');
-            try { await auth0.loginWithRedirect(); } catch (e) { console.warn(e); }
-          });
-          bindOnce('login-popup-button', 'click', async () => {
-            console.debug('[Auth0] loginWithPopup click');
-            try { await auth0.loginWithPopup(); const user = await auth0.getUser(); setAuthUI(true, user); } catch (e) { console.warn(e); }
-          });
-          bindOnce('google-login-button', 'click', async () => {
-            console.debug('[Auth0] google-oauth2 redirect click');
-            try {
-              await auth0.loginWithRedirect({ authorizationParams: { connection: 'google-oauth2', audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/' } });
-            } catch (e) { console.warn(e); }
-          });
-          bindOnce('logout-button', 'click', async () => {
-            console.debug('[Auth0] logout click');
-            try { await auth0.logout({ logoutParams: { returnTo: window.location.origin } }); setAuthUI(false); } catch (e) { console.warn(e); }
-          });
-
-          const ok = await auth0.isAuthenticated();
-          const user = ok ? await auth0.getUser() : null;
-          console.info('[Auth0] state', { isAuthenticated: ok, user });
-          setAuthUI(ok, user);
-        } catch (e) {
-          console.warn('Auth init failed at runtime:', e);
-        }
-      }
-
-      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAuth); else initAuth();
-    })();
-  </script>
-</body>
-<script>
-    (function () {
-        console.info('[Auth0] Runtime wiring booting…');
-        const qs = new URLSearchParams(window.location.search);
-        const byId = id => document.getElementById(id);
-
-        async function getOrCreateClient() {
-            if (window.auth0Client) return window.auth0Client;
-            if (typeof createAuth0Client !== 'function') {
-                throw new Error('Auth0 SPA SDK not loaded');
-            }
-            window.auth0Client = await createAuth0Client({
-                domain: 'dev-z8gw1uk6zgsrzubk.us.auth0.com',
-                clientId: '0nV0L41xZijfc8HTKtoROPgyqgMttJYT',
-                authorizationParams: {
-                    audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/',
-                    redirect_uri: window.location.origin
-                },
-                cacheLocation: 'localstorage',
-                useRefreshTokens: true
-            });
-            return window.auth0Client;
-        }
-
-        function setAuthUI(isAuthenticated, user) {
-            const loginBtn = byId('login-button');
-            const loginPopupBtn = byId('login-popup-button');
-            const googleBtn = byId('google-login-button');
-            const logoutBtn = byId('logout-button');
-            const pill = byId('auth-status-pill');
-
-            if (!loginBtn || !logoutBtn) return;
-
-            if (isAuthenticated) {
-                loginBtn.classList.add('hidden');
-                loginPopupBtn && loginPopupBtn.classList.add('hidden');
-                googleBtn && googleBtn.classList.add('hidden');
-                logoutBtn.classList.remove('hidden');
-
-                const modeDesc = document.getElementById('modeDescription');
-                if (modeDesc && user) {
-                    modeDesc.innerHTML = `<strong class="text-teal-300">Signed in:</strong> ${user.name || user.email}`;
-                }
-                if (pill) {
-                    pill.classList.remove('hidden');
-                    pill.classList.remove('bg-red-600','border-red-400');
-                    pill.classList.add('bg-green-600','border-green-400');
-                    pill.title = 'Authenticated';
-                    pill.querySelector('span:last-child').textContent = `Signed in: ${user?.name || user?.email || 'Unknown'}`;
-                }
-            } else {
-                loginBtn.classList.remove('hidden');
-                loginPopupBtn && loginPopupBtn.classList.remove('hidden');
-                googleBtn && googleBtn.classList.remove('hidden');
-                logoutBtn.classList.add('hidden');
-
-                if (pill) {
-                    pill.classList.remove('hidden');
-                    pill.classList.remove('bg-green-600','border-green-400');
-                    pill.classList.add('bg-red-600','border-red-400');
-                    pill.title = 'Not authenticated';
-                    pill.querySelector('span:last-child').textContent = 'Logged out';
-                }
-            }
-        }
-
-        // prevent double-binding if this ever re-runs
-        function wireOnce(el, type, handler) {
-            if (!el) return;
-            el.replaceWith(el.cloneNode(true));
-            el = byId(el.id);
-            el.addEventListener(type, handler);
-        }
-
-        async function initAuth() {
-            try {
-                console.info('[Auth0] initAuth() start');
-                const auth0 = await getOrCreateClient();
-                console.info('[Auth0] client ready');
-
-                // Handle return from Auth0
-                if (qs.get('code') && qs.get('state')) {
-                    try {
-                        await auth0.handleRedirectCallback();
-                    } catch (e) {
-                        console.warn('Auth0 redirect handling failed:', e);
-                    } finally {
-                        const url = new URL(window.location.href);
-                        url.search = '';
-                        history.replaceState({}, document.title, url.toString());
-                    }
-                }
-
-                // Wire buttons
-                wireOnce(byId('login-button'), 'click', async () => {
-                    console.debug('[Auth0] loginWithRedirect click');
-                    try { await auth0.loginWithRedirect(); } catch (e) { console.warn(e); }
-                });
-
-                wireOnce(byId('login-popup-button'), 'click', async () => {
-                    console.debug('[Auth0] loginWithPopup click');
-                    try { await auth0.loginWithPopup(); const user = await auth0.getUser(); setAuthUI(true, user); } catch (e) { console.warn(e); }
-                });
-
-                wireOnce(byId('google-login-button'), 'click', async () => {
-                    console.debug('[Auth0] google-oauth2 redirect click');
-                    try {
-                        await auth0.loginWithRedirect({
-                            authorizationParams: {
-                                connection: 'google-oauth2',
-                                audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/'
-                            }
-                        });
-                    } catch (e) { console.warn(e); }
-                });
-
-                wireOnce(byId('logout-button'), 'click', async () => {
-                    console.debug('[Auth0] logout click');
-                    try { await auth0.logout({ logoutParams: { returnTo: window.location.origin } }); setAuthUI(false); } catch (e) { console.warn(e); }
-                });
-
-                const isAuthenticated = await auth0.isAuthenticated();
-                const user = isAuthenticated ? await auth0.getUser() : null;
-                console.info('[Auth0] state', { isAuthenticated, user });
-                setAuthUI(!!isAuthenticated, user);
-            } catch (e) {
-                console.warn('Auth init failed at runtime:', e);
-            }
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initAuth);
-        } else {
-            initAuth();
-        }
-    })();
-</script>
+// ...existing code...
+    // (Auth0 runtime removed here — consolidated below in initializeAuth0())
 
 // Universal context reference for browser/server compatibility
 const WOVEN_GLOBAL = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : {});
@@ -10720,16 +10321,23 @@ function renderTransitDay(dateStr, items){
         // Auth0 Integration
         let auth0 = null;
 
-        async function initializeAuth0() {
+    async function initializeAuth0() {
             try {
                 // Configure Auth0 client
-                auth0 = await createAuth0Client({
+        auth0 = await createAuth0Client({
                     domain: 'dev-z8gw1uk6zgsrzubk.us.auth0.com',
                     clientId: '0nV0L41xZijfc8HTKtoROPgyqgMttJYT',
                     authorizationParams: {
-                        audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/'
-                    }
+            audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/'
+            },
+            cacheLocation: 'localstorage',
+            useRefreshTokens: true
                 });
+
+        // Enable auth buttons now that SDK/client is ready
+        try {
+          document.querySelectorAll('.auth-btn').forEach(btn => { if (btn) btn.disabled = false; });
+        } catch(_) {}
 
                 // Get DOM elements
                 const poeticBrainSection = document.getElementById('poetic-brain-section');
@@ -10861,7 +10469,7 @@ function renderTransitDay(dateStr, items){
                     }
                 });
 
-                // Update UI based on auth state
+                                // Update UI based on auth state
                 async function updateAuthUI() {
                     const isAuthenticated = await auth0.isAuthenticated();
                     const poeticBrainSection = document.getElementById('poetic-brain-section');
@@ -10873,6 +10481,15 @@ function renderTransitDay(dateStr, items){
                     if (loginPopupButton) loginPopupButton.classList.toggle('hidden', isAuthenticated);
                     logoutButton.classList.toggle('hidden', !isAuthenticated);
                     poeticBrainSection.style.display = isAuthenticated ? 'block' : 'none';
+
+                                        // Header hint with identity
+                                        const modeDesc = document.getElementById('modeDescription');
+                                        if (modeDesc) {
+                                            if (isAuthenticated) {
+                                                const user = await auth0.getUser();
+                                                if (user) modeDesc.innerHTML = `<strong class="text-teal-300">Signed in:</strong> ${user.name || user.email}`;
+                                            }
+                                        }
 
                     if (isAuthenticated) {
                         console.log('User is authenticated');
@@ -10894,256 +10511,6 @@ function renderTransitDay(dateStr, items){
             }
         }
     </script>
-</body>
-  <script>
-    (function () {
-      const qs = new URLSearchParams(window.location.search);
-
-      async function ensureClient() {
-        if (window.auth0Client) return window.auth0Client;
-        await new Promise(r => setTimeout(r, 50));
-        return ensureClient();
-      }
-
-      function byId(id) { return document.getElementById(id); }
-
-      function setAuthUI(isAuthenticated, user) {
-        const loginBtn = byId('login-button');
-        const loginPopupBtn = byId('login-popup-button');
-        const googleBtn = byId('google-login-button');
-        const logoutBtn = byId('logout-button');
-        if (!loginBtn || !logoutBtn) return;
-        if (isAuthenticated) {
-          loginBtn.classList.add('hidden');
-          loginPopupBtn && loginPopupBtn.classList.add('hidden');
-          googleBtn && googleBtn.classList.add('hidden');
-          logoutBtn.classList.remove('hidden');
-          // Optional: show user name/email in header subtitle
-          const modeDesc = document.getElementById('modeDescription');
-          if (modeDesc && user) {
-            modeDesc.innerHTML = `<strong class="text-teal-300">Signed in:</strong> ${user.name || user.email}`;
-          }
-        } else {
-          loginBtn.classList.remove('hidden');
-          loginPopupBtn && loginPopupBtn.classList.remove('hidden');
-          googleBtn && googleBtn.classList.remove('hidden');
-          logoutBtn.classList.add('hidden');
-        }
-      }
-
-      async function initAuth() {
-        try {
-          const auth0 = await ensureClient();
-
-          // If returning from Auth0 redirect, handle it
-          if (qs.get('code') && qs.get('state')) {
-            try {
-              await auth0.handleRedirectCallback();
-            } catch (e) {
-              console.warn('Auth0 redirect handling failed:', e);
-            } finally {
-              // Clean the query params from the URL
-              const url = new URL(window.location.href);
-              url.search = '';
-              window.history.replaceState({}, document.title, url.toString());
-            }
-          }
-
-          // Wire buttons
-          const loginBtn = byId('login-button');
-          const loginPopupBtn = byId('login-popup-button');
-          const googleBtn = byId('google-login-button');
-          const logoutBtn = byId('logout-button');
-
-          if (loginBtn) {
-            loginBtn.addEventListener('click', async () => {
-              try {
-                await auth0.loginWithRedirect();
-              } catch (e) { console.warn('loginWithRedirect error', e); }
-            });
-          }
-
-          if (loginPopupBtn) {
-            loginPopupBtn.addEventListener('click', async () => {
-              try {
-                await auth0.loginWithPopup();
-                const user = await auth0.getUser();
-                setAuthUI(true, user);
-              } catch (e) { console.warn('loginWithPopup error', e); }
-            });
-          }
-
-          if (googleBtn) {
-            googleBtn.addEventListener('click', async () => {
-              try {
-                await auth0.loginWithRedirect({
-                  authorizationParams: {
-                    connection: 'google-oauth2',
-                    audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/'
-                  }
-                });
-              } catch (e) { console.warn('google login error', e); }
-            });
-          }
-
-          if (logoutBtn) {
-            logoutBtn.addEventListener('click', async () => {
-              try {
-                await auth0.logout({ logoutParams: { returnTo: window.location.origin } });
-                setAuthUI(false);
-              } catch (e) { console.warn('logout error', e); }
-            });
-          }
-
-          const isAuthenticated = await auth0.isAuthenticated();
-          const user = isAuthenticated ? await auth0.getUser() : null;
-          setAuthUI(!!isAuthenticated, user);
-        } catch (e) {
-          console.warn('Auth init failed at runtime:', e);
-        }
-      }
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initAuth);
-      } else {
-        initAuth();
-      }
-    })();
-  </script>
-  <script>
-    (function () {
-      console.info('[Auth0] Runtime wiring booting…');
-      const qs = new URLSearchParams(window.location.search);
-      const byId = id => document.getElementById(id);
-
-      async function getOrCreateClient() {
-        if (window.auth0Client) return window.auth0Client;
-        if (typeof createAuth0Client !== 'function') {
-          throw new Error('Auth0 SPA SDK not loaded');
-        }
-        window.auth0Client = await createAuth0Client({
-          domain: 'dev-z8gw1uk6zgsrzubk.us.auth0.com',
-          clientId: '0nV0L41xZijfc8HTKtoROPgyqgMttJYT',
-          authorizationParams: {
-            audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/',
-            redirect_uri: window.location.origin
-          },
-          cacheLocation: 'localstorage',
-          useRefreshTokens: true
-        });
-        return window.auth0Client;
-      }
-
-      function setAuthUI(isAuthenticated, user) {
-        const loginBtn = byId('login-button');
-        const loginPopupBtn = byId('login-popup-button');
-        const googleBtn = byId('google-login-button');
-        const logoutBtn = byId('logout-button');
-        const pill = byId('auth-status-pill');
-
-        if (!loginBtn || !logoutBtn) return;
-
-        if (isAuthenticated) {
-          loginBtn.classList.add('hidden');
-          loginPopupBtn && loginPopupBtn.classList.add('hidden');
-          googleBtn && googleBtn.classList.add('hidden');
-          logoutBtn.classList.remove('hidden');
-
-          const modeDesc = document.getElementById('modeDescription');
-          if (modeDesc && user) {
-            modeDesc.innerHTML = `<strong class="text-teal-300">Signed in:</strong> ${user.name || user.email}`;
-          }
-          if (pill) {
-            pill.classList.remove('hidden');
-            pill.classList.remove('bg-red-600','border-red-400');
-            pill.classList.add('bg-green-600','border-green-400');
-            pill.title = 'Authenticated';
-            pill.querySelector('span:last-child').textContent = `Signed in: ${user?.name || user?.email || 'Unknown'}`;
-          }
-        } else {
-          loginBtn.classList.remove('hidden');
-          loginPopupBtn && loginPopupBtn.classList.remove('hidden');
-          googleBtn && googleBtn.classList.remove('hidden');
-          logoutBtn.classList.add('hidden');
-
-          if (pill) {
-            pill.classList.remove('hidden');
-            pill.classList.remove('bg-green-600','border-green-400');
-            pill.classList.add('bg-red-600','border-red-400');
-            pill.title = 'Not authenticated';
-            pill.querySelector('span:last-child').textContent = 'Logged out';
-          }
-        }
-      }
-
-      // prevent double-binding if this ever re-runs
-      function wireOnce(el, type, handler) {
-        if (!el) return;
-        el.replaceWith(el.cloneNode(true));
-        el = byId(el.id);
-        el.addEventListener(type, handler);
-      }
-
-      async function initAuth() {
-        try {
-          console.info('[Auth0] initAuth() start');
-          const auth0 = await getOrCreateClient();
-          console.info('[Auth0] client ready');
-
-          if (qs.get('code') && qs.get('state')) {
-            try {
-              await auth0.handleRedirectCallback();
-            } catch (e) {
-              console.warn('Auth0 redirect handling failed:', e);
-            } finally {
-              const url = new URL(window.location.href);
-              url.search = '';
-              history.replaceState({}, document.title, url.toString());
-            }
-          }
-
-          wireOnce(byId('login-button'), 'click', async () => {
-            console.debug('[Auth0] loginWithRedirect click');
-            try { await auth0.loginWithRedirect(); } catch (e) { console.warn(e); }
-          });
-
-          wireOnce(byId('login-popup-button'), 'click', async () => {
-            console.debug('[Auth0] loginWithPopup click');
-            try { await auth0.loginWithPopup(); const user = await auth0.getUser(); setAuthUI(true, user); } catch (e) { console.warn(e); }
-          });
-
-          wireOnce(byId('google-login-button'), 'click', async () => {
-            console.debug('[Auth0] google-oauth2 redirect click');
-            try {
-              await auth0.loginWithRedirect({
-                authorizationParams: {
-                  connection: 'google-oauth2',
-                  audience: 'https://dev-z8gw1uk6zgsrzubk.us.auth0.com/api/v2/'
-                }
-              });
-            } catch (e) { console.warn(e); }
-          });
-
-          wireOnce(byId('logout-button'), 'click', async () => {
-            console.debug('[Auth0] logout click');
-            try { await auth0.logout({ logoutParams: { returnTo: window.location.origin } }); setAuthUI(false); } catch (e) { console.warn(e); }
-          });
-
-          const isAuthenticated = await auth0.isAuthenticated();
-          const user = isAuthenticated ? await auth0.getUser() : null;
-          console.info('[Auth0] state', { isAuthenticated, user });
-          setAuthUI(!!isAuthenticated, user);
-        } catch (e) {
-          console.warn('Auth init failed at runtime:', e);
-        }
-      }
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initAuth);
-      } else {
-        initAuth();
-      }
-    })();
-  </script>
+  
 </body>
 </html>
