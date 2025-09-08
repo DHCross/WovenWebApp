@@ -6,9 +6,9 @@
 window.WovenMapConfig = {
     // API Configuration
     api: {
-        baseUrl: '/api',
+        baseUrl: '/.netlify/functions',
         endpoints: {
-            astrologyMathBrain: '/api/astrology-mathbrain'
+            astrologyMathBrain: '/.netlify/functions/astrology-mathbrain'
         },
         timeout: 30000 // 30 seconds
     },

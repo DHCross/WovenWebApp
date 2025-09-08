@@ -2282,7 +2282,12 @@ function renderTransitDay(dateStr, items){
                             throw new Error(`Chunk ${i + 1} failed: HTTP ${response.status} - ${errorBody}`);
                         }
 
-                        const result = await response.json();
+                        const result = await response.json().catch(jsonError => {
+                            // Handle cases where response is not valid JSON
+                            console.error(`Chunk ${i + 1} - Failed to parse API response as JSON:`, jsonError);
+                            console.error(`Chunk ${i + 1} - Response status:`, response.status, response.statusText);
+                            throw new Error(`Chunk ${i + 1} API returned non-JSON response. Status: ${response.status}`);
+                        });
                         // Track chunk processing
                         window.lastRunStats.chunks_processed++;
                         
@@ -2341,7 +2346,12 @@ function renderTransitDay(dateStr, items){
                 throw new Error(errorMessage);
             }
 
-            const result = await response.json();
+            const result = await response.json().catch(jsonError => {
+                // Handle cases where response is not valid JSON (e.g., "Method Not Allowed" text)
+                console.error('Failed to parse API response as JSON:', jsonError);
+                console.error('Response status:', response.status, response.statusText);
+                throw new Error(`API returned non-JSON response. Status: ${response.status}, Status Text: ${response.statusText}`);
+            });
             if (result.error) {
                 throw new Error(result.error);
             }

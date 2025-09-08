@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Report Generation Test</title>
+    <script src="/config.js"></script>
+</head>
+<body>
+    <h1>Report Generation Test</h1>
+    <button onclick="testReportGeneration()">Test Report Generation</button>
+    <div id="testResult"></div>
+
+    <script>
+        // Mock the required functions and data structures for testing
+        function collectFormData() {
+            return {
+                context: {
+                    mode: "birth_chart"
+                },
+                personA: {
+                    name: "Test Person",
+                    year: "1990",
+                    month: "1", 
+                    day: "1",
+                    hour: "12",
+                    minute: "0",
+                    city: "New York",
+                    nation: "US",
+                    latitude: "40.7128",
+                    longitude: "-74.0060",
+                    zodiac_type: "Tropic",
+                    timezone: "America/New_York"
+                },
+                transitParams: {
+                    startDate: "2025-01-20",
+                    endDate: "2025-01-21",
+                    step: "1d"
+                }
+            };
+        }
+
+        async function testReportGeneration() {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.innerHTML = 'Testing report generation...';
+
+            try {
+                const formData = collectFormData();
+                console.log('Form data:', formData);
+
+                // Test API call
+                const response = await fetch('/.netlify/functions/astrology-mathbrain', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                console.log('API Response status:', response.status);
+                console.log('API Response headers:', Object.fromEntries(response.headers));
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.json().catch(jsonError => {
+                    console.error('JSON parsing failed:', jsonError);
+                    throw new Error(`API returned non-JSON response. Status: ${response.status}`);
+                });
+
+                console.log('API Result:', result);
+
+                resultDiv.innerHTML = `
+                    <h3>✅ Success!</h3>
+                    <p>API call successful</p>
+                    <p>Response status: ${response.status}</p>
+                    <p>Result keys: ${Object.keys(result).join(', ')}</p>
+                `;
+
+            } catch (error) {
+                console.error('Test failed:', error);
+                resultDiv.innerHTML = `
+                    <h3>❌ Error</h3>
+                    <p style="color: red;">${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

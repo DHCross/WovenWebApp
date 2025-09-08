@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>Astrology API Test</h1>
+    <button onclick="testAPI()">Test API Call</button>
+    <div id="result"></div>
+
+    <script>
+        async function testAPI() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const testPayload = {
+                    context: {
+                        mode: "birth_chart"
+                    },
+                    personA: {
+                        name: "Test Person",
+                        year: "1990",
+                        month: "1",
+                        day: "1",
+                        hour: "12",
+                        minute: "0",
+                        city: "New York",
+                        nation: "US",
+                        latitude: "40.7128",
+                        longitude: "-74.0060",
+                        zodiac_type: "Tropic",
+                        timezone: "America/New_York"
+                    }
+                };
+
+                console.log('Making API call to:', '/.netlify/functions/astrology-mathbrain');
+                console.log('Payload:', JSON.stringify(testPayload, null, 2));
+
+                const response = await fetch('/.netlify/functions/astrology-mathbrain', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testPayload)
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries(response.headers));
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.json();
+                console.log('Success response:', result);
+                
+                resultDiv.innerHTML = `
+                    <h3>Success!</h3>
+                    <p>Status: ${response.status}</p>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+
+            } catch (error) {
+                console.error('API test failed:', error);
+                resultDiv.innerHTML = `
+                    <h3>Error</h3>
+                    <p style="color: red;">${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

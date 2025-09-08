@@ -1,0 +1,14 @@
+{
+  "name": "poetic-brain",
+  "version": "0.1.0",
+  "description": "Narrative module for WovenWebApp (FIELD → MAP → VOICE narrative generator)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node dist/test/generateSection.test.js"
+  },
+  "keywords": ["astrology", "narrative", "raven-calder", "wovenwebapp"],
+  "author": "DHCross",
+  "license": "MIT"
+}
