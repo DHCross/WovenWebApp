@@ -2258,11 +2258,13 @@ function renderTransitDay(dateStr, items){
             document.getElementById('transitStartDate').value = todayStr;
             document.getElementById('transitEndDate').value = todayStr;
             
-            // Brief visual feedback
-            prefillTodayBtn.textContent = '✅ Set to Today';
-            setTimeout(() => { 
-                prefillTodayBtn.textContent = '📅 Use Today for Quick Check'; 
-            }, 2000);
+            // Brief visual feedback (only if button exists)
+            if (prefillTodayBtn) {
+                prefillTodayBtn.textContent = '✅ Set to Today';
+                setTimeout(() => { 
+                    prefillTodayBtn.textContent = '📅 Use Today for Quick Check'; 
+                }, 2000);
+            }
         }
 
         // --- Download Functions ---
@@ -9491,8 +9493,10 @@ function renderTransitDay(dateStr, items){
                 toggleModeHelp.textContent = isHidden ? '🧭 Hide mode guide' : '🧭 What does each mode do?';
             });
 
-            // Prefill today's date for transit dates
-            prefillTodayBtn.addEventListener('click', prefillTodayDates);
+            // Prefill today's date for transit dates (legacy button)
+            if (prefillTodayBtn) {
+                prefillTodayBtn.addEventListener('click', prefillTodayDates);
+            }
                 // Simple Mode: filter controls suppressed (defaults applied globally)
 
             // Toggle step size help panel
