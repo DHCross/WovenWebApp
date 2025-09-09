@@ -1471,11 +1471,62 @@ exports.handler = async function(event) {
       // Step 1: Always compute composite aspects first (data-only endpoint)
       // This creates the midpoint composite chart data that serves as the base for transits
       const composite = await computeComposite(personA, personB, pass, headers);
-      result.person_b = { ...(result.person_b || {}), details: personB };
-      result.composite = { 
-        aspects: composite.aspects,    // Composite chart internal aspects
-        data: composite.raw           // Raw composite chart data for further calculations
-      };
+      
+      // Step 1.5: Add natal scaffolding for both persons (required for full relational mirror)
+      // CRITICAL FIX: Composite reports need both natal charts to generate polarity cards, 
+      // Echo Loops, and SST logs. Without this scaffolding, the Poetic Brain only gets
+      // Balance Meter data and metadata, missing the foundational chart geometries.
+      // Ensure Person B natal chart is included if not already fetched
+      if (!result.person_b || !result.person_b.chart) {
+        try {
+          logger.debug('Fetching Person B natal chart for composite scaffolding');
+          const natalB = await apiCallWithRetry(
+            API_ENDPOINTS.BIRTH_CHART,
+            { method: 'POST', headers, body: JSON.stringify({ subject: personB }) },
+            'Birth chart (B for composite scaffolding)'
+          );
+          const chartDataB = stripGraphicsDeep(natalB.data || {});
+          result.person_b = { 
+            ...(result.person_b || {}), 
+            details: personB, 
+            chart: chartDataB,
+            aspects: Array.isArray(natalB.aspects) ? natalB.aspects : (chartDataB.aspects || [])
+          };
+          logger.debug('Person B natal chart added to composite scaffolding');
+        } catch (e) {
+          logger.warn('Could not fetch Person B natal chart for composite scaffolding', e.message);
+          result.person_b = { ...(result.person_b || {}), details: personB };
+        }
+      } else {
+        // Person B chart already exists, just ensure details are included
+        result.person_b = { ...(result.person_b || {}), details: personB };
+      }
+      
+      // Add synastry aspects for cross-field hooks and polarity cards
+      try {
+        logger.debug('Computing synastry aspects for composite scaffolding');
+        const syn = await apiCallWithRetry(
+          API_ENDPOINTS.SYNASTRY_ASPECTS,
+          { method: 'POST', headers, body: JSON.stringify({ first_subject: personA, second_subject: personB }) },
+          'Synastry aspects for composite scaffolding'
+        );
+        const synData = stripGraphicsDeep(syn.data || {});
+        const synastryAspects = Array.isArray(syn.aspects) ? syn.aspects : (synData.aspects || []);
+        
+        result.composite = { 
+          aspects: composite.aspects,      // Composite chart internal aspects
+          data: composite.raw,            // Raw composite chart data for further calculations
+          synastry_aspects: synastryAspects, // Cross-chart aspects for relational mapping
+          synastry_data: synData          // Additional synastry data
+        };
+        logger.debug(`Added ${synastryAspects.length} synastry aspects to composite scaffolding`);
+      } catch (e) {
+        logger.warn('Could not compute synastry aspects for composite scaffolding', e.message);
+        result.composite = { 
+          aspects: composite.aspects,    // Composite chart internal aspects
+          data: composite.raw           // Raw composite chart data for further calculations
+        };
+      }
 
   // Step 2: Composite transits: now ALWAYS computed when a date range is supplied, regardless of specific composite sub-mode
   // Rationale: connection "pressure" mapping requires transits; aspects-only without transits is incomplete.
