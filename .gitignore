@@ -32,3 +32,6 @@ test-output-*
 
 # Test files (keep mobile test as it's useful for debugging)
 # test-mobile.html
+
+# Local testing files
+test-composite-scaffolding.html

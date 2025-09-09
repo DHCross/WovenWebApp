@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relational Mirror Validation Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-6">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6 text-center">🌟 Relational Mirror Validation Test</h1>
+        
+        <div class="bg-blue-800 p-4 rounded-lg mb-6">
+            <h2 class="text-xl font-semibold mb-2">✨ Test Objective</h2>
+            <p class="text-blue-200">
+                Verify that relational reports now include all missing components identified by Raven Calder GPT:
+                <strong>Polarity Cards, Echo Loops, Shared SST Tags, Relational Balance Meter, Mirror Voice, Vector-Integrity Tags, and Relocation Notes.</strong>
+            </p>
+        </div>
+
+        <div class="bg-gray-800 p-4 rounded-lg mb-6">
+            <h2 class="text-xl font-semibold mb-4">📋 Test Payload</h2>
+            <p class="text-gray-300 mb-4">Click to test the mathbrain function with a composite request:</p>
+            <div class="flex gap-4">
+                <button onclick="runRelationalMirrorTest()" class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-medium">
+                    Run Relational Mirror Test
+                </button>
+                <button onclick="clearResults()" class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg font-medium">
+                    Clear Results
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 p-4 rounded-lg mb-6">
+            <h2 class="text-xl font-semibold mb-4">📖 How to Use</h2>
+            <ol class="list-decimal list-inside text-gray-300 space-y-2">
+                <li>Ensure your .env file has a valid RAPIDAPI_KEY</li>
+                <li>Start the local server: <code class="bg-gray-700 px-2 py-1 rounded">npm run dev</code></li>
+                <li>Click "Run Relational Mirror Test" above</li>
+                <li>Verify the response includes all relational mirror components</li>
+            </ol>
+            <div class="mt-4 p-3 bg-blue-900 rounded">
+                <strong>Note:</strong> This test requires a valid RapidAPI key. Without it, you'll see authentication errors,
+                but the structure validation will still work.
+            </div>
+        </div>
+
+        <div id="results" class="hidden">
+            <div class="bg-gray-800 p-4 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4">🔍 Test Results</h2>
+                <div id="status" class="mb-4"></div>
+                <div id="validation" class="mb-4"></div>
+                <details class="mb-4">
+                    <summary class="cursor-pointer text-blue-400 hover:text-blue-300">📄 Raw Response (Click to expand)</summary>
+                    <pre id="raw-response" class="bg-gray-900 p-4 rounded mt-2 text-sm overflow-x-auto"></pre>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function runRelationalMirrorTest() {
+            const resultsDiv = document.getElementById('results');
+            const statusDiv = document.getElementById('status');
+            const validationDiv = document.getElementById('validation');
+            const rawResponseDiv = document.getElementById('raw-response');
+
+            resultsDiv.classList.remove('hidden');
+            statusDiv.innerHTML = '<div class="text-yellow-400">⏳ Testing relational mirror generation...</div>';
+
+            const testPayload = {
+                person_a: {
+                    name: "Alex Test",
+                    year: 1990,
+                    month: 6,
+                    day: 15,
+                    hour: 14,
+                    minute: 30,
+                    city: "New York",
+                    nation: "US",
+                    latitude: 40.7128,
+                    longitude: -74.0060,
+                    timezone: "America/New_York",
+                    zodiac_type: "Tropic"
+                },
+                person_b: {
+                    name: "Jamie Test", 
+                    year: 1988,
+                    month: 9,
+                    day: 22,
+                    hour: 16,
+                    minute: 45,
+                    city: "Los Angeles",
+                    nation: "US",
+                    latitude: 34.0522,
+                    longitude: -118.2437,
+                    timezone: "America/Los_Angeles",
+                    zodiac_type: "Tropic"
+                },
+                mode: "COMPOSITE",
+                start_date: "2025-01-21",
+                end_date: "2025-01-22",
+                step: "daily"
+            };
+
+            try {
+                const response = await fetch('/.netlify/functions/astrology-mathbrain', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testPayload)
+                });
+
+                const data = await response.json();
+                rawResponseDiv.textContent = JSON.stringify(data, null, 2);
+
+                if (data.success) {
+                    statusDiv.innerHTML = '<div class="text-green-400">✅ Request successful!</div>';
+                    validateRelationalMirror(data, validationDiv);
+                } else {
+                    statusDiv.innerHTML = `<div class="text-red-400">❌ Request failed: ${data.error || 'Unknown error'}</div>`;
+                    rawResponseDiv.textContent = JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="text-red-400">❌ Network error: ${error.message}</div>`;
+                rawResponseDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        function validateRelationalMirror(data, validationDiv) {
+            const checks = [];
+
+            // Check for core composite structure
+            checks.push({
+                name: '🏗️ Composite Scaffolding',
+                passed: data.composite && typeof data.composite === 'object',
+                details: data.composite ? 'Present' : 'Missing'
+            });
+
+            // Check for relational mirror
+            checks.push({
+                name: '🪞 Relational Mirror',
+                passed: data.composite?.relational_mirror && typeof data.composite.relational_mirror === 'object',
+                details: data.composite?.relational_mirror ? 'Present' : 'Missing'
+            });
+
+            // Check for polarity cards
+            checks.push({
+                name: '⚖️ Polarity Cards',
+                passed: Array.isArray(data.composite?.relational_mirror?.polarity_cards),
+                details: data.composite?.relational_mirror?.polarity_cards ? 
+                    `${data.composite.relational_mirror.polarity_cards.length} cards found` : 'Missing'
+            });
+
+            // Check for echo loops
+            checks.push({
+                name: '🔄 Echo Loops',
+                passed: Array.isArray(data.composite?.relational_mirror?.echo_loops),
+                details: data.composite?.relational_mirror?.echo_loops ? 
+                    `${data.composite.relational_mirror.echo_loops.length} loops found` : 'Missing'
+            });
+
+            // Check for SST tags
+            checks.push({
+                name: '🏷️ Shared SST Tags',
+                passed: data.composite?.relational_mirror?.sst_tags && typeof data.composite.relational_mirror.sst_tags === 'object',
+                details: data.composite?.relational_mirror?.sst_tags ? 'Present' : 'Missing'
+            });
+
+            // Check for relational balance meter
+            checks.push({
+                name: '⚡ Relational Balance Meter',
+                passed: data.composite?.relational_mirror?.relational_balance_meter && typeof data.composite.relational_mirror.relational_balance_meter === 'object',
+                details: data.composite?.relational_mirror?.relational_balance_meter ? 'Present' : 'Missing'
+            });
+
+            // Check for mirror voice
+            checks.push({
+                name: '🗣️ Mirror Voice',
+                passed: data.composite?.relational_mirror?.mirror_voice && typeof data.composite.relational_mirror.mirror_voice === 'object',
+                details: data.composite?.relational_mirror?.mirror_voice ? 'Present' : 'Missing'
+            });
+
+            // Check for vector integrity tags
+            checks.push({
+                name: '🔗 Vector-Integrity Tags',
+                passed: Array.isArray(data.composite?.relational_mirror?.vector_integrity_tags),
+                details: data.composite?.relational_mirror?.vector_integrity_tags ? 
+                    `${data.composite.relational_mirror.vector_integrity_tags.length} tags found` : 'Missing'
+            });
+
+            // Check for relocation notes
+            checks.push({
+                name: '📍 Relocation Notes',
+                passed: data.composite?.relational_mirror?.relocation_notes && typeof data.composite.relational_mirror.relocation_notes === 'object',
+                details: data.composite?.relational_mirror?.relocation_notes ? 'Present' : 'Missing'
+            });
+
+            // Check for Person A natal scaffolding
+            checks.push({
+                name: '👤 Person A Natal Chart',
+                passed: data.person_a?.chart && typeof data.person_a.chart === 'object',
+                details: data.person_a?.chart ? 'Present' : 'Missing'
+            });
+
+            // Check for Person B natal scaffolding
+            checks.push({
+                name: '👤 Person B Natal Chart',
+                passed: data.person_b?.chart && typeof data.person_b.chart === 'object',
+                details: data.person_b?.chart ? 'Present' : 'Missing'
+            });
+
+            // Check for synastry aspects
+            checks.push({
+                name: '↔️ Synastry Aspects',
+                passed: Array.isArray(data.composite?.synastry_aspects),
+                details: data.composite?.synastry_aspects ? 
+                    `${data.composite.synastry_aspects.length} aspects found` : 'Missing'
+            });
+
+            const passedCount = checks.filter(check => check.passed).length;
+            const totalCount = checks.length;
+
+            let validationHTML = `
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold mb-2">
+                        📊 Validation Results: ${passedCount}/${totalCount} checks passed
+                    </h3>
+                    <div class="w-full bg-gray-700 rounded-full h-2 mb-4">
+                        <div class="bg-green-600 h-2 rounded-full" style="width: ${(passedCount/totalCount)*100}%"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            `;
+
+            checks.forEach(check => {
+                const icon = check.passed ? '✅' : '❌';
+                const textColor = check.passed ? 'text-green-400' : 'text-red-400';
+                validationHTML += `
+                    <div class="flex items-center justify-between p-3 bg-gray-700 rounded">
+                        <span class="font-medium">${check.name}</span>
+                        <div class="text-right">
+                            <div class="${textColor}">${icon}</div>
+                            <div class="text-xs text-gray-400">${check.details}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            validationHTML += '</div>';
+
+            if (passedCount === totalCount) {
+                validationHTML += '<div class="mt-4 p-4 bg-green-800 rounded-lg"><strong>🎉 Perfect! All relational mirror components are present.</strong></div>';
+            } else {
+                validationHTML += '<div class="mt-4 p-4 bg-yellow-800 rounded-lg"><strong>⚠️ Some relational mirror components are missing. Check the raw response for details.</strong></div>';
+            }
+
+            validationDiv.innerHTML = validationHTML;
+        }
+
+        function clearResults() {
+            document.getElementById('results').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
