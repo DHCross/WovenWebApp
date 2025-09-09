@@ -6532,8 +6532,16 @@ function renderTransitDay(dateStr, items){
                 // Attach any prebuilt reports if present (exclude templates)
                 const reports = {};
                 try {
+
                     if (data?.reports && 'mirror_report' in data.reports) reports.mirror_report = data.reports.mirror_report;
                     if (data?.reports && 'balance_meter_report' in data.reports) reports.balance_meter_report = data.reports.balance_meter_report;
+
+                    // Start with any existing reports block
+                    if (data?.reports) Object.assign(reports, data.reports);
+                    // Merge top-level reports if they haven't been nested
+                    if (data?.mirror_report) reports.mirror_report = data.mirror_report;
+                    if (data?.balance_meter_report) reports.balance_meter_report = data.balance_meter_report;
+
                 } catch(_){}
 
                 return {
@@ -10121,12 +10129,16 @@ function renderTransitDay(dateStr, items){
                 
                 // Store the generated report for tab switching
                 if (report && report.length > 0) {
+                    // Ensure nested reports container exists
+                    latestResultData.reports = latestResultData.reports || {};
                     if (shouldRenderBalance) {
                         // Store Balance Meter report
                         latestResultData.balance_meter_report = report;
+                        latestResultData.reports.balance_meter_report = report;
                     } else {
                         // Store Mirror report
                         latestResultData.mirror_report = report;
+                        latestResultData.reports.mirror_report = report;
                     }
                 }
                 
