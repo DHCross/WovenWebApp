@@ -1349,6 +1349,14 @@ exports.handler = async function(event) {
       return up; // fallback; will validate later
     }
 
+    function normalizeRole(r) {
+      if (!r) return '';
+      const trimmed = r.toString().trim();
+      if (!trimmed) return '';
+      // Normalize to title case to match FAMILY_ROLES and FRIEND_ROLES arrays
+      return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+    }
+
     function validateRelationshipContext(raw, relationshipMode){
       if(!relationshipMode) return { valid: true, value: null, reason: 'Not in relationship mode' };
       const ctx = raw || body.relationship || body.relationship_context || body.relationshipContext || {};
@@ -1370,12 +1378,12 @@ exports.handler = async function(event) {
 
       // Role requirement for FAMILY; optional for FRIEND
       if (cleaned.type === 'FAMILY') {
-        cleaned.role = (ctx.role || ctx.family_role || '').toString();
+        cleaned.role = normalizeRole(ctx.role || ctx.family_role || ctx.relationship_role || '');
         if(!FAMILY_ROLES.includes(cleaned.role)) {
           errors.push(`role required for FAMILY (one of ${FAMILY_ROLES.join(',')})`);
         }
       } else if (cleaned.type === 'FRIEND') {
-        cleaned.role = (ctx.role || ctx.friend_role || '').toString();
+        cleaned.role = normalizeRole(ctx.role || ctx.friend_role || ctx.relationship_role || '');
         if (cleaned.role && !FRIEND_ROLES.includes(cleaned.role)) {
           errors.push(`friend role invalid (optional, one of ${FRIEND_ROLES.join(',')})`);
         }
