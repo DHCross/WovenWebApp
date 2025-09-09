@@ -1659,6 +1659,9 @@ window.WOVEN_UI_FILTERS = { tightOnly:true, showMinor:false, showHarmonic:false,
 // Universal context reference for browser/server compatibility
 const WOVEN_GLOBAL = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : {});
 
+// Calibration boundary for Balance/SFD availability
+const CALIBRATION_BOUNDARY = '2025-09-05';
+
 // Step-size limits (centralized + configurable)
 // Defaults are intentionally conservative; warnings trigger at 80% of max.
 const DEFAULT_STEP_LIMITS = {
@@ -2438,7 +2441,8 @@ function renderTransitDay(dateStr, items){
             const lines = [
                 `# Exec Summary (${data.provenance?.math_brain_version || '0.2.1'})`,
                 `Date: ${currentDate}  TZ: ${personA?.timezone || 'UTC'}  Context: ${mode?.toUpperCase() || 'N/A'}`,
-                `Triple Channel: ${firstDayData ? tripleChannelLine(firstDayData) : 'No data'}`,
+                `Triple Channel: ${firstDayData ? tripleChannelLine(firstDayData, currentDate) : 'No data'}`,
+                `Valence calculated under v1.1 calibration.`,
                 `Magnitude: ${formatNumber(firstDayData?.seismograph?.magnitude)} (${toMagnitudeTerm(firstDayData?.seismograph?.magnitude || 0)}) | Valence: ${getValenceEmoji(clampedVal)} ${formatNumber(clampedVal)} (${toValenceTerm(clampedVal)}) | Volatility: ${formatNumber(firstDayData?.seismograph?.volatility)}`,
                 `Valence_raw (debug): ${formatNumber(rawVal)}`,
                 `Top Hooks (orb-capped): ${hooksStr} • [Geometry](#geometry-skeleton)`,
@@ -2452,9 +2456,9 @@ function renderTransitDay(dateStr, items){
         
         function generateJsonAppendix(data, runStats = {}) {
             const transitsByDate = data.person_a?.chart?.transitsByDate || data.sky_transits?.transitsByDate || {};
-            const CALIBRATION_BOUNDARY = (data.provenance && data.provenance.calibration_boundary) || '2025-09-05';
+            const calBoundary = (data.provenance && data.provenance.calibration_boundary) || CALIBRATION_BOUNDARY;
             const engines = data.provenance?.engine_versions || { seismograph: 'v1.0', balance: 'v1.1', sfd: 'v1.2' };
-            const reconstructed = Boolean(data.reconstructed || (Object.keys(transitsByDate).some(d => d < CALIBRATION_BOUNDARY)));
+            const reconstructed = Boolean(data.reconstructed || (Object.keys(transitsByDate).some(d => d < calBoundary)));
 
             const entries = Object.entries(transitsByDate).map(([date, day]) => {
                 // Normalize nested/flat balance & sfd
@@ -2478,7 +2482,7 @@ function renderTransitDay(dateStr, items){
                     ...(balance ? { balance } : {}),
                     ...(sfd ? { sfd } : {}),
                     meta: {
-                        calibration_boundary: CALIBRATION_BOUNDARY,
+                        calibration_boundary: calBoundary,
                         engine_versions: engines,
                         reconstructed
                     }
@@ -2558,19 +2562,20 @@ function renderTransitDay(dateStr, items){
             return `${x >= 0 ? "+" : ""}${x.toFixed(1)}`;
         }
         
-        function tripleChannelLine({ seismograph, balance, sfd }) {
+        function tripleChannelLine({ seismograph, balance, sfd }, date) {
+            const showAdvanced = !date || date >= CALIBRATION_BOUNDARY;
             const mag = seismograph?.magnitude;
             const magTxt = Number.isFinite(mag) ? mag.toFixed(1) : "?";
             const val = seismograph?.valence;
             const valEmoji = Number.isFinite(val) ? getValenceEmoji(Math.max(-5, Math.min(5, val))) : '';
             const parts = [`⚡ ${magTxt}`, `Val ${valEmoji} ${fmtSigned(val)}`];
 
-            if (balance && Number.isFinite(balance.valence)) {
+            if (showAdvanced && balance && Number.isFinite(balance.valence)) {
                 const balEmoji = getValenceEmoji(Math.max(-5, Math.min(5, balance.valence)));
                 parts.push(`Bal ${balEmoji} ${fmtSigned(balance.valence)}`);
             }
 
-            if (sfd && Number.isFinite(sfd.sfd)) {
+            if (showAdvanced && sfd && Number.isFinite(sfd.sfd)) {
                 const verdict = sfdVerdict(sfd.sfd);
                 if (verdict) {
                     const sPlus = Number.isFinite(sfd.sPlus) ? sfd.sPlus.toFixed(1) : '?';
@@ -2912,6 +2917,7 @@ function renderTransitDay(dateStr, items){
             }
 
             md += `## Daily Entries\n\n`;
+            md += `> Valence calculated under v1.1 calibration.\n\n`;
             md += `| Date | Triple Channel | SFD Verdict | Recovery | Resilience | DepletionIndex | Narrative | Top Hooks |\n`;
             md += `|------|-----------------|-------------|----------|------------|----------------|-----------|----------|\n`;
 
@@ -2920,35 +2926,36 @@ function renderTransitDay(dateStr, items){
 
             if (balanceMeterData.daily_entries) {
                 const dates = Object.keys(balanceMeterData.daily_entries).sort();
-                
+
                 dates.forEach(date => {
                     const day = normalizeEntry(balanceMeterData.daily_entries[date]);
                     if (!day) return;
-                    
+
+                    const isPreCal = date < CALIBRATION_BOUNDARY;
                     // Generate triple channel display
-                    const channelLine = tripleChannelLine({ 
-                        seismograph: day.seismograph, 
-                        balance: day.balance, 
-                        sfd: day.sfd 
-                    });
-                    
+                    const channelLine = tripleChannelLine({
+                        seismograph: day.seismograph,
+                        balance: isPreCal ? undefined : day.balance,
+                        sfd: isPreCal ? undefined : day.sfd
+                    }, date);
+
                     // Get SFD verdict
-                    const verdict = sfdVerdict(day.sfd || {});
-                    
+                    const verdict = isPreCal ? '—' : sfdVerdict(day.sfd || {});
+
                     // Get resilience metrics for this day
-                    const resilience = dailyResilienceMetrics[date];
+                    const resilience = !isPreCal ? dailyResilienceMetrics[date] : null;
                     const recovery = resilience ? resilience.recovery.toFixed(1) : '—';
                     const resilienceScore = resilience ? resilience.resilience.toFixed(1) : '—';
                     const depletionIndex = resilience ? resilience.depletionIndex.toFixed(1) : '—';
                     const narrative = resilience ? resilience.narrative : '—';
-                    
+
                     // Get top hooks for this day
                     const hooks = (day.hooks || []).slice(0, 2);
                     const topHooks = hooks.map(h => {
                         const orb = Math.abs(h._orb || h.orb || 0).toFixed(1);
                         return `${h.p1_name} ${h._aspect || h.aspect} ${h.p2_name} (${orb}°)`;
                     }).join(', ') || '—';
-                    
+
                     md += `| ${date} | ${channelLine.replace(/\|/g, '\\|')} | ${verdict} | ${recovery} | ${resilienceScore} | ${depletionIndex} | ${narrative} | ${topHooks.replace(/\|/g, '\\|')} |\n`;
                 });
             }
@@ -3389,6 +3396,7 @@ function renderTransitDay(dateStr, items){
             html += `<span class="text-2xl">📅</span>`;
             html += `<h2 class="text-2xl font-semibold text-blue-300">Daily Entries</h2>`;
             html += `</div>`;
+            html += `<p class="text-xs text-gray-400 mb-2">Valence calculated under v1.1 calibration.</p>`;
             html += `<div class="overflow-x-auto bg-gray-900/50 rounded-lg border border-gray-600">`;
             html += `<table class="w-full text-sm border-collapse">`;
             html += `<thead class="bg-gradient-to-r from-gray-700 to-gray-600">`;
@@ -3411,21 +3419,22 @@ function renderTransitDay(dateStr, items){
                 dates.forEach((date, index) => {
                     const day = normalizeEntry(balanceMeterData.daily_entries[date]);
                     if (!day) return;
-                    
-                    const channelLine = tripleChannelLine({ 
-                        seismograph: day.seismograph, 
-                        balance: day.balance, 
-                        sfd: day.sfd 
-                    });
-                    
-                    const verdict = sfdVerdict(day.sfd || {}) || '—';
-                    
-                    const resilience = dailyResilienceMetrics[date];
+
+                    const isPreCal = date < CALIBRATION_BOUNDARY;
+                    const channelLine = tripleChannelLine({
+                        seismograph: day.seismograph,
+                        balance: isPreCal ? undefined : day.balance,
+                        sfd: isPreCal ? undefined : day.sfd
+                    }, date);
+
+                    const verdict = !isPreCal ? (sfdVerdict(day.sfd || {}) || '—') : '—';
+
+                    const resilience = !isPreCal ? dailyResilienceMetrics[date] : null;
                     const recovery = resilience ? resilience.recovery.toFixed(1) : '—';
                     const resilienceScore = resilience ? resilience.resilience.toFixed(1) : '—';
                     const depletionIndex = resilience ? resilience.depletionIndex.toFixed(1) : '—';
                     const narrative = resilience ? resilience.narrative : '—';
-                    
+
                     const hooks = (day.hooks || []).slice(0, 2);
                     const topHooks = hooks.map(h => {
                         const orb = Math.abs(h._orb || h.orb || 0).toFixed(1);
@@ -3528,21 +3537,22 @@ function renderTransitDay(dateStr, items){
                 dates.forEach(date => {
                     const day = normalizeEntry(transitData[date]);
                     if (!day) return;
-                    
+
+                    const isPreCal = date < CALIBRATION_BOUNDARY;
                     // Generate triple channel display
-                    const channelLine = tripleChannelLine({ 
-                        seismograph: day.seismograph, 
-                        balance: day.balance, 
-                        sfd: day.sfd 
-                    });
-                    
+                    const channelLine = tripleChannelLine({
+                        seismograph: day.seismograph,
+                        balance: isPreCal ? undefined : day.balance,
+                        sfd: isPreCal ? undefined : day.sfd
+                    }, date);
+
                     // Get top hooks for this day
                     const hooks = (day.hooks || []).slice(0, 2);
                     const topHooks = hooks.map(h => {
                         const orb = Math.abs(h._orb || h.orb || 0).toFixed(1);
                         return `${h.p1_name} ${h._aspect || h.aspect} ${h.p2_name} (${orb}°)`;
                     }).join(', ') || '—';
-                    
+
                     md += `| ${date} | ${channelLine.replace(/\|/g, '\\|')} | ${topHooks.replace(/\|/g, '\\|')} |\n`;
                 });
                 
@@ -3552,7 +3562,7 @@ function renderTransitDay(dateStr, items){
             if (datasets.length === 0) {
                 md += 'No transit hooks detected for this time window.\n\n';
             } else {
-                md += '**Triple Channel Notes**: ⚡ = magnitude (0–5), Val = net seismograph valence (−5…+5), Bal = balance channel valence (−5…+5), SFD = Support–Friction Differential with verdict\n\n';
+                md += '**Triple Channel Notes**: ⚡ = magnitude (0–5), Val = net seismograph valence (−5…+5), Bal = balance channel valence (−5…+5), SFD = Support–Friction Differential with verdict. Valence calculated under v1.1 calibration.\n\n';
             }
             
             return md;
@@ -7115,13 +7125,13 @@ function renderTransitDay(dateStr, items){
             filteredDates.forEach(date => {
                 const rawDay = dailyMap[date];
                 if (!rawDay) return;
-                
+
                 const day = normalizeEntry(rawDay);
-                const channelLine = tripleChannelLine({ 
-                    seismograph: day.seismograph, 
-                    balance: day.balance, 
-                    sfd: day.sfd 
-                });
+                const channelLine = tripleChannelLine({
+                    seismograph: day.seismograph,
+                    balance: day.balance,
+                    sfd: day.sfd
+                }, date);
                 
                 const mag = (day.seismograph?.magnitude || 0).toFixed(1);
                 const val = Math.max(-5, Math.min(5, day.seismograph?.valence || 0)).toFixed(1);
@@ -7164,13 +7174,13 @@ function renderTransitDay(dateStr, items){
             dates.forEach(date => {
                 const rawDay = dailyMap[date];
                 if (!rawDay) return;
-                
+
                 const day = normalizeEntry(rawDay);
-                const channelLine = tripleChannelLine({ 
-                    seismograph: day.seismograph, 
-                    balance: day.balance, 
-                    sfd: day.sfd 
-                });
+                const channelLine = tripleChannelLine({
+                    seismograph: day.seismograph,
+                    balance: day.balance,
+                    sfd: day.sfd
+                }, date);
                 
                 // Shorter version for mobile
                 const mag = (day.seismograph?.magnitude || 0).toFixed(1);
@@ -10302,7 +10312,7 @@ function renderTransitDay(dateStr, items){
                     // Update mode description
                     const descriptions = {
                         'mirrorModeTab': '<strong class="text-teal-300">Mirror:</strong> Geometry + reflection in one stream. Always includes the full skeletal ledger (angles, houses, hooks) plus the recognition layer. Seismograph trace auto-appends when transit hooks exist.',
-                        'balanceMeterModeTab': '<strong class="text-teal-300">Balance Meter:</strong> Triple-channel analysis (Seismograph v1.0, Balance Channel v1.1, SFD v1.2) showing crisis detection, rebalanced perspective, and net support measurement in integrated tables.'
+                        'balanceMeterModeTab': '<strong class="text-teal-300">Balance Meter:</strong> Triple-channel analysis (Seismograph v1.0, Balance Channel v1.1, SFD v1.2) showing crisis detection, rebalanced perspective, and net support measurement in integrated tables. Valence calculated under v1.1 calibration. Balance and SFD metrics available only for dates ≥ 2025-09-05.'
                     };
                     const modeDesc = document.getElementById('modeDescription');
                     if (modeDesc && descriptions[activeTabId]) {
