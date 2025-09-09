@@ -3571,13 +3571,15 @@ function renderTransitDay(dateStr, items){
             // Context (subject identity always; relational has both)
             if (isRelational) {
                 md += `## Context\n\n`;
-                md += `**Person_A:** {name: "${personA.name}", birth_label: "${generateBirthLabel(personA)}"}\n`;
-                md += `**Person_B:** {name: "${personB.name}", birth_label: "${generateBirthLabel(personB)}"}\n`;
+                md += `**Person_A:** {name: "${personA?.name || 'Unknown'}", birth_label: "${generateBirthLabel(personA)}"}\n`;
+                md += `**Person_B:** {name: "${personB?.name || 'Unknown'}", birth_label: "${generateBirthLabel(personB)}"}\n`;
                 md += `**Relational_Tier:** "[Partner | Family | Friend | Acquaintance]" // Math Brain cannot determine—requires user input\n\n`;
             } else {
                 md += `## Context\n\n`;
                 if (personA?.name) {
                     md += `**Subject:** {name: "${personA.name}", birth_label: "${generateBirthLabel(personA)}"}\n\n`;
+                } else {
+                    md += `**Subject:** {name: "Unknown", birth_label: "${generateBirthLabel(personA)}"}\n\n`;
                 }
             }
             
@@ -3621,7 +3623,14 @@ function renderTransitDay(dateStr, items){
         }
         
         function generateBirthLabel(person) {
-            return `${person.birthDate} ${person.birthTime} ${person.birthCity}, ${person.birthState}`;
+            if (!person) return "undefined undefined undefined, undefined";
+            
+            const birthDate = person.birthDate || person.birth_date || "undefined";
+            const birthTime = person.birthTime || person.birth_time || "undefined";
+            const birthCity = person.birthCity || person.city || "undefined";
+            const birthState = person.birthState || person.state || person.nation || "undefined";
+            
+            return `${birthDate} ${birthTime} ${birthCity}, ${birthState}`;
         }
         
         function generateTypologicalProfile(personData, personDetails, label = 'Solo') {
@@ -3941,16 +3950,16 @@ function renderTransitDay(dateStr, items){
             // Extract hard aspects (squares, oppositions) from chart data
             const aspects = [];
             
-            // Check person_a transits/chart
-            if (data.person_a?.chart?.aspects) {
-                data.person_a.chart.aspects.forEach(aspect => {
+            // Check person_a aspects (correct data path)
+            if (data.person_a?.aspects) {
+                data.person_a.aspects.forEach(aspect => {
                     if (['square', 'opposition', 'conjunction'].includes(aspect.aspect?.toLowerCase())) {
                         aspects.push(aspect);
                     }
                 });
             }
             
-            return aspects.sort((a, b) => Math.abs(a.orb || 0) - Math.abs(b.orb || 0));
+            return aspects.sort((a, b) => Math.abs(a.orb || a.orbit || 0) - Math.abs(b.orb || b.orbit || 0));
         }
         
         function extractAngleAspects(data) {
@@ -3966,9 +3975,9 @@ function renderTransitDay(dateStr, items){
             const vectors = [];
             
             // Check for strong aspects with wide orbs
-            if (data.person_a?.chart?.aspects) {
-                data.person_a.chart.aspects.forEach(aspect => {
-                    const orb = Math.abs(aspect.orb || 0);
+            if (data.person_a?.aspects) {
+                data.person_a.aspects.forEach(aspect => {
+                    const orb = Math.abs(aspect.orb || aspect.orbit || 0);
                     if (orb > 4 && orb < 8) {  // Wide but within orb
                         vectors.push({
                             status: 'Latent',
@@ -3986,13 +3995,13 @@ function renderTransitDay(dateStr, items){
             // Extract top 3 polarities for FIELD → MAP → VOICE cards
             const polarities = [];
             
-            if (data.person_a?.chart?.aspects) {
-                data.person_a.chart.aspects.slice(0, 3).forEach(aspect => {
+            if (data.person_a?.aspects) {
+                data.person_a.aspects.slice(0, 3).forEach(aspect => {
                     polarities.push({
                         nameA: aspect.p1_name,
                         nameB: aspect.p2_name,
                         field: generatePolarityField(aspect),
-                        map: `${aspect.p1_name} ${aspect.aspect} ${aspect.p2_name}, ${Math.abs(aspect.orb || 0).toFixed(1)}° orb`,
+                        map: `${aspect.p1_name} ${aspect.aspect} ${aspect.p2_name}, ${Math.abs(aspect.orb || aspect.orbit || 0).toFixed(1)}° orb`,
                         fieldA: isRelational ? generatePolarityField(aspect, 'A') : null,
                         fieldB: isRelational ? generatePolarityField(aspect, 'B') : null
                     });
@@ -4031,9 +4040,15 @@ function renderTransitDay(dateStr, items){
         
         function synthesizeBalanceMeterFromTransits(data) {
             // Synthesize Balance Meter data from available transit information
-            if (!data.transitsByDate) return null;
+            // Check multiple possible locations for transit data
+            const transitsByDate = data.transitsByDate || 
+                                   data.person_a?.chart?.transitsByDate || 
+                                   data.balance_meter?.daily_entries ||
+                                   null;
             
-            const dates = Object.keys(data.transitsByDate);
+            if (!transitsByDate) return null;
+            
+            const dates = Object.keys(transitsByDate);
             if (dates.length === 0) return null;
             
             // Calculate basic averages from transit data
@@ -4042,8 +4057,8 @@ function renderTransitDay(dateStr, items){
             let count = 0;
             
             dates.forEach(date => {
-                const dayData = data.transitsByDate[date];
-                if (dayData.seismograph) {
+                const dayData = transitsByDate[date];
+                if (dayData?.seismograph) {
                     totalMagnitude += dayData.seismograph.magnitude || 0;
                     totalValence += dayData.seismograph.valence || 0;
                     count++;
@@ -4065,11 +4080,13 @@ function renderTransitDay(dateStr, items){
         
         function extractChartDataForTypology(personData) {
             // Extract chart data needed for typological analysis
-            // TODO: Implement based on actual chart data structure
+            if (!personData) return { planets: [], houses: [], signs: [], aspects: [] };
+            
             return {
-                planets: personData?.chart?.planets || [],
-                houses: personData?.chart?.houses || [],
-                signs: personData?.chart?.signs || []
+                planets: personData.chart?.planets || [],
+                houses: personData.chart?.houses || [],
+                signs: personData.chart?.signs || [],
+                aspects: personData.aspects || []
             };
         }
         
