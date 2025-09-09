@@ -2886,7 +2886,8 @@ function renderTransitDay(dateStr, items){
                     md += `**Dominant Channel**: ${summary.dominant_channel}\n`;
                 }
                 if (Number.isFinite(summary.volatility_index)) {
-                    md += `**Volatility Index**: 🌪️ ${summary.volatility_index.toFixed(2)}\n`;
+                    const volEmoji = getVolatilityEmoji(summary.volatility_index);
+                    md += `**Volatility Index**: ${volEmoji} ${summary.volatility_index.toFixed(2)}\n`;
                 }
                 md += `\n`;
             }
@@ -3094,7 +3095,7 @@ function renderTransitDay(dateStr, items){
 `- [Pressure on the bond] ([high/medium/low], [supportive 🌞 / restrictive 🌑 / mixed 🌗])\n`+
 `- [Shared Scaffolding] ([present/challenged/absent])\n`+
 `- [Bond Resilience] ([resilient/depleted/rebounding])\n`+
-`- [Volatility] ([steady / scattered / storm-class 🌪️])\n\n`+
+`- [Volatility] ([steady / scattered / storm-class 🌀])\n\n`+
 `### Bond Climate Line\n\n`+
 `[How A’s baseline meets B’s baseline under current sky; where ease vs. drag concentrates]\n\n`+
 `## Relocation Context (Relational)\n\n`+
@@ -3135,7 +3136,7 @@ function renderTransitDay(dateStr, items){
 `- Pressure: [high/medium/low] ([supportive 🌞 / restrictive 🌑 / mixed 🌗])\n`+
 `- Support/Scaffolding: [present/challenged/absent]\n`+
 `- Resilience: [resilient/depleted/rebounding]\n`+
-`- Volatility: [steady / scattered / storm-class 🌪️]\n\n`+
+`- Volatility: [steady / scattered / storm-class 🌀]\n\n`+
 `### Climate Line\n\n`+
 `[Narrative of how pressure distributes; key cross-currents; where air clears]\n\n`+
 `## Support–Friction Differential (SFD)\n\n`+
@@ -3164,7 +3165,7 @@ function renderTransitDay(dateStr, items){
 `- Pressure on the Bond: [high/medium/low] ([supportive 🌞 / restrictive 🌑 / mixed 🌗])\n`+
 `- Shared Scaffolding: [present/challenged/absent]\n`+
 `- Bond Resilience: [resilient/depleted/rebounding]\n`+
-`- Volatility: [steady / scattered / storm-class 🌪️]\n\n`+
+`- Volatility: [steady / scattered / storm-class 🌀]\n\n`+
 `### Bond Climate Line\n\n`+
 `[Narrative: how A’s field meets B’s field today; where coupling adds lift vs. drag]\n\n`+
 `## SFD for the Bond\n\n`+
@@ -3212,7 +3213,7 @@ function renderTransitDay(dateStr, items){
             html += `<h3 class="text-cyan-300 font-medium mb-2">Core Metrics</h3>`;
             html += `<div class="space-y-1 text-gray-200">`;
             html += `<div>⚡ <span class="text-gray-300">Magnitude (intensity)</span></div>`;
-            html += `<div>🌪️ <span class="text-gray-300">Volatility (instability)</span></div>`;
+            html += `<div>🔀 <span class="text-gray-300">Volatility (distribution)</span></div>`;
             html += `<div>🌞 🌑 🌗 <span class="text-gray-300">Valence (positive/negative/mixed)</span></div>`;
             html += `</div></div>`;
             
@@ -3307,7 +3308,7 @@ function renderTransitDay(dateStr, items){
                     }
                     if (Number.isFinite(summary.volatility_index)) {
                         html += `<div class="flex items-center gap-2">`;
-                        html += `<span class="text-lg">🌪️</span>`;
+                        html += `<span class="text-lg">🔀</span>`;
                         html += `<span class="text-gray-300"><strong class="text-yellow-300">Volatility Index:</strong> ${summary.volatility_index.toFixed(2)}</span>`;
                         html += `</div>`;
                     }
@@ -4666,7 +4667,7 @@ function renderTransitDay(dateStr, items){
                 const magnitudeEmoji = '⚡'; // Official Raven Calder magnitude emoji
                 const valenceEmoji = getValenceEmoji(valence);
                 const balanceEmoji = balance > 0 ? '🌞' : balance < 0 ? '🌑' : '🌗'; // Official valence emojis
-                const volatilityEmoji = volatility > 7 ? ' 🌪️' : '';
+                const volatilityEmoji = volatility > 7 ? getVolatilityEmoji(5) : getVolatilityEmoji(volatility || 0);
                 
                 md += `Triple Channel: ${magnitudeEmoji} ${magnitude.toFixed(1)} · Val ${valenceEmoji} ${valence.toFixed(1)} · Bal ${balanceEmoji} ${balance.toFixed(1)}${volatilityEmoji} · stabilizers mixed (SFD ${sfd >= 0 ? '+' : ''}${sfd.toFixed(1)})\n\n`;
                 
@@ -6181,7 +6182,7 @@ function renderTransitDay(dateStr, items){
                                                         out += `| ${d} | ${(day.seismograph?.magnitude??0).toFixed(2)} | ${clampedVal.toFixed(2)} | ${(day.seismograph?.volatility??0).toFixed(2)} | ${peak.replace(/\|/g,'\\|') || '—'} |\n`;
                                                     });
                                                     out += `\nMagnitude=aggregate charge (0–10 est), Valence=net tension (−=friction, +=ease), Volatility=dispersion of charge.\n`;
-                                                    out += `_Valence emoji: 🌑 (negative), 🌗 (neutral), 🌞 (positive). Examples → negative: 🌋/⚔️/♻️/↔️/🌫️/⏳/🧩/🕳️; positive: 🌱/⚖️/🌊/✨/🌈/🔥/🦋/💎._\n`;
+                                                    out += `_Valence emoji: 🌑 (negative), 🌗 (neutral), 🌞 (positive). Examples → negative: 🌋/⚔️/🌪/🌊/🌫/🕰/🧩/⬇️; positive: 🌱/🧘/🌊/✨/🌈/🔥/🦋/💎._\n`;
                                                     
                                                     // Add confidence scaling information if available
                                                     const sampleDay = Object.values(dailyMap)[0];
@@ -6666,7 +6667,7 @@ function renderTransitDay(dateStr, items){
                         <li><strong>🌗 Mixed:</strong> simultaneous support and strain.</li>
                                         </ul>
                     </li>
-                    <li><strong>Volatility 🌪️</strong> — <span class="text-gray-300">Distribution of pressure (low = concentrated; high = scattered/stormy).</span></li>
+                    <li><strong>Volatility 🔀</strong> — <span class="text-gray-300">Distribution of pressure (low = concentrated; high = scattered/stormy).</span></li>
                     <li><strong>SFD (Support–Friction Differential)</strong> — <span class="text-gray-300">Splits S+ vs S−, nets the differential.</span></li>
                                 </ul>
                             </div>
@@ -6676,14 +6677,14 @@ function renderTransitDay(dateStr, items){
                                 <h3 class="text-lg font-semibold text-rose-300 mb-3 border-b border-gray-700 pb-2">🌑 Map of Negative Valence Types</h3>
                                 <p class="text-xs text-gray-400 mb-3 italic">When energy pulls down, contracts, destabilizes</p>
                                 <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                                    <li>♾️ <strong>Recursion Pull</strong> — <span class="text-gray-300">Old cycles resurface; déjà vu gravity.</span></li>
+                                    <li>🌪 <strong>Recursion Pull</strong> — <span class="text-gray-300">Old cycles resurface; déjà vu gravity.</span></li>
                                     <li>⚔️ <strong>Friction Clash</strong> — <span class="text-gray-300">Mars-style conflict, arguments, accidents, heat.</span></li>
-                                    <li>↔️ <strong>Cross Current</strong> — <span class="text-gray-300">Competing priorities, mixed flows, confusion.</span></li>
-                                    <li>🌫️ <strong>Fog / Dissolution</strong> — <span class="text-gray-300">Blurred boundaries, scattered signal.</span></li>
+                                    <li>🌊 <strong>Cross Current</strong> — <span class="text-gray-300">Competing priorities, mixed flows, confusion.</span></li>
+                                    <li>🌫 <strong>Fog / Dissolution</strong> — <span class="text-gray-300">Blurred boundaries, scattered signal.</span></li>
                                     <li>🌋 <strong>Pressure / Eruption</strong> — <span class="text-gray-300">Compression that forces release.</span></li>
-                                    <li>⏳ <strong>Saturn Weight</strong> — <span class="text-gray-300">Heaviness, delay, endurance tests.</span></li>
+                                    <li>🕰 <strong>Saturn Weight</strong> — <span class="text-gray-300">Heaviness, delay, endurance tests.</span></li>
                                     <li>🧩 <strong>Fragmentation</strong> — <span class="text-gray-300">Fractured focus, scatter.</span></li>
-                                    <li>🕳️ <strong>Entropy Drift</strong> — <span class="text-gray-300">Inertia, slow leak of momentum.</span></li>
+                                    <li>⬇️ <strong>Entropy Drift</strong> — <span class="text-gray-300">Inertia, slow leak of momentum.</span></li>
                                 </ul>
                             </div>
 
@@ -6697,9 +6698,22 @@ function renderTransitDay(dateStr, items){
                                     <li>💎 <strong>Expansion Lift</strong> — <span class="text-gray-300">Jupiter blessing, confidence, abundance.</span></li>
                                     <li>🔥 <strong>Combustion Clarity</strong> — <span class="text-gray-300">Pressure breaks but reveals hidden truth, sudden insight.</span></li>
                                     <li>🦋 <strong>Liberation / Release</strong> — <span class="text-gray-300">Uranian breakthroughs, freedom, change feels fresh.</span></li>
-                                    <li>⚖️ <strong>Integration</strong> — <span class="text-gray-300">Opposites reconcile; balance returns.</span></li>
+                                    <li>🧘 <strong>Integration</strong> — <span class="text-gray-300">Opposites reconcile; balance returns.</span></li>
                                     <li>🌊 <strong>Flow Tide</strong> — <span class="text-gray-300">Ease, adaptability, emotions moving freely.</span></li>
                                     <li>🌈 <strong>Visionary Spark</strong> — <span class="text-gray-300">Inspiration, Neptune dream turned into art, spiritual elevation.</span></li>
+                                </ul>
+                            </div>
+
+                            <!-- Volatility Ladder -->
+                            <div>
+                                <h3 class="text-lg font-semibold text-cyan-300 mb-3 border-b border-gray-700 pb-2">🔀 Volatility Ladder (Distribution Scale)</h3>
+                                <p class="text-xs text-gray-400 mb-3 italic">Neutral measure of coherence ↔ scatter (not good vs. bad)</p>
+                                <ul class="grid grid-cols-1 gap-y-2 text-sm">
+                                    <li><strong>-5:</strong> ➿ <strong>Aligned Flow</strong> — <span class="text-gray-300">All signals cohered, single channel</span></li>
+                                    <li><strong>-3:</strong> 🔄 <strong>Cycled Pull</strong> — <span class="text-gray-300">Stable repeats, predictable rhythm</span></li>
+                                    <li><strong>0:</strong> 🔀 <strong>Mixed Paths</strong> — <span class="text-gray-300">Forked distribution, neither steady nor chaotic</span></li>
+                                    <li><strong>+3:</strong> 🧩 <strong>Fragment Scatter</strong> — <span class="text-gray-300">Threads split apart, uneven strikes</span></li>
+                                    <li><strong>+5:</strong> 🌀 <strong>Vortex Dispersion</strong> — <span class="text-gray-300">Extreme scatter, no clear center</span></li>
                                 </ul>
                             </div>
 
@@ -6718,9 +6732,9 @@ function renderTransitDay(dateStr, items){
                                 <h3 class="text-lg font-semibold text-cyan-300 mb-3 border-b border-gray-700 pb-2">Quick Navigation</h3>
                                 <ol class="space-y-2 text-sm">
                                     <li><strong>1. Valence</strong> = Is it 🌞 lifting, 🌑 pressing, or 🌗 neutral?</li>
-                                    <li><strong>2. Type</strong> = Which "weather flavor" (🌪️ Recursion, 🌱 Fertility, etc.)?</li>
+                                    <li><strong>2. Type</strong> = Which "weather flavor" (🌪 Recursion, 🌱 Fertility, etc.)?</li>
                                     <li><strong>3. Magnitude</strong> ⚡ = How loud is it?</li>
-                                    <li><strong>4. Volatility</strong> 🌪️ = Is it steady or stormy?</li>
+                                    <li><strong>4. Volatility</strong> 🔀 = Is it steady or stormy?</li>
                                 </ol>
                             </div>
 
@@ -8201,6 +8215,15 @@ function renderTransitDay(dateStr, items){
                     }
                 }
                 
+                // Test volatility emoji mapping consistency
+                for (let i = -5; i <= 5; i += 0.25) {
+                    const emoji = getVolatilityEmoji(i);
+                    const type = getVolatilityType(i);
+                    if (!emoji || !type) {
+                        throw new Error(`Missing emoji or type for volatility: ${i}`);
+                    }
+                }
+                
                 console.log("✅ Safe lexicon validation passed - all terms and emojis mapped correctly");
                 return true;
             } catch (error) {
@@ -8220,17 +8243,17 @@ function renderTransitDay(dateStr, items){
             // 🌑 Negative Valence Types (↘)
             if (clampedVal <= -4.5) { emoji = '🌋'; label = 'Pressure / Eruption'; }
             else if (clampedVal <= -3.5) { emoji = '⚔️'; label = 'Friction Clash'; }
-            else if (clampedVal <= -2.8) { emoji = '♾️'; label = 'Recursion Pull'; }
-            else if (clampedVal <= -2.1) { emoji = '↔️'; label = 'Cross Current'; }
+            else if (clampedVal <= -2.8) { emoji = '🌪'; label = 'Recursion Pull'; }
+            else if (clampedVal <= -2.1) { emoji = '🌊'; label = 'Cross Current'; }
             else if (clampedVal <= -1.6) { emoji = '🧩'; label = 'Fragmentation'; }
-            else if (clampedVal <= -1.0) { emoji = '🌫️'; label = 'Fog / Dissolution'; }
-            else if (clampedVal <= -0.5) { emoji = '🕳️'; label = 'Entropy Drift'; }
-            else if (clampedVal < -0.2)  { emoji = '⏳'; label = 'Saturn Weight'; }
+            else if (clampedVal <= -1.0) { emoji = '🌫'; label = 'Fog / Dissolution'; }
+            else if (clampedVal <= -0.5) { emoji = '⬇️'; label = 'Entropy Drift'; }
+            else if (clampedVal < 0)  { emoji = '🕰'; label = 'Saturn Weight'; }
             // 🌗 Neutral range
-            else if (clampedVal >= -0.2 && clampedVal <= 0.2) { emoji = '🌗'; label = 'Neutral Field'; }
+            else if (clampedVal >= 0 && clampedVal <= 0.2) { emoji = '🌗'; label = 'Neutral Field'; }
             // 🌞 Positive Valence Types (↗)
             else if (clampedVal <= 0.8) { emoji = '🌱'; label = 'Fertile Field'; }
-            else if (clampedVal <= 1.5) { emoji = '⚖️'; label = 'Integration'; }
+            else if (clampedVal <= 1.5) { emoji = '🧘'; label = 'Integration'; }
             else if (clampedVal <= 2.3) { emoji = '🌊'; label = 'Flow Tide'; }
             else if (clampedVal <= 3.1) { emoji = '✨'; label = 'Harmonic Resonance'; }
             else if (clampedVal <= 3.8) { emoji = '🌈'; label = 'Visionary Spark'; }
@@ -8253,10 +8276,10 @@ function renderTransitDay(dateStr, items){
             if (v <= -1.6) return 'Fragmentation';
             if (v <= -1.0) return 'Fog / Dissolution';
             if (v <= -0.5) return 'Entropy Drift';
-            if (v <  -0.2) return 'Saturn Weight';
+            if (v <  0) return 'Saturn Weight';
 
             // 🌗 Neutral range
-            if (v >= -0.2 && v <= 0.2) return 'Neutral Field';
+            if (v >= 0 && v <= 0.2) return 'Neutral Field';
 
             // 🌞 Positive Valence Types
             if (v <= 0.8) return 'Fertile Field';
@@ -8267,6 +8290,35 @@ function renderTransitDay(dateStr, items){
             if (v <= 4.6) return 'Combustion Clarity';
             if (v <= 4.9) return 'Liberation / Release';
             return 'Expansion Lift';
+        }
+
+        // =============================================================================
+        // VOLATILITY LADDER (Neutral measure of distribution coherence ↔ scatter)
+        // =============================================================================
+        
+        function getVolatilityEmoji(vol, includeAccessibility = false) {
+            const clampedVol = Math.max(-5, Math.min(5, vol)); // Always clamp to ±5
+            let emoji, label;
+
+            // Map volatility values to emoji ladder (-5 to +5)
+            if (clampedVol <= -4.0) { emoji = '➿'; label = 'Aligned Flow'; }
+            else if (clampedVol <= -1.0) { emoji = '🔄'; label = 'Cycled Pull'; }
+            else if (clampedVol <= 1.0) { emoji = '🔀'; label = 'Mixed Paths'; }
+            else if (clampedVol <= 4.0) { emoji = '🧩'; label = 'Fragment Scatter'; }
+            else { emoji = '🌀'; label = 'Vortex Dispersion'; }
+
+            return includeAccessibility ?
+                `<span class="volatility-emoji" role="img" aria-label="${label}">${emoji}</span>` :
+                emoji;
+        }
+
+        function getVolatilityType(vol) {
+            const v = Math.max(-5, Math.min(5, vol));
+            if (v <= -4.0) return 'Aligned Flow';
+            if (v <= -1.0) return 'Cycled Pull';
+            if (v <= 1.0) return 'Mixed Paths';
+            if (v <= 4.0) return 'Fragment Scatter';
+            return 'Vortex Dispersion';
         }
 
         // =============================================================================
