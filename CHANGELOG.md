@@ -12,6 +12,7 @@ Enhanced the Balance Meter comparative workflow with additional health signal ov
 - Missing data is treated as null and excluded from that channel’s similarity (no implicit zeros).
 - Shuffle test: Suppress p‑value on tiny windows (≤3 days) with a “sample too small” note.
 - Labeling and legend clean‑ups: supplemental lines are clearly marked and table headers clarify units (e.g., RestHR (bpm), TempΔ).
+- Finalized neutral Magnitude ladder (Latent→Threshold) to mirror Valence and Volatility scaling.
 
 **Health Parser Expansion (iOS Health Auto Export)**
 - Added detection for: `resting_hr`, `heart_rate`, `walking_hr_avg`, `sleep_temp` (wrist/skin), `walking_distance`, `walk_asym_pct`, `walk_double_support_pct`, `exercise_minutes`, `stand_minutes`, `stand_hours`, `active_energy`, `mindful_minutes`, and `mood_label_count` (from State of Mind daily aggregation).
@@ -258,8 +259,8 @@ Implemented comprehensive safe lexicon system with emoji-enhanced valence displa
 
 **Core Changes:**
 1. **Safe Magnitude Lexicon (6-term system):**
-   - Whisper (0–0.5), Pulse (0.5–1.5), Wave (1.5–2.5), Surge (2.5–3.5), Peak (3.5–4.5), Apex (4.5–5.0)
-   - Eliminated problematic terms: "Quake" → "Peak", "Field" → "Apex"
+   - Latent (0–0.5), Murmur (0.5–1.5), Pulse (1.5–2.5), Stirring (2.5–3.5), Convergence (3.5–4.5), Threshold (4.5–5.0)
+   - Eliminated problematic terms: replaced earlier metaphors (“Quake”, “Field”) with neutral ladder now codified as Latent→Threshold
    - All magnitude terms are now strictly neutral intensity markers
 
 2. **Enhanced Valence Lexicon (11-term system):**
@@ -268,8 +269,8 @@ Implemented comprehensive safe lexicon system with emoji-enhanced valence displa
    - Maintains rich semantic meaning for valence patterns
 
 3. **Emoji Valence Enhancement (🌞/🌑 System):**
-   - 🌑 Negative Types: 🌋 Pressure/Eruption, ⚔ Friction Clash, 🌊 Cross Current, 🌀 Fog/Dissolution, 🌫 Entropy Drift, 🕰 Saturn Weight
-   - 🌞 Positive Types: 🌱 Fertile Field, 🌊 Flow Tide, ✨ Harmonic Resonance, 🔥 Combustion Clarity, 🦋 Liberation/Release, 💎 Expansion Lift
+   - 🌑 Negative Types: 🌪 Recursion Pull, ⚔ Friction Clash, 🌊 Cross Current, 🌫 Fog / Dissolution, 🌋 Pressure / Eruption, 🕰 Saturn Weight, 🧩 Fragmentation, ⬇️ Entropy Drift
+   - 🌞 Positive Types: 🌱 Fertile Field, ✨ Harmonic Resonance, 💎 Expansion Lift, 🔥 Combustion Clarity, 🦋 Liberation / Release, 🧘 Integration, 🌊 Flow Tide, 🌈 Visionary Spark
    - ⚖ Neutral Balance for center range
    - Immediate visual recognition of valence polarity and intensity
 
@@ -279,7 +280,7 @@ Implemented comprehensive safe lexicon system with emoji-enhanced valence displa
 - `migrateMagnitudeTerm()` handles legacy term migration
 - `assertSafeMagnitudePhrase()` validation prevents unsafe metaphors
 - Enhanced seismograph tables show emoji + numeric values (e.g., "🌋 -3.2")
-- Executive Summary includes emoji display: "Mag/Val/Vol: 2.8 (Surge)/🌋 -3.2 (Grind)/1.4"
+- Executive Summary includes emoji display: "Mag/Val/Vol: 2.8 (Stirring)/🌋 -3.2 (Grind)/1.4"
 
 **Schema Updates:**
 - JSON Schema bumped to WM-Chart-1.1 with Draft 2020-12 compliance
@@ -300,7 +301,7 @@ Implemented comprehensive safe lexicon system with emoji-enhanced valence displa
 - All magnitude descriptions use neutral field terminology
 
 **AI Collaboration Notes:**
-*Safe lexicon retrofit successfully completed with GitHub Copilot assistance. The Math Brain now maintains geometric fidelity without valence contamination, while the Poetic Brain gains richer emoji-enhanced expression. Magnitude vocabulary is completely neutral (Whisper→Apex), directional charge lives exclusively in valence (🌑/🌞), and the system includes comprehensive validation guardrails.*
+*Safe lexicon retrofit successfully completed with GitHub Copilot assistance. The Math Brain now maintains geometric fidelity without valence contamination, while the Poetic Brain gains richer emoji-enhanced expression. Magnitude vocabulary is completely neutral (Latent→Threshold), directional charge lives exclusively in valence (🌑/🌞), and the system includes comprehensive validation guardrails.*
 
 ---
 

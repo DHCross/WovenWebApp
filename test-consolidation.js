@@ -41,7 +41,7 @@
     
     // 3) Header valence clamping check
     const bodyText = document.body.textContent || document.body.innerText || '';
-    const execSummaryMatch = bodyText.match(/Valence:\s*([🌑🌞⚖🌋⚔🌊🌀🌫🕰🌱✨🔥🦋💎]*)\s*(-?\d+(?:\.\d+)?)/);
+    const execSummaryMatch = bodyText.match(/Valence:\s*([🌑🌞⚖🌪⚔🌊🌫🌋🕰🧩⬇️🌱✨💎🔥🦋🧘🌈]*)\s*(-?\d+(?:\.\d+)?)/);
     if (execSummaryMatch) {
         const valence = parseFloat(execSummaryMatch[2]);
         if (valence < -5 || valence > 5) {

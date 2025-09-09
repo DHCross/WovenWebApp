@@ -82,7 +82,7 @@
           "vol": { "type": "number" },
           "magnitude_term": {
             "type": "string",
-            "enum": ["Whisper", "Pulse", "Wave", "Surge", "Peak", "Apex"]
+            "enum": ["Latent", "Murmur", "Pulse", "Stirring", "Convergence", "Threshold"]
           },
           "valence_term": {
             "type": "string",
