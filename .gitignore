@@ -35,3 +35,5 @@ test-output-*
 
 # Local testing files
 test-composite-scaffolding.html
+test-chunk-*.js
+test-final-verification.js
