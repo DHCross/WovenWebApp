@@ -10581,34 +10581,7 @@ function renderTransitDay(dateStr, items){
                         ? buildBalanceMeterReport(latestResultData.balance_meter, latestResultData)
                         : generateMarkdownReport(latestResultData, downloadOptions);
                     
-                    // Check if html2pdf is available with enhanced loading check
-                    if (!isPDFLibraryReady()) {
-                        console.error('html2pdf library not loaded, attempting to wait for it...');
-                        
-                        try {
-                            // Try waiting for the library to load with shorter timeout
-                            await waitForPDFLibrary(3000);
-                            console.log('PDF library loaded successfully after waiting');
-                        } catch (error) {
-                            console.error('PDF library failed to load:', error);
-                            
-                            // Direct fallback to print without confusing user with dialogs
-                            console.log('Using print-to-PDF fallback for main report');
-                            printReportAsPDF(markdownReport, filename);
-                            
-                            // Update button state
-                            btn.innerHTML = '✅ Print Dialog Opened!';
-                            setTimeout(() => {
-                                btn.innerHTML = '📑 Download PDF<span class="block text-xs opacity-80">Professional PDF report</span>';
-                            }, 3000);
-                            return;
-                        }
-                    }
-                    
-                    // Convert markdown to HTML for PDF generation
-                    const htmlContent = convertMarkdownToHTML(markdownReport);
-                    
-                    // Generate filename
+                    // Generate filename early so it's available for fallback paths
                     let person1Name = document.getElementById('nameA').value || 'PersonA';
                     const person2Name = document.getElementById('nameB').value;
                     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -10648,10 +10621,40 @@ function renderTransitDay(dateStr, items){
                         filename = `WovenMap_${person1Name}${reportType}${dateRange}_${timestamp}.pdf`;
                     }
                     
-                    // Show loading state
+                    // Get button reference early for loading state management
                     const btn = document.getElementById('downloadPDF');
                     const originalText = btn.innerHTML;
+                    
+                    // Check if html2pdf is available with enhanced loading check
+                    if (!isPDFLibraryReady()) {
+                        console.error('html2pdf library not loaded, attempting to wait for it...');
+                        
+                        try {
+                            // Try waiting for the library to load with shorter timeout
+                            await waitForPDFLibrary(3000);
+                            console.log('PDF library loaded successfully after waiting');
+                        } catch (error) {
+                            console.error('PDF library failed to load:', error);
+                            
+                            // Direct fallback to print without confusing user with dialogs
+                            console.log('Using print-to-PDF fallback for main report');
+                            printReportAsPDF(markdownReport, filename);
+                            
+                            // Update button state
+                            btn.innerHTML = '✅ Print Dialog Opened!';
+                            setTimeout(() => {
+                                btn.innerHTML = '📑 Download PDF<span class="block text-xs opacity-80">Professional PDF report</span>';
+                            }, 3000);
+                            return;
+                        }
+                    }
+                    
+                    // Convert markdown to HTML for PDF generation
+                    const htmlContent = convertMarkdownToHTML(markdownReport);
+                    
+                    // Show loading state
                     btn.innerHTML = '⏳ Generating PDF...';
+                    btn.disabled = true;
                     btn.disabled = true;
                     
                     // Create a temporary element for PDF generation
