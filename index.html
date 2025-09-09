@@ -3648,13 +3648,13 @@ function renderTransitDay(dateStr, items){
             const secondary = analyzeSecondaryOrientation(chartData);
             const shadow = analyzeShadowOrientation(chartData);
             
-            md += `**Dominant:** "[${dominant.functionalEmphasis}: ${dominant.orientation}] organized by [${dominant.rawPlacements}]. Often shows up as [${generateBehavioralPatterns(dominant)}]."\n\n`;
+            md += `**Dominant:** ${dominant.functionalEmphasis}: ${dominant.orientation} organized by ${dominant.rawPlacements}. Often shows up as ${generateBehavioralPatterns(dominant)}.\n\n`;
             
-            md += `**Secondary:** "A background current of [${secondary.functionalEmphasis}] ([${secondary.rawPlacements}]) that surfaces as [${generateSecondaryPatterns(secondary)}]."\n\n`;
+            md += `**Secondary:** A background current of ${secondary.functionalEmphasis} (${secondary.rawPlacements}) that surfaces as ${generateSecondaryPatterns(secondary)}.\n\n`;
             
-            md += `**Shadow:** "Constitutional friction concentrates around [${shadow.functionalEmphasis}] ([${shadow.rawPlacements}]). Often felt as [${generateShadowPatterns(shadow)}]."\n\n`;
+            md += `**Shadow:** Constitutional friction concentrates around ${shadow.functionalEmphasis} (${shadow.rawPlacements}). Often felt as ${generateShadowPatterns(shadow)}.\n\n`;
             
-            md += `**Constitutional_Climate:** "A [${generateDominantMetaphor(dominant)}] working alongside a [${generateSecondaryMetaphor(secondary, shadow)}]."\n\n`;
+            md += `**Constitutional_Climate:** A ${generateDominantMetaphor(dominant)} working alongside a ${generateSecondaryMetaphor(secondary, shadow)}.\n\n`;
             
             return md;
         }
@@ -3666,7 +3666,7 @@ function renderTransitDay(dateStr, items){
             const hooks = extractTopHooks(data, isRelational);
             md += `**Hooks:**\n`;
             hooks.forEach((hook, index) => {
-                md += `  - "[${hook.description}]"\n`;
+                md += `  - ${hook.description}\n`;
             });
             md += `\n`;
             
@@ -3675,29 +3675,29 @@ function renderTransitDay(dateStr, items){
         
         function generateBalanceMeterClimate(data, formData) {
             let md = `## Balance_Meter_Narrative\n\n`;
-            
+
             // Extract Balance Meter data if available
             const balanceData = data.balance_meter || synthesizeBalanceMeterFromTransits(data);
-            
+
             if (balanceData) {
                 const climateReading = generateClimateReading(balanceData);
                 const supportStatus = generateSupportStatus(balanceData);
                 const systemEnergy = generateSystemEnergy(balanceData);
                 const seismographTag = generateSeismographTag(balanceData);
-                
-                md += `**Climate_Line:** "[${climateReading}]"\n`;
-                md += `**Support_Status:** "[${supportStatus}]"\n`;
-                md += `**System_Energy:** "[${systemEnergy}]"\n`;
-                md += `**Seismograph_Tag:** "[${seismographTag}]"\n`;
-                md += `**Depletion_Note:** "[Narrative on reserves and recovery]"\n\n`;
+
+                md += `**Climate_Line:** ${climateReading}\n`;
+                md += `**Support_Status:** ${supportStatus}\n`;
+                md += `**System_Energy:** ${systemEnergy}\n`;
+                md += `**Seismograph_Tag:** ${seismographTag}\n`;
+                md += `**Depletion_Note:** ${generateDepletionNote(balanceData)}\n\n`;
             } else {
-                md += `**Climate_Line:** "[No transit data available]"\n`;
-                md += `**Support_Status:** "[Unknown]"\n`;
-                md += `**System_Energy:** "[Unknown]"\n`;
-                md += `**Seismograph_Tag:** "[Unknown]"\n`;
-                md += `**Depletion_Note:** "[No data available]"\n\n`;
+                md += `**Climate_Line:** No transit data available for climate analysis\n`;
+                md += `**Support_Status:** Unknown - no balance meter data\n`;
+                md += `**System_Energy:** Unknown - no balance meter data\n`;
+                md += `**Seismograph_Tag:** Unknown - no balance meter data\n`;
+                md += `**Depletion_Note:** No data available for depletion analysis\n\n`;
             }
-            
+
             return md;
         }
         
@@ -3740,33 +3740,59 @@ function renderTransitDay(dateStr, items){
         
         function generatePolarityCards(data, isRelational) {
             let md = `## Polarity_Cards\n\n`;
-            
+
             const polarities = extractTopPolarities(data, isRelational);
-            
+
             polarities.forEach((polarity, index) => {
                 md += `### ${index + 1}) **${polarity.nameA}** ↔ **${polarity.nameB}**\n`;
-                
+
                 if (isRelational) {
                     md += `**FIELD:**\n`;
-                    md += `  - **Person_A:** "[${polarity.fieldA}]"\n`;
-                    md += `  - **Person_B:** "[${polarity.fieldB}]"\n`;
+                    md += `  - **Person_A:** ${polarity.fieldA}\n`;
+                    md += `  - **Person_B:** ${polarity.fieldB}\n`;
                     md += `**MAP:** [Operator only: ${polarity.map}]\n`;
                     md += `**VOICE:**\n`;
-                    md += `  - **Person_A:** "[Conditional behavioral pattern]"\n`;
-                    md += `  - **Person_B:** "[Conditional behavioral pattern]"\n\n`;
+                    md += `  - **Person_A:** ${generatePolarityVoice(polarity, 'A')}\n`;
+                    md += `  - **Person_B:** ${generatePolarityVoice(polarity, 'B')}\n\n`;
                 } else {
-                    md += `**FIELD:** "[${polarity.field}]"\n`;
+                    md += `**FIELD:** ${polarity.field}\n`;
                     md += `**MAP:** [Operator only: ${polarity.map}]\n`;
-                    md += `**VOICE:** "[Conditional behavioral description using may/might/could with both poles]"\n\n`;
+                    md += `**VOICE:** ${generatePolarityVoice(polarity)}\n\n`;
                 }
             });
-            
+
             return md;
         }
         
-        function generateMirrorVoiceContainer(isRelational) {
+        function generateMirrorVoiceContainer(isRelational, data) {
             let md = `## ${isRelational ? 'Relational_' : ''}Mirror_Voice\n\n`;
-            md += `"[${isRelational ? 'Bidirectional stitched reflection — conditional, tier-aware; invites both sides to check resonance' : 'Stitched reflection tying Typology → Balance Meter → Polarities; inviting dialogue not mandate'}]"\n\n`;
+
+            // Extract data for synthesis
+            const typologyData = generateTypologicalProfile(data.person_a, { name: 'Subject' });
+            const balanceData = synthesizeBalanceMeterFromTransits(data);
+            const polarityData = extractTopPolarities(data, isRelational);
+
+            if (isRelational) {
+                // Relational Mirror Voice - bidirectional synthesis
+                const personAName = data.person_a?.details?.name || 'Person A';
+                const personBName = data.person_b?.details?.name || 'Person B';
+
+                md += `**FIELD**: Intersecting relational climate where ${personAName}'s ${typologyData.dominant.functionalEmphasis} patterns meet ${personBName}'s ${typologyData.secondary.functionalEmphasis} currents\n\n`;
+
+                md += `**MAP**: ${polarityData.length > 0 ? polarityData.slice(0, 2).map(p => `${p.nameA}/${p.nameB} (${p.map})`).join('; ') : 'Cross-chart geometry connecting individual patterns'}\n\n`;
+
+                md += `**VOICE**: "${generateRelationalMirrorVoice(data, { name: personAName }, { name: personBName }).voice}"\n\n`;
+            } else {
+                // Individual Mirror Voice - personal synthesis
+                const personName = data.person_a?.details?.name || 'Subject';
+
+                md += `**FIELD**: ${generateClimateReading(balanceData)} — ${typologyData.ravenTranslation.climate}\n\n`;
+
+                md += `**MAP**: ${polarityData.length > 0 ? polarityData.slice(0, 2).map(p => `${p.nameA}/${p.nameB} (${p.map})`).join('; ') : 'Personal geometry patterns'}\n\n`;
+
+                md += `**VOICE**: "${generateMirrorVoiceForPerson(data.person_a, { name: personName }).voice}"\n\n`;
+            }
+
             return md;
         }
         
@@ -3873,7 +3899,7 @@ function renderTransitDay(dateStr, items){
         function extractTopHooks(data, isRelational) {
             // Extract top 3 hooks using standardized recognition hierarchy
             const hooks = [];
-            
+
             // Personal-outer hard aspects first
             const hardAspects = extractHardAspects(data);
             hardAspects.slice(0, 2).forEach(aspect => {
@@ -3881,7 +3907,7 @@ function renderTransitDay(dateStr, items){
                     description: `${aspect.p1_name} ${aspect.aspect} ${aspect.p2_name} (${Math.abs(aspect.orb || 0).toFixed(1)}°)`
                 });
             });
-            
+
             // Angles if available
             const angleAspects = extractAngleAspects(data);
             if (angleAspects.length > 0 && hooks.length < 3) {
@@ -3889,14 +3915,31 @@ function renderTransitDay(dateStr, items){
                     description: `${angleAspects[0].description} (angular)`
                 });
             }
-            
-            // Fill to 3 hooks minimum
+
+            // Fill to 3 hooks minimum with actual data extraction
             while (hooks.length < 3) {
-                hooks.push({
-                    description: `[Additional hook placeholder]`
-                });
+                // Try to get more aspects from the data
+                const allAspects = data.person_a?.aspects || [];
+                const remainingAspects = allAspects.filter(aspect =>
+                    !hooks.some(hook =>
+                        hook.description.includes(aspect.p1_name) &&
+                        hook.description.includes(aspect.p2_name)
+                    )
+                );
+
+                if (remainingAspects.length > 0) {
+                    const nextAspect = remainingAspects[0];
+                    hooks.push({
+                        description: `${nextAspect.p1_name} ${nextAspect.aspect} ${nextAspect.p2_name} (${Math.abs(nextAspect.orb || nextAspect.orbit || 0).toFixed(1)}°)`
+                    });
+                } else {
+                    // Only use placeholder if no more aspects available
+                    hooks.push({
+                        description: `Additional hook placeholder`
+                    });
+                }
             }
-            
+
             return hooks.slice(0, 3);
         }
         
@@ -3944,6 +3987,46 @@ function renderTransitDay(dateStr, items){
             if (magnitude > 3.5) return "high";
             if (magnitude > 2) return "med";
             return "low";
+        }
+        
+        function generateDepletionNote(balanceData) {
+            // Generate standardized depletion note
+            const summary = balanceData?.channel_summary;
+            if (!summary) return "Depletion status unknown - no balance meter data available";
+            
+            const depletion = summary.depletion_average || 0;
+            const resilience = summary.resilience_average || 0;
+            
+            if (depletion > 3) {
+                return `High depletion detected (${depletion.toFixed(1)}) - focus on recovery and replenishment`;
+            } else if (resilience > 3) {
+                return `Strong resilience (${resilience.toFixed(1)}) supporting sustained activity`;
+            } else {
+                return `Balanced energy reserves - monitor for signs of depletion`;
+            }
+        }
+        
+        function generatePolarityVoice(polarity, person = null) {
+            // Generate VOICE content for polarity cards using standardized patterns
+            const aspectType = polarity.map?.split(',')[0]?.split(' ')[2]?.toLowerCase() || 'conjunction';
+            
+            const voiceTemplates = {
+                'conjunction': 'These energies may blend together, sometimes harmoniously, sometimes creating intensity that needs conscious direction.',
+                'opposition': 'These energies may pull in different directions, creating awareness through contrast and the need to find balance.',
+                'square': 'These energies may create friction that generates movement - challenge that promotes growth when engaged consciously.',
+                'trine': 'These energies may flow naturally together, creating ease and supporting natural expression.',
+                'sextile': 'These energies may offer opportunities for integration through conscious engagement and effort.'
+            };
+            
+            const baseVoice = voiceTemplates[aspectType] || 'These planetary energies may interact in ways that create opportunities for conscious awareness and growth.';
+            
+            if (person === 'A') {
+                return `For Person A: ${baseVoice}`;
+            } else if (person === 'B') {
+                return `For Person B: ${baseVoice}`;
+            } else {
+                return baseVoice;
+            }
         }
         
         function extractHardAspects(data) {
@@ -3994,7 +4077,7 @@ function renderTransitDay(dateStr, items){
         function extractTopPolarities(data, isRelational) {
             // Extract top 3 polarities for FIELD → MAP → VOICE cards
             const polarities = [];
-            
+
             if (data.person_a?.aspects) {
                 data.person_a.aspects.slice(0, 3).forEach(aspect => {
                     polarities.push({
@@ -4007,19 +4090,41 @@ function renderTransitDay(dateStr, items){
                     });
                 });
             }
-            
-            // Fill to 3 polarities
+
+            // Fill to 3 polarities with actual data if available
             while (polarities.length < 3) {
-                polarities.push({
-                    nameA: '[Polarity A]',
-                    nameB: '[Polarity B]',
-                    field: '[Somatic/sensory texture placeholder]',
-                    map: '[Geometric source placeholder]',
-                    fieldA: isRelational ? '[Field texture for A]' : null,
-                    fieldB: isRelational ? '[Field texture for B]' : null
-                });
+                // Try to get more aspects from the data
+                const allAspects = data.person_a?.aspects || [];
+                const remainingAspects = allAspects.filter(aspect =>
+                    !polarities.some(polarity =>
+                        polarity.nameA === aspect.p1_name &&
+                        polarity.nameB === aspect.p2_name
+                    )
+                );
+
+                if (remainingAspects.length > 0) {
+                    const nextAspect = remainingAspects[0];
+                    polarities.push({
+                        nameA: nextAspect.p1_name,
+                        nameB: nextAspect.p2_name,
+                        field: generatePolarityField(nextAspect),
+                        map: `${nextAspect.p1_name} ${nextAspect.aspect} ${nextAspect.p2_name}, ${Math.abs(nextAspect.orb || nextAspect.orbit || 0).toFixed(1)}° orb`,
+                        fieldA: isRelational ? generatePolarityField(nextAspect, 'A') : null,
+                        fieldB: isRelational ? generatePolarityField(nextAspect, 'B') : null
+                    });
+                } else {
+                    // Only use placeholder if no more aspects available
+                    polarities.push({
+                        nameA: 'Polarity A',
+                        nameB: 'Polarity B',
+                        field: 'Somatic/sensory texture placeholder',
+                        map: 'Geometric source placeholder',
+                        fieldA: isRelational ? 'Field texture for A' : null,
+                        fieldB: isRelational ? 'Field texture for B' : null
+                    });
+                }
             }
-            
+
             return polarities;
         }
         
@@ -4041,21 +4146,24 @@ function renderTransitDay(dateStr, items){
         function synthesizeBalanceMeterFromTransits(data) {
             // Synthesize Balance Meter data from available transit information
             // Check multiple possible locations for transit data
-            const transitsByDate = data.transitsByDate || 
-                                   data.person_a?.chart?.transitsByDate || 
+            const transitsByDate = data.transitsByDate ||
+                                   data.person_a?.chart?.transitsByDate ||
                                    data.balance_meter?.daily_entries ||
                                    null;
-            
+
             if (!transitsByDate) return null;
-            
+
             const dates = Object.keys(transitsByDate);
             if (dates.length === 0) return null;
-            
+
             // Calculate basic averages from transit data
             let totalMagnitude = 0;
             let totalValence = 0;
+            let totalSfd = 0;
+            let totalResilience = 0;
+            let totalDepletion = 0;
             let count = 0;
-            
+
             dates.forEach(date => {
                 const dayData = transitsByDate[date];
                 if (dayData?.seismograph) {
@@ -4063,17 +4171,30 @@ function renderTransitDay(dateStr, items){
                     totalValence += dayData.seismograph.valence || 0;
                     count++;
                 }
+                // Also check for balance meter data
+                if (dayData?.balance) {
+                    totalSfd += dayData.balance.sfd || 0;
+                    totalResilience += dayData.balance.resilience || 0;
+                    totalDepletion += dayData.balance.depletion || 0;
+                } else if (dayData?.sfd) {
+                    totalSfd += typeof dayData.sfd === 'object' ? dayData.sfd.sfd || 0 : dayData.sfd;
+                }
             });
-            
+
             if (count === 0) return null;
-            
+
+            // If we don't have balance data, provide reasonable defaults
+            const avgSfd = totalSfd > 0 ? totalSfd / count : 0;
+            const avgResilience = totalResilience > 0 ? totalResilience / count : 2.5;
+            const avgDepletion = totalDepletion > 0 ? totalDepletion / count : 2.0;
+
             return {
                 channel_summary: {
                     seismograph_average: totalMagnitude / count,
                     balance_average: totalValence / count,
-                    sfd_average: 0, // Default neutral
-                    resilience_average: 2.5, // Default moderate
-                    depletion_average: 2.0 // Default low-moderate
+                    sfd_average: avgSfd,
+                    resilience_average: avgResilience,
+                    depletion_average: avgDepletion
                 }
             };
         }
@@ -4092,29 +4213,87 @@ function renderTransitDay(dateStr, items){
         
         function analyzeDominantOrientation(chartData) {
             // Analyze dominant psychological orientation from chart data
-            // TODO: Implement based on actual chart structure and Jungian analysis
+            // Focus on Sun, Mercury, and Ascendant for dominant function
+            const sun = chartData.sun;
+            const mercury = chartData.mercury;
+            const ascendant = chartData.ascendant;
+
+            // Build raw placements description from actual data
+            const rawPlacements = [
+                sun ? `Sun in ${sun.sign || 'Unknown'} (${sun.house || 'Unknown'})` : 'Sun placement unavailable',
+                mercury ? `Mercury in ${mercury.sign || 'Unknown'} (${mercury.house || 'Unknown'})${mercury.retrograde ? ' ℞' : ''}` : 'Mercury placement unavailable',
+                ascendant ? `Ascendant in ${ascendant.sign || 'Unknown'}` : 'Ascendant unavailable'
+            ].filter(Boolean).join(', ');
+
+            // Determine functional emphasis based on actual placements
+            const functionalEmphasis = determineFunctionalEmphasis(sun, mercury, ascendant);
+
+            // Determine orientation (Introverted/Extraverted) based on actual data
+            const orientation = determineOrientation(sun, mercury, ascendant);
+
             return {
-                functionalEmphasis: 'Thinking', // placeholder
-                orientation: 'Introverted', // placeholder
-                rawPlacements: 'Sun Virgo, Mercury Virgo' // placeholder
+                rawPlacements,
+                functionalEmphasis,
+                orientation
             };
         }
         
         function analyzeSecondaryOrientation(chartData) {
-            // Analyze secondary psychological orientation
-            // TODO: Implement based on actual chart structure
+            const moon = chartData.moon;
+
+            // Find auxiliary aspects to Moon from actual data
+            const moonAspects = chartData.aspects ? chartData.aspects.filter(aspect =>
+                aspect.p1_name === 'Moon' || aspect.p2_name === 'Moon'
+            ).slice(0, 3) : [];
+
+            const aspectsText = moonAspects.length > 0
+                ? moonAspects.map(a => `${a.p1_name || ''} ${a.aspect || ''} ${a.p2_name || ''}`).join(', ')
+                : 'No major aspects detected';
+
+            const rawPlacements = moon
+                ? `Moon in ${moon.sign || 'Unknown'} (${moon.house || 'Unknown'}), aspects: ${aspectsText}`
+                : 'Moon placement unavailable';
+
+            const functionalEmphasis = moon ? determineSecondaryFunction(moon) : 'Unknown';
+            const orientationCue = moon ? determineSecondaryOrientation(moon) : 'Unknown';
+
             return {
-                functionalEmphasis: 'Sensation', // placeholder
-                rawPlacements: 'Moon Taurus, Venus Taurus' // placeholder
+                rawPlacements,
+                functionalEmphasis,
+                orientationCue
             };
         }
         
         function analyzeShadowOrientation(chartData) {
-            // Analyze shadow psychological orientation
-            // TODO: Implement based on actual chart structure
+            // Focus on Mars, Saturn, Neptune, and outer planets for shadow/inferior
+            const mars = chartData.mars;
+            const saturn = chartData.saturn;
+            const neptune = chartData.neptune;
+            const uranus = chartData.uranus;
+            const pluto = chartData.pluto;
+
+            // Find challenging aspects from actual data
+            const challengingAspects = chartData.aspects ? chartData.aspects.filter(aspect =>
+                (aspect.aspect === 'square' || aspect.aspect === 'opposition' || aspect.aspect === 'quincunx') &&
+                (aspect.p1_name === 'Mars' || aspect.p1_name === 'Saturn' || aspect.p1_name === 'Neptune' ||
+                 aspect.p2_name === 'Mars' || aspect.p2_name === 'Saturn' || aspect.p2_name === 'Neptune')
+            ).slice(0, 4) : [];
+
+            const rawPlacements = [
+                mars ? `Mars in ${mars.sign || 'Unknown'} (${mars.house || 'Unknown'})` : 'Mars placement unavailable',
+                saturn ? `Saturn in ${saturn.sign || 'Unknown'} (${saturn.house || 'Unknown'})` : 'Saturn placement unavailable',
+                neptune ? `Neptune in ${neptune.sign || 'Unknown'} (${neptune.house || 'Unknown'})` : 'Neptune placement unavailable'
+            ].filter(Boolean).join(', ') +
+            (challengingAspects.length > 0 ? '; Challenging aspects: ' +
+                challengingAspects.map(a => `${a.p1_name} ${a.aspect} ${a.p2_name}`).join(', ') : '');
+
+            const inferiorFunctions = determineInferiorFunctions(mars, saturn, neptune);
+            const pressureDescription = generatePressureDescription(challengingAspects, mars, saturn, neptune);
+
             return {
-                functionalEmphasis: 'Intuition', // placeholder
-                rawPlacements: 'Neptune Sagittarius, Uranus Sagittarius' // placeholder
+                rawPlacements,
+                inferiorFunctions,
+                pressureDescription
             };
         }
         
@@ -4858,20 +5037,20 @@ function renderTransitDay(dateStr, items){
             const sun = chartData.sun;
             const mercury = chartData.mercury;
             const ascendant = chartData.ascendant;
-            
-            // Build raw placements description
+
+            // Build raw placements description from actual data
             const rawPlacements = [
-                `Sun in ${sun.sign || 'Unknown'} (${sun.house || 'Unknown'})`,
-                `Mercury in ${mercury.sign || 'Unknown'} (${mercury.house || 'Unknown'})${mercury.retrograde ? ' ℞' : ''}`,
-                `Ascendant in ${ascendant.sign || 'Unknown'}`
-            ].join(', ');
-            
-            // Determine functional emphasis
+                sun ? `Sun in ${sun.sign || 'Unknown'} (${sun.house || 'Unknown'})` : 'Sun placement unavailable',
+                mercury ? `Mercury in ${mercury.sign || 'Unknown'} (${mercury.house || 'Unknown'})${mercury.retrograde ? ' ℞' : ''}` : 'Mercury placement unavailable',
+                ascendant ? `Ascendant in ${ascendant.sign || 'Unknown'}` : 'Ascendant unavailable'
+            ].filter(Boolean).join(', ');
+
+            // Determine functional emphasis based on actual placements
             const functionalEmphasis = determineFunctionalEmphasis(sun, mercury, ascendant);
-            
-            // Determine orientation (Introverted/Extraverted)
+
+            // Determine orientation (Introverted/Extraverted) based on actual data
             const orientation = determineOrientation(sun, mercury, ascendant);
-            
+
             return {
                 rawPlacements,
                 functionalEmphasis,
@@ -4881,21 +5060,23 @@ function renderTransitDay(dateStr, items){
         
         function analyzeSecondaryOrientation(chartData) {
             const moon = chartData.moon;
-            
-            // Find auxiliary aspects to Moon
-            const moonAspects = chartData.aspects.filter(aspect => 
+
+            // Find auxiliary aspects to Moon from actual data
+            const moonAspects = chartData.aspects ? chartData.aspects.filter(aspect =>
                 aspect.p1_name === 'Moon' || aspect.p2_name === 'Moon'
-            ).slice(0, 3);
-            
-            const aspectsText = moonAspects.length > 0 
+            ).slice(0, 3) : [];
+
+            const aspectsText = moonAspects.length > 0
                 ? moonAspects.map(a => `${a.p1_name || ''} ${a.aspect || ''} ${a.p2_name || ''}`).join(', ')
-                : 'No major aspects';
-            
-            const rawPlacements = `Moon in ${moon.sign || 'Unknown'} (${moon.house || 'Unknown'}), aspects: ${aspectsText}`;
-            
-            const functionalEmphasis = determineSecondaryFunction(moon);
-            const orientationCue = determineSecondaryOrientation(moon);
-            
+                : 'No major aspects detected';
+
+            const rawPlacements = moon
+                ? `Moon in ${moon.sign || 'Unknown'} (${moon.house || 'Unknown'}), aspects: ${aspectsText}`
+                : 'Moon placement unavailable';
+
+            const functionalEmphasis = moon ? determineSecondaryFunction(moon) : 'Unknown';
+            const orientationCue = moon ? determineSecondaryOrientation(moon) : 'Unknown';
+
             return {
                 rawPlacements,
                 functionalEmphasis,
@@ -4910,24 +5091,25 @@ function renderTransitDay(dateStr, items){
             const neptune = chartData.neptune;
             const uranus = chartData.uranus;
             const pluto = chartData.pluto;
-            
-            // Find challenging aspects
-            const challengingAspects = chartData.aspects.filter(aspect => 
+
+            // Find challenging aspects from actual data
+            const challengingAspects = chartData.aspects ? chartData.aspects.filter(aspect =>
                 (aspect.aspect === 'square' || aspect.aspect === 'opposition' || aspect.aspect === 'quincunx') &&
                 (aspect.p1_name === 'Mars' || aspect.p1_name === 'Saturn' || aspect.p1_name === 'Neptune' ||
                  aspect.p2_name === 'Mars' || aspect.p2_name === 'Saturn' || aspect.p2_name === 'Neptune')
-            ).slice(0, 4);
-            
+            ).slice(0, 4) : [];
+
             const rawPlacements = [
-                `Mars in ${mars.sign || 'Unknown'} (${mars.house || 'Unknown'})`,
-                `Saturn in ${saturn.sign || 'Unknown'} (${saturn.house || 'Unknown'})`,
-                `Neptune in ${neptune.sign || 'Unknown'} (${neptune.house || 'Unknown'})`
-            ].join(', ') + (challengingAspects.length > 0 ? '; Challenging aspects: ' + 
+                mars ? `Mars in ${mars.sign || 'Unknown'} (${mars.house || 'Unknown'})` : 'Mars placement unavailable',
+                saturn ? `Saturn in ${saturn.sign || 'Unknown'} (${saturn.house || 'Unknown'})` : 'Saturn placement unavailable',
+                neptune ? `Neptune in ${neptune.sign || 'Unknown'} (${neptune.house || 'Unknown'})` : 'Neptune placement unavailable'
+            ].filter(Boolean).join(', ') +
+            (challengingAspects.length > 0 ? '; Challenging aspects: ' +
                 challengingAspects.map(a => `${a.p1_name} ${a.aspect} ${a.p2_name}`).join(', ') : '');
-            
+
             const inferiorFunctions = determineInferiorFunctions(mars, saturn, neptune);
             const pressureDescription = generatePressureDescription(challengingAspects, mars, saturn, neptune);
-            
+
             return {
                 rawPlacements,
                 inferiorFunctions,
