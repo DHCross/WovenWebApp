@@ -6744,8 +6744,13 @@ function renderTransitDay(dateStr, items){
              else if (clampedVal <= -1.0) { emoji = '🕰'; label = 'Saturn Weight'; }
              else if (clampedVal <= -0.5) { emoji = '🧩'; label = 'Fragmentation'; }
              else if (clampedVal < -0.2)  { emoji = '⬇️'; label = 'Entropy Drift'; }
+
             // 🌗 Equilibrium range
             else if (clampedVal >= -0.2 && clampedVal <= 0.2) { emoji = '🌗'; label = 'Equilibrium Field'; }
+
+            // 🌗 Neutral range
+            else if (clampedVal >= -0.2 && clampedVal <= 0.2) { emoji = '🌗'; label = 'Neutral Field'; }
+
             // 🌞 Positive Valence Types (↗)
              else if (clampedVal <= 0.8) { emoji = '🌱'; label = 'Fertile Field'; }
              else if (clampedVal <= 1.5) { emoji = '🧘'; label = 'Integration'; }
@@ -6773,8 +6778,13 @@ function renderTransitDay(dateStr, items){
              if (v <= -0.5) return 'Fragmentation';
              if (v <  -0.2) return 'Entropy Drift';
 
+
             // 🌗 Equilibrium range
             if (v >= -0.2 && v <= 0.2) return 'Equilibrium Field';
+
+            // 🌗 Neutral range
+            if (v >= -0.2 && v <= 0.2) return 'Neutral Field';
+
 
             // 🌞 Positive Valence Types
             if (v <= 0.8) return 'Fertile Field';

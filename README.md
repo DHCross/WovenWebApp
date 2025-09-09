@@ -6,6 +6,7 @@ This is a web-based application designed to generate a detailed astrological rep
 
 ### **Safe Lexicon System**
 - **Neutral Magnitude Ladder**: Latent, Murmur, Pulse, Stirring, Convergence, Threshold (strictly intensity-only, no negative bias)
+
 - **🌑🌞 Valence Mapping (−5 … +5)**
 
   | Level | Anchor | Flavor Patterns |
@@ -23,6 +24,9 @@ This is a web-based application designed to generate a detailed astrological rep
   | +5 | **Liberation** | 🦋🌈🔥 — peak openness; breakthroughs / big‑sky view |
 
   *Emoji selection: 1–2 glyphs if Magnitude ≤ 2, up to 3 if ≥ 3. Never mix negative and positive emojis in one line; 🌀 is reserved for Volatility alone.*
+
+- **Rich Valence Terms**: Collapse, Grind, Friction, Contraction, Drag, Neutral, Lift, Flow, Harmony, Expansion, Liberation
+
 - **Emoji Valence Display**: 🌑 Negative (🌪⚔🌊🌫🌋🕰🧩⬇️) and 🌞 Positive (🌱✨💎🔥🦋🧘🌊🌈) visual indicators
 - **Schema v1.2**: Machine-readable JSON includes both numeric and term values
 
