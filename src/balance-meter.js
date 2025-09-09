@@ -133,7 +133,7 @@ function baseCounterWeight(type, aName, bName){
   const set = new Set([aName,bName]);
   const hard = (type==='square' || type==='opposition');
   if (hard && (set.has('Jupiter') || set.has('Venus'))) return -1.3; // hard to benefics
-  if (type==='conjunction' && (set.has('Saturn') || set.has('Pluto') || set.has('Chiron')) && (set.has('Jupiter') || set.has('Venus'))) return -0.8; // heavy to benefic conj
+  if (type==='conjunction' && (set.has('Saturn') || set.has('Pluto') || set.has('Chiron')) && (set.has('Jupiter') || set.has('Venus'))) return -0.8; // heavy to benefic conj (may be offset)
   // Specific hard combos handled in logic using support nodes (see below)
   return 0.0;
 }
@@ -244,6 +244,30 @@ function computeSFD(dayAspects){
     let base = 0;
     // base negatives
     base = Math.min(base, baseCounterWeight(type, a,b));
+
+    // Heavy–benefic conjunction compensation: if the benefic simultaneously
+    // forms a trine or sextile (≤1.5° orb) on the same day, lessen the
+    // default −0.8 penalty. One supporting aspect halves the penalty, two or
+    // more cancel it entirely.
+    if (type==='conjunction' && base === -0.8){
+      const benefic = isBenefic(a) ? a : (isBenefic(b) ? b : null);
+      if (benefic){
+        let comp = 0;
+        for (const other of dayAspects){
+          if (other === rec) continue;
+          const t2 = normAspectName(other.aspect || other.type || other._aspect);
+          if (!(t2==='trine' || t2==='sextile')) continue;
+          const a2 = normBody(other.p1_name || other.a || other.transit);
+          const b2 = normBody(other.p2_name || other.b || other.natal);
+          const orb2 = other.orb != null ? other.orb : (other.orbit != null ? other.orbit : other._orb);
+          const o2 = Math.abs(Number(orb2||0));
+          if (o2 > 1.5) continue;
+          if (a2===benefic || b2===benefic) comp++;
+        }
+        if (comp >= 2) base = 0;
+        else if (comp >= 1) base = -0.4;
+      }
+    }
 
     // Hard aspects to S+ nodes by Saturn/Mars/Neptune → negative
     const hard = (type==='square' || type==='opposition');
