@@ -5,45 +5,67 @@
 ## Overview
 The Seismograph is a core innovation of The Woven Map: a quantified lens translating raw planetary geometry into three auditable axes of experiential field dynamics:
 
-- **Magnitude (0–5 normalized)** – Symbolic field intensity using safe lexicon: Whisper, Pulse, Wave, Surge, Peak, Apex. Neutral intensity markers only.
-- **Valence (-5..+5 annotation)** – Directional charge with emoji indicators: 🌑 Negative (🌋⚔🌊🌀🌫🕰) vs 🌞 Positive (🌱🔥✨🦋💎). Rich semantic types.
+- **Magnitude (0–5 normalized)** – Symbolic pressure intensity with neutral ladder: Latent, Murmur, Pulse, Stirring, Convergence, Threshold.
+- **Valence (-5..+5 annotation)** – Directional charge with emoji indicators: 🌑 Negative (🌪⚔🌊🌫🌋🕰🧩⬇️) vs 🌞 Positive (🌱✨💎🔥🦋🧘🌊🌈). Rich semantic types.
 - **Volatility (0–5)** – Turbulence / instability (rate + amplitude of change in activation field).
 
 These are **three independent dials**, not a derived chain.
 
 ```
-Magnitude → "How intense is the field?" (Whisper → Apex)
+Magnitude → "How much pressure?" (Latent → Threshold)
 Valence   → "What's the directional charge?" (🌑 vs 🌞)
 Volatility→ "Is it steady or turbulent?"
 ```
 
 ## Safe Lexicon System
-### Magnitude Terms (Neutral Intensity Only)
-- **Whisper** (0–0.5) - Minimal field activation
-- **Pulse** (0.5–1.5) - Light rhythmic intensity  
-- **Wave** (1.5–2.5) - Moderate field flow
-- **Surge** (2.5–3.5) - Strong current intensity
-- **Peak** (3.5–4.5) - High amplitude activation
-- **Apex** (4.5–5.0) - Maximum field intensity
+### Magnitude Ladder (Neutral Pressure)
+- **Latent** (0–0.5) — Symbolic pressure not measurable; background rhythm only.
+- **Murmur** (0.5–1.5) — Subtle impressions, background moods, passing signals.
+- **Pulse** (1.5–2.5) — Noticeable bursts, often triggered by personal planets.
+- **Stirring** (2.5–3.5) — Clear activation; events, shifts, or demands emerge.
+- **Convergence** (3.5–4.5) — Multiple stacked factors; concentrated symbolic weight.
+- **Threshold** (4.5–5.0) — Ceiling of measurable load; life-defining, not inherently catastrophic.
 
 ### Valence Types with Emoji Indicators
 #### 🌑 Negative Valence (Resistance/Challenge)
-- 🌋 **Pressure/Eruption** (-4.5 to -5.0) - Compression until release, shadow surges
-- ⚔ **Friction Clash** (-3.5 to -4.5) - Conflict, heat, accidents
-- 🌊 **Cross Current** (-2.5 to -3.5) - Competing priorities, confusion
-- 🌀 **Fog/Dissolution** (-1.5 to -2.5) - Blurred signals, loss of clarity
-- 🌫 **Entropy Drift** (-0.8 to -1.5) - Inertia, drain, loss of momentum
-- 🕰 **Saturn Weight** (-0.2 to -0.8) - Heaviness, delay, endurance test
+- 🌪 **Recursion Pull** — Old cycles re-emerge
+- ⚔ **Friction Clash** — Conflict, accidents
+- 🌊 **Cross Current** — Competing flows, confusion
+- 🌫 **Fog / Dissolution** — Blurred boundaries, signals scatter
+- 🌋 **Pressure / Eruption** — Compression until release
+- 🕰 **Saturn Weight** — Heaviness, delay
+- 🧩 **Fragmentation** — Fractured focus
+- ⬇️ **Entropy Drift** — Inertia, energy drains away
 
 #### 🌞 Positive Valence (Support/Flow)
-- 🌱 **Fertile Field** (+0.2 to +0.8) - Growth, opportunity, new shoots
-- 🌊 **Flow Tide** (+0.8 to +1.5) - Smooth adaptability, emotional ease
-- ✨ **Harmonic Resonance** (+1.5 to +2.5) - Natural ease, things click
-- 🔥 **Combustion Clarity** (+2.5 to +3.5) - Insight breaks through
-- 🦋 **Liberation/Release** (+3.5 to +4.5) - Breakthroughs, freedom
-- 💎 **Expansion Lift** (+4.5 to +5.0) - Abundance, confidence
+- 🌱 **Fertile Field** — Growth, fresh shoots
+- ✨ **Harmonic Resonance** — Natural ease
+- 💎 **Expansion Lift** — Confidence, abundance
+- 🔥 **Combustion Clarity** — Breakthrough insight
+- 🦋 **Liberation / Release** — Uranian fresh air
+- 🧘 **Integration** — Opposites reconcile
+- 🌊 **Flow Tide** — Smooth adaptability
+- 🌈 **Visionary Spark** — Inspiration, transcendence
 
-#### ⚖ Neutral Balance (-0.2 to +0.2) - Equilibrium stategraph Guide
+#### ⚖️ Equilibrium (−0.2 to +0.2) — net‑neutral tilt; forces cancel or are too diffuse to resolve
+
+### 🌑🌞 Valence Mapping (−5 … +5)
+
+| Level | Anchor | Flavor Patterns |
+| :---- | :----- | :-------------- |
+| −5 | **Collapse** | 🌋🧩⬇️ — maximum restrictive tilt; compression / failure points |
+| −4 | **Grind** | 🕰⚔🌪 — sustained resistance; heavy duty load |
+| −3 | **Friction** | ⚔🌊🌫 — conflicts or cross‑purposes slow motion |
+| −2 | **Contraction** | 🌫🧩⬇️ — narrowing options; ambiguity or energy drain |
+| −1 | **Drag** | 🌪🌫 — subtle headwind; minor loops or haze |
+| 0 | **⚖️ Equilibrium** | net‑neutral tilt; forces cancel or are too diffuse to resolve |
+| +1 | **Lift** | 🌱✨ — gentle tailwind; beginnings sprout |
+| +2 | **Flow** | 🌊🧘 — smooth adaptability; things click |
+| +3 | **Harmony** | 🧘✨🌊 — coherent progress; both/and solutions |
+| +4 | **Expansion** | 💎🔥🦋 — widening opportunities; clear insight fuels growth |
+| +5 | **Liberation** | 🦋🌈🔥 — peak openness; breakthroughs / big‑sky view |
+
+*Emoji selection: 1–2 glyphs if Magnitude ≤ 2, up to 3 if ≥ 3. Never mix negative and positive emojis in one line; 🌀 is reserved for Volatility alone.*
 
 > Geometry-first diagnostic scaffold. Mirror, not mandate.
 
@@ -57,9 +79,9 @@ The Seismograph is a core innovation of The Woven Map: a quantified lens transla
 These are **three independent dials**, not a derived chain.
 
 ```
-Magnitude → “How strong is the storm?”
-Valence   → “Is it with me or against me?”
-Volatility→ “Is it steady or ragged?”
+Magnitude → "How much pressure?"
+Valence   → "Is it with me or against me?"
+Volatility→ "Is it steady or ragged?"
 ```
 
 ## Dual Scales

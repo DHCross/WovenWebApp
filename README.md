@@ -5,9 +5,25 @@ This is a web-based application designed to generate a detailed astrological rep
 ## **Key Features**
 
 ### **Safe Lexicon System**
-- **Neutral Magnitude Terms**: Whisper, Pulse, Wave, Surge, Peak, Apex (strictly intensity-only, no negative bias)
-- **Rich Valence Terms**: Collapse, Grind, Friction, Contraction, Drag, Neutral, Lift, Flow, Harmony, Expansion, Liberation
-- **Emoji Valence Display**: 🌑 Negative (🌋⚔🌊🌀🌫🕰) and 🌞 Positive (🌱🔥✨🦋💎) visual indicators
+- **Neutral Magnitude Ladder**: Latent, Murmur, Pulse, Stirring, Convergence, Threshold (strictly intensity-only, no negative bias)
+- **🌑🌞 Valence Mapping (−5 … +5)**
+
+  | Level | Anchor | Flavor Patterns |
+  | :---- | :----- | :-------------- |
+  | −5 | **Collapse** | 🌋🧩⬇️ — maximum restrictive tilt; compression / failure points |
+  | −4 | **Grind** | 🕰⚔🌪 — sustained resistance; heavy duty load |
+  | −3 | **Friction** | ⚔🌊🌫 — conflicts or cross‑purposes slow motion |
+  | −2 | **Contraction** | 🌫🧩⬇️ — narrowing options; ambiguity or energy drain |
+  | −1 | **Drag** | 🌪🌫 — subtle headwind; minor loops or haze |
+  | 0 | **⚖️ Equilibrium** | net‑neutral tilt; forces cancel or are too diffuse to resolve |
+  | +1 | **Lift** | 🌱✨ — gentle tailwind; beginnings sprout |
+  | +2 | **Flow** | 🌊🧘 — smooth adaptability; things click |
+  | +3 | **Harmony** | 🧘✨🌊 — coherent progress; both/and solutions |
+  | +4 | **Expansion** | 💎🔥🦋 — widening opportunities; clear insight fuels growth |
+  | +5 | **Liberation** | 🦋🌈🔥 — peak openness; breakthroughs / big‑sky view |
+
+  *Emoji selection: 1–2 glyphs if Magnitude ≤ 2, up to 3 if ≥ 3. Never mix negative and positive emojis in one line; 🌀 is reserved for Volatility alone.*
+- **Emoji Valence Display**: 🌑 Negative (🌪⚔🌊🌫🌋🕰🧩⬇️) and 🌞 Positive (🌱✨💎🔥🦋🧘🌊🌈) visual indicators
 - **Schema v1.2**: Machine-readable JSON includes both numeric and term values
 
 ### **Seismograph Mode**
@@ -411,7 +427,7 @@ This will proxy requests to your serverless function and allow full front-end + 
 - **External API error**: This message indicates the serverless function could not reach the Astrologer API. Double‑check that the `RAPIDAPI_KEY` environment variable is defined in your Netlify site settings or a local `.env` file (copy `.env.example` to `.env`). After updating the variable, restart `netlify dev` (or redeploy) so the new environment is loaded.
 
 - **Auth: 401/403 “You don't have permissions to access the resource”**: Your SPA token likely lacks the API audience. Set `AUTH0_AUDIENCE` (your custom API identifier) in Netlify env, add it to your Application’s Allowed Web Origins/Callbacks, and enable that API in the Application (Auth0 Dashboard → Applications → Your App → APIs → Authorized). Then hard refresh and login again.
-## 🌀 Raven Calder Synastry Glossary (for Poetic Brain Compatibility)
+## Raven Calder Synastry Glossary (for Poetic Brain Compatibility)
 
 | Term | Definition |
 | --- | --- |
