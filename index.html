@@ -1963,10 +1963,20 @@ function renderTransitDay(dateStr, items){
         function hasAnyHouseCusps(chart) {
             const houseKeys = [
                 'first_house', 'second_house', 'third_house', 'fourth_house',
-                'fifth_house', 'sixth_house', 'seventh_house', 'eighth_house', 
+                'fifth_house', 'sixth_house', 'seventh_house', 'eighth_house',
                 'ninth_house', 'tenth_house', 'eleventh_house', 'twelfth_house'
             ];
             return houseKeys.some(key => chart[key] && chart[key].sign && chart[key].position !== undefined);
+        }
+
+        const ZODIAC_SIGNS = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+
+        function formatAbsPos(pos) {
+            if (pos === undefined || pos === null || isNaN(pos)) return '';
+            const norm = ((pos % 360) + 360) % 360;
+            const sign = ZODIAC_SIGNS[Math.floor(norm / 30)] || '';
+            const deg = (norm % 30).toFixed(1);
+            return `${deg}° ${sign}`;
         }
 
         // Reusable function to render natal chart data for any person
@@ -3548,6 +3558,56 @@ function renderTransitDay(dateStr, items){
             return md;
         }
 
+        function generateNatalNumbersSection(data, isRelational) {
+            let md = `## Natal_Numbers\n\n`;
+
+            if (data.person_a?.chart && (data.person_a.chart.status === 'OK' || data.person_a.chart.sun)) {
+                const nameA = data.person_a?.details?.name || 'Person A';
+                const chartA = data.person_a.chart.data || data.person_a.chart;
+                md += `### ${nameA}\n\n`;
+                md += renderNatalChartData(chartA, nameA);
+                if (data.person_a.chart.aspects && data.person_a.chart.aspects.length > 0) {
+                    md += `#### Natal Aspects\n\n`;
+                    data.person_a.chart.aspects.forEach(aspect => {
+                        const orb = (Number.isFinite(aspect.orb) ? aspect.orb :
+                                     Number.isFinite(aspect.orbit) ? aspect.orbit :
+                                     Number.isFinite(aspect.diff) ? aspect.diff : null);
+                        const p1pos = formatAbsPos(aspect.p1_abs_pos);
+                        const p2pos = formatAbsPos(aspect.p2_abs_pos);
+                        const p1 = aspect.p1_name ? `${aspect.p1_name}${p1pos ? ' ' + p1pos : ''}` : '—';
+                        const p2 = aspect.p2_name ? `${aspect.p2_name}${p2pos ? ' ' + p2pos : ''}` : '—';
+                        const asp = aspect.aspect || aspect.aspect_name || aspect.name || '—';
+                        md += `- **${p1}** ${asp} **${p2}** (${orb !== null ? Math.abs(orb).toFixed(1) : '—'}° orb)\n`;
+                    });
+                    md += `\n`;
+                }
+            }
+
+            if (isRelational && data.person_b?.chart && (data.person_b.chart.status === 'OK' || data.person_b.chart.sun)) {
+                const nameB = data.person_b?.details?.name || 'Person B';
+                const chartB = data.person_b.chart.data || data.person_b.chart;
+                md += `### ${nameB}\n\n`;
+                md += renderNatalChartData(chartB, nameB);
+                if (data.person_b.chart.aspects && data.person_b.chart.aspects.length > 0) {
+                    md += `#### Natal Aspects\n\n`;
+                    data.person_b.chart.aspects.forEach(aspect => {
+                        const orb = (Number.isFinite(aspect.orb) ? aspect.orb :
+                                     Number.isFinite(aspect.orbit) ? aspect.orbit :
+                                     Number.isFinite(aspect.diff) ? aspect.diff : null);
+                        const p1pos = formatAbsPos(aspect.p1_abs_pos);
+                        const p2pos = formatAbsPos(aspect.p2_abs_pos);
+                        const p1 = aspect.p1_name ? `${aspect.p1_name}${p1pos ? ' ' + p1pos : ''}` : '—';
+                        const p2 = aspect.p2_name ? `${aspect.p2_name}${p2pos ? ' ' + p2pos : ''}` : '—';
+                        const asp = aspect.aspect || aspect.aspect_name || aspect.name || '—';
+                        md += `- **${p1}** ${asp} **${p2}** (${orb !== null ? Math.abs(orb).toFixed(1) : '—'}° orb)\n`;
+                    });
+                    md += `\n`;
+                }
+            }
+
+            return md;
+        }
+
         function generateClearMirrorReport(data, options = {}) {
             // RAVEN CALDER PAYLOAD GENERATOR — SOLO MIRROR SKELETON
             // Math Brain's job: provide clean structural containers + standardized tokens
@@ -3582,7 +3642,10 @@ function renderTransitDay(dateStr, items){
                     md += `**Subject:** {name: "Unknown", birth_label: "${generateBirthLabel(personA)}"}\n\n`;
                 }
             }
-            
+
+            // Natal numbers (raw math) for transparency
+            md += generateNatalNumbersSection(data, isRelational);
+
             // Typological Profile (Constitutional Climate Layer)
             md += generateTypologicalProfile(data.person_a, personA);
             
@@ -3905,8 +3968,13 @@ function renderTransitDay(dateStr, items){
             // Personal-outer hard aspects first
             const hardAspects = extractHardAspects(data);
             hardAspects.slice(0, 2).forEach(aspect => {
+                const orb = Math.abs(aspect.orb || aspect.orbit || 0).toFixed(1);
+                const p1pos = formatAbsPos(aspect.p1_abs_pos);
+                const p2pos = formatAbsPos(aspect.p2_abs_pos);
+                const p1 = aspect.p1_name ? `${aspect.p1_name}${p1pos ? ' ' + p1pos : ''}` : '—';
+                const p2 = aspect.p2_name ? `${aspect.p2_name}${p2pos ? ' ' + p2pos : ''}` : '—';
                 hooks.push({
-                    description: `${aspect.p1_name} ${aspect.aspect} ${aspect.p2_name} (${Math.abs(aspect.orb || 0).toFixed(1)}°)`
+                    description: `${p1} ${aspect.aspect} ${p2} (${orb}°)`
                 });
             });
 
@@ -3931,8 +3999,13 @@ function renderTransitDay(dateStr, items){
 
                 if (remainingAspects.length > 0) {
                     const nextAspect = remainingAspects[0];
+                    const orb = Math.abs(nextAspect.orb || nextAspect.orbit || 0).toFixed(1);
+                    const p1pos = formatAbsPos(nextAspect.p1_abs_pos);
+                    const p2pos = formatAbsPos(nextAspect.p2_abs_pos);
+                    const p1 = nextAspect.p1_name ? `${nextAspect.p1_name}${p1pos ? ' ' + p1pos : ''}` : '—';
+                    const p2 = nextAspect.p2_name ? `${nextAspect.p2_name}${p2pos ? ' ' + p2pos : ''}` : '—';
                     hooks.push({
-                        description: `${nextAspect.p1_name} ${nextAspect.aspect} ${nextAspect.p2_name} (${Math.abs(nextAspect.orb || nextAspect.orbit || 0).toFixed(1)}°)`
+                        description: `${p1} ${nextAspect.aspect} ${p2} (${orb}°)`
                     });
                 } else {
                     // Use generic fallback if no more aspects available
