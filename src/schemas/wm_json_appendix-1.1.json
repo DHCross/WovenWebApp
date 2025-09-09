@@ -86,7 +86,7 @@
           },
           "valence_term": {
             "type": "string",
-            "enum": ["Collapse", "Grind", "Friction", "Contraction", "Drag", "Neutral", "Lift", "Flow", "Harmony", "Expansion", "Liberation"]
+            "enum": ["Collapse", "Grind", "Friction", "Contraction", "Drag", "Equilibrium", "Lift", "Flow", "Harmony", "Expansion", "Liberation"]
           },
           "top_hooks": {
             "type": "array",

@@ -2722,7 +2722,8 @@ function renderTransitDay(dateStr, items){
                     md += `**Dominant Channel**: ${summary.dominant_channel}\n`;
                 }
                 if (Number.isFinite(summary.volatility_index)) {
-                    md += `**Volatility Index**: 🌪️ ${summary.volatility_index.toFixed(2)}\n`;
+                    const volEmoji = getVolatilityEmoji(summary.volatility_index);
+                    md += `**Volatility Index**: ${volEmoji} ${summary.volatility_index.toFixed(2)}\n`;
                 }
                 md += `\n`;
             }
@@ -5183,7 +5184,7 @@ function renderTransitDay(dateStr, items){
                         <li><strong>🌗 Mixed:</strong> simultaneous support and strain.</li>
                                         </ul>
                     </li>
-                    <li><strong>Volatility 🌪️</strong> — <span class="text-gray-300">Distribution of pressure (low = concentrated; high = scattered/stormy).</span></li>
+                    <li><strong>🔀 Volatility</strong> — <span class="text-gray-300">Distribution of pressure (low = concentrated; high = scattered/stormy).</span></li>
                     <li><strong>SFD (Support–Friction Differential)</strong> — <span class="text-gray-300">Splits S+ vs S−, nets the differential.</span></li>
                                 </ul>
                             </div>
@@ -5237,7 +5238,7 @@ function renderTransitDay(dateStr, items){
                                     <li><strong>1. Valence</strong> = Is it 🌞 lifting, 🌑 pressing, or 🌗 neutral?</li>
                                     <li><strong>2. Type</strong> = Which "weather flavor" (🌪️ Recursion, 🌱 Fertility, etc.)?</li>
                                     <li><strong>3. Magnitude</strong> ⚡ = How loud is it?</li>
-                                    <li><strong>4. Volatility</strong> 🌪️ = Is it steady or stormy?</li>
+                                    <li><strong>4. Volatility</strong> 🔀 = Is it steady or stormy?</li>
                                 </ol>
                             </div>
 
@@ -6641,7 +6642,7 @@ function renderTransitDay(dateStr, items){
         ];
         
         // Canonical valence vocabulary (directional charge with clear positive/negative distinction)
-        const VALENCE_TERMS = ["Collapse", "Grind", "Friction", "Contraction", "Drag", "Neutral", "Lift", "Flow", "Harmony", "Expansion", "Liberation"];
+        const VALENCE_TERMS = ["Collapse", "Grind", "Friction", "Contraction", "Drag", "Equilibrium", "Lift", "Flow", "Harmony", "Expansion", "Liberation"];
         
         function toMagnitudeTerm(mag) {
             // Assumes magnitude normalized to 0–5 for descriptors
@@ -6659,7 +6660,7 @@ function renderTransitDay(dateStr, items){
             if (val <= -2.5) return "Friction";
             if (val <= -1.5) return "Contraction";
             if (val < -0.5) return "Drag";
-            if (val < 0.5) return "Neutral";
+            if (val < 0.5) return "Equilibrium";
             if (val < 1.5) return "Lift";
             if (val < 2.5) return "Flow";
             if (val < 3.5) return "Harmony";
@@ -6743,8 +6744,13 @@ function renderTransitDay(dateStr, items){
              else if (clampedVal <= -1.0) { emoji = '🕰'; label = 'Saturn Weight'; }
              else if (clampedVal <= -0.5) { emoji = '🧩'; label = 'Fragmentation'; }
              else if (clampedVal < -0.2)  { emoji = '⬇️'; label = 'Entropy Drift'; }
+
+            // 🌗 Equilibrium range
+            else if (clampedVal >= -0.2 && clampedVal <= 0.2) { emoji = '🌗'; label = 'Equilibrium Field'; }
+
             // 🌗 Neutral range
             else if (clampedVal >= -0.2 && clampedVal <= 0.2) { emoji = '🌗'; label = 'Neutral Field'; }
+
             // 🌞 Positive Valence Types (↗)
              else if (clampedVal <= 0.8) { emoji = '🌱'; label = 'Fertile Field'; }
              else if (clampedVal <= 1.5) { emoji = '🧘'; label = 'Integration'; }
@@ -6772,8 +6778,13 @@ function renderTransitDay(dateStr, items){
              if (v <= -0.5) return 'Fragmentation';
              if (v <  -0.2) return 'Entropy Drift';
 
+
+            // 🌗 Equilibrium range
+            if (v >= -0.2 && v <= 0.2) return 'Equilibrium Field';
+
             // 🌗 Neutral range
             if (v >= -0.2 && v <= 0.2) return 'Neutral Field';
+
 
             // 🌞 Positive Valence Types
             if (v <= 0.8) return 'Fertile Field';

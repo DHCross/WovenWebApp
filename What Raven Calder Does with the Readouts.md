@@ -259,7 +259,7 @@ Operator log: Each session will automatically note the set of adjectives and met
 - **🌞** - Positive Valence (supportive)
 - **🌑** - Negative Valence (restrictive)
 - **🌗** - Mixed Valence
-- **🌪️** - Volatility
+- **🔀** - Volatility
 
 ### Valence Mode Indicators (Negative)
 - **🌪** - Recursion Pull

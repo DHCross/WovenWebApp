@@ -47,7 +47,25 @@ Volatility→ "Is it steady or turbulent?"
 - 🌊 **Flow Tide** — Smooth adaptability
 - 🌈 **Visionary Spark** — Inspiration, transcendence
 
-#### ⚖ Neutral Balance (-0.2 to +0.2) - Equilibrium stategraph Guide
+#### ⚖️ Equilibrium (−0.2 to +0.2) — net‑neutral tilt; forces cancel or are too diffuse to resolve
+
+### 🌑🌞 Valence Mapping (−5 … +5)
+
+| Level | Anchor | Flavor Patterns |
+| :---- | :----- | :-------------- |
+| −5 | **Collapse** | 🌋🧩⬇️ — maximum restrictive tilt; compression / failure points |
+| −4 | **Grind** | 🕰⚔🌪 — sustained resistance; heavy duty load |
+| −3 | **Friction** | ⚔🌊🌫 — conflicts or cross‑purposes slow motion |
+| −2 | **Contraction** | 🌫🧩⬇️ — narrowing options; ambiguity or energy drain |
+| −1 | **Drag** | 🌪🌫 — subtle headwind; minor loops or haze |
+| 0 | **⚖️ Equilibrium** | net‑neutral tilt; forces cancel or are too diffuse to resolve |
+| +1 | **Lift** | 🌱✨ — gentle tailwind; beginnings sprout |
+| +2 | **Flow** | 🌊🧘 — smooth adaptability; things click |
+| +3 | **Harmony** | 🧘✨🌊 — coherent progress; both/and solutions |
+| +4 | **Expansion** | 💎🔥🦋 — widening opportunities; clear insight fuels growth |
+| +5 | **Liberation** | 🦋🌈🔥 — peak openness; breakthroughs / big‑sky view |
+
+*Emoji selection: 1–2 glyphs if Magnitude ≤ 2, up to 3 if ≥ 3. Never mix negative and positive emojis in one line; 🌀 is reserved for Volatility alone.*
 
 > Geometry-first diagnostic scaffold. Mirror, not mandate.
 

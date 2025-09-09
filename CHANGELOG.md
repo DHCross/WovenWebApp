@@ -14,6 +14,10 @@ Enhanced the Balance Meter comparative workflow with additional health signal ov
 - Labeling and legend clean‑ups: supplemental lines are clearly marked and table headers clarify units (e.g., RestHR (bpm), TempΔ).
 - Finalized neutral Magnitude ladder (Latent→Threshold) to mirror Valence and Volatility scaling.
 
+- Refined 🌑🌞 Valence mapping: added Collapse→Liberation table with flavor emoji patterns and replaced Neutral with ⚖️ Equilibrium across schema and UI.
+
+
+
 **Health Parser Expansion (iOS Health Auto Export)**
 - Added detection for: `resting_hr`, `heart_rate`, `walking_hr_avg`, `sleep_temp` (wrist/skin), `walking_distance`, `walk_asym_pct`, `walk_double_support_pct`, `exercise_minutes`, `stand_minutes`, `stand_hours`, `active_energy`, `mindful_minutes`, and `mood_label_count` (from State of Mind daily aggregation).
 - Timezone bucketing: All health dates localized to America/Chicago, matching symbolic daily bars to avoid off‑by‑one rollovers.

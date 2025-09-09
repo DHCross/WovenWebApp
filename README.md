@@ -6,7 +6,27 @@ This is a web-based application designed to generate a detailed astrological rep
 
 ### **Safe Lexicon System**
 - **Neutral Magnitude Ladder**: Latent, Murmur, Pulse, Stirring, Convergence, Threshold (strictly intensity-only, no negative bias)
+
+- **🌑🌞 Valence Mapping (−5 … +5)**
+
+  | Level | Anchor | Flavor Patterns |
+  | :---- | :----- | :-------------- |
+  | −5 | **Collapse** | 🌋🧩⬇️ — maximum restrictive tilt; compression / failure points |
+  | −4 | **Grind** | 🕰⚔🌪 — sustained resistance; heavy duty load |
+  | −3 | **Friction** | ⚔🌊🌫 — conflicts or cross‑purposes slow motion |
+  | −2 | **Contraction** | 🌫🧩⬇️ — narrowing options; ambiguity or energy drain |
+  | −1 | **Drag** | 🌪🌫 — subtle headwind; minor loops or haze |
+  | 0 | **⚖️ Equilibrium** | net‑neutral tilt; forces cancel or are too diffuse to resolve |
+  | +1 | **Lift** | 🌱✨ — gentle tailwind; beginnings sprout |
+  | +2 | **Flow** | 🌊🧘 — smooth adaptability; things click |
+  | +3 | **Harmony** | 🧘✨🌊 — coherent progress; both/and solutions |
+  | +4 | **Expansion** | 💎🔥🦋 — widening opportunities; clear insight fuels growth |
+  | +5 | **Liberation** | 🦋🌈🔥 — peak openness; breakthroughs / big‑sky view |
+
+  *Emoji selection: 1–2 glyphs if Magnitude ≤ 2, up to 3 if ≥ 3. Never mix negative and positive emojis in one line; 🌀 is reserved for Volatility alone.*
+
 - **Rich Valence Terms**: Collapse, Grind, Friction, Contraction, Drag, Neutral, Lift, Flow, Harmony, Expansion, Liberation
+
 - **Emoji Valence Display**: 🌑 Negative (🌪⚔🌊🌫🌋🕰🧩⬇️) and 🌞 Positive (🌱✨💎🔥🦋🧘🌊🌈) visual indicators
 - **Schema v1.2**: Machine-readable JSON includes both numeric and term values
 

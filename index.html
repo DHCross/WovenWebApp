@@ -8138,7 +8138,7 @@ function renderTransitDay(dateStr, items){
         ];
         
         // Canonical valence vocabulary (directional charge with clear positive/negative distinction)
-        const VALENCE_TERMS = ["Collapse", "Grind", "Friction", "Contraction", "Drag", "Neutral", "Lift", "Flow", "Harmony", "Expansion", "Liberation"];
+        const VALENCE_TERMS = ["Collapse", "Grind", "Friction", "Contraction", "Drag", "Equilibrium", "Lift", "Flow", "Harmony", "Expansion", "Liberation"];
         
         function toMagnitudeTerm(mag) {
             // Assumes magnitude normalized to 0–5 for descriptors
@@ -8156,7 +8156,7 @@ function renderTransitDay(dateStr, items){
             if (val <= -2.5) return "Friction";
             if (val <= -1.5) return "Contraction";
             if (val < -0.5) return "Drag";
-            if (val < 0.5) return "Neutral";
+            if (val < 0.5) return "Equilibrium";
             if (val < 1.5) return "Lift";
             if (val < 2.5) return "Flow";
             if (val < 3.5) return "Harmony";
@@ -8249,8 +8249,8 @@ function renderTransitDay(dateStr, items){
             else if (clampedVal <= -1.0) { emoji = '🌫'; label = 'Fog / Dissolution'; }
             else if (clampedVal <= -0.5) { emoji = '⬇️'; label = 'Entropy Drift'; }
             else if (clampedVal < 0)  { emoji = '🕰'; label = 'Saturn Weight'; }
-            // 🌗 Neutral range
-            else if (clampedVal >= 0 && clampedVal <= 0.2) { emoji = '🌗'; label = 'Neutral Field'; }
+            // 🌗 Equilibrium range
+            else if (clampedVal >= 0 && clampedVal <= 0.2) { emoji = '🌗'; label = 'Equilibrium Field'; }
             // 🌞 Positive Valence Types (↗)
             else if (clampedVal <= 0.8) { emoji = '🌱'; label = 'Fertile Field'; }
             else if (clampedVal <= 1.5) { emoji = '🧘'; label = 'Integration'; }
@@ -8278,8 +8278,8 @@ function renderTransitDay(dateStr, items){
             if (v <= -0.5) return 'Entropy Drift';
             if (v <  0) return 'Saturn Weight';
 
-            // 🌗 Neutral range
-            if (v >= 0 && v <= 0.2) return 'Neutral Field';
+            // 🌗 Equilibrium range
+            if (v >= 0 && v <= 0.2) return 'Equilibrium Field';
 
             // 🌞 Positive Valence Types
             if (v <= 0.8) return 'Fertile Field';
