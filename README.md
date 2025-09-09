@@ -5,9 +5,9 @@ This is a web-based application designed to generate a detailed astrological rep
 ## **Key Features**
 
 ### **Safe Lexicon System**
-- **Neutral Magnitude Terms**: Whisper, Pulse, Wave, Surge, Peak, Apex (strictly intensity-only, no negative bias)
+- **Neutral Magnitude Ladder**: Latent, Murmur, Pulse, Stirring, Convergence, Threshold (strictly intensity-only, no negative bias)
 - **Rich Valence Terms**: Collapse, Grind, Friction, Contraction, Drag, Neutral, Lift, Flow, Harmony, Expansion, Liberation
-- **Emoji Valence Display**: 🌑 Negative (🌋⚔🌊🌀🌫🕰) and 🌞 Positive (🌱🔥✨🦋💎) visual indicators
+- **Emoji Valence Display**: 🌑 Negative (🌪⚔🌊🌫🌋🕰🧩⬇️) and 🌞 Positive (🌱✨💎🔥🦋🧘🌊🌈) visual indicators
 - **Schema v1.2**: Machine-readable JSON includes both numeric and term values
 
 ### **Seismograph Mode**
@@ -411,7 +411,7 @@ This will proxy requests to your serverless function and allow full front-end + 
 - **External API error**: This message indicates the serverless function could not reach the Astrologer API. Double‑check that the `RAPIDAPI_KEY` environment variable is defined in your Netlify site settings or a local `.env` file (copy `.env.example` to `.env`). After updating the variable, restart `netlify dev` (or redeploy) so the new environment is loaded.
 
 - **Auth: 401/403 “You don't have permissions to access the resource”**: Your SPA token likely lacks the API audience. Set `AUTH0_AUDIENCE` (your custom API identifier) in Netlify env, add it to your Application’s Allowed Web Origins/Callbacks, and enable that API in the Application (Auth0 Dashboard → Applications → Your App → APIs → Authorized). Then hard refresh and login again.
-## 🌀 Raven Calder Synastry Glossary (for Poetic Brain Compatibility)
+## Raven Calder Synastry Glossary (for Poetic Brain Compatibility)
 
 | Term | Definition |
 | --- | --- |

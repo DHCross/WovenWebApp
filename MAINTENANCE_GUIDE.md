@@ -74,7 +74,7 @@ This document outlines the best practices for maintaining, updating, and trouble
 **The app uses a safe lexicon system to ensure magnitude terms remain neutral while valence terms carry directional meaning.**
 
 ### **Key Functions to Maintain:**
-- `toMagnitudeTerm(mag)` - Maps numeric values to neutral terms (Whisper, Pulse, Wave, Surge, Peak, Apex)
+- `toMagnitudeTerm(mag)` - Maps numeric values to neutral terms (Latent, Murmur, Pulse, Stirring, Convergence, Threshold)
 - `toValenceTerm(val)` - Maps numeric values to directional terms (Collapse...Liberation)
 - `getValenceEmoji(val)` - Maps valence to emoji indicators (🌑 negative, 🌞 positive)
 - `assertSafeMagnitudePhrase(text)` - Validates magnitude descriptions don't contain negative imagery

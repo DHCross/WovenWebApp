@@ -109,7 +109,7 @@ Synastry + Transits	“What is activating between us right now?”
 
 ⸻
 
-🌀 What Happens After the Math Brain?
+What Happens After the Math Brain?
 
 Once the geometry is clean:
 	1.	Poetic Brain maps symbolic structure

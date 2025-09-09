@@ -89,9 +89,9 @@ No transit is "active" without both natal contact **and** lived resonance (ping 
 
 ## **Vector-Integrity Check**
 *Mandatory labels for structurally qualified but behaviorally quiet drivers:*
-- **[Latent/Suppressed/Dormant]: [Vector name]** — **[structural presence but contained/waiting]**
-- **[Latent/Suppressed/Dormant]: [Vector name]** — **[boundaries fortified/compensated by earth placements]**
-- **[Latent/Suppressed/Dormant]: [Vector name]** — **[waiting for Saturn return/specific activation]**
+- **[Latent/Suppressed]: [Vector name]** — **[structural presence but contained/waiting]**
+- **[Latent/Suppressed]: [Vector name]** — **[boundaries fortified/compensated by earth placements]**
+- **[Latent/Suppressed]: [Vector name]** — **[waiting for Saturn return/specific activation]**
 
 ---
 
@@ -262,28 +262,28 @@ Operator log: Each session will automatically note the set of adjectives and met
 - **🌪️** - Volatility
 
 ### Valence Mode Indicators (Negative)
-- **♾️** - Recursion Pull
-- **⚔️** - Friction Clash
-- **↔️** - Cross Current
-- **🌫️** - Fog/Dissolution
-- **🌋** - Pressure/Eruption
-- **⏳** - Saturn Weight
+- **🌪** - Recursion Pull
+- **⚔** - Friction Clash
+- **🌊** - Cross Current
+- **🌫** - Fog / Dissolution
+- **🌋** - Pressure / Eruption
+- **🕰** - Saturn Weight
 - **🧩** - Fragmentation
-- **🕳️** - Entropy Drift
+- **⬇️** - Entropy Drift
 
 ### Valence Mode Indicators (Positive)
 - **🌱** - Fertile Field
 - **✨** - Harmonic Resonance
 - **💎** - Expansion Lift
 - **🔥** - Combustion Clarity
-- **🦋** - Liberation/Release
-- **⚖️** - Integration
+- **🦋** - Liberation / Release
+- **🧘** - Integration
 - **🌊** - Flow Tide
 - **🌈** - Visionary Spark
 
 ### Sources of Force
 - **🎯** - Orb (proximity)
-- **🌀** - Aspect (angle type)
+- **∠** - Aspect (angle type)
 - **🪐** - Potency (planet speed)
 - **📡** - Resonance (natal activation)
 - **♾️** - Recursion (repeating themes)
