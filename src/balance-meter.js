@@ -145,8 +145,41 @@ function isHardBetween(type, aName, bName, setA, setB){
   return ([...setA].some(x=>A.has(x)) && [...setB].some(x=>A.has(x)));
 }
 
-// Balance Channel v1.1 (rebalanced valence only)
-// Simple pass: reuse SFD support weights but with gentler base table per Appendix (if needed later)
+// Base valence weights for Balance Channel v1.2
+function balanceBaseWeight(type, aName, bName){
+  const set = new Set([aName, bName]);
+  if (type==='square' || type==='opposition') return -1.0;
+  if (type==='trine') return +1.1;
+  if (type==='sextile') return +0.8;
+  if (type==='quintile' || type==='biquintile') return +0.4;
+  if (type==='conjunction'){
+    if (set.has('Saturn') || set.has('Pluto') || set.has('Chiron')) return -0.7;
+    if (set.has('Venus') || set.has('Jupiter')) return +0.8;
+  }
+  return 0.0;
+}
+
+// Planetary multipliers for Balance Channel v1.2
+function balancePlanetMultiplier(body){
+  switch(body){
+    case 'Pluto':
+    case 'Saturn':
+    case 'Neptune':
+    case 'Uranus':
+      return 1.3;
+    case 'Chiron':
+      return 1.1;
+    case 'Jupiter':
+    case 'Venus':
+      return 1.2;
+    case 'Moon':
+      return 0.5;
+    default:
+      return 1.0;
+  }
+}
+
+// Balance Channel v1.2 valence computation
 function computeBalanceValence(dayAspects){
   if (!Array.isArray(dayAspects)) return 0;
   let v = 0;
@@ -155,18 +188,13 @@ function computeBalanceValence(dayAspects){
     const a = normBody(rec.p1_name || rec.a || rec.transit);
     const b = normBody(rec.p2_name || rec.b || rec.natal);
     const orb = rec.orb != null ? rec.orb : (rec.orbit != null ? rec.orbit : rec._orb);
+    const base = balanceBaseWeight(type, a, b);
+    if (base === 0) continue;
     const o = orbMultiplier(type, orb, a, b);
     const s = sensitivity(a,b);
-    // v1.1 base: softer positives/negatives than v1.0; here approximate using SFD support and skip negatives except hard to benefics
-    let base = 0;
-    base += baseSupportWeight(type, a,b);
-    if (isMoonSaturnSoft(type,a,b)) base = Math.max(base, 1.2);
-    if (isMinorSupport(type) && Math.abs(orb) <= 1.0) base = Math.max(base, 0.5);
-    // small negative for hard to benefic
-    const neg = baseCounterWeight(type, a,b);
-    const mA = planetMultiplier(a, base>0 ? 'support' : 'counter');
-    const mB = planetMultiplier(b, base>0 ? 'support' : 'counter');
-    const w = ((base>0? base : 0) + (neg<0? neg : 0)) * mA * mB * o * s;
+    const mA = balancePlanetMultiplier(a);
+    const mB = balancePlanetMultiplier(b);
+    const w = base * mA * mB * o * s;
     v += w;
   }
   // Soft normalization to -5..+5
