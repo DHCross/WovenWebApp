@@ -8000,25 +8000,26 @@ function renderTransitDay(dateStr, items){
             if(val<=-3) { tags.push('☍'); if(!glyphs.includes('☍')) glyphs.push('☍'); }
             if(vol>=3 && val<0) { tags.push('⧖'); if(!glyphs.includes('⧖')) glyphs.push('⧖'); }
             const signalTags = tags.join('');
-            // Title heuristics - enhanced for extreme states
+            // Title heuristics - geometric descriptors only (Math Brain compliance)
             let title;
-            if(val<=-4.5 && vol>=3) title='Silence with Teeth';
-            else if(val<=-4.5) title='Labor Day Misfire';
-            else if(mag>=4 && val<=-3) title='Held in the Pause';
-            else if(val<=-4) title='Friction Peak';
-            else if(vol>=4 && val<0) title='Diffuse Pulse';
-            else if(mag<2 && Math.abs(val)<0.5) title='Low Signal Day';
-            else if(mag>=3 && val>2) title='Momentum Window';
-            else title='Pattern Snapshot';
-            // Annotation (short, geometry-sourced descriptors; not narrative voice)
+            if(val<=-4.5 && vol>=3) title='High Volatility Negative Valence';
+            else if(val<=-4.5) title='Extreme Negative Valence';
+            else if(mag>=4 && val<=-3) title='High Magnitude Negative Pattern';
+            else if(val<=-4) title='Strong Negative Valence';
+            else if(vol>=4 && val<0) title='High Volatility Negative';
+            else if(mag<2 && Math.abs(val)<0.5) title='Low Signal Pattern';
+            else if(mag>=3 && val>2) title='High Magnitude Positive';
+            else title='Standard Pattern';
+            // Annotation (geometric descriptors only; no narrative interpretation)
             let annotation;
-            if(title==='Silence with Teeth') annotation='Weight held with no return.';
-            else if(title==='Labor Day Misfire') annotation='Systems jam; repair mode engaged.';
-            else if(title==='Held in the Pause') annotation='Signal drop. Echo instead of response.';
-            else if(title==='Friction Peak') annotation='Contact misfires; compression spike.';
-            else if(title==='Diffuse Pulse') annotation='Energy disperses; focus splits.';
-            else if(title==='Momentum Window') annotation='Supportive current with lift.';
-            else if(title==='Low Signal Day') annotation='Minimal activation; baseline field.';
+            if(title==='High Volatility Negative Valence') annotation='Valence ≤-4.5, Volatility ≥3.0';
+            else if(title==='Extreme Negative Valence') annotation='Valence ≤-4.5, Standard volatility';
+            else if(title==='High Magnitude Negative Pattern') annotation='Magnitude ≥4.0, Valence ≤-3.0';
+            else if(title==='Strong Negative Valence') annotation='Valence ≤-4.0';
+            else if(title==='High Volatility Negative') annotation='Volatility ≥4.0, Negative valence';
+            else if(title==='High Magnitude Positive') annotation='Magnitude ≥3.0, Valence >2.0';
+            else if(title==='Low Signal Pattern') annotation='Magnitude <2.0, |Valence| <0.5';
+            else annotation='Standard geometric pattern';
             return {title, annotation, glyphs: glyphs.join(''), magnitudeLabel, valenceLabel, volatilityLabel, signalTags, signalLabel:'composite flags'};
         }
 
