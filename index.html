@@ -3608,7 +3608,7 @@ function renderTransitDay(dateStr, items){
             md += generatePolarityCards(data, isRelational);
             
             // Mirror Voice Container (empty for Raven to fill)
-            md += generateMirrorVoiceContainer(isRelational);
+            md += generateMirrorVoiceContainer(isRelational, data);
             
             // SST Clause (Falsifiability)
             md += generateSSTClause();
@@ -3768,7 +3768,9 @@ function renderTransitDay(dateStr, items){
             let md = `## ${isRelational ? 'Relational_' : ''}Mirror_Voice\n\n`;
 
             // Extract data for synthesis
-            const typologyData = generateTypologicalProfile(data.person_a, { name: 'Subject' });
+            const chartData = extractChartDataForTypology(data.person_a);
+            const dominantOrientation = analyzeDominantOrientation(chartData);
+            const secondaryOrientation = analyzeSecondaryOrientation(chartData);
             const balanceData = synthesizeBalanceMeterFromTransits(data);
             const polarityData = extractTopPolarities(data, isRelational);
 
@@ -3777,7 +3779,7 @@ function renderTransitDay(dateStr, items){
                 const personAName = data.person_a?.details?.name || 'Person A';
                 const personBName = data.person_b?.details?.name || 'Person B';
 
-                md += `**FIELD**: Intersecting relational climate where ${personAName}'s ${typologyData.dominant.functionalEmphasis} patterns meet ${personBName}'s ${typologyData.secondary.functionalEmphasis} currents\n\n`;
+                md += `**FIELD**: Intersecting relational climate where ${personAName}'s ${dominantOrientation.functionalEmphasis} patterns meet ${personBName}'s patterns\n\n`;
 
                 md += `**MAP**: ${polarityData.length > 0 ? polarityData.slice(0, 2).map(p => `${p.nameA}/${p.nameB} (${p.map})`).join('; ') : 'Cross-chart geometry connecting individual patterns'}\n\n`;
 
@@ -3786,7 +3788,7 @@ function renderTransitDay(dateStr, items){
                 // Individual Mirror Voice - personal synthesis
                 const personName = data.person_a?.details?.name || 'Subject';
 
-                md += `**FIELD**: ${generateClimateReading(balanceData)} — ${typologyData.ravenTranslation.climate}\n\n`;
+                md += `**FIELD**: ${generateClimateReading(balanceData)} — ${dominantOrientation.functionalEmphasis} organizing current\n\n`;
 
                 md += `**MAP**: ${polarityData.length > 0 ? polarityData.slice(0, 2).map(p => `${p.nameA}/${p.nameB} (${p.map})`).join('; ') : 'Personal geometry patterns'}\n\n`;
 
@@ -3933,9 +3935,9 @@ function renderTransitDay(dateStr, items){
                         description: `${nextAspect.p1_name} ${nextAspect.aspect} ${nextAspect.p2_name} (${Math.abs(nextAspect.orb || nextAspect.orbit || 0).toFixed(1)}°)`
                     });
                 } else {
-                    // Only use placeholder if no more aspects available
+                    // Use generic fallback if no more aspects available
                     hooks.push({
-                        description: `Additional hook placeholder`
+                        description: `Chart emphasizes earlier listed patterns`
                     });
                 }
             }
@@ -4113,14 +4115,14 @@ function renderTransitDay(dateStr, items){
                         fieldB: isRelational ? generatePolarityField(nextAspect, 'B') : null
                     });
                 } else {
-                    // Only use placeholder if no more aspects available
+                    // Use archetypal fallback if no more aspects available
                     polarities.push({
-                        nameA: 'Polarity A',
-                        nameB: 'Polarity B',
-                        field: 'Somatic/sensory texture placeholder',
-                        map: 'Geometric source placeholder',
-                        fieldA: isRelational ? 'Field texture for A' : null,
-                        fieldB: isRelational ? 'Field texture for B' : null
+                        nameA: 'Individual',
+                        nameB: 'Collective',
+                        field: 'personal/transpersonal tension',
+                        map: 'Fundamental human polarity patterns',
+                        fieldA: isRelational ? 'Individual focus for A' : null,
+                        fieldB: isRelational ? 'Individual focus for B' : null
                     });
                 }
             }
