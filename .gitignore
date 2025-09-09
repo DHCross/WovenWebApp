@@ -37,3 +37,4 @@ test-output-*
 test-composite-scaffolding.html
 test-chunk-*.js
 test-final-verification.js
+test-auth-config.js
