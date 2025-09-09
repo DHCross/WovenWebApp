@@ -668,7 +668,7 @@ function formatTransitTable(enrichedAspects, prevDayAspects = null) {
   if (exact.length > 0) markdown += createMarkdownTable(exact, '⭐ Exact Aspects (≤0.5°)');
   if (tight.length > 0) markdown += createMarkdownTable(tight, '🔥 Tight Aspects (0.5° - 2°)');
   if (moderate.length > 0) markdown += createMarkdownTable(moderate, '📊 Moderate Aspects (2° - 6°)');
-  if (wide.length > 0) markdown += createMarkdownTable(wide, '🌫️ Wide Aspects (>6°)');
+  if (wide.length > 0) markdown += createMarkdownTable(wide, '🌫 Wide Aspects (>6°)');
 
   if (markdown === '') {
     markdown = "No aspects for this date.";
