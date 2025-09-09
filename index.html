@@ -6529,12 +6529,11 @@ function renderTransitDay(dateStr, items){
                     }
                 } catch(e) { /* noop */ }
 
-                // Attach any prebuilt reports/templates if present
+                // Attach any prebuilt reports if present (exclude templates)
                 const reports = {};
                 try {
-                    if (data?.reports?.mirror_report) reports.mirror_report = data.reports.mirror_report;
-                    if (data?.reports?.balance_meter_report) reports.balance_meter_report = data.reports.balance_meter_report;
-                    if (data?.reports?.templates) reports.templates = data.reports.templates;
+                    if (data?.reports && 'mirror_report' in data.reports) reports.mirror_report = data.reports.mirror_report;
+                    if (data?.reports && 'balance_meter_report' in data.reports) reports.balance_meter_report = data.reports.balance_meter_report;
                 } catch(_){}
 
                 return {
