@@ -119,6 +119,15 @@ After configuration:
 
 2. **Wrong redirect URLs**: Never use `*.auth0.com/login/callback` as callback URLs for your application. Those are for Auth0's internal use.
 
+3. **Incorrect authorizationParams usage in getTokenSilently()**: 
+   - ❌ Wrong: `getTokenSilently({ authorizationParams: { audience } })`
+   - ✅ Correct: `getTokenSilently({ audience })`
+   - This prevents `[object Object]` errors in auth URLs (see `auth0_authorizationparams_fix.md` for details)
+
+4. **Including protocol in AUTH0_DOMAIN**: 
+   - ❌ Wrong: `https://dev-z8gw1uk6zgsrzubk.us.auth0.com`
+   - ✅ Correct: `dev-z8gw1uk6zgsrzubk.us.auth0.com`
+
 3. **Missing HTTPS in production**: Production callback URLs must use HTTPS.
 
 4. **Trailing slashes**: Include both with and without trailing slashes in callback URLs for better compatibility.
