@@ -675,7 +675,7 @@
                 <div id="auth-debug-origin" class="hidden text-xs text-gray-400 ml-2 select-all" title="Current origin used as redirect_uri"></div>
                 <div class="flex gap-2">
                     <button id="google-login-button" class="auth-button bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-semibold auth-btn" title="Sign in with Google" disabled>Continue with Google</button>
-                    <button id="login-popup-button" class="auth-button bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm font-semibold auth-btn" title="Use a popup for local testing" disabled>Login (Popup)</button>
+                    <button id="login-popup-button" class="auth-button bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm font-semibold auth-btn hidden" title="Use a popup for local testing" disabled>Login (Popup)</button>
                     <button id="login-button" class="auth-button bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-semibold auth-btn" disabled>Log In</button>
                     <button id="logout-button" class="auth-button bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-semibold auth-btn hidden" disabled>Log Out</button>
                 </div>
@@ -11997,9 +11997,25 @@ function renderTransitDay(dateStr, items){
                         console.info('[Auth0] Loaded public config', { domain: cfg.domain });
                     } else {
                         console.warn('[Auth0] auth-config returned', res.status);
+                        // Fallback configuration when netlify function is not available
+                        window.__AUTH0_PUBLIC = {
+                            domain: 'dev-z8gw1uk6zgsrzubk.us.auth0.com',
+                            clientId: 'REPLACE_WITH_ACTUAL_AUTH0_SPA_CLIENT_ID',
+                            audience: null,
+                            hasAudience: false
+                        };
+                        console.info('[Auth0] Using fallback config');
                     }
                 } catch (e) {
                     console.warn('[Auth0] Failed to fetch public config', e?.message || e);
+                    // Fallback configuration when netlify function is not available
+                    window.__AUTH0_PUBLIC = {
+                        domain: 'dev-z8gw1uk6zgsrzubk.us.auth0.com',
+                        clientId: 'REPLACE_WITH_ACTUAL_AUTH0_SPA_CLIENT_ID',
+                        audience: null,
+                        hasAudience: false
+                    };
+                    console.info('[Auth0] Using fallback config');
                 }
                 initializeAuth0();
             }).catch((e) => {
@@ -12105,6 +12121,15 @@ function renderTransitDay(dateStr, items){
         const domain = sanitizeDomain(ac.domain) || '';
     const clientId = ac.clientId || '';
         const audience = ac.audience || null; // Avoid defaulting to Management API
+        
+        // Check if clientId is still the placeholder value
+        if (clientId === 'REPLACE_WITH_ACTUAL_AUTH0_SPA_CLIENT_ID') {
+            console.warn('[Auth0] Client ID is still set to placeholder value; auth features disabled.');
+            try { document.querySelectorAll('.auth-btn').forEach(btn => { if (btn) btn.disabled = true; }); } catch(_) {}
+            try { showNotification('Auth0 Client ID needs to be configured. Please replace the placeholder value with your actual Auth0 SPA Client ID from the Auth0 Dashboard.', 'error'); } catch(_){}
+            return;
+        }
+        
         if (!domain || !clientId) {
             console.warn('[Auth0] Missing domain or clientId from public config; auth features disabled.');
             try { document.querySelectorAll('.auth-btn').forEach(btn => { if (btn) btn.disabled = true; }); } catch(_) {}
