@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Auth0 Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .status { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Simple Auth0 SDK Test</h1>
+    <div id="status">Testing SDK loading...</div>
+    <button id="testBtn" disabled>Test Auth0 Client Creation</button>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const testBtn = document.getElementById('testBtn');
+
+        function updateStatus(message, type = 'info') {
+            statusEl.className = `status ${type}`;
+            statusEl.textContent = message;
+            console.log('[Simple Test]', message);
+        }
+
+        // Load SDK directly
+        const script = document.createElement('script');
+        script.src = '/vendor/auth0-spa-js.production.js';
+
+        script.onload = async () => {
+            console.log('Script loaded, checking for createAuth0Client...');
+            console.log('typeof createAuth0Client:', typeof createAuth0Client);
+            console.log('createAuth0Client function:', createAuth0Client);
+
+            if (typeof createAuth0Client === 'function') {
+                updateStatus('✅ SDK loaded successfully, createAuth0Client is available', 'success');
+                testBtn.disabled = false;
+            } else {
+                updateStatus('❌ SDK loaded but createAuth0Client is not available', 'error');
+            }
+        };
+
+        script.onerror = (e) => {
+            updateStatus(`❌ Failed to load SDK: ${e.message || 'Unknown error'}`, 'error');
+        };
+
+        document.head.appendChild(script);
+
+        // Test client creation
+        testBtn.addEventListener('click', async () => {
+            try {
+                updateStatus('Creating Auth0 client...', 'info');
+
+                // First test the config endpoint
+                const configResponse = await fetch('/.netlify/functions/auth-config');
+                const config = await configResponse.json();
+
+                if (!config.success) {
+                    throw new Error(`Config failed: ${config.error}`);
+                }
+
+                updateStatus(`Config loaded: ${config.domain}`, 'info');
+
+                // Create client
+                const auth0 = await createAuth0Client({
+                    domain: config.domain,
+                    clientId: config.clientId,
+                    authorizationParams: {
+                        redirect_uri: window.location.origin,
+                        audience: config.audience
+                    }
+                });
+
+                updateStatus('✅ Auth0 client created successfully!', 'success');
+
+            } catch (error) {
+                updateStatus(`❌ Client creation failed: ${error.message}`, 'error');
+                console.error('Client creation error:', error);
+            }
+        });
+    </script>
+</body>
+</html></content>
+<parameter name="filePath">/Users/dancross/Documents/GitHub/WovenWebApp/simple-auth0-test.html

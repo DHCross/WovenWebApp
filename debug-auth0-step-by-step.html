@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth0 Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .status { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Auth0 Loading Debug Test</h1>
+    <div id="status">Initializing...</div>
+    <button id="testBtn" disabled>Test Auth0 Config</button>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const testBtn = document.getElementById('testBtn');
+
+        function updateStatus(message, type = 'info') {
+            statusEl.className = `status ${type}`;
+            statusEl.textContent = message;
+            console.log('[Auth0 Debug]', message);
+        }
+
+        // Step 1: Test SDK loading
+        updateStatus('Step 1: Loading Auth0 SDK...', 'info');
+
+        // Try to load Auth0 SDK from both paths
+        const paths = ['/public/vendor/auth0-spa-js.production.js', '/vendor/auth0-spa-js.production.js'];
+        let sdkLoaded = false;
+
+        async function loadAuth0SDK() {
+            for (const path of paths) {
+                try {
+                    updateStatus(`Trying to load from: ${path}`, 'info');
+
+                    // First check if file exists
+                    const response = await fetch(path);
+                    if (!response.ok) {
+                        updateStatus(`Failed to fetch ${path}: ${response.status}`, 'error');
+                        continue;
+                    }
+
+                    // Check if it looks like the right file
+                    const text = await response.text();
+                    if (!text.includes('createAuth0Client')) {
+                        updateStatus(`File at ${path} doesn't contain createAuth0Client`, 'error');
+                        continue;
+                    }
+
+                    // Load via script tag
+                    const script = document.createElement('script');
+                    script.src = path;
+
+                    await new Promise((resolve, reject) => {
+                        script.onload = () => {
+                            if (typeof createAuth0Client === 'function') {
+                                updateStatus(`✅ SDK loaded successfully from ${path}`, 'success');
+                                sdkLoaded = true;
+                                testBtn.disabled = false;
+                                resolve();
+                            } else {
+                                reject(new Error('createAuth0Client not found after loading'));
+                            }
+                        };
+                        script.onerror = (e) => reject(new Error(`Script load error: ${e.message || 'Unknown error'}`));
+                        document.head.appendChild(script);
+                    });
+
+                    break; // Success, exit loop
+
+                } catch (error) {
+                    updateStatus(`❌ Failed to load from ${path}: ${error.message}`, 'error');
+                    console.error('Auth0 loading error:', error);
+                }
+            }
+
+            if (!sdkLoaded) {
+                updateStatus('❌ Failed to load Auth0 SDK from any path', 'error');
+            }
+        }
+
+        // Step 2: Test Auth0 Configuration
+        testBtn.addEventListener('click', async () => {
+            try {
+                updateStatus('Step 2: Testing Auth0 configuration...', 'info');
+
+                const configResponse = await fetch('/.netlify/functions/auth-config');
+                const config = await configResponse.json();
+
+                if (config.success) {
+                    updateStatus(`✅ Auth0 config loaded: ${config.domain}`, 'success');
+
+                    // Try to create Auth0 client
+                    const auth0 = await createAuth0Client({
+                        domain: config.domain,
+                        clientId: config.clientId,
+                        authorizationParams: {
+                            redirect_uri: window.location.origin,
+                            audience: config.audience
+                        }
+                    });
+
+                    updateStatus('✅ Auth0 client created successfully!', 'success');
+
+                } else {
+                    updateStatus(`❌ Auth0 config error: ${config.error}`, 'error');
+                }
+
+            } catch (error) {
+                updateStatus(`❌ Auth0 test failed: ${error.message}`, 'error');
+                console.error('Auth0 test error:', error);
+            }
+        });
+
+        // Start the test
+        loadAuth0SDK();
+    </script>
+</body>
+</html>

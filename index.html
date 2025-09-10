@@ -255,11 +255,17 @@
                                     var s = document.createElement('script');
                                     s.src = url;
                                     s.onload = function(){
-                                        if (typeof createAuth0Client === 'function') {
+                                        // Check if Auth0 SDK is properly loaded and createAuth0Client is available
+                                        console.log('[SDK Loader] Script loaded from', url);
+                                        console.log('[SDK Loader] window.auth0:', typeof window.auth0);
+                                        console.log('[SDK Loader] window.auth0?.createAuth0Client:', typeof window.auth0?.createAuth0Client);
+                                        console.log('[SDK Loader] global createAuth0Client:', typeof createAuth0Client);
+                                        
+                                        if (typeof window.auth0 !== 'undefined' && typeof window.auth0.createAuth0Client === 'function') {
                                             console.info('[Auth0] SDK loaded from', url);
                                             res(true);
                                         } else {
-                                            rej(new Error('SDK loaded but createAuth0Client missing'));
+                                            rej(new Error('SDK loaded but window.auth0.createAuth0Client missing'));
                                         }
                                     };
                                     s.onerror = function(e){ rej(new Error('Failed to load '+url)); };
@@ -11958,27 +11964,39 @@ function renderTransitDay(dateStr, items){
 
         async function initAuth0() {
             try {
-                // Check if SDK is loaded
-                if (typeof createAuth0Client !== 'function') {
+                // Enhanced SDK detection with detailed logging
+                console.log('[Auth0 Debug] Checking SDK availability...');
+                console.log('[Auth0 Debug] window:', typeof window);
+                console.log('[Auth0 Debug] window.auth0:', typeof window.auth0);
+                console.log('[Auth0 Debug] window.auth0.createAuth0Client:', typeof window.auth0?.createAuth0Client);
+                console.log('[Auth0 Debug] global createAuth0Client:', typeof createAuth0Client);
+                
+                var hasSdk = (typeof window !== 'undefined') && window.auth0 && (typeof window.auth0.createAuth0Client === 'function');
+                if (!hasSdk) {
                     console.warn('Auth0 SDK not loaded. Auth features disabled.');
+                    console.warn('[Auth0 Debug] Available globals:', Object.keys(window).filter(k => k.toLowerCase().includes('auth')));
                     return;
                 }
 
                 // Fetch configuration
+                console.log('[Auth0 Debug] Fetching configuration...');
                 authConfig = await fetchAuthConfig();
                 if (!authConfig || !authConfig.domain || !authConfig.clientId) {
                     console.warn('Auth0 config incomplete. Missing domain or clientId.');
+                    console.warn('[Auth0 Debug] Received config:', authConfig);
                     return;
                 }
 
                 // Initialize Auth0 client (include audience when configured)
+                console.log('[Auth0 Debug] Creating Auth0 client...');
                 const authParams = {
                     redirect_uri: window.location.origin,
                     scope: 'openid profile email offline_access'
                 };
                 if (authConfig.audience) authParams.audience = authConfig.audience;
 
-                auth0Client = await createAuth0Client({
+                console.log('[Auth0 Debug] Auth params:', authParams);
+                auth0Client = await window.auth0.createAuth0Client({
                     domain: authConfig.domain,
                     clientId: authConfig.clientId,
                     authorizationParams: authParams,
@@ -11987,6 +12005,7 @@ function renderTransitDay(dateStr, items){
                 });
 
                 console.log('Auth0 client initialized successfully');
+                console.log('[Auth0 Debug] Client methods:', Object.keys(auth0Client));
 
                 // Handle redirect callback if returning from login
                 await handleAuthCallback();
