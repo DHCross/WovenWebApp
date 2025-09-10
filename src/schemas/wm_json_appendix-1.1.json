@@ -82,11 +82,11 @@
           "vol": { "type": "number" },
           "magnitude_term": {
             "type": "string",
-            "enum": ["Latent", "Murmur", "Pulse", "Stirring", "Convergence", "Threshold"]
+            "enum": ["Whisper", "Pulse", "Wave", "Surge", "Peak", "Apex"]
           },
           "valence_term": {
             "type": "string",
-            "enum": ["Collapse", "Grind", "Friction", "Contraction", "Drag", "Equilibrium", "Lift", "Flow", "Harmony", "Expansion", "Liberation"]
+            "enum": ["Collapse", "Grind", "Friction", "Contraction", "Drag", "Neutral", "Lift", "Flow", "Harmony", "Expansion", "Liberation"]
           },
           "top_hooks": {
             "type": "array",

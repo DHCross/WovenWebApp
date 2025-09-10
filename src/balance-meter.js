@@ -133,7 +133,7 @@ function baseCounterWeight(type, aName, bName){
   const set = new Set([aName,bName]);
   const hard = (type==='square' || type==='opposition');
   if (hard && (set.has('Jupiter') || set.has('Venus'))) return -1.3; // hard to benefics
-  if (type==='conjunction' && (set.has('Saturn') || set.has('Pluto') || set.has('Chiron')) && (set.has('Jupiter') || set.has('Venus'))) return -0.8; // heavy to benefic conj (may be offset)
+  if (type==='conjunction' && (set.has('Saturn') || set.has('Pluto') || set.has('Chiron')) && (set.has('Jupiter') || set.has('Venus'))) return -0.8; // heavy to benefic conj
   // Specific hard combos handled in logic using support nodes (see below)
   return 0.0;
 }
@@ -145,41 +145,8 @@ function isHardBetween(type, aName, bName, setA, setB){
   return ([...setA].some(x=>A.has(x)) && [...setB].some(x=>A.has(x)));
 }
 
-// Base valence weights for Balance Channel v1.2
-function balanceBaseWeight(type, aName, bName){
-  const set = new Set([aName, bName]);
-  if (type==='square' || type==='opposition') return -1.0;
-  if (type==='trine') return +1.1;
-  if (type==='sextile') return +0.8;
-  if (type==='quintile' || type==='biquintile') return +0.4;
-  if (type==='conjunction'){
-    if (set.has('Saturn') || set.has('Pluto') || set.has('Chiron')) return -0.7;
-    if (set.has('Venus') || set.has('Jupiter')) return +0.8;
-  }
-  return 0.0;
-}
-
-// Planetary multipliers for Balance Channel v1.2
-function balancePlanetMultiplier(body){
-  switch(body){
-    case 'Pluto':
-    case 'Saturn':
-    case 'Neptune':
-    case 'Uranus':
-      return 1.3;
-    case 'Chiron':
-      return 1.1;
-    case 'Jupiter':
-    case 'Venus':
-      return 1.2;
-    case 'Moon':
-      return 0.5;
-    default:
-      return 1.0;
-  }
-}
-
-// Balance Channel v1.2 valence computation
+// Balance Channel v1.1 (rebalanced valence only)
+// Simple pass: reuse SFD support weights but with gentler base table per Appendix (if needed later)
 function computeBalanceValence(dayAspects){
   if (!Array.isArray(dayAspects)) return 0;
   let v = 0;
@@ -188,13 +155,18 @@ function computeBalanceValence(dayAspects){
     const a = normBody(rec.p1_name || rec.a || rec.transit);
     const b = normBody(rec.p2_name || rec.b || rec.natal);
     const orb = rec.orb != null ? rec.orb : (rec.orbit != null ? rec.orbit : rec._orb);
-    const base = balanceBaseWeight(type, a, b);
-    if (base === 0) continue;
     const o = orbMultiplier(type, orb, a, b);
     const s = sensitivity(a,b);
-    const mA = balancePlanetMultiplier(a);
-    const mB = balancePlanetMultiplier(b);
-    const w = base * mA * mB * o * s;
+    // v1.1 base: softer positives/negatives than v1.0; here approximate using SFD support and skip negatives except hard to benefics
+    let base = 0;
+    base += baseSupportWeight(type, a,b);
+    if (isMoonSaturnSoft(type,a,b)) base = Math.max(base, 1.2);
+    if (isMinorSupport(type) && Math.abs(orb) <= 1.0) base = Math.max(base, 0.5);
+    // small negative for hard to benefic
+    const neg = baseCounterWeight(type, a,b);
+    const mA = planetMultiplier(a, base>0 ? 'support' : 'counter');
+    const mB = planetMultiplier(b, base>0 ? 'support' : 'counter');
+    const w = ((base>0? base : 0) + (neg<0? neg : 0)) * mA * mB * o * s;
     v += w;
   }
   // Soft normalization to -5..+5
@@ -244,30 +216,6 @@ function computeSFD(dayAspects){
     let base = 0;
     // base negatives
     base = Math.min(base, baseCounterWeight(type, a,b));
-
-    // Heavy–benefic conjunction compensation: if the benefic simultaneously
-    // forms a trine or sextile (≤1.5° orb) on the same day, lessen the
-    // default −0.8 penalty. One supporting aspect halves the penalty, two or
-    // more cancel it entirely.
-    if (type==='conjunction' && base === -0.8){
-      const benefic = isBenefic(a) ? a : (isBenefic(b) ? b : null);
-      if (benefic){
-        let comp = 0;
-        for (const other of dayAspects){
-          if (other === rec) continue;
-          const t2 = normAspectName(other.aspect || other.type || other._aspect);
-          if (!(t2==='trine' || t2==='sextile')) continue;
-          const a2 = normBody(other.p1_name || other.a || other.transit);
-          const b2 = normBody(other.p2_name || other.b || other.natal);
-          const orb2 = other.orb != null ? other.orb : (other.orbit != null ? other.orbit : other._orb);
-          const o2 = Math.abs(Number(orb2||0));
-          if (o2 > 1.5) continue;
-          if (a2===benefic || b2===benefic) comp++;
-        }
-        if (comp >= 2) base = 0;
-        else if (comp >= 1) base = -0.4;
-      }
-    }
 
     // Hard aspects to S+ nodes by Saturn/Mars/Neptune → negative
     const hard = (type==='square' || type==='opposition');

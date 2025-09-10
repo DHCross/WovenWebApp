@@ -668,7 +668,7 @@ function formatTransitTable(enrichedAspects, prevDayAspects = null) {
   if (exact.length > 0) markdown += createMarkdownTable(exact, '⭐ Exact Aspects (≤0.5°)');
   if (tight.length > 0) markdown += createMarkdownTable(tight, '🔥 Tight Aspects (0.5° - 2°)');
   if (moderate.length > 0) markdown += createMarkdownTable(moderate, '📊 Moderate Aspects (2° - 6°)');
-  if (wide.length > 0) markdown += createMarkdownTable(wide, '🌫 Wide Aspects (>6°)');
+  if (wide.length > 0) markdown += createMarkdownTable(wide, '🌫️ Wide Aspects (>6°)');
 
   if (markdown === '') {
     markdown = "No aspects for this date.";
@@ -1349,14 +1349,6 @@ exports.handler = async function(event) {
       return up; // fallback; will validate later
     }
 
-    function normalizeRole(r) {
-      if (!r) return '';
-      const trimmed = r.toString().trim();
-      if (!trimmed) return '';
-      // Normalize to title case to match FAMILY_ROLES and FRIEND_ROLES arrays
-      return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
-    }
-
     function validateRelationshipContext(raw, relationshipMode){
       if(!relationshipMode) return { valid: true, value: null, reason: 'Not in relationship mode' };
       const ctx = raw || body.relationship || body.relationship_context || body.relationshipContext || {};
@@ -1378,12 +1370,12 @@ exports.handler = async function(event) {
 
       // Role requirement for FAMILY; optional for FRIEND
       if (cleaned.type === 'FAMILY') {
-        cleaned.role = normalizeRole(ctx.role || ctx.family_role || ctx.relationship_role || '');
+        cleaned.role = (ctx.role || ctx.family_role || '').toString();
         if(!FAMILY_ROLES.includes(cleaned.role)) {
           errors.push(`role required for FAMILY (one of ${FAMILY_ROLES.join(',')})`);
         }
       } else if (cleaned.type === 'FRIEND') {
-        cleaned.role = normalizeRole(ctx.role || ctx.friend_role || ctx.relationship_role || '');
+        cleaned.role = (ctx.role || ctx.friend_role || '').toString();
         if (cleaned.role && !FRIEND_ROLES.includes(cleaned.role)) {
           errors.push(`friend role invalid (optional, one of ${FRIEND_ROLES.join(',')})`);
         }

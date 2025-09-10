@@ -5,29 +5,9 @@ This is a web-based application designed to generate a detailed astrological rep
 ## **Key Features**
 
 ### **Safe Lexicon System**
-- **Neutral Magnitude Ladder**: Latent, Murmur, Pulse, Stirring, Convergence, Threshold (strictly intensity-only, no negative bias)
-
-- **🌑🌞 Valence Mapping (−5 … +5)**
-
-  | Level | Anchor | Flavor Patterns |
-  | :---- | :----- | :-------------- |
-  | −5 | **Collapse** | 🌋🧩⬇️ — maximum restrictive tilt; compression / failure points |
-  | −4 | **Grind** | 🕰⚔🌪 — sustained resistance; heavy duty load |
-  | −3 | **Friction** | ⚔🌊🌫 — conflicts or cross‑purposes slow motion |
-  | −2 | **Contraction** | 🌫🧩⬇️ — narrowing options; ambiguity or energy drain |
-  | −1 | **Drag** | 🌪🌫 — subtle headwind; minor loops or haze |
-  | 0 | **⚖️ Equilibrium** | net‑neutral tilt; forces cancel or are too diffuse to resolve |
-  | +1 | **Lift** | 🌱✨ — gentle tailwind; beginnings sprout |
-  | +2 | **Flow** | 🌊🧘 — smooth adaptability; things click |
-  | +3 | **Harmony** | 🧘✨🌊 — coherent progress; both/and solutions |
-  | +4 | **Expansion** | 💎🔥🦋 — widening opportunities; clear insight fuels growth |
-  | +5 | **Liberation** | 🦋🌈🔥 — peak openness; breakthroughs / big‑sky view |
-
-  *Emoji selection: 1–2 glyphs if Magnitude ≤ 2, up to 3 if ≥ 3. Never mix negative and positive emojis in one line; 🌀 is reserved for Volatility alone.*
-
+- **Neutral Magnitude Terms**: Whisper, Pulse, Wave, Surge, Peak, Apex (strictly intensity-only, no negative bias)
 - **Rich Valence Terms**: Collapse, Grind, Friction, Contraction, Drag, Neutral, Lift, Flow, Harmony, Expansion, Liberation
-
-- **Emoji Valence Display**: 🌑 Negative (🌪⚔🌊🌫🌋🕰🧩⬇️) and 🌞 Positive (🌱✨💎🔥🦋🧘🌊🌈) visual indicators
+- **Emoji Valence Display**: 🌑 Negative (🌋⚔🌊🌀🌫🕰) and 🌞 Positive (🌱🔥✨🦋💎) visual indicators
 - **Schema v1.2**: Machine-readable JSON includes both numeric and term values
 
 ### **Seismograph Mode**
@@ -419,38 +399,6 @@ To run this project locally using Netlify CLI:
 
 This will proxy requests to your serverless function and allow full front-end + back-end testing in development mode.
 
-### **Auth0 Setup (For Authentication Features)**
-
-If you want to enable authentication features, follow these steps to configure Auth0:
-
-#### **Quick Setup**
-```bash
-# 1. Run the setup assistant to create your .env file
-npm run setup:auth0
-
-# 2. Get your Auth0 Client ID from Auth0 Dashboard and update .env
-# 3. Verify your configuration
-npm run verify:auth0
-```
-
-#### **Manual Setup**
-1. **Create Environment File**: Copy `.env.example` to `.env`
-2. **Get Auth0 Client ID**: 
-   - Go to [Auth0 Dashboard](https://manage.auth0.com/) → Applications
-   - Find your **Single Page Application** 
-   - Copy the **Client ID** from Settings tab
-3. **Update .env**: Replace `REPLACE_WITH_ACTUAL_AUTH0_SPA_CLIENT_ID` with your actual Client ID
-4. **Configure Auth0 URLs**: In your Auth0 app settings, add:
-   - **Callback URLs**: `http://localhost:8888`, `https://your-site.netlify.app`
-   - **Logout URLs**: `http://localhost:8888`, `https://your-site.netlify.app`  
-   - **Web Origins**: `http://localhost:8888`, `https://your-site.netlify.app`
-
-#### **Troubleshooting Auth0**
-- **Issues with setup?** See `AUTH0_FIX_GUIDE.md` for detailed troubleshooting
-- **Quick diagnosis**: Run `npm run fix:auth0` to identify and fix common issues
-- **Validate configuration**: Run `npm run test:auth0` for comprehensive checks
-- **Test endpoint**: `curl http://localhost:8888/.netlify/functions/auth-config`
-
 ### **File Structure**
 
 * index.html: The main application file containing the UI and front-end JavaScript.  
@@ -463,7 +411,7 @@ npm run verify:auth0
 - **External API error**: This message indicates the serverless function could not reach the Astrologer API. Double‑check that the `RAPIDAPI_KEY` environment variable is defined in your Netlify site settings or a local `.env` file (copy `.env.example` to `.env`). After updating the variable, restart `netlify dev` (or redeploy) so the new environment is loaded.
 
 - **Auth: 401/403 “You don't have permissions to access the resource”**: Your SPA token likely lacks the API audience. Set `AUTH0_AUDIENCE` (your custom API identifier) in Netlify env, add it to your Application’s Allowed Web Origins/Callbacks, and enable that API in the Application (Auth0 Dashboard → Applications → Your App → APIs → Authorized). Then hard refresh and login again.
-## Raven Calder Synastry Glossary (for Poetic Brain Compatibility)
+## 🌀 Raven Calder Synastry Glossary (for Poetic Brain Compatibility)
 
 | Term | Definition |
 | --- | --- |

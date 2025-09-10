@@ -17,23 +17,15 @@ Runtime Config Endpoint
 - There is no build step generating `auth_config.json` anymore; that approach has been replaced by the function.
 
 Auth0 Dashboard Settings
-**IMPORTANT**: These URLs should point to YOUR APPLICATION, not to Auth0's callback URLs.
-
 - Allowed Callback URLs:
   - http://localhost:8888
-  - http://localhost:8888/
   - https://<your-site>.netlify.app
-  - https://<your-site>.netlify.app/
 - Allowed Logout URLs:
   - http://localhost:8888
-  - http://localhost:8888/
   - https://<your-site>.netlify.app
-  - https://<your-site>.netlify.app/
 - Allowed Web Origins:
   - http://localhost:8888
   - https://<your-site>.netlify.app
-
-**DO NOT USE**: URLs like `https://your-tenant.auth0.com/login/callback` - these are Auth0's internal URLs, not your application's URLs.
 
 Security Notes
 - No fallbacks to real domain/client ID exist in code; env is required.

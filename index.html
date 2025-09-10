@@ -675,7 +675,7 @@
                 <div id="auth-debug-origin" class="hidden text-xs text-gray-400 ml-2 select-all" title="Current origin used as redirect_uri"></div>
                 <div class="flex gap-2">
                     <button id="google-login-button" class="auth-button bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-semibold auth-btn" title="Sign in with Google" disabled>Continue with Google</button>
-                    <button id="login-popup-button" class="auth-button bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm font-semibold auth-btn hidden" title="Use a popup for local testing" disabled>Login (Popup)</button>
+                    <button id="login-popup-button" class="auth-button bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm font-semibold auth-btn" title="Use a popup for local testing" disabled>Login (Popup)</button>
                     <button id="login-button" class="auth-button bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-semibold auth-btn" disabled>Log In</button>
                     <button id="logout-button" class="auth-button bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-semibold auth-btn hidden" disabled>Log Out</button>
                 </div>
@@ -1659,9 +1659,6 @@ window.WOVEN_UI_FILTERS = { tightOnly:true, showMinor:false, showHarmonic:false,
 // Universal context reference for browser/server compatibility
 const WOVEN_GLOBAL = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : {});
 
-// Calibration boundary for Balance/SFD availability
-const CALIBRATION_BOUNDARY = '2025-09-05';
-
 // Step-size limits (centralized + configurable)
 // Defaults are intentionally conservative; warnings trigger at 80% of max.
 const DEFAULT_STEP_LIMITS = {
@@ -1966,20 +1963,10 @@ function renderTransitDay(dateStr, items){
         function hasAnyHouseCusps(chart) {
             const houseKeys = [
                 'first_house', 'second_house', 'third_house', 'fourth_house',
-                'fifth_house', 'sixth_house', 'seventh_house', 'eighth_house',
+                'fifth_house', 'sixth_house', 'seventh_house', 'eighth_house', 
                 'ninth_house', 'tenth_house', 'eleventh_house', 'twelfth_house'
             ];
             return houseKeys.some(key => chart[key] && chart[key].sign && chart[key].position !== undefined);
-        }
-
-        const ZODIAC_SIGNS = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
-
-        function formatAbsPos(pos) {
-            if (pos === undefined || pos === null || isNaN(pos)) return '';
-            const norm = ((pos % 360) + 360) % 360;
-            const sign = ZODIAC_SIGNS[Math.floor(norm / 30)] || '';
-            const deg = (norm % 30).toFixed(1);
-            return `${deg}° ${sign}`;
         }
 
         // Reusable function to render natal chart data for any person
@@ -2441,8 +2428,7 @@ function renderTransitDay(dateStr, items){
             const lines = [
                 `# Exec Summary (${data.provenance?.math_brain_version || '0.2.1'})`,
                 `Date: ${currentDate}  TZ: ${personA?.timezone || 'UTC'}  Context: ${mode?.toUpperCase() || 'N/A'}`,
-                `Triple Channel: ${firstDayData ? tripleChannelLine(firstDayData, currentDate) : 'No data'}`,
-                `Valence calculated under v1.1 calibration.`,
+                `Triple Channel: ${firstDayData ? tripleChannelLine(firstDayData) : 'No data'}`,
                 `Magnitude: ${formatNumber(firstDayData?.seismograph?.magnitude)} (${toMagnitudeTerm(firstDayData?.seismograph?.magnitude || 0)}) | Valence: ${getValenceEmoji(clampedVal)} ${formatNumber(clampedVal)} (${toValenceTerm(clampedVal)}) | Volatility: ${formatNumber(firstDayData?.seismograph?.volatility)}`,
                 `Valence_raw (debug): ${formatNumber(rawVal)}`,
                 `Top Hooks (orb-capped): ${hooksStr} • [Geometry](#geometry-skeleton)`,
@@ -2456,9 +2442,9 @@ function renderTransitDay(dateStr, items){
         
         function generateJsonAppendix(data, runStats = {}) {
             const transitsByDate = data.person_a?.chart?.transitsByDate || data.sky_transits?.transitsByDate || {};
-            const calBoundary = (data.provenance && data.provenance.calibration_boundary) || CALIBRATION_BOUNDARY;
+            const CALIBRATION_BOUNDARY = (data.provenance && data.provenance.calibration_boundary) || '2025-09-05';
             const engines = data.provenance?.engine_versions || { seismograph: 'v1.0', balance: 'v1.1', sfd: 'v1.2' };
-            const reconstructed = Boolean(data.reconstructed || (Object.keys(transitsByDate).some(d => d < calBoundary)));
+            const reconstructed = Boolean(data.reconstructed || (Object.keys(transitsByDate).some(d => d < CALIBRATION_BOUNDARY)));
 
             const entries = Object.entries(transitsByDate).map(([date, day]) => {
                 // Normalize nested/flat balance & sfd
@@ -2482,7 +2468,7 @@ function renderTransitDay(dateStr, items){
                     ...(balance ? { balance } : {}),
                     ...(sfd ? { sfd } : {}),
                     meta: {
-                        calibration_boundary: calBoundary,
+                        calibration_boundary: CALIBRATION_BOUNDARY,
                         engine_versions: engines,
                         reconstructed
                     }
@@ -2562,20 +2548,19 @@ function renderTransitDay(dateStr, items){
             return `${x >= 0 ? "+" : ""}${x.toFixed(1)}`;
         }
         
-        function tripleChannelLine({ seismograph, balance, sfd }, date) {
-            const showAdvanced = !date || date >= CALIBRATION_BOUNDARY;
+        function tripleChannelLine({ seismograph, balance, sfd }) {
             const mag = seismograph?.magnitude;
             const magTxt = Number.isFinite(mag) ? mag.toFixed(1) : "?";
             const val = seismograph?.valence;
             const valEmoji = Number.isFinite(val) ? getValenceEmoji(Math.max(-5, Math.min(5, val))) : '';
             const parts = [`⚡ ${magTxt}`, `Val ${valEmoji} ${fmtSigned(val)}`];
 
-            if (showAdvanced && balance && Number.isFinite(balance.valence)) {
+            if (balance && Number.isFinite(balance.valence)) {
                 const balEmoji = getValenceEmoji(Math.max(-5, Math.min(5, balance.valence)));
                 parts.push(`Bal ${balEmoji} ${fmtSigned(balance.valence)}`);
             }
 
-            if (showAdvanced && sfd && Number.isFinite(sfd.sfd)) {
+            if (sfd && Number.isFinite(sfd.sfd)) {
                 const verdict = sfdVerdict(sfd.sfd);
                 if (verdict) {
                     const sPlus = Number.isFinite(sfd.sPlus) ? sfd.sPlus.toFixed(1) : '?';
@@ -2886,8 +2871,7 @@ function renderTransitDay(dateStr, items){
                     md += `**Dominant Channel**: ${summary.dominant_channel}\n`;
                 }
                 if (Number.isFinite(summary.volatility_index)) {
-                    const volEmoji = getVolatilityEmoji(summary.volatility_index);
-                    md += `**Volatility Index**: ${volEmoji} ${summary.volatility_index.toFixed(2)}\n`;
+                    md += `**Volatility Index**: 🌪️ ${summary.volatility_index.toFixed(2)}\n`;
                 }
                 md += `\n`;
             }
@@ -2918,7 +2902,6 @@ function renderTransitDay(dateStr, items){
             }
 
             md += `## Daily Entries\n\n`;
-            md += `> Valence calculated under v1.1 calibration.\n\n`;
             md += `| Date | Triple Channel | SFD Verdict | Recovery | Resilience | DepletionIndex | Narrative | Top Hooks |\n`;
             md += `|------|-----------------|-------------|----------|------------|----------------|-----------|----------|\n`;
 
@@ -2927,36 +2910,35 @@ function renderTransitDay(dateStr, items){
 
             if (balanceMeterData.daily_entries) {
                 const dates = Object.keys(balanceMeterData.daily_entries).sort();
-
+                
                 dates.forEach(date => {
                     const day = normalizeEntry(balanceMeterData.daily_entries[date]);
                     if (!day) return;
-
-                    const isPreCal = date < CALIBRATION_BOUNDARY;
+                    
                     // Generate triple channel display
-                    const channelLine = tripleChannelLine({
-                        seismograph: day.seismograph,
-                        balance: isPreCal ? undefined : day.balance,
-                        sfd: isPreCal ? undefined : day.sfd
-                    }, date);
-
+                    const channelLine = tripleChannelLine({ 
+                        seismograph: day.seismograph, 
+                        balance: day.balance, 
+                        sfd: day.sfd 
+                    });
+                    
                     // Get SFD verdict
-                    const verdict = isPreCal ? '—' : sfdVerdict(day.sfd || {});
-
+                    const verdict = sfdVerdict(day.sfd || {});
+                    
                     // Get resilience metrics for this day
-                    const resilience = !isPreCal ? dailyResilienceMetrics[date] : null;
+                    const resilience = dailyResilienceMetrics[date];
                     const recovery = resilience ? resilience.recovery.toFixed(1) : '—';
                     const resilienceScore = resilience ? resilience.resilience.toFixed(1) : '—';
                     const depletionIndex = resilience ? resilience.depletionIndex.toFixed(1) : '—';
                     const narrative = resilience ? resilience.narrative : '—';
-
+                    
                     // Get top hooks for this day
                     const hooks = (day.hooks || []).slice(0, 2);
                     const topHooks = hooks.map(h => {
                         const orb = Math.abs(h._orb || h.orb || 0).toFixed(1);
                         return `${h.p1_name} ${h._aspect || h.aspect} ${h.p2_name} (${orb}°)`;
                     }).join(', ') || '—';
-
+                    
                     md += `| ${date} | ${channelLine.replace(/\|/g, '\\|')} | ${verdict} | ${recovery} | ${resilienceScore} | ${depletionIndex} | ${narrative} | ${topHooks.replace(/\|/g, '\\|')} |\n`;
                 });
             }
@@ -3016,9 +2998,9 @@ function renderTransitDay(dateStr, items){
 `House Confidence: [high | medium | low]\n`+
 `Lens Location: [City, Region] • Time Zone: ${tz}\n\n`+
 `## Vector-Integrity Check (Mandatory if structurally qualified)\n\n`+
-`- [Latent/Suppressed]: [Vector name] — [structural presence; currently contained/waiting]\n`+
-`- [Latent/Suppressed]: [Vector name] — [compensated by X placements]\n`+
-`- [Latent/Suppressed]: [Vector name] — [awaits activation window (e.g., Saturn return)]\n\n`+
+`- [Latent/Suppressed/Dormant]: [Vector name] — [structural presence; currently contained/waiting]\n`+
+`- [Latent/Suppressed/Dormant]: [Vector name] — [compensated by X placements]\n`+
+`- [Latent/Suppressed/Dormant]: [Vector name] — [awaits activation window (e.g., Saturn return)]\n\n`+
 `## Polarity Cards (FIELD → MAP → VOICE)\n\n`+
 `1) [Polarity A] ↔ [Polarity B]\n`+
 `FIELD: [somatic/sensory texture]\n`+
@@ -3095,7 +3077,7 @@ function renderTransitDay(dateStr, items){
 `- [Pressure on the bond] ([high/medium/low], [supportive 🌞 / restrictive 🌑 / mixed 🌗])\n`+
 `- [Shared Scaffolding] ([present/challenged/absent])\n`+
 `- [Bond Resilience] ([resilient/depleted/rebounding])\n`+
-`- [Volatility] ([steady / scattered / storm-class 🌀])\n\n`+
+`- [Volatility] ([steady / scattered / storm-class 🌪️])\n\n`+
 `### Bond Climate Line\n\n`+
 `[How A’s baseline meets B’s baseline under current sky; where ease vs. drag concentrates]\n\n`+
 `## Relocation Context (Relational)\n\n`+
@@ -3136,13 +3118,13 @@ function renderTransitDay(dateStr, items){
 `- Pressure: [high/medium/low] ([supportive 🌞 / restrictive 🌑 / mixed 🌗])\n`+
 `- Support/Scaffolding: [present/challenged/absent]\n`+
 `- Resilience: [resilient/depleted/rebounding]\n`+
-`- Volatility: [steady / scattered / storm-class 🌀]\n\n`+
+`- Volatility: [steady / scattered / storm-class 🌪️]\n\n`+
 `### Climate Line\n\n`+
 `[Narrative of how pressure distributes; key cross-currents; where air clears]\n\n`+
 `## Support–Friction Differential (SFD)\n\n`+
 `[Where support outweighs friction / where friction outweighs support; one paragraph]\n\n`+
 `## Vector Flags (If Any)\n\n`+
-`- [Latent/Suppressed]: [Vector name] — [note]\n\n`+
+`- [Latent/Suppressed/Dormant]: [Vector name] — [note]\n\n`+
 `## Relocation Note (If On)\n\n`+
 `[City] — [one line disclosure]\n\n`+
 `## Frontstage Metadata\n\n`+
@@ -3165,14 +3147,14 @@ function renderTransitDay(dateStr, items){
 `- Pressure on the Bond: [high/medium/low] ([supportive 🌞 / restrictive 🌑 / mixed 🌗])\n`+
 `- Shared Scaffolding: [present/challenged/absent]\n`+
 `- Bond Resilience: [resilient/depleted/rebounding]\n`+
-`- Volatility: [steady / scattered / storm-class 🌀]\n\n`+
+`- Volatility: [steady / scattered / storm-class 🌪️]\n\n`+
 `### Bond Climate Line\n\n`+
 `[Narrative: how A’s field meets B’s field today; where coupling adds lift vs. drag]\n\n`+
 `## SFD for the Bond\n\n`+
 `[Explain net balance between stabilizers and stressors across the connection]\n\n`+
 `## Dyadic Vector Flags (If Any)\n\n`+
-`- [Latent/Suppressed]: [A→B vector] — [note]\n`+
-`- [Latent/Suppressed]: [B→A vector] — [note]\n\n`+
+`- [Latent/Suppressed/Dormant]: [A→B vector] — [note]\n`+
+`- [Latent/Suppressed/Dormant]: [B→A vector] — [note]\n\n`+
 `## Relocation Note (If On)\n\n`+
 `Mode: [A_local | B_local | midpoint] — [one-line disclosure]\n\n`+
 `## Frontstage Metadata\n\n`+
@@ -3213,7 +3195,7 @@ function renderTransitDay(dateStr, items){
             html += `<h3 class="text-cyan-300 font-medium mb-2">Core Metrics</h3>`;
             html += `<div class="space-y-1 text-gray-200">`;
             html += `<div>⚡ <span class="text-gray-300">Magnitude (intensity)</span></div>`;
-            html += `<div>🔀 <span class="text-gray-300">Volatility (distribution)</span></div>`;
+            html += `<div>🌪️ <span class="text-gray-300">Volatility (instability)</span></div>`;
             html += `<div>🌞 🌑 🌗 <span class="text-gray-300">Valence (positive/negative/mixed)</span></div>`;
             html += `</div></div>`;
             
@@ -3225,8 +3207,8 @@ function renderTransitDay(dateStr, items){
             html += `<div>✨ Harmonic Resonance</div>`;
             html += `<div>💎 Expansion Lift</div>`;
             html += `<div>🔥 Combustion Clarity</div>`;
-            html += `<div>🦋 Liberation / Release</div>`;
-            html += `<div>🧘 Integration</div>`;
+            html += `<div>🦋 Liberation/Release</div>`;
+            html += `<div>⚖️ Integration</div>`;
             html += `<div>🌊 Flow Tide</div>`;
             html += `<div>🌈 Visionary Spark</div>`;
             html += `</div></div>`;
@@ -3235,14 +3217,14 @@ function renderTransitDay(dateStr, items){
             html += `<div class="bg-gray-700/50 p-3 rounded-lg">`;
             html += `<h3 class="text-red-300 font-medium mb-2">Negative Modes 🌑</h3>`;
             html += `<div class="space-y-1 text-gray-200 text-xs">`;
-            html += `<div>🌪 Recursion Pull</div>`;
+            html += `<div>♾️ Recursion Pull</div>`;
             html += `<div>⚔️ Friction Clash</div>`;
-            html += `<div>🌊 Cross Current</div>`;
-            html += `<div>🌫 Fog / Dissolution</div>`;
-            html += `<div>🌋 Pressure / Eruption</div>`;
-            html += `<div>🕰 Saturn Weight</div>`;
+            html += `<div>↔️ Cross Current</div>`;
+            html += `<div>🌫️ Fog/Dissolution</div>`;
+            html += `<div>🌋 Pressure/Eruption</div>`;
+            html += `<div>⏳ Saturn Weight</div>`;
             html += `<div>🧩 Fragmentation</div>`;
-            html += `<div>⬇️ Entropy Drift</div>`;
+            html += `<div>🕳️ Entropy Drift</div>`;
             html += `</div></div>`;
             
             html += `</div></div>`;
@@ -3308,7 +3290,7 @@ function renderTransitDay(dateStr, items){
                     }
                     if (Number.isFinite(summary.volatility_index)) {
                         html += `<div class="flex items-center gap-2">`;
-                        html += `<span class="text-lg">🔀</span>`;
+                        html += `<span class="text-lg">🌪️</span>`;
                         html += `<span class="text-gray-300"><strong class="text-yellow-300">Volatility Index:</strong> ${summary.volatility_index.toFixed(2)}</span>`;
                         html += `</div>`;
                     }
@@ -3397,7 +3379,6 @@ function renderTransitDay(dateStr, items){
             html += `<span class="text-2xl">📅</span>`;
             html += `<h2 class="text-2xl font-semibold text-blue-300">Daily Entries</h2>`;
             html += `</div>`;
-            html += `<p class="text-xs text-gray-400 mb-2">Valence calculated under v1.1 calibration.</p>`;
             html += `<div class="overflow-x-auto bg-gray-900/50 rounded-lg border border-gray-600">`;
             html += `<table class="w-full text-sm border-collapse">`;
             html += `<thead class="bg-gradient-to-r from-gray-700 to-gray-600">`;
@@ -3420,22 +3401,21 @@ function renderTransitDay(dateStr, items){
                 dates.forEach((date, index) => {
                     const day = normalizeEntry(balanceMeterData.daily_entries[date]);
                     if (!day) return;
-
-                    const isPreCal = date < CALIBRATION_BOUNDARY;
-                    const channelLine = tripleChannelLine({
-                        seismograph: day.seismograph,
-                        balance: isPreCal ? undefined : day.balance,
-                        sfd: isPreCal ? undefined : day.sfd
-                    }, date);
-
-                    const verdict = !isPreCal ? (sfdVerdict(day.sfd || {}) || '—') : '—';
-
-                    const resilience = !isPreCal ? dailyResilienceMetrics[date] : null;
+                    
+                    const channelLine = tripleChannelLine({ 
+                        seismograph: day.seismograph, 
+                        balance: day.balance, 
+                        sfd: day.sfd 
+                    });
+                    
+                    const verdict = sfdVerdict(day.sfd || {}) || '—';
+                    
+                    const resilience = dailyResilienceMetrics[date];
                     const recovery = resilience ? resilience.recovery.toFixed(1) : '—';
                     const resilienceScore = resilience ? resilience.resilience.toFixed(1) : '—';
                     const depletionIndex = resilience ? resilience.depletionIndex.toFixed(1) : '—';
                     const narrative = resilience ? resilience.narrative : '—';
-
+                    
                     const hooks = (day.hooks || []).slice(0, 2);
                     const topHooks = hooks.map(h => {
                         const orb = Math.abs(h._orb || h.orb || 0).toFixed(1);
@@ -3538,22 +3518,21 @@ function renderTransitDay(dateStr, items){
                 dates.forEach(date => {
                     const day = normalizeEntry(transitData[date]);
                     if (!day) return;
-
-                    const isPreCal = date < CALIBRATION_BOUNDARY;
+                    
                     // Generate triple channel display
-                    const channelLine = tripleChannelLine({
-                        seismograph: day.seismograph,
-                        balance: isPreCal ? undefined : day.balance,
-                        sfd: isPreCal ? undefined : day.sfd
-                    }, date);
-
+                    const channelLine = tripleChannelLine({ 
+                        seismograph: day.seismograph, 
+                        balance: day.balance, 
+                        sfd: day.sfd 
+                    });
+                    
                     // Get top hooks for this day
                     const hooks = (day.hooks || []).slice(0, 2);
                     const topHooks = hooks.map(h => {
                         const orb = Math.abs(h._orb || h.orb || 0).toFixed(1);
                         return `${h.p1_name} ${h._aspect || h.aspect} ${h.p2_name} (${orb}°)`;
                     }).join(', ') || '—';
-
+                    
                     md += `| ${date} | ${channelLine.replace(/\|/g, '\\|')} | ${topHooks.replace(/\|/g, '\\|')} |\n`;
                 });
                 
@@ -3563,59 +3542,9 @@ function renderTransitDay(dateStr, items){
             if (datasets.length === 0) {
                 md += 'No transit hooks detected for this time window.\n\n';
             } else {
-                md += '**Triple Channel Notes**: ⚡ = magnitude (0–5), Val = net seismograph valence (−5…+5), Bal = balance channel valence (−5…+5), SFD = Support–Friction Differential with verdict. Valence calculated under v1.1 calibration.\n\n';
+                md += '**Triple Channel Notes**: ⚡ = magnitude (0–5), Val = net seismograph valence (−5…+5), Bal = balance channel valence (−5…+5), SFD = Support–Friction Differential with verdict\n\n';
             }
             
-            return md;
-        }
-
-        function generateNatalNumbersSection(data, isRelational) {
-            let md = `## Natal_Numbers\n\n`;
-
-            if (data.person_a?.chart && (data.person_a.chart.status === 'OK' || data.person_a.chart.sun)) {
-                const nameA = data.person_a?.details?.name || 'Person A';
-                const chartA = data.person_a.chart.data || data.person_a.chart;
-                md += `### ${nameA}\n\n`;
-                md += renderNatalChartData(chartA, nameA);
-                if (data.person_a.chart.aspects && data.person_a.chart.aspects.length > 0) {
-                    md += `#### Natal Aspects\n\n`;
-                    data.person_a.chart.aspects.forEach(aspect => {
-                        const orb = (Number.isFinite(aspect.orb) ? aspect.orb :
-                                     Number.isFinite(aspect.orbit) ? aspect.orbit :
-                                     Number.isFinite(aspect.diff) ? aspect.diff : null);
-                        const p1pos = formatAbsPos(aspect.p1_abs_pos);
-                        const p2pos = formatAbsPos(aspect.p2_abs_pos);
-                        const p1 = aspect.p1_name ? `${aspect.p1_name}${p1pos ? ' ' + p1pos : ''}` : '—';
-                        const p2 = aspect.p2_name ? `${aspect.p2_name}${p2pos ? ' ' + p2pos : ''}` : '—';
-                        const asp = aspect.aspect || aspect.aspect_name || aspect.name || '—';
-                        md += `- **${p1}** ${asp} **${p2}** (${orb !== null ? Math.abs(orb).toFixed(1) : '—'}° orb)\n`;
-                    });
-                    md += `\n`;
-                }
-            }
-
-            if (isRelational && data.person_b?.chart && (data.person_b.chart.status === 'OK' || data.person_b.chart.sun)) {
-                const nameB = data.person_b?.details?.name || 'Person B';
-                const chartB = data.person_b.chart.data || data.person_b.chart;
-                md += `### ${nameB}\n\n`;
-                md += renderNatalChartData(chartB, nameB);
-                if (data.person_b.chart.aspects && data.person_b.chart.aspects.length > 0) {
-                    md += `#### Natal Aspects\n\n`;
-                    data.person_b.chart.aspects.forEach(aspect => {
-                        const orb = (Number.isFinite(aspect.orb) ? aspect.orb :
-                                     Number.isFinite(aspect.orbit) ? aspect.orbit :
-                                     Number.isFinite(aspect.diff) ? aspect.diff : null);
-                        const p1pos = formatAbsPos(aspect.p1_abs_pos);
-                        const p2pos = formatAbsPos(aspect.p2_abs_pos);
-                        const p1 = aspect.p1_name ? `${aspect.p1_name}${p1pos ? ' ' + p1pos : ''}` : '—';
-                        const p2 = aspect.p2_name ? `${aspect.p2_name}${p2pos ? ' ' + p2pos : ''}` : '—';
-                        const asp = aspect.aspect || aspect.aspect_name || aspect.name || '—';
-                        md += `- **${p1}** ${asp} **${p2}** (${orb !== null ? Math.abs(orb).toFixed(1) : '—'}° orb)\n`;
-                    });
-                    md += `\n`;
-                }
-            }
-
             return md;
         }
 
@@ -3653,10 +3582,7 @@ function renderTransitDay(dateStr, items){
                     md += `**Subject:** {name: "Unknown", birth_label: "${generateBirthLabel(personA)}"}\n\n`;
                 }
             }
-
-            // Natal numbers (raw math) for transparency
-            md += generateNatalNumbersSection(data, isRelational);
-
+            
             // Typological Profile (Constitutional Climate Layer)
             md += generateTypologicalProfile(data.person_a, personA);
             
@@ -3979,13 +3905,8 @@ function renderTransitDay(dateStr, items){
             // Personal-outer hard aspects first
             const hardAspects = extractHardAspects(data);
             hardAspects.slice(0, 2).forEach(aspect => {
-                const orb = Math.abs(aspect.orb || aspect.orbit || 0).toFixed(1);
-                const p1pos = formatAbsPos(aspect.p1_abs_pos);
-                const p2pos = formatAbsPos(aspect.p2_abs_pos);
-                const p1 = aspect.p1_name ? `${aspect.p1_name}${p1pos ? ' ' + p1pos : ''}` : '—';
-                const p2 = aspect.p2_name ? `${aspect.p2_name}${p2pos ? ' ' + p2pos : ''}` : '—';
                 hooks.push({
-                    description: `${p1} ${aspect.aspect} ${p2} (${orb}°)`
+                    description: `${aspect.p1_name} ${aspect.aspect} ${aspect.p2_name} (${Math.abs(aspect.orb || 0).toFixed(1)}°)`
                 });
             });
 
@@ -4010,13 +3931,8 @@ function renderTransitDay(dateStr, items){
 
                 if (remainingAspects.length > 0) {
                     const nextAspect = remainingAspects[0];
-                    const orb = Math.abs(nextAspect.orb || nextAspect.orbit || 0).toFixed(1);
-                    const p1pos = formatAbsPos(nextAspect.p1_abs_pos);
-                    const p2pos = formatAbsPos(nextAspect.p2_abs_pos);
-                    const p1 = nextAspect.p1_name ? `${nextAspect.p1_name}${p1pos ? ' ' + p1pos : ''}` : '—';
-                    const p2 = nextAspect.p2_name ? `${nextAspect.p2_name}${p2pos ? ' ' + p2pos : ''}` : '—';
                     hooks.push({
-                        description: `${p1} ${nextAspect.aspect} ${p2} (${orb}°)`
+                        description: `${nextAspect.p1_name} ${nextAspect.aspect} ${nextAspect.p2_name} (${Math.abs(nextAspect.orb || nextAspect.orbit || 0).toFixed(1)}°)`
                     });
                 } else {
                     // Use generic fallback if no more aspects available
@@ -4667,7 +4583,7 @@ function renderTransitDay(dateStr, items){
                 const magnitudeEmoji = '⚡'; // Official Raven Calder magnitude emoji
                 const valenceEmoji = getValenceEmoji(valence);
                 const balanceEmoji = balance > 0 ? '🌞' : balance < 0 ? '🌑' : '🌗'; // Official valence emojis
-                const volatilityEmoji = getVolatilityEmoji(Math.max(0, Math.min(5, volatility || 0)));
+                const volatilityEmoji = volatility > 7 ? ' 🌪️' : '';
                 
                 md += `Triple Channel: ${magnitudeEmoji} ${magnitude.toFixed(1)} · Val ${valenceEmoji} ${valence.toFixed(1)} · Bal ${balanceEmoji} ${balance.toFixed(1)}${volatilityEmoji} · stabilizers mixed (SFD ${sfd >= 0 ? '+' : ''}${sfd.toFixed(1)})\n\n`;
                 
@@ -6182,7 +6098,7 @@ function renderTransitDay(dateStr, items){
                                                         out += `| ${d} | ${(day.seismograph?.magnitude??0).toFixed(2)} | ${clampedVal.toFixed(2)} | ${(day.seismograph?.volatility??0).toFixed(2)} | ${peak.replace(/\|/g,'\\|') || '—'} |\n`;
                                                     });
                                                     out += `\nMagnitude=aggregate charge (0–10 est), Valence=net tension (−=friction, +=ease), Volatility=dispersion of charge.\n`;
-                                                    out += `_Valence emoji: 🌑 (negative), 🌗 (neutral), 🌞 (positive). Examples → negative: 🌋/⚔️/🌪/🌊/🌫/🕰/🧩/⬇️; positive: 🌱/🧘/🌊/✨/🌈/🔥/🦋/💎._\n`;
+                                                    out += `_Valence emoji: 🌑 (negative), 🌗 (neutral), 🌞 (positive). Examples → negative: 🌋/⚔️/♻️/↔️/🌫️/⏳/🧩/🕳️; positive: 🌱/⚖️/🌊/✨/🌈/🔥/🦋/💎._\n`;
                                                     
                                                     // Add confidence scaling information if available
                                                     const sampleDay = Object.values(dailyMap)[0];
@@ -6540,19 +6456,12 @@ function renderTransitDay(dateStr, items){
                     }
                 } catch(e) { /* noop */ }
 
-                // Attach any prebuilt reports if present (exclude templates)
+                // Attach any prebuilt reports/templates if present
                 const reports = {};
                 try {
-
-                    if (data?.reports && 'mirror_report' in data.reports) reports.mirror_report = data.reports.mirror_report;
-                    if (data?.reports && 'balance_meter_report' in data.reports) reports.balance_meter_report = data.reports.balance_meter_report;
-
-                    // Start with any existing reports block
-                    if (data?.reports) Object.assign(reports, data.reports);
-                    // Merge top-level reports if they haven't been nested
-                    if (data?.mirror_report) reports.mirror_report = data.mirror_report;
-                    if (data?.balance_meter_report) reports.balance_meter_report = data.balance_meter_report;
-
+                    if (data?.reports?.mirror_report) reports.mirror_report = data.reports.mirror_report;
+                    if (data?.reports?.balance_meter_report) reports.balance_meter_report = data.reports.balance_meter_report;
+                    if (data?.reports?.templates) reports.templates = data.reports.templates;
                 } catch(_){}
 
                 return {
@@ -6667,7 +6576,7 @@ function renderTransitDay(dateStr, items){
                         <li><strong>🌗 Mixed:</strong> simultaneous support and strain.</li>
                                         </ul>
                     </li>
-                    <li><strong>Volatility 🔀</strong> — <span class="text-gray-300">Distribution of pressure (low = concentrated; high = scattered/stormy).</span></li>
+                    <li><strong>Volatility 🌪️</strong> — <span class="text-gray-300">Distribution of pressure (low = concentrated; high = scattered/stormy).</span></li>
                     <li><strong>SFD (Support–Friction Differential)</strong> — <span class="text-gray-300">Splits S+ vs S−, nets the differential.</span></li>
                                 </ul>
                             </div>
@@ -6677,14 +6586,14 @@ function renderTransitDay(dateStr, items){
                                 <h3 class="text-lg font-semibold text-rose-300 mb-3 border-b border-gray-700 pb-2">🌑 Map of Negative Valence Types</h3>
                                 <p class="text-xs text-gray-400 mb-3 italic">When energy pulls down, contracts, destabilizes</p>
                                 <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                                    <li>🌪 <strong>Recursion Pull</strong> — <span class="text-gray-300">Old cycles resurface; déjà vu gravity.</span></li>
+                                    <li>♾️ <strong>Recursion Pull</strong> — <span class="text-gray-300">Old cycles resurface; déjà vu gravity.</span></li>
                                     <li>⚔️ <strong>Friction Clash</strong> — <span class="text-gray-300">Mars-style conflict, arguments, accidents, heat.</span></li>
-                                    <li>🌊 <strong>Cross Current</strong> — <span class="text-gray-300">Competing priorities, mixed flows, confusion.</span></li>
-                                    <li>🌫 <strong>Fog / Dissolution</strong> — <span class="text-gray-300">Blurred boundaries, scattered signal.</span></li>
+                                    <li>↔️ <strong>Cross Current</strong> — <span class="text-gray-300">Competing priorities, mixed flows, confusion.</span></li>
+                                    <li>🌫️ <strong>Fog / Dissolution</strong> — <span class="text-gray-300">Blurred boundaries, scattered signal.</span></li>
                                     <li>🌋 <strong>Pressure / Eruption</strong> — <span class="text-gray-300">Compression that forces release.</span></li>
-                                    <li>🕰 <strong>Saturn Weight</strong> — <span class="text-gray-300">Heaviness, delay, endurance tests.</span></li>
+                                    <li>⏳ <strong>Saturn Weight</strong> — <span class="text-gray-300">Heaviness, delay, endurance tests.</span></li>
                                     <li>🧩 <strong>Fragmentation</strong> — <span class="text-gray-300">Fractured focus, scatter.</span></li>
-                                    <li>⬇️ <strong>Entropy Drift</strong> — <span class="text-gray-300">Inertia, slow leak of momentum.</span></li>
+                                    <li>🕳️ <strong>Entropy Drift</strong> — <span class="text-gray-300">Inertia, slow leak of momentum.</span></li>
                                 </ul>
                             </div>
 
@@ -6698,22 +6607,9 @@ function renderTransitDay(dateStr, items){
                                     <li>💎 <strong>Expansion Lift</strong> — <span class="text-gray-300">Jupiter blessing, confidence, abundance.</span></li>
                                     <li>🔥 <strong>Combustion Clarity</strong> — <span class="text-gray-300">Pressure breaks but reveals hidden truth, sudden insight.</span></li>
                                     <li>🦋 <strong>Liberation / Release</strong> — <span class="text-gray-300">Uranian breakthroughs, freedom, change feels fresh.</span></li>
-                                    <li>🧘 <strong>Integration</strong> — <span class="text-gray-300">Opposites reconcile; balance returns.</span></li>
+                                    <li>⚖️ <strong>Integration</strong> — <span class="text-gray-300">Opposites reconcile; balance returns.</span></li>
                                     <li>🌊 <strong>Flow Tide</strong> — <span class="text-gray-300">Ease, adaptability, emotions moving freely.</span></li>
                                     <li>🌈 <strong>Visionary Spark</strong> — <span class="text-gray-300">Inspiration, Neptune dream turned into art, spiritual elevation.</span></li>
-                                </ul>
-                            </div>
-
-                            <!-- Volatility Ladder -->
-                            <div>
-                                <h3 class="text-lg font-semibold text-cyan-300 mb-3 border-b border-gray-700 pb-2">🔀 Volatility Ladder (Distribution Scale)</h3>
-                                <p class="text-xs text-gray-400 mb-3 italic">Neutral measure of coherence ↔ scatter (not good vs. bad)</p>
-                                <ul class="grid grid-cols-1 gap-y-2 text-sm">
-                                    <li><strong>0:</strong> ➿ <strong>Aligned Flow</strong> — <span class="text-gray-300">All signals cohered, single channel</span></li>
-                                    <li><strong>1–2:</strong> 🔄 <strong>Cycled Pull</strong> — <span class="text-gray-300">Stable repeats, predictable rhythm</span></li>
-                                    <li><strong>2–3:</strong> 🔀 <strong>Mixed Paths</strong> — <span class="text-gray-300">Split distribution, neither steady nor chaotic</span></li>
-                                    <li><strong>3–4:</strong> 🧩 <strong>Fragment Scatter</strong> — <span class="text-gray-300">Threads split apart, uneven strikes</span></li>
-                                    <li><strong>5:</strong> 🌀 <strong>Vortex Dispersion</strong> — <span class="text-gray-300">Extreme scatter, no clear center</span></li>
                                 </ul>
                             </div>
 
@@ -6721,7 +6617,7 @@ function renderTransitDay(dateStr, items){
                                 <h3 class="text-lg font-semibold text-amber-300 mb-3 border-b border-gray-700 pb-2">Sources of Force</h3>
                                 <ul class="space-y-2 text-sm">
                                     <li><strong>Orb (🎯)</strong> → <span class="text-gray-300">Closer = stronger.</span></li>
-                                    <li><strong>Aspect (∠)</strong> → <span class="text-gray-300">Geometric angle (majors thunder, minors whisper).</span></li>
+                                    <li><strong>Aspect Type (🌀)</strong> → <span class="text-gray-300">Major = thunder, Minor = whispers.</span></li>
                                     <li><strong>Planetary Potency (🪐)</strong> → <span class="text-gray-300">Fast planets = sparks, slow planets = tectonic.</span></li>
                                     <li><strong>Natal Resonance (📡)</strong> → <span class="text-gray-300">Hits angles, luminaries, nodes = amplified.</span></li>
                                     <li><strong>Recursion (♾️)</strong> → <span class="text-gray-300">Overlapping themes echo louder.</span></li>
@@ -6732,9 +6628,9 @@ function renderTransitDay(dateStr, items){
                                 <h3 class="text-lg font-semibold text-cyan-300 mb-3 border-b border-gray-700 pb-2">Quick Navigation</h3>
                                 <ol class="space-y-2 text-sm">
                                     <li><strong>1. Valence</strong> = Is it 🌞 lifting, 🌑 pressing, or 🌗 neutral?</li>
-                                    <li><strong>2. Type</strong> = Which "weather flavor" (🌪 Recursion, 🌱 Fertility, etc.)?</li>
+                                    <li><strong>2. Type</strong> = Which "weather flavor" (🌪️ Recursion, 🌱 Fertility, etc.)?</li>
                                     <li><strong>3. Magnitude</strong> ⚡ = How loud is it?</li>
-                                    <li><strong>4. Volatility</strong> 🔀 = Is it steady or stormy?</li>
+                                    <li><strong>4. Volatility</strong> 🌪️ = Is it steady or stormy?</li>
                                 </ol>
                             </div>
 
@@ -7146,13 +7042,13 @@ function renderTransitDay(dateStr, items){
             filteredDates.forEach(date => {
                 const rawDay = dailyMap[date];
                 if (!rawDay) return;
-
+                
                 const day = normalizeEntry(rawDay);
-                const channelLine = tripleChannelLine({
-                    seismograph: day.seismograph,
-                    balance: day.balance,
-                    sfd: day.sfd
-                }, date);
+                const channelLine = tripleChannelLine({ 
+                    seismograph: day.seismograph, 
+                    balance: day.balance, 
+                    sfd: day.sfd 
+                });
                 
                 const mag = (day.seismograph?.magnitude || 0).toFixed(1);
                 const val = Math.max(-5, Math.min(5, day.seismograph?.valence || 0)).toFixed(1);
@@ -7195,13 +7091,13 @@ function renderTransitDay(dateStr, items){
             dates.forEach(date => {
                 const rawDay = dailyMap[date];
                 if (!rawDay) return;
-
+                
                 const day = normalizeEntry(rawDay);
-                const channelLine = tripleChannelLine({
-                    seismograph: day.seismograph,
-                    balance: day.balance,
-                    sfd: day.sfd
-                }, date);
+                const channelLine = tripleChannelLine({ 
+                    seismograph: day.seismograph, 
+                    balance: day.balance, 
+                    sfd: day.sfd 
+                });
                 
                 // Shorter version for mobile
                 const mag = (day.seismograph?.magnitude || 0).toFixed(1);
@@ -8129,25 +8025,25 @@ function renderTransitDay(dateStr, items){
         
         // Canonical magnitude vocabulary (neutral intensity only) — Balance Meter
         const MAGNITUDE_TERMS = [
-            "Latent",
-            "Murmur",
-            "Pulse",
-            "Stirring",
-            "Convergence",
-            "Threshold"
+            "Dormant / Baseline",
+            "Murmur / Whisper",
+            "Pulse / Stirring",
+            "Surge / Activation",
+            "Convergence / Compression",
+            "Maximum Threshold / Structural Overload"
         ];
         
         // Canonical valence vocabulary (directional charge with clear positive/negative distinction)
-        const VALENCE_TERMS = ["Collapse", "Grind", "Friction", "Contraction", "Drag", "Equilibrium", "Lift", "Flow", "Harmony", "Expansion", "Liberation"];
+        const VALENCE_TERMS = ["Collapse", "Grind", "Friction", "Contraction", "Drag", "Neutral", "Lift", "Flow", "Harmony", "Expansion", "Liberation"];
         
         function toMagnitudeTerm(mag) {
             // Assumes magnitude normalized to 0–5 for descriptors
-            if (mag < 0.5) return "Latent";           // 0
-            if (mag < 1.5) return "Murmur";           // 1
-            if (mag < 2.5) return "Pulse";            // 2
-            if (mag < 3.5) return "Stirring";         // 3
-            if (mag < 4.5) return "Convergence";      // 4
-            return "Threshold";                       // 5
+            if (mag < 0.5) return "Dormant / Baseline";           // 0
+            if (mag < 1.5) return "Murmur / Whisper";             // 1
+            if (mag < 2.5) return "Pulse / Stirring";             // 2
+            if (mag < 3.5) return "Surge / Activation";           // 3
+            if (mag < 4.5) return "Convergence / Compression";    // 4
+            return "Maximum Threshold / Structural Overload";     // 5
         }
         
         function toValenceTerm(val) {
@@ -8156,7 +8052,7 @@ function renderTransitDay(dateStr, items){
             if (val <= -2.5) return "Friction";
             if (val <= -1.5) return "Contraction";
             if (val < -0.5) return "Drag";
-            if (val < 0.5) return "Equilibrium";
+            if (val < 0.5) return "Neutral";
             if (val < 1.5) return "Lift";
             if (val < 2.5) return "Flow";
             if (val < 3.5) return "Harmony";
@@ -8167,12 +8063,12 @@ function renderTransitDay(dateStr, items){
         // Migration function for legacy terms
         function migrateMagnitudeTerm(term) {
             // Map legacy terms to closest new descriptors
-            if (/^Field$/i.test(term)) return "Threshold";
-            if (/^Quake$/i.test(term)) return "Convergence";
+            if (/^Field$/i.test(term)) return "Maximum Threshold / Structural Overload";
+            if (/^Quake$/i.test(term)) return "Convergence / Compression";
             // Log migration for provenance tracking
             if (window.lastRunStats) {
                 window.lastRunStats.legacy_migrations = window.lastRunStats.legacy_migrations || [];
-                window.lastRunStats.legacy_migrations.push({term, migrated_to: /^Field$/i.test(term) ? "Threshold" : "Convergence"});
+                window.lastRunStats.legacy_migrations.push({term, migrated_to: /^Field$/i.test(term) ? "Maximum Threshold / Structural Overload" : "Convergence / Compression"});
             }
             return term;
         }
@@ -8215,15 +8111,6 @@ function renderTransitDay(dateStr, items){
                     }
                 }
                 
-                // Test volatility emoji mapping consistency
-                for (let i = -5; i <= 5; i += 0.25) {
-                    const emoji = getVolatilityEmoji(i);
-                    const type = getVolatilityType(i);
-                    if (!emoji || !type) {
-                        throw new Error(`Missing emoji or type for volatility: ${i}`);
-                    }
-                }
-                
                 console.log("✅ Safe lexicon validation passed - all terms and emojis mapped correctly");
                 return true;
             } catch (error) {
@@ -8243,17 +8130,17 @@ function renderTransitDay(dateStr, items){
             // 🌑 Negative Valence Types (↘)
             if (clampedVal <= -4.5) { emoji = '🌋'; label = 'Pressure / Eruption'; }
             else if (clampedVal <= -3.5) { emoji = '⚔️'; label = 'Friction Clash'; }
-            else if (clampedVal <= -2.8) { emoji = '🌪'; label = 'Recursion Pull'; }
-            else if (clampedVal <= -2.1) { emoji = '🌊'; label = 'Cross Current'; }
+            else if (clampedVal <= -2.8) { emoji = '♾️'; label = 'Recursion Pull'; }
+            else if (clampedVal <= -2.1) { emoji = '↔️'; label = 'Cross Current'; }
             else if (clampedVal <= -1.6) { emoji = '🧩'; label = 'Fragmentation'; }
-            else if (clampedVal <= -1.0) { emoji = '🌫'; label = 'Fog / Dissolution'; }
-            else if (clampedVal <= -0.5) { emoji = '⬇️'; label = 'Entropy Drift'; }
-            else if (clampedVal < 0)  { emoji = '🕰'; label = 'Saturn Weight'; }
-            // 🌗 Equilibrium range
-            else if (clampedVal >= 0 && clampedVal <= 0.2) { emoji = '🌗'; label = 'Equilibrium Field'; }
+            else if (clampedVal <= -1.0) { emoji = '🌫️'; label = 'Fog / Dissolution'; }
+            else if (clampedVal <= -0.5) { emoji = '🕳️'; label = 'Entropy Drift'; }
+            else if (clampedVal < -0.2)  { emoji = '⏳'; label = 'Saturn Weight'; }
+            // 🌗 Neutral range
+            else if (clampedVal >= -0.2 && clampedVal <= 0.2) { emoji = '🌗'; label = 'Neutral Field'; }
             // 🌞 Positive Valence Types (↗)
             else if (clampedVal <= 0.8) { emoji = '🌱'; label = 'Fertile Field'; }
-            else if (clampedVal <= 1.5) { emoji = '🧘'; label = 'Integration'; }
+            else if (clampedVal <= 1.5) { emoji = '⚖️'; label = 'Integration'; }
             else if (clampedVal <= 2.3) { emoji = '🌊'; label = 'Flow Tide'; }
             else if (clampedVal <= 3.1) { emoji = '✨'; label = 'Harmonic Resonance'; }
             else if (clampedVal <= 3.8) { emoji = '🌈'; label = 'Visionary Spark'; }
@@ -8276,10 +8163,10 @@ function renderTransitDay(dateStr, items){
             if (v <= -1.6) return 'Fragmentation';
             if (v <= -1.0) return 'Fog / Dissolution';
             if (v <= -0.5) return 'Entropy Drift';
-            if (v <  0) return 'Saturn Weight';
+            if (v <  -0.2) return 'Saturn Weight';
 
-            // 🌗 Equilibrium range
-            if (v >= 0 && v <= 0.2) return 'Equilibrium Field';
+            // 🌗 Neutral range
+            if (v >= -0.2 && v <= 0.2) return 'Neutral Field';
 
             // 🌞 Positive Valence Types
             if (v <= 0.8) return 'Fertile Field';
@@ -8290,35 +8177,6 @@ function renderTransitDay(dateStr, items){
             if (v <= 4.6) return 'Combustion Clarity';
             if (v <= 4.9) return 'Liberation / Release';
             return 'Expansion Lift';
-        }
-
-        // =============================================================================
-        // VOLATILITY LADDER (Neutral measure of distribution coherence ↔ scatter)
-        // =============================================================================
-        
-        function getVolatilityEmoji(vol, includeAccessibility = false) {
-            const clampedVol = Math.max(0, Math.min(5, vol));
-            let emoji, label;
-
-            // Map volatility values to emoji ladder (0 to 5)
-            if (clampedVol < 1) { emoji = '➿'; label = 'Aligned Flow'; }
-            else if (clampedVol < 2) { emoji = '🔄'; label = 'Cycled Pull'; }
-            else if (clampedVol < 3) { emoji = '🔀'; label = 'Mixed Paths'; }
-            else if (clampedVol < 5) { emoji = '🧩'; label = 'Fragment Scatter'; }
-            else { emoji = '🌀'; label = 'Vortex Dispersion'; }
-
-            return includeAccessibility ?
-                `<span class="volatility-emoji" role="img" aria-label="${label}">${emoji}</span>` :
-                emoji;
-        }
-
-        function getVolatilityType(vol) {
-            const v = Math.max(0, Math.min(5, vol));
-            if (v < 1) return 'Aligned Flow';
-            if (v < 2) return 'Cycled Pull';
-            if (v < 3) return 'Mixed Paths';
-            if (v < 5) return 'Fragment Scatter';
-            return 'Vortex Dispersion';
         }
 
         // =============================================================================
@@ -10191,16 +10049,12 @@ function renderTransitDay(dateStr, items){
                 
                 // Store the generated report for tab switching
                 if (report && report.length > 0) {
-                    // Ensure nested reports container exists
-                    latestResultData.reports = latestResultData.reports || {};
                     if (shouldRenderBalance) {
                         // Store Balance Meter report
                         latestResultData.balance_meter_report = report;
-                        latestResultData.reports.balance_meter_report = report;
                     } else {
                         // Store Mirror report
                         latestResultData.mirror_report = report;
-                        latestResultData.reports.mirror_report = report;
                     }
                 }
                 
@@ -10375,7 +10229,7 @@ function renderTransitDay(dateStr, items){
                     // Update mode description
                     const descriptions = {
                         'mirrorModeTab': '<strong class="text-teal-300">Mirror:</strong> Geometry + reflection in one stream. Always includes the full skeletal ledger (angles, houses, hooks) plus the recognition layer. Seismograph trace auto-appends when transit hooks exist.',
-                        'balanceMeterModeTab': '<strong class="text-teal-300">Balance Meter:</strong> Triple-channel analysis (Seismograph v1.0, Balance Channel v1.1, SFD v1.2) showing crisis detection, rebalanced perspective, and net support measurement in integrated tables. Valence calculated under v1.1 calibration. Balance and SFD metrics available only for dates ≥ 2025-09-05.'
+                        'balanceMeterModeTab': '<strong class="text-teal-300">Balance Meter:</strong> Triple-channel analysis (Seismograph v1.0, Balance Channel v1.1, SFD v1.2) showing crisis detection, rebalanced perspective, and net support measurement in integrated tables.'
                     };
                     const modeDesc = document.getElementById('modeDescription');
                     if (modeDesc && descriptions[activeTabId]) {
@@ -10633,7 +10487,34 @@ function renderTransitDay(dateStr, items){
                         ? buildBalanceMeterReport(latestResultData.balance_meter, latestResultData)
                         : generateMarkdownReport(latestResultData, downloadOptions);
                     
-                    // Generate filename early so it's available for fallback paths
+                    // Check if html2pdf is available with enhanced loading check
+                    if (!isPDFLibraryReady()) {
+                        console.error('html2pdf library not loaded, attempting to wait for it...');
+                        
+                        try {
+                            // Try waiting for the library to load with shorter timeout
+                            await waitForPDFLibrary(3000);
+                            console.log('PDF library loaded successfully after waiting');
+                        } catch (error) {
+                            console.error('PDF library failed to load:', error);
+                            
+                            // Direct fallback to print without confusing user with dialogs
+                            console.log('Using print-to-PDF fallback for main report');
+                            printReportAsPDF(markdownReport, filename);
+                            
+                            // Update button state
+                            btn.innerHTML = '✅ Print Dialog Opened!';
+                            setTimeout(() => {
+                                btn.innerHTML = '📑 Download PDF<span class="block text-xs opacity-80">Professional PDF report</span>';
+                            }, 3000);
+                            return;
+                        }
+                    }
+                    
+                    // Convert markdown to HTML for PDF generation
+                    const htmlContent = convertMarkdownToHTML(markdownReport);
+                    
+                    // Generate filename
                     let person1Name = document.getElementById('nameA').value || 'PersonA';
                     const person2Name = document.getElementById('nameB').value;
                     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -10673,40 +10554,10 @@ function renderTransitDay(dateStr, items){
                         filename = `WovenMap_${person1Name}${reportType}${dateRange}_${timestamp}.pdf`;
                     }
                     
-                    // Get button reference early for loading state management
+                    // Show loading state
                     const btn = document.getElementById('downloadPDF');
                     const originalText = btn.innerHTML;
-                    
-                    // Check if html2pdf is available with enhanced loading check
-                    if (!isPDFLibraryReady()) {
-                        console.error('html2pdf library not loaded, attempting to wait for it...');
-                        
-                        try {
-                            // Try waiting for the library to load with shorter timeout
-                            await waitForPDFLibrary(3000);
-                            console.log('PDF library loaded successfully after waiting');
-                        } catch (error) {
-                            console.error('PDF library failed to load:', error);
-                            
-                            // Direct fallback to print without confusing user with dialogs
-                            console.log('Using print-to-PDF fallback for main report');
-                            printReportAsPDF(markdownReport, filename);
-                            
-                            // Update button state
-                            btn.innerHTML = '✅ Print Dialog Opened!';
-                            setTimeout(() => {
-                                btn.innerHTML = '📑 Download PDF<span class="block text-xs opacity-80">Professional PDF report</span>';
-                            }, 3000);
-                            return;
-                        }
-                    }
-                    
-                    // Convert markdown to HTML for PDF generation
-                    const htmlContent = convertMarkdownToHTML(markdownReport);
-                    
-                    // Show loading state
                     btn.innerHTML = '⏳ Generating PDF...';
-                    btn.disabled = true;
                     btn.disabled = true;
                     
                     // Create a temporary element for PDF generation
@@ -11997,25 +11848,9 @@ function renderTransitDay(dateStr, items){
                         console.info('[Auth0] Loaded public config', { domain: cfg.domain });
                     } else {
                         console.warn('[Auth0] auth-config returned', res.status);
-                        // Fallback configuration when netlify function is not available
-                        window.__AUTH0_PUBLIC = {
-                            domain: 'dev-z8gw1uk6zgsrzubk.us.auth0.com',
-                            clientId: 'REPLACE_WITH_ACTUAL_AUTH0_SPA_CLIENT_ID',
-                            audience: null,
-                            hasAudience: false
-                        };
-                        console.info('[Auth0] Using fallback config');
                     }
                 } catch (e) {
                     console.warn('[Auth0] Failed to fetch public config', e?.message || e);
-                    // Fallback configuration when netlify function is not available
-                    window.__AUTH0_PUBLIC = {
-                        domain: 'dev-z8gw1uk6zgsrzubk.us.auth0.com',
-                        clientId: 'REPLACE_WITH_ACTUAL_AUTH0_SPA_CLIENT_ID',
-                        audience: null,
-                        hasAudience: false
-                    };
-                    console.info('[Auth0] Using fallback config');
                 }
                 initializeAuth0();
             }).catch((e) => {
@@ -12121,15 +11956,6 @@ function renderTransitDay(dateStr, items){
         const domain = sanitizeDomain(ac.domain) || '';
     const clientId = ac.clientId || '';
         const audience = ac.audience || null; // Avoid defaulting to Management API
-        
-        // Check if clientId is still the placeholder value
-        if (clientId === 'REPLACE_WITH_ACTUAL_AUTH0_SPA_CLIENT_ID') {
-            console.warn('[Auth0] Client ID is still set to placeholder value; auth features disabled.');
-            try { document.querySelectorAll('.auth-btn').forEach(btn => { if (btn) btn.disabled = true; }); } catch(_) {}
-            try { showNotification('Auth0 Client ID needs to be configured. Please replace the placeholder value with your actual Auth0 SPA Client ID from the Auth0 Dashboard.', 'error'); } catch(_){}
-            return;
-        }
-        
         if (!domain || !clientId) {
             console.warn('[Auth0] Missing domain or clientId from public config; auth features disabled.');
             try { document.querySelectorAll('.auth-btn').forEach(btn => { if (btn) btn.disabled = true; }); } catch(_) {}
@@ -12251,7 +12077,7 @@ function renderTransitDay(dateStr, items){
                     try {
                         // Request token with audience if configured; otherwise fallback to OIDC token for userinfo only
                         const accessToken = await auth0.getTokenSilently({
-                            ...(audience ? { audience } : {})
+                            ...(audience ? { authorizationParams: { audience } } : {})
                         });
                         const res = await fetch('/.netlify/functions/poetic-brain', {
                             method: 'POST',
