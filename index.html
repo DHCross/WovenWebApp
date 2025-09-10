@@ -271,14 +271,23 @@
                                     .then(function(res){ if(!res.ok) throw new Error('HTTP '+res.status+' for '+url); return res.text(); });
                             }
                             (async function(){
-                                var paths = ['/public/vendor/auth0-spa-js.production.js','/vendor/auth0-spa-js.production.js'];
+                                var paths = [
+                                    '/public/vendor/auth0-spa-js.production.js',
+                                    '/vendor/auth0-spa-js.production.js',
+                                    'https://cdn.auth0.com/js/auth0-spa-js/2.1.3/auth0-spa-js.production.js'
+                                ];
                                 for (var i=0;i<paths.length;i++){
                                     var url = paths[i];
                                     try{
-                                        var txt = await fetchText(url);
-                                        var looksJS = /createAuth0Client\s*=/.test(txt) || txt.indexOf('Auth0Client') !== -1;
-                                        if (!looksJS) { console.warn('[Auth0] Not JS at', url); continue; }
-                                        await injectScript(url);
+                                        // For cross-origin CDN, skip prefetch content check (CORS may block text())
+                                        if (/^https?:\/\//.test(url)) {
+                                            await injectScript(url);
+                                        } else {
+                                            var txt = await fetchText(url);
+                                            var looksJS = /createAuth0Client\s*=/.test(txt) || txt.indexOf('Auth0Client') !== -1;
+                                            if (!looksJS) { console.warn('[Auth0] Not JS at', url); continue; }
+                                            await injectScript(url);
+                                        }
                                         resolveReady(true);
                                         return;
                                     } catch(e){
