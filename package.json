@@ -18,7 +18,9 @@
     "test:all": "node test/run-all-smoke-tests.js",
     "test:production": "node test/run-all-smoke-tests.js --environment=production",
     "test:ci": "node test/run-all-smoke-tests.js --skip-network",
-    "smoke-test": "npm run test:all"
+  "smoke-test": "npm run test:all",
+  "fix:auth0": "node scripts/fix-auth0.js",
+  "smoke:auth0": "node scripts/smoke-auth0.js"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.0",
