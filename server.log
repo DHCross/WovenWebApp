@@ -1,0 +1,35 @@
+⬥ Injecting environment variable values for all scopes
+⬥ Ignored general context env var: LANG (defined in process)
+⬥ Injected .env file env vars: RAPIDAPI_KEY, NODE_ENV, LOG_LEVEL, AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_AUDIENCE, GEMINI_API_KEY
+⬥ No app server detected. Using simple static server
+⬥ Running static server from "WovenWebApp"
+⬥ Setting up local dev server
+
+⬥ Static server listening to 3999
+⬥ Loaded function poetic-brain
+⬥ Loaded function logger
+⬥ Loaded function auth-config
+⬥ Loaded function astrology-mathbrain
+⬥ Loaded function astrology-health
+
+   ╭─────────────────────── ⬥  ────────────────────────╮
+   │                                                   │
+   │   Local dev server ready: http://localhost:8888   │
+   │                                                   │
+   ╰───────────────────────────────────────────────────╯
+
+⬥ Rewrote URL to /public/vendor/auth0-spa-js.production.js
+⬥ Rewrote URL to /public/vendor/auth0-spa-js.production.js
+⬥ Rewrote URL to /vendor/auth0-spa-js.production.js
+⬥ Rewrote URL to /vendor/auth0-spa-js.production.js
+⬥ Rewrote URL to /index.html
+Request from ::1: GET /.netlify/functions/auth-config
+[INFO] Auth0 configuration retrieved successfully {
+  domain: 'dev-z8gw1uk6zgsrzubk.us.auth0.com',
+  hasAudience: true,
+  errorId: 'auth-config-1757517695582-jkkx8a2oi'
+}
+Response with status 200 in 43 ms.
+⬥ Rewrote URL to /public/vendor/auth0-spa-js.production.js
+⬥ Rewrote URL to /public/vendor/auth0-spa-js.production.js
+⬥ Rewrote URL to /public/vendor/auth0-spa-js.production.js

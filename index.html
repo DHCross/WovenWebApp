@@ -11838,24 +11838,8 @@ function renderTransitDay(dateStr, items){
                 coords?.addEventListener('change', maybeSetEastern);
             } catch (e) { console.debug('tz auto-map skipped:', e); }
 
-            // Auth0 & Poetic Brain Integration
-            (window.__auth0Ready || Promise.reject()).then(async () => {
-                try {
-                    const res = await fetch('/.netlify/functions/auth-config', { cache: 'no-store' });
-                    if (res.ok) {
-                        const cfg = await res.json();
-                        window.__AUTH0_PUBLIC = cfg;
-                        console.info('[Auth0] Loaded public config', { domain: cfg.domain });
-                    } else {
-                        console.warn('[Auth0] auth-config returned', res.status);
-                    }
-                } catch (e) {
-                    console.warn('[Auth0] Failed to fetch public config', e?.message || e);
-                }
-                initializeAuth0();
-            }).catch((e) => {
-                console.warn('Auth0 SDK not ready; auth features disabled until available.', e?.message || e);
-            });
+            // Auth0 & Poetic Brain Integration - Simplified
+            initAuth0();
             
             // Validate safe lexicon implementation
             validateSafeLexicon();
@@ -11928,125 +11912,125 @@ function renderTransitDay(dateStr, items){
             }
         }
 
-        // Auth0 Integration
-        let auth0 = null;
+        // Auth0 Integration - Simplified and Robust
+        let auth0Client = null;
+        let authConfig = null;
+        let isAuthenticated = false;
 
-    async function initializeAuth0() {
+        async function fetchAuthConfig() {
             try {
-                if (typeof createAuth0Client !== 'function') {
-                    throw new ReferenceError('createAuth0Client is not defined (Auth0 SDK not loaded)');
+                const response = await fetch('/.netlify/functions/auth-config', { cache: 'no-store' });
+                const config = await response.json();
+                if (!response.ok || !config.success) {
+                    console.warn('Auth0 configuration not available:', config.error || 'Unknown error');
+                    return null;
                 }
-                // Configure Auth0 client
-        const ac = (window.__AUTH0_PUBLIC || {});
-        // Sanitize domain from config: strip protocols and smart quotes that can break redirects (e.g., https’s)
-        function sanitizeDomain(d){
-            if (!d || typeof d !== 'string') return '';
-            let raw = d.trim().replace(/[\u2018\u2019\u201A\u201B]/g, "'");
-            // If a full URL was provided (with or without stray quotes), parse and reduce to host
-            const tryParse = raw.replace(/'/g, '');
-            if (/^https?/i.test(tryParse)) {
-                try { raw = new URL(tryParse).host; } catch(e) {
-                    raw = tryParse.replace(/^https?:\/\//i, '').split('/')[0];
-                }
+                return config;
+            } catch (error) {
+                console.warn('Failed to fetch Auth0 config:', error.message);
+                return null;
             }
-            // Final safety: remove any path fragments
-            raw = raw.split('/')[0];
-            return raw;
         }
-        const domain = sanitizeDomain(ac.domain) || '';
-    const clientId = ac.clientId || '';
-        const audience = ac.audience || null; // Avoid defaulting to Management API
-        if (!domain || !clientId) {
-            console.warn('[Auth0] Missing domain or clientId from public config; auth features disabled.');
-            try { document.querySelectorAll('.auth-btn').forEach(btn => { if (btn) btn.disabled = true; }); } catch(_) {}
-            try { showNotification('Auth is not configured. Ask admin to set AUTH0_DOMAIN and AUTH0_CLIENT_ID in Netlify.', 'error'); } catch(_){}
-            return;
-        }
-    auth0 = await createAuth0Client({
-            domain,
-            clientId,
-            authorizationParams: {
-                redirect_uri: window.location.origin,
-                ...(audience ? { audience } : {}),
-                scope: 'openid profile email offline_access'
-            },
-            cacheLocation: 'localstorage',
-            useRefreshTokens: true
+
+        async function initAuth0() {
+            try {
+                // Check if SDK is loaded
+                if (typeof createAuth0Client !== 'function') {
+                    console.warn('Auth0 SDK not loaded. Auth features disabled.');
+                    return;
+                }
+
+                // Fetch configuration
+                authConfig = await fetchAuthConfig();
+                if (!authConfig || !authConfig.domain || !authConfig.clientId) {
+                    console.warn('Auth0 config incomplete. Missing domain or clientId.');
+                    return;
+                }
+
+                // Initialize Auth0 client
+                auth0Client = await createAuth0Client({
+                    domain: authConfig.domain,
+                    clientId: authConfig.clientId,
+                    authorizationParams: {
+                        redirect_uri: window.location.origin,
+                        scope: 'openid profile email offline_access'
+                    },
+                    cacheLocation: 'localstorage',
+                    useRefreshTokens: true
                 });
 
-        // Enable auth buttons now that SDK/client is ready
-        try {
-          document.querySelectorAll('.auth-btn').forEach(btn => { if (btn) btn.disabled = false; });
-        } catch(_) {}
+                console.log('Auth0 client initialized successfully');
 
-                // Get DOM elements
-                const poeticBrainSection = document.getElementById('poetic-brain-section');
-                const askButton = document.getElementById('ask-poetic-brain');
-                const promptInput = document.getElementById('poetic-prompt');
-                const responseContainer = document.getElementById('poetic-response-container');
-                const responseEl = document.getElementById('poetic-response');
-                const loginButton = document.getElementById('login-button');
-                const loginPopupButton = document.getElementById('login-popup-button');
-                const googleLoginButton = document.getElementById('google-login-button');
-                const logoutButton = document.getElementById('logout-button');
+                // Handle redirect callback if returning from login
+                await handleAuthCallback();
 
-                // Check if we're returning from login
-                const isAuthenticated = await auth0.isAuthenticated();
-                if (isAuthenticated) {
-                    await updateAuthUI();
-                } else {
-                    const query = window.location.search;
-                    if (query.includes("code=") && query.includes("state=")) {
-                        try {
-                            await auth0.handleRedirectCallback();
-                            await updateAuthUI();
-                            window.history.replaceState({}, document.title, "/");
-                        } catch (error) {
-                            console.error('Auth callback error:', error);
-                        }
-                    }
-                }
+                // Update UI
+                await updateAuthUI();
 
                 // Set up event listeners
-                loginButton.addEventListener('click', async () => {
-                    console.debug('[Auth0] login redirect clicked');
-                    await auth0.loginWithRedirect();
-                });
+                setupAuthEventListeners();
 
-                // Popup login (useful for local dev; less redirect hassle)
-                if (loginPopupButton) {
-                    loginPopupButton.addEventListener('click', async () => {
-                        try {
-                await auth0.loginWithPopup();
-                            await updateAuthUI();
-                        } catch (e) {
-                            console.error('Popup login failed:', e);
-                            alert('Popup login was blocked or failed. Please try normal login.');
-                        }
-                    });
+            } catch (error) {
+                console.error('Auth0 initialization failed:', error);
+            }
+        }
+
+        async function handleAuthCallback() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('code') && params.get('state')) {
+                try {
+                    await auth0Client.handleRedirectCallback();
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    isAuthenticated = true;
+                } catch (error) {
+                    console.error('Auth0 callback handling failed:', error);
                 }
+            }
+        }
 
-                // Dedicated Google login (uses the google-oauth2 connection)
-                if (googleLoginButton) {
-                    googleLoginButton.addEventListener('click', async () => {
-                        console.debug('[Auth0] google login clicked');
-                        await auth0.loginWithRedirect({
-                            authorizationParams: {
-                                connection: 'google-oauth2'
-                            }
-                        });
-                    });
-                }
+        async function login() {
+            if (!auth0Client) {
+                console.warn('Auth0 client not initialized');
+                return;
+            }
+            try {
+                await auth0Client.loginWithRedirect();
+            } catch (error) {
+                console.error('Login failed:', error);
+            }
+        }
 
-                logoutButton.addEventListener('click', () => {
-                    auth0.logout({
-                        logoutParams: {
-                            returnTo: window.location.origin
-                        }
-                    });
+        async function logout() {
+            if (!auth0Client) {
+                console.warn('Auth0 client not initialized');
+                return;
+            }
+            try {
+                await auth0Client.logout({
+                    logoutParams: {
+                        returnTo: window.location.origin
+                    }
                 });
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        }
 
-                // Handle Poetic Brain submission
+        function setupAuthEventListeners() {
+            const loginButton = document.getElementById('login-button');
+            const logoutButton = document.getElementById('logout-button');
+            const askButton = document.getElementById('ask-poetic-brain');
+            const promptInput = document.getElementById('poetic-prompt');
+
+            if (loginButton) {
+                loginButton.addEventListener('click', login);
+            }
+            if (logoutButton) {
+                logoutButton.addEventListener('click', logout);
+            }
+
+            // Poetic Brain functionality
+            if (askButton && promptInput) {
                 askButton.addEventListener('click', async () => {
                     const prompt = promptInput.value.trim();
                     if (!prompt) {
@@ -12054,19 +12038,21 @@ function renderTransitDay(dateStr, items){
                         return;
                     }
 
-                    const isAuthenticated = await auth0.isAuthenticated();
-                    if (!isAuthenticated) {
+                    if (!auth0Client || !isAuthenticated) {
                         alert('You must be logged in to use the Poetic Brain.');
                         return;
                     }
 
                     askButton.disabled = true;
                     askButton.textContent = 'Thinking...';
-                    responseContainer.classList.add('hidden');
+
+                    const responseContainer = document.getElementById('poetic-response-container');
+                    const responseEl = document.getElementById('poetic-response');
+
+                    if (responseContainer) responseContainer.classList.add('hidden');
 
                     try {
-                        // Request token with audience if configured; otherwise fallback to OIDC token for userinfo only
-                        const accessToken = await auth0.getTokenSilently();
+                        const accessToken = await auth0Client.getTokenSilently();
                         const res = await fetch('/.netlify/functions/poetic-brain', {
                             method: 'POST',
                             headers: {
@@ -12079,14 +12065,14 @@ function renderTransitDay(dateStr, items){
                         if (!res.ok) {
                             const errorData = await res.json().catch(() => ({}));
                             if (res.status === 401 || res.status === 403) {
-                                throw new Error(errorData.error || 'Unauthorized. Your login is valid, but this resource requires an API audience-enabled token. Ask admin to set AUTH0_AUDIENCE and enable it for your app.');
+                                throw new Error(errorData.error || 'Unauthorized. Your login is valid, but this resource requires an API audience-enabled token.');
                             }
                             throw new Error(errorData.error || `Request failed (${res.status}).`);
                         }
 
                         const data = await res.json();
-                        responseEl.textContent = data.response;
-                        responseContainer.classList.remove('hidden');
+                        if (responseEl) responseEl.textContent = data.response;
+                        if (responseContainer) responseContainer.classList.remove('hidden');
                         promptInput.value = '';
 
                     } catch (error) {
@@ -12103,46 +12089,33 @@ function renderTransitDay(dateStr, items){
                         askButton.click();
                     }
                 });
+            }
+        }
 
-                                // Update UI based on auth state
-                async function updateAuthUI() {
-                    const isAuthenticated = await auth0.isAuthenticated();
-                    const poeticBrainSection = document.getElementById('poetic-brain-section');
-                    const loginButton = document.getElementById('login-button');
-                    const loginPopupButton = document.getElementById('login-popup-button');
-                    const logoutButton = document.getElementById('logout-button');
+        async function updateAuthUI() {
+            if (!auth0Client) return;
 
-                    loginButton.classList.toggle('hidden', isAuthenticated);
-                    if (loginPopupButton) loginPopupButton.classList.toggle('hidden', isAuthenticated);
-                    logoutButton.classList.toggle('hidden', !isAuthenticated);
-                    poeticBrainSection.style.display = isAuthenticated ? 'block' : 'none';
+            const loginButton = document.getElementById('login-button');
+            const logoutButton = document.getElementById('logout-button');
+            const poeticBrainSection = document.getElementById('poetic-brain-section');
 
-                                        // Header hint with identity
-                                        const modeDesc = document.getElementById('modeDescription');
-                                        if (modeDesc) {
-                                            if (isAuthenticated) {
-                                                const user = await auth0.getUser();
-                                                if (user) modeDesc.innerHTML = `<strong class="text-teal-300">Signed in:</strong> ${user.name || user.email}`;
-                                            }
-                                        }
+            isAuthenticated = await auth0Client.isAuthenticated();
 
-                    if (isAuthenticated) {
-                        console.log('User is authenticated');
-                    }
-                }
+            if (loginButton) loginButton.classList.toggle('hidden', isAuthenticated);
+            if (logoutButton) logoutButton.classList.toggle('hidden', !isAuthenticated);
+            if (poeticBrainSection) poeticBrainSection.style.display = isAuthenticated ? 'block' : 'none';
 
-                // Dev origin hint (helps when Allowed Web Origins aren’t set yet)
+            // Update user info if authenticated
+            if (isAuthenticated) {
                 try {
-                    const origin = window.location.origin;
-                    const okLocal = /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)/.test(origin);
-                    if (!okLocal && location.protocol === 'file:') {
-                        console.warn('Auth0 requires http(s) origin. Please run a local server.');
-                        showNotification('Run via http(s); Auth0 login will not work over file://', 'error');
+                    const user = await auth0Client.getUser();
+                    const modeDesc = document.getElementById('modeDescription');
+                    if (modeDesc && user) {
+                        modeDesc.innerHTML = `<strong class="text-teal-300">Signed in:</strong> ${user.name || user.email}`;
                     }
-                } catch (_) {}
-
-            } catch (error) {
-                console.error('Auth0 initialization error:', error);
+                } catch (error) {
+                    console.warn('Failed to get user info:', error);
+                }
             }
         }
     </script>
