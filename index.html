@@ -12169,5 +12169,163 @@ function renderTransitDay(dateStr, items){
         }
     </script>
   
+</script>
+<!-- ---- Auth0 Init & UI Wiring (runs after SDK loader) ---- -->
+<script>
+(async () => {
+  try {
+    // Show the current origin (helps confirm redirect_uri)
+    const originEl = document.getElementById('auth-debug-origin');
+    if (originEl) { originEl.textContent = location.origin; originEl.classList.remove('hidden'); }
+
+    // 1) Wait for SDK loader promise (defined earlier in the page)
+    if (window.__auth0Ready) {
+      try {
+        await window.__auth0Ready;
+        console.info('[Auth0 Debug] __auth0Ready resolved');
+      } catch (e) {
+        console.warn('[Auth0 Debug] __auth0Ready rejected:', e);
+      }
+    } else {
+      console.warn('[Auth0 Debug] __auth0Ready not found; continuing anyway');
+    }
+
+    // 2) Resolve the creation function regardless of namespace style
+    const createClient =
+      (window.auth0 && window.auth0.createAuth0Client) ||
+      window.createAuth0Client;
+
+    if (typeof createClient !== 'function') {
+      console.warn('SDK loaded but createAuth0Client missing; enabling buttons with fallback alert.');
+      document.querySelectorAll('.auth-btn').forEach(b => {
+        if (!b) return;
+        b.disabled = false;
+        b.addEventListener('click', () => alert('Auth is unavailable because the Auth0 SDK did not initialize. See console.'));
+      });
+      return;
+    }
+
+    // 3) Fetch config from your Netlify function
+    const cfgResp = await fetch('/.netlify/functions/auth-config', { cache: 'no-store' });
+    if (!cfgResp.ok) throw new Error('auth-config HTTP ' + cfgResp.status);
+    const cfg = await cfgResp.json();
+    console.log('[Auth0 Debug] fetched config:', cfg);
+
+    if (!cfg?.domain || !cfg?.clientId) {
+      console.warn('[Auth0 Debug] Missing domain/clientId in config; enabling buttons without auth.');
+      document.querySelectorAll('.auth-btn').forEach(b => {
+        if (!b) return;
+        b.disabled = false;
+        b.addEventListener('click', () => alert('Auth is not configured (missing domain/clientId).'));
+      });
+      return;
+    }
+
+    // 4) Create the client
+    const auth0Client = await createClient({
+      domain: cfg.domain,
+      clientId: cfg.clientId,
+      authorizationParams: {
+        redirect_uri: location.origin,
+        audience: cfg.audience || undefined
+      }
+    });
+    window._auth0 = auth0Client;
+
+    // 5) Handle redirect callback (if we just returned from Auth0)
+    if (location.search.includes('code=') && location.search.includes('state=')) {
+      try {
+        console.info('[Auth0 Debug] Handling redirect callback…');
+        await auth0Client.handleRedirectCallback();
+        // Clean the query string for aesthetics
+        window.history.replaceState({}, document.title, location.pathname);
+      } catch (e) {
+        console.error('[Auth0 Debug] handleRedirectCallback failed:', e);
+      }
+    }
+
+    // 6) UI helpers
+    const $ = s => document.querySelector(s);
+    const loginBtn = $('#login-button');
+    const popupBtn = $('#login-popup-button');
+    const googleBtn = $('#google-login-button');
+    const logoutBtn = $('#logout-button');
+
+    function enableAuthUI() {
+      [loginBtn, popupBtn, googleBtn, logoutBtn].forEach(b => { if (b) b.disabled = false; });
+    }
+
+    async function refreshUI() {
+      const authed = await auth0Client.isAuthenticated();
+      if (logoutBtn) logoutBtn.classList.toggle('hidden', !authed);
+      if (loginBtn) loginBtn.classList.toggle('hidden', authed);
+      if (popupBtn) popupBtn.classList.toggle('hidden', authed);
+      if (googleBtn) googleBtn.classList.toggle('hidden', authed);
+      console.info('[Auth0 Debug] UI state →', authed ? 'authenticated' : 'logged out');
+    }
+
+    // 7) Wire events
+    enableAuthUI();
+    await refreshUI();
+
+    if (loginBtn) {
+      loginBtn.addEventListener('click', async () => {
+        try {
+          console.info('[Auth0 Debug] loginWithRedirect()');
+          await auth0Client.loginWithRedirect();
+        } catch (e) {
+          console.error('[Auth0] redirect login failed:', e);
+        }
+      });
+    }
+
+    if (popupBtn) {
+      popupBtn.addEventListener('click', async () => {
+        try {
+          console.info('[Auth0 Debug] loginWithPopup()');
+          await auth0Client.loginWithPopup();
+          await refreshUI();
+        } catch (e) {
+          console.error('[Auth0] popup login failed:', e);
+        }
+      });
+    }
+
+    if (googleBtn) {
+      googleBtn.addEventListener('click', async () => {
+        try {
+          console.info('[Auth0 Debug] loginWithRedirect(connection=google-oauth2)');
+          await auth0Client.loginWithRedirect({
+            authorizationParams: { connection: 'google-oauth2' }
+          });
+        } catch (e) {
+          console.error('[Auth0] google redirect failed:', e);
+        }
+      });
+    }
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async () => {
+        try {
+          console.info('[Auth0 Debug] logout() → returnTo origin');
+          await auth0Client.logout({ logoutParams: { returnTo: location.origin } });
+        } catch (e) {
+          console.error('[Auth0] logout failed:', e);
+        }
+      });
+    }
+
+    console.info('✅ Auth0 client initialized successfully');
+  } catch (err) {
+    console.error('[Auth0 Init] Failed:', err);
+    // Failsafe: enable buttons and warn on click so "nothing" never happens
+    document.querySelectorAll('.auth-btn').forEach(b => {
+      if (!b) return;
+      b.disabled = false;
+      b.addEventListener('click', () => alert('Auth is unavailable. Check console for errors.'));
+    });
+  }
+})();
+</script>
 </body>
 </html>
