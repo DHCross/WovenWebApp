@@ -25,3 +25,8 @@
   from = "/api/auth-config"
   to = "/.netlify/functions/auth-config"
   status = 200
+
+[[redirects]]
+  from = "/login"
+  to = "/.netlify/functions/login-initiate"
+  status = 200
