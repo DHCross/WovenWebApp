@@ -8289,31 +8289,61 @@ function renderTransitDay(dateStr, items){
             if (!coordString) return { latitude: undefined, longitude: undefined };
             
             coordString = coordString.trim();
-            const decimalPattern = /^-?\d+\.?\d*,\s*-?\d+\.?\d*$/;
-            const dmsPattern = /(\d+)[°\s]+(\d+)'?\s*([NS]),\s*(\d+)[°\s]+(\d+)'?\s*([EW])/i;
-
+            
             console.log("Parsing coordinates:", coordString);
 
-            if (decimalPattern.test(coordString)) {
-                const [lat, lon] = coordString.split(',').map(s => parseFloat(s.trim()));
-                console.log("Parsed decimal coordinates:", { latitude: lat, longitude: lon });
-                return { latitude: lat, longitude: lon };
+            // Try decimal format first (e.g., "30.1667, -85.6667")
+            const decimalPattern = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/;
+            const decimalMatch = coordString.match(decimalPattern);
+            if (decimalMatch) {
+                const lat = parseFloat(decimalMatch[1]);
+                const lon = parseFloat(decimalMatch[2]);
+                if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+                    console.log("Parsed decimal coordinates:", { latitude: lat, longitude: lon });
+                    return { latitude: lat, longitude: lon };
+                }
             }
 
-            const dmsMatch = coordString.match(dmsPattern);
+            // Try DMS format with flexible patterns
+            // Handles: "30°10'N, 85°40'W", "30° 10' N, 85° 40' W", etc.
+            const dmsPattern = /^\s*(\d{1,3})(?:°\s*(\d{1,2}))?(?:'\s*([\d.]+))?\s*([NS])\s*,\s*(\d{1,3})(?:°\s*(\d{1,2}))?(?:'\s*([\d.]+))?\s*([EW])\s*$/i;
+            
+            // Clean up coordinate string for better matching
+            const cleaned = coordString.replace(/º/g, '°'); // Replace alternative degree symbol
+            const dmsMatch = cleaned.match(dmsPattern);
+            
             if (dmsMatch) {
-                let lat = parseFloat(dmsMatch[1]) + parseFloat(dmsMatch[2]) / 60;
-                if (dmsMatch[3].toUpperCase() === 'S') lat = -lat;
-
-                let lon = parseFloat(dmsMatch[4]) + parseFloat(dmsMatch[5]) / 60;
-                if (dmsMatch[6].toUpperCase() === 'W') lon = -lon;
+                // Parse latitude: degrees + minutes/60 + seconds/3600
+                const latDeg = parseInt(dmsMatch[1], 10);
+                const latMin = parseInt(dmsMatch[2] || '0', 10);
+                const latSec = parseFloat(dmsMatch[3] || '0');
+                const latDir = dmsMatch[4].toUpperCase();
                 
-                console.log("Parsed DMS coordinates:", { latitude: lat, longitude: lon });
-                return { latitude: parseFloat(lat.toFixed(4)), longitude: parseFloat(lon.toFixed(4)) };
+                // Parse longitude: degrees + minutes/60 + seconds/3600
+                const lonDeg = parseInt(dmsMatch[5], 10);
+                const lonMin = parseInt(dmsMatch[6] || '0', 10);
+                const lonSec = parseFloat(dmsMatch[7] || '0');
+                const lonDir = dmsMatch[8].toUpperCase();
+                
+                // Convert to decimal
+                let lat = latDeg + latMin / 60 + latSec / 3600;
+                let lon = lonDeg + lonMin / 60 + lonSec / 3600;
+                
+                // Apply hemisphere signs
+                if (latDir === 'S') lat = -lat;
+                if (lonDir === 'W') lon = -lon;
+                
+                // Validate bounds
+                if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+                    console.log("Parsed DMS coordinates:", { latitude: lat, longitude: lon });
+                    return { 
+                        latitude: parseFloat(lat.toFixed(6)), 
+                        longitude: parseFloat(lon.toFixed(6)) 
+                    };
+                }
             }
             
-            console.error("Failed to parse coordinates:", coordString);
-            // Return undefined if no pattern matches
+            console.error("Failed to parse coordinates - no pattern matched:", coordString);
             return { latitude: undefined, longitude: undefined };
         }
 

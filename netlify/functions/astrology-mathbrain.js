@@ -71,6 +71,53 @@ function validateSubjectLean(s = {}) {
 // --- Helper Functions ---
 
 /**
+ * Parses coordinate strings in various formats (DMS, decimal)
+ * @param {string} coordString - Coordinate string like "30°10'N, 85°40'W" or "30.1667, -85.6667"
+ * @returns {{lat: number, lng: number}|null} Parsed coordinates or null
+ */
+function parseCoordinates(coordString) {
+  if (!coordString) return null;
+  
+  // Handle DMS format: "30°10'N, 85°40'W"
+  const dmsPattern = /(\d+)°(\d+)'([NS]),\s*(\d+)°(\d+)'([EW])/;
+  const dmsMatch = coordString.match(dmsPattern);
+  
+  if (dmsMatch) {
+    const latDeg = parseInt(dmsMatch[1]);
+    const latMin = parseInt(dmsMatch[2]);
+    const latDir = dmsMatch[3];
+    const lngDeg = parseInt(dmsMatch[4]);
+    const lngMin = parseInt(dmsMatch[5]);
+    const lngDir = dmsMatch[6];
+    
+    let lat = latDeg + (latMin / 60);
+    let lng = lngDeg + (lngMin / 60);
+    
+    if (latDir === 'S') lat = -lat;
+    if (lngDir === 'W') lng = -lng;
+    
+    logger.info('Parsed DMS coordinates', { 
+      input: coordString, 
+      output: { lat, lng } 
+    });
+    
+    return { lat, lng };
+  }
+  
+  // Handle decimal format: "30.1667, -85.6667"
+  const parts = coordString.split(',').map(s => s.trim());
+  if (parts.length === 2) {
+    const lat = parseFloat(parts[0]);
+    const lng = parseFloat(parts[1]);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      return { lat, lng };
+    }
+  }
+  
+  return null;
+}
+
+/**
  * Builds standard headers for API requests.
  * @returns {Object} Headers object.
  * @throws {Error} if the RapidAPI key is not configured.
@@ -137,41 +184,59 @@ function normalizeSubjectData(data) {
     normalized.longitude = normalized.longitude || lng;
   }
 
-  // Flexible coordinate parsing (decimal or DMS) if still strings or missing
-  function parseCoordinatesFlexible(input){
-    if(!input || typeof input !== 'string') return null;
-    const DEC = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/;
-    const DMS = /^\s*(\d{1,3})(?:°\s*(\d{1,2}))?(?:'\s*([\d.]+))?\s*([NS])\s*,\s*(\d{1,3})(?:°\s*(\d{1,2}))?(?:'\s*([\d.]+))?\s*([EW])\s*$/i;
-    const m1 = DEC.exec(input);
-    if (m1){
-      const lat = +m1[1], lon = +m1[2];
-      if (isFinite(lat) && isFinite(lon) && Math.abs(lat)<=90 && Math.abs(lon)<=180) return {lat, lon};
-      return null;
+  // Handle coordinate parsing using the enhanced parseCoordinates function
+  if (!normalized.latitude || !normalized.longitude) {
+    // Check various field names for coordinate data
+    const coordFields = ['astro', 'coords', 'coordinate', 'coord', 'location'];
+    let coordString = null;
+    
+    for (const field of coordFields) {
+      if (data[field] && typeof data[field] === 'string') {
+        coordString = data[field];
+        break;
+      }
     }
-    const cleaned = input.replace(/º/g,'°');
-    const m2 = DMS.exec(cleaned);
-    if (m2){
-      const conv = (d,m,s,h)=>{ const sign = /[SW]/i.test(h)?-1:1; return sign*(+d + (+m||0)/60 + (+s||0)/3600); };
-      const lat = conv(m2[1],m2[2],m2[3],m2[4]);
-      const lon = conv(m2[5],m2[6],m2[7],m2[8]);
-      if (isFinite(lat) && isFinite(lon)) return {lat, lon};
+    
+    // If we found a coordinate string, parse it
+    if (coordString) {
+      try {
+        const parsed = parseCoordinates(coordString);
+        if (parsed && parsed.lat !== undefined && parsed.lon !== undefined) {
+          normalized.latitude = normalized.latitude ?? parsed.lat;
+          normalized.longitude = normalized.longitude ?? parsed.lon;
+          logger.info('Coordinate parsing successful', { 
+            input: coordString, 
+            output: { lat: parsed.lat, lon: parsed.lon } 
+          });
+        } else {
+          logger.warn('Coordinate parsing failed', { input: coordString });
+        }
+      } catch (error) {
+        logger.error('Coordinate parsing error', { error: error.message, input: coordString });
+      }
     }
-    return null;
   }
 
-  // If coordinates provided as a single string in data.astro or data.coords
-  if (!normalized.latitude || !normalized.longitude) {
-    const alt = data.astro || data.coords || data.coordinate || data.coord;
-    const parsed = parseCoordinatesFlexible(alt);
-    if (parsed){
-      normalized.latitude = normalized.latitude ?? parsed.lat;
-      normalized.longitude = normalized.longitude ?? parsed.lon;
+  // If lat/lon are still strings, try to parse them individually
+  if (typeof normalized.latitude === 'string' || typeof normalized.longitude === 'string') {
+    try {
+      const coordString = `${normalized.latitude},${normalized.longitude}`;
+      const parsed = parseCoordinates(coordString);
+      if (parsed && parsed.lat !== undefined && parsed.lon !== undefined) {
+        normalized.latitude = parsed.lat;
+        normalized.longitude = parsed.lon;
+        logger.info('Individual coordinate parsing successful', { 
+          input: coordString, 
+          output: { lat: parsed.lat, lon: parsed.lon } 
+        });
+      }
+    } catch (error) {
+      logger.error('Individual coordinate parsing error', { 
+        error: error.message, 
+        lat: normalized.latitude, 
+        lon: normalized.longitude 
+      });
     }
-  }
-  // If lat/lon still strings with DMS pattern
-  if (typeof normalized.latitude === 'string') {
-    const p = parseCoordinatesFlexible(normalized.latitude + ',' + normalized.longitude);
-    if (p){ normalized.latitude = p.lat; normalized.longitude = p.lon; }
   }
 
   return normalized;
