@@ -14,6 +14,7 @@
     "test:smoke": "node test/smoke-tests.js",
     "test:endpoints": "node test/endpoint-health-check.js",
     "test:auth0": "node test/auth0-config-validator.js",
+    "verify:auth0": "node verify-auth0-setup.js",
     "test:deployment": "node test/deployment-verification.js",
     "test:all": "node test/run-all-smoke-tests.js",
     "test:production": "node test/run-all-smoke-tests.js --environment=production",

@@ -57,19 +57,31 @@ http://localhost:8888
 https://your-netlify-site.netlify.app
 ```
 
-### 4. Test the Configuration
+### 4. Verify Your Configuration
 
-After updating the Client ID, test the configuration:
+After updating the Client ID, verify everything is set up correctly:
+
+```bash
+# Quick verification script
+npm run verify:auth0
+
+# Or run directly
+node verify-auth0-setup.js
+```
+
+### 5. Test the Configuration
+
+After verification passes, test the full configuration:
 
 ```bash
 # Test the auth config endpoint
 curl -s http://localhost:8888/.netlify/functions/auth-config
 
-# Run Auth0 validation
+# Run comprehensive Auth0 validation
 npm run test:auth0
 ```
 
-### 5. Deploy to Netlify
+### 6. Deploy to Netlify
 
 Set the same environment variables in your **Netlify Dashboard**:
 - Go to **Site Configuration** → **Environment Variables**
