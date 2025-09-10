@@ -447,6 +447,7 @@ npm run verify:auth0
 
 #### **Troubleshooting Auth0**
 - **Issues with setup?** See `AUTH0_FIX_GUIDE.md` for detailed troubleshooting
+- **Quick diagnosis**: Run `npm run fix:auth0` to identify and fix common issues
 - **Validate configuration**: Run `npm run test:auth0` for comprehensive checks
 - **Test endpoint**: `curl http://localhost:8888/.netlify/functions/auth-config`
 
