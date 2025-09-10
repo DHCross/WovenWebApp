@@ -419,6 +419,37 @@ To run this project locally using Netlify CLI:
 
 This will proxy requests to your serverless function and allow full front-end + back-end testing in development mode.
 
+### **Auth0 Setup (For Authentication Features)**
+
+If you want to enable authentication features, follow these steps to configure Auth0:
+
+#### **Quick Setup**
+```bash
+# 1. Run the setup assistant to create your .env file
+npm run setup:auth0
+
+# 2. Get your Auth0 Client ID from Auth0 Dashboard and update .env
+# 3. Verify your configuration
+npm run verify:auth0
+```
+
+#### **Manual Setup**
+1. **Create Environment File**: Copy `.env.example` to `.env`
+2. **Get Auth0 Client ID**: 
+   - Go to [Auth0 Dashboard](https://manage.auth0.com/) → Applications
+   - Find your **Single Page Application** 
+   - Copy the **Client ID** from Settings tab
+3. **Update .env**: Replace `REPLACE_WITH_ACTUAL_AUTH0_SPA_CLIENT_ID` with your actual Client ID
+4. **Configure Auth0 URLs**: In your Auth0 app settings, add:
+   - **Callback URLs**: `http://localhost:8888`, `https://your-site.netlify.app`
+   - **Logout URLs**: `http://localhost:8888`, `https://your-site.netlify.app`  
+   - **Web Origins**: `http://localhost:8888`, `https://your-site.netlify.app`
+
+#### **Troubleshooting Auth0**
+- **Issues with setup?** See `AUTH0_FIX_GUIDE.md` for detailed troubleshooting
+- **Validate configuration**: Run `npm run test:auth0` for comprehensive checks
+- **Test endpoint**: `curl http://localhost:8888/.netlify/functions/auth-config`
+
 ### **File Structure**
 
 * index.html: The main application file containing the UI and front-end JavaScript.  
