@@ -11966,9 +11966,10 @@ function renderTransitDay(dateStr, items){
             domain,
             clientId,
             authorizationParams: {
-            redirect_uri: window.location.origin,
-            ...(audience ? { audience } : {})
-        },
+                redirect_uri: window.location.origin,
+                ...(audience ? { audience } : {}),
+                scope: 'openid profile email offline_access'
+            },
             cacheLocation: 'localstorage',
             useRefreshTokens: true
                 });
@@ -12009,23 +12010,14 @@ function renderTransitDay(dateStr, items){
                 // Set up event listeners
                 loginButton.addEventListener('click', async () => {
                     console.debug('[Auth0] login redirect clicked');
-                    await auth0.loginWithRedirect({
-                        authorizationParams: {
-                            redirect_uri: window.location.origin
-                        }
-                    });
+                    await auth0.loginWithRedirect();
                 });
 
                 // Popup login (useful for local dev; less redirect hassle)
                 if (loginPopupButton) {
                     loginPopupButton.addEventListener('click', async () => {
                         try {
-                await auth0.loginWithPopup({
-                                authorizationParams: {
-                    ...(audience ? { audience } : {}),
-                    prompt: 'select_account'
-                                }
-                            });
+                await auth0.loginWithPopup();
                             await updateAuthUI();
                         } catch (e) {
                             console.error('Popup login failed:', e);
@@ -12040,9 +12032,7 @@ function renderTransitDay(dateStr, items){
                         console.debug('[Auth0] google login clicked');
                         await auth0.loginWithRedirect({
                             authorizationParams: {
-                                redirect_uri: window.location.origin,
-                                connection: 'google-oauth2',
-                                prompt: 'select_account'
+                                connection: 'google-oauth2'
                             }
                         });
                     });
@@ -12076,9 +12066,7 @@ function renderTransitDay(dateStr, items){
 
                     try {
                         // Request token with audience if configured; otherwise fallback to OIDC token for userinfo only
-                        const accessToken = await auth0.getTokenSilently({
-                            ...(audience ? { authorizationParams: { audience } } : {})
-                        });
+                        const accessToken = await auth0.getTokenSilently();
                         const res = await fetch('/.netlify/functions/poetic-brain', {
                             method: 'POST',
                             headers: {
