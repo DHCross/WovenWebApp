@@ -11839,7 +11839,22 @@ function renderTransitDay(dateStr, items){
             } catch (e) { console.debug('tz auto-map skipped:', e); }
 
             // Auth0 & Poetic Brain Integration - Simplified
-            initAuth0();
+            // Initialize Auth0 only after the SDK loader reports ready
+            try {
+                if (window.__auth0Ready && typeof window.__auth0Ready.then === 'function') {
+                    window.__auth0Ready.then(function(){
+                        initAuth0();
+                    }).catch(function(err){
+                        console.warn('Auth0 SDK failed to load:', err && (err.message || err));
+                    });
+                } else {
+                    // Fallback: defer slightly to give the loader time
+                    setTimeout(function(){ initAuth0(); }, 300);
+                }
+            } catch(e) {
+                console.warn('Auth0 deferred init wiring failed:', e && e.message ? e.message : e);
+                initAuth0();
+            }
             
             // Validate safe lexicon implementation
             validateSafeLexicon();
@@ -11947,14 +11962,17 @@ function renderTransitDay(dateStr, items){
                     return;
                 }
 
-                // Initialize Auth0 client
+                // Initialize Auth0 client (include audience when configured)
+                const authParams = {
+                    redirect_uri: window.location.origin,
+                    scope: 'openid profile email offline_access'
+                };
+                if (authConfig.audience) authParams.audience = authConfig.audience;
+
                 auth0Client = await createAuth0Client({
                     domain: authConfig.domain,
                     clientId: authConfig.clientId,
-                    authorizationParams: {
-                        redirect_uri: window.location.origin,
-                        scope: 'openid profile email offline_access'
-                    },
+                    authorizationParams: authParams,
                     cacheLocation: 'localstorage',
                     useRefreshTokens: true
                 });
@@ -11969,6 +11987,9 @@ function renderTransitDay(dateStr, items){
 
                 // Set up event listeners
                 setupAuthEventListeners();
+
+                // Enable any disabled auth buttons now that SDK/client are ready
+                try { document.querySelectorAll('.auth-btn').forEach(function(btn){ btn.removeAttribute('disabled'); }); } catch(_){ }
 
             } catch (error) {
                 console.error('Auth0 initialization failed:', error);
