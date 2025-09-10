@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 const http = require('http');
 
-const urls = [
-  'http://localhost:3999/public/vendor/auth0-spa-js.production.js',
-  'http://localhost:3999/vendor/auth0-spa-js.production.js'
+const baseUrls = [
+  'http://localhost:3999', 'http://localhost:8888',
+  'http://127.0.0.1:3999', 'http://127.0.0.1:8888'
 ];
+const paths = [
+  '/public/vendor/auth0-spa-js.production.js',
+  '/vendor/auth0-spa-js.production.js'
+];
+const urls = baseUrls.flatMap(b => paths.map(p => b + p));
 
 function check(url){
   return new Promise((resolve) => {

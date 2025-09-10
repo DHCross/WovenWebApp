@@ -12,6 +12,16 @@
   skip_processing = true
 
 [[redirects]]
+  from = "/vendor/*"
+  to = "/vendor/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/public/vendor/*"
+  to = "/public/vendor/:splat"
+  status = 200
+
+[[redirects]]
   from = "/api/astrology"
   to = "/.netlify/functions/astrology"
   status = 200
