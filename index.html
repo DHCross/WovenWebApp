@@ -11995,9 +11995,11 @@ function renderTransitDay(dateStr, items){
                 };
                 if (authConfig.audience) authParams.audience = authConfig.audience;
 
+                const sanitizedDomain = (authConfig.domain || '').replace(/^https?:\/\//, '');
+                console.info('[Auth0 Debug] Using domain:', sanitizedDomain);
                 console.log('[Auth0 Debug] Auth params:', authParams);
                 auth0Client = await window.auth0.createAuth0Client({
-                    domain: authConfig.domain,
+                    domain: sanitizedDomain,
                     clientId: authConfig.clientId,
                     authorizationParams: authParams,
                     cacheLocation: 'localstorage',

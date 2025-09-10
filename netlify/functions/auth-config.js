@@ -24,7 +24,8 @@ exports.handler = async function (event, context) {
   }
 
   try {
-    const domain = process.env.AUTH0_DOMAIN;
+  const rawDomain = process.env.AUTH0_DOMAIN;
+  const domain = (rawDomain || '').replace(/^https?:\/\//, '');
     const clientId = process.env.AUTH0_CLIENT_ID;
     // IMPORTANT: Do NOT default to Management API audience. Must be a custom API identifier.
     const audience = process.env.AUTH0_AUDIENCE || null;
