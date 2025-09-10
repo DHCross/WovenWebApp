@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auth0 & Netlify Verification</title>
+  <style>
+    body{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";background:#f3f4f6;padding:1.5rem;min-height:100vh;display:flex;align-items:center;justify-content:center}
+    .container{background:#fff;padding:2rem;border-radius:.5rem;box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05);width:100%;max-width:42rem}
+    .title{font-size:1.875rem;font-weight:700;margin-bottom:1.5rem;text-align:center;color:#1f2937}
+    .subtitle{color:#4b5563;margin-bottom:1.5rem;text-align:center}
+    .input-group{margin-bottom:1.5rem}
+    .label{display:block;color:#374151;font-weight:700;margin-bottom:.5rem}
+    .input-field{width:100%;padding:.75rem 1rem;border-radius:.5rem;border:1px solid #d1d5db;outline:2px solid transparent;outline-offset:2px}
+    .input-field:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.5)}
+    .button{width:100%;font-weight:700;padding:.75rem 1rem;border-radius:.5rem;transition:background-color .2s,color .2s,box-shadow .2s; color:#fff;outline:2px solid transparent;outline-offset:2px}
+    .button:focus{box-shadow:0 0 0 2px #fff,0 0 0 4px rgba(59,130,246,.5)}
+    .button.blue{background:#2563eb}.button.blue:hover{background:#1d4ed8}
+    .button.green{background:#10b981}.button.green:hover{background:#059669}
+    .button:disabled{opacity:.5;cursor:not-allowed}
+    .results-container{margin-top:2rem;display:flex;flex-direction:column;gap:1.5rem}
+    .result-section{display:none}
+    .result-title{font-size:1.25rem;font-weight:600;color:#1f2937;margin-bottom:.75rem}
+    pre{background:#e5e7eb;border-radius:.5rem;padding:1rem;overflow-x:auto;white-space:pre-wrap;word-wrap:break-word;font-size:.875rem}
+    #messageBox{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:2rem;border-radius:.5rem;box-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -1px rgba(0,0,0,.06);z-index:100;text-align:center;display:none}
+    #messageBox button{margin-top:1rem}
+  </style>
+  <!-- Load Auth0 SPA SDK from CDN (v2.x) -->
+  <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1.3/auth0-spa-js.production.js"></script>
+</head>
+<body>
+  <div id="messageBox">
+    <p id="messageText"></p>
+    <button onclick="document.getElementById('messageBox').style.display='none'" class="button blue">OK</button>
+  </div>
+
+  <div class="container">
+    <h1 class="title">Auth0 & Netlify Dev Verification</h1>
+    <p class="subtitle">Click the button below to run the diagnostic tests.</p>
+
+    <div class="input-group">
+      <label for="clientIdInput" class="label">Auth0 Client ID</label>
+      <input type="text" id="clientIdInput" placeholder="Enter your Auth0 Client ID" class="input-field" />
+    </div>
+
+    <button id="runTestsBtn" class="button blue">Run Verification Tests</button>
+
+    <div id="results" class="results-container">
+      <div id="functionResponse" class="result-section">
+        <h2 class="result-title">A) Function Response</h2>
+        <pre id="responseOutput"></pre>
+      </div>
+
+      <div id="sdkPresence" class="result-section">
+        <h2 class="result-title">B) SDK Present</h2>
+        <pre id="sdkOutput"></pre>
+      </div>
+
+      <div>
+        <h2 class="result-title">C) Init Logs</h2>
+        <p style="color:#4b5563">Open your browser console to see detailed logs.</p>
+      </div>
+
+      <div id="userInfo" class="result-section">
+        <h2 class="result-title">D) Current User</h2>
+        <pre id="userOutput"></pre>
+      </div>
+
+      <button id="loginBtn" class="button green">Click to Log In (Redirect)</button>
+    </div>
+  </div>
+
+  <script>
+    let __cfg = null;
+
+    function showMessage(message){
+      const box = document.getElementById('messageBox');
+      document.getElementById('messageText').textContent = message;
+      box.style.display = 'block';
+    }
+
+    async function getConfig(){
+      try{
+        const res = await fetch('/.netlify/functions/auth-config', { cache: 'no-store' });
+        const data = await res.json();
+        return data;
+      }catch(e){
+        return { success:false, error:e.message };
+      }
+    }
+
+    function sanitizeDomain(d){ return (d || '').replace(/^https?:\/\//,''); }
+
+    async function ensureConfig(){
+      if (!__cfg) {
+        __cfg = await getConfig();
+      }
+      return __cfg;
+    }
+
+    async function buildClient() {
+      const cfg = await ensureConfig();
+      const domain = sanitizeDomain(cfg && cfg.domain);
+      const clientId = (document.getElementById('clientIdInput').value || '').trim() || (cfg && cfg.clientId) || '';
+      const createFn = window.auth0 && typeof window.auth0.createAuth0Client === 'function'
+        ? window.auth0.createAuth0Client
+        : (typeof createAuth0Client === 'function' ? createAuth0Client : null);
+      if (!createFn) throw new Error('Auth0 SDK not loaded');
+      if (!domain) throw new Error('Missing Auth0 domain');
+      if (!clientId) throw new Error('Missing Auth0 clientId');
+      return createFn({
+        domain,
+        clientId,
+        authorizationParams: {
+          redirect_uri: window.location.origin,
+          audience: cfg && cfg.audience ? cfg.audience : undefined
+        },
+        cacheLocation: 'localstorage',
+        useRefreshTokens: true
+      });
+    }
+
+    document.getElementById('runTestsBtn').addEventListener('click', async () => {
+      const resultsDiv = document.getElementById('results');
+      const runBtn = document.getElementById('runTestsBtn');
+      runBtn.disabled = true; runBtn.textContent = 'Running...'; resultsDiv.style.opacity = '0.5';
+
+      // A) Function response
+      const responseDiv = document.getElementById('functionResponse');
+      const responseOutput = document.getElementById('responseOutput');
+      responseDiv.style.display = 'block';
+      __cfg = await getConfig();
+      responseOutput.textContent = JSON.stringify(__cfg, null, 2);
+
+      // Auto-fill clientId if present
+      if (__cfg && __cfg.clientId) {
+        document.getElementById('clientIdInput').value = __cfg.clientId;
+      }
+
+      // B) SDK presence
+      const sdkDiv = document.getElementById('sdkPresence');
+      const sdkOutput = document.getElementById('sdkOutput');
+      sdkDiv.style.display = 'block';
+      const sdkType = typeof (window.auth0?.createAuth0Client || window.createAuth0Client);
+      sdkOutput.textContent = `typeof (window.auth0?.createAuth0Client || window.createAuth0Client) is: "${sdkType}"`;
+
+      runBtn.disabled = false; runBtn.textContent = 'Run Verification Tests Again'; resultsDiv.style.opacity = '1';
+    });
+
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      const loginBtn = document.getElementById('loginBtn');
+      const clientId = (document.getElementById('clientIdInput').value || '').trim() || (__cfg && __cfg.clientId) || '';
+      if (!clientId) { showMessage('Please enter your Auth0 Client ID or run tests to autofill.'); return; }
+
+      loginBtn.textContent = 'Logging in...'; loginBtn.disabled = true;
+      try {
+        const client = await buildClient();
+        await client.loginWithRedirect();
+      } catch (e) {
+        console.error('Login failed:', e);
+        loginBtn.textContent = 'Login failed! Try again'; loginBtn.disabled = false;
+        showMessage(`Login failed. See console for details: ${e && e.message ? e.message : e}`);
+      }
+    });
+
+    // Handle redirect callback if present and show user profile
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const qp = new URLSearchParams(window.location.search);
+        if (qp.has('code') && qp.has('state')) {
+          const client = await buildClient();
+          await client.handleRedirectCallback();
+          // Clean URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+          // Show user info
+          const user = await client.getUser();
+          const section = document.getElementById('userInfo');
+          const out = document.getElementById('userOutput');
+          section.style.display = 'block';
+          out.textContent = JSON.stringify(user || { note: 'No user info' }, null, 2);
+          showMessage('Redirect callback handled. You should be logged in.');
+        }
+      } catch (e) {
+        console.error('Callback handling failed:', e);
+      }
+    });
+  </script>
+</body>
+</html>
