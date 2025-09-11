@@ -1722,6 +1722,74 @@
     <script src="src/reporters/comparative-report.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
+// ================= Raven Calder Diagnostics & Utilities (A+C+E) =================
+// Injected: Diagnostics harness (global error taps + labeled promise gather),
+// fail-loud contract for checkout payloads, and PDF export utility with race guards.
+(function(){
+    if(!window.__RC_DIAG_INSTALLED__){
+        window.__RC_DIAG_INSTALLED__ = true;
+        // Global error taps
+        window.addEventListener('unhandledrejection', e => {
+            const r = e.reason; console.warn('[Rejection]', r && (r.stack || r));
+        });
+        window.addEventListener('error', e => {
+            console.warn('[ErrorEvent]', e.message, e.filename, e.lineno, e.colno);
+        });
+        // Labeled Promise gather
+        window.RC_gather = async function gather(labeled){
+            const entries = Object.entries(labeled).map(([k,p])=>Promise.resolve(p)
+                .then(v=>({k,ok:true,v}))
+                .catch(e=>({k,ok:false,e}))
+            );
+            const settled = await Promise.all(entries);
+            for(const r of settled){
+                if(!r.ok){
+                    console.error('[AsyncFail]', r.k, r.e);
+                } else if(!r.v || typeof r.v !== 'object' || !('checkoutUrls' in r.v)) {
+                    // Shape warning only if key suggests it SHOULD have checkoutUrls
+                    if(/checkout|basket|pricing/i.test(r.k)) console.warn('[Shape]', r.k, r.v);
+                }
+            }
+            return settled;
+        };
+        // Fail-loud contract accessor (C)
+        window.requireCheckoutPayload = function(obj){
+            if(!obj || !Array.isArray(obj.checkoutUrls)){
+                let hint; try{ hint = JSON.stringify(obj).slice(0,200);}catch{ hint=String(obj);} 
+                throw new Error('Bad checkout payload: '+ hint);
+            }
+            return obj.checkoutUrls;
+        };
+        // PDF export utility (E)
+        window.exportNodeToPdf = async function(node, filename='report.pdf'){
+            if(!node){ console.warn('[PDF] No node supplied'); return; }
+            // Gate on fonts + double rAF to allow dynamic content flush
+            try { await (document.fonts && document.fonts.ready); } catch(_) {}
+            await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+            console.log('[PDF] export start');
+            // Normalize absolute CSS hrefs (safety net if relative paths used)
+            document.querySelectorAll('link[rel="stylesheet"]').forEach(link=>{
+                const href = link.getAttribute('href');
+                if(href && href.startsWith('/') && !href.startsWith('//')){
+                    link.href = location.origin + href;
+                }
+            });
+            // Native print path: clone into hidden iframe for clean layout
+            const clone = node.cloneNode(true);
+            const iframe = document.createElement('iframe');
+            Object.assign(iframe.style, {position:'fixed',right:'0',bottom:'0',width:'0',height:'0',border:'0'});
+            document.body.appendChild(iframe);
+            const doc = iframe.contentDocument;
+            doc.open();
+            doc.write('<!doctype html><html><head>'+ document.head.innerHTML +'</head><body></body></html>');
+            doc.close();
+            doc.body.appendChild(clone);
+            setTimeout(()=>{ try{ iframe.contentWindow.focus(); iframe.contentWindow.print(); }catch(e){ console.error('[PDF] print failed', e);} setTimeout(()=>iframe.remove(), 1200); }, 60);
+            // If later switched to html2pdf.js, replace above block with dynamic import section.
+        };
+    }
+})();
+// ===============================================================================
 // --- Global row counter for report summary ---
 let totalRowCount = 0;
 // UI Filter State (persist across renders)
