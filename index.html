@@ -3723,19 +3723,19 @@ function renderTransitDay(dateStr, items){
                 let md = '';
                 md += `### Abstract\n`;
                 md += `${isRelational ? 'The content presents a dyadic mirror based on cross-chart geometry' : 'The content presents a detailed solo mirror based on natal and transit geometry'}${(start && end) ? ` for ${start} to ${end}` : ''}. `;
-                md += `Seismograph readouts ${magnitude!=null||valence!=null||volatility!=null ? 'indicate fluctuations in magnitude, valence, and volatility' : 'are included when available'} to reflect energetic dynamics. `;
+                md += `Balance Meter triple-channel readouts ${magnitude!=null||valence!=null||volatility!=null ? 'provide Seismograph (v1.0), Balance (v1.1), and SFD (v1.2) measurements' : 'are included when available'} to reflect energetic dynamics through crisis detection, rebalanced valence, and support-friction differential analysis. `;
                 md += `Each entry summarizes acceptance/rejection of aspects through time with geometry-first hooks.\n\n`;
 
                 md += `### Key Points\n`;
                 const bullets = [];
                 if (sampleAspects.length) bullets.push(`Notable configurations include ${sampleAspects.slice(0,3).join('; ')}...`);
-                if (magnitude!=null || valence!=null || volatility!=null) bullets.push(`Seismograph snapshot — magnitude: ${magnitude ?? 'n/a'}, valence: ${valence ?? 'n/a'}, volatility: ${volatility ?? 'n/a'}.`);
+                if (magnitude!=null || valence!=null || volatility!=null) bullets.push(`Triple-channel snapshot — Seismograph (crisis-weighted): magnitude ${magnitude ?? 'n/a'}, valence ${valence ?? 'n/a'}, volatility ${volatility ?? 'n/a'}; Balance Channel (v1.1) and SFD (v1.2) provide rebalanced valence and support-friction differential.`);
                 bullets.push(isRelational ? 'Recognition layer references both Person A and Person B with bidirectional vectors.' : 'Recognition layer references personal hooks and angles.');
                 bullets.push('All phrasing remains conditional; map, not mandate.');
                 md += bullets.map((b,i)=>`${i+1}. ${b}`).join('\n') + '\n\n';
 
                 md += `### Keywords\n`;
-                const kw = new Set(['astrological aspects','seismograph readout','magnitude','valence','volatility']);
+                const kw = new Set(['astrological aspects','balance meter','triple-channel','seismograph v1.0','balance channel v1.1','SFD v1.2','support-friction differential','magnitude','valence','volatility']);
                 // Add planet names if present
                 const addPlanet = (n) => { if (typeof n === 'string') kw.add(n); };
                 for (const s of sampleAspects) {
@@ -3747,7 +3747,7 @@ function renderTransitDay(dateStr, items){
 
                 md += `### Q&A\n`;
                 md += `Q: What aspects are highlighted?  \nA: ${sampleAspects.length ? sampleAspects.slice(0,3).join('; ') : 'Key personal or dyadic hooks per geometry-first filters.'}\n\n`;
-                md += `Q: What does the seismograph measure?  \nA: Magnitude, valence, and volatility of symbolic charge across the period.\n\n`;
+                md += `Q: What does the Balance Meter measure?  \nA: Triple-channel analysis: Seismograph (v1.0) for crisis-weighted magnitude/valence/volatility, Balance Channel (v1.1) for rebalanced valence, and SFD (v1.2) for support-friction differential.\n\n`;
                 md += `Q: How is agency preserved?  \nA: Reflections are conditional and falsifiable; if it doesn’t land, it doesn’t count.\n`;
 
                 return md;
