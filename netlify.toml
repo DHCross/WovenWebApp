@@ -35,3 +35,8 @@
   from = "/api/auth-config"
   to = "/.netlify/functions/auth-config"
   status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
