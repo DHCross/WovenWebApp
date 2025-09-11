@@ -1,0 +1,20 @@
+{
+  "person": {
+    "name": "Alex Johnson",
+    "birth_date": "1990-06-15",
+    "birth_time": "14:30",
+    "birth_location": "San Francisco, CA"
+  },
+  "natal_chart": {
+    "sun": "Gemini 24°",
+    "moon": "Cancer 12°",
+    "rising": "Virgo 8°"
+  },
+  "timing": {
+    "current_transits": [
+      "Jupiter sextile Sun",
+      "Saturn square Moon"
+    ]
+  },
+  "report_type": "comprehensive_mirror"
+}

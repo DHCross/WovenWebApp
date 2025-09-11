@@ -1,7 +1,8 @@
 {
   "name": "woven-web-app",
   "version": "1.0.0",
-  "description": "Woven Map Report Generator",
+  "description": "Woven Map Report Generator + Raven Calder Chat Interface",
+  "private": true,
   "scripts": {
     "build:css": "tailwindcss -i ./src/input.css -o ./dist/output.css --minify",
     "build:offshoot": "tailwindcss -c tailwind.offshoot.config.js -i ./offshoot/offshoot.css -o ./offshoot/offshoot.min.css --minify",
@@ -9,6 +10,12 @@
     "check-env": "node -e \"if (!require('fs').existsSync('.env')) { console.error('Error: .env file not found. Copy .env.example to .env and configure your API keys.'); process.exit(1); } else { console.log('Environment file found.'); }\"",
     "dev": "npm run check-env && netlify dev",
     "start:local": "npm run check-env && npm run build:css && netlify dev",
+  "env:required": "node scripts/check-env-required.js",
+    "dev:web": "next dev -H 0.0.0.0",
+    "build:web": "next build",
+    "start:web": "next start",
+    "tinker": "node scripts/tinker-chat.js",
+    "tinker:watch": "nodemon scripts/tinker-chat.js",
     "verify-copilot": "node verify-copilot-setup.js",
     "test": "node test/astrology-mathbrain.test.js",
     "test:smoke": "node test/smoke-tests.js",
@@ -18,19 +25,34 @@
     "test:all": "node test/run-all-smoke-tests.js",
     "test:production": "node test/run-all-smoke-tests.js --environment=production",
     "test:ci": "node test/run-all-smoke-tests.js --skip-network",
-  "smoke-test": "npm run test:all",
-  "fix:auth0": "node scripts/fix-auth0.js",
-  "smoke:auth0": "node scripts/smoke-auth0.js"
-  },
-  "devDependencies": {
-    "autoprefixer": "^10.4.0",
-    "netlify-cli": "^17.38.1",
-    "postcss": "^8.4.0",
-    "tailwindcss": "^3.4.3"
+    "smoke-test": "npm run test:all",
+    "fix:auth0": "node scripts/fix-auth0.js",
+    "smoke:auth0": "node scripts/smoke-auth0.js",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
-    "node-fetch": "^2.7.0"
+    "next": "14.2.5",
+    "node-fetch": "^2.7.0",
+    "pdfjs-dist": "^3.11.174",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+  "uuid": "^9.0.1",
+  "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "20.11.30",
+    "@types/react": "18.2.21",
+    "@types/react-dom": "18.2.7",
+    "@types/uuid": "^9.0.7",
+    "autoprefixer": "^10.4.0",
+    "netlify-cli": "^17.38.1",
+    "nodemon": "3.1.4",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.3",
+    "typescript": "5.4.5"
   }
 }

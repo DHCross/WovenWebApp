@@ -1,36 +1,31 @@
 # Poetic Brain
 
-A modular, stateless narrative engine for WovenWebApp. Fills in narrative sections (e.g., Mirror Voice, Polarity Card VOICE) using only structured payloads—no astrology math, no global state, no side effects.
+A modular, stateless narrative engine for WovenWebApp reports.
 
-## API
+## Usage
 
-### `generateSection(sectionType, inputPayload)`
-- **sectionType**: string (e.g. 'mirrorVoice', 'polarityCardVoice', 'climateLine', 'vectorNote')
-- **inputPayload**: structured JSON matching WovenWebApp report skeletons
-- **returns**: `{ text: string }`
-
-## Example Usage
 ```ts
-import { generateSection } from './dist/index.js';
-
-const { text } = await generateSection('mirrorVoice', payload);
+import { generateSection } from 'poetic-brain';
+const result = generateSection('MirrorVoice', payload);
 ```
+
+## API Contract
+- **Input:** Structured JSON payload matching WovenWebApp skeletons
+- **Output:** Narrative string for the requested section
 
 ## Example Payload
 ```json
 {
-  "constitutionalClimate": "A builder working alongside a tide-puller.",
-  "climateLine": "moderate pressure band, supportive 🌞",
-  "hooks": ["Sun square Mars (2.1°)", "Moon trine Venus (1.8°)"]
+  "geometry": {"type": "circle", "radius": 5},
+  "tokens": ["🌕", "🌑"],
+  "descriptors": ["harmonious", "volatile"],
+  "placeholders": {"MirrorVoice": ""}
 }
 ```
 
-## Protocol
-- Accepts only structured, geometry-first payloads
-- Returns only the requested narrative
-- Uses approved emoji lexicon and protocol
-- No astrology math, no global state, no side effects
+## Integration
+- No global state, no astrology math, no side effects
+- Ready for Node module or serverless deployment
 
 ## Testing
-- Run `npm run build && npm test`
-- See `test/generateSection.test.ts` for sample cases
+- See `test/generateSection.test.ts` for usage and contract

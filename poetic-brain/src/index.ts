@@ -1,32 +1,16 @@
-// Poetic Brain: Narrative generator for WovenWebApp
-// Stateless, no astrology math, no global state
+// Main entry for Poetic Brain module
+// Exports generateSection(sectionType, inputPayload)
 
-export type SectionType =
-  | 'mirrorVoice'
-  | 'polarityCardVoice'
-  | 'climateLine'
-  | 'vectorNote';
+export type SectionType = 'MirrorVoice' | 'PolarityCardVoice' | string;
 
-export interface GenerateSectionInput {
-  // The structured payload for the section (see WovenWebApp docs)
+export interface InputPayload {
+  // Define the expected structure here
+  // e.g., geometry, tokens, descriptors, placeholders, etc.
   [key: string]: any;
 }
 
-export interface GenerateSectionResult {
-  text: string;
-}
-
-/**
- * Main entry point: generateSection
- * @param sectionType - which narrative section to generate
- * @param inputPayload - structured data for the section
- */
-export async function generateSection(
-  sectionType: SectionType,
-  inputPayload: GenerateSectionInput
-): Promise<GenerateSectionResult> {
-  // Placeholder implementation
-  return {
-    text: `[Poetic Brain placeholder for ${sectionType}]`
-  };
+export function generateSection(sectionType: SectionType, inputPayload: InputPayload): string {
+  // TODO: Implement protocol-compliant, non-deterministic, falsifiable narrative logic
+  // Use only provided data, no global state, no astrology math
+  return `Generated narrative for ${sectionType}`;
 }

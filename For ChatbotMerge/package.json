@@ -1,0 +1,30 @@
+{
+  "name": "ravenchatbot",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -H 0.0.0.0",
+    "tinker": "node scripts/tinker-chat.js",
+    "tinker:watch": "nodemon scripts/tinker-chat.js",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "next": "14.2.5",
+    "pdfjs-dist": "^3.11.174",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.11.30",
+    "@types/react": "18.2.21",
+    "@types/react-dom": "18.2.7",
+    "@types/uuid": "^9.0.7",
+    "nodemon": "3.1.4",
+    "typescript": "5.4.5"
+  }
+}
