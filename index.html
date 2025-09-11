@@ -24,7 +24,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Woven Map Math Brain - Pure Astrological Geometry</title>
+        <title>Raven Calder - Astrological Chart Analysis</title>
                 <!-- Tailwind CSS (compiled) -->
                 <link href="/dist/output.css" rel="stylesheet">
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -694,17 +694,20 @@
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8">
             <div class="flex justify-between items-center mb-4">
-                <div></div> <!-- Empty div for spacing -->
-                <h1 class="text-4xl font-bold text-white">Woven Map Math Brain</h1>
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+                    <span class="text-xs text-gray-400">Ready</span>
+                </div>
+                <h1 class="text-4xl font-bold text-white">Raven Calder</h1>
                 <div id="auth-debug-origin" class="hidden text-xs text-gray-400 ml-2 select-all" title="Current origin used as redirect_uri"></div>
                 <div class="flex gap-2">
                     <button id="google-login-button" class="auth-button bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-semibold auth-btn" title="Sign in with Google" disabled>Continue with Google</button>
                     <button id="logout-button" class="auth-button bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-semibold auth-btn hidden" disabled>Log Out</button>
                 </div>
             </div>
-            <p class="text-gray-400 mt-2 flex items-center justify-center gap-2">Pure Astrological Geometry Computation
+            <p class="text-gray-400 mt-2 flex items-center justify-center gap-2">Astrological Chart Analysis & Narrative Generation
                 <button id="math-brain-info-btn" class="ml-2 text-xs text-teal-300 underline hover:text-teal-400 focus:outline-none" type="button">
-                    What is Math Brain? (Glossary)
+                    About the System
                 </button>
             </p>
             
@@ -723,12 +726,12 @@
                         <button id="mirrorModeTab" type="button" role="tab" aria-selected="true" aria-controls="mirror-content" 
                                 class="px-6 py-2 text-sm font-medium rounded-md bg-teal-600 text-white transition-colors duration-200" 
                                 data-mode="mirror">
-                            Mirror
+                            <span class="mr-1">🪞</span> Mirror
                         </button>
                         <button id="balanceMeterModeTab" type="button" role="tab" aria-selected="false" aria-controls="balance-meter-content" 
                                 class="px-6 py-2 text-sm font-medium rounded-md bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors duration-200" 
                                 data-mode="balance_meter">
-                            Balance Meter
+                            <span class="mr-1">⚖️</span> Balance Meter
                         </button>
                     </div>
                 </div>
