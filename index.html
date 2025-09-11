@@ -1622,6 +1622,40 @@
                              </div>
                         </div>
                     </div>
+                    
+                    <!-- Ask Raven Zone (Auth-Gated) -->
+                    <div id="askRavenZone" class="bg-gray-750 p-4 rounded-lg border border-indigo-600 hidden">
+                        <h3 class="text-indigo-300 font-medium mb-3">🐦‍⬛ Ask Raven Calder</h3>
+                        <div class="space-y-2">
+                            <button id="askRavenBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-3 rounded text-sm transition-colors">
+                                �‍⬛ Ask Raven About This Chart
+                                <span class="block text-xs opacity-80">Opens chat interface with your report</span>
+                            </button>
+                            <button id="visitChatBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-3 rounded text-sm transition-colors">
+                                � Chat with Raven (New Session)
+                                <span class="block text-xs opacity-80">Open fresh chat interface</span>
+                            </button>
+                            <div id="ravenStatus" class="text-xs text-gray-400 mt-2 hidden">
+                                Processing your request...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Auth Prompt (shown when not logged in) -->
+                    <div id="authPromptZone" class="bg-gray-750 p-4 rounded-lg border border-amber-600">
+                        <h3 class="text-amber-300 font-medium mb-3">🔐 Premium Features</h3>
+                        <div class="space-y-2">
+                            <p class="text-sm text-gray-300">Sign in with Google to unlock:</p>
+                            <ul class="text-xs text-gray-400 ml-4 space-y-1">
+                                <li>• Raven Calder AI interpretations</li>
+                                <li>• Chat interface with Poetic Brain</li>
+                                <li>• Session-based report sharing</li>
+                            </ul>
+                            <div class="text-center mt-3">
+                                <span class="text-xs text-gray-500">Use the "Continue with Google" button above</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Tab Content Areas -->
@@ -12019,6 +12053,25 @@ function renderTransitDay(dateStr, items){
             }
         }
 
+        // Helper function to get selected context mode for Raven integration
+        function getSelectedContextMode() {
+            const contextRadio = document.querySelector('input[name="contextType"]:checked');
+            const soloSubtypeRadio = document.querySelector('input[name="soloSubtype"]:checked');
+            const relationalSubtypeRadio = document.querySelector('input[name="relationalSubtype"]:checked');
+            
+            const contextType = contextRadio ? contextRadio.value : 'solo';
+            
+            if (contextType === 'solo') {
+                const subtype = soloSubtypeRadio ? soloSubtypeRadio.value : 'natal_transits';
+                return `${contextType}_${subtype}`;
+            } else if (contextType === 'relational') {
+                const subtype = relationalSubtypeRadio ? relationalSubtypeRadio.value : 'composite';
+                return `${contextType}_${subtype}`;
+            } else {
+                return contextType; // 'weather'
+            }
+        }
+
         // Initial UI setup on page load
     document.addEventListener('DOMContentLoaded', () => {
             // Legacy deep-link normalization (?mode=geometry -> mirror#geometry-skeleton)
@@ -12167,6 +12220,74 @@ function renderTransitDay(dateStr, items){
                 console.info('Step limits in use:', window.WOVEN_STEP_LIMITS);
                 console.info('To override limits in this browser, run:', "localStorage.setItem('wm_step_limits_override', JSON.stringify({daily:{max:60,warnRatio:0.85},weekly:{max:360},monthly:{max:720}})); location.reload();");
             } catch(_) {}
+
+            // Ask Raven functionality
+            const askRavenBtn = document.getElementById('askRavenBtn');
+            const visitChatBtn = document.getElementById('visitChatBtn');
+            const ravenStatus = document.getElementById('ravenStatus');
+            
+            if (askRavenBtn) {
+                askRavenBtn.addEventListener('click', async () => {
+                    try {
+                        // Check if we have report data to send to Raven
+                        if (!latestResultData) {
+                            alert('Please generate a report first before asking Raven for interpretation.');
+                            return;
+                        }
+                        
+                        // Show loading state
+                        ravenStatus.classList.remove('hidden');
+                        ravenStatus.textContent = 'Preparing your chart for Raven Calder...';
+                        askRavenBtn.disabled = true;
+                        
+                        // Store the report data in sessionStorage for the chat interface to access
+                        const reportPayload = {
+                            reportData: latestResultData,
+                            meta: {
+                                source: 'math-brain-integration',
+                                timestamp: new Date().toISOString(),
+                                context: getSelectedContextMode(),
+                                person: {
+                                    name: document.getElementById('nameA')?.value || 'Unknown',
+                                    birthDate: document.getElementById('birth_dateA')?.value,
+                                    birthTime: document.getElementById('birth_timeA')?.value,
+                                    birthLocation: `${document.getElementById('birth_cityA')?.value || ''}, ${document.getElementById('birth_stateA')?.value || ''}`
+                                }
+                            }
+                        };
+                        
+                        sessionStorage.setItem('woven_report_for_raven', JSON.stringify(reportPayload));
+                        
+                        // Navigate to chat interface
+                        ravenStatus.textContent = 'Opening Raven Calder interface...';
+                        
+                        setTimeout(() => {
+                            window.open('/chat', '_blank');
+                            ravenStatus.textContent = 'Chart sent to Raven! Check the new tab.';
+                            
+                            setTimeout(() => {
+                                ravenStatus.classList.add('hidden');
+                                askRavenBtn.disabled = false;
+                            }, 2000);
+                        }, 500);
+                        
+                    } catch (error) {
+                        ravenStatus.textContent = 'Failed to prepare data for Raven Calder. Please try again.';
+                        console.error('Ask Raven error:', error);
+                        askRavenBtn.disabled = false;
+                        setTimeout(() => {
+                            ravenStatus.classList.add('hidden');
+                        }, 3000);
+                    }
+                });
+            }
+            
+            if (visitChatBtn) {
+                visitChatBtn.addEventListener('click', () => {
+                    // Open chat interface in new tab
+                    window.open('/chat', '_blank');
+                });
+            }
 
             setupEventListeners();
             setupProgressiveDisclosureEventListeners(); // New UX improvement functions
@@ -12458,6 +12579,20 @@ function renderTransitDay(dateStr, items){
             const authed = await auth0Client.isAuthenticated();
             if (logoutBtn) logoutBtn.classList.toggle('hidden', !authed);
             if (googleBtn) googleBtn.classList.toggle('hidden', authed);
+            
+            // Handle Ask Raven zone visibility based on auth state
+            const askRavenZone = $('#askRavenZone');
+            const authPromptZone = $('#authPromptZone');
+            if (askRavenZone && authPromptZone) {
+                if (authed) {
+                    askRavenZone.classList.remove('hidden');
+                    authPromptZone.classList.add('hidden');
+                } else {
+                    askRavenZone.classList.add('hidden');
+                    authPromptZone.classList.remove('hidden');
+                }
+            }
+            
             console.info('[Auth0 Debug] UI state →', authed ? 'authenticated' : 'logged out');
         }
 

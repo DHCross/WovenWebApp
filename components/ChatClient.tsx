@@ -346,6 +346,48 @@ export default function ChatClient(){
   // Navigation state for Raven messages
   const [currentRavenIndex, setCurrentRavenIndex] = useState(0);
   
+  // Check for report data from Math Brain integration
+  useEffect(() => {
+    const reportData = sessionStorage.getItem('woven_report_for_raven');
+    if (reportData) {
+      try {
+        const parsed = JSON.parse(reportData);
+        
+        // Clear the sessionStorage so it doesn't auto-load again
+        sessionStorage.removeItem('woven_report_for_raven');
+        
+        // Create a welcome message with the report data
+        const reportMessage: Message = {
+          id: generateId(),
+          role: 'user',
+          html: `Hi Raven! I've generated a chart analysis and would love your interpretation. Here's my information: ${parsed.meta?.person?.name || 'Name not provided'}, born ${parsed.meta?.person?.birthDate || 'unknown date'} at ${parsed.meta?.person?.birthTime || 'unknown time'} in ${parsed.meta?.person?.birthLocation || 'unknown location'}. Context: ${parsed.meta?.context || 'general reading'}.`,
+          isReport: true,
+          reportType: 'mirror',
+          reportName: `Chart Analysis - ${parsed.meta?.person?.name || 'Unknown'}`,
+          reportSummary: `Math Brain report from ${parsed.meta?.timestamp ? new Date(parsed.meta.timestamp).toLocaleDateString() : 'today'}`,
+          fullContent: JSON.stringify(parsed.reportData, null, 2)
+        };
+        
+        // Add the report message to the conversation
+        setMessages(prev => [...prev, reportMessage]);
+        
+        // Auto-send a request for interpretation
+        setTimeout(() => {
+          const interpretationRequest = `Please provide your interpretation of this chart data. I'm particularly interested in understanding the key patterns and what they might reveal about my current life dynamics.`;
+          setInput(interpretationRequest);
+          // Auto-submit after a brief delay to let the user see what's happening
+          setTimeout(() => {
+            const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+            document.querySelector('form')?.dispatchEvent(submitEvent);
+          }, 1000);
+        }, 500);
+        
+      } catch (error) {
+        console.error('Failed to parse report data from sessionStorage:', error);
+      }
+    }
+  }, []); // Run once on component mount
+  
   // Helper: strip HTML to plain text
   const stripHtml = (s: string) => s.replace(/<[^>]*>/g, ' ').replace(/\s{2,}/g, ' ').trim();
   const firstSentenceOf = (s: string) => (s.match(/[^.!?]+[.!?]?/)?.[0] || s).trim();
