@@ -1722,70 +1722,135 @@
     <script src="src/reporters/comparative-report.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
-// ================= Raven Calder Diagnostics & Utilities (A+C+E) =================
-// Injected: Diagnostics harness (global error taps + labeled promise gather),
-// fail-loud contract for checkout payloads, and PDF export utility with race guards.
+// ================= Raven Calder Diagnostics & Utilities (A+C+E+) =================
+// Enhanced: Production-grade error capture, timeout detection, HTTPS validation, improved PDF
 (function(){
     if(!window.__RC_DIAG_INSTALLED__){
         window.__RC_DIAG_INSTALLED__ = true;
-        // Global error taps
+        
+        // Enhanced global error taps with resource errors
         window.addEventListener('unhandledrejection', e => {
             const r = e.reason; console.warn('[Rejection]', r && (r.stack || r));
         });
         window.addEventListener('error', e => {
-            console.warn('[ErrorEvent]', e.message, e.filename, e.lineno, e.colno);
+            if(e.target && e.target !== window){
+                // Resource load failure (script, img, link, etc.)
+                console.warn('[ResourceFail]', e.target.tagName, e.target.src || e.target.href);
+            } else {
+                console.warn('[ErrorEvent]', e.message, e.filename, e.lineno, e.colno);
+            }
         });
-        // Labeled Promise gather
-        window.RC_gather = async function gather(labeled){
-            const entries = Object.entries(labeled).map(([k,p])=>Promise.resolve(p)
-                .then(v=>({k,ok:true,v}))
-                .catch(e=>({k,ok:false,e}))
+        
+        // Enhanced Promise gather with timeout detection
+        window.RC_gather = async function gather(labeled, timeoutMs = 8000){
+            const timeoutWrapper = (promise, key) => Promise.race([
+                promise,
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs)
+                )
+            ]);
+            
+            const entries = Object.entries(labeled).map(([k,p]) => 
+                timeoutWrapper(Promise.resolve(p), k)
+                    .then(v=>({k,ok:true,v}))
+                    .catch(e=>({k,ok:false,e}))
             );
             const settled = await Promise.all(entries);
             for(const r of settled){
                 if(!r.ok){
-                    console.error('[AsyncFail]', r.k, r.e);
+                    const isTimeout = r.e.message && r.e.message.includes('Timeout');
+                    console.error(isTimeout ? '[AsyncTimeout]' : '[AsyncFail]', r.k, r.e);
                 } else if(!r.v || typeof r.v !== 'object' || !('checkoutUrls' in r.v)) {
-                    // Shape warning only if key suggests it SHOULD have checkoutUrls
                     if(/checkout|basket|pricing/i.test(r.k)) console.warn('[Shape]', r.k, r.v);
                 }
             }
             return settled;
         };
-        // Fail-loud contract accessor (C)
+        
+        // Enhanced contract validation with secure URL checking
         window.requireCheckoutPayload = function(obj){
             if(!obj || !Array.isArray(obj.checkoutUrls)){
                 let hint; try{ hint = JSON.stringify(obj).slice(0,200);}catch{ hint=String(obj);} 
                 throw new Error('Bad checkout payload: '+ hint);
             }
+            // Validate HTTPS for production security
+            if(location.protocol === 'https:'){
+                const insecureUrls = obj.checkoutUrls.filter(url => url && !url.startsWith('https:'));
+                if(insecureUrls.length > 0){
+                    console.warn('[SecurityWarn] Non-HTTPS checkout URLs detected:', insecureUrls);
+                }
+            }
             return obj.checkoutUrls;
         };
-        // PDF export utility (E)
+        
+        // Enhanced PDF export with better font handling and error recovery
         window.exportNodeToPdf = async function(node, filename='report.pdf'){
             if(!node){ console.warn('[PDF] No node supplied'); return; }
-            // Gate on fonts + double rAF to allow dynamic content flush
-            try { await (document.fonts && document.fonts.ready); } catch(_) {}
-            await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-            console.log('[PDF] export start');
-            // Normalize absolute CSS hrefs (safety net if relative paths used)
-            document.querySelectorAll('link[rel="stylesheet"]').forEach(link=>{
-                const href = link.getAttribute('href');
-                if(href && href.startsWith('/') && !href.startsWith('//')){
-                    link.href = location.origin + href;
-                }
-            });
-            // Native print path: clone into hidden iframe for clean layout
-            const clone = node.cloneNode(true);
-            const iframe = document.createElement('iframe');
-            Object.assign(iframe.style, {position:'fixed',right:'0',bottom:'0',width:'0',height:'0',border:'0'});
-            document.body.appendChild(iframe);
-            const doc = iframe.contentDocument;
-            doc.open();
-            doc.write('<!doctype html><html><head>'+ document.head.innerHTML +'</head><body></body></html>');
-            doc.close();
-            doc.body.appendChild(clone);
-            setTimeout(()=>{ try{ iframe.contentWindow.focus(); iframe.contentWindow.print(); }catch(e){ console.error('[PDF] print failed', e);} setTimeout(()=>iframe.remove(), 1200); }, 60);
-            // If later switched to html2pdf.js, replace above block with dynamic import section.
+            
+            // Enhanced font loading with fallback
+            const fontLoadPromise = document.fonts ? 
+                Promise.race([
+                    document.fonts.ready,
+                    new Promise(resolve => setTimeout(resolve, 2000)) // 2s timeout
+                ]) : 
+                Promise.resolve();
+            
+            try {
+                await fontLoadPromise;
+            } catch(e) {
+                console.warn('[PDF] Font loading failed, proceeding:', e);
+            }
+            
+            // Triple rAF for complex layouts + dynamic content
+            await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>requestAnimationFrame(r))));
+            console.log('[PDF] export start with enhanced timing');
+            
+            // Enhanced CSS normalization with error handling
+            try {
+                document.querySelectorAll('link[rel="stylesheet"]').forEach(link=>{
+                    const href = link.getAttribute('href');
+                    if(href && href.startsWith('/') && !href.startsWith('//')){
+                        link.href = location.origin + href;
+                    }
+                });
+            } catch(e) {
+                console.warn('[PDF] CSS normalization failed:', e);
+            }
+            
+            // Enhanced iframe PDF generation with better error handling
+            try {
+                const clone = node.cloneNode(true);
+                const iframe = document.createElement('iframe');
+                Object.assign(iframe.style, {
+                    position:'fixed', right:'0', bottom:'0', width:'0', height:'0', 
+                    border:'0', visibility:'hidden'
+                });
+                document.body.appendChild(iframe);
+                
+                const doc = iframe.contentDocument;
+                doc.open();
+                doc.write('<!doctype html><html><head>'+ document.head.innerHTML +'</head><body></body></html>');
+                doc.close();
+                doc.body.appendChild(clone);
+                
+                // Enhanced timing with error recovery
+                setTimeout(()=>{
+                    try{
+                        iframe.contentWindow.focus();
+                        iframe.contentWindow.print();
+                        console.log('[PDF] Print dialog opened successfully');
+                    } catch(e){
+                        console.error('[PDF] Print failed:', e);
+                        alert('PDF export failed. Please try again or use browser print (Ctrl/Cmd+P)');
+                    }
+                    setTimeout(()=>{
+                        try { iframe.remove(); } catch(_) {}
+                    }, 1500);
+                }, 100);
+            } catch(e) {
+                console.error('[PDF] Export setup failed:', e);
+                alert('PDF export unavailable. Please use browser print (Ctrl/Cmd+P)');
+            }
         };
     }
 })();
