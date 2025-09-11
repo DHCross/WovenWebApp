@@ -3677,6 +3677,86 @@ function renderTransitDay(dateStr, items){
             
             return md;
         }
+
+        // Guidelines-style report (Abstract, Key Points, Keywords, Q&A)
+        function generateGuidelinesStyleReport(data, options = {}) {
+            try {
+                const isRelational = Boolean(data?.person_b || data?.composite);
+                const period = (data?.balance_meter?.period) || (data?.person_a?.derived?.seismograph_summary?.period) || null;
+                const start = options?.period?.start || period?.start || data?.transit?.startDate || data?.period?.start || '';
+                const end = options?.period?.end || period?.end || data?.transit?.endDate || data?.period?.end || '';
+
+                // Seismograph summary hints
+                const sgs = data?.person_a?.derived?.seismograph_summary || data?.composite?.derived?.seismograph_summary || {};
+                const magnitude = sgs?.magnitude_avg ?? sgs?.magnitude ?? null;
+                const valence = sgs?.valence_avg ?? sgs?.valence ?? null;
+                const volatility = sgs?.volatility_avg ?? sgs?.volatility ?? null;
+
+                // Small helper to coerce lists safely
+                const toList = (x) => Array.isArray(x) ? x : (x ? [x] : []);
+
+                // Attempt to surface a few notable aspect names for Key Points
+                const sampleAspects = [];
+                const pickSample = (arr) => {
+                    if (!Array.isArray(arr)) return;
+                    for (const a of arr) {
+                        if (a && a.aspect && a.p1_name && a.p2_name && sampleAspects.length < 6) {
+                            sampleAspects.push(`${a.p1_name} ${a.aspect} ${a.p2_name}`);
+                        }
+                        if (sampleAspects.length >= 6) break;
+                    }
+                };
+                // Prefer seismograph hooks if present; otherwise sample natal/synastry aspects
+                const anyDaily = data?.person_a?.chart?.transitsByDate || data?.composite?.transitsByDate;
+                if (anyDaily) {
+                    const dates = Object.keys(anyDaily).slice(0, 5);
+                    for (const d of dates) {
+                        pickSample(anyDaily[d]?.acceptedAspects || anyDaily[d]?.aspects);
+                        if (sampleAspects.length >= 6) break;
+                    }
+                } else {
+                    pickSample(toList(data?.person_a?.aspects));
+                    pickSample(toList(data?.composite?.synastry_aspects));
+                }
+
+                // Build Markdown
+                let md = '';
+                md += `### Abstract\n`;
+                md += `${isRelational ? 'The content presents a dyadic mirror based on cross-chart geometry' : 'The content presents a detailed solo mirror based on natal and transit geometry'}${(start && end) ? ` for ${start} to ${end}` : ''}. `;
+                md += `Seismograph readouts ${magnitude!=null||valence!=null||volatility!=null ? 'indicate fluctuations in magnitude, valence, and volatility' : 'are included when available'} to reflect energetic dynamics. `;
+                md += `Each entry summarizes acceptance/rejection of aspects through time with geometry-first hooks.\n\n`;
+
+                md += `### Key Points\n`;
+                const bullets = [];
+                if (sampleAspects.length) bullets.push(`Notable configurations include ${sampleAspects.slice(0,3).join('; ')}...`);
+                if (magnitude!=null || valence!=null || volatility!=null) bullets.push(`Seismograph snapshot — magnitude: ${magnitude ?? 'n/a'}, valence: ${valence ?? 'n/a'}, volatility: ${volatility ?? 'n/a'}.`);
+                bullets.push(isRelational ? 'Recognition layer references both Person A and Person B with bidirectional vectors.' : 'Recognition layer references personal hooks and angles.');
+                bullets.push('All phrasing remains conditional; map, not mandate.');
+                md += bullets.map((b,i)=>`${i+1}. ${b}`).join('\n') + '\n\n';
+
+                md += `### Keywords\n`;
+                const kw = new Set(['astrological aspects','seismograph readout','magnitude','valence','volatility']);
+                // Add planet names if present
+                const addPlanet = (n) => { if (typeof n === 'string') kw.add(n); };
+                for (const s of sampleAspects) {
+                    const parts = s.split(' ');
+                    addPlanet(parts[0]);
+                    addPlanet(parts[parts.length-1]);
+                }
+                md += [...kw].map(k=>`- ${k}`).join('\n') + '\n\n';
+
+                md += `### Q&A\n`;
+                md += `Q: What aspects are highlighted?  \nA: ${sampleAspects.length ? sampleAspects.slice(0,3).join('; ') : 'Key personal or dyadic hooks per geometry-first filters.'}\n\n`;
+                md += `Q: What does the seismograph measure?  \nA: Magnitude, valence, and volatility of symbolic charge across the period.\n\n`;
+                md += `Q: How is agency preserved?  \nA: Reflections are conditional and falsifiable; if it doesn’t land, it doesn’t count.\n`;
+
+                return md;
+            } catch (e) {
+                console.warn('generateGuidelinesStyleReport failed:', e);
+                // Fallback to existing Clear Mirror generator
+                return generateClearMirrorReport(data, options);
+            }
+        }
         
         function generateBirthLabel(person) {
             if (!person) return "undefined undefined undefined, undefined";
@@ -10178,8 +10258,8 @@ function renderTransitDay(dateStr, items){
                         includeProvenance: false
                     };
                     
-                    // Use Clear Mirror template for user-facing reports
-                    report = generateClearMirrorReport(result, displayOptions);
+                    // Use Guidelines-style Mirror template for user-facing reports (Abstract/Key Points/Keywords/Q&A)
+                        report = generateGuidelinesStyleReport(result, displayOptions);
                     console.log('Generated Clear Mirror report, length:', report?.length);
                 }
                 
