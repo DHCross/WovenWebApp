@@ -72,48 +72,51 @@ function validateSubjectLean(s = {}) {
 
 /**
  * Parses coordinate strings in various formats (DMS, decimal)
- * @param {string} coordString - Coordinate string like "30°10'N, 85°40'W" or "30.1667, -85.6667"
- * @returns {{lat: number, lng: number}|null} Parsed coordinates or null
+ * Accepts: "40°1'N, 75°18'W", "40° 1' N, 75° 18' W", optional seconds and unicode primes.
+ * @param {string} coordString - Coordinate string.
+ * @returns {{lat: number, lon: number}|null} Parsed coordinates or null
  */
 function parseCoordinates(coordString) {
-  if (!coordString) return null;
-  
-  // Handle DMS format: "30°10'N, 85°40'W"
-  const dmsPattern = /(\d+)°(\d+)'([NS]),\s*(\d+)°(\d+)'([EW])/;
-  const dmsMatch = coordString.match(dmsPattern);
-  
-  if (dmsMatch) {
-    const latDeg = parseInt(dmsMatch[1]);
-    const latMin = parseInt(dmsMatch[2]);
-    const latDir = dmsMatch[3];
-    const lngDeg = parseInt(dmsMatch[4]);
-    const lngMin = parseInt(dmsMatch[5]);
-    const lngDir = dmsMatch[6];
-    
-    let lat = latDeg + (latMin / 60);
-    let lng = lngDeg + (lngMin / 60);
-    
-    if (latDir === 'S') lat = -lat;
-    if (lngDir === 'W') lng = -lng;
-    
-    logger.info('Parsed DMS coordinates', { 
-      input: coordString, 
-      output: { lat, lng } 
-    });
-    
-    return { lat, lng };
-  }
-  
-  // Handle decimal format: "30.1667, -85.6667"
-  const parts = coordString.split(',').map(s => s.trim());
-  if (parts.length === 2) {
-    const lat = parseFloat(parts[0]);
-    const lng = parseFloat(parts[1]);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      return { lat, lng };
+  if (!coordString || typeof coordString !== 'string') return null;
+
+  // Normalize common unicode variants
+  let s = coordString.trim()
+    .replace(/º/g, '°')    // alt degree symbol
+    .replace(/[’′]/g, "'") // prime to apostrophe
+    .replace(/[”″]/g, '"'); // double prime to quote
+
+  // Flexible DMS pattern with optional minutes/seconds and spaces
+  // Groups: 1=latDeg,2=latMin?,3=latSec?,4=latHem,5=lonDeg,6=lonMin?,7=lonSec?,8=lonHem
+  const DMS = /^\s*(\d{1,3})(?:\s*°\s*(\d{1,2})(?:['"]?\s*([\d.]+))?)?\s*([NS])\s*,\s*(\d{1,3})(?:\s*°\s*(\d{1,2})(?:['"]?\s*([\d.]+))?)?\s*([EW])\s*$/i;
+  const m = DMS.exec(s);
+  if (m) {
+    const dmsToDec = (d, m, sec, hem) => {
+      const deg = parseInt(d, 10) || 0;
+      const min = parseInt(m || '0', 10) || 0;
+      const secF = parseFloat(sec || '0') || 0;
+      let val = deg + min / 60 + secF / 3600;
+      if (/S|W/i.test(hem)) val *= -1;
+      return val;
+    };
+    const lat = dmsToDec(m[1], m[2], m[3], m[4]);
+    const lon = dmsToDec(m[5], m[6], m[7], m[8]);
+    if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+      logger.info('Parsed DMS coordinates', { input: coordString, output: { lat, lon } });
+      return { lat, lon };
     }
   }
-  
+
+  // Decimal fallback: "40.0167, -75.3000"
+  const DEC = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/;
+  const d = DEC.exec(s);
+  if (d) {
+    const lat = parseFloat(d[1]);
+    const lon = parseFloat(d[2]);
+    if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+      return { lat, lon };
+    }
+  }
+
   return null;
 }
 
@@ -158,11 +161,12 @@ function normalizeSubjectData(data) {
 
   const normalized = {
     name: data.name || 'Subject',
-    year: data.year, month: data.month, day: data.day,
-    hour: data.hour, minute: data.minute,
-    city: data.city, nation: data.nation,
-    latitude: data.latitude, longitude: data.longitude,
-    timezone: data.timezone,
+  year: data.year, month: data.month, day: data.day,
+  hour: data.hour, minute: data.minute,
+  city: data.city, nation: data.nation,
+  latitude: data.latitude ?? data.lat,
+  longitude: data.longitude ?? data.lon ?? data.lng,
+  timezone: data.timezone,
     zodiac_type: data.zodiac_type || data.zodiac || 'Tropic',
   };
 
@@ -177,6 +181,30 @@ function normalizeSubjectData(data) {
     const [h, min] = data.time.split(':').map(Number);
     normalized.hour = normalized.hour || h;
     normalized.minute = normalized.minute || min;
+  }
+  // Support birth_date / birth_time aliases
+  if (data.birth_date && (!normalized.year || !normalized.month || !normalized.day)) {
+    try {
+      const [y, m, d] = String(data.birth_date).split('-').map(Number);
+      if (y && m && d) { normalized.year = y; normalized.month = m; normalized.day = d; }
+    } catch(_) {}
+  }
+  if (data.birth_time && (!normalized.hour || !normalized.minute)) {
+    try {
+      const [h, min] = String(data.birth_time).split(':').map(Number);
+      if (h !== undefined && min !== undefined) { normalized.hour = h; normalized.minute = min; }
+    } catch(_) {}
+  }
+  // City / Country aliases
+  if (!normalized.city) {
+    normalized.city = data.birth_city || data.city_name || data.town || normalized.city;
+  }
+  if (!normalized.nation) {
+    normalized.nation = data.birth_country || data.country || data.country_code || normalized.nation;
+  }
+  // Timezone aliases
+  if (!normalized.timezone) {
+    normalized.timezone = data.offset || data.tz || data.tzid || data.time_zone || normalized.timezone;
   }
   if (data.coordinates) {
     const [lat, lng] = data.coordinates.split(',').map(s => parseFloat(s.trim()));
@@ -1388,7 +1416,9 @@ exports.handler = async function(event) {
     const personA = normalizeSubjectData(body.personA || body.person_a || body.first_subject || body.subject);
     const personB = normalizeSubjectData(body.personB || body.person_b || body.second_subject);
     // Use strict validator for full chart endpoints, lean for aspects-only
-  const modeToken = canonicalizeMode(body.context?.mode || body.mode || '');
+  // Accept multiple ways of specifying mode, including saved JSON shapes
+  const modeHint = body.context?.mode || body.mode || body.contextMode?.relational || body.contextMode?.solo || '';
+  const modeToken = canonicalizeMode(modeHint);
     const wantNatalAspectsOnly = modeToken === 'NATAL_ASPECTS' || event.path?.includes('natal-aspects-data');
     const wantBirthData = modeToken === 'BIRTH_DATA' || event.path?.includes('birth-data');
     const wantSynastry = modeToken === 'SYNASTRY' || modeToken === 'SYNASTRY_TRANSITS';
@@ -1414,9 +1444,10 @@ exports.handler = async function(event) {
       return up; // fallback; will validate later
     }
 
-    function validateRelationshipContext(raw, relationshipMode){
-      if(!relationshipMode) return { valid: true, value: null, reason: 'Not in relationship mode' };
-      const ctx = raw || body.relationship || body.relationship_context || body.relationshipContext || {};
+    function validateRelationshipContext(raw, isRelationshipMode){
+      if(!isRelationshipMode) return { valid: true, value: null, reason: 'Not in relationship mode' };
+      // Accept multiple aliases including saved config shape `relationalContext`
+      const ctx = raw || body.relationship || body.relationship_context || body.relationshipContext || body.relationalContext || {};
       const errors = [];
       const cleaned = {};
 
@@ -1435,20 +1466,25 @@ exports.handler = async function(event) {
 
       // Role requirement for FAMILY; optional for FRIEND
       if (cleaned.type === 'FAMILY') {
-        cleaned.role = (ctx.role || ctx.family_role || '').toString();
+        // Accept relationship_role alias; normalize case (e.g., "parent" -> "Parent")
+        const roleRaw = (ctx.role || ctx.family_role || ctx.relationship_role || '').toString();
+        const roleCanon = roleRaw ? roleRaw.charAt(0).toUpperCase() + roleRaw.slice(1).toLowerCase() : '';
+        cleaned.role = roleCanon;
         if(!FAMILY_ROLES.includes(cleaned.role)) {
           errors.push(`role required for FAMILY (one of ${FAMILY_ROLES.join(',')})`);
         }
       } else if (cleaned.type === 'FRIEND') {
-        cleaned.role = (ctx.role || ctx.friend_role || '').toString();
+        const roleRaw = (ctx.role || ctx.friend_role || ctx.relationship_role || '').toString();
+        const roleCanon = roleRaw ? roleRaw.charAt(0).toUpperCase() + roleRaw.slice(1).toLowerCase() : '';
+        cleaned.role = roleCanon;
         if (cleaned.role && !FRIEND_ROLES.includes(cleaned.role)) {
           errors.push(`friend role invalid (optional, one of ${FRIEND_ROLES.join(',')})`);
         }
       }
 
       // Ex / Estranged flag only for PARTNER or FAMILY
-      if (ctx.ex_estranged !== undefined || ctx.ex || ctx.estranged) {
-        const flag = Boolean(ctx.ex_estranged || ctx.ex || ctx.estranged);
+      if (ctx.ex_estranged !== undefined || ctx.ex || ctx.estranged || ctx.is_ex_relationship !== undefined) {
+        const flag = Boolean(ctx.ex_estranged || ctx.ex || ctx.estranged || ctx.is_ex_relationship);
         if (cleaned.type === 'FRIEND') {
           errors.push('ex_estranged flag not allowed for FRIEND');
         } else {
@@ -1477,6 +1513,18 @@ exports.handler = async function(event) {
 
     // Relationship mode strict validation for Person B (fail loud, no silent fallback)
     const relationshipMode = wantSynastry || wantSynastryAspectsOnly || wantComposite;
+    
+    // Debug logging for Balance Meter logic - Part 1
+    logger.debug('Balance Meter decision variables (Part 1):', {
+      wantBalanceMeter,
+      modeToken,
+      contextMode: body.context?.mode,
+      relationshipMode,
+      wantSynastry,
+      wantSynastryAspectsOnly,
+      wantComposite
+    });
+    
     let personBStrictValidation = { isValid: false, errors: { reason: 'Not requested' } };
     // Relationship context validation (must precede Person B requirements messaging to give precise feedback)
     const relContextValidation = validateRelationshipContext(body.relationship_context || body.relationshipContext, relationshipMode);
@@ -1513,6 +1561,13 @@ exports.handler = async function(event) {
     const end   = body.transitEndDate   || body.transit_end_date   || body.transitParams?.endDate || body.transit?.endDate;
     const step  = normalizeStep(body.transitStep || body.transit_step || body.transitParams?.step || body.transit?.step);
     const haveRange = Boolean(start && end);
+    
+    // Debug logging for Balance Meter logic - Part 2
+    logger.debug('Balance Meter decision variables (Part 2):', {
+      haveRange,
+      start,
+      end
+    });
 
     let headers;
     try {
@@ -1971,9 +2026,10 @@ exports.handler = async function(event) {
         };
       }
 
-  // Step 2: Composite transits: now ALWAYS computed when a date range is supplied, regardless of specific composite sub-mode
-  // Rationale: connection "pressure" mapping requires transits; aspects-only without transits is incomplete.
-  if (haveRange && !skipTransits) {
+  // Step 2: Composite transits: TEMPORARILY DISABLED due to API compatibility issues
+  // The transit API expects natal chart birth data but composite charts only have planetary positions
+  // TODO: Investigate if there's a specific composite transit endpoint or if we need synthetic birth data
+  if (haveRange && !skipTransits && false) { // Disabled with && false
         logger.debug('Computing composite transits for date range:', { start, end, step });
         
         // Calculate transits to the composite chart using the composite chart as base
@@ -2014,10 +2070,25 @@ exports.handler = async function(event) {
         }
         logger.debug('Composite transits completed with seismograph analysis');
       }
+      
+      // Add note about disabled composite transits
+      if (haveRange && !skipTransits) {
+        result.composite.transitsByDate = {};
+        result.composite.note = 'Composite transits temporarily disabled due to API compatibility issues';
+        logger.debug('Composite transits disabled - returning empty transit data');
+      }
     }
 
     // === BALANCE METER MODE ===
-    if (wantBalanceMeter && haveRange) {
+    // Only generate Balance Meter for solo reports, not relational ones
+    logger.debug('Checking Balance Meter conditions:', {
+      wantBalanceMeter,
+      haveRange,
+      relationshipMode,
+      shouldRunBalanceMeter: wantBalanceMeter && haveRange && !relationshipMode
+    });
+    
+    if (wantBalanceMeter && haveRange && !relationshipMode) {
       logger.debug('Processing Balance Meter mode for standalone report');
 
       // Ensure Person A transit seismograph exists; compute if missing
@@ -2099,9 +2170,3 @@ exports.handler = async function(event) {
     };
   }
 };
-    // Mark reconstructed if any requested date precedes the calibration boundary
-    try {
-      if (start && new Date(start) < new Date(CALIBRATION_BOUNDARY)) {
-        result.reconstructed = true;
-      }
-    } catch (_) { /* noop */ }

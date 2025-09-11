@@ -2207,21 +2207,55 @@ function renderTransitDay(dateStr, items){
         }
 
         // Resilient API POST helper with fallback
+        // Global request controller for proper cancellation
+        let currentRequestController = null;
+
+        // Function to cancel any in-flight request
+        function cancelCurrentRequest(reason = 'cancelled') {
+            if (currentRequestController && !currentRequestController.signal.aborted) {
+                console.log('[API] Cancelling current request:', reason);
+                currentRequestController.abort(reason);
+            }
+        }
+
         async function postMathBrain(payload, timeoutMs = 30000) {
             const primary = WovenMapConfig.getApiEndpoint('astrologyMathBrain'); // usually /api/astrology-mathbrain
             const fallback = '/.netlify/functions/astrology-mathbrain'; // direct function path
+            
             const doFetch = async (url) => {
+                // Create a fresh controller for this specific request
                 const controller = new AbortController();
-                const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
+                currentRequestController = controller;
+                
+                const timeoutHandle = setTimeout(() => {
+                    if (!controller.signal.aborted) {
+                        console.log('[API] Request timeout after', timeoutMs, 'ms');
+                        controller.abort('timeout');
+                    }
+                }, timeoutMs);
+                
                 try {
-                    return await fetch(url, {
+                    const response = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload),
                         signal: controller.signal
                     });
+                    return response;
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        if (controller.signal.reason === 'timeout') {
+                            throw new Error(`Request timed out after ${timeoutMs}ms`);
+                        } else {
+                            throw new Error('Request was cancelled');
+                        }
+                    }
+                    throw error;
                 } finally {
                     clearTimeout(timeoutHandle);
+                    if (currentRequestController === controller) {
+                        currentRequestController = null;
+                    }
                 }
             };
 
@@ -8305,12 +8339,19 @@ function renderTransitDay(dateStr, items){
             }
 
             // Try DMS format with flexible patterns
-            // Handles: "30°10'N, 85°40'W", "30° 10' N, 85° 40' W", etc.
-            const dmsPattern = /^\s*(\d{1,3})(?:°\s*(\d{1,2}))?(?:'\s*([\d.]+))?\s*([NS])\s*,\s*(\d{1,3})(?:°\s*(\d{1,2}))?(?:'\s*([\d.]+))?\s*([EW])\s*$/i;
+            // Handles: "30°10'N, 85°40'W", "30° 10' N, 85° 40' W", and unicode prime variants 40°1’N, 75°18″W
+            // Accept optional apostrophe after minutes even when seconds are absent
+            // Groups: 1=latDeg,2=latMin,3=latSec,4=latHem,5=lonDeg,6=lonMin,7=lonSec,8=lonHem
+            const dmsPattern = /^\s*(\d{1,3})\s*°\s*(\d{1,2})?\s*'?\s*(?:([\d.]+)\s*"?)?\s*([NS])\s*,\s*(\d{1,3})\s*°\s*(\d{1,2})?\s*'?\s*(?:([\d.]+)\s*"?)?\s*([EW])\s*$/i;
             
             // Clean up coordinate string for better matching
-            const cleaned = coordString.replace(/º/g, '°'); // Replace alternative degree symbol
+            const cleaned = coordString
+                .replace(/º/g, '°')   // alt degree symbol
+                .replace(/[’′]/g, "'") // prime to apostrophe
+                .replace(/[”″]/g, '"'); // double prime to quote
+            console.log('Coordinate parse cleaned string:', cleaned);
             const dmsMatch = cleaned.match(dmsPattern);
+            console.log('Coordinate parse DMS match:', !!dmsMatch);
             
             if (dmsMatch) {
                 // Parse latitude: degrees + minutes/60 + seconds/3600
@@ -8340,6 +8381,46 @@ function renderTransitDay(dateStr, items){
                         latitude: parseFloat(lat.toFixed(6)), 
                         longitude: parseFloat(lon.toFixed(6)) 
                     };
+                }
+            } else {
+                // Fallback: parse latitude and longitude separately when full-pattern match fails
+                const parts = cleaned.split(/\s*,\s*/);
+                if (parts.length === 2) {
+                    const oneSide = /^(\d{1,3})\s*°\s*(\d{1,2})?\s*'?\s*(?:([\d.]+)\s*"?)?\s*([NSEW])$/i;
+                    const mLat = parts[0].match(oneSide);
+                    const mLon = parts[1].match(oneSide);
+                    if (mLat && mLon) {
+                        const latDeg = parseInt(mLat[1] || '0', 10);
+                        const latMin = parseInt(mLat[2] || '0', 10);
+                        const latSec = parseFloat(mLat[3] || '0');
+                        const latDir = mLat[4].toUpperCase();
+                        const lonDeg = parseInt(mLon[1] || '0', 10);
+                        const lonMin = parseInt(mLon[2] || '0', 10);
+                        const lonSec = parseFloat(mLon[3] || '0');
+                        const lonDir = mLon[4].toUpperCase();
+                        let lat = latDeg + latMin / 60 + latSec / 3600;
+                        let lon = lonDeg + lonMin / 60 + lonSec / 3600;
+                        if (latDir === 'S') lat = -lat;
+                        if (lonDir === 'W') lon = -lon;
+                        if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+                            console.log("Parsed DMS coordinates (split-fallback):", { latitude: lat, longitude: lon });
+                            return { latitude: parseFloat(lat.toFixed(6)), longitude: parseFloat(lon.toFixed(6)) };
+                        }
+                    }
+                } else {
+                    // Super-loose fallback: tolerate any non-digits between tokens
+                    const loose = /^(\d{1,3})\D+(\d{1,2})\D*([NS])\s*,\s*(\d{1,3})\D+(\d{1,2})\D*([EW])$/i;
+                    const m3 = cleaned.match(loose);
+                    if (m3) {
+                        let lat = parseInt(m3[1], 10) + (parseInt(m3[2] || '0', 10) / 60);
+                        let lon = parseInt(m3[4], 10) + (parseInt(m3[5] || '0', 10) / 60);
+                        if (m3[3].toUpperCase() === 'S') lat = -lat;
+                        if (m3[6].toUpperCase() === 'W') lon = -lon;
+                        if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+                            console.log("Parsed DMS coordinates (loose-fallback):", { latitude: lat, longitude: lon });
+                            return { latitude: parseFloat(lat.toFixed(6)), longitude: parseFloat(lon.toFixed(6)) };
+                        }
+                    }
                 }
             }
             
@@ -9932,6 +10013,9 @@ function renderTransitDay(dateStr, items){
             totalRowCount = 0; // Reset counter for each report
             WovenMapConfig.debugLog("Generate button clicked");
             
+            // Cancel any existing request before starting a new one
+            cancelCurrentRequest('new-request');
+            
             // Debug: Check current tab mode
             const currentMode = getCurrentActiveTabMode();
             console.log("🔍 DEBUG: Current active tab mode:", currentMode);
@@ -10208,7 +10292,22 @@ function renderTransitDay(dateStr, items){
 
             } catch (error) {
                 console.error('Error generating report:', error);
-                showError(`Failed to generate report: ${error.message}`);
+                
+                // Handle specific error types with better user messages
+                let errorMessage = error.message;
+                if (error.name === 'AbortError' || errorMessage.includes('aborted')) {
+                    if (errorMessage.includes('timeout')) {
+                        errorMessage = 'Request timed out. Please try again with a shorter date range or try again later.';
+                    } else if (errorMessage.includes('cancelled') || errorMessage.includes('new-request')) {
+                        errorMessage = 'Request was cancelled to start a new one.';
+                    } else {
+                        errorMessage = 'Request was cancelled. Please try again.';
+                    }
+                } else if (errorMessage.includes('signal is aborted without reason')) {
+                    errorMessage = 'Request was interrupted. Please try again.';
+                }
+                
+                showError(`Failed to generate report: ${errorMessage}`);
             } finally {
                 generateBtn.disabled = false;
                 loadingIndicator.classList.add('hidden');
@@ -11965,7 +12064,7 @@ function renderTransitDay(dateStr, items){
             }
         }
 
-    <!-- Legacy Auth0 block removed to prevent double initialization -->
+    // Legacy Auth0 block removed to prevent double initialization
 
 </script>
 <!-- ---- Auth0 Init & UI Wiring (runs after SDK loader) ---- -->

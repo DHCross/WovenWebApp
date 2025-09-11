@@ -1,0 +1,211 @@
+{
+  "report_date": "2025-09-11",
+  "context": {
+    "type": "relational",
+    "natal_A": {
+      "name": "Abigail",
+      "birth_date": "2006-01-03",
+      "birth_time": "21:55",
+      "birth_place": "Panama City, US"
+    },
+    "natal_B": {
+      "name": "Dan",
+      "birth_date": "1973-07-24",
+      "birth_time": "14:30",
+      "birth_place": "Bryn Mawr, US"
+    },
+    "translocation": {
+      "applies": false
+    }
+  },
+  "balance_meter": {
+    "shared": {
+      "magnitude": {
+        "value": 5,
+        "term": "Maximum Threshold / Structural Overload"
+      },
+      "valence": {
+        "value": -0.41,
+        "term": "Neutral",
+        "emoji": "⏳"
+      },
+      "volatility": {
+        "value": 5.325406609410736,
+        "term": "Very high turbulence"
+      },
+      "confidence": 0.9,
+      "glyphs": [
+        "☍"
+      ],
+      "quadrant": "High Mag / - Val",
+      "notes": []
+    },
+    "party_A": {
+      "magnitude": {
+        "value": 5,
+        "term": "Maximum Threshold / Structural Overload"
+      },
+      "valence": {
+        "value": -0.41,
+        "term": "Neutral",
+        "emoji": "⏳"
+      },
+      "volatility": {
+        "value": 5.325406609410736,
+        "term": "Very high turbulence"
+      },
+      "confidence": 0.9,
+      "glyphs": [
+        "☍"
+      ],
+      "quadrant": "High Mag / - Val",
+      "notes": []
+    },
+    "party_B": {
+      "magnitude": {
+        "value": 5,
+        "term": "Maximum Threshold / Structural Overload"
+      },
+      "valence": {
+        "value": -13.95,
+        "term": "Collapse",
+        "emoji": "🌋"
+      },
+      "volatility": {
+        "value": 2.66151718819465,
+        "term": "Variable"
+      },
+      "confidence": 0.9,
+      "glyphs": [
+        "⚡",
+        "☍"
+      ],
+      "quadrant": "High Mag / - Val",
+      "notes": []
+    }
+  },
+  "macro_view": {
+    "activation_curve": "Magnitude trending 5.0 → 3.1 (Maximum Threshold → Surge)",
+    "valence_drift": "Neutral ⏳ → Collapse 🌋",
+    "volatility_pattern": "Settling later"
+  },
+  "micro_view": {
+    "daily_bar_pulse": {
+      "shared": 5,
+      "party_A": 5,
+      "party_B": 5
+    },
+    "valence_annotation": {
+      "shared": -0.41,
+      "party_A": -0.41,
+      "party_B": -13.95
+    },
+    "semantic_snapshot": {
+      "title": "Shared field snapshot",
+      "glyphs": [
+        "☍"
+      ],
+      "annotation": ""
+    },
+    "party_A_snapshot": {
+      "title": "High Volatility Negative",
+      "glyphs": [
+        "⚡",
+        "⧖"
+      ],
+      "annotation": "Volatility ≥4.0, Negative valence"
+    },
+    "party_B_snapshot": {
+      "title": "Extreme Negative Valence",
+      "glyphs": [
+        "☍"
+      ],
+      "annotation": "Valence ≤-4.5, Standard volatility"
+    }
+  },
+  "seismograph_by_date": {
+    "2025-09-06": {
+      "magnitude": 5,
+      "valence": -0.41,
+      "volatility": 5.325406609410736
+    },
+    "2025-09-07": {
+      "magnitude": 3.91,
+      "valence": -4.97,
+      "volatility": 3.7146460828500647
+    },
+    "2025-09-08": {
+      "magnitude": 3.77,
+      "valence": -8.85,
+      "volatility": 5.6020293861292405
+    },
+    "2025-09-09": {
+      "magnitude": 3.71,
+      "valence": -9.11,
+      "volatility": 3.632904427092583
+    },
+    "2025-09-10": {
+      "magnitude": 3.65,
+      "valence": -5.91,
+      "volatility": 2.6288234165792796
+    },
+    "2025-09-11": {
+      "magnitude": 3.59,
+      "valence": -12.75,
+      "volatility": 4.519029929088764
+    },
+    "2025-09-12": {
+      "magnitude": 3.53,
+      "valence": -17.82,
+      "volatility": 3.624760117541879
+    },
+    "2025-09-13": {
+      "magnitude": 3.47,
+      "valence": -12.63,
+      "volatility": 4.605135228440335
+    },
+    "2025-09-14": {
+      "magnitude": 3.42,
+      "valence": -12.36,
+      "volatility": 4.229744701876881
+    },
+    "2025-09-15": {
+      "magnitude": 3.37,
+      "valence": -12.14,
+      "volatility": 3.8637623719202336
+    },
+    "2025-09-16": {
+      "magnitude": 3.31,
+      "valence": -14.45,
+      "volatility": 3.9054639600251795
+    },
+    "2025-09-17": {
+      "magnitude": 3.26,
+      "valence": -7.34,
+      "volatility": 3.434871883224565
+    },
+    "2025-09-18": {
+      "magnitude": 3.22,
+      "valence": -12.64,
+      "volatility": 4.624743202330265
+    },
+    "2025-09-19": {
+      "magnitude": 3.17,
+      "valence": -8.71,
+      "volatility": 5.209542643606592
+    },
+    "2025-09-20": {
+      "magnitude": 3.13,
+      "valence": -9.22,
+      "volatility": 3.769092205764613
+    }
+  },
+  "reports": {
+    "templates": {
+      "solo_mirror": "# Solo Mirror — Empty Template (v1.4)\n\n## Typological Profile (Constitutional Climate Layer)\n\n### Dominant Orientation\n\n[Function: Thinking/Feeling/Sensation/Intuition] organized by [major planets, signs, houses, aspects]. Often shows up as [concrete behavioral patterns: structuring/analyzing/attuning/perceiving].\n\n### Secondary Orientation\n\nA background current of [function] ([Moon, Venus, auxiliary aspects, daily rhythm houses]) that surfaces as [conditional behaviors, relational modes, imaginal flashes].\n\n### Shadow Orientation\n\nConstitutional friction concentrates around [function(s)] ([squares, oppositions, Saturn/Pluto/Neptune knots, retrogrades]). Often felt as [doubt, fog, overdrive, timing snags, vulnerability, paradox].\n\n### Constitutional Climate (Summary Hook)\n\n“A [metaphor for dominant] working alongside a [metaphor for secondary/shadow].”\n\n—\n\n## Recognition Hierarchy (based on Hook Stack)\n\n“[Polarity hook 1]” • “[Polarity hook 2]” • “[Polarity hook 3]”\n\n**Recognition Layer: Where Tension Is Felt (frontstage)**\n\n- [Paragraph 1: 2–4 sentences, conditional, lived friction + behavioral edge]\n- [Paragraph 2: 2–4 sentences]\n- [Paragraph 3: 2–4 sentences]\n\n## SST Clause (Falsifiability)\n\n- WB — [rationale/ping]\n- ABE — [inversion/tonal/directional note]\n- OSR — [null confirmation]\n\nSST prompt (frontstage): Did this land? Mark WB / ABE / OSR.\n\n## Balance Meter (Full Stack) in Plain-Weather\n\n### Today’s Reading\n\n- [Pressure band narrative, direction] ([high/medium/low], [supportive 🌞 / restrictive 🌑 / mixed 🌗])\n- [Support cut/holding/prevailing] ([scaffolding present/challenged/absent])\n- [Depleted/resilient/rebounding] ([reserves + recovery narrative])\n\n### Climate Line\n\n[How typological baseline responds to current transits — constitutional weather dance]\n\n## Relocation Context\n\nMode: [none | A_local]\nNotes: [Angles/houses relocate; typology remains natal]\nHouse System: [WholeSign | Placidus]\nBirth Time Confidence: [exact | approximate | unknown]\nHouse Confidence: [high | medium | low]\nLens Location: [City, Region] • Time Zone: America/Chicago\n\n## Vector-Integrity Check (Mandatory if structurally qualified)\n\n- [Latent/Suppressed/Dormant]: [Vector name] — [structural presence; currently contained/waiting]\n- [Latent/Suppressed/Dormant]: [Vector name] — [compensated by X placements]\n- [Latent/Suppressed/Dormant]: [Vector name] — [awaits activation window (e.g., Saturn return)]\n\n## Polarity Cards (FIELD → MAP → VOICE)\n\n1) [Polarity A] ↔ [Polarity B]\nFIELD: [somatic/sensory texture]\nMAP (operator): [planets, aspect, sign/house; lens flag]\nVOICE: [conditional behavioral description with both poles]\n\n2) [Polarity A] ↔ [Polarity B]\nFIELD: [embodied feel]\nMAP (operator): [symbolic source]\nVOICE: [plain-language both-side rendering]\n\n3) [Polarity A] ↔ [Polarity B]\nFIELD: [felt tone]\nMAP (operator): [exact geometry]\nVOICE: [everyday surfacing description]\n\n## Mirror Voice (Stitched Reflection)\n\n[Constitutional climate ↔ current weather interplay]\n[Support vs. friction: SFD narrative]\n[Relocation one-liner if applicable]\n[Reframe tension as engine, not flaw]\n[Close with optional invitation that honors both poles]\n\n## Agency + Hygiene\n\nIf this doesn’t land, it doesn’t count (OSR valid). Language stays conditional. SST classification depends on lived confirmation.\n\n## Context & Accessibility (frontstage metadata)\n\nBirth-time status: [exact | approximate | unknown → solar]\nRelocation: off\nEmoji alts present: true\n\n## Frontstage Metadata (Version Control)\n\nTemplate Version: SoloMirror-v1.4.0 • Schema: mirror-draft-2025-09 • Emoji Lexicon: 1.0\nBuild ID: 2025-09-11_[hash]\nParent Build ID: null\nMin Raven: ≥2025.09\n\n## Subject\n\nName: Abigail\nBirth: 2006-01-03 21:55 Panama City, US\n",
+      "relational_mirror": "# Relational Mirror — Empty Template (v1.4)\n\n## Relational Tier & Consent\n\nTier: [partner | friend/colleague | family | acquaintance]\nConsent Status: [mutual | single-sided | anonymized]\nCultural/Lens Calibration: [tropical | sidereal | animist | nondual] (function-first)\n\n## Dyadic Typological Snapshot (Constitutional)\n\nPerson A: [Dominant/Secondary/Shadow summaries]\nPerson B: [Dominant/Secondary/Shadow summaries]\nPolarity Hook (shared): \"[A vs. B tension name]\"\n\n## Recognition Layer — Where It’s Felt (A & B)\n\n[Short paragraph: daily friction zone that both notice]\n[Short paragraph: zone unique to A]\n[Short paragraph: zone unique to B]\n\n## Bidirectional Vector Mirrors (Mandatory A→B and B→A)\n\nVector 1\n\nA → B (frontstage): [ ]\nB → A (frontstage): [ ]\nMAP (operator): [ ]\nSST: [WB/ABE/OSR for each direction + rationale]\n\nVector 2\n\nA → B: [ ]\nB → A: [ ]\nMAP: [ ]\nSST: [ ]\n\nVector 3\n\nA → B: [ ]\nB → A: [ ]\nMAP: [ ]\nSST: [ ]\n\n## Balance Meter (Relational Climate)\n\n### Today’s Dyadic Reading\n\n- [Pressure on the bond] ([high/medium/low], [supportive 🌞 / restrictive 🌑 / mixed 🌗])\n- [Shared Scaffolding] ([present/challenged/absent])\n- [Bond Resilience] ([resilient/depleted/rebounding])\n- [Volatility] ([steady / scattered / storm-class 🌪️])\n\n### Bond Climate Line\n\n[How A’s baseline meets B’s baseline under current sky; where ease vs. drag concentrates]\n\n## Relocation Context (Relational)\n\nMode: [none | A_local | B_local | midpoint]\nNotes: [Angles/houses relocate; individual typologies remain natal]\nHouse System: [WholeSign | Placidus]\nBirth Time Confidence (A/B): [ ] / [ ]\nHouse Confidence (A/B): [ ] / [ ]\nLens Location: [City choice + rationale]\n\n## Vector-Integrity Check (Latent/Suppressed)\n\n- [Latent]: [A→B vector name] — [structural, not yet behaviorally pinged]\n- [Suppressed]: [B→A vector name] — [compensated by X placements]\n\n## Polarity Cards (Shared FIELD → MAP → VOICE)\n\n[Polarity Name of the Bond]\n\nFIELD: [somatic tone between A & B]\nMAP (operator): [cross-chart geometry; lens flag]\nVOICE: [conditional mirror that honors both sides without advice]\n\n## Mirror Voice (Stitched Dyadic Reflection)\n\n[What the bond tends to amplify under this sky]\n[Where scaffolding holds vs. where friction cuts]\n[Relocation one-liner if used]\n[Close with non-prescriptive invitation that preserves agency on both sides]\n\n## Agency + Hygiene\n\nOSR is valid data. Conditional phrasing only. Bidirectional SST logging required for each named vector.\n\n## Frontstage Identity\n\nPerson A: Abigail — 2006-01-03 21:55 Panama City, US\nPerson B: Dan — 1973-07-24 14:30 Bryn Mawr, US\n",
+      "solo_balance": "# Solo Balance Report — Empty Template (v1.4)\n\n## Balance Meter Frontstage (Plain-Weather Only)\n\n### Today’s Reading\n\n- Pressure: [high/medium/low] ([supportive 🌞 / restrictive 🌑 / mixed 🌗])\n- Support/Scaffolding: [present/challenged/absent]\n- Resilience: [resilient/depleted/rebounding]\n- Volatility: [steady / scattered / storm-class 🌪️]\n\n### Climate Line\n\n[Narrative of how pressure distributes; key cross-currents; where air clears]\n\n## Support–Friction Differential (SFD)\n\n[Where support outweighs friction / where friction outweighs support; one paragraph]\n\n## Vector Flags (If Any)\n\n- [Latent/Suppressed/Dormant]: [Vector name] — [note]\n\n## Relocation Note (If On)\n\n[City] — [one line disclosure]\n\n## Frontstage Metadata\n\nTemplate Version: SoloBalance-v1.4.0 • Schema: bm-plainweather-2025-09 • Build ID: 2025-09-11_[id]\n\n## Subject\n\nName: Abigail\nBirth: 2006-01-03 21:55 Panama City, US\n",
+      "relational_balance": "# Relational Balance Report — Empty Template (v1.4)\n\n## Dyadic Balance Meter (Plain-Weather)\n\n### Today’s Bond Reading\n\n- Pressure on the Bond: [high/medium/low] ([supportive 🌞 / restrictive 🌑 / mixed 🌗])\n- Shared Scaffolding: [present/challenged/absent]\n- Bond Resilience: [resilient/depleted/rebounding]\n- Volatility: [steady / scattered / storm-class 🌪️]\n\n### Bond Climate Line\n\n[Narrative: how A’s field meets B’s field today; where coupling adds lift vs. drag]\n\n## SFD for the Bond\n\n[Explain net balance between stabilizers and stressors across the connection]\n\n## Dyadic Vector Flags (If Any)\n\n- [Latent/Suppressed/Dormant]: [A→B vector] — [note]\n- [Latent/Suppressed/Dormant]: [B→A vector] — [note]\n\n## Relocation Note (If On)\n\nMode: [A_local | B_local | midpoint] — [one-line disclosure]\n\n## Frontstage Metadata\n\nTemplate Version: RelationalBalance-v1.4.0 • Schema: bm-relational-2025-09 • Build ID: 2025-09-11_[id]\n\n## Frontstage Identity\n\nPerson A: Abigail — 2006-01-03 21:55 Panama City, US\nPerson B: Dan — 1973-07-24 14:30 Bryn Mawr, US\n"
+    }
+  }
+}
