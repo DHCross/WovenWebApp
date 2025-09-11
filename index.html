@@ -1409,6 +1409,17 @@
 
             <!-- Primary Action -->
             <div class="text-center mb-12">
+                <!-- Dual Report Generation Option -->
+                <div class="mb-6">
+                    <label class="inline-flex items-center cursor-pointer bg-gray-800 px-4 py-3 rounded-lg border border-gray-600 hover:border-teal-500 transition-colors">
+                        <input type="checkbox" id="generateBothReports" class="form-checkbox h-4 w-4 text-teal-600 bg-gray-700 border-gray-600 rounded focus:ring-teal-500 focus:ring-2">
+                        <span class="ml-3 text-sm text-gray-300">
+                            <span class="text-teal-300 font-semibold">📊 Generate Both Reports</span><br>
+                            <span class="text-xs text-gray-400">Create Mirror Report + Balance Meter analysis together</span>
+                        </span>
+                    </label>
+                </div>
+                
                 <button id="generateReport" class="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white font-bold py-4 px-12 rounded-lg text-xl shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
                     ✨ Get My Mirror
                 </button>
@@ -1586,6 +1597,10 @@
                                 📄 Download JSON
                                 <span class="block text-xs opacity-80">Machine‑readable report for Raven</span>
                             </button>
+                            <button id="downloadBothReports" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-3 rounded text-sm transition-colors hidden">
+                                📦 Download Both Reports
+                                <span class="block text-xs opacity-80">Mirror + Balance Meter as ZIP</span>
+                            </button>
                             <button id="downloadPDF" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-3 rounded text-sm transition-colors hidden">
                                 📑 Download PDF
                                 <span class="block text-xs opacity-80">Professional PDF report</span>
@@ -1668,6 +1683,7 @@
     <script src="config.js"></script>
     <script src="src/parsers/seismograph-md.js"></script>
     <script src="src/reporters/comparative-report.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
 // --- Global row counter for report summary ---
 let totalRowCount = 0;
@@ -1904,8 +1920,26 @@ function renderTransitDay(dateStr, items){
             let notificationMessage = '';
             let shouldShow = false;
             
-            if (currentMode === 'mirror' && hasBalanceMeterData) {
-                notificationMessage = '🎁 Bonus: Balance Meter analysis is also available! Check the Balance Meter tab.';
+            // Check if both reports were generated
+            const hasBothReports = latestResultData?.mirror_report && latestResultData?.balance_meter_report;
+            
+            if (hasBothReports) {
+                const otherTab = currentMode === 'mirror' ? 'Balance Meter' : 'Mirror';
+                const otherTabId = currentMode === 'mirror' ? 'balanceMeterModeTab' : 'mirrorModeTab';
+                notificationMessage = `🎁 Bonus: Both reports generated! Switch to the ${otherTab} tab to view the alternate analysis.`;
+                shouldShow = true;
+                
+                // Add indicator to the other tab
+                const otherTabElement = document.getElementById(otherTabId);
+                if (otherTabElement && !otherTabElement.querySelector('.bonus-indicator')) {
+                    const indicator = document.createElement('span');
+                    indicator.className = 'bonus-indicator bg-emerald-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-2';
+                    indicator.textContent = 'READY';
+                    indicator.title = `${otherTab} report also available!`;
+                    otherTabElement.appendChild(indicator);
+                }
+            } else if (currentMode === 'mirror' && hasBalanceMeterData) {
+                notificationMessage = '🎁 Bonus: Balance Meter analysis is also available! Check the Balance Meter tab or use "Generate Both Reports" option.';
                 shouldShow = true;
                 
                 // Add indicator to Balance Meter tab
@@ -1917,8 +1951,20 @@ function renderTransitDay(dateStr, items){
                     indicator.title = 'Bonus Balance Meter analysis available!';
                     balanceTab.appendChild(indicator);
                 }
+            } else if (currentMode === 'balance_meter' && hasMirrorReport) {
+                notificationMessage = '🎁 Bonus: Mirror report is also available! Check the Mirror tab or use "Generate Both Reports" option.';
+                shouldShow = true;
+                
+                // Add indicator to Mirror tab
+                const mirrorTab = document.getElementById('mirrorModeTab');
+                if (mirrorTab && !mirrorTab.querySelector('.bonus-indicator')) {
+                    const indicator = document.createElement('span');
+                    indicator.className = 'bonus-indicator bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-2';
+                    indicator.textContent = 'NEW';
+                    indicator.title = 'Bonus Mirror report available!';
+                    mirrorTab.appendChild(indicator);
+                }
             }
-            // Note: Mirror report cross-notification removed due to availability issues
             
             if (shouldShow) {
                 // Create notification element
@@ -6646,7 +6692,7 @@ function renderTransitDay(dateStr, items){
                         </div>`}
                         <!-- Control Buttons - Sticky and always visible -->
                         <div class="flex flex-wrap gap-2 mb-4" aria-label="Seismograph controls">
-                            <button id="toggleSeismographView" aria-live="polite" class="px-3 py-1 bg-teal-600 text-white rounded text-sm hover:bg-teal-700" title="Cycle: Table → Arc → Barometer → Mobile">
+                            <button id="toggleSeismographView" aria-live="polite" class="px-3 py-1 bg-teal-600 text-white rounded text-sm hover:bg-teal-700" title="Cycle: Table → Arc → Balance Meter → Mobile">
                                 🔄 View: Table
                             </button>
                             <button id="downloadAllSeismographCSV" class="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700" title="Download CSV per dataset">
@@ -6663,9 +6709,9 @@ function renderTransitDay(dateStr, items){
                             </button>
                         </div>
                         <p class="text-sm text-gray-300 mb-3 leading-relaxed">
-                            <strong>Macro (Seismograph Arc):</strong> Normalized activation curve (Magnitude scaled to 0–5) with valence drift path.<br>
-                            <strong>Micro (Barometer):</strong> Daily bar pulses (Magnitude 0–5) with textual valence annotations (V:+/-x.x) and volatility shading.<br>
-                            <strong>Scales:</strong> Magnitude 0–5 (normalized), Valence -5..+5 (annotation only), Volatility 0–5. Raw source magnitude (0–10) preserved in tables.
+                            <strong>Macro (Arc View):</strong> Normalized activation curve (Magnitude scaled to 0–5) with valence paths.<br>
+                            <strong>Micro (Balance Meter):</strong> Triple-channel daily readings: Seismograph (v1.0), Balance Channel (v1.1), SFD (v1.2).<br>
+                            <strong>Scales:</strong> Magnitude 0–5, Valence -5..+5 (both channels), SFD -5..+5, Volatility 0–5. Raw magnitude (0–10) preserved in tables.
                         </p>
                         ${buildSeismographFilters()}
                         <div class="mt-4 text-xs text-gray-400 border-t border-gray-700 pt-3">
@@ -7946,7 +7992,7 @@ function renderTransitDay(dateStr, items){
             } else if (next === 'barometer') {
                 chartContainer.innerHTML = renderBarometerCharts();
                 chartContainer.classList.remove('hidden');
-                button.textContent = '🔄 View: Barometer';
+                button.textContent = '🔄 View: Balance Meter';
             } else if (next === 'mobile') {
                 mobileView.classList.remove('hidden');
                 button.textContent = '🔄 View: Mobile';
@@ -8012,14 +8058,30 @@ function renderTransitDay(dateStr, items){
             if (dates.length === 1) {
                 const d = dates[0];
                 const day = dailyMap[d] || {};
+                
+                // Extract triple-channel data
                 const seismo = day.seismograph || {};
-                const magRaw = Number(seismo.magnitude)||0; // original 0..10 scale? earlier we divide by 2 to normalize
+                const balance = day.balance || {};
+                const sfd = day.sfd || {};
+                
+                // Seismograph channel (v1.0 - crisis-weighted)
+                const magRaw = Number(seismo.magnitude)||0;
                 const mag = +(magRaw/2).toFixed(2); // normalized 0..5
-                const val = Math.max(-5, Math.min(5, Number(seismo.valence)||0));
+                const seismoVal = Math.max(-5, Math.min(5, Number(seismo.valence)||0));
                 const vol = +(Number(seismo.volatility)||0).toFixed(2);
-                const heur = generateBarometerHeuristics(mag, val, vol, day);
-                // Color logic based on valence & magnitude
-                const color = barometerColorForValence(val, mag);
+                
+                // Balance channel (v1.1 - rebalanced valence)
+                const balanceVal = Math.max(-5, Math.min(5, Number(balance.valence)||0));
+                
+                // SFD channel (v1.2 - support-friction differential)
+                const sfdVal = Math.max(-5, Math.min(5, Number(sfd.sfd)||0));
+                const sPlus = Number(sfd.sPlus)||0;
+                const sMinus = Number(sfd.sMinus)||0;
+                
+                const heur = generateBarometerHeuristics(mag, seismoVal, vol, day);
+                
+                // Color logic based on primary seismograph valence & magnitude (for background)
+                const color = barometerColorForValence(seismoVal, mag);
                 // Enhanced gradient with volatility texture
                 let gradient;
                 if (vol >= 4) {
@@ -8040,8 +8102,11 @@ function renderTransitDay(dateStr, items){
                 const hooks = (day.hooks && Array.isArray(day.hooks) && day.hooks.length) ?
                     `<div class="mt-3 text-xs text-teal-200"><span class="font-semibold text-teal-300">Hook Signature:</span> ${day.hooks.slice(0,5).map(h=>h.label||h.name||h.aspect||'').filter(Boolean).join(' · ')}</div>` : '';
                 const scaleConf = (seismo.scaleConfidence!=null) ? `<span class="ml-2 text-[10px] text-gray-400">scale conf ${(+seismo.scaleConfidence).toFixed(2)}</span>` : '';
+                
+                // SFD verdict helper
+                const sfdVerdict = sfdVal >= 0.75 ? 'stabilizers prevail' : sfdVal <= -0.75 ? 'stabilizers cut' : 'mixed';
                 return `<div class="mb-6">
-                    <h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Daily Barometer</h4>
+                    <h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Balance Meter (Triple Channel)</h4>
                     <div class="rounded border border-gray-600 overflow-hidden bg-gray-900">
                         <div class="p-4" style="background:${gradient};">
                             <div class="flex flex-col md:flex-row md:items-start gap-4">
@@ -8051,16 +8116,26 @@ function renderTransitDay(dateStr, items){
                                     ${annotation}
                                     ${glyphs}
                                 </div>
-                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm flex-none">
+                                <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 text-sm flex-none">
                                     <div class="bg-gray-900/50 backdrop-blur rounded p-2 border border-gray-700">
                                         <div class="text-[10px] uppercase text-gray-400">Magnitude</div>
                                         <div class="font-semibold text-gray-100">${mag.toFixed(2)}<span class="text-[11px] text-gray-400"> / 5</span></div>
                                         <div class="text-[10px] text-gray-300">${heur.magnitudeLabel}</div>
                                     </div>
                                     <div class="bg-gray-900/50 backdrop-blur rounded p-2 border border-gray-700">
-                                        <div class="text-[10px] uppercase text-gray-400">Valence</div>
-                                        <div class="font-semibold ${val<0?'text-rose-300':'text-emerald-300'}">${val.toFixed(2)}</div>
-                                        <div class="text-[10px] text-gray-300">${heur.valenceLabel}</div>
+                                        <div class="text-[10px] uppercase text-gray-400">Seismo Val</div>
+                                        <div class="font-semibold ${seismoVal<0?'text-rose-300':'text-emerald-300'}">${seismoVal.toFixed(2)}</div>
+                                        <div class="text-[10px] text-gray-300">v1.0 crisis</div>
+                                    </div>
+                                    <div class="bg-gray-900/50 backdrop-blur rounded p-2 border border-gray-700">
+                                        <div class="text-[10px] uppercase text-gray-400">Balance Val</div>
+                                        <div class="font-semibold ${balanceVal<0?'text-rose-300':'text-emerald-300'}">${balanceVal.toFixed(2)}</div>
+                                        <div class="text-[10px] text-gray-300">v1.1 rebal</div>
+                                    </div>
+                                    <div class="bg-gray-900/50 backdrop-blur rounded p-2 border border-gray-700">
+                                        <div class="text-[10px] uppercase text-gray-400">SFD</div>
+                                        <div class="font-semibold ${sfdVal<0?'text-rose-300':'text-emerald-300'}">${sfdVal.toFixed(2)}</div>
+                                        <div class="text-[10px] text-gray-300">${sfdVerdict}</div>
                                     </div>
                                     <div class="bg-gray-900/50 backdrop-blur rounded p-2 border border-gray-700">
                                         <div class="text-[10px] uppercase text-gray-400">Volatility</div>
@@ -8068,14 +8143,14 @@ function renderTransitDay(dateStr, items){
                                         <div class="text-[10px] text-gray-300">${heur.volatilityLabel}</div>
                                     </div>
                                     <div class="bg-gray-900/50 backdrop-blur rounded p-2 border border-gray-700">
-                                        <div class="text-[10px] uppercase text-gray-400">Signal Tags</div>
-                                        <div class="font-semibold text-gray-100">${heur.signalTags || '—'}</div>
-                                        <div class="text-[10px] text-gray-300">${heur.signalLabel}</div>
+                                        <div class="text-[10px] uppercase text-gray-400">S+/S-</div>
+                                        <div class="font-semibold text-gray-100">${sPlus.toFixed(1)}/${sMinus.toFixed(1)}</div>
+                                        <div class="text-[10px] text-gray-300">support/friction</div>
                                     </div>
                                 </div>
                             </div>
                             ${hooks}
-                            <div class="mt-4 text-[10px] text-gray-300 uppercase tracking-wide">Signal descriptors (geometry-sourced; not narrative)</div>
+                            <div class="mt-4 text-[10px] text-gray-300 uppercase tracking-wide">Balance Meter: Seismograph (v1.0) · Balance Channel (v1.1) · SFD (v1.2) – Triple Channel Analysis</div>
                         </div>
                     </div>
                 </div>`;
@@ -8083,12 +8158,12 @@ function renderTransitDay(dateStr, items){
             // Multi-day fallback: existing canvas bar chart
             const canvasId = `bar-${title.replace(/\s+/g,'-').toLowerCase()}`;
             const legend = `<div class=\"mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] text-gray-300\">
-                <div class=\"bg-gray-900/60 rounded p-2 border border-gray-700\"><span class=\"text-teal-300 font-semibold\">Magnitude</span><br><span class=\"text-gray-400\">Activation load 0–5</span></div>
-                <div class=\"bg-gray-900/60 rounded p-2 border border-gray-700\"><span class=\"text-amber-300 font-semibold\">Valence</span><br><span class=\"text-gray-400\">Ease ↔ Friction -5..+5</span></div>
-                <div class=\"bg-gray-900/60 rounded p-2 border border-gray-700\"><span class=\"text-pink-300 font-semibold\">Volatility</span><br><span class=\"text-gray-400\">Stability ↔ Spiking</span></div>
-                <div class=\"bg-gray-900/60 rounded p-2 border border-gray-700\"><span class=\"text-gray-200 font-semibold\">Hooks</span><br><span class=\"text-gray-400\">Aspect signatures</span></div>
+                <div class=\"bg-gray-900/60 rounded p-2 border border-gray-700\"><span class=\"text-teal-300 font-semibold\">Magnitude</span><br><span class=\"text-gray-400\">Crisis activation 0–5</span></div>
+                <div class=\"bg-gray-900/60 rounded p-2 border border-gray-700\"><span class=\"text-amber-300 font-semibold\">Balance Val</span><br><span class=\"text-gray-400\">Rebalanced v1.1 -5..+5</span></div>
+                <div class=\"bg-gray-900/60 rounded p-2 border border-gray-700\"><span class=\"text-pink-300 font-semibold\">SFD</span><br><span class=\"text-gray-400\">Support-Friction -5..+5</span></div>
+                <div class=\"bg-gray-900/60 rounded p-2 border border-gray-700\"><span class=\"text-gray-200 font-semibold\">Volatility</span><br><span class=\"text-gray-400\">Stability ↔ Spiking</span></div>
             </div>`;
-            const html = `<div class="mb-6"><h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Daily Barometer</h4><div class="bg-gray-800 p-4 rounded border border-gray-600 overflow-x-auto"><canvas id="${canvasId}" width="900" height="260" class="bg-gray-900 rounded" style="min-width: 600px; max-width: 100%;"></canvas>${legend}</div></div>`;
+            const html = `<div class="mb-6"><h4 class="text-lg font-semibold text-yellow-300 mb-3">${title} – Balance Meter Overview</h4><div class="bg-gray-800 p-4 rounded border border-gray-600 overflow-x-auto"><canvas id="${canvasId}" width="900" height="260" class="bg-gray-900 rounded" style="min-width: 600px; max-width: 100%;"></canvas>${legend}</div></div>`;
             setTimeout(()=>drawBarometerChart(canvasId, dailyMap, dates),5);
             return html;
         }
@@ -10230,14 +10305,19 @@ function renderTransitDay(dateStr, items){
 
                 // Generate report based on mode
                 let report;
+                let balanceMeterReport;
+                let mirrorReport;
+                
                 const activeTabMode = (typeof getCurrentActiveTabMode === 'function') ? getCurrentActiveTabMode() : 'mirror';
                 const hasServerBalance = Boolean(result.balance_meter);
+                const generateBothReports = document.getElementById('generateBothReports')?.checked || false;
                 
                 console.log('=== REPORT GENERATION DEBUG ===');
                 console.log('Active tab mode:', activeTabMode);
                 console.log('Result mode:', result.mode);
                 console.log('Has server balance:', hasServerBalance);
                 console.log('Has person A transits:', Boolean(result?.person_a?.chart?.transitsByDate));
+                console.log('Generate both reports:', generateBothReports);
                 
                 // Simplified logic: if Balance Meter tab is active, try to render Balance Meter
                 const shouldRenderBalance = activeTabMode === 'balance_meter';
@@ -10245,26 +10325,49 @@ function renderTransitDay(dateStr, items){
                 console.log('Should render balance:', shouldRenderBalance);
                 console.log('=== END REPORT GENERATION DEBUG ===');
                 
-                if (shouldRenderBalance) {
-                    // Generate Balance Meter report for download/copy/PDF
-                    const payload = hasServerBalance ? result.balance_meter : synthesizeBalanceMeterPayload(result, formData);
-                    report = buildBalanceMeterReport(payload);
-                    console.log('Generated Balance Meter report, length:', report?.length);
-                } else {
-                    // Generate Mirror report using Clear Mirror template
+                if (generateBothReports) {
+                    // Generate both Mirror and Balance Meter reports
+                    console.log('🔄 Generating both Mirror and Balance Meter reports...');
+                    
+                    // Generate Mirror report
                     const displayOptions = {
                         includeExecutiveSummary: false,
                         includeJsonAppendix: false,
                         includeProvenance: false
                     };
+                    mirrorReport = generateGuidelinesStyleReport(result, displayOptions);
+                    console.log('Generated Mirror report, length:', mirrorReport?.length);
                     
-                    // Use Guidelines-style Mirror template for user-facing reports (Abstract/Key Points/Keywords/Q&A)
-                        report = generateGuidelinesStyleReport(result, displayOptions);
+                    // Generate Balance Meter report
+                    const payload = hasServerBalance ? result.balance_meter : synthesizeBalanceMeterPayload(result, formData);
+                    balanceMeterReport = buildBalanceMeterReport(payload);
+                    console.log('Generated Balance Meter report, length:', balanceMeterReport?.length);
+                    
+                    // Store both reports
+                    latestResultData.mirror_report = mirrorReport;
+                    latestResultData.balance_meter_report = balanceMeterReport;
+                    
+                    // Set primary report based on active tab
+                    report = shouldRenderBalance ? balanceMeterReport : mirrorReport;
+                    
+                } else if (shouldRenderBalance) {
+                    // Generate Balance Meter report only
+                    const payload = hasServerBalance ? result.balance_meter : synthesizeBalanceMeterPayload(result, formData);
+                    report = buildBalanceMeterReport(payload);
+                    console.log('Generated Balance Meter report, length:', report?.length);
+                } else {
+                    // Generate Mirror report only
+                    const displayOptions = {
+                        includeExecutiveSummary: false,
+                        includeJsonAppendix: false,
+                        includeProvenance: false
+                    };
+                    report = generateGuidelinesStyleReport(result, displayOptions);
                     console.log('Generated Clear Mirror report, length:', report?.length);
                 }
                 
-                // Store the generated report for tab switching
-                if (report && report.length > 0) {
+                // Store the generated report for tab switching (if not already stored above)
+                if (report && report.length > 0 && !generateBothReports) {
                     if (shouldRenderBalance) {
                         // Store Balance Meter report
                         latestResultData.balance_meter_report = report;
@@ -10335,6 +10438,15 @@ function renderTransitDay(dateStr, items){
                     document.getElementById('downloadReport').classList.remove('hidden');
                     document.getElementById('downloadPDF').classList.remove('hidden');
                     document.getElementById('pdfOptions').classList.remove('hidden');
+                    
+                    // Show "Download Both Reports" button if both reports are available
+                    const hasBothReports = latestResultData?.mirror_report && latestResultData?.balance_meter_report;
+                    const downloadBothBtn = document.getElementById('downloadBothReports');
+                    if (hasBothReports && downloadBothBtn) {
+                        downloadBothBtn.classList.remove('hidden');
+                    } else if (downloadBothBtn) {
+                        downloadBothBtn.classList.add('hidden');
+                    }
                 } else {
                     reportOutput.classList.add('hidden');
                     // Also hide the Mirror tab report display
@@ -10863,6 +10975,100 @@ function renderTransitDay(dateStr, items){
                     const btn = document.getElementById('downloadPDF');
                     if (btn) {
                         btn.innerHTML = '📑 Download PDF<span class="block text-xs opacity-80">Professional PDF report</span>';
+                        btn.disabled = false;
+                    }
+                }
+            });
+
+            // Download both reports as ZIP file
+            document.getElementById('downloadBothReports').addEventListener('click', async () => {
+                if (!latestResultData?.mirror_report || !latestResultData?.balance_meter_report) {
+                    showError('Both reports must be available for download. Please generate both reports first.');
+                    return;
+                }
+                try {
+                    console.log('Starting dual report download process...');
+                    
+                    const btn = document.getElementById('downloadBothReports');
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '⏳ Preparing ZIP...';
+                    btn.disabled = true;
+                    
+                    // Get subject name and date range for filenames
+                    let subjectName = document.getElementById('nameA').value || 'Subject';
+                    if (latestResultData.balance_meter?.person?.name) {
+                        subjectName = latestResultData.balance_meter.person.name;
+                    } else if (latestResultData.person_a?.details?.name) {
+                        subjectName = latestResultData.person_a.details.name;
+                    }
+                    
+                    let startDate = document.getElementById('transitStartDate').value;
+                    let endDate = document.getElementById('transitEndDate').value;
+                    if (latestResultData.balance_meter?.period && (!startDate || !endDate)) {
+                        startDate = latestResultData.balance_meter.period.start;
+                        endDate = latestResultData.balance_meter.period.end;
+                    }
+                    
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                    const dateRange = (startDate && endDate) ? `_${startDate}_to_${endDate}` : '';
+                    const safeName = subjectName.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+                    
+                    // Create JSZip instance
+                    const JSZip = window.JSZip;
+                    if (!JSZip) {
+                        throw new Error('JSZip library not loaded');
+                    }
+                    
+                    const zip = new JSZip();
+                    
+                    // Add Mirror report as JSON
+                    const mirrorData = {
+                        ...latestResultData,
+                        primary_report: latestResultData.mirror_report,
+                        report_type: 'mirror',
+                        generated_at: timestamp
+                    };
+                    delete mirrorData.balance_meter_report; // Don't duplicate in mirror file
+                    zip.file(`mirror_${safeName}${dateRange}_${timestamp}.json`, JSON.stringify(mirrorData, null, 2));
+                    
+                    // Add Balance Meter report as JSON
+                    const balanceData = {
+                        ...latestResultData,
+                        primary_report: latestResultData.balance_meter_report,
+                        report_type: 'balance_meter',
+                        generated_at: timestamp
+                    };
+                    delete balanceData.mirror_report; // Don't duplicate in balance file
+                    zip.file(`balance_meter_${safeName}${dateRange}_${timestamp}.json`, JSON.stringify(balanceData, null, 2));
+                    
+                    // Generate ZIP file
+                    btn.innerHTML = '📦 Creating ZIP...';
+                    const zipContent = await zip.generateAsync({type: 'blob'});
+                    
+                    // Download ZIP file
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(zipContent);
+                    link.download = `woven_reports_${safeName}${dateRange}_${timestamp}.zip`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+                    
+                    console.log('Dual report download completed successfully');
+                    btn.innerHTML = '✅ ZIP Downloaded!';
+                    setTimeout(() => { 
+                        btn.innerHTML = originalText; 
+                        btn.disabled = false;
+                    }, 2000);
+                    
+                } catch (err) {
+                    console.error('Failed to download both reports: ', err);
+                    showError(`Failed to download reports: ${err.message}. Please try again.`);
+                    
+                    // Reset button state
+                    const btn = document.getElementById('downloadBothReports');
+                    if (btn) {
+                        btn.innerHTML = '📦 Download Both Reports<span class="block text-xs opacity-80">Mirror + Balance Meter as ZIP</span>';
                         btn.disabled = false;
                     }
                 }

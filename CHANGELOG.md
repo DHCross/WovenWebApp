@@ -1,3 +1,89 @@
+## [2025-09-11] FEATURE: Dual Report Generation - Mirror + Balance Meter Integration
+
+**Summary**
+Added comprehensive dual report generation system allowing users to create both Mirror reports and Balance Meter analyses simultaneously, with cross-report notifications and combined download options.
+
+**New UI Features**
+- **📊 Generate Both Reports** checkbox above "Get My Mirror" button
+- **📦 Download Both Reports** button (appears when both reports available)
+- Enhanced cross-report notifications with "READY" indicators on tabs
+- Smart tab switching and content management for dual reports
+
+**Report Generation Logic**
+- **Dual Mode**: When checkbox selected, generates both Mirror and Balance Meter reports
+- **Storage**: Both reports stored in `latestResultData.mirror_report` and `latestResultData.balance_meter_report`
+- **Primary Display**: Shows report based on active tab (Mirror or Balance Meter)
+- **Backward Compatibility**: Single report generation still works as before
+
+**Download Enhancements**
+- **ZIP Download**: Both reports packaged as separate JSON files in a ZIP archive
+- **Filename Convention**: `woven_reports_[subject]_[date_range]_[timestamp].zip`
+- **Individual Reports**: Mirror and Balance Meter as separate JSON files within ZIP
+- **JSZip Integration**: Added JSZip library for client-side ZIP generation
+
+**Notification System**
+- **Cross-Report Awareness**: When in Mirror tab, suggests Balance Meter (and vice versa)
+- **Dual Report Status**: Special "Both reports generated!" notification when applicable
+- **Tab Indicators**: Color-coded badges (READY/NEW) on tabs when alternate report available
+- **Smart Suggestions**: Mentions "Generate Both Reports" option in notifications
+
+**Technical Details**
+- Added JSZip 3.10.1 from CDN for ZIP file generation
+- Enhanced `showBonusReportNotification()` to detect dual report scenarios
+- Modified main report generation logic to handle checkbox state
+- Added proper cleanup and state management for both report types
+
+**Use Cases**
+- Users can get comprehensive analysis from both perspectives in one generation
+- Readers get both narrative (Mirror) and technical (Balance Meter) views
+- Streamlined workflow for complete astrological assessment
+- Convenient packaged downloads for sharing or archiving
+
+**Files Modified**
+- `index.html` (lines ~1400-1420): Added dual generation checkbox UI
+- `index.html` (lines ~1590-1620): Added "Download Both Reports" button
+- `index.html` (lines ~1900-1950): Enhanced notification system
+- `index.html` (lines ~10270-10320): Modified report generation logic
+- `index.html` (lines ~10430-10450): Added dual report button visibility logic
+- `index.html` (lines ~10970-11060): Added ZIP download functionality
+
+---
+
+## [2025-09-11] FEATURE: Enhanced Balance Meter Visual Displays with Triple-Channel Support
+
+**Summary**
+Updated the existing graphic meters (barometer/arc charts) to fully support the Balance Meter triple-channel system, displaying Seismograph (v1.0), Balance Channel (v1.1), and SFD (v1.2) data in visual format.
+
+**Visual Enhancements**
+- **Single-day barometer view** now shows all three channels in a 6-column grid:
+  - Magnitude (crisis activation 0-5)
+  - Seismo Valence (v1.0 crisis-weighted)
+  - Balance Valence (v1.1 rebalanced)
+  - SFD (Support-Friction Differential -5 to +5)
+  - Volatility (stability indicator)
+  - S+/S- components (support/friction breakdown)
+- **SFD verdict** displayed (stabilizers prevail/cut/mixed)
+- **Multi-day view** updated with Balance Meter terminology and legend
+- **Button labels** updated: "Balance Meter" instead of "Barometer"
+
+**UI Updates**
+- Chart titles now indicate "Balance Meter (Triple Channel)"
+- Updated descriptions and legends to reflect new measurement system
+- Tooltip updated: "Cycle: Table → Arc → Balance Meter → Mobile"
+- Footer text shows version info: "Seismograph (v1.0) · Balance Channel (v1.1) · SFD (v1.2)"
+
+**Technical Details**
+- Graphic meters access triple-channel data structure: `day.seismograph`, `day.balance`, `day.sfd`
+- Maintains backward compatibility with existing seismograph-only data
+- Visual gradients still based on primary seismograph valence for consistency
+- Color coding differentiates positive/negative values across all channels
+
+**Files Modified**
+- `index.html` (lines ~8010-8100): Updated barometer chart rendering functions
+- `index.html` (lines ~6665-6675): Updated descriptions and UI text
+
+---
+
 ## [2025-09-11] FIX: Updated Frontend Language to Reflect Balance Meter Triple-Channel System
 
 **Summary**

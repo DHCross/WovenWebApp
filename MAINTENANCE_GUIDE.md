@@ -186,3 +186,47 @@ By following these practices, you'll make the Woven Map App easier to maintain, 
   - `meta.calibration_boundary: "2025-09-05"`
   - `meta.engine_versions: { seismograph: "v1.0", balance: "v1.1", sfd: "v1.2" }`
   - `meta.reconstructed: boolean` (true when requested date < boundary)
+
+---
+
+## 10. **Development Roadmap & Future Integration**
+
+*Last updated: September 11, 2025*
+
+### **Current State (September 2025)**
+✅ **Math Brain**: Core astrological calculations with triple-channel Balance Meter  
+✅ **Auth0 Integration**: Google Login authentication system ready  
+✅ **Dual Report Generation**: Mirror + Balance Meter simultaneous generation  
+✅ **Visual Meters**: Triple-channel graphic displays (Seismograph v1.0, Balance v1.1, SFD v1.2)  
+
+### **Phase 1: Poetic Brain Integration (Upcoming)**
+🔮 **Target**: Clone and migrate Poetic Brain for authenticated users  
+- **Access Level**: Google Login required (no paywall initially)
+- **Integration**: Enhance narrative generation using existing report structure
+- **UI Enhancement**: Add "Poetic" tab for authenticated users
+- **Data Flow**: Poetic content stored alongside technical data in `latestResultData`
+
+### **Phase 2: Premium Tier Architecture (Future)**
+💎 **Target**: Tiered access system with premium features  
+- **Free**: Math Brain + Balance Meter reports (current functionality)
+- **Authenticated**: + Poetic Brain narrative enhancement
+- **Premium**: + Advanced features, extended date ranges, priority processing
+
+### **Technical Implementation Notes**
+- **Foundation Ready**: Current dual report system designed to accommodate poetic narratives
+- **Auth Integration**: Auth0 user context available for personalized content
+- **Scalable Architecture**: Netlify serverless functions can handle tiered processing
+- **Storage Strategy**: Multi-report structure supports narrative + technical data
+- **UI Expandability**: Tab system designed for additional report types
+
+### **Migration Considerations**
+- **Poetic Brain Clone**: Separate migration from existing Poetic Brain repository
+- **User Experience**: Natural upgrade path (anonymous → authenticated → premium)
+- **Backward Compatibility**: Existing functionality preserved for all user levels
+- **Performance**: Ensure poetic generation doesn't impact core Math Brain performance
+
+### **Development Priorities**
+1. **Auth-gated Features**: Prepare UI/UX for authenticated vs anonymous users
+2. **Poetic Integration Points**: Identify optimal insertion points in report generation
+3. **Content Management**: Design system for storing/retrieving poetic narratives
+4. **Testing Strategy**: Ensure seamless experience across all access levels
