@@ -245,67 +245,12 @@
                 </script>
         
 
-        <!-- Self-hosted Auth0 SDK - sequential load with readiness promise -->
-                    <script>
-                        (function(){
-                            var resolveReady, rejectReady;
-                            window.__auth0Ready = new Promise(function(res, rej){ resolveReady = res; rejectReady = rej; });
-                            function injectScript(url){
-                                return new Promise(function(res, rej){
-                                    var s = document.createElement('script');
-                                    s.src = url;
-                                    s.onload = function(){
-                                        // Check if Auth0 SDK is properly loaded and createAuth0Client is available
-                                        console.log('[SDK Loader] Script loaded from', url);
-                                        console.log('[SDK Loader] window.auth0:', typeof window.auth0);
-                                        console.log('[SDK Loader] window.auth0?.createAuth0Client:', typeof window.auth0?.createAuth0Client);
-                                        console.log('[SDK Loader] global createAuth0Client:', typeof createAuth0Client);
-                                        
-                                        if (typeof window.auth0 !== 'undefined' && typeof window.auth0.createAuth0Client === 'function') {
-                                            console.info('[Auth0] SDK loaded from', url);
-                                            res(true);
-                                        } else {
-                                            rej(new Error('SDK loaded but window.auth0.createAuth0Client missing'));
-                                        }
-                                    };
-                                    s.onerror = function(e){ rej(new Error('Failed to load '+url)); };
-                                    document.head.appendChild(s);
-                                });
-                            }
-                            function fetchText(url){
-                                return fetch(url, { method:'GET', cache:'no-store' })
-                                    .then(function(res){ if(!res.ok) throw new Error('HTTP '+res.status+' for '+url); return res.text(); });
-                            }
-                            (async function(){
-                                var paths = [
-                                    '/public/vendor/auth0-spa-js.production.js',
-                                    '/vendor/auth0-spa-js.production.js',
-                                    'https://cdn.auth0.com/js/auth0-spa-js/2.1.3/auth0-spa-js.production.js'
-                                ];
-                                for (var i=0;i<paths.length;i++){
-                                    var url = paths[i];
-                                    try{
-                                        // For cross-origin CDN, skip prefetch content check (CORS may block text())
-                                        if (/^https?:\/\//.test(url)) {
-                                            await injectScript(url);
-                                        } else {
-                                            var txt = await fetchText(url);
-                                            var looksJS = /createAuth0Client\s*=/.test(txt) || txt.indexOf('Auth0Client') !== -1;
-                                            if (!looksJS) { console.warn('[Auth0] Not JS at', url); continue; }
-                                            await injectScript(url);
-                                        }
-                                        resolveReady(true);
-                                        return;
-                                    } catch(e){
-                                        console.warn('[Auth0] Loader attempt failed for', url, e.message || e);
-                                    }
-                                }
-                                console.error('[Auth0] Unable to load SDK from any known path');
-                                rejectReady(new Error('Auth0 SDK not loaded'));
-                                try { document.querySelectorAll('.auth-btn').forEach(function(btn){ if(btn){ btn.disabled=false; btn.addEventListener('click', function(){ alert('Auth is unavailable because the Auth0 SDK did not load. Verify /public/vendor path and _redirects.'); }); } }); } catch(_){ }
-                            })();
-                        })();
-                    </script>
+                <script>
+                    // This script is intentionally left blank. 
+                    // The Auth0 SDK is now loaded and initialized within the main application script below.
+                    // This simplifies the loading process and ensures all auth logic is in one place.
+                </script>
+        
                 <style>
                         /* Custom scrollbar */
             ::-webkit-scrollbar {
@@ -12543,6 +12488,7 @@ function renderTransitDay(dateStr, items){
 
 </script>
 <!-- ---- Auth0 Init & UI Wiring (runs after SDK loader) ---- -->
+<script src="https://cdn.auth0.com/js/auth0-spa-js/2.1.3/auth0-spa-js.production.js"></script>
 <script>
 (async () => {
   try {
@@ -12555,18 +12501,17 @@ function renderTransitDay(dateStr, items){
     const originEl = document.getElementById('auth-debug-origin');
     if (originEl) { originEl.textContent = location.origin; originEl.classList.remove('hidden'); }
 
-    // 1) Wait for SDK loader promise (defined earlier in the page)
-    if (window.__auth0Ready) {
-      try {
-        await window.__auth0Ready;
-        console.info('[Auth0 Debug] __auth0Ready resolved');
-      } catch (e) {
-        console.warn('[Auth0 Debug] __auth0Ready rejected:', e);
-      }
-    } else {
-      console.warn('[Auth0 Debug] __auth0Ready not found; continuing anyway');
-    }
-
+    // 1) Wait for SDK to be available
+    await new Promise(resolve => {
+        const interval = setInterval(() => {
+            if (window.createAuth0Client || (window.auth0 && window.auth0.createAuth0Client)) {
+                clearInterval(interval);
+                resolve();
+            }
+        }, 50);
+    });
+    console.info('[Auth0 Debug] SDK script loaded and ready.');
+    
     // 2) Resolve the creation function regardless of namespace style
     const createClient =
       (window.auth0 && window.auth0.createAuth0Client) ||
