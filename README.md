@@ -12,12 +12,26 @@ Minimal manual scaffold (Next.js App Router + TypeScript) for Raven Calder perso
 ```bash
 npm install
 npm run dev
-# open http://localhost:3000/chat
+# open http://localhost:8888/chat
 
-# (Optional) CLI tinker mode (requires dev server running on port 3000)
+# (Optional) CLI tinker mode (requires dev server running on port 8888)
 npm run tinker
 ```
 Exit tinker with an empty line.
+
+## Local Dev (one click)
+- Command Palette → Run Task → "Start All Dev Servers (Netlify & Tailwind)" to start Netlify Dev and Tailwind CSS watch together.
+- Optionally set it as the Default Build Task so Cmd+Shift+B runs it.
+- If you change .env, restart the Netlify Dev task to reload environment variables.
+
+Open a browser automatically:
+- Run and Debug → "Start Dev + Open Browser (Chrome)". This launches http://localhost:8888 and starts the dev servers first.
+
+## Terminal alternative
+```bash
+npm run dev:all
+```
+Runs `npm run dev` and `npm run dev:tailwind` in parallel (via concurrently).
 
 ## Streaming Protocol
 Endpoint: POST /api/chat

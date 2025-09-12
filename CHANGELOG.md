@@ -1,3 +1,9 @@
+## [2025-09-12] UPDATE: Local dev UX polish
+- Added VS Code tasks: Start Netlify Dev, Watch Tailwind CSS, and a compound Start All Dev Servers.
+- Added debug launchers to auto-open http://localhost:8888 (Chrome/Edge) with preLaunchTask.
+- Added keybinding (Cmd+Alt+D / Ctrl+Alt+D) to run the compound task.
+- Recommended status bar Task Buttons extension and configured a ▶ Dev button.
+- Added npm script `dev:all` (uses concurrently) to run both servers from a terminal.
 ## [2025-09-12] CHANGE/SECURITY/DEVOPS: CSP Hardening, Routing Fixes, CDN → npm, and Temporary Netlify Static Mode
 
 Summary

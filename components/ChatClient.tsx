@@ -13,6 +13,7 @@ import PoeticCard from './PoeticCard';
 import ReadingSummaryCard from './ReadingSummaryCard';
 import { pingTracker } from '../lib/ping-tracker';
 import { naturalFollowUpFlow } from '../lib/natural-followup-flow';
+import { APP_NAME, STATUS_CONNECTED, INPUT_PLACEHOLDER } from '../lib/ui-strings';
 // simple HTML escaper for user-originated plain text rendering safety
 const escapeHtml = (s:string) => s.replace(/[&<>]/g, c => (({"&":"&amp;","<":"&lt;",">":"&gt;"} as Record<string,string>)[c] || c));
 
@@ -1572,10 +1573,10 @@ function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onD
       <div style={{display:'flex', alignItems:'center', gap:12}}>
         <div style={{width:36,height:36,display:'grid',placeItems:'center',borderRadius:'50%',background:'radial-gradient(120% 120% at 50% 20%, #262a36, #12151c)', boxShadow:'inset 0 0 18px rgba(124,92,255,.25)', fontSize:20}} aria-hidden>🐦‍⬛</div>
         <div style={{display:'flex', flexDirection:'column'}}>
-          <b>Raven Calder</b>
+          <span style={{fontWeight:700}}>{APP_NAME}</span>
           <div style={{display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--muted)'}}>
             <span style={{width:8,height:8,borderRadius:'50%',background:'var(--good)', boxShadow:'0 0 10px var(--good)'}}></span>
-            <span>Connected</span>
+            <span>{STATUS_CONNECTED}</span>
             {reportContexts.length > 0 && (
               <div style={{display:'flex', alignItems:'center', gap:4, marginLeft:8}}>
                 <span style={{color:'var(--accent)', fontSize:10}}>•</span>
@@ -2198,7 +2199,7 @@ function Composer({input,setInput,onSend,onStop,disabled}:{input:string; setInpu
   return (
     <div style={{padding:'12px 18px', background:'rgba(20,24,33,.9)', backdropFilter:'blur(10px)', borderTop:'1px solid var(--line)', display:'flex', gap:10, alignItems:'flex-end'}}>
       <button style={{...btnStyle, width:40, padding:0}} title="Attach">📎</button>
-      <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); onSend(); } }} placeholder="Ask or paste here. Enter to send, Shift+Enter newline" style={{flex:1, minHeight:48, maxHeight:160, resize:'vertical', borderRadius:14, border:'1px solid var(--line)', background:'var(--panel)', color:'var(--text)', padding:'12px 14px', fontSize:14}} />
+  <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); onSend(); } }} placeholder={INPUT_PLACEHOLDER} style={{flex:1, minHeight:48, maxHeight:160, resize:'vertical', borderRadius:14, border:'1px solid var(--line)', background:'var(--panel)', color:'var(--text)', padding:'12px 14px', fontSize:14}} />
       <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--muted)'}} aria-hidden>Enter ↵</div>
   {disabled && <button onClick={onStop} style={{...btnStyle, background:'#442b2b', border:'1px solid #663', boxShadow:'var(--shadow)'}}>Stop</button>}
   <button disabled={disabled} onClick={onSend} style={{...btnStyle, background:'linear-gradient(180deg,#8d78ff,#6a53ff)', border:'none', boxShadow:'var(--shadow)'}}>Send</button>

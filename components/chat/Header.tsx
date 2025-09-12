@@ -2,6 +2,7 @@
 import React from 'react';
 import UsageMeter from '../UsageMeter';
 import HitRateDisplay from '../HitRateDisplay';
+import { APP_NAME, STATUS_CONNECTED } from '../../lib/ui-strings';
 
 interface ReportContext {
   id: string;
@@ -48,10 +49,10 @@ export function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCa
         </button>
         <div style={{width:36,height:36,display:'grid',placeItems:'center',borderRadius:'50%',background:'radial-gradient(120% 120% at 50% 20%, #262a36, #12151c)', boxShadow:'inset 0 0 18px rgba(124,92,255,.25)', fontSize:20}} aria-hidden>🐦‍⬛</div>
         <div style={{display:'flex', flexDirection:'column'}}>
-          <b>Raven Calder</b>
+          <span style={{fontWeight:700}}>{APP_NAME}</span>
           <div style={{display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--muted)'}}>
             <span style={{width:8,height:8,borderRadius:'50%',background:'var(--good)', boxShadow:'0 0 10px var(--good)'}} />
-            <span>Connected</span>
+            <span>{STATUS_CONNECTED}</span>
             {reportContexts.length > 0 && (
               <div style={{display:'flex', alignItems:'center', gap:6, marginLeft:8}}>
                 <span style={{color:'var(--accent)', fontSize:10}}>•</span>
