@@ -329,6 +329,39 @@ export default function ChatClient(){
   // Post-seal guidance state
   const [awaitingNewReadingGuide, setAwaitingNewReadingGuide] = useState(false);
   const [priorFocusKeywords, setPriorFocusKeywords] = useState<string[]>([]);
+  // Math Brain handoff resume (v1.7)
+  interface MBLastSession {
+    createdAt?: string;
+    from?: string;
+    inputs?: {
+      mode?: string;
+      step?: string;
+      startDate?: string;
+      endDate?: string;
+      includePersonB?: boolean;
+      relationship?: {
+        type?: string;
+        intimacy_tier?: string;
+        role?: string;
+        ex_estranged?: boolean;
+        notes?: string;
+      };
+      personA?: { name?: string } & Record<string, any>;
+      personB?: { name?: string } & Record<string, any>;
+    };
+    summary?: {
+      magnitude?: number;
+      valence?: number;
+      volatility?: number;
+      magnitudeLabel?: string;
+      valenceLabel?: string;
+      volatilityLabel?: string;
+    };
+    resultPreview?: { hasDaily?: boolean };
+  }
+  const [mbLastSession, setMbLastSession] = useState<MBLastSession | null>(null);
+  const [showMbResume, setShowMbResume] = useState(false);
+  const [showMbBanner, setShowMbBanner] = useState(false);
   
   // Session tracking for journal generation
   const [sessionContext, setSessionContext] = useState(() => ({
@@ -349,6 +382,23 @@ export default function ChatClient(){
   
   // Check for report data from Math Brain integration
   useEffect(() => {
+    // v1.7: Detect Math Brain last session in localStorage for resume banner
+    try {
+      const raw = localStorage.getItem('mb.lastSession');
+      if (raw) {
+        const parsed: MBLastSession = JSON.parse(raw);
+        setMbLastSession(parsed);
+        setShowMbResume(true);
+        // If navigated via deep link, show an extra tiny banner confirming hand-off
+        try {
+          const params = new URLSearchParams(window.location.search);
+          if (params.get('from') === 'math-brain') {
+            setShowMbBanner(true);
+          }
+        } catch {}
+      }
+    } catch {}
+
     const reportData = sessionStorage.getItem('woven_report_for_raven');
     if (reportData) {
       try {
@@ -1368,8 +1418,84 @@ export default function ChatClient(){
   onShowPendingReview={() => setShowPendingReview(true)}
   onShowHelp={() => setShowHelp(true)}
       />
+      {/* Tiny hand-off banner confirming FIELD → MAP → VOICE context with Balance Meter terms */}
+      {showMbBanner && mbLastSession && (
+        <div className="flex items-center justify-center gap-3 px-3 py-2 bg-[var(--panel)] border-b border-[var(--line)] text-[13px]">
+          {(() => {
+            const s = mbLastSession.summary || {};
+            const start = mbLastSession.inputs?.startDate;
+            const end = mbLastSession.inputs?.endDate;
+            const range = start && end ? `${start} → ${end}` : (start || end || 'recent');
+            const mag = typeof s.magnitude === 'number' ? s.magnitude : undefined;
+            const magLabel = (s as any).magnitudeLabel || (mag !== undefined ? `M${mag}` : 'M·');
+            const valLabel = (s as any).valenceLabel || 'Valence';
+            const volLabel = (s as any).volatilityLabel || 'Volatility';
+            return (
+              <div className="flex items-center gap-2 text-[var(--muted)]">
+                <span className="text-[var(--text)]">Balance Meter hand‑off</span>
+                <span>•</span>
+                <span className="text-[var(--text)]">{magLabel}</span>
+                <span>·</span>
+                <span>{valLabel}</span>
+                <span>·</span>
+                <span>{volLabel}</span>
+                <span>•</span>
+                <span>{range}</span>
+                <span>•</span>
+                <span>Clear Mirror — OSR valid if it doesn’t land</span>
+                <button
+                  onClick={() => setShowMbBanner(false)}
+                  className="ml-2 rounded px-2 py-0.5 text-[12px] border border-[var(--line)] text-[var(--muted)] hover:text-[var(--text)]"
+                  aria-label="Dismiss hand-off banner"
+                >×</button>
+              </div>
+            );
+          })()}
+        </div>
+      )}
       {showHelp && (
         <HelpModal onClose={() => setShowHelp(false)} />
+      )}
+      {/* Resume from Math Brain pill (v1.7) */}
+      {showMbResume && mbLastSession?.summary && (
+        <div className="flex justify-center px-3 py-2 bg-[var(--panel)] border-b border-[var(--line)]">
+          {(() => {
+            const mag = Number(mbLastSession.summary?.magnitude || 0);
+            const val = Number(mbLastSession.summary?.valence || 0);
+            const vol = Number(mbLastSession.summary?.volatility || 0);
+            const climate = formatFullClimateDisplay({ magnitude: mag, valence: val, volatility: vol } as ClimateData);
+            const start = mbLastSession.inputs?.startDate;
+            const end = mbLastSession.inputs?.endDate;
+            const a = mbLastSession.inputs?.personA?.name || 'Person A';
+            const b = (mbLastSession.inputs?.includePersonB && mbLastSession.inputs?.personB?.name) ? ` · with ${mbLastSession.inputs?.personB?.name}` : '';
+            const range = start && end ? `${start} → ${end}` : (start || end || 'recent');
+            const loadContext = () => {
+              const prompt = `Resume from Math Brain (${range}). Climate: ${climate}. Continue with a concise mirror in Raven Calder style for ${a}${b}.`;
+              setInput(prompt);
+              const preface: Message = {
+                id: generateId(),
+                role: 'raven',
+                html: `<i>Loaded Math Brain context • ${climate} • ${range}</i>`,
+                climate,
+                hook: 'Math Brain → Poetic Brain'
+              };
+              setMessages(prev => [...prev, preface]);
+              setShowMbResume(false);
+            };
+            return (
+              <div className="flex items-center gap-2 border border-[var(--line)] bg-[var(--soft)] rounded-lg px-3 py-2 max-w-[900px] w-full">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11px] text-[var(--muted)]">Resume from Math Brain</div>
+                  <div className="text-[13px] text-[var(--text)] truncate">{climate} · {range}</div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={loadContext} className="btn text-[12px] px-2 py-1">Load context</button>
+                  <button onClick={()=>setShowMbResume(false)} className="btn text-[12px] px-2 py-1 bg-transparent">Dismiss</button>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
       )}
       <NavigationPanel
         ravenMessages={ravenMessages}
@@ -1378,7 +1504,7 @@ export default function ChatClient(){
         currentRavenIndex={currentRavenIndex}
         scrollToBottom={scrollToBottom}
       />
-      <main style={{flex: 1, display:'grid', gridTemplateColumns:'270px 1fr', gap:12, padding:12, position:'relative', minHeight: 0, overflow: 'hidden'}}>
+  <main style={{flex: 1, display:'grid', gridTemplateColumns:'270px 1fr', gap:12, padding:12, position:'relative', minHeight: 0, overflow: 'hidden'}}>
         <Sidebar 
           onInsert={(m)=> {
             // Send the message programmatically to trigger Raven's response
@@ -1569,13 +1695,13 @@ function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onD
   };
 
   return (
-    <header style={{position:'sticky', top:0, zIndex:10, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 18px', background:'rgba(20,24,33,.9)', backdropFilter:'blur(10px)', borderBottom:'1px solid var(--line)'}}>
-      <div style={{display:'flex', alignItems:'center', gap:12}}>
+    <header className="sticky top-0 z-10 flex items-center justify-between px-[18px] py-3 bg-[rgba(20,24,33,.9)] backdrop-blur border-b border-[var(--line)]">
+      <div className="flex items-center gap-3">
         <div style={{width:36,height:36,display:'grid',placeItems:'center',borderRadius:'50%',background:'radial-gradient(120% 120% at 50% 20%, #262a36, #12151c)', boxShadow:'inset 0 0 18px rgba(124,92,255,.25)', fontSize:20}} aria-hidden>🐦‍⬛</div>
         <div style={{display:'flex', flexDirection:'column'}}>
           <span style={{fontWeight:700}}>{APP_NAME}</span>
-          <div style={{display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--muted)'}}>
-            <span style={{width:8,height:8,borderRadius:'50%',background:'var(--good)', boxShadow:'0 0 10px var(--good)'}}></span>
+          <div className="flex items-center gap-2 text-[12px] text-[var(--muted)]">
+            <span className="w-2 h-2 rounded-full bg-[var(--good)] shadow-[0_0_10px_var(--good)]"></span>
             <span>{STATUS_CONNECTED}</span>
             {reportContexts.length > 0 && (
               <div style={{display:'flex', alignItems:'center', gap:4, marginLeft:8}}>
@@ -1601,7 +1727,7 @@ function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onD
         </div>
       </div>
       
-      <div style={{display:'flex', alignItems:'center', gap:10}}>
+  <div className="flex items-center gap-2.5">
         <HitRateDisplay className="hidden sm:block" />
         <UsageMeter compact={true} className="hidden sm:block" />
     {pendingCount > 0 && (
@@ -1617,7 +1743,7 @@ function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onD
       </div>
       
       {/* Core File Upload Buttons - Always Visible */}
-      <div style={{display:'flex', gap:8}}>
+  <div className="flex gap-2">
         <button className="btn" style={btnStyle} onClick={() => onFileSelect('mirror')}>🪞 Mirror</button>
         <button className="btn" style={btnStyle} onClick={() => onFileSelect('balance')}>🌡️ Balance</button>
         <button className="btn" style={btnStyle} onClick={() => onFileSelect('journal')}>📔 Journal</button>
@@ -2197,12 +2323,36 @@ function Bubble({msg, onToggleCollapse, onRemove, onPingFeedback}:{
 
 function Composer({input,setInput,onSend,onStop,disabled}:{input:string; setInput:(v:string)=>void; onSend:()=>void; onStop:()=>void; disabled:boolean}){
   return (
-    <div style={{padding:'12px 18px', background:'rgba(20,24,33,.9)', backdropFilter:'blur(10px)', borderTop:'1px solid var(--line)', display:'flex', gap:10, alignItems:'flex-end'}}>
-      <button style={{...btnStyle, width:40, padding:0}} title="Attach">📎</button>
-  <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); onSend(); } }} placeholder={INPUT_PLACEHOLDER} style={{flex:1, minHeight:48, maxHeight:160, resize:'vertical', borderRadius:14, border:'1px solid var(--line)', background:'var(--panel)', color:'var(--text)', padding:'12px 14px', fontSize:14}} />
-      <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--muted)'}} aria-hidden>Enter ↵</div>
-  {disabled && <button onClick={onStop} style={{...btnStyle, background:'#442b2b', border:'1px solid #663', boxShadow:'var(--shadow)'}}>Stop</button>}
-  <button disabled={disabled} onClick={onSend} style={{...btnStyle, background:'linear-gradient(180deg,#8d78ff,#6a53ff)', border:'none', boxShadow:'var(--shadow)'}}>Send</button>
+    <div className="px-[18px] py-3 bg-[rgba(20,24,33,.9)] backdrop-blur border-t border-[var(--line)] flex gap-[10px] items-end">
+      <button
+        className="inline-flex items-center justify-center w-10 h-10 bg-[var(--soft)] text-[var(--text)] border border-[var(--line)] rounded-[10px] text-[13px] cursor-pointer"
+        title="Attach"
+      >
+        📎
+      </button>
+      <textarea
+        value={input}
+        onChange={e=>setInput(e.target.value)}
+        onKeyDown={e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); onSend(); } }}
+        placeholder={INPUT_PLACEHOLDER}
+        className="flex-1 min-h-[48px] max-h-40 resize-y rounded-[14px] border border-[var(--line)] bg-[var(--panel)] text-[var(--text)] px-[14px] py-3 text-[14px]"
+      />
+      <div className="font-mono text-[11px] text-[var(--muted)]" aria-hidden>Enter ↵</div>
+      {disabled && (
+        <button
+          onClick={onStop}
+          className="px-[10px] py-2 bg-[#442b2b] text-[var(--text)] border border-[#663] rounded-[10px] text-[13px] cursor-pointer shadow-[var(--shadow)]"
+        >
+          Stop
+        </button>
+      )}
+      <button
+        disabled={disabled}
+        onClick={onSend}
+        className="px-[10px] py-2 bg-[linear-gradient(180deg,#8d78ff,#6a53ff)] text-[var(--text)] border-0 rounded-[10px] text-[13px] cursor-pointer shadow-[var(--shadow)] disabled:opacity-50"
+      >
+        Send
+      </button>
     </div>
   );
 }

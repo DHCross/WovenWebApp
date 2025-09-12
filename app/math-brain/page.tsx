@@ -1168,7 +1168,16 @@ export default function MathBrainPage() {
           <div className="flex items-center justify-end gap-2 print:hidden">
             <button type="button" onClick={handlePrint} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Print report">Print</button>
             <button type="button" onClick={downloadResultJSON} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download result JSON">Download JSON</button>
-            <button type="button" onClick={sendToPoeticBrain} className="rounded-md bg-emerald-600 px-3 py-1.5 text-white hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" aria-label="Open in Poetic Brain">Open in Poetic Brain →</button>
+            <button
+              type="button"
+              onClick={sendToPoeticBrain}
+              disabled={!authReady || !authed}
+              title={!authReady || !authed ? 'Sign in to continue' : undefined}
+              aria-label={!authReady || !authed ? 'Open in Poetic Brain (sign in to continue)' : 'Open in Poetic Brain'}
+              className={`rounded-md px-3 py-1.5 text-white focus-visible:outline-none focus-visible:ring-2 ${(!authReady || !authed) ? 'bg-emerald-700/60 cursor-not-allowed opacity-60' : 'bg-emerald-600 hover:bg-emerald-500 focus-visible:ring-emerald-400'}`}
+            >
+              Open in Poetic Brain →
+            </button>
           </div>
           {(() => {
             const daily = result?.person_a?.chart?.transitsByDate || {};
@@ -1418,7 +1427,10 @@ export default function MathBrainPage() {
             <button
               type="button"
               onClick={sendToPoeticBrain}
-              className="inline-flex items-center rounded-md bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500"
+              disabled={!authReady || !authed}
+              title={!authReady || !authed ? 'Sign in to continue' : undefined}
+              aria-label={!authReady || !authed ? 'Open in Poetic Brain (sign in to continue)' : 'Open in Poetic Brain'}
+              className={`inline-flex items-center rounded-md px-4 py-2 text-white ${(!authReady || !authed) ? 'bg-emerald-700/60 cursor-not-allowed opacity-60' : 'bg-emerald-600 hover:bg-emerald-500'}`}
             >
               Open in Poetic Brain →
             </button>

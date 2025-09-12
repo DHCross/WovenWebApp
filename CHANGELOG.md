@@ -1,3 +1,41 @@
+## [2025-09-12] UPDATE: Poetic Brain v1.7 — Resume Pill (Local QA)
+
+Summary
+- Added a small "Resume from Math Brain" pill in `/chat` when `mb.lastSession` exists and the user is signed in. Clicking pre-loads the composer and drops a subtle Raven preface. Includes a tiny hand-off banner on deep-link (`/chat?from=math-brain`).
+- Language aligned with Balance Meter lexicon (Magnitude / Valence / Volatility) and Raven Calder stance (Clear Mirror; OSR=Outside Symbolic Range is valid feedback). FIELD → MAP → VOICE preserved in user-facing hints.
+- Local-only QA; no deployment changes.
+
+Files Changed
+- `components/ChatClient.tsx` — Added resume pill, tiny hand-off banner; Tailwind-only for new UI; kept existing behavior.
+- `README.md` — Poetic Brain v1.7 section added with quick QA steps.
+
+Verification
+- In `/math-brain`, generate to populate `localStorage.mb.lastSession`; navigate to `/chat?from=math-brain` while signed in.
+- Confirm pill appears, "Load context" pre-fills input, "Dismiss" hides the pill.
+- Banner shows once on deep-link; dismissible. No change to existing flows.
+
+## [2025-09-12] FEATURE: Math Brain v1.6 — Export/Print, Handoff, Session Resume
+
+Summary
+- Export/Print utilities: Print shows only Balance Meter + Raw Geometry; Download JSON saves full API payload with a sensible filename.
+- Poetic Brain deep-link handoff: after generation, “Open in Poetic Brain →” saves mb.lastSession and links to /chat?from=math-brain.
+- Session memory & resume: inputs saved to mb.lastInputs with a Resume/Reset banner on load; last session snapshot in mb.lastSession.
+- Weekly Mean↔Max: user-toggle with localStorage persistence and a “?” tooltip explaining semantics.
+- Reliability & UX: submit debounce, light dev-only telemetry, focus-visible rings on controls, micro-legend with first|last dates.
+- Auth polish: handoff button gated by Auth0—disabled with tooltip until signed in.
+
+Files Changed
+- `app/math-brain/page.tsx` — Print/JSON buttons, handoff storage/link, session resume/reset, debounce+telemetry, print-only visibility, auth-gated CTA.
+- `README.md` — Added Export/Print & Handoff details, Session Resume, Weekly Mean↔Max info, and QA checklist; reiterated one-click tasks and `npm run dev:all`.
+- `CHANGELOG.md` — This entry.
+
+Verification
+- Print preview contains only Balance Meter and Raw Geometry (no chrome/forms/debug blocks).
+- Download JSON filename format: `math-brain-result-YYYYMMDD.json`; payload is complete.
+- `mb.lastInputs` and `mb.lastSession` persist across refresh; Resume restores inputs; Reset clears keys.
+- Weekly Mean↔Max persists to localStorage and visibly repaints mini-bars.
+- Handoff navigates to `/chat?from=math-brain`; `/chat` will consume `mb.lastSession` in a follow-up.
+
 ## [2025-09-12] UPDATE: Local dev UX polish
 - Added VS Code tasks: Start Netlify Dev, Watch Tailwind CSS, and a compound Start All Dev Servers.
 - Added debug launchers to auto-open http://localhost:8888 (Chrome/Edge) with preLaunchTask.
