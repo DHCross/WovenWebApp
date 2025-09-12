@@ -1,12 +1,11 @@
 [[headers]]
   for = "/*"
   [headers.values]
-  # Note: 'unsafe-eval' is included to support Next.js React Refresh (HMR) during development.
-  # Consider removing 'unsafe-eval' for production if not needed.
-  Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.auth0.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://s.gravatar.com https://cdn.auth0.com; connect-src 'self' ws: wss: https://*.auth0.com https://cdnjs.cloudflare.com; frame-src https://*.auth0.com; frame-ancestors 'self';"
+  # Hardened CSP - removed unsafe directives and risky CDNs after Next.js migration
+  Content-Security-Policy = "default-src 'self'; script-src 'self' https://cdn.auth0.com; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://s.gravatar.com https://cdn.auth0.com; connect-src 'self' ws: wss: https://*.auth0.com; frame-src https://*.auth0.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';"
 [build]
   command = "npm run build"
-  publish = "."
+  publish = ".next"
   functions = "netlify/functions"
 
 # Disable Netlify's JS bundling for third-party files (static HTML/JS strategy)
@@ -23,11 +22,12 @@
   to = "/public/vendor/:splat"
   status = 200
 
+# CRITICAL: Asset redirects must come before SPA fallback to prevent CSS being served as HTML
 [[redirects]]
-  # Ensure compiled CSS and other assets in /dist are always served as static files
   from = "/dist/*"
   to = "/dist/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/api/astrology"
@@ -44,36 +44,14 @@
   to = "/.netlify/functions/auth-config"
   status = 200
 
-# Explicit callback route for Auth0 to ensure SPA handles code/state
-[[redirects]]
-  from = "/callback"
-  to = "/index.html"
-  status = 200
-  force = true
+# Removed legacy /callback -> /index.html redirect; App Router handles Auth0 via /chat
 
-# Serve static index.html for root explicitly before Next.js plugin
-[[redirects]]
-  from = "/"
-  to = "/index.html"
-  status = 200
-  force = true
+# Remove static overrides for "/" and "/chat" so Next.js owns these routes
 
-# Explicit chat route to static chat page
-[[redirects]]
-  from = "/chat"
-  to = "/chat/index.html"
-  status = 200
-  force = true
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
-# Temporarily disabled Next.js plugin to fix static file serving
-# [[plugins]]
-#   package = "@netlify/plugin-nextjs"
-
-# SPA fallback - serve index.html for all other unmatched routes (must be last)
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Remove SPA fallback to allow Next.js routing to handle all application paths
 
 [[headers]]
   # Cache compiled CSS aggressively in production
@@ -85,5 +63,4 @@
 [dev]
   port = 8888
   autoLaunch = false
-  # Use static directory mode to serve index.html directly
-  staticDir = "."
+  # Use default Next.js dev proxy handled by the plugin; do not serve staticDir

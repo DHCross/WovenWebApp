@@ -1,134 +1,15 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CSS Visual Elements Test - Woven Web App</title>
-    <link href="/dist/output.css" rel="stylesheet">
-</head>
-<body class="bg-gray-900 text-gray-200 p-8">
-    <h1 class="text-3xl font-bold text-white mb-6">🎨 Visual Elements Test</h1>
-    
-    <div class="space-y-6">
-        <!-- Test tabs like the main app -->
-        <div class="bg-gray-800 p-1 rounded-lg border border-gray-600 inline-flex">
-            <button class="px-6 py-2 text-sm font-medium rounded-md bg-teal-600 text-white transition-colors duration-200">
-                Mirror
-            </button>
-            <button class="px-6 py-2 text-sm font-medium rounded-md bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors duration-200">
-                Balance Meter
-            </button>
-        </div>
-        
-        <!-- Test form elements -->
-        <div class="bg-gray-800 p-6 rounded-lg shadow-lg border border-teal-500">
-            <h2 class="text-xl font-semibold text-white mb-4">Form Elements Test</h2>
-            
-            <!-- Input fields -->
-            <div class="space-y-4">
-                <div>
-                    <label class="block mb-1 text-sm font-medium text-gray-300">Name</label>
-                    <input type="text" placeholder="Enter your name" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:border-teal-500 focus:outline-none">
-                </div>
-                
-                <!-- Radio buttons -->
-                <div class="space-y-2">
-                    <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
-                        <input type="radio" name="test" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700" checked>
-                        <div>
-                            <div class="text-white text-sm">Option 1</div>
-                            <div class="text-gray-400 text-xs">This should have a teal radio button</div>
-                        </div>
-                    </label>
-                    <label class="flex items-center p-3 border border-gray-600 rounded hover:border-teal-500 transition-colors cursor-pointer">
-                        <input type="radio" name="test" class="mr-3 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-600 rounded bg-gray-700">
-                        <div>
-                            <div class="text-white text-sm">Option 2</div>
-                            <div class="text-gray-400 text-xs">This should also have hover effects</div>
-                        </div>
-                    </label>
-                </div>
-                
-                <!-- Buttons -->
-                <div class="flex gap-3">
-                    <button class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded transition-colors">
-                        Primary Button
-                    </button>
-                    <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded transition-colors">
-                        Secondary Button
-                    </button>
-                    <button class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition-colors">
-                        Danger Button
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Test color badges -->
-        <div class="bg-gray-800 p-6 rounded-lg border border-gray-700">
-            <h2 class="text-xl font-semibold text-white mb-4">Color Badges & Indicators</h2>
-            <div class="flex flex-wrap gap-2">
-                <span class="px-3 py-1 bg-teal-600 text-white text-sm rounded-full">Teal Badge</span>
-                <span class="px-3 py-1 bg-purple-600 text-white text-sm rounded-full">Purple Badge</span>
-                <span class="px-3 py-1 bg-amber-600 text-white text-sm rounded-full">Amber Badge</span>
-                <span class="px-3 py-1 bg-emerald-600 text-white text-sm rounded-full">Emerald Badge</span>
-                <span class="px-3 py-1 bg-blue-600 text-white text-sm rounded-full">Blue Badge</span>
-            </div>
-        </div>
-        
-        <!-- Test gradients -->
-        <div class="bg-gradient-to-r from-teal-600 to-teal-700 p-6 rounded-xl shadow-lg">
-            <h2 class="text-2xl font-bold text-white">Gradient Background Test</h2>
-            <p class="text-teal-100">This should have a beautiful teal gradient background</p>
-        </div>
-        
-        <!-- Test weather badge like main app -->
-        <div class="inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-medium rounded-full border border-blue-500/30">
-            <span class="text-lg">🌤️</span>
-            <span>Weather Badge</span>
-        </div>
-    </div>
-    
-    <!-- CSS Debugging Section -->
-    <div class="mt-8 p-4 bg-yellow-900/20 border border-yellow-600 rounded-lg">
-        <h3 class="text-yellow-300 font-semibold mb-2">🔧 CSS Debug Info</h3>
-        <div id="cssDebugInfo" class="text-sm text-yellow-200"></div>
-    </div>
-    
-    <script>
-        // CSS debugging script
-        function debugCSS() {
-            const debugElement = document.getElementById('cssDebugInfo');
-            const testElement = document.createElement('div');
-            testElement.className = 'bg-teal-600 text-white p-2 rounded hidden';
-            document.body.appendChild(testElement);
-            
-            const styles = window.getComputedStyle(testElement);
-            const hasBackground = styles.backgroundColor && styles.backgroundColor !== 'rgba(0, 0, 0, 0)';
-            const hasColor = styles.color && styles.color !== 'rgba(0, 0, 0, 0)';
-            const hasRounding = styles.borderRadius && styles.borderRadius !== '0px';
-            
-            let info = [];
-            info.push(`✅ CSS File Loaded: ${hasBackground && hasColor ? 'YES' : 'NO'}`);
-            info.push(`🎨 Background Color: ${styles.backgroundColor || 'None'}`);
-            info.push(`📝 Text Color: ${styles.color || 'None'}`);
-            info.push(`🔲 Border Radius: ${styles.borderRadius || 'None'}`);
-            info.push(`📐 Padding: ${styles.padding || 'None'}`);
-            
-            debugElement.innerHTML = info.join('<br>');
-            testElement.remove();
-        }
-        
-        // Run debug on load
-        window.addEventListener('DOMContentLoaded', debugCSS);
-        
-        // Add click handlers to test interactivity
-        document.querySelectorAll('button').forEach(btn => {
-            btn.addEventListener('click', () => {
-                btn.style.transform = 'scale(0.95)';
-                setTimeout(() => btn.style.transform = '', 150);
-            });
-        });
-    </script>
-</body>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="refresh" content="0; url=/legacy/css-visual-test.html" />
+  <link rel="canonical" href="/legacy/css-visual-test.html" />
+  <title>Moved: CSS Visual Test</title>
+  <style>html,body{height:100%}body{display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0f1115;color:#e8ecf3}</style>
+  <script>location.replace('/legacy/css-visual-test.html');</script>
+  </head>
+  <body>
+    <p>This page has moved to <a href="/legacy/css-visual-test.html">/legacy/css-visual-test.html</a>.</p>
+  </body>
 </html>

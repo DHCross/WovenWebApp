@@ -10,147 +10,19 @@
         .success { background: #d4edda; color: #155724; }
         .error { background: #f8d7da; color: #721c24; }
         .info { background: #d1ecf1; color: #0c5460; }
-        button { padding: 10px 15px; margin: 5px; }
-    </style>
-</head>
-<body>
-    <h1>Auth0 SDK Direct Test</h1>
-    
-    <div id="status"></div>
-    
-    <button onclick="testSDKLoad()">1. Test SDK Load</button>
-    <button onclick="testConfig()">2. Test Config</button>
-    <button onclick="testClient()">3. Test Client Creation</button>
-    <button onclick="testFullFlow()">4. Test Full Flow</button>
-    
-    <script>
-        function log(message, type = 'info') {
+        <!doctype html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <meta http-equiv="refresh" content="0; url=/legacy/debug-auth-direct.html" />
+          <link rel="canonical" href="/legacy/debug-auth-direct.html" />
+          <title>Moved: Debug Auth Direct</title>
+          <style>html,body{height:100%}body{display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0f1115;color:#e8ecf3}</style>
+          <script>location.replace('/legacy/debug-auth-direct.html');</script>
+          </head>
+          <body>
+            <p>This page has moved to <a href="/legacy/debug-auth-direct.html">/legacy/debug-auth-direct.html</a>.</p>
+          </body>
+        </html>
             const statusDiv = document.getElementById('status');
-            const div = document.createElement('div');
-            div.className = `status ${type}`;
-            div.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
-            statusDiv.appendChild(div);
-            console.log(message);
-        }
-        
-        function testSDKLoad() {
-            log('Testing SDK load...', 'info');
-            
-            // Check if SDK is already loaded
-            if (typeof window.auth0 !== 'undefined' && typeof window.auth0.createAuth0Client === 'function') {
-                log('✓ SDK already loaded via window.auth0.createAuth0Client', 'success');
-                return;
-            }
-            
-            if (typeof createAuth0Client === 'function') {
-                log('✓ SDK loaded via global createAuth0Client', 'success');
-                return;
-            }
-            
-            log('✗ SDK not detected, attempting to load...', 'error');
-            
-            // Try to load SDK
-            const script = document.createElement('script');
-            script.src = '/vendor/auth0-spa-js.production.js';
-            script.onload = function() {
-                log('✓ Script loaded successfully', 'success');
-                setTimeout(() => {
-                    if (typeof window.auth0 !== 'undefined' && typeof window.auth0.createAuth0Client === 'function') {
-                        log('✓ window.auth0.createAuth0Client available', 'success');
-                    } else if (typeof createAuth0Client === 'function') {
-                        log('✓ createAuth0Client available globally', 'success');
-                    } else {
-                        log('✗ SDK loaded but createAuth0Client not found', 'error');
-                        log(`window.auth0: ${typeof window.auth0}`, 'info');
-                        log(`createAuth0Client: ${typeof createAuth0Client}`, 'info');
-                    }
-                }, 100);
-            };
-            script.onerror = function() {
-                log('✗ Failed to load script', 'error');
-            };
-            document.head.appendChild(script);
-        }
-        
-        async function testConfig() {
-            log('Testing config fetch...', 'info');
-            try {
-                const response = await fetch('/.netlify/functions/auth-config');
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                const config = await response.json();
-                log(`✓ Config fetched: ${JSON.stringify(config, null, 2)}`, 'success');
-                return config;
-            } catch (error) {
-                log(`✗ Config fetch failed: ${error.message}`, 'error');
-                return null;
-            }
-        }
-        
-        async function testClient() {
-            log('Testing client creation...', 'info');
-            
-            let createFn;
-            if (typeof window.auth0 !== 'undefined' && typeof window.auth0.createAuth0Client === 'function') {
-                createFn = window.auth0.createAuth0Client;
-                log('Using window.auth0.createAuth0Client', 'info');
-            } else if (typeof createAuth0Client === 'function') {
-                createFn = createAuth0Client;
-                log('Using global createAuth0Client', 'info');
-            } else {
-                log('✗ No createAuth0Client function available', 'error');
-                return;
-            }
-            
-            const config = await testConfig();
-            if (!config || !config.success) {
-                log('✗ Cannot test client without valid config', 'error');
-                return;
-            }
-            
-            try {
-                const client = await createFn({
-                    domain: config.domain,
-                    clientId: config.clientId,
-                    authorizationParams: {
-                        redirect_uri: window.location.origin,
-                        scope: 'openid profile email'
-                    }
-                });
-                log('✓ Client created successfully', 'success');
-                return client;
-            } catch (error) {
-                log(`✗ Client creation failed: ${error.message}`, 'error');
-                return null;
-            }
-        }
-        
-        async function testFullFlow() {
-            log('Testing full Auth0 flow...', 'info');
-            
-            // Step 1: Load SDK
-            await new Promise(resolve => {
-                testSDKLoad();
-                setTimeout(resolve, 500);
-            });
-            
-            // Step 2: Test config
-            const config = await testConfig();
-            if (!config) return;
-            
-            // Step 3: Test client
-            const client = await testClient();
-            if (!client) return;
-            
-            log('✓ Full flow completed successfully!', 'success');
-        }
-        
-        // Auto-test on load
-        document.addEventListener('DOMContentLoaded', function() {
-            log('Page loaded, starting auto-test...', 'info');
-            setTimeout(testFullFlow, 100);
-        });
-    </script>
-</body>
-</html>

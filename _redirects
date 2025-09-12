@@ -4,4 +4,4 @@
 /vendor/*                 /public/vendor/:splat     200!
 # Also allow direct access (redundant in Next dev, but safe)
 /public/vendor/*          /public/vendor/:splat     200!
-/callback  /index.html  200!
+## Note: Legacy callback redirect removed; App Router/Auth0 handle callbacks now

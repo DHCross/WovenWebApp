@@ -1,3 +1,55 @@
+## [2025-09-12] CHANGE/SECURITY/DEVOPS: CSP Hardening, Routing Fixes, CDN → npm, and Temporary Netlify Static Mode
+
+Summary
+- Hardened CSP, eliminated risky inline/eval allowances and 3rd‑party CDNs, fixed asset routing/shadowing, and temporarily ran in static mode while we fix Next build errors before re‑enabling the official Netlify Next.js plugin.
+
+Security & CSP
+- Removed `unsafe-inline` and `unsafe-eval` from Content-Security-Policy in `netlify.toml`.
+- Removed cdnjs and other non‑essential remote script sources to tighten the allowlist.
+- Kept allowlist for required domains only (Auth0 SDK, Google Fonts as needed).
+
+Dependencies (CDN → npm)
+- Replaced html2pdf.js and JSZip CDN usage with npm packages:
+   - Added `html2pdf.js` and `jszip` to `package.json`.
+   - Updated frontend references to import from local bundle instead of remote CDNs.
+
+Routing/Assets
+- Fixed unstyled page issues by explicitly passing through built CSS assets:
+   - Added `/dist/*` passthrough and cache headers in `netlify.toml`.
+   - Verified `dist/output.css` is served with correct Content-Type and long‑lived cache.
+- Noted hybrid shadowing risk: SPA fallback and broad redirects can inadvertently catch CSS/JS and serve HTML; ordering and explicit passthroughs are required when running static.
+
+Netlify Build/Deploy State (Temporary)
+- Temporarily disabled Netlify Next.js plugin and set `build.command` to CSS‑only (`npm run build:css`) to keep local work unblocked.
+- Restored static redirects for `/` and `/chat` plus SPA fallback in `netlify.toml` and used `staticDir` for local `netlify dev`.
+- Plan: fix Next build errors, then re‑enable plugin and remove conflicting static redirects/SPAs so Next owns routes and assets.
+
+Next.js Build Errors To Resolve (Blocking Plugin)
+- "Error: <Html> should not be imported outside of pages/_document" during prerender for `/`, `/404`, `/500`, `/_not-found`.
+- "TypeError: Cannot read properties of null (reading 'useContext')" during prerender, likely from client‑only hooks/components evaluated server‑side.
+
+API/Functions
+- Added `netlify/functions/api-health.js` endpoint to quickly verify environment wiring (keys present, endpoints reachable) during dev.
+- Confirmed serverless functions load under `netlify dev` (poetic‑brain, astrology‑mathbrain, auth‑config, api‑health).
+
+Chat API Safety Gate (Next App Route)
+- Implemented strict guard: "no chart → no personal reading" in `app/api/chat/route.ts`.
+- Added weather‑only branch to allow non‑personal, geometry‑free small talk; personal synthesis requires a validated chart context.
+
+Files Modified
+- `netlify.toml` – CSP tightened; `/dist/*` passthrough + caching; static redirects restored (temporary); plugin toggled.
+- `package.json` – Added `html2pdf.js` and `jszip`.
+- `chat/index.html` – Updated to load local/bundled libraries (no CDN) and ensured CSS path uses `/dist/output.css`.
+- `netlify/functions/api-health.js` – New function.
+- `app/api/chat/route.ts` – Added gating and weather‑only handling (awaiting plugin re‑enable to surface via Next routes).
+
+Verification
+- Local `netlify dev` in static mode serves `/` and `/chat`; functions respond 200 in logs.
+- CSS built and present at `dist/output.css`; passthrough confirmed. Full Next routes testing deferred until plugin re‑enabled post‑fix.
+
+Notes
+- Long‑term, remove the static overrides and let the Netlify Next.js plugin manage routing/assets to eliminate shadowing.
+
 ## [2025-09-11] FEATURE: Dual Report Generation - Mirror + Balance Meter Integration
 
 **Summary**

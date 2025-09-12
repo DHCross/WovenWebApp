@@ -1,0 +1,8 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/api/usage/route": "/api/usage",
+  "/page": "/",
+  "/chat/page": "/chat",
+  "/api/poetic-brain/route": "/api/poetic-brain",
+  "/api/chat/route": "/api/chat"
+}

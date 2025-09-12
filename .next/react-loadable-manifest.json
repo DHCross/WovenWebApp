@@ -1,1 +1,9 @@
-{}
+{
+  "components/ChatClient.tsx -> pdfjs-dist": {
+    "id": 971,
+    "files": [
+      "static/chunks/9b0008ae.cf8f53c4f539a59d.js",
+      "static/chunks/300.b3e060fe9cd0e86c.js"
+    ]
+  }
+}

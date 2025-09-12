@@ -598,4 +598,64 @@ Based on these lessons, we're implementing the following improved practices:
 4. **Standardized Configuration:**
    - Centralizing API endpoint configuration
    - Creating templates for environment variables
-   - Documenting all configuration requirements
+    - Documenting all configuration requirements
+
+---
+
+## [2025-09-12] Routing, CSP, and Next Plugin Lessons (Night Ops Recap)
+
+### Hybrid Mode Pitfall: Route Shadowing Is Real
+Symptom: Subpages (e.g., `/chat`) loaded unstyled or with assets 404/HTML depending on redirect order and SPA fallbacks.
+
+Cause: Static redirects and SPA fallback intercepted asset requests (CSS/JS) and returned HTML. This “hybrid” approach reintroduced legacy shadowing where multiple routers compete.
+
+Lesson: If using Next.js, let the Netlify Next.js plugin own routes and assets. Avoid parallel static rewrites for app routes; otherwise, assets and API calls may be shadowed unpredictably.
+
+### CSP Hardening: Remove Inline/Eval; Remove CDNs
+Steps that worked:
+- Drop `unsafe-inline` and `unsafe-eval` from CSP in `netlify.toml`.
+- Eliminate non‑essential CDNs (cdnjs, etc.).
+- Keep only required sources (Auth0, Google Fonts as needed).
+- Migrate libraries to npm (html2pdf.js, jszip) and bundle locally.
+
+Result: Fewer console warnings, tighter security, and fewer moving parts during deploys.
+
+### Temporary Static Mode Is a Bridge, Not the Destination
+We disabled the Next plugin and ran `build:css` only to keep dev unblocked while fixing Next prerender errors. This restored styling via explicit `/dist/*` passthrough and caching. It’s acceptable as a short‑term bridge, not a long‑term architecture.
+
+### Next Errors Blocking Plugin Re‑Enable
+1) “Error: <Html> should not be imported outside of pages/_document” during prerender for `/`, `/404`, `/500`, `/_not-found`.
+     - Likely legacy usage of `next/document` in App Router context or accidental import in a non‑document file.
+     - Fix: Use `app/layout.tsx` with standard HTML shell. Reserve `next/document` for Pages Router only.
+
+2) “TypeError: Cannot read properties of null (reading 'useContext')” during prerender.
+     - Likely a client‑only hook (e.g., `useAuth`, `window`, `document`) evaluated during server render.
+     - Fix: Mark component "use client", guard with `useEffect`, ensure providers wrap the tree in `app/layout.tsx`, or use `dynamic(() => import(...), { ssr: false })` for browser‑only widgets.
+
+### Persona Safety Gate: No Chart → No Personal Reading
+We enforced a hard gate in `app/api/chat/route.ts`:
+- Without a validated chart context, the chat responds with weather‑only, non‑personal content.
+- When a chart is present, the full persona synthesis path is allowed.
+
+This preserves the Math Brain → Poetic Brain contract and prevents accidental personal readings from free text.
+
+### Local Dev Playbook That Worked
+- Use `netlify dev` in static mode temporarily with:
+    - Explicit `/dist/*` passthrough and long‑cache headers for CSS.
+    - Static redirects only for `/` and `/chat`.
+- Verify functions via `/api-health` and sample payloads to `astrology-mathbrain` and `poetic-brain`.
+- Keep `.env` updated (RAPIDAPI_KEY, GEMINI_API_KEY) and restart dev server after changes.
+
+### Path Back to Plugin
+1) Locate and remove any `next/document` imports outside `pages/_document` (or migrate fully to App Router with `app/layout.tsx`).
+2) Audit components that use browser‑only APIs or context; wrap with Providers and client boundaries.
+3) Re‑enable `@netlify/plugin-nextjs` and switch `build.command` back to `npm run build`.
+4) Remove static overrides: delete SPA fallback and conflicting redirects so Next owns routes.
+5) Retest `/` and `/chat` locally and in deploy; monitor logs for prerender errors.
+
+### Quick Checks
+- CSS present: `dist/output.css` exists; headers show correct Content-Type.
+- Functions online: `api-health` returns success locally; other functions return 200.
+- CSP console clean: No inline/eval violations; only necessary domains allowed.
+
+Bottom line: Hybrid mode invited shadowing and brittle styling. The durable fix is plugin‑on with Next as the single router—after we remediate the two prerender errors.

@@ -43,7 +43,7 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
           throw new Error('Invalid Auth0 config');
         }
 
-        const redirect_uri = window.location.origin + '/callback';
+  const redirect_uri = window.location.origin + '/chat';
         const client = await window.createAuth0Client!({
           domain: (config.domain as string).replace(/^https?:\/\//, ''),
           clientId: config.clientId,

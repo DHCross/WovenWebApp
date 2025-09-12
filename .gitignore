@@ -1,3 +1,6 @@
+# Legacy archives
+legacy/*
+!legacy/.keep
 # Node and environment files
 node_modules/
 .env
