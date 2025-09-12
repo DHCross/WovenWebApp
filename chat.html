@@ -110,11 +110,13 @@
                 }
                 console.log('[Chat Auth0 Debug] Config loaded:', config);
 
+                const redirectUri = window.location.origin + '/';
+                console.log('[Chat Auth0 Debug] Using redirect_uri:', redirectUri);
                 auth0Client = await createAuth0Client({
-                    domain: config.domain,
+                    domain: (config.domain || '').replace(/^https?:\/\//, ''),
                     clientId: config.clientId,
                     authorizationParams: {
-                        redirect_uri: window.location.origin
+                        redirect_uri: redirectUri
                     }
                 });
 

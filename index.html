@@ -2064,6 +2064,38 @@ function renderTransitDay(dateStr, items){
             }, 5000);
         }
 
+        // Informational helper shown when extra artifacts (e.g., Relational Mirror or Balance Meter)
+        // are available after generating a report. This is declared in global scope so any callsite
+        // can safely reference it without ReferenceErrors.
+        // Params:
+        //  - hasMirrorReport: boolean
+        //  - hasBalanceMeterData: boolean
+        //  - currentMode: string (e.g., 'single' | 'relationship' | 'balance_meter')
+        function showBonusReportNotification(hasMirrorReport, hasBalanceMeterData, currentMode) {
+            try {
+                const parts = [];
+                if (hasMirrorReport) parts.push('Relational Mirror ready');
+                if (hasBalanceMeterData) parts.push('Balance Meter ready');
+
+                // Default message if neither flag is set (defensive, keeps UX graceful)
+                const message = parts.length
+                    ? `${parts.join(' • ')}${currentMode ? ` (${currentMode})` : ''}.`
+                    : 'Your report is ready.';
+
+                if (typeof showNotification === 'function') {
+                    // Use non-destructive info toast if available
+                    showNotification(message, 'info');
+                } else if (window?.console) {
+                    console.info('[Woven Notice]', message);
+                } else {
+                    // Absolute fallback to guarantee visibility
+                    alert(message);
+                }
+            } catch (err) {
+                console.warn('showBonusReportNotification failed', err);
+            }
+        }
+
         // Helper function to get opposite zodiac sign for South Node calculation
         function getOppositeSign(sign) {
             const opposites = {
@@ -12289,6 +12321,8 @@ function renderTransitDay(dateStr, items){
                             ravenStatus.classList.add('hidden');
                         }, 3000);
                     }
+
+                    // (Bonus notice helper now global; removed duplicate local definition.)
                 });
             }
             
@@ -12555,11 +12589,11 @@ function renderTransitDay(dateStr, items){
         }
 
         // 4) Create the client (omit audience here to allow basic login even if API isn’t set up).
-                const auth0Client = await createClient({
+                                const auth0Client = await createClient({
             domain: (cfg.domain || '').replace(/^https?:\/\//, ''),
       clientId: cfg.clientId,
       authorizationParams: {
-                redirect_uri: location.origin
+                                redirect_uri: location.origin + '/'
       }
     });
     window._auth0 = auth0Client;
@@ -12661,7 +12695,7 @@ function renderTransitDay(dateStr, items){
       logoutBtn.addEventListener('click', async () => {
         try {
           console.info('[Auth0 Debug] logout() → returnTo origin');
-          await auth0Client.logout({ logoutParams: { returnTo: location.origin } });
+          await auth0Client.logout({ logoutParams: { returnTo: location.origin + '/' } });
         } catch (e) {
           console.error('[Auth0] logout failed:', e);
         }

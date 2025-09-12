@@ -47,7 +47,7 @@
 [[headers]]
   for = "/chat"
   [headers.values]
-  Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.auth0.com; img-src 'self' data:; frame-ancestors 'self';"
+  Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.auth0.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.auth0.com; img-src 'self' data:; frame-ancestors 'self';"
 
 
 # Catch-all redirect to index.html (but don't override specific routes)
