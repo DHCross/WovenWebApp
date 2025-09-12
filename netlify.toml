@@ -43,6 +43,13 @@
   status = 200
   force = true
 
+# Explicit callback route for Auth0 to ensure SPA handles code/state
+[[redirects]]
+  from = "/callback"
+  to = "/index.html"
+  status = 200
+  force = true
+
 # Targeted CSP for chat route allowing local Auth0 SDK and basic inline styles
 [[headers]]
   for = "/chat"

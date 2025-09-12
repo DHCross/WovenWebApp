@@ -2,4 +2,5 @@
 /api/astrology-mathbrain      /.netlify/functions/astrology-mathbrain    200
 /vendor/*   /vendor/:splat   200!
 /public/vendor/*   /public/vendor/:splat   200!
+/callback  /index.html  200!
 /*   /index.html   200

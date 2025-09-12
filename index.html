@@ -646,7 +646,7 @@
                 <h1 class="text-4xl font-bold text-white">Raven Calder</h1>
                 <div id="auth-debug-origin" class="hidden text-xs text-gray-400 ml-2 select-all" title="Current origin used as redirect_uri"></div>
                 <div class="flex gap-2">
-                    <button id="google-login-button" class="auth-button bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-semibold auth-btn" title="Sign in with Google" disabled>Continue with Google</button>
+                    <button id="google-login-button" class="auth-button bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-semibold auth-btn" title="Sign in with Google">Continue with Google</button>
                     <!-- Visible only when authenticated -->
                     <button id="skip-to-poetic" class="auth-button bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-semibold hidden" title="Open Poetic Brain (Raven Calder)" aria-label="Poetic Brain">
                         🐦‍⬛ Poetic Brain
@@ -2064,37 +2064,7 @@ function renderTransitDay(dateStr, items){
             }, 5000);
         }
 
-        // Informational helper shown when extra artifacts (e.g., Relational Mirror or Balance Meter)
-        // are available after generating a report. This is declared in global scope so any callsite
-        // can safely reference it without ReferenceErrors.
-        // Params:
-        //  - hasMirrorReport: boolean
-        //  - hasBalanceMeterData: boolean
-        //  - currentMode: string (e.g., 'single' | 'relationship' | 'balance_meter')
-        function showBonusReportNotification(hasMirrorReport, hasBalanceMeterData, currentMode) {
-            try {
-                const parts = [];
-                if (hasMirrorReport) parts.push('Relational Mirror ready');
-                if (hasBalanceMeterData) parts.push('Balance Meter ready');
-
-                // Default message if neither flag is set (defensive, keeps UX graceful)
-                const message = parts.length
-                    ? `${parts.join(' • ')}${currentMode ? ` (${currentMode})` : ''}.`
-                    : 'Your report is ready.';
-
-                if (typeof showNotification === 'function') {
-                    // Use non-destructive info toast if available
-                    showNotification(message, 'info');
-                } else if (window?.console) {
-                    console.info('[Woven Notice]', message);
-                } else {
-                    // Absolute fallback to guarantee visibility
-                    alert(message);
-                }
-            } catch (err) {
-                console.warn('showBonusReportNotification failed', err);
-            }
-        }
+        
 
         // Helper function to get opposite zodiac sign for South Node calculation
         function getOppositeSign(sign) {
@@ -10481,8 +10451,7 @@ function renderTransitDay(dateStr, items){
                 const hasBalanceMeterData = Boolean(result.balance_meter) || Boolean(result?.person_a?.chart?.transitsByDate);
                 const currentMode = (typeof getCurrentActiveTabMode === 'function') ? getCurrentActiveTabMode() : 'mirror';
                 
-                // Show notification about bonus reports available
-                showBonusReportNotification(hasMirrorReport, hasBalanceMeterData, currentMode);
+                // (Bonus report notification intentionally removed)
 
                 // Check if ANY report was generated (Mirror or Balance Meter)
                 const mirrorReportExists = report && report.length > 0;
@@ -12522,10 +12491,12 @@ function renderTransitDay(dateStr, items){
 
 </script>
 <!-- ---- Auth0 Init & UI Wiring (runs after SDK loader) ---- -->
-<script src="https://cdn.auth0.com/js/auth0-spa-js/2.1.3/auth0-spa-js.production.js"></script>
+<!-- Use local vendored Auth0 SPA SDK to avoid CDN flakiness/CSP surprises -->
+<script src="/public/vendor/auth0-spa-js.production.js"></script>
 <script>
 (async () => {
   try {
+        console.log('[Auth0 Init] Script loaded, starting init');
         // Skip if already initialized
         if (window._auth0) {
             console.info('[Auth0 Debug] Auth0 already initialized; skipping duplicate init');
@@ -12588,12 +12559,15 @@ function renderTransitDay(dateStr, items){
             history.replaceState({}, document.title, location.pathname);
         }
 
-        // 4) Create the client (omit audience here to allow basic login even if API isn’t set up).
-                                const auth0Client = await createClient({
+            // 4) Create the client (omit audience here to allow basic login even if API isn’t set up).
+            // Canonicalize redirect handling to a dedicated /callback path.
+            const redirectUri = location.origin + '/callback';
+            console.info('[Auth0 Debug] Using redirect_uri:', redirectUri);
+                                                                    const auth0Client = await createClient({
             domain: (cfg.domain || '').replace(/^https?:\/\//, ''),
       clientId: cfg.clientId,
       authorizationParams: {
-                                redirect_uri: location.origin + '/'
+                                                                    redirect_uri: redirectUri
       }
     });
     window._auth0 = auth0Client;
@@ -12602,9 +12576,9 @@ function renderTransitDay(dateStr, items){
     if (location.search.includes('code=') && location.search.includes('state=')) {
       try {
         console.info('[Auth0 Debug] Handling redirect callback…');
-        await auth0Client.handleRedirectCallback();
-        // Clean the query string for aesthetics
-        window.history.replaceState({}, document.title, location.pathname);
+    await auth0Client.handleRedirectCallback();
+    // Clean the query string and return to canonical root path
+    window.history.replaceState({}, document.title, '/');
       } catch (e) {
         console.error('[Auth0 Debug] handleRedirectCallback failed:', e);
       }
@@ -12617,6 +12591,7 @@ function renderTransitDay(dateStr, items){
     const skipToPoeticBtn = $('#skip-to-poetic');
 
         function enableAuthUI() {
+            console.log('[Auth0 Init] enableAuthUI called');
             [googleBtn, logoutBtn, skipToPoeticBtn].forEach(b => { if (b) b.disabled = false; });
         }
 
@@ -12644,6 +12619,7 @@ function renderTransitDay(dateStr, items){
 
     // 7) Wire events
     enableAuthUI();
+    console.log('[Auth0 Init] Buttons enabled');
     await refreshUI();
 
     // Debug: Log button state
@@ -12662,6 +12638,14 @@ function renderTransitDay(dateStr, items){
                     });
                 } catch (e) {
                     console.error('[Auth0] google redirect failed:', e);
+                    console.error('[Auth0] Google login error details:', {
+                        message: e.message,
+                        stack: e.stack,
+                        name: e.name,
+                        code: e.code,
+                        error: e.error,
+                        error_description: e.error_description
+                    });
                     alert('Google login failed. Check console for details: ' + (e && (e.message || e.error_description || e.error) || 'unknown error'));
                 }
             });
@@ -12672,17 +12656,15 @@ function renderTransitDay(dateStr, items){
             console.log('[Auth0 Debug] Setting up Poetic Brain button');
             skipToPoeticBtn.disabled = false; // Ensure button is enabled
             skipToPoeticBtn.style.pointerEvents = 'auto'; // Ensure clicks work
-            
             // Remove any existing listeners
             skipToPoeticBtn.replaceWith(skipToPoeticBtn.cloneNode(true));
             const freshBtn = document.getElementById('skip-to-poetic');
-            
             if (freshBtn) {
                 freshBtn.addEventListener('click', (e) => {
                     console.log('[Poetic Brain] Button clicked! Navigating to /chat');
                     e.preventDefault();
                     e.stopPropagation();
-                    // Navigate directly to chat interface
+                    // Navigate directly to the real chatbot
                     window.location.href = '/chat';
                 });
                 console.log('[Auth0 Debug] Poetic Brain button listener attached');
@@ -12695,9 +12677,15 @@ function renderTransitDay(dateStr, items){
       logoutBtn.addEventListener('click', async () => {
         try {
           console.info('[Auth0 Debug] logout() → returnTo origin');
-          await auth0Client.logout({ logoutParams: { returnTo: location.origin + '/' } });
+                    await auth0Client.logout({ logoutParams: { returnTo: location.origin + '/' } });
         } catch (e) {
           console.error('[Auth0] logout failed:', e);
+          console.error('[Auth0] Logout error details:', {
+            message: e.message,
+            stack: e.stack,
+            name: e.name,
+            code: e.code
+          });
         }
       });
     }
@@ -12705,11 +12693,19 @@ function renderTransitDay(dateStr, items){
     console.info('✅ Auth0 client initialized successfully');
   } catch (err) {
     console.error('[Auth0 Init] Failed:', err);
+    console.error('[Auth0 Init] Error details:', {
+      message: err.message,
+      stack: err.stack,
+      name: err.name,
+      code: err.code
+    });
     // Failsafe: enable buttons and warn on click so "nothing" never happens
         if (!window._auth0) {
+            console.log('[Auth0 Init] Enabling buttons with fallback due to init failure');
             document.querySelectorAll('.auth-btn').forEach(b => {
                 if (!b) return;
                 b.disabled = false;
+                console.log('[Auth0 Init] Enabled button:', b.id || 'unknown button');
                 // Only attach a fallback alert if no successful client exists
                 b.addEventListener('click', () => alert('Auth is unavailable. Check console for errors.'));
             });
