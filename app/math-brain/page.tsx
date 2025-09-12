@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +20,22 @@ type Subject = {
 };
 
 type ApiResult = Record<string, any> | null;
+
+type Auth0Client = {
+  isAuthenticated: () => Promise<boolean>;
+  handleRedirectCallback: () => Promise<void>;
+  loginWithRedirect: (opts?: any) => Promise<void>;
+  getUser: () => Promise<any>;
+};
+
+declare global {
+  interface Window {
+    createAuth0Client?: (config: any) => Promise<Auth0Client>;
+    auth0?: {
+      createAuth0Client?: (config: any) => Promise<Auth0Client>;
+    };
+  }
+}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -58,6 +74,68 @@ export default function MathBrainPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResult>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [authed, setAuthed] = useState(false);
+  const authClientRef = useRef<Auth0Client | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function initAuth() {
+      try {
+        const hasCreate = typeof window.auth0?.createAuth0Client === 'function' || typeof window.createAuth0Client === 'function';
+        if (!hasCreate) {
+          await new Promise<void>((resolve, reject) => {
+            const s = document.createElement("script");
+            s.src = "/vendor/auth0-spa-js.production.js";
+            s.async = true;
+            s.onload = () => resolve();
+            s.onerror = () => reject(new Error("Failed to load Auth0 SDK"));
+            document.head.appendChild(s);
+          });
+        }
+
+        let config: any = null;
+        try {
+          const res = await fetch("/api/auth-config", { cache: "no-store" });
+          if (!res.ok) throw new Error(`Auth config failed: ${res.status}`);
+          config = await res.json();
+        } catch (e) {
+          // No functions in dev or missing env — auth stays disabled
+          if (!cancelled) {
+            setAuthReady(true);
+          }
+          return;
+        }
+
+        const creator = window.auth0?.createAuth0Client || window.createAuth0Client;
+        if (typeof creator !== 'function') throw new Error('Auth0 SDK not available');
+        const client = await creator({
+          domain: String(config.domain).replace(/^https?:\/\//, ''),
+          clientId: config.clientId,
+          authorizationParams: { redirect_uri: window.location.origin + "/math-brain" },
+        });
+        authClientRef.current = client;
+
+        const qs = window.location.search;
+        if (qs.includes("code=") && qs.includes("state=")) {
+          await client.handleRedirectCallback();
+          const url = new URL(window.location.href);
+          url.search = "";
+          window.history.replaceState({}, "", url.toString());
+        }
+
+        const isAuthed = await client.isAuthenticated();
+        if (!cancelled) {
+          setAuthed(isAuthed);
+          setAuthReady(true);
+        }
+      } catch {
+        if (!cancelled) setAuthReady(true);
+      }
+    }
+    initAuth();
+    return () => { cancelled = true; };
+  }, []);
 
   function sendToPoeticBrain() {
     if (!result) return;
@@ -79,6 +157,20 @@ export default function MathBrainPage() {
       window.location.href = '/chat';
     } catch {/* noop */}
   }
+
+  const loginWithGoogle = async () => {
+    try {
+      await authClientRef.current?.loginWithRedirect({
+        authorizationParams: {
+          redirect_uri: window.location.origin + "/math-brain",
+          connection: "google-oauth2",
+        },
+      });
+    } catch (e) {
+      // surface minimal error into the page banner
+      setError((e as any)?.message || "Login failed");
+    }
+  };
 
   const canSubmit = useMemo(() => {
     // Basic local checks
@@ -168,12 +260,23 @@ export default function MathBrainPage() {
         >
           Open Legacy Math Brain
         </a>
-        <a
-          href="/chat"
-          className="rounded-md bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500"
-        >
-          Continue to Poetic Brain
-        </a>
+        {authReady && authed ? (
+          <a
+            href="/chat"
+            className="rounded-md bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500"
+          >
+            Continue to Poetic Brain
+          </a>
+        ) : (
+          <button
+            type="button"
+            onClick={loginWithGoogle}
+            className="rounded-md border border-slate-700 bg-slate-800 px-4 py-2 text-slate-100 hover:bg-slate-700"
+            title="Sign in to enable Poetic Brain"
+          >
+            Sign in to Continue
+          </button>
+        )}
       </div>
 
       <form onSubmit={onSubmit} className="mt-10 grid grid-cols-1 gap-6">

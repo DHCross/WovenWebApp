@@ -164,9 +164,9 @@ export default function HomeHero() {
               <a
                 href="/chat"
                 className="rounded-md px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-500"
-                title="Open Chat"
+                title="Open Poetic Brain (Chat)"
               >
-                Open Chat
+                Open Poetic Brain
               </a>
             ) : (
               <span
@@ -174,9 +174,9 @@ export default function HomeHero() {
                 aria-disabled="true"
                 tabIndex={-1}
                 className="rounded-md px-4 py-2 cursor-not-allowed bg-slate-800 text-slate-500"
-                title="Sign in to enable Chat"
+                title="Sign in to enable Poetic Brain"
               >
-                Open Chat
+                Open Poetic Brain
               </span>
             )
           )}

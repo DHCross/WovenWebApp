@@ -1,6 +1,5 @@
 {
-  "/page": "app/page.js",
   "/math-brain/page": "app/math-brain/page.js",
   "/_not-found/page": "app/_not-found/page.js",
-  "/math-brain/route": "app/math-brain/route.js"
+  "/page": "app/page.js"
 }

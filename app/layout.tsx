@@ -4,7 +4,7 @@ export const metadata = { title: 'Raven Calder · Chat', description: 'Raven Cal
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning className="app antialiased">{children}</body>
     </html>
   );
 }
