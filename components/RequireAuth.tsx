@@ -11,6 +11,9 @@ type Auth0Client = {
 declare global {
   interface Window {
     createAuth0Client?: (config: any) => Promise<Auth0Client>;
+    auth0?: {
+      createAuth0Client?: (config: any) => Promise<Auth0Client>;
+    };
   }
 }
 
@@ -25,7 +28,8 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
     async function init() {
       try {
         // Load the local Auth0 SPA SDK (served from Next.js public as /vendor)
-        if (typeof window.createAuth0Client !== 'function') {
+        const hasCreate = typeof window.auth0?.createAuth0Client === 'function' || typeof window.createAuth0Client === 'function';
+        if (!hasCreate) {
           await new Promise<void>((resolve, reject) => {
             const s = document.createElement('script');
             s.src = '/vendor/auth0-spa-js.production.js';
@@ -43,8 +47,13 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
           throw new Error('Invalid Auth0 config');
         }
 
-  const redirect_uri = window.location.origin + '/chat';
-        const client = await window.createAuth0Client!({
+        const creator = window.auth0?.createAuth0Client || window.createAuth0Client;
+        if (typeof creator !== 'function') {
+          throw new Error('Auth0 SDK not available after load');
+        }
+
+        const redirect_uri = window.location.origin + '/chat';
+        const client = await creator({
           domain: (config.domain as string).replace(/^https?:\/\//, ''),
           clientId: config.clientId,
           authorizationParams: { redirect_uri }

@@ -63,4 +63,7 @@
 [dev]
   port = 8888
   autoLaunch = false
-  # Use default Next.js dev proxy handled by the plugin; do not serve staticDir
+  framework = "#custom"
+  command = "npx next dev -p 4000"
+  targetPort = 4000
+  # Netlify Dev will proxy to Next dev (4000) and serve functions without running a prod build.

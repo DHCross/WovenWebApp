@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-WovenWebApp is a web-based astrological chart analysis application that generates detailed reports for individuals and relationships using the **Raven Calder** system. It combines a static HTML/JavaScript frontend with Tailwind CSS and a Netlify serverless backend that interfaces with the RapidAPI Astrologer API.
+WovenWebApp is a web-based astrological chart analysis application that generates detailed reports for individuals and relationships using the **Raven Calder** system. The application now runs on Next.js App Router (React) and is deployed on Netlify. The `app/` directory is the source of truth for pages and API routes; legacy static HTML is preserved for reference only during migration.
 
 ### Core Philosophy (Raven Calder)
 
@@ -16,17 +16,17 @@ WovenWebApp is a web-based astrological chart analysis application that generate
 
 ### Technology Stack
 
-* **Frontend:** Static HTML, JavaScript, Tailwind CSS
+* **Frontend:** Next.js App Router (React), Tailwind CSS
 * **Backend:** Netlify serverless functions (`netlify/functions/astrology-mathbrain.js`)
 * **Data Processing:** `src/raven-lite-mapper.js` (+ `src/seismograph.js` for symbolic scoring)
 * **External API:** RapidAPI **Astrologer** (Kerykeion-powered)
-* **Deployment:** Netlify with GitHub integration
+* **Deployment:** Netlify with GitHub integration and `@netlify/plugin-nextjs`
 * **Styling:** Tailwind CSS (PostCSS)
 
 ### Key Components
 
-* **Frontend (`index.html`)**
-  Single-page UI with form-based input, real-time validation, responsive dark theme, report rendering.
+* **Frontend (App Router)**
+  React pages under `app/` (home, `app/math-brain`, `app/chat`). Legacy `index.html` is retained only for temporary reference during migration and should not back live routes.
 * **Backend (`astrology-mathbrain.js`)**
   Primary function for calculations, API proxying, validation, and structured error handling.
 * **Raven Mapper (`src/raven-lite-mapper.js`)**
@@ -175,7 +175,8 @@ Examples:
 **API Integration (frontend → function)**
 
 ```js
-const response = await fetch('/.netlify/functions/astrology-mathbrain', {
+// Prefer Next.js API routes under /api. Legacy Netlify paths should be rewritten when possible.
+const response = await fetch('/api/astrology-mathbrain', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(requestData)
@@ -202,6 +203,25 @@ logger.error('Operation failed', { error, context });
 ```
 
 ---
+
+## Critical Flow (Must Implement)
+
+- Math Brain entry is `/math-brain`.
+- After successful Google Auth0 login, the user can reach Poetic Brain at `/chat`.
+- `/chat` must be gated behind authentication (use `RequireAuth`). Do not expose `/chat` to unauthenticated users.
+
+## Styling and Migration Rules
+
+- Tailwind CSS is the primary styling system. Prefer utility classes; limit CSS modules to component-specific needs.
+- Do not introduce new inline styles in React components.
+- Legacy styles may persist only until their page is fully ported to React. Replace with Tailwind as you migrate.
+
+## Final Desired State
+
+- `/` and `/math-brain` are React pages in App Router.
+- `/chat` is the Poetic Brain chat, reachable only after Auth0 login and gated by `RequireAuth`.
+- `/legacy/*` contains old HTML files preserved for reference only.
+- Netlify deploys the Next.js build (`.next`) using `@netlify/plugin-nextjs`.
 
 ## Branch Protection & Merge Guidelines
 

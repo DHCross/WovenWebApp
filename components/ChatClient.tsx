@@ -980,7 +980,8 @@ export default function ChatClient(){
     if (!card) {
       const lastRavenMessage = messages.filter(m => m.role === 'raven').pop();
       if (lastRavenMessage) {
-        const parsed = parseCardFromResponse(lastRavenMessage.html);
+        // Strip HTML before parsing into a PoeticIndexCard structure
+        const parsed = parseCardFromResponse(stripHtml(lastRavenMessage.html));
         if (parsed) card = parsed;
       }
     }
@@ -1360,8 +1361,8 @@ export default function ChatClient(){
         sidebarOpen={false}
         reportContexts={reportContexts}
         onRemoveReportContext={removeReportContext}
-  onPoeticCard={() => {}}
-  onDemoCard={() => {}}
+  onPoeticCard={() => { generateVisualCard(); }}
+  onDemoCard={() => { requestDemoCard(); }}
   onShowWrapUp={() => setShowWrapUpCard(true)}
   onShowPendingReview={() => setShowPendingReview(true)}
   onShowHelp={() => setShowHelp(true)}
