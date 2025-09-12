@@ -702,6 +702,8 @@
                 <div id="auth-debug-origin" class="hidden text-xs text-gray-400 ml-2 select-all" title="Current origin used as redirect_uri"></div>
                 <div class="flex gap-2">
                     <button id="google-login-button" class="auth-button bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-semibold auth-btn" title="Sign in with Google" disabled>Continue with Google</button>
+                    <!-- Visible only when authenticated -->
+                    <button id="skip-to-poetic" class="auth-button bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-semibold hidden" title="Open Poetic Brain (Raven Calder)">Poetic Brain</button>
                     <button id="logout-button" class="auth-button bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-semibold auth-btn hidden" disabled>Log Out</button>
                 </div>
             </div>
@@ -12703,15 +12705,17 @@ function renderTransitDay(dateStr, items){
     const $ = s => document.querySelector(s);
     const googleBtn = $('#google-login-button');
     const logoutBtn = $('#logout-button');
+    const skipToPoeticBtn = $('#skip-to-poetic');
 
         function enableAuthUI() {
-            [googleBtn, logoutBtn].forEach(b => { if (b) b.disabled = false; });
+            [googleBtn, logoutBtn, skipToPoeticBtn].forEach(b => { if (b) b.disabled = false; });
         }
 
         async function refreshUI() {
             const authed = await auth0Client.isAuthenticated();
             if (logoutBtn) logoutBtn.classList.toggle('hidden', !authed);
             if (googleBtn) googleBtn.classList.toggle('hidden', authed);
+            if (skipToPoeticBtn) skipToPoeticBtn.classList.toggle('hidden', !authed);
             
             // Handle Ask Raven zone visibility based on auth state
             const askRavenZone = $('#askRavenZone');
@@ -12749,7 +12753,14 @@ function renderTransitDay(dateStr, items){
             });
         }
 
-    if (logoutBtn) {
+        if (skipToPoeticBtn) {
+            skipToPoeticBtn.addEventListener('click', () => {
+                // Navigate directly to chat interface
+                window.location.href = '/chat';
+            });
+        }
+
+        if (logoutBtn) {
       logoutBtn.addEventListener('click', async () => {
         try {
           console.info('[Auth0 Debug] logout() → returnTo origin');
