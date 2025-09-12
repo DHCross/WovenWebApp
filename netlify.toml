@@ -36,6 +36,20 @@
   to = "/.netlify/functions/auth-config"
   status = 200
 
+# Handle chat route to static HTML interface
+[[redirects]]
+  from = "/chat"
+  to = "/chat.html"
+  status = 200
+  force = true
+
+# Targeted CSP for chat route allowing local Auth0 SDK and basic inline styles
+[[headers]]
+  for = "/chat"
+  [headers.values]
+  Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.auth0.com; img-src 'self' data:; frame-ancestors 'self';"
+
+# Catch-all redirect to index.html (but don't override specific routes)
 [[redirects]]
   from = "/*"
   to = "/index.html"

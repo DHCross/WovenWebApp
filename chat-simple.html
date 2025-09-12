@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poetic Brain - Simple Browser Compatible</title>
+    <style>
+        /* Inline Tailwind-like styles for Simple Browser compatibility */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background-color: #111827;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .max-w-4xl {
+            max-width: 56rem;
+            margin: 0 auto;
+        }
+        
+        .text-center { text-align: center; }
+        .mb-8 { margin-bottom: 2rem; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mt-4 { margin-top: 1rem; }
+        
+        h1 {
+            font-size: 1.875rem;
+            font-weight: bold;
+            color: #a855f7;
+            margin-bottom: 0.5rem;
+        }
+        
+        .text-gray-300 { color: #d1d5db; }
+        
+        button {
+            padding: 0.5rem 1rem;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: #1d4ed8;
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .chat-container {
+            background-color: #1f2937;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            min-height: 24rem;
+        }
+        
+        .chat-messages {
+            margin-bottom: 1.5rem;
+            min-height: 16rem;
+        }
+        
+        .chat-form {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        #promptInput {
+            flex: 1;
+            padding: 0.5rem 1rem;
+            background-color: #374151;
+            border: 1px solid #4b5563;
+            border-radius: 0.375rem;
+            color: white;
+        }
+        
+        #promptInput:focus {
+            border-color: #a855f7;
+            outline: none;
+        }
+        
+        #sendButton {
+            background-color: #7c3aed;
+            padding: 0.5rem 1.5rem;
+        }
+        
+        #sendButton:hover {
+            background-color: #6d28d9;
+        }
+        
+        .status {
+            text-align: center;
+            color: #9ca3af;
+        }
+        
+        .message {
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin: 0.5rem 0;
+        }
+        
+        .message.user {
+            background-color: #2563eb;
+            margin-left: 3rem;
+            text-align: right;
+        }
+        
+        .message.assistant {
+            background-color: #7c3aed;
+            margin-right: 3rem;
+        }
+        
+        .message.error {
+            background-color: #dc2626;
+            margin-right: 3rem;
+        }
+        
+        .debug-info {
+            background-color: #065f46;
+            color: #d1fae5;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            margin: 1rem 0;
+            font-family: monospace;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="max-w-4xl">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1>Raven Calder Poetic Brain</h1>
+                <p class="text-gray-300">Mystical insights and poetic wisdom</p>
+                <button id="backToMathBrain" class="mt-4">
+                    ← Back to Math Brain
+                </button>
+            </div>
+
+            <!-- Debug Info -->
+            <div id="debugInfo" class="debug-info" style="display: none;">
+                <div><strong>Debug Mode:</strong> <span id="debugMode">Unknown</span></div>
+                <div><strong>Auth0 SDK Loaded:</strong> <span id="auth0Status">Checking...</span></div>
+                <div><strong>Connection Status:</strong> <span id="connectionStatus">Initializing...</span></div>
+            </div>
+
+            <!-- Chat Interface -->
+            <div class="chat-container">
+                <div id="chatMessages" class="chat-messages">
+                    <div class="message assistant">
+                        Welcome to the Poetic Brain. Share your thoughts, questions, or dreams...
+                    </div>
+                </div>
+                
+                <form id="chatForm" class="chat-form">
+                    <input 
+                        type="text" 
+                        id="promptInput"
+                        placeholder="Share your thoughts with Raven Calder..."
+                        required
+                        disabled
+                    />
+                    <button 
+                        type="submit"
+                        id="sendButton"
+                        disabled
+                    >
+                        Send
+                    </button>
+                </form>
+            </div>
+
+            <!-- Status Display -->
+            <div id="statusDisplay" class="status">Initializing Simple Browser compatible version...</div>
+        </div>
+    </div>
+
+    <script>
+        console.log('[Chat Debug] Starting Simple Browser compatible version...');
+        
+        // Check debug mode
+        const debugMode = new URLSearchParams(window.location.search).has('debug');
+        const debugInfo = document.getElementById('debugInfo');
+        
+        if (debugMode) {
+            debugInfo.style.display = 'block';
+            document.getElementById('debugMode').textContent = 'Enabled';
+            console.log('[Chat Debug] Debug mode enabled');
+        }
+        
+        // Status elements
+        const statusDisplay = document.getElementById('statusDisplay');
+        const auth0Status = document.getElementById('auth0Status');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const promptInput = document.getElementById('promptInput');
+        const sendButton = document.getElementById('sendButton');
+        
+        // Simple Browser compatibility test
+        function testSimpleBrowserCompatibility() {
+            console.log('[Chat Debug] Testing Simple Browser compatibility...');
+            statusDisplay.textContent = 'Simple Browser compatibility confirmed. Loading Auth0...';
+            
+            if (auth0Status) auth0Status.textContent = 'Simple Browser - No CDN';
+            if (connectionStatus) connectionStatus.textContent = 'Local server connected';
+            
+            // For now, enable form without Auth0 for testing
+            if (debugMode) {
+                promptInput.disabled = false;
+                sendButton.disabled = false;
+                statusDisplay.textContent = 'DEBUG MODE: Form enabled without authentication';
+                console.log('[Chat Debug] Debug mode - form enabled without auth');
+            } else {
+                statusDisplay.textContent = 'Authentication required. Please use main browser for full functionality.';
+            }
+        }
+        
+        // Add message to chat
+        function addMessage(content, type) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = content;
+            
+            chatMessages.appendChild(messageDiv);
+            messageDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Handle form submission (mock for Simple Browser)
+        document.getElementById('chatForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const prompt = promptInput.value.trim();
+            if (!prompt) return;
+            
+            // Add user message
+            addMessage(prompt, 'user');
+            promptInput.value = '';
+            
+            // Mock response for Simple Browser testing
+            setTimeout(() => {
+                if (debugMode) {
+                    addMessage('This is a mock response for Simple Browser testing. In full mode, this would connect to the Poetic Brain function.', 'assistant');
+                } else {
+                    addMessage('Please use Edge or another browser for full Poetic Brain functionality.', 'error');
+                }
+            }, 1000);
+        });
+        
+        // Back to Math Brain
+        document.getElementById('backToMathBrain').addEventListener('click', function() {
+            window.location.href = '/';
+        });
+        
+        // Initialize
+        testSimpleBrowserCompatibility();
+        
+        console.log('[Chat Debug] Simple Browser version initialized');
+    </script>
+</body>
+</html>

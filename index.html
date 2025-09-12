@@ -2083,79 +2083,7 @@ function renderTransitDay(dateStr, items){
             errorDisplay.classList.add('hidden');
         }
         
-        function showBonusReportNotification(hasMirrorReport, hasBalanceMeterData, currentMode) {
-            // Remove any existing notifications and tab indicators
-            const existingNotifications = document.querySelectorAll('.bonus-report-notification');
-            existingNotifications.forEach(n => n.remove());
-            
-            const existingIndicators = document.querySelectorAll('.bonus-indicator');
-            existingIndicators.forEach(i => i.remove());
-            
-            let notificationMessage = '';
-            let shouldShow = false;
-            
-            // Check if both reports were generated
-            const hasBothReports = latestResultData?.mirror_report && latestResultData?.balance_meter_report;
-            
-            if (hasBothReports) {
-                const otherTab = currentMode === 'mirror' ? 'Balance Meter' : 'Mirror';
-                const otherTabId = currentMode === 'mirror' ? 'balanceMeterModeTab' : 'mirrorModeTab';
-                notificationMessage = `🎁 Bonus: Both reports generated! Switch to the ${otherTab} tab to view the alternate analysis.`;
-                shouldShow = true;
-                
-                // Add indicator to the other tab
-                const otherTabElement = document.getElementById(otherTabId);
-                if (otherTabElement && !otherTabElement.querySelector('.bonus-indicator')) {
-                    const indicator = document.createElement('span');
-                    indicator.className = 'bonus-indicator bg-emerald-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-2';
-                    indicator.textContent = 'READY';
-                    indicator.title = `${otherTab} report also available!`;
-                    otherTabElement.appendChild(indicator);
-                }
-            } else if (currentMode === 'mirror' && hasBalanceMeterData) {
-                notificationMessage = '🎁 Bonus: Balance Meter analysis is also available! Check the Balance Meter tab or use "Generate Both Reports" option.';
-                shouldShow = true;
-                
-                // Add indicator to Balance Meter tab
-                const balanceTab = document.getElementById('balanceMeterModeTab');
-                if (balanceTab && !balanceTab.querySelector('.bonus-indicator')) {
-                    const indicator = document.createElement('span');
-                    indicator.className = 'bonus-indicator bg-teal-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-2';
-                    indicator.textContent = 'NEW';
-                    indicator.title = 'Bonus Balance Meter analysis available!';
-                    balanceTab.appendChild(indicator);
-                }
-            } else if (currentMode === 'balance_meter' && hasMirrorReport) {
-                notificationMessage = '🎁 Bonus: Mirror report is also available! Check the Mirror tab or use "Generate Both Reports" option.';
-                shouldShow = true;
-                
-                // Add indicator to Mirror tab
-                const mirrorTab = document.getElementById('mirrorModeTab');
-                if (mirrorTab && !mirrorTab.querySelector('.bonus-indicator')) {
-                    const indicator = document.createElement('span');
-                    indicator.className = 'bonus-indicator bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-2';
-                    indicator.textContent = 'NEW';
-                    indicator.title = 'Bonus Mirror report available!';
-                    mirrorTab.appendChild(indicator);
-                }
-            }
-            
-            if (shouldShow) {
-                // Create notification element
-                const notification = document.createElement('div');
-                notification.className = 'bonus-report-notification bg-teal-900/50 border border-teal-500/30 text-teal-200 px-4 py-3 rounded mb-4 text-sm flex items-center gap-2';
-                notification.innerHTML = `
-                    <span class="flex-1">${notificationMessage}</span>
-                    <button onclick="this.parentElement.remove()" class="text-teal-400 hover:text-teal-200 ml-2">✕</button>
-                `;
-                
-                // Insert notification at the top of the report output area
-                const reportOutput = document.getElementById('reportOutput');
-                if (reportOutput) {
-                    reportOutput.insertBefore(notification, reportOutput.firstChild);
-                }
-            }
-        }
+
 
         // Non-destructive error notification for non-critical failures (like download issues)
         function showNotification(message, type = 'error') {
@@ -12739,6 +12667,11 @@ function renderTransitDay(dateStr, items){
     enableAuthUI();
     await refreshUI();
 
+    // Debug: Log button state
+    console.log('[Auth0 Debug] skipToPoeticBtn found:', !!skipToPoeticBtn);
+    console.log('[Auth0 Debug] skipToPoeticBtn hidden:', skipToPoeticBtn?.classList.contains('hidden'));
+    console.log('[Auth0 Debug] skipToPoeticBtn disabled:', skipToPoeticBtn?.disabled);
+
     // Only Google login is exposed in UI
 
         if (googleBtn) {
@@ -12755,11 +12688,28 @@ function renderTransitDay(dateStr, items){
             });
         }
 
+        // Enhanced Poetic Brain button handling
         if (skipToPoeticBtn) {
-            skipToPoeticBtn.addEventListener('click', () => {
-                // Navigate directly to chat interface
-                window.location.href = '/chat';
-            });
+            console.log('[Auth0 Debug] Setting up Poetic Brain button');
+            skipToPoeticBtn.disabled = false; // Ensure button is enabled
+            skipToPoeticBtn.style.pointerEvents = 'auto'; // Ensure clicks work
+            
+            // Remove any existing listeners
+            skipToPoeticBtn.replaceWith(skipToPoeticBtn.cloneNode(true));
+            const freshBtn = document.getElementById('skip-to-poetic');
+            
+            if (freshBtn) {
+                freshBtn.addEventListener('click', (e) => {
+                    console.log('[Poetic Brain] Button clicked! Navigating to /chat');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Navigate directly to chat interface
+                    window.location.href = '/chat';
+                });
+                console.log('[Auth0 Debug] Poetic Brain button listener attached');
+            }
+        } else {
+            console.warn('[Auth0 Debug] skipToPoeticBtn not found!');
         }
 
         if (logoutBtn) {
