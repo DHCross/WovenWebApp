@@ -130,6 +130,8 @@ export async function POST(req: NextRequest){
     return new Response(JSON.stringify({error:'rate_limited', retry_in:'60s'}), {status:429, headers:{'Content-Type':'application/json'}});
   }
   const { messages, persona, reportContexts } = await req.json();
+  // Determine whether we have any chart/report context available
+  const hasAnyReportContext = Array.isArray(reportContexts) && reportContexts.length > 0;
   // Session turn awareness: first substantive mirror occurs when only the intro exists
   const ravenMsgs = Array.isArray(messages) ? messages.filter((m:any)=> m.role==='raven') : [];
   const ravenCount = ravenMsgs.length;
@@ -143,6 +145,70 @@ export async function POST(req: NextRequest){
   // For now just echo last user message with persona-aware wrapper
   const user = [...(messages||[])].reverse().find((m:any)=> m.role==='user');
   const text = user?.content || user?.html || 'Hello';
+
+  // Weather-only intent detection (non-personal field read)
+  const wantsWeatherOnly = /\b(weather|sky today|planetary (weather|currents)|what's happening in the sky)\b/i.test(text);
+
+  // HARD GATE: If no chart context is present and the user didn't explicitly ask for weather-only,
+  // do not generate a personal mirror. Provide guidance to generate/upload a chart or request weather.
+  if (!hasAnyReportContext && !wantsWeatherOnly) {
+    const hook = pickHook(text);
+    const climate = undefined;
+    const greetings = [
+      'With you—before we dive in…',
+      'Here with you. One small setup step first…',
+      'Holding your question—let’s get the ground right…'
+    ];
+    const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}).split(/\n+/)[0];
+    const guidance = `
+I can’t responsibly read you without a chart or report context. Two quick options:
+
+• Generate Math Brain on the main page (geometry only), then click “Ask Raven” to send the report here
+• Or ask for “planetary weather only” to hear today’s field without personal mapping
+
+If you already have a JSON report, paste or upload it and I’ll proceed.`.trim();
+
+    const body = new ReadableStream<{ }|Uint8Array>({
+      async start(controller){
+        controller.enqueue(encode({climate, hook, delta: shapedIntro+"\n\n"+guidance}));
+        controller.close();
+      }
+    });
+    return new Response(body, { headers: { 'Content-Type': 'text/plain; charset=utf-8' }});
+  }
+
+  // WEATHER-ONLY BRANCH: Provide a neutral field read without personal claims when explicitly asked
+  if (!hasAnyReportContext && wantsWeatherOnly) {
+    const hook = pickHook(text);
+    const climate = pickClimate(text);
+    const greetings = [
+      'With you—reading the sky’s weather…',
+      'Here with today’s currents—no personal map applied…'
+    ];
+    const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}).split(/\n+/)[0];
+    const weatherNote = `
+Field-only read (no natal overlay):
+• Mood/valence: treat as background conditions, not fate
+• Use this like a tide chart—choose times that support your aims
+
+If you want this mapped to you, generate Math Brain first and send the report here.`.trim();
+
+    const v11 = `
+Give a short, plain-language summary of the current planetary weather in two parts: (1) what’s emphasized, (2) what that feels like behaviorally—in conditional phrasing. No metaphors about “you,” no personality claims, no advice. Keep to 5–7 sentences total.`;
+
+    const enhancedPrompt = v11 + `\n\nUser words: ${text}`;
+    const stream = generateStream(enhancedPrompt, { model: process.env.MODEL_PROVIDER, personaHook: hook });
+    const body = new ReadableStream<{ }|Uint8Array>({
+      async start(controller){
+        controller.enqueue(encode({climate, hook, delta: shapedIntro+"\n\n"+weatherNote+"\n\n"}));
+        for await (const chunk of stream){
+          controller.enqueue(encode({climate, hook, delta: chunk.delta}));
+        }
+        controller.close();
+      }
+    });
+    return new Response(body, { headers: { 'Content-Type': 'text/plain; charset=utf-8' }});
+  }
   
   // Check for natural follow-up flow based on user response type
   const responseType = classifyUserResponse(text);

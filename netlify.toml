@@ -1,7 +1,9 @@
 [[headers]]
   for = "/*"
   [headers.values]
-  Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.auth0.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://s.gravatar.com https://cdn.auth0.com; connect-src 'self' https://*.auth0.com https://cdnjs.cloudflare.com; frame-src https://*.auth0.com; frame-ancestors 'self';"
+  # Note: 'unsafe-eval' is included to support Next.js React Refresh (HMR) during development.
+  # Consider removing 'unsafe-eval' for production if not needed.
+  Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.auth0.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://s.gravatar.com https://cdn.auth0.com; connect-src 'self' ws: wss: https://*.auth0.com https://cdnjs.cloudflare.com; frame-src https://*.auth0.com; frame-ancestors 'self';"
 [build]
   command = "npm run build"
   publish = "."
@@ -22,6 +24,12 @@
   status = 200
 
 [[redirects]]
+  # Ensure compiled CSS and other assets in /dist are always served as static files
+  from = "/dist/*"
+  to = "/dist/:splat"
+  status = 200
+
+[[redirects]]
   from = "/api/astrology"
   to = "/.netlify/functions/astrology"
   status = 200
@@ -36,13 +44,6 @@
   to = "/.netlify/functions/auth-config"
   status = 200
 
-# Handle chat route to static HTML interface
-[[redirects]]
-  from = "/chat"
-  to = "/chat.html"
-  status = 200
-  force = true
-
 # Explicit callback route for Auth0 to ensure SPA handles code/state
 [[redirects]]
   from = "/callback"
@@ -50,15 +51,39 @@
   status = 200
   force = true
 
-# Targeted CSP for chat route allowing local Auth0 SDK and basic inline styles
-[[headers]]
-  for = "/chat"
-  [headers.values]
-  Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.auth0.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.auth0.com; img-src 'self' data:; frame-ancestors 'self';"
+# Serve static index.html for root explicitly before Next.js plugin
+[[redirects]]
+  from = "/"
+  to = "/index.html"
+  status = 200
+  force = true
 
+# Explicit chat route to static chat page
+[[redirects]]
+  from = "/chat"
+  to = "/chat/index.html"
+  status = 200
+  force = true
 
-# Catch-all redirect to index.html (but don't override specific routes)
+# Temporarily disabled Next.js plugin to fix static file serving
+# [[plugins]]
+#   package = "@netlify/plugin-nextjs"
+
+# SPA fallback - serve index.html for all other unmatched routes (must be last)
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+[[headers]]
+  # Cache compiled CSS aggressively in production
+  for = "/dist/*"
+  [headers.values]
+  Cache-Control = "public, max-age=31536000, immutable"
+  Content-Type = "text/css; charset=utf-8"
+
+[dev]
+  port = 8888
+  autoLaunch = false
+  # Use static directory mode to serve index.html directly
+  staticDir = "."

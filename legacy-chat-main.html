@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Poetic Brain - Raven Calder Chat Interface</title>
+        <!-- Load local Auth0 SDK to avoid CSP/CDN issues -->
+        <script src="/public/vendor/auth0-spa-js.production.js" defer></script>
+        <!-- Minimal fallback style to avoid Tailwind CDN during debug; keeps existing classes harmless -->
+        <style>
+            body { background:#111827; color:#fff; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; }
+            .container { max-width: 1200px; margin: 0 auto; }
+            .max-w-4xl { max-width: 56rem; }
+            .mx-auto { margin-left:auto; margin-right:auto; }
+            .px-4 { padding-left:1rem; padding-right:1rem; }
+            .py-8 { padding-top:2rem; padding-bottom:2rem; }
+            .text-center { text-align:center; }
+            .mb-8 { margin-bottom:2rem; }
+            .mb-6 { margin-bottom:1.5rem; }
+            .min-h-96 { min-height:24rem; }
+            .rounded-lg { border-radius:0.5rem; }
+            .p-6 { padding:1.5rem; }
+            .space-y-4 > * + * { margin-top:1rem; }
+            .flex { display:flex; }
+            .gap-4 { gap:1rem; }
+            .flex-1 { flex:1 1 0%; }
+            .bg-gray-900 { background:#111827; }
+            .bg-gray-800 { background:#1f2937; }
+            .bg-gray-700 { background:#374151; }
+            .border { border:1px solid #374151; }
+            .border-gray-600 { border-color:#4b5563; }
+            .rounded { border-radius:0.375rem; }
+            .text-white { color:#fff; }
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="utf-8" />
+              <meta http-equiv="refresh" content="0; url=/chat" />
+              <link rel="canonical" href="/chat" />
+              <title>Redirecting to Raven Calder Chat…</title>
+              <style>
+                html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0f1115;color:#e8ecf3}
+                main{height:100%;display:grid;place-items:center}
+                a{color:#7c5cff}
+              </style>
+              <script>location.replace('/chat');</script>
+              </head>
+              <body>
+                <main>
+                  <div>Redirecting to the full Raven Calder chat… <a href="/chat">Continue</a></div>
+                </main>
+              </body>
+              </html>
+                    if (query.includes('code=') && query.includes('state=')) {
+                        console.log('[Chat Auth0 Debug] Handling callback...');
+                        await auth0Client.handleRedirectCallback();
+                        const finalAuth = await auth0Client.isAuthenticated();
+                        if (!finalAuth && !debugMode) {
+                            console.log('[Chat Auth0 Debug] Callback failed, redirecting home');
+                            window.location.href = '/';
+                            return;
+                        }
+                    } else {
+                        console.log('[Chat Auth0 Debug] Not authenticated');
+                        const el = document.getElementById('statusDisplay');
+                        if (el) {
+                            el.textContent = debugMode
+                                ? 'DEBUG MODE: Not authenticated. Login required to use Poetic Brain.'
+                                : 'Authentication required. Redirecting to main page...';
+                        }
+                        if (!debugMode) {
+                            setTimeout(() => (window.location.href = '/'), 1500);
+                            return;
+                        }
+                    }
+                }
+
+                console.log('[Chat Auth0 Debug] Successfully authenticated, chat ready');
+                const el = document.getElementById('statusDisplay');
+                if (el) el.textContent = 'Connected to Poetic Brain';
+            } catch (error) {
+                console.error('[Chat Auth0 Debug] Initialization failed:', error);
+                const el = document.getElementById('statusDisplay');
+                if (el) {
+                    el.textContent = debugMode
+                        ? `DEBUG MODE: Auth error - ${error.message}`
+                        : 'Authentication error. Redirecting...';
+                }
+                if (!debugMode) {
+                    setTimeout(() => (window.location.href = '/'), 2000);
+                } else {
+                    console.log('[Chat Auth0 Debug] Debug mode - error redirect suppressed');
+                }
+            }
+        }
+
+        // Handle chat form submission
+        document.getElementById('chatForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const promptInput = document.getElementById('promptInput');
+            const sendButton = document.getElementById('sendButton');
+            const prompt = promptInput.value.trim();
+            
+            if (!prompt || !auth0Client) return;
+
+            sendButton.disabled = true;
+            sendButton.textContent = 'Sending...';
+            
+            try {
+                // Add user message to chat
+                addMessage(prompt, 'user');
+                promptInput.value = '';
+                
+                console.log('[Chat Debug] Getting auth token...');
+                // Get auth token
+                const token = await auth0Client.getTokenSilently();
+                console.log('[Chat Debug] Token obtained, sending to poetic-brain...');
+                
+                // Send to poetic-brain function
+                const response = await fetch('/.netlify/functions/poetic-brain', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ prompt })
+                });
+
+                console.log('[Chat Debug] Response status:', response.status);
+                const data = await response.json();
+                console.log('[Chat Debug] Response data:', data);
+                
+                if (response.ok) {
+                    addMessage(data.response, 'assistant');
+                } else {
+                    addMessage(`Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('[Chat Debug] Error:', error);
+                addMessage('The connection to the poetic realm was disrupted. Please try again.', 'error');
+            } finally {
+                sendButton.disabled = false;
+                sendButton.textContent = 'Send';
+            }
+        });
+
+        // Add message to chat
+        function addMessage(content, type) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            
+            let classes = 'p-3 rounded-lg ';
+            if (type === 'user') {
+                classes += 'bg-blue-600 ml-12 text-right';
+            } else if (type === 'assistant') {
+                classes += 'bg-purple-600 mr-12';
+            } else if (type === 'error') {
+                classes += 'bg-red-600 mr-12';
+            }
+            
+            messageDiv.className = classes;
+            messageDiv.textContent = content;
+            
+            chatMessages.appendChild(messageDiv);
+            messageDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Back to Math Brain button
+        document.getElementById('backToMathBrain').addEventListener('click', () => {
+            window.location.href = '/';
+        });
+
+        // Check for debug mode to prevent redirects during testing
+        const debugMode = new URLSearchParams(window.location.search).has('debug');
+        if (debugMode) {
+            console.log('[Chat Debug] Debug mode enabled - authentication redirects disabled');
+        }
+
+        // Initialize on page load with proper timing
+        function waitForAuth0AndInit() {
+            if (typeof createAuth0Client === 'function') {
+                initAuth0();
+            } else {
+                console.log('[Chat Auth0 Debug] Waiting for Auth0 SDK to load...');
+                setTimeout(waitForAuth0AndInit, 100);
+            }
+        }
+
+        // Wait for DOM and Auth0 SDK
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', waitForAuth0AndInit);
+        } else {
+            waitForAuth0AndInit();
+        }
+    </script>
+</body>
+</html>

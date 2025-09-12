@@ -319,7 +319,7 @@ export default function ChatClient(){
   const [uploadType, setUploadType] = useState<'mirror' | 'balance' | 'journal' | null>(null);
   const [hasMirrorData, setHasMirrorData] = useState(false);
   const [showScrollHint, setShowScrollHint] = useState(false);
-  const streamContainerRef = useRef<HTMLDivElement>(null);
+  const streamContainerRef = useRef<HTMLElement | null>(null);
   const [relocation, setRelocation] = useState<RelocationSummary | null>(null);
   const [reportContexts, setReportContexts] = useState<ReportContext[]>([]);
   const [showWrapUpCard, setShowWrapUpCard] = useState(false);
@@ -2020,8 +2020,8 @@ function Chip({label,onClick}:{label:string;onClick:()=>void}){
 function Stream({messages, typing, endRef, containerRef, onToggleCollapse, onRemove, onPingFeedback}:{
   messages: Message[]; 
   typing: boolean; 
-  endRef: React.RefObject<HTMLDivElement>;
-  containerRef: React.RefObject<HTMLDivElement>;
+  endRef: React.Ref<HTMLDivElement>;
+  containerRef: React.Ref<HTMLElement>;
   onToggleCollapse: (messageId: string) => void;
   onRemove: (messageId: string) => void;
   onPingFeedback: (messageId: string, response: PingResponse, note?: string) => void;
@@ -2045,7 +2045,7 @@ function Stream({messages, typing, endRef, containerRef, onToggleCollapse, onRem
     >
       {messages.map(m=> <Bubble key={m.id} msg={m} onToggleCollapse={onToggleCollapse} onRemove={onRemove} onPingFeedback={onPingFeedback} />)}
       {typing && <div style={{opacity:.6, fontSize:12}}><span className="dots"><span/> <span/> <span/></span> typing…</div>}
-      <div ref={endRef} />
+  <div ref={endRef} />
     </section>
   );
 }

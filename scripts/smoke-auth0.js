@@ -6,8 +6,8 @@ const baseUrls = [
   'http://127.0.0.1:3999', 'http://127.0.0.1:8888'
 ];
 const paths = [
-  '/public/vendor/auth0-spa-js.production.js',
-  '/vendor/auth0-spa-js.production.js'
+  '/vendor/auth0-spa-js.production.js',
+  '/public/vendor/auth0-spa-js.production.js'
 ];
 const urls = baseUrls.flatMap(b => paths.map(p => b + p));
 

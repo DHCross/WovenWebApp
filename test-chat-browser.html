@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Test - Simple Browser Compatibility</title>
+    <style>
+        body {
+            background-color: #1f2937;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status {
+            background-color: #374151;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Simple Browser Compatibility Test</h1>
+        <div class="status" id="status">Initializing...</div>
+        <div class="status">
+            <strong>Debug Mode:</strong> <span id="debugMode">Checking...</span>
+        </div>
+        <div class="status">
+            <strong>URL:</strong> <span id="currentUrl"></span>
+        </div>
+    </div>
+
+    <script>
+        console.log('[Test] Starting compatibility test...');
+        
+        // Check debug mode
+        const debugMode = new URLSearchParams(window.location.search).has('debug');
+        document.getElementById('debugMode').textContent = debugMode ? 'Enabled' : 'Disabled';
+        document.getElementById('currentUrl').textContent = window.location.href;
+        
+        // Test basic functionality
+        document.getElementById('status').textContent = 'Simple Browser is working! JavaScript loaded successfully.';
+        
+        console.log('[Test] Basic functionality working');
+        console.log('[Test] Debug mode:', debugMode);
+        console.log('[Test] Current URL:', window.location.href);
+    </script>
+</body>
+</html>
