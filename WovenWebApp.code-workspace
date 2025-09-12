@@ -2,7 +2,33 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "../Ravenchatbot/sample-chat-page"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"sortable-explorer.viewMode": "tree",
+		"sortable-explorer.sortBy": "created",
+		"github.copilot.chat.agent.terminal.allowList": {
+			"netlify dev": true,
+			"netlify": true,
+			"npm run dev": true,
+			"npm run start": true,
+			"npx netlify dev": true,
+			"npx netlify-cli dev": true
+		},
+		"github.copilot.chat.agent.terminal.denyList": {
+			"rm -rf": false,
+			"sudo rm -rf /": false
+		},
+		"chat.tools.terminal.autoApprove": {
+			"netlify dev": true,
+			"netlify": true,
+			"npm run dev": true,
+			"npm run start": true,
+			"npx netlify dev": true,
+			"npx netlify-cli dev": true
+		}
+	}
 }
