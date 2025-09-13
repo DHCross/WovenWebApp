@@ -1486,6 +1486,28 @@ exports.handler = async function(event) {
       };
     }
 
+    // --- DEV MOCK: allow UI verification without RapidAPI key ---
+    const wantMock = (!process.env.RAPIDAPI_KEY || process.env.MB_MOCK === 'true') && process.env.NODE_ENV !== 'production';
+    if (wantMock) {
+      const today = new Date();
+      const iso = today.toISOString().slice(0,10);
+      const rangeStart = String(body.startDate || body.transitStartDate || iso);
+      const mock = {
+        success: true,
+        provenance: { source: 'mock', engine: 'MathBrain', version: '0.0-dev' },
+        context: { mode: body?.context?.mode || 'mirror', translocation: body?.translocation || { applies: false, method: 'Natal' } },
+        person_a: {
+          meta: { birth_time_known: true, time_precision: 'exact', houses_suppressed: false, effective_time_used: '12:00' },
+          details: body.personA || {},
+          chart: { transitsByDate: { [rangeStart]: [{ p1_name: 'Sun', p2_name: 'Mars', aspect: 'square', orb: 1.2, _class: 'major' }] } },
+          derived: { seismograph_summary: { magnitude: 2.3, valence: 0.6, volatility: 1.1 } }
+        },
+        person_b: body.personB ? { details: body.personB, chart: { } } : undefined,
+        woven_map: { type: body.personB ? 'dyad' : 'solo', schema: 'WM-Chart-1.2', hook_stack: { tier_1_orbs: 2 } }
+      };
+      return { statusCode: 200, body: JSON.stringify(mock) };
+    }
+
   // Inputs
   const personA = normalizeSubjectData(body.personA || body.person_a || body.first_subject || body.subject);
     const personB = normalizeSubjectData(body.personB || body.person_b || body.second_subject);

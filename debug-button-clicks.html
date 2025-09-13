@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Button Debug Test</title>
+</head>
+<body>
+    <h1>Button Debug Test</h1>
+    <script>
+        // Navigate to math-brain page
+        window.location.href = 'http://localhost:8888/math-brain?debug=1';
+        
+        // Add event listeners to check if buttons are working
+        setTimeout(() => {
+            const saveButton = document.querySelector('button[aria-label="Save current setup to a JSON file"]');
+            const submitButton = document.querySelector('button[type="submit"]');
+            
+            console.log('Save button found:', !!saveButton);
+            console.log('Submit button found:', !!submitButton);
+            
+            if (saveButton) {
+                console.log('Save button onclick:', saveButton.onclick);
+                console.log('Save button disabled:', saveButton.disabled);
+            }
+            
+            if (submitButton) {
+                console.log('Submit button disabled:', submitButton.disabled);
+                console.log('Form onsubmit:', submitButton.closest('form')?.onsubmit);
+            }
+            
+            // Test clicking save button
+            if (saveButton && !saveButton.disabled) {
+                console.log('Testing save button click...');
+                saveButton.click();
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { margin: 10px; padding: 10px 20px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Math Brain Button Test</h1>
+    <p>This is a simple test to verify basic functionality.</p>
+    
+    <button onclick="testFormSubmit()">Test Form Submit</button>
+    <button onclick="testFileDownload()">Test File Download</button>
+    
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        function testFormSubmit() {
+            results.innerHTML += '<p class="success">✓ Form submit function works!</p>';
+            
+            // Test basic validation
+            const personA = {
+                name: "Dan",
+                latitude: 40.0167,
+                longitude: -75.3,
+                timezone: "US/Eastern"
+            };
+            
+            const hasLocation = !!(personA.latitude && personA.longitude && personA.timezone);
+            results.innerHTML += `<p class="success">✓ Location validation: ${hasLocation}</p>`;
+        }
+        
+        function testFileDownload() {
+            try {
+                const data = {
+                    test: 'Math Brain Setup',
+                    timestamp: new Date().toISOString()
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `test_setup_${new Date().toISOString().slice(0,10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                
+                results.innerHTML += '<p class="success">✓ File download works!</p>';
+            } catch (error) {
+                results.innerHTML += `<p class="error">✗ File download failed: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

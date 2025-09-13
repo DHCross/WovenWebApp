@@ -50,7 +50,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@netlify/plugin-nextjs": "^5.8.1",
+    "@netlify/plugin-nextjs": "^5.13.2",
     "@types/node": "20.11.30",
     "@types/react": "18.2.79",
     "@types/uuid": "^9.0.7",

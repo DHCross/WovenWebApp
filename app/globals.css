@@ -1,36 +1,22 @@
+/* Tailwind core layers (include ONCE) */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* Base dark theme for the app */
 @layer base {
-  :root {
-    color-scheme: dark;
-  }
-  html, body {
-    height: 100%;
-  }
-  body {
-    /* Global background + text colors */
-    @apply bg-slate-950 text-slate-100 antialiased;
-  }
-  a {
-    @apply text-indigo-400 hover:text-indigo-300 underline-offset-2;
-  }
+  :root { color-scheme: dark; }
+  html, body { height: 100%; }
+  body { @apply bg-slate-950 text-slate-100 antialiased; }
+  a { @apply text-indigo-400 hover:text-indigo-300 underline-offset-2; }
 }
 
 /* Optional containers/helpers */
 @layer components {
-  .container-responsive {
-    @apply mx-auto max-w-6xl px-4 sm:px-6 lg:px-8;
-  }
+  .container-responsive { @apply mx-auto max-w-6xl px-4 sm:px-6 lg:px-8; }
 }
-/* Tailwind base/components/utilities for App Router pages */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
-/* Minimal globals; will fold persona palette later */
+/* Minimal globals; persona palette and layout tweaks */
 :root{
   --bg:#0f1115; --panel:#141821; --soft:#1a1f2b; --line:#222836;
   --text:#e8ecf3; --muted:#98a2b3; --accent:#7c5cff; --accent-2:#00d1b2;
@@ -39,26 +25,14 @@
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial;
 }
-html,body{height:100%; background:#0f1115; color:var(--text); margin:0; font-family:var(--font);}
-body{background:linear-gradient(180deg,#0c0e13,#0f1115 30%,#0f1115 100%);}
+html,body{height:100%; background:#0f1115; color:var(--text); margin:0; font-family:var(--font);} 
+body{background:linear-gradient(180deg,#0c0e13,#0f1115 30%,#0f1115 100%);} 
 
 /* Responsive layout adjustments */
 @media (max-width: 860px) {
-  .app main { 
-    display: flex !important; 
-    flex-direction: column; 
-    padding: 8px !important;
-  }
-  .app main aside { 
-    order: 2; 
-    margin-top: 12px; 
-    max-height: 240px; 
-  }
-  .app main section[role="log"] { 
-    order: 1; 
-    height: auto !important; 
-    max-height: 55vh; 
-  }
+  .app main { display:flex !important; flex-direction:column; padding:8px !important; }
+  .app main aside { order:2; margin-top:12px; max-height:240px; }
+  .app main section[role="log"] { order:1; height:auto !important; max-height:55vh; }
 }
 
 @media (max-width: 520px) {

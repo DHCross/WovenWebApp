@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { parseCoordinates, formatDecimal } from "../../src/coords";
-import { getRedirectUri } from "../../lib/auth";
+import AuthProvider from "./AuthProvider";
 import { needsLocation, isTimeUnknown } from "../../lib/relocation";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ type Subject = {
   hour: number | string;
   minute: number | string;
   city: string;
-  nation: string;
+  state: string;
   latitude: number | string;
   longitude: number | string;
   timezone: string;
@@ -24,21 +24,7 @@ type Subject = {
 
 type ApiResult = Record<string, any> | null;
 
-type Auth0Client = {
-  isAuthenticated: () => Promise<boolean>;
-  handleRedirectCallback: () => Promise<void>;
-  loginWithRedirect: (opts?: any) => Promise<void>;
-  getUser: () => Promise<any>;
-};
-
-declare global {
-  interface Window {
-    createAuth0Client?: (config: any) => Promise<Auth0Client>;
-    auth0?: {
-      createAuth0Client?: (config: any) => Promise<Auth0Client>;
-    };
-  }
-}
+// Auth is handled via client-only AuthProvider to avoid hydration mismatches
 
 function Section({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
   return (
@@ -57,26 +43,22 @@ export default function MathBrainPage() {
   const defaultEnd = fmt(new Date(today.getTime() + 6 * 24 * 60 * 60 * 1000));
 
   const [personA, setPersonA] = useState<Subject>({
-    name: "Subject A",
-    year: 1990,
-    month: 1,
-    day: 1,
-    hour: 12,
-    minute: 0,
-    city: "New York",
-    nation: "US",
-    latitude: 40.7128,
-    longitude: -74.006,
-    timezone: "GMT",
+    name: "Dan",
+    year: 1973,
+    month: 7,
+    day: 24,
+    hour: 14,
+    minute: 30,
+    city: "Bryn Mawr",
+    state: "PA",
+    latitude: 40.0167,
+    longitude: -75.3,
+    timezone: "US/Eastern",
     zodiac_type: "Tropic",
   });
 
   // Single-field coordinates (Person A)
-  const [aCoordsInput, setACoordsInput] = useState<string>(() => {
-    const lat = Number((personA as any).latitude);
-    const lon = Number((personA as any).longitude);
-    return Number.isFinite(lat) && Number.isFinite(lon) ? formatDecimal(lat, lon) : "";
-  });
+  const [aCoordsInput, setACoordsInput] = useState<string>("40°1'N, 75°18'W");
   const [aCoordsError, setACoordsError] = useState<string | null>(null);
   const [aCoordsValid, setACoordsValid] = useState<boolean>(true);
 
@@ -87,7 +69,7 @@ export default function MathBrainPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResult>(null);
-  const [includePersonB, setIncludePersonB] = useState<boolean>(false);
+  const [includePersonB, setIncludePersonB] = useState<boolean>(true);
   const [personB, setPersonB] = useState<Subject>({
     name: "",
     year: "",
@@ -96,7 +78,7 @@ export default function MathBrainPage() {
     hour: "",
     minute: "",
     city: "",
-    nation: "",
+    state: "",
     latitude: "",
     longitude: "",
     timezone: "",
@@ -163,18 +145,22 @@ export default function MathBrainPage() {
   };
   // Translocation / Relocation selection (angles/houses reference)
   type TranslocationOption = 'NONE' | 'A_LOCAL' | 'B_LOCAL' | 'MIDPOINT';
-  const [translocation, setTranslocation] = useState<TranslocationOption>('NONE');
+  const [translocation, setTranslocation] = useState<TranslocationOption>('A_LOCAL');
   // Relocation coordinates (single-field); default from spec: 30°10'N, 85°40'W
   const [relocInput, setRelocInput] = useState<string>("30°10'N, 85°40'W");
   const [relocError, setRelocError] = useState<string | null>(null);
   const [relocCoords, setRelocCoords] = useState<{ lat: number; lon: number } | null>(() => parseCoordinates("30°10'N, 85°40'W"));
+  // Human-readable relocation label + timezone (for summaries/badges)
+  const [relocLabel, setRelocLabel] = useState<string>('Panama City, FL');
+  const [relocTz, setRelocTz] = useState<string>('US/Central');
   const [authReady, setAuthReady] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [authEnvOk, setAuthEnvOk] = useState<boolean>(true);
   const [authStatus, setAuthStatus] = useState<{domain?: string; clientId?: string} | null>(null);
   const [showAuthBanner, setShowAuthBanner] = useState<boolean>(true);
-  const authClientRef = useRef<Auth0Client | null>(null);
+  const [loginFn, setLoginFn] = useState<null | (() => Promise<void>)>(null);
   const resultsRef = useRef<HTMLDivElement | null>(null);
+  const bNameRef = useRef<HTMLInputElement | null>(null);
   const lastSubmitRef = useRef<number>(0);
   // Lightweight toast for ephemeral notices (e.g., Mirror failure)
   const [toast, setToast] = useState<string | null>(null);
@@ -240,151 +226,14 @@ export default function MathBrainPage() {
     }
   }, [includePersonB, mode, relationalModes]);
 
+  // Auto-focus Person B name input when Person B is enabled
   useEffect(() => {
-    let cancelled = false;
-    async function initAuth() {
-      try {
-        const hasCreate = typeof window.auth0?.createAuth0Client === 'function' || typeof window.createAuth0Client === 'function';
-        if (!hasCreate) {
-          await new Promise<void>((resolve, reject) => {
-            const s = document.createElement("script");
-            s.src = "/vendor/auth0-spa-js.production.js";
-            s.async = true;
-            s.onload = () => resolve();
-            s.onerror = () => reject(new Error("Failed to load Auth0 SDK"));
-            document.head.appendChild(s);
-          });
-        }
-
-        let config: any = null;
-        try {
-          const res = await fetch("/api/auth-config", { cache: "no-store" });
-          if (!res.ok) throw new Error(`Auth config failed: ${res.status}`);
-          config = await res.json();
-          if (!config?.domain || !config?.clientId) {
-            if (!cancelled) {
-              setAuthEnvOk(false);
-              setAuthReady(true);
-            }
-            return;
-          }
-          if (!cancelled) {
-            setAuthStatus({ domain: String(config.domain), clientId: String(config.clientId) });
-          }
-          setAuthEnvOk(true);
-        } catch (e) {
-          // No functions in dev or missing env — auth stays disabled
-          if (!cancelled) {
-            setAuthEnvOk(false);
-            setAuthReady(true);
-          }
-          return;
-        }
-
-        const creator = window.auth0?.createAuth0Client || window.createAuth0Client;
-        if (typeof creator !== 'function') throw new Error('Auth0 SDK not available');
-        const client = await creator({
-          domain: String(config.domain).replace(/^https?:\/\//, ''),
-          clientId: config.clientId,
-          authorizationParams: { redirect_uri: getRedirectUri() },
-        });
-        authClientRef.current = client;
-
-        const qs = window.location.search;
-        if (qs.includes("code=") && qs.includes("state=")) {
-          await client.handleRedirectCallback();
-          const url = new URL(window.location.href);
-          url.search = "";
-          window.history.replaceState({}, "", url.toString());
-          const nowAuthed = await client.isAuthenticated();
-          if (nowAuthed) {
-            window.location.replace('/chat?from=math-brain');
-            return;
-          }
-        }
-
-        const isAuthed = await client.isAuthenticated();
-        if (!cancelled) {
-          setAuthed(isAuthed);
-          setAuthReady(true);
-        }
-      } catch {
-        if (!cancelled) setAuthReady(true);
-      }
+    if (includePersonB) {
+      bNameRef.current?.focus();
     }
-    initAuth();
-    return () => { cancelled = true; };
-  }, []);
+  }, [includePersonB]);
 
-  function sendToPoeticBrain() {
-    if (!result) return;
-    try {
-      // Build a light summary for handoff
-      const summary = result?.person_a?.derived?.seismograph_summary || {};
-      const mag = Number(summary.magnitude ?? 0);
-      const val = Number(summary.valence ?? 0);
-      const vol = Number(summary.volatility ?? 0);
-      const magnitudeLabel = mag >= 3 ? 'Surge' : mag >= 1 ? 'Active' : 'Calm';
-      const valenceLabel = val > 0.5 ? 'Supportive' : val < -0.5 ? 'Challenging' : 'Mixed';
-      const volatilityLabel = vol >= 3 ? 'Scattered' : vol >= 1 ? 'Variable' : 'Stable';
-      const handoff = {
-        createdAt: new Date().toISOString(),
-        from: 'math-brain',
-        inputs: {
-          mode,
-          step,
-          startDate,
-          endDate,
-          includePersonB,
-          translocation,
-          relationship: {
-            type: relationshipType,
-            intimacy_tier: relationshipTier,
-            role: relationshipRole,
-            ex_estranged: exEstranged,
-            notes: relationshipNotes,
-          },
-          personA,
-          personB,
-        },
-        summary: { magnitude: mag, valence: val, volatility: vol, magnitudeLabel, valenceLabel, volatilityLabel },
-        resultPreview: {
-          hasDaily: Boolean(result?.person_a?.chart?.transitsByDate),
-        },
-      };
-      window.localStorage.setItem('mb.lastSession', JSON.stringify(handoff));
-      window.location.href = '/chat?from=math-brain';
-    } catch {/* noop */}
-  }
-
-  function handlePrint() {
-    try {
-      window.print();
-    } catch {/* noop */}
-  }
-
-  function downloadResultPDF() {
-    // Rely on browser's Print to PDF; prompt users via print dialog
-    try {
-      window.print();
-    } catch {/* noop */}
-  }
-
-  function downloadResultJSON() {
-    if (!result) return;
-    try {
-      const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const stamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
-      a.href = url;
-      a.download = `math-brain-result-${stamp}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch {/* noop */}
-  }
+  // Auth handled by AuthProvider; no inline initialization here to avoid hydration mismatches.
 
   function resetSessionMemory() {
     try {
@@ -428,7 +277,7 @@ export default function MathBrainPage() {
       hour: String(personA.hour),
       minute: String(personA.minute),
       city: personA.city,
-      nation: personA.nation,
+      state: personA.state,
       latitude: String(personA.latitude),
       longitude: String(personA.longitude),
       timezone: personA.timezone,
@@ -447,7 +296,7 @@ export default function MathBrainPage() {
       hour: (personB.hour as any) ?? prevA.hour,
       minute: (personB.minute as any) ?? prevA.minute,
       city: personB.city || prevA.city,
-      nation: personB.nation || prevA.nation,
+      state: personB.state || prevA.state,
       latitude: (personB.latitude as any) ?? prevA.latitude,
       longitude: (personB.longitude as any) ?? prevA.longitude,
       timezone: personB.timezone || prevA.timezone,
@@ -462,7 +311,7 @@ export default function MathBrainPage() {
       hour: String(personA.hour),
       minute: String(personA.minute),
       city: personA.city,
-      nation: personA.nation,
+      state: personA.state,
       latitude: String(personA.latitude),
       longitude: String(personA.longitude),
       timezone: personA.timezone,
@@ -480,7 +329,7 @@ export default function MathBrainPage() {
       hour: "",
       minute: "",
       city: "",
-      nation: "",
+      state: "",
       latitude: "",
       longitude: "",
       timezone: "",
@@ -500,34 +349,76 @@ export default function MathBrainPage() {
       minute: String(now.getUTCMinutes()),
       timezone: 'UTC',
       city: prev.city || '',
-      nation: prev.nation || '',
+      state: prev.state || '',
       latitude: prev.latitude || '',
       longitude: prev.longitude || '',
     }));
   }
 
-  const loginWithGoogle = async () => {
+  // Post-generation actions / handoff helpers
+  function sendToPoeticBrain() {
+    if (!result) return;
     try {
-      if (!authClientRef.current) {
-        setError("Sign-in is disabled. Configure AUTH0_DOMAIN and AUTH0_CLIENT_ID.");
-        return;
-      }
-      await authClientRef.current?.loginWithRedirect({
-        authorizationParams: {
-          redirect_uri: getRedirectUri(),
-          connection: "google-oauth2",
+      const handoff = {
+        createdAt: new Date().toISOString(),
+        from: 'math-brain',
+        inputs: {
+          mode,
+          step,
+          startDate,
+          endDate,
+          includePersonB,
+          translocation,
+          relationship: {
+            type: relationshipType,
+            intimacy_tier: relationshipType === 'PARTNER' ? relationshipTier : undefined,
+            role: relationshipType !== 'PARTNER' ? relationshipRole : undefined,
+            ex_estranged: relationshipType === 'FRIEND' ? undefined : exEstranged,
+            notes: relationshipNotes || undefined,
+          },
+          personA,
+          personB,
         },
-      });
-    } catch (e) {
-      // surface minimal error into the page banner
-      setError((e as any)?.message || "Login failed");
-    }
-  };
+        resultPreview: {
+          hasDaily: Boolean((result as any)?.person_a?.chart?.transitsByDate),
+        },
+      };
+      window.localStorage.setItem('mb.lastSession', JSON.stringify(handoff));
+      window.location.href = '/chat?from=math-brain';
+    } catch {/* noop */}
+  }
+
+  function handlePrint() {
+    try { window.print(); } catch {/* noop */}
+  }
+
+  function downloadResultPDF() {
+    handlePrint(); // rely on browser's print to PDF
+  }
+
+  function downloadResultJSON() {
+    if (!result) return;
+    try {
+      const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
+      a.href = url;
+      a.download = `math-brain-result-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      try { setToast('Downloading result JSON'); setTimeout(()=>setToast(null), 1400); } catch {/* noop */}
+    } catch {/* noop */}
+  }
 
   // Shared: Save current setup to JSON
-  function handleSaveSetupJSON() {
+  type SaveWhich = 'AUTO' | 'A_ONLY' | 'A_B';
+  function handleSaveSetupJSON(which: SaveWhich = 'AUTO') {
     try {
-      const inputs = {
+      // portable snapshot (includes Person A & optionally Person B)
+      const inputs: any = {
         schema: 'mb-1',
         mode,
         step,
@@ -543,16 +434,101 @@ export default function MathBrainPage() {
         exEstranged,
         relationshipNotes,
       };
-      const blob = new Blob([JSON.stringify(inputs, null, 2)], { type: 'application/json' });
+
+      // If Person B isn't included or has no meaningful values, omit it from the snapshot
+      const hasMeaningfulB = Boolean(
+        includePersonB && personB && (
+          (personB as any).name?.toString().trim() ||
+          (personB as any).latitude != null ||
+          (personB as any).longitude != null ||
+          (personB as any).timezone ||
+          (personB as any).year || (personB as any).month || (personB as any).day ||
+          (personB as any).hour || (personB as any).minute
+        )
+      );
+      const forceExcludeB = which === 'A_ONLY';
+      const forceIncludeB = which === 'A_B';
+      const shouldIncludeB = forceIncludeB ? includePersonB : hasMeaningfulB;
+      if (forceExcludeB || !shouldIncludeB) {
+        delete inputs.personB;
+        inputs.includePersonB = false;
+      }
+
+      const json = JSON.stringify(inputs, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+$/, '');
+      const filename = which === 'A_ONLY' ? `math_brain_setup_A_${stamp}.json` : `math_brain_setup_${stamp}.json`;
+
+      // Prefer File System Access API when available (Chrome/Edge)
+      const w: any = window as any;
+      if (typeof w.showSaveFilePicker === 'function') {
+        (async () => {
+          try {
+            const handle = await w.showSaveFilePicker({
+              suggestedName: filename,
+              types: [
+                {
+                  description: 'JSON files',
+                  accept: { 'application/json': ['.json'] },
+                },
+              ],
+            });
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            try { setToast('Saved setup JSON'); setTimeout(()=>setToast(null), 1800); } catch {/* noop */}
+          } catch (e) {
+            // If user cancels or API fails, silently fall back to anchor method
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+              try { setToast('Saved setup JSON'); setTimeout(()=>setToast(null), 1800); } catch {/* noop */}
+            }, 150);
+          }
+        })();
+        return;
+      }
+
+      // Fallback: object URL + temporary anchor (works across browsers)
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `math_brain_setup_${new Date().toISOString().slice(0,10)}.json`;
+      (a as any).download = filename;
       document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch {/* noop */}
+      const supportsDownload = 'download' in HTMLAnchorElement.prototype as any;
+      if (supportsDownload) {
+        a.click();
+      } else {
+        // Fallback for browsers that ignore download attribute
+        window.open(url, '_blank', 'noopener');
+      }
+      // conservative cleanup to ensure download starts before revoke (Safari)
+      setTimeout(() => {
+        try { document.body.removeChild(a); } catch {/* noop */}
+        try { URL.revokeObjectURL(url); } catch {/* noop */}
+        try { setToast('Saved setup JSON'); setTimeout(()=>setToast(null), 1800); } catch {/* noop */}
+      }, 300);
+    } catch (err) {
+      console.error('Save setup failed:', err);
+      try {
+        // Last-resort clipboard fallback to ensure action does something
+        navigator?.clipboard?.writeText?.(JSON.stringify({
+          mode, step, startDate, endDate, includePersonB, translocation, personA, personB
+        }, null, 2)).then(()=>{
+          setToast('Saved to clipboard (download blocked)');
+          setTimeout(()=>setToast(null), 2200);
+        }).catch(()=>{
+          setToast('Save setup failed');
+          setTimeout(()=>setToast(null), 2200);
+        });
+      } catch {/* noop */}
+    }
   }
 
   // Shared: Load setup from JSON file and hydrate form
@@ -664,7 +640,7 @@ export default function MathBrainPage() {
     const required = [
       personA.name,
       personA.city,
-      personA.nation,
+      personA.state,
       personA.timezone,
       personA.zodiac_type,
     ];
@@ -687,7 +663,7 @@ export default function MathBrainPage() {
 
     // For relational modes, Person B must be included and minimally valid
   if (!includePersonB) return false;
-  const bRequired = [personB.name, personB.city, personB.nation, personB.timezone, personB.zodiac_type];
+  const bRequired = [personB.name, personB.city, personB.state, personB.timezone, personB.zodiac_type];
   const allowUnknownB = timeUnknownB && timePolicy !== 'user_provided';
   const bNums = [
     Number(personB.year), Number(personB.month), Number(personB.day),
@@ -728,7 +704,6 @@ export default function MathBrainPage() {
     submitDisabled,
     authReady,
     authed,
-    authClientPresent: !!authClientRef.current,
     aCoordsValid,
     bCoordsValid,
     includePersonB,
@@ -763,6 +738,7 @@ export default function MathBrainPage() {
         mode,
         personA: {
           ...personA,
+          nation: "US", // Always send "US" as country for API compatibility
           year: Number(personA.year),
           month: Number(personA.month),
           day: Number(personA.day),
@@ -789,6 +765,8 @@ export default function MathBrainPage() {
               applies: true,
               method: translocation === 'A_LOCAL' ? 'A_local' : translocation === 'B_LOCAL' ? 'B_local' : 'Midpoint',
               coords: relocCoords ? { latitude: relocCoords.lat, longitude: relocCoords.lon } : undefined,
+              current_location: relocLabel || undefined,
+              tz: relocTz || undefined,
             };
           }
           return { applies: false, method: 'Natal' };
@@ -823,6 +801,7 @@ export default function MathBrainPage() {
       if (relationalModes.includes(mode) && includePersonB) {
         (payload as any).personB = {
           ...personB,
+          nation: "US", // Always send "US" as country for API compatibility
           year: Number(personB.year),
           month: Number(personB.month),
           day: Number(personB.day),
@@ -924,6 +903,14 @@ export default function MathBrainPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
+      {/* Client-only Auth provider (no UI) */}
+      <AuthProvider onStateChange={(s)=>{
+        setAuthReady(s.authReady);
+        setAuthed(s.authed);
+        setAuthEnvOk(s.authEnvOk);
+        setAuthStatus(s.authStatus);
+        setLoginFn(() => s.login);
+      }} />
       {!authEnvOk && showAuthBanner && (
         <div className="mb-4 flex items-start justify-between gap-3 rounded-md border border-amber-700 bg-amber-900/30 p-3 text-amber-200">
           <p className="text-sm">Auth0 environment not configured (AUTH0_*). Sign-in is disabled; Poetic Brain gating will be unavailable.</p>
@@ -1007,8 +994,8 @@ export default function MathBrainPage() {
         ) : (
           <button
             type="button"
-            onClick={loginWithGoogle}
-            disabled={!authReady || !authClientRef.current}
+            onClick={() => { if (loginFn) { loginFn(); } else { setError("Sign-in is disabled. Configure AUTH0_* and reload."); } }}
+            disabled={!authReady || !loginFn}
             className="rounded-md border border-slate-700 bg-slate-800 px-4 py-2 text-slate-100 hover:bg-slate-700 disabled:opacity-50"
             title="Sign in to enable Poetic Brain"
           >
@@ -1045,14 +1032,28 @@ export default function MathBrainPage() {
             />
             Save for next session
           </label>
-          <div className="hidden sm:flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleSaveSetupJSON}
-              className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-            >
-              Save setup…
-            </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex overflow-hidden rounded-md border border-slate-700 bg-slate-800">
+              <button
+                type="button"
+                onClick={() => handleSaveSetupJSON('A_ONLY')}
+                className="px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                title="Save only Person A’s setup to JSON"
+                aria-label="Save only Person A setup"
+              >
+                Save A
+              </button>
+              <div className="h-6 w-px bg-slate-700 my-1" />
+              <button
+                type="button"
+                onClick={() => handleSaveSetupJSON('A_B')}
+                className="px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                title="Save Person A + B (if included)"
+                aria-label="Save Person A and B setup"
+              >
+                Save A+B
+              </button>
+            </div>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -1081,8 +1082,11 @@ export default function MathBrainPage() {
           <div className="mt-3 flex items-center justify-between gap-3">
             <fieldset className="inline-flex overflow-hidden rounded-md border border-slate-700 bg-slate-800 px-0 py-0">
               <legend className="sr-only">Choose report type</legend>
-              <label className={`px-3 py-1.5 text-sm cursor-pointer ${reportType==='mirror' ? 'bg-indigo-600 text-white' : 'text-slate-200 hover:bg-slate-700'}`}
-                title="Send to Poetic Brain">
+              <label
+                className={`px-3 py-1.5 text-sm cursor-pointer ${reportType==='mirror' ? 'bg-indigo-600 text-white' : 'text-slate-200 hover:bg-slate-700'}`}
+                title="Send to Poetic Brain"
+                onClick={() => setReportType('mirror')}
+              >
                 <input
                   type="radio"
                   name="reportType"
@@ -1094,8 +1098,11 @@ export default function MathBrainPage() {
                 Mirror
                 <span className="ml-1 text-[11px] text-slate-300/80">(send to Poetic Brain)</span>
               </label>
-              <label className={`px-3 py-1.5 text-sm cursor-pointer ${reportType==='balance' ? 'bg-indigo-600 text-white' : 'text-slate-200 hover:bg-slate-700'}`}
-                title="Show gauges on screen">
+              <label
+                className={`px-3 py-1.5 text-sm cursor-pointer ${reportType==='balance' ? 'bg-indigo-600 text-white' : 'text-slate-200 hover:bg-slate-700'}`}
+                title="Show gauges on screen"
+                onClick={() => setReportType('balance')}
+              >
                 <input
                   type="radio"
                   name="reportType"
@@ -1148,13 +1155,13 @@ export default function MathBrainPage() {
                   <label htmlFor="a-month" className="block text-[11px] uppercase tracking-wide text-slate-300">Month</label>
                   <select
                     id="a-month"
-                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 appearance-none"
+                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 appearance-none"
                     value={Number(personA.month) || 1}
                     onChange={(e) => setPersonA({ ...personA, month: Number(e.target.value) })}
                     required
                   >
                     {months.map((m) => (
-                      <option key={m.value} value={m.value}>{m.label}</option>
+                      <option key={m.value} value={m.value}>{m.label.slice(0,3)}</option>
                     ))}
                   </select>
                 </div>
@@ -1164,7 +1171,7 @@ export default function MathBrainPage() {
                     id="a-day"
                     type="text"
                     inputMode="numeric"
-                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-center text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     value={pad2(personA.day as any)}
                     onChange={(e) => {
                       const v = pad2(e.target.value);
@@ -1220,14 +1227,15 @@ export default function MathBrainPage() {
               />
             </div>
             <div>
-              <label htmlFor="a-nation" className="block text-[11px] uppercase tracking-wide text-slate-300">Nation</label>
+              <label htmlFor="a-state" className="block text-[11px] uppercase tracking-wide text-slate-300">State / Province</label>
               <input
-                id="a-nation"
+                id="a-state"
                 className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                value={personA.nation}
-                onChange={(e) => setPersonA({ ...personA, nation: e.target.value })}
+                value={personA.state}
+                onChange={(e) => setPersonA({ ...personA, state: e.target.value })}
                 required
               />
+              <p className="mt-1 text-[11px] text-slate-500">Nation assumed “US” for API compatibility.</p>
             </div>
 
             <div className="sm:col-span-2">
@@ -1358,7 +1366,7 @@ export default function MathBrainPage() {
                   <div className="mx-1 h-5 w-px bg-slate-700" />
                   <button type="button" onClick={setBNowUTC} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Set Person B date/time to now (UTC)">Set B = Now (UTC)</button>
                 </div>
-                <label htmlFor="toggle-include-b-a" className="inline-flex items-center gap-2 text-sm text-slate-200">
+                <label htmlFor="toggle-include-b-a" className="inline-flex items-center gap-2 text-sm text-slate-200 cursor-pointer">
                   <input
                     id="toggle-include-b-a"
                     type="checkbox"
@@ -1371,16 +1379,18 @@ export default function MathBrainPage() {
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className={`mt-4 ${!includePersonB ? 'opacity-50' : ''}`}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="b-name" className="block text-[11px] uppercase tracking-wide text-slate-300">Name</label>
                 <input
                   id="b-name"
+                  ref={bNameRef}
                   placeholder="Their Name"
+                  disabled={!includePersonB}
                   className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-center text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
                   value={personB.name}
                   onChange={(e) => setPersonB({ ...personB, name: e.target.value })}
-                  disabled={!includePersonB}
                 />
               </div>
               <div className="grid grid-cols-5 gap-2">
@@ -1390,10 +1400,10 @@ export default function MathBrainPage() {
                     id="b-year"
                     type="text"
                     inputMode="numeric"
+                    disabled={!includePersonB}
                     className="mt-1 w-full min-w-[80px] h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     value={String(personB.year)}
                     onChange={(e) => setPersonB({ ...personB, year: onlyDigits(e.target.value, 4) })}
-                    disabled={!includePersonB}
                     placeholder="YYYY"
                   />
                 </div>
@@ -1401,13 +1411,13 @@ export default function MathBrainPage() {
                   <label htmlFor="b-month" className="block text-[11px] uppercase tracking-wide text-slate-300">Month</label>
                   <select
                     id="b-month"
+                    disabled={!includePersonB}
                     className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 appearance-none"
                     value={Number(personB.month) || 1}
                     onChange={(e) => setPersonB({ ...personB, month: Number(e.target.value) })}
-                    disabled={!includePersonB}
                   >
                     {months.map((m) => (
-                      <option key={m.value} value={m.value}>{m.label}</option>
+                      <option key={m.value} value={m.value}>{m.label.slice(0,3)}</option>
                     ))}
                   </select>
                 </div>
@@ -1417,6 +1427,7 @@ export default function MathBrainPage() {
                     id="b-day"
                     type="text"
                     inputMode="numeric"
+                    disabled={!includePersonB}
                     className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     value={pad2(personB.day as any)}
                     onChange={(e) => {
@@ -1424,7 +1435,6 @@ export default function MathBrainPage() {
                       const n = clampNum(v, 1, 31);
                       setPersonB({ ...personB, day: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
                     }}
-                    disabled={!includePersonB}
                     placeholder="DD"
                   />
                 </div>
@@ -1434,6 +1444,7 @@ export default function MathBrainPage() {
                     id="b-hour"
                     type="text"
                     inputMode="numeric"
+                    disabled={!includePersonB}
                     className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     value={pad2(personB.hour as any)}
                     onChange={(e) => {
@@ -1441,7 +1452,6 @@ export default function MathBrainPage() {
                       const n = clampNum(v, 0, 23);
                       setPersonB({ ...personB, hour: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
                     }}
-                    disabled={!includePersonB}
                     placeholder="HH"
                   />
                 </div>
@@ -1451,6 +1461,7 @@ export default function MathBrainPage() {
                     id="b-minute"
                     type="text"
                     inputMode="numeric"
+                    disabled={!includePersonB}
                     className="mt-1 w-full min-w-[60px] h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     value={pad2(personB.minute as any)}
                     onChange={(e) => {
@@ -1458,7 +1469,6 @@ export default function MathBrainPage() {
                       const n = clampNum(v, 0, 59);
                       setPersonB({ ...personB, minute: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
                     }}
-                    disabled={!includePersonB}
                     placeholder="MM"
                   />
                 </div>
@@ -1468,21 +1478,22 @@ export default function MathBrainPage() {
                 <label htmlFor="b-city" className="block text-[11px] uppercase tracking-wide text-slate-300">City</label>
                 <input
                   id="b-city"
+                  disabled={!includePersonB}
                   className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   value={personB.city}
                   onChange={(e) => setPersonB({ ...personB, city: e.target.value })}
-                  disabled={!includePersonB}
                 />
               </div>
               <div>
-                <label htmlFor="b-nation" className="block text-[11px] uppercase tracking-wide text-slate-300">Nation</label>
+                <label htmlFor="b-state" className="block text-[11px] uppercase tracking-wide text-slate-300">State / Province</label>
                 <input
-                  id="b-nation"
-                  className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                  value={personB.nation}
-                  onChange={(e) => setPersonB({ ...personB, nation: e.target.value })}
+                  id="b-state"
                   disabled={!includePersonB}
+                  className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  value={personB.state}
+                  onChange={(e) => setPersonB({ ...personB, state: e.target.value })}
                 />
+                <p className="mt-1 text-[11px] text-slate-500">Nation assumed “US” for API compatibility.</p>
               </div>
 
               <div className="sm:col-span-2">
@@ -1490,6 +1501,7 @@ export default function MathBrainPage() {
                 <input
                   id="b-coords"
                   type="text"
+                  disabled={!includePersonB}
                   className={`mt-1 w-full rounded-md border bg-slate-900 px-3 py-2 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${bCoordsError ? 'border-red-600' : 'border-slate-600'}`}
                   value={bCoordsInput}
                   onChange={(e) => {
@@ -1506,7 +1518,6 @@ export default function MathBrainPage() {
                       setBCoordsValid(false);
                     }
                   }}
-                  disabled={!includePersonB}
                   placeholder="e.g., 34°03′S, 18°25′E or -34.0500, 18.4167"
                 />
                 <p className="mt-1 text-xs text-slate-400">Examples: 40°42′N, 74°0′W · 34°3′S, 18°25′E · 40.7128, -74.006</p>
@@ -1518,10 +1529,10 @@ export default function MathBrainPage() {
                 <label htmlFor="b-tz" className="block text-[11px] uppercase tracking-wide text-slate-300">Timezone</label>
                 <select
                   id="b-tz"
+                  disabled={!includePersonB}
                   className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   value={personB.timezone}
                   onChange={(e) => setPersonB({ ...personB, timezone: e.target.value })}
-                  disabled={!includePersonB}
                 >
                   {tzOptions.map((tz)=> (
                     <option key={tz} value={tz}>{tz}</option>
@@ -1532,14 +1543,15 @@ export default function MathBrainPage() {
                 <label htmlFor="b-zodiac" className="block text-[11px] uppercase tracking-wide text-slate-300">Zodiac Type</label>
                 <select
                   id="b-zodiac"
+                  disabled={!includePersonB}
                   className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50"
                   value={personB.zodiac_type}
                   onChange={(e) => setPersonB({ ...personB, zodiac_type: e.target.value })}
-                  disabled={!includePersonB}
                 >
                   <option value="Tropic">Tropic</option>
                   <option value="Sidereal">Sidereal</option>
                 </select>
+              </div>
               </div>
             </div>
           </Section>
@@ -1548,64 +1560,61 @@ export default function MathBrainPage() {
           <Section title="Relationship Context">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-xs text-slate-400">These fields unlock when Person B is included.</p>
-              <label htmlFor="toggle-include-b-rc" className="inline-flex items-center gap-2 text-sm text-slate-200">
-                <input
-                  id="toggle-include-b-rc"
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
-                  checked={includePersonB}
-                  onChange={(e) => setIncludePersonB(e.target.checked)}
-                />
-                Include Person B
-              </label>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${!includePersonB ? 'opacity-50' : ''}`}>
               <div>
                 <label htmlFor="rel-type" className="block text-sm text-slate-300">Type</label>
                 <select
                   id="rel-type"
+                  disabled={!includePersonB}
                   className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
                   value={relationshipType}
                   onChange={(e)=>{ setRelationshipType(e.target.value); setRelationshipTier(""); setRelationshipRole(""); }}
-                  disabled={!includePersonB}
                 >
                   <option value="PARTNER">Partner</option>
                   <option value="FRIEND">Friend / Colleague</option>
                   <option value="FAMILY">Family</option>
                 </select>
+                <div className="mt-2 text-[11px] text-slate-400">
+                  <div className="font-medium text-slate-300">Primary Relational Tiers (scope):</div>
+                  <div>• Partner — full map access, including intimacy arcs & legacy patterns.</div>
+                  <div>• Friend / Colleague — emotional, behavioral, social dynamics; intimacy overlays de-emphasized.</div>
+                  <div>• Family — legacy patterns and behavioral overlays; sexual resonance suppressed.</div>
+                  <div>• Acquaintance — light pattern echoes only; intimacy dynamics locked.</div>
+                </div>
               </div>
               {relationshipType === 'PARTNER' && (
                 <div>
                   <label htmlFor="rel-tier" className="block text-sm text-slate-300">Intimacy Tier</label>
                   <select
                     id="rel-tier"
+                    disabled={!includePersonB}
                     className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
                     value={relationshipTier}
                     onChange={(e)=>setRelationshipTier(e.target.value)}
-                    disabled={!includePersonB}
                   >
                     <option value="">Select…</option>
-                    <option value="P1">P1</option>
-                    <option value="P2">P2</option>
-                    <option value="P3">P3</option>
-                    <option value="P4">P4</option>
-                    <option value="P5a">P5a</option>
-                    <option value="P5b">P5b</option>
+                    <option value="P1">P1 — Platonic partners</option>
+                    <option value="P2">P2 — Friends-with-benefits</option>
+                    <option value="P3">P3 — Situationship (unclear/unstable)</option>
+                    <option value="P4">P4 — Low-commitment romantic or sexual</option>
+                    <option value="P5a">P5a — Committed romantic + sexual</option>
+                    <option value="P5b">P5b — Committed romantic, non-sexual</option>
                   </select>
                   {includePersonB && ['SYNASTRY','SYNASTRY_TRANSITS','COMPOSITE','DUAL_NATAL_TRANSITS'].includes(mode) && !relationshipTier && (
                     <p className="mt-1 text-xs text-amber-400">Partner relationships require an intimacy tier.</p>
                   )}
-                    </div>
+                </div>
               )}
               {relationshipType === 'FAMILY' && (
                 <div>
                   <label htmlFor="rel-role" className="block text-sm text-slate-300">Role</label>
                   <select
                     id="rel-role"
+                    disabled={!includePersonB}
                     className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
                     value={relationshipRole}
                     onChange={(e)=>setRelationshipRole(e.target.value)}
-                    disabled={!includePersonB}
                   >
                     <option value="">Select…</option>
                     <option value="Parent">Parent</option>
@@ -1631,7 +1640,6 @@ export default function MathBrainPage() {
                     className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
                     value={relationshipRole}
                     onChange={(e)=>setRelationshipRole(e.target.value)}
-                    disabled={!includePersonB}
                   >
                     <option value="">—</option>
                     <option value="Acquaintance">Acquaintance</option>
@@ -1656,12 +1664,12 @@ export default function MathBrainPage() {
                 <label htmlFor="rel-notes" className="block text-sm text-slate-300">Notes</label>
                 <textarea
                   id="rel-notes"
+                  disabled={!includePersonB}
                   className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   rows={3}
                   placeholder="Optional context (max 500 chars)"
                   value={relationshipNotes}
                   onChange={(e)=>setRelationshipNotes(e.target.value.slice(0,500))}
-                  disabled={!includePersonB}
                 />
               </div>
             </div>
@@ -1712,17 +1720,23 @@ export default function MathBrainPage() {
                     id="t-mode"
                     className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     value={mode}
-                    onChange={(e) => setMode(e.target.value)}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setMode(next);
+                      if (["SYNASTRY","SYNASTRY_TRANSITS","COMPOSITE","DUAL_NATAL_TRANSITS"].includes(next)) {
+                        setIncludePersonB(true);
+                      }
+                    }}
                   >
                     <option value="NATAL_ONLY">Natal only</option>
                     <option value="NATAL_TRANSITS">Natal + Transits</option>
-                    <option value="DUAL_NATAL_TRANSITS" disabled={!includePersonB}>Dual Natal + Transits (A & B, no synastry)</option>
-                    <option value="SYNASTRY" disabled={!includePersonB}>Synastry (A ↔ B)</option>
-                    <option value="SYNASTRY_TRANSITS" disabled={!includePersonB}>Synastry + Transits</option>
-                    <option value="COMPOSITE" disabled={!includePersonB}>Composite (midpoint) + Relational Mirror</option>
+                    <option value="DUAL_NATAL_TRANSITS">Dual Natal + Transits (A & B, no synastry)</option>
+                    <option value="SYNASTRY">Synastry (A ↔ B)</option>
+                    <option value="SYNASTRY_TRANSITS">Synastry + Transits</option>
+                    <option value="COMPOSITE">Composite (midpoint) + Relational Mirror</option>
                   </select>
                   {!includePersonB && (
-                    <p className="mt-1 text-xs text-amber-400">Enable “Include Person B” to access relational modes.</p>
+                    <p className="mt-1 text-xs text-amber-400">Selecting a relational mode will enable “Include Person B”.</p>
                   )}
                 </div>
                 <div>
@@ -1734,19 +1748,28 @@ export default function MathBrainPage() {
                     onChange={(e) => setTranslocation(e.target.value as TranslocationOption)}
                   >
                     <option value="NONE">None (Natal Base)</option>
-                    <option value="A_LOCAL">Person A — Local</option>
-                    <option value="B_LOCAL" disabled={!includePersonB}>Person B — Local</option>
-                    <option value="MIDPOINT" disabled={!includePersonB}>Midpoint</option>
+                    <option value="A_LOCAL">Person A</option>
+                    <option value="B_LOCAL" disabled={!includePersonB}>Person B</option>
+                    <option value="MIDPOINT" disabled={!includePersonB}>Midpoint (A + B)</option>
                   </select>
                   <p className="mt-1 text-xs text-slate-400">Clinical toggle only; no narrative. If not applied, angles/houses remain natal.</p>
-                  {translocation !== 'NONE' && (
-                    <div className="mt-3 text-xs text-slate-400">
-                      Set relocation coordinates below.
-                    </div>
-                  )}
+                  <p className="mt-1 text-xs text-slate-500">Note: Midpoint here relocates houses to the geographic midpoint; Composite mode above creates the midpoint chart.</p>
+                  {(() => {
+                    const relocActive = translocation !== 'NONE';
+                    if (!relocActive) return null;
+                    return (
+                      <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-700 bg-emerald-900/30 px-3 py-1 text-xs text-emerald-200">
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
+                        <span className="font-medium">Relocated to:</span>
+                        <span className="text-emerald-100">{relocLabel || 'Custom'}</span>
+                        <span className="text-emerald-300">({relocTz || personA.timezone || '—'})</span>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
-              {/* Relocation Coordinates Input */}
+              {/* Relocation Coordinates Input */
+              }
               {translocation !== 'NONE' && (
                 <div className="mt-4">
                   <label htmlFor="t-reloc-coords" className="block text-sm text-slate-300">Relocation Coordinates</label>
@@ -1771,6 +1794,33 @@ export default function MathBrainPage() {
                   />
                   <p className="mt-1 text-xs text-slate-400">Default: 30°10′N, 85°40′W · Normalized: {relocCoords ? formatDecimal(relocCoords.lat, relocCoords.lon) : '—'}</p>
                   {relocError && <p className="mt-1 text-xs text-red-400">{relocError}</p>}
+
+                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor="t-reloc-label" className="block text-sm text-slate-300">Relocation Label</label>
+                      <input
+                        id="t-reloc-label"
+                        type="text"
+                        className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        value={relocLabel}
+                        onChange={(e)=>setRelocLabel(e.target.value)}
+                        placeholder="e.g., Panama City, FL"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="t-reloc-tz" className="block text-sm text-slate-300">Relocation Timezone</label>
+                      <select
+                        id="t-reloc-tz"
+                        className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        value={relocTz}
+                        onChange={(e)=>setRelocTz(e.target.value)}
+                      >
+                        {tzOptions.map((tz)=> (
+                          <option key={tz} value={tz}>{tz}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 </div>
               )}
               {step === 'weekly' && (
@@ -1786,9 +1836,9 @@ export default function MathBrainPage() {
               {translocation !== 'NONE' && (
                 <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-700 bg-emerald-900/30 px-3 py-1 text-xs text-emerald-200">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
-                  <span className="font-medium">Relocation</span>
-                  <span className="text-emerald-100">{translocation}</span>
-                  <span className="text-emerald-300">{relocCoords ? formatDecimal(relocCoords.lat, relocCoords.lon) : '—'}</span>
+                  <span className="font-medium">Relocated to:</span>
+                  <span className="text-emerald-100">{relocLabel || '—'}</span>
+                  <span className="text-emerald-300">{relocTz || personA.timezone || '—'}</span>
                 </div>
               )}
             </Section>
@@ -1817,56 +1867,6 @@ export default function MathBrainPage() {
                 {loading ? "Mapping geometry…" : (reportType==='balance' ? 'Generate Report' : 'Prepare Mirror')}
               </button>
             </div>
-            {/* Session Presets (bottom box) */}
-            <section
-              aria-labelledby="session-presets-heading"
-              className="mx-auto mt-6 w-full max-w-md rounded-xl border border-slate-700/60 bg-slate-900/70 p-4 shadow-sm"
-            >
-              <h3
-                id="session-presets-heading"
-                className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-200"
-              >
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-800 ring-1 ring-slate-700/70">
-                  {/* small bookmark icon substitute */}
-                  <span className="block h-1.5 w-1.5 rounded-[2px] bg-slate-300" />
-                </span>
-                Session presets
-              </h3>
-
-              <p className="mb-4 text-xs text-slate-400">
-                Save your current setup as a file, or load one you saved earlier.
-              </p>
-
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleSaveSetupJSON}
-                  className="inline-flex items-center justify-center rounded-lg border border-slate-600 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-100 hover:bg-slate-700 hover:border-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60"
-                  aria-label="Save current setup to a JSON file"
-                >
-                  Save setup…
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center justify-center rounded-lg border border-slate-600 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-100 hover:bg-slate-700 hover:border-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60"
-                  aria-label="Load a setup from a JSON file"
-                >
-                  Load setup…
-                </button>
-
-                {/* hidden file input for Load */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="application/json"
-                  onChange={handleLoadSetupFromFile}
-                  className="hidden"
-                  aria-label="Upload setup JSON file"
-                />
-              </div>
-            </section>
             {(['SYNASTRY','SYNASTRY_TRANSITS','COMPOSITE','DUAL_NATAL_TRANSITS'].includes(mode) && !includePersonB) && (
               <p className="mt-2 text-xs text-amber-400">Hint: Toggle “Include Person B” and fill in required fields to enable relational modes.</p>
             )}
@@ -2090,7 +2090,14 @@ export default function MathBrainPage() {
                   </div>
                   <div>
                     <div className="text-xs text-slate-400">Method</div>
-                    <div className="text-slate-100">{t.method || 'Natal'}</div>
+                    <div className="text-slate-100">{(() => {
+                      const m = String(t.method || 'Natal');
+                      if (/^A[_ ]?local$/i.test(m) || m === 'A_local') return 'Person A';
+                      if (/^B[_ ]?local$/i.test(m) || m === 'B_local') return 'Person B';
+                      if (/^midpoint$/i.test(m)) return 'Person A + B';
+                      if (/^natal$/i.test(m)) return 'None (Natal Base)';
+                      return m;
+                    })()}</div>
                   </div>
                   <div>
                     <div className="text-xs text-slate-400">House System</div>
@@ -2364,19 +2371,7 @@ export default function MathBrainPage() {
         </div>
       )}
 
-      {/* Green chip when relocation active */}
-      {(() => {
-        const relocActive = translocation !== 'NONE' && personA.timezone;
-        if (!relocActive) return null;
-        return (
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-700 bg-emerald-900/30 px-3 py-1 text-xs text-emerald-200">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
-            <span className="font-medium">Relocated to:</span>
-            <span className="text-emerald-100">{personA.city || 'Custom'}</span>
-            <span className="text-emerald-300">({personA.timezone})</span>
-          </div>
-        );
-      })()}
+      {/* Removed duplicate bottom relocation chip that hard-wired Person A city/timezone */}
 
       {/* Toast */}
       {toast && (
