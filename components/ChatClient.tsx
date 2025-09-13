@@ -278,11 +278,11 @@ interface StreamState { ravenId: string; acc: string; climate?: string; hook?: s
 
 function HelpModal({ onClose }: { onClose: () => void }) {
   return (
-    <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000}}>
-  <div style={{background:'#181c24',borderRadius:12,padding:'32px 28px',boxShadow:'0 8px 32px #0008',maxWidth:420,width:'100%',position:'relative',color:'#e0e6f0'}}>
-        <button onClick={onClose} style={{position:'absolute', top:12, right:12, background:'none', border:'none', color:'#94a3b8', fontSize:24, cursor:'pointer'}}>×</button>
-        <h2 style={{marginTop:0, fontSize:20, color:'#f1f5f9'}}>Help & Button Guide</h2>
-        <ul style={{fontSize:15, lineHeight:1.7, paddingLeft:0, listStyle:'none'}}>
+    <div className="fixed inset-0 bg-[rgba(0,0,0,0.7)] flex items-center justify-center z-[1000]">
+      <div className="relative w-full max-w-[420px] rounded-[12px] bg-[#181c24] p-8 text-[#e0e6f0] shadow-[0_8px_32px_#0008]">
+        <button onClick={onClose} className="absolute right-3 top-3 cursor-pointer border-0 bg-transparent text-[24px] text-[#94a3b8]">×</button>
+        <h2 className="mt-0 text-[20px] text-slate-100">Help & Button Guide</h2>
+        <ul className="list-none pl-0 text-[15px] leading-7">
           <li><b>🪞 Mirror</b>: Upload a Mirror report (personal reflection data) for analysis.</li>
           <li><b>🌡️ Balance</b>: Upload a Balance Meter report (energetic state snapshot).</li>
           <li><b>📔 Journal</b>: Upload a Journal entry (narrative or notes for context).</li>
@@ -293,7 +293,7 @@ function HelpModal({ onClose }: { onClose: () => void }) {
           <li><b>ℹ️ About</b>: Learn about Raven Calder and the project’s philosophy.</li>
           <li><b>❓ Help</b>: Show this help dialog.</li>
         </ul>
-        <div style={{fontSize:13, color:'#94a3b8', marginTop:16}}>
+        <div className="mt-4 text-[13px] text-[#94a3b8]">
           <b>Tip:</b> Hover on any button for a tooltip. For best results, give feedback on several mirrors before using <b>Reveal</b>.
         </div>
       </div>
@@ -1504,7 +1504,7 @@ export default function ChatClient(){
         currentRavenIndex={currentRavenIndex}
         scrollToBottom={scrollToBottom}
       />
-  <main style={{flex: 1, display:'grid', gridTemplateColumns:'270px 1fr', gap:12, padding:12, position:'relative', minHeight: 0, overflow: 'hidden'}}>
+      <main className="relative grid flex-1 grid-cols-[270px_1fr] gap-3 overflow-hidden p-3 min-h-0">
         <Sidebar 
           onInsert={(m)=> {
             // Send the message programmatically to trigger Raven's response
@@ -1528,25 +1528,7 @@ export default function ChatClient(){
         {showScrollHint && (
           <button
             onClick={scrollToBottom}
-            style={{
-              position: 'absolute',
-              bottom: 20,
-              right: 20,
-              background: 'var(--accent)',
-              border: 'none',
-              borderRadius: '50%',
-              width: 48,
-              height: 48,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              fontSize: 18,
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(124, 92, 255, 0.3)',
-              zIndex: 1000,
-              animation: 'pulse 2s infinite'
-            }}
+            className="absolute bottom-5 right-5 z-[1000] flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-[0_4px_12px_rgba(124,92,255,0.3)]"
             title="Return to current response"
           >
             ↓
@@ -1555,28 +1537,9 @@ export default function ChatClient(){
       </main>
       
       {/* End Current Reading Button - Subtle placement */}
-      <div style={{
-        padding: '8px 18px',
-        borderTop: '1px solid var(--line)',
-        background: 'var(--bg)',
-        display: 'flex',
-        justifyContent: 'flex-end',
-        alignItems: 'center'
-      }}>
+      <div className="flex items-center justify-end border-t border-[var(--line)] bg-[var(--bg)] px-[18px] py-2">
         <button
-          className="btn"
-          style={{
-            ...btnStyle,
-            background: 'transparent',
-            border: '1px solid var(--line)',
-            color: 'var(--muted)',
-            fontSize: 11,
-            padding: '4px 8px',
-            opacity: 0.6,
-            transition: 'opacity 0.2s'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-          onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+          className="btn cursor-pointer rounded-[10px] border border-[var(--line)] bg-transparent px-2 py-1 text-[11px] text-[var(--muted)] opacity-60 transition-opacity hover:opacity-100"
           onClick={() => setShowReadingSummary(true)}
           title="End current reading and show comprehensive summary"
         >
@@ -1697,28 +1660,28 @@ function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onD
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between px-[18px] py-3 bg-[rgba(20,24,33,.9)] backdrop-blur border-b border-[var(--line)]">
       <div className="flex items-center gap-3">
-        <div style={{width:36,height:36,display:'grid',placeItems:'center',borderRadius:'50%',background:'radial-gradient(120% 120% at 50% 20%, #262a36, #12151c)', boxShadow:'inset 0 0 18px rgba(124,92,255,.25)', fontSize:20}} aria-hidden>🐦‍⬛</div>
-        <div style={{display:'flex', flexDirection:'column'}}>
-          <span style={{fontWeight:700}}>{APP_NAME}</span>
+        <div className="grid h-9 w-9 place-items-center rounded-full [background-image:radial-gradient(120%_120%_at_50%_20%,#262a36,#12151c)] shadow-[inset_0_0_18px_rgba(124,92,255,.25)] text-[20px]" aria-hidden>🐦‍⬛</div>
+        <div className="flex flex-col">
+          <span className="font-bold">{APP_NAME}</span>
           <div className="flex items-center gap-2 text-[12px] text-[var(--muted)]">
             <span className="w-2 h-2 rounded-full bg-[var(--good)] shadow-[0_0_10px_var(--good)]"></span>
             <span>{STATUS_CONNECTED}</span>
             {reportContexts.length > 0 && (
-              <div style={{display:'flex', alignItems:'center', gap:4, marginLeft:8}}>
-                <span style={{color:'var(--accent)', fontSize:10}}>•</span>
+              <div className="ml-2 flex items-center gap-1">
+                <span className="text-[10px] text-[var(--accent)]">•</span>
                 {reportContexts.map((ctx, index) => (
-                  <div key={ctx.id} style={{display:'flex', alignItems:'center', gap:2}}>
-                    <span style={{fontSize:10}} title={ctx.summary}>
+                  <div key={ctx.id} className="flex items-center gap-[2px]">
+                    <span className="text-[10px]" title={ctx.summary}>
                       {getReportIcon(ctx.type)} {ctx.name}
                     </span>
                     <button 
                       onClick={() => onRemoveReportContext(ctx.id)}
-                      style={{background:'none', border:'none', color:'var(--muted)', fontSize:8, cursor:'pointer', padding:0}}
+                      className="cursor-pointer border-0 bg-transparent p-0 text-[8px] text-[var(--muted)]"
                       title="Remove context"
                     >
                       ✕
                     </button>
-                    {index < reportContexts.length - 1 && <span style={{color:'var(--muted)', fontSize:8}}>|</span>}
+                    {index < reportContexts.length - 1 && <span className="text-[8px] text-[var(--muted)]">|</span>}
                   </div>
                 ))}
               </div>
@@ -1732,8 +1695,7 @@ function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onD
         <UsageMeter compact={true} className="hidden sm:block" />
     {pendingCount > 0 && (
           <button
-            className="btn"
-            style={{...btnStyle, fontSize:12, padding:'4px 8px', background:'rgba(255,255,255,0.04)'}}
+            className="btn rounded-[10px] border border-[var(--line)] bg-[rgba(255,255,255,0.04)] px-2 py-1 text-[12px]"
       onClick={onShowPendingReview}
             title={`${pendingCount} pending mirrors`}
           >
@@ -1744,15 +1706,14 @@ function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onD
       
       {/* Core File Upload Buttons - Always Visible */}
   <div className="flex gap-2">
-        <button className="btn" style={btnStyle} onClick={() => onFileSelect('mirror')}>🪞 Mirror</button>
-        <button className="btn" style={btnStyle} onClick={() => onFileSelect('balance')}>🌡️ Balance</button>
-        <button className="btn" style={btnStyle} onClick={() => onFileSelect('journal')}>📔 Journal</button>
+        <button className="btn rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]" onClick={() => onFileSelect('mirror')}>🪞 Mirror</button>
+        <button className="btn rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]" onClick={() => onFileSelect('balance')}>🌡️ Balance</button>
+        <button className="btn rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]" onClick={() => onFileSelect('journal')}>📔 Journal</button>
         
         {/* Poetic Options Dropdown */}
-        <div style={{position: 'relative'}}>
+        <div className="relative">
           <button 
-            className="btn" 
-            style={{...btnStyle, background: 'linear-gradient(135deg, #6a53ff, #9c27b0)'}} 
+            className="btn rounded-[10px] bg-gradient-to-br from-[#6a53ff] to-[#9c27b0] px-[10px] py-2 text-[13px] text-white" 
             onClick={(e) => {
               e.stopPropagation();
               setShowPoeticMenu(!showPoeticMenu);
@@ -1764,24 +1725,11 @@ function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onD
           
           {showPoeticMenu && (
             <div 
-              style={{
-                position: 'absolute',
-                top: '100%',
-                right: 0,
-                marginTop: 4,
-                background: 'var(--bg)',
-                border: '1px solid var(--line)',
-                borderRadius: 8,
-                padding: 8,
-                minWidth: 180,
-                zIndex: 1000,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-              }}
+              className="absolute right-0 top-full mt-1 min-w-[180px] rounded-[8px] border border-[var(--line)] bg-[var(--bg)] p-2 shadow-[0_4px_12px_rgba(0,0,0,0.15)] z-[1000]"
               onClick={(e) => e.stopPropagation()}
             >
               <button 
-                className="btn" 
-                style={{...btnStyle, width: '100%', marginBottom: 4, justifyContent: 'flex-start'}} 
+                className="btn mb-1 w-full justify-start rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]" 
                 onClick={() => { onShowWrapUp(); setShowPoeticMenu(false); }}
                 title="Generate Actor/Role composite from session feedback"
               >
@@ -1790,15 +1738,13 @@ function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onD
               {hasMirrorData && (
                 <>
                   <button 
-                    className="btn" 
-                    style={{...btnStyle, width: '100%', marginBottom: 4, justifyContent: 'flex-start'}} 
+                    className="btn mb-1 w-full justify-start rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]" 
                     onClick={() => { onPoeticInsert(); setShowPoeticMenu(false); }}
                   >
                     📝 Poetic Insert
                   </button>
                   <button 
-                    className="btn" 
-                    style={{...btnStyle, width: '100%', marginBottom: 4, justifyContent: 'flex-start'}} 
+                    className="btn mb-1 w-full justify-start rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]" 
                     onClick={() => { onPoeticCard(); setShowPoeticMenu(false); }}
                   >
                     🎴 Create Card
@@ -1806,8 +1752,7 @@ function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onD
                 </>
               )}
               <button 
-                className="btn" 
-                style={{...btnStyle, width: '100%', marginBottom: 4, justifyContent: 'flex-start'}} 
+                className="btn mb-1 w-full justify-start rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]" 
                 onClick={() => { onDemoCard(); setShowPoeticMenu(false); }}
                 title="Generate demo poetic card"
               >
@@ -1817,8 +1762,8 @@ function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onD
           )}
         </div>
         
-        <button className="btn" style={{...btnStyle, background:'transparent'}} onClick={onAbout}>ℹ️ About</button>
-        <button className="btn" style={{...btnStyle, background:'transparent'}} onClick={onShowHelp} title="Help & Button Guide">❓ Help</button>
+        <button className="btn rounded-[10px] border border-[var(--line)] bg-transparent px-[10px] py-2 text-[13px] text-[var(--text)]" onClick={onAbout}>ℹ️ About</button>
+        <button className="btn rounded-[10px] border border-[var(--line)] bg-transparent px-[10px] py-2 text-[13px] text-[var(--text)]" onClick={onShowHelp} title="Help & Button Guide">❓ Help</button>
       </div>
     </header>
   );
@@ -2367,20 +2312,10 @@ function NavigationPanel({ ravenMessages, scrollToTop, scrollToRavenMessage, cur
   if (ravenMessages.length === 0) return null;
 
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-      padding: '8px 18px',
-      background: 'var(--panel)',
-      borderTop: '1px solid var(--line)',
-      borderBottom: '1px solid var(--line)',
-      fontSize: 12
-    }}>
+    <div className="flex items-center justify-center gap-2 px-[18px] py-2 bg-[var(--panel)] border-t border-b border-[var(--line)] text-[12px]">
       <button
         onClick={scrollToTop}
-        style={{ ...navBtnStyle }}
+        className="bg-transparent border border-[var(--line)] rounded-[6px] text-[var(--text)] px-[10px] py-[6px] text-[11px] cursor-pointer transition-all"
         title="Jump to top"
       >
         ⬆️ Top
@@ -2389,20 +2324,20 @@ function NavigationPanel({ ravenMessages, scrollToTop, scrollToRavenMessage, cur
       <button
         onClick={() => scrollToRavenMessage(Math.max(0, currentRavenIndex - 1))}
         disabled={currentRavenIndex <= 0 || ravenMessages.length <= 1}
-        style={{ ...navBtnStyle, opacity: (currentRavenIndex <= 0 || ravenMessages.length <= 1) ? 0.5 : 1 }}
+        className="bg-transparent border border-[var(--line)] rounded-[6px] text-[var(--text)] px-[10px] py-[6px] text-[11px] cursor-pointer transition-all disabled:opacity-50"
         title="Previous Raven response"
       >
         ← Prev
       </button>
 
-      <span style={{ color: 'var(--muted)' }}>
+      <span className="text-[var(--muted)]">
         {currentRavenIndex + 1} / {ravenMessages.length}
       </span>
 
       <button
         onClick={() => scrollToRavenMessage(Math.min(ravenMessages.length - 1, currentRavenIndex + 1))}
         disabled={currentRavenIndex >= ravenMessages.length - 1 || ravenMessages.length <= 1}
-        style={{ ...navBtnStyle, opacity: (currentRavenIndex >= ravenMessages.length - 1 || ravenMessages.length <= 1) ? 0.5 : 1 }}
+        className="bg-transparent border border-[var(--line)] rounded-[6px] text-[var(--text)] px-[10px] py-[6px] text-[11px] cursor-pointer transition-all disabled:opacity-50"
         title="Next Raven response"
       >
         Next →
@@ -2410,7 +2345,7 @@ function NavigationPanel({ ravenMessages, scrollToTop, scrollToRavenMessage, cur
 
       <button
         onClick={scrollToBottom}
-        style={{ ...navBtnStyle }}
+        className="bg-transparent border border-[var(--line)] rounded-[6px] text-[var(--text)] px-[10px] py-[6px] text-[11px] cursor-pointer transition-all"
         title="Jump to bottom"
       >
         ⬇️ Bottom
@@ -2441,34 +2376,46 @@ function PendingReviewSheet({ onClose }: { onClose: () => void }){
   };
 
   return (
-    <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000}}>
-      <div style={{width:520, background:'linear-gradient(135deg, #1e293b, #0f172a)', border:'1px solid rgba(148,163,184,0.2)', borderRadius:12, padding:16}}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
-          <div style={{color:'#e2e8f0', fontWeight:600}}>Review pending mirrors?</div>
-          <button onClick={onClose} style={{background:'none', border:'none', color:'#94a3b8', fontSize:18}}>×</button>
+    <div className="fixed inset-0 bg-[rgba(0,0,0,0.7)] flex items-center justify-center z-[1000]">
+      <div className="w-[520px] bg-[linear-gradient(135deg,#1e293b,#0f172a)] border border-[rgba(148,163,184,0.2)] rounded-[12px] p-4">
+        <div className="flex justify-between items-center mb-2">
+          <div className="text-[#e2e8f0] font-semibold">Review pending mirrors?</div>
+          <button onClick={onClose} className="bg-transparent border-0 text-[#94a3b8] text-[18px]">×</button>
         </div>
-        <div style={{color:'#94a3b8', fontSize:12, marginBottom:12}}>Up to three, highest-charge first. One tap each. Optional note.</div>
+        <div className="text-[#94a3b8] text-[12px] mb-3">Up to three, highest-charge first. One tap each. Optional note.</div>
         {items.length === 0 && (
-          <div style={{color:'#94a3b8', fontSize:12}}>No pending mirrors.</div>
+          <div className="text-[#94a3b8] text-[12px]">No pending mirrors.</div>
         )}
         {items.map(it => (
-          <div key={it.messageId} style={{marginBottom:12, padding:12, border:'1px solid rgba(148,163,184,0.2)', borderRadius:8}}>
-            <div style={{fontSize:12, color:'#e2e8f0', marginBottom:8}} dangerouslySetInnerHTML={{__html: it.messageContent || ''}} />
-            <div style={{display:'flex', gap:8, flexWrap:'wrap', marginBottom:8}}>
-              {(['yes','maybe','no','unclear'] as PingResponse[]).map(r => (
-                <button key={r} onClick={() => setResponses(prev => ({...prev, [it.messageId]: r}))} style={{...btnStyle, fontSize:12, padding:'4px 8px', background: responses[it.messageId]===r ? 'rgba(59,130,246,0.2)' : 'var(--soft)'}}>
-                  {r === 'yes' ? '✅ Yes' : r === 'maybe' ? '🟡 Sort of' : r === 'no' ? '❌ No' : '❓ Not clear'}
-                </button>
-              ))}
+          <div key={it.messageId} className="mb-3 p-3 border border-[rgba(148,163,184,0.2)] rounded-[8px]">
+            <div className="text-[12px] text-[#e2e8f0] mb-2" dangerouslySetInnerHTML={{__html: it.messageContent || ''}} />
+            <div className="flex gap-2 flex-wrap mb-2">
+              {(['yes','maybe','no','unclear'] as PingResponse[]).map(r => {
+                const selected = responses[it.messageId]===r;
+                return (
+                  <button
+                    key={r}
+                    onClick={() => setResponses(prev => ({...prev, [it.messageId]: r}))}
+                    className={`px-2 py-1 text-[12px] rounded-[10px] border border-[var(--line)] ${selected ? 'bg-[rgba(59,130,246,0.2)]' : 'bg-[var(--soft)]'}`}
+                  >
+                    {r === 'yes' ? '✅ Yes' : r === 'maybe' ? '🟡 Sort of' : r === 'no' ? '❌ No' : '❓ Not clear'}
+                  </button>
+                );
+              })}
             </div>
             {(responses[it.messageId] === 'no' || responses[it.messageId] === 'unclear') && (
-              <textarea value={notes[it.messageId] || ''} onChange={e => setNotes(n => ({...n, [it.messageId]: e.target.value}))} placeholder="Optional note (what didn’t fit?)" style={{width:'100%', background:'rgba(0,0,0,0.3)', color:'#e2e8f0', border:'1px solid rgba(148,163,184,0.2)', borderRadius:6, padding:8, fontSize:12}} />
+              <textarea
+                value={notes[it.messageId] || ''}
+                onChange={e => setNotes(n => ({...n, [it.messageId]: e.target.value}))}
+                placeholder="Optional note (what didn’t fit?)"
+                className="w-full bg-[rgba(0,0,0,0.3)] text-[#e2e8f0] border border-[rgba(148,163,184,0.2)] rounded-[6px] p-2 text-[12px]"
+              />
             )}
           </div>
         ))}
-        <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
-          <button onClick={onClose} style={{...btnStyle}}>Snooze</button>
-          <button onClick={submit} style={{...btnStyle, background:'linear-gradient(180deg,#8d78ff,#6a53ff)', border:'none'}}>Review</button>
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-[10px] py-2 bg-[var(--soft)] text-[var(--text)] border border-[var(--line)] rounded-[10px] text-[13px] cursor-pointer">Snooze</button>
+          <button onClick={submit} className="px-[10px] py-2 bg-[linear-gradient(180deg,#8d78ff,#6a53ff)] text-[var(--text)] border-0 rounded-[10px] text-[13px] cursor-pointer">Review</button>
         </div>
       </div>
     </div>

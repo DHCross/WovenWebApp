@@ -95,6 +95,9 @@ export default function MathBrainPage() {
   const [relationshipRole, setRelationshipRole] = useState<string>("");
   const [exEstranged, setExEstranged] = useState<boolean>(false);
   const [relationshipNotes, setRelationshipNotes] = useState<string>("");
+  // Translocation / Relocation selection (angles/houses reference)
+  type TranslocationOption = 'NONE' | 'A_LOCAL' | 'B_LOCAL' | 'MIDPOINT';
+  const [translocation, setTranslocation] = useState<TranslocationOption>('NONE');
   const [authReady, setAuthReady] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [authEnvOk, setAuthEnvOk] = useState<boolean>(true);
@@ -193,7 +196,7 @@ export default function MathBrainPage() {
           window.history.replaceState({}, "", url.toString());
           const nowAuthed = await client.isAuthenticated();
           if (nowAuthed) {
-            window.location.replace('/chat');
+            window.location.replace('/chat?from=math-brain');
             return;
           }
         }
@@ -231,6 +234,7 @@ export default function MathBrainPage() {
           startDate,
           endDate,
           includePersonB,
+          translocation,
           relationship: {
             type: relationshipType,
             intimacy_tier: relationshipTier,
@@ -298,6 +302,7 @@ export default function MathBrainPage() {
       if (typeof saved.relationshipNotes === 'string') setRelationshipNotes(saved.relationshipNotes);
       if (typeof saved.relationshipTier === 'string') setRelationshipTier(saved.relationshipTier);
       if (typeof saved.relationshipRole === 'string') setRelationshipRole(saved.relationshipRole);
+      if (saved.translocation) setTranslocation(saved.translocation);
     } catch {/* noop */}
   }
 
@@ -440,6 +445,13 @@ export default function MathBrainPage() {
         transitStartDate: startDate,
         transitEndDate: endDate,
         transitStep: step,
+        // Pass translocation intent to backend (data-only context)
+        translocation: ((): any => {
+          if (translocation === 'A_LOCAL') return { applies: true, method: 'A_local' };
+          if (translocation === 'B_LOCAL') return { applies: true, method: 'B_local' };
+          if (translocation === 'MIDPOINT') return { applies: true, method: 'Midpoint' };
+          return { applies: false, method: 'Natal' };
+        })(),
       };
 
       // Persist last inputs for resume
@@ -450,6 +462,7 @@ export default function MathBrainPage() {
           startDate,
           endDate,
           includePersonB,
+          translocation,
           relationshipType,
           relationshipTier,
           relationshipRole,
@@ -513,6 +526,7 @@ export default function MathBrainPage() {
             startDate,
             endDate,
             includePersonB,
+            translocation,
             relationship: {
               type: relationshipType,
               intimacy_tier: relationshipTier,
@@ -563,8 +577,26 @@ export default function MathBrainPage() {
       <header className="text-center print:hidden">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-100">Math Brain</h1>
         <p className="mt-4 text-base md:text-lg text-slate-300">
-          Geometry first. Generate your chart math here, then head to Poetic Brain.
+          Run the geometry first. Then, once you're signed in, jump into Chat to synthesize the narrative.
         </p>
+        
+        {/* Math Brain: FIELD Layer Only */}
+        <div className="mt-6 flex items-center justify-center gap-4 text-sm text-slate-400">
+          <div className="flex items-center gap-2">
+            <span className="rounded bg-amber-600 px-2 py-1 text-xs font-medium text-slate-100">FIELD</span>
+            <span className="text-xs">Geometric calculation engine</span>
+          </div>
+          <span className="text-slate-600">→</span>
+          <div className="flex items-center gap-2 opacity-50">
+            <span className="rounded bg-slate-700 px-2 py-1 text-xs font-medium text-slate-400">MAP</span>
+            <span className="text-xs">Raven handles</span>
+          </div>
+          <span className="text-slate-600">→</span>
+          <div className="flex items-center gap-2 opacity-50">
+            <span className="rounded bg-slate-700 px-2 py-1 text-xs font-medium text-slate-400">VOICE</span>
+            <span className="text-xs">Raven handles</span>
+          </div>
+        </div>
       </header>
 
       <div className="mt-8 flex flex-wrap gap-3 justify-center print:hidden">
@@ -586,7 +618,7 @@ export default function MathBrainPage() {
         )}
         {authReady && authed ? (
           <a
-            href="/chat"
+            href="/chat?from=math-brain"
             className="rounded-md bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500"
           >
             Continue to Poetic Brain
@@ -1106,6 +1138,21 @@ export default function MathBrainPage() {
                     <p className="mt-1 text-xs text-amber-400">Enable “Include Person B” to access relational modes.</p>
                   )}
                 </div>
+                <div>
+                  <label htmlFor="t-reloc" className="block text-sm text-slate-300">Relocation (angles/houses)</label>
+                  <select
+                    id="t-reloc"
+                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    value={translocation}
+                    onChange={(e) => setTranslocation(e.target.value as TranslocationOption)}
+                  >
+                    <option value="NONE">None (Natal Base)</option>
+                    <option value="A_LOCAL">Person A — Local</option>
+                    <option value="B_LOCAL" disabled={!includePersonB}>Person B — Local</option>
+                    <option value="MIDPOINT" disabled={!includePersonB}>Midpoint</option>
+                  </select>
+                  <p className="mt-1 text-xs text-slate-400">Clinical toggle only; no narrative. If not applied, angles/houses remain natal.</p>
+                </div>
               </div>
               {step === 'weekly' && (
                 <div className="mt-2 flex items-center gap-3">
@@ -1121,14 +1168,14 @@ export default function MathBrainPage() {
 
             <div className="flex items-center justify-between">
               <p className="text-xs text-slate-500">
-                All processing is geometry-first and non-deterministic. Your data isn’t stored.
+          All processing is geometry-first and non-deterministic. Your data isn’t stored.
               </p>
               <button
                 type="submit"
                 disabled={!canSubmit || loading}
                 className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-500 disabled:opacity-50"
               >
-                {loading ? "Computing…" : "Generate Report"}
+                {loading ? "Mapping geometry…" : "Map Weather Field"}
               </button>
             </div>
             {(['SYNASTRY','SYNASTRY_TRANSITS','COMPOSITE','DUAL_NATAL_TRANSITS'].includes(mode) && !includePersonB) && (
@@ -1166,7 +1213,7 @@ export default function MathBrainPage() {
         <div className="mt-8 grid grid-cols-1 gap-6">
           {/* Results toolbar */}
           <div className="flex items-center justify-end gap-2 print:hidden">
-            <button type="button" onClick={handlePrint} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Print report">Print</button>
+            <button type="button" onClick={handlePrint} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Print weather map">Print</button>
             <button type="button" onClick={downloadResultJSON} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download result JSON">Download JSON</button>
             <button
               type="button"
@@ -1192,6 +1239,152 @@ export default function MathBrainPage() {
               );
             }
             return null;
+          })()}
+          {(() => {
+            const wm = (result as any)?.woven_map;
+            if (!wm?.hook_stack?.hooks?.length) return null;
+            const hooks = wm.hook_stack.hooks || [];
+            return (
+              <Section title="Hook Stack — Recognition Gateway">
+                <div className="mb-3 text-sm text-slate-400">
+                  Front-door UX: {hooks.length} high-charge patterns from tightest aspects
+                  {wm.hook_stack.tier_1_orbs > 0 && ` · ${wm.hook_stack.tier_1_orbs} Tier-1 (≤1°)`}
+                  · Coverage: {wm.hook_stack.coverage}
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {hooks.map((hook: any, i: number) => (
+                    <div key={i} className="rounded-md border border-amber-600/30 bg-amber-900/20 p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="text-amber-100 font-medium leading-tight">
+                          {hook.title}
+                        </div>
+                        {hook.is_tier_1 && (
+                          <span className="ml-2 inline-flex items-center rounded bg-amber-600 px-1.5 py-0.5 text-xs font-medium text-amber-100">
+                            T1
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-amber-200/70 space-y-1">
+                        <div>Orb: {hook.orb?.toFixed(1)}° · Intensity: {Math.round(hook.intensity)}</div>
+                        <div>{hook.planets?.join(' ') || ''} {hook.aspect_type}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 text-xs text-slate-400">
+                  Purpose: Bypass analysis → trigger "that's me" recognition → open depth work
+                </div>
+              </Section>
+            );
+          })()}
+          {(() => {
+            const wm = (result as any)?.woven_map;
+            if (!wm) return null;
+            const factors = wm.integration_factors || {};
+            const keys: Array<{key: keyof typeof factors, label: string}> = [
+              { key: 'fertile_field' as any, label: 'Fertile Field' },
+              { key: 'harmonic_resonance' as any, label: 'Harmonic Resonance' },
+              { key: 'expansion_lift' as any, label: 'Expansion Lift' },
+              { key: 'combustion_clarity' as any, label: 'Combustion Clarity' },
+              { key: 'liberation_release' as any, label: 'Liberation / Release' },
+              { key: 'integration' as any, label: 'Integration' },
+            ];
+            const ts = Array.isArray(wm.time_series) ? wm.time_series : [];
+            const first = ts[0]?.date; const last = ts[ts.length-1]?.date;
+            return (
+              <Section title="Woven Map (data-only)">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <div className="text-sm text-slate-300">Integration Factors</div>
+                    <div className="mt-2 space-y-2">
+                      {keys.map(({key,label}) => {
+                        const pct = Math.max(0, Math.min(100, Number((factors as any)[key] ?? 0)));
+                        return (
+                          <div key={String(key)}>
+                            <div className="flex items-center justify-between text-xs text-slate-400"><span>{label}</span><span>{pct}%</span></div>
+                            <svg viewBox="0 0 100 6" className="h-1.5 w-full">
+                              <rect x="0" y="0" width="100" height="6" className="fill-slate-700" />
+                              <rect x="0" y="0" width={pct} height="6" className="fill-emerald-500" />
+                            </svg>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-slate-300">Time Series</div>
+                    <div className="mt-2 text-xs text-slate-400">Entries: {ts.length || 0}{first && last ? ` · ${first} → ${last}` : ''}</div>
+                    <div className="mt-2 max-h-40 overflow-auto rounded border border-slate-700 bg-slate-900/40 p-2">
+                      <table className="w-full text-xs text-slate-300">
+                        <thead>
+                          <tr className="text-slate-400">
+                            <th className="text-left font-medium">Date</th>
+                            <th className="text-right font-medium">Mag</th>
+                            <th className="text-right font-medium">Val</th>
+                            <th className="text-right font-medium">Vol</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ts.slice(-10).map((r:any, i:number) => (
+                            <tr key={i}>
+                              <td className="py-0.5 pr-2">{r.date}</td>
+                              <td className="py-0.5 text-right">{Number(r.magnitude ?? 0).toFixed(2)}</td>
+                              <td className="py-0.5 text-right">{Number(r.valence ?? 0).toFixed(2)}</td>
+                              <td className="py-0.5 text-right">{Number(r.volatility ?? 0).toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
+                    <div className="text-xs text-slate-400">Natal aspects (A)</div>
+                    <div className="text-lg text-slate-100">{(wm.natal_summary?.major_aspects?.length ?? 0)}</div>
+                  </div>
+                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
+                    <div className="text-xs text-slate-400">Polarity cards (hooks)</div>
+                    <div className="text-lg text-slate-100">{(Array.isArray(wm.polarity_cards) ? wm.polarity_cards.length : 0)}</div>
+                  </div>
+                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
+                    <div className="text-xs text-slate-400">Report type</div>
+                    <div className="text-lg text-slate-100 capitalize">{wm.type || 'solo'}</div>
+                  </div>
+                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
+                    <div className="text-xs text-slate-400">Schema</div>
+                    <div className="text-xs text-slate-100">{wm.schema}</div>
+                  </div>
+                </div>
+              </Section>
+            );
+          })()}
+          {(() => {
+            const cx = (result as any)?.context;
+            if (!cx?.translocation) return null;
+            const t = cx.translocation;
+            return (
+              <Section title="Translocation Context" className="print:hidden">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-sm text-slate-300">
+                  <div>
+                    <div className="text-xs text-slate-400">Applies</div>
+                    <div className="text-slate-100">{t.applies ? 'Yes' : 'No'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-400">Method</div>
+                    <div className="text-slate-100">{t.method || 'Natal'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-400">House System</div>
+                    <div className="text-slate-100">{t.house_system || 'Placidus'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-400">TZ</div>
+                    <div className="text-slate-100">{t.tz || (personA?.timezone || '—')}</div>
+                  </div>
+                </div>
+              </Section>
+            );
           })()}
           {(() => {
             const summary = result?.person_a?.derived?.seismograph_summary;

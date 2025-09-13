@@ -20,6 +20,7 @@ const API_ENDPOINTS = {
 
 // Simplified logging utility to avoid external dependencies
 const { mapT2NAspects } = require('../../src/raven-lite-mapper');
+const { composeWovenMapReport } = require('../../src/reporters/woven-map-composer');
 const logger = {
   log: (...args) => console.log(`[LOG]`, ...args),
   info: (...args) => console.info(`[INFO]`, ...args),
@@ -1593,7 +1594,7 @@ exports.handler = async function(event) {
         calibration_boundary: CALIBRATION_BOUNDARY,
         engine_versions: { seismograph: 'v1.0', balance: 'v1.1', sfd: 'v1.2' }
       },
-      context: { mode: modeToken || 'UNKNOWN' },
+  context: { mode: modeToken || 'UNKNOWN' },
       mirror_ready: true,
       contract: 'clear-mirror/1.2',
       person_a: { details: personA }
@@ -1605,6 +1606,19 @@ exports.handler = async function(event) {
     if (relationshipMode && relContextValidation.valid && relContextValidation.value) {
       result.relationship = relContextValidation.value;
     }
+
+    // Attach translocation (relocation) context from request if provided (data-only)
+    try {
+      const tl = body.translocation || body.context?.translocation || null;
+      if (tl) {
+        result.context.translocation = {
+          applies: !!tl.applies,
+          method: tl.method || (tl.applies ? 'custom' : 'Natal'),
+          house_system: tl.house_system || 'Placidus',
+          tz: tl.tz || (personA.timezone || 'UTC')
+        };
+      }
+    } catch { /* ignore */ }
 
     // Extract additional parameters for API calculations (including transits)
     const pass = {};
@@ -2154,6 +2168,14 @@ exports.handler = async function(event) {
       }
       return out;
     }
+    // Attach a data-only Woven Map report (does not add VOICE content)
+    try {
+      const period = (start && end) ? { start, end, step } : null;
+      result.woven_map = composeWovenMapReport({ result, mode: modeToken, period });
+    } catch (e) {
+      logger.warn('Woven Map composer failed:', e.message);
+    }
+
     const safeResult = scrubNarrativeKeys(result);
     return { statusCode: 200, body: JSON.stringify(safeResult) };
   } catch (error) {

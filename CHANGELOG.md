@@ -14,6 +14,10 @@ Verification
 - Confirm pill appears, "Load context" pre-fills input, "Dismiss" hides the pill.
 - Banner shows once on deep-link; dismissible. No change to existing flows.
 
+Delta (follow-up)
+- Auth callback after Google login now routes to `/chat?from=math-brain` to surface the confirmation banner reliably.
+- Reduced lint noise in `components/ChatClient.tsx` by converting several high-noise inline styles to Tailwind (HelpModal, header logo/badges/buttons, main grid, scroll FAB, End Reading footer). Behavior and copy unchanged.
+
 ## [2025-09-12] FEATURE: Math Brain v1.6 — Export/Print, Handoff, Session Resume
 
 Summary
