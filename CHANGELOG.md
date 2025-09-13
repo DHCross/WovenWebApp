@@ -1,3 +1,10 @@
+## [Unreleased]
+
+- FEATURE: Honor explicit time_policy on server (planetary_only, whole_sign, sensitivity_scan)
+   - planetary_only/sensitivity_scan suppress house/angle semantics by excluding angles in active_points
+   - whole_sign prefers houses_system_identifier=Whole_Sign and marks time_precision=noon_fallback
+   - provenance meta (person_a.meta, person_b.meta, provenance.time_meta_*) reflect chosen policy
+
 ## [2025-09-12] UPDATE: Poetic Brain v1.7 — Resume Pill (Local QA)
 
 Summary

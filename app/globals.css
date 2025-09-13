@@ -1,3 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base dark theme for the app */
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html, body {
+    height: 100%;
+  }
+  body {
+    /* Global background + text colors */
+    @apply bg-slate-950 text-slate-100 antialiased;
+  }
+  a {
+    @apply text-indigo-400 hover:text-indigo-300 underline-offset-2;
+  }
+}
+
+/* Optional containers/helpers */
+@layer components {
+  .container-responsive {
+    @apply mx-auto max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+}
 /* Tailwind base/components/utilities for App Router pages */
 @tailwind base;
 @tailwind components;

@@ -24,6 +24,9 @@ Exit tinker with an empty line.
 - Optionally set it as the Default Build Task so Cmd+Shift+B runs it.
 - If you change .env, restart the Netlify Dev task to reload environment variables.
 
+Auth quick check:
+- Run Task → "Auth: Check Config" for local env, or "Auth: Check Config (Prod URL)" to test your Netlify site.
+
 Open a browser automatically:
 - Run and Debug → "Start Dev + Open Browser (Chrome)". This launches http://localhost:8888 and starts the dev servers first.
 
@@ -35,10 +38,26 @@ Runs `npm run dev` and `npm run dev:tailwind` in parallel (via concurrently).
 
 ## Export/Print & Handoff (Math Brain v1.6)
 
-- Print button: prints a clean report with only Balance Meter and Raw Geometry (UI chrome, forms, and debug blocks are hidden in print).
+- Print button: prints a clean report with only Balance Meter (Astro Reports) and Raw Geometry (UI chrome, forms, and debug blocks are hidden in print).
 - Download JSON: saves the full API payload to a file like `math-brain-result-YYYYMMDD.json`.
 - Open in Poetic Brain →: saves a compact `mb.lastSession` snapshot in localStorage and navigates to `/chat?from=math-brain`.
 	- The handoff button is enabled when you’re signed in (Auth0). If not signed in, it appears disabled with a tooltip.
+
+## Report Types (Math Brain v1.7)
+
+Math Brain now supports two report types. The selection persists in `localStorage.mb.reportType` and can be preselected via a query param.
+
+- Balance Meter (Astro Reports, on-screen):
+	- Renders gauges and data views directly in Math Brain.
+	- Print and Download JSON are available.
+	- Deep-link: `/math-brain?report=balance`.
+
+- Mirror (handoff only):
+	- Computes geometry and writes a compact `mb.lastSession` snapshot.
+	- Immediately navigates to `/chat?from=math-brain` if the request succeeds.
+	- Requires Auth0 sign-in to proceed (button disabled until authed).
+	- On network/API error: no navigation, no `mb.lastSession` write; a small toast shows “Mirror preparation failed”.
+	- Deep-link: `/math-brain?report=mirror`.
 
 ### Session Resume
 
@@ -101,3 +120,48 @@ MODEL_PROVIDER=gemini
 MODEL_API_KEY=
 ```
 Do not expose secrets to client.
+
+## Auth Troubleshooting (Auth0 SPA)
+
+Keep SPA approach (no @auth0/nextjs-auth0). Auth flow uses the Auth0 SPA SDK loaded from `/public/vendor` and the config endpoint at `/api/auth-config`.
+
+Required Auth0 Application settings (Dashboard → Applications → Your App):
+- Application Type: Single Page Application
+- Allowed Callback URLs:
+	- http://localhost:4000/math-brain
+	- http://localhost:8888/math-brain
+	- https://<your-site>.netlify.app/math-brain
+	- https://ravencalder.com/math-brain
+- Allowed Logout URLs:
+	- http://localhost:4000/
+	- http://localhost:8888/
+	- https://<your-site>.netlify.app/
+	- https://ravencalder.com/
+- Allowed Web Origins:
+	- http://localhost:4000
+	- http://localhost:8888
+	- https://<your-site>.netlify.app
+	- https://ravencalder.com
+- Connections: Ensure Google (google-oauth2) is enabled for this application
+
+Environment variables (local and Netlify):
+- AUTH0_DOMAIN (no protocol, e.g., your-tenant.us.auth0.com)
+- AUTH0_CLIENT_ID
+- AUTH0_AUDIENCE (optional, not the Management API)
+
+Smoke checks:
+1) Start dev: Run Task → "Start All Dev Servers (Netlify & Tailwind)"
+2) Check config: Run Task → "Auth: Check Config" (or `npm run auth:check`)
+3) GET http://localhost:8888/api/auth-config → JSON contains `domain` and `clientId`
+4) Visit /math-brain → Sign in → Google prompt → returns to /math-brain (URL cleaned) → navigates to /chat?from=math-brain
+5) Direct /chat unauthenticated → redirected away (gated by RequireAuth)
+
+Common pitfalls:
+- AUTH0_DOMAIN includes https:// — remove the protocol
+- Callback/Origin URLs mismatch (missing /math-brain on callback)
+- Google connection not enabled for the specific application
+- Netlify env vars not set or deploy needs a redeploy to pick up changes
+
+Math Brain UX notes
+- Report Types: `/math-brain?report=balance` shows on-screen gauges; `/math-brain?report=mirror` prepares a handoff to Poetic Brain and requires Auth0 sign-in. Mirror never renders on-screen meters.
+- Include Person B: The toggle appears near the top controls and again inside Relationship Context; both stay in sync. Relational modes are disabled unless Person B is included and has valid details.

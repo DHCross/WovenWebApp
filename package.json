@@ -30,7 +30,8 @@
     "smoke-test": "npm run test:all",
     "fix:auth0": "node scripts/fix-auth0.js",
     "smoke:auth0": "node scripts/smoke-auth0.js",
-    "postinstall": "if [ -f package.json ] && node -e \"try{require('concurrently')}catch(e){process.exit(1)}\"; then echo 'concurrently already installed'; else echo 'Installing concurrently...'; npm i -D concurrently; fi"
+    "postinstall": "if [ -f package.json ] && node -e \"try{require('concurrently')}catch(e){process.exit(1)}\"; then echo 'concurrently already installed'; else echo 'Installing concurrently...'; npm i -D concurrently; fi",
+    "auth:check": "node scripts/auth-config-check.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -38,11 +39,13 @@
     "jsonwebtoken": "^9.0.2",
     "jszip": "^3.10.1",
     "jwks-rsa": "^3.2.0",
+    "luxon": "^3.4.4",
     "next": "14.2.5",
     "node-fetch": "^2.7.0",
     "pdfjs-dist": "^5.4.149",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "tz-lookup": "^6.1.25",
     "uuid": "^9.0.1",
     "zod": "^3.23.8"
   },

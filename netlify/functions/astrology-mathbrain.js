@@ -63,6 +63,47 @@ function normalizeStep(step) {
   return 'daily';
 }
 
+// Derive time provenance for a subject based on presence of hour/minute
+function deriveTimeMeta(subject) {
+  const h = subject?.hour;
+  const m = subject?.minute;
+  const known = (h !== undefined && h !== null) && (m !== undefined && m !== null);
+  const pad2 = (n)=> String(n).padStart(2, '0');
+  return {
+    birth_time_known: !!known,
+    time_precision: known ? 'exact' : 'unknown',
+    effective_time_used: known ? `${pad2(h)}:${pad2(m)}` : undefined
+  };
+}
+
+// Canonicalize an incoming time policy token
+function canonicalizeTimePolicy(raw) {
+  if (!raw) return 'user_provided';
+  const t = String(raw).trim().toLowerCase();
+  if (t === 'planetary_only' || t === 'planetary-only' || t === 'planetary') return 'planetary_only';
+  if (t === 'whole_sign' || t === 'whole-sign' || t === 'wholesign' || t === 'whole') return 'whole_sign';
+  if (t === 'sensitivity_scan' || t === 'sensitivity-scan' || t === 'scan') return 'sensitivity_scan';
+  return 'user_provided';
+}
+
+// Derive time provenance but honor explicit time_policy when birth time is unknown
+function deriveTimeMetaWithPolicy(subject, timePolicy) {
+  const base = deriveTimeMeta(subject);
+  const unknown = !base.birth_time_known;
+  if (!unknown) return base;
+  const policy = canonicalizeTimePolicy(timePolicy);
+  if (policy === 'planetary_only') {
+    return { birth_time_known: false, time_precision: 'unknown', effective_time_used: undefined };
+  }
+  if (policy === 'whole_sign') {
+    return { birth_time_known: false, time_precision: 'noon_fallback', effective_time_used: '12:00' };
+  }
+  if (policy === 'sensitivity_scan') {
+    return { birth_time_known: false, time_precision: 'range_scan', effective_time_used: undefined };
+  }
+  return base;
+}
+
 function validateSubjectLean(s = {}) {
   const req = ['year','month','day','hour','minute','latitude','longitude'];
   const missing = req.filter(k => s[k] === undefined || s[k] === null || s[k] === '');
@@ -269,6 +310,32 @@ function normalizeSubjectData(data) {
   }
 
   return normalized;
+}
+
+/**
+ * Convert internal normalized subject shape to Astrologer API Subject Model.
+ * Internal uses latitude, longitude, timezone; API expects lat, lng, tz_str.
+ * Keeps core birth fields and optional houses_system_identifier.
+ * @param {Object} s - Internal subject
+ * @param {Object} pass - Optional pass-through config (may include houses_system_identifier)
+ * @returns {Object} API SubjectModel
+ */
+function subjectToAPI(s = {}, pass = {}) {
+  if (!s) return {};
+  const apiSubject = {
+    name: s.name,
+    year: s.year, month: s.month, day: s.day,
+    hour: s.hour, minute: s.minute,
+    city: s.city, nation: s.nation,
+    lat: s.latitude ?? s.lat,
+    lng: s.longitude ?? s.lon ?? s.lng,
+    tz_str: s.timezone ?? s.tz_str,
+    zodiac_type: s.zodiac_type || 'Tropic'
+  };
+  // Only include houses_system_identifier if provided (either on subject or via pass)
+  const hsys = s.houses_system_identifier || pass.houses_system_identifier;
+  if (hsys) apiSubject.houses_system_identifier = hsys;
+  return apiSubject;
 }
 
 // ---- Aspect Filtering & Hook Extraction (refined) ----
@@ -591,26 +658,32 @@ function parseCoordinate(val){
 async function getTransits(subject, transitParams, headers, pass = {}) {
   if (!transitParams || !transitParams.startDate || !transitParams.endDate) return {};
 
+  const { buildWindowSamples } = require('../../lib/time-sampling');
   const transitsByDate = {};
   const retroFlagsByDate = {}; // body -> retro boolean per date
-  const startDate = new Date(transitParams.startDate);
-  const endDate = new Date(transitParams.endDate);
-  endDate.setDate(endDate.getDate() + 1); // Make end date inclusive
+
+  // Determine sampling timezone: prefer subject.timezone, else UTC
+  const ianaTz = subject?.timezone || 'UTC';
+  const step = normalizeStep(transitParams.step || 'daily');
+  const samples = buildWindowSamples({ start: transitParams.startDate, end: transitParams.endDate, step }, ianaTz);
 
   const promises = [];
-  for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
-    const dateString = d.toISOString().split('T')[0];
+  for (const sampleIso of samples) {
+    const dt = new Date(sampleIso);
+    const dateString = sampleIso.slice(0, 10); // YYYY-MM-DD
     const transit_subject = {
-      year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(),
-      hour: 12, minute: 0, city: "Greenwich", nation: "GB",
-      latitude: 51.48, longitude: 0, timezone: "UTC",
-      zodiac_type: "Tropic" // Fix: Add missing zodiac_type
+      year: dt.getUTCFullYear(), month: dt.getUTCMonth() + 1, day: dt.getUTCDate(),
+      hour: dt.getUTCHours(), minute: dt.getUTCMinutes(),
+      city: subject.city || 'Greenwich', nation: subject.nation || 'GB',
+      latitude: subject.latitude ?? 51.48, longitude: subject.longitude ?? 0,
+      timezone: 'UTC', // sending UTC instant to upstream transit engine
+      zodiac_type: 'Tropic'
     };
 
     // Include configuration parameters for which planets to include
     const payload = {
-      first_subject: subject,
-      transit_subject,
+      first_subject: subjectToAPI(subject, pass),
+      transit_subject: subjectToAPI(transit_subject, pass),
       ...pass // Include active_points, active_aspects, etc.
     };
 
@@ -667,7 +740,7 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
   await Promise.all(promises);
   
   logger.debug(`getTransits completed for ${subject.name}:`, {
-    requestedDates: Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)),
+    requestedDates: samples.length,
     datesWithData: Object.keys(transitsByDate).length,
     totalAspects: Object.values(transitsByDate).reduce((sum, aspects) => sum + aspects.length, 0),
     availableDates: Object.keys(transitsByDate)
@@ -922,8 +995,8 @@ async function computeComposite(A, B, pass = {}, H) {
     });
     
     const payload = {
-      first_subject: A,
-      second_subject: B,
+      first_subject: subjectToAPI(A, pass),
+      second_subject: subjectToAPI(B, pass),
       ...pass,
     };
     
@@ -1316,8 +1389,8 @@ async function computeCompositeTransits(compositeRaw, start, end, step, pass = {
 
     // Create payload with composite chart as first_subject and current date as transit_subject
     const payload = {
-      first_subject: compositeRaw, // Use composite chart as the base chart
-      transit_subject,             // Current transiting planets
+      first_subject: subjectToAPI(compositeRaw, pass), // Use composite chart as the base chart
+      transit_subject: subjectToAPI(transit_subject, pass), // Current transiting planets
       ...pass                      // Include any additional parameters
     };
 
@@ -1413,20 +1486,23 @@ exports.handler = async function(event) {
       };
     }
 
-    // Inputs
-    const personA = normalizeSubjectData(body.personA || body.person_a || body.first_subject || body.subject);
+  // Inputs
+  const personA = normalizeSubjectData(body.personA || body.person_a || body.first_subject || body.subject);
     const personB = normalizeSubjectData(body.personB || body.person_b || body.second_subject);
     // Use strict validator for full chart endpoints, lean for aspects-only
   // Accept multiple ways of specifying mode, including saved JSON shapes
   const modeHint = body.context?.mode || body.mode || body.contextMode?.relational || body.contextMode?.solo || '';
   const modeToken = canonicalizeMode(modeHint);
+  // Time policy: read early so we can apply fallback time before validation when birth time is unknown
+  const timePolicy = canonicalizeTimePolicy(body.time_policy || body.timePolicy || body.birth_time_policy);
     const wantNatalAspectsOnly = modeToken === 'NATAL_ASPECTS' || event.path?.includes('natal-aspects-data');
     const wantBirthData = modeToken === 'BIRTH_DATA' || event.path?.includes('birth-data');
     const wantSynastry = modeToken === 'SYNASTRY' || modeToken === 'SYNASTRY_TRANSITS';
     const wantSynastryAspectsOnly = modeToken === 'SYNASTRY_ASPECTS' || event.path?.includes('synastry-aspects-data');
     const wantComposite = modeToken === 'COMPOSITE' || modeToken === 'COMPOSITE_ASPECTS' || modeToken === 'COMPOSITE_TRANSITS' || body.wantComposite === true;
     const wantSkyTransits = modeToken === 'SKY_TRANSITS' || modeToken === 'WEATHER' || body.context?.type === 'weather';
-    const wantBalanceMeter = modeToken === 'BALANCE_METER' || body.context?.mode === 'balance_meter';
+  const wantBalanceMeter = modeToken === 'BALANCE_METER' || body.context?.mode === 'balance_meter';
+  const includeTransitTag = !!body.includeTransitTag;
 
     // --- Relationship Context Validation (Partner / Friend / Family) ---
     // Canonical enumerations supplied by product spec
@@ -1500,6 +1576,23 @@ exports.handler = async function(event) {
     }
 
 
+  // Keep originals for provenance/meta before applying fallback hour/minute
+  const personAOriginal = { ...personA };
+  const personBOriginal = personB && Object.keys(personB).length ? { ...personB } : null;
+
+  // Apply time_policy fallback for unknown birth time to satisfy API validators while preserving provenance
+    const applyFallbackTime = (s) => {
+      if (!s) return s;
+      const missing = s.hour == null || s.minute == null;
+      if (!missing) return s;
+      if (timePolicy === 'planetary_only' || timePolicy === 'whole_sign' || timePolicy === 'sensitivity_scan') {
+        return { ...s, hour: 12, minute: 0 };
+      }
+      return s;
+    };
+    Object.assign(personA, applyFallbackTime(personA));
+    Object.assign(personB, applyFallbackTime(personB));
+
     const vA = (wantNatalAspectsOnly || wantBirthData) ? validateSubjectLean(personA) : validateSubject(personA);
     if (!vA.isValid) {
       return {
@@ -1558,9 +1651,11 @@ exports.handler = async function(event) {
       }
     }
 
-    const start = body.transitStartDate || body.transit_start_date || body.transitParams?.startDate || body.transit?.startDate;
-    const end   = body.transitEndDate   || body.transit_end_date   || body.transitParams?.endDate || body.transit?.endDate;
-    const step  = normalizeStep(body.transitStep || body.transit_step || body.transitParams?.step || body.transit?.step);
+  // Accept both legacy transit* fields and a consolidated body.window = { start, end, step }
+    const win = body.window || body.transit_window || null;
+    const start = (win && (win.start || win.startDate)) || body.start || body.startDate || body.transitStartDate || body.transit_start_date || body.transitParams?.startDate || body.transit?.startDate;
+    const end   = (win && (win.end || win.endDate))     || body.end   || body.endDate   || body.transitEndDate   || body.transit_end_date   || body.transitParams?.endDate || body.transit?.endDate;
+    const step  = normalizeStep((win && (win.step || win.interval)) || body.step || body.interval || body.transitStep || body.transit_step || body.transitParams?.step || body.transit?.step);
     const haveRange = Boolean(start && end);
     
     // Debug logging for Balance Meter logic - Part 2
@@ -1570,7 +1665,7 @@ exports.handler = async function(event) {
       end
     });
 
-    let headers;
+  let headers;
     try {
       headers = buildHeaders();
     } catch (e) {
@@ -1584,6 +1679,108 @@ exports.handler = async function(event) {
       };
     }
 
+    // Early safety: LOCATION_REQUIRED when Balance Meter (or Mirror+climate) lacks transit location
+    const hasLoc = (s)=> s && typeof s.latitude === 'number' && typeof s.longitude === 'number' && !!s.timezone;
+    // Transit subjects: allow explicit transit_subject, else default to personA
+    const transitA_raw = body.transit_subject || personA;
+    const transitB_raw = body.transit_subject_B || body.second_transit_subject || personB;
+
+    // Relocation mode (data-only intent)
+    const relocationMode = (body.relocation_mode || body.translocation?.method || 'None');
+
+    if (wantBalanceMeter) {
+      if (!haveRange) {
+        return { statusCode: 400, body: JSON.stringify({ code:'WINDOW_REQUIRED', error:'Balance Meter requires a time window (start, end, step)', errorId: generateErrorId() }) };
+      }
+      if (!hasLoc(transitA_raw)) {
+        return { statusCode: 400, body: JSON.stringify({ code:'LOCATION_REQUIRED', error:'Balance Meter requires latitude, longitude, and timezone', errorId: generateErrorId() }) };
+      }
+      if (personB && Object.keys(personB).length && !hasLoc(transitB_raw || {})) {
+        return { statusCode: 400, body: JSON.stringify({ code:'LOCATION_REQUIRED', error:'Balance Meter dyad requires location for Person B', errorId: generateErrorId() }) };
+      }
+    } else if ((modeToken === 'MIRROR' || body.context?.mode === 'mirror') && includeTransitTag) {
+      if (!hasLoc(transitA_raw)) {
+        return { statusCode: 400, body: JSON.stringify({ code:'LOCATION_REQUIRED', error:'Mirror with Climate Tag requires location', errorId: generateErrorId() }) };
+      }
+    }
+
+    // Build API-shaped subjects now so timezone checks apply to effective transit subjects
+    const natalA = personA; // already normalized
+    const natalB = personB && Object.keys(personB).length ? personB : null;
+    let transitA = { ...transitA_raw };
+    let transitB = transitB_raw ? { ...transitB_raw } : (natalB ? { ...natalB } : null);
+
+    // Apply relocation modes
+    if (relocationMode === 'Midpoint' && transitB) {
+      if (typeof transitA.latitude !== 'number' || typeof transitA.longitude !== 'number' || typeof transitB.latitude !== 'number' || typeof transitB.longitude !== 'number') {
+        return { statusCode: 400, body: JSON.stringify({ code:'LOCATION_REQUIRED', error:'Midpoint relocation requires coords for both persons', errorId: generateErrorId() }) };
+      }
+      const mid = (function midpointCoords(lat1, lon1, lat2, lon2){
+        const toRad = d => d * Math.PI / 180; const toDeg = r => r * 180 / Math.PI;
+        const φ1 = toRad(lat1), λ1 = toRad(lon1); const φ2 = toRad(lat2), λ2 = toRad(lon2);
+        const x1 = Math.cos(φ1) * Math.cos(λ1), y1 = Math.cos(φ1) * Math.sin(λ1), z1 = Math.sin(φ1);
+        const x2 = Math.cos(φ2) * Math.cos(λ2), y2 = Math.cos(φ2) * Math.sin(λ2), z2 = Math.sin(φ2);
+        const xm = (x1+x2)/2, ym=(y1+y2)/2, zm=(z1+z2)/2; const φm = Math.atan2(zm, Math.sqrt(xm*xm+ym*ym)); const λm = Math.atan2(ym, xm);
+        return { latitude: toDeg(φm), longitude: toDeg(λm) };
+      })(transitA.latitude, transitA.longitude, transitB.latitude, transitB.longitude);
+      try {
+        const tz = require('tz-lookup')(mid.latitude, mid.longitude);
+        transitA = { ...transitA, latitude: mid.latitude, longitude: mid.longitude, timezone: tz };
+        transitB = transitB ? { ...transitB, latitude: mid.latitude, longitude: mid.longitude, timezone: tz } : transitB;
+      } catch {
+        return { statusCode: 422, body: JSON.stringify({ code:'HOUSES_UNSTABLE', error:'Midpoint timezone lookup failed; try custom location', errorId: generateErrorId() }) };
+      }
+    } else if (relocationMode === 'B_local') {
+      if (natalB && transitB && hasLoc(transitB)) {
+        // leave as provided
+      } else if (natalB) {
+        return { statusCode: 400, body: JSON.stringify({ code:'LOCATION_REQUIRED', error:'B_local requires coords for Person B', errorId: generateErrorId() }) };
+      }
+    } else if (relocationMode === 'Custom' && body.custom_location) {
+      const c = body.custom_location;
+      if (typeof c.latitude !== 'number' || typeof c.longitude !== 'number') {
+        return { statusCode: 400, body: JSON.stringify({ code:'LOCATION_REQUIRED', error:'Custom relocation requires coords', errorId: generateErrorId() }) };
+      }
+      try {
+        const tz = c.timezone || require('tz-lookup')(c.latitude, c.longitude);
+        transitA = { ...transitA, latitude: c.latitude, longitude: c.longitude, timezone: tz };
+        if (transitB) transitB = { ...transitB, latitude: c.latitude, longitude: c.longitude, timezone: tz };
+      } catch {
+        return { statusCode: 400, body: JSON.stringify({ code:'TZ_LOOKUP_FAIL', error:'Could not resolve custom timezone', errorId: generateErrorId() }) };
+      }
+    }
+
+    // TZ mismatch detection for A (+B if present)
+    try {
+      if (hasLoc(transitA)) {
+        const tz = require('tz-lookup')(transitA.latitude, transitA.longitude);
+        if (transitA.timezone && transitA.timezone !== tz) {
+          return { statusCode: 400, body: JSON.stringify({ code:'TZ_MISMATCH', error:'Provided timezone does not match coordinates', suggested_timezone: tz, errorId: generateErrorId() }) };
+        }
+        if (!transitA.timezone) transitA.timezone = tz;
+      }
+      if (transitB && hasLoc(transitB)) {
+        const tzB = require('tz-lookup')(transitB.latitude, transitB.longitude);
+        if (transitB.timezone && transitB.timezone !== tzB) {
+          return { statusCode: 400, body: JSON.stringify({ code:'TZ_MISMATCH', error:'Provided timezone for Person B does not match coordinates', suggested_timezone: tzB, errorId: generateErrorId() }) };
+        }
+        if (!transitB.timezone) transitB.timezone = tzB;
+      }
+    } catch {
+      // fall through; if tz-lookup failed we return a generic
+    }
+
+    // High-latitude guard
+    const unstable = (lat)=> Math.abs(Number(lat)) >= 66.0;
+    if (hasLoc(transitA) && unstable(transitA.latitude)) {
+      return { statusCode: 422, body: JSON.stringify({ code:'HOUSES_UNSTABLE', error:'House math may be unstable at this latitude; consider whole-sign or different location', errorId: generateErrorId() }) };
+    }
+    if (transitB && hasLoc(transitB) && unstable(transitB.latitude)) {
+      return { statusCode: 422, body: JSON.stringify({ code:'HOUSES_UNSTABLE', error:'House math may be unstable for Person B at this latitude; consider whole-sign or different location', errorId: generateErrorId() }) };
+    }
+
+  // timePolicy is already determined earlier to allow fallback time before validation
+
     const result = { 
       schema: 'WM-Chart-1.2', 
       provenance: {
@@ -1592,16 +1789,18 @@ exports.handler = async function(event) {
         build_ts: new Date().toISOString(),
         timezone: personA.timezone || 'UTC',
         calibration_boundary: CALIBRATION_BOUNDARY,
-        engine_versions: { seismograph: 'v1.0', balance: 'v1.1', sfd: 'v1.2' }
+        engine_versions: { seismograph: 'v1.0', balance: 'v1.1', sfd: 'v1.2' },
+        time_meta_a: deriveTimeMetaWithPolicy(personAOriginal, timePolicy)
       },
-  context: { mode: modeToken || 'UNKNOWN' },
+      context: { mode: modeToken || 'UNKNOWN' },
       mirror_ready: true,
       contract: 'clear-mirror/1.2',
-      person_a: { details: personA }
+      person_a: { details: personAOriginal, meta: deriveTimeMetaWithPolicy(personAOriginal, timePolicy) }
     };
     // Eagerly initialize Person B details in any relationship mode so UI never loses the panel
     if (relationshipMode && personB && Object.keys(personB).length) {
-      result.person_b = { details: personB };
+      result.person_b = { details: personBOriginal || personB, meta: deriveTimeMetaWithPolicy(personBOriginal || personB, timePolicy) };
+      result.provenance.time_meta_b = deriveTimeMetaWithPolicy(personBOriginal || personB, timePolicy);
     }
     if (relationshipMode && relContextValidation.valid && relContextValidation.value) {
       result.relationship = relContextValidation.value;
@@ -1621,7 +1820,7 @@ exports.handler = async function(event) {
     } catch { /* ignore */ }
 
     // Extract additional parameters for API calculations (including transits)
-    const pass = {};
+  const pass = {};
     ['active_points','active_aspects','houses_system_identifier','sidereal_mode','perspective_type']
       .forEach(k => { if (body[k] !== undefined) pass[k] = body[k]; });
     // Quarantine UI/VOICE flags so they never touch math layer
@@ -1638,6 +1837,16 @@ exports.handler = async function(event) {
         'Ascendant','Medium_Coeli','Descendant','Imum_Coeli'
       ];
       logger.debug('Setting default active_points (includes True nodes & full angle set)');
+    }
+    // Time policy can suppress house/angle semantics: remove angles when policy forbids houses
+    if (timePolicy === 'planetary_only' || timePolicy === 'sensitivity_scan') {
+      pass.active_points = pass.active_points.filter(p => !['Ascendant','Medium_Coeli','Descendant','Imum_Coeli'].includes(p));
+      logger.debug('Time policy excludes angular points for transits');
+    }
+    // Whole-sign preference: user allows houses with noon fallback; prefer whole-sign house system
+    if (timePolicy === 'whole_sign' && !pass.houses_system_identifier) {
+      pass.houses_system_identifier = 'Whole_Sign';
+      logger.debug('Time policy set houses_system_identifier=Whole_Sign');
     }
 
     // Ensure active_aspects includes all major aspects if not explicitly set
@@ -1699,14 +1908,14 @@ exports.handler = async function(event) {
     if (wantBirthData) {
       natalResponse = await apiCallWithRetry(
         API_ENDPOINTS.BIRTH_DATA,
-        { method: 'POST', headers, body: JSON.stringify({ subject: personA }) },
+        { method: 'POST', headers, body: JSON.stringify({ subject: subjectToAPI(personA, pass) }) },
         'Birth data (A)'
       );
       result.person_a.birth_data = stripGraphicsDeep(natalResponse.data || {});
     } else if (wantNatalAspectsOnly) {
       natalResponse = await apiCallWithRetry(
         API_ENDPOINTS.NATAL_ASPECTS_DATA,
-        { method: 'POST', headers, body: JSON.stringify({ subject: personA }) },
+        { method: 'POST', headers, body: JSON.stringify({ subject: subjectToAPI(personA, pass) }) },
         'Natal aspects data (A)'
       );
       const chartData = stripGraphicsDeep(natalResponse.data || {});
@@ -1715,13 +1924,25 @@ exports.handler = async function(event) {
     } else {
       natalResponse = await apiCallWithRetry(
         API_ENDPOINTS.BIRTH_CHART,
-        { method: 'POST', headers, body: JSON.stringify({ subject: personA }) },
+        { method: 'POST', headers, body: JSON.stringify({ subject: subjectToAPI(personA, pass) }) },
         'Birth chart (A)'
       );
       const chartData = stripGraphicsDeep(natalResponse.data || {});
       result.person_a.chart = chartData;
       result.person_a.aspects = Array.isArray(natalResponse.aspects) ? natalResponse.aspects : (chartData.aspects || []);
     }
+
+    // Birth-time suppression marker
+    try {
+  const birthTimeMissing = (s) => s?.hour == null || s?.minute == null;
+  // Policy drives suppression: for unknown birth time, planetary_only and sensitivity_scan suppress houses; whole_sign allows
+  const shouldSuppress = (s) => birthTimeMissing(s) && (timePolicy === 'planetary_only' || timePolicy === 'sensitivity_scan');
+  if (shouldSuppress(personAOriginal)) result.person_a.houses_suppressed = true;
+  if (result.person_b && shouldSuppress(personBOriginal || personB)) result.person_b.houses_suppressed = true;
+      // Keep meta aligned with suppression and policy
+  result.person_a.meta = Object.assign({}, result.person_a.meta, deriveTimeMetaWithPolicy(personAOriginal, timePolicy));
+  if (result.person_b) result.person_b.meta = Object.assign({}, result.person_b.meta || {}, deriveTimeMetaWithPolicy(personBOriginal || personB, timePolicy));
+    } catch {/* ignore */}
 
     // 2) Transits (optional; raw aspects by date, with advanced options)
     // Skip transit processing for natal_only mode even if date range is provided
@@ -1762,7 +1983,7 @@ exports.handler = async function(event) {
       }
     } else if (haveRange && !skipTransits) {
       // Use new getTransits and seismograph logic with configuration parameters
-  const { transitsByDate, retroFlagsByDate } = await getTransits(personA, { startDate: start, endDate: end, step }, headers, pass);
+      const { transitsByDate, retroFlagsByDate } = await getTransits(personA, { startDate: start, endDate: end, step }, headers, pass);
   result.person_a.chart = { ...result.person_a.chart, transitsByDate };
       // Raven-lite integration: flatten all aspects for derived.t2n_aspects
       const allAspects = Object.values(transitsByDate).flatMap(day => day);
@@ -1791,7 +2012,7 @@ exports.handler = async function(event) {
           try {
             const natalB = await apiCallWithRetry(
               API_ENDPOINTS.BIRTH_CHART,
-              { method: 'POST', headers, body: JSON.stringify({ subject: personB }) },
+              { method: 'POST', headers, body: JSON.stringify({ subject: subjectToAPI(personB, pass) }) },
               'Birth chart (B dual)'
             );
             const chartDataB = stripGraphicsDeep(natalB.data || {});
@@ -1841,7 +2062,7 @@ exports.handler = async function(event) {
           try {
             const natalB = await apiCallWithRetry(
               API_ENDPOINTS.BIRTH_CHART,
-              { method: 'POST', headers, body: JSON.stringify({ subject: personB }) },
+              { method: 'POST', headers, body: JSON.stringify({ subject: subjectToAPI(personB, pass) }) },
               'Birth chart (B implicit dual)'
             );
             const chartDataB = stripGraphicsDeep(natalB.data || {});
@@ -1882,7 +2103,7 @@ exports.handler = async function(event) {
       // Synastry aspects-only endpoint
       const syn = await apiCallWithRetry(
         API_ENDPOINTS.SYNASTRY_ASPECTS,
-        { method: 'POST', headers, body: JSON.stringify({ first_subject: personA, second_subject: personB }) },
+        { method: 'POST', headers, body: JSON.stringify({ first_subject: subjectToAPI(personA, pass), second_subject: subjectToAPI(personB, pass) }) },
         'Synastry aspects data'
       );
   const synData = stripGraphicsDeep(syn.data || {});
@@ -1918,7 +2139,7 @@ exports.handler = async function(event) {
       // Full synastry chart endpoint
       const syn = await apiCallWithRetry(
         API_ENDPOINTS.SYNASTRY_CHART,
-        { method: 'POST', headers, body: JSON.stringify({ first_subject: personA, second_subject: personB }) },
+        { method: 'POST', headers, body: JSON.stringify({ first_subject: subjectToAPI(personA, pass), second_subject: subjectToAPI(personB, pass) }) },
         'Synastry chart'
       );
   const synClean = stripGraphicsDeep(syn.data || {});
@@ -1999,7 +2220,7 @@ exports.handler = async function(event) {
         logger.debug('Computing synastry aspects for composite scaffolding');
         const syn = await apiCallWithRetry(
           API_ENDPOINTS.SYNASTRY_ASPECTS,
-          { method: 'POST', headers, body: JSON.stringify({ first_subject: personA, second_subject: personB }) },
+          { method: 'POST', headers, body: JSON.stringify({ first_subject: subjectToAPI(personA, pass), second_subject: subjectToAPI(personB, pass) }) },
           'Synastry aspects for composite scaffolding'
         );
         const synData = stripGraphicsDeep(syn.data || {});
@@ -2043,7 +2264,7 @@ exports.handler = async function(event) {
   // Step 2: Composite transits: TEMPORARILY DISABLED due to API compatibility issues
   // The transit API expects natal chart birth data but composite charts only have planetary positions
   // TODO: Investigate if there's a specific composite transit endpoint or if we need synthetic birth data
-  if (haveRange && !skipTransits && false) { // Disabled with && false
+  if (haveRange && !skipTransits && (modeToken === 'COMPOSITE_TRANSITS')) {
         logger.debug('Computing composite transits for date range:', { start, end, step });
         
         // Calculate transits to the composite chart using the composite chart as base
@@ -2085,8 +2306,8 @@ exports.handler = async function(event) {
         logger.debug('Composite transits completed with seismograph analysis');
       }
       
-      // Add note about disabled composite transits
-      if (haveRange && !skipTransits) {
+      // Add note about disabled composite transits only when not explicitly requested
+      if (haveRange && !skipTransits && modeToken !== 'COMPOSITE_TRANSITS') {
         result.composite.transitsByDate = {};
         result.composite.note = 'Composite transits temporarily disabled due to API compatibility issues';
         logger.debug('Composite transits disabled - returning empty transit data');

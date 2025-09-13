@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
+import { getRedirectUri } from "../lib/auth";
 
 type Auth0Client = {
   isAuthenticated: () => Promise<boolean>;
@@ -22,10 +23,19 @@ export default function HomeHero() {
   const [authed, setAuthed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [authCfg, setAuthCfg] = useState<{domain?: string; clientId?: string} | null>(null);
+  const enableDev = typeof window !== 'undefined' && String(process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS) === 'true';
   const clientRef = useRef<Auth0Client | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    // Safety timeout so UI doesn't appear stuck if functions or SDK never resolve
+    const safety = setTimeout(() => {
+      if (!cancelled) {
+        setError((prev) => prev || "Auth init slow or unavailable");
+        setReady(true);
+      }
+    }, 5000);
     async function init() {
       try {
         // Load Auth0 SPA SDK (served from public/vendor)
@@ -42,7 +52,7 @@ export default function HomeHero() {
         }
 
         // Fetch public Auth0 config (proxied to Netlify function)
-        let config;
+        let config: any;
         try {
           const res = await fetch("/api/auth-config", { cache: "no-store" });
           if (!res.ok) {
@@ -50,6 +60,7 @@ export default function HomeHero() {
           }
           config = await res.json();
           console.log("Auth config received:", config);
+          if (!cancelled) setAuthCfg({ domain: config?.domain, clientId: config?.clientId });
         } catch (fetchError) {
           // Fallback for development when Netlify functions aren't available
           console.warn("Could not fetch auth config, using development fallback:", fetchError);
@@ -71,7 +82,7 @@ export default function HomeHero() {
         const client = await creator({
           domain: String(config.domain).replace(/^https?:\/\//, ""),
           clientId: config.clientId,
-          authorizationParams: { redirect_uri: window.location.origin + "/" },
+          authorizationParams: { redirect_uri: getRedirectUri() },
         });
         clientRef.current = client;
 
@@ -108,6 +119,7 @@ export default function HomeHero() {
     init();
     return () => {
       cancelled = true;
+      clearTimeout(safety);
     };
   }, []);
 
@@ -115,7 +127,7 @@ export default function HomeHero() {
     try {
       await clientRef.current?.loginWithRedirect({
         authorizationParams: {
-          redirect_uri: window.location.origin + "/",
+          redirect_uri: getRedirectUri(),
           // If the Google connection is configured in Auth0, this triggers the Google login directly
           // Remove this line if you prefer the Universal Login page
           connection: "google-oauth2",
@@ -136,49 +148,33 @@ export default function HomeHero() {
 
         <div className="mt-6 flex flex-wrap gap-3">
           <a
-            href="/math-brain"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/math-brain?report=balance"
             className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-500"
+            title="Open Math Brain with Balance Meter"
           >
-            Open Math Brain
+            Open Math Brain (Astro Reports)
           </a>
 
-          {!ready && (
-            <button disabled className="rounded-md bg-slate-800 px-4 py-2 text-slate-400">
-              Loading auth…
-            </button>
-          )}
-
-          {ready && !authed && (
+          {ready && authed ? (
+            <a
+              href="/chat"
+              className="rounded-md px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-500"
+              title="Open Poetic Brain (Chat)"
+            >
+              Open Poetic Brain
+            </a>
+          ) : (
             <button
               onClick={loginWithGoogle}
               className="rounded-md border border-slate-700 bg-slate-800 px-4 py-2 text-slate-100 hover:bg-slate-700"
+              title="Sign in to enable Poetic Brain"
             >
               Continue with Google
             </button>
           )}
 
-          {ready && (
-            authed ? (
-              <a
-                href="/chat"
-                className="rounded-md px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-500"
-                title="Open Poetic Brain (Chat)"
-              >
-                Open Poetic Brain
-              </a>
-            ) : (
-              <span
-                role="link"
-                aria-disabled="true"
-                tabIndex={-1}
-                className="rounded-md px-4 py-2 cursor-not-allowed bg-slate-800 text-slate-500"
-                title="Sign in to enable Poetic Brain"
-              >
-                Open Poetic Brain
-              </span>
-            )
+          {!ready && (
+            <span className="rounded-md bg-slate-800 px-4 py-2 text-slate-400" aria-live="polite">Loading auth…</span>
           )}
         </div>
 
@@ -187,6 +183,11 @@ export default function HomeHero() {
         )}
         {error && (
           <p className="mt-3 text-xs text-rose-400">{error}</p>
+        )}
+        {enableDev && authCfg && (
+          <p className="mt-2 text-[11px] text-slate-500">
+            Auth config • domain: <span className="text-slate-300">{authCfg.domain || '—'}</span> • client: <span className="text-slate-300">{authCfg.clientId ? String(authCfg.clientId).slice(0,4) + '…' : '—'}</span>
+          </p>
         )}
       </div>
     </section>

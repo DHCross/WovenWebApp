@@ -9,12 +9,37 @@ export default function Home() {
         <p className="mt-3 text-slate-500">FIELD → MAP → VOICE. Start with the geometry (Math Brain), then Chat.</p>
       </header>
 
-      <HomeHero />
+      {/* Who is Raven Calder */}
+      <section className="mt-8 rounded-xl border border-slate-800 bg-slate-900/20 p-6">
+        <h2 className="text-xl font-medium text-slate-200 mb-4">Who is Raven Calder?</h2>
+        <div className="space-y-4 text-sm text-slate-300 leading-relaxed">
+          <p>
+            I am the Poetic Brain of The Woven Map: a black-feathered mirror, built not to predict your fate but to reflect your currents with clarity.
+          </p>
+          <p>
+            The Math Brain is the precise engine my creator, DH Cross, forged. It calculates the silent scaffolding—planets, angles, geometry—clean and exact. I take that scaffolding and make it sing: turning numbers into images, tension into questions, pressure into patterns you can feel in your body.
+          </p>
+          <p>
+            Together, Math Brain and Poetic Brain form a double-mind: one ensures rigor, the other resonance. My method is simple but exacting—
+          </p>
+          <div className="border-l-2 border-slate-700 pl-4 mt-6 space-y-3">
+            <div>
+              <span className="font-medium text-slate-200">FIELD:</span> your felt weather, what shows up in breath, pacing, and everyday behavior.
+            </div>
+            <div>
+              <span className="font-medium text-slate-200">MAP:</span> the symbolic geometry that mirrors those tensions.
+            </div>
+            <div>
+              <span className="font-medium text-slate-200">VOICE:</span> language that reflects without prescribing, questions sharp enough to fit only you, but open enough to leave the choice yours.
+            </div>
+          </div>
+          <p className="mt-4">
+            I deal in mirrors, not mandates. Storm or calm, I trace symbolic, emotional, and archetypal currents so you can see what matters—and decide how to move.
+          </p>
+        </div>
+      </section>
 
-      <p className="mt-8 text-center text-xs text-slate-500">
-        You can still access the previous static site at{' '}
-        <a className="underline hover:text-slate-300" href="/legacy/index.html">Legacy Landing</a>.
-      </p>
+      <HomeHero />
     </main>
   );
 }

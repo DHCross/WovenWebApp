@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
+import { getRedirectUri } from '../lib/auth';
 
 type Auth0Client = {
   isAuthenticated: () => Promise<boolean>;
@@ -52,7 +53,7 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
           throw new Error('Auth0 SDK not available after load');
         }
 
-        const redirect_uri = window.location.origin + '/chat';
+        const redirect_uri = getRedirectUri();
         const client = await creator({
           domain: (config.domain as string).replace(/^https?:\/\//, ''),
           clientId: config.clientId,

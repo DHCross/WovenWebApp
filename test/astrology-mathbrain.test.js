@@ -216,6 +216,46 @@ async function runTests() {
     runner.assert(response.composite.derived.seismograph_summary, 'Should include seismograph summary');
   });
 
+  // Time policy tests for unknown birth time handling
+  runner.test('Time policy: planetary_only suppresses houses when birth time unknown', async () => {
+    const { handler } = loadModule();
+    const A = { ...VALID_PERSON_A };
+    delete A.hour; delete A.minute; // simulate unknown birth time
+    const event = { httpMethod: 'POST', body: JSON.stringify({
+      personA: A,
+      context: { mode: 'NATAL_ASPECTS' }, // lean validation to allow missing time
+      time_policy: 'planetary_only',
+      transitParams: { startDate: '2024-01-01', endDate: '2024-01-01' }
+    }) };
+    const res = await handler(event);
+    runner.assertEqual(res.statusCode, 200, 'Response should be 200');
+    const body = JSON.parse(res.body);
+    runner.assert(body.person_a, 'person_a present');
+    runner.assert(body.person_a.meta, 'meta present');
+    runner.assertEqual(body.person_a.meta.time_precision, 'unknown', 'time_precision should be unknown');
+    runner.assert(body.person_a.houses_suppressed === true, 'houses should be suppressed under planetary_only');
+  });
+
+  runner.test('Time policy: whole_sign allows houses with noon_fallback when birth time unknown', async () => {
+    const { handler } = loadModule();
+    const A = { ...VALID_PERSON_A };
+    delete A.hour; delete A.minute; // simulate unknown birth time
+    const event = { httpMethod: 'POST', body: JSON.stringify({
+      personA: A,
+      context: { mode: 'NATAL_ASPECTS' }, // lean validation to allow missing time
+      time_policy: 'whole_sign',
+      transitParams: { startDate: '2024-01-01', endDate: '2024-01-01' }
+    }) };
+    const res = await handler(event);
+    runner.assertEqual(res.statusCode, 200, 'Response should be 200');
+    const body = JSON.parse(res.body);
+    runner.assert(body.person_a, 'person_a present');
+    runner.assert(body.person_a.meta, 'meta present');
+    runner.assertEqual(body.person_a.meta.time_precision, 'noon_fallback', 'time_precision should be noon_fallback');
+    runner.assertEqual(body.person_a.meta.effective_time_used, '12:00', 'effective_time_used should be 12:00');
+    runner.assert(body.person_a.houses_suppressed !== true, 'houses should not be suppressed under whole_sign');
+  });
+
   await runner.run();
 }
 
