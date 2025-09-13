@@ -13,11 +13,17 @@ export function needsLocation(
   s?: SubjectUI
 ) {
   const needsLoc = reportType === 'balance' || (reportType === 'mirror' && includeTransitTag);
-  const hasLat = s && typeof (s as any).latitude === 'number' && Number.isFinite(Number((s as any).latitude));
-  const hasLon = s && typeof (s as any).longitude === 'number' && Number.isFinite(Number((s as any).longitude));
+  // Accept numeric strings as valid lat/lon (e.g., "40.7128")
+  const maybeLat = (s as any)?.latitude;
+  const maybeLon = (s as any)?.longitude;
+  const hasLat = typeof maybeLat === 'number' || (typeof maybeLat === 'string' && maybeLat.trim() !== '' && Number.isFinite(Number(maybeLat)));
+  const hasLon = typeof maybeLon === 'number' || (typeof maybeLon === 'string' && maybeLon.trim() !== '' && Number.isFinite(Number(maybeLon)));
   const hasTz = !!(s as any)?.timezone;
   const hasLoc = !!s && hasLat && hasLon && hasTz;
-  const hasBirthTime = typeof s?.hour === 'number' || typeof s?.minute === 'number';
+  // Treat non-empty hour/minute strings as present for UI gating (detailed provenance left to server)
+  const hasHour = typeof (s as any)?.hour === 'number' || (typeof (s as any)?.hour === 'string' && (s as any).hour !== '');
+  const hasMinute = typeof (s as any)?.minute === 'number' || (typeof (s as any)?.minute === 'string' && (s as any).minute !== '');
+  const hasBirthTime = hasHour && hasMinute;
   return { needsLoc, hasLoc, hasBirthTime, canSubmit: !needsLoc || (needsLoc && hasLoc) };
 }
 // Relocation ("translocation") utilities

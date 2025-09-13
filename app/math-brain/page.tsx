@@ -115,6 +115,9 @@ export default function MathBrainPage() {
   type TimePolicyChoice = 'planetary_only'|'whole_sign'|'sensitivity_scan'|'user_provided';
   const timeUnknown = useMemo(() => isTimeUnknown(personA as any), [personA]);
   const [timePolicy, setTimePolicy] = useState<TimePolicyChoice>(() => (isTimeUnknown(personA as any) ? 'planetary_only' : 'user_provided'));
+  const timeUnknownB = useMemo(() => isTimeUnknown(personB as any), [personB]);
+  const allowUnknownA = useMemo(() => timeUnknown && timePolicy !== 'user_provided', [timeUnknown, timePolicy]);
+  const allowUnknownB = useMemo(() => timeUnknownB && timePolicy !== 'user_provided', [timeUnknownB, timePolicy]);
   useEffect(() => {
     if (!timeUnknown && timePolicy !== 'user_provided') {
       setTimePolicy('user_provided');
@@ -665,12 +668,13 @@ export default function MathBrainPage() {
       personA.timezone,
       personA.zodiac_type,
     ];
+    // Allow unknown birth time when user selected a time policy (non-user_provided)
+    const allowUnknownA = timeUnknown && timePolicy !== 'user_provided';
     const numbers = [
       Number(personA.year),
       Number(personA.month),
       Number(personA.day),
-      Number(personA.hour),
-      Number(personA.minute),
+      ...(allowUnknownA ? [] as number[] : [Number(personA.hour), Number(personA.minute)]),
       Number(personA.latitude),
       Number(personA.longitude),
     ];
@@ -684,7 +688,12 @@ export default function MathBrainPage() {
     // For relational modes, Person B must be included and minimally valid
   if (!includePersonB) return false;
   const bRequired = [personB.name, personB.city, personB.nation, personB.timezone, personB.zodiac_type];
-  const bNums = [Number(personB.year), Number(personB.month), Number(personB.day), Number(personB.hour), Number(personB.minute), Number(personB.latitude), Number(personB.longitude)];
+  const allowUnknownB = timeUnknownB && timePolicy !== 'user_provided';
+  const bNums = [
+    Number(personB.year), Number(personB.month), Number(personB.day),
+    ...(allowUnknownB ? [] as number[] : [Number(personB.hour), Number(personB.minute)]),
+    Number(personB.latitude), Number(personB.longitude)
+  ];
   const bOk = bRequired.every(Boolean) && bNums.every((n)=>!Number.isNaN(n)) && bCoordsValid;
 
     // Relationship context soft validation (backend will enforce precisely)
@@ -693,7 +702,7 @@ export default function MathBrainPage() {
     if (relationshipType === 'FAMILY') relOk = !!relationshipRole;
 
     return allPresent && bOk && relOk && Boolean(startDate) && Boolean(endDate);
-  }, [personA, personB, includePersonB, relationshipType, relationshipTier, relationshipRole, mode, startDate, endDate, aCoordsValid, bCoordsValid]);
+  }, [personA, personB, includePersonB, relationshipType, relationshipTier, relationshipRole, mode, startDate, endDate, aCoordsValid, bCoordsValid, timeUnknown, timeUnknownB, timePolicy]);
   const submitDisabled = useMemo(() => {
     // Additional relocation/report gate
     const locGate = needsLocation(reportType, false, personA); // includeTransitTag handled in backend; UI enforces for balance only
@@ -701,6 +710,34 @@ export default function MathBrainPage() {
     if (!canSubmit || loading) return true;
     return false;
   }, [canSubmit, loading, personA, reportType]);
+
+  // Debug panel toggle (append ?debug=1 to the URL to enable)
+  const debugMode = useMemo(() => {
+    try {
+      if (typeof window === 'undefined') return false;
+      return new URL(window.location.href).searchParams.get('debug') === '1';
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const debugInfo = useMemo(() => ({
+    reportType,
+    needsLocation: needsLocation(reportType, false, personA),
+    canSubmit,
+    submitDisabled,
+    authReady,
+    authed,
+    authClientPresent: !!authClientRef.current,
+    aCoordsValid,
+    bCoordsValid,
+    includePersonB,
+    timeUnknown,
+    timeUnknownB,
+    timePolicy,
+    personA_lat_type: typeof (personA as any).latitude,
+    personA_lon_type: typeof (personA as any).longitude,
+  }), [reportType, canSubmit, submitDisabled, authReady, authed, aCoordsValid, bCoordsValid, includePersonB, timeUnknown, timeUnknownB, timePolicy, personA]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -991,6 +1028,12 @@ export default function MathBrainPage() {
       )}
 
       <form onSubmit={onSubmit} className="mt-10 print:hidden">
+        {debugMode && (
+          <div className="mb-4 rounded-md border border-slate-600 bg-slate-900/60 p-3 text-xs text-slate-200">
+            <div className="font-medium mb-2">Debug — gating state</div>
+            <pre className="whitespace-pre-wrap break-words text-[12px]">{JSON.stringify(debugInfo, null, 2)}</pre>
+          </div>
+        )}
         {/* Session presets toolbar */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-700 bg-slate-900/50 p-3">
           <label className="inline-flex items-center gap-2 text-sm text-slate-200">
@@ -1087,88 +1130,86 @@ export default function MathBrainPage() {
                 required
               />
             </div>
-            <div className="grid grid-cols-5 gap-2">
-              <div>
-                <label htmlFor="a-year" className="block text-[11px] uppercase tracking-wide text-slate-300">Year</label>
-                <input
-                  id="a-year"
-                  type="text"
-                  inputMode="numeric"
-                  className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                  value={String(personA.year)}
-                  onChange={(e) => setPersonA({ ...personA, year: onlyDigits(e.target.value, 4) })}
-                  placeholder="YYYY"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="a-month" className="block text-[11px] uppercase tracking-wide text-slate-300">Month</label>
-                <select
-                  id="a-month"
-                  className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                  value={Number(personA.month) || 1}
-                  onChange={(e) => setPersonA({ ...personA, month: Number(e.target.value) })}
-                  required
-                >
-                  {months.map((m) => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="a-day" className="block text-[11px] uppercase tracking-wide text-slate-300">Day</label>
-                <input
-                  id="a-day"
-                  type="text"
-                  inputMode="numeric"
-                  className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                  value={pad2(personA.day as any)}
-                  onChange={(e) => {
-                    const v = pad2(e.target.value);
-                    const n = clampNum(v, 1, 31);
-                    setPersonA({ ...personA, day: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
-                  }}
-                  placeholder="DD"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="a-hour" className="block text-[11px] uppercase tracking-wide text-slate-300">Hour</label>
-                <input
-                  id="a-hour"
-                  type="text"
-                  inputMode="numeric"
-                  className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                  value={pad2(personA.hour as any)}
-                  onChange={(e) => {
-                    const v = pad2(e.target.value);
-                    const n = clampNum(v, 0, 23);
-                    setPersonA({ ...personA, hour: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
-                  }}
-                  placeholder="HH"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="a-minute" className="block text-[11px] uppercase tracking-wide text-slate-300">Minute</label>
-                <input
-                  id="a-minute"
-                  type="text"
-                  inputMode="numeric"
-                  className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                  value={pad2(personA.minute as any)}
-                  onChange={(e) => {
-                    const v = pad2(e.target.value);
-                    const n = clampNum(v, 0, 59);
-                    setPersonA({ ...personA, minute: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
-                  }}
-                  placeholder="MM"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
+              <div className="grid grid-cols-5 gap-2">
+                <div>
+                  <label htmlFor="a-year" className="block text-[11px] uppercase tracking-wide text-slate-300">Year</label>
+                  <input
+                    id="a-year"
+                    type="text"
+                    inputMode="numeric"
+                    className="mt-1 w-full min-w-[80px] h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    value={String(personA.year)}
+                    onChange={(e) => setPersonA({ ...personA, year: onlyDigits(e.target.value, 4) })}
+                    placeholder="YYYY"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="a-month" className="block text-[11px] uppercase tracking-wide text-slate-300">Month</label>
+                  <select
+                    id="a-month"
+                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 appearance-none"
+                    value={Number(personA.month) || 1}
+                    onChange={(e) => setPersonA({ ...personA, month: Number(e.target.value) })}
+                    required
+                  >
+                    {months.map((m) => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="a-day" className="block text-[11px] uppercase tracking-wide text-slate-300">Day</label>
+                  <input
+                    id="a-day"
+                    type="text"
+                    inputMode="numeric"
+                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    value={pad2(personA.day as any)}
+                    onChange={(e) => {
+                      const v = pad2(e.target.value);
+                      const n = clampNum(v, 1, 31);
+                      setPersonA({ ...personA, day: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
+                    }}
+                    placeholder="DD"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="a-hour" className="block text-[11px] uppercase tracking-wide text-slate-300">Hour</label>
+                  <input
+                    id="a-hour"
+                    type="text"
+                    inputMode="numeric"
+                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    value={pad2(personA.hour as any)}
+                    onChange={(e) => {
+                      const v = pad2(e.target.value);
+                      const n = clampNum(v, 0, 23);
+                      setPersonA({ ...personA, hour: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
+                    }}
+                    placeholder="HH"
+                    required={!allowUnknownA}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="a-minute" className="block text-[11px] uppercase tracking-wide text-slate-300">Minute</label>
+                  <input
+                    id="a-minute"
+                    type="text"
+                    inputMode="numeric"
+                    className="mt-1 w-full min-w-[60px] h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    value={pad2(personA.minute as any)}
+                    onChange={(e) => {
+                      const v = pad2(e.target.value);
+                      const n = clampNum(v, 0, 59);
+                      setPersonA({ ...personA, minute: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
+                    }}
+                    placeholder="MM"
+                    required={!allowUnknownA}
+                  />
+                </div>
+              </div>            <div>
               <label htmlFor="a-city" className="block text-[11px] uppercase tracking-wide text-slate-300">City</label>
               <input
                 id="a-city"
@@ -1301,31 +1342,6 @@ export default function MathBrainPage() {
               </div>
             )}
             </div>
-            {/* Relocation (Optional) — always visible under Person A */}
-            <div className="sm:col-span-2 mt-2">
-              <label htmlFor="t-reloc-coords-a" className="block text-[11px] uppercase tracking-wide text-slate-300">Relocation Coordinates (Optional)</label>
-              <input
-                id="t-reloc-coords-a"
-                type="text"
-                className={`mt-1 w-full h-10 rounded-md border bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${relocError ? 'border-red-600' : 'border-slate-600'}`}
-                value={relocInput}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setRelocInput(v);
-                  const parsed = parseCoordinates(v, { rejectZeroZero: true });
-                  if (parsed) {
-                    setRelocCoords(parsed);
-                    setRelocError(null);
-                  } else {
-                    setRelocCoords(null);
-                    setRelocError('Invalid coordinates');
-                  }
-                }}
-                placeholder="e.g., 30°10′N, 85°40′W"
-              />
-              <p className="mt-1 text-xs text-slate-400">Default: 30°10′N, 85°40′W · Normalized: {relocCoords ? formatDecimal(relocCoords.lat, relocCoords.lon) : '—'}</p>
-              {relocError && <p className="mt-1 text-xs text-red-400">{relocError}</p>}
-            </div>
           </Section>
 
           {/* Left column continues: Person B (optional for relational modes) */}
@@ -1374,7 +1390,7 @@ export default function MathBrainPage() {
                     id="b-year"
                     type="text"
                     inputMode="numeric"
-                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    className="mt-1 w-full min-w-[80px] h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     value={String(personB.year)}
                     onChange={(e) => setPersonB({ ...personB, year: onlyDigits(e.target.value, 4) })}
                     disabled={!includePersonB}
@@ -1385,7 +1401,7 @@ export default function MathBrainPage() {
                   <label htmlFor="b-month" className="block text-[11px] uppercase tracking-wide text-slate-300">Month</label>
                   <select
                     id="b-month"
-                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 appearance-none"
                     value={Number(personB.month) || 1}
                     onChange={(e) => setPersonB({ ...personB, month: Number(e.target.value) })}
                     disabled={!includePersonB}
@@ -1435,7 +1451,7 @@ export default function MathBrainPage() {
                     id="b-minute"
                     type="text"
                     inputMode="numeric"
-                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    className="mt-1 w-full min-w-[60px] h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     value={pad2(personB.minute as any)}
                     onChange={(e) => {
                       const v = pad2(e.target.value);
@@ -1725,11 +1741,38 @@ export default function MathBrainPage() {
                   <p className="mt-1 text-xs text-slate-400">Clinical toggle only; no narrative. If not applied, angles/houses remain natal.</p>
                   {translocation !== 'NONE' && (
                     <div className="mt-3 text-xs text-slate-400">
-                      Relocation coordinates set under Person A.
+                      Set relocation coordinates below.
                     </div>
                   )}
                 </div>
               </div>
+              {/* Relocation Coordinates Input */}
+              {translocation !== 'NONE' && (
+                <div className="mt-4">
+                  <label htmlFor="t-reloc-coords" className="block text-sm text-slate-300">Relocation Coordinates</label>
+                  <input
+                    id="t-reloc-coords"
+                    type="text"
+                    className={`mt-1 w-full h-10 rounded-md border bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${relocError ? 'border-red-600' : 'border-slate-600'}`}
+                    value={relocInput}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setRelocInput(v);
+                      const parsed = parseCoordinates(v, { rejectZeroZero: true });
+                      if (parsed) {
+                        setRelocCoords(parsed);
+                        setRelocError(null);
+                      } else {
+                        setRelocCoords(null);
+                        setRelocError('Invalid coordinates');
+                      }
+                    }}
+                    placeholder="e.g., 30°10′N, 85°40′W"
+                  />
+                  <p className="mt-1 text-xs text-slate-400">Default: 30°10′N, 85°40′W · Normalized: {relocCoords ? formatDecimal(relocCoords.lat, relocCoords.lon) : '—'}</p>
+                  {relocError && <p className="mt-1 text-xs text-red-400">{relocError}</p>}
+                </div>
+              )}
               {step === 'weekly' && (
                 <div className="mt-2 flex items-center gap-3">
                   <span className="text-xs text-slate-400">Weekly aggregation</span>
