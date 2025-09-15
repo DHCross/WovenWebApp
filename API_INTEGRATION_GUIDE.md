@@ -1,253 +1,248 @@
-# API Integration Guide for Woven Map (Math Brain)
 
-This document provides detailed guidance on the API integration between the Woven Map frontend and the RapidAPI Astrologer service, based on lessons learned from debugging and development.
 
-## Architecture Overview
+# Woven Map — Revised Report Guide (Lessons Learned)
 
-The Woven Map application uses a three-part architecture:
+A single, practical guide that preserves the original architecture (Mirror Flow vs Balance Meter; FIELD → MAP → VOICE; Poetic Brain) while integrating operational lessons discovered during implementation and live testing: API resolver quirks, relocation brittleness, provenance needs, orb policy, formation/fallback rules, developer UX, and QA checks.
 
-1. **Frontend (index.html)**: Collects user input and sends it to the serverless function
-2. **Serverless Function (netlify/functions/astrology-mathbrain.js)**: Validates data and forwards it to the external API
-3. **External API (Astrologer on RapidAPI)**: Processes the request and returns astrological calculations
+---
 
-## Supported Modes
+## At-a-glance: What changed (quick summary)
 
-The backend supports these modes via `context.mode`:
-- `natal` – single-subject natal calculations
-- `synastry` – A↔B comparisons
-- `COMPOSITE_TRANSITS` – midpoint composite placements + composite aspects + **transits to the composite chart** (new)
+- Provenance is required. Every report must stamp house system, orbs_profile, relocation_mode, timezone_db_version, engine versions and math_brain_version.
+- Relocation is valuable — and fragile. A_local/B_local reanchors houses but depends on reliable geocoding. We added fallbacks and an Angle Drift Cone for ambiguous inputs.
+- Do not mix geocoding modes per run. Either coords-only or city-mode (with optional GeoNames) for the whole transit window.
+- Orb policy enforced pre-weight. Conj/Opp 8°, Sq/Tr 7°, Sext 5°; Moon +1°; outer→personal −1°.
+- Reports must render even when data is missing. Use explicit “no aspects received” placeholders and clearly-labeled simulated examples if needed.
+- Non-programmer UX stays minimal. The backend/adaptor hides complexity but exposes clear UI hints and admin debug guidance.
 
-Notes:
-- `COMPOSITE_TRANSITS` requires **both** `personA` and `personB` and a transit date range.
-- If a date range is provided without an explicit `context.mode`, the backend will treat it as `COMPOSITE_TRANSITS` when two people are present.
+---
 
-## Required Data Fields
+## 1. Report Types — core distinction
 
-The backend validation in 
+**Mirror Flow (qualitative)**
+- Purpose: Recognition & self-reflection.
+- Inputs: Natal geometry (transits optional).
+- Location sensitivity: Low — works without relocation.
+- Output: Poetic FIELD → MAP → VOICE translations, polarity cards, actor/role composites.
 
-`netlify/functions/astrology-mathbrain.js` requires the following fields for each subject (Person A, Person B):
+**Balance Meter (quantitative)**
+- Purpose: Pressure diagnostics (symbolic seismograph).
+- Inputs: Natal + precise transit window + relocation option (recommended when event is place-specific).
+- Location sensitivity: High — houses/angles relocate and change how transits land.
+- Output: Time-series of Magnitude (0–5), Valence (−5..+5), Volatility (0–5); drivers[] per day; SFD/Balance Channel.
 
-```javascript
-const required = [
-  'year', 'month', 'day', 'hour', 'minute',
-  'name', 'city', 'nation', 'latitude', 'longitude', 'zodiac_type', 'timezone'
-];
+All reports must include a provenance header and a status block describing whether live transits were received or which fallback was used.
+
+---
+
+## 2. Provenance — mandatory fields
+
+Include at minimum:
+- house_system and house_system_name (e.g., “P”, “Placidus”)
+- orbs_profile (e.g., “wm-spec-2025-09”)
+- timezone_db_version (IANA/system)
+- relocation_mode (None | A_local | B_local | midpoint — midpoint opt-in)
+- relocation_coords when applicable
+- math_brain_version, ephemeris_source, engine_versions (seismograph, balance, sfd)
+- provenanceByDate (per-day endpoint/formation/attempts/aspect_count)
+
+Why: audits, reproducibility, UI diagnostics, and debugging.
+
+---
+
+## 3. Relocation rules & practical guidance
+
+**What relocation does**
+
+Reanchors ASC/MC and house cusps to a new geographic point. Planets keep natal longitudes; houses change where energies manifest.
+
+**When to use**
+- Localized events (storms, disasters, local gatherings)
+- When the reading must represent “where life is happening now”
+- Long-distance relationship analysis (prefer A_local/B_local rather than midpoint)
+
+**Best practices & guards**
+- Default dyad behavior: Relational Balance Meter defaults to A_local.
+- Midpoint: opt-in only; the server may reject midpoint requests (RELOCATION_UNSUPPORTED) for some endpoints.
+- Angle Drift Cone: If time/place are ambiguous, compute multiple plausible house placements; if houses disagree, degrade to planet/sign language and flag angle ambiguity to user.
+- UI copy: Prompt users for city + state (US) or coords; note that GeoNames stabilizes lookups.
+
+---
+
+## 4. Geocoding & formation rules (adapter contract)
+
+**Fundamental rule:** Pick one formation per run and never mix modes across the same window.
+
+**Formations**
+- coords-only — send lat, lng (or lat/lon depending on provider), tz_str. Do not include city/nation.
+- city-mode — send city, state (optional), nation and, when available, geonames_username. Do not send lat/lon/tz.
+
+**Adapter behavior (recommended)**
+- Prefer coords-only for transit subjects when coordinates exist.
+- For natal endpoints:
+  - If GEONAMES_USERNAME is configured and city/nation present → use city+GeoNames first.
+  - Else fallback to coords-only.
+  - Final fallback: city-only without GeoNames (some providers accept it).
+- Lock formation for the entire window; record formation in provenanceByDate.
+
+**Fallback sequence (per day)**
+1. transit-aspects-data with chosen formation
+2. If empty → transit-chart with same formation
+3. If still empty → flip formation once (coords ↔ city-mode) and try again
+4. If still empty → mark day as no aspects received and include simulated examples only when explicitly flagged
+
+---
+
+## 5. Orb policy (pre-weight filter)
+
+Apply before weighting/scoring:
+- Conjunction/Opposition: max 8°
+- Square/Trine: max 7°
+- Sextile: max 5°
+- Moon rule: +1° when Moon is the pair member
+- Outer→personal: −1° when Jupiter/Saturn/Uranus/Neptune/Pluto aspects Sun/Moon/Mercury/Venus/Mars
+
+Log orbs_profile in provenance.
+
+---
+
+## 6. drivers[] normalized shape
+
+Each returned driver (per-day top aspects) should be normalized and include compatibility fields:
+
 ```
-
-**Additional requirements by mode:**
-- `COMPOSITE_TRANSITS`:
-  - Two subjects: `personA` and `personB` with all required fields
-  - `transitParams.startDate` (YYYY-MM-DD)
-  - `transitParams.endDate` (YYYY-MM-DD)
-  - Optional: `transitParams.step` = `daily` (default) | `weekly` | number of days (integer)
-
-## Common Integration Issues
-
-### 1. Missing Required Fields
-
-**Problem:** The frontend form data doesn't include all required fields, leading to a 400 error with "Missing required fields" message.
-
-**Solution:**
-- Ensure `collectFormData()` in `index.html` correctly extracts and formats all required fields
-- Add validation to check for missing fields before submitting the form
-- Parse date strings into separate year, month, day fields
-- Parse time strings into separate hour and minute fields
-- Convert coordinates to decimal latitude and longitude
-
-### 2. Incorrect Data Formats
-
-**Problem:** Form data is collected but not formatted correctly for the API.
-
-**Solution:**
-- Use proper data types (numbers for numeric fields, strings for text fields)
-- Format dates according to API expectations (separate year, month, day as numbers)
-- Format coordinates as decimal degrees (e.g., 40.7128, -74.0060)
-
-### 3. API Endpoint Configuration
-
-**Problem:** Using incorrect API endpoints leads to 404 errors.
-
-**Solution:**
-- In production, call the public route: `/api/astrology-mathbrain`
-- In local dev, run `netlify dev`; your frontend can call `/api/astrology-mathbrain` (Netlify proxies to `/.netlify/functions/astrology-mathbrain`)
-- Avoid hardcoding `/.netlify/functions/...` in frontend code
-- Centralize the API base path in a config module
-
-## Environment Setup
-
-The serverless function requires a valid RapidAPI key to function. This key must be set in:
-
-1. **Production:** The Netlify environment variables for the deployed site
-2. **Development:** A local `.env` file containing `RAPIDAPI_KEY=your_api_key_here`
-
-The function name is 
-
-`astrology-mathbrain` and is located at 
-
-`netlify/functions/astrology-mathbrain.js`.
-
-**Important:** The server must be restarted after updating the `.env` file.
-
-## Debugging API Requests
-
-When troubleshooting API issues:
-
-1. **Check browser console for JavaScript errors**
-   - Open Developer Tools (F12) in the browser
-   - Look for any JavaScript errors in the Console tab
-   - Verify that form data collection logs appear when the button is clicked
-
-2. **Verify form data is complete**
-   - Check the Console for form data logs: `console.log(JSON.stringify(formData, null, 2))`
-   - Ensure all required fields are present and properly formatted
-
-3. **Inspect the actual API request**
-   - Open Developer Tools → Network tab
-   - Click the "Compute Astrological Geometry" button
-   - Find the POST request to `/api/astrology-mathbrain`
-   - Click on it to view the Request payload
-   - Compare the payload to the expected format
-
-4. **Check server logs for validation errors**
-   - Monitor the terminal running `netlify dev`
-   - Look for console.log output from the backend function
-   - Check for specific error messages about missing fields
-
-5. **Verify that the RapidAPI key is valid and properly configured**
-   - Ensure the `.env` file contains `RAPIDAPI_KEY=your_actual_key`
-   - Restart the server after updating the `.env` file
-
-6. **Test with known good data**
-   - Use the test page at `/api-test.html` to verify the API works with properly formatted data
-   - This helps isolate whether the issue is in the frontend form or the backend API
-
-### Common Issues and Solutions
-
-**Issue: "Missing required fields for Person A"**
-- **Cause**: The `collectFormData()` function is not properly extracting form data
-- **Solution**: Check for duplicate function definitions, verify form field IDs match, add extensive logging
-
-**Issue: No console logs appear when clicking the button**
-- **Cause**: JavaScript errors or duplicate function definitions
-- **Solution**: Check browser console for errors, verify event handlers are properly attached
-
-**Issue: API request shows empty or malformed data**
-- **Cause**: Form validation or data parsing issues
-- **Solution**: Add step-by-step logging in `collectFormData()`, verify coordinate parsing
-
-### Composite Debugging Checklist
-
-- Confirm `context.mode` is `COMPOSITE_TRANSITS` (or that two persons + a date range are present)
-- Ensure both `personA` and `personB` payloads include **all required fields**
-- Verify `transitParams.startDate` and `transitParams.endDate` are valid ISO dates
-- Inspect the response for `composite.placements`, `composite.aspects`, and `composite.transitsByDate`
-- If `composite` is missing, check the server logs for warnings about extraction of planet longitudes
-
-## Example Payloads
-
-**Natal (single subject)**
-
-```javascript
 {
-  "personA": {
-    "name": "John Doe",
-    "city": "New York",
-    "nation": "US",
-    "year": 1980,
-    "month": 1,
-    "day": 1,
-    "hour": 12,
-    "minute": 0,
-    "latitude": 40.7128,
-    "longitude": -74.0060,
-    "zodiac_type": "Tropic",
-    "timezone": "America/New_York"
-  },
-  "context": {
-    "mode": "natal"
-  }
+  "a": "Venus",
+  "b": "Saturn",
+  "type": "square",
+  "orb": 2.1,
+  "applying": true,
+  "weight": 1.32,
+  "is_transit": true,
+  "planet1": "Venus",
+  "planet2": "Saturn",
+  "name": "Venus square Saturn"
 }
 ```
 
-**Composite Transits (two subjects)**
+Drivers are sorted by weight. drivers[] must be present (empty array when upstream returns none) to ensure stable UI rendering.
 
-```json
+---
+
+## 7. Missing-data policy (graceful degradation)
+
+- If no aspects for a day: include full UI/report structure and explicit placeholders:
+  - drivers: []
+  - seismograph: { magnitude: null, valence: null, volatility: null, status: "no aspects received" }
+- Label simulated drivers clearly when shown (for layout QA only).
+- For partial days, populate available days; mark others pending.
+- Provide clear UI guidance: “No aspects received for these dates — try city+state, enable GeoNames, or use coords for the transit subject.”
+
+---
+
+## 8. The Math backbone (Weight Belt, SFD, Balance Channel)
+
+- Aspect base weights (defaults):
+  - Trine: +0.40
+  - Sextile: +0.25
+  - Conjunction: ±0 (contextual)
+  - Square: −0.50
+  - Opposition: −0.45
+- Modifiers: Angularity (ASC/MC) ±0.10–0.20; Applying +0.10 / Separating −0.05; 3+ stack volatility kicker −0.10
+- SFD: SupportSum − CounterSum, scaled to −5..+5
+- Balance Channel v1.1: rebalances valence, boosting stabilizers (Jupiter/Venus), softening hard aspects to reveal support under load
+- SST guardrail: Lived pings (WB/ABE/OSR) can flip theoretical signs; the system learns from user feedback and pings
+
+Always include a short numeric audit in the report appendix showing component contributions to SFD and magnitude.
+
+---
+
+## 9. UX: what we ask of users & simple copy
+
+Minimum fields (UI):
+- Name
+- Birth date
+- Birth time (exact preferred; warn if approximate)
+- Birth city (UI asks for state for US)
+- Mode: Natal vs Natal+Transits
+- If Transits: start / end / step and whether to anchor to current city
+
+**GeoNames UI copy (drop-in)**
+- Tooltip: “Optional: Add a GeoNames username to stabilize city lookups for natal charts. It’s free and server-only.”
+- Inline helper: “GeoNames (optional): a free username lets the server resolve birth cities reliably. If present and you enter city + nation, natal prefers city-mode; otherwise we fall back to coordinates.”
+- Settings description (admin): “GEONAMES_USERNAME: one server account stabilizes city resolution for all users.”
+
+If aspects are missing: show clear fix suggestions and an action button for “Retry with coords” or “Provide state / enable GeoNames”.
+
+---
+
+## 10. Developer & API guidance (payloads, probes, provenance)
+
+**Canonical payload shapes**
+
+Relational Balance Meter (A_local)
+
+```
 {
-  "personA": {
-    "name": "Person A",
-    "city": "Bryn Mawr",
-    "nation": "US",
-    "year": 1973,
-    "month": 7,
-    "day": 24,
-    "hour": 14,
-    "minute": 30,
-    "latitude": 40.0230,
-    "longitude": -75.3155,
-    "zodiac_type": "Tropic",
-    "timezone": "America/New_York"
+  "report_type":"relational_balance_meter",
+  "subjectA":{
+    "name":"DH Cross",
+    "birth":{ "date":"1973-07-24","time":"14:30","city":"Bryn Mawr","state":"PA","nation":"US" },
+    "A_local":{ "city":"Panama City","state":"FL","nation":"US" }
   },
-  "personB": {
-    "name": "Person B",
-    "city": "Panama City",
-    "nation": "US",
-    "year": 2006,
-    "month": 5,
-    "day": 17,
-    "hour": 10,
-    "minute": 15,
-    "latitude": 30.1588,
-    "longitude": -85.6602,
-    "zodiac_type": "Tropic",
-    "timezone": "America/Chicago"
+  "subjectB":{
+    "name":"Stephie",
+    "birth":{ "date":"1965-04-18","time":"18:37","city":"Albany","state":"GA","nation":"US" }
   },
-  "context": { "mode": "COMPOSITE_TRANSITS" },
-  "transitParams": {
-    "startDate": "2025-08-13",
-    "endDate": "2025-08-20",
-    "step": "daily"
-  }
+  "transits":{ "from":"2025-09-01","to":"2025-09-30","step":"1d" },
+  "houses":"Placidus",
+  "relocation_mode":"A_local",
+  "orbs_profile":"wm-spec-2025-09"
 }
 ```
 
-## Response Shape (COMPOSITE_TRANSITS)
+Coords-only note: remove city/state/nation and include lat, lon (or lng per upstream), tz_str.
 
-The response includes a `composite` node:
+**Probe script & verification checklist (dev)**
+- Add RAPIDAPI_KEY and optional GEONAMES_USERNAME to .env.
+- Run dev server: npm run dev or netlify dev.
+- Run probe: node scripts/probe-provenance.js.
+- Check output:
+  - provenance top-level present
+  - provenanceByDate entries per day with formation, endpoint, attempts, aspect_count
+  - For days with aspects: transitsByDate[date].drivers is non-empty
+  - If drivers[] empty but provenance shows formation=city_state_geonames and aspect_count=0, try toggling to coords for the transit instant as fallback.
 
-```
-```json
-{
-  "composite": {
-    "placements": { "Sun": 123.45, "Moon": 234.56, "ASC": 210.10, "MC": 15.30, "Mercury": 98.12, "Venus": 76.44, ... },
-    "aspects": [
-      {"a":"Sun","b":"Moon","aspect":"Square","exact":90,"separation":92.10,"orb":2.10},
-      {"a":"Venus","b":"Mars","aspect":"Trine","exact":120,"separation":118.50,"orb":1.50}
-    ],
-    "transitsByDate": {
-      "2025-08-13": [
-        {"a":"Jupiter","b":"Sun","aspect":"Opposition","exact":180,"separation":182.30,"orb":2.30}
-      ],
-      "2025-08-14": [ ... ]
-    }
-  }
-}
-```
+---
 
-## Best Practices
+## 11. Testing & QA rules
 
-1. **Contract-First Development:** Use the `openapi.json` as the source of truth for API integration
-2. **Defensive Programming:** Always validate form data before submission
-3. **Detailed Logging:** Log form data and API responses during development
-4. **Error Handling:** Provide clear error messages for missing or invalid data
-- **Mode Invariants:** When `context.mode` is `COMPOSITE_TRANSITS`, validate two subjects and a date range on the client before sending.
+- 14-day pilot for new users to seed SST/personalization (3 short pings/day).
+- Automated schema checks in CI to assert drivers[] shape and required provenance fields.
+- Logging: log raw upstream request/response (trimmed) for 422/429/500 with per-day provenance to speed debugging.
+- Backoff: treat 429 as retryable with exponential backoff; log attempts and final error body.
 
-By following these guidelines, you can avoid common integration issues and ensure the Woven Map application works correctly with the RapidAPI Astrologer service.
+---
 
-## Frontend Checklist (Quick)
+## 12. Product philosophy (restate)
 
-- All required fields present for A and B
-- `context.mode` set appropriately
-- Date range set when requesting composite transits
-- Public endpoint `/api/astrology-mathbrain` used (dev via `netlify dev`)
-- Console + Network tabs show a complete payload
-- Response parsed for `composite.*` fields
+- Falsifiability first. Every poetic line must trace to a math anchor or be explicitly labeled as non-transit/simulated.
+- Recognition before diagnosis. Start with FIELD (felt sense), then MAP (geometry), then VOICE (actionable prompts).
+- Graceful honesty. If inputs are ambiguous or aspects are missing, call it out and provide practical fixes.
+- Human in the loop. Calibrations use lived pings; the system learns.
+
+---
+
+## 13. Quick appendix (troubleshooting checklist)
+
+1. drivers[] empty:
+  - Check provenanceByDate.formation (coords vs city).
+  - If formation=city_state_geonames but aspect_count=0, ensure GEONAMES_USERNAME is valid.
+  - If formation=coords but upstream returns 422 requiring city, try city+state formation.
+2. House differences vs old reports:
+  - Verify relocation_mode used (A_local vs None).
+  - Confirm house system (Placidus vs Whole Sign).
+  - Check exact event timestamp (small time shifts can move cusps).
+3. Strange orbs/weights:
+  - Ensure orb clamping applied pre-weight (8/7/5 + Moon/outer adjustments).
+  - Check orbs_profile in provenance.

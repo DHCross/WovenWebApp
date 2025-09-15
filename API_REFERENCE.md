@@ -1,4 +1,17 @@
+
 # WovenWebApp API Reference
+
+## Key Lessons Learned (2025-09)
+
+- **Provenance:** Every API response and report must include provenance (house system, orbs profile, relocation mode, timezone DB, engine versions, math_brain_version) for auditability and reproducibility.
+- **Relocation:** Relocation (A_local/B_local) is essential for Balance Meter accuracy but brittle—depends on precise location and upstream resolver behavior. Robust fallbacks and “Angle Drift Cone” are implemented for ambiguous cases.
+- **API payload quirks:** Upstream transit endpoints are finicky. City-only vs coords-only vs city+state behave differently. Adapter logic and explicit geocoding modes (GeoNames, city+state) are supported. Developer UX is clear about these requirements.
+- **Orbs and filters:** Strict orb caps and documented Moon/outer rules (+Moon +1°, outer→personal −1°) are enforced before weighting. Orbs profile is always explicit in provenance.
+- **Graceful fallback:** If the provider returns no aspects, the report template renders fully with explicit “no aspects received” placeholders and simulated examples flagged as such. Partial days are handled, and Angle Drift Alerts are shown for house ambiguity.
+- **User simplicity + developer detail:** UI remains minimal for non-programmers (date + birth city). The backend/adapter handles complexity and documents all required options for power users. Clear UX copy guides users on location accuracy and fallback options.
+- **Falsifiability and feedback:** SST, Drift Index, Session Scores, and micro-probes are enforced. Misses are calibration data, not user error. Every report includes a provenance block and raw geometry appendix for transparency.
+
+---
 
 ## Overview
 

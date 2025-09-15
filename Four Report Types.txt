@@ -1,768 +1,199 @@
-**_~~Report Types~~_**
+Woven Map — Revised Report Guide (Lessons Learned)
 
-# **Woven Map Report Types: Mirror Flow vs Balance Meter**
+This is a consolidated, updated version of the “Four Report Types” doc. It preserves the original architecture (Mirror Flow vs Balance Meter; FIELD → MAP → VOICE; Poetic Brain) while integrating practical, operational, and product-level lessons discovered during implementation and live testing (API quirks, relocation complexity, provenance needs, orbs policies, fallback behaviors, UX for non-programmers, and developer tooling).
 
-## **Two Categories of Weather Reports**
+⸻
 
-Both categories serve as **atmospheric intelligence** - they describe symbolic weather rather than predict outcomes. The key distinction lies in their scaffolding and diagnostic purpose.
+High-level changes (what we learned and applied)
+	•	Provenance matters. Every report must stamp house system, orbs profile, relocation mode, timezone DB, engine versions, and math_brain_version so results remain auditable and reproducible.
+	•	Relocation is powerful but brittle. House reanchoring (A_local/B_local) is essential for Balance Meter accuracy — but it depends on precise location inputs and upstream resolver behavior. We implemented robust fallbacks and an “Angle Drift Cone” for ambiguous cases.
+	•	Upstream transit endpoints are finicky. City-only vs coords-only vs city+state behave differently across providers. We added adapter logic, explicit geocoding modes, and a clear developer UX for GeoNames or city+state.
+	•	Orbs and pre-weight filters must be explicit. Use strict orb caps and documented Moon/outer rules (+Moon +1°, outer→personal −1°) applied before weighting.
+	•	Reports must gracefully show missing data. When the provider returns no aspects, the report template renders fully but with explicit “no aspects received” placeholders and simulated examples flagged as such.
+	•	User-facing simplicity + developer detail. Non-programmer UI can remain minimal (date + birth city) — the adapter/back-end does the heavy lifting and documents required options for power users.
+	•	Falsifiability and user feedback are central. SST, Drift Index, Session Scores, and micro-probes are unchanged but tightened so misses are calibration data, not shame.
 
-## **Mirror Flow Reports**
+⸻
 
-**Purpose:** Qualitative reflection and recognition
+1. Report Types (cleaned & updated)
 
-### **Core Function**
+Two Categories of Atmospheric Intelligence
+	•	Mirror Flow — qualitative, recognition-first. Works with natal/synastry alone (low location sensitivity).
+	•	Balance Meter — quantitative, transit-dependent. High location sensitivity; relocation recommended when life events are geographically anchored.
 
-- **Atmospheric mirrors** that render chart geometry as lived tensions, paradoxes, and recognition patterns
-- Transform mathematical structures into body-felt experience through **FIELD → MAP → VOICE** translation
-- Designed for **self-recognition**, not forecasting
-### **Technical Scaffolding**
+Key addition:
+	•	Each report must include provenance header and a status block describing whether live aspects/transits were received, and if not, which fallback was used (simulated sample, coords-only, city+state, etc.).
 
-- **Primary Input:** Natal geometry or synastry patterns
-- **Secondary Input:** Actor/Role composites when aspect geometry is sparse
-- **Transit Dependency:** Not required - can run on constitutional patterns alone
-- **Location Sensitivity:** Low - works without translocation data
-### **Report Subtypes**
+⸻
 
-#### **_Solo Mirror Report (Individual Chart)_**
+2. Mirror Flow Reports (qualitative, low-location)
 
-- **Typological Profile:** Constitutional climate with dominant/secondary/shadow orientations
-- **Vector-Integrity Check:** Maps latent vs suppressed influences
-- **Polarity Cards:** FIELD → MAP → VOICE progression for self-recognition
-- **Mirror Voice:** Reflective narrative ending with "What feels most alive to you here?"
-#### **_Relational Mirror Report (Synastry/Composite)_**
+Purpose
+	•	Reflection and recognition. Poetic, body-first language.
 
-- **Individual Summaries:** Constitutional anchors for both people
-- **Cross-Aspect Analysis:** Where charts amplify vs create friction
-- **Shared Polarity Cards:** Dyadic somatic tone and geometric skeleton
-- **Mirror Voice:** Closes with "Where do you notice support vs drag most?"
-### **Diagnostic Feel**
+Inputs
+	•	Natal geometry (birth date/time/place). Transit overlay optional.
 
-Think of **mirrors held up in the room** - they reflect what the person might notice in themselves now, offering atmospheric recognition without temporal pressure.
+Subtypes & outputs (unchanged)
+	•	Solo Mirror, Relational Mirror (synastry), Polarity Cards, Mirror Voice, Actor/Role composites.
 
-## **Balance Meter Reports**
+Implementation note
+	•	Mirror Flow runs without translocation; it is robust to missing timezone precision and is our “first-read” product for non-technical users.
 
-**Purpose:** Quantitative measurement and pressure diagnostics
+⸻
 
-### **Core Function**
+3. Balance Meter Reports (quantitative, transit-sensitive)
 
-- **Symbolic seismograph** that scores and weighs magnitude, valence, and volatility of active transits
-- Provides numerical climate indices rather than poetic reflection
-- Designed for **pressure tracking** across time
-### **Technical Scaffolding**
+Purpose
+	•	Symbolic seismograph: magnitude (0–5), valence (−5..+5), volatility (0–5) across a time window.
 
-- **Primary Input:** Active transit data with precise timing
-- **Critical Input:** Translocation coordinates (houses/angles shift with physical location)
-- **Transit Dependency:** Essential - cannot function without current planetary positions
-- **Location Sensitivity:** High - accuracy degrades without proper geographical data
-### **Scoring System**
+Inputs (required)
+	•	Natal birth data (date/time/place) AND
+	•	Transit window (from / to / step)
+	•	Relocation mode: None | A_local | B_local (midpoint optional but discouraged by default)
+	•	House system (default: Placidus for diagnostic work)
+	•	Orbs profile (e.g., wm-spec-2025-09)
 
-- **Magnitude (0-5):** Pressure intensity from baseline to overload
-- **Valence (-5 to +5):** Supportive vs restrictive tilt
-- **Volatility (0-5):** Stability vs chaos measurement
-- **Climate Line:** One-sentence weather metaphor with numerical backing
-### **Report Subtypes**
+New rules & operational notes
+	•	Relocation default: For dyads/Balances default to A_local unless flagged. Midpoint is supported only when explicitly chosen; we recommend against it for most use-cases.
+	•	Orbs (pre-weight filter): Conjunction/Opposition 8°, Square/Trine 7°, Sextile 5°; Moon gets +1°, outer→personal −1° (outer = Jupiter/Saturn/Uranus/Neptune/Pluto; personal = Sun/Moon/Mercury/Venus/Mars).
+	•	Provenance stamping: house_system, house_system_name, orbs_profile, timezone_db_version, relocation_mode, relocation_coords, math_brain_version, ephemeris_source, engine versions (seismograph/balance/sfd).
+	•	When aspects are missing: The report still delivers structure and voice, with explicit placeholders: “no aspects received for this day — drivers[] empty.” Simulated examples may be shown only when explicitly labeled as simulated.
+	•	SFD & Balance Channel: Present but will compute only when drivers[] exist. Reports show whether these channels are live or pending.
 
-#### **_Solo Balance Meter Report_**
+⸻
 
-- **Time Series Data:** Daily/weekly seismograph bars showing pressure patterns
-- **Integration Factors:** Percentage breakdowns (Fertile Field, Harmonic Resonance, Expansion Lift, etc.)
-- **Vector-Integrity Focus:** How transit pressure activates or suppresses constitutional patterns
-- **Mirror Voice:** Closes with "What part feels steady, what part scattered?"
-#### **_Relational Balance Meter Report_**
+4. Scoring and Math (Weight Belt, SFD, Balance Channel)
 
-- **Joint Pressure Analysis:** Combined magnitude, valence, volatility for the dyad
-- **Differential Load:** Where one person carries more transit pressure
-- **Support Scaffolding:** Present | Challenged | Absent diagnostic
-- **Resilience Index:** Depleted | Resilient | Rebounding classification
-### **Diagnostic Feel**
+Core computation (unchanged but explicit)
+	•	Aspect base weights: Trine +0.40, Sextile +0.25, Conjunction ±0 (contextual), Square −0.50, Opposition −0.45.
+	•	Modifiers: Angularity (ASC/MC) ±0.10–0.20, Applying +0.10 / Separating −0.05, Multi-hit stack volatility kick −0.10.
+	•	SFD (Support–Friction Differential): SupportSum − CounterSum scaled to bipolar −5..+5.
+	•	Balance Channel (v1.1): Rebalances valence to reveal stabilizers (boost Jupiter/Venus contributions while preserving magnitude).
 
-Think of a **weather station dashboard** - crisp gauges that don't just say "stormy" but specify "Magnitude 4 Compression, high volatility, Saturn-weight tilt." The system tracks both challenging pressure and expansive opportunities with equal precision.
+SST guardrail
+	•	Lived pings (WB / ABE / OSR) can flip theoretical valences. Systems log ping history and evolve.
 
-#### **_Beyond Pathologizing Intensity_**
+⸻
 
-- Recognizes intensity as potential bridge to deeper connection
-- Distinguishes between individuals who thrive on pressure versus those who need gentleness
-- "Containment is not absence" - underlying pressure remains active even when invisible
-- Focuses on "what the system does under load" rather than assuming dysfunction
+5. Relocation (Translocation) — clarified
 
-## **Key Distinctions**
+What it does
+	•	Reanchors ASC/MC and house cusps to another set of lat/lon — planets stay natal degrees, houses change where that energy “lands.”
 
-### **Mirror Flow Characteristics**
+When to use
+	•	Event/location analysis, local crises, planning an event in a city, long-distance relational windows where one party is local.
 
-- **Soft-edged:** Poetic, atmospheric, relational
-- **Narrative-driven:** Story and recognition over measurement
-- **Constitutional focus:** What patterns already exist in the geometry
-- **Agency-preserving:** "Here's what you might notice about yourself"
-### **Balance Meter Characteristics**
+Practical constraints & lessons
+	•	Upstream resolvers behave differently depending on payload shape:
+	•	coords-only (lat/lon/tz) vs city+state,nation vs city,nation — some endpoints require city+state to return transit aspects consistently.
+	•	Some providers also accept geonames_username which stabilizes name resolution.
+	•	UX design choices:
+	•	For most users, ask for birth city and current city (for relocation). Behind the scenes map to either coords-only or city+state based on adapter heuristics and available environment (GEONAMES_USERNAME).
+	•	Provide a clear note in UI: “Relocation accuracy improves if you provide city + state or use GeoNames (optional free sign-up).”
+	•	Angle Drift Cone: When a user declines precise coords or time is uncertain, compute a cone across plausible coordinates and show whether house assignments are stable or ambiguous. If ambiguous, degrade to sign/planet language rather than house-specific claims.
 
-- **Crisp-edged:** Numerical, diagnostic, measurable
-- **Data-driven:** Scores and indices over metaphor
-- **Temporal focus:** How current transits create pressure loads
-- **Precision-oriented:** "Here's exactly how much pressure and from where"
-### **Complementary Function**
+⸻
 
-- **Mirror Flow:** Read to recognize atmospheric patterns and constitutional themes
-- **Balance Meter:** Read to understand quantified load and temporal pressure
-- **Combined:** Recognition of self + measurement of current climate = complete atmospheric intelligence
+6. API & Adapter behavior (developer lessons)
 
-## **Non-Predictive Framework**
-
-Both report types operate under strict **anti-deterministic protocols**:
-
-### **What They Are**
-
-- **Atmospheric intelligence:** Describing pressure in the symbolic weather
-- **Recognition tools:** Windows for seeing current patterns and loads
-- **Falsifiable diagnostics:** Testable through lived experience and resonance
-### **What They Are Not**
-
-- **Predictive scripts:** No "this will happen to you" statements
-- **Fate-locking:** No removal of personal agency or choice
-- **Deterministic:** No assumption that symbolic pressure = predetermined outcome
-### **Time Philosophy**
-
-- **Block time model:** Time treated as space with weather fronts, not linear causation
-- **Pressure mapping:** Transits as atmospheric conditions, not destiny delivery systems
-- **User sovereignty:** Individual choice remains primary over symbolic pressure
-### **Testing Protocol**
-
-- **Mirror Flow validation:** Does the atmospheric description create recognition ping?
-- **Balance Meter validation:** Do numerical pressure readings align with lived strain/support?
-- **SST feedback loop:** Outside Symbolic Range if no experiential correlation
-
-## **Implementation Notes**
-
-### **Data Requirements**
-
-**Mirror Flow:** Birth data sufficient, optional transit overlay **Balance Meter:** Birth data + current transits + translocation coordinates essential
-
-### **Computational Load**
-
-**Mirror Flow:** Lower - primarily geometric pattern recognition **Balance Meter:** Higher - continuous transit calculation + pressure aggregation
-
-### **User Experience**
-
-**Mirror Flow:** Contemplative reading for self-understanding **Balance Meter:** Dashboard monitoring for pressure management
-
-### **Quality Gates**
-
-Both require **FIELD → MAP → VOICE** integrity and mathematical traceability to prevent atmospheric hand-waving.
-
-**_~~Info Needed~~_**
-
-# Woven Map Report Generation Guide
-
-## Required Data Collection
-
-### Solo Report Inputs
-
-**Identity & Birth Data**
-
-- **Name**: Full name or preferred identifier
-- **Birth Date**: YYYY-MM-DD format
-- **Birth Time**: HH:MM (as exact as possible)
-- **Birth City & Nation**: Full location name
-- **Latitude/Longitude**: Precise coordinates for birth city
-- **Timezone**: Local offset or region at time of birth
-- **Zodiac Type**: Tropical or Sidereal
-
-**Mode & Analysis Window**
-
-- **Mode**:
--- **Natal** (constitution only)
--- **Natal + Transits** (constitution under current weather)
-- **If using transits**:
--- **Start Date**: Beginning of analysis period
--- **End Date**: End of analysis period
--- **Step**: Daily/Weekly/Monthly intervals
-
-### Relational Report Inputs
-
-**Person B Data** (same fields as Person A)
-
-- Name, birth date/time, city/nation, lat/lon, timezone, zodiac type
-
-**Relationship Context** (for narrative framing)
-
-- **Type**: Partner | Friend/Colleague | Family
-- **If Partner**: Intimacy Tier (P1–P5a/b)
--- P1: Early/casual/feeling it out
--- P2: Established/regular rhythm
--- P3: Committed routines/shared planning
--- P4: Living together/high interdependence
--- P5a: Formal union (married/common-law)
--- P5b: Post-union complexity (separated/divorcing)
-- **If Family**: Role (Parent, Offspring, Sibling, etc.)
-- **Ex/Estranged**: On/Off (available for Partner & Family types)
-- **Notes**: ≤500 characters of context (e.g., "co-parenting long-distance")
-
-**Analysis Mode**
-
-- Synastry | Synastry + Transits | Composite | Dual Natal + Transits
-- **Transit Window** (if applicable): Start/End/Step dates
-
-## Relocation ("Translocation") Options
-
-### What Relocation Does
-
-Relocation doesn't move the planets; it **reanchors the house system and angles** to a different place on Earth. This changes **where** planetary energies land (houses/ASC/MC) and **when** certain pressures peak locally.
-
-### When to Consider Relocation
-
-- You want the chart to reflect **where life is actually happening** now (not birth city)
-- You're planning or analyzing an event in a **specific city**
-- Long-distance relationships where neither person lives in their birth city anymore
-### Relocation Options
-
-**None**
-
-- Use birth locations as-is
-- Best for constitutional-only reads or when location doesn't matter
-
-**A_local**
-
-- Reanchor to **Person A's current city**
-- Good when A is the primary focus or context centers on A's life terrain (moves, work, health, home)
-
-**B_local**
-
-- Reanchor to **Person B's current city**
-- Mirror of A_local; use when action centers on B's experience
-
-**Midpoint**
-
-- Use **geographic midpoint** between A and B (or chosen neutral city)
-- Fair for remote/long-distance bonds or shared travel planning
-### What Changes vs. Stays
-
-**Changes:**
-
-- House cusps and angles (ASC/MC/DSC/IC)
-- Timing emphases for transits hitting angles
-- Local environmental emphasis
-
-**Stays Put:**
-
-- Planetary longitudes (degrees in signs)
-- Aspects between planets
-- Core synastry/composite math
-### Rule of Thumb
-
-Decide **the setting of the story** (whose city or neutral location) → pick relocation mode → run report. If comparing options, generate quick passes (e.g., None vs A_local) and see which **climate line** matches lived reality.
-
-## Data Impact Guide
-
-### What Affects the Math
-
-- Birth dates/times
-- Geographic coordinates (lat/lon/timezone)
-- Analysis mode selection
-- Transit date windows
-- Relocation coordinates
-### What Affects the Language Only
-
-- Relationship context (type, intimacy tier, role)
-- Ex/Estranged status
-- Notes field
-- **Nothing in relationship context changes underlying geometry—only how it's described**
-
-## Quality Control Notes
-
-**Birth Time Accuracy**
-
-- Exact time preferred for precise angles and houses
-- If unknown, can approximate (e.g., 12:00 noon), but treat angles/houses and Moon positions as softer data
-- Time accuracy affects house placements and angle-based timing
-
-**Timezone Clarity**
-
-- Use correct local offset/region at time of birth
-- Account for historical timezone changes if birth was decades ago
-- Double-check daylight saving time status for birth date
-
-**Transit Windows**
-
-- **Shorter windows** (days to weeks): Good for immediate decisions and current conditions
-- **Longer windows** (months to seasons): Better for seeing larger cycles and patterns
-- **Step intervals**: Daily for detailed tracking, weekly for general patterns, monthly for broad trends
-
-**Relationship Context Accuracy**
-
-- Choose settings that reflect current reality, not aspirational or past states
-- Update context if relationship status changes significantly
-- Use Notes field for crucial details that affect interpretation (custody arrangements, geographic distance, etc.)
-
-## Quick Decision Trees
-
-### Solo Report: Natal vs. Natal+Transits?
-
-- **Natal only**: Understanding core constitution, personality patterns, life themes
-- **Natal + Transits**: Current pressures, timing decisions, what's active now
-### Relational Report: Which Mode?
-
-- **Synastry**: How you affect each other (individual charts interacting)
-- **Composite**: The relationship as its own entity (midpoint chart)
-- **Dual Natal + Transits**: Both individual constitutions under current weather
-- **Synastry + Transits**: Individual interactions plus current external pressures
-### Relocation: None vs. Local?
-
-- **None**: Constitutional analysis, personality compatibility, broad patterns
-- **Local**: Current life circumstances, timing for specific location, practical decisions
-### Transit Window: How Long?
-
-- **1-4 weeks**: Immediate decisions, current crisis or opportunity
-- **1-6 months**: Seasonal planning, medium-term projects
-- **1+ years**: Life phase analysis, major transitions
-
-**_~~The Poetic Brain~~_**
-
-# Woven Map Feedback Loop System
-
-## The Recognition-to-Refinement Pipeline
-
-### 1. Hook Stack (Recognition Gateway)
-
-**What it is**: Front-door UX using 2–4 high-charge, dual-polarity titles sourced from tightest aspects
-
-- **Example**: "Restless & Thrill-Seeking / Disciplined or Shut Down"
-- **Tier-1 Orbs**: Tight surgical window to ensure immediate felt recognition
-- **Purpose**: Bypass analysis, trigger limbic "that's me" ping, open door for depth work
-
-**Process**: Math Brain geometry → short, vivid cards (no theory, no advice)
-
-### 2. Poetic Brain Translation (Core Processing)
-
-**What it is**: The translation spine turning weather into usable mirrors
-
-- **Tier-2 Orbs**: Slightly wider window to catch full pattern for depth work
-
-**Three-Layer Structure**:
-
-- **FIELD**: Somatic climate in one sentence (jaw clamp, open chest, tab-overload)
-- **MAP**: Structural tension named plainly (security ↔ risk, compression → release)
-- **VOICE**: If/then prompt in small time box ("test X for 3 days; if volatility spikes, halve scope")
-
-**Purpose**: Move from feeling → structure → choice without prediction
-
-### 3. SST Logs (Falsifiability Table)
-
-**What it is**: The honesty-keeping system for mirror accuracy
-
-**Three Categories**:
-
-- **WB (Within Boundary)**: Clear, felt resonance; user confirms
-- **ABE (At Boundary Edge)**: Partial/inverted/mis-toned resonance; still useful signal
-- **OSR (Outside Symbolic Range)**: No resonance; valid non-hit
-
-**Purpose**: Keep mirrors honest; misses become calibration data, not user error
-
-### 4. Drift Index (Symbolic Grammar Updates)
-
-**What it is**: Sidereal-lean detector built from clarification data
-
-**Process**:
-
-- Classify clarifications (especially OSRs) as:
--- **Driver-aligned** (sidereal-leaning)
--- **Role-aligned** (tropical-leaning)
-- If OSR clusters lean Driver, flag **Sidereal Drift**
-
-**Effect**: Future mirrors prioritize Driver language and examples—no chart redraw required
-
-**Purpose**: Keep language matched to lived self-perception
-
-### 5. Session Scores (Transparent Metrics)
-
-**What it is**: Non-gamified session performance indicators
-
-**Three Metrics**:
-
-- **Accuracy**: WB ÷ (WB + ABE + OSR)
-- **Edge Capture**: ABE ÷ (WB + ABE)
-- **Clarity**: 1 - (unclear prompts ÷ total prompts)
-
-**Purpose**: Show how well mirrors landed, how often they caught the "edge," how clear they read—enabling system tuning
-
-### 6. Wrap-Up Card (Session Sealer)
-
-**What it is**: Single keepsake + checkpoint summary
-
-**Contents**:
-
-- 2–3 strongest Hook Stack titles
-- Actor/Role composite
-- Resonance scorecard (WB/ABE/OSR)
-- Climate line (if timed)
-- Optional Poetic Index
-- Sidereal Drift flag (if present)
-
-**Purpose**: Memory anchor + falsifiability snapshot to carry forward
-
-### 7. Adaptive Loop (Next Session Tuning)
-
-**What it is**: How the system evolves based on feedback
-
-**Adaptation Mechanics**:
-
-- **Language Weighting**: Drift Index influences Driver vs Role emphasis
-- **Container Sizing**: Balance Meter + scores adjust pacing and detail level
-- **Clarity Tuning**: Raises or lowers detail based on Clarity scores
-- **Boundary Targeting**: Edge Capture highlights zones for deeper exploration
-
-**Purpose**: Each round gets truer, plainer, and easier to test
-
-## Daily Integration Layer
-
-## Daily Integration Layer
-
-### Recognition Layer Prompts
-
-Daily felt tension check-ins:
-
-- **WB Cue**: "Where did a card land in your body today (breath, jaw, stomach)?"
-- **ABE Cue**: "What almost fit—what single word would make it land?"
-- **OSR Cue**: "What did you _not_ feel at all (real, but situational; not sourced in your chart)?"
-### Weight Belt (Shareable Summary)
-
-**Picture**: Palms on desk, slow breath, jaw unclenches—before glancing at any dials
-
-**Components**:
-
-- **Feeling**: Steady grounding
-- **Container**: Three-day test, one change, no big bets
-- **Options**: Log one somatic ping first OR run tiny VOICE prompt after naming the feeling
-- **Next Step**: Write one-line body note NOW, then consult Balance Meter; let presence set tone, weather set pacing
-
-**Key Change**: **Presence first, weather second**—body wisdom leads, metrics follow
-
-## System Philosophy
-
-### Falsifiability First
-
-Every mirror must be testable. Misses are calibration data, not failures.
-
-### Recognition Before Analysis
-
-Hook Stack bypasses cognitive processing to hit felt sense directly.
-
-### Adaptive Language
-
-System learns your symbolic grammar and adjusts accordingly.
-
-### Transparent Metrics
-
-No hidden algorithms—you see exactly how well the mirrors are working.
-
-### Micro-Container Testing
-
-Small experiments (3-7 days) with measurable outcomes.
-
-## Feedback Flow Summary
-
-1. **Hook Stack** → Immediate recognition
-1. **Poetic Brain** → Structured translation
-1. **SST Logs** → Honesty tracking
-1. **Drift Index** → Language calibration
-1. **Session Scores** → Performance metrics
-1. **Wrap-Up Card** → Session summary
-1. **Adaptive Loop** → System evolution
-1. **Recognition Layer** → Daily integration
-1. **Next Session** → Improved targeting
-
-Each loop refines the system's ability to generate accurate, useful mirrors while maintaining falsifiability and user agency.
-
-**_~~Woven Map Implementation Architecture~~_**
-
-# Woven Map Implementation Architecture
-
-## Core Translation Engine
-
-### FIELD → MAP → VOICE Protocol
-
-**FIELD (Somatic Climate)**
-
-- Atmospheric pressure in lived experience
-- Body-level recognition without astrological naming
-- Examples: "jaw tightens," "time feels heavy," "expansion in chest"
-- Weather metaphors: storm, hum, tension, release
-
-**MAP (Geometric Skeleton)**
-
-- Mathematical anchoring to chart vectors
-- Precise aspects within defined orbs
-- Computational backbone (never shown directly in user reports)
-- Keeps metaphors falsifiable and traceable
-
-**VOICE (Poetic Reflection)**
-
-- Conditional, Socratic phrasing
-- Testable metaphors that land in the body
-- Always questions, never prescriptions
-- Returns agency to the person
-## Math Brain Filtering System
-
-### Vector Identification Rules
-
-**Primary Aspects:** Major planets + Chiron in hard aspect within tight orbs **Secondary Bodies:** Eris, Pholus, etc. only if orb ≤1° AND ping-confirmed **Containment ↔ Release Taxonomy:** Every aspect classified by pressure signature
-
-### Sparse Chart Handling
-
-- Silence ≠ absence: fewer stress-lines mean different skeleton
-- Weight shifts to angle placements and containment fields
-- Actor/Role composite tracks provide behavioral anchors
-- Constitutional weather focuses on what _isn't_ moving until transit activation
-### SST Three-Tier Transit Significance
-
-**Within Boundary (WB):** Ping felt/observed **At Boundary Edge (ABE):** Partial or inverted resonance
-**Outside Symbolic Range (OSR):** No landing detected
-
-Balance Meter magnitude thresholds:
-
-- **Surge (3):** Noticeable pressure
-- **Convergence (4):** Multiple factors stacking
-- **Overload (5):** System strain/breakthrough point
-## Metaphor Generation Systems
-
-### The Poetic Codex (Library Method)
-
-- Pre-forged archetypal cards
-- Tested, repeatable FIELD → MAP → VOICE translations
-- Examples: "The Storm Beneath the Smile," "The Serpent's Shedding"
-- Ready-to-deal atmospheric intelligence
-### Symbol-to-Poem Translation (Live Forge)
-
-**Process Steps:**
-
-1. Identify chart vectors (planets, aspects, angles)
-1. Extract FIELD (felt energetic driver)
-1. Map exact astro source
-1. Render pure poetry (no symbols/emojis)
-1. Provide audit trail (poetic line → FIELD + MAP + color-coded planet key)
-
-**Output Structure:**
-
-- Standalone embodied poem
-- Falsifiable mathematical audit table
-- Both layers maintain FIELD → MAP → VOICE integrity
-## Constitutional Climate Framework
-
-### Core Track Composites
-
-**Actor/Role Pairs:** Behavioral anchors when aspect geometry is minimal **Containment Fields:** How pressure is held vs discharged **Atmospheric Metaphors:** Weather-based descriptions tied to specific archetypal drivers
-
-### Climate Categories
-
-- **Compression/Lock/Bind:** What isn't moving until transit activation
-- **Release/Flow/Expansion:** Natural discharge patterns
-- **Storm/Turbulence:** Active tension states
-- **Hum/Resonance:** Background rhythmic patterns
-## Integration Standards
-
-### Resonance Testing
-
-- No transit graduates to "significant" without confirmed ping
-- Every metaphor traceable to mathematical source
-- Constitutional vs temporal pressure clearly delineated
-- Agency always returned through conditional questioning
-### Quality Gates
-
-- Tight orb requirements prevent noise inflation
-- FIELD → MAP → VOICE chain maintains falsifiability
-- Climate language stays atmospheric, not psychological
-- Vector-Integrity distinguishes latent from suppressed influences
-## Implementation Workflow
-
-### Data Processing Pipeline
-
-**Raw Input:** Birth data, transit dates, relocation coordinates **Math Brain Filter:** Aspect calculation with strict orb rules **Vector Classification:** Containment ↔ Release taxonomy application **Climate Translation:** FIELD → MAP → VOICE rendering **Report Assembly:** Modular components with consistent architecture
-
-### User Interface Principles
-
-- Mirror Voice closes with empowering questions
-- Balance Meter provides seismograph-like temporal tracking
-- Raw Geometry appendix maintains mathematical transparency
-- Non-interpretive surfacing preserves user autonomy
-
-**_~~Nuances~~_**
-
-# **The Woven Map: System Architecture**
-
-## **1.0 Two Categories of Atmospheric Intelligence**
-
-The Woven Map generates two distinct but complementary types of reports: **Mirror Flow** and **Balance Meter**. Both describe symbolic weather patterns without predicting outcomes, but they differ in their scaffolding and diagnostic purpose.
-
-### **1.1 Mirror Flow Reports (Qualitative)**
-
-- **Purpose:** Qualitative reflection and self-recognition.
-- **Core Function:** Acts as an "atmospheric mirror," translating chart geometry into lived tensions, paradoxes, and recognition patterns using the **FIELD → MAP → VOICE** protocol.
-- **Technical Scaffolding:**
--- **Primary Input:** Natal geometry or synastry patterns.
--- **Transit Dependency:** Not required.
--- **Location Sensitivity:** Low.
-### **1.2 Balance Meter Reports (Quantitative)**
-
-- **Purpose:** Quantitative measurement and pressure diagnostics.
-- **Core Function:** Acts as a "symbolic seismograph," scoring the magnitude, valence, and volatility of active transits. It provides numerical climate indices for pressure tracking over time.
-- **Technical Scaffolding:**
--- **Primary Input:** Active transit data with precise timing.
--- **Transit Dependency:** Essential.
--- **Location Sensitivity:** High; accuracy degrades without proper geographical data.
-## **2.0 The Core Engine: The Weight Belt**
-
-The Balance Meter's quantitative diagnostics are powered by the **Weight Belt**, a falsifiable framework designed to quantify and interpret internal and external pressures.
-
-### **2.1 Overview: The Weight Belt Console**
-
-The Weight Belt operates like a console with two primary dials—**Support** and **Friction**—scaled by a third slider representing **Your Capacity**. The core principle is to establish a mathematical baseline first, then use logged, lived experience (pings) to calibrate personal overrides.
-
-### **2.2 The Core Computational Engine**
-
-The engine calculates a continuous **Support-Friction Differential (SFD)** score by processing environmental factors through a multi-band temporal filter.
-
-2.2.1 SFD Calibration (Support-Friction Differential)The goal is to keep the evaluation of positive vs. negative pressure (S+ vs S−) objective and free from taste or bias.
-
-
-- **Default Rules (Math Before Interpretation):**
--- **Aspect Base Weights:**
---- Trine: +0.40
---- Sextile: +0.25
---- Conjunction: ±0.00 (determined by planet-pair)
---- Square: −0.50
---- Opposition: −0.45
--- **Planet-Pair Valence Table (Examples):**
---- Sun/Jupiter: +0.30
---- Sun/Venus: +0.20
---- Sun/Saturn: −0.35
---- Moon/Jupiter: +0.25
---- Moon/Neptune: ±0.20 (subject to inversion rule)
---- Mars/Saturn: −0.35
---- Mars/Neptune: ±0.20 (fog vs. flow)
---- Personal ↔ Pluto: −0.30 (default, can flip to +0.15 as “combustion clarity” if proven by ping history)
--- **Modifiers:**
---- **Angularity (ASC/MC/DSC/IC):** ±0.10 to ±0.20
---- **Applying vs. Separating:** +0.10 / −0.05
---- **Multi-hit Stack (3+ aspects in 72h):** Add −0.10 volatility kicker
-- **The SST Guardrail (Anti-Bias Protocol):** The **Somatic Signal Trust (SST)** guardrail ensures that lived experience can override theoretical defaults. If a user’s ping history flags an **ABE (Affect-Behavior-Expectation) inversion** for a given pair (e.g., Neptune trines consistently land as “dissolution, not ease”), the system flips the sign for that pair on the chart until contradicted by future pings.
-- **Classification & Display:**
--- **S+ (Supportive):** if summed score ≥ +0.20
--- **S− (Friction):** if summed score ≤ −0.20
--- S0 (Neutral Scaffold): if between +0.20 and −0.20The score and its components are always displayed transparently.
-
-
-2.2.2 Temporal Granularity EngineThe system separates signals into distinct bands to prevent high-frequency noise from drowning out significant slow-moving pressures.
-
-
-- **Bands:**
--- **High-Freq:** Moon and fast applying aspects (half-life ~6h). Flagged as triggers.
--- **Mid-Band:** Personal planets (daily cadence).
--- **Low-Band:** Saturn↔Pluto and progressions (weekly/monthly cadence).
-- **Fusion & Stacking:**
--- SFD is computed per band and displayed alongside a blended score (e.g., weights 0.2 / 0.4 / 0.4).
--- If a high-freq trigger lands on a low-band compression, it is annotated as **“Trigger over backdrop”** rather than simply doubling the score.
--- **Rule:** Lunar noise is never allowed to outrank a verified slow-moving compression without a confirming **WB (Weight Belt) ping**.
-### **2.3 Personalization and Tuning**
-
-The global defaults are starting points. The system becomes personally calibrated through three key mechanisms.
-
-2.3.1 Individual Load Capacity (The 'g' Factor)A per-person Capacity Gain (g) scales the magnitude, valence, and volatility of calculated scores.
-
-
-- **Constitutional Baseline:**
--- **Structural Load:** Fixed dominance, angular Saturn/Mars, stelliums, T-squares suggest higher base capacity.
--- **Release Channels:** Strong trines to benefics/angles suggest faster recovery.
--- **Field History:** Observed ratio of lived strain to forecasted magnitude.
-- **Computation:**
--- Start at g = 1.00.
--- Adjust g within a 0.70–1.30 range based on the rules above (e.g., angular Saturn + fixed stack → g = 1.15).
--- Apply g multiplicatively to Magnitude and cap volatility.
--- Update g quarterly based on actual ping data (Bayesian nudge).
-
-2.3.2 Rebound Detection SensitivityThe global starter threshold for a positive rebound is SFD ≥ +0.15. This is then personalized.
-
-
-1. Compute a user’s SFD z-score distribution over 90 days.
-1. Set their personal rebound trigger to max(+0.15, user’s 70th percentile).
-1. Require two consecutive intervals above the threshold plus declining volatility to confirm a rebound.
-
-2.3.3 House-Level Precision for Location AmbiguityTo handle variable or unknown locations, the system bounds the problem rather than guessing.
-
-
-- **Primary Horizon:** User sets a default residence.
-- **Mobile Horizon:** Use device location or user input for travel days.
-- **Ambiguity Mode (Angle Drift Cone):**
--- Compute a cone using two or three likely coordinates.
--- If a house placement agrees across all candidates, render house-specific language.
--- If not, degrade gracefully to planet-to-planet or sign/angle tone, and include an **Angle Drift Alert**.
-### **2.4 Emergent Silence vs. Suppression Protocol**
-
-Silence can mean skilled integration or shutdown. This protocol provides evidence to differentiate them.
-
-2.4.1 Windowing by DriverA minimum “quiet” period with no WB pings on a vector is required before testing for integration.
-
-
-- **Lunar triggers:** 2 full lunations.
-- **Mars/Jupiter/Personal outers:** 90 days with no pings and no compensatory behaviors (e.g., displacement spikes).
-- **Saturn/Uranus/Neptune/Pluto:** One station cycle or 6 months, whichever is longer.
-
-2.4.2 The Counterfactual Probe (Tuning Fork Method)During the quiet window, present low-dose prompts (mirrors) that used to elicit pings. This tests for resonance without forcing a response.
-
-
-- Probe Architecture: FIELD → MAP → VOICEEach probe is a 90-second, three-part micro-dose:
-
-1.1. **Somatic Ping (20–30s):** A tiny, body-first action that “touches” the likely channel.
-1.1. **Micro-behavior (30–45s):** One concrete, low-stakes move that teases the vector.
-1.1. **Voice Line (1 sentence):** A neutral, non-leading question that names the climate, not the outcome.
-- **The Prompt Bank (Global Packs):** Standardized low-dose triplets for core vector families. (Examples: Saturn→Sun, Mars→Moon, etc., as detailed previously).
-- **Application Protocol: Dose, Timing & Safety Rails**
--- **Time:** 90 seconds per probe; max 3 probes/day across all vectors.
--- **Neutrality:** Voice lines avoid moral or demanding language (“should,” “need”).
--- **Abort Criteria:** Any ≥4/5 somatic alarm (breath lock, panic edge) ends the probe. Log as ABE (tone miscalibration), not WB.
-- Scoring, Logging & SST ClassificationPer probe, log: Somatic ping: (0–5), Behavioral tug: (0–5), Affect tilt: (-2/0/+2).
-
--- **WB (Weight Belt Ping):** If somatic ≥2 and affect tilt matches the vector's expected polarity.
--- **ABE (Miscalibration):** If response is partial, inverted, or mis-toned.
--- **OSR (Off-System Reading):** If consistently sub-threshold. This is the candidate for **Emergent Silence** (integration) if compensatory behaviors and volatility are also absent. If displacement appears, classify as **Suppression**.
-## **3.0 Implementation Architecture & Philosophy**
-
-The entire system is built on a set of core principles that ensure falsifiability, user agency, and continuous refinement.
-
-### **3.1 The Poetic Brain: Feedback Loop System**
-
-This is the recognition-to-refinement pipeline that keeps the system honest and adaptive.
-
-- **1. Hook Stack:** High-charge, dual-polarity titles that trigger limbic recognition.
-- **2. Poetic Brain Translation:** The core **FIELD → MAP → VOICE** process.
-- **3. SST Logs:** The falsifiability table classifying feedback as WB, ABE, or OSR.
-- **4. Drift Index:** A Sidereal-lean detector that calibrates language based on feedback.
-- **5. Session Scores:** Transparent metrics for Accuracy, Edge Capture, and Clarity.
-- **6. Wrap-Up Card:** A session summary for memory and future reference.
-- **7. Adaptive Loop:** How the system evolves based on all prior feedback.
-### **3.2 Guiding Principles for Implementation**
-
-1. **Everything Logs:** Every score prints its components for full transparency.
-1. **SST First:** Lived experience (WB/ABE/OSR pings) gates and flips default meanings.
-1. **Silence Isn’t Absence:** Promote to “integration” only after counterfactual probes stay quiet and volatility drops across a full window.
-1. **Human in the Loop:** Computation happens first. Interpretation happens after, only to narrate the weather, not to overrule the dials.
-## **4.0 Report Generation Guide**
-
-### **4.1 Required Data Inputs**
-
-- **Solo Reports:** Name, Birth Date/Time/City, Timezone, Zodiac Type, Mode (Natal or Natal + Transits), and Analysis Window.
-- **Relational Reports:** All data for Person B, Relationship Context (Type, Intimacy Tier), and Analysis Mode (Synastry, Composite, etc.).
-### **4.2 Relocation ("Translocation") Options**
-
-Relocation reanchors the house system and angles to a different location, changing _where_ planetary energies land.
-
-- **Options:** None, A_local, B_local, Midpoint.
-- **Rule of Thumb:** Decide the "setting of the story" to select the appropriate relocation mode.
-## **5.0 Initial Deployment: The 14-Day Pilot**
-
-The system is turned from theory into a calibrated instrument through an initial data-gathering phase.
-
-- **Objective:** To seed the personal overrides for the Capacity Gain (g), SST Guardrail, and Rebound Detection.
-- **Procedure:** Begin a 14-day ping log. Three times per day, make a quick note of:
-1.1. Felt sense
-1.1. Behavior
-1.1. Context
-- **Next Steps:** After 14 days, the initial data is sufficient to activate the first pass of personal tuning, enabling the Capacity Gain and Angle Drift Cone features.
+Required behavior (adapter responsibilities)
+	•	Accept the simplified subjectA/subjectB/transits/houses/relocation_mode JSON shape (human-friendly).
+	•	Auto-select one geocoding mode and do not mix modes per run:
+	•	City-mode: send city, state, nation (no lat/lon/tz) — recommended for reliability.
+	•	Coords-mode: send lat, lng (or lat, lon depending on upstream) and tz_str — for maximum precision.
+	•	Stamp provenance: house system, orbs profile, timezone_db_version, relocation_mode, relocation_coords.
+	•	Enforce orb caps and Moon/outer adjustments before weight calculation.
+	•	Emit drivers[] with normalized fields: { a, b, type, orb, applying, weight, is_transit }.
+	•	If upstream returns empty, return full report structure and explicit placeholders (e.g., drivers: [], seismograph.pending: true) so UI can render consistent pages.
+
+Config hints
+	•	GEONAMES_USERNAME: optional env var. If present, adapter prefers city-mode using geonames for resolution; if absent, adapter falls back to coords-only or city+state heuristics.
+	•	Relocation default: dyad reports default to A_local. Allow user override.
+
+⸻
+
+7. UX & Non-programmer simplicity
+
+Minimum user fields (what we ask in UI)
+	•	Name
+	•	Birth date
+	•	Birth time (approx OK; warn on house precision)
+	•	Birth city
+	•	Mode: Natal or Natal + Transits
+	•	If Transits: Ask for start/end dates and whether to anchor analysis to your current city (Yes → ask current city).
+
+Helpful UX copy
+	•	“For location-sensitive reports (Balance Meter), accuracy improves if you provide city + state (or allow device location). Optional: sign into GeoNames for improved place resolution.”
+	•	If aspects fail to return, show friendly explanation and options: “We didn’t receive live transit aspects for these dates — you can retry with city+state, coords, or enable GeoNames. Meanwhile the report layout is ready.”
+
+⸻
+
+8. Fail states & graceful degradation (operational)
+	•	No aspects received: show full report, mark drivers[] empty and seismograph pending, include simulated examples explicitly labeled as simulated.
+	•	Partial days returned: populate days that returned aspects; mark others pending.
+	•	House ambiguity: show Angle Drift Alert and degrade house language to planet/sign tone.
+	•	Invalid relocation_mode: return 400 and descriptive message (midpoint is allowed only if explicitly requested; default is A_local).
+	•	Orbs mismatch: adapter enforces orb profile but includes orbs_profile in provenance for traceability.
+
+⸻
+
+9. Testing, QA, and Falsifiability (product rules)
+	•	Session Scores: measure WB / ABE / OSR from user feedback.
+	•	14-day pilot: required for new users to seed personal tuning (capacity gain g, SST flips).
+	•	Logging & audit: Every report must include a provenance block and raw geometry appendix for debugging and user transparency.
+	•	Automated schema checks: assert drivers[] present shape and required provenance fields exist in CI.
+
+⸻
+
+10. Developer Quick Reference (payload examples)
+
+Minimal Solo Balance Meter (A_local)
+
+{
+  "report_type":"solo_balance_meter",
+  "subjectA":{
+    "name":"DH Cross",
+    "birth":{ "date":"1973-07-24","time":"14:30","city":"Bryn Mawr","state":"PA","nation":"US" },
+    "A_local":{ "city":"Panama City","state":"FL","nation":"US" }
+  },
+  "transits":{ "from":"2025-09-01","to":"2025-09-30","step":"1d" },
+  "houses":"Placidus",
+  "relocation_mode":"A_local",
+  "orbs_profile":"wm-spec-2025-09"
+}
+
+Relational Balance Meter (A_local)
+
+{
+  "report_type":"relational_balance_meter",
+  "subjectA":{ ... },
+  "subjectB":{
+    "name":"Stephie",
+    "birth":{ "date":"1965-04-18","time":"18:37","city":"Albany","state":"GA","nation":"US" }
+  },
+  "transits":{ "from":"2025-09-01","to":"2025-09-30","step":"1d" },
+  "houses":"Placidus",
+  "relocation_mode":"A_local",
+  "orbs_profile":"wm-spec-2025-09"
+}
+
+Notes:
+	•	If you prefer coords-only, remove city/state/nation and include lat/lon and tz_str.
+	•	Provide GEONAMES_USERNAME in .env if you want to stabilize city resolution (optional, free).
+
+⸻
+
+11. Poetic Brain & Feedback Loop (unchanged but tightened)
+	•	Hook Stack, Poetic Brain Translation (FIELD→MAP→VOICE), SST, Drift Index, Session Scores, Wrap-Up Card, Adaptive Loop remain core components.
+	•	New: Each Poetic Brain output must include a tiny provenance line linking to the Balance Meter seismograph/day (if transits used) and note whether language is derived from natal geometry or transit activation.
+
+⸻
+
+12. Closing: product philosophy (refined)
+	•	We keep falsifiability first and recognition before diagnosis.
+	•	The system must be traceable: every poetic line maps to a math anchor (or a clear note explaining lack of transit anchors).
+	•	We prefer clarity over magical-sounding certainty. If the system has ambiguous inputs (time, location, missing aspects), the UI and voice must call that out and offer pragmatic fixes (provide state, enable GeoNames, or accept Angle Drift Cone language).
+
+⸻
 

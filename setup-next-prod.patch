@@ -1,0 +1,52 @@
+diff --git a/next.config.ts b/next.config.ts
+deleted file mode 100644
+index e69de29..0000000
+--- a/next.config.ts
++++ /dev/null
+@@ -1,0 +0,0 @@
+diff --git a/next.config.mjs b/next.config.mjs
+new file mode 100644
+index 0000000..b7e23cd
+--- /dev/null
++++ b/next.config.mjs
+@@ -0,0 +1,10 @@
++/** @type {import('next').NextConfig} */
++const nextConfig = {
++  reactStrictMode: true,
++  experimental: {
++    // keep if you're on App Router (app/ directory)
++    typedRoutes: false,
++  },
++};
++
++export default nextConfig;
+diff --git a/.nvmrc b/.nvmrc
+new file mode 100644
+index 0000000..b59c1f7
+--- /dev/null
++++ b/.nvmrc
+@@ -0,0 +1 @@
++20
+diff --git a/package.json b/package.json
+index 1234567..89abcde 100644
+--- a/package.json
++++ b/package.json
+@@
+   "scripts": {
+-    "dev": "next dev",
+-    "build": "next build",
+-    "start": "next start"
++    "dev": "next dev",
++    "build": "next build",
++    "start": "next start",
++    "build:prod": "cross-env NODE_ENV=production next build",
++    "start:next": "next start -p 3000",
++    "start:prod": "cross-env NODE_ENV=production next start -p 3000"
+   },
+   "devDependencies": {
+-    "eslint": "^8.0.0"
++    "eslint": "^8.0.0",
++    "cross-env": "^7.0.3"
+   }
+ }
+

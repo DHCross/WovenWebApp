@@ -63,6 +63,36 @@ function normalizeStep(step) {
   return 'daily';
 }
 
+// Timezone normalization for common aliases and US/* forms
+function normalizeTimezone(tz) {
+  if (!tz || typeof tz !== 'string') return tz;
+  const t = tz.trim();
+  const map = {
+    // US area aliases
+    'US/Eastern': 'America/New_York',
+    'US/Central': 'America/Chicago',
+    'US/Mountain': 'America/Denver',
+    'US/Pacific': 'America/Los_Angeles',
+    'US/Arizona': 'America/Phoenix',
+    'US/Alaska': 'America/Anchorage',
+    'US/Hawaii': 'Pacific/Honolulu',
+    'US/East-Indiana': 'America/Indiana/Indianapolis',
+    // Abbreviations (best-effort; DST not inferred, but upstream only needs IANA ID)
+    'EST': 'America/New_York',
+    'EDT': 'America/New_York',
+    'CST': 'America/Chicago',
+    'CDT': 'America/Chicago',
+    'MST': 'America/Denver',
+    'MDT': 'America/Denver',
+    'PST': 'America/Los_Angeles',
+    'PDT': 'America/Los_Angeles',
+    'AKST': 'America/Anchorage',
+    'AKDT': 'America/Anchorage',
+    'HST': 'Pacific/Honolulu'
+  };
+  return map[t] || t;
+}
+
 // Derive time provenance for a subject based on presence of hour/minute
 function deriveTimeMeta(subject) {
   const h = subject?.hour;
@@ -185,12 +215,15 @@ function buildHeaders() {
  * @returns {{isValid: boolean, message: string}}
  */
 function validateSubject(subject) {
-  const required = [
-    'year','month','day','hour','minute',
-    'name','city','nation','latitude','longitude','zodiac_type','timezone'
-  ];
-  const missing = required.filter(f => subject[f] === undefined || subject[f] === null || subject[f] === '');
-  return { isValid: missing.length === 0, message: missing.length ? `Missing: ${missing.join(', ')}` : 'ok' };
+  const baseReq = ['year','month','day','hour','minute','name','zodiac_type'];
+  const baseMissing = baseReq.filter(f => subject[f] === undefined || subject[f] === null || subject[f] === '');
+  // Accept either coords-mode OR city-mode
+  const hasCoords = (typeof subject.latitude === 'number') && (typeof subject.longitude === 'number') && !!subject.timezone;
+  const hasCity = !!(subject.city && subject.nation);
+  const okMode = hasCoords || hasCity;
+  const modeMsg = okMode ? '' : 'coords(lat,lon,timezone) OR city,nation required';
+  const missingMsg = baseMissing.length ? `Missing: ${baseMissing.join(', ')}` : '';
+  return { isValid: baseMissing.length === 0 && okMode, message: [missingMsg, modeMsg].filter(Boolean).join('; ') || 'ok' };
 }
 
 /**
@@ -208,7 +241,7 @@ function normalizeSubjectData(data) {
   city: data.city, nation: data.nation,
   latitude: data.latitude ?? data.lat,
   longitude: data.longitude ?? data.lon ?? data.lng,
-  timezone: data.timezone,
+  timezone: normalizeTimezone(data.timezone || data.tz_str),
     zodiac_type: data.zodiac_type || data.zodiac || 'Tropic',
   };
 
@@ -246,7 +279,7 @@ function normalizeSubjectData(data) {
   }
   // Timezone aliases
   if (!normalized.timezone) {
-    normalized.timezone = data.offset || data.tz || data.tzid || data.time_zone || normalized.timezone;
+    normalized.timezone = normalizeTimezone(data.offset || data.tz || data.tzid || data.time_zone || normalized.timezone);
   }
   if (data.coordinates) {
     const [lat, lng] = data.coordinates.split(',').map(s => parseFloat(s.trim()));
@@ -322,20 +355,67 @@ function normalizeSubjectData(data) {
  */
 function subjectToAPI(s = {}, pass = {}) {
   if (!s) return {};
+  const hasCoords = (typeof s.latitude === 'number' || typeof s.lat === 'number')
+    && (typeof s.longitude === 'number' || typeof s.lon === 'number' || typeof s.lng === 'number')
+    && (s.timezone || s.tz_str);
+  const hasCity = !!(s.city && s.nation);
+  const tzNorm = normalizeTimezone(s.timezone || s.tz_str);
   const apiSubject = {
     name: s.name,
     year: s.year, month: s.month, day: s.day,
     hour: s.hour, minute: s.minute,
-    city: s.city, nation: s.nation,
-    lat: s.latitude ?? s.lat,
-    lng: s.longitude ?? s.lon ?? s.lng,
-    tz_str: s.timezone ?? s.tz_str,
     zodiac_type: s.zodiac_type || 'Tropic'
   };
-  // Only include houses_system_identifier if provided (either on subject or via pass)
+  // Send coordinates if available (API expects lat/lng/tz_str field names)
+  const includeCoords = hasCoords && !pass.force_city_mode && !pass.suppress_coords;
+  if (includeCoords) {
+    apiSubject.lat = s.latitude ?? s.lat;
+    apiSubject.lng = s.longitude ?? s.lon ?? s.lng;
+    apiSubject.tz_str = tzNorm;
+  }
+  
+  // Send city/nation when requested or when coords are absent
+  // Notes: Some natal endpoints validate presence of city field even if lat/lng/tz provided.
+  // pass.require_city forces inclusion alongside coords; we avoid adding geonames_username
+  // when coords are present to reduce resolver ambiguity.
+  const wantCity = hasCity && (pass.require_city || !includeCoords);
+  if (wantCity) {
+    apiSubject.city = s.state ? `${s.city}, ${s.state}` : s.city;
+    apiSubject.nation = s.nation;
+    // Only include geonames_username when operating in pure city mode (no coords) unless explicitly forced
+    if ((!includeCoords || pass.force_city_mode) && process.env.GEONAMES_USERNAME && !pass?.suppress_geonames) {
+      (apiSubject).geonames_username = process.env.GEONAMES_USERNAME;
+    }
+  }
   const hsys = s.houses_system_identifier || pass.houses_system_identifier;
   if (hsys) apiSubject.houses_system_identifier = hsys;
   return apiSubject;
+}
+
+// Helper: call natal endpoints with formation fallback
+async function callNatal(endpoint, subject, headers, pass = {}, description = 'Natal call'){
+  const canUseGeo = !!process.env.GEONAMES_USERNAME && !!(subject.city && subject.nation);
+  if (canUseGeo) {
+    // Attempt 1: city + GeoNames (preferred per integration notes)
+    const payloadCityWithGeo = { subject: subjectToAPI(subject, { ...pass, require_city: true, force_city_mode: true, suppress_coords: true, suppress_geonames: false }) };
+    try {
+      return await apiCallWithRetry(endpoint, { method: 'POST', headers, body: JSON.stringify(payloadCityWithGeo) }, `${description} (city+geonames)`);
+    } catch (e0) {
+      // Fall through to coords-only
+    }
+  }
+  // Attempt 2: coords-only (no city, no geonames)
+  const payloadCoords = { subject: subjectToAPI(subject, { ...pass, require_city: false, force_city_mode: false, suppress_geonames: true }) };
+  try {
+    return await apiCallWithRetry(endpoint, { method: 'POST', headers, body: JSON.stringify(payloadCoords) }, description);
+  } catch (e1) {
+    const canTryCity = !!(subject.city && subject.nation);
+    const is4xx = e1 && e1.code === 'CLIENT_ERROR' && e1.status >= 400 && e1.status < 500;
+    if (!is4xx || !canTryCity) throw e1;
+    // Attempt 3: city-only without GeoNames (for providers that accept free-text city)
+    const payloadCityNoGeo = { subject: subjectToAPI(subject, { ...pass, require_city: true, force_city_mode: true, suppress_coords: true, suppress_geonames: true }) };
+    return await apiCallWithRetry(endpoint, { method: 'POST', headers, body: JSON.stringify(payloadCityNoGeo) }, `${description} (city-only)`);
+  }
 }
 
 // ---- Aspect Filtering & Hook Extraction (refined) ----
@@ -346,13 +426,13 @@ const ASPECT_CLASS = {
   harmonic: new Set(['quintile','biquintile'])
 };
 
-// Orb caps by aspect (geometry constraint)
+// Orb caps by aspect (geometry constraint) — aligned to spec
 const ASPECT_ORB_CAPS = {
-  conjunction: 10,
-  opposition: 10,
-  square: 8,
-  trine: 8,
-  sextile: 6,
+  conjunction: 8,
+  opposition: 8,
+  square: 7,
+  trine: 7,
+  sextile: 5,
   quincunx: 3,
   sesquiquadrate: 3,
   'semi-square': 2,
@@ -384,6 +464,18 @@ function classifyAspectName(name){
   if (ASPECT_CLASS.minor.has(name)) return 'minor';
   if (ASPECT_CLASS.harmonic.has(name)) return 'harmonic';
   return 'other';
+}
+
+// Hard-cap adjustments
+const PERSONAL_SET = new Set(['Sun','Moon','Mercury','Venus','Mars']);
+const OUTER_SET = new Set(['Jupiter','Saturn','Uranus','Neptune','Pluto']);
+function adjustOrbCapForSpecials(baseCap, p1, p2){
+  let cap = baseCap;
+  if (p1 === 'Moon' || p2 === 'Moon') cap += 1; // Moon +1°
+  const outerPersonal = (OUTER_SET.has(p1) && PERSONAL_SET.has(p2)) || (OUTER_SET.has(p2) && PERSONAL_SET.has(p1));
+  if (outerPersonal) cap -= 1; // Outer → personal −1°
+  if (cap < 1) cap = 1;
+  return cap;
 }
 
 function bodyClass(name){
@@ -430,7 +522,8 @@ function weightAspect(a){
   const aspectCap = ASPECT_ORB_CAPS[a._aspect] || 6;
   const classCapTransit = BODY_CLASS_CAPS[bodyClass(a.p1_name)] || 6;
   const classCapNatal = BODY_CLASS_CAPS[bodyClass(a.p2_name)] || 6;
-  const effectiveCap = Math.min(aspectCap, Math.max(classCapTransit, classCapNatal));
+  let effectiveCap = Math.min(aspectCap, Math.max(classCapTransit, classCapNatal));
+  effectiveCap = adjustOrbCapForSpecials(effectiveCap, a.p1_name, a.p2_name);
   const tightness = a._orb != null ? Math.max(0, 1 - (a._orb / effectiveCap)) : 0;
   const lumOrAngle = (a.p1_isLuminary || a.p2_isLuminary || a.p1_isAngle || a.p2_isAngle) ? 1.15 : 1.0;
   return +(base * tightness * lumOrAngle).toFixed(4);
@@ -450,7 +543,8 @@ function enrichDailyAspects(rawList){
     const p2Class = bodyClass(p2);
     const aspectCap = ASPECT_ORB_CAPS[aspectName] || 6;
     const classCap = Math.max(BODY_CLASS_CAPS[p1Class] || 6, BODY_CLASS_CAPS[p2Class] || 6);
-    const effectiveCap = Math.min(aspectCap, classCap);
+    let effectiveCap = Math.min(aspectCap, classCap);
+    effectiveCap = adjustOrbCapForSpecials(effectiveCap, p1, p2);
     let dropReason = '';
 
     if (sameBody) {
@@ -565,7 +659,7 @@ function canonicalizeMode(raw) {
 }
 
 // Build field-by-field validation map for strict subject requirements
-const STRICT_REQUIRED_FIELDS = ['year','month','day','hour','minute','name','city','nation','latitude','longitude','timezone','zodiac_type'];
+const STRICT_REQUIRED_FIELDS = ['year','month','day','hour','minute','name','zodiac_type'];
 function validateSubjectStrictWithMap(subject) {
   const errors = {};
   STRICT_REQUIRED_FIELDS.forEach(f => {
@@ -661,6 +755,7 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
   const { buildWindowSamples } = require('../../lib/time-sampling');
   const transitsByDate = {};
   const retroFlagsByDate = {}; // body -> retro boolean per date
+  const provenanceByDate = {}; // per-day endpoint + formation provenance
 
   // Determine sampling timezone: prefer subject.timezone, else UTC
   const ianaTz = subject?.timezone || 'UTC';
@@ -668,17 +763,47 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
   const samples = buildWindowSamples({ start: transitParams.startDate, end: transitParams.endDate, step }, ianaTz);
 
   const promises = [];
+  // Helper: ensure coords/tz from city using GeoNames when needed
+  async function ensureCoords(s){
+    if (!s) return s;
+    const hasCoords = typeof s.latitude === 'number' && typeof s.longitude === 'number' && !!s.timezone;
+    if (hasCoords) return s;
+    if (s.city && s.nation){
+      try {
+        const r = await geoResolve({ city: s.city, state: s.state, nation: s.nation });
+        if (r && typeof r.lat === 'number' && typeof r.lon === 'number'){
+          return { ...s, latitude: r.lat, longitude: r.lon, timezone: normalizeTimezone(r.tz || s.timezone || 'UTC') };
+        }
+      } catch(e){ logger.warn('ensureCoords geoResolve failed', e.message); }
+    }
+    return { ...s, latitude: s.latitude ?? 51.48, longitude: s.longitude ?? 0, timezone: normalizeTimezone(s.timezone || 'UTC') };
+  }
+
+  // Determine a consistent formation approach up-front for the entire window
+  // Rule: if coords+tz present, use coords-only for all days; else use city-mode (with optional geonames_username)
+  const preferCoords = (typeof subject.latitude === 'number' || typeof subject.lat === 'number')
+    && (typeof subject.longitude === 'number' || typeof subject.lon === 'number' || typeof subject.lng === 'number')
+    && !!(subject.timezone || subject.tz_str);
+
   for (const sampleIso of samples) {
     const dt = new Date(sampleIso);
     const dateString = sampleIso.slice(0, 10); // YYYY-MM-DD
-    const transit_subject = {
-      year: dt.getUTCFullYear(), month: dt.getUTCMonth() + 1, day: dt.getUTCDate(),
-      hour: dt.getUTCHours(), minute: dt.getUTCMinutes(),
-      city: subject.city || 'Greenwich', nation: subject.nation || 'GB',
-      latitude: subject.latitude ?? 51.48, longitude: subject.longitude ?? 0,
-      timezone: 'UTC', // sending UTC instant to upstream transit engine
-      zodiac_type: 'Tropic'
-    };
+    // Transit instant: prefer city mode; fallback to coords resolved
+      const transit_subject = await (async function(){
+        const base = {
+          year: dt.getUTCFullYear(), month: dt.getUTCMonth() + 1, day: dt.getUTCDate(),
+          hour: dt.getUTCHours(), minute: dt.getUTCMinutes(),
+          zodiac_type: 'Tropic'
+        };
+        if (preferCoords) {
+          const s = await ensureCoords(subject);
+          return { ...base, latitude: s.latitude, longitude: s.longitude, timezone: 'UTC' };
+        }
+        const cityField = subject.state ? `${subject.city}, ${subject.state}` : subject.city;
+        const t = { ...base, city: cityField, nation: subject.nation };
+        if (process.env.GEONAMES_USERNAME) (t).geonames_username = process.env.GEONAMES_USERNAME;
+        return t;
+      })();
 
     // Include configuration parameters for which planets to include
     const payload = {
@@ -696,24 +821,132 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
     logger.debug(`Full transit API payload for ${dateString}:`, JSON.stringify(payload, null, 2));
 
     promises.push(
-      apiCallWithRetry(
-        API_ENDPOINTS.TRANSIT_ASPECTS,
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload),
-        },
-        `Transits for ${subject.name} on ${dateString}`
-  ).then(resp => {
-        logger.debug(`Transit API response for ${dateString}:`, {
-          hasAspects: !!(resp && resp.aspects),
-          aspectCount: (resp && resp.aspects) ? resp.aspects.length : 0,
-          responseKeys: resp ? Object.keys(resp) : 'null response',
-          sample: resp && resp.aspects && resp.aspects.length > 0 ? resp.aspects[0] : 'no aspects'
-        });
-        
-        if (resp.aspects && resp.aspects.length > 0) {
+      (async () => {
+  let resp = null;
+  let endpoint = 'transit-aspects-data';
+  let formation = transit_subject.city ? 'city' : 'coords';
+        let attempts = 0;
+        const maxAttempts = 3;
+
+        // Attempt 1: Primary endpoint - /transit-aspects-data
+        try {
+          resp = await apiCallWithRetry(
+            API_ENDPOINTS.TRANSIT_ASPECTS,
+            {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(payload),
+            },
+            `Transits for ${subject.name} on ${dateString}`
+          );
+          attempts++;
+          
+          logger.debug(`Transit API response for ${dateString} (${endpoint}):`, {
+            hasAspects: !!(resp && resp.aspects),
+            aspectCount: (resp && resp.aspects) ? resp.aspects.length : 0,
+            responseKeys: resp ? Object.keys(resp) : 'null response',
+            sample: resp && resp.aspects && resp.aspects.length > 0 ? resp.aspects[0] : 'no aspects'
+          });
+        } catch (e) {
+          logger.warn(`Primary transit endpoint failed for ${dateString}:`, e.message);
+        }
+
+        // Attempt 2: Fallback to /transit-chart if no aspects found
+        if ((!resp || !resp.aspects || resp.aspects.length === 0) && attempts < maxAttempts) {
+          try {
+            endpoint = 'transit-chart';
+            logger.info(`Fallback: Trying transit-chart endpoint for ${dateString}`);
+            
+            resp = await apiCallWithRetry(
+              API_ENDPOINTS.TRANSIT_CHART,
+              {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(payload),
+              },
+              `Transit chart fallback for ${subject.name} on ${dateString}`
+            );
+            attempts++;
+
+            // Extract aspects from chart response structure
+            if (resp && !resp.aspects && resp.data) {
+              // Sometimes aspects are nested in data
+              resp.aspects = resp.data.aspects || resp.aspects;
+            }
+
+            logger.debug(`Transit chart fallback response for ${dateString}:`, {
+              hasAspects: !!(resp && resp.aspects),
+              aspectCount: (resp && resp.aspects) ? resp.aspects.length : 0,
+              responseKeys: resp ? Object.keys(resp) : 'null response'
+            });
+          } catch (e) {
+            logger.warn(`Transit chart fallback failed for ${dateString}:`, e.message);
+          }
+        }
+
+        // Attempt 3: Try switching transit subject formation if still empty
+        if ((!resp || !resp.aspects || resp.aspects.length === 0) && attempts < maxAttempts) {
+          try {
+            endpoint = 'formation-switch';
+            logger.info(`Formation switch: Trying alternate transit subject for ${dateString}`);
+            
+            // Switch between city mode and coords mode
+            const alternateTransitSubject = await (async function(){
+              const base = {
+                year: dt.getUTCFullYear(), month: dt.getUTCMonth() + 1, day: dt.getUTCDate(),
+                hour: dt.getUTCHours(), minute: dt.getUTCMinutes(),
+                zodiac_type: 'Tropic'
+              };
+              
+              // If original was city mode, try coords mode
+              if (!preferCoords && subject.city && subject.nation) {
+                const s = await ensureCoords(subject);
+                return { ...base, latitude: s.latitude, longitude: s.longitude, timezone: 'UTC' };
+              }
+              // If original was coords mode, try city mode with geonames
+              const cityField = subject.state ? `${subject.city}, ${subject.state}` : (subject.city || 'London');
+              const t = { ...base, city: cityField, nation: subject.nation || 'UK' };
+              if (process.env.GEONAMES_USERNAME) t.geonames_username = process.env.GEONAMES_USERNAME;
+              return t;
+            })();
+
+            const alternatePayload = {
+              first_subject: subjectToAPI(subject, pass),
+              transit_subject: subjectToAPI(alternateTransitSubject, pass),
+              ...pass
+            };
+
+            resp = await apiCallWithRetry(
+              API_ENDPOINTS.TRANSIT_ASPECTS,
+              {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(alternatePayload),
+              },
+              `Formation switch for ${subject.name} on ${dateString}`
+            );
+            attempts++;
+
+            logger.debug(`Formation switch response for ${dateString}:`, {
+              hasAspects: !!(resp && resp.aspects),
+              aspectCount: (resp && resp.aspects) ? resp.aspects.length : 0,
+              alternateFormation: alternateTransitSubject.city ? 'city-mode' : 'coords-mode'
+            });
+          } catch (e) {
+            logger.warn(`Formation switch failed for ${dateString}:`, e.message);
+          }
+        }
+
+        // Process successful response
+        if (resp && resp.aspects && resp.aspects.length > 0) {
           transitsByDate[dateString] = resp.aspects;
+          provenanceByDate[dateString] = {
+            endpoint,
+            formation,
+            attempts,
+            aspect_count: resp.aspects.length
+          };
+          
           // Extract retro flags if available
           const retroMap = {};
           const fs = resp.data?.first_subject || resp.data?.firstSubject;
@@ -728,13 +961,17 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
           };
           collect(fs); collect(tr);
           if (Object.keys(retroMap).length) retroFlagsByDate[dateString] = retroMap;
-          logger.debug(`Stored ${resp.aspects.length} aspects for ${dateString}`);
+          
+          logger.info(`✓ Success for ${dateString}: ${resp.aspects.length} aspects via ${endpoint} (attempts: ${attempts})`);
         } else {
+          logger.warn(`✗ No aspects found for ${dateString} after ${attempts} attempts (endpoints: ${endpoint})`);
           // Enhanced debug logging: Log full response when no aspects found
-          logger.debug(`No aspects found for ${dateString} - response structure:`, resp);
-          logger.debug(`Full raw API response for ${dateString} (no aspects):`, JSON.stringify(resp, null, 2));
+          if (resp) {
+            logger.debug(`Full raw API response for ${dateString} (no aspects):`, JSON.stringify(resp, null, 2));
+          }
+          provenanceByDate[dateString] = { endpoint, formation, attempts, aspect_count: 0 };
         }
-      }).catch(e => logger.error(`Failed to get transits for ${dateString}`, e))
+      })().catch(e => logger.error(`Failed to get transits for ${dateString}`, e))
     );
   }
   await Promise.all(promises);
@@ -746,7 +983,42 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
     availableDates: Object.keys(transitsByDate)
   });
   
-  return { transitsByDate, retroFlagsByDate };
+  return { transitsByDate, retroFlagsByDate, provenanceByDate };
+}
+
+// Geo resolve via GeoNames
+async function geoResolve({ city, state, nation }){
+  const u = process.env.GEONAMES_USERNAME || '';
+  const q = encodeURIComponent(state ? `${city}, ${state}` : city);
+  const c = encodeURIComponent(nation || '');
+  const searchUrl = `http://api.geonames.org/searchJSON?q=${q}&country=${c}&maxRows=1&username=${encodeURIComponent(u)}`;
+  const res1 = await fetch(searchUrl);
+  const j1 = await res1.json();
+  const g = j1 && Array.isArray(j1.geonames) && j1.geonames[0];
+  if (!g) return null;
+  const lat = parseFloat(g.lat), lon = parseFloat(g.lng);
+  let tz = null;
+  try {
+    const tzUrl = `http://api.geonames.org/timezoneJSON?lat=${lat}&lng=${lon}&username=${encodeURIComponent(u)}`;
+    const res2 = await fetch(tzUrl);
+    const j2 = await res2.json();
+    tz = j2 && (j2.timezoneId || j2.timezone || null);
+  } catch {}
+  return { lat, lon, tz };
+}
+
+// Expose resolve-city endpoint helper
+exports.resolveCity = async function(event){
+  const qs = event.queryStringParameters || {};
+  const city = qs.city || '';
+  const state = qs.state || '';
+  const nation = qs.nation || '';
+  try {
+    const r = await geoResolve({ city, state, nation });
+    return { statusCode: 200, headers: { 'content-type':'application/json' }, body: JSON.stringify({ input:{city,state,nation}, resolved:r }) };
+  } catch(e){
+    return { statusCode: 500, headers: { 'content-type':'application/json' }, body: JSON.stringify({ error: e.message }) };
+  }
 }
 
 // --- Transit Table Formatting: Orb-Band + Phase + Score ---
@@ -929,6 +1201,23 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}) {
       dispersionVol = Math.min(10, Math.sqrt(variance) * 10); // scale
     }
 
+    // Build compact drivers reflecting top hooks
+    const driversCompact = (enriched.hooks || []).map(h => ({
+      a: h.p1_name,
+      b: h.p2_name,
+      type: h._aspect || h.aspect || h.type,
+      orb: h._orb != null ? h._orb : (typeof h.orb === 'number' ? h.orb : (typeof h.orbit === 'number' ? h.orbit : null)),
+      applying: typeof h.applying === 'boolean' ? h.applying : undefined,
+      weight: typeof h._weight === 'number' ? h._weight : weightAspect(h),
+      // compatibility fields for existing composers/templates
+      planet1: h.p1_name,
+      planet2: h.p2_name,
+      name: h._aspect || h.aspect || h.type,
+      first_planet: h.p1_name,
+      second_planet: h.p2_name,
+      is_transit: true
+    }));
+
     const dayEntry = {
       seismograph: { 
         magnitude: agg.magnitude, 
@@ -941,7 +1230,9 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}) {
       },
       aspects: rawDayAspects,
       filtered_aspects: enrichedWithRetrograde,
+      // Keep legacy 'hooks' for backward compatibility; add normalized 'drivers'
       hooks: enriched.hooks,
+      drivers: driversCompact,
       rejections: enriched.rejections,
       counts: enriched.counts,
       transit_table: transitTable,
@@ -1708,17 +1999,32 @@ exports.handler = async function(event) {
     const transitB_raw = body.transit_subject_B || body.second_transit_subject || personB;
 
     // Relocation mode (data-only intent)
-    const relocationMode = (body.relocation_mode || body.translocation?.method || 'None');
+  let relocationMode = (body.relocation_mode || body.translocation?.method || 'None');
+    if (/^midpoint$/i.test(relocationMode)) {
+      return { statusCode: 400, body: JSON.stringify({ code:'RELOCATION_UNSUPPORTED', error:'Midpoint relocation is not supported for this protocol. Use A_local or B_local.', errorId: generateErrorId() }) };
+    }
+
+    // Default relocation intent
+    // - Dyad + Balance Meter: default to A_local unless explicitly overridden
+    // - Solo with A_local present: default to A_local
+    const hasDyad = !!(personB && Object.keys(personB).length);
+    const aLocal = body.personA?.A_local || body.subjectA?.A_local || null;
+    if ((relocationMode === 'None' || relocationMode === 'Natal') && wantBalanceMeter) {
+      if (hasDyad) relocationMode = 'A_local';
+      else if (aLocal) relocationMode = 'A_local';
+    }
 
     if (wantBalanceMeter) {
       if (!haveRange) {
         return { statusCode: 400, body: JSON.stringify({ code:'WINDOW_REQUIRED', error:'Balance Meter requires a time window (start, end, step)', errorId: generateErrorId() }) };
       }
-      if (!hasLoc(transitA_raw)) {
-        return { statusCode: 400, body: JSON.stringify({ code:'LOCATION_REQUIRED', error:'Balance Meter requires latitude, longitude, and timezone', errorId: generateErrorId() }) };
+      const cityModeA = !!(aLocal?.city && aLocal?.nation) || !!(personA?.city && personA?.nation);
+      const cityModeB = !!(personB && ((body.personB?.B_local?.city && body.personB?.B_local?.nation) || (personB.city && personB.nation)));
+      if (!hasLoc(transitA_raw) && !cityModeA) {
+        return { statusCode: 400, body: JSON.stringify({ code:'LOCATION_REQUIRED', error:'Balance Meter requires location (coords or city/nation) for A', errorId: generateErrorId() }) };
       }
-      if (personB && Object.keys(personB).length && !hasLoc(transitB_raw || {})) {
-        return { statusCode: 400, body: JSON.stringify({ code:'LOCATION_REQUIRED', error:'Balance Meter dyad requires location for Person B', errorId: generateErrorId() }) };
+      if (personB && Object.keys(personB).length && !hasLoc(transitB_raw || {}) && !cityModeB) {
+        return { statusCode: 400, body: JSON.stringify({ code:'LOCATION_REQUIRED', error:'Balance Meter dyad requires location (coords or city/nation) for Person B', errorId: generateErrorId() }) };
       }
     } else if ((modeToken === 'MIRROR' || body.context?.mode === 'mirror') && includeTransitTag) {
       if (!hasLoc(transitA_raw)) {
@@ -1751,6 +2057,24 @@ exports.handler = async function(event) {
         transitB = transitB ? { ...transitB, latitude: mid.latitude, longitude: mid.longitude, timezone: tz } : transitB;
       } catch {
         return { statusCode: 422, body: JSON.stringify({ code:'HOUSES_UNSTABLE', error:'Midpoint timezone lookup failed; try custom location', errorId: generateErrorId() }) };
+      }
+    } else if (relocationMode === 'A_local') {
+      // Render as-if at A's local venue (and mirror onto B if present)
+      const loc = aLocal || body.custom_location || null;
+      if (loc) {
+        if (typeof loc.lat === 'number' && typeof loc.lon === 'number') {
+          try {
+            const tz = loc.tz || require('tz-lookup')(loc.lat, loc.lon);
+            transitA = { ...transitA, latitude: loc.lat, longitude: loc.lon, timezone: tz };
+            if (transitB) transitB = { ...transitB, latitude: loc.lat, longitude: loc.lon, timezone: tz };
+          } catch {
+            return { statusCode: 400, body: JSON.stringify({ code:'TZ_LOOKUP_FAIL', error:'Could not resolve A_local timezone', errorId: generateErrorId() }) };
+          }
+        } else if (loc.city && loc.nation) {
+          // City-based A_local: rely on transit_subject city/nation; do not inject coords
+          transitA = { ...transitA, city: loc.city, nation: loc.nation };
+          if (transitB) transitB = { ...transitB, city: loc.city, nation: loc.nation };
+        }
       }
     } else if (relocationMode === 'B_local') {
       if (natalB && transitB && hasLoc(transitB)) {
@@ -1803,7 +2127,7 @@ exports.handler = async function(event) {
 
   // timePolicy is already determined earlier to allow fallback time before validation
 
-    const result = { 
+  const result = { 
       schema: 'WM-Chart-1.2', 
       provenance: {
         math_brain_version: MATH_BRAIN_VERSION,
@@ -1812,7 +2136,12 @@ exports.handler = async function(event) {
         timezone: personA.timezone || 'UTC',
         calibration_boundary: CALIBRATION_BOUNDARY,
         engine_versions: { seismograph: 'v1.0', balance: 'v1.1', sfd: 'v1.2' },
-        time_meta_a: deriveTimeMetaWithPolicy(personAOriginal, timePolicy)
+        time_meta_a: deriveTimeMetaWithPolicy(personAOriginal, timePolicy),
+        // New provenance fields (stamped after pass/body are finalized below)
+        house_system: undefined,
+        orbs_profile: undefined,
+        timezone_db_version: undefined,
+        relocation_mode: relocationMode || 'none'
       },
       context: { mode: modeToken || 'UNKNOWN' },
       mirror_ready: true,
@@ -1871,23 +2200,32 @@ exports.handler = async function(event) {
       logger.debug('Time policy set houses_system_identifier=Whole_Sign');
     }
 
+    // Stamp provenance fields now that pass/body are known
+    try {
+      result.provenance.house_system = pass.houses_system_identifier || result.provenance.house_system || 'Placidus';
+      result.provenance.orbs_profile = body.orbs_profile || result.provenance.orbs_profile || 'wm-spec-2025-09';
+      result.provenance.timezone_db_version = result.provenance.timezone_db_version || 'IANA (system)';
+      result.provenance.relocation_mode = relocationMode || result.provenance.relocation_mode || 'none';
+    } catch { /* ignore */ }
+
     // Ensure active_aspects includes all major aspects if not explicitly set
     if (!pass.active_aspects) {
       pass.active_aspects = [
-        // Accepted list per API error detail: 'conjunction', 'semi-sextile', 'semi-square', 'sextile', 'quintile', 'square', 'trine', 'sesquiquadrate', 'biquintile', 'quincunx', 'opposition'
-        { name: "conjunction", orb: 10 },
-        { name: "opposition", orb: 10 },
-        { name: "trine", orb: 8 },
-        { name: "square", orb: 8 },
-        { name: "sextile", orb: 6 },
-        { name: "semi-sextile", orb: 2 },
-        { name: "semi-square", orb: 2 }, // renamed from semisquare
-        { name: "quincunx", orb: 3 },
-        { name: "sesquiquadrate", orb: 3 },
-        { name: "quintile", orb: 2 },
-        { name: "biquintile", orb: 2 }
+        // Raven caps for majors: 8/8/7/7/5
+        { name: "conjunction", orb: 8 },
+        { name: "opposition",  orb: 8 },
+        { name: "trine",       orb: 7 },
+        { name: "square",      orb: 7 },
+        { name: "sextile",     orb: 5 },
+        // Minors / harmonic
+        { name: "quincunx",        orb: 3 },
+        { name: "sesquiquadrate",  orb: 3 },
+        { name: "semi-square",     orb: 2 },
+        { name: "semi-sextile",    orb: 2 },
+        { name: "quintile",        orb: 2 },
+        { name: "biquintile",      orb: 2 }
       ];
-      logger.debug('Setting default active_aspects to accepted canonical list');
+      logger.debug('Setting default active_aspects to Raven caps list');
     }
 
     // --- Aspect name normalization (handles user supplied list & legacy synonyms) ---
@@ -1907,46 +2245,64 @@ exports.handler = async function(event) {
       pass.active_aspects = pass.active_aspects
         .map(a => {
           if (!a) return null;
-            if (typeof a === 'string') return { name: a, orb: 3 };
-            if (typeof a === 'object') {
-              const raw = (a.name || a.type || '').toString().toLowerCase();
-              const canonical = ASPECT_SYNONYMS[raw] || raw;
-              return { name: canonical, orb: a.orb != null ? a.orb : 3 };
-            }
-            return null;
+          if (typeof a === 'string') return { name: a, orb: 3 };
+          if (typeof a === 'object') {
+            const raw = (a.name || a.type || '').toString().toLowerCase();
+            const canonical = ASPECT_SYNONYMS[raw] || raw;
+            return { name: canonical, orb: a.orb != null ? a.orb : 3 };
+          }
+          return null;
         })
         .filter(Boolean)
-        // Deduplicate by name keeping largest orb
+        // Deduplicate by name keeping largest orb (we'll cap later)
         .reduce((acc, cur) => {
           const existing = acc.find(x => x.name === cur.name);
           if (!existing) acc.push(cur); else if (cur.orb > existing.orb) existing.orb = cur.orb;
           return acc;
         }, []);
+
+      // Clamp to provider caps before calling upstream
+      pass.active_aspects = pass.active_aspects.map(a => {
+        const cap = ASPECT_ORB_CAPS[a.name] || a.orb;
+        const clamped = Math.min(a.orb, cap);
+        if (a.orb > clamped) logger.debug(`Clamping orb for ${a.name} from ${a.orb} -> ${clamped}`);
+        return { name: a.name, orb: clamped };
+      });
     }
-    logger.debug('Normalized active_aspects list:', pass.active_aspects);
+    logger.debug('Normalized + clamped active_aspects list:', pass.active_aspects);
 
     // 1) Natal (chart + aspects, natal aspects-only, or birth data)
     let natalResponse;
-    if (wantBirthData) {
-      natalResponse = await apiCallWithRetry(
+    if (wantBalanceMeter) {
+      // For Balance Meter runs, skip natal API calls; seismograph uses transits only
+      result.person_a = result.person_a || {};
+      result.person_a.details = personA;
+    } else if (wantBirthData) {
+      natalResponse = await callNatal(
         API_ENDPOINTS.BIRTH_DATA,
-        { method: 'POST', headers, body: JSON.stringify({ subject: subjectToAPI(personA, pass) }) },
+        personA,
+        headers,
+        pass,
         'Birth data (A)'
       );
       result.person_a.birth_data = stripGraphicsDeep(natalResponse.data || {});
     } else if (wantNatalAspectsOnly) {
-      natalResponse = await apiCallWithRetry(
+      natalResponse = await callNatal(
         API_ENDPOINTS.NATAL_ASPECTS_DATA,
-        { method: 'POST', headers, body: JSON.stringify({ subject: subjectToAPI(personA, pass) }) },
+        personA,
+        headers,
+        pass,
         'Natal aspects data (A)'
       );
       const chartData = stripGraphicsDeep(natalResponse.data || {});
       result.person_a.chart = chartData;
       result.person_a.aspects = Array.isArray(natalResponse.aspects) ? natalResponse.aspects : (chartData.aspects || []);
     } else {
-      natalResponse = await apiCallWithRetry(
+      natalResponse = await callNatal(
         API_ENDPOINTS.BIRTH_CHART,
-        { method: 'POST', headers, body: JSON.stringify({ subject: subjectToAPI(personA, pass) }) },
+        personA,
+        headers,
+        pass,
         'Birth chart (A)'
       );
       const chartData = stripGraphicsDeep(natalResponse.data || {});
@@ -1984,7 +2340,7 @@ exports.handler = async function(event) {
       };
       
       try {
-        const { transitsByDate, retroFlagsByDate } = await getTransits(skySubject, { startDate: start, endDate: end, step }, headers, pass);
+        const { transitsByDate, retroFlagsByDate, provenanceByDate } = await getTransits(skySubject, { startDate: start, endDate: end, step }, headers, pass);
         
         // Apply seismograph analysis to sky transits
         const seismographData = calculateSeismograph(transitsByDate, retroFlagsByDate);
@@ -1992,6 +2348,7 @@ exports.handler = async function(event) {
         // Store sky transit data
         result.sky_transits = {
           transitsByDate: seismographData.daily,
+          provenanceByDate,
           derived: {
             seismograph_summary: seismographData.summary,
             mode: 'sky_patterns_only'
@@ -2005,7 +2362,7 @@ exports.handler = async function(event) {
       }
     } else if (haveRange && !skipTransits) {
       // Use new getTransits and seismograph logic with configuration parameters
-      const { transitsByDate, retroFlagsByDate } = await getTransits(personA, { startDate: start, endDate: end, step }, headers, pass);
+  const { transitsByDate, retroFlagsByDate, provenanceByDate } = await getTransits(personA, { startDate: start, endDate: end, step }, headers, pass);
   result.person_a.chart = { ...result.person_a.chart, transitsByDate };
       // Raven-lite integration: flatten all aspects for derived.t2n_aspects
       const allAspects = Object.values(transitsByDate).flatMap(day => day);
@@ -2022,7 +2379,8 @@ exports.handler = async function(event) {
       result.person_a.derived.seismograph_summary = seismographData.summary;
   // NOTE: transitsByDate now includes per-day: aspects (raw), filtered_aspects, hooks, counts, seismograph metrics
   // Frontend can progressively disclose hooks first, then filtered_aspects, then full list.
-  result.person_a.chart.transitsByDate = seismographData.daily;
+      result.person_a.chart.transitsByDate = seismographData.daily;
+      result.person_a.chart.provenanceByDate = provenanceByDate;
     }
 
     // 2b) Dual natal modes (explicit): provide both natal charts (and optional transits) WITHOUT synastry math
@@ -2032,9 +2390,11 @@ exports.handler = async function(event) {
       if (vBLeanPassive.isValid) {
         if (!result.person_b || !result.person_b.chart) {
           try {
-            const natalB = await apiCallWithRetry(
+            const natalB = await callNatal(
               API_ENDPOINTS.BIRTH_CHART,
-              { method: 'POST', headers, body: JSON.stringify({ subject: subjectToAPI(personB, pass) }) },
+              personB,
+              headers,
+              pass,
               'Birth chart (B dual)'
             );
             const chartDataB = stripGraphicsDeep(natalB.data || {});
@@ -2047,11 +2407,11 @@ exports.handler = async function(event) {
         // Optional Person B transits in dual transits mode
         if (haveRange && !skipTransits && modeToken === 'DUAL_NATAL_TRANSITS') {
           try {
-            const { transitsByDate: transitsByDateB, retroFlagsByDate: retroFlagsByDateB } = await getTransits(personB, { startDate: start, endDate: end, step }, headers, pass);
+            const { transitsByDate: transitsByDateB, retroFlagsByDate: retroFlagsByDateB, provenanceByDate: provenanceByDateB } = await getTransits(personB, { startDate: start, endDate: end, step }, headers, pass);
             const allB = Object.values(transitsByDateB).flatMap(day => day);
             const seismoB = calculateSeismograph(transitsByDateB, retroFlagsByDateB);
             // Enriched Person B transits (dual mode) with hooks & filtered_aspects
-            result.person_b.chart = { ...(result.person_b.chart || {}), transitsByDate: seismoB.daily };
+            result.person_b.chart = { ...(result.person_b.chart || {}), transitsByDate: seismoB.daily, provenanceByDate: provenanceByDateB };
             result.person_b.derived = result.person_b.derived || {};
             result.person_b.derived.seismograph_summary = seismoB.summary;
             result.person_b.derived.t2n_aspects = mapT2NAspects(allB); // Person B self transits (transit-to-natal B)
@@ -2082,9 +2442,11 @@ exports.handler = async function(event) {
         // Ensure we have Person B natal baseline (light fetch if missing)
         if (!result.person_b || !result.person_b.chart) {
           try {
-            const natalB = await apiCallWithRetry(
+            const natalB = await callNatal(
               API_ENDPOINTS.BIRTH_CHART,
-              { method: 'POST', headers, body: JSON.stringify({ subject: subjectToAPI(personB, pass) }) },
+              personB,
+              headers,
+              pass,
               'Birth chart (B implicit dual)'
             );
             const chartDataB = stripGraphicsDeep(natalB.data || {});
@@ -2098,11 +2460,11 @@ exports.handler = async function(event) {
         const hasBTransits = !!(result.person_b && result.person_b.chart && result.person_b.chart.transitsByDate);
         if (!hasBTransits) {
           try {
-            const { transitsByDate: transitsByDateB, retroFlagsByDate: retroFlagsByDateB } = await getTransits(personB, { startDate: start, endDate: end, step }, headers, pass);
+            const { transitsByDate: transitsByDateB, retroFlagsByDate: retroFlagsByDateB, provenanceByDate: provenanceByDateB } = await getTransits(personB, { startDate: start, endDate: end, step }, headers, pass);
             const allB = Object.values(transitsByDateB).flatMap(day => day);
             const seismoB = calculateSeismograph(transitsByDateB, retroFlagsByDateB);
             // Enriched Person B implicit dual transits with hooks & filtered_aspects
-            result.person_b.chart = { ...(result.person_b.chart || {}), transitsByDate: seismoB.daily };
+            result.person_b.chart = { ...(result.person_b.chart || {}), transitsByDate: seismoB.daily, provenanceByDate: provenanceByDateB };
             result.person_b.derived = result.person_b.derived || {};
             result.person_b.derived.seismograph_summary = seismoB.summary;
             result.person_b.derived.t2n_aspects = mapT2NAspects(allB);
@@ -2125,7 +2487,7 @@ exports.handler = async function(event) {
       // Synastry aspects-only endpoint
       const syn = await apiCallWithRetry(
         API_ENDPOINTS.SYNASTRY_ASPECTS,
-        { method: 'POST', headers, body: JSON.stringify({ first_subject: subjectToAPI(personA, pass), second_subject: subjectToAPI(personB, pass) }) },
+        { method: 'POST', headers, body: JSON.stringify({ first_subject: subjectToAPI(personA, { ...pass, require_city: true }), second_subject: subjectToAPI(personB, { ...pass, require_city: true }) }) },
         'Synastry aspects data'
       );
   const synData = stripGraphicsDeep(syn.data || {});
@@ -2147,9 +2509,11 @@ exports.handler = async function(event) {
       logger.debug('Added relational mirror to synastry-aspects-only mode');
       // Optional: augment with Person B natal chart so UI has both charts in aspects-only mode
       try {
-        const natalB = await apiCallWithRetry(
+        const natalB = await callNatal(
           API_ENDPOINTS.BIRTH_CHART,
-          { method: 'POST', headers, body: JSON.stringify({ subject: personB }) },
+          personB,
+          headers,
+          pass,
           'Birth chart (B for synastry-aspects)'
         );
         const chartDataB = stripGraphicsDeep(natalB.data || {});
@@ -2161,7 +2525,7 @@ exports.handler = async function(event) {
       // Full synastry chart endpoint
       const syn = await apiCallWithRetry(
         API_ENDPOINTS.SYNASTRY_CHART,
-        { method: 'POST', headers, body: JSON.stringify({ first_subject: subjectToAPI(personA, pass), second_subject: subjectToAPI(personB, pass) }) },
+        { method: 'POST', headers, body: JSON.stringify({ first_subject: subjectToAPI(personA, { ...pass, require_city: true }), second_subject: subjectToAPI(personB, { ...pass, require_city: true }) }) },
         'Synastry chart'
       );
   const synClean = stripGraphicsDeep(syn.data || {});
@@ -2184,13 +2548,14 @@ exports.handler = async function(event) {
       // Add Person B transits for synastry modes (especially SYNASTRY_TRANSITS)
       if (modeToken === 'SYNASTRY_TRANSITS' && haveRange && !skipTransits) {
         logger.debug('Computing Person B transits for synastry mode:', { start, end, step });
-  const { transitsByDate: transitsByDateB, retroFlagsByDate: retroFlagsByDateB } = await getTransits(personB, { startDate: start, endDate: end, step }, headers, pass);
+      const { transitsByDate: transitsByDateB, retroFlagsByDate: retroFlagsByDateB, provenanceByDate: provenanceByDateB } = await getTransits(personB, { startDate: start, endDate: end, step }, headers, pass);
         result.person_b.chart = { ...result.person_b.chart, transitsByDate: transitsByDateB };
         
         // Apply seismograph analysis to Person B transits
   const seismographDataB = calculateSeismograph(transitsByDateB, retroFlagsByDateB);
   // Enriched Person B synastry transits
-  result.person_b.chart.transitsByDate = seismographDataB.daily;
+        result.person_b.chart.transitsByDate = seismographDataB.daily;
+        result.person_b.chart.provenanceByDate = provenanceByDateB;
         result.person_b.derived = { 
           seismograph_summary: seismographDataB.summary,
           t2n_aspects: mapT2NAspects(Object.values(transitsByDateB).flatMap(day => day))
@@ -2215,9 +2580,11 @@ exports.handler = async function(event) {
       if (!result.person_b || !result.person_b.chart) {
         try {
           logger.debug('Fetching Person B natal chart for composite scaffolding');
-          const natalB = await apiCallWithRetry(
+          const natalB = await callNatal(
             API_ENDPOINTS.BIRTH_CHART,
-            { method: 'POST', headers, body: JSON.stringify({ subject: personB }) },
+            personB,
+            headers,
+            pass,
             'Birth chart (B for composite scaffolding)'
           );
           const chartDataB = stripGraphicsDeep(natalB.data || {});
@@ -2351,12 +2718,12 @@ exports.handler = async function(event) {
       // Ensure Person A transit seismograph exists; compute if missing
       if (!result.person_a?.chart?.transitsByDate) {
         try {
-          const { transitsByDate, retroFlagsByDate } = await getTransits(personA, { startDate: start, endDate: end, step }, headers, pass);
+          const { transitsByDate, retroFlagsByDate, provenanceByDate } = await getTransits(personA, { startDate: start, endDate: end, step }, headers, pass);
           const seismographData = calculateSeismograph(transitsByDate, retroFlagsByDate);
           result.person_a = result.person_a || {};
           result.person_a.derived = result.person_a.derived || {};
           result.person_a.derived.seismograph_summary = seismographData.summary;
-          result.person_a.chart = { ...(result.person_a.chart || {}), transitsByDate: seismographData.daily };
+          result.person_a.chart = { ...(result.person_a.chart || {}), transitsByDate: seismographData.daily, provenanceByDate };
         } catch (e) {
           logger.warn('Balance Meter fallback transit compute failed:', e.message);
         }
@@ -2411,6 +2778,35 @@ exports.handler = async function(event) {
       }
       return out;
     }
+    // Attach relocation coordinates when applied
+    try {
+      if (relocationMode === 'A_local') {
+        const loc = aLocal || body.custom_location || null;
+        if (loc && typeof loc.lat === 'number' && typeof loc.lon === 'number') {
+          const tz = loc.tz || (transitA?.timezone) || null;
+          result.provenance.relocation_coords = { lat: loc.lat, lon: loc.lon, tz };
+        }
+      } else if (relocationMode === 'Midpoint') {
+        if (typeof transitA?.latitude === 'number' && typeof transitA?.longitude === 'number' && transitA?.timezone) {
+          result.provenance.relocation_coords = { lat: transitA.latitude, lon: transitA.longitude, tz: transitA.timezone };
+        }
+      } else if (relocationMode === 'Custom') {
+        const c = body.custom_location;
+        if (c && typeof c.latitude === 'number' && typeof c.longitude === 'number') {
+          result.provenance.relocation_coords = { lat: c.latitude, lon: c.longitude, tz: transitA?.timezone || c.timezone || null };
+        }
+      }
+    } catch { /* ignore */ }
+
+    // Human-readable house system
+    try {
+      const hs = result.provenance.house_system;
+      const names = { P:'Placidus', W:'Whole Sign', R:'Regiomontanus', K:'Koch', C:'Campanus', E:'Equal' };
+      if (typeof hs === 'string' && hs.length === 1 && names[hs]) {
+        result.provenance.house_system_name = names[hs];
+      }
+    } catch { /* ignore */ }
+
     // Attach a data-only Woven Map report (does not add VOICE content)
     try {
       const period = (start && end) ? { start, end, step } : null;
@@ -2432,6 +2828,99 @@ exports.handler = async function(event) {
         stack: error?.stack || null,
         details: error
       }),
+    };
+  }
+};
+
+// ---------------------------------------------------------------------------
+// City Resolution Endpoint - Helper for debugging city->coords resolution
+// GET /api/resolve-city?city=Bryn+Mawr&state=PA&nation=US
+// Returns resolved coordinates and timezone to verify what the API sees
+// ---------------------------------------------------------------------------
+exports.resolveCity = async function(event) {
+  try {
+    const qs = event.queryStringParameters || {};
+    const city = qs.city;
+    const state = qs.state;
+    const nation = qs.nation || 'US';
+    
+    if (!city) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'city parameter required' })
+      };
+    }
+
+    // Use same formation logic as transit subjects
+    const cityField = state ? `${city}, ${state}` : city;
+    const testSubject = {
+      name: 'Test Resolution',
+      year: 2025, month: 1, day: 1, hour: 12, minute: 0,
+      city: cityField,
+      nation: nation,
+      zodiac_type: 'Tropic'
+    };
+    
+    if (process.env.GEONAMES_USERNAME) {
+      testSubject.geonames_username = process.env.GEONAMES_USERNAME;
+    }
+
+    const headers = buildHeaders();
+    const payload = {
+      name: testSubject.name,
+      year: testSubject.year,
+      month: testSubject.month,
+      day: testSubject.day,
+      hour: testSubject.hour,
+      minute: testSubject.minute,
+      city: testSubject.city,
+      nation: testSubject.nation,
+      zodiac_type: testSubject.zodiac_type,
+      ...(testSubject.geonames_username && { geonames_username: testSubject.geonames_username })
+    };
+
+    // Use birth-data endpoint for quick resolution test
+    const response = await apiCallWithRetry(
+      API_ENDPOINTS.BIRTH_DATA,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      },
+      `City resolution test for ${cityField}, ${nation}`
+    );
+
+    const resolved = {
+      success: true,
+      query: { city, state, nation, formatted: cityField },
+      resolved: {
+        latitude: response.lat || response.latitude,
+        longitude: response.lng || response.longitude, 
+        timezone: response.tz_str || response.timezone,
+        city_resolved: response.city,
+        nation_resolved: response.nation
+      },
+      geonames_used: !!testSubject.geonames_username,
+      raw_response: response
+    };
+
+    logger.info(`City resolution: ${cityField}, ${nation} -> ${resolved.resolved.latitude}, ${resolved.resolved.longitude}`);
+
+    return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(resolved)
+    };
+
+  } catch (error) {
+    logger.error('City resolution error:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        success: false,
+        error: error.message || 'City resolution failed',
+        details: error
+      })
     };
   }
 };

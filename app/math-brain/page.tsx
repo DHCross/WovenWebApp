@@ -53,7 +53,7 @@ export default function MathBrainPage() {
     state: "PA",
     latitude: 40.0167,
     longitude: -75.3,
-    timezone: "US/Eastern",
+    timezone: "America/New_York",
     zodiac_type: "Tropic",
   });
 
@@ -64,12 +64,12 @@ export default function MathBrainPage() {
 
   const [startDate, setStartDate] = useState<string>(defaultStart);
   const [endDate, setEndDate] = useState<string>(defaultEnd);
-  const [mode, setMode] = useState<string>("NATAL_TRANSITS");
+  const [mode, setMode] = useState<string>("NATAL_ONLY");
   const [step, setStep] = useState<string>("daily");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResult>(null);
-  const [includePersonB, setIncludePersonB] = useState<boolean>(true);
+  const [includePersonB, setIncludePersonB] = useState<boolean>(false);
   const [personB, setPersonB] = useState<Subject>({
     name: "",
     year: "",
@@ -160,6 +160,7 @@ export default function MathBrainPage() {
   const [showAuthBanner, setShowAuthBanner] = useState<boolean>(true);
   const [loginFn, setLoginFn] = useState<null | (() => Promise<void>)>(null);
   const resultsRef = useRef<HTMLDivElement | null>(null);
+  const reportRef = useRef<HTMLDivElement | null>(null);
   const bNameRef = useRef<HTMLInputElement | null>(null);
   const lastSubmitRef = useRef<number>(0);
   // Lightweight toast for ephemeral notices (e.g., Mirror failure)
@@ -238,7 +239,6 @@ export default function MathBrainPage() {
   function resetSessionMemory() {
     try {
       window.localStorage.removeItem('mb.lastInputs');
-      window.localStorage.removeItem('mb.lastSession');
       setHasSavedInputs(false);
       setSaveForNextSession(true);
     } catch {/* noop */}
@@ -355,45 +355,31 @@ export default function MathBrainPage() {
     }));
   }
 
-  // Post-generation actions / handoff helpers
-  function sendToPoeticBrain() {
-    if (!result) return;
-    try {
-      const handoff = {
-        createdAt: new Date().toISOString(),
-        from: 'math-brain',
-        inputs: {
-          mode,
-          step,
-          startDate,
-          endDate,
-          includePersonB,
-          translocation,
-          relationship: {
-            type: relationshipType,
-            intimacy_tier: relationshipType === 'PARTNER' ? relationshipTier : undefined,
-            role: relationshipType !== 'PARTNER' ? relationshipRole : undefined,
-            ex_estranged: relationshipType === 'FRIEND' ? undefined : exEstranged,
-            notes: relationshipNotes || undefined,
-          },
-          personA,
-          personB,
-        },
-        resultPreview: {
-          hasDaily: Boolean((result as any)?.person_a?.chart?.transitsByDate),
-        },
-      };
-      window.localStorage.setItem('mb.lastSession', JSON.stringify(handoff));
-      window.location.href = '/chat?from=math-brain';
-    } catch {/* noop */}
-  }
+  // Post-generation actions / helpers removed
+  // Note: Handoff to Poetic Brain is now manual via file upload only
 
   function handlePrint() {
     try { window.print(); } catch {/* noop */}
   }
 
-  function downloadResultPDF() {
-    handlePrint(); // rely on browser's print to PDF
+  // Prefer html2pdf-based export for consistent cross-browser PDF downloads
+  async function downloadResultPDF() {
+    try {
+      const node = reportRef.current || document.body;
+      const html2pdf = (await import('html2pdf.js')).default;
+      const ts = new Date().toISOString().slice(0, 10);
+      const opt = {
+        margin: 0.5,
+        filename: `math-brain-report-${ts}.pdf`,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#0f1115' },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      } as const;
+      await (html2pdf().from(node).set(opt).save());
+    } catch (err) {
+      setToast('Could not generate PDF');
+      setTimeout(() => setToast(null), 2000);
+    }
   }
 
   function downloadResultJSON() {
@@ -632,7 +618,7 @@ export default function MathBrainPage() {
       }
     } catch {/* noop */}
     // Reset input to allow re-upload same file
-    e.currentTarget.value = '';
+    if (e.currentTarget) e.currentTarget.value = '';
   }
 
   const canSubmit = useMemo(() => {
@@ -646,18 +632,21 @@ export default function MathBrainPage() {
     ];
     // Allow unknown birth time when user selected a time policy (non-user_provided)
     const allowUnknownA = timeUnknown && timePolicy !== 'user_provided';
+    // For Mirror runs, allow city/state/timezone without requiring lat/lon upfront
+    const requireCoords = (reportType === 'balance');
     const numbers = [
       Number(personA.year),
       Number(personA.month),
       Number(personA.day),
       ...(allowUnknownA ? [] as number[] : [Number(personA.hour), Number(personA.minute)]),
-      Number(personA.latitude),
-      Number(personA.longitude),
+      ...(requireCoords ? [Number(personA.latitude), Number(personA.longitude)] : [])
     ];
     const allPresent = required.every(Boolean) && numbers.every((n) => !Number.isNaN(n)) && aCoordsValid;
 
   const isRelational = ['SYNASTRY','SYNASTRY_TRANSITS','COMPOSITE','DUAL_NATAL_TRANSITS'].includes(mode);
     if (!isRelational) {
+      // Mirror does not need a date window; Balance Meter does
+      if (reportType === 'mirror') return allPresent;
       return allPresent && Boolean(startDate) && Boolean(endDate);
     }
 
@@ -844,40 +833,7 @@ export default function MathBrainPage() {
           // Could update a local banner state here if desired
         }
       } catch {/* noop */}
-      // Save a light lastSession handoff snapshot
-      try {
-        const summary = data?.person_a?.derived?.seismograph_summary || {};
-        const mag = Number(summary.magnitude ?? 0);
-        const val = Number(summary.valence ?? 0);
-        const vol = Number(summary.volatility ?? 0);
-        const magnitudeLabel = mag >= 3 ? 'Surge' : mag >= 1 ? 'Active' : 'Calm';
-        const valenceLabel = val > 0.5 ? 'Supportive' : val < -0.5 ? 'Challenging' : 'Mixed';
-        const volatilityLabel = vol >= 3 ? 'Scattered' : vol >= 1 ? 'Variable' : 'Stable';
-        const handoff = {
-          createdAt: new Date().toISOString(),
-          from: 'math-brain',
-          inputs: {
-            mode,
-            step,
-            startDate,
-            endDate,
-            includePersonB,
-            translocation,
-            relationship: {
-              type: relationshipType,
-              intimacy_tier: relationshipTier,
-              role: relationshipRole,
-              ex_estranged: exEstranged,
-              notes: relationshipNotes,
-            },
-            personA,
-            personB,
-          },
-          summary: { magnitude: mag, valence: val, volatility: vol, magnitudeLabel, valenceLabel, volatilityLabel },
-          woven_map: (data as any)?.woven_map ? { ...(data as any).woven_map } : undefined,
-        };
-        window.localStorage.setItem('mb.lastSession', JSON.stringify(handoff));
-      } catch {/* ignore */}
+      // No automatic handoff to Poetic Brain - maintaining separation principle
       // Mirror no longer auto-redirects; provide separate chat action
       // Telemetry (dev only)
       if (process.env.NODE_ENV !== 'production') {
@@ -900,6 +856,8 @@ export default function MathBrainPage() {
       setLoading(false);
     }
   }
+
+  // Duplicate download functions removed - using downloadResultJSON and downloadResultPDF instead
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
@@ -984,12 +942,12 @@ export default function MathBrainPage() {
             Open Legacy Math Brain
           </a>
         )}
-        {authReady && authed ? (
+{authReady && authed ? (
           <a
-            href="/chat?from=math-brain"
+            href="/chat"
             className="rounded-md bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500"
           >
-            Continue to Poetic Brain
+            Go to Poetic Brain
           </a>
         ) : (
           <button
@@ -999,7 +957,7 @@ export default function MathBrainPage() {
             className="rounded-md border border-slate-700 bg-slate-800 px-4 py-2 text-slate-100 hover:bg-slate-700 disabled:opacity-50"
             title="Sign in to enable Poetic Brain"
           >
-            Sign in to Continue
+            Sign in for Poetic Brain
           </button>
         )}
       </div>
@@ -1929,19 +1887,18 @@ export default function MathBrainPage() {
             );
           })()}
           {/* Post-generation actions */}
-          <div className="flex items-center justify-end gap-2 print:hidden">
-            <button type="button" onClick={downloadResultJSON} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download result JSON">Download JSON</button>
-            <button type="button" onClick={downloadResultPDF} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download result PDF">Download PDF</button>
-            <button
-              type="button"
-              onClick={sendToPoeticBrain}
-              disabled={!authReady || !authed}
-              title={!authReady || !authed ? 'Sign in to continue' : undefined}
-              aria-label={!authReady || !authed ? 'Talk to Raven Calder (sign in to continue)' : 'Talk to Raven Calder'}
-              className={`rounded-md px-3 py-1.5 text-white focus-visible:outline-none focus-visible:ring-2 ${(!authReady || !authed) ? 'bg-emerald-700/60 cursor-not-allowed opacity-60' : 'bg-emerald-600 hover:bg-emerald-500 focus-visible:ring-emerald-400'}`}
-            >
-              Talk to Raven Calder →
-            </button>
+          <div className="flex items-center justify-between gap-4 print:hidden">
+            <div className="text-sm text-slate-400">
+              {authReady && authed ? (
+                <span>Download your report, then visit <a href="/chat" className="text-emerald-400 hover:text-emerald-300 underline">Poetic Brain</a> to upload it for interpretation.</span>
+              ) : (
+                <span>Download your report below. <a href="/chat" className="text-slate-300 hover:text-slate-200 underline">Sign in to Poetic Brain</a> to upload it for interpretation.</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={downloadResultJSON} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download result JSON">Download JSON</button>
+              <button type="button" onClick={downloadResultPDF} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download PDF">Download PDF</button>
+            </div>
           </div>
           {reportType==='balance' && (<>
           {(() => {
@@ -2341,17 +2298,8 @@ export default function MathBrainPage() {
             </pre>
           </Section>
 
-          <div className="flex items-center justify-end print:hidden">
-            <button
-              type="button"
-              onClick={sendToPoeticBrain}
-              disabled={!authReady || !authed}
-              title={!authReady || !authed ? 'Sign in to continue' : undefined}
-              aria-label={!authReady || !authed ? 'Talk to Raven Calder (sign in to continue)' : 'Talk to Raven Calder'}
-              className={`inline-flex items-center rounded-md px-4 py-2 text-white ${(!authReady || !authed) ? 'bg-emerald-700/60 cursor-not-allowed opacity-60' : 'bg-emerald-600 hover:bg-emerald-500'}`}
-            >
-              Talk to Raven Calder →
-            </button>
+          <div className="flex items-center justify-center text-sm text-slate-400 print:hidden">
+            <span>For narrative interpretation, download your report and upload it to <a href="/chat" className="text-emerald-400 hover:text-emerald-300 underline">Poetic Brain</a>.</span>
           </div>
           </>)}
         </div>
@@ -2383,12 +2331,6 @@ export default function MathBrainPage() {
       <p className="mt-8 text-center text-xs text-slate-500 print:hidden">
         Poetic Brain at <span className="font-medium text-slate-300">/chat</span> is gated by Auth0 and requires login.
       </p>
-
-      {toast && (
-        <div className="fixed bottom-4 right-4 z-50 rounded-md bg-red-600 px-4 py-2 text-white shadow-lg text-sm">
-          {toast}
-        </div>
-      )}
     </main>
   );
 }

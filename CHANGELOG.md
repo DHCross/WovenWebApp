@@ -1,3 +1,28 @@
+## [2025-09-14] CHANGE: Architectural Clarification & Documentation
+
+**Summary**
+Solidified and documented the core architectural principle of "separate but connected" brains. Math Brain is a utilitarian calculator, while Poetic Brain is an immersive interpretive experience. They are explicitly decoupled to improve stability, reduce complexity, and clarify their distinct purposes.
+
+**Changes**
+- **`README.md`**: Added a new "Architectural Philosophy" section explaining the two-brain system and the simple handoff pattern.
+- **`MAINTENANCE_GUIDE.md`**: Added the "Brain Separation" principle as the most critical best practice to prevent future integration-related issues.
+- **`CHANGELOG.md`**: This entry, to formally record the strategic decision.
+
+
+**MUST NOT BREAK: Math Brain / Poetic Brain Separation**
+
+The following requirements are now permanent and must be preserved in all future work:
+
+- Math Brain and Poetic Brain are strictly separated subsystems. No direct API calls, shared state, or automatic handoff between them is allowed.
+- Math Brain is a standalone calculator (FIELD layer only) at `/math-brain`. It generates reports and allows users to download them (JSON/PDF).
+- Poetic Brain (at `/chat`) is an immersive, authenticated chat experience. It does not receive data from Math Brain automatically.
+- The only allowed connection is a **manual, user-driven handoff**: users must download reports from Math Brain and upload them to Poetic Brain for interpretation.
+- All UI must reinforce this separation: no "Open in Poetic Brain" or "Resume from Math Brain" buttons, no localStorage handoff, no deep-linking with context.
+- Any attempt to re-couple the two brains (even for convenience) is forbidden unless the architecture is formally revised and documented.
+
+**Rationale**
+Past development efforts revealed that tightly integrating the two brains led to fragile code, UX confusion, and maintenance challenges. This architectural decision embraces their separation, allowing each to excel at its function. The handoff (download/upload) is sufficient and avoids the pitfalls of a monolithic design.
+
 ## [Unreleased]
 
 - FEATURE: Honor explicit time_policy on server (planetary_only, whole_sign, sensitivity_scan)

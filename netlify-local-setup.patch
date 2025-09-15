@@ -1,0 +1,93 @@
+diff --git a/next.config.mjs b/next.config.mjs
+index 1f2a5b1..91d5c68 100644
+--- a/next.config.mjs
++++ b/next.config.mjs
+@@ -1,29 +1,9 @@
+ /** @type {import('next').NextConfig} */
+-const isDev = process.env.NODE_ENV !== 'production';
+-const useNetlifyProxy = process.env.USE_NETLIFY_DEV === 'true';
+-
+ const nextConfig = {
+-  async rewrites() {
+-    if (!isDev) return [];
+-
+-    // In dev we support two modes:
+-    // 1) Netlify Dev running (functions on :9999) when USE_NETLIFY_DEV=true
+-    // 2) Next.js only: map \/.netlify\/functions/* to internal Next API routes
+-    if (useNetlifyProxy) {
+-      return [
+-        {
+-          source: '/.netlify/functions/:path*',
+-          destination: 'http://localhost:9999/.netlify/functions/:path*',
+-        },
+-      ];
+-    }
+-
+-    return [
+-      {
+-        source: '/.netlify/functions/:path*',
+-        destination: '/api/:path*',
+-      },
+-    ];
++  reactStrictMode: true,
++  experimental: {
++    // keep if you're on App Router (app/ directory)
++    typedRoutes: false,
+   },
+ };
+ 
+diff --git a/next.config.ts b/next.config.ts
+deleted file mode 100644
+index 49e102f..0000000
+--- a/next.config.ts
++++ /dev/null
+@@ -1,19 +0,0 @@
+-import type { NextConfig } from 'next';
+-
+-const isDev = process.env.NODE_ENV !== 'production';
+-
+-const nextConfig: NextConfig = {
+-  async rewrites() {
+-    if (isDev) {
+-      return [
+-        {
+-          source: '/.netlify/functions/:path*',
+-          destination: 'http://localhost:9999/.netlify/functions/:path*',
+-        },
+-      ];
+-    }
+-    return [];
+-  },
+-};
+-
+-export default nextConfig;
+diff --git a/package.json b/package.json
+index 0af65df..414bf1b 100644
+--- a/package.json
++++ b/package.json
+@@ -13,7 +13,10 @@
+     "dev:full": "bash -c 'npm run dev:tailwind & netlify dev'",
+     "dev:all": "concurrently \"npm run dev\" \"npm run dev:tailwind\"",
+     "build": "npm run build:css && next build",
++    "build:prod": "cross-env NODE_ENV=production next build",
+     "start": "npm run check-env && npm run build:css && netlify dev",
++    "start:next": "next start -p 3000",
++    "start:prod": "cross-env NODE_ENV=production next start -p 3000",
+     "env:required": "node scripts/check-env-required.js",
+     "tinker": "node scripts/tinker-chat.js",
+     "tinker:watch": "nodemon scripts/tinker-chat.js",
+@@ -50,6 +53,7 @@
+     "zod": "^3.23.8"
+   },
+   "devDependencies": {
++    "cross-env": "^7.0.3",
+     "@netlify/plugin-nextjs": "^5.13.2",
+     "@types/node": "20.11.30",
+     "@types/react": "18.2.79",
+diff --git a/.nvmrc b/.nvmrc
+new file mode 100644
+index 0000000..209e3ef
+--- /dev/null
++++ b/.nvmrc
+@@ -0,0 +1 @@
++20

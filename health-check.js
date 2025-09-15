@@ -21,7 +21,25 @@ async function healthCheck() {
         results.netlifyDev = { status: 'unhealthy', error: error.message };
     }
     
-    // 2. Check astrology-health function
+    // 2. Check /api/auth-config (Auth0 wiring)
+    console.log('\n🔐 Checking Auth0 Config Endpoint...');
+    try {
+        const response = await makeRequest('http://localhost:8888/api/auth-config');
+        const data = JSON.parse(response.data);
+        if (data.success) {
+            console.log('✅ Auth config responding');
+            console.log('   Domain:', data.config?.domain || 'missing');
+            console.log('   Client ID:', data.config?.clientId ? '[present]' : 'missing');
+        } else {
+            console.log('❌ Auth config reported failure:', data.error || 'unknown error');
+        }
+        results.authConfig = { status: data.success ? 'healthy' : 'unhealthy', data };
+    } catch (error) {
+        console.log('❌ Auth config endpoint error:', error.message);
+        results.authConfig = { status: 'unhealthy', error: error.message };
+    }
+
+    // 3. Check astrology-health function
     console.log('\n🔮 Checking Astrology Health Function...');
     try {
         const response = await makeRequest('http://localhost:8888/.netlify/functions/astrology-health');
@@ -35,7 +53,7 @@ async function healthCheck() {
         results.astrologyHealth = { status: 'unhealthy', error: error.message };
     }
     
-    // 3. Check math brain function
+    // 4. Check math brain function
     console.log('\n🧠 Checking Math Brain Function...');
     const testPayload = {
         person1: {
@@ -70,18 +88,18 @@ async function healthCheck() {
         results.mathBrain = { status: 'unhealthy', error: error.message };
     }
     
-    // 4. Check Next.js frontend
-    console.log('\n⚛️  Checking Next.js Frontend...');
+    // 5. Check Next.js dev server (port 4000)
+    console.log('\n⚛️  Checking Next.js Dev (4000)...');
     try {
-        const response = await makeRequest('http://localhost:3001');
-        console.log('✅ Next.js frontend responding');
+        const response = await makeRequest('http://localhost:4000');
+        console.log('✅ Next.js dev server responding');
         results.nextjs = { status: 'healthy', statusCode: response.statusCode };
     } catch (error) {
-        console.log('❌ Next.js frontend not responding:', error.message);
+        console.log('❌ Next.js dev server not responding:', error.message);
         results.nextjs = { status: 'unhealthy', error: error.message };
     }
     
-    // 5. Summary
+    // 6. Summary
     console.log('\n📊 Health Summary');
     console.log('=' .repeat(30));
     let healthyCount = 0;

@@ -1,10 +1,22 @@
+
 # Woven Map App: Best Practices & Maintenance Guide
 
-This document outlines the best practices for maintaining, updating, and troubleshooting the Woven Map App. Follow these guidelines to ensure smooth operation, easy collaboration, and reliable diagnostics.
+This document outlines the best practices for maintaining, updating, and troubleshooting the Woven Map App. It now incorporates consolidated lessons learned from live operation, API quirks, and product evolution (2025-09).
 
 ---
 
-## 1. **Changelog & Error History**
+
+## 0. **Key Lessons Learned (2025-09)**
+
+- **Provenance is critical:** Every report must stamp provenance (house system, orbs profile, relocation mode, timezone DB, engine versions, math_brain_version) for auditability and reproducibility.
+- **Relocation is powerful but brittle:** House reanchoring (A_local/B_local) is essential for Balance Meter accuracy, but depends on precise location and upstream resolver behavior. Robust fallbacks and “Angle Drift Cone” are implemented for ambiguous cases.
+- **API payload quirks:** Upstream transit endpoints are finicky. City-only vs coords-only vs city+state behave differently. Adapter logic and explicit geocoding modes (GeoNames, city+state) are supported. Developer UX is clear about these requirements.
+- **Orbs and filters:** Strict orb caps and documented Moon/outer rules (+Moon +1°, outer→personal −1°) are enforced before weighting. Orbs profile is always explicit in provenance.
+- **Graceful fallback:** If the provider returns no aspects, the report template renders fully with explicit “no aspects received” placeholders and simulated examples flagged as such. Partial days are handled, and Angle Drift Alerts are shown for house ambiguity.
+- **User simplicity + developer detail:** UI remains minimal for non-programmers (date + birth city). The backend/adapter handles complexity and documents all required options for power users. Clear UX copy guides users on location accuracy and fallback options.
+- **Falsifiability and feedback:** SST, Drift Index, Session Scores, and micro-probes are enforced. Misses are calibration data, not user error. Every report includes a provenance block and raw geometry appendix for transparency.
+
+---
 
 - **Keep a CHANGELOG.txt in the root directory.**
   - Log every update, fix, break, or recommendation.
@@ -34,108 +46,118 @@ This document outlines the best practices for maintaining, updating, and trouble
 - **Ensure configuration files (e.g., tailwind.config.js, tsconfig.json) are up-to-date.**
   - Scripts in `package.json` should allow easy build, development, and testing workflows.
   - Example:
-    - `npm run build:css` for production CSS
-    - `npm run dev:tailwind` for live preview
 
-## 6. **Error Handling & Validation**
+    # Woven Map — Maintenance & Operational Guide (Unified)
 
-- **Implement robust error handling in serverless functions and front-end code.**
-  - Show clear, actionable error messages to users.
-  - Validate user inputs (dates, coordinates) before making API requests.
+    This guide consolidates all maintenance, operational, and troubleshooting rules for the Woven Map backend (Math Brain), reflecting the latest unified report guide and live operational lessons. It supersedes all prior fragmented maintenance notes.
 
-## 7. **Documentation**
+    ---
 
-- **Keep README.md and best-practices guides up-to-date.**
-  - Include setup instructions, troubleshooting tips, and a glossary of key system terms.
-  - Make onboarding and collaboration easy for new contributors.
+    ## 1. Core Maintenance Principles
 
-## 8. **Version Control**
+    - **Provenance is required:** Every report and API response must include a provenance block (house system, orbs_profile, relocation_mode, timezone DB, engine versions, math_brain_version, and per-day provenanceByDate).
+    - **Relocation is valuable but fragile:** A_local/B_local is essential for Balance Meter but depends on reliable geocoding. Fallbacks and Angle Drift Cone are implemented for ambiguous cases.
+    - **Formation locking:** Never mix geocoding modes (coords-only vs city-mode) within a single run window. Formation is chosen once and locked for all days in the window.
+    - **Orb policy:** Strict orb caps (8/7/5 + Moon/outer rules) are enforced before weighting. Orbs profile is always explicit in provenance.
+    - **Fallbacks:** If the provider returns no aspects, the report template renders with explicit “no aspects received” placeholders and simulated examples flagged as such. Partial days are handled, and Angle Drift Alerts are shown for house ambiguity.
+    - **drivers[] normalization:** All drivers must be normalized and present (empty array if none) for stable UI rendering.
+    - **QA and logging:** Automated schema checks, detailed logging, and retry/backoff for 429/500 errors are required.
 
-- **Commit frequently and with descriptive messages.**
-  - Each commit should document the "why" as well as the "what" for traceability.
-  - Use branches for major changes; keep `main` stable.
+    ---
 
-## 9. **Testing & Review**
+    ## 2. Maintenance Checklist
 
-- **Test locally before deploying.**
-  - Use Netlify CLI for local development and API function testing.
-  - Review the changelog before making new changes to avoid repeating past mistakes.
+    1. **Environment variables:**
+      - `RAPIDAPI_KEY` (required)
+      - `GEONAMES_USERNAME` (optional, stabilizes city-mode)
+    2. **API health:**
+      - Test with known-good payloads using `/api-test.html` or `test-improvements.js`
+      - Check for 422/429/500 errors and log full upstream request/response (trimmed)
+    3. **Provenance verification:**
+      - Use `scripts/probe-provenance.js` to verify provenance and drivers[]
+      - Confirm per-day provenanceByDate entries for all days in a window
+    4. **Relocation/formation:**
+      - Confirm formation is locked for the window (no mixing city/coords)
+      - If aspects missing, try toggling formation and retry
+    5. **Orbs and weights:**
+      - Confirm orb clamping is applied pre-weight
+      - Check orbs_profile in provenance
+    6. **drivers[]:**
+      - Ensure drivers[] is always present (empty if none)
+      - Check for normalization (a, b, type, orb, applying, weight, is_transit)
+    7. **Fallbacks:**
+      - If no aspects, ensure placeholders and simulated examples are rendered and flagged
+    8. **Logging and error handling:**
+      - Log all validation errors, upstream failures, and retry attempts
+      - Use exponential backoff for 429 errors
+    9. **Testing:**
+      - Run automated schema checks in CI
+      - Use test pages and scripts for manual QA
 
-## 10. **Resonance-Driven Diagnostics (Woven Map Principle)**
+    ---
 
-- **Separate geometry computation (Math Brain) from narrative output (Poetic Brain).**
-  - Only the user determines if a "ping" (resonance) occurs—never force a claim.
-  - Use FIELD → MAP → VOICE framework for all outputs.
+    ## 3. Troubleshooting Appendix (Quick Reference)
 
----
+    1. **drivers[] empty:**
+      - Check provenanceByDate.formation (coords vs city)
+      - If formation=city_state_geonames but aspect_count=0, ensure GEONAMES_USERNAME is valid
+      - If formation=coords but upstream returns 422 requiring city, try city+state formation
+    2. **House differences vs old reports:**
+      - Verify relocation_mode used (A_local vs None)
+      - Confirm house system (Placidus vs Whole Sign)
+      - Check exact event timestamp (small time shifts can move cusps)
+    3. **Strange orbs/weights:**
+      - Ensure orb clamping applied pre-weight (8/7/5 + Moon/outer adjustments)
+      - Check orbs_profile in provenance
+    4. **API errors (422/429/500):**
+      - Log full upstream request/response (trimmed)
+      - For 429, use exponential backoff and retry
+      - For 422, check payload shape and formation
+    5. **GeoNames/city-mode issues:**
+      - Ensure GEONAMES_USERNAME is set and valid
+      - If city lookup fails, fallback to coords-only
+    6. **UI/UX issues:**
+      - Ensure all required fields are present in the frontend form
+      - Validate before submission
+      - Log and display clear error messages
 
-## 11. **Safe Lexicon System Maintenance**
+    ---
 
-**The app uses a safe lexicon system to ensure magnitude terms remain neutral while valence terms carry directional meaning.**
+    ## 4. Admin/Dev Tools
 
-### **Key Functions to Maintain:**
-- `toMagnitudeTerm(mag)` - Maps numeric values to neutral terms (Whisper, Pulse, Wave, Surge, Peak, Apex)
-- `toValenceTerm(val)` - Maps numeric values to directional terms (Collapse...Liberation)
-- `getValenceEmoji(val)` - Maps valence to emoji indicators (🌑 negative, 🌞 positive)
-- `assertSafeMagnitudePhrase(text)` - Validates magnitude descriptions don't contain negative imagery
+    - `scripts/probe-provenance.js` — probe provenance and drivers[]
+    - `test-improvements.js`, `test-coords.js` — test payloads and formation
+    - `debug-api.html`, `debug-test.html` — manual API testing
 
-### **Validation & Safety:**
-- `validateSafeLexicon()` runs on page load to ensure all mappings are complete
-- Never use terms like "storm", "quake", "disaster", "tsunami" in magnitude contexts
-- All magnitude language must be neutral (field intensity, not emotional charge)
-- Directional charge belongs exclusively in valence terminology
+    ---
 
-### **Schema Version:**
-- Current: WM-Chart-1.1 includes both numeric and term values
-- When updating terms, consider schema version bump if breaking changes
-- Legacy migration: `migrateMagnitudeTerm()` handles old term transitions
+    ## 5. Best Practices
 
----
+    - Always update documentation when operational rules change
+    - Keep all environments in sync (dev/prod)
+    - Never commit secrets; rotate keys regularly
+    - Use contract-first development (openapi.json)
+    - Log all errors and provenance for auditability
 
-## 12. **Math Brain ↔ Poetic Brain Export Standards**
+    ---
 
-**Maintain strict separation between geometric data (Math Brain) and interpretive narrative (Poetic Brain).**
+    ## 6. Product Philosophy (restated)
 
-### **JSON Export Requirements:**
-- **Pure data only:** Numbers, enums, glyphs, confidence scores
-- **No prose:** Remove all narrative strings, titles, annotations  
-- **Normalized values:** Valence clamped to -5 to +5 range
-- **Enum consistency:** Use safe lexicon terms exclusively
-- **Channel versioning:** Explicit v1.0/v1.1/v1.2 labels
+    - Falsifiability first: every poetic line must trace to a math anchor or be explicitly labeled as simulated
+    - Recognition before diagnosis: FIELD → MAP → VOICE
+    - Graceful honesty: if aspects are missing or ambiguous, call it out and provide practical fixes
+    - Human in the loop: calibrations use lived pings; the system learns
 
-### **Dual-Channel Architecture:**
-- **Copy Button:** Markdown with full narrative (human-readable)
-- **Download Button:** Clean JSON wrapper (machine-readable)
-- **Reader Notes:** User annotations flow into JSON but remain separate from calculations
+    ---
 
-### **Key Functions to Monitor:**
-- `buildRavenJsonReport()` - Must output prose-free geometric data only
-- `buildTriad()` - Creates measurement triads (magnitude/valence/volatility)
-- Export validation ensures Math Brain boundaries aren't violated
+    ## 7. Quick Reference
 
----
+    - `npm run check-env` — verify environment
+    - `npm run dev` — local dev
+    - `netlify dev` — local Netlify server
+    - `npm run build:css` — production CSS build
 
-## 13. **Accessibility & UX Standards**
-
-**Ensure inclusive design through proper ARIA implementation and keyboard support.**
-
-### **Modal Best Practices:**
-- Add `role="dialog"`, `aria-modal="true"`, proper labeling
-- Focus management: focus content on open, restore focus on close
-- Keyboard support: Escape key closes, tab navigation contained
-- Click-outside-to-close behavior
-
-### **Loading States:**
-- Toggle `aria-busy` during processing operations
-- Use `aria-live="polite"` for non-critical status updates
-- Use `aria-live="assertive"` for error announcements
-- Focus error displays when shown for immediate screen reader attention
-
-### **Form Validation:**
-- Real-time validation with `aria-live` feedback
-- Clear error descriptions with `aria-describedby`
-- Required field indication through proper labeling
-
+    For further details, see `README.md` and `API_INTEGRATION_GUIDE.md`.
 ---
 
 ## Quick Checklist Before Each Update

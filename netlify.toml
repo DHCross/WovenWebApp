@@ -53,17 +53,20 @@
 
 # Remove SPA fallback to allow Next.js routing to handle all application paths
 
+[dev]
+  # Netlify Dev will proxy to the Next.js dev server
+  targetPort = 4000
+  # Local port for Netlify Dev (site entry)
+  port = 8888
+  # Make sure redirects look in the publish dir during dev to silence warnings
+  publish = ".next"
+  autoLaunch = false
+  framework = "#custom"
+  command = "npx next dev -p 4000"
+
 [[headers]]
   # Cache compiled CSS aggressively in production
   for = "/dist/*"
   [headers.values]
   Cache-Control = "public, max-age=31536000, immutable"
   Content-Type = "text/css; charset=utf-8"
-
-[dev]
-  port = 8888
-  autoLaunch = false
-  framework = "#custom"
-  command = "npx next dev -p 4000"
-  targetPort = 4000
-  # Netlify Dev will proxy to Next dev (4000) and serve functions without running a prod build.
