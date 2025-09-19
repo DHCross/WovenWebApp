@@ -36,14 +36,6 @@
       "static/chunks/main-app-72372b611e5048fb.js",
       "static/chunks/app/safe/page-581d939a7a821efd.js"
     ],
-    "/chat/page": [
-      "static/chunks/webpack-0da4dacf37f1c6e9.js",
-      "static/chunks/fd9d1056-4b87d5bb1aa946b3.js",
-      "static/chunks/23-a62026deff354a00.js",
-      "static/chunks/main-app-72372b611e5048fb.js",
-      "static/chunks/162-8d7fb2b2d9fc41a1.js",
-      "static/chunks/app/chat/page-79fe36153220bac2.js"
-    ],
     "/mbrain-wip/page": [
       "static/chunks/webpack-0da4dacf37f1c6e9.js",
       "static/chunks/fd9d1056-4b87d5bb1aa946b3.js",
@@ -57,6 +49,14 @@
       "static/chunks/23-a62026deff354a00.js",
       "static/chunks/main-app-72372b611e5048fb.js",
       "static/chunks/app/page-2ea9c0a9137d75e1.js"
+    ],
+    "/chat/page": [
+      "static/chunks/webpack-0da4dacf37f1c6e9.js",
+      "static/chunks/fd9d1056-4b87d5bb1aa946b3.js",
+      "static/chunks/23-a62026deff354a00.js",
+      "static/chunks/main-app-72372b611e5048fb.js",
+      "static/chunks/162-8d7fb2b2d9fc41a1.js",
+      "static/chunks/app/chat/page-79fe36153220bac2.js"
     ],
     "/dev-tools/auth-status-ab123/page": [
       "static/chunks/webpack-0da4dacf37f1c6e9.js",

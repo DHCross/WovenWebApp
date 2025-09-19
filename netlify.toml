@@ -1,71 +1,15 @@
 [[headers]]
   for = "/*"
   [headers.values]
-  # Hardened CSP - removed unsafe directives and risky CDNs after Next.js migration
   Content-Security-Policy = "default-src 'self' blob:; script-src 'self' https://cdn.auth0.com; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://s.gravatar.com https://cdn.auth0.com; connect-src 'self' ws: wss: https://*.auth0.com; frame-src https://*.auth0.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';"
+
 [build]
   command = "npm run build"
-  publish = ".next"
-  functions = "netlify/functions"
-
-# Disable Netlify's JS bundling for third-party files (static HTML/JS strategy)
-[build.processing]
-  skip_processing = true
-
-[[redirects]]
-  from = "/vendor/*"
-  to = "/vendor/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/public/vendor/*"
-  to = "/public/vendor/:splat"
-  status = 200
-
-# CRITICAL: Asset redirects must come before SPA fallback to prevent CSS being served as HTML
-[[redirects]]
-  from = "/dist/*"
-  to = "/dist/:splat"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/astrology"
-  to = "/.netlify/functions/astrology"
-  status = 200
-
-[[redirects]]
-  from = "/api/astrology-mathbrain"
-  to = "/.netlify/functions/astrology-mathbrain"
-  status = 200
-
-[[redirects]]
-  from = "/api/auth-config"
-  to = "/.netlify/functions/auth-config"
-  status = 200
-
-# Removed legacy /callback -> /index.html redirect; App Router handles Auth0 via /chat
-
-# Remove static overrides for "/" and "/chat" so Next.js owns these routes
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Remove SPA fallback to allow Next.js routing to handle all application paths
-
-[dev]
-  # Netlify Dev will proxy to the Next.js dev server
-  targetPort = 4000
-  # Local port for Netlify Dev (site entry)
-  port = 8888
-  # Make sure redirects look in the publish dir during dev to silence warnings
-  publish = ".next"
-  autoLaunch = false
-  framework = "#custom"
-  command = "npx next dev -p 4000"
-
 [[headers]]
-  # Cache compiled CSS aggressively in production
   for = "/dist/*"
   [headers.values]
   Cache-Control = "public, max-age=31536000, immutable"
