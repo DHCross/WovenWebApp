@@ -32,8 +32,13 @@ export default function HomeHero() {
   // Tiny debug flags to surface why login might be inert
   const [sdkLoaded, setSdkLoaded] = useState(false);
   const [clientReady, setClientReady] = useState(false);
-  const enableDev = typeof window !== 'undefined' && String(process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS) === 'true';
+  const [enableDev, setEnableDev] = useState(false);
   const clientRef = useRef<Auth0Client | null>(null);
+
+  // Set dev tools flag on client side only to avoid hydration mismatch
+  useEffect(() => {
+    setEnableDev(String(process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS) === 'true');
+  }, []);
 
   useEffect(() => {
     if (authDisabled) {
@@ -45,12 +50,13 @@ export default function HomeHero() {
     // Safety timeout so UI doesn't appear stuck if functions or SDK never resolve
     const safety = setTimeout(() => {
       if (!cancelled) {
-        setError((prev) => prev || "Auth init slow or unavailable");
+        setError((prev) => prev || "Auth is taking longer than expected (this is usually normal)");
         setReady(true);
       }
-    }, 5000);
+    }, 8000);
     async function init() {
       try {
+        const startTime = Date.now();
         // Load Auth0 SPA SDK (served from public/vendor)
         const hasCreate = typeof window.auth0?.createAuth0Client === 'function' || typeof window.createAuth0Client === 'function';
         if (!hasCreate) {
@@ -63,17 +69,19 @@ export default function HomeHero() {
             document.head.appendChild(s);
           });
         }
+        console.log(`Auth0 SDK loaded in ${Date.now() - startTime}ms`);
         setSdkLoaded(true);
 
         // Fetch public Auth0 config (proxied to Netlify function)
         let config: any;
         try {
+          const configStartTime = Date.now();
           const res = await fetch("/api/auth-config", { cache: "no-store" });
           if (!res.ok) {
             throw new Error(`Auth config failed: ${res.status} ${res.statusText}`);
           }
           config = await res.json();
-          console.log("Auth config received:", config);
+          console.log(`Auth config fetched in ${Date.now() - configStartTime}ms:`, config);
           if (!cancelled) setAuthCfg({ domain: config?.domain, clientId: config?.clientId });
         } catch (fetchError) {
           // Fallback for development when Netlify functions aren't available
@@ -120,9 +128,11 @@ export default function HomeHero() {
         }
 
         if (!cancelled) {
+          console.log(`Auth initialization completed in ${Date.now() - startTime}ms`);
           setUserName(name);
           setAuthed(isAuthed);
           setReady(true);
+          clearTimeout(safety); // Clear timeout since we completed successfully
         }
       } catch (e: any) {
         if (!cancelled) {
@@ -168,6 +178,23 @@ export default function HomeHero() {
     }
   };
 
+  const logout = async () => {
+    if (authDisabled || !clientRef.current) return;
+    try {
+      await (clientRef.current as any).logout({
+        logoutParams: {
+          returnTo: window.location.origin
+        }
+      });
+    } catch (e) {
+      console.error("Logout failed", e);
+      // Fallback: clear local state and reload
+      setAuthed(false);
+      setUserName(null);
+      window.location.reload();
+    }
+  };
+
   return (
     <section className="mt-8">
       <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-6">
@@ -178,9 +205,9 @@ export default function HomeHero() {
 
         <div className="mt-6 flex flex-wrap gap-3">
           <a
-            href="/math-brain?report=balance"
+            href="/math-brain?report=mirror"
             className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-500"
-            title="Open Math Brain with Balance Meter"
+            title="Open Math Brain with Mirror"
           >
             Open Math Brain (Astro Reports)
           </a>
@@ -217,7 +244,16 @@ export default function HomeHero() {
         </div>
 
         {authed && poeticBrainEnabled && (
-          <p className="mt-3 text-xs text-slate-500">Signed in{userName ? ` as ${userName}` : ""}. Chat is now enabled.</p>
+          <div className="mt-3 flex items-center justify-between">
+            <p className="text-xs text-slate-500">Signed in{userName ? ` as ${userName}` : ""}. Chat is now enabled.</p>
+            <button
+              onClick={logout}
+              className="text-xs text-slate-400 hover:text-slate-300 underline"
+              title="Sign out"
+            >
+              Sign out
+            </button>
+          </div>
         )}
         {error && (
           <p className="mt-3 text-xs text-rose-400">{error}</p>

@@ -55,7 +55,7 @@ export default function MathBrainPage() {
     state: "PA",
     latitude: 40.0167,
     longitude: -75.3,
-    timezone: "America/New_York",
+    timezone: "US/Eastern",
     zodiac_type: "Tropic",
   });
 
@@ -109,11 +109,10 @@ export default function MathBrainPage() {
       setTimePolicy('planetary_only');
     }
   }, [timeUnknown]);
-  // Timezone dropdown options (US-centric + GMT/UTC)
+  // Timezone dropdown options (US-centric + GMT/UTC) - simplified format
   const tzOptions = useMemo(() => [
     'GMT', 'UTC', 'US/Eastern', 'US/Central', 'US/Mountain', 'US/Pacific',
-    'US/Alaska', 'US/Hawaii', 'America/New_York', 'America/Chicago',
-    'America/Denver', 'America/Los_Angeles', 'America/Phoenix', 'America/Anchorage'
+    'US/Alaska', 'US/Hawaii'
   ], []);
   // Legacy formatting helpers
   const onlyDigits = (s: string, maxLen: number) => s.replace(/\D+/g, '').slice(0, maxLen);
@@ -147,21 +146,33 @@ export default function MathBrainPage() {
   // Lightweight toast for ephemeral notices (e.g., Mirror failure)
   const [toast, setToast] = useState<string | null>(null);
   // Report type: 'balance' (on-screen gauges) | 'mirror' (handoff only)
-  const [reportType, setReportType] = useState<'balance' | 'mirror'>(() => {
-    if (typeof window === 'undefined') return 'mirror';
-    try {
-      const saved = window.localStorage.getItem('mb.reportType');
-      return saved === 'mirror' || saved === 'balance' ? (saved as any) : 'mirror';
-    } catch { return 'mirror'; }
-  });
+  const [reportType, setReportType] = useState<'balance' | 'mirror'>('mirror');
   // Persist report type and allow deep-link via ?report=mirror
   useEffect(() => {
     try {
+      // Initialize from URL and localStorage
       const url = new URL(window.location.href);
+
+      // Check URL parameter for report type
       const q = url.searchParams.get('report');
       if (q === 'mirror' || q === 'balance') {
         setReportType(q as any);
+      } else {
+        // Then check localStorage if no URL parameter
+        const saved = window.localStorage.getItem('mb.reportType');
+        if (saved === 'mirror' || saved === 'balance') {
+          setReportType(saved as any);
+        }
       }
+
+      // Initialize weeklyAgg from localStorage
+      const savedWeeklyAgg = window.localStorage.getItem('weeklyAgg');
+      if (savedWeeklyAgg === 'max' || savedWeeklyAgg === 'mean') {
+        setWeeklyAgg(savedWeeklyAgg);
+      }
+
+      // Initialize debug mode from URL
+      setDebugMode(url.searchParams.get('debug') === '1');
     } catch {/* noop */}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -177,11 +188,7 @@ export default function MathBrainPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Weekly aggregation preference: 'mean' | 'max' (for seismograph weekly bars)
-  const [weeklyAgg, setWeeklyAgg] = useState<'mean' | 'max'>(() => {
-    if (typeof window === 'undefined') return 'mean';
-    const saved = window.localStorage.getItem('weeklyAgg');
-    return (saved === 'max' || saved === 'mean') ? saved : 'mean';
-  });
+  const [weeklyAgg, setWeeklyAgg] = useState<'mean' | 'max'>('mean');
   useEffect(() => {
     try {
       window.localStorage.setItem('weeklyAgg', weeklyAgg);
@@ -445,7 +452,7 @@ export default function MathBrainPage() {
             await writable.close();
             try { setToast('Saved setup JSON'); setTimeout(()=>setToast(null), 1800); } catch {/* noop */}
           } catch (e) {
-            // If user cancels or API fails, silently fall back to anchor method
+            // If user cancels or API fails, fall back to anchor method
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -455,7 +462,8 @@ export default function MathBrainPage() {
             setTimeout(() => {
               document.body.removeChild(a);
               URL.revokeObjectURL(url);
-              try { setToast('Saved setup JSON'); setTimeout(()=>setToast(null), 1800); } catch {/* noop */}
+              setToast('Setup JSON downloaded');
+              setTimeout(() => setToast(null), 1800);
             }, 150);
           }
         })();
@@ -466,21 +474,18 @@ export default function MathBrainPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      (a as any).download = filename;
+      a.download = filename;
+      a.style.display = 'none'; // Hide the link
       document.body.appendChild(a);
-      const supportsDownload = 'download' in HTMLAnchorElement.prototype as any;
-      if (supportsDownload) {
-        a.click();
-      } else {
-        // Fallback for browsers that ignore download attribute
-        window.open(url, '_blank', 'noopener');
-      }
+      a.click();
+
       // conservative cleanup to ensure download starts before revoke (Safari)
       setTimeout(() => {
         try { document.body.removeChild(a); } catch {/* noop */}
         try { URL.revokeObjectURL(url); } catch {/* noop */}
-        try { setToast('Saved setup JSON'); setTimeout(()=>setToast(null), 1800); } catch {/* noop */}
-      }, 300);
+        setToast('Setup JSON downloaded');
+        setTimeout(() => setToast(null), 1800);
+      }, 150);
     } catch (err) {
       console.error('Save setup failed:', err);
       try {
@@ -658,14 +663,7 @@ export default function MathBrainPage() {
   }, [canSubmit, loading, personA, reportType]);
 
   // Debug panel toggle (append ?debug=1 to the URL to enable)
-  const debugMode = useMemo(() => {
-    try {
-      if (typeof window === 'undefined') return false;
-      return new URL(window.location.href).searchParams.get('debug') === '1';
-    } catch {
-      return false;
-    }
-  }, []);
+  const [debugMode, setDebugMode] = useState(false);
 
   const debugInfo = useMemo(() => ({
     reportType,
@@ -1005,9 +1003,14 @@ export default function MathBrainPage() {
                 <span className="ml-1 text-[11px] text-slate-300/80">(gauges on screen)</span>
               </label>
             </fieldset>
-            {reportType==='mirror' && (
-              <div className="text-xs text-slate-400">Handoff only — no on-screen gauges</div>
-            )}
+            <div className="text-xs text-slate-400 max-w-md">
+              {reportType === 'mirror' && (
+                "Full narrative analysis with geometric handoff to Poetic Brain for interpretive synthesis"
+              )}
+              {reportType === 'balance' && (
+                "Triple-channel readings (Seismograph v1.0 · Balance v1.1 · SFD v1.2) for health data correlation"
+              )}
+            </div>
           </div>
         </section>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
@@ -1046,11 +1049,28 @@ export default function MathBrainPage() {
                     type="text"
                     inputMode="numeric"
                     className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-center text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={String(personA.month)}
+                    value={String(personA.month || '')}
                     onChange={(e) => {
                       const v = onlyDigits(e.target.value, 2);
+                      if (!v) {
+                        setPersonA({ ...personA, month: '' });
+                        return;
+                      }
+                      const num = Number(v);
+                      // Allow incomplete input (like "0") and valid range (1-12)
+                      if (v === "0" || (num >= 1 && num <= 12)) {
+                        setPersonA({ ...personA, month: v }); // Keep raw input like "0" or "04"
+                      } else {
+                        // Only clamp if it's a complete invalid number
+                        const clamped = Math.min(12, Math.max(1, num));
+                        setPersonA({ ...personA, month: String(clamped) });
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const v = onlyDigits(e.target.value, 2);
                       const n = clampNum(v, 1, 12);
-                      setPersonA({ ...personA, month: Number.isNaN(n) ? '' : String(n) });
+                      // Pad on blur for final formatting
+                      setPersonA({ ...personA, month: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
                     }}
                     placeholder="MM"
                     required
@@ -1063,10 +1083,17 @@ export default function MathBrainPage() {
                     type="text"
                     inputMode="numeric"
                     className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-center text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={pad2(personA.day as any)}
+                    value={String(personA.day || '')}
                     onChange={(e) => {
-                      const v = pad2(e.target.value);
+                      const v = onlyDigits(e.target.value, 2);
                       const n = clampNum(v, 1, 31);
+                      // Keep raw input while typing, only clamp if out of bounds
+                      setPersonA({ ...personA, day: Number.isNaN(n) ? v : (n === Number(v) ? v : String(n)) });
+                    }}
+                    onBlur={(e) => {
+                      const v = onlyDigits(e.target.value, 2);
+                      const n = clampNum(v, 1, 31);
+                      // Pad on blur for final formatting
                       setPersonA({ ...personA, day: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
                     }}
                     placeholder="DD"
@@ -1080,10 +1107,17 @@ export default function MathBrainPage() {
                     type="text"
                     inputMode="numeric"
                     className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={pad2(personA.hour as any)}
+                    value={String(personA.hour || '')}
                     onChange={(e) => {
-                      const v = pad2(e.target.value);
+                      const v = onlyDigits(e.target.value, 2);
                       const n = clampNum(v, 0, 23);
+                      // Keep raw input while typing, only clamp if out of bounds
+                      setPersonA({ ...personA, hour: Number.isNaN(n) ? v : (n === Number(v) ? v : String(n)) });
+                    }}
+                    onBlur={(e) => {
+                      const v = onlyDigits(e.target.value, 2);
+                      const n = clampNum(v, 0, 23);
+                      // Pad on blur for final formatting
                       setPersonA({ ...personA, hour: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
                     }}
                     placeholder="HH"
@@ -1097,10 +1131,17 @@ export default function MathBrainPage() {
                     type="text"
                     inputMode="numeric"
                     className="mt-1 w-full min-w-[60px] h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={pad2(personA.minute as any)}
+                    value={String(personA.minute || '')}
                     onChange={(e) => {
-                      const v = pad2(e.target.value);
+                      const v = onlyDigits(e.target.value, 2);
                       const n = clampNum(v, 0, 59);
+                      // Keep raw input while typing, only clamp if out of bounds
+                      setPersonA({ ...personA, minute: Number.isNaN(n) ? v : (n === Number(v) ? v : String(n)) });
+                    }}
+                    onBlur={(e) => {
+                      const v = onlyDigits(e.target.value, 2);
+                      const n = clampNum(v, 0, 59);
+                      // Pad on blur for final formatting
                       setPersonA({ ...personA, minute: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
                     }}
                     placeholder="MM"
@@ -1306,11 +1347,28 @@ export default function MathBrainPage() {
                     inputMode="numeric"
                     disabled={!includePersonB}
                     className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-center text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={String(personB.month)}
+                    value={String(personB.month || '')}
                     onChange={(e) => {
                       const v = onlyDigits(e.target.value, 2);
+                      if (!v) {
+                        setPersonB({ ...personB, month: '' });
+                        return;
+                      }
+                      const num = Number(v);
+                      // Allow incomplete input (like "0") and valid range (1-12)
+                      if (v === "0" || (num >= 1 && num <= 12)) {
+                        setPersonB({ ...personB, month: v }); // Keep raw input like "0" or "04"
+                      } else {
+                        // Only clamp if it's a complete invalid number
+                        const clamped = Math.min(12, Math.max(1, num));
+                        setPersonB({ ...personB, month: String(clamped) });
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const v = onlyDigits(e.target.value, 2);
                       const n = clampNum(v, 1, 12);
-                      setPersonB({ ...personB, month: Number.isNaN(n) ? '' : String(n) });
+                      // Pad on blur for final formatting
+                      setPersonB({ ...personB, month: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
                     }}
                     placeholder="MM"
                   />
@@ -1323,10 +1381,17 @@ export default function MathBrainPage() {
                     inputMode="numeric"
                     disabled={!includePersonB}
                     className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={pad2(personB.day as any)}
+                    value={String(personB.day || '')}
                     onChange={(e) => {
-                      const v = pad2(e.target.value);
+                      const v = onlyDigits(e.target.value, 2);
                       const n = clampNum(v, 1, 31);
+                      // Keep raw input while typing, only clamp if out of bounds
+                      setPersonB({ ...personB, day: Number.isNaN(n) ? v : (n === Number(v) ? v : String(n)) });
+                    }}
+                    onBlur={(e) => {
+                      const v = onlyDigits(e.target.value, 2);
+                      const n = clampNum(v, 1, 31);
+                      // Pad on blur for final formatting
                       setPersonB({ ...personB, day: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
                     }}
                     placeholder="DD"
@@ -1340,10 +1405,17 @@ export default function MathBrainPage() {
                     inputMode="numeric"
                     disabled={!includePersonB}
                     className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={pad2(personB.hour as any)}
+                    value={String(personB.hour || '')}
                     onChange={(e) => {
-                      const v = pad2(e.target.value);
+                      const v = onlyDigits(e.target.value, 2);
                       const n = clampNum(v, 0, 23);
+                      // Keep raw input while typing, only clamp if out of bounds
+                      setPersonB({ ...personB, hour: Number.isNaN(n) ? v : (n === Number(v) ? v : String(n)) });
+                    }}
+                    onBlur={(e) => {
+                      const v = onlyDigits(e.target.value, 2);
+                      const n = clampNum(v, 0, 23);
+                      // Pad on blur for final formatting
                       setPersonB({ ...personB, hour: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
                     }}
                     placeholder="HH"
@@ -1357,10 +1429,17 @@ export default function MathBrainPage() {
                     inputMode="numeric"
                     disabled={!includePersonB}
                     className="mt-1 w-full min-w-[60px] h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={pad2(personB.minute as any)}
+                    value={String(personB.minute || '')}
                     onChange={(e) => {
-                      const v = pad2(e.target.value);
+                      const v = onlyDigits(e.target.value, 2);
                       const n = clampNum(v, 0, 59);
+                      // Keep raw input while typing, only clamp if out of bounds
+                      setPersonB({ ...personB, minute: Number.isNaN(n) ? v : (n === Number(v) ? v : String(n)) });
+                    }}
+                    onBlur={(e) => {
+                      const v = onlyDigits(e.target.value, 2);
+                      const n = clampNum(v, 0, 59);
+                      // Pad on blur for final formatting
                       setPersonB({ ...personB, minute: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
                     }}
                     placeholder="MM"
@@ -1641,7 +1720,7 @@ export default function MathBrainPage() {
                     value={translocation}
                     onChange={(e) => setTranslocation(e.target.value as TranslocationOption)}
                   >
-                    <option value="NONE">None (Natal Base)</option>
+                    <option value="NONE">Birthplace Transits Only</option>
                     <option value="A_LOCAL">Person A</option>
                     <option value="B_LOCAL" disabled={!includePersonB}>Person B</option>
                     <option value="MIDPOINT" disabled={!includePersonB}>Midpoint (A + B)</option>

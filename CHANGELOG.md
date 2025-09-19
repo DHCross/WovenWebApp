@@ -4,21 +4,12 @@
 Solidified and documented the core architectural principle of "separate but connected" brains. Math Brain is a utilitarian calculator, while Poetic Brain is an immersive interpretive experience. They are explicitly decoupled to improve stability, reduce complexity, and clarify their distinct purposes.
 
 **Changes**
-- **`README.md`**: Added a new "Architectural Philosophy" section explaining the two-brain system and the simple handoff pattern.
-- **`MAINTENANCE_GUIDE.md`**: Added the "Brain Separation" principle as the most critical best practice to prevent future integration-related issues.
-- **`CHANGELOG.md`**: This entry, to formally record the strategic decision.
 
 
 **MUST NOT BREAK: Math Brain / Poetic Brain Separation**
 
 The following requirements are now permanent and must be preserved in all future work:
 
-- Math Brain and Poetic Brain are strictly separated subsystems. No direct API calls, shared state, or automatic handoff between them is allowed.
-- Math Brain is a standalone calculator (FIELD layer only) at `/math-brain`. It generates reports and allows users to download them (JSON/PDF).
-- Poetic Brain (at `/chat`) is an immersive, authenticated chat experience. It does not receive data from Math Brain automatically.
-- The only allowed connection is a **manual, user-driven handoff**: users must download reports from Math Brain and upload them to Poetic Brain for interpretation.
-- All UI must reinforce this separation: no "Open in Poetic Brain" or "Resume from Math Brain" buttons, no localStorage handoff, no deep-linking with context.
-- Any attempt to re-couple the two brains (even for convenience) is forbidden unless the architecture is formally revised and documented.
 
 **Rationale**
 Past development efforts revealed that tightly integrating the two brains led to fragile code, UX confusion, and maintenance challenges. This architectural decision embraces their separation, allowing each to excel at its function. The handoff (download/upload) is sufficient and avoids the pitfalls of a monolithic design.
@@ -27,19 +18,8 @@ Past development efforts revealed that tightly integrating the two brains led to
 ## [2025-09-19] FIX/CHANGE: Math Brain & Poetic Brain Ungated, Auth Removal, Fragment Fix
 
 **Summary**
-Math Brain and Poetic Brain are now fully public: removed all Auth0 gating and UI barriers from `/math-brain` and `/chat`. Fixed a critical JSX fragment mismatch in Math Brain page that previously caused compile errors.
-
-**Changes**
-- `app/math-brain/page.tsx`: Purged all references to Auth0 state (authReady, authed, login/sign-in mentions) and removed conditional UI. Post-generation actions now always link to Poetic Brain. Closed the unbalanced React fragment in the balance report section, resolving all compile errors.
-- `app/chat/page.tsx`: Removed environment flag gating; Poetic Brain now always renders and is accessible without authentication.
-- Build and lint diagnostics: No errors after changes; both pages load and function without auth.
-
-**Verification**
-- Started dev servers (`npm run dev`, Tailwind watch).
 - Confirmed `/math-brain` and `/chat` render and operate without any authentication required.
 - Validated that all compile errors (JSX fragment mismatch, orphaned auth references) are resolved.
-
-**Rationale**
 Auth0 is mothballed for now; both main app routes should be public for testing and general use. This change supports open access and simplifies the codebase. Fragment fix ensures robust React rendering and prevents future build failures.
 
 ---
