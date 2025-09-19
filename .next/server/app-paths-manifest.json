@@ -1,22 +1,3 @@
 {
-  "/api/advice-ladder-tree/route": "app/api/advice-ladder-tree/route.js",
-  "/api/daily-integration/route": "app/api/daily-integration/route.js",
-  "/api/auth-config/route": "app/api/auth-config/route.js",
-  "/api/debug-env/route": "app/api/debug-env/route.js",
-  "/api/usage/route": "app/api/usage/route.js",
-  "/api/raven/route": "app/api/raven/route.js",
-  "/_not-found/page": "app/_not-found/page.js",
-  "/_global-error/page": "app/_global-error/page.js",
-  "/api/astrology-mathbrain/route": "app/api/astrology-mathbrain/route.js",
-  "/api/health/route": "app/api/health/route.js",
-  "/api/astrology-health/route": "app/api/astrology-health/route.js",
-  "/api/poetic-brain/route": "app/api/poetic-brain/route.js",
-  "/api/chat/route": "app/api/chat/route.js",
-  "/debug-auth/page": "app/debug-auth/page.js",
-  "/safe/page": "app/safe/page.js",
-  "/chat/page": "app/chat/page.js",
-  "/mbrain-wip/page": "app/mbrain-wip/page.js",
-  "/page": "app/page.js",
-  "/dev-tools/auth-status-ab123/page": "app/dev-tools/auth-status-ab123/page.js",
-  "/math-brain/page": "app/math-brain/page.js"
+  "/api/astrology-mathbrain/route": "app/api/astrology-mathbrain/route.js"
 }
