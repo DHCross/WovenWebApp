@@ -37,7 +37,8 @@
     "fix:auth0": "node scripts/fix-auth0.js",
     "smoke:auth0": "node scripts/smoke-auth0.js",
     "postinstall": "if [ -f package.json ] && node -e \"try{require('concurrently')}catch(e){process.exit(1)}\"; then echo 'concurrently already installed'; else echo 'Installing concurrently...'; npm i -D concurrently; fi",
-    "auth:check": "node scripts/auth-config-check.js"
+    "auth:check": "node scripts/auth-config-check.js",
+    "cleanup:legacy": "node scripts/cleanup-legacy.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
