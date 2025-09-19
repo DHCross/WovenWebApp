@@ -150,39 +150,42 @@ function setupAuth0Tests(runner) {
         }
     }, { category: 'auth0', critical: false });
 
-    runner.test('Auth config function exists', () => {
-        const authConfigPath = path.join(__dirname, '..', 'netlify', 'functions', 'auth-config.js');
-        runner.assert(fs.existsSync(authConfigPath), 'auth-config.js function not found');
-    }, { category: 'auth0', critical: false });
+    // No longer needed: Netlify function check
 }
 
 /**
  * Netlify Function Tests
  */
-function setupFunctionTests(runner) {
-    runner.test('Primary math brain function exists', () => {
-        const mathBrainPath = path.join(__dirname, '..', 'netlify', 'functions', 'astrology-mathbrain.js');
-        runner.assert(fs.existsSync(mathBrainPath), 'astrology-mathbrain.js function not found');
-    }, { category: 'functions', critical: true });
-
-    runner.test('Function dependencies available', () => {
-        const seismographPath = path.join(__dirname, '..', 'src', 'seismograph.js');
-        const ravenMapperPath = path.join(__dirname, '..', 'src', 'raven-lite-mapper.js');
-        
-        runner.assert(fs.existsSync(seismographPath), 'seismograph.js module not found');
-        runner.assert(fs.existsSync(ravenMapperPath), 'raven-lite-mapper.js module not found');
-    }, { category: 'functions', critical: true });
-
-    runner.test('Math brain function can be loaded', () => {
-        try {
-            const mathBrainPath = path.join(__dirname, '..', 'netlify', 'functions', 'astrology-mathbrain.js');
-            delete require.cache[require.resolve(mathBrainPath)];
-            const mathBrain = require(mathBrainPath);
-            runner.assert(typeof mathBrain.handler === 'function', 'Math brain handler not found');
-        } catch (error) {
-            throw new Error(`Failed to load math brain function: ${error.message}`);
-        }
-    }, { category: 'functions', critical: true });
+const http = require('http');
+function setupRouteTests(runner) {
+    // Helper to probe a route and expect 200
+    function probeRoute(path, critical = true) {
+        runner.test(`Route responds: ${path}`, async () => {
+            await new Promise((resolve, reject) => {
+                const req = http.request({
+                    hostname: 'localhost',
+                    port: 3000,
+                    path,
+                    method: 'GET',
+                    timeout: 3000,
+                }, res => {
+                    if (res.statusCode === 200) {
+                        resolve();
+                    } else {
+                        reject(new Error(`Status ${res.statusCode}`));
+                    }
+                });
+                req.on('error', reject);
+                req.on('timeout', () => reject(new Error('Timeout')));
+                req.end();
+            });
+        }, { category: 'routes', critical });
+    }
+    probeRoute('/math-brain');
+    probeRoute('/chat');
+    probeRoute('/api/astrology-mathbrain');
+    probeRoute('/api/auth-config');
+    probeRoute('/api/health');
 }
 
 /**
@@ -216,13 +219,7 @@ function setupConfigTests(runner) {
  * File Structure Tests
  */
 function setupFileStructureTests(runner) {
-    runner.test('Core application files exist', () => {
-        const indexPath = path.join(__dirname, '..', 'index.html');
-        const configPath = path.join(__dirname, '..', 'config.js');
-        
-        runner.assert(fs.existsSync(indexPath), 'index.html not found');
-        runner.assert(fs.existsSync(configPath), 'config.js not found');
-    }, { category: 'files', critical: true });
+    // No longer needed: index.html check
 
     runner.test('Documentation files exist', () => {
         const readmePath = path.join(__dirname, '..', 'README.md');
@@ -270,7 +267,7 @@ async function runSmokeTests() {
     // Setup test suites
     setupEnvironmentTests(runner);
     setupAuth0Tests(runner);
-    setupFunctionTests(runner);
+    setupRouteTests(runner);
     setupConfigTests(runner);
     setupFileStructureTests(runner);
     
