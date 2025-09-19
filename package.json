@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Woven Map Report Generator + Raven Calder Chat Interface",
   "private": true,
+  "engines": {
+    "node": ">=18 <21",
+    "npm": ">=9"
+  },
   "scripts": {
     "build:css": "mkdir -p ./public/dist && tailwindcss -i ./src/input.css -o ./public/dist/output.css --minify",
     "build:offshoot": "tailwindcss -c tailwind.offshoot.config.js -i ./offshoot/offshoot.css -o ./offshoot/offshoot.min.css --minify",
