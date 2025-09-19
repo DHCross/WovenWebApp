@@ -18,7 +18,11 @@ declare global {
   }
 }
 
+const authEnabled = process.env.NEXT_PUBLIC_ENABLE_AUTH === 'true';
+const poeticBrainEnabled = process.env.NEXT_PUBLIC_ENABLE_POETIC_BRAIN === 'true';
+
 export default function HomeHero() {
+  const authDisabled = !authEnabled;
   const [ready, setReady] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +36,11 @@ export default function HomeHero() {
   const clientRef = useRef<Auth0Client | null>(null);
 
   useEffect(() => {
+    if (authDisabled) {
+      setReady(true);
+      setAuthed(true);
+      return;
+    }
     let cancelled = false;
     // Safety timeout so UI doesn't appear stuck if functions or SDK never resolve
     const safety = setTimeout(() => {
@@ -122,15 +131,21 @@ export default function HomeHero() {
         }
       }
     }
-    init();
+    if (!authDisabled) {
+      init();
+    }
     return () => {
       cancelled = true;
       clearTimeout(safety);
     };
-  }, []);
+  }, [authDisabled]);
 
   const loginWithGoogle = async () => {
     // Guard against inert click if client hasn't initialized yet
+    if (authDisabled) {
+      window.location.assign('/chat');
+      return;
+    }
     if (!clientRef.current) {
       setError("Auth not ready yet. One moment, then try again. If this persists, open /debug-auth.");
       return;
@@ -170,23 +185,30 @@ export default function HomeHero() {
             Open Math Brain (Astro Reports)
           </a>
 
-          {ready && authed ? (
-            <a
-              href="/chat"
-              className="rounded-md px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-500"
-              title="Open Poetic Brain (Chat)"
-            >
-              Open Poetic Brain
-            </a>
+          {poeticBrainEnabled ? (
+            ready && authed ? (
+              <a
+                href="/chat"
+                className="rounded-md px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-500"
+                title="Open Poetic Brain (Chat)"
+              >
+                Open Poetic Brain
+              </a>
+            ) : (
+              <button
+                onClick={loginWithGoogle}
+                disabled={!ready || !clientRef.current || isLoggingIn}
+                className={`rounded-md border border-slate-700 px-4 py-2 text-slate-100 ${(!ready || !clientRef.current || isLoggingIn) ? 'bg-slate-700/60 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700'}`}
+                title="Sign in to enable Poetic Brain"
+              >
+                {isLoggingIn ? 'Redirecting…' : 'Continue with Google'}
+              </button>
+            )
           ) : (
-            <button
-              onClick={loginWithGoogle}
-              disabled={!ready || !clientRef.current || isLoggingIn}
-              className={`rounded-md border border-slate-700 px-4 py-2 text-slate-100 ${(!ready || !clientRef.current || isLoggingIn) ? 'bg-slate-700/60 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700'}`}
-              title="Sign in to enable Poetic Brain"
-            >
-              {isLoggingIn ? 'Redirecting…' : 'Continue with Google'}
-            </button>
+            <div className="rounded-md border border-slate-700 bg-slate-900/60 px-4 py-2 text-left text-slate-300">
+              <p className="text-sm font-medium text-slate-100">Poetic Brain is currently offline.</p>
+              <p className="mt-1 text-xs text-slate-400">You can still generate Math Brain reports below; Raven&rsquo;s chat mirror will return once the Gemini/Auth0 integration is stable.</p>
+            </div>
           )}
 
           {!ready && (
@@ -194,7 +216,7 @@ export default function HomeHero() {
           )}
         </div>
 
-        {authed && (
+        {authed && poeticBrainEnabled && (
           <p className="mt-3 text-xs text-slate-500">Signed in{userName ? ` as ${userName}` : ""}. Chat is now enabled.</p>
         )}
         {error && (

@@ -1,13 +1,41 @@
+'use client';
+
 import React from 'react';
 import AuthStatusPill from '../../components/dev/AuthStatusPill';
 import ChatClient from '../../components/ChatClient';
 import RequireAuth from '../../components/RequireAuth';
+
 export const dynamic = 'force-dynamic';
-export default function ChatPage(){
+
+export default function ChatPage() {
+  const poeticBrainEnabled = process.env.NEXT_PUBLIC_ENABLE_POETIC_BRAIN === 'true';
   return (
     <RequireAuth>
-      {process.env.NODE_ENV !== 'production' && <AuthStatusPill />}
-      <ChatClient />
+      <DevAuthStatus />
+      {poeticBrainEnabled ? <ChatClient /> : <OfflineNotice />}
     </RequireAuth>
+  );
+}
+
+function DevAuthStatus() {
+  if (process.env.NODE_ENV === 'production') return null;
+  return <AuthStatusPill />;
+}
+
+function OfflineNotice() {
+  return (
+    <div className="mx-auto mt-12 max-w-2xl rounded-xl border border-slate-800 bg-slate-900/40 p-8 text-center">
+      <h1 className="text-2xl font-semibold text-slate-100">Poetic Brain Unavailable</h1>
+      <p className="mt-3 text-sm text-slate-300">
+        Raven&rsquo;s chat interface is temporarily offline while we work through the Auth0/Gemini integration. Math Brain
+        reports and the rest of the site remain fully available. Check back soon for the full FIELD → MAP → VOICE handoff.
+      </p>
+      <a
+        href="/"
+        className="mt-6 inline-flex items-center justify-center rounded-md border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-slate-100 hover:bg-slate-700"
+      >
+        Return to Home
+      </a>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
 {
-  "/math-brain/page": "app/math-brain/page.js",
-  "/page": "app/page.js"
+  "/page": "app/page.js",
+  "/api/auth-config/route": "app/api/auth-config/route.js"
 }
