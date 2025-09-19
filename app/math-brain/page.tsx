@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseCoordinates, formatDecimal } from "../../src/coords";
-import AuthProvider from "./AuthProvider";
+import AuthProvider, { AuthState } from "./AuthProvider";
 import { needsLocation, isTimeUnknown } from "../../lib/relocation";
 
 export const dynamic = "force-dynamic";
@@ -862,13 +862,13 @@ export default function MathBrainPage() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
       {/* Client-only Auth provider (no UI) */}
-      <AuthProvider onStateChange={(s)=>{
+      <AuthProvider onStateChange={useCallback((s: AuthState) => {
         setAuthReady(s.authReady);
         setAuthed(s.authed);
         setAuthEnvOk(s.authEnvOk);
         setAuthStatus(s.authStatus);
         setLoginFn(() => s.login);
-      }} />
+      }, [])} />
       {!authEnvOk && showAuthBanner && (
         <div className="mb-4 flex items-start justify-between gap-3 rounded-md border border-amber-700 bg-amber-900/30 p-3 text-amber-200">
           <p className="text-sm">Auth0 environment not configured (AUTH0_*). Sign-in is disabled; Poetic Brain gating will be unavailable.</p>
@@ -965,10 +965,10 @@ export default function MathBrainPage() {
       {hasSavedInputs && (
         <div className="mt-6 flex items-center justify-center gap-3 print:hidden">
           <div className="rounded-md border border-slate-700 bg-slate-800/60 px-3 py-2 text-slate-200 text-sm">
-            A previous session was found.
+            Saved people found.
           </div>
-          <button type="button" onClick={resumeLastInputs} className="rounded-md bg-indigo-600 px-3 py-2 text-white hover:bg-indigo-500 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">Resume inputs</button>
-          <button type="button" onClick={resetSessionMemory} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 hover:bg-slate-700 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">Reset</button>
+          <button type="button" onClick={resumeLastInputs} className="rounded-md bg-indigo-600 px-3 py-2 text-white hover:bg-indigo-500 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">Load People</button>
+          <button type="button" onClick={resetSessionMemory} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 hover:bg-slate-700 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">Clear</button>
         </div>
       )}
 
@@ -988,7 +988,7 @@ export default function MathBrainPage() {
               checked={saveForNextSession}
               onChange={(e)=>setSaveForNextSession(e.target.checked)}
             />
-            Save for next session
+            Remember people for next time
           </label>
           <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex overflow-hidden rounded-md border border-slate-700 bg-slate-800">
@@ -1111,17 +1111,23 @@ export default function MathBrainPage() {
                 </div>
                 <div>
                   <label htmlFor="a-month" className="block text-[11px] uppercase tracking-wide text-slate-300">Month</label>
-                  <select
+                  <input
                     id="a-month"
-                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 appearance-none"
-                    value={Number(personA.month) || 1}
-                    onChange={(e) => setPersonA({ ...personA, month: Number(e.target.value) })}
+                    type="text"
+                    inputMode="numeric"
+                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-center text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    value={String(personA.month ?? '')}
+                    onChange={(e) => {
+                      const digits = onlyDigits(e.target.value, 2);
+                      setPersonA({ ...personA, month: digits });
+                    }}
+                    onBlur={(e) => {
+                      const n = clampNum(onlyDigits(e.target.value, 2), 1, 12);
+                      setPersonA((prev) => ({ ...prev, month: Number.isNaN(n) ? '' : String(n).padStart(2, '0') }));
+                    }}
+                    placeholder="MM"
                     required
-                  >
-                    {months.map((m) => (
-                      <option key={m.value} value={m.value}>{m.label.slice(0,3)}</option>
-                    ))}
-                  </select>
+                  />
                 </div>
                 <div>
                   <label htmlFor="a-day" className="block text-[11px] uppercase tracking-wide text-slate-300">Day</label>
@@ -1130,11 +1136,14 @@ export default function MathBrainPage() {
                     type="text"
                     inputMode="numeric"
                     className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-center text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={pad2(personA.day as any)}
+                    value={String(personA.day ?? '')}
                     onChange={(e) => {
-                      const v = pad2(e.target.value);
-                      const n = clampNum(v, 1, 31);
-                      setPersonA({ ...personA, day: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
+                      const digits = onlyDigits(e.target.value, 2);
+                      setPersonA({ ...personA, day: digits });
+                    }}
+                    onBlur={(e) => {
+                      const n = clampNum(onlyDigits(e.target.value, 2), 1, 31);
+                      setPersonA((prev) => ({ ...prev, day: Number.isNaN(n) ? '' : String(n).padStart(2, '0') }));
                     }}
                     placeholder="DD"
                     required
@@ -1147,11 +1156,14 @@ export default function MathBrainPage() {
                     type="text"
                     inputMode="numeric"
                     className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={pad2(personA.hour as any)}
+                    value={String(personA.hour ?? '')}
                     onChange={(e) => {
-                      const v = pad2(e.target.value);
-                      const n = clampNum(v, 0, 23);
-                      setPersonA({ ...personA, hour: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
+                      const digits = onlyDigits(e.target.value, 2);
+                      setPersonA({ ...personA, hour: digits });
+                    }}
+                    onBlur={(e) => {
+                      const n = clampNum(onlyDigits(e.target.value, 2), 0, 23);
+                      setPersonA((prev) => ({ ...prev, hour: Number.isNaN(n) ? '' : String(n).padStart(2, '0') }));
                     }}
                     placeholder="HH"
                     required={!allowUnknownA}
@@ -1164,11 +1176,14 @@ export default function MathBrainPage() {
                     type="text"
                     inputMode="numeric"
                     className="mt-1 w-full min-w-[60px] h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={pad2(personA.minute as any)}
+                    value={String(personA.minute ?? '')}
                     onChange={(e) => {
-                      const v = pad2(e.target.value);
-                      const n = clampNum(v, 0, 59);
-                      setPersonA({ ...personA, minute: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
+                      const digits = onlyDigits(e.target.value, 2);
+                      setPersonA({ ...personA, minute: digits });
+                    }}
+                    onBlur={(e) => {
+                      const n = clampNum(onlyDigits(e.target.value, 2), 0, 59);
+                      setPersonA((prev) => ({ ...prev, minute: Number.isNaN(n) ? '' : String(n).padStart(2, '0') }));
                     }}
                     placeholder="MM"
                     required={!allowUnknownA}
@@ -1367,17 +1382,23 @@ export default function MathBrainPage() {
                 </div>
                 <div>
                   <label htmlFor="b-month" className="block text-[11px] uppercase tracking-wide text-slate-300">Month</label>
-                  <select
+                  <input
                     id="b-month"
+                    type="text"
+                    inputMode="numeric"
                     disabled={!includePersonB}
-                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 appearance-none"
-                    value={Number(personB.month) || 1}
-                    onChange={(e) => setPersonB({ ...personB, month: Number(e.target.value) })}
-                  >
-                    {months.map((m) => (
-                      <option key={m.value} value={m.value}>{m.label.slice(0,3)}</option>
-                    ))}
-                  </select>
+                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-center text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    value={String(personB.month ?? '')}
+                    onChange={(e) => {
+                      const digits = onlyDigits(e.target.value, 2);
+                      setPersonB({ ...personB, month: digits });
+                    }}
+                    onBlur={(e) => {
+                      const n = clampNum(onlyDigits(e.target.value, 2), 1, 12);
+                      setPersonB((prev) => ({ ...prev, month: Number.isNaN(n) ? '' : String(n).padStart(2, '0') }));
+                    }}
+                    placeholder="MM"
+                  />
                 </div>
                 <div>
                   <label htmlFor="b-day" className="block text-[11px] uppercase tracking-wide text-slate-300">Day</label>
@@ -1387,11 +1408,14 @@ export default function MathBrainPage() {
                     inputMode="numeric"
                     disabled={!includePersonB}
                     className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={pad2(personB.day as any)}
+                    value={String(personB.day ?? '')}
                     onChange={(e) => {
-                      const v = pad2(e.target.value);
-                      const n = clampNum(v, 1, 31);
-                      setPersonB({ ...personB, day: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
+                      const digits = onlyDigits(e.target.value, 2);
+                      setPersonB({ ...personB, day: digits });
+                    }}
+                    onBlur={(e) => {
+                      const n = clampNum(onlyDigits(e.target.value, 2), 1, 31);
+                      setPersonB((prev) => ({ ...prev, day: Number.isNaN(n) ? '' : String(n).padStart(2, '0') }));
                     }}
                     placeholder="DD"
                   />
@@ -1404,11 +1428,14 @@ export default function MathBrainPage() {
                     inputMode="numeric"
                     disabled={!includePersonB}
                     className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={pad2(personB.hour as any)}
+                    value={String(personB.hour ?? '')}
                     onChange={(e) => {
-                      const v = pad2(e.target.value);
-                      const n = clampNum(v, 0, 23);
-                      setPersonB({ ...personB, hour: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
+                      const digits = onlyDigits(e.target.value, 2);
+                      setPersonB({ ...personB, hour: digits });
+                    }}
+                    onBlur={(e) => {
+                      const n = clampNum(onlyDigits(e.target.value, 2), 0, 23);
+                      setPersonB((prev) => ({ ...prev, hour: Number.isNaN(n) ? '' : String(n).padStart(2, '0') }));
                     }}
                     placeholder="HH"
                   />
@@ -1421,11 +1448,14 @@ export default function MathBrainPage() {
                     inputMode="numeric"
                     disabled={!includePersonB}
                     className="mt-1 w-full min-w-[60px] h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={pad2(personB.minute as any)}
+                    value={String(personB.minute ?? '')}
                     onChange={(e) => {
-                      const v = pad2(e.target.value);
-                      const n = clampNum(v, 0, 59);
-                      setPersonB({ ...personB, minute: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
+                      const digits = onlyDigits(e.target.value, 2);
+                      setPersonB({ ...personB, minute: digits });
+                    }}
+                    onBlur={(e) => {
+                      const n = clampNum(onlyDigits(e.target.value, 2), 0, 59);
+                      setPersonB((prev) => ({ ...prev, minute: Number.isNaN(n) ? '' : String(n).padStart(2, '0') }));
                     }}
                     placeholder="MM"
                   />

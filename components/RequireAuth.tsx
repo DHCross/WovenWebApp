@@ -63,11 +63,16 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
         // Handle callback if present
         const qs = window.location.search;
         if (qs.includes('code=') && qs.includes('state=')) {
-          await client.handleRedirectCallback();
-          // Clean URL after callback
-          const url = new URL(window.location.href);
-          url.search = '';
-          window.history.replaceState({}, '', url.toString());
+          try {
+            await client.handleRedirectCallback();
+          } catch (e: any) {
+            console.warn('RequireAuth callback error (continuing):', e?.message || e);
+          } finally {
+            // Clean URL after callback
+            const url = new URL(window.location.href);
+            url.search = '';
+            window.history.replaceState({}, '', url.toString());
+          }
         }
 
         const isAuthed = await client.isAuthenticated();
@@ -77,15 +82,15 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
         }
 
         if (!isAuthed) {
-          // Redirect to home to login (Math Brain page has the login entry)
-          window.location.replace('/');
+          // Redirect to Math Brain to trigger login entry
+          window.location.replace('/math-brain');
         }
       } catch (e: any) {
         if (!cancelled) {
           setError(e?.message || 'Auth error');
           setReady(true);
-          // Fallback: send back to home
-          window.location.replace('/');
+          // Fallback: send back to Math Brain
+          window.location.replace('/math-brain');
         }
       }
     }

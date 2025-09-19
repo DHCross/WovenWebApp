@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getRedirectUri } from '../../lib/auth';
 
 type Auth0Client = {
@@ -40,7 +40,7 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
     authStatus: null,
   });
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = useCallback(async () => {
     try {
       if (!authClientRef.current) {
         console.error("Auth client not ready.");
@@ -55,7 +55,7 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
     } catch (e) {
       console.error("Login failed", e);
     }
-  };
+  }, []); // Empty dependency array since it only depends on ref and external functions
 
   useEffect(() => {
     let cancelled = false;
@@ -111,10 +111,16 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
 
         const qs = window.location.search;
         if (qs.includes("code=") && qs.includes("state=")) {
-          await client.handleRedirectCallback();
-          const url = new URL(window.location.href);
-          url.search = "";
-          window.history.replaceState({}, "", url.toString());
+          try {
+            await client.handleRedirectCallback();
+          } catch (e: any) {
+            // Swallow common callback errors like Invalid state, then continue gracefully
+            console.warn('Auth0 handleRedirectCallback error (continuing):', e?.message || e);
+          } finally {
+            const url = new URL(window.location.href);
+            url.search = "";
+            window.history.replaceState({}, "", url.toString());
+          }
           const nowAuthed = await client.isAuthenticated();
           if (nowAuthed) {
             window.location.replace('/chat?from=math-brain');
@@ -137,9 +143,15 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
     return () => { cancelled = true; };
   }, []);
 
+  // Memoize the complete auth state to prevent infinite re-renders
+  const fullAuthState = useCallback(() => ({
+    ...authState,
+    login: loginWithGoogle
+  }), [authState, loginWithGoogle]);
+
   useEffect(() => {
-    onStateChange({ ...authState, login: loginWithGoogle });
-  }, [authState, onStateChange]);
+    onStateChange(fullAuthState());
+  }, [fullAuthState, onStateChange]);
 
   return null; // This is a provider component, it does not render anything itself.
 }

@@ -2,7 +2,22 @@
 
 ## Project Overview
 
-WovenWebApp is a web-based astrological chart analysis application that generates detailed reports for individuals and relationships using the **Raven Calder** system. The application now runs on Next.js App Router (React) and is deployed on Netlify. The `app/` directory is the source of truth for pages and API routes; legacy static HTML is preserved for reference only during migration.
+WovenWebApp is a web-based astrological chart analysis application## AI Assistant Context Management
+
+**Context reality**
+
+* **IDE Copilot:** Live filesystem access; refreshable
+* **Web Copilot:** Limited to uploaded files; manual context sync needed
+* **System Limitations:** Cannot provide passwords, execute sudo commands, or access credentials
+
+**Best practices**
+
+* If an AI "can't find" a file that exists, it's a context sync issue
+* Prefer VS Code for full-context assistance
+* Re‑upload changed files to web interfaces as needed
+* Reference exact paths
+* **Use non-privileged commands when possible** (see `AI_ASSISTANT_LIMITATIONS.md`)
+* **Manual intervention required for sudo operations**es detailed reports for individuals and relationships using the **Raven Calder** system. The application now runs on Next.js App Router (React) and is deployed on Netlify. The `app/` directory is the source of truth for pages and API routes; legacy static HTML is preserved for reference only during migration.
 
 ### Core Philosophy (Raven Calder)
 
@@ -45,8 +60,9 @@ WovenWebApp is a web-based astrological chart analysis application that generate
 3. `CHANGELOG.md` – Change history with AI collaboration notes
 4. `Lessons Learned for Developer.md` – Context & IDE integration
 5. `copilot_fix_recovery.md` – **Emergency recovery when AI assistants cause issues**
-6. `MATH_BRAIN_COMPLIANCE.md` – Technical compliance requirements
-7. `API_INTEGRATION_GUIDE.md` – External API usage patterns
+6. `AI_ASSISTANT_LIMITATIONS.md` – **System limitations and troubleshooting for AI assistants**
+7. `MATH_BRAIN_COMPLIANCE.md` – Technical compliance requirements
+8. `API_INTEGRATION_GUIDE.md` – External API usage patterns
 
 ---
 

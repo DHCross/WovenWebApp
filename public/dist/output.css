@@ -2031,10 +2031,6 @@ video {
   background-color: rgb(5 150 105 / var(--tw-bg-opacity, 1));
 }
 
-.bg-emerald-700\/60 {
-  background-color: rgb(4 120 87 / 0.6);
-}
-
 .bg-emerald-900\/20 {
   background-color: rgb(6 78 59 / 0.2);
 }
@@ -3939,6 +3935,11 @@ video {
   color: rgb(209 250 229 / var(--tw-text-opacity, 1));
 }
 
+.hover\:text-emerald-300:hover {
+  --tw-text-opacity: 1;
+  color: rgb(110 231 183 / var(--tw-text-opacity, 1));
+}
+
 .hover\:text-gray-300:hover {
   --tw-text-opacity: 1;
   color: rgb(209 213 219 / var(--tw-text-opacity, 1));
@@ -4066,11 +4067,6 @@ video {
 .focus-visible\:ring-amber-400:focus-visible {
   --tw-ring-opacity: 1;
   --tw-ring-color: rgb(251 191 36 / var(--tw-ring-opacity, 1));
-}
-
-.focus-visible\:ring-emerald-400:focus-visible {
-  --tw-ring-opacity: 1;
-  --tw-ring-color: rgb(52 211 153 / var(--tw-ring-opacity, 1));
 }
 
 .focus-visible\:ring-indigo-500:focus-visible {

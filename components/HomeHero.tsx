@@ -85,23 +85,39 @@ export default function HomeHero() {
           authorizationParams: { redirect_uri: getRedirectUri() },
         });
         clientRef.current = client;
+        console.log('🔐 Auth0 client initialized successfully');
 
         // Handle callback once (if coming back from Auth0)
         const qs = window.location.search;
+        console.log('🔐 Current URL search params:', qs);
         if (qs.includes("code=") && qs.includes("state=")) {
-          await client.handleRedirectCallback();
-          const url = new URL(window.location.href);
-          url.search = "";
-          window.history.replaceState({}, "", url.toString());
+          console.log('🔐 Auth callback detected on HomeHero, attempting to process...');
+          try {
+            await client.handleRedirectCallback();
+            console.log('🔐 Callback handled successfully');
+          } catch (callbackError: any) {
+            // Do not crash the hero if callback was initiated for a different path or state is missing
+            console.warn('🔐 Callback handling failed (non-fatal on HomeHero):', callbackError?.message || callbackError);
+          } finally {
+            // Always clean URL to remove auth params
+            const url = new URL(window.location.href);
+            url.search = "";
+            window.history.replaceState({}, "", url.toString());
+            console.log('🔐 URL cleaned up');
+          }
         }
 
         const isAuthed = await client.isAuthenticated();
+        console.log('🔐 Authentication check result:', isAuthed);
         let name: string | null = null;
         if (isAuthed) {
           try {
             const u = await client.getUser();
             name = u?.name || u?.email || null;
-          } catch {}
+            console.log('🔐 User info retrieved:', { name, email: u?.email });
+          } catch (userError) {
+            console.error('🔐 Failed to get user info:', userError);
+          }
         }
 
         if (!cancelled) {
@@ -124,8 +140,19 @@ export default function HomeHero() {
   }, []);
 
   const loginWithGoogle = async () => {
+    console.log('🔐 Google login clicked');
+    console.log('🔐 Client ref:', clientRef.current);
+    console.log('🔐 Redirect URI:', getRedirectUri());
+    
+    if (!clientRef.current) {
+      console.error('🔐 Auth0 client not initialized');
+      setError('Auth0 client not initialized');
+      return;
+    }
+    
     try {
-      await clientRef.current?.loginWithRedirect({
+      console.log('🔐 Calling loginWithRedirect...');
+      await clientRef.current.loginWithRedirect({
         authorizationParams: {
           redirect_uri: getRedirectUri(),
           // If the Google connection is configured in Auth0, this triggers the Google login directly
@@ -134,9 +161,12 @@ export default function HomeHero() {
         },
       });
     } catch (e) {
+      console.error('🔐 Login error:', e);
       setError((e as any)?.message || "Login failed");
     }
   };
+
+  console.log('🔐 HomeHero render - ready:', ready, 'authed:', authed, 'error:', error);
 
   return (
     <section className="mt-8">
