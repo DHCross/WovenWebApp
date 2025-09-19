@@ -43,3 +43,12 @@ export async function *generateStream(prompt: string, opts: StreamOptions = {}):
 
 function normalizePrompt(p: string){ return p.replace(/\s+/g,' ').trim(); }
 function delay(ms:number){ return new Promise(r=>setTimeout(r,ms)); }
+
+// Convenience helper: generate a single accumulated text response (uses the stream generator)
+export async function generateText(prompt: string, opts: StreamOptions = {}): Promise<string> {
+  let out = '';
+  for await (const chunk of generateStream(prompt, opts)) {
+    out += String(chunk.delta || '');
+  }
+  return normalizePrompt(out);
+}

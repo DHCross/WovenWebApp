@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { parseCoordinates, formatDecimal } from "../../src/coords";
-import AuthProvider from "./AuthProvider";
+// import AuthProvider from "./AuthProvider"; // Disabled while Auth0 is mothballed
 import { needsLocation, isTimeUnknown } from "../../lib/relocation";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +37,8 @@ function Section({ title, children, className = "" }: { title: string; children:
 
 export default function MathBrainPage() {
   const showLegacyLink = process.env.NEXT_PUBLIC_ENABLE_LEGACY_LINK === 'true';
+  // Auth0 mothballed: remove auth gating/UI entirely
+
   const today = useMemo(() => new Date(), []);
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
   const defaultStart = fmt(today);
@@ -114,22 +116,6 @@ export default function MathBrainPage() {
     'America/Denver', 'America/Los_Angeles', 'America/Phoenix', 'America/Anchorage'
   ], []);
   // Legacy formatting helpers
-  const months = useMemo(() => (
-    [
-      { label: 'January', value: 1 },
-      { label: 'February', value: 2 },
-      { label: 'March', value: 3 },
-      { label: 'April', value: 4 },
-      { label: 'May', value: 5 },
-      { label: 'June', value: 6 },
-      { label: 'July', value: 7 },
-      { label: 'August', value: 8 },
-      { label: 'September', value: 9 },
-      { label: 'October', value: 10 },
-      { label: 'November', value: 11 },
-      { label: 'December', value: 12 },
-    ]
-  ), []);
   const onlyDigits = (s: string, maxLen: number) => s.replace(/\D+/g, '').slice(0, maxLen);
   const pad2 = (n: string | number) => {
     const s = String(n ?? '');
@@ -153,12 +139,7 @@ export default function MathBrainPage() {
   // Human-readable relocation label + timezone (for summaries/badges)
   const [relocLabel, setRelocLabel] = useState<string>('Panama City, FL');
   const [relocTz, setRelocTz] = useState<string>('US/Central');
-  const [authReady, setAuthReady] = useState(false);
-  const [authed, setAuthed] = useState(false);
-  const [authEnvOk, setAuthEnvOk] = useState<boolean>(true);
-  const [authStatus, setAuthStatus] = useState<{domain?: string; clientId?: string} | null>(null);
-  const [showAuthBanner, setShowAuthBanner] = useState<boolean>(true);
-  const [loginFn, setLoginFn] = useState<null | (() => Promise<void>)>(null);
+  // Auth states removed while Auth0 is paused
   const resultsRef = useRef<HTMLDivElement | null>(null);
   const reportRef = useRef<HTMLDivElement | null>(null);
   const bNameRef = useRef<HTMLInputElement | null>(null);
@@ -691,8 +672,6 @@ export default function MathBrainPage() {
     needsLocation: needsLocation(reportType, false, personA),
     canSubmit,
     submitDisabled,
-    authReady,
-    authed,
     aCoordsValid,
     bCoordsValid,
     includePersonB,
@@ -701,7 +680,7 @@ export default function MathBrainPage() {
     timePolicy,
     personA_lat_type: typeof (personA as any).latitude,
     personA_lon_type: typeof (personA as any).longitude,
-  }), [reportType, canSubmit, submitDisabled, authReady, authed, aCoordsValid, bCoordsValid, includePersonB, timeUnknown, timeUnknownB, timePolicy, personA]);
+  }), [reportType, canSubmit, submitDisabled, aCoordsValid, bCoordsValid, includePersonB, timeUnknown, timeUnknownB, timePolicy, personA]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -861,31 +840,12 @@ export default function MathBrainPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
-      {/* Client-only Auth provider (no UI) */}
-      <AuthProvider onStateChange={(s)=>{
-        setAuthReady(s.authReady);
-        setAuthed(s.authed);
-        setAuthEnvOk(s.authEnvOk);
-        setAuthStatus(s.authStatus);
-        setLoginFn(() => s.login);
-      }} />
-      {!authEnvOk && showAuthBanner && (
-        <div className="mb-4 flex items-start justify-between gap-3 rounded-md border border-amber-700 bg-amber-900/30 p-3 text-amber-200">
-          <p className="text-sm">Auth0 environment not configured (AUTH0_*). Sign-in is disabled; Poetic Brain gating will be unavailable.</p>
-          <button
-            type="button"
-            onClick={() => setShowAuthBanner(false)}
-            className="rounded-md border border-amber-700 px-2 py-1 text-xs text-amber-100 hover:bg-amber-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-            aria-label="Dismiss banner"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
+      {/* Auth disabled: removed AuthProvider and banners */}
+
       <header className="text-center print:hidden">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-100">Math Brain</h1>
         <p className="mt-4 text-base md:text-lg text-slate-300">
-          Run the geometry first. Then, once you're signed in, jump into Chat to synthesize the narrative.
+          Run the geometry first. Then jump into Chat to synthesize the narrative.
         </p>
         
         {/* Math Brain: FIELD Layer Only */}
@@ -907,23 +867,7 @@ export default function MathBrainPage() {
         </div>
       </header>
 
-      {/* Compact Auth status row (non-blocking) */}
-      {authReady && (
-        <div className="mt-3 mx-auto max-w-3xl rounded-md border border-slate-700 bg-slate-900/50 p-2 text-[12px] text-slate-300 print:hidden">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className={`inline-block h-2 w-2 rounded-full ${authEnvOk ? 'bg-emerald-500' : 'bg-amber-500'}`} aria-hidden />
-              <span className="font-medium">Auth status</span>
-              <span className="text-slate-400">{authEnvOk ? 'Configured' : 'Misconfigured'}</span>
-            </div>
-            <div className="flex items-center gap-4 text-slate-400">
-              <div title="Auth0 Domain (from /api/auth-config)">Domain: <span className="text-slate-200">{authStatus?.domain || '—'}</span></div>
-              <div title="Auth0 Client ID (redacted)">Client: <span className="text-slate-200">{authStatus?.clientId ? String(authStatus.clientId).slice(0,4) + '…' : '—'}</span></div>
-              <div title="Google connection expected to be enabled in Auth0 app">Google: <span className="text-slate-200">expected</span></div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Auth status row removed while Auth0 is mothballed */}
 
       <div className="mt-8 flex flex-wrap gap-3 justify-center print:hidden">
         <a
@@ -942,24 +886,12 @@ export default function MathBrainPage() {
             Open Legacy Math Brain
           </a>
         )}
-{authReady && authed ? (
-          <a
-            href="/chat"
-            className="rounded-md bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500"
-          >
-            Go to Poetic Brain
-          </a>
-        ) : (
-          <button
-            type="button"
-            onClick={() => { if (loginFn) { loginFn(); } else { setError("Sign-in is disabled. Configure AUTH0_* and reload."); } }}
-            disabled={!authReady || !loginFn}
-            className="rounded-md border border-slate-700 bg-slate-800 px-4 py-2 text-slate-100 hover:bg-slate-700 disabled:opacity-50"
-            title="Sign in to enable Poetic Brain"
-          >
-            Sign in for Poetic Brain
-          </button>
-        )}
+        <a
+          href="/chat"
+          className="rounded-md bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500"
+        >
+          Go to Poetic Brain
+        </a>
       </div>
 
       {hasSavedInputs && (
@@ -1074,9 +1006,7 @@ export default function MathBrainPage() {
               </label>
             </fieldset>
             {reportType==='mirror' && (
-              <div className="text-xs text-slate-400">
-                {authReady && !authed ? 'Sign in to deliver Mirror to Poetic Brain' : 'Handoff only — no on-screen gauges'}
-              </div>
+              <div className="text-xs text-slate-400">Handoff only — no on-screen gauges</div>
             )}
           </div>
         </section>
@@ -1111,17 +1041,20 @@ export default function MathBrainPage() {
                 </div>
                 <div>
                   <label htmlFor="a-month" className="block text-[11px] uppercase tracking-wide text-slate-300">Month</label>
-                  <select
+                  <input
                     id="a-month"
-                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 appearance-none"
-                    value={Number(personA.month) || 1}
-                    onChange={(e) => setPersonA({ ...personA, month: Number(e.target.value) })}
+                    type="text"
+                    inputMode="numeric"
+                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-center text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    value={String(personA.month)}
+                    onChange={(e) => {
+                      const v = onlyDigits(e.target.value, 2);
+                      const n = clampNum(v, 1, 12);
+                      setPersonA({ ...personA, month: Number.isNaN(n) ? '' : String(n) });
+                    }}
+                    placeholder="MM"
                     required
-                  >
-                    {months.map((m) => (
-                      <option key={m.value} value={m.value}>{m.label.slice(0,3)}</option>
-                    ))}
-                  </select>
+                  />
                 </div>
                 <div>
                   <label htmlFor="a-day" className="block text-[11px] uppercase tracking-wide text-slate-300">Day</label>
@@ -1367,17 +1300,20 @@ export default function MathBrainPage() {
                 </div>
                 <div>
                   <label htmlFor="b-month" className="block text-[11px] uppercase tracking-wide text-slate-300">Month</label>
-                  <select
+                  <input
                     id="b-month"
+                    type="text"
+                    inputMode="numeric"
                     disabled={!includePersonB}
-                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 appearance-none"
-                    value={Number(personB.month) || 1}
-                    onChange={(e) => setPersonB({ ...personB, month: Number(e.target.value) })}
-                  >
-                    {months.map((m) => (
-                      <option key={m.value} value={m.value}>{m.label.slice(0,3)}</option>
-                    ))}
-                  </select>
+                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-center text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    value={String(personB.month)}
+                    onChange={(e) => {
+                      const v = onlyDigits(e.target.value, 2);
+                      const n = clampNum(v, 1, 12);
+                      setPersonB({ ...personB, month: Number.isNaN(n) ? '' : String(n) });
+                    }}
+                    placeholder="MM"
+                  />
                 </div>
                 <div>
                   <label htmlFor="b-day" className="block text-[11px] uppercase tracking-wide text-slate-300">Day</label>
@@ -1889,11 +1825,7 @@ export default function MathBrainPage() {
           {/* Post-generation actions */}
           <div className="flex items-center justify-between gap-4 print:hidden">
             <div className="text-sm text-slate-400">
-              {authReady && authed ? (
-                <span>Download your report, then visit <a href="/chat" className="text-emerald-400 hover:text-emerald-300 underline">Poetic Brain</a> to upload it for interpretation.</span>
-              ) : (
-                <span>Download your report below. <a href="/chat" className="text-slate-300 hover:text-slate-200 underline">Sign in to Poetic Brain</a> to upload it for interpretation.</span>
-              )}
+              <span>Download your report, then visit <a href="/chat" className="text-emerald-400 hover:text-emerald-300 underline">Poetic Brain</a> to upload it for interpretation.</span>
             </div>
             <div className="flex items-center gap-2">
               <button type="button" onClick={downloadResultJSON} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download result JSON">Download JSON</button>
@@ -2219,118 +2151,9 @@ export default function MathBrainPage() {
               </Section>
             );
           })()}
-          {result?.person_a?.derived?.seismograph_summary && (
-            <Section title="Seismograph Summary" className="print:hidden">
-              <div className="text-sm text-slate-300">
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  <div>
-                    <p className="text-slate-400">Magnitude</p>
-                    <p className="text-slate-100">{result.person_a.derived.seismograph_summary.magnitude}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400">Valence</p>
-                    <p className="text-slate-100">{result.person_a.derived.seismograph_summary.valence}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400">Volatility</p>
-                    <p className="text-slate-100">{result.person_a.derived.seismograph_summary.volatility}</p>
-                  </div>
-                </div>
-              </div>
-            </Section>
-          )}
-
-          {result?.person_b?.derived?.seismograph_summary && (
-            <Section title="Person B — Seismograph Summary" className="print:hidden">
-              <div className="text-sm text-slate-300">
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  <div>
-                    <p className="text-slate-400">Magnitude</p>
-                    <p className="text-slate-100">{result.person_b.derived.seismograph_summary.magnitude}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400">Valence</p>
-                    <p className="text-slate-100">{result.person_b.derived.seismograph_summary.valence}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400">Volatility</p>
-                    <p className="text-slate-100">{result.person_b.derived.seismograph_summary.volatility}</p>
-                  </div>
-                </div>
-              </div>
-            </Section>
-          )}
-
-          {(result?.synastry_relational_mirror || result?.relational_mirror) && (
-            <Section title="Relational Mirror" className="print:hidden">
-              <div className="text-sm text-slate-300 space-y-2">
-                <p className="text-slate-200 font-medium">Climate</p>
-                <p className="text-slate-300">
-                  {result?.synastry_relational_mirror?.mirror_voice?.relationship_climate ||
-                   result?.relational_mirror?.mirror_voice?.relationship_climate || '—'}
-                </p>
-                <p className="text-slate-200 font-medium">Polarity</p>
-                <p className="text-slate-300">
-                  {result?.synastry_relational_mirror?.mirror_voice?.polarity_summary ||
-                   result?.relational_mirror?.mirror_voice?.polarity_summary || '—'}
-                </p>
-              </div>
-            </Section>
-          )}
-
-          {(() => {
-            const daily = result?.person_a?.chart?.transitsByDate || {};
-            const dates = Object.keys(daily).sort();
-            if (!dates.length) return null;
-            const last = daily[dates[dates.length-1]];
-            const md = last?.transit_table?.markdown;
-            if (!md) return null;
-            return (
-              <Section title="Raw Geometry (latest day)">
-                <pre className="max-h-[24rem] overflow-auto rounded bg-slate-950 p-3 text-xs text-slate-200 whitespace-pre-wrap">{md}</pre>
-              </Section>
-            );
-          })()}
-
-          <Section title="Raw Result (debug)" className="print:hidden">
-            <pre className="max-h-[28rem] overflow-auto rounded-md bg-slate-950 p-4 text-xs text-slate-200">
-{JSON.stringify(result, null, 2)}
-            </pre>
-          </Section>
-
-          <div className="flex items-center justify-center text-sm text-slate-400 print:hidden">
-            <span>For narrative interpretation, download your report and upload it to <a href="/chat" className="text-emerald-400 hover:text-emerald-300 underline">Poetic Brain</a>.</span>
-          </div>
           </>)}
         </div>
       )}
-
-      {/* UX banners per relocation rules */}
-      {reportType==='balance' && (!Number(personA.latitude) || !Number(personA.longitude) || !personA.timezone) && (
-        <div className="mt-4 rounded-md border border-red-700 bg-red-900/30 p-3 text-red-200">
-          <p className="text-sm">Transits need current location to place houses correctly. Add a location or switch to Mirror (no transits).</p>
-        </div>
-      )}
-
-      {/* Gray banner for missing birth time (angles suppressed) */}
-      {(!personA.hour && !personA.minute) && (
-        <div className="mt-4 rounded-md border border-slate-700 bg-slate-800/70 p-3 text-slate-200">
-          <p className="text-sm">Angles unavailable without birth time; houses suppressed.</p>
-        </div>
-      )}
-
-      {/* Removed duplicate bottom relocation chip that hard-wired Person A city/timezone */}
-
-      {/* Toast */}
-      {toast && (
-        <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-md border border-red-700 bg-red-900/80 px-4 py-2 text-sm text-red-100 shadow-lg">
-          {toast}
-        </div>
-      )}
-
-      <p className="mt-8 text-center text-xs text-slate-500 print:hidden">
-        Poetic Brain at <span className="font-medium text-slate-300">/chat</span> is gated by Auth0 and requires login.
-      </p>
     </main>
   );
 }

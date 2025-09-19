@@ -21,15 +21,13 @@ declare global {
 const authEnabled = process.env.NEXT_PUBLIC_ENABLE_AUTH === 'true';
 
 export default function RequireAuth({ children }: { children: React.ReactNode }) {
-  if (!authEnabled) {
-    return <>{children}</>;
-  }
-
   const [ready, setReady] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!authEnabled) return; // Skip auth logic if disabled
+
     let cancelled = false;
 
     async function init() {
@@ -99,6 +97,10 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
     init();
     return () => { cancelled = true; };
   }, []);
+
+  if (!authEnabled) {
+    return <>{children}</>;
+  }
 
   if (!ready) {
     return (

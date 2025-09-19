@@ -23,7 +23,26 @@ The following requirements are now permanent and must be preserved in all future
 **Rationale**
 Past development efforts revealed that tightly integrating the two brains led to fragile code, UX confusion, and maintenance challenges. This architectural decision embraces their separation, allowing each to excel at its function. The handoff (download/upload) is sufficient and avoids the pitfalls of a monolithic design.
 
-## [Unreleased]
+
+## [2025-09-19] FIX/CHANGE: Math Brain & Poetic Brain Ungated, Auth Removal, Fragment Fix
+
+**Summary**
+Math Brain and Poetic Brain are now fully public: removed all Auth0 gating and UI barriers from `/math-brain` and `/chat`. Fixed a critical JSX fragment mismatch in Math Brain page that previously caused compile errors.
+
+**Changes**
+- `app/math-brain/page.tsx`: Purged all references to Auth0 state (authReady, authed, login/sign-in mentions) and removed conditional UI. Post-generation actions now always link to Poetic Brain. Closed the unbalanced React fragment in the balance report section, resolving all compile errors.
+- `app/chat/page.tsx`: Removed environment flag gating; Poetic Brain now always renders and is accessible without authentication.
+- Build and lint diagnostics: No errors after changes; both pages load and function without auth.
+
+**Verification**
+- Started dev servers (`npm run dev`, Tailwind watch).
+- Confirmed `/math-brain` and `/chat` render and operate without any authentication required.
+- Validated that all compile errors (JSX fragment mismatch, orphaned auth references) are resolved.
+
+**Rationale**
+Auth0 is mothballed for now; both main app routes should be public for testing and general use. This change supports open access and simplifies the codebase. Fragment fix ensures robust React rendering and prevents future build failures.
+
+---
 
 - FEATURE: Honor explicit time_policy on server (planetary_only, whole_sign, sensitivity_scan)
    - planetary_only/sensitivity_scan suppress house/angle semantics by excluding angles in active_points

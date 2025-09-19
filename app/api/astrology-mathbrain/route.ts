@@ -68,29 +68,32 @@ export async function POST(request: NextRequest) {
       } as any;
       return map[name] || h;
     }
+    const pickNation = (subject: any, birth: any) => {
+      return subject?.nation || birth?.nation || subject?.country || birth?.country || subject?.country_code || birth?.country_code || subject?.nation_code || undefined;
+    };
     const body = (function transform(input:any){
       if(!input || (!input.subjectA && !input.subjectB)) return JSON.stringify(input ?? {});
       const a = input.subjectA || {};
       const b = input.subjectB || null;
       const birthA = a.birth || {};
       const birthB = b?.birth || {};
-      const toPerson = (name:string, birth:any, local:any)=>({
+      const toPerson = (name:string, subject:any, birth:any, local:any)=>({
         name,
         year: parseInt(birth.date?.split('-')[0]||birth.year,10),
         month: parseInt(birth.date?.split('-')[1]||birth.month,10),
         day: parseInt(birth.date?.split('-')[2]||birth.day,10),
         hour: parseInt((birth.time||'').split(':')[0]||birth.hour,10),
         minute: parseInt((birth.time||'').split(':')[1]||birth.minute,10),
-        latitude: birth.lat ?? birth.latitude,
-        longitude: birth.lon ?? birth.lng ?? birth.longitude,
-        timezone: birth.tz ?? birth.timezone,
-        city: birth.city,
-        state: birth.state,
-        nation: birth.nation,
+        latitude: birth.lat ?? birth.latitude ?? subject?.latitude,
+        longitude: birth.lon ?? birth.lng ?? birth.longitude ?? subject?.longitude,
+        timezone: birth.tz ?? birth.timezone ?? subject?.timezone,
+        city: birth.city || subject?.city,
+        state: birth.state || subject?.state,
+        nation: pickNation(subject, birth),
         ...(local ? { A_local: local, B_local: local } : {})
       });
-      const personA = toPerson(a.name, birthA, a.A_local);
-      const personB = b ? toPerson(b.name, birthB, b.B_local) : undefined;
+      const personA = toPerson(a.name, a, birthA, a.A_local);
+      const personB = b ? toPerson(b.name, b, birthB, b.B_local) : undefined;
       const tx = input.transits || {};
       const window = tx.from && tx.to ? { start: tx.from, end: tx.to, step: tx.step || 'daily' } : undefined;
       const houses = mapHouseSystem(input.houses);

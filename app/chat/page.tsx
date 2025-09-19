@@ -1,33 +1,35 @@
 'use client';
 
 import React from 'react';
-import AuthStatusPill from '../../components/dev/AuthStatusPill';
+// import AuthStatusPill from '../../components/dev/AuthStatusPill';
 import ChatClient from '../../components/ChatClient';
 import RequireAuth from '../../components/RequireAuth';
 
 export const dynamic = 'force-dynamic';
 
 export default function ChatPage() {
+  const ErrorBoundary = require('../../components/ErrorBoundary').default;
   const poeticBrainEnabled = process.env.NEXT_PUBLIC_ENABLE_POETIC_BRAIN === 'true';
   return (
-    <RequireAuth>
-      <DevAuthStatus />
-      {poeticBrainEnabled ? <ChatClient /> : <OfflineNotice />}
-    </RequireAuth>
+    <ErrorBoundary>
+      <RequireAuth>
+        {poeticBrainEnabled ? <ChatClient /> : <OfflineNotice />}
+      </RequireAuth>
+    </ErrorBoundary>
   );
 }
 
-function DevAuthStatus() {
-  if (process.env.NODE_ENV === 'production') return null;
-  return <AuthStatusPill />;
-}
+// function DevAuthStatus() {
+//   if (process.env.NODE_ENV === 'production') return null;
+//   return <AuthStatusPill />;
+// }
 
 function OfflineNotice() {
   return (
     <div className="mx-auto mt-12 max-w-2xl rounded-xl border border-slate-800 bg-slate-900/40 p-8 text-center">
       <h1 className="text-2xl font-semibold text-slate-100">Poetic Brain Unavailable</h1>
       <p className="mt-3 text-sm text-slate-300">
-        Raven&rsquo;s chat interface is temporarily offline while we work through the Auth0/Gemini integration. Math Brain
+        Raven's chat interface is temporarily offline while we work through the Auth0/Gemini integration. Math Brain
         reports and the rest of the site remain fully available. Check back soon for the full FIELD → MAP → VOICE handoff.
       </p>
       <a

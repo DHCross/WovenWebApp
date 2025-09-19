@@ -117,427 +117,6 @@ function isMetaSignalAboutRepetition(text: string): boolean {
   return phrases.some(p => lower.includes(p));
 }
 
-export const runtime = 'nodejs';
-
-export async function POST(req: NextRequest){
-  // TODO[REFactor]: This handler exceeds recommended logical size. Extract:
-  //  - classification helpers (response type detection)
-  //  - prompt assembly (v11 protocol & branches)
-  //  - upload parsing (JSON report / journal) into separate lib modules.
-  // Keeps API surface thin and improves testability.
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
-  if(!take(ip)){
-    return new Response(JSON.stringify({error:'rate_limited', retry_in:'60s'}), {status:429, headers:{'Content-Type':'application/json'}});
-  }
-  const { messages, persona, reportContexts } = await req.json();
-  // Determine whether we have any chart/report context available
-  const hasAnyReportContext = Array.isArray(reportContexts) && reportContexts.length > 0;
-  // Session turn awareness: first substantive mirror occurs when only the intro exists
-  const ravenMsgs = Array.isArray(messages) ? messages.filter((m:any)=> m.role==='raven') : [];
-  const ravenCount = ravenMsgs.length;
-  const isFirstTurn = ravenCount <= 1; // only the intro greeting so far
-
-  // Enforce simple usage limits (in-memory)
-  const allowance = canMakeRequest();
-  if(!allowance.allowed){
-    return new Response(JSON.stringify({error: allowance.reason}), {status:429, headers:{'Content-Type':'application/json'}});
-  }
-  // For now just echo last user message with persona-aware wrapper
-  const user = [...(messages||[])].reverse().find((m:any)=> m.role==='user');
-  const text = user?.content || user?.html || 'Hello';
-
-  // Weather-only intent detection (non-personal field read)
-  const wantsWeatherOnly = /\b(weather|sky today|planetary (weather|currents)|what's happening in the sky)\b/i.test(text);
-
-  // HARD GATE: If no chart context is present and the user didn't explicitly ask for weather-only,
-  // do not generate a personal mirror. Provide guidance to generate/upload a chart or request weather.
-  if (!hasAnyReportContext && !wantsWeatherOnly) {
-    const hook = pickHook(text);
-    const climate = undefined;
-    const greetings = [
-      'With you—before we dive in…',
-      'Here with you. One small setup step first…',
-      'Holding your question—let’s get the ground right…'
-    ];
-    const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}).split(/\n+/)[0];
-    const guidance = `
-I can’t responsibly read you without a chart or report context. Two quick options:
-
-• Generate Math Brain on the main page (geometry only), then click “Ask Raven” to send the report here
-• Or ask for “planetary weather only” to hear today’s field without personal mapping
-
-If you already have a JSON report, paste or upload it and I’ll proceed.`.trim();
-
-    const body = new ReadableStream<{ }|Uint8Array>({
-      async start(controller){
-        controller.enqueue(encode({climate, hook, delta: shapedIntro+"\n\n"+guidance}));
-        controller.close();
-      }
-    });
-    return new Response(body, { headers: { 'Content-Type': 'text/plain; charset=utf-8' }});
-  }
-
-  // WEATHER-ONLY BRANCH: Provide a neutral field read without personal claims when explicitly asked
-  if (!hasAnyReportContext && wantsWeatherOnly) {
-    const hook = pickHook(text);
-    const climate = pickClimate(text);
-    const greetings = [
-      'With you—reading the sky’s weather…',
-      'Here with today’s currents—no personal map applied…'
-    ];
-    const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}).split(/\n+/)[0];
-    const weatherNote = `
-Field-only read (no natal overlay):
-• Mood/valence: treat as background conditions, not fate
-• Use this like a tide chart—choose times that support your aims
-
-If you want this mapped to you, generate Math Brain first and send the report here.`.trim();
-
-    const v11 = `
-Give a short, plain-language summary of the current planetary weather in two parts: (1) what’s emphasized, (2) what that feels like behaviorally—in conditional phrasing. No metaphors about “you,” no personality claims, no advice. Keep to 5–7 sentences total.`;
-
-    const enhancedPrompt = v11 + `\n\nUser words: ${text}`;
-    const stream = generateStream(enhancedPrompt, { model: process.env.MODEL_PROVIDER, personaHook: hook });
-    const body = new ReadableStream<{ }|Uint8Array>({
-      async start(controller){
-        controller.enqueue(encode({climate, hook, delta: shapedIntro+"\n\n"+weatherNote+"\n\n"}));
-        for await (const chunk of stream){
-          controller.enqueue(encode({climate, hook, delta: chunk.delta}));
-        }
-        controller.close();
-      }
-    });
-    return new Response(body, { headers: { 'Content-Type': 'text/plain; charset=utf-8' }});
-  }
-  
-  // Check for natural follow-up flow based on user response type
-  const responseType = classifyUserResponse(text);
-  let analysisPrompt = text;
-  
-  // Mock session context (in production, this would be persisted)
-  const mockSessionContext: SessionContext = {
-    wbHits: [],
-    abeHits: [],
-    osrMisses: [],
-    actorWeighting: 0,
-    roleWeighting: 0,
-    driftIndex: 0,
-    sessionActive: true
-  };
-  
-  // Generate natural follow-up based on response type
-  if (responseType === 'CLEAR_WB') {
-    // User clearly affirmed - auto-commit as WB, move to elaboration
-    const followUp = naturalFollowUpFlow.generateFollowUp({
-      type: 'AFFIRM',
-      content: text,
-      originalMirror: text
-    }, mockSessionContext);
-    
-    analysisPrompt = `The user clearly confirmed resonance: "${text}"
-
-**AUTO-CLASSIFICATION: WB (Within Boundary)**
-Log this as confirmed resonance. Do NOT ask for additional validation.
-
-**TRANSITION TO ELABORATION:**
-Instead of asking "does this feel true?", acknowledge the confirmation and pivot to depth exploration:
-
-Examples:
-- "Logged as WB: that resonance confirmed. Let's stay with how this pressure moves through you."
-- "That lands—the coil is tightly wound. Where do you feel that tension most, in the body or more in the mind's looping?"
-- "Confirmed as WB. Does the drive bring focus, or does it scatter you?"
-
-Your response should:
-1. Acknowledge the confirmed resonance 
-2. Mirror back the structural pressure
-3. Move into depth probing (how/where it shows up)
-4. Skip any additional truth gates
-
-User's clear affirmation: ${text}`;
-    
-  } else if (responseType === 'PARTIAL_ABE') {
-    // Partial confirmation - needs clarification
-    analysisPrompt = `The user gave partial confirmation: "${text}"
-
-**CLASSIFICATION: ABE (At Boundary Edge)**
-This needs clarification, not full repair. Ask for refinement:
-
-"I'm logging this as ABE—partially resonant but needs fine-tuning. What part lands, and what feels off?"
-
-User's partial response: ${text}`;
-    
-  } else if (responseType === 'OSR') {
-    // User indicated no resonance - use OSR probe
-    const followUp = naturalFollowUpFlow.generateFollowUp({
-      type: 'OSR',
-      content: text,
-      originalMirror: text
-    }, mockSessionContext);
-    
-    analysisPrompt = `The user indicated that something didn't resonate. Generate a response that includes this natural OSR probe: "${followUp.question}"
-
-User's OSR response: ${text}
-
-Your response should acknowledge their feedback and offer the choice-based clarification probe to convert the miss into diagnostic data. Keep it skippable and non-forcing.`;
-    
-  } else if (text.toLowerCase().includes('poetic card') || text.toLowerCase().includes('generate card')) {
-    // User requested poetic card - generate card display, not poem
-    analysisPrompt = `The user is requesting a poetic card based on their session. Generate a visual card display showing:
-- Resonance Pattern summary
-- Score indicators (WB/ABE/OSR)
-- Actor/Role composite guess
-- Any drift flags
-Do NOT generate a new poem. This is a summary card of what has already resonated.`;
-    
-  } else if (text.toLowerCase().includes('done') || text.toLowerCase().includes('finished') || text.toLowerCase().includes('session complete')) {
-    // User is ending session - offer continuation options
-    const closure = naturalFollowUpFlow.generateSessionClosure();
-    analysisPrompt = `The user is indicating they want to end this reading session. Generate a response that includes: "${closure.resetPrompt}"
-
-This will reset the scorecard but not make you forget who you're talking to. Offer these options: ${closure.continuationOptions.join(', ')}`;
-  } else {
-    // For all other responses, check if this is a response to a previous probe
-    // and handle the classification + repair flow
-    const lastRavenMessage = messages.filter((m: any) => m.role === 'raven').pop();
-    const isResponseToProbe = lastRavenMessage && 
-      (lastRavenMessage.html.includes('Does any of this feel familiar') ||
-       lastRavenMessage.html.includes('Does this fit your experience') ||
-       lastRavenMessage.html.includes('feel accurate') ||
-       lastRavenMessage.html.includes('resonate'));
-
-    if (isResponseToProbe) {
-      // If the user is commenting on the questioning itself, treat as meta-signal
-      if (isMetaSignalAboutRepetition(text)) {
-        // Find the previous user message (before this one)
-        const reversed = [...(messages||[])].filter((m:any)=> m.role==='user').reverse();
-        const previousUser = reversed[1]; // [0] is current, [1] is previous
-        const prevText = previousUser?.content || previousUser?.html || '';
-        const prevType = prevText ? classifyUserResponse(prevText) : 'UNCLEAR';
-
-        if (prevType === 'CLEAR_WB') {
-          analysisPrompt = `The user expressed irritation at being asked again (meta-signal), not new content: "${text}".
-
-Preserve the prior classification: WB (Within Boundary). Do NOT re-open validation.
-
-Respond with: Acknowledge the irritation + keep fidelity + deepen the original mirror. Avoid new symbolic images or psychologizing.
-
-Example shape:
-- "Logged as WB: you already confirmed. I hear the frustration in repeating. Let's stay with the coil itself—when you're stretched that thin, does the pressure feel more physical or more mental?"
-
-Rules:
-1) No additional "does this feel true?" gates
-2) No motive analysis or personality inference
-3) Mirror only structural pressure and pivot to somatic/behavioral deepening`;
-        } else if (prevType === 'PARTIAL_ABE') {
-          analysisPrompt = `The user commented on repetition (meta-signal), not new content: "${text}".
-
-Preserve prior classification: ABE (At Boundary Edge). Do NOT re-open the main validation gate.
-
-Respond with: Acknowledge the irritation + offer one focused refinement question about what part lands vs. what doesn't, using their words where possible.
-
-Rules: no new metaphors, no psychoanalysis, keep it brief and user-led.`;
-        } else if (prevType === 'OSR') {
-          analysisPrompt = `The user commented on repetition (meta-signal): "${text}".
-
-Preserve prior classification: OSR (Outside Symbolic Range). Do NOT analyze the meta-comment. Offer a minimal repair that uses their prior correction, then validate the repair only if they choose to engage.
-
-Keep it skippable and brief; acknowledge the repetition irritation.`;
-        } else {
-          analysisPrompt = `Treat this as a meta-signal about repetition: "${text}".
-
-Do not analyze it. Briefly acknowledge the irritation and ask one gentle, concrete deepening question about the previously discussed pressure (without re-validating).`;
-        }
-      } else {
-      // Classify the user's response and handle accordingly
-      const probeResponseType = classifyUserResponse(text);
-      
-      if (probeResponseType === 'CLEAR_WB') {
-        analysisPrompt = `The user clearly confirmed resonance to your probe: "${text}"
-
-**AUTO-CLASSIFICATION: WB (Within Boundary)**
-This is confirmed resonance. Log it immediately without additional validation.
-
-**RESPONSE PROTOCOL:**
-1. Acknowledge confirmation: "Logged as WB: that resonance confirmed."
-2. Mirror back the structural pressure in somatic/behavioral terms
-3. Pivot to depth exploration, NOT truth validation
-4. Ask elaboration questions like:
-   - "Where do you feel that tension most—in the body or mind?"
-   - "Does this drive bring focus or scatter you?"
-   - "How does this pressure move through your day?"
-
-**DO NOT** ask "Does this feel true?" or any additional validation. The user already confirmed it.
-
-User's clear confirmation: "${text}"`;
-        
-      } else if (probeResponseType === 'PARTIAL_ABE') {
-        analysisPrompt = `The user gave partial confirmation to your probe: "${text}"
-
-**CLASSIFICATION: ABE (At Boundary Edge)**
-This needs refinement, not full repair.
-
-**RESPONSE PROTOCOL:**
-1. Log as ABE: "I'm logging this as ABE—partially resonant but needs fine-tuning."
-2. Ask for clarification: "What part lands, and what feels off?"
-3. Refine the image based on their feedback
-
-User's partial response: "${text}"`;
-        
-      } else if (probeResponseType === 'OSR') {
-        analysisPrompt = `The user redirected/contradicted your probe: "${text}"
-
-**CLASSIFICATION: OSR (Outside Symbolic Range)**
-This requires a repair branch with validation.
-
-**RESPONSE PROTOCOL:**
-1. State classification: "I'm logging that probe as OSR."
-2. Acknowledge the miss: "I offered [original theme] but you're describing [their theme] instead."
-3. Offer repair using their exact words: "Repair: [rephrase their clarification]"
-4. Validate REPAIR only: "Does this repair feel true?" [Yes] [Partly] [No]
-
-User's OSR response: "${text}"`;
-        
-      } else {
-        // Unclear response - needs clarification
-        analysisPrompt = `The user gave an unclear response to your probe: "${text}"
-
-**CLASSIFICATION: UNCLEAR**
-This needs gentle clarification to determine WB/ABE/OSR.
-
-**RESPONSE PROTOCOL:**
-Ask for clarification: "I want to make sure I'm tracking you—does the image I offered feel familiar, or does it miss the mark?"
-
-User's unclear response: "${text}"`;
-      }
-      }
-    } else {
-      // For non-probe responses, ensure natural continuation with FULL CORE FLOW
-  analysisPrompt = `This appears to be an initial interaction or general conversation. 
-
-**MANDATORY: Deliver COMPLETE Core Flow structure in your response:**
-
-1. **Resonance First:** "I see you as [stance image]: [felt qualities]. [polarity tension]."
-2. **Recognition Layer:** "This may show up as [specific daily behavior/experience]"
-3. **Typological Profile:** Behavioral lean + impulse patterns + polarity check (plain language only—no MBTI/function labels)
-4. **Soft Vector Surfacing:** "Hidden push toward [drive], counterweight through [restraint]"
-5. **SST Gate:** Ask ONE specific behavioral/somatic question, not generic "feel true?"
-
-**CRITICAL:** Do NOT deliver just a metaphor + question. You must include ALL five Core Flow layers.
-
-SESSION FLAG: FIRST_TURN = ${isFirstTurn ? 'TRUE' : 'FALSE'}
-- If FIRST_TURN is TRUE (very first mirror after the intro), OMIT the SST Gate question entirely. End with a reflective close instead of a question.
-- If FIRST_TURN is FALSE, END your response with EXACTLY ONE concrete question and nothing after it. Prefer this canonical line unless the context demands a somatic variant:
-  "Does any of this feel familiar?"
-
-User's input: "${text}"`;
-    }
-  }  // Detect different upload types and trigger appropriate analysis
-  if (isJSONReportUpload(analysisPrompt)) {
-    const reportData = extractJSONFromUpload(analysisPrompt);
-    if (reportData) {
-      analysisPrompt = `I've received a WovenWebApp JSON report. Please provide a complete Solo Mirror analysis based on this data:
-
-${reportData}
-
-Focus on completing any empty template sections with VOICE synthesis.`;
-    }
-  } else if (isJournalUpload(analysisPrompt)) {
-    const journalContent = extractTextFromUpload(analysisPrompt);
-    analysisPrompt = `I've received a journal entry for analysis. Please read this with your symbolic weather lens and provide insights into the patterns, emotional climate, and potential astrological correlates:
-
-${journalContent}
-
-Apply Recognition Layer analysis and provide conditional reflections that can be tested (SST protocol).`;
-  }
-  
-  const hook = pickHook(analysisPrompt);
-  const climate = isTimedInput(analysisPrompt) ? pickClimate(analysisPrompt) : undefined;
-  // Do not echo raw prompt/upload content in the intro; keep a neutral opening line.
-  const greetings = [
-    'With you—taking a careful read…',
-    'Staying close to what you said…',
-    'Here with you. Reading the pattern…',
-    'Holding what you said against the pattern…',
-    'I’m tracking you—slowly, precisely…'
-  ];
-  const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}).split(/\n+/)[0];
-  
-  // Enforce v11 warm-first protocol for all responses
-  const v11PromptPrefix = `
-MANDATORY: Follow the v11 "Warm-Core, Rigor-Backed" protocol EXACTLY:
-
-1. ALWAYS start with "I see you as [stance image]: [felt qualities]. [concrete behavior]."
-2. NO technical openings like "I've received..." or data summaries
-3. Recognition of felt tension comes AFTER the warm greeting
-4. Weather/climate is context, never the headline
-5. Use everyday language, not jargon
-
-CRITICAL CORE FLOW STRUCTURE - Always deliver ALL layers in sequence:
-
-**Resonance First:** 
-- Warm stance image with felt qualities and polarity tension
-
-**Recognition Layer:**
-- "This may show up as [daily behavior/experience]" - anchor the image in lived reality
-- Use somatic/behavioral specifics, not abstract concepts
-
-**Typological Profile (light touch):**
-- Behavioral lean described in plain language (habits, choices, tells). Do NOT use MBTI or cognitive-function labels. No "Sensation/Intuition" or "Thinking/Feeling" wording.
-- Impulse patterns: what triggers action vs. withdrawal
-- Polarity check: name the exact tension poles
-
-**Soft Vector Surfacing (when relevant):**
-- "Hidden push toward [drive], counterweight through [restraint]"
-- Keep planetary references subtle and conditional
-
-**SST Gate:**
-- Ask ONE specific behavioral/somatic question, not generic "feel true?"
-- Examples: "Does this show up in your body as tension held tight, or more as a mental loop that won't quiet?"
-
-Anti-psychologizing rule: Mirror structural pressure and behavior only. Avoid motive analysis, diagnoses, or personality typing.
-
-First-turn rule: If this is the very first substantive mirror of a session, end with a reflective close (no question). Questions begin on later turns.
-
-CRITICAL INTEGRATION RULE: When users share specific personal details (living situation, family circumstances, financial challenges, etc.), reflect back their ACTUAL words and circumstances rather than generic metaphors. For example:
-- If they mention "living with elderly parents and disabled daughter" → acknowledge this specific caregiving reality
-- If they mention "they pay rent but caregiving makes it hard to survive" → reflect this exact financial bind
-- Avoid generic metaphors like "sturdy oak" when they've given you specific, vulnerable details to work with
-
-Your response MUST begin with the warm recognition greeting AND include ALL Core Flow layers, not just a metaphor + question.
-`;
-
-  // Merge uploaded report contexts (Mirror/Balance/Journal) into a compact appendix for the model
-  let contextAppendix = '';
-  if (Array.isArray(reportContexts) && reportContexts.length > 0) {
-    const compactList = reportContexts.slice(-4) // last few items only
-      .map((rc:any, idx:number) => `- [${rc.type}] ${rc.name}: ${rc.summary || ''}`.trim())
-      .join('\n');
-    contextAppendix = `\n\nSESSION CONTEXT (Compact Uploads)\n${compactList}\n\nUse these as background only. Prefer the user's live words. Do not restate the uploads; integrate gently where relevant.`;
-  }
-
-  // If both Mirror and Balance are present, nudge towards integration
-  const hasMirror = Array.isArray(reportContexts) && reportContexts.some((rc:any)=> rc.type==='mirror');
-  const hasBalance = Array.isArray(reportContexts) && reportContexts.some((rc:any)=> rc.type==='balance');
-  if (hasMirror && hasBalance) {
-    analysisPrompt += `\n\nIntegration hint: The user provided both Mirror and Balance back-to-back. Synthesize structural tension (Mirror) with current climate/valence (Balance).`;
-  }
-
-  const enhancedPrompt = v11PromptPrefix + analysisPrompt + contextAppendix + `\n\n[SESSION META] first_turn=${isFirstTurn}`;
-  const stream = generateStream(enhancedPrompt, { model: process.env.MODEL_PROVIDER, personaHook: hook });
-  const body = new ReadableStream<{ }|Uint8Array>({
-    async start(controller){
-  // First shaped intro line
-  trackRequest(analysisPrompt.length); // rough token estimate
-      controller.enqueue(encode({climate, hook, delta: shapedIntro}));
-      for await (const chunk of stream){
-        controller.enqueue(encode({climate, hook, delta: chunk.delta}));
-      }
-      controller.close();
-    }
-  });
-  return new Response(body, { headers: { 'Content-Type': 'text/plain; charset=utf-8' }});
-}
-
 function isJSONReportUpload(text: string): boolean {
   // Detect presence of embedded JSON in a <pre> block regardless of UI labels.
   const preMatch = text.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
@@ -652,4 +231,437 @@ function isTimedInput(text: string): boolean {
   if (/(\b\d{4}-\d{2}-\d{2}\b)|(\b\d{1,2}\/\d{1,2}\/\d{2,4}\b)/.test(plain)) return true;
   if (/(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\s*\d{1,2}\s*(–|-|to)\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)?\s*\d{1,2}/.test(plain)) return true;
   return false;
+}
+
+export const runtime = 'nodejs';
+
+export async function POST(req: NextRequest){
+  // Top-level variable declarations for chat logic
+  const body = await req.json();
+  const { persona, messages = [] } = body;
+  const reportContexts: any[] = body?.reportContexts || [];
+  
+  const user = [...messages].reverse().find((m:any)=> m.role==='user');
+  const text = user?.content || user?.html || 'Hello';
+  
+  const isTechnicalQuestion = /\b(are you|what are you|how do you work|gemini|api|technical|test|version|system)\b/i.test(text);
+  const isGreeting = /^(hello|hi|hey|good morning|good afternoon|good evening|greetings)\b/i.test(text.trim());
+  
+  const ravenMsgs = Array.isArray(messages) ? messages.filter((m:any)=> m.role==='raven') : [];
+  const ravenCount = ravenMsgs.length;
+  const isFirstTurn = ravenCount <= 1; // only the intro greeting so far
+
+  let analysisPrompt = text;
+
+  // TODO[REFactor]: This handler exceeds recommended logical size. Extract logic into separate lib modules.
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
+  if(!take(ip)){
+    return new Response(JSON.stringify({error:'rate_limited', retry_in:'60s'}), {status:429, headers:{'Content-Type':'application/json'}});
+  }
+
+  if (isTechnicalQuestion || isGreeting) {
+    const hook = pickHook(text);
+    const climate = undefined;
+    const shapedIntro = shapeVoice('Staying close to what you said…', {hook, climate, section:'mirror'}).split(/\n+/)[0];
+    let response = '';
+    if (text.toLowerCase().includes('gemini')) {
+      response = 'Yes, I am currently using Google\'s Gemini API. It\'s a pleasure to connect.';
+    } else if (isGreeting) {
+      response = 'Hello! I\'m Raven Calder, and I\'m here to help you see yourself more clearly. I\'m ready when you are.';
+    } else {
+      response = 'I\'m Raven Calder, a symbolic mirror that uses Google\'s Gemini API to provide reflective insights. How can I help you today?';
+    }
+    const responseBody = new ReadableStream<{ }|Uint8Array>({
+      async start(controller){
+        controller.enqueue(encode({climate, hook, delta: shapedIntro + response}));
+        controller.close();
+      }
+    });
+    return new Response(responseBody, { headers: { 'Content-Type': 'text/plain; charset=utf-8' }});
+  }
+
+  // Determine whether we have any chart/report context available
+  const hasAnyReportContext = Array.isArray(reportContexts) && reportContexts.length > 0;
+  
+  // Enforce simple usage limits (in-memory)
+  const allowance = canMakeRequest();
+  if(!allowance.allowed){
+    return new Response(JSON.stringify({error: allowance.reason}), {status:429, headers:{'Content-Type':'application/json'}});
+  }
+
+  // Weather-only intent detection (non-personal field read)
+  const wantsWeatherOnly = /\b(weather|sky today|planetary (weather|currents)|what's happening in the sky)\b/i.test(text);
+
+  // Detect if user is asking for specific personal astrological readings/analysis
+  const wantsPersonalReading = /\b(my chart|my birth|personal reading|mirror|balance meter|read me|analyze me|what do you see in me|my aspects|my placements|my transits)\b/i.test(text);
+
+  // MODIFIED GATE: Only block personal astrological readings without chart context, allow general conversation
+  if (!hasAnyReportContext && wantsPersonalReading && !wantsWeatherOnly) {
+    const hook = pickHook(text);
+    const climate = undefined;
+    const greetings = [
+      'With you—before we dive in…',
+      'Here with you. One small setup step first…',
+      'Holding your question—let’s get the ground right…'
+    ];
+    const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}).split(/\n+/)[0];
+    const guidance = `
+I can’t responsibly read you without a chart or report context. Two quick options:
+
+• Generate Math Brain on the main page (geometry only), then click “Ask Raven” to send the report here
+• Or ask for “planetary weather only” to hear today’s field without personal mapping
+
+If you already have a JSON report, paste or upload it and I’ll proceed.`.trim();
+
+    const responseBody = new ReadableStream<{ }|Uint8Array>({
+      async start(controller){
+        controller.enqueue(encode({climate, hook, delta: shapedIntro+"\n\n"+guidance}));
+        controller.close();
+      }
+    });
+    return new Response(responseBody, { headers: { 'Content-Type': 'text/plain; charset=utf-8' }});
+  }
+
+  // WEATHER-ONLY BRANCH: Provide a neutral field read without personal claims when explicitly asked
+  if (!hasAnyReportContext && wantsWeatherOnly) {
+    const hook = pickHook(text);
+    const climate = pickClimate(text);
+    const greetings = [
+      'With you—reading the sky’s weather…',
+      'Here with today’s currents—no personal map applied…'
+    ];
+    const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}).split(/\n+/)[0];
+    const weatherNote = `
+Field-only read (no natal overlay):
+• Mood/valence: treat as background conditions, not fate
+• Use this like a tide chart—choose times that support your aims
+
+If you want this mapped to you, generate Math Brain first and send the report here.`.trim();
+
+    const v11 = `
+Give a short, plain-language summary of the current planetary weather in two parts: (1) what’s emphasized, (2) what that feels like behaviorally—in conditional phrasing. No metaphors about “you,” no personality claims, no advice. Keep to 5–7 sentences total.`;
+
+    const enhancedPrompt = v11 + `\n\nUser words: ${text}`;
+    const stream = generateStream(enhancedPrompt, { model: process.env.MODEL_PROVIDER, personaHook: hook });
+    const responseBody = new ReadableStream<{ }|Uint8Array>({
+      async start(controller){
+        controller.enqueue(encode({climate, hook, delta: shapedIntro+"\n\n"+weatherNote+"\n\n"}));
+        for await (const chunk of stream){
+          controller.enqueue(encode({climate, hook, delta: chunk.delta}));
+        }
+        controller.close();
+      }
+    });
+    return new Response(responseBody, { headers: { 'Content-Type': 'text/plain; charset=utf-8' }});
+  }
+  
+  // Check for natural follow-up flow based on user response type
+  const responseType = classifyUserResponse(text);
+  
+  // Mock session context (in production, this would be persisted)
+  const mockSessionContext: SessionContext = {
+    wbHits: [],
+    abeHits: [],
+    osrMisses: [],
+    actorWeighting: 0,
+    roleWeighting: 0,
+    driftIndex: 0,
+    sessionActive: true
+  };
+  
+  // Generate natural follow-up based on response type
+  if (responseType === 'CLEAR_WB') {
+    const followUp = naturalFollowUpFlow.generateFollowUp({
+      type: 'AFFIRM',
+      content: text,
+      originalMirror: text
+    }, mockSessionContext);
+    
+    analysisPrompt = `The user clearly confirmed resonance: "${text}"
+
+**AUTO-CLASSIFICATION: WB (Within Boundary)**
+Log this as confirmed resonance. Do NOT ask for additional validation.
+
+**TRANSITION TO ELABORATION:**
+Instead of asking "does this feel true?", acknowledge the confirmation and pivot to depth exploration:
+
+Examples:
+- "Logged as WB: that resonance confirmed. Let's stay with how this pressure moves through you."
+- "That lands—the coil is tightly wound. Where do you feel that tension most, in the body or more in the mind's looping?"
+- "Confirmed as WB. Does the drive bring focus, or does it scatter you?"
+
+Your response should:
+1. Acknowledge the confirmed resonance 
+2. Mirror back the structural pressure
+3. Move into depth probing (how/where it shows up)
+4. Skip any additional truth gates
+
+User's clear affirmation: ${text}`;
+    
+  } else if (responseType === 'PARTIAL_ABE') {
+    analysisPrompt = `The user gave partial confirmation: "${text}"
+
+**CLASSIFICATION: ABE (At Boundary Edge)**
+This needs clarification, not full repair. Ask for refinement:
+
+"I'm logging this as ABE—partially resonant but needs fine-tuning. What part lands, and what feels off?"
+
+User's partial response: ${text}`;
+    
+  } else if (responseType === 'OSR') {
+    const followUp = naturalFollowUpFlow.generateFollowUp({
+      type: 'OSR',
+      content: text,
+      originalMirror: text
+    }, mockSessionContext);
+    
+    analysisPrompt = `The user indicated that something didn't resonate. Generate a response that includes this natural OSR probe: "${followUp.question}"
+
+User's OSR response: ${text}
+
+Your response should acknowledge their feedback and offer the choice-based clarification probe to convert the miss into diagnostic data. Keep it skippable and non-forcing.`;
+    
+  } else if (text.toLowerCase().includes('poetic card') || text.toLowerCase().includes('generate card')) {
+    analysisPrompt = `The user is requesting a poetic card based on their session. Generate a visual card display showing:
+- Resonance Pattern summary
+- Score indicators (WB/ABE/OSR)
+- Actor/Role composite guess
+- Any drift flags
+Do NOT generate a new poem. This is a summary card of what has already resonated.`;
+    
+  } else if (text.toLowerCase().includes('done') || text.toLowerCase().includes('finished') || text.toLowerCase().includes('session complete')) {
+    const closure = naturalFollowUpFlow.generateSessionClosure();
+    analysisPrompt = `The user is indicating they want to end this reading session. Generate a response that includes: "${closure.resetPrompt}"
+
+This will reset the scorecard but not make you forget who you're talking to. Offer these options: ${closure.continuationOptions.join(', ')}`;
+  } else {
+    const lastRavenMessage = messages.filter((m: any) => m.role === 'raven').pop();
+    const isResponseToProbe = lastRavenMessage && 
+      (lastRavenMessage.html.includes('Does any of this feel familiar') ||
+       lastRavenMessage.html.includes('Does this fit your experience') ||
+       lastRavenMessage.html.includes('feel accurate') ||
+       lastRavenMessage.html.includes('resonate'));
+
+    if (isResponseToProbe) {
+      if (isMetaSignalAboutRepetition(text)) {
+        const reversed = [...messages].filter((m:any)=> m.role==='user').reverse();
+        const previousUser = reversed[1];
+        const prevText = previousUser?.content || previousUser?.html || '';
+        const prevType = prevText ? classifyUserResponse(prevText) : 'UNCLEAR';
+
+        if (prevType === 'CLEAR_WB') {
+          analysisPrompt = `The user expressed irritation at being asked again (meta-signal), not new content: "${text}".
+
+Preserve the prior classification: WB (Within Boundary). Do NOT re-open validation.
+
+Respond with: Acknowledge the irritation + keep fidelity + deepen the original mirror. Avoid new symbolic images or psychologizing.
+
+Example shape:
+- "Logged as WB: you already confirmed. I hear the frustration in repeating. Let's stay with the coil itself—when you're stretched that thin, does the pressure feel more physical or more mental?"
+
+Rules:
+1) No additional "does this feel true?" gates
+2) No motive analysis or personality inference
+3) Mirror only structural pressure and pivot to somatic/behavioral deepening`;
+        } else if (prevType === 'PARTIAL_ABE') {
+          analysisPrompt = `The user commented on repetition (meta-signal), not new content: "${text}".
+
+Preserve prior classification: ABE (At Boundary Edge). Do NOT re-open the main validation gate.
+
+Respond with: Acknowledge the irritation + offer one focused refinement question about what part lands vs. what doesn't, using their words where possible.
+
+Rules: no new metaphors, no psychoanalysis, keep it brief and user-led.`;
+        } else if (prevType === 'OSR') {
+          analysisPrompt = `The user commented on repetition (meta-signal): "${text}".
+
+Preserve prior classification: OSR (Outside Symbolic Range). Do NOT analyze the meta-comment. Offer a minimal repair that uses their prior correction, then validate the repair only if they choose to engage.
+
+Keep it skippable and brief; acknowledge the repetition irritation.`;
+        } else {
+          analysisPrompt = `Treat this as a meta-signal about repetition: "${text}".
+
+Do not analyze it. Briefly acknowledge the irritation and ask one gentle, concrete deepening question about the previously discussed pressure (without re-validating).`;
+        }
+      } else {
+        const probeResponseType = classifyUserResponse(text);
+      
+        if (probeResponseType === 'CLEAR_WB') {
+          analysisPrompt = `The user clearly confirmed resonance to your probe: "${text}"
+
+**AUTO-CLASSIFICATION: WB (Within Boundary)**
+This is confirmed resonance. Log it immediately without additional validation.
+
+**RESPONSE PROTOCOL:**
+1. Acknowledge confirmation: "Logged as WB: that resonance confirmed."
+2. Mirror back the structural pressure in somatic/behavioral terms
+3. Pivot to depth exploration, NOT truth validation
+4. Ask elaboration questions like:
+   - "Where do you feel that tension most—in the body or mind?"
+   - "Does this drive bring focus or scatter you?"
+   - "How does this pressure move through your day?"
+
+**DO NOT** ask "Does this feel true?" or any additional validation. The user already confirmed it.
+
+User's clear confirmation: "${text}"`;
+        
+        } else if (probeResponseType === 'PARTIAL_ABE') {
+          analysisPrompt = `The user gave partial confirmation to your probe: "${text}"
+
+**CLASSIFICATION: ABE (At Boundary Edge)**
+This needs refinement, not full repair.
+
+**RESPONSE PROTOCOL:**
+1. Log as ABE: "I'm logging this as ABE—partially resonant but needs fine-tuning."
+2. Ask for clarification: "What part lands, and what feels off?"
+3. Refine the image based on their feedback
+
+User's partial response: "${text}"`;
+        
+        } else if (probeResponseType === 'OSR') {
+          analysisPrompt = `The user redirected/contradicted your probe: "${text}"
+
+**CLASSIFICATION: OSR (Outside Symbolic Range)**
+This requires a repair branch with validation.
+
+**RESPONSE PROTOCOL:**
+1. State classification: "I'm logging that probe as OSR."
+2. Acknowledge the miss: "I offered [original theme] but you're describing [their theme] instead."
+3. Offer repair using their exact words: "Repair: [rephrase their clarification]"
+4. Validate REPAIR only: "Does this repair feel true?" [Yes] [Partly] [No]
+
+User's OSR response: "${text}"`;
+        
+        } else {
+          analysisPrompt = `The user gave an unclear response to your probe: "${text}"
+
+**CLASSIFICATION: UNCLEAR**
+This needs gentle clarification to determine WB/ABE/OSR.
+
+**RESPONSE PROTOCOL:**
+Ask for clarification: "I want to make sure I'm tracking you—does the image I offered feel familiar, or does it miss the mark?"
+
+User's unclear response: "${text}"`;
+        }
+      }
+    } else {
+        analysisPrompt = `This appears to be a request for astrological insight or general conversation that could benefit from symbolic reflection.
+
+**MANDATORY: Deliver COMPLETE Core Flow structure in your response:**
+
+1. **Resonance First:** "I see you as [stance image]: [felt qualities]. [polarity tension]."
+2. **Recognition Layer:** "This may show up as [specific daily behavior/experience]"
+3. **Typological Profile:** Behavioral lean + impulse patterns + polarity check (plain language only—no MBTI/function labels)
+4. **Soft Vector Surfacing:** "Hidden push toward [drive], counterweight through [restraint]"
+5. **SST Gate:** Ask ONE specific behavioral/somatic question, not generic "feel true?"
+
+**CRITICAL:** Do NOT deliver just a metaphor + question. You must include ALL five Core Flow layers.
+
+SESSION FLAG: FIRST_TURN = ${isFirstTurn ? 'TRUE' : 'FALSE'}
+- If FIRST_TURN is TRUE (very first mirror after the intro), OMIT the SST Gate question entirely. End with a reflective close instead of a question.
+- If FIRST_TURN is FALSE, END your response with EXACTLY ONE concrete question and nothing after it. Prefer this canonical line unless the context demands a somatic variant:
+  "Does any of this feel familiar?"
+
+User's input: "${text}"`;
+    }
+  }
+
+  if (isJSONReportUpload(analysisPrompt)) {
+    const reportData = extractJSONFromUpload(analysisPrompt);
+    if (reportData) {
+      analysisPrompt = `I've received a WovenWebApp JSON report. Please provide a complete Solo Mirror analysis based on this data:
+
+${reportData}
+
+Focus on completing any empty template sections with VOICE synthesis.`;
+    }
+  } else if (isJournalUpload(analysisPrompt)) {
+    const journalContent = extractTextFromUpload(analysisPrompt);
+    analysisPrompt = `I've received a journal entry for analysis. Please read this with your symbolic weather lens and provide insights into the patterns, emotional climate, and potential astrological correlates:
+
+${journalContent}
+
+Apply Recognition Layer analysis and provide conditional reflections that can be tested (SST protocol).`;
+  }
+  
+  const hook = pickHook(analysisPrompt);
+  const climate = isTimedInput(analysisPrompt) ? pickClimate(analysisPrompt) : undefined;
+  const greetings = [
+    'With you—taking a careful read…',
+    'Staying close to what you said…',
+    'Here with you. Reading the pattern…',
+    'Holding what you said against the pattern…',
+    'I’m tracking you—slowly, precisely…'
+  ];
+  const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}).split(/\n+/)[0];
+  
+  const v11PromptPrefix = `
+MANDATORY: Follow the v11 "Warm-Core, Rigor-Backed" protocol EXACTLY:
+
+1. ALWAYS start with "I see you as [stance image]: [felt qualities]. [concrete behavior]."
+2. NO technical openings like "I've received..." or data summaries
+3. Recognition of felt tension comes AFTER the warm greeting
+4. Weather/climate is context, never the headline
+5. Use everyday language, not jargon
+
+CRITICAL CORE FLOW STRUCTURE - Always deliver ALL layers in sequence:
+
+**Resonance First:** 
+- Warm stance image with felt qualities and polarity tension
+
+**Recognition Layer:**
+- "This may show up as [daily behavior/experience]" - anchor the image in lived reality
+- Use somatic/behavioral specifics, not abstract concepts
+
+**Typological Profile (light touch):**
+- Behavioral lean described in plain language (habits, choices, tells). Do NOT use MBTI or cognitive-function labels. No "Sensation/Intuition" or "Thinking/Feeling" wording.
+- Impulse patterns: what triggers action vs. withdrawal
+- Polarity check: name the exact tension poles
+
+**Soft Vector Surfacing (when relevant):**
+- "Hidden push toward [drive], counterweight through [restraint]"
+- Keep planetary references subtle and conditional
+
+**SST Gate:**
+- Ask ONE specific behavioral/somatic question, not generic "feel true?"
+- Examples: "Does this show up in your body as tension held tight, or more as a mental loop that won't quiet?"
+
+Anti-psychologizing rule: Mirror structural pressure and behavior only. Avoid motive analysis, diagnoses, or personality typing.
+
+First-turn rule: If this is the very first substantive mirror of a session, end with a reflective close (no question). Questions begin on later turns.
+
+CRITICAL INTEGRATION RULE: When users share specific personal details (living situation, family circumstances, financial challenges, etc.), reflect back their ACTUAL words and circumstances rather than generic metaphors. For example:
+- If they mention "living with elderly parents and disabled daughter" → acknowledge this specific caregiving reality
+- If they mention "they pay rent but caregiving makes it hard to survive" → reflect this exact financial bind
+- Avoid generic metaphors like "sturdy oak" when they've given you specific, vulnerable details to work with
+
+Your response MUST begin with the warm recognition greeting AND include ALL Core Flow layers, not just a metaphor + question.
+`;
+
+  let contextAppendix = '';
+  if (Array.isArray(reportContexts) && reportContexts.length > 0) {
+    const compactList = reportContexts.slice(-4)
+      .map((rc:any, idx:number) => `- [${rc.type}] ${rc.name}: ${rc.summary || ''}`.trim())
+      .join('\n');
+    contextAppendix = `\n\nSESSION CONTEXT (Compact Uploads)\n${compactList}\n\nUse these as background only. Prefer the user's live words. Do not restate the uploads; integrate gently where relevant.`;
+  }
+
+  const hasMirror = Array.isArray(reportContexts) && reportContexts.some((rc:any)=> rc.type==='mirror');
+  const hasBalance = Array.isArray(reportContexts) && reportContexts.some((rc:any)=> rc.type==='balance');
+  if (hasMirror && hasBalance) {
+    analysisPrompt += `\n\nIntegration hint: The user provided both Mirror and Balance back-to-back. Synthesize structural tension (Mirror) with current climate/valence (Balance).`;
+  }
+
+  const enhancedPrompt = v11PromptPrefix + analysisPrompt + contextAppendix + `\n\n[SESSION META] first_turn=${isFirstTurn}`;
+  const stream = generateStream(enhancedPrompt, { model: process.env.MODEL_PROVIDER, personaHook: hook });
+  const responseBody = new ReadableStream<{ }|Uint8Array>({
+    async start(controller){
+      trackRequest(analysisPrompt.length);
+      controller.enqueue(encode({climate, hook, delta: shapedIntro}));
+      for await (const chunk of stream){
+        controller.enqueue(encode({climate, hook, delta: chunk.delta}));
+      }
+      controller.close();
+    }
+  });
+  return new Response(responseBody, { headers: { 'Content-Type': 'text/plain; charset=utf-8' }});
 }

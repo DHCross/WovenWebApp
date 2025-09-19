@@ -14,6 +14,8 @@ import ReadingSummaryCard from './ReadingSummaryCard';
 import { pingTracker } from '../lib/ping-tracker';
 import { naturalFollowUpFlow } from '../lib/natural-followup-flow';
 import { APP_NAME, STATUS_CONNECTED, INPUT_PLACEHOLDER } from '../lib/ui-strings';
+import type { Intent } from '../lib/raven/intent';
+import type { SSTProbe } from '../lib/raven/sst';
 // simple HTML escaper for user-originated plain text rendering safety
 const escapeHtml = (s:string) => s.replace(/[&<>]/g, c => (({"&":"&amp;","<":"&lt;",">":"&gt;"} as Record<string,string>)[c] || c));
 
@@ -99,19 +101,90 @@ function generateDynamicClimate(context?: string): string {
   return formatFullClimateDisplay(climateData);
 }
 
-// --- Frontstage Cleaners & Prompt (enhanced per review) ---
-const RECOGNITION_PROMPTS = [
-  'Did any of this feel true?',
-  'Does this fit your experience today?',
-  'Did this land at all?',
-  'Anything here feel off?'
+type RavenDraftResponse = {
+  ok?: boolean;
+  intent?: Intent;
+  draft?: Record<string, any> | null;
+  prov?: Record<string, any> | null;
+  climate?: string | ClimateData | null;
+  sessionId?: string;
+  probe?: SSTProbe | null;
+  error?: string;
+  details?: any;
+};
+
+const MIRROR_SECTION_ORDER: Array<{ key: string; label: string }> = [
+  { key: 'picture', label: 'Picture' },
+  { key: 'feeling', label: 'Feeling' },
+  { key: 'container', label: 'Container' },
+  { key: 'option', label: 'Option' },
+  { key: 'next_step', label: 'Next Step' }
 ];
-let promptIndex = 0;
-let lastPromptAt = 0; // cooldown timer
-function nextRecognitionPrompt(){
-  const p = RECOGNITION_PROMPTS[promptIndex % RECOGNITION_PROMPTS.length];
-  promptIndex++;
-  return p;
+
+function formatShareableDraft(draft?: Record<string, any> | null, prov?: Record<string, any> | null): string {
+  if (!draft) return '<i>No mirror draft returned.</i>';
+  const rows = MIRROR_SECTION_ORDER.map(({ key, label }) => {
+    const value = draft[key];
+    if (!value) return null;
+    return `
+      <div class="mirror-row" style="display:flex; flex-direction:column; gap:4px; padding:8px 10px; background:rgba(15,23,42,0.65); border:1px solid rgba(148,163,184,0.18); border-radius:10px;">
+        <span class="mirror-label" style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#94a3b8;">${label}</span>
+        <span class="mirror-value" style="font-size:14px; line-height:1.45; color:#e2e8f0;">${escapeHtml(String(value))}</span>
+      </div>
+    `;
+  }).filter(Boolean).join('');
+
+  const appendixEntries = draft.appendix && typeof draft.appendix === 'object'
+    ? Object.entries(draft.appendix as Record<string, any>)
+        .filter(([_, val]) => val !== undefined && val !== null && String(val).trim() !== '')
+        .map(([key, val]) => `<li><strong>${escapeHtml(key.replace(/_/g, ' '))}:</strong> ${escapeHtml(String(val))}</li>`)
+    : [];
+
+  const appendix = appendixEntries.length
+    ? `<div class="mirror-appendix" style="margin-top:10px; padding:10px; border:1px solid rgba(148,163,184,0.18); border-radius:10px; background:rgba(15,23,42,0.5);">
+        <div class="mirror-appendix-title" style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#94a3b8; margin-bottom:6px;">Appendix</div>
+        <ul style="margin:0; padding-left:16px; color:#cbd5f5; font-size:12px; line-height:1.4;">${appendixEntries.join('')}</ul>
+      </div>`
+    : '';
+
+  const provenance = prov?.source
+    ? `<div class="mirror-provenance" style="margin-top:12px; font-size:11px; color:#94a3b8;">Source · ${escapeHtml(String(prov.source))}</div>`
+    : '';
+
+  return `
+    <section class="mirror-draft" style="display:flex; flex-direction:column; gap:10px;">
+      ${rows || '<p><em>No primary mirror lanes provided.</em></p>'}
+      ${appendix}
+      ${provenance}
+    </section>
+  `;
+}
+
+function formatIntentHook(intent?: Intent, prov?: Record<string, any> | null): string | undefined {
+  if (!intent) return prov?.source ? `Source · ${prov.source}` : undefined;
+  const lane = intent === 'geometry' ? 'Geometry' : intent === 'report' ? 'Report' : 'Conversation';
+  const source = prov?.source ? ` · ${prov.source}` : '';
+  return `Lane · ${lane}${source}`;
+}
+
+function formatClimate(climate?: string | ClimateData | null): string | undefined {
+  if (!climate) return undefined;
+  if (typeof climate === 'string') return climate;
+  try {
+    return formatFullClimateDisplay(climate);
+  } catch {
+    return undefined;
+  }
+}
+
+const INTENT_TOAST: Record<Intent, string> = {
+  geometry: 'Chart detected — parsing as geometry',
+  report: 'Report request detected — running Math Brain handoff',
+  conversation: 'Conversation lane active'
+};
+
+function getIntentToast(intent?: Intent): string | null {
+  return intent ? INTENT_TOAST[intent] : null;
 }
 
 function cleanseFrontstage(raw: string): string {
@@ -156,50 +229,6 @@ function cleanseFrontstage(raw: string): string {
   text = text.replace(/Mark\s*(WB|ABE|OSR)\.?/gi, '');
   
   return text.replace(/\s{2,}/g, ' ').replace(/^\s*[-*]\s*$/gm, '').trim();
-}
-
-function maybeAppendRecognitionPrompt(html: string, isReport?: boolean, lastUserMessage?: string): string {
-  if (isReport) return html;
-  const plain = html.replace(/<[^>]*>/g, ' ').trim();
-  if (!plain) return html;
-  if (plain.length < 40) return html; // skip very short blurbs
-  if (/[?]\s*$/.test(plain)) return html;
-  if (/(did this (land|resonate)|fit your experience|feel true|feel off)/i.test(plain)) return html;
-  
-  // Skip adding recognition prompts if the response already contains WB confirmation language
-  if (/(logged as wb|resonance confirmed|that lands|confirmed as wb)/i.test(plain)) return html;
-  
-  // CRITICAL: Skip recognition prompt if previous user message clearly confirmed
-  if (lastUserMessage) {
-    const userText = lastUserMessage.toLowerCase();
-    // meta-signal detection (complaints about repetition)
-    const metaPhrases = [
-      'you asked', 'why are you asking', 'i already said', 'i just said', 'as i said',
-      'what i had just explained', 'repeating myself', 'asked again', "i've already answered"
-    ];
-    if (metaPhrases.some(p => userText.includes(p))) {
-      return html; // don't append a recognition prompt on meta-complaints
-    }
-    const clearConfirmations = [
-      'that\'s familiar', 'feels familiar', 'that resonates', 'exactly',
-      'that\'s me', 'spot on', 'so true', 'absolutely', 'i just said it was',
-      'it was', 'it is', 'that is', 'yes it is', 'yes that is',
-      'that\'s right', 'correct', 'true'
-    ];
-    
-    if (/^yes\b/i.test(userText.trim()) || 
-        clearConfirmations.some(phrase => userText.includes(phrase))) {
-      return html; // Skip prompt - user already confirmed
-    }
-  }
-  
-  const now = Date.now();
-  if (now - lastPromptAt < 12_000) return html; // shorter cooldown so accuracy prompts surface
-  lastPromptAt = now;
-  const prompt = nextRecognitionPrompt();
-  return html.endsWith('</p>')
-    ? html.replace(/<\/p>\s*$/, ' ' + prompt + '</p>')
-    : html + `\n\n<p>${prompt}</p>`;
 }
 
 // Function to detect if a message contains an initial probe (these should NOT get feedback buttons)
@@ -262,6 +291,10 @@ interface Message {
   collapsed?: boolean;
   pingFeedbackRecorded?: boolean;
   fullContent?: string; // Store complete file content for analysis (separate from display HTML)
+  intent?: Intent;
+  probe?: SSTProbe | null;
+  draft?: Record<string, any> | null;
+  prov?: Record<string, any> | null;
 }
 
 interface ReportContext {
@@ -315,12 +348,13 @@ export default function ChatClient(){
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const lastUpdateRef = useRef<number>(0);
-  const throttleDelay = 150; // Update every 150ms for smoother reading
   const [uploadType, setUploadType] = useState<'mirror' | 'balance' | 'journal' | null>(null);
   const [hasMirrorData, setHasMirrorData] = useState(false);
   const [showScrollHint, setShowScrollHint] = useState(false);
   const streamContainerRef = useRef<HTMLElement | null>(null);
+  const [ravenSessionId, setRavenSessionId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimeoutRef = useRef<number | null>(null);
   const [relocation, setRelocation] = useState<RelocationSummary | null>(null);
   const [reportContexts, setReportContexts] = useState<ReportContext[]>([]);
   const [showWrapUpCard, setShowWrapUpCard] = useState(false);
@@ -329,6 +363,13 @@ export default function ChatClient(){
   // Post-seal guidance state
   const [awaitingNewReadingGuide, setAwaitingNewReadingGuide] = useState(false);
   const [priorFocusKeywords, setPriorFocusKeywords] = useState<string[]>([]);
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        window.clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
   // Math Brain handoff resume (v1.7)
   interface MBLastSession {
     createdAt?: string;
@@ -731,17 +772,18 @@ export default function ChatClient(){
     
     // Create optimistic placeholder for Raven's response
     const ravenId = generateId();
-    setMessages((m: Message[]) => [...m, {id: ravenId, role: 'raven', html: '', climate: '', hook: ''}]);
+    setMessages((m: Message[]) => [...m, {id: ravenId, role: 'raven', html: '', climate: '', hook: '', intent: undefined, probe: null, draft: null, prov: null}]);
     
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST', 
-        headers: {'Content-Type': 'application/json'}, 
-        body: JSON.stringify({
-          messages: [
-            ...messages.slice(-5), // Include recent context
-            {role: 'user', content: reportContext.content} // Use report content for analysis
-          ],
+      const payload = {
+        input: reportContext.content,
+        sessionId: ravenSessionId ?? undefined,
+        options: {
+          reportType: reportContext.type,
+          reportId: reportContext.id,
+          reportName: reportContext.name,
+          reportSummary: reportContext.summary,
+          relocation: reportContext.relocation,
           reportContexts: reportContexts.map(rc => ({
             id: rc.id,
             type: rc.type,
@@ -749,40 +791,27 @@ export default function ChatClient(){
             summary: rc.summary,
             content: rc.content
           }))
-        }), 
+        }
+      };
+      const res = await fetch('/api/raven', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
         signal: ctrl.signal
       });
-      
-      if (!res.body) throw new Error('No stream');
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let acc = ''; 
-      let climate: string | undefined; 
-      let hook: string | undefined;
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) { 
-          // Final flush ensures prompt injection happens only once
-          updateRaven(ravenId, acc, climate, hook, true); 
-          break; 
-        }
-        const lines = decoder.decode(value, {stream: true}).split('\n').filter(Boolean);
-        for (const ln of lines) {
-          try {
-            const obj = JSON.parse(ln);
-            if (obj.delta) {
-              acc += obj.delta;
-              climate = obj.climate || climate;
-              hook = obj.hook || hook;
-              updateRaven(ravenId, acc, climate, hook, false);
-            }
-          } catch {/* ignore partial */}
-        }
+      const data: RavenDraftResponse = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        const fallback = typeof data?.error === 'string' ? data.error : (res.ok ? 'Raven could not analyze that report.' : `Request failed (${res.status})`);
+        commitRavenError(ravenId, fallback);
+        return;
       }
+      applyRavenResponse(ravenId, data, 'No mirror returned for this report.');
     } catch (e: any) {
-      if (e.name !== 'AbortError') {
-        updateRaven(ravenId, '<i>Analysis error. Try again.</i>', undefined, undefined);
+      if (e?.name === 'AbortError') {
+        commitRavenError(ravenId, 'Report analysis cancelled.');
+      } else {
+        console.error('Report analysis failed:', e);
+        commitRavenError(ravenId, 'Analysis error. Try again.');
       }
     } finally {
       setTyping(false); 
@@ -810,17 +839,13 @@ export default function ChatClient(){
     
     // Create optimistic placeholder for Raven's response
   const ravenId = generateId();
-    setMessages((m: Message[]) => [...m, {id: ravenId, role: 'raven', html: '', climate: '', hook: ''}]);
+    setMessages((m: Message[]) => [...m, {id: ravenId, role: 'raven', html: '', climate: '', hook: '', intent: undefined, probe: null, draft: null, prov: null}]);
     
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST', 
-        headers: {'Content-Type': 'application/json'}, 
-        body: JSON.stringify({
-          messages: [
-            ...messages.slice(-5), // Include recent context
-            {role: 'user', content: fileMessage.fullContent || fileMessage.html} // Use full content for analysis
-          ],
+      const payload = {
+        input: fileMessage.fullContent || fileMessage.html,
+        sessionId: ravenSessionId ?? undefined,
+        options: {
           reportContexts: reportContexts.map(rc => ({
             id: rc.id,
             type: rc.type,
@@ -828,40 +853,27 @@ export default function ChatClient(){
             summary: rc.summary,
             content: rc.content
           }))
-        }), 
+        }
+      };
+      const res = await fetch('/api/raven', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload),
         signal: ctrl.signal
       });
-      
-      if (!res.body) throw new Error('No stream');
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let acc = ''; 
-      let climate: string | undefined; 
-      let hook: string | undefined;
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) { 
-          // Final flush ensures prompt injection happens only once
-          updateRaven(ravenId, acc, climate, hook, true); 
-          break; 
-        }
-        const lines = decoder.decode(value, {stream: true}).split('\n').filter(Boolean);
-        for (const ln of lines) {
-          try {
-            const obj = JSON.parse(ln);
-            if (obj.delta) {
-              acc += obj.delta;
-              climate = obj.climate || climate;
-              hook = obj.hook || hook;
-              updateRaven(ravenId, acc, climate, hook, false);
-            }
-          } catch {/* ignore partial */}
-        }
+      const data: RavenDraftResponse = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        const fallback = typeof data?.error === 'string' ? data.error : (res.ok ? 'Raven could not process that upload.' : `Request failed (${res.status})`);
+        commitRavenError(ravenId, fallback);
+        return;
       }
+      applyRavenResponse(ravenId, data, 'No mirror returned for this upload.');
     } catch (e: any) {
-      if (e.name !== 'AbortError') {
-        updateRaven(ravenId, '<i>Analysis error. Try again.</i>', undefined, undefined);
+      if (e?.name === 'AbortError') {
+        commitRavenError(ravenId, 'Upload analysis cancelled.');
+      } else {
+        console.error('Upload analysis error:', e);
+        commitRavenError(ravenId, 'Analysis error. Try again.');
       }
     } finally {
       setTyping(false); 
@@ -884,49 +896,42 @@ export default function ChatClient(){
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     const ravenId = generateId();
-    setMessages((m: Message[]) => [...m, { id: ravenId, role: 'raven', html: '', climate: '', hook: '' }]);
+    setMessages((m: Message[]) => [...m, { id: ravenId, role: 'raven', html: '', climate: '', hook: '', intent: undefined, probe: null, draft: null, prov: null }]);
     
     try {
-      const res = await fetch('/api/chat', {
+      const payload = {
+        input: text,
+        sessionId: ravenSessionId ?? undefined,
+        options: {
+          reportContexts: reportContexts.map(rc => ({
+            id: rc.id,
+            type: rc.type,
+            name: rc.name,
+            summary: rc.summary,
+            content: rc.content
+          })),
+          relocation
+        }
+      };
+      const res = await fetch('/api/raven', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, { role: 'user', content: text }] }),
+        body: JSON.stringify(payload),
         signal: ctrl.signal
       });
-      
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      if (!res.body) throw new Error('No response body');
-      
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let partialChunk = '';
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        partialChunk += decoder.decode(value, { stream: true });
-        const lines = partialChunk.split('\n');
-        partialChunk = lines.pop() || '';
-        
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const parsed = JSON.parse(line);
-            setMessages((m: Message[]) => m.map(msg => 
-              msg.id === ravenId ? { ...msg, html: msg.html + (parsed.delta || ''), climate: parsed.climate || msg.climate, hook: parsed.hook || msg.hook } : msg
-            ));
-          } catch (e) {
-            console.warn('Failed to parse streaming chunk:', e);
-          }
-        }
+      const data: RavenDraftResponse = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        const fallback = typeof data?.error === 'string' ? data.error : (res.ok ? 'Raven could not complete that request.' : `Request failed (${res.status})`);
+        commitRavenError(ravenId, fallback);
+        return;
       }
+      applyRavenResponse(ravenId, data, 'No mirror returned for this lane.');
     } catch (error: any) {
-      if (error.name !== 'AbortError') {
-        console.error('Stream error:', error);
-        setMessages((m: Message[]) => m.map(msg => 
-          msg.id === ravenId ? { ...msg, html: 'Error: Failed to get response from Raven.' } : msg
-        ));
+      if (error?.name === 'AbortError') {
+        commitRavenError(ravenId, 'Request cancelled.');
+      } else {
+        console.error('Raven request failed:', error);
+        commitRavenError(ravenId, 'Error: Failed to reach Raven API.');
       }
     } finally {
       setTyping(false);
@@ -966,46 +971,45 @@ export default function ChatClient(){
     const ctrl = new AbortController();
     abortRef.current = ctrl;
   const ravenId = generateId();
-    setMessages((m:Message[])=>[...m, {id:ravenId, role:'raven', html:'', climate:'', hook:''}]);
+    setMessages((m:Message[])=>[...m, {id:ravenId, role:'raven', html:'', climate:'', hook:'', intent: undefined, probe: null, draft: null, prov: null}]);
     try {
-      const res = await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
-        messages: [...messages, {role:'user', content:text}],
-        reportContexts: reportContexts.map(rc => ({
-          id: rc.id,
-          type: rc.type,
-          name: rc.name,
-          summary: rc.summary,
-          content: rc.content
-        }))
-      }), signal: ctrl.signal});
-      if(!res.body) throw new Error('No stream');
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let acc=''; let climate: string|undefined; let hook: string|undefined;
-      while(true){
-        const {value, done} = await reader.read();
-        if(done){
-          updateRaven(ravenId, acc, climate, hook, true);
-          break;
+      const payload = {
+        input: text,
+        sessionId: ravenSessionId ?? undefined,
+        options: {
+          reportContexts: reportContexts.map(rc => ({
+            id: rc.id,
+            type: rc.type,
+            name: rc.name,
+            summary: rc.summary,
+            content: rc.content
+          })),
+          relocation
         }
-        const chunk = decoder.decode(value, {stream:true});
-        const lines = chunk.split(/\n+/).filter(Boolean);
-        for(const ln of lines){
-          try {
-            const obj = JSON.parse(ln);
-            if(obj.delta){
-              acc += obj.delta;
-              climate = obj.climate || climate;
-              hook = obj.hook || hook;
-              updateRaven(ravenId, acc, climate, hook, false);
-            }
-          } catch {/* ignore partial */}
-        }
+      };
+      const res = await fetch('/api/raven', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload),
+        signal: ctrl.signal
+      });
+      const data: RavenDraftResponse = await res.json().catch(() => ({}));
+      if(!res.ok || !data?.ok){
+        const fallback = typeof data?.error === 'string' ? data.error : (res.ok ? 'Raven could not complete that request.' : `Request failed (${res.status})`);
+        commitRavenError(ravenId, fallback);
+        return;
       }
+      applyRavenResponse(ravenId, data, 'No mirror returned for this lane.');
     } catch(e:any){
-      if(e.name !== 'AbortError') updateRaven(ravenId, '<i>Stream error. Try again.</i>', undefined, undefined);
+      if(e?.name === 'AbortError') {
+        commitRavenError(ravenId, 'Request cancelled.');
+      } else {
+        console.error('Raven request failed:', e);
+        commitRavenError(ravenId, 'Error: Failed to reach Raven API.');
+      }
     } finally {
-      setTyping(false); abortRef.current = null;
+      setTyping(false);
+      abortRef.current = null;
     }
   }
 
@@ -1272,122 +1276,58 @@ export default function ChatClient(){
     abortRef.current?.abort();
   }
 
-  function formatResponseText(text: string): string {
-    if (!text) return '';
-    const raw = text.replace(/\r/g, '').trim();
-    const blocks = raw.split(/\n{2,}/); // user-intent paragraphs
-    const paragraphs: string[] = [];
-    for (const block of blocks) {
-      const sentences = (block.match(/[^.!?]+[.!?]?/g) || [block]).map(s => s.trim()).filter(Boolean);
-      let acc = '';
-      for (const s of sentences) {
-        // Merge very short sentences to avoid choppy paragraphs
-        if ((acc + ' ' + s).trim().length > 320) {
-          if (acc) paragraphs.push(acc.trim());
-          acc = s;
-        } else {
-          acc = acc ? acc + ' ' + s : s;
-        }
-      }
-      if (acc) paragraphs.push(acc.trim());
-    }
-    return paragraphs.map(p => `<p>${p}</p>`).join('\n');
-  }
-
-  // Refinement: coherence, de-duplication, gentle confidence tuning
-  function refineResponseText(text: string, userAffirmed: boolean): string {
-    let t = text;
-    // Fix common streaming typos / mashed tokens
-    t = t.replace(/surprsing/gi, 'surprising')
-         .replace(/coorlleation/gi, 'correlation')
-         .replace(/correllation/gi, 'correlation');
-    // Insert sentence boundary where a lowercase letter is immediately followed by capital start
-    t = t.replace(/([a-z])([A-Z][a-z])/g, '$1. $2');
-    // Remove duplicated opening acknowledgement fragments
-    t = t.replace(/^\s*(it does|yes|yeah|yep|indeed|sure)\b[\s\.,;:-]*/i, '');
-    // If we have a mashed echo + explanation (e.g., "It does. That may surprising.Does what fit") fix punctuation spacing
-    t = t.replace(/\.([A-Z])/g, '. $1');
-    // Collapse accidental duplicate starts (e.g., "It does. It does.")
-    t = t.replace(/^(It does\.)\s+It does\./i, '$1');
-    // Confidence adjustment: only if user affirmed and early sentence references correlation / balance meter
-    if (userAffirmed) {
-      t = t.replace(/\bmay be showing up\b/i, 'is likely showing up');
-      t = t.replace(/\bmay reflect\b/i, 'likely reflects');
-      // Upgrade a single cautious modal in first 180 chars
-      const head = t.slice(0, 180);
-      const upgraded = head.replace(/\b(may|might|could)\b(?! have)/i, 'likely');
-      t = upgraded + t.slice(180);
-    }
-    // Guard against over-confidence: ensure no absolute deterministic claims
-    t = t.replace(/\bwill certainly\b/gi, 'will likely');
-    return t.trim();
-  }
-
-  function updateRaven(id: string, html: string, climate?: string, hook?: string, final: boolean = false) {
-    const now = Date.now();
-    const boundaryPunct = /[.!?]$/;
-    const enoughTime = now - lastUpdateRef.current > throttleDelay;
-    const atSentenceBoundary = boundaryPunct.test(html.trim());
-    // Only push partial updates at sentence boundaries or when sufficient time elapsed
-    if (!(final || atSentenceBoundary || enoughTime)) return;
-    lastUpdateRef.current = now;
-
-    // Cleaning & formatting pipeline
-    let cleaned = cleanseFrontstage(html);
-
-    // Remove accidental echo of short user acknowledgement at start
-    const lastUser = [...messages].reverse().find(m => m.role === 'user');
-    if (lastUser) {
-      const ack = lastUser.html.replace(/<[^>]*>/g, '').trim().toLowerCase();
-      if (ack && ack.length <= 18) {
-        const lowerClean = cleaned.trimStart().toLowerCase();
-        if (lowerClean.startsWith(ack + '.') || lowerClean.startsWith(ack + ' ')) {
-          cleaned = cleaned.trimStart().slice(ack.length).replace(/^\.?\s*/, '');
-        }
-      }
-    }
-
-    // Grammar / spacing fixes before paragraph formatting
-    cleaned = cleaned
-      // Ensure space after punctuation if followed by a letter
-      .replace(/([.!?])(\w)/g, '$1 $2')
-      // Collapse triple dots spacing issues
-      .replace(/\.\.\./g, '…')
-      // Fix duplicate spaces
-      .replace(/ {2,}/g, ' ');
-
-  // Determine if last user message was an affirmative acknowledgement
-  const lastUserPlain = lastUser ? lastUser.html.replace(/<[^>]*>/g, '').toLowerCase() : '';
-  const userAffirmed = /\b(yes|yeah|yep|it does|it did|correct|right|exactly|true|that matches|i agree)\b/.test(lastUserPlain);
-  cleaned = refineResponseText(cleaned, userAffirmed);
-  const formattedHtml = formatResponseText(cleaned);
-
-    // Determine if this is the first substantive Raven message (only the intro existed before)
-  const priorRavenCount = messages.filter(m => m.role === 'raven' && m.id !== id).length;
-  const isFirstSubstantiveRaven = priorRavenCount <= 1; // suppress only for very first mirror
-
-    setMessages((m: Message[]) => 
-      m.map(msg => {
-        if (msg.id !== id) return msg;
-        // Only append recognition prompt on final commit (avoid appearing mid-stream)
-        const finalHtml = final 
-          ? (isFirstSubstantiveRaven ? formattedHtml : maybeAppendRecognitionPrompt(formattedHtml, msg.isReport, lastUserPlain))
-          : formattedHtml;
-        return {
-          ...msg,
-            html: finalHtml,
-            climate: climate || msg.climate,
-            hook: hook || msg.hook
-        };
-      })
-    );
-  }
 
   function pickHook(text:string){
     if(/dream|sleep/i.test(text)) return 'Duty & Dreams · Saturn ↔ Neptune';
     if(/private|depth|shadow/i.test(text)) return 'Private & Piercing · Mercury ↔ Pluto';
     if(/restless|ground/i.test(text)) return 'Restless & Grounded · Pluto ↔ Moon';
     return undefined;
+  }
+
+  function pushIntentToast(intent?: Intent) {
+    const message = getIntentToast(intent);
+    if (!message) return;
+    setToast(message);
+    if (toastTimeoutRef.current) {
+      window.clearTimeout(toastTimeoutRef.current);
+    }
+    toastTimeoutRef.current = window.setTimeout(() => setToast(null), 3200);
+  }
+
+  function commitRavenResult(ravenId: string, response: RavenDraftResponse, fallbackMessage?: string) {
+    const html = response?.draft
+      ? formatShareableDraft(response.draft, response.prov ?? null)
+      : fallbackMessage
+        ? `<p>${escapeHtml(fallbackMessage)}</p>`
+        : '<i>No mirror returned.</i>';
+    const climateDisplay = formatClimate(response?.climate ?? undefined);
+    const hook = formatIntentHook(response?.intent, response?.prov ?? null);
+    setMessages(prev => prev.map(msg => {
+      if (msg.id !== ravenId) return msg;
+      return {
+        ...msg,
+        html,
+        climate: climateDisplay ?? msg.climate,
+        hook: hook ?? msg.hook,
+        intent: response.intent ?? msg.intent,
+        probe: response.probe ?? null,
+        draft: response.draft ?? null,
+        prov: response.prov ?? null
+      };
+    }));
+  }
+
+  function applyRavenResponse(ravenId: string, response: RavenDraftResponse, fallbackMessage?: string) {
+    if (response.sessionId) {
+      setRavenSessionId(response.sessionId);
+    }
+    pushIntentToast(response.intent);
+    commitRavenResult(ravenId, response, fallbackMessage);
+  }
+
+  function commitRavenError(ravenId: string, message: string) {
+    const html = `<i>${escapeHtml(message)}</i>`;
+    setMessages(prev => prev.map(msg => msg.id === ravenId ? { ...msg, html, climate: undefined, hook: undefined } : msg));
   }
 
   // (legacy local escapeHtml retained above for global use)
@@ -1418,6 +1358,27 @@ export default function ChatClient(){
   onShowPendingReview={() => setShowPendingReview(true)}
   onShowHelp={() => setShowHelp(true)}
       />
+      {toast && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 76,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(30, 41, 59, 0.92)',
+            color: '#e2e8f0',
+            padding: '10px 16px',
+            borderRadius: 12,
+            border: '1px solid rgba(148, 163, 184, 0.28)',
+            boxShadow: '0 12px 32px rgba(15, 23, 42, 0.35)',
+            fontSize: 13,
+            zIndex: 1200,
+            letterSpacing: '0.02em'
+          }}
+        >
+          {toast}
+        </div>
+      )}
       {/* Tiny hand-off banner confirming FIELD → MAP → VOICE context with Balance Meter terms */}
       {showMbBanner && mbLastSession && (
         <div className="flex items-center justify-center gap-3 px-3 py-2 bg-[var(--panel)] border-b border-[var(--line)] text-[13px]">
@@ -2130,6 +2091,7 @@ function Bubble({msg, onToggleCollapse, onRemove, onPingFeedback}:{
   onPingFeedback: (messageId: string, response: PingResponse, note?: string) => void;
 }){
   const [isCopied, setIsCopied] = useState(false);
+  const [showMirror, setShowMirror] = useState(false);
   const base:React.CSSProperties={maxWidth:'82%', padding:'12px 14px', borderRadius:16, position:'relative', boxShadow:'0 6px 16px rgba(0,0,0,.25)', border:'1px solid #1f2533', scrollMarginTop:120};
   const style = msg.role==='user' ? {alignSelf:'flex-end', background:'linear-gradient(180deg,#1f2432,#171b25)'} : {alignSelf:'flex-start', background:'linear-gradient(180deg,#171b25,#131824)', borderLeft:'2px solid #2b3244'};
   
@@ -2202,24 +2164,57 @@ function Bubble({msg, onToggleCollapse, onRemove, onPingFeedback}:{
     );
   }
   
+  // Determine primary HTML to display: prefer draft.raw (LLM output) for Raven messages
+  let primaryHtml = '';
+  if (msg.role === 'raven') {
+    if (msg.draft && typeof msg.draft.raw === 'string' && msg.draft.raw.trim()) {
+      const cleaned = cleanseFrontstage(String(msg.draft.raw || ''));
+      // escape and preserve line breaks
+      primaryHtml = `<div class="raven-raw">${escapeHtml(cleaned).replace(/\n/g, '<br/>')}</div>`;
+    } else {
+      primaryHtml = msg.html || '';
+    }
+  } else {
+    primaryHtml = (msg.role === 'user' && !msg.isReport) ? escapeHtml(msg.html) : msg.html;
+  }
+
   // Regular message display
+  const baseClass = 'max-w-[82%] px-4 py-3 rounded-[16px] relative shadow-[0_6px_16px_rgba(0,0,0,0.25)] border border-[#1f2533] scroll-mt-[120px]';
+  const userClass = 'self-end bg-gradient-to-b from-[#1f2432] to-[#171b25]';
+  const ravenClass = 'self-start bg-gradient-to-b from-[#171b25] to-[#131824] border-l-2 border-l-[#2b3244]';
+
   return (
-    <article id={`message-${msg.id}`} style={{...base, ...style}}>
+    <article id={`message-${msg.id}`} className={`${baseClass} ${msg.role === 'user' ? userClass : ravenClass}`}>
       {/* Top climate/hook header for Raven messages */}
       {msg.role === 'raven' && (msg.climate || msg.hook) && (
-        <div style={{marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid #2a3143'}}>
+        <div className="mb-2 pb-1 border-b border-[#2a3143]">
           {msg.climate && (
-            <div style={{fontSize:10, color:'#8b94a6'}}>{msg.climate}</div>
+            <div className="text-[10px] text-[#8b94a6]">{msg.climate}</div>
           )}
           {msg.hook && (
-            <div style={{fontSize:10, color:'#8b94a6'}}>{msg.hook}</div>
+            <div className="text-[10px] text-[#8b94a6]">{msg.hook}</div>
           )}
         </div>
       )}
-      <div className={msg.role === 'raven' ? 'raven-response' : ''} dangerouslySetInnerHTML={{__html: (msg.role === 'user' && !msg.isReport) ? escapeHtml(msg.html) : msg.html}} />
+      <div className={msg.role === 'raven' ? 'raven-response' : ''} dangerouslySetInnerHTML={{__html: primaryHtml}} />
+
+      {/* Structured mirror (collapsible) when available from draft */}
+      {msg.draft && (
+        <div className="mt-2">
+          <button
+            onClick={() => setShowMirror(s => !s)}
+            className="bg-none border border-[#2a3143] rounded-[6px] text-[#8b94a6] px-2 py-1 text-[12px] mb-2"
+          >
+            {showMirror ? 'Hide Mirror' : 'Show Mirror'}
+          </button>
+          {showMirror && (
+            <div dangerouslySetInnerHTML={{ __html: formatShareableDraft(msg.draft, msg.prov) }} />
+          )}
+        </div>
+      )}
       {msg.role==='raven' && containsInitialProbe(msg.html) && !pingTracker.getFeedback(msg.id) && (
-        <div style={{marginTop:6, fontSize:10, color:'#94a3b8'}}>
-          <span style={{display:'inline-block', width:6, height:6, borderRadius:3, background:'#94a3b8', marginRight:6}}></span>
+        <div className="mt-1 text-[10px] text-[#94a3b8]">
+          <span className="inline-block w-[6px] h-[6px] rounded-[3px] bg-[#94a3b8] mr-2"></span>
           Pending
         </div>
       )}
@@ -2236,32 +2231,23 @@ function Bubble({msg, onToggleCollapse, onRemove, onPingFeedback}:{
       
       {/* Add ping feedback for other initial probes (non-repair) */}
       {msg.role === 'raven' && containsInitialProbe(msg.html) && !containsRepairValidation(msg.html) && (
-        <div style={{marginTop: 8, padding: '8px 12px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '6px', fontSize: '12px', color: '#93c5fd'}}>
+        <div className="mt-2 px-3 py-2 bg-[rgba(59,130,246,0.1)] border border-[rgba(59,130,246,0.2)] rounded-[6px] text-[12px] text-[#93c5fd]">
           💭 <em>Raven will classify your response and provide repair if needed - no grading required</em>
         </div>
       )}
       
       {msg.role === 'raven' && (
-        <div style={{display: 'flex', gap: 4, marginTop: 8, justifyContent: 'flex-end'}}>
+        <div className="flex gap-1 mt-2 justify-end">
           <button 
             onClick={() => copyToClipboard(msg.html)}
-            style={{
-              background: isCopied ? 'var(--good)' : 'var(--soft)',
-              color: isCopied? 'white' : 'var(--muted)',
-              border: '1px solid var(--line)',
-              borderRadius: 6,
-              padding: '2px 8px',
-              fontSize: 10,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
+            className={`${isCopied ? 'bg-[var(--good)] text-white' : 'bg-[var(--soft)] text-[var(--muted)]'} px-2 py-1 border border-[var(--line)] rounded-[6px] text-[10px]`}
           >
             {isCopied ? 'Copied!' : 'Copy'}
           </button>
         </div>
       )}
-      {msg.climate && <div style={{fontSize:10, color:'#8b94a6', marginTop:8, borderTop:'1px solid #2a3143', paddingTop:6}}>{msg.climate}</div>}
-      {msg.hook && <div style={{fontSize:10, color:'#8b94a6'}}>{msg.hook}</div>}
+      {msg.climate && <div className="text-[10px] text-[#8b94a6] mt-2 border-t border-[#2a3143] pt-1">{msg.climate}</div>}
+      {msg.hook && <div className="text-[10px] text-[#8b94a6]">{msg.hook}</div>}
     </article>
   );
 }

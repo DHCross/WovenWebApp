@@ -8,10 +8,16 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const params = Object.fromEntries(url.searchParams);
 
+  // Convert headers
+  const headers: Record<string, string> = {};
+  request.headers.forEach((value, key) => {
+    headers[key] = value;
+  });
+
   const event = {
     httpMethod: 'GET',
     queryStringParameters: params,
-    headers: Object.fromEntries(request.headers.entries()),
+    headers,
   };
 
   const result = await mathBrainFunction.health(event);

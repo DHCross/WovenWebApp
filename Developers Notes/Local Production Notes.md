@@ -7,6 +7,20 @@ If you switch AI models, coding agents, or Copilot tools, session memory may be 
 ---
 Local Production Flow
 
+For Next.js, use these commands:
+
+**Start the Next.js dev server:**
+```bash
+npm run dev
+```
+
+**Stop the Next.js dev server:**
+```bash
+pkill -f "next dev"
+```
+
+This will start or stop the local Next.js development server at http://localhost:3000. If you use VS Code tasks, "Start Netlify Dev Server" runs `npm run dev`, and "Stop Netlify Dev Process (Force Kill)" kills any running dev server.
+
 Developers Notes to Self
 
 To run your local prod flow:
