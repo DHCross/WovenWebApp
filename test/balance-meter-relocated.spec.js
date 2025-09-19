@@ -6,7 +6,7 @@
 const assert = (cond, msg) => { if (!cond) { throw new Error(msg); } };
 
 (async function(){
-  const fn = require('../netlify/functions/astrology-mathbrain.js');
+  const fn = require('../lib/server/astrology-mathbrain.js');
 
   // Force real path if key exists to validate provenance stamping
   if (process.env.RAPIDAPI_KEY) process.env.MB_MOCK = 'false';

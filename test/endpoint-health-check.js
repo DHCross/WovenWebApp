@@ -232,25 +232,35 @@ class EndpointHealthChecker {
         console.log('⚙️  CONFIGURATION ENDPOINTS');
         console.log('-'.repeat(30));
         
-        // Test Netlify function proxy routes
-        await this.checkEndpoint('Function Route (astrology)', '/.netlify/functions/astrology-mathbrain', {
+        await this.checkEndpoint('API Route (astrology-mathbrain)', '/api/astrology-mathbrain', {
+            method: 'GET',
             validateResponse: (data, response) => {
-                if (response.status === 405) {
-                    return { success: 'Direct function route accessible' };
+                if (response.status === 200 && data.success) {
+                    return { success: 'Astrology API route reachable' };
                 }
-                return { error: `Direct function route: ${response.status}` };
+                return { error: `Astrology API route returned ${response.status}` };
             }
         });
-        
-        await this.checkEndpoint('Function Route (auth-config)', '/.netlify/functions/auth-config', {
+
+        await this.checkEndpoint('API Route (astrology-health)', '/api/astrology-health', {
             validateResponse: (data, response) => {
-                if (response.status === 200 || response.status === 500) {
-                    return { success: 'Auth config function accessible' };
+                if (response.status === 200 && data.success) {
+                    return { success: 'Astrology health route reachable' };
                 }
-                return { error: `Auth config function: ${response.status}` };
+                return { error: `Astrology health route returned ${response.status}` };
             }
         });
-    }
+
+        await this.checkEndpoint('Static Asset (auth0 sdk)', '/vendor/auth0-spa-js.production.js', {
+            method: 'HEAD',
+            validateResponse: (_, response) => {
+                if (response.status === 200) {
+                    return { success: 'Auth0 SDK asset reachable' };
+                }
+                return { error: `Auth0 SDK asset returned ${response.status}` };
+            }
+        });
+}
 
     printSummary() {
         console.log('📊 HEALTH CHECK SUMMARY');
@@ -312,7 +322,9 @@ if (typeof fetch === 'undefined') {
 async function runEndpointHealthCheck() {
     const args = process.argv.slice(2);
     const isLocal = args.includes('--local') || (!args.includes('--production'));
-    const baseUrl = isLocal ? 'http://localhost:8888' : process.env.DEPLOY_URL || 'https://your-site.netlify.app';
+    const baseUrl = isLocal
+        ? 'http://localhost:3000'
+        : process.env.DEPLOY_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://ravencalder.com';
     
     const checker = new EndpointHealthChecker({
         baseUrl,

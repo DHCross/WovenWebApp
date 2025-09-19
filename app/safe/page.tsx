@@ -10,8 +10,8 @@ export default function SafePage(){
 
   useEffect(()=>{
     async function run(){
-      try { const r = await fetch('/.netlify/functions/api-health'); setApi(await r.json()); } catch(e:any){ setApi({error:e?.message||String(e)}); }
-      try { const r = await fetch('/.netlify/functions/astrology-health?ping=now'); setAstro(await r.json()); } catch(e:any){ setAstro({error:e?.message||String(e)}); }
+      try { const r = await fetch('/api/health'); setApi(await r.json()); } catch(e:any){ setApi({error:e?.message||String(e)}); }
+      try { const r = await fetch('/api/astrology-health?ping=now'); setAstro(await r.json()); } catch(e:any){ setAstro({error:e?.message||String(e)}); }
       try {
         const r = await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({messages:[{role:'user',content:'planetary weather only'}]})});
         setChatPing({ ok: r.ok, status: r.status });
@@ -54,4 +54,3 @@ export default function SafePage(){
     </main>
   );
 }
-

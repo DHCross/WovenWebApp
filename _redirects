@@ -1,7 +1,0 @@
-/api/auth-config              /.netlify/functions/auth-config            200
-/api/astrology-mathbrain      /.netlify/functions/astrology-mathbrain    200
-# Map pretty path /vendor/* to the actual public directory
-/vendor/*                 /public/vendor/:splat     200!
-# Also allow direct access (redundant in Next dev, but safe)
-/public/vendor/*          /public/vendor/:splat     200!
-## Note: Legacy callback redirect removed; App Router/Auth0 handle callbacks now

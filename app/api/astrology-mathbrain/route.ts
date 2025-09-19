@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 
-// Import the existing Netlify function logic
-// Since this is a CommonJS module, we'll need to use require
-const netlifyHandler = require('../../../netlify/functions/astrology-mathbrain.js');
+// Reuse the legacy math brain implementation directly
+const mathBrainFunction = require('../../../lib/server/astrology-mathbrain.js');
 
 export async function GET(request: NextRequest) {
   // Convert Next.js request to Netlify event format
@@ -41,7 +40,7 @@ export async function GET(request: NextRequest) {
   };
 
   try {
-    const result = await netlifyHandler.handler(event, context);
+    const result = await mathBrainFunction.handler(event, context);
     
     return new NextResponse(result.body, {
       status: result.statusCode,
@@ -150,7 +149,7 @@ export async function POST(request: NextRequest) {
       getRemainingTimeInMillis: () => 30000
     };
 
-    const result = await netlifyHandler.handler(event, context);
+    const result = await mathBrainFunction.handler(event, context);
     
     return new NextResponse(result.body, {
       status: result.statusCode,

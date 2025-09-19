@@ -495,7 +495,7 @@ class Auth0ConfigValidator {
         console.log('\n📚 NEXT STEPS:');
         console.log('   1. Fix any critical issues above');
         console.log('   2. Verify URL whitelisting in Auth0 Dashboard');
-        console.log('   3. Test auth flow: curl -s https://your-site/.netlify/functions/auth-config');
+        console.log('   3. Test auth flow: curl -s https://your-site/api/auth-config');
         console.log('   4. Verify application type is "Single Page Application"');
         console.log('   5. Check grant types include "Authorization Code with PKCE"');
         

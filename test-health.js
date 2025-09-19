@@ -2,7 +2,7 @@
 require('dotenv').config();
 
 (async () => {
-  const handler = require('./netlify/functions/astrology-mathbrain.js');
+  const handler = require('./lib/server/astrology-mathbrain.js');
   
   console.log('🔍 Testing health endpoint...');
   console.log('RAPIDAPI_KEY present:', !!process.env.RAPIDAPI_KEY);

@@ -92,7 +92,7 @@ function setupTestEnvironment() {
 }
 
 function loadModule() {
-  const modulePath = path.join(__dirname, '..', 'netlify', 'functions', 'astrology-mathbrain.js');
+  const modulePath = path.join(__dirname, '..', 'lib', 'server', 'astrology-mathbrain.js');
   delete require.cache[require.resolve(modulePath)];
   return require(modulePath);
 }

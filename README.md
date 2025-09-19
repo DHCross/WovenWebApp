@@ -291,7 +291,7 @@ Coords-only note: remove city/state/nation and include lat, lon (or lng per upst
 
 **Probe script & verification checklist (dev)**
 - Add RAPIDAPI_KEY and optional GEONAMES_USERNAME to .env.
-- Run dev server: npm run dev or netlify dev.
+- Run dev server: npm run dev (Next.js on http://localhost:3000).
 - Run probe: node scripts/probe-provenance.js.
 - Check output:
 	- provenance top-level present

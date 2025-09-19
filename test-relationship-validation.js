@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Load the backend function for testing
-const functionPath = path.join(__dirname, 'netlify/functions/astrology-mathbrain.js');
+const functionPath = path.join(__dirname, '..', 'lib/server/astrology-mathbrain.js');
 
 let astroFunction;
 try {

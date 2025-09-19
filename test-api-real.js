@@ -11,7 +11,7 @@
 (async () => {
   process.env.MB_MOCK = 'false';
   
-  const handler = require('./netlify/functions/astrology-mathbrain.js');
+  const handler = require('./lib/server/astrology-mathbrain.js');
   
   const event = {
     httpMethod: 'POST',

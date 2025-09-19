@@ -150,39 +150,30 @@ function setupAuth0Tests(runner) {
         }
     }, { category: 'auth0', critical: false });
 
-    runner.test('Auth config function exists', () => {
-        const authConfigPath = path.join(__dirname, '..', 'netlify', 'functions', 'auth-config.js');
-        runner.assert(fs.existsSync(authConfigPath), 'auth-config.js function not found');
-    }, { category: 'auth0', critical: false });
+    runner.test('Auth config API route exists', () => {
+        const authRoutePath = path.join(__dirname, '..', 'app', 'api', 'auth-config', 'route.ts');
+        runner.assert(fs.existsSync(authRoutePath), 'Auth config API route not found');
+    }, { category: 'auth0', critical: true });
 }
 
 /**
- * Netlify Function Tests
+ * API Route Tests
  */
-function setupFunctionTests(runner) {
-    runner.test('Primary math brain function exists', () => {
-        const mathBrainPath = path.join(__dirname, '..', 'netlify', 'functions', 'astrology-mathbrain.js');
-        runner.assert(fs.existsSync(mathBrainPath), 'astrology-mathbrain.js function not found');
-    }, { category: 'functions', critical: true });
+function setupApiRouteTests(runner) {
+    runner.test('Astrology Math Brain API route exists', () => {
+        const apiRoutePath = path.join(__dirname, '..', 'app', 'api', 'astrology-mathbrain', 'route.ts');
+        runner.assert(fs.existsSync(apiRoutePath), 'Astrology Math Brain API route not found');
+    }, { category: 'api routes', critical: true });
 
-    runner.test('Function dependencies available', () => {
-        const seismographPath = path.join(__dirname, '..', 'src', 'seismograph.js');
-        const ravenMapperPath = path.join(__dirname, '..', 'src', 'raven-lite-mapper.js');
-        
-        runner.assert(fs.existsSync(seismographPath), 'seismograph.js module not found');
-        runner.assert(fs.existsSync(ravenMapperPath), 'raven-lite-mapper.js module not found');
-    }, { category: 'functions', critical: true });
+    runner.test('Astrology service module available', () => {
+        const servicePath = path.join(__dirname, '..', 'lib', 'server', 'astrology-mathbrain.js');
+        runner.assert(fs.existsSync(servicePath), 'Astrology service module not found');
+    }, { category: 'api routes', critical: true });
 
-    runner.test('Math brain function can be loaded', () => {
-        try {
-            const mathBrainPath = path.join(__dirname, '..', 'netlify', 'functions', 'astrology-mathbrain.js');
-            delete require.cache[require.resolve(mathBrainPath)];
-            const mathBrain = require(mathBrainPath);
-            runner.assert(typeof mathBrain.handler === 'function', 'Math brain handler not found');
-        } catch (error) {
-            throw new Error(`Failed to load math brain function: ${error.message}`);
-        }
-    }, { category: 'functions', critical: true });
+    runner.test('Health API route exists', () => {
+        const healthRoute = path.join(__dirname, '..', 'app', 'api', 'health', 'route.ts');
+        runner.assert(fs.existsSync(healthRoute), 'Health API route not found');
+    }, { category: 'api routes', critical: false });
 }
 
 /**
@@ -217,11 +208,13 @@ function setupConfigTests(runner) {
  */
 function setupFileStructureTests(runner) {
     runner.test('Core application files exist', () => {
-        const indexPath = path.join(__dirname, '..', 'index.html');
-        const configPath = path.join(__dirname, '..', 'config.js');
+        const appEntry = path.join(__dirname, '..', 'app', 'page.tsx');
+        const mathBrainPage = path.join(__dirname, '..', 'app', 'math-brain', 'page.tsx');
+        const chatPage = path.join(__dirname, '..', 'app', 'chat', 'page.tsx');
         
-        runner.assert(fs.existsSync(indexPath), 'index.html not found');
-        runner.assert(fs.existsSync(configPath), 'config.js not found');
+        runner.assert(fs.existsSync(appEntry), 'App router entry (app/page.tsx) not found');
+        runner.assert(fs.existsSync(mathBrainPage), 'Math Brain page not found');
+        runner.assert(fs.existsSync(chatPage), 'Chat page not found');
     }, { category: 'files', critical: true });
 
     runner.test('Documentation files exist', () => {
@@ -270,7 +263,7 @@ async function runSmokeTests() {
     // Setup test suites
     setupEnvironmentTests(runner);
     setupAuth0Tests(runner);
-    setupFunctionTests(runner);
+    setupApiRouteTests(runner);
     setupConfigTests(runner);
     setupFileStructureTests(runner);
     

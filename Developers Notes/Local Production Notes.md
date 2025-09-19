@@ -1,3 +1,10 @@
+---
+
+## AI Context Reminder
+
+If you switch AI models, coding agents, or Copilot tools, session memory may be lost. Always re-read this doc and the troubleshooting notes to confirm the current recommended local and production flow. This avoids confusion from context resets and ensures you’re running the right server and workflow.
+
+---
 Local Production Flow
 
 Developers Notes to Self
@@ -9,11 +16,6 @@ npm ci
 npm run build:prod
 npm run start:prod
 # http://localhost:3000
-
-And Netlify emulation (unchanged):
-
-npx netlify dev
-# http://localhost:8888
 
 Full Command (cut and paste what is below)
 
@@ -44,6 +46,29 @@ nvm use 20 → switches to Node 20 (matches Netlify).
 	•	Netlify will continue to run next build → next start using its plugin.
 	•	The new scripts are just extra options for you locally; they won’t break Netlify.
 
+---
+
+## TROUBLESHOOTING: Hybrid Beast vs. Pure Next.js
+
+If you see a broken, non-interactive version of your site (dead buttons, static checkboxes, save not working), you are running the **old "hybrid beast" server**—serving the legacy static `index.html` instead of the new React app.
+
+**Symptoms:**
+- Authentication buttons do nothing (Next.js API routes are ignored)
+- "Include Person B" checkbox is dead (static HTML, not React)
+- "Save" buttons don't work (React features not active)
+
+**Simple Fix:**
+1. Stop the old server in your terminal (`CTRL+C`).
+2. Start the new server:
+  ```bash
+  npm run dev
+  ```
+3. Use the new URL: open **http://localhost:3000** in your browser.
+
+Once you run the pure Next.js server at `localhost:3000`, all interactive features—auth, toggles, save—will work as expected.
+
+---
+
 In short: pushing this to GitHub makes your repo more portable, reproducible, and consistent for both you and collaborators.
 
 Nice — doable and sensible. Below I’ll give you a compact, practical plan + ready-to-drop code so your Next adapter on port 4000 only serves Poetic Brain to users who logged in with Google via Auth0.
@@ -60,9 +85,9 @@ No hand-waving — you can paste this into your repo and wire the env variables.
 
 1) Auth0 setup (tenant / application)
 	1.	In your Auth0 dashboard → Applications → your App (Machine-to-Frontend or Single Page App):
-	•	Allowed Callback URLs add http://localhost:4000/api/auth/callback (or your actual callback).
-	•	Allowed Web Origins add http://localhost:4000 (and port(s) you use).
-	•	Allowed Logout URLs likewise.
+    •	Allowed Callback URLs add http://localhost:3000/api/auth/callback (or your actual callback).
+    •	Allowed Web Origins add http://localhost:3000 (and any other ports you use).
+    •	Allowed Logout URLs likewise.
 	2.	In Connections → Social, enable Google and configure Client ID / Secret (OAuth).
 	3.	(Optional) Create an Action (Auth Pipeline) or Rule to add a claim if you want, but not required.
 	4.	Note these values for your .env:

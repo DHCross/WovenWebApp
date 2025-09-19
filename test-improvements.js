@@ -11,7 +11,7 @@ process.env.TRANSIT_BATCH_SIZE = '3';
 process.env.TRANSIT_BATCH_DELAY = '100';
 
 // Load the main function
-const { handler } = require('./netlify/functions/astrology-mathbrain.js');
+const { handler } = require('./lib/server/astrology-mathbrain.js');
 
 async function runTests() {
   console.log('🧪 Testing astrology-mathbrain.js improvements...\n');
