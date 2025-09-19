@@ -1,4 +1,3 @@
-
 # Raven Calder — Woven Web App
 
 Next.js App Router + TypeScript scaffold for Raven Calder’s Woven Web App. Includes Math Brain (geometry-first analysis) and Poetic Brain (chat) foundations.
@@ -439,3 +438,34 @@ Math Brain UX notes
 ### Midpoint relocation (policy)
 
 Midpoint relocation is available only by explicit opt-in. By default, dyad reports use `A_local` (Person A’s location) when `relocation_mode` is not specified. Midpoint mode may be requested but the upstream provider and our adapter can reject it (`RELOCATION_UNSUPPORTED`) depending on endpoint support. If you need midpoint flows as a standard option, flag the request explicitly in your API call and expect potential provider-specific constraints. For production stability we recommend `A_local`/`B_local` over midpoint unless you have a clear downstream use case.
+
+## Poetic Brain Chatbot — Architecture, Security, and Philosophy
+
+The Poetic Brain chatbot is a cornerstone feature of the Woven Map project, embodying the philosophy of strictly separating mathematical computation from narrative interpretation. It functions as a **diagnostic interpreter** that translates astrological geometry into emotionally resonant language.
+
+### 1. Architectural Foundation and Technology Stack
+
+- **Framework and Routing:** Pure Next.js App Router architecture. UI lives at `/chat` (`app/chat/page.tsx`).
+- **Front-end Components:** Built with React, using client-side hooks (`useState`, `useEffect`).
+- **Chat Implementation:** Context-aware, often using Vercel AI SDK (`useChat`) for streaming LLM responses.
+- **Styling:** All UI styled with Tailwind CSS.
+
+### 2. Role and Philosophical Compliance (Raven Calder System)
+
+- **Interpretive Role:** Diagnostic interpreter, translating geometry into recognizable speech (Mirror, not Oracle).
+- **Core Logic:** Strict FIELD → MAP → VOICE interpretive logic.
+- **Output Protocol:** Clear Mirror language—testable, specific, emotionally grounded, non-magical.
+- **Synthesizing Geometry:** Tracks Resonance Line, Paradox Line, and uses Poetic Codex for precise poetic inquiries.
+
+### 3. Security, Authentication, and Validation
+
+- **Strict Gating:** Gated behind authentication (`RequireAuth`).
+- **Authentication Flow:** Uses Auth0 for login, JWT issuance, and API protection.
+- **Validation and Error Handling:** All handoff logic ensures raw data is delivered to Math Brain API; outputs structured, falsifiable geometry. Technical errors logged as OSR events.
+
+### 4. Modular and Maintainable Architecture
+
+- **Role Separation:** Poetic Brain (narrative) strictly separated from Math Brain (computation).
+- **Unified Backend:** UI and backend API logic live within Next.js API Routes (`app/api/`).
+- **Self-Reporting Development:** Next.js provides build-time errors, stack traces, and linting for maintainability.
+- **Documentation:** Supported by detailed project notes, changelogs, and openapi.json as API blueprint.
