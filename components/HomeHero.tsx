@@ -24,6 +24,10 @@ export default function HomeHero() {
   const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [authCfg, setAuthCfg] = useState<{domain?: string; clientId?: string} | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  // Tiny debug flags to surface why login might be inert
+  const [sdkLoaded, setSdkLoaded] = useState(false);
+  const [clientReady, setClientReady] = useState(false);
   const enableDev = typeof window !== 'undefined' && String(process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS) === 'true';
   const clientRef = useRef<Auth0Client | null>(null);
 
@@ -50,6 +54,7 @@ export default function HomeHero() {
             document.head.appendChild(s);
           });
         }
+        setSdkLoaded(true);
 
         // Fetch public Auth0 config (proxied to Netlify function)
         let config: any;
@@ -85,6 +90,7 @@ export default function HomeHero() {
           authorizationParams: { redirect_uri: getRedirectUri() },
         });
         clientRef.current = client;
+        setClientReady(true);
 
         // Handle callback once (if coming back from Auth0)
         const qs = window.location.search;
@@ -124,8 +130,14 @@ export default function HomeHero() {
   }, []);
 
   const loginWithGoogle = async () => {
+    // Guard against inert click if client hasn't initialized yet
+    if (!clientRef.current) {
+      setError("Auth not ready yet. One moment, then try again. If this persists, open /debug-auth.");
+      return;
+    }
     try {
-      await clientRef.current?.loginWithRedirect({
+      setIsLoggingIn(true);
+      await clientRef.current.loginWithRedirect({
         authorizationParams: {
           redirect_uri: getRedirectUri(),
           // If the Google connection is configured in Auth0, this triggers the Google login directly
@@ -135,6 +147,9 @@ export default function HomeHero() {
       });
     } catch (e) {
       setError((e as any)?.message || "Login failed");
+    } finally {
+      // If we successfully redirected, this won't run. If it failed, we re-enable.
+      setIsLoggingIn(false);
     }
   };
 
@@ -166,10 +181,11 @@ export default function HomeHero() {
           ) : (
             <button
               onClick={loginWithGoogle}
-              className="rounded-md border border-slate-700 bg-slate-800 px-4 py-2 text-slate-100 hover:bg-slate-700"
+              disabled={!ready || !clientRef.current || isLoggingIn}
+              className={`rounded-md border border-slate-700 px-4 py-2 text-slate-100 ${(!ready || !clientRef.current || isLoggingIn) ? 'bg-slate-700/60 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700'}`}
               title="Sign in to enable Poetic Brain"
             >
-              Continue with Google
+              {isLoggingIn ? 'Redirecting…' : 'Continue with Google'}
             </button>
           )}
 
@@ -183,6 +199,15 @@ export default function HomeHero() {
         )}
         {error && (
           <p className="mt-3 text-xs text-rose-400">{error}</p>
+        )}
+        {enableDev && (
+          <p className="mt-2 text-[11px] text-slate-500">
+            Auth init • sdk: <span className="text-slate-300">{String(sdkLoaded)}</span> • client: <span className="text-slate-300">{String(clientReady)}</span>
+            {authCfg && (
+              <> • domain: <span className="text-slate-300">{authCfg.domain || '—'}</span> • client: <span className="text-slate-300">{authCfg.clientId ? String(authCfg.clientId).slice(0,4) + '…' : '—'}</span></>
+            )}
+            {' '}• <a href="/debug-auth" className="underline hover:text-slate-300">debug-auth</a>
+          </p>
         )}
         {enableDev && authCfg && (
           <p className="mt-2 text-[11px] text-slate-500">
