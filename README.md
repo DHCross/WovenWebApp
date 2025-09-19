@@ -15,6 +15,14 @@ This separation allows each brain to excel at its purpose and be developed indep
 
 ## Key Lessons Learned (2025-09)
 
+### [2025-09-19] Coordinate-Based Timezone Resolution
+
+**Why this matters:**
+- Math Brain API requires a strict IANA timezone string for birth location to accurately convert local birth time to UTC for geometry calculations.
+- The new system uses tz-lookup (from coordinates) and luxon (for DST-aware offset) to ensure every request includes the correct timezone.
+- This prevents errors from ambiguous city/nation fields and makes the geometry engine (Kerykeion) reliable and falsifiable.
+- GeoNames is now optional and only used if the user provides it; coordinates are always prioritized.
+
 ### Provenance & Auditability
 - Every report must stamp provenance: house system, orbs profile, relocation mode, timezone DB, engine versions, and math_brain_version. This ensures all results are auditable and reproducible.
 

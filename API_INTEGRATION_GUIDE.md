@@ -50,6 +50,22 @@ Why: audits, reproducibility, UI diagnostics, and debugging.
 
 ---
 
+## Timezone Handling
+
+### [2025-09-19] Coordinate-Based Timezone Lookup
+
+**Requirement:**
+- All Math Brain API requests must include a valid IANA timezone string (e.g., "America/New_York") for each subject.
+- Use tz-lookup to resolve timezone from latitude/longitude; use luxon to compute DST-aware UTC offset.
+- Do not rely on city/nation fields for timezone; GeoNames is optional and only used if explicitly provided by the user.
+
+**Implementation:**
+- Frontend collects coordinates and (optionally) explicit timezone or GeoNames username
+- Backend resolves timezone string from coordinates before sending to API
+- SubjectModel schema enforces timezone as a required field
+
+---
+
 ## 3. Relocation rules & practical guidance
 
 **What relocation does**

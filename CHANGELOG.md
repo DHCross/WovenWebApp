@@ -24,7 +24,21 @@ Auth0 is mothballed for now; both main app routes should be public for testing a
 
 ---
 
-- FEATURE: Honor explicit time_policy on server (planetary_only, whole_sign, sensitivity_scan)
+## [2025-09-19] FEATURE: Coordinate-Based IANA Timezone Resolution (luxon, tz-lookup)
+
+**Summary**
+Added luxon and tz-lookup libraries to enable strict IANA timezone string resolution from user-provided coordinates. This satisfies the Math Brain API's SubjectModel schema, which requires a precise timezone for birth location to ensure correct UTC conversion and geometry calculations.
+
+**Details**
+- Implemented coordinate-first timezone lookup: latitude/longitude → IANA timezone (e.g., "America/New_York")
+- Ensured all API payloads include the required timezone string, not just coordinates
+- Documented rationale: Math Brain's geometry engine (Kerykeion) needs exact timezone for planetary position calculations
+- Prevents errors from ambiguous city/nation fields; bridges coordinates to correct timezone
+- GeoNames remains optional/user-driven; no longer a default dependency
+
+**Verification**
+- Installed luxon and tz-lookup via npm
+- Confirmed correct timezone resolution for test locations
    - planetary_only/sensitivity_scan suppress house/angle semantics by excluding angles in active_points
    - whole_sign prefers houses_system_identifier=Whole_Sign and marks time_precision=noon_fallback
    - provenance meta (person_a.meta, person_b.meta, provenance.time_meta_*) reflect chosen policy
