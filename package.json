@@ -43,7 +43,7 @@
     "jsonwebtoken": "^9.0.2",
     "jszip": "^3.10.1",
     "jwks-rsa": "^3.2.0",
-    "luxon": "^3.4.4",
+    "luxon": "^3.7.2",
     "next": "14.2.32",
     "node-fetch": "^2.7.0",
     "pdfjs-dist": "^5.4.149",
