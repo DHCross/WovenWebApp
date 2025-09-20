@@ -747,4 +747,26 @@ Resolved Netlify build error caused by missing Babel preset required for Next.js
 
 **References**
 - Error logs: Plugin "@netlify/plugin-nextjs" failed due to missing Babel preset
-- Docs: https://www.npmjs.com/package/@babel/preset-env
+
+## [2025-09-20] FIX: Netlify Publish Directory Conflict
+
+**Summary**
+Resolved Netlify build failure caused by the publish directory being set to the base directory (`/`).
+
+**Diagnosis**
+- Netlify was configured to publish from the root of the repository, which conflicts with the requirements of `@netlify/plugin-nextjs`.
+- The plugin expects the publish directory to be the build output folder (usually `.next/`), not the repo root.
+
+**Solution**
+- Removed explicit `publish` directory settings from both `netlify.toml` and the Netlify UI.
+- Allowed the Next.js plugin to auto-detect the correct output folder.
+- If manual configuration is needed, set the publish directory to `.next/` (or `out/` for static export).
+
+**Impact**
+- Netlify now builds and deploys the Next.js app successfully.
+- Deployment is aligned with best practices for Next.js on Netlify.
+
+**References**
+- Netlify build logs and plugin documentation.
+
+---
