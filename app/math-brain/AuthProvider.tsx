@@ -112,7 +112,7 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Auth0 client creation timeout')), 10000)
           )
-        ]);
+        ]) as Auth0Client;
         authClientRef.current = client;
 
         const qs = window.location.search;
