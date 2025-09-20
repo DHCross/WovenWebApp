@@ -17,6 +17,14 @@ yarn-error.log*
 
 # Build output
 # dist/ - REMOVED: Need to commit compiled CSS for production deployment
+.next/
+out/
+build/
+
+# Next.js cache and webpack files
+.next/cache/
+*.pack.gz
+*.pack.gz.old
 
 # VS Code
 .vscode/

@@ -30,6 +30,10 @@
     "test:all": "node test/run-all-smoke-tests.js",
     "test:production": "node test/run-all-smoke-tests.js --environment=production",
     "test:ci": "node test/run-all-smoke-tests.js --skip-network",
+    "test:vitest": "vitest",
+    "test:vitest:ui": "vitest --ui",
+    "test:vitest:run": "vitest run",
+    "test:vitest:watch": "vitest --watch",
     "smoke-test": "npm run test:all",
     "fix:auth0": "node scripts/fix-auth0.js",
     "smoke:auth0": "node scripts/smoke-auth0.js",
@@ -59,15 +63,18 @@
     "@types/node": "20.11.30",
     "@types/react": "18.2.79",
     "@types/uuid": "^9.0.7",
+    "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.4.0",
     "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
     "eslint": "8.57.0",
     "eslint-config-next": "14.2.5",
+    "jsdom": "^27.0.0",
     "nodemon": "3.1.4",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.3",
     "ts-jest": "^29.4.4",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "vitest": "^3.2.4"
   }
 }
