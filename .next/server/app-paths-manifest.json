@@ -1,3 +1,3 @@
 {
-  "/math-brain/page": "app/math-brain/page.js"
+  "/api/astrology-mathbrain/route": "app/api/astrology-mathbrain/route.js"
 }
