@@ -4,8 +4,8 @@
   Content-Security-Policy = "default-src 'self' blob:; script-src 'self' https://cdn.auth0.com; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://s.gravatar.com https://cdn.auth0.com; connect-src 'self' ws: wss: https://*.auth0.com; frame-src https://*.auth0.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';"
 
 [build]
-  command = "CI='' npm run build"
-  publish = ".next"
+  command = "npm run build"
+  environment = { CI = "false" }
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
