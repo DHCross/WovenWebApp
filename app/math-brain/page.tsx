@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { parseCoordinates, formatDecimal } from "../../src/coords";
-// import AuthProvider from "./AuthProvider"; // Disabled while Auth0 is mothballed
+// AuthProvider removed - auth handled globally by HomeHero component
 import { needsLocation, isTimeUnknown } from "../../lib/relocation";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +37,7 @@ function Section({ title, children, className = "" }: { title: string; children:
 
 export default function MathBrainPage() {
   const showLegacyLink = process.env.NEXT_PUBLIC_ENABLE_LEGACY_LINK === 'true';
-  // Auth0 mothballed: remove auth gating/UI entirely
+  // Auth0 restored: authentication functionality available
 
   const today = useMemo(() => new Date(), []);
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
@@ -95,6 +95,7 @@ export default function MathBrainPage() {
   const [relationshipRole, setRelationshipRole] = useState<string>("");
   const [exEstranged, setExEstranged] = useState<boolean>(false);
   const [relationshipNotes, setRelationshipNotes] = useState<string>("");
+
   // Time policy UI state
   type TimePolicyChoice = 'planetary_only'|'whole_sign'|'sensitivity_scan'|'user_provided';
   const timeUnknown = useMemo(() => isTimeUnknown(personA as any), [personA]);
@@ -838,7 +839,7 @@ export default function MathBrainPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
-      {/* Auth disabled: removed AuthProvider and banners */}
+      {/* Auth handled globally by HomeHero - Math Brain works independently */}
 
       <header className="text-center print:hidden">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-100">Math Brain</h1>
@@ -865,7 +866,6 @@ export default function MathBrainPage() {
         </div>
       </header>
 
-      {/* Auth status row removed while Auth0 is mothballed */}
 
       <div className="mt-8 flex flex-wrap gap-3 justify-center print:hidden">
         <a

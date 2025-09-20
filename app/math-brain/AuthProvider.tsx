@@ -101,12 +101,18 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
 
         const creator = window.auth0?.createAuth0Client || window.createAuth0Client;
         if (typeof creator !== 'function') throw new Error('Auth0 SDK not available');
-        
-        const client = await creator({
-          domain: String(config.domain).replace(/^https?:\/\//, ''),
-          clientId: config.clientId,
-          authorizationParams: { redirect_uri: getRedirectUri() },
-        });
+
+        // Add timeout to prevent hanging
+        const client = await Promise.race([
+          creator({
+            domain: String(config.domain).replace(/^https?:\/\//, ''),
+            clientId: config.clientId,
+            authorizationParams: { redirect_uri: getRedirectUri() },
+          }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Auth0 client creation timeout')), 10000)
+          )
+        ]);
         authClientRef.current = client;
 
         const qs = window.location.search;

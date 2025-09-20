@@ -1,3 +1,53 @@
+## [2025-09-20] CORRECT: Auth0 Architecture - Home Page Primary, Math Brain Independent
+
+**Summary**
+Corrected Auth0 implementation to match original architecture. Auth0 authentication is handled globally by the Home page (`HomeHero` component), while Math Brain operates independently without its own AuthProvider. This resolves conflicts and client creation timeout issues.
+
+**Problem Identified**
+- Previous restoration attempt created duplicate Auth0 initialization
+- Math Brain page had its own `AuthProvider` competing with the global `HomeHero` auth handling
+- This caused Auth0 client creation timeouts and "Continue with Google" button failures
+- Conflicting auth states between pages caused initialization hangs
+
+**Corrected Architecture**
+- **Home Page (`HomeHero`)**: Primary auth handling, login/logout, state management
+- **Math Brain**: Operates independently, no local AuthProvider required
+- **Single Auth Flow**: Users sign in on home page, then access both Math Brain and Chat
+- **No Conflicts**: Eliminated duplicate Auth0 SDK initialization
+
+**Changes Made**
+- **Removed Duplicate AuthProvider**: Eliminated `AuthProvider` component from `math-brain/page.tsx`
+- **Removed Auth State Management**: Removed local auth state from Math Brain page
+- **Removed Auth UI**: Removed authentication status indicators from Math Brain
+- **Preserved HomeHero**: Kept original robust auth implementation in `HomeHero` component
+- **Environment Confirmed**: Auth0 environment variables remain properly configured
+
+**Technical Architecture**
+```
+Home Page (HomeHero)
+├── Auth0 SDK Loading
+├── Client Creation & Management
+├── Google OAuth Login/Logout
+├── User State Management
+└── Enables/Disables Chat Access
+
+Math Brain
+├── Independent Operation
+├── No Auth Dependencies
+├── Works Without Authentication
+└── Focuses Purely on Calculations
+```
+
+**User Experience Flow**
+1. **Home Page**: Sign in with Google via `HomeHero` component
+2. **Math Brain**: Access independently, works with or without auth
+3. **Chat**: Only accessible after authentication on home page
+4. **Logout**: Available on home page
+
+This matches the original intended architecture and resolves all Auth0 timeout issues.
+
+---
+
 ## [2025-09-14] CHANGE: Architectural Clarification & Documentation
 
 **Summary**
