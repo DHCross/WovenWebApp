@@ -130,8 +130,18 @@ export default function MathBrainPage() {
     return Math.min(max, Math.max(min, n));
   };
   // Translocation / Relocation selection (angles/houses reference)
-  type TranslocationOption = 'NONE' | 'A_LOCAL' | 'B_LOCAL' | 'MIDPOINT';
-  const [translocation, setTranslocation] = useState<TranslocationOption>('A_LOCAL');
+  type TranslocationOption = 'A_NATAL' | 'A_LOCAL' | 'B_NATAL' | 'B_LOCAL' | 'MIDPOINT';
+  const normalizeTranslocationOption = (value: any): TranslocationOption => {
+    const token = String(value || '').trim().toUpperCase();
+    if (!token) return 'A_NATAL';
+    if (token === 'A_LOCAL' || token === 'A-LOCAL') return 'A_LOCAL';
+    if (token === 'B_LOCAL' || token === 'B-LOCAL') return 'B_LOCAL';
+    if (token === 'B_NATAL' || token === 'B-NATAL') return 'B_NATAL';
+    if (token === 'MIDPOINT') return 'MIDPOINT';
+    if (token === 'NONE' || token === 'NATAL' || token === 'A_NATAL' || token === 'A-NATAL') return 'A_NATAL';
+    return 'A_NATAL';
+  };
+  const [translocation, setTranslocation] = useState<TranslocationOption>('A_NATAL');
   // Relocation coordinates (single-field); default from spec: 30°10'N, 85°40'W
   const [relocInput, setRelocInput] = useState<string>("30°10'N, 85°40'W");
   const [relocError, setRelocError] = useState<string | null>(null);
@@ -208,6 +218,172 @@ export default function MathBrainPage() {
 
   // Relational modes list used for UI guards
   const relationalModes = useMemo(() => ['SYNASTRY','SYNASTRY_TRANSITS','COMPOSITE','DUAL_NATAL_TRANSITS'], []);
+  const isRelationalMode = relationalModes.includes(mode);
+  const isDyadMode = includePersonB && isRelationalMode;
+
+  useEffect(() => {
+    setTranslocation((prev) => {
+      if (reportType === 'balance') {
+        if (prev === 'A_NATAL') return 'A_LOCAL';
+        if (prev === 'B_NATAL') return isDyadMode ? 'B_LOCAL' : 'A_LOCAL';
+        if (!isDyadMode && (prev === 'B_LOCAL' || prev === 'MIDPOINT')) return 'A_LOCAL';
+        return prev;
+      }
+      // Mirror guardrails: if Person B not active, collapse to Person A natal.
+      if (!isDyadMode && (prev === 'B_LOCAL' || prev === 'B_NATAL' || prev === 'MIDPOINT')) {
+        return 'A_NATAL';
+      }
+      if (prev === 'MIDPOINT') {
+        return isDyadMode ? 'B_LOCAL' : 'A_NATAL';
+      }
+      return prev;
+    });
+  }, [reportType, isDyadMode]);
+
+  const relocationSelectLabels: Record<TranslocationOption, string> = useMemo(() => ({
+    A_NATAL: 'Person A — Natal frame (houses not recalculated)',
+    A_LOCAL: 'Person A — Local (houses recalculated)',
+    B_NATAL: 'Person B — Natal frame (houses not recalculated)',
+    B_LOCAL: 'Person B — Local (houses recalculated)',
+    MIDPOINT: 'Midpoint (A + B) — Shared relocation',
+  }), []);
+
+  const relocationModeCaption = useMemo(() => ({
+    A_NATAL: 'Relocation mode: A_natal (houses not recalculated, by design)',
+    A_LOCAL: 'Relocation mode: A_local (houses recalculated)',
+    B_NATAL: 'Relocation mode: B_natal (houses not recalculated, by design)',
+    B_LOCAL: 'Relocation mode: B_local (houses recalculated)',
+    MIDPOINT: 'Relocation mode: Midpoint (synthetic shared frame, houses recalculated)',
+  }), []);
+
+  type RelocationOptionConfig = { value: TranslocationOption; disabled?: boolean; title?: string };
+
+  const relocationOptions = useMemo<RelocationOptionConfig[]>(() => {
+    if (reportType === 'mirror') {
+      return [
+        { value: 'A_NATAL' },
+        { value: 'A_LOCAL' },
+        {
+          value: 'B_NATAL',
+          disabled: !isDyadMode,
+          title: !isDyadMode ? 'Requires Person B in a relational report.' : undefined,
+        },
+        {
+          value: 'B_LOCAL',
+          disabled: !isDyadMode,
+          title: !isDyadMode ? 'Requires Person B in a relational report.' : undefined,
+        },
+        {
+          value: 'MIDPOINT',
+          disabled: true,
+          title: 'Midpoint relocation is only supported in Relational Balance reports.',
+        },
+      ];
+    }
+    const opts: RelocationOptionConfig[] = [
+      { value: 'A_LOCAL' },
+      {
+        value: 'B_LOCAL',
+        disabled: !isDyadMode,
+        title: !isDyadMode ? 'Requires Person B in a relational report.' : undefined,
+      },
+      {
+        value: 'MIDPOINT',
+        disabled: !isDyadMode,
+        title: !isDyadMode ? 'Midpoint relocation requires both Person A and Person B.' : undefined,
+      },
+      {
+        value: 'A_NATAL',
+        disabled: true,
+        title: 'Fallback when relocation data is missing for Person A.',
+      },
+    ];
+    if (isDyadMode) {
+      opts.push({
+        value: 'B_NATAL',
+        disabled: true,
+        title: 'Fallback when relocation data is missing for Person B.',
+      });
+    }
+    return opts;
+  }, [reportType, isDyadMode]);
+
+  const parseMaybeNumber = (value: unknown): number | null => {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim() !== '') {
+      const num = Number(value);
+      if (Number.isFinite(num)) return num;
+    }
+    return null;
+  };
+
+  const personBLocationReady = useMemo(() => {
+    if (!isDyadMode) return false;
+    const lat = parseMaybeNumber(personB.latitude);
+    const lon = parseMaybeNumber(personB.longitude);
+    const tz = typeof personB.timezone === 'string' ? personB.timezone.trim() : '';
+    return lat !== null && lon !== null && tz !== '';
+  }, [isDyadMode, personB]);
+
+  const relocationInputReady = useMemo(() => {
+    if (!relocCoords || relocError) return false;
+    const latReady = Number.isFinite(relocCoords.lat);
+    const lonReady = Number.isFinite(relocCoords.lon);
+    const tzReady = typeof relocTz === 'string' && relocTz.trim() !== '';
+    return latReady && lonReady && tzReady;
+  }, [relocCoords, relocError, relocTz]);
+
+  const relocationStatus = useMemo(() => {
+    let effectiveMode: TranslocationOption = translocation;
+    let notice: string | null = null;
+
+    if (reportType === 'mirror') {
+      if (translocation === 'A_LOCAL' && !relocationInputReady) {
+        effectiveMode = 'A_NATAL';
+        notice = 'Relocation not provided; defaulting to Person A natal houses.';
+      } else if (translocation === 'B_LOCAL') {
+        if (!isDyadMode) {
+          effectiveMode = 'A_NATAL';
+          notice = 'Person B is not available; defaulting to Person A natal houses.';
+        } else if (!personBLocationReady) {
+          effectiveMode = 'B_NATAL';
+          notice = 'Relocation not provided; defaulting to Person B natal houses.';
+        }
+      } else if (translocation === 'B_NATAL' && !isDyadMode) {
+        effectiveMode = 'A_NATAL';
+        notice = 'Person B is not available; defaulting to Person A natal houses.';
+      } else if (translocation === 'MIDPOINT') {
+        effectiveMode = 'A_NATAL';
+        notice = 'Midpoint relocation is only supported in Relational Balance reports.';
+      }
+    } else {
+      if (translocation === 'A_LOCAL') {
+        if (!relocationInputReady) {
+          effectiveMode = 'A_NATAL';
+          notice = 'Relocation not provided; defaulting to Person A natal houses.';
+        }
+      } else if (translocation === 'B_LOCAL') {
+        if (!isDyadMode) {
+          effectiveMode = relocationInputReady ? 'A_LOCAL' : 'A_NATAL';
+          notice = 'Person B is not included; select a valid relocation lens.';
+        } else if (!personBLocationReady) {
+          effectiveMode = 'B_NATAL';
+          notice = 'Relocation not provided; defaulting to Person B natal houses.';
+        }
+      } else if (translocation === 'MIDPOINT') {
+        if (!isDyadMode) {
+          effectiveMode = relocationInputReady ? 'A_LOCAL' : 'A_NATAL';
+          notice = 'Midpoint relocation requires both Person A and Person B.';
+        } else {
+          effectiveMode = 'MIDPOINT';
+        }
+      } else if (translocation === 'A_NATAL' || translocation === 'B_NATAL') {
+        notice = 'Balance reports require a relocation lens; provide relocation data to enable local mode.';
+      }
+    }
+
+    return { effectiveMode, notice };
+  }, [translocation, reportType, relocationInputReady, isDyadMode, personBLocationReady]);
 
   // If Person B is turned off while a relational mode is selected, reset to a solo mode
   useEffect(() => {
@@ -250,7 +426,7 @@ export default function MathBrainPage() {
       if (typeof saved.relationshipNotes === 'string') setRelationshipNotes(saved.relationshipNotes);
       if (typeof saved.relationshipTier === 'string') setRelationshipTier(saved.relationshipTier);
       if (typeof saved.relationshipRole === 'string') setRelationshipRole(saved.relationshipRole);
-      if (saved.translocation) setTranslocation(saved.translocation);
+      if (saved.translocation) setTranslocation(normalizeTranslocationOption(saved.translocation));
     } catch {/* noop */}
   }
 
@@ -742,7 +918,7 @@ export default function MathBrainPage() {
 
         if (data.relocation) {
           const rl = data.relocation;
-          if (rl.mode) setTranslocation(String(rl.mode) as any);
+          if (rl.mode) setTranslocation(normalizeTranslocationOption(rl.mode));
           if (rl.coords) {
             const rc = parseCoordinates(String(rl.coords), { rejectZeroZero: true });
             if (rc) { setRelocCoords(rc); setRelocInput(String(rl.coords)); }
@@ -761,7 +937,7 @@ export default function MathBrainPage() {
         if (typeof data.relationshipNotes === 'string') setRelationshipNotes(data.relationshipNotes);
         if (typeof data.relationshipTier === 'string') setRelationshipTier(data.relationshipTier);
         if (typeof data.relationshipRole === 'string') setRelationshipRole(data.relationshipRole);
-        if (data.translocation) setTranslocation(data.translocation);
+        if (data.translocation) setTranslocation(normalizeTranslocationOption(data.translocation));
         // update single-field coord mirrors
         if (data.personA?.latitude != null && data.personA?.longitude != null) {
           setACoordsInput(formatDecimal(Number(data.personA.latitude), Number(data.personA.longitude)));
@@ -898,16 +1074,23 @@ export default function MathBrainPage() {
         },
         // Pass translocation intent to backend (data-only context)
         translocation: ((): any => {
-          if (translocation === 'A_LOCAL' || translocation === 'B_LOCAL' || translocation === 'MIDPOINT') {
+          const mode = relocationStatus.effectiveMode;
+          if (mode === 'A_LOCAL' || mode === 'B_LOCAL') {
             return {
               applies: true,
-              method: translocation === 'A_LOCAL' ? 'A_local' : translocation === 'B_LOCAL' ? 'B_local' : 'Midpoint',
+              method: mode === 'A_LOCAL' ? 'A_local' : 'B_local',
               coords: relocCoords ? { latitude: relocCoords.lat, longitude: relocCoords.lon } : undefined,
               current_location: relocLabel || undefined,
               tz: relocTz || undefined,
             };
           }
-          return { applies: false, method: 'Natal' };
+          if (mode === 'MIDPOINT') {
+            return { applies: true, method: 'Midpoint' };
+          }
+          if (mode === 'B_NATAL') {
+            return { applies: false, method: 'B_natal' };
+          }
+          return { applies: false, method: 'A_natal' };
         })(),
       };
 
@@ -1889,24 +2072,42 @@ export default function MathBrainPage() {
                     id="t-reloc"
                     className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     value={translocation}
-                    onChange={(e) => setTranslocation(e.target.value as TranslocationOption)}
+                    onChange={(e) => setTranslocation(normalizeTranslocationOption(e.target.value))}
                   >
-                    <option value="NONE">Birthplace Transits Only</option>
-                    <option value="A_LOCAL">Person A</option>
-                    <option value="B_LOCAL" disabled={!includePersonB}>Person B</option>
-                    <option value="MIDPOINT" disabled={!includePersonB}>Midpoint (A + B)</option>
+                    {relocationOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value} disabled={opt.disabled} title={opt.title}>
+                        {relocationSelectLabels[opt.value]}
+                        {opt.disabled && reportType === 'balance' && opt.value.endsWith('NATAL') ? ' (fallback)' : ''}
+                      </option>
+                    ))}
                   </select>
-                  <p className="mt-1 text-xs text-slate-400">Clinical toggle only; no narrative. If not applied, angles/houses remain natal.</p>
-                  <p className="mt-1 text-xs text-slate-500">Note: Midpoint here relocates houses to the geographic midpoint; Composite mode above creates the midpoint chart.</p>
+                  <p className="mt-1 text-xs text-slate-400">Relocation remaps houses/angles only; planets stay fixed. Choose the lens allowed for this report type.</p>
+                  <p className="mt-1 text-xs text-slate-500">Midpoint relocation is reserved for Relational Balance. Composite mode above still creates the midpoint chart.</p>
+                  {relocationStatus.notice && (
+                    <p className="mt-1 text-xs text-amber-400">{relocationStatus.notice}</p>
+                  )}
                   {(() => {
-                    const relocActive = translocation !== 'NONE';
-                    if (!relocActive) return null;
+                    const relocActive = ['A_LOCAL', 'B_LOCAL', 'MIDPOINT'].includes(relocationStatus.effectiveMode);
+                    if (!relocActive) {
+                      return (
+                        <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1 text-xs text-slate-200">
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" aria-hidden />
+                          <span>{relocationModeCaption[relocationStatus.effectiveMode]}</span>
+                        </div>
+                      );
+                    }
+                    const lensLabel = relocationStatus.effectiveMode === 'MIDPOINT'
+                      ? 'Computed midpoint (A + B)'
+                      : (relocLabel || 'Custom');
+                    const tzLabel = relocationStatus.effectiveMode === 'MIDPOINT'
+                      ? (personA.timezone || '—')
+                      : (relocTz || personA.timezone || '—');
                     return (
-                      <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-700 bg-emerald-900/30 px-3 py-1 text-xs text-emerald-200">
+                      <div className="mt-4 inline-flex flex-wrap items-center gap-2 rounded-full border border-emerald-700 bg-emerald-900/30 px-3 py-1 text-xs text-emerald-200">
                         <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
-                        <span className="font-medium">Relocated to:</span>
-                        <span className="text-emerald-100">{relocLabel || 'Custom'}</span>
-                        <span className="text-emerald-300">({relocTz || personA.timezone || '—'})</span>
+                        <span className="font-medium">{relocationModeCaption[relocationStatus.effectiveMode]}</span>
+                        <span className="text-emerald-100">Lens: {lensLabel}</span>
+                        <span className="text-emerald-300">({tzLabel})</span>
                       </div>
                     );
                   })()}
@@ -1914,7 +2115,7 @@ export default function MathBrainPage() {
               </div>
               {/* Relocation Coordinates Input */
               }
-              {translocation !== 'NONE' && (
+              {translocation !== 'A_NATAL' && translocation !== 'B_NATAL' && (
                 <div className="mt-4">
                   <label htmlFor="t-reloc-coords" className="block text-sm text-slate-300">Relocation Coordinates</label>
                   <input
@@ -1977,14 +2178,16 @@ export default function MathBrainPage() {
                   </div>
                 </div>
               )}
-              {translocation !== 'NONE' && (
-                <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-700 bg-emerald-900/30 px-3 py-1 text-xs text-emerald-200">
-                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
-                  <span className="font-medium">Relocated to:</span>
-                  <span className="text-emerald-100">{relocLabel || '—'}</span>
-                  <span className="text-emerald-300">{relocTz || personA.timezone || '—'}</span>
-                </div>
-              )}
+              <div className="mt-3 inline-flex flex-wrap items-center gap-2 rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1 text-xs text-slate-200">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" aria-hidden />
+                <span>{relocationModeCaption[relocationStatus.effectiveMode]}</span>
+                {['A_LOCAL','B_LOCAL','MIDPOINT'].includes(relocationStatus.effectiveMode) && (
+                  <>
+                    <span className="text-slate-100">Lens: {relocationStatus.effectiveMode === 'MIDPOINT' ? 'Computed midpoint (A + B)' : (relocLabel || 'Custom')}</span>
+                    <span className="text-slate-400">{relocationStatus.effectiveMode === 'MIDPOINT' ? (personA.timezone || '—') : (relocTz || personA.timezone || '—')}</span>
+                  </>
+                )}
+              </div>
             </Section>
 
             {/* Report Type selector moved above */}

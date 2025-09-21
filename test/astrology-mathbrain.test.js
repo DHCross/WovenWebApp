@@ -316,6 +316,53 @@ async function runTests() {
     runner.assert(body.provenance.geometry_ready === true, 'geometry should remain ready');
   });
 
+  runner.test('Mirror report rejects midpoint relocation mode', async () => {
+    const event = {
+      httpMethod: 'POST',
+      body: JSON.stringify({
+        personA: VALID_PERSON_A,
+        context: { mode: 'mirror' },
+        translocation: { applies: true, method: 'Midpoint' }
+      })
+    };
+    const res = await handler(event);
+    runner.assertEqual(res.statusCode, 400, 'should reject midpoint for mirror');
+    const body = JSON.parse(res.body);
+    runner.assertEqual(body.code, 'invalid_relocation_mode_for_report', 'mirror midpoint error code');
+    runner.assert(body.error.includes('Midpoint relocation'), 'mirror midpoint message');
+  });
+
+  runner.test('Mirror report requires Person B for B_local relocation', async () => {
+    const event = {
+      httpMethod: 'POST',
+      body: JSON.stringify({
+        personA: VALID_PERSON_A,
+        context: { mode: 'mirror' },
+        translocation: { applies: true, method: 'B_local' }
+      })
+    };
+    const res = await handler(event);
+    runner.assertEqual(res.statusCode, 400, 'should reject B_local without Person B');
+    const body = JSON.parse(res.body);
+    runner.assertEqual(body.code, 'invalid_relocation_mode_for_report', 'mirror B_local error code');
+  });
+
+  runner.test('Balance report blocks midpoint without Person B', async () => {
+    const event = {
+      httpMethod: 'POST',
+      body: JSON.stringify({
+        personA: VALID_PERSON_A,
+        context: { mode: 'balance_meter' },
+        transitParams: VALID_TRANSIT_PARAMS,
+        translocation: { applies: true, method: 'Midpoint' }
+      })
+    };
+    const res = await handler(event);
+    runner.assertEqual(res.statusCode, 400, 'should reject midpoint without dyad');
+    const body = JSON.parse(res.body);
+    runner.assertEqual(body.code, 'invalid_relocation_mode_for_report', 'balance midpoint error code');
+  });
+
   await runner.run();
 }
 
