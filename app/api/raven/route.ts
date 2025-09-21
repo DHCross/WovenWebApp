@@ -68,6 +68,55 @@ export async function POST(req: Request) {
       return NextResponse.json({ intent, ok: true, draft, prov, climate: mb.climate ?? null, sessionId: sid, probe });
     }
 
+
+    // conversation
+    const userMessage = typeof input === 'string' ? input : '';
+    const mergedOptions: Record<string, any> = { ...(options || {}), userMessage };
+
+    const reportContexts = Array.isArray(mergedOptions.reportContexts)
+      ? mergedOptions.reportContexts.filter((ctx: any) => ctx && typeof ctx === 'object' && typeof ctx.content === 'string' && ctx.content.trim().length > 0)
+      : [];
+
+    if (reportContexts.length > 0) {
+      mergedOptions.reportContexts = reportContexts;
+    }
+
+    const hasReportContext = reportContexts.length > 0
+      || typeof mergedOptions.reportId === 'string'
+      || typeof mergedOptions.reportType === 'string';
+
+    const hasGeometryPayload = Boolean(
+      mergedOptions.geo ||
+      mergedOptions.geometry ||
+      mergedOptions.geometryData ||
+      mergedOptions.chart
+    );
+
+    const wantsWeatherOnly = Boolean(
+      mergedOptions.weatherOnly === true ||
+      (typeof mergedOptions.mode === 'string' && /weather/i.test(mergedOptions.mode)) ||
+      /\b(symbolic weather|planetary weather|weather only)\b/i.test(userMessage)
+    );
+
+    if (!hasGeometryPayload && !hasReportContext && !wantsWeatherOnly) {
+      const guidance = `
+I can’t responsibly read you without a chart or report context. Two quick options:
+
+• Generate Math Brain on the main page (geometry only), then click “Ask Raven” to send the report here
+• Or ask for “planetary weather only” to hear today’s field without personal mapping
+
+If you already have a JSON report, paste or upload it and I’ll proceed.`.trim();
+
+      return NextResponse.json({ intent, ok: true, sessionId: sid, guard: true, guidance });
+    }
+
+    const prov = stampProvenance({ source: 'Conversational' });
+    // include the raw user input message so the LLM can respond naturally
+    const draft = await renderShareableMirror({ geo: null, prov, options: mergedOptions, conversational: true });
+    const probe = createProbe(draft?.next_step || 'Take one breath', randomUUID());
+    sessions.get(sid)!.probes.push(probe);
+    return NextResponse.json({ intent, ok: true, draft, prov, sessionId: sid, probe });
+
     if (intent === 'conversation') {
       const textInput = typeof input === 'string' ? input : '';
       const safeOptions = (options ?? {}) as Record<string, any>;
@@ -89,6 +138,7 @@ export async function POST(req: Request) {
       sessions.get(sid)!.probes.push(probe);
       return NextResponse.json({ intent, ok: true, draft, prov, sessionId: sid, probe });
     }
+
 
   } catch (error) {
     console.error('Raven API Error:', error);
