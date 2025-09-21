@@ -519,7 +519,13 @@ export default function MathBrainPage() {
       });
 
       const pdfBytes = await pdfDoc.save();
+
+      const pdfArrayBuffer = new ArrayBuffer(pdfBytes.byteLength);
+      new Uint8Array(pdfArrayBuffer).set(pdfBytes);
+      const blob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
+
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       const stamp = generatedAt.toISOString().slice(0, 10);
