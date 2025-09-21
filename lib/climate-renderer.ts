@@ -4,7 +4,8 @@ import { VALENCE_NEGATIVE, VALENCE_POSITIVE, ValenceMode } from './taxonomy';
 
 export interface ClimateData {
   magnitude: number; // 0-5
-  valence: number;   // -5 to +5 scale
+  valence?: number;   // legacy -5 to +5 scale
+  valence_bounded?: number; // preferred canonical valence (-5..+5)
   volatility: number; // 0-5
   drivers?: string[]; // today's active drivers (optional context)
 }
@@ -58,6 +59,13 @@ export interface EmojiCandidate {
 /**
  * Gets valence level data for a given numeric valence (-5 to +5)
  */
+function getCanonicalValence(climate: ClimateData): number {
+  const raw = typeof climate.valence_bounded === 'number'
+    ? climate.valence_bounded
+    : climate.valence;
+  return typeof raw === 'number' && Number.isFinite(raw) ? raw : 0;
+}
+
 function getValenceLevel(valence: number): ValenceLevel {
   const clamped = Math.max(-5, Math.min(5, Math.round(valence)));
   return VALENCE_LEVELS.find(level => level.level === clamped) || VALENCE_LEVELS[5]; // default to equilibrium
@@ -67,7 +75,8 @@ function getValenceLevel(valence: number): ValenceLevel {
  * Selects emojis based on valence level and magnitude, following emoji selection rules
  */
 export function selectClimateEmojis(climate: ClimateData, weights: ForceWeights = DEFAULT_WEIGHTS): EmojiCandidate[] {
-  const { magnitude, valence } = climate;
+  const { magnitude } = climate;
+  const valence = getCanonicalValence(climate);
   
   // Get the appropriate valence level
   const level = getValenceLevel(valence);
@@ -103,7 +112,7 @@ export function selectClimateEmojis(climate: ClimateData, weights: ForceWeights 
  */
 export function formatClimateDisplay(climate: ClimateData, weights?: ForceWeights): string {
   const selected = selectClimateEmojis(climate, weights);
-  const level = getValenceLevel(climate.valence);
+  const level = getValenceLevel(getCanonicalValence(climate));
   
   if (selected.length === 0) {
     return `⚡ ${climate.magnitude} · ⚖️ Neutral`;

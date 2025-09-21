@@ -15,7 +15,12 @@ function extractClimate(payload: any): any {
   const balance = payload.balance_meter || payload.summary?.balance_meter;
   if (balance?.climate) return balance.climate;
   if (balance?.climate_line) {
-    return { line: balance.climate_line, magnitude: balance.magnitude, valence: balance.valence, volatility: balance.volatility };
+    return {
+      line: balance.climate_line,
+      magnitude: balance.magnitude,
+      valence: balance.valence_bounded ?? balance.valence,
+      volatility: balance.volatility
+    };
   }
   return null;
 }

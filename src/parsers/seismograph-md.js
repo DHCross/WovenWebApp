@@ -82,11 +82,11 @@
     const magnitude = magMatch ? parseFloat(magMatch[1]) : 0;
     
     // Extract valence (Val 🌋 X.X)
-    const valMatch = tripleChannelText.match(/Val\s*🌋\s*([0-9.+-]+)/);
+    const valMatch = tripleChannelText.match(/Val\s*[^0-9+\-]{0,4}\s*([+-]?\d+(?:\.\d+)?)/);
     const valence = valMatch ? parseFloat(valMatch[1]) : 0;
-    
+
     // Extract balance (Bal 💎 X.X)
-    const balMatch = tripleChannelText.match(/Bal\s*[💎🦋🔥]\s*([0-9.+-]+)/);
+    const balMatch = tripleChannelText.match(/Bal\s*[^0-9+\-]{0,4}\s*([+-]?\d+(?:\.\d+)?)/);
     const balance = balMatch ? parseFloat(balMatch[1]) : 0;
     
     return {
