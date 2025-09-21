@@ -22,9 +22,11 @@ export interface InputPayload {
   hooks?: Array<string | HookObject>;
   seismograph?: {
     magnitude?: Metric;
+    valence_bounded?: Metric;
     valence?: Metric; // expected roughly on a signed scale (negative=restrictive, positive=supportive)
     volatility?: Metric; // 0..1 preferred, but treated generically
     scaling_strategy?: string;
+    valence_label?: string;
   };
   angles?: any[];
   transits?: any[];
