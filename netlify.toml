@@ -6,6 +6,7 @@
 [build]
   command = "npm run build"
   environment = { CI = "false" }
+  publish = ".next"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
