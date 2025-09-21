@@ -464,6 +464,7 @@ function HelpModal({ onClose }: { onClose: () => void }) {
 
 export default function ChatClient() {
   const [showHelp, setShowHelp] = useState(false);
+  const [showPoeticMenu, setShowPoeticMenu] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "init",
@@ -497,8 +498,18 @@ export default function ChatClient() {
   const [priorFocusKeywords, setPriorFocusKeywords] = useState<string[]>([]);
 
   // Developer-only session download functionality
-  const [devMode, setDevMode] = useState(false);
-  const [devAuthenticated, setDevAuthenticated] = useState(false);
+  const [devMode, setDevMode] = useState<boolean>(false);
+  const [isDeveloperAuthenticated, setIsDeveloperAuthenticated] = useState<boolean>(false);
+
+  // One canonical, explicit gate (presentation consumes this—not raw internals)
+  const devGate = devMode && isDeveloperAuthenticated;
+
+  // Protocol guardrails for FIELD→MAP→VOICE gating
+  const hasNamedContext = (contextName: string) => {
+    return reportContexts.some(ctx => ctx.name === contextName);
+  };
+
+  const mapVoiceArmed = hasNamedContext('Mirror') || hasNamedContext('Balance');
 
   // Check developer authentication
   const checkDevAuth = () => {
@@ -510,7 +521,7 @@ export default function ChatClient() {
         auth0User?.name === "DHCross";
 
       if (isDHCross) {
-        setDevAuthenticated(true);
+        setIsDeveloperAuthenticated(true);
         return true;
       }
 
@@ -519,7 +530,7 @@ export default function ChatClient() {
       const password = prompt("Developer Password:");
 
       if (username === "DHCross" && password === "RAVENCALDER") {
-        setDevAuthenticated(true);
+        setIsDeveloperAuthenticated(true);
         setToast("Developer authenticated");
         setTimeout(() => setToast(null), 1500);
         return true;
@@ -653,6 +664,44 @@ export default function ChatClient() {
       }
     }
   }, []); // Run once on component mount
+
+  // Developer authentication check on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const auth0User = (window as any).__auth0_user;
+      const isDHCross = auth0User?.email === "dhcross@example.com" || auth0User?.name === "DHCross";
+      if (isDHCross) {
+        setIsDeveloperAuthenticated(true);
+      }
+    }
+  }, []);
+
+  // Developer-only keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Shift+D = Toggle dev mode (requires auth)
+      if (e.ctrlKey && e.shiftKey && e.key === "D") {
+        e.preventDefault();
+        if (checkDevAuth()) {
+          setDevMode((prev: boolean) => !prev);
+          setToast(devMode ? "Dev mode disabled" : "Dev mode enabled");
+          setTimeout(() => setToast(null), 1500);
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [devGate, checkDevAuth, devMode, setToast]);
+
+  // Close poetic menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setShowPoeticMenu(false);
+    if (showPoeticMenu) {
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
+    }
+  }, [showPoeticMenu]);
 
   // Helper: strip HTML to plain text
   const stripHtml = (s: string) =>
@@ -1759,6 +1808,8 @@ export default function ChatClient() {
         onShowPendingReview={() => setShowPendingReview(true)}
         onShowHelp={() => setShowHelp(true)}
         devMode={devMode}
+        showPoeticMenu={showPoeticMenu}
+        setShowPoeticMenu={setShowPoeticMenu}
       />
       {toast && (
         <div
@@ -2064,9 +2115,10 @@ function Header({
   onShowPendingReview: () => void;
   onShowHelp: () => void;
   devMode?: boolean;
+  showPoeticMenu: boolean;
+  setShowPoeticMenu: (show: boolean) => void;
 }) {
   const [pendingCount, setPendingCount] = useState<number>(0);
-  const [showPoeticMenu, setShowPoeticMenu] = useState(false);
 
   useEffect(() => {
     setPendingCount(pingTracker.getPendingCount(true));
@@ -2086,54 +2138,7 @@ function Header({
     }
   }, [showPoeticMenu]);
 
-  // Developer-only keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+Shift+D = Toggle dev mode (requires auth)
-      if (e.ctrlKey && e.shiftKey && e.key === "D") {
-        e.preventDefault();
-        if (!devMode && !devAuthenticated) {
-          if (checkDevAuth()) {
-            setDevMode(true);
-            setToast("Dev mode enabled");
-            setTimeout(() => setToast(null), 1500);
-          }
-        } else {
-          setDevMode((prev) => !prev);
-          setToast(devMode ? "Dev mode disabled" : "Dev mode enabled");
-          setTimeout(() => setToast(null), 1500);
-        }
-      }
-
-      // Ctrl+Shift+S = Download session JSON (only in authenticated dev mode)
-      if (
-        e.ctrlKey &&
-        e.shiftKey &&
-        e.key === "S" &&
-        devMode &&
-        devAuthenticated
-      ) {
-        e.preventDefault();
-        downloadSessionReport("json");
-      }
-
-      // Ctrl+Shift+P = Download session PDF (only in authenticated dev mode)
-      if (
-        e.ctrlKey &&
-        e.shiftKey &&
-        e.key === "P" &&
-        devMode &&
-        devAuthenticated
-      ) {
-        e.preventDefault();
-        downloadSessionReport("pdf");
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [devMode, devAuthenticated]);
-
+  /* TEMPORARILY DISABLED FOR DEPLOYMENT
   const downloadSessionReport = async (format: "json" | "pdf" = "json") => {
     try {
       const sessionId = pingTracker.getCurrentSessionId();
