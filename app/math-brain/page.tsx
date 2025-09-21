@@ -351,45 +351,192 @@ export default function MathBrainPage() {
     try { window.print(); } catch {/* noop */}
   }
 
-  // Prefer html2pdf-based export for consistent cross-browser PDF downloads
+  // Generate a text-based PDF so downstream tools (including Poetic Brain) can parse content
   async function downloadResultPDF() {
-    let wrapper: HTMLDivElement | null = null;
-    try {
-      const target = reportRef.current;
-      const html2pdf = (await import('html2pdf.js')).default;
-      const ts = new Date().toISOString().slice(0, 10);
-      const opt = {
-        margin: 0.5,
-        filename: `math-brain-report-${ts}.pdf`,
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#0f1115' },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-      } as const;
+    if (!result) {
+      setToast('No report available to export');
+      setTimeout(() => setToast(null), 2000);
+      return;
+    }
 
-      if (!target) {
-        await (html2pdf().from(document.body).set(opt).save());
-        return;
+    try {
+      const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+
+      const target = reportRef.current;
+      let renderedText = '';
+      if (target) {
+        const clone = target.cloneNode(true) as HTMLElement;
+        const printableHidden = clone.querySelectorAll('.print\\:hidden');
+        printableHidden.forEach((el) => el.remove());
+        clone.querySelectorAll('button, input, textarea, select').forEach((el) => el.remove());
+        renderedText = clone.innerText
+          .replace(/\u00a0/g, ' ')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim();
       }
 
-      wrapper = document.createElement('div');
-      wrapper.style.position = 'fixed';
-      wrapper.style.top = '-9999px';
-      wrapper.style.left = '0';
-      wrapper.style.width = `${target.offsetWidth}px`;
-      wrapper.style.background = '#0f1115';
-      const clone = target.cloneNode(true) as HTMLElement;
-      clone.style.width = '100%';
-      wrapper.appendChild(clone);
-      document.body.appendChild(wrapper);
+      const reportKind = reportType === 'balance' ? 'Balance Meter' : 'Mirror';
+      const generatedAt = new Date();
+      const sections: Array<{ title: string; body: string; mode: 'regular' | 'mono' }> = [];
 
-      await (html2pdf().from(wrapper).set(opt).save());
+      if (renderedText) {
+        sections.push({ title: 'Rendered Summary', body: renderedText, mode: 'regular' });
+      }
+      sections.push({
+        title: 'Raw JSON Snapshot',
+        body: JSON.stringify(result, null, 2),
+        mode: 'mono',
+      });
+
+      const pdfDoc = await PDFDocument.create();
+      pdfDoc.setTitle(`Woven Web App — ${reportKind} Report`);
+      pdfDoc.setSubject('Math Brain geometry export');
+      pdfDoc.setAuthor('Woven Web App');
+      pdfDoc.setCreationDate(generatedAt);
+      pdfDoc.setModificationDate(generatedAt);
+
+      const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      const monoFont = await pdfDoc.embedFont(StandardFonts.Courier);
+
+      const margin = 48;
+      const headerSize = 16;
+      const bodySize = 11;
+      const monoSize = 9;
+
+      let page = pdfDoc.addPage();
+      let { width, height } = page.getSize();
+      let cursorY = height - margin;
+      let maxWidth = width - margin * 2;
+
+      const ensureSpace = (needed: number) => {
+        if (cursorY - needed < margin) {
+          page = pdfDoc.addPage();
+          ({ width, height } = page.getSize());
+          maxWidth = width - margin * 2;
+          cursorY = height - margin;
+        }
+      };
+
+      const drawLine = (
+        text: string,
+        options: { font: any; size: number; color?: ReturnType<typeof rgb>; gap?: number; xOffset?: number },
+      ) => {
+        const { font, size, color = rgb(0.1, 0.1, 0.1), gap = 4, xOffset = 0 } = options;
+        ensureSpace(size + gap);
+        page.drawText(text, { x: margin + xOffset, y: cursorY, size, font, color });
+        cursorY -= size + gap;
+      };
+
+      const wrapRegular = (input: string) => {
+        const lines: string[] = [];
+        const text = input.replace(/\s+/g, ' ').trim();
+        if (!text) {
+          lines.push('');
+          return lines;
+        }
+        const words = text.split(' ');
+        let current = '';
+        for (const word of words) {
+          const candidate = current ? `${current} ${word}` : word;
+          if (regularFont.widthOfTextAtSize(candidate, bodySize) <= maxWidth) {
+            current = candidate;
+          } else {
+            if (current) lines.push(current);
+            if (regularFont.widthOfTextAtSize(word, bodySize) <= maxWidth) {
+              current = word;
+            } else {
+              let remaining = word;
+              const approxCharWidth = regularFont.widthOfTextAtSize('M', bodySize) || bodySize * 0.6;
+              const maxChars = Math.max(1, Math.floor(maxWidth / approxCharWidth));
+              while (remaining.length > 0) {
+                lines.push(remaining.slice(0, maxChars));
+                remaining = remaining.slice(maxChars);
+              }
+              current = '';
+            }
+          }
+        }
+        if (current) lines.push(current);
+        return lines;
+      };
+
+      const writeParagraph = (text: string) => {
+        const normalized = text.replace(/\r/g, '');
+        const chunks = normalized.split(/\n+/);
+        for (const chunk of chunks) {
+          const trimmed = chunk.trim();
+          if (!trimmed) {
+            ensureSpace(bodySize);
+            cursorY -= bodySize;
+            continue;
+          }
+          const wrapped = wrapRegular(trimmed);
+          for (const line of wrapped) {
+            drawLine(line, { font: regularFont, size: bodySize });
+          }
+          if (cursorY - 2 < margin) {
+            ensureSpace(bodySize);
+          }
+          cursorY -= 2;
+        }
+      };
+
+      const writeMonospace = (text: string) => {
+        const normalized = text.replace(/\r/g, '');
+        const lines = normalized.split('\n');
+        const charWidth = monoFont.widthOfTextAtSize('M', monoSize) || monoSize * 0.6;
+        const maxChars = Math.max(1, Math.floor(maxWidth / charWidth));
+        for (const raw of lines) {
+          if (!raw) {
+            ensureSpace(monoSize);
+            cursorY -= monoSize;
+            continue;
+          }
+          let remaining = raw;
+          while (remaining.length > 0) {
+            const segment = remaining.slice(0, maxChars);
+            drawLine(segment, { font: monoFont, size: monoSize, gap: 2 });
+            remaining = remaining.slice(segment.length);
+          }
+        }
+      };
+
+      drawLine(`Woven Web App · ${reportKind} Report`, { font: boldFont, size: headerSize, gap: 8 });
+      drawLine(`Generated: ${generatedAt.toLocaleString()}`, { font: regularFont, size: 10, color: rgb(0.35, 0.35, 0.35), gap: 12 });
+
+      sections.forEach((section) => {
+        drawLine(section.title, { font: boldFont, size: 13, gap: 6 });
+        if (section.mode === 'mono') {
+          writeMonospace(section.body);
+        } else {
+          writeParagraph(section.body);
+        }
+        if (cursorY - 6 < margin) {
+          ensureSpace(bodySize);
+        }
+        cursorY -= 6;
+      });
+
+      const pdfBytes = await pdfDoc.save();
+      const pdfArrayBuffer = new ArrayBuffer(pdfBytes.byteLength);
+      new Uint8Array(pdfArrayBuffer).set(pdfBytes);
+      const blob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const stamp = generatedAt.toISOString().slice(0, 10);
+      link.href = url;
+      link.download = `math-brain-report-${stamp}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setToast('Downloading PDF report');
+      setTimeout(() => setToast(null), 1600);
     } catch (err) {
+      console.error('PDF export failed', err);
       setToast('Could not generate PDF');
       setTimeout(() => setToast(null), 2000);
-    } finally {
-      if (wrapper && document.body.contains(wrapper)) {
-        document.body.removeChild(wrapper);
-      }
     }
   }
 
