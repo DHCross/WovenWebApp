@@ -366,6 +366,39 @@ export default function ChatClient(){
   // Post-seal guidance state
   const [awaitingNewReadingGuide, setAwaitingNewReadingGuide] = useState(false);
   const [priorFocusKeywords, setPriorFocusKeywords] = useState<string[]>([]);
+
+  // Developer-only session download functionality
+  const [devMode, setDevMode] = useState(false);
+  const [devAuth, setDevAuth] = useState(false);
+
+  // Check developer authentication
+  const checkDevAuth = () => {
+    // Check if user is DHCross via Auth0 or use fallback
+    if (typeof window !== 'undefined') {
+      const auth0User = (window as any).__auth0_user;
+      const isDHCross = auth0User?.email === 'dhcross@example.com' || auth0User?.name === 'DHCross';
+
+      if (isDHCross) {
+        setDevAuth(true);
+        return true;
+      }
+
+      // Fallback developer login
+      const username = prompt('Developer Username:');
+      const password = prompt('Developer Password:');
+
+      if (username === 'DHCross' && password === 'RAVENCALDER') {
+        setDevAuth(true);
+        setToast('Developer authenticated');
+        setTimeout(() => setToast(null), 1500);
+        return true;
+      }
+    }
+
+    setToast('Developer authentication failed');
+    setTimeout(() => setToast(null), 1500);
+    return false;
+  };
   useEffect(() => {
     return () => {
       if (toastTimeoutRef.current) {
@@ -1363,6 +1396,7 @@ export default function ChatClient(){
   onShowWrapUp={() => setShowWrapUpCard(true)}
   onShowPendingReview={() => setShowPendingReview(true)}
   onShowHelp={() => setShowHelp(true)}
+        devMode={devMode}
       />
       {toast && (
         <div
@@ -1582,7 +1616,7 @@ export default function ChatClient(){
   );
 }
 
-function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onDemoCard, onAbout, onToggleSidebar, sidebarOpen, reportContexts, onRemoveReportContext, onShowWrapUp, onShowPendingReview, onShowHelp }:{
+function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onDemoCard, onAbout, onToggleSidebar, sidebarOpen, reportContexts, onRemoveReportContext, onShowWrapUp, onShowPendingReview, onShowHelp, devMode }:{
   onFileSelect: (type: 'mirror' | 'balance' | 'journal') => void;
   hasMirrorData: boolean;
   onPoeticInsert: () => void;
@@ -1596,6 +1630,7 @@ function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onD
   onShowWrapUp: () => void;
   onShowPendingReview: () => void;
   onShowHelp: () => void;
+  devMode?: boolean;
 }){
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [showPoeticMenu, setShowPoeticMenu] = useState(false);
@@ -1614,6 +1649,271 @@ function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onD
       return () => document.removeEventListener('click', handleClickOutside);
     }
   }, [showPoeticMenu]);
+
+  // Developer-only keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Shift+D = Toggle dev mode (requires auth)
+      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        e.preventDefault();
+        if (!devMode && !devAuth) {
+          if (checkDevAuth()) {
+            setDevMode(true);
+            setToast('Dev mode enabled');
+            setTimeout(() => setToast(null), 1500);
+          }
+        } else {
+          setDevMode(prev => !prev);
+          setToast(devMode ? 'Dev mode disabled' : 'Dev mode enabled');
+          setTimeout(() => setToast(null), 1500);
+        }
+      }
+
+      // Ctrl+Shift+S = Download session JSON (only in authenticated dev mode)
+      if (e.ctrlKey && e.shiftKey && e.key === 'S' && devMode && devAuth) {
+        e.preventDefault();
+        downloadSessionReport('json');
+      }
+
+      // Ctrl+Shift+P = Download session PDF (only in authenticated dev mode)
+      if (e.ctrlKey && e.shiftKey && e.key === 'P' && devMode && devAuth) {
+        e.preventDefault();
+        downloadSessionReport('pdf');
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [devMode, devAuth]);
+
+  const downloadSessionReport = async (format: 'json' | 'pdf' = 'json') => {
+    try {
+      const sessionId = pingTracker.getCurrentSessionId();
+      const diagnostics = pingTracker.exportSessionDiagnostics();
+      const stats = pingTracker.getHitRateStats(true);
+      const allFeedback = pingTracker.getAllFeedback();
+
+      // Generate comprehensive developer report
+      const reportData = {
+        metadata: {
+          sessionId,
+          exportDate: new Date().toISOString(),
+          exportedBy: 'DH Cross (Developer)',
+          version: '1.0.0',
+          totalMessages: messages.length,
+          ravenMessages: messages.filter(m => m.role === 'raven').length,
+          userMessages: messages.filter(m => m.role === 'user').length
+        },
+        sessionDiagnostics: diagnostics,
+        resonanceStats: stats,
+        messages: messages.map(msg => ({
+          id: msg.id,
+          role: msg.role,
+          timestamp: new Date().toISOString(),
+          content: msg.html.replace(/<[^>]*>/g, ''), // Strip HTML for analysis
+          isReport: msg.isReport || false,
+          reportType: msg.reportType || null,
+          climate: msg.climate || '',
+          hook: msg.hook || '',
+          pingFeedbackRecorded: msg.pingFeedbackRecorded || false
+        })),
+        feedbackData: allFeedback.filter(f => f.sessionId === sessionId),
+        reportContexts: reportContexts.map(rc => ({
+          id: rc.id,
+          type: rc.type,
+          name: rc.name,
+          summary: rc.summary,
+          contentLength: rc.content.length
+        })),
+        relocationContext: relocation,
+        sessionFlags: {
+          hasMirrorData,
+          awaitingNewReadingGuide,
+          priorFocusKeywords
+        }
+      };
+
+      if (format === 'pdf') {
+        // Generate PDF report
+        await generatePDFReport(reportData, sessionId);
+      } else {
+        // Download as JSON
+        const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `raven-dev-session-${sessionId.slice(-8)}-${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      setToast(`Session report (${format.toUpperCase()}) downloaded`);
+      setTimeout(() => setToast(null), 2000);
+
+      console.log('[DEV] Session report exported:', {
+        sessionId,
+        messagesCount: messages.length,
+        feedbackCount: allFeedback.filter(f => f.sessionId === sessionId).length,
+        accuracy: stats.accuracyRate,
+        resonanceFidelity: stats.total > 0 ? ((stats.breakdown.yes + (stats.breakdown.maybe * 0.5)) / stats.total * 100).toFixed(1) + '%' : 'N/A'
+      });
+
+    } catch (error) {
+      console.error('[DEV] Session export failed:', error);
+      setToast('Export failed - check console');
+      setTimeout(() => setToast(null), 2000);
+    }
+  };
+
+  const generatePDFReport = async (reportData: any, sessionId: string) => {
+    try {
+      // Create HTML content for PDF
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Raven Session Report - ${sessionId.slice(-8)}</title>
+          <style>
+            body { font-family: 'Inter', Arial, sans-serif; margin: 40px; color: #333; line-height: 1.6; }
+            .header { border-bottom: 3px solid #3b82f6; padding-bottom: 20px; margin-bottom: 30px; }
+            .title { font-size: 24px; font-weight: 700; color: #1e293b; margin: 0; }
+            .subtitle { color: #64748b; margin: 5px 0 0 0; font-size: 14px; }
+            .section { margin: 25px 0; }
+            .section-title { font-size: 18px; font-weight: 600; color: #1e293b; margin-bottom: 15px; border-left: 4px solid #3b82f6; padding-left: 12px; }
+            .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
+            .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; }
+            .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 5px; }
+            .stat-value { font-size: 24px; font-weight: 700; color: #1e293b; }
+            .message { margin: 10px 0; padding: 12px; border-radius: 6px; }
+            .message.user { background: #dbeafe; border-left: 3px solid #3b82f6; }
+            .message.raven { background: #f3e8ff; border-left: 3px solid #8b5cf6; }
+            .message-role { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+            .feedback-item { background: #fef3c7; border: 1px solid #fbbf24; border-radius: 4px; padding: 8px; margin: 5px 0; font-size: 12px; }
+            .metadata { background: #f1f5f9; border-radius: 6px; padding: 15px; font-size: 12px; color: #475569; }
+            .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #e2e8f0; text-align: center; color: #64748b; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 class="title">🎭 Raven Session Report</h1>
+            <p class="subtitle">Developer Research Export • Session ${sessionId.slice(-8)} • ${new Date().toLocaleDateString()}</p>
+          </div>
+
+          <div class="section">
+            <h2 class="section-title">📊 Session Overview</h2>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-label">Total Messages</div>
+                <div class="stat-value">${reportData.metadata.totalMessages}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Raven Responses</div>
+                <div class="stat-value">${reportData.metadata.ravenMessages}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">User Messages</div>
+                <div class="stat-value">${reportData.metadata.userMessages}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Accuracy Rate</div>
+                <div class="stat-value">${reportData.resonanceStats.accuracyRate.toFixed(1)}%</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2 class="section-title">🎯 Resonance Analysis</h2>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-label">✅ WB (Within Boundary)</div>
+                <div class="stat-value">${reportData.resonanceStats.breakdown.yes}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">🟡 ABE (At Boundary Edge)</div>
+                <div class="stat-value">${reportData.resonanceStats.breakdown.maybe}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">❌ OSR (Outside Range)</div>
+                <div class="stat-value">${reportData.resonanceStats.breakdown.no + reportData.resonanceStats.breakdown.unclear}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Edge Capture Rate</div>
+                <div class="stat-value">${reportData.resonanceStats.edgeCapture.toFixed(1)}%</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2 class="section-title">💬 Session Transcript</h2>
+            ${reportData.messages.slice(0, 10).map((msg: any) => `
+              <div class="message ${msg.role}">
+                <div class="message-role">${msg.role}</div>
+                <div>${msg.content.length > 300 ? msg.content.substring(0, 300) + '...' : msg.content}</div>
+              </div>
+            `).join('')}
+            ${reportData.messages.length > 10 ? `<p><em>... ${reportData.messages.length - 10} more messages (see JSON export for full transcript)</em></p>` : ''}
+          </div>
+
+          <div class="section">
+            <h2 class="section-title">📋 Feedback Data</h2>
+            ${reportData.feedbackData.slice(0, 5).map((feedback: any) => `
+              <div class="feedback-item">
+                <strong>${feedback.response.toUpperCase()}</strong> • ${feedback.checkpointType || 'general'} • ${new Date(feedback.timestamp).toLocaleTimeString()}
+                ${feedback.note ? `<br><em>${feedback.note}</em>` : ''}
+              </div>
+            `).join('')}
+            ${reportData.feedbackData.length > 5 ? `<p><em>... ${reportData.feedbackData.length - 5} more feedback items</em></p>` : ''}
+          </div>
+
+          <div class="section">
+            <h2 class="section-title">🔧 Technical Metadata</h2>
+            <div class="metadata">
+              <strong>Session ID:</strong> ${reportData.metadata.sessionId}<br>
+              <strong>Export Date:</strong> ${reportData.metadata.exportDate}<br>
+              <strong>Has Mirror Data:</strong> ${reportData.sessionFlags.hasMirrorData ? 'Yes' : 'No'}<br>
+              <strong>Report Contexts:</strong> ${reportData.reportContexts.length}<br>
+              <strong>Relocation Active:</strong> ${reportData.relocationContext ? 'Yes' : 'No'}
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>🎭 Raven Calder Research Export • Generated for DH Cross • This data is for research purposes only</p>
+            <p>Session patterns help refine symbolic accuracy • "You are the validator"</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Check if html2pdf is available
+      if (typeof window !== 'undefined' && (window as any).html2pdf) {
+        const opt = {
+          margin: 0.5,
+          filename: `raven-dev-session-${sessionId.slice(-8)}-${new Date().toISOString().slice(0,10)}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        await (window as any).html2pdf().from(htmlContent).set(opt).save();
+      } else {
+        // Fallback: create a temporary HTML file and use browser print
+        const newWindow = window.open('', '_blank');
+        if (newWindow) {
+          newWindow.document.write(htmlContent);
+          newWindow.document.close();
+          setTimeout(() => {
+            newWindow.print();
+            newWindow.close();
+          }, 500);
+        }
+      }
+    } catch (error) {
+      console.error('[DEV] PDF generation failed:', error);
+      throw error;
+    }
+  };
 
   const getReportIcon = (type: 'mirror' | 'balance' | 'journal') => {
     switch(type) {
@@ -1736,6 +2036,26 @@ function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onD
           ↩︎ Math Brain
         </Link>
         <button className="btn rounded-[10px] border border-[var(--line)] bg-transparent px-[10px] py-2 text-[13px] text-[var(--text)]" onClick={onAbout}>ℹ️ About</button>
+        {devMode && (
+          <div
+            className="dev-indicator"
+            style={{
+              background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4)',
+              color: 'white',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              fontSize: '10px',
+              fontWeight: '600',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              border: '1px solid rgba(255,255,255,0.3)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+            }}
+            title="Developer Mode Active - Ctrl+Shift+S for JSON export, Ctrl+Shift+P for PDF export"
+          >
+            🔧 DEV
+          </div>
+        )}
         <button className="btn rounded-[10px] border border-[var(--line)] bg-transparent px-[10px] py-2 text-[13px] text-[var(--text)]" onClick={onShowHelp} title="Help & Button Guide">❓ Help</button>
       </div>
     </header>

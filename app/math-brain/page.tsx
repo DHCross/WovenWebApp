@@ -46,11 +46,11 @@ export default function MathBrainPage() {
 
   const [personA, setPersonA] = useState<Subject>({
     name: "Dan",
-    year: 1973,
-    month: 7,
-    day: 24,
-    hour: 14,
-    minute: 30,
+    year: "1973",
+    month: "07",
+    day: "24",
+    hour: "14",
+    minute: "30",
     city: "Bryn Mawr",
     state: "PA",
     latitude: 40.0167,
