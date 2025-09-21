@@ -109,6 +109,8 @@ type RavenDraftResponse = {
   climate?: string | ClimateData | null;
   sessionId?: string;
   probe?: SSTProbe | null;
+  guard?: boolean;
+  guidance?: string;
   error?: string;
   details?: any;
 };
@@ -1295,11 +1297,14 @@ export default function ChatClient(){
   }
 
   function commitRavenResult(ravenId: string, response: RavenDraftResponse, fallbackMessage?: string) {
+    const guidance = typeof response?.guidance === 'string' ? response.guidance.trim() : '';
     const html = response?.draft
       ? formatShareableDraft(response.draft, response.prov ?? null)
-      : fallbackMessage
-        ? `<p>${escapeHtml(fallbackMessage)}</p>`
-        : '<i>No mirror returned.</i>';
+      : guidance
+        ? `<div class="raven-guard" style="font-size:13px; line-height:1.5; color:var(--muted); white-space:pre-line;">${escapeHtml(guidance)}</div>`
+        : fallbackMessage
+          ? `<p>${escapeHtml(fallbackMessage)}</p>`
+          : '<i>No mirror returned.</i>';
     const climateDisplay = formatClimate(response?.climate ?? undefined);
     const hook = formatIntentHook(response?.intent, response?.prov ?? null);
     setMessages(prev => prev.map(msg => {
