@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { generateId } from '../lib/id';
 import { formatFullClimateDisplay, ClimateData } from '../lib/climate-renderer';
 import UsageMeter from './UsageMeter';
@@ -1656,22 +1657,22 @@ function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onD
         </div>
       </div>
       
-  <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2.5">
         <HitRateDisplay className="hidden sm:block" />
         <UsageMeter compact={true} className="hidden sm:block" />
-    {pendingCount > 0 && (
+        {pendingCount > 0 && (
           <button
             className="btn rounded-[10px] border border-[var(--line)] bg-[rgba(255,255,255,0.04)] px-2 py-1 text-[12px]"
-      onClick={onShowPendingReview}
+            onClick={onShowPendingReview}
             title={`${pendingCount} pending mirrors`}
           >
             ● {pendingCount} pending
           </button>
         )}
       </div>
-      
+
       {/* Core File Upload Buttons - Always Visible */}
-  <div className="flex gap-2">
+      <div className="flex gap-2">
         <button className="btn rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]" onClick={() => onFileSelect('mirror')}>🪞 Mirror</button>
         <button className="btn rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]" onClick={() => onFileSelect('balance')}>🌡️ Balance</button>
         <button className="btn rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]" onClick={() => onFileSelect('journal')}>📔 Journal</button>
@@ -1728,6 +1729,12 @@ function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onD
           )}
         </div>
         
+        <Link
+          href="/math-brain"
+          className="btn rounded-[10px] border border-[var(--line)] bg-transparent px-[10px] py-2 text-[13px] text-[var(--text)] hover:bg-[var(--soft)]"
+        >
+          ↩︎ Math Brain
+        </Link>
         <button className="btn rounded-[10px] border border-[var(--line)] bg-transparent px-[10px] py-2 text-[13px] text-[var(--text)]" onClick={onAbout}>ℹ️ About</button>
         <button className="btn rounded-[10px] border border-[var(--line)] bg-transparent px-[10px] py-2 text-[13px] text-[var(--text)]" onClick={onShowHelp} title="Help & Button Guide">❓ Help</button>
       </div>
