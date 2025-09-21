@@ -70,109 +70,69 @@ export async function POST(req: Request) {
       return NextResponse.json({ intent, ok: true, draft, prov, climate: mb.climate ?? null, sessionId: sid, probe });
     }
 
-
     // conversation
+    const rawContexts = Array.isArray(resolvedOptions.reportContexts) ? resolvedOptions.reportContexts : [];
+    const normalizedContexts = rawContexts
+      .map((ctx: any) => {
+        if (!ctx || typeof ctx !== 'object') return null;
+        const content = typeof ctx.content === 'string' ? ctx.content : '';
+        const summary = typeof ctx.summary === 'string' ? ctx.summary : '';
+        if (!content.trim() && !summary.trim()) return null;
+        const next: Record<string, any> = { ...ctx };
+        if (content) next.content = content;
+        if (summary) next.summary = summary;
+        return next;
+      })
+      .filter((ctx): ctx is Record<string, any> => Boolean(ctx));
 
-    const reportContexts = Array.isArray(resolvedOptions.reportContexts) ? resolvedOptions.reportContexts : [];
-    const hasReportPayload = reportContexts.some((ctx: any) => {
-      if (!ctx || typeof ctx !== 'object') return false;
-      if (typeof ctx.content === 'string' && ctx.content.trim().length > 0) return true;
-      if (typeof ctx.summary === 'string' && ctx.summary.trim().length > 0) return true;
-      if (ctx.geometry && typeof ctx.geometry === 'object') return true;
-      return false;
-    }) || reportContexts.length > 0;
-    const hasGeometryPayload = Boolean(resolvedOptions.geo || resolvedOptions.geometry);
-    const wantsWeatherOnly = resolvedOptions.weatherOnly === true
-      || resolvedOptions.mode === 'weather-only'
-      || /\b(weather|sky today|planetary (weather|currents)|what's happening in the sky)\b/i.test(textInput);
-
-    if (!hasReportPayload && !hasGeometryPayload && !wantsWeatherOnly) {
-      const prov = stampProvenance({ source: 'Conversational Guard' });
-      const guardIntro = 'I can’t responsibly read you without a chart or report context. Two quick options:';
-      const guardOptionOne = '• Generate Math Brain on the main page (geometry only), then click “Ask Raven” to send the report here';
-      const guardOptionTwo = '• Or ask for “planetary weather only” to hear today’s field without personal mapping';
-      const guardNextStep = 'If you already have a JSON report, paste or upload it and I’ll proceed.';
-      const guardDraft = {
-        picture: 'With you—before we dive in…',
-        feeling: guardIntro,
-        container: guardOptionOne,
-        option: guardOptionTwo,
-        next_step: guardNextStep
-      };
-      return NextResponse.json({ intent, ok: true, draft: guardDraft, prov, sessionId: sid });
-
-    const userMessage = typeof input === 'string' ? input : '';
-    const mergedOptions: Record<string, any> = { ...(options || {}), userMessage };
-
-    const reportContexts = Array.isArray(mergedOptions.reportContexts)
-      ? mergedOptions.reportContexts.filter((ctx: any) => ctx && typeof ctx === 'object' && typeof ctx.content === 'string' && ctx.content.trim().length > 0)
-      : [];
-
-    if (reportContexts.length > 0) {
-      mergedOptions.reportContexts = reportContexts;
-    }
-
-    const hasReportContext = reportContexts.length > 0
-      || typeof mergedOptions.reportId === 'string'
-      || typeof mergedOptions.reportType === 'string';
+    const hasReportContext =
+      normalizedContexts.length > 0 ||
+      typeof resolvedOptions.reportId === 'string' ||
+      typeof resolvedOptions.reportType === 'string';
 
     const hasGeometryPayload = Boolean(
-      mergedOptions.geo ||
-      mergedOptions.geometry ||
-      mergedOptions.geometryData ||
-      mergedOptions.chart
+      resolvedOptions.geo ||
+      resolvedOptions.geometry ||
+      resolvedOptions.geometryData ||
+      resolvedOptions.chart
     );
 
-    const wantsWeatherOnly = Boolean(
-      mergedOptions.weatherOnly === true ||
-      (typeof mergedOptions.mode === 'string' && /weather/i.test(mergedOptions.mode)) ||
-      /\b(symbolic weather|planetary weather|weather only)\b/i.test(userMessage)
-    );
+    const wantsWeatherOnly =
+      resolvedOptions.weatherOnly === true ||
+      (typeof resolvedOptions.mode === 'string' && /weather/i.test(resolvedOptions.mode)) ||
+      /\b(weather|sky today|planetary (weather|currents)|what's happening in the sky)\b/i.test(textInput);
 
-    if (!hasGeometryPayload && !hasReportContext && !wantsWeatherOnly) {
-      const guidance = `
-I can’t responsibly read you without a chart or report context. Two quick options:
-
-• Generate Math Brain on the main page (geometry only), then click “Ask Raven” to send the report here
-• Or ask for “planetary weather only” to hear today’s field without personal mapping
-
-If you already have a JSON report, paste or upload it and I’ll proceed.`.trim();
-
-      return NextResponse.json({ intent, ok: true, sessionId: sid, guard: true, guidance });
-
+    if (!hasReportContext && !hasGeometryPayload && !wantsWeatherOnly) {
+      const prov = stampProvenance({ source: 'Conversational Guard' });
+      const guidance = NO_CONTEXT_GUIDANCE;
+      const guardDraft = {
+        picture: 'With you—before we dive in…',
+        feeling: 'I need a chart or report context to mirror accurately.',
+        container: 'Option 1 · Generate Math Brain on the main page, then click “Ask Raven.”',
+        option: 'Option 2 · Ask for “planetary weather only” to hear today’s field without personal mapping.',
+        next_step: 'If you already have a JSON report, upload it here and I’ll proceed.'
+      };
+      return NextResponse.json({ intent, ok: true, guard: true, guidance, draft: guardDraft, prov, sessionId: sid });
     }
 
-    const prov = stampProvenance({ source: 'Conversational' });
-    // include the raw user input message so the LLM can respond naturally
+    const mergedOptions: Record<string, any> = {
+      ...resolvedOptions,
+      reportContexts: normalizedContexts.length > 0 ? normalizedContexts : undefined,
+      userMessage: textInput,
+      weatherOnly: wantsWeatherOnly
+    };
+    if (!mergedOptions.reportContexts) {
+      delete mergedOptions.reportContexts;
+    }
 
-    const mergedOptions = { ...resolvedOptions, userMessage: textInput };
+    const prov = stampProvenance({
+      source: wantsWeatherOnly ? 'Conversational (Weather-only)' : 'Conversational'
+    });
 
     const draft = await renderShareableMirror({ geo: null, prov, options: mergedOptions, conversational: true });
     const probe = createProbe(draft?.next_step || 'Take one breath', randomUUID());
     sessions.get(sid)!.probes.push(probe);
     return NextResponse.json({ intent, ok: true, draft, prov, sessionId: sid, probe });
-
-    if (intent === 'conversation') {
-      const textInput = typeof input === 'string' ? input : '';
-      const safeOptions = (options ?? {}) as Record<string, any>;
-      const contexts = Array.isArray(safeOptions.reportContexts) ? safeOptions.reportContexts : [];
-      const hasContextPayload = contexts.some(ctx => ctx && typeof ctx.content === 'string' && ctx.content.trim().length > 0);
-      const hasGeometryPayload = !!safeOptions.geo || !!safeOptions.geometry;
-      const hasReportIdentifiers = typeof safeOptions.reportId === 'string' || typeof safeOptions.reportType === 'string';
-      const hasLegitimatePayload = hasContextPayload || hasGeometryPayload || hasReportIdentifiers;
-      const wantsWeatherOnly = /\b(weather|sky today|planetary (weather|currents)|what's happening in the sky)\b/i.test(textInput);
-
-      if (!hasLegitimatePayload && !wantsWeatherOnly) {
-        return NextResponse.json({ intent, ok: false, error: NO_CONTEXT_GUIDANCE, sessionId: sid });
-      }
-
-      const prov = stampProvenance({ source: wantsWeatherOnly ? 'Conversational (Weather-only)' : 'Conversational' });
-      const mergedOptions = { ...safeOptions, userMessage: textInput, weatherOnly: wantsWeatherOnly };
-      const draft = await renderShareableMirror({ geo: null, prov, options: mergedOptions, conversational: true });
-      const probe = createProbe(draft?.next_step || 'Take one breath', randomUUID());
-      sessions.get(sid)!.probes.push(probe);
-      return NextResponse.json({ intent, ok: true, draft, prov, sessionId: sid, probe });
-    }
 
 
   } catch (error) {
