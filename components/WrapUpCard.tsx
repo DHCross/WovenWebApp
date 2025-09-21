@@ -164,6 +164,86 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
     try { console.log(`[analytics] ${name}`, payload); } catch {}
   }
 
+  const handleExportJSON = async () => {
+    try {
+      const response = await fetch('/api/raven', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'export',
+          sessionId: sessionId || pingTracker.getCurrentSessionId()
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const exportData = {
+          sessionId: data.sessionId,
+          exportDate: new Date().toISOString(),
+          composite,
+          sessionStats: data.scores,
+          sessionLog: data.log,
+          rubricScores: rubricSealedSessionId ? rubricScores : null,
+          rubricNulls: rubricSealedSessionId ? rubricNulls : null
+        };
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `raven-session-${data.sessionId.slice(-8)}-${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        setToast('Session data exported successfully');
+        setTimeout(() => setToast(null), 2500);
+        logEvent('json_export_success', { sessionId: data.sessionId });
+      } else {
+        throw new Error('Export failed');
+      }
+    } catch (error) {
+      setToast('Export failed. Please try again.');
+      setTimeout(() => setToast(null), 2500);
+      logEvent('json_export_failed', { error: String(error) });
+    }
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      // Check if html2pdf is available (it should be loaded from the types file)
+      if (typeof window !== 'undefined' && (window as any).html2pdf) {
+        const element = document.querySelector('.wrap-up-card');
+        if (element) {
+          const opt = {
+            margin: 0.5,
+            filename: `raven-wrapup-${new Date().toISOString().slice(0,10)}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+          };
+
+          await (window as any).html2pdf().from(element).set(opt).save();
+          setToast('PDF exported successfully');
+          setTimeout(() => setToast(null), 2500);
+          logEvent('pdf_export_success', { sessionId: sessionId || pingTracker.getCurrentSessionId() });
+        }
+      } else {
+        // Fallback: just export the JSON data
+        setToast('PDF export not available. Exporting JSON instead...');
+        setTimeout(() => {
+          setToast(null);
+          handleExportJSON();
+        }, 1500);
+      }
+    } catch (error) {
+      setToast('PDF export failed. Please try again.');
+      setTimeout(() => setToast(null), 2500);
+      logEvent('pdf_export_failed', { error: String(error) });
+    }
+  };
+
   if (isGenerating) {
     return (
       <div className="wrap-up-card generating">
@@ -454,12 +534,33 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
 
       <div className="closing-note">
         <p>
-          <em>This is a mirror, not a label. It may shift as future sessions add more data. 
+          <em>This is a mirror, not a label. It may shift as future sessions add more data.
           You are the validator.</em>
         </p>
         {rubricSealedSessionId && (
           <p className="session-note">This reading is sealed. New messages start a fresh reading container.</p>
         )}
+      </div>
+
+      {/* Export Options */}
+      <div className="export-options">
+        <div className="export-title">Export Session Data</div>
+        <div className="export-buttons">
+          <button
+            className="btn export-btn"
+            onClick={handleExportJSON}
+            title="Download session data as JSON"
+          >
+            📄 Export JSON
+          </button>
+          <button
+            className="btn export-btn"
+            onClick={handleExportPDF}
+            title="Download wrap-up card as PDF"
+          >
+            📋 Export PDF
+          </button>
+        </div>
       </div>
 
       <style jsx>{`
@@ -710,6 +811,12 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
         .rubric-results-agg { color:#e2e8f0; text-align:center; font-weight:600; }
 
         .toast { position:absolute; top:8px; right:8px; background:#0b1220; border:1px solid rgba(148,163,184,0.3); color:#e2e8f0; padding:8px 10px; border-radius:8px; font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,0.4); }
+
+        .export-options { margin: 20px 0; padding: 16px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 8px; }
+        .export-title { color: #f1f5f9; font-weight: 600; text-align: center; margin-bottom: 12px; font-size: 14px; }
+        .export-buttons { display: flex; gap: 12px; justify-content: center; }
+        .export-btn { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #93c5fd; padding: 8px 16px; font-size: 13px; }
+        .export-btn:hover { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.5); }
       `}</style>
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>

@@ -46,11 +46,11 @@ export default function MathBrainPage() {
 
   const [personA, setPersonA] = useState<Subject>({
     name: "Dan",
-    year: 1973,
-    month: 7,
-    day: 24,
-    hour: 14,
-    minute: 30,
+    year: "1973",
+    month: "07",
+    day: "24",
+    hour: "14",
+    minute: "30",
     city: "Bryn Mawr",
     state: "PA",
     latitude: 40.0167,
@@ -132,6 +132,7 @@ export default function MathBrainPage() {
   };
   // Translocation / Relocation selection (angles/houses reference)
 
+
   type TranslocationOption =
     | 'NONE'
     | 'A_NATAL'
@@ -141,6 +142,9 @@ export default function MathBrainPage() {
     | 'BOTH_LOCAL'
     | 'MIDPOINT';
 
+
+  type TranslocationOption = 'NONE' | 'A_NATAL' | 'A_LOCAL' | 'B_NATAL' | 'B_LOCAL' | 'BOTH_LOCAL' | 'MIDPOINT';
+ 
   const normalizeTranslocationOption = (value: any): TranslocationOption => {
     const token = String(value || '').trim().toUpperCase();
     if (!token) return 'A_NATAL';
@@ -150,7 +154,12 @@ export default function MathBrainPage() {
     if (token === 'B_NATAL' || token === 'B-NATAL') return 'B_NATAL';
     if (token === 'BOTH_LOCAL' || token === 'BOTH-LOCAL') return 'BOTH_LOCAL';
     if (token === 'MIDPOINT') return 'MIDPOINT';
+
     if (token === 'A_NATAL' || token === 'A-NATAL') return 'A_NATAL';
+
+    if (token === 'NONE') return 'NONE';
+    if (token === 'NATAL' || token === 'A_NATAL' || token === 'A-NATAL') return 'A_NATAL';
+
     return 'A_NATAL';
   };
   const [translocation, setTranslocation] = useState<TranslocationOption>('A_LOCAL');
@@ -254,23 +263,41 @@ export default function MathBrainPage() {
   }, [reportType, isDyadMode]);
 
   const relocationSelectLabels: Record<TranslocationOption, string> = useMemo(() => ({
+
     NONE: 'Birthplace — Natal frame (no relocation applied)',
+
+    NONE: 'No relocation (natal locations)',
+
     A_NATAL: 'Person A — Natal frame (houses not recalculated)',
     A_LOCAL: 'Person A — Local (houses recalculated)',
     B_NATAL: 'Person B — Natal frame (houses not recalculated)',
     B_LOCAL: 'Person B — Local (houses recalculated)',
+
     BOTH_LOCAL: 'Relocate Both — Person A & B local frames',
     MIDPOINT: 'Midpoint (A + B) — Shared relocation'
   }), []);
 
   const relocationModeCaption = useMemo(() => ({
     NONE: 'Relocation mode: Birthplace (houses not recalculated)',
+
+    BOTH_LOCAL: 'Both — Local (houses recalculated)',
+    MIDPOINT: 'Midpoint (A + B) — Shared relocation',
+  }), []);
+
+  const relocationModeCaption = useMemo(() => ({
+    NONE: 'Relocation mode: None (natal locations)',
+
     A_NATAL: 'Relocation mode: A_natal (houses not recalculated, by design)',
     A_LOCAL: 'Relocation mode: A_local (houses recalculated)',
     B_NATAL: 'Relocation mode: B_natal (houses not recalculated, by design)',
     B_LOCAL: 'Relocation mode: B_local (houses recalculated)',
+
     BOTH_LOCAL: 'Relocation mode: Both_local (A & B recalculated)',
     MIDPOINT: 'Relocation mode: Midpoint (synthetic shared frame, houses recalculated)'
+
+    BOTH_LOCAL: 'Relocation mode: Both_local (houses recalculated)',
+    MIDPOINT: 'Relocation mode: Midpoint (synthetic shared frame, houses recalculated)',
+
   }), []);
 
   type RelocationOptionConfig = { value: TranslocationOption; disabled?: boolean; title?: string };
@@ -1140,7 +1167,11 @@ export default function MathBrainPage() {
             return {
               applies: true,
               method: mode === 'A_LOCAL' ? 'A_local' : 'B_local',
+
               coords: relocCoords ? { latitude: relocCoords!.lat, longitude: relocCoords!.lon } : undefined,
+
+              coords: relocCoords ? { latitude: relocCoords?.lat, longitude: relocCoords?.lon } : undefined,
+
               current_location: relocLabel || undefined,
               tz: relocTz || undefined,
             };
