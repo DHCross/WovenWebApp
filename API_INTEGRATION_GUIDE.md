@@ -79,7 +79,7 @@ Reanchors ASC/MC and house cusps to a new geographic point. Planets keep natal l
 
 **Best practices & guards**
 - Default dyad behavior: Relational Balance Meter defaults to A_local.
-- Midpoint: opt-in only; the server may reject midpoint requests (RELOCATION_UNSUPPORTED) for some endpoints.
+- Midpoint: only valid for Relational Balance with both persons present. Other combinations return `invalid_relocation_mode_for_report`.
 - Angle Drift Cone: If time/place are ambiguous, compute multiple plausible house placements; if houses disagree, degrade to planet/sign language and flag angle ambiguity to user.
 - UI copy: Prompt users for city + state (US) or coords; note that GeoNames stabilizes lookups.
 

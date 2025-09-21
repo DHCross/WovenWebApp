@@ -156,7 +156,7 @@ Reanchors ASC/MC and house cusps to a new geographic point. Planets keep natal l
 
 **Best practices & guards**
 - Default dyad behavior: Relational Balance Meter defaults to A_local.
-- Midpoint: opt-in only; the server may reject midpoint requests (RELOCATION_UNSUPPORTED) for some endpoints.
+- Midpoint: only valid for Relational Balance with both persons present. Other combinations return `invalid_relocation_mode_for_report`.
 - Angle Drift Cone: If time/place are ambiguous, compute multiple plausible house placements; if houses disagree, degrade to planet/sign language and flag angle ambiguity to user.
 - UI copy: Prompt users for city + state (US) or coords; note that GeoNames stabilizes lookups.
 
@@ -437,7 +437,7 @@ Math Brain UX notes
 
 ### Midpoint relocation (policy)
 
-Midpoint relocation is available only by explicit opt-in. By default, dyad reports use `A_local` (Person A’s location) when `relocation_mode` is not specified. Midpoint mode may be requested but the upstream provider and our adapter can reject it (`RELOCATION_UNSUPPORTED`) depending on endpoint support. If you need midpoint flows as a standard option, flag the request explicitly in your API call and expect potential provider-specific constraints. For production stability we recommend `A_local`/`B_local` over midpoint unless you have a clear downstream use case.
+Midpoint relocation is available only for Relational Balance reports when Person A and B are both active. Other contexts, including Mirror reports, will be rejected with `invalid_relocation_mode_for_report`. By default, dyad reports use `A_local` (Person A’s location) when `relocation_mode` is not specified. If you need midpoint flows as a standard option, flag the request explicitly in your API call and ensure both persons are supplied; for production stability we recommend `A_local`/`B_local` unless midpoint is essential.
 
 ## Poetic Brain Chatbot — Architecture, Security, and Philosophy
 
