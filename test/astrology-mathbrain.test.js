@@ -256,6 +256,66 @@ async function runTests() {
     runner.assert(body.person_a.houses_suppressed !== true, 'houses should not be suppressed under whole_sign');
   });
 
+  runner.test('Translocation tz null when relocation not applied', async () => {
+    const event = {
+      httpMethod: 'POST',
+      body: JSON.stringify({
+        personA: VALID_PERSON_A,
+        context: { mode: 'NATAL_ASPECTS' },
+        translocation: {
+          applies: false,
+          method: 'Custom',
+          tz: 'US/Central',
+          coords: { latitude: 41.8781, longitude: -87.6298 }
+        }
+      })
+    };
+    const res = await handler(event);
+    runner.assertEqual(res.statusCode, 200, 'Response should be 200');
+    const body = JSON.parse(res.body);
+    runner.assert(body.provenance, 'provenance present');
+    runner.assertEqual(body.provenance.tz_authority, 'natal_record', 'tz_authority should stay natal when relocation is off');
+    runner.assert(body.provenance.relocation_applied === false, 'relocation_applied should be false');
+    runner.assert(body.context.translocation, 'translocation context present');
+    runner.assert(body.context.translocation.tz === null, 'translocation tz should be null when relocation not applied');
+    runner.assert(body.provenance.tz_conflict === false, 'tz_conflict should be false');
+    runner.assert(body.provenance.geometry_ready === true, 'geometry should stay ready');
+    runner.assertEqual(body.provenance.timezone, 'America/New_York', 'provenance timezone should remain natal');
+    runner.assert(body.context.translocation.requested_tz === 'America/Chicago', 'requested tz should be normalized');
+  });
+
+  runner.test('Relocation applied aligns tz authority and provenance tz', async () => {
+    const event = {
+      httpMethod: 'POST',
+      body: JSON.stringify({
+        personA: VALID_PERSON_A,
+        context: { mode: 'NATAL_ASPECTS' },
+        custom_location: {
+          latitude: 41.8781,
+          longitude: -87.6298,
+          timezone: 'US/Central'
+        },
+        translocation: {
+          applies: true,
+          method: 'Custom',
+          tz: 'US/Central',
+          coords: { latitude: 41.8781, longitude: -87.6298 }
+        }
+      })
+    };
+    const res = await handler(event);
+    runner.assertEqual(res.statusCode, 200, 'Response should be 200');
+    const body = JSON.parse(res.body);
+    runner.assert(body.provenance.relocation_applied === true, 'relocation_applied should be true');
+    runner.assertEqual(body.provenance.tz_authority, 'relocation_block', 'tz_authority should reflect relocation');
+    runner.assert(body.context.translocation, 'translocation context present');
+    runner.assert(body.context.translocation.tz, 'translocation tz should be present');
+    runner.assertEqual(body.context.translocation.tz, body.provenance.timezone, 'translocation tz should match provenance');
+    runner.assertEqual(body.provenance.timezone, 'America/Chicago', 'provenance timezone should use relocation tz');
+    runner.assert(body.provenance.tz_conflict === false, 'tz_conflict should remain false');
+    runner.assert(body.provenance.geometry_ready === true, 'geometry should remain ready');
+  });
+
   await runner.run();
 }
 
