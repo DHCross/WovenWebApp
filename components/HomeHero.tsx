@@ -18,7 +18,15 @@ declare global {
   }
 }
 
-const authEnabled = process.env.NEXT_PUBLIC_ENABLE_AUTH === 'true';
+const authEnabled = (() => {
+  const raw = process.env.NEXT_PUBLIC_ENABLE_AUTH;
+  if (typeof raw !== "string") return true;
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === "" || normalized === "false" || normalized === "0") {
+    return false;
+  }
+  return true;
+})();
 const poeticBrainEnabled = process.env.NEXT_PUBLIC_ENABLE_POETIC_BRAIN === 'true';
 
 export default function HomeHero() {
