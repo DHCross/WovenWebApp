@@ -221,21 +221,23 @@ export default function HomeHero() {
               >
                 Open Poetic Brain
               </a>
-            ) : (
-              <button
-                onClick={loginWithGoogle}
-                disabled={!ready || !clientRef.current || isLoggingIn}
-                className={`rounded-md border border-slate-700 px-4 py-2 text-slate-100 ${(!ready || !clientRef.current || isLoggingIn) ? 'bg-slate-700/60 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700'}`}
-                title="Sign in to enable Poetic Brain"
-              >
-                {isLoggingIn ? 'Redirecting…' : 'Continue with Google'}
-              </button>
-            )
+            ) : null
           ) : (
             <div className="rounded-md border border-slate-700 bg-slate-900/60 px-4 py-2 text-left text-slate-300">
               <p className="text-sm font-medium text-slate-100">Poetic Brain is currently offline.</p>
               <p className="mt-1 text-xs text-slate-400">You can still generate Math Brain reports below; Raven&rsquo;s chat mirror will return once the Gemini/Auth0 integration is stable.</p>
             </div>
+          )}
+
+          {authEnabled && !authed && (
+            <button
+              onClick={loginWithGoogle}
+              disabled={!ready || !clientRef.current || isLoggingIn}
+              className={`rounded-md border border-slate-700 px-4 py-2 text-slate-100 ${(!ready || !clientRef.current || isLoggingIn) ? 'bg-slate-700/60 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700'}`}
+              title="Sign in to enable Poetic Brain"
+            >
+              {isLoggingIn ? 'Redirecting…' : 'Continue with Google'}
+            </button>
           )}
 
           {!ready && (
