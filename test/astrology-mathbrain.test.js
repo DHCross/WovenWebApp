@@ -159,6 +159,20 @@ async function runTests() {
       runner.assert(Array.isArray(body.synastry_aspects), 'Should have synastry aspects');
   });
 
+  runner.test('Relationship contact_state toggle respected', async () => {
+    const event = { httpMethod: 'POST', body: JSON.stringify({
+      personA: VALID_PERSON_A,
+      personB: VALID_PERSON_B,
+      context: { mode: 'SYNASTRY' },
+      relationship_context: { type: 'PARTNER', intimacy_tier: 'P3', contact_state: 'LATENT' }
+    }) };
+    const result = await handler(event);
+    runner.assertEqual(result.statusCode, 200);
+    const body = JSON.parse(result.body);
+    runner.assert(body.relationship, 'Relationship context should be echoed');
+    runner.assertEqual(body.relationship.contact_state, 'LATENT', 'contact_state should reflect toggle');
+  });
+
   runner.test('Should handle synastry with transits and Seismograph for BOTH people', async () => {
     const event = { httpMethod: 'POST', body: JSON.stringify({
       personA: VALID_PERSON_A,
@@ -316,11 +330,39 @@ async function runTests() {
     runner.assert(body.provenance.geometry_ready === true, 'geometry should remain ready');
   });
 
+
+  runner.test('Both_local relocation applies shared coordinates for dyad', async () => {
+
   runner.test('Mirror report rejects midpoint relocation mode', async () => {
+
     const event = {
       httpMethod: 'POST',
       body: JSON.stringify({
         personA: VALID_PERSON_A,
+
+        personB: VALID_PERSON_B,
+        transitParams: VALID_TRANSIT_PARAMS,
+        context: { mode: 'SYNASTRY_TRANSITS' },
+        relationship_context: { type: 'FRIEND', role: 'Acquaintance', contact_state: 'ACTIVE' },
+        translocation: {
+          applies: true,
+          method: 'Both_local',
+          tz: 'US/Pacific',
+          current_location: 'San Francisco, CA',
+          coords: { latitude: 37.7749, longitude: -122.4194 }
+        }
+      })
+    };
+    const res = await handler(event);
+    runner.assertEqual(res.statusCode, 200, 'Response should be 200');
+    const body = JSON.parse(res.body);
+    runner.assert(body.context.translocation, 'translocation context present');
+    runner.assertEqual(body.context.translocation.method, 'Both_local', 'method should normalize to Both_local');
+    runner.assertEqual(body.context.translocation.current_location, 'San Francisco, CA', 'location label should be preserved');
+    runner.assert(body.person_a.chart.transitsByDate, 'Person A transits present');
+    runner.assert(body.person_b.chart.transitsByDate, 'Person B transits present');
+    runner.assertEqual(body.relationship.contact_state, 'ACTIVE', 'contact_state should default to Active when provided');
+
         context: { mode: 'mirror' },
         translocation: { applies: true, method: 'Midpoint' }
       })
@@ -361,6 +403,7 @@ async function runTests() {
     runner.assertEqual(res.statusCode, 400, 'should reject midpoint without dyad');
     const body = JSON.parse(res.body);
     runner.assertEqual(body.code, 'invalid_relocation_mode_for_report', 'balance midpoint error code');
+
   });
 
   await runner.run();

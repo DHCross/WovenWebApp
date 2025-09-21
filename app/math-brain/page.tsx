@@ -93,6 +93,7 @@ export default function MathBrainPage() {
   const [relationshipType, setRelationshipType] = useState<string>("PARTNER");
   const [relationshipTier, setRelationshipTier] = useState<string>("");
   const [relationshipRole, setRelationshipRole] = useState<string>("");
+  const [contactState, setContactState] = useState<"ACTIVE" | "LATENT">("ACTIVE");
   const [exEstranged, setExEstranged] = useState<boolean>(false);
   const [relationshipNotes, setRelationshipNotes] = useState<string>("");
 
@@ -130,6 +131,10 @@ export default function MathBrainPage() {
     return Math.min(max, Math.max(min, n));
   };
   // Translocation / Relocation selection (angles/houses reference)
+
+  type TranslocationOption = 'NONE' | 'A_LOCAL' | 'B_LOCAL' | 'BOTH_LOCAL' | 'MIDPOINT';
+  const [translocation, setTranslocation] = useState<TranslocationOption>('A_LOCAL');
+
   type TranslocationOption = 'A_NATAL' | 'A_LOCAL' | 'B_NATAL' | 'B_LOCAL' | 'MIDPOINT';
   const normalizeTranslocationOption = (value: any): TranslocationOption => {
     const token = String(value || '').trim().toUpperCase();
@@ -142,6 +147,7 @@ export default function MathBrainPage() {
     return 'A_NATAL';
   };
   const [translocation, setTranslocation] = useState<TranslocationOption>('A_NATAL');
+
   // Relocation coordinates (single-field); default from spec: 30°10'N, 85°40'W
   const [relocInput, setRelocInput] = useState<string>("30°10'N, 85°40'W");
   const [relocError, setRelocError] = useState<string | null>(null);
@@ -392,6 +398,12 @@ export default function MathBrainPage() {
     }
   }, [includePersonB, mode, relationalModes]);
 
+  useEffect(() => {
+    if (!includePersonB && (translocation === 'B_LOCAL' || translocation === 'MIDPOINT' || translocation === 'BOTH_LOCAL')) {
+      setTranslocation('NONE');
+    }
+  }, [includePersonB, translocation]);
+
   // Auto-focus Person B name input when Person B is enabled
   useEffect(() => {
     if (includePersonB) {
@@ -426,7 +438,12 @@ export default function MathBrainPage() {
       if (typeof saved.relationshipNotes === 'string') setRelationshipNotes(saved.relationshipNotes);
       if (typeof saved.relationshipTier === 'string') setRelationshipTier(saved.relationshipTier);
       if (typeof saved.relationshipRole === 'string') setRelationshipRole(saved.relationshipRole);
+
+      if (typeof saved.contactState === 'string') setContactState(saved.contactState.toUpperCase() === 'LATENT' ? 'LATENT' : 'ACTIVE');
+      if (saved.translocation) setTranslocation(saved.translocation);
+
       if (saved.translocation) setTranslocation(normalizeTranslocationOption(saved.translocation));
+
     } catch {/* noop */}
   }
 
@@ -753,6 +770,7 @@ export default function MathBrainPage() {
         relationshipType,
         relationshipTier,
         relationshipRole,
+        contactState,
         exEstranged,
         relationshipNotes,
       };
@@ -907,6 +925,11 @@ export default function MathBrainPage() {
           const rc = data.relationship_context;
           if (rc.type) setRelationshipType(String(rc.type).toUpperCase());
           if (rc.intimacy_tier) setRelationshipTier(String(rc.intimacy_tier));
+          const contactRaw = rc.contact_state || rc.contactState || rc.contact_status;
+          if (contactRaw) {
+            const state = String(contactRaw).toUpperCase();
+            setContactState(state === 'LATENT' ? 'LATENT' : 'ACTIVE');
+          }
         }
 
         if (data.period) {
@@ -937,7 +960,12 @@ export default function MathBrainPage() {
         if (typeof data.relationshipNotes === 'string') setRelationshipNotes(data.relationshipNotes);
         if (typeof data.relationshipTier === 'string') setRelationshipTier(data.relationshipTier);
         if (typeof data.relationshipRole === 'string') setRelationshipRole(data.relationshipRole);
+
+        if (typeof data.contactState === 'string') setContactState(data.contactState.toUpperCase() === 'LATENT' ? 'LATENT' : 'ACTIVE');
+        if (data.translocation) setTranslocation(data.translocation);
+
         if (data.translocation) setTranslocation(normalizeTranslocationOption(data.translocation));
+
         // update single-field coord mirrors
         if (data.personA?.latitude != null && data.personA?.longitude != null) {
           setACoordsInput(formatDecimal(Number(data.personA.latitude), Number(data.personA.longitude)));
@@ -1024,9 +1052,10 @@ export default function MathBrainPage() {
     timeUnknown,
     timeUnknownB,
     timePolicy,
+    contactState,
     personA_lat_type: typeof (personA as any).latitude,
     personA_lon_type: typeof (personA as any).longitude,
-  }), [reportType, canSubmit, submitDisabled, aCoordsValid, bCoordsValid, includePersonB, timeUnknown, timeUnknownB, timePolicy, personA]);
+  }), [reportType, canSubmit, submitDisabled, aCoordsValid, bCoordsValid, includePersonB, timeUnknown, timeUnknownB, timePolicy, contactState, personA]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -1074,6 +1103,25 @@ export default function MathBrainPage() {
         },
         // Pass translocation intent to backend (data-only context)
         translocation: ((): any => {
+
+          if (translocation === 'NONE') {
+            return { applies: false, method: 'Natal' };
+          }
+          const methodMap: Record<TranslocationOption, string> = {
+            NONE: 'Natal',
+            A_LOCAL: 'A_local',
+            B_LOCAL: 'B_local',
+            BOTH_LOCAL: 'Both_local',
+            MIDPOINT: 'Midpoint',
+          };
+          return {
+            applies: true,
+            method: methodMap[translocation] || 'Custom',
+            coords: relocCoords ? { latitude: relocCoords.lat, longitude: relocCoords.lon } : undefined,
+            current_location: relocLabel || undefined,
+            tz: relocTz || undefined,
+          };
+
           const mode = relocationStatus.effectiveMode;
           if (mode === 'A_LOCAL' || mode === 'B_LOCAL') {
             return {
@@ -1091,6 +1139,7 @@ export default function MathBrainPage() {
             return { applies: false, method: 'B_natal' };
           }
           return { applies: false, method: 'A_natal' };
+
         })(),
       };
 
@@ -1107,6 +1156,7 @@ export default function MathBrainPage() {
             relationshipType,
             relationshipTier,
             relationshipRole,
+            contactState,
             exEstranged,
             relationshipNotes,
             personA,
@@ -1135,6 +1185,7 @@ export default function MathBrainPage() {
           type: relationshipType,
           intimacy_tier: relationshipType === 'PARTNER' ? relationshipTier : undefined,
           role: relationshipType !== 'PARTNER' ? relationshipRole : undefined,
+          contact_state: contactState,
           ex_estranged: relationshipType === 'FRIEND' ? undefined : exEstranged,
           notes: relationshipNotes || undefined,
         };
@@ -1910,6 +1961,33 @@ export default function MathBrainPage() {
                   <div>• Acquaintance — light pattern echoes only; intimacy dynamics locked.</div>
                 </div>
               </div>
+              <div className="sm:col-span-2">
+                <span className="block text-sm text-slate-300">Contact State</span>
+                <div className="mt-2 inline-flex overflow-hidden rounded-md border border-slate-600 bg-slate-900/80">
+                  <button
+                    type="button"
+                    disabled={!includePersonB}
+                    onClick={() => setContactState('ACTIVE')}
+                    className={`px-3 py-1.5 text-sm transition ${contactState === 'ACTIVE' ? 'bg-emerald-600 text-white' : 'text-slate-200 hover:bg-slate-800'} ${!includePersonB ? 'cursor-not-allowed opacity-70' : ''}`}
+                    aria-pressed={contactState === 'ACTIVE'}
+                  >
+                    Active
+                  </button>
+                  <div className="h-6 w-px bg-slate-700 my-1" />
+                  <button
+                    type="button"
+                    disabled={!includePersonB}
+                    onClick={() => setContactState('LATENT')}
+                    className={`px-3 py-1.5 text-sm transition ${contactState === 'LATENT' ? 'bg-indigo-600 text-white' : 'text-slate-200 hover:bg-slate-800'} ${!includePersonB ? 'cursor-not-allowed opacity-70' : ''}`}
+                    aria-pressed={contactState === 'LATENT'}
+                  >
+                    Latent
+                  </button>
+                </div>
+                <p className="mt-2 text-xs text-slate-400">
+                  Active treats overlays as live contact pressure; Latent logs the geometry but marks it dormant until reactivation.
+                </p>
+              </div>
               {relationshipType === 'PARTNER' && (
                 <div>
                   <label htmlFor="rel-tier" className="block text-sm text-slate-300">Intimacy Tier</label>
@@ -2074,12 +2152,20 @@ export default function MathBrainPage() {
                     value={translocation}
                     onChange={(e) => setTranslocation(normalizeTranslocationOption(e.target.value))}
                   >
+
+                    <option value="NONE">Birthplace Transits Only</option>
+                    <option value="A_LOCAL">Person A</option>
+                    <option value="B_LOCAL" disabled={!includePersonB}>Person B</option>
+                    <option value="BOTH_LOCAL" disabled={!includePersonB}>Relocate Both (A + B)</option>
+                    <option value="MIDPOINT" disabled={!includePersonB}>Midpoint (A + B)</option>
+
                     {relocationOptions.map((opt) => (
                       <option key={opt.value} value={opt.value} disabled={opt.disabled} title={opt.title}>
                         {relocationSelectLabels[opt.value]}
                         {opt.disabled && reportType === 'balance' && opt.value.endsWith('NATAL') ? ' (fallback)' : ''}
                       </option>
                     ))}
+
                   </select>
                   <p className="mt-1 text-xs text-slate-400">Relocation remaps houses/angles only; planets stay fixed. Choose the lens allowed for this report type.</p>
                   <p className="mt-1 text-xs text-slate-500">Midpoint relocation is reserved for Relational Balance. Composite mode above still creates the midpoint chart.</p>
