@@ -9,7 +9,15 @@ export const dynamic = 'force-dynamic';
 
 export default function ChatPage() {
   const ErrorBoundary = require('../../components/ErrorBoundary').default;
-  const poeticBrainEnabled = process.env.NEXT_PUBLIC_ENABLE_POETIC_BRAIN === 'true';
+  const poeticBrainEnabled = (() => {
+    const raw = process.env.NEXT_PUBLIC_ENABLE_POETIC_BRAIN;
+    if (typeof raw !== 'string') return true;
+    const normalized = raw.trim().toLowerCase();
+    if (normalized === '' || normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on') {
+      return true;
+    }
+    return false;
+  })();
   return (
     <ErrorBoundary>
       <RequireAuth>
