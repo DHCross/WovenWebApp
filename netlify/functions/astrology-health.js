@@ -4,7 +4,11 @@
  */
 
 // Import the health function from the main module
+
+const { health } = require('../../lib/server/astrology-mathbrain.js');
+
 const { health } = require('../lib/server/astrology-mathbrain.js');
+
 
 // Export the health handler
 exports.handler = health;
