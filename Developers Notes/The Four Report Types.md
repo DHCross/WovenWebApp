@@ -33,6 +33,11 @@ Each report type serves a distinct analytical purpose within the WovenWebApp sys
 - MAP: Structural skeleton showing geometric relationships and behavioral architectures
 - VOICE: Conditional mirror language offering testable insights without deterministic claims
 
+### User Input Flow (Applies to All Reports)
+- Birth credentials are always supplied by the user: legal/preferred name, birth date, birth time, birthplace (city + state or coordinates), and timezone confirmation.
+- Relocation/translocation is an explicit user choice. When the toggle is active the payload includes the chosen lens (`A_local`, `B_local`, `Custom`, etc.) together with either coordinates or a city/nation combination.
+- For internal QA Person A loads with a default A_local lens (Panama City, FL) so testers can submit quickly, but the location can be edited or the lens turned off before sending the request.
+
 ---
 
 ## 1. Solo Mirror Report (Individual Constitutional Analysis)

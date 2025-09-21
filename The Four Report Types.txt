@@ -1,5 +1,387 @@
 ﻿Report Types
-Woven Map Report FrameworkCore Components (All Reports)Every report includes these six elements:- Typological Profile: Constitutional climate layer- Balance Meter: Magnitude, valence, volatility metrics- Vector-Integrity Check: Latent vs suppressed influences- Polarity Cards: FIELD → MAP → VOICE progression- Mirror Voice: Reflective narrative that returns agency- Raw Geometry: Mathematical data appendix1. Solo Mirror Report (Individual Chart)Header- Person: Name, birth date/time/location, coordinates, timezone- Mode: Natal | Natal+Transits- Date Range: [if transits included]Core SectionsTypological Profile- Dominant Orientation: Primary function with planetary anchors- Secondary Orientation: Background rhythm, conditional behaviors- Shadow Orientation: Friction points, squares, Saturn/Pluto knots- Constitutional Climate: Metaphor tying all orientations togetherChart Summary- Planetary placements (Sun → Pluto, Nodes, Chiron)- Angles: ASC/MC/DSC/IC- Major aspectsTransit Analysis (if applicable)- Significant transits to natal placements- Transit table for date rangeBalance Meter- Magnitude (0-5): Pressure intensity- Valence (-5 to +5): Supportive vs restrictive- Volatility (0-5): Stability vs chaos- Climate Line: One-sentence weather metaphorVector-Integrity Check- Latent: Constitutional placements not yet activated- Suppressed: Compensated or muted by other structuresPolarity Cards- FIELD: Somatic tone baseline- MAP: Geometric skeleton (angles, polarities)- VOICE: Second-person conditional mirrorMirror Voice- Narrative of amplifications + frictions- Closes with: "What feels most alive to you here?"2. Solo Balance Meter Report (Transit Focus)Header- Person data + transit date rangeCore SectionsBalance Meter Overview- Magnitude, Valence, Volatility scores- Climate Line: Baseline solo weather metaphorTime Series Data- Daily/weekly seismograph bars- Aggregation: mean or max valuesIntegration Factors (Percentages)- Fertile Field %- Harmonic Resonance %- Expansion Lift %- Combustion Clarity %- Liberation/Release %- Integration %Vector-Integrity + Polarity Cards + Mirror Voice- Same structure as Solo Mirror- Focuses on transit pressure patterns- Closes with: "What part feels steady, what part scattered?"3. Relational Mirror Report (Synastry/Composite)Header- Person A + Person B data- Mode: Synastry | Composite | Both- Date Range: [if transits included]Core SectionsIndividual Natal Summaries- Person A: Sun, Moon, Mercury, Venus, Mars, outer planets, angles- Person B: Same structureRelocation Overlay (if applicable)- Mode: None | A_local | B_local | Midpoint- Coordinates and angle/house shiftsAspect Analysis- Intra-Chart: Major aspects within each person's chart- Synastry: Cross-aspects A→B and B→A- Special Flags: Angular hits, anaretic degrees, exact contactsTransit Analysis (if applicable)- Transits to A's chart- Transits to B's chart- Transits to key synastry contactsBalance Meter (Relational)- Magnitude (0-5): Joint pressure size- Valence (-5 to +5): Dyadic supportive vs restrictive tilt- Volatility (0-5): Bond stability vs turbulence- Differential: Where A vs B carries more load- Climate Line: How A's baseline meets B's baselineVector-Integrity Check- Latent Cross-Vectors: Structural but not yet activated- Suppressed Vectors: Muted by compensatory geometryPolarity Cards (Shared)- FIELD: Dyadic somatic tone- MAP: Cross-chart geometric skeleton- VOICE: Non-prescriptive relational mirrorMirror Voice- Where bond amplifies vs where scaffolding falters- Closes with: "Where do you notice support vs drag most?"4. Relational Balance Meter ReportHeader- Both persons' data + transit date rangeCore SectionsIndividual Natal Summaries (Constitutional Anchors)- Person A: Sun, Moon, Mercury, Venus, Mars, outer planets, angles- Person B: Same structure- Key Synastry Contacts: Core cross-aspects for contextRelational Balance Overview- Joint magnitude, valence, volatility- Differential load analysis- Dyadic climate metaphorTime Series Data- Joint seismograph bars- Daily/weekly aggregationSupport Analysis- Support Scaffolding: Present | Challenged | Absent- Resilience: Depleted | Resilient | ReboundingVector-Integrity + Polarity Cards + Mirror Voice- Same relational structure as #3- Focus on transit pressure in the bond- Returns agency to both individualsRaw Geometry Appendix (All Reports)Solo Reports- Natal placements table- Aspect grid- Transit logsRelational Reports- Full synastry aspect tables- Composite chart summary- Transit overlay logsDesign PrinciplesMath Brain Pure: Geometry-first, behavior-language only Balance Meter Integration: Climate diagnostics, not personality readingsNon-Interpretive: Surfaces patterns without prescription Agency-Returning: Always closes by empowering self-reflection Modular: Each component serves a specific diagnostic function
+Woven Map Report Framework
+Core Components (All Reports)
+Every report includes these six elements:
+- Typological Profile: Constitutional climate layer
+- Balance Meter: Magnitude, valence, volatility metrics
+- Vector-Integrity Check: Latent vs suppressed influences
+- Polarity Cards: FIELD → MAP → VOICE progression
+- Mirror Voice: Reflective narrative that returns agency
+- Raw Geometry: Mathematical data appendix
+User Input Baseline (applies to all four reports)
+- Birth data is entered by the user: name, birth date, birth time, and birthplace (city + state or direct coordinates) alongside timezone.
+- Relocation is optional and user-controlled. When the translocation toggle is on, the request includes the active lens (`A_local`, `B_local`, `Custom`, etc.) plus either coordinates or a city/nation pair.
+- Person A’s sandbox defaults to Panama City, FL (A_local) for quick testing, but the location can be edited or the relocation lens can be switched off before submission.
+
+1. Solo Mirror Report (Individual Chart)
+Header
+- Person: Name, birth date/time/location, coordinates, timezone
+- Mode: Natal | Natal+Transits
+- Date Range: [if transits included]
+Core Sections
+Typological Profile
+- Dominant Orientation: Primary function with planetary anchors
+- Secondary Orientation: Background rhythm, conditional behaviors
+- Shadow Orientation: Friction points, squares, Saturn/Pluto knots
+- Constitutional Climate: Metaphor tying all orientations together
+Chart Summary
+- Planetary placements (Sun → Pluto, Nodes, Chiron)
+- Angles: ASC/MC/DSC/IC
+- Major aspects
+Transit Analysis (if applicable)
+- Significant transits to natal placements
+- Transit table for date range
+Balance Meter
+- Magnitude (0-5): Pressure intensity
+- Valence (-5 to +5): Supportive vs restrictive
+- Volatility (0-5): Stability vs chaos
+- Climate Line: One-sentence weather metaphor
+Vector-Integrity Check
+- Latent: Constitutional placements not yet activated
+- Suppressed: Compensated or muted by other structures
+Polarity Cards
+- FIELD: Somatic tone baseline
+- MAP: Geometric skeleton (angles, polarities)
+- VOICE: Second-person conditional mirror
+Mirror Voice
+- Narrative of amplifications + frictions
+- Closes with: "What feels most alive to you here?"
+
+2. Solo Balance Meter Report (Transit Focus)
+Header
+- Person data + transit date range
+Core Sections
+Balance Meter Overview
+- Magnitude, Valence, Volatility scores
+- Climate Line: Baseline solo weather metaphor
+Time Series Data
+- Daily/weekly seismograph bars
+- Aggregation: mean or max values
+Integration Factors (Percentages)
+- Fertile Field %
+- Harmonic Resonance %
+- Expansion Lift %
+- Combustion Clarity %
+- Liberation/Release %
+- Integration %
+Vector-Integrity + Polarity Cards + Mirror Voice
+- Same structure as Solo Mirror
+- Focuses on transit pressure patterns
+- Closes with: "What part feels steady, what part scattered?"
+
+3. Relational Mirror Report (Synastry/Composite)
+Header
+- Person A + Person B data
+- Mode: Synastry | Composite | Both
+- Date Range: [if transits included]
+Core Sections
+Individual Natal Summaries
+- Person A: Sun, Moon, Mercury, Venus, Mars, outer planets, angles
+- Person B: Same structure
+Relocation Overlay (if applicable)
+- Mode: None | A_local | B_local | Midpoint
+- Coordinates and angle/house shifts
+Aspect Analysis
+- Intra-Chart: Major aspects within each person's chart
+- Synastry: Cross-aspects A→B and B→A
+- Special Flags: Angular hits, anaretic degrees, exact contacts
+Transit Analysis (if applicable)
+- Transits to A's chart
+- Transits to B's chart
+- Transits to key synastry contacts
+Balance Meter (Relational)
+- Magnitude (0-5): Joint pressure size
+- Valence (-5 to +5): Dyadic supportive vs restrictive tilt
+- Volatility (0-5): Bond stability vs turbulence
+- Differential: Where A vs B carries more load
+- Climate Line: How A's baseline meets B's baseline
+Vector-Integrity Check
+- Latent Cross-Vectors: Structural but not yet activated
+- Suppressed Vectors: Muted by compensatory geometry
+Polarity Cards (Shared)
+- FIELD: Dyadic somatic tone
+- MAP: Cross-chart geometric skeleton
+- VOICE: Non-prescriptive relational mirror
+Mirror Voice
+- Where bond amplifies vs where scaffolding falters
+- Closes with: "Where do you notice support vs drag most?"
+
+4. Relational Balance Meter Report
+Header
+- Both persons' data + transit date range
+Core Sections
+Individual Natal Summaries (Constitutional Anchors)
+- Person A: Sun, Moon, Mercury, Venus, Mars, outer planets, angles
+- Person B: Same structure
+- Key Synastry Contacts: Core cross-aspects for context
+Relational Balance Overview
+- Joint magnitude, valence, volatility
+- Differential load analysis
+- Dyadic climate metaphor
+Time Series Data
+- Joint seismograph bars
+- Daily/weekly aggregation
+Support Analysis
+- Support Scaffolding: Present | Challenged | Absent
+- Resilience: Depleted | Resilient | Rebounding
+Vector-Integrity + Polarity Cards + Mirror Voice
+- Same relational structure as #3
+- Focus on transit pressure in the bond
+- Returns agency to both individuals
+
+Raw Geometry Appendix (All Reports)
+Solo Reports
+- Natal placements table
+- Aspect grid
+- Transit logs
+Relational Reports
+- Full synastry aspect tables
+- Composite chart summary
+- Transit overlay logs
+
+Design Principles
+Math Brain Pure: Geometry-first, behavior-language only Balance Meter Integration: Climate diagnostics, not personality readings
+Non-Interpretive: Surfaces patterns without prescription Agency-Returning: Always closes by empowering self-reflection Modular: Each component serves a specific diagnostic function
+
+Info Needed
+Woven Map Report Generation Guide
+Required Data Collection
+Solo Report Inputs
+Identity & Birth Data
+- Name: Full name or preferred identifier
+- Birth Date: YYYY-MM-DD format
+- Birth Time: HH:MM (as exact as possible)
+- Birth City & Nation: Full location name
+- Latitude/Longitude: Precise coordinates for birth city
+- Timezone: Local offset or region at time of birth
+- Zodiac Type: Tropical or Sidereal
+Mode & Analysis Window
+- Mode:
+- Natal (constitution only)
+- Natal + Transits (constitution under current weather)
+- If using transits:
+- Start Date: Beginning of analysis period
+- End Date: End of analysis period
+- Step: Daily/Weekly/Monthly intervals
+
+Relational Report Inputs
+Person B Data (same fields as Person A)
+- Name, birth date/time, city/nation, lat/lon, timezone, zodiac type
+Relationship Context (for narrative framing)
+- Type: Partner | Friend/Colleague | Family
+- If Partner: Intimacy Tier (P1–P5a/b)
+- P1: Early/casual/feeling it out
+- P2: Established/regular rhythm
+- P3: Committed routines/shared planning
+- P4: Living together/high interdependence
+- P5a: Formal union (married/common-law)
+- P5b: Post-union complexity (separated/divorcing)
+- If Family: Role (Parent, Offspring, Sibling, etc.)
+- Ex/Estranged: On/Off (available for Partner & Family types)
+- Notes: ≤500 characters of context (e.g., "co-parenting long-distance")
+Analysis Mode
+- Synastry | Synastry + Transits | Composite | Dual Natal + Transits
+- Transit Window (if applicable): Start/End/Step dates
+
+Relocation ("Translocation") Options
+What Relocation Does
+Relocation doesn't move the planets; it reanchors the house system and angles to a different place on Earth. This changes where planetary energies land (houses/ASC/MC) and when certain pressures peak locally.
+When to Consider Relocation
+- You want the chart to reflect where life is actually happening now (not birth city)
+- You're planning or analyzing an event in a specific city
+- Long-distance relationships where neither person lives in their birth city anymore
+Relocation Options
+None
+- Use birth locations as-is
+- Best for constitutional-only reads or when location doesn't matter
+A_local
+- Reanchor to Person A's current city
+- Good when A is the primary focus or context centers on A's life terrain (moves, work, health, home)
+B_local
+- Reanchor to Person B's current city
+- Mirror of A_local; use when action centers on B's experience
+Midpoint
+- Use geographic midpoint between A and B (or chosen neutral city)
+- Fair for remote/long-distance bonds or shared travel planning
+What Changes vs. Stays
+Changes:
+- House cusps and angles (ASC/MC/DSC/IC)
+- Timing emphases for transits hitting angles
+- Local environmental emphasis
+Stays Put:
+- Planetary longitudes (degrees in signs)
+- Aspects between planets
+- Core synastry/composite math
+Rule of Thumb
+Decide the setting of the story (whose city or neutral location) → pick relocation mode → run report. If comparing options, generate quick passes (e.g., None vs A_local) and see which climate line matches lived reality.
+
+Data Impact Guide
+What Affects the Math
+- Birth dates/times
+- Geographic coordinates (lat/lon/timezone)
+- Analysis mode selection
+- Transit date windows
+- Relocation coordinates
+What Affects the Language Only
+- Relationship context (type, intimacy tier, role)
+- Ex/Estranged status
+- Notes field
+- Nothing in relationship context changes underlying geometry—only how it's described
+
+Quality Control Notes
+Birth Time Accuracy
+- Exact time preferred for precise angles and houses
+- If unknown, can approximate (e.g., 12:00 noon), but treat angles/houses and Moon positions as softer data
+- Time accuracy affects house placements and angle-based timing
+Timezone Clarity
+- Use correct local offset/region at time of birth
+- Account for historical timezone changes if birth was decades ago
+- Double-check daylight saving time status for birth date
+Transit Windows
+- Shorter windows (days to weeks): Good for immediate decisions and current conditions
+- Longer windows (months to seasons): Better for seeing larger cycles and patterns
+- Step intervals: Daily for detailed tracking, weekly for general patterns, monthly for broad trends
+Relationship Context Accuracy
+- Choose settings that reflect current reality, not aspirational or past states
+- Update context if relationship status changes significantly
+- Use Notes field for crucial details that affect interpretation (custody arrangements, geographic distance, etc.)
+
+Quick Decision Trees
+Solo Report: Natal vs. Natal+Transits?
+- Natal only: Understanding core constitution, personality patterns, life themes
+- Natal + Transits: Current pressures, timing decisions, what's active now
+Relational Report: Which Mode?
+- Synastry: How you affect each other (individual charts interacting)
+- Composite: The relationship as its own entity (midpoint chart)
+- Dual Natal + Transits: Both individual constitutions under current weather
+- Synastry + Transits: Individual interactions plus current external pressures
+Relocation: None vs. Local?
+- None: Constitutional analysis, personality compatibility, broad patterns
+- Local: Current life circumstances, timing for specific location, practical decisions
+Transit Window: How Long?
+- 1-4 weeks: Immediate decisions, current crisis or opportunity
+- 1-6 months: Seasonal planning, medium-term projects
+- 1+ years: Life phase analysis, major transitions
+
+The Poetic Brain
+Woven Map Feedback Loop System
+The Recognition-to-Refinement Pipeline
+1. Hook Stack (Recognition Gateway)
+What it is: Front-door UX using 2–4 high-charge, dual-polarity titles sourced from tightest aspects
+- Example: "Restless & Thrill-Seeking / Disciplined or Shut Down"
+- Tier-1 Orbs: Tight surgical window to ensure immediate felt recognition
+- Purpose: Bypass analysis, trigger limbic "that's me" ping, open door for depth work
+Process: Math Brain geometry → short, vivid cards (no theory, no advice)
+
+2. Poetic Brain Translation (Core Processing)
+What it is: The translation spine turning weather into usable mirrors
+- Tier-2 Orbs: Slightly wider window to catch full pattern for depth work
+Three-Layer Structure:
+- FIELD: Somatic climate in one sentence (jaw clamp, open chest, tab-overload)
+- MAP: Structural tension named plainly (security ↔ risk, compression → release)
+- VOICE: If/then prompt in small time box ("test X for 3 days; if volatility spikes, halve scope")
+Purpose: Move from feeling → structure → choice without prediction
+
+3. SST Logs (Falsifiability Table)
+What it is: The honesty-keeping system for mirror accuracy
+Three Categories:
+- WB (Within Boundary): Clear, felt resonance; user confirms
+- ABE (At Boundary Edge): Partial/inverted/mis-toned resonance; still useful signal
+- OSR (Outside Symbolic Range): No resonance; valid non-hit
+Purpose: Keep mirrors honest; misses become calibration data, not user error
+
+4. Drift Index (Symbolic Grammar Updates)
+What it is: Sidereal-lean detector built from clarification data
+Process:
+- Classify clarifications (especially OSRs) as:
+- Driver-aligned (sidereal-leaning)
+- Role-aligned (tropical-leaning)
+- If OSR clusters lean Driver, flag Sidereal Drift
+Effect: Future mirrors prioritize Driver language and examples—no chart redraw required
+Purpose: Keep language matched to lived self-perception
+
+5. Session Scores (Transparent Metrics)
+What it is: Non-gamified session performance indicators
+Three Metrics:
+- Accuracy: WB ÷ (WB + ABE + OSR)
+- Edge Capture: ABE ÷ (WB + ABE)
+- Clarity: 1 - (unclear prompts ÷ total prompts)
+Purpose: Show how well mirrors landed, how often they caught the "edge," how clear they read—enabling system tuning
+
+6. Wrap-Up Card (Session Sealer)
+What it is: Single keepsake + checkpoint summary
+Contents:
+- 2–3 strongest Hook Stack titles
+- Actor/Role composite
+- Resonance scorecard (WB/ABE/OSR)
+- Climate line (if timed)
+- Optional Poetic Index
+- Sidereal Drift flag (if present)
+Purpose: Memory anchor + falsifiability snapshot to carry forward
+
+7. Adaptive Loop (Next Session Tuning)
+What it is: How the system evolves based on feedback
+Adaptation Mechanics:
+- Language Weighting: Drift Index influences Driver vs Role emphasis
+- Container Sizing: Balance Meter + scores adjust pacing and detail level
+- Clarity Tuning: Raises or lowers detail based on Clarity scores
+- Boundary Targeting: Edge Capture highlights zones for deeper exploration
+Purpose: Each round gets truer, plainer, and easier to test
+
+Daily Integration Layer
+
+Daily Integration Layer
+Recognition Layer Prompts
+Daily felt tension check-ins:
+- WB Cue: "Where did a card land in your body today (breath, jaw, stomach)?"
+- ABE Cue: "What almost fit—what single word would make it land?"
+- OSR Cue: "What did you not feel at all (real, but situational; not sourced in your chart)?"
+Weight Belt (Shareable Summary)
+Picture: Palms on desk, slow breath, jaw unclenches—before glancing at any dials
+Components:
+- Feeling: Steady grounding
+- Container: Three-day test, one change, no big bets
+- Options: Log one somatic ping first OR run tiny VOICE prompt after naming the feeling
+- Next Step: Write one-line body note NOW, then consult Balance Meter; let presence set tone, weather set pacing
+Key Change: Presence first, weather second—body wisdom leads, metrics follow
+
+System Philosophy
+Falsifiability First
+Every mirror must be testable. Misses are calibration data, not failures.
+Recognition Before Analysis
+Hook Stack bypasses cognitive processing to hit felt sense directly.
+Adaptive Language
+System learns your symbolic grammar and adjusts accordingly.
+Transparent Metrics
+No hidden algorithms—you see exactly how well the mirrors are working.
+Micro-Container Testing
+Small experiments (3-7 days) with measurable outcomes.
+
+Feedback Flow Summary
+1. Hook Stack → Immediate recognition
+2. Poetic Brain → Structured translation
+3. SST Logs → Honesty tracking
+4. Drift Index → Language calibration
+5. Session Scores → Performance metrics
+6. Wrap-Up Card → Session summary
+7. Adaptive Loop → System evolution
+8. Recognition Layer → Daily integration
+9. Next Session → Improved targeting
+Each loop refines the system's ability to generate accurate, useful mirrors while maintaining falsifiability and user agency.
+
+
+
+
+
+
+
+
+
+
+
+
+
+- Vector-Integrity Check: Latent vs suppressed influences- Polarity Cards: FIELD → MAP → VOICE progression- Mirror Voice: Reflective narrative that returns agency- Raw Geometry: Mathematical data appendix1. Solo Mirror Report (Individual Chart)Header- Person: Name, birth date/time/location, coordinates, timezone- Mode: Natal | Natal+Transits- Date Range: [if transits included]Core SectionsTypological Profile- Dominant Orientation: Primary function with planetary anchors- Secondary Orientation: Background rhythm, conditional behaviors- Shadow Orientation: Friction points, squares, Saturn/Pluto knots- Constitutional Climate: Metaphor tying all orientations togetherChart Summary- Planetary placements (Sun → Pluto, Nodes, Chiron)- Angles: ASC/MC/DSC/IC- Major aspectsTransit Analysis (if applicable)- Significant transits to natal placements- Transit table for date rangeBalance Meter- Magnitude (0-5): Pressure intensity- Valence (-5 to +5): Supportive vs restrictive- Volatility (0-5): Stability vs chaos- Climate Line: One-sentence weather metaphorVector-Integrity Check- Latent: Constitutional placements not yet activated- Suppressed: Compensated or muted by other structuresPolarity Cards- FIELD: Somatic tone baseline- MAP: Geometric skeleton (angles, polarities)- VOICE: Second-person conditional mirrorMirror Voice- Narrative of amplifications + frictions- Closes with: "What feels most alive to you here?"2. Solo Balance Meter Report (Transit Focus)Header- Person data + transit date rangeCore SectionsBalance Meter Overview- Magnitude, Valence, Volatility scores- Climate Line: Baseline solo weather metaphorTime Series Data- Daily/weekly seismograph bars- Aggregation: mean or max valuesIntegration Factors (Percentages)- Fertile Field %- Harmonic Resonance %- Expansion Lift %- Combustion Clarity %- Liberation/Release %- Integration %Vector-Integrity + Polarity Cards + Mirror Voice- Same structure as Solo Mirror- Focuses on transit pressure patterns- Closes with: "What part feels steady, what part scattered?"3. Relational Mirror Report (Synastry/Composite)Header- Person A + Person B data- Mode: Synastry | Composite | Both- Date Range: [if transits included]Core SectionsIndividual Natal Summaries- Person A: Sun, Moon, Mercury, Venus, Mars, outer planets, angles- Person B: Same structureRelocation Overlay (if applicable)- Mode: None | A_local | B_local | Midpoint- Coordinates and angle/house shiftsAspect Analysis- Intra-Chart: Major aspects within each person's chart- Synastry: Cross-aspects A→B and B→A- Special Flags: Angular hits, anaretic degrees, exact contactsTransit Analysis (if applicable)- Transits to A's chart- Transits to B's chart- Transits to key synastry contactsBalance Meter (Relational)- Magnitude (0-5): Joint pressure size- Valence (-5 to +5): Dyadic supportive vs restrictive tilt- Volatility (0-5): Bond stability vs turbulence- Differential: Where A vs B carries more load- Climate Line: How A's baseline meets B's baselineVector-Integrity Check- Latent Cross-Vectors: Structural but not yet activated- Suppressed Vectors: Muted by compensatory geometryPolarity Cards (Shared)- FIELD: Dyadic somatic tone- MAP: Cross-chart geometric skeleton- VOICE: Non-prescriptive relational mirrorMirror Voice- Where bond amplifies vs where scaffolding falters- Closes with: "Where do you notice support vs drag most?"4. Relational Balance Meter ReportHeader- Both persons' data + transit date rangeCore SectionsIndividual Natal Summaries (Constitutional Anchors)- Person A: Sun, Moon, Mercury, Venus, Mars, outer planets, angles- Person B: Same structure- Key Synastry Contacts: Core cross-aspects for contextRelational Balance Overview- Joint magnitude, valence, volatility- Differential load analysis- Dyadic climate metaphorTime Series Data- Joint seismograph bars- Daily/weekly aggregationSupport Analysis- Support Scaffolding: Present | Challenged | Absent- Resilience: Depleted | Resilient | ReboundingVector-Integrity + Polarity Cards + Mirror Voice- Same relational structure as #3- Focus on transit pressure in the bond- Returns agency to both individualsRaw Geometry Appendix (All Reports)Solo Reports- Natal placements table- Aspect grid- Transit logsRelational Reports- Full synastry aspect tables- Composite chart summary- Transit overlay logsDesign PrinciplesMath Brain Pure: Geometry-first, behavior-language only Balance Meter Integration: Climate diagnostics, not personality readingsNon-Interpretive: Surfaces patterns without prescription Agency-Returning: Always closes by empowering self-reflection Modular: Each component serves a specific diagnostic function
 Info Needed
 Woven Map Report Generation GuideRequired Data CollectionSolo Report InputsIdentity & Birth Data- Name: Full name or preferred identifier- Birth Date: YYYY-MM-DD format- Birth Time: HH:MM (as exact as possible)- Birth City & Nation: Full location name- Latitude/Longitude: Precise coordinates for birth city- Timezone: Local offset or region at time of birth- Zodiac Type: Tropical or SiderealMode & Analysis Window- Mode:- Natal (constitution only)- Natal + Transits (constitution under current weather)- If using transits:- Start Date: Beginning of analysis period- End Date: End of analysis period- Step: Daily/Weekly/Monthly intervalsRelational Report InputsPerson B Data (same fields as Person A)- Name, birth date/time, city/nation, lat/lon, timezone, zodiac typeRelationship Context (for narrative framing)- Type: Partner | Friend/Colleague | Family- If Partner: Intimacy Tier (P1–P5a/b)- P1: Early/casual/feeling it out- P2: Established/regular rhythm- P3: Committed routines/shared planning- P4: Living together/high interdependence- P5a: Formal union (married/common-law)- P5b: Post-union complexity (separated/divorcing)- If Family: Role (Parent, Offspring, Sibling, etc.)- Ex/Estranged: On/Off (available for Partner & Family types)- Notes: ≤500 characters of context (e.g., "co-parenting long-distance")Analysis Mode- Synastry | Synastry + Transits | Composite | Dual Natal + Transits- Transit Window (if applicable): Start/End/Step datesRelocation ("Translocation") OptionsWhat Relocation DoesRelocation doesn't move the planets; it reanchors the house system and angles to a different place on Earth. This changes where planetary energies land (houses/ASC/MC) and when certain pressures peak locally.When to Consider Relocation- You want the chart to reflect where life is actually happening now (not birth city)- You're planning or analyzing an event in a specific city- Long-distance relationships where neither person lives in their birth city anymoreRelocation OptionsNone- Use birth locations as-is- Best for constitutional-only reads or when location doesn't matterA_local- Reanchor to Person A's current city- Good when A is the primary focus or context centers on A's life terrain (moves, work, health, home)B_local- Reanchor to Person B's current city- Mirror of A_local; use when action centers on B's experienceMidpoint- Use geographic midpoint between A and B (or chosen neutral city)- Fair for remote/long-distance bonds or shared travel planningWhat Changes vs. StaysChanges:- House cusps and angles (ASC/MC/DSC/IC)- Timing emphases for transits hitting angles- Local environmental emphasisStays Put:- Planetary longitudes (degrees in signs)- Aspects between planets- Core synastry/composite mathRule of ThumbDecide the setting of the story (whose city or neutral location) → pick relocation mode → run report. If comparing options, generate quick passes (e.g., None vs A_local) and see which climate line matches lived reality.Data Impact GuideWhat Affects the Math- Birth dates/times- Geographic coordinates (lat/lon/timezone)- Analysis mode selection- Transit date windows- Relocation coordinatesWhat Affects the Language Only- Relationship context (type, intimacy tier, role)- Ex/Estranged status- Notes field- Nothing in relationship context changes underlying geometry—only how it's describedQuality Control NotesBirth Time Accuracy- Exact time preferred for precise angles and houses- If unknown, can approximate (e.g., 12:00 noon), but treat angles/houses and Moon positions as softer data- Time accuracy affects house placements and angle-based timingTimezone Clarity- Use correct local offset/region at time of birth- Account for historical timezone changes if birth was decades ago- Double-check daylight saving time status for birth dateTransit Windows- Shorter windows (days to weeks): Good for immediate decisions and current conditions- Longer windows (months to seasons): Better for seeing larger cycles and patterns- Step intervals: Daily for detailed tracking, weekly for general patterns, monthly for broad trendsRelationship Context Accuracy- Choose settings that reflect current reality, not aspirational or past states- Update context if relationship status changes significantly- Use Notes field for crucial details that affect interpretation (custody arrangements, geographic distance, etc.)Quick Decision TreesSolo Report: Natal vs. Natal+Transits?- Natal only: Understanding core constitution, personality patterns, life themes- Natal + Transits: Current pressures, timing decisions, what's active nowRelational Report: Which Mode?- Synastry: How you affect each other (individual charts interacting)- Composite: The relationship as its own entity (midpoint chart)- Dual Natal + Transits: Both individual constitutions under current weather- Synastry + Transits: Individual interactions plus current external pressuresRelocation: None vs. Local?- None: Constitutional analysis, personality compatibility, broad patterns- Local: Current life circumstances, timing for specific location, practical decisionsTransit Window: How Long?- 1-4 weeks: Immediate decisions, current crisis or opportunity- 1-6 months: Seasonal planning, medium-term projects- 1+ years: Life phase analysis, major transitions
 The Poetic Brain
