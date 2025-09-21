@@ -1,3 +1,4 @@
+
 /**
  * Raven API Guard – Smoke Tests
  *
@@ -7,6 +8,22 @@
  *
  * Requires: a local server (e.g., netlify dev) at http://localhost:8888
  */
+
+
+/*
+
+ Simple smoke test to ensure Raven API enforces guardrails
+ when no chart/report context is provided.
+ Requires: netlify dev running locally (http://localhost:8888)
+*/
+
+ Smoke test to ensure Raven API guard prevents mirrors without context.
+ Requires: netlify dev running locally (http://localhost:8888)
+ */
+
+
+const fetch = require('node-fetch');
+
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:8888';
 
@@ -23,6 +40,7 @@ async function postJSON(path, body) {
     body: JSON.stringify(body),
   });
 
+
   const text = await res.text();
   let json;
   try {
@@ -30,6 +48,33 @@ async function postJSON(path, body) {
   } catch {
     throw new Error(`Non-JSON response from ${path}: ${text}`);
   }
+
+
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`HTTP ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+async function testRavenGuardWithoutContext() {
+  const payload = {
+    input: 'Can you read my chart right now?',
+    options: {
+      reportContexts: []
+    }
+  };
+  const data = await post('/api/raven', payload);
+  if (!data || typeof data.guidance !== 'string') {
+    throw new Error('Guard guidance not returned');
+  }
+  const ok = data.guidance.includes('Generate Math Brain') || data.guidance.includes('planetary weather only');
+  if (!ok) {
+    throw new Error('Expected guard guidance missing from response');
+  }
+  return 'PASS: Raven guard enforced without chart context';
+
+  const data = await res.json();
 
   if (!res.ok) {
     const msg = json?.error || text || `HTTP ${res.status}`;
@@ -108,17 +153,31 @@ async function testRavenGuardBlocksPersonalMirror() {
     throw new Error('Guard error message did not mention missing chart/context.');
   }
 
+
   return 'PASS: Personal mirror blocked without chart context.';
+
+  return 'PASS: Raven guard withheld mirror without chart context';
+
+
 }
 
 // Run tests sequentially; fail fast with meaningful output.
 (async () => {
   try {
+
     const r1 = await testConversationGuard();
     console.log(r1);
 
     const r2 = await testRavenGuardBlocksPersonalMirror();
     console.log(r2);
+
+
+
+    const result = await testRavenGuardWithoutContext();
+
+    const result = await testRavenGuardBlocksPersonalMirror();
+
+    console.log(result);
 
     process.exit(0);
   } catch (err) {

@@ -25,6 +25,7 @@
     "test:smoke": "node test/smoke-tests.js",
     "test:endpoints": "node test/endpoint-health-check.js",
     "test:chat-guard": "node test/chat-guard.test.js",
+    "test:raven-guard": "node test/raven-guard.test.js",
     "test:auth0": "node test/auth0-config-validator.js",
     "test:deployment": "node test/deployment-verification.js",
     "test:all": "node test/run-all-smoke-tests.js",
