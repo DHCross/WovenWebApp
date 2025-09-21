@@ -1,8 +1,14 @@
 /*
+
  Simple smoke test to ensure Raven API enforces guardrails
  when no chart/report context is provided.
  Requires: netlify dev running locally (http://localhost:8888)
 */
+
+ Smoke test to ensure Raven API guard prevents mirrors without context.
+ Requires: netlify dev running locally (http://localhost:8888)
+ */
+
 
 const fetch = require('node-fetch');
 
@@ -14,6 +20,7 @@ async function post(path, body) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
+
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`HTTP ${res.status}: ${txt}`);
@@ -37,11 +44,37 @@ async function testRavenGuardWithoutContext() {
     throw new Error('Expected guard guidance missing from response');
   }
   return 'PASS: Raven guard enforced without chart context';
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}: ${JSON.stringify(data)}`);
+  }
+  return data;
+}
+
+async function testRavenGuardBlocksPersonalMirror() {
+  const payload = {
+    input: 'Mirror me—what do you see in my chart?',
+    options: { reportContexts: [] }
+  };
+  const json = await post('/api/raven', payload);
+  if (json.ok) {
+    throw new Error('Expected guard to block mirror generation without context');
+  }
+  if (typeof json.error !== 'string' || !json.error.includes('chart or report context')) {
+    throw new Error('Guard guidance not returned from Raven API');
+  }
+  return 'PASS: Raven guard withheld mirror without chart context';
+
 }
 
 (async () => {
   try {
+
     const result = await testRavenGuardWithoutContext();
+
+    const result = await testRavenGuardBlocksPersonalMirror();
+
     console.log(result);
     process.exit(0);
   } catch (err) {
