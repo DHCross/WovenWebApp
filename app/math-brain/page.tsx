@@ -132,21 +132,28 @@ export default function MathBrainPage() {
   };
   // Translocation / Relocation selection (angles/houses reference)
 
-  type TranslocationOption = 'NONE' | 'A_LOCAL' | 'B_LOCAL' | 'BOTH_LOCAL' | 'MIDPOINT';
-  const [translocation, setTranslocation] = useState<TranslocationOption>('A_LOCAL');
+  type TranslocationOption =
+    | 'NONE'
+    | 'A_NATAL'
+    | 'A_LOCAL'
+    | 'B_NATAL'
+    | 'B_LOCAL'
+    | 'BOTH_LOCAL'
+    | 'MIDPOINT';
 
-  type TranslocationOption = 'A_NATAL' | 'A_LOCAL' | 'B_NATAL' | 'B_LOCAL' | 'MIDPOINT';
   const normalizeTranslocationOption = (value: any): TranslocationOption => {
     const token = String(value || '').trim().toUpperCase();
     if (!token) return 'A_NATAL';
+    if (token === 'NONE' || token === 'NATAL') return 'NONE';
     if (token === 'A_LOCAL' || token === 'A-LOCAL') return 'A_LOCAL';
     if (token === 'B_LOCAL' || token === 'B-LOCAL') return 'B_LOCAL';
     if (token === 'B_NATAL' || token === 'B-NATAL') return 'B_NATAL';
+    if (token === 'BOTH_LOCAL' || token === 'BOTH-LOCAL') return 'BOTH_LOCAL';
     if (token === 'MIDPOINT') return 'MIDPOINT';
-    if (token === 'NONE' || token === 'NATAL' || token === 'A_NATAL' || token === 'A-NATAL') return 'A_NATAL';
+    if (token === 'A_NATAL' || token === 'A-NATAL') return 'A_NATAL';
     return 'A_NATAL';
   };
-  const [translocation, setTranslocation] = useState<TranslocationOption>('A_NATAL');
+  const [translocation, setTranslocation] = useState<TranslocationOption>('A_LOCAL');
 
   // Relocation coordinates (single-field); default from spec: 30°10'N, 85°40'W
   const [relocInput, setRelocInput] = useState<string>("30°10'N, 85°40'W");
@@ -247,19 +254,23 @@ export default function MathBrainPage() {
   }, [reportType, isDyadMode]);
 
   const relocationSelectLabels: Record<TranslocationOption, string> = useMemo(() => ({
+    NONE: 'Birthplace — Natal frame (no relocation applied)',
     A_NATAL: 'Person A — Natal frame (houses not recalculated)',
     A_LOCAL: 'Person A — Local (houses recalculated)',
     B_NATAL: 'Person B — Natal frame (houses not recalculated)',
     B_LOCAL: 'Person B — Local (houses recalculated)',
-    MIDPOINT: 'Midpoint (A + B) — Shared relocation',
+    BOTH_LOCAL: 'Relocate Both — Person A & B local frames',
+    MIDPOINT: 'Midpoint (A + B) — Shared relocation'
   }), []);
 
   const relocationModeCaption = useMemo(() => ({
+    NONE: 'Relocation mode: Birthplace (houses not recalculated)',
     A_NATAL: 'Relocation mode: A_natal (houses not recalculated, by design)',
     A_LOCAL: 'Relocation mode: A_local (houses recalculated)',
     B_NATAL: 'Relocation mode: B_natal (houses not recalculated, by design)',
     B_LOCAL: 'Relocation mode: B_local (houses recalculated)',
-    MIDPOINT: 'Relocation mode: Midpoint (synthetic shared frame, houses recalculated)',
+    BOTH_LOCAL: 'Relocation mode: Both_local (A & B recalculated)',
+    MIDPOINT: 'Relocation mode: Midpoint (synthetic shared frame, houses recalculated)'
   }), []);
 
   type RelocationOptionConfig = { value: TranslocationOption; disabled?: boolean; title?: string };
@@ -1109,15 +1120,17 @@ export default function MathBrainPage() {
           }
           const methodMap: Record<TranslocationOption, string> = {
             NONE: 'Natal',
+            A_NATAL: 'A_natal',
             A_LOCAL: 'A_local',
+            B_NATAL: 'B_natal',
             B_LOCAL: 'B_local',
             BOTH_LOCAL: 'Both_local',
-            MIDPOINT: 'Midpoint',
+            MIDPOINT: 'Midpoint'
           };
           return {
             applies: true,
             method: methodMap[translocation] || 'Custom',
-            coords: relocCoords ? { latitude: relocCoords.lat, longitude: relocCoords.lon } : undefined,
+            coords: relocCoords ? { latitude: relocCoords!.lat, longitude: relocCoords!.lon } : undefined,
             current_location: relocLabel || undefined,
             tz: relocTz || undefined,
           };
@@ -1127,7 +1140,7 @@ export default function MathBrainPage() {
             return {
               applies: true,
               method: mode === 'A_LOCAL' ? 'A_local' : 'B_local',
-              coords: relocCoords ? { latitude: relocCoords.lat, longitude: relocCoords.lon } : undefined,
+              coords: relocCoords ? { latitude: relocCoords!.lat, longitude: relocCoords!.lon } : undefined,
               current_location: relocLabel || undefined,
               tz: relocTz || undefined,
             };
