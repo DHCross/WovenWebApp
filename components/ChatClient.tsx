@@ -5,13 +5,8 @@ import { generateId } from "../lib/id";
 import { formatFullClimateDisplay, ClimateData } from "../lib/climate-renderer";
 import UsageMeter from "./UsageMeter";
 import { summarizeRelocation, RelocationSummary } from "../lib/relocation";
-import {
-  generateCardHTML,
-  downloadCardAsImage,
-  PoeticIndexCard,
-  createDemoCard,
-} from "../lib/poetics/card-generator";
-import { parseCardFromResponse, createSampleCard } from "../lib/poetics/parser";
+// Removed top-level imports - now using dynamic imports to avoid Node-only module issues
+import type { PoeticIndexCard } from "../lib/poetics/card-generator";
 import PingFeedback, { PingResponse } from "./PingFeedback";
 import HitRateDisplay from "./HitRateDisplay";
 import WrapUpCard from "./WrapUpCard";
@@ -1366,7 +1361,15 @@ export default function ChatClient() {
     sendProgrammatic(cardText);
   };
 
-  const generateVisualCard = (cardData?: PoeticIndexCard) => {
+  const generateVisualCard = async (cardData?: PoeticIndexCard) => {
+    // Lazy import parser/generator only when needed in the browser
+    const { parseCardFromResponse, createSampleCard } = await import(
+      "../lib/poetics/parser"
+    );
+    const { generateCardHTML } = await import(
+      "../lib/poetics/card-generator"
+    );
+
     // If no card data provided, try to parse from last Raven response
     let card = cardData;
 
@@ -1465,8 +1468,9 @@ export default function ChatClient() {
     };
   };
 
-  const requestDemoCard = () => {
+  const requestDemoCard = async () => {
     // Generate a demo card directly without requiring mirror data
+    const { createDemoCard } = await import("../lib/poetics/card-generator");
     const demoCard = createDemoCard();
     generateVisualCard(demoCard);
   };
@@ -1498,12 +1502,13 @@ export default function ChatClient() {
     ) {
       try {
         const pdfjsLib = await import("pdfjs-dist");
-        // Set worker source to the CDN version
-        pdfjsLib.GlobalWorkerOptions.workerSrc =
+        // Use CDN worker or host locally if you prefer
+        (pdfjsLib as any).GlobalWorkerOptions.workerSrc =
           "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
 
         let fullText = "";
         for (let i = 1; i <= pdf.numPages; i++) {
