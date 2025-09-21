@@ -48,9 +48,17 @@
       parts.push(table(['Transit','Natal','Type','Orb','Phase','Exact'], rows));
     }
     if(transits.seismograph_daily && transits.seismograph_daily.length){
-      const rows = transits.seismograph_daily.map(s=>[
-        s.date, s.magnitude, s.valence, s.volatility, (s.drivers||[]).join('; ')
-      ]);
+      const rows = transits.seismograph_daily.map(s=>{
+        const valence = (typeof s.valence_bounded === 'number') ? s.valence_bounded : s.valence;
+        const label = s.valence_label ? ` (${s.valence_label})` : '';
+        return [
+          s.date,
+          s.magnitude,
+          valence != null ? `${valence}${label}` : valence,
+          s.volatility,
+          (s.drivers||[]).join('; ')
+        ];
+      });
       parts.push('## Seismograph Daily');
       parts.push(table(['Date','Mag','Val','Vol','Drivers'], rows));
     }
