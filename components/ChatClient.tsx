@@ -2100,6 +2100,8 @@ function Header({
   onShowPendingReview,
   onShowHelp,
   devMode,
+  showPoeticMenu,
+  setShowPoeticMenu,
 }: {
   onFileSelect: (type: "mirror" | "balance" | "journal") => void;
   hasMirrorData: boolean;
@@ -2386,6 +2388,8 @@ function Header({
       throw error;
     }
   };
+
+  */
 
   const getReportIcon = (type: "mirror" | "balance" | "journal") => {
     switch (type) {
