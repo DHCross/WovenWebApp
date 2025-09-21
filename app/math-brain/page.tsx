@@ -142,9 +142,6 @@ export default function MathBrainPage() {
     | 'BOTH_LOCAL'
     | 'MIDPOINT';
 
-
-  type TranslocationOption = 'NONE' | 'A_NATAL' | 'A_LOCAL' | 'B_NATAL' | 'B_LOCAL' | 'BOTH_LOCAL' | 'MIDPOINT';
- 
   const normalizeTranslocationOption = (value: any): TranslocationOption => {
     const token = String(value || '').trim().toUpperCase();
     if (!token) return 'A_NATAL';
@@ -263,9 +260,6 @@ export default function MathBrainPage() {
   }, [reportType, isDyadMode]);
 
   const relocationSelectLabels: Record<TranslocationOption, string> = useMemo(() => ({
-
-    NONE: 'Birthplace — Natal frame (no relocation applied)',
-
     NONE: 'No relocation (natal locations)',
 
     A_NATAL: 'Person A — Natal frame (houses not recalculated)',
@@ -278,22 +272,11 @@ export default function MathBrainPage() {
   }), []);
 
   const relocationModeCaption = useMemo(() => ({
-    NONE: 'Relocation mode: Birthplace (houses not recalculated)',
-
-    BOTH_LOCAL: 'Both — Local (houses recalculated)',
-    MIDPOINT: 'Midpoint (A + B) — Shared relocation',
-  }), []);
-
-  const relocationModeCaption = useMemo(() => ({
     NONE: 'Relocation mode: None (natal locations)',
-
     A_NATAL: 'Relocation mode: A_natal (houses not recalculated, by design)',
     A_LOCAL: 'Relocation mode: A_local (houses recalculated)',
     B_NATAL: 'Relocation mode: B_natal (houses not recalculated, by design)',
     B_LOCAL: 'Relocation mode: B_local (houses recalculated)',
-
-    BOTH_LOCAL: 'Relocation mode: Both_local (A & B recalculated)',
-    MIDPOINT: 'Relocation mode: Midpoint (synthetic shared frame, houses recalculated)'
 
     BOTH_LOCAL: 'Relocation mode: Both_local (houses recalculated)',
     MIDPOINT: 'Relocation mode: Midpoint (synthetic shared frame, houses recalculated)',
@@ -1167,8 +1150,6 @@ export default function MathBrainPage() {
             return {
               applies: true,
               method: mode === 'A_LOCAL' ? 'A_local' : 'B_local',
-
-              coords: relocCoords ? { latitude: relocCoords!.lat, longitude: relocCoords!.lon } : undefined,
 
               coords: relocCoords ? { latitude: relocCoords?.lat, longitude: relocCoords?.lon } : undefined,
 
