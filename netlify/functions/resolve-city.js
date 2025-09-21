@@ -2,7 +2,11 @@
 // GET /api/resolve-city?city=Bryn+Mawr&state=PA&nation=US
 // Returns resolved coordinates and timezone to verify what the API sees
 
+
 const { health, resolveCity } = require('../../lib/server/astrology-mathbrain.js');
+
+const { health, resolveCity } = require('../lib/server/astrology-mathbrain.js');
+
 
 exports.handler = async (event, context) => {
   // Set CORS headers
