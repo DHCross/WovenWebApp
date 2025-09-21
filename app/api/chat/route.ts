@@ -159,13 +159,14 @@ function pickHook(t:string){
       if (jsonMatch) {
         const data = JSON.parse(jsonMatch[0]);
         const magnitude = data.balance_meter?.magnitude?.value;
-        const valence = data.balance_meter?.valence?.value;
-        
-        // Route based on severity
-        if (magnitude >= 4 && valence <= -10) {
-          return 'Crisis & Structural Overload · Maximum Threshold';
-        } else if (magnitude >= 3 && valence <= -5) {
-          return 'Pressure & Restriction · Storm Systems';
+        const valence = data.balance_meter?.valence?.value ?? data.balance_meter?.valence_bounded;
+
+        if (typeof magnitude === 'number' && typeof valence === 'number') {
+          if (magnitude >= 4 && valence <= -4) {
+            return 'Crisis & Structural Overload · Maximum Threshold';
+          } else if (magnitude >= 3 && valence <= -3) {
+            return 'Pressure & Restriction · Storm Systems';
+          }
         }
       }
     } catch (e) {

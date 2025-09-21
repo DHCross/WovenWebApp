@@ -24,12 +24,20 @@
     return byDate;
   }
 
+  function getSeismographValence(seismo){
+    if (!seismo || typeof seismo !== 'object') return null;
+    if (typeof seismo.valence_bounded === 'number') return seismo.valence_bounded;
+    if (typeof seismo.valence === 'number') return seismo.valence;
+    return null;
+  }
+
   function simpleHeuristicScore(seismo, dayHealth){
     // mirror calculateCorrelationScore used in index.html, but local & minimal
     let score = 0, parts = 0;
-    if (typeof dayHealth.mood_valence === 'number' && typeof seismo.valence === 'number'){
+    const seismoVal = getSeismographValence(seismo);
+    if (typeof dayHealth.mood_valence === 'number' && seismoVal != null){
       const hv = Math.max(-1, Math.min(1, dayHealth.mood_valence));
-      const sv = Math.max(-1, Math.min(1, (seismo.valence||0) / 5));
+      const sv = Math.max(-1, Math.min(1, (seismoVal||0) / 5));
       score += 1 - Math.abs(hv - sv) / 2; parts++;
     }
     if (typeof dayHealth.hrv === 'number' && typeof seismo.volatility === 'number'){
@@ -89,7 +97,8 @@
     dates.forEach(d => {
       const s = seismoMap[d]||{}; const h = healthByDate[d]||{};
       // Valence normalization
-      const sv = typeof s.valence==='number' ? Math.max(-1, Math.min(1, (s.valence||0)/5)) : null;
+      const seismoValRaw = getSeismographValence(s);
+      const sv = seismoValRaw != null ? Math.max(-1, Math.min(1, (seismoValRaw||0)/5)) : null;
       const hv = typeof h.mood_valence==='number' ? Math.max(-1, Math.min(1, h.mood_valence)) : null;
       if (sv!=null && hv!=null) { arr.s_val.push(sv); arr.h_val.push(hv); }
       // Magnitude vs intensity proxy: prefer mood_label_count if present; else derive from sleep inverse to keep example minimal
@@ -188,7 +197,7 @@
       let prevMood = null;
       dates.forEach(d => {
         const s = seismoMap[d]||{}; const h = healthByDate[d]||{};
-        const s_val = typeof s.valence==='number' ? Math.max(-1, Math.min(1, (s.valence||0)/5)) : null;
+        const s_val = seismoValRaw != null ? Math.max(-1, Math.min(1, (seismoValRaw||0)/5)) : null;
         const h_val = typeof h.mood_valence==='number' ? Math.max(-1, Math.min(1, h.mood_valence)) : null;
         const s_mag = typeof s.magnitude==='number' ? Math.max(0, Math.min(1, (s.magnitude||0)/5)) : null;
         const labelCount = typeof h.mood_label_count==='number' ? h.mood_label_count : null;
@@ -267,7 +276,7 @@
       const row = [
         d,
         fmt(s.magnitude),
-        fmt(s.valence),
+        fmt(getSeismographValence(s)),
         fmt(s.volatility)
       ];
       if (hasHRV) row.push(fmt(h.hrv));
@@ -294,7 +303,8 @@
       let prevMood = null;
       dates.forEach(d => {
         const s = seismoMap[d]||{}; const h = healthByDate[d]||{};
-        const s_val = typeof s.valence==='number' ? Math.max(-1, Math.min(1, (s.valence||0)/5)) : null;
+        const sValBounded = getSeismographValence(s);
+        const s_val = sValBounded != null ? Math.max(-1, Math.min(1, (sValBounded||0)/5)) : null;
         const h_val = typeof h.mood_valence==='number' ? Math.max(-1, Math.min(1, h.mood_valence)) : null;
         const s_mag = typeof s.magnitude==='number' ? Math.max(0, Math.min(1, (s.magnitude||0)/5)) : null;
         const labelCount = typeof h.mood_label_count==='number' ? h.mood_label_count : null;

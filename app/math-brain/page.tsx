@@ -353,8 +353,9 @@ export default function MathBrainPage() {
 
   // Prefer html2pdf-based export for consistent cross-browser PDF downloads
   async function downloadResultPDF() {
+    let wrapper: HTMLDivElement | null = null;
     try {
-      const node = reportRef.current || document.body;
+      const target = reportRef.current;
       const html2pdf = (await import('html2pdf.js')).default;
       const ts = new Date().toISOString().slice(0, 10);
       const opt = {
@@ -364,10 +365,31 @@ export default function MathBrainPage() {
         html2canvas: { scale: 2, useCORS: true, backgroundColor: '#0f1115' },
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
       } as const;
-      await (html2pdf().from(node).set(opt).save());
+
+      if (!target) {
+        await (html2pdf().from(document.body).set(opt).save());
+        return;
+      }
+
+      wrapper = document.createElement('div');
+      wrapper.style.position = 'fixed';
+      wrapper.style.top = '-9999px';
+      wrapper.style.left = '0';
+      wrapper.style.width = `${target.offsetWidth}px`;
+      wrapper.style.background = '#0f1115';
+      const clone = target.cloneNode(true) as HTMLElement;
+      clone.style.width = '100%';
+      wrapper.appendChild(clone);
+      document.body.appendChild(wrapper);
+
+      await (html2pdf().from(wrapper).set(opt).save());
     } catch (err) {
       setToast('Could not generate PDF');
       setTimeout(() => setToast(null), 2000);
+    } finally {
+      if (wrapper && document.body.contains(wrapper)) {
+        document.body.removeChild(wrapper);
+      }
     }
   }
 
@@ -1872,7 +1894,7 @@ export default function MathBrainPage() {
       )}
 
       {result && (
-        <div className="mt-8 grid grid-cols-1 gap-6">
+        <div ref={reportRef} className="mt-8 grid grid-cols-1 gap-6">
           {(() => {
             const meta = (result as any)?.person_a?.meta || (result as any)?.provenance?.time_meta_a;
             if (!meta) return null;
@@ -2015,7 +2037,7 @@ export default function MathBrainPage() {
                             <tr key={i}>
                               <td className="py-0.5 pr-2">{r.date}</td>
                               <td className="py-0.5 text-right">{Number(r.magnitude ?? 0).toFixed(2)}</td>
-                              <td className="py-0.5 text-right">{Number(r.valence ?? 0).toFixed(2)}</td>
+                              <td className="py-0.5 text-right">{Number(r.valence_bounded ?? r.valence ?? 0).toFixed(2)}</td>
                               <td className="py-0.5 text-right">{Number(r.volatility ?? 0).toFixed(2)}</td>
                             </tr>
                           ))}
@@ -2083,11 +2105,11 @@ export default function MathBrainPage() {
             const summary = result?.person_a?.derived?.seismograph_summary;
             if (!summary) return null;
             const mag = Number(summary.magnitude ?? 0);
-            const val = Number(summary.valence ?? 0);
+            const val = Number(summary.valence_bounded ?? summary.valence ?? 0);
             const vol = Number(summary.volatility ?? 0);
-            const magnitudeLabel = mag >= 3 ? 'Surge' : mag >= 1 ? 'Active' : 'Calm';
-            const valenceLabel = val > 0.5 ? 'Supportive' : val < -0.5 ? 'Challenging' : 'Mixed';
-            const volatilityLabel = vol >= 3 ? 'Scattered' : vol >= 1 ? 'Variable' : 'Stable';
+            const magnitudeLabel = summary.magnitude_label || (mag >= 3 ? 'Surge' : mag >= 1 ? 'Active' : 'Calm');
+            const valenceLabel = summary.valence_label || (val > 0.5 ? 'Supportive' : val < -0.5 ? 'Challenging' : 'Mixed');
+            const volatilityLabel = summary.volatility_label || (vol >= 3 ? 'Scattered' : vol >= 1 ? 'Variable' : 'Stable');
             return (
               <Section title="Balance Meter">
                 <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -2115,7 +2137,7 @@ export default function MathBrainPage() {
                   const series = dates.map(d => ({
                     date: d,
                     magnitude: Number(daily[d]?.seismograph?.magnitude ?? 0),
-                    valence: Number(daily[d]?.seismograph?.valence ?? 0),
+                    valence: Number(daily[d]?.seismograph?.valence_bounded ?? daily[d]?.seismograph?.valence ?? 0),
                     volatility: Number(daily[d]?.seismograph?.volatility ?? 0)
                   }));
                   // Weekly aggregate: group every 7 entries and average each channel

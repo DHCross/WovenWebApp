@@ -1,15 +1,24 @@
 // Woven Map Report Composer (DATA-ONLY)
-// Builds a clinical, non-VOI CE report envelope from existing Math Brain outputs.
+// Builds a clinical, non-VOICE report envelope from existing Math Brain outputs.
 // Do NOT include narrative fields; avoid keys named 'field', 'map', or 'voice' to pass Clear Mirror scrub.
 
 const { composeHookStack } = require('../feedback/hook-stack-composer');
+const {
+  classifyValence,
+  classifyMagnitude,
+  classifyVolatility,
+  classifySfd,
+  clamp,
+} = require('../../lib/reporting/metric-labels');
+
+const SEISMOGRAPH_VERSION = 'v1.0';
+const BALANCE_CALIBRATION_VERSION = 'v1.1';
+const SFD_VERSION = 'v1.2';
 
 function safeNum(x, def = null) {
   const n = Number(x);
   return Number.isFinite(n) ? n : def;
 }
-
-function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
 const CORE_PLANETS = new Set([
   'Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'
@@ -20,70 +29,6 @@ const SECONDARY_POINTS = new Set([
 ]);
 
 const ANGLE_POINTS = new Set(['Ascendant','Medium_Coeli','Descendant','Imum_Coeli']);
-
-const VALENCE_BANDS = [
-  { min: -5, max: -4.5, emoji: '🌋', label: 'Pressure / Eruption', polarity: 'negative' },
-  { min: -4.5, max: -3.5, emoji: '⚔', label: 'Friction Clash', polarity: 'negative' },
-  { min: -3.5, max: -2.5, emoji: '🌊', label: 'Cross Current', polarity: 'negative' },
-  { min: -2.5, max: -1.5, emoji: '🌀', label: 'Fog / Dissolution', polarity: 'negative' },
-  { min: -1.5, max: -0.8, emoji: '🌫', label: 'Entropy Drift', polarity: 'negative' },
-  { min: -0.8, max: -0.2, emoji: '🕰', label: 'Saturn Weight', polarity: 'negative' },
-  { min: -0.2, max: 0.2, emoji: '⚖', label: 'Neutral Balance', polarity: 'neutral' },
-  { min: 0.2, max: 0.8, emoji: '🌱', label: 'Fertile Field', polarity: 'positive' },
-  { min: 0.8, max: 1.5, emoji: '🌊', label: 'Flow Tide', polarity: 'positive' },
-  { min: 1.5, max: 2.5, emoji: '✨', label: 'Harmonic Resonance', polarity: 'positive' },
-  { min: 2.5, max: 3.5, emoji: '🔥', label: 'Combustion Clarity', polarity: 'positive' },
-  { min: 3.5, max: 4.5, emoji: '🦋', label: 'Liberation / Release', polarity: 'positive' },
-  { min: 4.5, max: 5.01, emoji: '💎', label: 'Expansion Lift', polarity: 'positive' }
-];
-
-const MAGNITUDE_TERMS = [
-  { max: 0.5, label: 'Whisper' },
-  { max: 1.5, label: 'Pulse' },
-  { max: 2.5, label: 'Wave' },
-  { max: 3.5, label: 'Surge' },
-  { max: 4.5, label: 'Peak' },
-  { max: Infinity, label: 'Apex' }
-];
-
-const VOLATILITY_TERMS = [
-  { max: 0.5, label: 'Aligned Flow', emoji: '➿' },
-  { max: 2, label: 'Cycled Pull', emoji: '🔄' },
-  { max: 3, label: 'Mixed Paths', emoji: '🔀' },
-  { max: 5, label: 'Fragment Scatter', emoji: '🧩' },
-  { max: Infinity, label: 'Vortex Dispersion', emoji: '🌀' }
-];
-
-function classifyMagnitude(value) {
-  const mag = safeNum(value, null);
-  if (mag == null) return null;
-  const entry = MAGNITUDE_TERMS.find(b => mag <= b.max);
-  return entry ? { value: +mag.toFixed(2), term: entry.label } : { value: +mag.toFixed(2), term: null };
-}
-
-function classifyVolatility(value) {
-  const vol = safeNum(value, null);
-  if (vol == null) return null;
-  const entry = VOLATILITY_TERMS.find(b => vol <= b.max);
-  return entry ? { value: +vol.toFixed(2), term: entry.label, emoji: entry.emoji } : { value: +vol.toFixed(2), term: null };
-}
-
-function classifyValence(value) {
-  const val = safeNum(value, null);
-  if (val == null) return null;
-  const clamped = clamp(val, -5, 5);
-  const entry = VALENCE_BANDS.find(b => clamped >= b.min && clamped < b.max);
-  if (!entry) {
-    return { value: +clamped.toFixed(2), term: null, emoji: null, polarity: clamped >= 0 ? 'positive' : 'negative', range: null };
-  }
-  return {
-    value: +clamped.toFixed(2),
-    term: entry.label,
-    emoji: entry.emoji,
-    polarity: entry.polarity,
-    range: [entry.min, entry.max]
-  };
-}
 
 function verdictFromSfd(value) {
   const sfd = safeNum(value, null);
@@ -167,7 +112,8 @@ function splitPlacements(list) {
 function computeIntegrationFactors(summary, valenceOverride = null) {
   if (!summary) return null;
   const mag = safeNum(summary.magnitude, 0) || 0;
-  const val = safeNum(valenceOverride != null ? valenceOverride : summary.valence, 0) || 0;
+  const valSource = valenceOverride != null ? valenceOverride : (summary.valence_bounded ?? summary.valence);
+  const val = safeNum(valSource, 0) || 0;
   const vol = safeNum(summary.volatility, 0) || 0;
 
   // Normalize per UI logic
@@ -191,26 +137,55 @@ function extractTimeSeries(transitsByDate) {
   const entries = [];
   for (const [date, v] of Object.entries(transitsByDate)) {
     const seismo = v?.seismograph || v;
-    const balanceVal = safeNum(v?.balance?.valence);
+    const balanceVal = safeNum(v?.balance?.valence ?? v?.balance?.valence_bounded);
     const balanceInfo = balanceVal != null ? classifyValence(balanceVal) : null;
-    const sfdVal = safeNum(v?.sfd?.sfd);
+    const magnitudeVal = safeNum(seismo?.magnitude);
+    const magnitudeInfo = magnitudeVal != null ? classifyMagnitude(magnitudeVal) : null;
+    const volatilityVal = safeNum(seismo?.volatility);
+    const volatilityInfo = volatilityVal != null ? classifyVolatility(volatilityVal) : null;
+    const valenceBounded = safeNum(seismo?.valence_bounded ?? balanceVal ?? seismo?.valence);
+    const valenceInfo = valenceBounded != null ? classifyValence(valenceBounded) : null;
+    const valenceRaw = safeNum(seismo?.valence_raw_unbounded ?? seismo?.valence_raw ?? seismo?.valence);
+    const valenceLabel = seismo?.valence_label || balanceInfo?.label || valenceInfo?.label || null;
+    const valenceCode = seismo?.valence_code || balanceInfo?.code || valenceInfo?.code || null;
+    const valenceRange = seismo?.valence_range || v?.balance?.range || [-5, 5];
+    const valenceVersion = seismo?.valence_version || v?.balance?.version || null;
+    const valencePolarity = seismo?.valence_polarity || balanceInfo?.polarity || valenceInfo?.polarity || (valenceBounded >= 0 ? 'positive' : 'negative');
+    const sfdBlock = v?.sfd || {};
+    const sfdCont = safeNum(sfdBlock.sfd_cont ?? sfdBlock.value ?? sfdBlock.sfd);
+    const sfdInfo = sfdCont != null ? classifySfd(sfdCont) : null;
+    const sfdDisc = safeNum(sfdBlock.sfd_disc ?? sfdInfo?.disc);
+    const sfdLabel = sfdBlock.sfd_label || sfdInfo?.label || verdictFromSfd(sfdCont ?? sfdInfo?.value ?? 0);
+    const sPlus = safeNum(sfdBlock.s_plus ?? sfdBlock.sPlus);
+    const sMinus = safeNum(sfdBlock.s_minus ?? sfdBlock.sMinus);
+
     const row = {
       date,
-      magnitude: safeNum(seismo?.magnitude),
-      valence: safeNum(seismo?.valence),
-      valence_calibrated: safeNum(seismo?.valence_calibrated ?? balanceVal),
-      volatility: safeNum(seismo?.volatility),
+      magnitude: magnitudeVal,
+      magnitude_label: seismo?.magnitude_label || magnitudeInfo?.label || null,
+      valence_bounded: valenceBounded,
+      valence_label: valenceLabel,
+      valence_code: valenceCode,
+      valence_raw_unbounded: valenceRaw,
+      valence_calibrated: safeNum(seismo?.valence_calibrated ?? balanceVal ?? valenceBounded),
+      valence_range: valenceRange,
+      valence_version: valenceVersion || BALANCE_CALIBRATION_VERSION,
+      valence_polarity: valencePolarity,
+      volatility: volatilityVal,
+      volatility_label: seismo?.volatility_label || volatilityInfo?.label || null,
       confidence: safeNum(seismo?.scaling_confidence),
       balance_valence: balanceVal,
-      balance_label: balanceInfo?.term || null,
+      balance_label: balanceInfo?.label || null,
       balance_emoji: balanceInfo?.emoji || null,
-      balance_polarity: balanceInfo?.polarity || null,
-      balance_version: v?.balance?.version || seismo?.valence_version || null,
-      balance_range: v?.balance?.range || seismo?.valence_range || null,
-      sfd: sfdVal,
-      s_plus: safeNum(v?.sfd?.sPlus),
-      s_minus: safeNum(v?.sfd?.sMinus),
-      sfd_verdict: verdictFromSfd(sfdVal),
+      balance_polarity: balanceInfo?.polarity || valencePolarity,
+      balance_version: v?.balance?.version || seismo?.valence_version || BALANCE_CALIBRATION_VERSION,
+      balance_range: v?.balance?.range || valenceRange,
+      sfd_cont: sfdCont,
+      sfd_disc: sfdDisc,
+      sfd_label: sfdLabel,
+      s_plus: sPlus,
+      s_minus: sMinus,
+      sfd_verdict: sfdLabel,
       drivers: Array.isArray(v?.drivers) ? v.drivers : undefined
     };
     entries.push(row);
@@ -293,15 +268,15 @@ function summarizeMeterChannels(transitsByDate) {
       confidenceCount += 1;
     }
 
-    const balVal = safeNum(entry?.balance?.valence);
+    const balVal = safeNum(entry?.balance?.valence ?? entry?.balance?.valence_bounded);
     if (balVal != null) balanceValues.push(balVal);
 
-    const sfd = safeNum(entry?.sfd?.sfd);
+    const sfd = safeNum(entry?.sfd?.sfd_cont ?? entry?.sfd?.value ?? entry?.sfd?.sfd);
     if (sfd != null) {
       sfdValues.push(sfd);
-      const sPlus = safeNum(entry?.sfd?.sPlus);
+      const sPlus = safeNum(entry?.sfd?.s_plus ?? entry?.sfd?.sPlus);
       if (sPlus != null) sPlusValues.push(sPlus);
-      const sMinus = safeNum(entry?.sfd?.sMinus);
+      const sMinus = safeNum(entry?.sfd?.s_minus ?? entry?.sfd?.sMinus);
       if (sMinus != null) sMinusValues.push(sMinus);
     }
   }
@@ -314,6 +289,7 @@ function summarizeMeterChannels(transitsByDate) {
   const balanceMeta = balanceAvg != null ? classifyValence(balanceAvg) : null;
   const sfdAvgRaw = avg(sfdValues);
   const sfdAvg = sfdAvgRaw != null ? +sfdAvgRaw.toFixed(2) : null;
+  const sfdMeta = sfdAvg != null ? classifySfd(sfdAvg) : null;
   const sPlusAvgRaw = avg(sPlusValues);
   const sMinusAvgRaw = avg(sMinusValues);
   const sPlusAvg = sPlusAvgRaw != null ? +sPlusAvgRaw.toFixed(2) : null;
@@ -325,80 +301,169 @@ function summarizeMeterChannels(transitsByDate) {
       sample_size: confidenceCount
     },
     balance: balanceAvg != null ? {
-      value: balanceAvg,
-      label: balanceMeta?.term || null,
+      value: balanceMeta?.value ?? balanceAvg,
+      valence: balanceMeta?.value ?? balanceAvg,
+      label: balanceMeta?.label || null,
       emoji: balanceMeta?.emoji || null,
       polarity: balanceMeta?.polarity || (balanceAvg >= 0 ? 'positive' : 'negative'),
-      band: balanceMeta?.range || null,
+      band: balanceMeta?.band || null,
+      code: balanceMeta?.code || null,
       sample_size: balanceValues.length,
-      version: 'v1.1',
+      version: BALANCE_CALIBRATION_VERSION,
+      calibration_mode: BALANCE_CALIBRATION_VERSION,
       range: [-5, 5]
     } : null,
     sfd: sfdAvg != null ? {
-      value: sfdAvg,
+      value: sfdMeta?.value ?? sfdAvg,
+      sfd_cont: sfdMeta?.value ?? sfdAvg,
+      sfd_disc: sfdMeta?.disc ?? null,
+      sfd_label: sfdMeta?.label || verdictFromSfd(sfdAvg),
       s_plus: sPlusAvg,
       s_minus: sMinusAvg,
       verdict: verdictFromSfd(sfdAvg),
       sample_size: sfdValues.length,
-      version: 'v1.2',
+      version: SFD_VERSION,
       range: [-5, 5]
     } : null
   };
 }
 
+function formatVectorName(a, type, b) {
+  const glyphMap = {
+    opposition: '☍',
+    square: '□',
+    trine: '△',
+    sextile: '✶',
+    conjunction: '☌'
+  };
+  const baseType = typeof type === 'string' ? type.toLowerCase() : '';
+  const glyph = glyphMap[baseType] || type || '';
+  return [a, glyph, b].filter(Boolean).join(' ').trim();
+}
+
 function computeVectorIntegrity(transitsByDate) {
-  const base = { latent: [], suppressed: [], method: 'vector-scan-1', sample_size: 0 };
+  const base = { active: [], latent: [], suppressed: [], dormant: [], method: 'vector-scan-2', sample_size: 0 };
   if (!transitsByDate || typeof transitsByDate !== 'object') return base;
 
+  const activeMap = new Map();
   const latentMap = new Map();
   const suppressedMap = new Map();
+  const dormantMap = new Map();
   let sampleDays = 0;
 
   const LATENT_REASONS = new Set(['WEAK_WEIGHT']);
-  const SUPPRESSED_REASONS = new Set(['OUT_OF_CAP', 'DUPLICATE_PAIR', 'PRIMARY_DUP']);
+  const SUPPRESSED_REASONS = new Set(['DUPLICATE_PAIR', 'PRIMARY_DUP']);
+  const DORMANT_REASONS = new Set(['OUT_OF_CAP']);
 
   for (const entry of Object.values(transitsByDate)) {
+    const drivers = Array.isArray(entry?.drivers) ? entry.drivers : [];
     const rejections = Array.isArray(entry?.rejections) ? entry.rejections : [];
-    if (!rejections.length) continue;
-    sampleDays += 1;
-    for (const rej of rejections) {
-      const aspect = rej?.aspect || 'Unknown aspect';
-      const reasonRaw = (rej?.reason || '').toString().toUpperCase();
-      const orb = safeNum(rej?.orb);
-      let targetMap = null;
-      if (LATENT_REASONS.has(reasonRaw)) targetMap = latentMap;
-      else if (SUPPRESSED_REASONS.has(reasonRaw)) targetMap = suppressedMap;
-      if (!targetMap) continue;
-      if (!targetMap.has(aspect)) {
-        targetMap.set(aspect, { aspect, count: 0, total_orb: 0, orb_count: 0, reasons: {} });
-      }
-      const rec = targetMap.get(aspect);
-      rec.count += 1;
-      rec.reasons[reasonRaw] = (rec.reasons[reasonRaw] || 0) + 1;
-      if (orb != null) {
-        rec.total_orb += Math.abs(orb);
-        rec.orb_count += 1;
+    let dayTouched = false;
+
+    if (drivers.length) {
+      dayTouched = true;
+      for (const drv of drivers) {
+        const a = drv?.a || drv?.transit || drv?.planet1 || 'Transit';
+        const b = drv?.b || drv?.natal || drv?.planet2 || 'Natal';
+        const type = (drv?.type || drv?.name || '').toString();
+        const key = [a, type, b, drv?.house_target || drv?.house || ''].join('|');
+        if (!activeMap.has(key)) {
+          activeMap.set(key, {
+            aspect: formatVectorName(a, type, b),
+            count: 0,
+            total_orb: 0,
+            orb_count: 0,
+            total_weight: 0,
+            weight_count: 0,
+            houses: new Set()
+          });
+        }
+        const rec = activeMap.get(key);
+        rec.count += 1;
+        const orb = safeNum(drv?.orb);
+        if (orb != null) {
+          rec.total_orb += Math.abs(orb);
+          rec.orb_count += 1;
+        }
+        const weight = safeNum(drv?.weight ?? drv?.weight_final);
+        if (weight != null) {
+          rec.total_weight += weight;
+          rec.weight_count += 1;
+        }
+        const house = drv?.house_target || drv?.house || drv?.natal_house || null;
+        if (house) rec.houses.add(house);
       }
     }
+
+    if (rejections.length) {
+      dayTouched = true;
+      for (const rej of rejections) {
+        const aspect = rej?.aspect || 'Unknown aspect';
+        const reasonRaw = (rej?.reason || '').toString().toUpperCase();
+        const orb = safeNum(rej?.orb);
+        let targetMap = null;
+        if (LATENT_REASONS.has(reasonRaw)) targetMap = latentMap;
+        else if (SUPPRESSED_REASONS.has(reasonRaw)) targetMap = suppressedMap;
+        else if (DORMANT_REASONS.has(reasonRaw)) targetMap = dormantMap;
+        if (!targetMap) continue;
+        if (!targetMap.has(aspect)) {
+          targetMap.set(aspect, { aspect, count: 0, total_orb: 0, orb_count: 0, reasons: {} });
+        }
+        const rec = targetMap.get(aspect);
+        rec.count += 1;
+        rec.reasons[reasonRaw] = (rec.reasons[reasonRaw] || 0) + 1;
+        if (orb != null) {
+          rec.total_orb += Math.abs(orb);
+          rec.orb_count += 1;
+        }
+      }
+    }
+
+    if (dayTouched) sampleDays += 1;
   }
 
-  const finalize = (map) => Array.from(map.values()).map(item => {
+  const finalizeRejections = (map) => Array.from(map.values()).map(item => {
     const avgOrb = item.orb_count ? +(item.total_orb / item.orb_count).toFixed(2) : null;
     const reasons = Object.entries(item.reasons)
       .map(([reason, count]) => ({ reason, count }))
       .sort((a, b) => b.count - a.count);
+    const reasonText = reasons.map(r => `${r.reason}×${r.count}`).join(', ');
+    const descriptorParts = [item.aspect];
+    if (avgOrb != null) descriptorParts.push(`avg orb ${avgOrb}°`);
+    if (reasonText) descriptorParts.push(`flags: ${reasonText}`);
     return {
       aspect: item.aspect,
       count: item.count,
       average_orb: avgOrb,
-      reasons
+      reasons,
+      descriptor: descriptorParts.join(' · ')
+    };
+  }).sort((a, b) => b.count - a.count).slice(0, 5);
+
+  const finalizeActive = () => Array.from(activeMap.values()).map(item => {
+    const avgOrb = item.orb_count ? +(item.total_orb / item.orb_count).toFixed(2) : null;
+    const avgWeight = item.weight_count ? +(item.total_weight / item.weight_count).toFixed(3) : null;
+    const houses = item.houses && item.houses.size ? Array.from(item.houses) : null;
+    const descriptorParts = [item.aspect];
+    if (houses) descriptorParts.push(`targets ${houses.join('/')}`);
+    if (avgOrb != null) descriptorParts.push(`avg orb ${avgOrb}°`);
+    if (avgWeight != null) descriptorParts.push(`weight ${avgWeight}`);
+    return {
+      vector: item.aspect,
+      count: item.count,
+      average_orb: avgOrb,
+      average_weight: avgWeight,
+      house_targets: houses,
+      descriptor: descriptorParts.join(' · ')
     };
   }).sort((a, b) => b.count - a.count).slice(0, 5);
 
   return {
-    latent: finalize(latentMap),
-    suppressed: finalize(suppressedMap),
-    method: 'vector-scan-1',
+    active: finalizeActive(),
+    latent: finalizeRejections(latentMap),
+    suppressed: finalizeRejections(suppressedMap),
+    dormant: finalizeRejections(dormantMap),
+    method: 'vector-scan-2',
     sample_size: sampleDays
   };
 }
@@ -442,43 +507,86 @@ function composeWovenMapReport({ result, mode, period }) {
 
   let balanceMeter = null;
   if (summary) {
-    const magnitudeVal = safeNum(summary.magnitude);
     const magnitudeInfo = classifyMagnitude(summary.magnitude);
-    const volatilityVal = safeNum(summary.volatility);
+    const magnitudeVal = magnitudeInfo?.value ?? safeNum(summary.magnitude);
+    const magnitudeLabel = summary.magnitude_label || magnitudeInfo?.label || null;
+
     const volatilityInfo = classifyVolatility(summary.volatility);
-    const valenceVal = safeNum(summary.valence);
-    const valenceRaw = safeNum(summary.valence_raw);
-    const valenceRange = Array.isArray(summary.valence_range) ? summary.valence_range : [-5, 5];
-    const valenceVersion = summary.valence_version || null;
+    const volatilityVal = volatilityInfo?.value ?? safeNum(summary.volatility);
+    const volatilityLabel = summary.volatility_label || volatilityInfo?.label || null;
+
     const balanceMeta = meterChannels?.balance || null;
+    const valenceSource = summary.valence_bounded ?? balanceMeta?.value ?? summary.valence;
+    const valenceInfo = classifyValence(valenceSource);
+    const valenceVal = valenceInfo?.value ?? safeNum(valenceSource);
+    const valenceRaw = safeNum(summary.valence_raw_unbounded ?? summary.valence_raw);
+    const valenceLabel = summary.valence_label || balanceMeta?.label || valenceInfo?.label || null;
+    const valenceRange = Array.isArray(summary.valence_range)
+      ? summary.valence_range
+      : (balanceMeta?.range || [-5, 5]);
+    const valenceVersion = summary?.valence_version
+      || balanceMeta?.calibration_mode
+      || balanceMeta?.version
+      || BALANCE_CALIBRATION_VERSION;
+    const valenceCode = balanceMeta?.code || valenceInfo?.code || null;
+    const valencePolarity = balanceMeta?.polarity || valenceInfo?.polarity || (valenceVal >= 0 ? 'positive' : 'negative');
+
     balanceMeter = {
       magnitude: {
         value: magnitudeVal,
-        term: magnitudeInfo?.term || null
+        label: magnitudeLabel
       },
+      magnitude_label: magnitudeLabel,
       valence: {
         value: valenceVal,
         raw_value: valenceRaw,
         normalized: balanceMeta?.value ?? valenceVal,
-        term: balanceMeta?.label || null,
-        emoji: balanceMeta?.emoji || null,
-        polarity: balanceMeta?.polarity || (valenceVal >= 0 ? 'positive' : 'negative'),
-        band: balanceMeta?.band || null,
-        range: balanceMeta?.range || valenceRange,
-        version: balanceMeta?.version || valenceVersion,
+        label: valenceLabel,
+        emoji: balanceMeta?.emoji || valenceInfo?.emoji || null,
+        polarity: valencePolarity,
+        band: balanceMeta?.band || valenceInfo?.band || null,
+        code: valenceCode,
+        range: valenceRange,
+        version: valenceVersion,
         sample_size: balanceMeta?.sample_size ?? summary.valence_sample_size ?? null
       },
+      valence_bounded: valenceVal,
+      valence_label: valenceLabel,
+      valence_code: valenceCode,
+      valence_range: valenceRange,
+      valence_version: valenceVersion,
+      valence_raw_unbounded: valenceRaw,
       volatility: {
         value: volatilityVal,
-        term: volatilityInfo?.term || null,
+        label: volatilityLabel,
         emoji: volatilityInfo?.emoji || null
       },
+      volatility_label: volatilityLabel,
       confidence: meterChannels?.seismograph?.confidence ?? null,
       confidence_sample_size: meterChannels?.seismograph?.sample_size ?? 0,
       balance_channel: balanceMeta ? { ...balanceMeta } : null,
-      support_friction: meterChannels?.sfd ? { ...meterChannels.sfd } : null
+      support_friction: meterChannels?.sfd ? { ...meterChannels.sfd } : null,
+      version: result?.provenance?.engine_versions
+        ? { ...result.provenance.engine_versions }
+        : {
+            seismograph: SEISMOGRAPH_VERSION,
+            balance: BALANCE_CALIBRATION_VERSION,
+            sfd: SFD_VERSION
+          },
+      calibration_mode: balanceMeta?.calibration_mode || summary.valence_version || BALANCE_CALIBRATION_VERSION
     };
   }
+
+  const natalSummary = extractNatalSummary(a);
+  const driversSummary = (() => {
+    const placements = natalSummary?.placements || {};
+    const listNames = (arr) => Array.isArray(arr) ? arr.map(item => item?.name).filter(Boolean) : [];
+    return {
+      core_planets: listNames(placements.core),
+      supporting_points: listNames(placements.supporting),
+      derived: listNames(placements.derived)
+    };
+  })();
 
   const report = {
     schema: 'WM-WovenMap-1.0',
@@ -510,7 +618,8 @@ function composeWovenMapReport({ result, mode, period }) {
     hook_stack: hookStack,
     integration_factors: integration,
     time_series: timeSeries,
-    natal_summary: extractNatalSummary(a),
+    natal_summary: natalSummary,
+    drivers: driversSummary,
     vector_integrity: vectorIntegrity,
     polarity_cards: buildPolarityCardsHooks(a), // DATA hooks only, no VOICE
     mirror_voice: null, // reserved for Raven

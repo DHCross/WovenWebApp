@@ -103,7 +103,7 @@ async function testTransitFallback() {
     if (seismo) {
       console.log('📈 Seismograph Data:');
       console.log(`Magnitude: ${seismo.magnitude}`);
-      console.log(`Valence: ${seismo.valence}`); 
+      console.log(`Valence: ${seismo.valence_bounded ?? seismo.valence}`);
       console.log(`Volatility: ${seismo.volatility}`);
       console.log('');
     }

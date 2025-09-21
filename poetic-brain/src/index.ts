@@ -96,17 +96,18 @@ function normalizeHooks(hooks?: Array<string | HookObject>): HookObject[] {
 
 function seismographSummary(payload: InputPayload): { headline: string; details: string } {
   const mag = num(payload.seismograph?.magnitude);
-  const val = num(payload.seismograph?.valence);
+  const val = num(payload.seismograph?.valence_bounded ?? payload.seismograph?.valence);
   const vol = num(payload.seismograph?.volatility);
   const { band, label } = magnitudeBand(mag);
   const vt = classifyValenceTone(val);
   const vv = classifyVolatility(vol);
   const parts: string[] = [];
   parts.push(`Magnitude ${mag !== undefined ? mag.toFixed(2) : '—'} (⚡ ${label} at ${band})`);
-  parts.push(`Valence ${val !== undefined ? val.toFixed(2) : '—'} (${vt.descriptor})`);
+  const valLabel = payload.seismograph?.valence_label || vt.descriptor;
+  parts.push(`Valence ${val !== undefined ? val.toFixed(2) : '—'} (${valLabel})`);
   parts.push(`Volatility ${vol !== undefined ? vol.toFixed(2) : '—'} (${vv.label})`);
   return {
-    headline: `${label} with ${vt.descriptor}`,
+    headline: `${label} with ${valLabel}`,
     details: parts.join(' · '),
   };
 }
@@ -147,7 +148,7 @@ function buildMirrorVoice(payload: InputPayload): string {
 
 function buildPolarityCard(payload: InputPayload): string {
   const mag = num(payload.seismograph?.magnitude);
-  const val = num(payload.seismograph?.valence);
+  const val = num(payload.seismograph?.valence_bounded ?? payload.seismograph?.valence);
   const vol = num(payload.seismograph?.volatility);
   const { band, label } = magnitudeBand(mag);
   const vt = classifyValenceTone(val);

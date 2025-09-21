@@ -5,19 +5,26 @@ const samplePayload = {
   "date": "2025-09-05",
   "seismograph": {
     "magnitude": 5.0,
-    "valence": -5.0,
+    "magnitude_label": "Threshold",
+    "valence_bounded": -5.0,
+    "valence_label": "Collapse",
     "volatility": 4.2,
+    "volatility_label": "Fragment Scatter",
     "version": "v1.0"
   },
   "balance": {
     "magnitude": 5.0,
-    "valence": -3.0,
-    "version": "v1.1"
+    "valence_bounded": -3.0,
+    "valence_label": "Friction",
+    "version": "v1.1",
+    "calibration_mode": "v1.1"
   },
   "sfd": {
-    "sfd": -1.5,
-    "sPlus": 1.2,
-    "sMinus": 2.7,
+    "sfd_cont": -1.5,
+    "sfd_disc": -1,
+    "sfd_label": "scaffolding cut",
+    "s_plus": 1.2,
+    "s_minus": 2.7,
     "version": "v1.2"
   },
   "meta": {
@@ -64,11 +71,11 @@ function validatePayload(payload) {
   // Check required numeric fields
   const requiredNumbers = [
     ['seismograph.magnitude', payload.seismograph?.magnitude],
-    ['seismograph.valence', payload.seismograph?.valence],
-    ['balance.valence', payload.balance?.valence],
-    ['sfd.sfd', payload.sfd?.sfd],
-    ['sfd.sPlus', payload.sfd?.sPlus],
-    ['sfd.sMinus', payload.sfd?.sMinus]
+    ['seismograph.valence_bounded', payload.seismograph?.valence_bounded],
+    ['balance.valence_bounded', payload.balance?.valence_bounded],
+    ['sfd.sfd_cont', payload.sfd?.sfd_cont],
+    ['sfd.s_plus', payload.sfd?.s_plus],
+    ['sfd.s_minus', payload.sfd?.s_minus]
   ];
 
   requiredNumbers.forEach(([path, value]) => {
@@ -82,15 +89,15 @@ function validatePayload(payload) {
     errors.push('Seismograph magnitude must be 0-10');
   }
   
-  if (payload.seismograph?.valence < -5 || payload.seismograph?.valence > 5) {
+  if (payload.seismograph?.valence_bounded < -5 || payload.seismograph?.valence_bounded > 5) {
     errors.push('Seismograph valence must be -5 to +5');
   }
-  
-  if (payload.balance?.valence < -5 || payload.balance?.valence > 5) {
+
+  if (payload.balance?.valence_bounded < -5 || payload.balance?.valence_bounded > 5) {
     errors.push('Balance valence must be -5 to +5');
   }
-  
-  if (payload.sfd?.sfd < -5 || payload.sfd?.sfd > 5) {
+
+  if (payload.sfd?.sfd_cont < -5 || payload.sfd?.sfd_cont > 5) {
     errors.push('SFD value must be -5 to +5');
   }
 
@@ -121,13 +128,13 @@ if (!result.valid) {
   };
   
   const mag = result.payload.seismograph.magnitude.toFixed(1);
-  const val = result.payload.seismograph.valence;
-  const bal = result.payload.balance.valence;
-  const sfd = result.payload.sfd.sfd;
-  const splus = result.payload.sfd.sPlus;
-  const sminus = result.payload.sfd.sMinus;
-  const verdict = sfdVerdict(sfd);
-  
+  const val = result.payload.seismograph.valence_bounded;
+  const bal = result.payload.balance.valence_bounded;
+  const sfd = result.payload.sfd.sfd_cont;
+  const splus = result.payload.sfd.s_plus;
+  const sminus = result.payload.sfd.s_minus;
+  const verdict = result.payload.sfd.sfd_label || sfdVerdict(sfd);
+
   const channelLine = `Quake ${mag} · val ${fmtSigned(val)} · bal ${fmtSigned(bal)} · ${verdict} (SFD ${fmtSigned(sfd)}; S+ ${splus.toFixed(1)}/S− ${sminus.toFixed(1)})`;
   
   console.log(channelLine);
