@@ -6,6 +6,10 @@
 [build]
   command = "npm run build"
   environment = { CI = "false" }
+  publish = ".next"
+
+[functions]
+  node_bundler = "esbuild"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
