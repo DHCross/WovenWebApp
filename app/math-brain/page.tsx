@@ -2202,6 +2202,9 @@ export default function MathBrainPage() {
 
                   </select>
                   <p className="mt-1 text-xs text-slate-400">Relocation remaps houses/angles only; planets stay fixed. Choose the lens allowed for this report type.</p>
+                  {translocation === 'BOTH_LOCAL' && (
+                    <p className="mt-1 text-xs text-emerald-300">Houses for both Person A and Person B are recalculated from the relocation coordinates when you choose Relocate Both (A + B).</p>
+                  )}
                   <p className="mt-1 text-xs text-slate-500">Midpoint relocation is reserved for Relational Balance. Composite mode above still creates the midpoint chart.</p>
                   {relocationStatus.notice && (
                     <p className="mt-1 text-xs text-amber-400">{relocationStatus.notice}</p>

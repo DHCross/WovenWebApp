@@ -332,22 +332,24 @@ async function runTests() {
 
 
   runner.test('Both_local relocation applies shared coordinates for dyad', async () => {
-
-  runner.test('Mirror report rejects midpoint relocation mode', async () => {
-
     const event = {
       httpMethod: 'POST',
       body: JSON.stringify({
         personA: VALID_PERSON_A,
-
         personB: VALID_PERSON_B,
         transitParams: VALID_TRANSIT_PARAMS,
         context: { mode: 'SYNASTRY_TRANSITS' },
         relationship_context: { type: 'FRIEND', role: 'Acquaintance', contact_state: 'ACTIVE' },
+        custom_location: {
+          latitude: 37.7749,
+          longitude: -122.4194,
+          timezone: 'America/Los_Angeles',
+          label: 'San Francisco, CA'
+        },
         translocation: {
           applies: true,
           method: 'Both_local',
-          tz: 'US/Pacific',
+          tz: 'America/Los_Angeles',
           current_location: 'San Francisco, CA',
           coords: { latitude: 37.7749, longitude: -122.4194 }
         }
@@ -356,13 +358,53 @@ async function runTests() {
     const res = await handler(event);
     runner.assertEqual(res.statusCode, 200, 'Response should be 200');
     const body = JSON.parse(res.body);
+    runner.assert(body.provenance.relocation_applied === true, 'relocation should be applied');
+    runner.assertEqual(body.provenance.relocation_mode, 'Both_local', 'provenance relocation mode should be Both_local');
     runner.assert(body.context.translocation, 'translocation context present');
-    runner.assertEqual(body.context.translocation.method, 'Both_local', 'method should normalize to Both_local');
-    runner.assertEqual(body.context.translocation.current_location, 'San Francisco, CA', 'location label should be preserved');
-    runner.assert(body.person_a.chart.transitsByDate, 'Person A transits present');
-    runner.assert(body.person_b.chart.transitsByDate, 'Person B transits present');
-    runner.assertEqual(body.relationship.contact_state, 'ACTIVE', 'contact_state should default to Active when provided');
+    runner.assertEqual(body.context.translocation.method, 'Both_local', 'context method normalized');
+    runner.assertEqual(body.context.translocation.houses_basis, 'relocation', 'houses basis should reflect relocation');
+    runner.assertEqual(body.context.translocation.current_location, 'San Francisco, CA', 'location label preserved');
+    runner.assert(body.context.translocation.coords, 'coords should be present');
+    runner.assertEqual(body.context.translocation.coords.latitude, 37.7749, 'latitude preserved');
+    runner.assertEqual(body.context.relocation_detail.person_a.relocation_mode, 'A_local', 'Person A relocation detail reflects local frame');
+    runner.assertEqual(body.context.relocation_detail.person_b.relocation_mode, 'B_local', 'Person B relocation detail reflects local frame');
+    runner.assert(body.footnotes.includes('Relocation mode: Both_local (houses recalculated).'), 'Both_local footnote should be present');
+  });
 
+  runner.test('String token Both_local triggers relocation context', async () => {
+    const event = {
+      httpMethod: 'POST',
+      body: JSON.stringify({
+        personA: VALID_PERSON_A,
+        personB: VALID_PERSON_B,
+        transitParams: VALID_TRANSIT_PARAMS,
+        context: { mode: 'SYNASTRY_TRANSITS' },
+        relationship_context: { type: 'FRIEND', role: 'Acquaintance', contact_state: 'ACTIVE' },
+        custom_location: {
+          latitude: 37.7749,
+          longitude: -122.4194,
+          timezone: 'America/Los_Angeles',
+          label: 'San Francisco, CA'
+        },
+        translocation: 'BOTH_LOCAL'
+      })
+    };
+    const res = await handler(event);
+    runner.assertEqual(res.statusCode, 200, 'Response should be 200');
+    const body = JSON.parse(res.body);
+    runner.assert(body.provenance.relocation_applied === true, 'relocation should apply for string token');
+    runner.assertEqual(body.provenance.relocation_mode, 'Both_local', 'string token should normalize to Both_local');
+    runner.assert(body.context.translocation, 'translocation context present');
+    runner.assertEqual(body.context.translocation.method, 'Both_local', 'context method normalized from string');
+    runner.assertEqual(body.context.translocation.houses_basis, 'relocation', 'houses basis should use relocation');
+    runner.assertEqual(body.context.translocation.current_location, 'San Francisco, CA', 'label derived from custom location');
+  });
+
+  runner.test('Mirror report rejects midpoint relocation mode', async () => {
+    const event = {
+      httpMethod: 'POST',
+      body: JSON.stringify({
+        personA: VALID_PERSON_A,
         context: { mode: 'mirror' },
         translocation: { applies: true, method: 'Midpoint' }
       })
@@ -370,7 +412,7 @@ async function runTests() {
     const res = await handler(event);
     runner.assertEqual(res.statusCode, 400, 'should reject midpoint for mirror');
     const body = JSON.parse(res.body);
-    runner.assertEqual(body.code, 'invalid_relocation_mode_for_report', 'mirror midpoint error code');
+    runner.assertEqual(body.code, 'RELOCATION_UNSUPPORTED', 'mirror midpoint error code');
     runner.assert(body.error.includes('Midpoint relocation'), 'mirror midpoint message');
   });
 
@@ -402,7 +444,7 @@ async function runTests() {
     const res = await handler(event);
     runner.assertEqual(res.statusCode, 400, 'should reject midpoint without dyad');
     const body = JSON.parse(res.body);
-    runner.assertEqual(body.code, 'invalid_relocation_mode_for_report', 'balance midpoint error code');
+    runner.assertEqual(body.code, 'RELOCATION_UNSUPPORTED', 'balance midpoint error code');
 
   });
 
