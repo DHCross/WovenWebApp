@@ -1525,9 +1525,17 @@ export default function MathBrainPage() {
                     value={String(personA.day || '')}
                     onChange={(e) => {
                       const v = onlyDigits(e.target.value, 2);
-                      const n = clampNum(v, 1, 31);
-                      // Keep raw input while typing, only clamp if out of bounds
-                      setPersonA({ ...personA, day: Number.isNaN(n) ? v : (n === Number(v) ? v : String(n)) });
+                      if (!v) {
+                        setPersonA({ ...personA, day: '' });
+                        return;
+                      }
+                      const num = Number(v);
+                      if (v === "0" || (num >= 1 && num <= 31)) {
+                        setPersonA({ ...personA, day: v });
+                      } else {
+                        const clamped = Math.min(31, Math.max(1, num));
+                        setPersonA({ ...personA, day: String(clamped) });
+                      }
                     }}
                     onBlur={(e) => {
                       const v = onlyDigits(e.target.value, 2);
@@ -1823,9 +1831,17 @@ export default function MathBrainPage() {
                     value={String(personB.day || '')}
                     onChange={(e) => {
                       const v = onlyDigits(e.target.value, 2);
-                      const n = clampNum(v, 1, 31);
-                      // Keep raw input while typing, only clamp if out of bounds
-                      setPersonB({ ...personB, day: Number.isNaN(n) ? v : (n === Number(v) ? v : String(n)) });
+                      if (!v) {
+                        setPersonB({ ...personB, day: '' });
+                        return;
+                      }
+                      const num = Number(v);
+                      if (v === "0" || (num >= 1 && num <= 31)) {
+                        setPersonB({ ...personB, day: v });
+                      } else {
+                        const clamped = Math.min(31, Math.max(1, num));
+                        setPersonB({ ...personB, day: String(clamped) });
+                      }
                     }}
                     onBlur={(e) => {
                       const v = onlyDigits(e.target.value, 2);
@@ -1984,15 +2000,15 @@ export default function MathBrainPage() {
                   onChange={(e)=>{ setRelationshipType(e.target.value); setRelationshipTier(""); setRelationshipRole(""); }}
                 >
                   <option value="PARTNER">Partner</option>
-                  <option value="FRIEND">Friend / Colleague</option>
-                  <option value="FAMILY">Family</option>
+                  <option value="FRIEND">Friend / Acquaintance</option>
+                  <option value="FAMILY">Family Member</option>
                 </select>
                 <div className="mt-2 text-[11px] text-slate-400">
                   <div className="font-medium text-slate-300">Primary Relational Tiers (scope):</div>
                   <div>• Partner — full map access, including intimacy arcs & legacy patterns.</div>
-                  <div>• Friend / Colleague — emotional, behavioral, social dynamics; intimacy overlays de-emphasized.</div>
-                  <div>• Family — legacy patterns and behavioral overlays; sexual resonance suppressed.</div>
-                  <div>• Acquaintance — light pattern echoes only; intimacy dynamics locked.</div>
+                  <div>• Friend / Acquaintance — emotional, behavioral, social dynamics; intimacy overlays de-emphasized.</div>
+                  <div>• Family Member — legacy patterns and behavioral overlays; sexual resonance suppressed.
+                    {' '}Select the role to clarify Person B's relationship to Person A.</div>
                 </div>
               </div>
               <div className="sm:col-span-2">
@@ -2047,7 +2063,7 @@ export default function MathBrainPage() {
               )}
               {relationshipType === 'FAMILY' && (
                 <div>
-                  <label htmlFor="rel-role" className="block text-sm text-slate-300">Role</label>
+                  <label htmlFor="rel-role" className="block text-sm text-slate-300">Role (Person B is…)</label>
                   <select
                     id="rel-role"
                     disabled={!includePersonB}
@@ -2066,8 +2082,8 @@ export default function MathBrainPage() {
                     <option value="Other">Other</option>
                     <option value="Custom">Custom</option>
                   </select>
-                  {includePersonB && ['SYNASTRY','SYNASTRY_TRANSITS','COMPOSITE','DUAL_NATAL_TRANSITS'].includes(mode) && !relationshipTier && (
-                    <p className="mt-1 text-xs text-amber-400">Partner relationships require an intimacy tier.</p>
+                  {includePersonB && ['SYNASTRY','SYNASTRY_TRANSITS','COMPOSITE','DUAL_NATAL_TRANSITS'].includes(mode) && !relationshipRole && (
+                    <p className="mt-1 text-xs text-amber-400">Family relationships require selecting a role.</p>
                   )}
                 </div>
               )}
@@ -2081,7 +2097,9 @@ export default function MathBrainPage() {
                     onChange={(e)=>setRelationshipRole(e.target.value)}
                   >
                     <option value="">—</option>
+                    <option value="Friend">Friend</option>
                     <option value="Acquaintance">Acquaintance</option>
+                    <option value="Colleague">Colleague</option>
                     <option value="Mentor">Mentor</option>
                     <option value="Other">Other</option>
                     <option value="Custom">Custom</option>
