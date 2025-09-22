@@ -126,8 +126,36 @@ function formatHooksLine(hooks: HookObject[]): string {
   return items.join(' | ');
 }
 
+function hasActivationData(payload: InputPayload): boolean {
+  const hasTransits = Array.isArray(payload.transits) && payload.transits.length > 0;
+  const seismo = payload.seismograph;
+  const hasSeismograph = !!(
+    seismo &&
+    (num(seismo.magnitude) !== undefined ||
+      num(seismo.valence_bounded) !== undefined ||
+      num(seismo.valence) !== undefined ||
+      num(seismo.volatility) !== undefined ||
+      typeof seismo.valence_label === 'string')
+  );
+  return hasTransits || hasSeismograph;
+}
+
 function buildMirrorVoice(payload: InputPayload): string {
   const hooks = normalizeHooks(payload.hooks);
+  if (!hasActivationData(payload)) {
+    const lines: string[] = [];
+    const baseline = payload.constitutionalClimate?.trim();
+    if (baseline) {
+      lines.push(baseline);
+    } else {
+      lines.push('Baseline reflection: no current activation data supplied.');
+    }
+    if (hooks.length) {
+      lines.push(`Baseline Hooks — ${formatHooksLine(hooks)}`);
+    }
+    return lines.join('\n');
+  }
+
   const s = seismographSummary(payload);
   const lines: string[] = [];
   // FIELD → MAP → VOICE
