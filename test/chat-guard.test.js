@@ -27,9 +27,10 @@ async function testNoChartNoPersonalReading() {
   };
   const text = await post('/api/chat', payload);
   // Expect guard guidance (from route.ts guidance string)
-  const ok = text.includes('Generate Math Brain') || text.includes('planetary weather only');
-  if (!ok) {
-    throw new Error('Guard text not found in response');
+  const containsCorePhrases = text.includes('Generate Math Brain') && text.includes('planetary weather only');
+  const mentionsJsonHelp = /export file/i.test(text) && /astroseek/i.test(text);
+  if (!containsCorePhrases || !mentionsJsonHelp) {
+    throw new Error('Guard text not found in response (missing AstroSeek JSON export guidance)');
   }
   return 'PASS: Guard enforced without chart context';
 }

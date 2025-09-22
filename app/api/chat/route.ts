@@ -312,7 +312,7 @@ I can’t responsibly read you without a chart or report context. Two quick opti
 • Generate Math Brain on the main page (geometry only), then click “Ask Raven” to send the report here
 • Or ask for “planetary weather only” to hear today’s field without personal mapping
 
-If you already have a JSON report, paste or upload it and I’ll proceed.`.trim();
+If you already have a JSON report—it’s the export file AstroSeek gives you—paste or upload it here and I’ll keep going.`.trim();
 
     const responseBody = new ReadableStream<{ }|Uint8Array>({
       async start(controller){

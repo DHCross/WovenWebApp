@@ -64,13 +64,15 @@ async function testRavenGuardWithoutContext() {
       reportContexts: []
     }
   };
-  const data = await post('/api/raven', payload);
+  const data = await postJSON('/api/raven', payload);
   if (!data || typeof data.guidance !== 'string') {
     throw new Error('Guard guidance not returned');
   }
-  const ok = data.guidance.includes('Generate Math Brain') || data.guidance.includes('planetary weather only');
-  if (!ok) {
-    throw new Error('Expected guard guidance missing from response');
+  const guidance = String(data.guidance);
+  const containsCorePhrases = guidance.includes('Generate Math Brain') && guidance.includes('planetary weather only');
+  const mentionsJsonHelp = /export file/i.test(guidance) && /astroseek/i.test(guidance);
+  if (!containsCorePhrases || !mentionsJsonHelp) {
+    throw new Error('Expected guard guidance missing export instructions for the AstroSeek JSON report');
   }
   return 'PASS: Raven guard enforced without chart context';
 
@@ -117,6 +119,8 @@ async function testConversationGuard() {
     'i can’t responsibly read you without a chart or report context',
     'generate math brain',
     'planetary weather only',
+    'export file',
+    'astroseek',
   ];
 
   const missing = mustContain.filter((needle) => !guardText.includes(needle));
