@@ -16,6 +16,282 @@ import { buildNoContextGuardCopy } from '@/lib/guard/no-context';
 // Minimal in-memory session store (dev only). For prod, persist per-user.
 const sessions = new Map<string, SessionSSTLog>();
 
+function isObject(value: unknown): value is Record<string, any> {
+  return typeof value === 'object' && value !== null;
+}
+
+function getNested(source: any, path: string[]): any {
+  let current: any = source;
+  for (const segment of path) {
+    if (!isObject(current) && typeof current !== 'object') return undefined;
+    current = current?.[segment];
+    if (current === undefined || current === null) return current;
+  }
+  return current;
+}
+
+function asString(value: any): string | undefined {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : undefined;
+  }
+  return undefined;
+}
+
+function asNumber(value: any): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (isObject(value)) {
+    if (typeof value.value === 'number' && Number.isFinite(value.value)) {
+      return value.value;
+    }
+    if (typeof value.score === 'number' && Number.isFinite(value.score)) {
+      return value.score;
+    }
+    if (typeof value.mean === 'number' && Number.isFinite(value.mean)) {
+      return value.mean;
+    }
+  }
+  return undefined;
+}
+
+function pickString(data: any, paths: string[][]): string | undefined {
+  for (const path of paths) {
+    const candidate = getNested(data, path);
+    const str = asString(candidate);
+    if (str) return str;
+  }
+  return undefined;
+}
+
+function pickNumber(data: any, paths: string[][]): number | undefined {
+  for (const path of paths) {
+    const candidate = getNested(data, path);
+    const num = asNumber(candidate);
+    if (num !== undefined) return num;
+  }
+  return undefined;
+}
+
+function summariseUploadedReportJson(raw: string): {
+  draft: Record<string, any>;
+  prov: Record<string, any>;
+  climateText?: string;
+  highlight?: string;
+} | null {
+  const trimmed = typeof raw === 'string' ? raw.trim() : '';
+  if (!trimmed.startsWith('{') || trimmed.length < 20) {
+    return null;
+  }
+  if (!/"balance_meter"|"solo_mirror"|"mirror_voice"/i.test(trimmed)) {
+    return null;
+  }
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return null;
+  }
+  if (!isObject(parsed)) {
+    return null;
+  }
+
+  const reportType =
+    pickString(parsed, [
+      ['report_type'],
+      ['mode'],
+      ['context', 'mode'],
+      ['metadata', 'report_type'],
+      ['reports', 'report_type'],
+      ['reports', 'type'],
+      ['contract'],
+    ]) || 'report';
+
+  const subject = pickString(parsed, [
+    ['balance_meter', 'person', 'name'],
+    ['person', 'name'],
+    ['person_a', 'details', 'name'],
+    ['person_a', 'name'],
+    ['context', 'person', 'name'],
+    ['context', 'person_a', 'name'],
+    ['provenance', 'person_name'],
+  ]);
+
+  const climateLine = pickString(parsed, [
+    ['balance_meter', 'climate_line'],
+    ['balance_meter', 'climate', 'line'],
+    ['summary', 'climate_line'],
+    ['context', 'climate_line'],
+    ['reports', 'balance_meter', 'climate', 'line'],
+  ]);
+
+  const magnitude = pickNumber(parsed, [
+    ['balance_meter', 'magnitude'],
+    ['balance_meter', 'magnitude', 'value'],
+    ['balance_meter', 'summary', 'magnitude'],
+    ['balance_meter', 'summary', 'magnitude', 'value'],
+    ['balance_meter', 'seismograph', 'magnitude'],
+    ['balance_meter', 'climate', 'magnitude'],
+    ['seismograph', 'magnitude'],
+    ['summary', 'balance_meter', 'magnitude'],
+    ['summary', 'balance_meter', 'magnitude', 'value'],
+    ['reports', 'balance_meter', 'magnitude'],
+    ['reports', 'balance_meter', 'magnitude', 'value'],
+  ]);
+  const magnitudeLabel = pickString(parsed, [
+    ['balance_meter', 'magnitude', 'label'],
+    ['balance_meter', 'magnitude', 'term'],
+    ['balance_meter', 'magnitude_label'],
+    ['balance_meter', 'climate', 'magnitude_label'],
+    ['summary', 'balance_meter', 'magnitude_label'],
+  ]);
+
+  const valence = pickNumber(parsed, [
+    ['balance_meter', 'valence'],
+    ['balance_meter', 'valence', 'value'],
+    ['balance_meter', 'valence_bounded'],
+    ['balance_meter', 'climate', 'valence'],
+    ['balance_meter', 'climate', 'valence_bounded'],
+    ['seismograph', 'valence'],
+    ['summary', 'balance_meter', 'valence'],
+    ['summary', 'balance_meter', 'valence', 'value'],
+    ['reports', 'balance_meter', 'valence'],
+    ['reports', 'balance_meter', 'valence', 'value'],
+  ]);
+  const valenceLabel = pickString(parsed, [
+    ['balance_meter', 'valence', 'label'],
+    ['balance_meter', 'valence', 'term'],
+    ['balance_meter', 'valence_label'],
+    ['balance_meter', 'climate', 'valence_label'],
+    ['summary', 'balance_meter', 'valence_label'],
+  ]);
+
+  const volatility = pickNumber(parsed, [
+    ['balance_meter', 'volatility'],
+    ['balance_meter', 'volatility', 'value'],
+    ['balance_meter', 'climate', 'volatility'],
+    ['balance_meter', 'seismograph', 'volatility'],
+    ['seismograph', 'volatility'],
+    ['summary', 'balance_meter', 'volatility'],
+    ['reports', 'balance_meter', 'volatility'],
+    ['reports', 'balance_meter', 'volatility', 'value'],
+  ]);
+  const volatilityLabel = pickString(parsed, [
+    ['balance_meter', 'volatility', 'label'],
+    ['balance_meter', 'volatility', 'term'],
+    ['balance_meter', 'volatility_label'],
+  ]);
+
+  const periodStart = pickString(parsed, [
+    ['balance_meter', 'period', 'start'],
+    ['context', 'period', 'start'],
+    ['context', 'window', 'start'],
+    ['window', 'start'],
+    ['reports', 'balance_meter', 'period', 'start'],
+  ]);
+  const periodEnd = pickString(parsed, [
+    ['balance_meter', 'period', 'end'],
+    ['context', 'period', 'end'],
+    ['context', 'window', 'end'],
+    ['window', 'end'],
+    ['reports', 'balance_meter', 'period', 'end'],
+  ]);
+
+  const hooksRoot =
+    getNested(parsed, ['balance_meter', 'hook_stack', 'hooks']) ??
+    getNested(parsed, ['reports', 'balance_meter', 'hook_stack', 'hooks']);
+  const hooks = Array.isArray(hooksRoot)
+    ? hooksRoot
+        .map((entry: any) => {
+          if (typeof entry === 'string') {
+            return entry.trim();
+          }
+          if (isObject(entry)) {
+            const label = asString(entry.label);
+            if (!label) return undefined;
+            const orb = asNumber(entry.orb);
+            const tags: string[] = [];
+            if (entry.exact === true) tags.push('exact');
+            if (typeof orb === 'number') tags.push(`${orb.toFixed(1)}°`);
+            return tags.length ? `${label} (${tags.join(', ')})` : label;
+          }
+          return undefined;
+        })
+        .filter(Boolean)
+    : [];
+
+  const summaryPieces: string[] = [];
+  if (typeof magnitude === 'number') {
+    summaryPieces.push(
+      `Magnitude ${magnitude.toFixed(2)}${magnitudeLabel ? ` (${magnitudeLabel})` : ''}`
+    );
+  }
+  if (typeof valence === 'number') {
+    summaryPieces.push(
+      `Valence ${valence.toFixed(2)}${valenceLabel ? ` (${valenceLabel})` : ''}`
+    );
+  }
+  if (typeof volatility === 'number') {
+    summaryPieces.push(
+      `Volatility ${volatility.toFixed(2)}${volatilityLabel ? ` (${volatilityLabel})` : ''}`
+    );
+  }
+
+  const containerParts: string[] = [];
+  if (periodStart && periodEnd) {
+    containerParts.push(`Window ${periodStart} → ${periodEnd}`);
+  } else if (periodStart) {
+    containerParts.push(`Window begins ${periodStart}`);
+  }
+  if (hooks.length) {
+    containerParts.push(`Hooks ${hooks.slice(0, 2).join(' · ')}`);
+  }
+
+  const picture = climateLine || `Report logged for ${subject || 'this chart'}.`;
+  const feeling = summaryPieces.length
+    ? summaryPieces.join(' · ')
+    : 'Stored for interpretation when you are ready.';
+  const container = containerParts.length
+    ? containerParts.join(' · ')
+    : 'Context added to the session library.';
+  const option = 'Ask for a Poetic translation of any section or upload another layer.';
+  const next_step = 'When you are ready, tell me which pattern you want mirrored.';
+
+  const appendix: Record<string, any> = {};
+  if (reportType) appendix.report_type = reportType;
+  if (subject) appendix.subject = subject;
+  if (periodStart) appendix.period_start = periodStart;
+  if (periodEnd) appendix.period_end = periodEnd;
+  if (typeof magnitude === 'number') appendix.magnitude = magnitude;
+  if (magnitudeLabel) appendix.magnitude_label = magnitudeLabel;
+  if (typeof valence === 'number') appendix.valence = valence;
+  if (valenceLabel) appendix.valence_label = valenceLabel;
+  if (typeof volatility === 'number') appendix.volatility = volatility;
+  if (volatilityLabel) appendix.volatility_label = volatilityLabel;
+  if (hooks.length) appendix.hooks = hooks.slice(0, 3);
+
+  const draft: Record<string, any> = { picture, feeling, container, option, next_step };
+  if (Object.keys(appendix).length > 0) {
+    draft.appendix = appendix;
+  }
+
+  const prov = stampProvenance({
+    source: 'Uploaded JSON Report',
+    report_type: reportType,
+    ...(subject ? { subject } : {}),
+  });
+
+  const climateText = summaryPieces.length ? summaryPieces.join(' · ') : undefined;
+  const highlight = climateText ||
+    (periodStart
+      ? `Report stored for ${periodStart}${periodEnd ? ` → ${periodEnd}` : ''}`
+      : undefined);
+
+  return { draft, prov, climateText, highlight };
+}
+
 export async function POST(req: Request) {
   try {
     const { action = 'generate', input, options = {}, sessionId } = await req.json();
@@ -44,6 +320,24 @@ export async function POST(req: Request) {
 
     // Default: generate (router)
     const intent = detectIntent(textInput);
+    const uploadedSummary = summariseUploadedReportJson(textInput);
+    if (uploadedSummary) {
+      const { draft, prov, climateText, highlight } = uploadedSummary;
+      const probe = createProbe(
+        highlight || 'Mark one observation from this upload.',
+        randomUUID()
+      );
+      sessions.get(sid)!.probes.push(probe);
+      return NextResponse.json({
+        intent: 'report',
+        ok: true,
+        draft,
+        prov,
+        climate: climateText ?? null,
+        sessionId: sid,
+        probe,
+      });
+    }
     if (intent === 'geometry') {
       const parsed = parseAstroSeekBlob(String(input));
       const geo = normalizeGeometry(parsed);
