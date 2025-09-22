@@ -7,7 +7,14 @@ import { renderShareableMirror } from '@/lib/raven/render';
 import { stampProvenance } from '@/lib/raven/provenance';
 import { runMathBrain } from '@/lib/mathbrain/adapter';
 import { createProbe, commitProbe, scoreSession, type SessionSSTLog, type SSTTag } from '@/lib/raven/sst';
+
+  NO_CONTEXT_GUIDANCE,
+  ASTROSEEK_REFERENCE_GUIDANCE,
+  referencesAstroSeekWithoutGeometry
+} from '@/lib/raven/guards';
+
 import { buildNoContextGuardCopy } from '@/lib/guard/no-context';
+
 
 // Minimal in-memory session store (dev only). For prod, persist per-user.
 const sessions = new Map<string, SessionSSTLog>();
@@ -97,6 +104,18 @@ export async function POST(req: Request) {
       /\b(weather|sky today|planetary (weather|currents)|what's happening in the sky)\b/i.test(textInput);
 
     if (!hasReportContext && !hasGeometryPayload && !wantsWeatherOnly) {
+      if (referencesAstroSeekWithoutGeometry(textInput)) {
+        const prov = stampProvenance({ source: 'Conversational Guard (AstroSeek)' });
+        const guidance = ASTROSEEK_REFERENCE_GUIDANCE;
+        const guardDraft = {
+          picture: 'Got your AstroSeek mention—one more step.',
+          feeling: 'I need the actual export contents to mirror accurately.',
+          container: 'Option 1 · Click “Upload report” and drop the AstroSeek download (JSON or text).',
+          option: 'Option 2 · Open the export and paste the full table or text here.',
+          next_step: 'Once the geometry is included, I can read you in detail.'
+        };
+        return NextResponse.json({ intent, ok: true, guard: true, guidance, draft: guardDraft, prov, sessionId: sid });
+      }
       const prov = stampProvenance({ source: 'Conversational Guard' });
       const guardCopy = buildNoContextGuardCopy();
       const guardDraft = {

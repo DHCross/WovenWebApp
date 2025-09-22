@@ -4,7 +4,15 @@ import { generateStream } from '../../../lib/llm';
 import { canMakeRequest, trackRequest } from '../../../lib/usage-tracker';
 import { followUpGenerator, ChartContext } from '../../../lib/followup-generator';
 import { naturalFollowUpFlow, PingResponse, SessionContext } from '../../../lib/natural-followup-flow';
+
+import {
+  NO_CONTEXT_GUIDANCE,
+  ASTROSEEK_REFERENCE_GUIDANCE,
+  referencesAstroSeekWithoutGeometry
+} from '@/lib/raven/guards';
+
 import { buildNoContextGuardCopy } from '@/lib/guard/no-context';
+
 
 // Simple in-memory token bucket (dev only). Not production safe for multi-instance.
 const buckets = new Map<string,{t:number; ts:number}>();
@@ -301,8 +309,24 @@ export async function POST(req: NextRequest){
   if (!hasAnyReportContext && wantsPersonalReading && !wantsWeatherOnly) {
     const hook = pickHook(text);
     const climate = undefined;
+
+    const astroseekReference = referencesAstroSeekWithoutGeometry(text);
+    const greetings = astroseekReference
+      ? [
+        'I see the AstroSeek export—one more bridge and we can go deep…',
+        'With you. Let’s pull that AstroSeek file all the way through first…'
+      ]
+      : [
+        'With you—before we dive in…',
+        'Here with you. One small setup step first…',
+        'Holding your question—let’s get the ground right…'
+      ];
+    const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}).split(/\n+/)[0];
+    const guidance = astroseekReference ? ASTROSEEK_REFERENCE_GUIDANCE : NO_CONTEXT_GUIDANCE;
+
     const guardCopy = buildNoContextGuardCopy();
     const shapedIntro = shapeVoice(guardCopy.picture, {hook, climate, section:'mirror'}).split(/\n+/)[0];
+
 
     const responseBody = new ReadableStream<{ }|Uint8Array>({
       async start(controller){
