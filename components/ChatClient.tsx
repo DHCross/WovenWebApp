@@ -255,7 +255,7 @@ function formatClimate(
 
 const INTENT_TOAST: Record<Intent, string> = {
   geometry: "Chart detected — parsing as geometry",
-  report: "Report request detected — running Math Brain handoff",
+  report: "Report lane active — Math Brain context ready",
   conversation: "Conversation lane active",
 };
 
