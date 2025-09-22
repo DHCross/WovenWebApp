@@ -66,11 +66,18 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
         }
 
         const redirect_uri = getRedirectUri();
+        const authorizationParams: Record<string, any> = { redirect_uri };
+        if (config.audience) {
+          authorizationParams.audience = config.audience;
+        }
         const client = await creator({
           domain: (config.domain as string).replace(/^https?:\/\//, ''),
           clientId: config.clientId,
-          authorizationParams: { redirect_uri }
-        });
+          cacheLocation: 'localstorage',
+          useRefreshTokens: true,
+          useRefreshTokensFallback: true,
+          authorizationParams
+        } as any);
 
         // Handle callback if present
         const qs = window.location.search;
