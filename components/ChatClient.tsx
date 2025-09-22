@@ -398,11 +398,73 @@ interface ReportContext {
   relocation?: RelocationSummary;
 }
 
+const mapRelocationToPayload = (
+  summary: RelocationSummary | null | undefined,
+): Record<string, any> | undefined => {
+  if (!summary) return undefined;
+  return {
+    active: summary.active,
+    mode: summary.mode,
+    scope: summary.scope,
+    label: summary.label,
+    status: summary.status,
+    disclosure: summary.disclosure,
+    invariants: summary.invariants,
+    confidence: summary.confidence,
+    coordinates: summary.coordinates,
+    houseSystem: summary.houseSystem,
+    zodiacType: summary.zodiacType,
+    engineVersions: summary.engineVersions,
+    house_system: summary.houseSystem ?? null,
+    zodiac_type: summary.zodiacType ?? null,
+    engine_versions: summary.engineVersions ?? null,
+    provenance: summary.provenance,
+  };
+};
+
 interface StreamState {
   ravenId: string;
   acc: string;
   climate?: string;
   hook?: string;
+}
+
+function RelocationBanner({ summary }: { summary: RelocationSummary }) {
+  const badgeClass = summary.active
+    ? "bg-[var(--good)] text-slate-900"
+    : "bg-[var(--soft)] text-[var(--muted)]";
+  return (
+    <div className="flex justify-center border-b border-[var(--line)] bg-[var(--panel)] px-3 py-2">
+      <div className="flex w-full max-w-[900px] flex-col gap-1 text-[12px] text-[var(--text)]">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${badgeClass}`}
+          >
+            {summary.active ? "Relocation on" : "Relocation off"}
+          </span>
+          <span className="font-medium text-[var(--text)]">
+            {summary.disclosure}
+          </span>
+        </div>
+        {summary.status && (
+          <div className="text-[11px] text-[var(--muted)]">{summary.status}</div>
+        )}
+        {summary.invariants && (
+          <div className="text-[11px] text-[var(--muted)]">{summary.invariants}</div>
+        )}
+        {summary.coordinates?.timezone && (
+          <div className="text-[10px] text-[var(--muted)]">
+            Timezone: {summary.coordinates.timezone}
+          </div>
+        )}
+        {summary.confidence === "low" && (
+          <div className="text-[11px] text-[var(--warn)]">
+            Symbolic midpoint lens — diagnostic confidence reduced.
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function HelpModal({ onClose }: { onClose: () => void }) {
@@ -1075,6 +1137,7 @@ export default function ChatClient() {
     ]);
 
     try {
+      const relocationPayload = mapRelocationToPayload(reportContext.relocation);
       const payload = {
         input: reportContext.content,
         sessionId: ravenSessionId ?? undefined,
@@ -1083,14 +1146,18 @@ export default function ChatClient() {
           reportId: reportContext.id,
           reportName: reportContext.name,
           reportSummary: reportContext.summary,
-          relocation: reportContext.relocation,
-          reportContexts: reportContexts.map((rc) => ({
-            id: rc.id,
-            type: rc.type,
-            name: rc.name,
-            summary: rc.summary,
-            content: rc.content,
-          })),
+          ...(relocationPayload ? { relocation: relocationPayload } : {}),
+          reportContexts: reportContexts.map((rc) => {
+            const ctxRelocation = mapRelocationToPayload(rc.relocation);
+            return {
+              id: rc.id,
+              type: rc.type,
+              name: rc.name,
+              summary: rc.summary,
+              content: rc.content,
+              ...(ctxRelocation ? { relocation: ctxRelocation } : {}),
+            };
+          }),
         },
       };
       const res = await fetch("/api/raven", {
@@ -1164,13 +1231,17 @@ export default function ChatClient() {
         input: fileMessage.fullContent || fileMessage.html,
         sessionId: ravenSessionId ?? undefined,
         options: {
-          reportContexts: reportContexts.map((rc) => ({
-            id: rc.id,
-            type: rc.type,
-            name: rc.name,
-            summary: rc.summary,
-            content: rc.content,
-          })),
+          reportContexts: reportContexts.map((rc) => {
+            const ctxRelocation = mapRelocationToPayload(rc.relocation);
+            return {
+              id: rc.id,
+              type: rc.type,
+              name: rc.name,
+              summary: rc.summary,
+              content: rc.content,
+              ...(ctxRelocation ? { relocation: ctxRelocation } : {}),
+            };
+          }),
         },
       };
       const res = await fetch("/api/raven", {
@@ -1241,18 +1312,23 @@ export default function ChatClient() {
     ]);
 
     try {
+      const relocationPayload = mapRelocationToPayload(relocation);
       const payload = {
         input: text,
         sessionId: ravenSessionId ?? undefined,
         options: {
-          reportContexts: reportContexts.map((rc) => ({
-            id: rc.id,
-            type: rc.type,
-            name: rc.name,
-            summary: rc.summary,
-            content: rc.content,
-          })),
-          relocation,
+          reportContexts: reportContexts.map((rc) => {
+            const ctxRelocation = mapRelocationToPayload(rc.relocation);
+            return {
+              id: rc.id,
+              type: rc.type,
+              name: rc.name,
+              summary: rc.summary,
+              content: rc.content,
+              ...(ctxRelocation ? { relocation: ctxRelocation } : {}),
+            };
+          }),
+          ...(relocationPayload ? { relocation: relocationPayload } : {}),
         },
       };
       const res = await fetch("/api/raven", {
@@ -1348,18 +1424,23 @@ export default function ChatClient() {
       },
     ]);
     try {
+      const relocationPayload = mapRelocationToPayload(relocation);
       const payload = {
         input: text,
         sessionId: ravenSessionId ?? undefined,
         options: {
-          reportContexts: reportContexts.map((rc) => ({
-            id: rc.id,
-            type: rc.type,
-            name: rc.name,
-            summary: rc.summary,
-            content: rc.content,
-          })),
-          relocation,
+          reportContexts: reportContexts.map((rc) => {
+            const ctxRelocation = mapRelocationToPayload(rc.relocation);
+            return {
+              id: rc.id,
+              type: rc.type,
+              name: rc.name,
+              summary: rc.summary,
+              content: rc.content,
+              ...(ctxRelocation ? { relocation: ctxRelocation } : {}),
+            };
+          }),
+          ...(relocationPayload ? { relocation: relocationPayload } : {}),
         },
       };
       const res = await fetch("/api/raven", {
@@ -1598,7 +1679,9 @@ export default function ChatClient() {
         const { context, balance_meter } = jsonData;
         // compute relocation summary if available
         try {
-          if (context?.translocation) {
+          const provenance = jsonData.provenance || context.provenance || null;
+          if (context?.translocation || provenance?.relocation_mode) {
+            const trans = context?.translocation || {};
             relocationSummary = summarizeRelocation({
               // @ts-ignore allow flexible json
               type: jsonData.type || "balance",
@@ -1609,12 +1692,26 @@ export default function ChatClient() {
                 birth_place: "",
               },
               translocation: {
-                applies: !!context.translocation.applies,
-                current_location:
-                  context.translocation.current_location || "Natal Base",
-                house_system: context.translocation.house_system,
-                tz: context.translocation.tz,
+                applies: Boolean(trans?.applies ?? provenance?.relocation_mode),
+                method: trans?.method || trans?.mode,
+                mode: trans?.mode,
+                current_location: trans?.current_location || "Natal Base",
+                label: trans?.label,
+                house_system: trans?.house_system,
+                tz: trans?.tz,
+                timezone: trans?.timezone,
+                coords: trans?.coords || null,
+                coordinates: trans?.coordinates || null,
+                zodiac_type: trans?.zodiac_type,
               },
+              provenance,
+              relocation_mode:
+                provenance?.relocation_mode || trans?.mode || trans?.method || null,
+              relocation_label:
+                provenance?.relocation_label ||
+                trans?.label ||
+                trans?.current_location ||
+                null,
             } as any);
             setRelocation(relocationSummary);
           } else {
@@ -1656,7 +1753,11 @@ export default function ChatClient() {
       name: reportInfo
         ? reportInfo.split("|")[0].trim()
         : `${uploadType || "Balance"} Report`,
-      summary: [reportInfo, relocationSummary?.disclosure || null]
+      summary: [
+        reportInfo,
+        relocationSummary?.disclosure || null,
+        relocationSummary?.status || null,
+      ]
         .filter(Boolean)
         .join(" • "),
       content: content,
@@ -1808,9 +1909,10 @@ export default function ChatClient() {
         onShowPendingReview={() => setShowPendingReview(true)}
         onShowHelp={() => setShowHelp(true)}
         devMode={devMode}
-        showPoeticMenu={showPoeticMenu}
-        setShowPoeticMenu={setShowPoeticMenu}
-      />
+      showPoeticMenu={showPoeticMenu}
+      setShowPoeticMenu={setShowPoeticMenu}
+    />
+      {relocation && <RelocationBanner summary={relocation} />}
       {toast && (
         <div
           style={{
@@ -2179,8 +2281,9 @@ function Header({
           name: rc.name,
           summary: rc.summary,
           contentLength: rc.content.length,
+          relocation: mapRelocationToPayload(rc.relocation) ?? null,
         })),
-        relocationContext: relocation,
+        relocationContext: mapRelocationToPayload(relocation) ?? null,
         sessionFlags: {
           hasMirrorData,
           awaitingNewReadingGuide,
@@ -2348,7 +2451,17 @@ function Header({
               <strong>Export Date:</strong> ${reportData.metadata.exportDate}<br>
               <strong>Has Mirror Data:</strong> ${reportData.sessionFlags.hasMirrorData ? "Yes" : "No"}<br>
               <strong>Report Contexts:</strong> ${reportData.reportContexts.length}<br>
-              <strong>Relocation Active:</strong> ${reportData.relocationContext ? "Yes" : "No"}
+              <strong>Relocation:</strong> ${(() => {
+                const ctx = reportData.relocationContext;
+                if (!ctx) {
+                  return 'Relocation: None (birthplace houses/angles).';
+                }
+                const disclosure = escapeHtml(ctx.disclosure || 'Relocation on: Selected city. Houses/angles move; planets stay fixed.');
+                const status = ctx.status ? `<em>${escapeHtml(ctx.status)}</em>` : '';
+                const invariants = ctx.invariants ? `<small>${escapeHtml(ctx.invariants)}</small>` : '';
+                const tz = ctx.coordinates?.timezone ? `<small>Timezone: ${escapeHtml(ctx.coordinates.timezone)}</small>` : '';
+                return `${disclosure}${status ? `<br>${status}` : ''}${invariants ? `<br>${invariants}` : ''}${tz ? `<br>${tz}` : ''}`;
+              })()}
             </div>
           </div>
 
