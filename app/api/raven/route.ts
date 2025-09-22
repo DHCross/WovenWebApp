@@ -13,6 +13,21 @@ import {
 } from '@/lib/raven/guards';
 import { buildNoContextGuardCopy } from '@/lib/guard/no-context';
 
+const PERSONAL_READING_PATTERNS: RegExp[] = [
+  /\b(read|mirror|interpret|analyze|look at)\b[^.]{0,120}\b(me|my)\b/i,
+  /\b(me|my)\b[^.]{0,120}\b(chart|natal|birth\s+chart|placements|geometry|astrology|transits|report)\b/i,
+  /\bpersonal\s+(reading|mirror)\b/i,
+  /\bwhat do you see in my\b/i,
+  /\btell me what you see\b[^.]{0,120}\b(me|my)\b/i,
+  /\bbalance\s+meter\b/i,
+  /\bsession\b[^.]{0,40}\bscore\b/i,
+];
+
+function requestsPersonalReading(text: string): boolean {
+  if (!text) return false;
+  return PERSONAL_READING_PATTERNS.some((pattern) => pattern.test(text));
+}
+
 // Minimal in-memory session store (dev only). For prod, persist per-user.
 const sessions = new Map<string, SessionSSTLog>();
 
@@ -394,8 +409,11 @@ export async function POST(req: Request) {
       (typeof resolvedOptions.mode === 'string' && /weather/i.test(resolvedOptions.mode)) ||
       /\b(weather|sky today|planetary (weather|currents)|what's happening in the sky)\b/i.test(textInput);
 
-    if (!hasReportContext && !hasGeometryPayload && !wantsWeatherOnly) {
-      if (referencesAstroSeekWithoutGeometry(textInput)) {
+    const wantsPersonalReading = requestsPersonalReading(textInput);
+    const mentionsAstroSeek = referencesAstroSeekWithoutGeometry(textInput);
+
+    if (!hasReportContext && !hasGeometryPayload && !wantsWeatherOnly && (wantsPersonalReading || mentionsAstroSeek)) {
+      if (mentionsAstroSeek) {
         const prov = stampProvenance({ source: 'Conversational Guard (AstroSeek)' });
         const guidance = ASTROSEEK_REFERENCE_GUIDANCE;
         const guardDraft = {
@@ -407,16 +425,18 @@ export async function POST(req: Request) {
         };
         return NextResponse.json({ intent, ok: true, guard: true, guidance, draft: guardDraft, prov, sessionId: sid });
       }
-      const prov = stampProvenance({ source: 'Conversational Guard' });
-      const guardCopy = buildNoContextGuardCopy();
-      const guardDraft = {
-        picture: guardCopy.picture,
-        feeling: guardCopy.feeling,
-        container: guardCopy.container,
-        option: guardCopy.option,
-        next_step: guardCopy.next_step
-      };
-      return NextResponse.json({ intent, ok: true, guard: true, guidance: guardCopy.guidance, draft: guardDraft, prov, sessionId: sid });
+      if (wantsPersonalReading) {
+        const prov = stampProvenance({ source: 'Conversational Guard' });
+        const guardCopy = buildNoContextGuardCopy();
+        const guardDraft = {
+          picture: guardCopy.picture,
+          feeling: guardCopy.feeling,
+          container: guardCopy.container,
+          option: guardCopy.option,
+          next_step: guardCopy.next_step
+        };
+        return NextResponse.json({ intent, ok: true, guard: true, guidance: guardCopy.guidance, draft: guardDraft, prov, sessionId: sid });
+      }
     }
 
     const mergedOptions: Record<string, any> = {
@@ -434,9 +454,12 @@ export async function POST(req: Request) {
     });
 
     const draft = await renderShareableMirror({ geo: null, prov, options: mergedOptions, conversational: true });
-    const probe = createProbe(draft?.next_step || 'Take one breath', randomUUID());
-    sessions.get(sid)!.probes.push(probe);
-    return NextResponse.json({ intent, ok: true, draft, prov, sessionId: sid, probe });
+    const shouldScoreSession = hasReportContext || hasGeometryPayload;
+    const probe = shouldScoreSession ? createProbe(draft?.next_step || 'Take one breath', randomUUID()) : null;
+    if (probe) {
+      sessions.get(sid)!.probes.push(probe);
+    }
+    return NextResponse.json({ intent, ok: true, draft, prov, sessionId: sid, probe: probe ?? null });
 
 
   } catch (error) {
