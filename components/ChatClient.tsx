@@ -1112,7 +1112,10 @@ export default function ChatClient() {
     setMessages((m) => m.filter((msg) => msg.id !== messageId));
   }
 
-  async function analyzeReportContext(reportContext: ReportContext) {
+  async function analyzeReportContext(
+    reportContext: ReportContext,
+    contextsForPayload?: ReportContext[],
+  ) {
     if (typing) return; // Don't start if already processing
 
     setTyping(true);
@@ -1138,6 +1141,10 @@ export default function ChatClient() {
 
     try {
       const relocationPayload = mapRelocationToPayload(reportContext.relocation);
+      const baseContexts = contextsForPayload ?? reportContexts;
+      const contextsToSend = baseContexts.some((ctx) => ctx.id === reportContext.id)
+        ? baseContexts
+        : [...baseContexts, reportContext];
       const payload = {
         input: reportContext.content,
         sessionId: ravenSessionId ?? undefined,
@@ -1147,7 +1154,7 @@ export default function ChatClient() {
           reportName: reportContext.name,
           reportSummary: reportContext.summary,
           ...(relocationPayload ? { relocation: relocationPayload } : {}),
-          reportContexts: reportContexts.map((rc) => {
+          reportContexts: contextsToSend.map((rc) => {
             const ctxRelocation = mapRelocationToPayload(rc.relocation);
             return {
               id: rc.id,
@@ -1764,14 +1771,18 @@ export default function ChatClient() {
       relocation: relocationSummary || undefined,
     };
 
-    // Add to contexts (allow multiple reports)
-    setReportContexts((prev) => [...prev, reportContext]);
+    // Add to contexts (allow multiple reports) and include immediately for analysis
+    const contextsForAnalysis = [
+      ...reportContexts.filter((ctx) => ctx.id !== reportContext.id),
+      reportContext,
+    ];
+    setReportContexts(contextsForAnalysis);
 
     // Update relocation from most recent report
     setRelocation(relocationSummary);
 
     // Automatically trigger analysis for the new report context
-    await analyzeReportContext(reportContext);
+    await analyzeReportContext(reportContext, contextsForAnalysis);
 
     // No longer create a message - reports are now just context
     // Track mirror data for poetic insert availability

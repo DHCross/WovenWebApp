@@ -311,30 +311,16 @@ export async function POST(req: NextRequest){
     const climate = undefined;
 
     const astroseekReference = referencesAstroSeekWithoutGeometry(text);
-    const greetings = astroseekReference
-      ? [
-        'I see the AstroSeek export—one more bridge and we can go deep…',
-        'With you. Let’s pull that AstroSeek file all the way through first…'
-      ]
-      : [
-        'With you—before we dive in…',
-        'Here with you. One small setup step first…',
-        'Holding your question—let’s get the ground right…'
-      ];
-    const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}).split(/\n+/)[0];
-    const guidance = astroseekReference ? ASTROSEEK_REFERENCE_GUIDANCE : NO_CONTEXT_GUIDANCE;
-
     const guardCopy = buildNoContextGuardCopy();
-    const shapedIntro = shapeVoice(guardCopy.picture, {hook, climate, section:'mirror'}).split(/\n+/)[0];
-
-
-If you already have a JSON report—it’s the export file AstroSeek gives you—paste or upload it here and I’ll keep going.`.trim();
-
-
+    const introPicture = astroseekReference
+      ? 'I see the AstroSeek export—one more bridge and we can go deep…'
+      : guardCopy.picture;
+    const shapedIntro = shapeVoice(introPicture, {hook, climate, section:'mirror'}).split(/\n+/)[0];
+    const guardGuidance = astroseekReference ? ASTROSEEK_REFERENCE_GUIDANCE : guardCopy.guidance;
 
     const responseBody = new ReadableStream<{ }|Uint8Array>({
       async start(controller){
-        controller.enqueue(encode({climate, hook, delta: shapedIntro+"\n\n"+guardCopy.guidance}));
+        controller.enqueue(encode({climate, hook, delta: shapedIntro+"\n\n"+guardGuidance}));
         controller.close();
       }
     });
