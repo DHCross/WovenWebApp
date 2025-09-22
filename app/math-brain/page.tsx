@@ -1088,6 +1088,10 @@ export default function MathBrainPage() {
       return;
     }
     if (!canSubmit) return;
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+      setError("Transit start date must be on or before the end date.");
+      return;
+    }
     const nowTs = Date.now();
     if (nowTs - lastSubmitRef.current < 800) {
       return; // debounce rapid re-submits
@@ -1098,6 +1102,7 @@ export default function MathBrainPage() {
     setError(null);
     setResult(null);
     try {
+      const wantsTransits = mode !== 'NATAL_ONLY';
       const payload = {
         mode,
         personA: {
@@ -1115,6 +1120,10 @@ export default function MathBrainPage() {
           if (!timeUnknown) return 'user_provided';
           return timePolicy;
         })(),
+        ...(wantsTransits ? {
+          window: { start: startDate, end: endDate, step },
+          transits: { from: startDate, to: endDate, step },
+        } : {}),
         transitStartDate: startDate,
         transitEndDate: endDate,
         transitStep: step,

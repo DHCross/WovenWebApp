@@ -72,7 +72,31 @@ export async function POST(request: NextRequest) {
       return subject?.nation || birth?.nation || subject?.country || birth?.country || subject?.country_code || birth?.country_code || subject?.nation_code || undefined;
     };
     const body = (function transform(input:any){
-      if(!input || (!input.subjectA && !input.subjectB)) return JSON.stringify(input ?? {});
+      if (!input || typeof input !== 'object') {
+        return JSON.stringify(input ?? {});
+      }
+      const start = input?.window?.start || input?.transit_window?.start || input?.transitStartDate || input?.transit_start_date || input?.transitParams?.startDate || input?.startDate;
+      const end = input?.window?.end || input?.transit_window?.end || input?.transitEndDate || input?.transit_end_date || input?.transitParams?.endDate || input?.endDate;
+      const stepRaw = input?.window?.step || input?.transit_window?.step || input?.transitStep || input?.transit_step || input?.transitParams?.step || input?.step;
+      const resolvedStep = typeof stepRaw === 'string' && stepRaw.trim().length ? stepRaw : 'daily';
+      if(!input.subjectA && !input.subjectB){
+        const out:any = { ...input };
+        if (start && end) {
+          const normalizedWindow = { start, end, step: resolvedStep };
+          out.window = out.window || normalizedWindow;
+          if (!out.transits || typeof out.transits !== 'object') {
+            out.transits = { from: start, to: end, step: resolvedStep };
+          } else {
+            out.transits = {
+              ...out.transits,
+              from: out.transits.from || start,
+              to: out.transits.to || end,
+              step: out.transits.step || resolvedStep,
+            };
+          }
+        }
+        return JSON.stringify(out);
+      }
       const a = input.subjectA || {};
       const b = input.subjectB || null;
       const birthA = a.birth || {};
@@ -114,6 +138,12 @@ export async function POST(request: NextRequest) {
       };
       if (input.relationship_context || input.relationshipContext) {
         out.relationship_context = input.relationship_context || input.relationshipContext;
+      }
+      if (!out.window && start && end) {
+        out.window = { start, end, step: resolvedStep };
+      }
+      if (!out.transits && start && end) {
+        out.transits = { from: start, to: end, step: resolvedStep };
       }
       return JSON.stringify(out);
     })(raw);

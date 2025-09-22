@@ -43,7 +43,7 @@ export default function HomeHero() {
   const [authed, setAuthed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
-  const [authCfg, setAuthCfg] = useState<{domain?: string; clientId?: string} | null>(null);
+  const [authCfg, setAuthCfg] = useState<{domain?: string; clientId?: string; audience?: string | null} | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   // Tiny debug flags to surface why login might be inert
   const [sdkLoaded, setSdkLoaded] = useState(false);
@@ -98,7 +98,9 @@ export default function HomeHero() {
           }
           config = await res.json();
           console.log(`Auth config fetched in ${Date.now() - configStartTime}ms:`, config);
-          if (!cancelled) setAuthCfg({ domain: config?.domain, clientId: config?.clientId });
+          if (!cancelled) {
+            setAuthCfg({ domain: config?.domain, clientId: config?.clientId, audience: config?.audience ?? null });
+          }
         } catch (fetchError) {
           // Fallback for development when Netlify functions aren't available
           console.warn("Could not fetch auth config, using development fallback:", fetchError);
@@ -117,11 +119,20 @@ export default function HomeHero() {
         if (typeof creator !== 'function') {
           throw new Error('Auth0 SDK not available after load');
         }
+        const authorizationParams: Record<string, any> = {
+          redirect_uri: getRedirectUri(),
+        };
+        if (config.audience) {
+          authorizationParams.audience = config.audience;
+        }
         const client = await creator({
           domain: String(config.domain).replace(/^https?:\/\//, ""),
           clientId: config.clientId,
-          authorizationParams: { redirect_uri: getRedirectUri() },
-        });
+          cacheLocation: 'localstorage',
+          useRefreshTokens: true,
+          useRefreshTokensFallback: true,
+          authorizationParams,
+        } as any);
         clientRef.current = client;
         setClientReady(true);
 
@@ -178,13 +189,17 @@ export default function HomeHero() {
     }
     try {
       setIsLoggingIn(true);
+      const params: Record<string, any> = {
+        redirect_uri: getRedirectUri(),
+        // If the Google connection is configured in Auth0, this triggers the Google login directly
+        // Remove this line if you prefer the Universal Login page
+        connection: "google-oauth2",
+      };
+      if (authCfg?.audience) {
+        params.audience = authCfg.audience;
+      }
       await clientRef.current.loginWithRedirect({
-        authorizationParams: {
-          redirect_uri: getRedirectUri(),
-          // If the Google connection is configured in Auth0, this triggers the Google login directly
-          // Remove this line if you prefer the Universal Login page
-          connection: "google-oauth2",
-        },
+        authorizationParams: params,
       });
     } catch (e) {
       setError((e as any)?.message || "Login failed");
@@ -280,14 +295,14 @@ export default function HomeHero() {
           <p className="mt-2 text-[11px] text-slate-500">
             Auth init • sdk: <span className="text-slate-300">{String(sdkLoaded)}</span> • client: <span className="text-slate-300">{String(clientReady)}</span>
             {authCfg && (
-              <> • domain: <span className="text-slate-300">{authCfg.domain || '—'}</span> • client: <span className="text-slate-300">{authCfg.clientId ? String(authCfg.clientId).slice(0,4) + '…' : '—'}</span></>
+              <> • domain: <span className="text-slate-300">{authCfg.domain || '—'}</span> • client: <span className="text-slate-300">{authCfg.clientId ? String(authCfg.clientId).slice(0,4) + '…' : '—'}</span>{authCfg.audience ? <> • audience: <span className="text-slate-300">{authCfg.audience}</span></> : null}</>
             )}
             {' '}• <a href="/debug-auth" className="underline hover:text-slate-300">debug-auth</a>
           </p>
         )}
         {enableDev && authCfg && (
           <p className="mt-2 text-[11px] text-slate-500">
-            Auth config • domain: <span className="text-slate-300">{authCfg.domain || '—'}</span> • client: <span className="text-slate-300">{authCfg.clientId ? String(authCfg.clientId).slice(0,4) + '…' : '—'}</span>
+            Auth config • domain: <span className="text-slate-300">{authCfg.domain || '—'}</span> • client: <span className="text-slate-300">{authCfg.clientId ? String(authCfg.clientId).slice(0,4) + '…' : '—'}</span>{authCfg.audience ? <> • audience: <span className="text-slate-300">{authCfg.audience}</span></> : null}
           </p>
         )}
       </div>
