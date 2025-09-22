@@ -7,11 +7,14 @@ import { renderShareableMirror } from '@/lib/raven/render';
 import { stampProvenance } from '@/lib/raven/provenance';
 import { runMathBrain } from '@/lib/mathbrain/adapter';
 import { createProbe, commitProbe, scoreSession, type SessionSSTLog, type SSTTag } from '@/lib/raven/sst';
-import {
+
   NO_CONTEXT_GUIDANCE,
   ASTROSEEK_REFERENCE_GUIDANCE,
   referencesAstroSeekWithoutGeometry
 } from '@/lib/raven/guards';
+
+import { buildNoContextGuardCopy } from '@/lib/guard/no-context';
+
 
 // Minimal in-memory session store (dev only). For prod, persist per-user.
 const sessions = new Map<string, SessionSSTLog>();
@@ -114,15 +117,15 @@ export async function POST(req: Request) {
         return NextResponse.json({ intent, ok: true, guard: true, guidance, draft: guardDraft, prov, sessionId: sid });
       }
       const prov = stampProvenance({ source: 'Conversational Guard' });
-      const guidance = NO_CONTEXT_GUIDANCE;
+      const guardCopy = buildNoContextGuardCopy();
       const guardDraft = {
-        picture: 'With you—before we dive in…',
-        feeling: 'I need a chart or report context to mirror accurately.',
-        container: 'Option 1 · Generate Math Brain on the main page, then click “Ask Raven.”',
-        option: 'Option 2 · Ask for “planetary weather only” to hear today’s field without personal mapping.',
-        next_step: 'If you already have a JSON report, upload it here and I’ll proceed.'
+        picture: guardCopy.picture,
+        feeling: guardCopy.feeling,
+        container: guardCopy.container,
+        option: guardCopy.option,
+        next_step: guardCopy.next_step
       };
-      return NextResponse.json({ intent, ok: true, guard: true, guidance, draft: guardDraft, prov, sessionId: sid });
+      return NextResponse.json({ intent, ok: true, guard: true, guidance: guardCopy.guidance, draft: guardDraft, prov, sessionId: sid });
     }
 
     const mergedOptions: Record<string, any> = {
