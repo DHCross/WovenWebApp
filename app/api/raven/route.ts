@@ -16,6 +16,10 @@ import { createProbe, commitProbe, scoreSession, type SessionSSTLog, type SSTTag
 import { buildNoContextGuardCopy } from '@/lib/guard/no-context';
 
 
+If you already have a JSON report—it’s the export file AstroSeek gives you—paste or upload it here and I’ll keep going.`;
+
+
+
 // Minimal in-memory session store (dev only). For prod, persist per-user.
 const sessions = new Map<string, SessionSSTLog>();
 
@@ -119,11 +123,19 @@ export async function POST(req: Request) {
       const prov = stampProvenance({ source: 'Conversational Guard' });
       const guardCopy = buildNoContextGuardCopy();
       const guardDraft = {
+
+        picture: 'With you—before we dive in…',
+        feeling: 'I need a chart or report context to mirror accurately.',
+        container: 'Option 1 · Generate Math Brain on the main page, then click “Ask Raven.”',
+        option: 'Option 2 · Ask for “planetary weather only” to hear today’s field without personal mapping.',
+        next_step: 'If you already have a JSON report—it’s the export file AstroSeek gives you—paste or upload it here and I’ll keep going.'
+
         picture: guardCopy.picture,
         feeling: guardCopy.feeling,
         container: guardCopy.container,
         option: guardCopy.option,
         next_step: guardCopy.next_step
+
       };
       return NextResponse.json({ intent, ok: true, guard: true, guidance: guardCopy.guidance, draft: guardDraft, prov, sessionId: sid });
     }

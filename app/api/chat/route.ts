@@ -328,6 +328,10 @@ export async function POST(req: NextRequest){
     const shapedIntro = shapeVoice(guardCopy.picture, {hook, climate, section:'mirror'}).split(/\n+/)[0];
 
 
+If you already have a JSON report—it’s the export file AstroSeek gives you—paste or upload it here and I’ll keep going.`.trim();
+
+
+
     const responseBody = new ReadableStream<{ }|Uint8Array>({
       async start(controller){
         controller.enqueue(encode({climate, hook, delta: shapedIntro+"\n\n"+guardCopy.guidance}));
