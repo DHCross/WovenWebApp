@@ -5,6 +5,15 @@ import { canMakeRequest, trackRequest } from '../../../lib/usage-tracker';
 import { followUpGenerator, ChartContext } from '../../../lib/followup-generator';
 import { naturalFollowUpFlow, PingResponse, SessionContext } from '../../../lib/natural-followup-flow';
 
+import {
+  NO_CONTEXT_GUIDANCE,
+  ASTROSEEK_REFERENCE_GUIDANCE,
+  referencesAstroSeekWithoutGeometry
+} from '@/lib/raven/guards';
+
+import { buildNoContextGuardCopy } from '@/lib/guard/no-context';
+
+
 // Simple in-memory token bucket (dev only). Not production safe for multi-instance.
 const buckets = new Map<string,{t:number; ts:number}>();
 function take(ip:string, max=10, windowMs=60_000){
@@ -300,23 +309,32 @@ export async function POST(req: NextRequest){
   if (!hasAnyReportContext && wantsPersonalReading && !wantsWeatherOnly) {
     const hook = pickHook(text);
     const climate = undefined;
-    const greetings = [
-      'With you—before we dive in…',
-      'Here with you. One small setup step first…',
-      'Holding your question—let’s get the ground right…'
-    ];
-    const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}).split(/\n+/)[0];
-    const guidance = `
-I can’t responsibly read you without a chart or report context. Two quick options:
 
-• Generate Math Brain on the main page (geometry only), then click “Ask Raven” to send the report here
-• Or ask for “planetary weather only” to hear today’s field without personal mapping
+    const astroseekReference = referencesAstroSeekWithoutGeometry(text);
+    const greetings = astroseekReference
+      ? [
+        'I see the AstroSeek export—one more bridge and we can go deep…',
+        'With you. Let’s pull that AstroSeek file all the way through first…'
+      ]
+      : [
+        'With you—before we dive in…',
+        'Here with you. One small setup step first…',
+        'Holding your question—let’s get the ground right…'
+      ];
+    const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}).split(/\n+/)[0];
+    const guidance = astroseekReference ? ASTROSEEK_REFERENCE_GUIDANCE : NO_CONTEXT_GUIDANCE;
+
+    const guardCopy = buildNoContextGuardCopy();
+    const shapedIntro = shapeVoice(guardCopy.picture, {hook, climate, section:'mirror'}).split(/\n+/)[0];
+
 
 If you already have a JSON report—it’s the export file AstroSeek gives you—paste or upload it here and I’ll keep going.`.trim();
 
+
+
     const responseBody = new ReadableStream<{ }|Uint8Array>({
       async start(controller){
-        controller.enqueue(encode({climate, hook, delta: shapedIntro+"\n\n"+guidance}));
+        controller.enqueue(encode({climate, hook, delta: shapedIntro+"\n\n"+guardCopy.guidance}));
         controller.close();
       }
     });

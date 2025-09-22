@@ -8,12 +8,17 @@ import { stampProvenance } from '@/lib/raven/provenance';
 import { runMathBrain } from '@/lib/mathbrain/adapter';
 import { createProbe, commitProbe, scoreSession, type SessionSSTLog, type SSTTag } from '@/lib/raven/sst';
 
-const NO_CONTEXT_GUIDANCE = `I can’t responsibly read you without a chart or report context. Two quick options:
+  NO_CONTEXT_GUIDANCE,
+  ASTROSEEK_REFERENCE_GUIDANCE,
+  referencesAstroSeekWithoutGeometry
+} from '@/lib/raven/guards';
 
-• Generate Math Brain on the main page (geometry only), then click “Ask Raven” to send the report here
-• Or ask for “planetary weather only” to hear today’s field without personal mapping
+import { buildNoContextGuardCopy } from '@/lib/guard/no-context';
+
 
 If you already have a JSON report—it’s the export file AstroSeek gives you—paste or upload it here and I’ll keep going.`;
+
+
 
 // Minimal in-memory session store (dev only). For prod, persist per-user.
 const sessions = new Map<string, SessionSSTLog>();
@@ -103,16 +108,36 @@ export async function POST(req: Request) {
       /\b(weather|sky today|planetary (weather|currents)|what's happening in the sky)\b/i.test(textInput);
 
     if (!hasReportContext && !hasGeometryPayload && !wantsWeatherOnly) {
+      if (referencesAstroSeekWithoutGeometry(textInput)) {
+        const prov = stampProvenance({ source: 'Conversational Guard (AstroSeek)' });
+        const guidance = ASTROSEEK_REFERENCE_GUIDANCE;
+        const guardDraft = {
+          picture: 'Got your AstroSeek mention—one more step.',
+          feeling: 'I need the actual export contents to mirror accurately.',
+          container: 'Option 1 · Click “Upload report” and drop the AstroSeek download (JSON or text).',
+          option: 'Option 2 · Open the export and paste the full table or text here.',
+          next_step: 'Once the geometry is included, I can read you in detail.'
+        };
+        return NextResponse.json({ intent, ok: true, guard: true, guidance, draft: guardDraft, prov, sessionId: sid });
+      }
       const prov = stampProvenance({ source: 'Conversational Guard' });
-      const guidance = NO_CONTEXT_GUIDANCE;
+      const guardCopy = buildNoContextGuardCopy();
       const guardDraft = {
+
         picture: 'With you—before we dive in…',
         feeling: 'I need a chart or report context to mirror accurately.',
         container: 'Option 1 · Generate Math Brain on the main page, then click “Ask Raven.”',
         option: 'Option 2 · Ask for “planetary weather only” to hear today’s field without personal mapping.',
         next_step: 'If you already have a JSON report—it’s the export file AstroSeek gives you—paste or upload it here and I’ll keep going.'
+
+        picture: guardCopy.picture,
+        feeling: guardCopy.feeling,
+        container: guardCopy.container,
+        option: guardCopy.option,
+        next_step: guardCopy.next_step
+
       };
-      return NextResponse.json({ intent, ok: true, guard: true, guidance, draft: guardDraft, prov, sessionId: sid });
+      return NextResponse.json({ intent, ok: true, guard: true, guidance: guardCopy.guidance, draft: guardDraft, prov, sessionId: sid });
     }
 
     const mergedOptions: Record<string, any> = {
