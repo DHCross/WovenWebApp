@@ -3546,20 +3546,24 @@ function Bubble({
   const userClass = "self-end bg-gradient-to-b from-[#1f2432] to-[#171b25]";
   const ravenClass =
     "self-start bg-gradient-to-b from-[#171b25] to-[#131824] border-l-2 border-l-[#2b3244]";
+  const mirrorSuppressed = Boolean(msg.draft?.mirror_suppressed);
 
   return (
     <article
       id={`message-${msg.id}`}
       className={`${baseClass} ${msg.role === "user" ? userClass : ravenClass}`}
     >
-      {/* Top climate/hook header for Raven messages */}
-      {msg.role === "raven" && (msg.climate || msg.hook) && (
-        <div className="mb-2 pb-1 border-b border-[#2a3143]">
-          {msg.climate && (
-            <div className="text-[10px] text-[#8b94a6]">{msg.climate}</div>
-          )}
+      {/* Header for Raven messages */}
+      {msg.role === "raven" && (
+        <div className="mb-2 pb-2 border-b border-[#2a3143]">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#e2e8f0]">
+            Raven Calder
+          </div>
           {msg.hook && (
-            <div className="text-[10px] text-[#8b94a6]">{msg.hook}</div>
+            <div className="mt-1 text-[10px] text-[#8b94a6]">{msg.hook}</div>
+          )}
+          {msg.climate && (
+            <div className="mt-1 text-[10px] text-[#8b94a6]">{msg.climate}</div>
           )}
         </div>
       )}
@@ -3569,7 +3573,7 @@ function Bubble({
       />
 
       {/* Structured mirror (collapsible) when available from draft */}
-      {msg.draft && (
+      {msg.draft && !mirrorSuppressed && (
         <div className="mt-2">
           <button
             onClick={() => setShowMirror((s) => !s)}
