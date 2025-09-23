@@ -24,6 +24,77 @@ type Subject = {
 
 type ApiResult = Record<string, any> | null;
 
+type ReportMode =
+  | 'NATAL_ONLY'
+  | 'NATAL_TRANSITS'
+  | 'SYNASTRY'
+  | 'SYNASTRY_TRANSITS'
+  | 'COMPOSITE'
+  | 'COMPOSITE_TRANSITS';
+
+const RELATIONAL_MODES: ReportMode[] = [
+  'SYNASTRY',
+  'SYNASTRY_TRANSITS',
+  'COMPOSITE',
+  'COMPOSITE_TRANSITS',
+];
+
+const TRANSIT_MODES = new Set<ReportMode>([
+  'NATAL_TRANSITS',
+  'SYNASTRY_TRANSITS',
+  'COMPOSITE_TRANSITS',
+]);
+
+const toTransitMode = (mode: ReportMode): ReportMode => {
+  switch (mode) {
+    case 'NATAL_ONLY':
+      return 'NATAL_TRANSITS';
+    case 'SYNASTRY':
+      return 'SYNASTRY_TRANSITS';
+    case 'COMPOSITE':
+      return 'COMPOSITE_TRANSITS';
+    default:
+      return mode;
+  }
+};
+
+const toNatalMode = (mode: ReportMode): ReportMode => {
+  switch (mode) {
+    case 'NATAL_TRANSITS':
+      return 'NATAL_ONLY';
+    case 'SYNASTRY_TRANSITS':
+      return 'SYNASTRY';
+    case 'COMPOSITE_TRANSITS':
+      return 'COMPOSITE';
+    default:
+      return mode;
+  }
+};
+
+const normalizeReportMode = (value: unknown): ReportMode => {
+  if (!value && value !== 0) return 'NATAL_ONLY';
+  const token = String(value).trim().toUpperCase();
+  switch (token) {
+    case 'NATAL_TRANSITS':
+      return 'NATAL_TRANSITS';
+    case 'SYNASTRY':
+      return 'SYNASTRY';
+    case 'SYNASTRY_TRANSITS':
+      return 'SYNASTRY_TRANSITS';
+    case 'COMPOSITE':
+      return 'COMPOSITE';
+    case 'COMPOSITE_TRANSITS':
+      return 'COMPOSITE_TRANSITS';
+    case 'DUAL_NATAL_TRANSITS':
+      return 'SYNASTRY_TRANSITS';
+    case 'DUAL_NATAL':
+      return 'SYNASTRY';
+    case 'NATAL_ONLY':
+    default:
+      return 'NATAL_ONLY';
+  }
+};
+
 // Auth is handled via client-only AuthProvider to avoid hydration mismatches
 
 function Section({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
@@ -66,7 +137,7 @@ export default function MathBrainPage() {
 
   const [startDate, setStartDate] = useState<string>(defaultStart);
   const [endDate, setEndDate] = useState<string>(defaultEnd);
-  const [mode, setMode] = useState<string>("NATAL_ONLY");
+  const [mode, setMode] = useState<ReportMode>('NATAL_ONLY');
   const [step, setStep] = useState<string>("daily");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -144,20 +215,23 @@ export default function MathBrainPage() {
 
   const normalizeTranslocationOption = (value: any): TranslocationOption => {
     const token = String(value || '').trim().toUpperCase();
-    if (!token) return 'A_NATAL';
-    if (token === 'NONE' || token === 'NATAL') return 'NONE';
+    if (!token) return 'NONE';
+    if (
+      token === 'NONE' ||
+      token === 'NATAL' ||
+      token === 'A_NATAL' ||
+      token === 'A-NATAL' ||
+      token === 'B_NATAL' ||
+      token === 'B-NATAL'
+    ) {
+      return 'NONE';
+    }
     if (token === 'A_LOCAL' || token === 'A-LOCAL') return 'A_LOCAL';
     if (token === 'B_LOCAL' || token === 'B-LOCAL') return 'B_LOCAL';
-    if (token === 'B_NATAL' || token === 'B-NATAL') return 'B_NATAL';
-    if (token === 'BOTH_LOCAL' || token === 'BOTH-LOCAL') return 'BOTH_LOCAL';
+    if (token === 'BOTH_LOCAL' || token === 'BOTH-LOCAL' || token === 'BOTH') return 'BOTH_LOCAL';
     if (token === 'MIDPOINT') return 'MIDPOINT';
 
-    if (token === 'A_NATAL' || token === 'A-NATAL') return 'A_NATAL';
-
-    if (token === 'NONE') return 'NONE';
-    if (token === 'NATAL' || token === 'A_NATAL' || token === 'A-NATAL') return 'A_NATAL';
-
-    return 'A_NATAL';
+    return 'NONE';
   };
   const [translocation, setTranslocation] = useState<TranslocationOption>('A_LOCAL');
 
@@ -236,39 +310,47 @@ export default function MathBrainPage() {
   }, []);
 
   // Relational modes list used for UI guards
-  const relationalModes = useMemo(() => ['SYNASTRY','SYNASTRY_TRANSITS','COMPOSITE','DUAL_NATAL_TRANSITS'], []);
-  const isRelationalMode = relationalModes.includes(mode);
+  const isRelationalMode = RELATIONAL_MODES.includes(mode);
   const isDyadMode = includePersonB && isRelationalMode;
+  const includeTransits = TRANSIT_MODES.has(mode);
+  const soloModeOption = includeTransits
+    ? { value: 'NATAL_TRANSITS' as ReportMode, label: 'Natal + Transits' }
+    : { value: 'NATAL_ONLY' as ReportMode, label: 'Natal Only' };
+  const relationalModeOptions: { value: ReportMode; label: string }[] = includeTransits
+    ? [
+        { value: 'SYNASTRY_TRANSITS', label: 'Synastry + Transits' },
+        { value: 'COMPOSITE_TRANSITS', label: 'Composite + Transits' },
+      ]
+    : [
+        { value: 'SYNASTRY', label: 'Synastry' },
+        { value: 'COMPOSITE', label: 'Composite' },
+      ];
 
   useEffect(() => {
     setTranslocation((prev) => {
-      if (reportType === 'balance') {
-        if (prev === 'A_NATAL') return 'A_LOCAL';
-        if (prev === 'B_NATAL') return isDyadMode ? 'B_LOCAL' : 'A_LOCAL';
-        if (!isDyadMode && (prev === 'B_LOCAL' || prev === 'MIDPOINT')) return 'A_LOCAL';
-        return prev;
+      if (!includeTransits) {
+        return 'NONE';
       }
-      // Mirror guardrails: if Person B not active, collapse to Person A natal.
-      if (!isDyadMode && (prev === 'B_LOCAL' || prev === 'B_NATAL' || prev === 'MIDPOINT')) {
-        return 'A_NATAL';
+      if (!isDyadMode && (prev === 'B_LOCAL' || prev === 'BOTH_LOCAL' || prev === 'MIDPOINT')) {
+        return 'NONE';
       }
-      if (prev === 'MIDPOINT') {
-        return isDyadMode ? 'B_LOCAL' : 'A_NATAL';
+      if (prev === 'MIDPOINT' && (mode !== 'COMPOSITE_TRANSITS' || reportType !== 'balance')) {
+        return isDyadMode ? 'BOTH_LOCAL' : 'NONE';
       }
       return prev;
     });
-  }, [reportType, isDyadMode]);
+  }, [includeTransits, isDyadMode, mode, reportType]);
 
   const relocationSelectLabels: Record<TranslocationOption, string> = useMemo(() => ({
-    NONE: 'No relocation (natal locations)',
+    NONE: 'Birthplace (no relocation)',
 
-    A_NATAL: 'Person A — Natal frame (houses not recalculated)',
-    A_LOCAL: 'Person A — Local (houses recalculated)',
-    B_NATAL: 'Person B — Natal frame (houses not recalculated)',
-    B_LOCAL: 'Person B — Local (houses recalculated)',
+    A_NATAL: 'Birthplace (no relocation)',
+    A_LOCAL: 'Person A – Current Location',
+    B_NATAL: 'Birthplace (no relocation)',
+    B_LOCAL: 'Person B – Current Location',
 
-    BOTH_LOCAL: 'Relocate Both — Person A & B local frames',
-    MIDPOINT: 'Midpoint (A + B) — Shared relocation'
+    BOTH_LOCAL: 'Shared Location (custom city)',
+    MIDPOINT: 'Midpoint (Composite only)'
   }), []);
 
   const relocationModeCaption = useMemo(() => ({
@@ -286,54 +368,42 @@ export default function MathBrainPage() {
   type RelocationOptionConfig = { value: TranslocationOption; disabled?: boolean; title?: string };
 
   const relocationOptions = useMemo<RelocationOptionConfig[]>(() => {
-    if (reportType === 'mirror') {
-      return [
-        { value: 'A_NATAL' },
-        { value: 'A_LOCAL' },
-        {
-          value: 'B_NATAL',
-          disabled: !isDyadMode,
-          title: !isDyadMode ? 'Requires Person B in a relational report.' : undefined,
-        },
-        {
-          value: 'B_LOCAL',
-          disabled: !isDyadMode,
-          title: !isDyadMode ? 'Requires Person B in a relational report.' : undefined,
-        },
-        {
-          value: 'MIDPOINT',
-          disabled: true,
-          title: 'Midpoint relocation is only supported in Relational Balance reports.',
-        },
-      ];
-    }
-    const opts: RelocationOptionConfig[] = [
+    const options: RelocationOptionConfig[] = [
+      { value: 'NONE' },
       { value: 'A_LOCAL' },
-      {
-        value: 'B_LOCAL',
-        disabled: !isDyadMode,
-        title: !isDyadMode ? 'Requires Person B in a relational report.' : undefined,
-      },
-      {
-        value: 'MIDPOINT',
-        disabled: !isDyadMode,
-        title: !isDyadMode ? 'Midpoint relocation requires both Person A and Person B.' : undefined,
-      },
-      {
-        value: 'A_NATAL',
-        disabled: true,
-        title: 'Fallback when relocation data is missing for Person A.',
-      },
     ];
-    if (isDyadMode) {
-      opts.push({
-        value: 'B_NATAL',
-        disabled: true,
-        title: 'Fallback when relocation data is missing for Person B.',
+
+    const relationalDisabled = !isDyadMode;
+    options.push({
+      value: 'B_LOCAL',
+      disabled: relationalDisabled,
+      title: relationalDisabled ? 'Requires Person B in a relational report.' : undefined,
+    });
+    options.push({
+      value: 'BOTH_LOCAL',
+      disabled: relationalDisabled,
+      title: relationalDisabled ? 'Requires Person B in a relational report.' : undefined,
+    });
+
+    if (mode === 'COMPOSITE_TRANSITS') {
+      const midpointDisabled = relationalDisabled || reportType !== 'balance';
+      options.push({
+        value: 'MIDPOINT',
+        disabled: midpointDisabled,
+        title: midpointDisabled
+          ? (reportType !== 'balance'
+              ? 'Midpoint relocation is only supported in Relational Balance reports.'
+              : 'Midpoint relocation requires both Person A and Person B.')
+          : 'Experimental — bond midpoint, not a physical place.',
       });
     }
-    return opts;
-  }, [reportType, isDyadMode]);
+
+    if (!options.some((opt) => opt.value === translocation)) {
+      options.push({ value: translocation, disabled: true });
+    }
+
+    return options;
+  }, [isDyadMode, mode, reportType, translocation]);
 
   const parseMaybeNumber = (value: unknown): number | null => {
     if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -366,46 +436,53 @@ export default function MathBrainPage() {
 
     if (reportType === 'mirror') {
       if (translocation === 'A_LOCAL' && !relocationInputReady) {
-        effectiveMode = 'A_NATAL';
-        notice = 'Relocation not provided; defaulting to Person A natal houses.';
+        effectiveMode = 'NONE';
+        notice = 'Relocation not provided; defaulting to natal houses.';
       } else if (translocation === 'B_LOCAL') {
         if (!isDyadMode) {
-          effectiveMode = 'A_NATAL';
-          notice = 'Person B is not available; defaulting to Person A natal houses.';
+          effectiveMode = 'NONE';
+          notice = 'Person B is not available; defaulting to natal houses.';
         } else if (!personBLocationReady) {
-          effectiveMode = 'B_NATAL';
-          notice = 'Relocation not provided; defaulting to Person B natal houses.';
+          effectiveMode = 'NONE';
+          notice = 'Relocation not provided; defaulting to natal houses.';
         }
-      } else if (translocation === 'B_NATAL' && !isDyadMode) {
-        effectiveMode = 'A_NATAL';
-        notice = 'Person B is not available; defaulting to Person A natal houses.';
+      } else if (translocation === 'BOTH_LOCAL' && !relocationInputReady) {
+        effectiveMode = 'NONE';
+        notice = 'Shared relocation requires coordinates; defaulting to natal houses.';
       } else if (translocation === 'MIDPOINT') {
-        effectiveMode = 'A_NATAL';
-        notice = 'Midpoint relocation is only supported in Relational Balance reports.';
+        effectiveMode = 'NONE';
+        notice = 'Midpoint relocation is only available for Relational Balance reports.';
       }
     } else {
-      if (translocation === 'A_LOCAL') {
-        if (!relocationInputReady) {
-          effectiveMode = 'A_NATAL';
-          notice = 'Relocation not provided; defaulting to Person A natal houses.';
-        }
+      if (translocation === 'A_LOCAL' && !relocationInputReady) {
+        effectiveMode = 'NONE';
+        notice = 'Relocation not provided; defaulting to natal houses.';
       } else if (translocation === 'B_LOCAL') {
         if (!isDyadMode) {
-          effectiveMode = relocationInputReady ? 'A_LOCAL' : 'A_NATAL';
+          effectiveMode = relocationInputReady ? 'A_LOCAL' : 'NONE';
           notice = 'Person B is not included; select a valid relocation lens.';
         } else if (!personBLocationReady) {
-          effectiveMode = 'B_NATAL';
-          notice = 'Relocation not provided; defaulting to Person B natal houses.';
+          effectiveMode = 'NONE';
+          notice = 'Relocation not provided; defaulting to natal houses.';
+        }
+      } else if (translocation === 'BOTH_LOCAL') {
+        if (!isDyadMode) {
+          effectiveMode = relocationInputReady ? 'A_LOCAL' : 'NONE';
+          notice = 'Shared relocation requires both Person A and Person B.';
+        } else if (!relocationInputReady) {
+          effectiveMode = 'NONE';
+          notice = 'Relocation not provided; defaulting to natal houses.';
         }
       } else if (translocation === 'MIDPOINT') {
         if (!isDyadMode) {
-          effectiveMode = relocationInputReady ? 'A_LOCAL' : 'A_NATAL';
+          effectiveMode = relocationInputReady ? 'A_LOCAL' : 'NONE';
           notice = 'Midpoint relocation requires both Person A and Person B.';
+        } else if (reportType !== 'balance') {
+          effectiveMode = relocationInputReady ? 'BOTH_LOCAL' : 'NONE';
+          notice = 'Midpoint relocation is only available for Relational Balance reports.';
         } else {
           effectiveMode = 'MIDPOINT';
         }
-      } else if (translocation === 'A_NATAL' || translocation === 'B_NATAL') {
-        notice = 'Balance reports require a relocation lens; provide relocation data to enable local mode.';
       }
     }
 
@@ -414,10 +491,10 @@ export default function MathBrainPage() {
 
   // If Person B is turned off while a relational mode is selected, reset to a solo mode
   useEffect(() => {
-    if (!includePersonB && relationalModes.includes(mode)) {
-      setMode('NATAL_TRANSITS');
+    if (!includePersonB && RELATIONAL_MODES.includes(mode)) {
+      setMode((prev) => (TRANSIT_MODES.has(prev) ? 'NATAL_TRANSITS' : 'NATAL_ONLY'));
     }
-  }, [includePersonB, mode, relationalModes]);
+  }, [includePersonB, mode]);
 
   useEffect(() => {
     if (!includePersonB && (translocation === 'B_LOCAL' || translocation === 'MIDPOINT' || translocation === 'BOTH_LOCAL')) {
@@ -450,7 +527,7 @@ export default function MathBrainPage() {
       if (saved.personA) setPersonA(saved.personA);
       if (saved.personB) setPersonB(saved.personB);
       if (typeof saved.includePersonB === 'boolean') setIncludePersonB(saved.includePersonB);
-      if (saved.mode) setMode(saved.mode);
+      if (saved.mode) setMode(normalizeReportMode(saved.mode));
       if (saved.step) setStep(saved.step);
       if (saved.startDate) setStartDate(saved.startDate);
       if (saved.endDate) setEndDate(saved.endDate);
@@ -461,9 +538,9 @@ export default function MathBrainPage() {
       if (typeof saved.relationshipRole === 'string') setRelationshipRole(saved.relationshipRole);
 
       if (typeof saved.contactState === 'string') setContactState(saved.contactState.toUpperCase() === 'LATENT' ? 'LATENT' : 'ACTIVE');
-      if (saved.translocation) setTranslocation(saved.translocation);
-
-      if (saved.translocation) setTranslocation(normalizeTranslocationOption(saved.translocation));
+      if (saved.translocation) {
+        setTranslocation(normalizeTranslocationOption(saved.translocation));
+      }
 
     } catch {/* noop */}
   }
@@ -973,7 +1050,7 @@ export default function MathBrainPage() {
         if (data.personA) setPersonA(data.personA);
         if (data.personB) setPersonB(data.personB);
         if (typeof data.includePersonB === 'boolean') setIncludePersonB(data.includePersonB);
-        if (data.mode) setMode(data.mode);
+        if (data.mode) setMode(normalizeReportMode(data.mode));
         if (data.step) setStep(data.step);
         if (data.startDate) setStartDate(data.startDate);
         if (data.endDate) setEndDate(data.endDate);
@@ -983,9 +1060,9 @@ export default function MathBrainPage() {
         if (typeof data.relationshipRole === 'string') setRelationshipRole(data.relationshipRole);
 
         if (typeof data.contactState === 'string') setContactState(data.contactState.toUpperCase() === 'LATENT' ? 'LATENT' : 'ACTIVE');
-        if (data.translocation) setTranslocation(data.translocation);
-
-        if (data.translocation) setTranslocation(normalizeTranslocationOption(data.translocation));
+        if (data.translocation) {
+          setTranslocation(normalizeTranslocationOption(data.translocation));
+        }
 
         // update single-field coord mirrors
         if (data.personA?.latitude != null && data.personA?.longitude != null) {
@@ -1026,7 +1103,7 @@ export default function MathBrainPage() {
     ];
     const allPresent = required.every(Boolean) && numbers.every((n) => !Number.isNaN(n)) && aCoordsValid;
 
-  const isRelational = ['SYNASTRY','SYNASTRY_TRANSITS','COMPOSITE','DUAL_NATAL_TRANSITS'].includes(mode);
+  const isRelational = RELATIONAL_MODES.includes(mode);
     if (!isRelational) {
       // Mirror does not need a date window; Balance Meter does
       if (reportType === 'mirror') return allPresent;
@@ -1102,7 +1179,7 @@ export default function MathBrainPage() {
     setError(null);
     setResult(null);
     try {
-      const wantsTransits = mode !== 'NATAL_ONLY';
+      const wantsTransits = includeTransits;
       const payload = {
         mode,
         personA: {
@@ -1133,47 +1210,35 @@ export default function MathBrainPage() {
         },
         // Pass translocation intent to backend (data-only context)
         translocation: ((): any => {
-
-          if (translocation === 'NONE') {
+          if (!includeTransits) {
             return { applies: false, method: 'Natal' };
           }
-          const methodMap: Record<TranslocationOption, string> = {
-            NONE: 'Natal',
-            A_NATAL: 'A_natal',
-            A_LOCAL: 'A_local',
-            B_NATAL: 'B_natal',
-            B_LOCAL: 'B_local',
-            BOTH_LOCAL: 'Both_local',
-            MIDPOINT: 'Midpoint'
-          };
-          return {
-            applies: true,
-            method: methodMap[translocation] || 'Custom',
-            coords: relocCoords ? { latitude: relocCoords!.lat, longitude: relocCoords!.lon } : undefined,
-            current_location: relocLabel || undefined,
-            tz: relocTz || undefined,
-          };
-
           const mode = relocationStatus.effectiveMode;
-          if (mode === 'A_LOCAL' || mode === 'B_LOCAL') {
-            return {
-              applies: true,
-              method: mode === 'A_LOCAL' ? 'A_local' : 'B_local',
-
-              coords: relocCoords ? { latitude: relocCoords?.lat, longitude: relocCoords?.lon } : undefined,
-
-              current_location: relocLabel || undefined,
-              tz: relocTz || undefined,
-            };
+          if (mode === 'NONE' || mode === 'A_NATAL' || mode === 'B_NATAL') {
+            return { applies: false, method: 'Natal' };
           }
           if (mode === 'MIDPOINT') {
             return { applies: true, method: 'Midpoint' };
           }
-          if (mode === 'B_NATAL') {
-            return { applies: false, method: 'B_natal' };
-          }
-          return { applies: false, method: 'A_natal' };
-
+          const methodMap: Record<TranslocationOption, string> = {
+            NONE: 'Natal',
+            A_NATAL: 'Natal',
+            A_LOCAL: 'A_local',
+            B_NATAL: 'Natal',
+            B_LOCAL: 'B_local',
+            BOTH_LOCAL: 'Both_local',
+            MIDPOINT: 'Midpoint',
+          };
+          return {
+            applies: true,
+            method: methodMap[mode] || 'Custom',
+            coords:
+              mode === 'MIDPOINT' || !relocCoords
+                ? undefined
+                : { latitude: relocCoords.lat, longitude: relocCoords.lon },
+            current_location: relocLabel || undefined,
+            tz: relocTz || undefined,
+          };
         })(),
       };
 
@@ -1202,8 +1267,7 @@ export default function MathBrainPage() {
       } catch {/* ignore */}
 
       // Attach Person B and relationship context for relational or dual modes
-      const relationalModes = ['SYNASTRY','SYNASTRY_TRANSITS','COMPOSITE','DUAL_NATAL_TRANSITS'];
-      if (relationalModes.includes(mode) && includePersonB) {
+      if (RELATIONAL_MODES.includes(mode) && includePersonB) {
         (payload as any).personB = {
           ...personB,
           nation: "US", // Always send "US" as country for API compatibility
@@ -2056,7 +2120,7 @@ export default function MathBrainPage() {
                     <option value="P5a">P5a — Committed romantic + sexual</option>
                     <option value="P5b">P5b — Committed romantic, non-sexual</option>
                   </select>
-                  {includePersonB && ['SYNASTRY','SYNASTRY_TRANSITS','COMPOSITE','DUAL_NATAL_TRANSITS'].includes(mode) && !relationshipTier && (
+                  {includePersonB && RELATIONAL_MODES.includes(mode) && !relationshipTier && (
                     <p className="mt-1 text-xs text-amber-400">Partner relationships require an intimacy tier.</p>
                   )}
                 </div>
@@ -2082,7 +2146,7 @@ export default function MathBrainPage() {
                     <option value="Other">Other</option>
                     <option value="Custom">Custom</option>
                   </select>
-                  {includePersonB && ['SYNASTRY','SYNASTRY_TRANSITS','COMPOSITE','DUAL_NATAL_TRANSITS'].includes(mode) && !relationshipRole && (
+                  {includePersonB && RELATIONAL_MODES.includes(mode) && !relationshipRole && (
                     <p className="mt-1 text-xs text-amber-400">Family relationships require selecting a role.</p>
                   )}
                 </div>
@@ -2135,128 +2199,164 @@ export default function MathBrainPage() {
           {/* Right column: Transits + actions */}
           <div className="space-y-6">
             <Section title="Transits">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div>
-                  <label htmlFor="t-start" className="block text-sm text-slate-300">Start Date</label>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 rounded-md border border-slate-700 bg-slate-800/60 px-3 py-3">
                   <input
-                    id="t-start"
-                    type="date"
-                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="t-end" className="block text-sm text-slate-300">End Date</label>
-                  <input
-                    id="t-end"
-                    type="date"
-                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="t-step" className="block text-sm text-slate-300">Step</label>
-                  <select
-                    id="t-step"
-                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={step}
-                    onChange={(e) => setStep(e.target.value)}
-                  >
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                  </select>
-                </div>
-              </div>
-              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="t-mode" className="block text-sm text-slate-300">Mode</label>
-                  <select
-                    id="t-mode"
-                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={mode}
+                    id="include-transits"
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
+                    checked={includeTransits}
                     onChange={(e) => {
-                      const next = e.target.value;
-                      setMode(next);
-                      if (["SYNASTRY","SYNASTRY_TRANSITS","COMPOSITE","DUAL_NATAL_TRANSITS"].includes(next)) {
-                        setIncludePersonB(true);
-                      }
+                      const checked = e.target.checked;
+                      setMode((prev) => (checked ? toTransitMode(prev) : toNatalMode(prev)));
                     }}
-                  >
-                    <option value="NATAL_ONLY">Natal only</option>
-                    <option value="NATAL_TRANSITS">Natal + Transits</option>
-                    <option value="DUAL_NATAL_TRANSITS">Dual Natal + Transits (A & B, no synastry)</option>
-                    <option value="SYNASTRY">Synastry (A ↔ B)</option>
-                    <option value="SYNASTRY_TRANSITS">Synastry + Transits</option>
-                    <option value="COMPOSITE">Composite (midpoint) + Relational Mirror</option>
-                  </select>
-                  {!includePersonB && (
-                    <p className="mt-1 text-xs text-amber-400">Selecting a relational mode will enable “Include Person B”.</p>
+                  />
+                  <div>
+                    <label htmlFor="include-transits" className="block text-sm font-medium text-slate-100">
+                      Include Transits
+                    </label>
+                    <p className="mt-1 text-xs text-slate-400">
+                      Unchecked = natal-only modes; checked = natal + symbolic weather.
+                    </p>
+                  </div>
+                </div>
+
+                {includeTransits && (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div>
+                      <label htmlFor="t-start" className="block text-sm text-slate-300">Start Date</label>
+                      <input
+                        id="t-start"
+                        type="date"
+                        className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="t-end" className="block text-sm text-slate-300">End Date</label>
+                      <input
+                        id="t-end"
+                        type="date"
+                        className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="t-step" className="block text-sm text-slate-300">Step</label>
+                      <select
+                        id="t-step"
+                        className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        value={step}
+                        onChange={(e) => setStep(e.target.value)}
+                      >
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                <div className={`grid grid-cols-1 gap-4 ${includeTransits ? 'sm:grid-cols-2' : ''}`}>
+                  <div>
+                    <label htmlFor="t-mode" className="block text-sm text-slate-300">Mode</label>
+                    <select
+                      id="t-mode"
+                      className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                      value={mode}
+                      onChange={(e) => {
+                        const normalized = normalizeReportMode(e.target.value);
+                        setMode(normalized);
+                        if (RELATIONAL_MODES.includes(normalized)) {
+                          setIncludePersonB(true);
+                        }
+                      }}
+                    >
+                      <optgroup label="Solo">
+                        <option value={soloModeOption.value}>{soloModeOption.label}</option>
+                      </optgroup>
+                      <optgroup label="Relational">
+                        {relationalModeOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    </select>
+                    {!includePersonB && RELATIONAL_MODES.includes(mode) && (
+                      <p className="mt-1 text-xs text-amber-400">
+                        Selecting a relational mode will enable “Include Person B”.
+                      </p>
+                    )}
+                  </div>
+                  {includeTransits && (
+                    <div>
+                      <label htmlFor="t-reloc" className="block text-sm text-slate-300">Relocation (angles/houses)</label>
+                      <select
+                        id="t-reloc"
+                        className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        value={translocation}
+                        onChange={(e) => setTranslocation(normalizeTranslocationOption(e.target.value))}
+                      >
+                        {relocationOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value} disabled={opt.disabled} title={opt.title}>
+                            {relocationSelectLabels[opt.value]}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-xs text-slate-400">
+                        Relocation remaps houses/angles only; planets stay fixed. Choose the lens that fits this report.
+                      </p>
+                      {mode === 'COMPOSITE_TRANSITS' && (
+                        <p className="mt-1 text-xs text-emerald-300">
+                          Experimental — bond midpoint, not a physical place.
+                        </p>
+                      )}
+                      {relocationStatus.notice && (
+                        <p className="mt-1 text-xs text-amber-400">{relocationStatus.notice}</p>
+                      )}
+                      {(() => {
+                        const relocActive = ['A_LOCAL', 'B_LOCAL', 'MIDPOINT', 'BOTH_LOCAL'].includes(
+                          relocationStatus.effectiveMode
+                        );
+                        if (!relocActive) {
+                          return (
+                            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1 text-xs text-slate-200">
+                              <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" aria-hidden />
+                              <span>{relocationModeCaption[relocationStatus.effectiveMode]}</span>
+                            </div>
+                          );
+                        }
+                        const lensLabel =
+                          relocationStatus.effectiveMode === 'MIDPOINT'
+                            ? 'Computed midpoint (A + B)'
+                            : relocLabel || 'Custom';
+                        const tzLabel =
+                          relocationStatus.effectiveMode === 'MIDPOINT'
+                            ? personA.timezone || '—'
+                            : relocTz || personA.timezone || '—';
+                        return (
+                          <div className="mt-4 inline-flex flex-wrap items-center gap-2 rounded-full border border-emerald-700 bg-emerald-900/30 px-3 py-1 text-xs text-emerald-200">
+                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
+                            <span className="font-medium">{relocationModeCaption[relocationStatus.effectiveMode]}</span>
+                            <span className="text-emerald-100">Lens: {lensLabel}</span>
+                            <span className="text-emerald-300">({tzLabel})</span>
+                          </div>
+                        );
+                      })()}
+                    </div>
                   )}
                 </div>
-                <div>
-                  <label htmlFor="t-reloc" className="block text-sm text-slate-300">Relocation (angles/houses)</label>
-                  <select
-                    id="t-reloc"
-                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={translocation}
-                    onChange={(e) => setTranslocation(normalizeTranslocationOption(e.target.value))}
-                  >
 
-                    <option value="NONE">Birthplace Transits Only</option>
-                    <option value="A_LOCAL">Person A</option>
-                    <option value="B_LOCAL" disabled={!includePersonB}>Person B</option>
-                    <option value="BOTH_LOCAL" disabled={!includePersonB}>Relocate Both (A + B)</option>
-                    <option value="MIDPOINT" disabled={!includePersonB}>Midpoint (A + B)</option>
-
-                    {relocationOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value} disabled={opt.disabled} title={opt.title}>
-                        {relocationSelectLabels[opt.value]}
-                        {opt.disabled && reportType === 'balance' && opt.value.endsWith('NATAL') ? ' (fallback)' : ''}
-                      </option>
-                    ))}
-
-                  </select>
-                  <p className="mt-1 text-xs text-slate-400">Relocation remaps houses/angles only; planets stay fixed. Choose the lens allowed for this report type.</p>
-                  {translocation === 'BOTH_LOCAL' && (
-                    <p className="mt-1 text-xs text-emerald-300">Houses for both Person A and Person B are recalculated from the relocation coordinates when you choose Relocate Both (A + B).</p>
-                  )}
-                  <p className="mt-1 text-xs text-slate-500">Midpoint relocation is reserved for Relational Balance. Composite mode above still creates the midpoint chart.</p>
-                  {relocationStatus.notice && (
-                    <p className="mt-1 text-xs text-amber-400">{relocationStatus.notice}</p>
-                  )}
-                  {(() => {
-                    const relocActive = ['A_LOCAL', 'B_LOCAL', 'MIDPOINT'].includes(relocationStatus.effectiveMode);
-                    if (!relocActive) {
-                      return (
-                        <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1 text-xs text-slate-200">
-                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" aria-hidden />
-                          <span>{relocationModeCaption[relocationStatus.effectiveMode]}</span>
-                        </div>
-                      );
-                    }
-                    const lensLabel = relocationStatus.effectiveMode === 'MIDPOINT'
-                      ? 'Computed midpoint (A + B)'
-                      : (relocLabel || 'Custom');
-                    const tzLabel = relocationStatus.effectiveMode === 'MIDPOINT'
-                      ? (personA.timezone || '—')
-                      : (relocTz || personA.timezone || '—');
-                    return (
-                      <div className="mt-4 inline-flex flex-wrap items-center gap-2 rounded-full border border-emerald-700 bg-emerald-900/30 px-3 py-1 text-xs text-emerald-200">
-                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
-                        <span className="font-medium">{relocationModeCaption[relocationStatus.effectiveMode]}</span>
-                        <span className="text-emerald-100">Lens: {lensLabel}</span>
-                        <span className="text-emerald-300">({tzLabel})</span>
-                      </div>
-                    );
-                  })()}
-                </div>
+                {!includeTransits && (
+                  <p className="text-xs text-slate-400">
+                    Relocation options appear when transits are included.
+                  </p>
+                )}
               </div>
-              {/* Relocation Coordinates Input */
-              }
-              {translocation !== 'A_NATAL' && translocation !== 'B_NATAL' && (
+              {includeTransits && translocation !== 'NONE' && translocation !== 'A_NATAL' && translocation !== 'B_NATAL' && (
                 <div className="mt-4">
                   <label htmlFor="t-reloc-coords" className="block text-sm text-slate-300">Relocation Coordinates</label>
                   <input
@@ -2309,7 +2409,7 @@ export default function MathBrainPage() {
                   </div>
                 </div>
               )}
-              {step === 'weekly' && (
+              {includeTransits && step === 'weekly' && (
                 <div className="mt-2 flex items-center gap-3">
                   <span className="text-xs text-slate-400">Weekly aggregation</span>
                   <button type="button" className="h-5 w-5 rounded-full border border-slate-600 text-[11px] text-slate-300 hover:bg-slate-700/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Mean = average of daily values per week; Max = highest daily value per week" aria-label="Help: Weekly aggregation semantics">?</button>
@@ -2319,16 +2419,6 @@ export default function MathBrainPage() {
                   </div>
                 </div>
               )}
-              <div className="mt-3 inline-flex flex-wrap items-center gap-2 rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1 text-xs text-slate-200">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" aria-hidden />
-                <span>{relocationModeCaption[relocationStatus.effectiveMode]}</span>
-                {['A_LOCAL','B_LOCAL','MIDPOINT'].includes(relocationStatus.effectiveMode) && (
-                  <>
-                    <span className="text-slate-100">Lens: {relocationStatus.effectiveMode === 'MIDPOINT' ? 'Computed midpoint (A + B)' : (relocLabel || 'Custom')}</span>
-                    <span className="text-slate-400">{relocationStatus.effectiveMode === 'MIDPOINT' ? (personA.timezone || '—') : (relocTz || personA.timezone || '—')}</span>
-                  </>
-                )}
-              </div>
             </Section>
 
             {/* Report Type selector moved above */}
@@ -2355,7 +2445,7 @@ export default function MathBrainPage() {
                 {loading ? "Mapping geometry…" : (reportType==='balance' ? 'Generate Report' : 'Prepare Mirror')}
               </button>
             </div>
-            {(['SYNASTRY','SYNASTRY_TRANSITS','COMPOSITE','DUAL_NATAL_TRANSITS'].includes(mode) && !includePersonB) && (
+            {(RELATIONAL_MODES.includes(mode) && !includePersonB) && (
               <p className="mt-2 text-xs text-amber-400">Hint: Toggle “Include Person B” and fill in required fields to enable relational modes.</p>
             )}
           </div>
