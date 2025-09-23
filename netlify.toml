@@ -7,6 +7,7 @@
   command = "npm run build"
   environment = { CI = "false" }
   publish = ".next"
+  functions = "netlify/functions"
 
 
 [functions]
