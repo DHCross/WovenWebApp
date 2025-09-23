@@ -70,7 +70,9 @@ async function testRavenGuardWithoutContext() {
   }
   const guidance = String(data.guidance);
   const containsCorePhrases = guidance.includes('Generate Math Brain') && guidance.includes('planetary weather only');
-  const mentionsJsonHelp = /export file/i.test(guidance) && /astroseek/i.test(guidance);
+  const mentionsJsonHelp =
+    /json export file/i.test(guidance) &&
+    /download from math brain or astroseek/i.test(guidance);
   if (!containsCorePhrases || !mentionsJsonHelp) {
     throw new Error('Expected guard guidance missing export instructions for the AstroSeek JSON report');
   }
@@ -119,7 +121,8 @@ async function testConversationGuard() {
     'i can’t responsibly read you without a chart or report context',
     'generate math brain',
     'planetary weather only',
-    'export file',
+    'json export file',
+    'download from math brain or astroseek',
     'astroseek',
   ];
 
