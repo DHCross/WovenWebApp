@@ -558,6 +558,9 @@ export default function ChatClient() {
   // Post-seal guidance state
   const [awaitingNewReadingGuide, setAwaitingNewReadingGuide] = useState(false);
   const [priorFocusKeywords, setPriorFocusKeywords] = useState<string[]>([]);
+  const [viewportWidth, setViewportWidth] = useState<number | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const isDesktop = (viewportWidth ?? 1024) >= 1024;
 
   // Developer-only session download functionality
   const [devMode, setDevMode] = useState<boolean>(false);
@@ -610,6 +613,20 @@ export default function ChatClient() {
       }
     };
   }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  useEffect(() => {
+    if (isDesktop) {
+      setIsSidebarOpen(true);
+    } else {
+      setIsSidebarOpen(false);
+    }
+  }, [isDesktop]);
   // Math Brain handoff resume (v1.7)
   interface MBLastSession {
     createdAt?: string;
@@ -1878,6 +1895,11 @@ export default function ChatClient() {
     );
   }
 
+  const handleToggleSidebar = () => {
+    if (isDesktop) return;
+    setIsSidebarOpen((prev) => !prev);
+  };
+
   // (legacy local escapeHtml retained above for global use)
   function wait(ms: number) {
     return new Promise((r) => setTimeout(r, ms));
@@ -1906,8 +1928,8 @@ export default function ChatClient() {
         hasMirrorData={hasMirrorData}
         onPoeticInsert={requestPoeticInsert}
         onAbout={requestAbout}
-        onToggleSidebar={() => {}}
-        sidebarOpen={false}
+        onToggleSidebar={handleToggleSidebar}
+        sidebarOpen={isSidebarOpen}
         reportContexts={reportContexts}
         onRemoveReportContext={removeReportContext}
         onPoeticCard={() => {
@@ -2060,26 +2082,30 @@ export default function ChatClient() {
         currentRavenIndex={currentRavenIndex}
         scrollToBottom={scrollToBottom}
       />
-      <main className="relative grid flex-1 grid-cols-[270px_1fr] gap-3 overflow-hidden p-3 min-h-0">
-        <Sidebar
-          onInsert={(m) => {
-            // Send the message programmatically to trigger Raven's response
-            const text = m.html || m.content || "";
-            if (text) {
-              sendProgrammatic(text);
-            }
-          }}
-          hasMirrorData={hasMirrorData}
-        />
-        <Stream
-          messages={messages}
-          typing={typing}
-          endRef={endRef}
-          containerRef={streamContainerRef}
-          onToggleCollapse={toggleReportCollapse}
-          onRemove={removeReport}
-          onPingFeedback={handlePingFeedback}
-        />
+      <main className="relative flex flex-1 flex-col gap-3 overflow-hidden p-3 min-h-0 lg:grid lg:grid-cols-[270px_1fr] lg:gap-3">
+        <div className="hidden h-full lg:block">
+          <Sidebar
+            onInsert={(m) => {
+              // Send the message programmatically to trigger Raven's response
+              const text = m.html || m.content || "";
+              if (text) {
+                sendProgrammatic(text);
+              }
+            }}
+            hasMirrorData={hasMirrorData}
+          />
+        </div>
+        <div className="flex min-h-0 flex-1">
+          <Stream
+            messages={messages}
+            typing={typing}
+            endRef={endRef}
+            containerRef={streamContainerRef}
+            onToggleCollapse={toggleReportCollapse}
+            onRemove={removeReport}
+            onPingFeedback={handlePingFeedback}
+          />
+        </div>
         {/* Scroll hint button */}
         {showScrollHint && (
           <button
@@ -2091,6 +2117,47 @@ export default function ChatClient() {
           </button>
         )}
       </main>
+
+      {!isDesktop && isSidebarOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-[1200] bg-black/60"
+            onClick={() => setIsSidebarOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="fixed inset-y-0 left-0 z-[1300] w-full max-w-[340px] p-4">
+            <div
+              className="flex h-full flex-col overflow-hidden rounded-[var(--radius)] border border-[rgba(148,163,184,0.2)] bg-[rgba(15,18,27,0.95)] shadow-[0_20px_60px_rgba(8,11,20,0.55)]"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Raven tools"
+            >
+              <div className="flex items-center justify-between border-b border-[var(--line)] px-3 py-2">
+                <span className="text-[13px] font-semibold text-[var(--text)]">Raven tools</span>
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="rounded-full border border-[var(--line)] bg-transparent px-2 py-1 text-[12px] text-[var(--muted)]"
+                  aria-label="Close tools panel"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="flex-1 overflow-hidden p-3">
+                <Sidebar
+                  onInsert={(m) => {
+                    const text = m.html || m.content || "";
+                    if (text) {
+                      sendProgrammatic(text);
+                      setIsSidebarOpen(false);
+                    }
+                  }}
+                  hasMirrorData={hasMirrorData}
+                />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* End Current Reading Button - Subtle placement */}
       <div className="flex items-center justify-end border-t border-[var(--line)] bg-[var(--bg)] px-[18px] py-2">
@@ -2253,268 +2320,6 @@ function Header({
     }
   }, [showPoeticMenu]);
 
-  /* TEMPORARILY DISABLED FOR DEPLOYMENT
-  const downloadSessionReport = async (format: "json" | "pdf" = "json") => {
-    try {
-      const sessionId = pingTracker.getCurrentSessionId();
-      const diagnostics = pingTracker.exportSessionDiagnostics();
-      const stats = pingTracker.getHitRateStats(true);
-      const allFeedback = pingTracker.getAllFeedback();
-
-      // Generate comprehensive developer report
-      const reportData = {
-        metadata: {
-          sessionId,
-          exportDate: new Date().toISOString(),
-          exportedBy: "DH Cross (Developer)",
-          version: "1.0.0",
-          totalMessages: messages.length,
-          ravenMessages: messages.filter((m) => m.role === "raven").length,
-          userMessages: messages.filter((m) => m.role === "user").length,
-        },
-        sessionDiagnostics: diagnostics,
-        resonanceStats: stats,
-        messages: messages.map((msg) => ({
-          id: msg.id,
-          role: msg.role,
-          timestamp: new Date().toISOString(),
-          content: msg.html.replace(/<[^>]*>/g, ""), // Strip HTML for analysis
-          isReport: msg.isReport || false,
-          reportType: msg.reportType || null,
-          climate: msg.climate || "",
-          hook: msg.hook || "",
-          pingFeedbackRecorded: msg.pingFeedbackRecorded || false,
-        })),
-        feedbackData: allFeedback.filter((f) => f.sessionId === sessionId),
-        reportContexts: reportContexts.map((rc) => ({
-          id: rc.id,
-          type: rc.type,
-          name: rc.name,
-          summary: rc.summary,
-          contentLength: rc.content.length,
-          relocation: mapRelocationToPayload(rc.relocation) ?? null,
-        })),
-        relocationContext: mapRelocationToPayload(relocation) ?? null,
-        sessionFlags: {
-          hasMirrorData,
-          awaitingNewReadingGuide,
-          priorFocusKeywords,
-        },
-      };
-
-      if (format === "pdf") {
-        // Generate PDF report
-        await generatePDFReport(reportData, sessionId);
-      } else {
-        // Download as JSON
-        const blob = new Blob([JSON.stringify(reportData, null, 2)], {
-          type: "application/json",
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `raven-dev-session-${sessionId.slice(-8)}-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-
-      setToast(`Session report (${format.toUpperCase()}) downloaded`);
-      setTimeout(() => setToast(null), 2000);
-
-      console.log("[DEV] Session report exported:", {
-        sessionId,
-        messagesCount: messages.length,
-        feedbackCount: allFeedback.filter((f) => f.sessionId === sessionId)
-          .length,
-        accuracy: stats.accuracyRate,
-        resonanceFidelity:
-          stats.total > 0
-            ? (
-                ((stats.breakdown.yes + stats.breakdown.maybe * 0.5) /
-                  stats.total) *
-                100
-              ).toFixed(1) + "%"
-            : "N/A",
-      });
-    } catch (error) {
-      console.error("[DEV] Session export failed:", error);
-      setToast("Export failed - check console");
-      setTimeout(() => setToast(null), 2000);
-    }
-  };
-
-  const generatePDFReport = async (reportData: any, sessionId: string) => {
-    try {
-      // Create HTML content for PDF
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Raven Session Report - ${sessionId.slice(-8)}</title>
-          <style>
-            body { font-family: 'Inter', Arial, sans-serif; margin: 40px; color: #333; line-height: 1.6; }
-            .header { border-bottom: 3px solid #3b82f6; padding-bottom: 20px; margin-bottom: 30px; }
-            .title { font-size: 24px; font-weight: 700; color: #1e293b; margin: 0; }
-            .subtitle { color: #64748b; margin: 5px 0 0 0; font-size: 14px; }
-            .section { margin: 25px 0; }
-            .section-title { font-size: 18px; font-weight: 600; color: #1e293b; margin-bottom: 15px; border-left: 4px solid #3b82f6; padding-left: 12px; }
-            .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
-            .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; }
-            .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 5px; }
-            .stat-value { font-size: 24px; font-weight: 700; color: #1e293b; }
-            .message { margin: 10px 0; padding: 12px; border-radius: 6px; }
-            .message.user { background: #dbeafe; border-left: 3px solid #3b82f6; }
-            .message.raven { background: #f3e8ff; border-left: 3px solid #8b5cf6; }
-            .message-role { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
-            .feedback-item { background: #fef3c7; border: 1px solid #fbbf24; border-radius: 4px; padding: 8px; margin: 5px 0; font-size: 12px; }
-            .metadata { background: #f1f5f9; border-radius: 6px; padding: 15px; font-size: 12px; color: #475569; }
-            .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #e2e8f0; text-align: center; color: #64748b; font-size: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1 class="title">🎭 Raven Session Report</h1>
-            <p class="subtitle">Developer Research Export • Session ${sessionId.slice(-8)} • ${new Date().toLocaleDateString()}</p>
-          </div>
-
-          <div class="section">
-            <h2 class="section-title">📊 Session Overview</h2>
-            <div class="stats-grid">
-              <div class="stat-card">
-                <div class="stat-label">Total Messages</div>
-                <div class="stat-value">${reportData.metadata.totalMessages}</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-label">Raven Responses</div>
-                <div class="stat-value">${reportData.metadata.ravenMessages}</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-label">User Messages</div>
-                <div class="stat-value">${reportData.metadata.userMessages}</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-label">Accuracy Rate</div>
-                <div class="stat-value">${reportData.resonanceStats.accuracyRate.toFixed(1)}%</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="section">
-            <h2 class="section-title">🎯 Resonance Analysis</h2>
-            <div class="stats-grid">
-              <div class="stat-card">
-                <div class="stat-label">✅ WB (Within Boundary)</div>
-                <div class="stat-value">${reportData.resonanceStats.breakdown.yes}</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-label">🟡 ABE (At Boundary Edge)</div>
-                <div class="stat-value">${reportData.resonanceStats.breakdown.maybe}</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-label">❌ OSR (Outside Range)</div>
-                <div class="stat-value">${reportData.resonanceStats.breakdown.no + reportData.resonanceStats.breakdown.unclear}</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-label">Edge Capture Rate</div>
-                <div class="stat-value">${reportData.resonanceStats.edgeCapture.toFixed(1)}%</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="section">
-            <h2 class="section-title">💬 Session Transcript</h2>
-            ${reportData.messages
-              .slice(0, 10)
-              .map(
-                (msg: any) => `
-              <div class="message ${msg.role}">
-                <div class="message-role">${msg.role}</div>
-                <div>${msg.content.length > 300 ? msg.content.substring(0, 300) + "..." : msg.content}</div>
-              </div>
-            `,
-              )
-              .join("")}
-            ${reportData.messages.length > 10 ? `<p><em>... ${reportData.messages.length - 10} more messages (see JSON export for full transcript)</em></p>` : ""}
-          </div>
-
-          <div class="section">
-            <h2 class="section-title">📋 Feedback Data</h2>
-            ${reportData.feedbackData
-              .slice(0, 5)
-              .map(
-                (feedback: any) => `
-              <div class="feedback-item">
-                <strong>${feedback.response.toUpperCase()}</strong> • ${feedback.checkpointType || "general"} • ${new Date(feedback.timestamp).toLocaleTimeString()}
-                ${feedback.note ? `<br><em>${feedback.note}</em>` : ""}
-              </div>
-            `,
-              )
-              .join("")}
-            ${reportData.feedbackData.length > 5 ? `<p><em>... ${reportData.feedbackData.length - 5} more feedback items</em></p>` : ""}
-          </div>
-
-          <div class="section">
-            <h2 class="section-title">🔧 Technical Metadata</h2>
-            <div class="metadata">
-              <strong>Session ID:</strong> ${reportData.metadata.sessionId}<br>
-              <strong>Export Date:</strong> ${reportData.metadata.exportDate}<br>
-              <strong>Has Mirror Data:</strong> ${reportData.sessionFlags.hasMirrorData ? "Yes" : "No"}<br>
-              <strong>Report Contexts:</strong> ${reportData.reportContexts.length}<br>
-              <strong>Relocation:</strong> ${(() => {
-                const ctx = reportData.relocationContext;
-                if (!ctx) {
-                  return 'Relocation: None (birthplace houses/angles).';
-                }
-                const disclosure = escapeHtml(ctx.disclosure || 'Relocation on: Selected city. Houses/angles move; planets stay fixed.');
-                const status = ctx.status ? `<em>${escapeHtml(ctx.status)}</em>` : '';
-                const invariants = ctx.invariants ? `<small>${escapeHtml(ctx.invariants)}</small>` : '';
-                const tz = ctx.coordinates?.timezone ? `<small>Timezone: ${escapeHtml(ctx.coordinates.timezone)}</small>` : '';
-                return `${disclosure}${status ? `<br>${status}` : ''}${invariants ? `<br>${invariants}` : ''}${tz ? `<br>${tz}` : ''}`;
-              })()}
-            </div>
-          </div>
-
-          <div class="footer">
-            <p>🎭 Raven Calder Research Export • Generated for DH Cross • This data is for research purposes only</p>
-            <p>Session patterns help refine symbolic accuracy • "You are the validator"</p>
-          </div>
-        </body>
-        </html>
-      `;
-
-      // Check if html2pdf is available
-      if (typeof window !== "undefined" && (window as any).html2pdf) {
-        const opt = {
-          margin: 0.5,
-          filename: `raven-dev-session-${sessionId.slice(-8)}-${new Date().toISOString().slice(0, 10)}.pdf`,
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2 },
-          jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
-        };
-
-        await (window as any).html2pdf().from(htmlContent).set(opt).save();
-      } else {
-        // Fallback: create a temporary HTML file and use browser print
-        const newWindow = window.open("", "_blank");
-        if (newWindow) {
-          newWindow.document.write(htmlContent);
-          newWindow.document.close();
-          setTimeout(() => {
-            newWindow.print();
-            newWindow.close();
-          }, 500);
-        }
-      }
-    } catch (error) {
-      console.error("[DEV] PDF generation failed:", error);
-      throw error;
-    }
-  };
-
-  */
-
   const getReportIcon = (type: "mirror" | "balance" | "journal") => {
     switch (type) {
       case "mirror":
@@ -2529,142 +2334,158 @@ function Header({
   };
 
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between px-[18px] py-3 bg-[rgba(20,24,33,.9)] backdrop-blur border-b border-[var(--line)]">
-      <div className="flex items-center gap-3">
-        <div
-          className="grid h-9 w-9 place-items-center rounded-full [background-image:radial-gradient(120%_120%_at_50%_20%,#262a36,#12151c)] shadow-[inset_0_0_18px_rgba(124,92,255,.25)] text-[20px]"
-          aria-hidden
-        >
-          🐦‍⬛
-        </div>
-        <div className="flex flex-col">
-          <span className="font-bold">{APP_NAME}</span>
-          <div className="flex items-center gap-2 text-[12px] text-[var(--muted)]">
-            <span className="w-2 h-2 rounded-full bg-[var(--good)] shadow-[0_0_10px_var(--good)]"></span>
-            <span>{STATUS_CONNECTED}</span>
-            {reportContexts.length > 0 && (
-              <div className="ml-2 flex items-center gap-1">
-                <span className="text-[10px] text-[var(--accent)]">•</span>
-                {reportContexts.map((ctx, index) => (
-                  <div key={ctx.id} className="flex items-center gap-[2px]">
-                    <span className="text-[10px]" title={ctx.summary}>
-                      {getReportIcon(ctx.type)} {ctx.name}
-                    </span>
-                    <button
-                      onClick={() => onRemoveReportContext(ctx.id)}
-                      className="cursor-pointer border-0 bg-transparent p-0 text-[8px] text-[var(--muted)]"
-                      title="Remove context"
-                    >
-                      ✕
-                    </button>
-                    {index < reportContexts.length - 1 && (
-                      <span className="text-[8px] text-[var(--muted)]">|</span>
-                    )}
+    <header className="sticky top-0 z-10 bg-[rgba(20,24,33,.9)] px-[18px] py-3 backdrop-blur border-b border-[var(--line)]">
+      <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3 sm:items-center">
+            <div
+              className="grid h-9 w-9 place-items-center rounded-full [background-image:radial-gradient(120%_120%_at_50%_20%,#262a36,#12151c)] shadow-[inset_0_0_18px_rgba(124,92,255,.25)] text-[20px]"
+              aria-hidden
+            >
+              🐦‍⬛
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bold">{APP_NAME}</span>
+              <div className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--muted)]">
+                <span className="h-2 w-2 rounded-full bg-[var(--good)] shadow-[0_0_10px_var(--good)]"></span>
+                <span>{STATUS_CONNECTED}</span>
+                {reportContexts.length > 0 && (
+                  <div className="ml-1 flex flex-wrap items-center gap-1">
+                    <span className="text-[10px] text-[var(--accent)]">•</span>
+                    {reportContexts.map((ctx, index) => (
+                      <div key={ctx.id} className="flex items-center gap-[2px]">
+                        <span className="text-[10px]" title={ctx.summary}>
+                          {getReportIcon(ctx.type)} {ctx.name}
+                        </span>
+                        <button
+                          onClick={() => onRemoveReportContext(ctx.id)}
+                          className="cursor-pointer border-0 bg-transparent p-0 text-[8px] text-[var(--muted)]"
+                          title="Remove context"
+                        >
+                          ✕
+                        </button>
+                        {index < reportContexts.length - 1 && (
+                          <span className="text-[8px] text-[var(--muted)]">|</span>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-end sm:justify-start">
+            <button
+              className="btn rounded-[10px] border border-[var(--line)] bg-transparent px-3 py-2 text-[12px] text-[var(--text)] lg:hidden"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleSidebar();
+              }}
+              aria-expanded={sidebarOpen}
+            >
+              {sidebarOpen ? "Hide tools" : "Tools"}
+            </button>
+          </div>
+        </div>
+
+        <div className="hidden items-center gap-2.5 md:flex">
+          <HitRateDisplay className="hidden sm:block" />
+          <UsageMeter compact={true} className="hidden sm:block" />
+          {pendingCount > 0 && (
+            <button
+              className="btn rounded-[10px] border border-[var(--line)] bg-[rgba(255,255,255,0.04)] px-2 py-1 text-[12px]"
+              onClick={onShowPendingReview}
+              title={`${pendingCount} pending mirrors`}
+            >
+              ● {pendingCount} pending
+            </button>
+          )}
+        </div>
+
+        {/* Core File Upload Buttons - Always Visible */}
+        <div className="flex w-full flex-wrap gap-2 overflow-x-auto pb-1 lg:w-auto lg:flex-nowrap lg:justify-end lg:pb-0">
+          <button
+            className="btn rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]"
+            onClick={() => onFileSelect("mirror")}
+          >
+            🪞 Mirror
+          </button>
+          <button
+            className="btn rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]"
+            onClick={() => onFileSelect("balance")}
+          >
+            🌡️ Balance
+          </button>
+          <button
+            className="btn rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]"
+            onClick={() => onFileSelect("journal")}
+          >
+            📔 Journal
+          </button>
+
+          {/* Poetic Options Dropdown */}
+          <div className="relative">
+            <button
+              className="btn rounded-[10px] bg-gradient-to-br from-[#6a53ff] to-[#9c27b0] px-[10px] py-2 text-[13px] text-white"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowPoeticMenu(!showPoeticMenu);
+              }}
+              title="Poetic analysis and reading tools"
+            >
+              🎭 Poetic ▼
+            </button>
+
+            {showPoeticMenu && (
+              <div
+                className="absolute right-0 top-full mt-1 min-w-[180px] rounded-[8px] border border-[var(--line)] bg-[var(--bg)] p-2 shadow-[0_4px_12px_rgba(0,0,0,0.15)] z-[1000]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  className="btn mb-1 w-full justify-start rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]"
+                  onClick={() => {
+                    onShowWrapUp();
+                    setShowPoeticMenu(false);
+                  }}
+                  title="Generate Actor/Role composite from session feedback"
+                >
+                  🎭 Actor/Role Reveal
+                </button>
+                {hasMirrorData && (
+                  <>
+                    <button
+                      className="btn mb-1 w-full justify-start rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]"
+                      onClick={() => {
+                        onPoeticInsert();
+                        setShowPoeticMenu(false);
+                      }}
+                    >
+                      📝 Poetic Insert
+                    </button>
+                    <button
+                      className="btn mb-1 w-full justify-start rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]"
+                      onClick={() => {
+                        onPoeticCard();
+                        setShowPoeticMenu(false);
+                      }}
+                    >
+                      🎴 Create Card
+                    </button>
+                  </>
+                )}
+                <button
+                  className="btn mb-1 w-full justify-start rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]"
+                  onClick={() => {
+                    onDemoCard();
+                    setShowPoeticMenu(false);
+                  }}
+                  title="Generate demo poetic card"
+                >
+                  🎴 Demo Card
+                </button>
               </div>
             )}
           </div>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2.5">
-        <HitRateDisplay className="hidden sm:block" />
-        <UsageMeter compact={true} className="hidden sm:block" />
-        {pendingCount > 0 && (
-          <button
-            className="btn rounded-[10px] border border-[var(--line)] bg-[rgba(255,255,255,0.04)] px-2 py-1 text-[12px]"
-            onClick={onShowPendingReview}
-            title={`${pendingCount} pending mirrors`}
-          >
-            ● {pendingCount} pending
-          </button>
-        )}
-      </div>
-
-      {/* Core File Upload Buttons - Always Visible */}
-      <div className="flex gap-2">
-        <button
-          className="btn rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]"
-          onClick={() => onFileSelect("mirror")}
-        >
-          🪞 Mirror
-        </button>
-        <button
-          className="btn rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]"
-          onClick={() => onFileSelect("balance")}
-        >
-          🌡️ Balance
-        </button>
-        <button
-          className="btn rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]"
-          onClick={() => onFileSelect("journal")}
-        >
-          📔 Journal
-        </button>
-
-        {/* Poetic Options Dropdown */}
-        <div className="relative">
-          <button
-            className="btn rounded-[10px] bg-gradient-to-br from-[#6a53ff] to-[#9c27b0] px-[10px] py-2 text-[13px] text-white"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowPoeticMenu(!showPoeticMenu);
-            }}
-            title="Poetic analysis and reading tools"
-          >
-            🎭 Poetic ▼
-          </button>
-
-          {showPoeticMenu && (
-            <div
-              className="absolute right-0 top-full mt-1 min-w-[180px] rounded-[8px] border border-[var(--line)] bg-[var(--bg)] p-2 shadow-[0_4px_12px_rgba(0,0,0,0.15)] z-[1000]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                className="btn mb-1 w-full justify-start rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]"
-                onClick={() => {
-                  onShowWrapUp();
-                  setShowPoeticMenu(false);
-                }}
-                title="Generate Actor/Role composite from session feedback"
-              >
-                🎭 Actor/Role Reveal
-              </button>
-              {hasMirrorData && (
-                <>
-                  <button
-                    className="btn mb-1 w-full justify-start rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]"
-                    onClick={() => {
-                      onPoeticInsert();
-                      setShowPoeticMenu(false);
-                    }}
-                  >
-                    📝 Poetic Insert
-                  </button>
-                  <button
-                    className="btn mb-1 w-full justify-start rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]"
-                    onClick={() => {
-                      onPoeticCard();
-                      setShowPoeticMenu(false);
-                    }}
-                  >
-                    🎴 Create Card
-                  </button>
-                </>
-              )}
-              <button
-                className="btn mb-1 w-full justify-start rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]"
-                onClick={() => {
-                  onDemoCard();
-                  setShowPoeticMenu(false);
-                }}
-                title="Generate demo poetic card"
-              >
-                🎴 Demo Card
-              </button>
-            </div>
-          )}
         </div>
 
         <Link
@@ -3650,49 +3471,146 @@ function Composer({
   disabled,
 }: {
   input: string;
-  setInput: (v: string) => void;
+  setInput: React.Dispatch<React.SetStateAction<string>>;
   onSend: () => void;
   onStop: () => void;
   disabled: boolean;
 }) {
+  const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
+  const [pasteFeedback, setPasteFeedback] = useState<string | null>(null);
+  const [pasting, setPasting] = useState(false);
+  const pasteFeedbackTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pasteFeedbackTimeout.current) {
+        clearTimeout(pasteFeedbackTimeout.current);
+        pasteFeedbackTimeout.current = null;
+      }
+    };
+  }, []);
+
+  const showPasteMessage = (message: string) => {
+    setPasteFeedback(message);
+    if (pasteFeedbackTimeout.current) {
+      clearTimeout(pasteFeedbackTimeout.current);
+    }
+    pasteFeedbackTimeout.current = setTimeout(() => {
+      setPasteFeedback(null);
+      pasteFeedbackTimeout.current = null;
+    }, 3500);
+  };
+
+  const handlePasteFromClipboard = async () => {
+    if (
+      typeof navigator === "undefined" ||
+      !navigator.clipboard ||
+      !navigator.clipboard.readText
+    ) {
+      showPasteMessage(
+        "Clipboard access isn't available—use your device's paste gesture.",
+      );
+      return;
+    }
+
+    try {
+      setPasting(true);
+      const text = await navigator.clipboard.readText();
+      if (!text) {
+        showPasteMessage("Clipboard is empty.");
+        return;
+      }
+
+      setInput((prev) => {
+        const base = prev || "";
+        if (!base) return text;
+        const needsBreak = !base.endsWith("\n");
+        return `${base}${needsBreak ? "\n" : ""}${text}`;
+      });
+
+      showPasteMessage("Clipboard pasted into the composer.");
+
+      requestAnimationFrame(() => {
+        if (textAreaRef.current) {
+          const value = textAreaRef.current.value;
+          textAreaRef.current.selectionStart = value.length;
+          textAreaRef.current.selectionEnd = value.length;
+          textAreaRef.current.focus();
+        }
+      });
+    } catch (error) {
+      console.error("Clipboard paste failed", error);
+      showPasteMessage(
+        "Clipboard permission was denied—use your device's paste gesture.",
+      );
+    } finally {
+      setPasting(false);
+    }
+  };
+
   return (
-    <div className="px-[18px] py-3 bg-[rgba(20,24,33,.9)] backdrop-blur border-t border-[var(--line)] flex gap-[10px] items-end">
-      <button
-        className="inline-flex items-center justify-center w-10 h-10 bg-[var(--soft)] text-[var(--text)] border border-[var(--line)] rounded-[10px] text-[13px] cursor-pointer"
-        title="Attach"
-      >
-        📎
-      </button>
-      <textarea
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            onSend();
-          }
-        }}
-        placeholder={INPUT_PLACEHOLDER}
-        className="flex-1 min-h-[48px] max-h-40 resize-y rounded-[14px] border border-[var(--line)] bg-[var(--panel)] text-[var(--text)] px-[14px] py-3 text-[14px]"
-      />
-      <div className="font-mono text-[11px] text-[var(--muted)]" aria-hidden>
-        Enter ↵
+    <div className="px-[18px] py-3 bg-[rgba(20,24,33,.9)] backdrop-blur border-t border-[var(--line)]">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-[10px]">
+        <div className="order-1 flex items-center gap-2 sm:order-none">
+          <button
+            className="inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-[var(--line)] bg-[var(--soft)] text-[13px] text-[var(--text)] cursor-pointer"
+            title="Attach"
+            aria-label="Attach a file"
+          >
+            📎
+          </button>
+          <button
+            className="inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-[var(--line)] bg-[var(--soft)] text-[15px] text-[var(--text)] cursor-pointer disabled:opacity-60"
+            title="Paste from clipboard"
+            aria-label="Paste clipboard contents"
+            type="button"
+            onClick={handlePasteFromClipboard}
+            disabled={pasting}
+          >
+            {pasting ? "…" : "📋"}
+          </button>
+        </div>
+        <textarea
+          ref={textAreaRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              onSend();
+            }
+          }}
+          onPaste={() => showPasteMessage("Clipboard pasted into the composer.")}
+          placeholder={INPUT_PLACEHOLDER}
+          aria-label="Message for Raven Calder"
+          className="order-0 min-h-[48px] max-h-40 w-full min-w-0 flex-1 resize-y rounded-[14px] border border-[var(--line)] bg-[var(--panel)] px-[14px] py-3 text-[14px] text-[var(--text)] sm:order-none"
+        />
+        <div className="order-2 flex items-center gap-2 sm:order-none">
+          <div className="hidden font-mono text-[11px] text-[var(--muted)] sm:block" aria-hidden>
+            Enter ↵
+          </div>
+          {disabled && (
+            <button
+              onClick={onStop}
+              className="px-[10px] py-2 bg-[#442b2b] text-[var(--text)] border border-[#663] rounded-[10px] text-[13px] cursor-pointer shadow-[var(--shadow)]"
+            >
+              Stop
+            </button>
+          )}
+          <button
+            disabled={disabled}
+            onClick={onSend}
+            className="px-[10px] py-2 bg-[linear-gradient(180deg,#8d78ff,#6a53ff)] text-[var(--text)] border-0 rounded-[10px] text-[13px] cursor-pointer shadow-[var(--shadow)] disabled:opacity-50"
+          >
+            Send
+          </button>
+        </div>
       </div>
-      {disabled && (
-        <button
-          onClick={onStop}
-          className="px-[10px] py-2 bg-[#442b2b] text-[var(--text)] border border-[#663] rounded-[10px] text-[13px] cursor-pointer shadow-[var(--shadow)]"
-        >
-          Stop
-        </button>
+      {pasteFeedback && (
+        <div className="mt-2 text-[11px] text-[var(--muted)]">
+          {pasteFeedback}
+        </div>
       )}
-      <button
-        disabled={disabled}
-        onClick={onSend}
-        className="px-[10px] py-2 bg-[linear-gradient(180deg,#8d78ff,#6a53ff)] text-[var(--text)] border-0 rounded-[10px] text-[13px] cursor-pointer shadow-[var(--shadow)] disabled:opacity-50"
-      >
-        Send
-      </button>
     </div>
   );
 }
