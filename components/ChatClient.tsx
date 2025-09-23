@@ -2082,7 +2082,7 @@ export default function ChatClient() {
         currentRavenIndex={currentRavenIndex}
         scrollToBottom={scrollToBottom}
       />
-      <main className="relative flex flex-1 flex-col gap-3 overflow-hidden p-3 min-h-0 lg:grid lg:grid-cols-[270px_1fr] lg:gap-3">
+      <main className="relative flex flex-1 flex-col gap-3 overflow-hidden p-3 min-h-0 lg:grid lg:grid-cols-[280px_1fr] lg:gap-4">
         <div className="hidden h-full lg:block">
           <Sidebar
             onInsert={(m) => {
@@ -2095,7 +2095,95 @@ export default function ChatClient() {
             hasMirrorData={hasMirrorData}
           />
         </div>
-        <div className="flex min-h-0 flex-1">
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+          {/* Quick Access Panel - Mobile & Tablet */}
+          <div className="lg:hidden mb-4 space-y-3">
+            {/* Primary Actions Row */}
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="btn rounded-md border border-[var(--line)] bg-[var(--soft)] px-3 py-2 text-xs text-[var(--text)] flex items-center gap-1 hover:bg-[var(--line)]"
+              >
+                📖 Full Glossary
+              </button>
+              <button
+                onClick={() => {
+                  setShowPoeticMenu(!showPoeticMenu);
+                }}
+                className="btn rounded-md border border-[var(--line)] bg-[var(--soft)] px-3 py-2 text-xs text-[var(--text)] flex items-center gap-1 hover:bg-[var(--line)]"
+              >
+                🎭 Poetic Tools
+              </button>
+              <div className="flex items-center">
+                <UsageMeter compact={true} />
+              </div>
+            </div>
+
+            {/* Balance Framework Quick Access */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <button
+                onClick={() => {
+                  setIsSidebarOpen(true);
+                  // Will open glossary tab by default
+                }}
+                className="btn rounded-md border border-[var(--line)] bg-[rgba(255,255,255,0.02)] px-2 py-2 text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--soft)] flex flex-col items-center gap-1"
+                title="View Magnitude scale details"
+              >
+                <span className="text-sm">⚡</span>
+                <span>Magnitude</span>
+              </button>
+              <button
+                onClick={() => {
+                  setIsSidebarOpen(true);
+                }}
+                className="btn rounded-md border border-[var(--line)] bg-[rgba(255,255,255,0.02)] px-2 py-2 text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--soft)] flex flex-col items-center gap-1"
+                title="View Valence energy direction"
+              >
+                <span className="text-sm">🌞</span>
+                <span>Valence</span>
+              </button>
+              <button
+                onClick={() => {
+                  setIsSidebarOpen(true);
+                }}
+                className="btn rounded-md border border-[var(--line)] bg-[rgba(255,255,255,0.02)] px-2 py-2 text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--soft)] flex flex-col items-center gap-1"
+                title="View Volatility patterns"
+              >
+                <span className="text-sm">🌪</span>
+                <span>Volatility</span>
+              </button>
+              <button
+                onClick={() => {
+                  setIsSidebarOpen(true);
+                }}
+                className="btn rounded-md border border-[var(--line)] bg-[rgba(255,255,255,0.02)] px-2 py-2 text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--soft)] flex flex-col items-center gap-1"
+                title="View Four-Channel Architecture"
+              >
+                <span className="text-sm">🌡️</span>
+                <span>Climate</span>
+              </button>
+            </div>
+
+            {/* Poetic Features Row */}
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={requestPoeticCard}
+                className="btn rounded-md border border-[var(--line)] bg-[rgba(124,92,255,0.05)] px-3 py-1.5 text-xs text-[var(--text)] hover:bg-[rgba(124,92,255,0.1)] flex items-center gap-1"
+                title="Create symbol-to-poem translation"
+              >
+                🎴 Poetic Card
+              </button>
+              <button
+                onClick={() => {
+                  sendProgrammatic("Please provide a symbolic weather reading for my current situation");
+                }}
+                className="btn rounded-md border border-[var(--line)] bg-[rgba(124,92,255,0.05)] px-3 py-1.5 text-xs text-[var(--text)] hover:bg-[rgba(124,92,255,0.1)] flex items-center gap-1"
+                title="Get symbolic weather reading"
+              >
+                🌡️ Weather
+              </button>
+            </div>
+          </div>
           <Stream
             messages={messages}
             typing={typing}
@@ -2390,7 +2478,7 @@ function Header({
 
         <div className="hidden items-center gap-2.5 md:flex">
           <HitRateDisplay className="hidden sm:block" />
-          <UsageMeter compact={true} className="hidden sm:block" />
+          <UsageMeter compact={true} className="block" />
           {pendingCount > 0 && (
             <button
               className="btn rounded-[10px] border border-[var(--line)] bg-[rgba(255,255,255,0.04)] px-2 py-1 text-[12px]"
