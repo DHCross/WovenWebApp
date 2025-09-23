@@ -53,10 +53,10 @@ const optionSets: OptionSet[] = [
 ];
 
 const nextSteps = [
-  'If you already have a JSON report, upload or paste it and I’ll continue.',
-  'Already sitting on a JSON report? Drop it here and I’ll move forward.',
-  'Have the JSON report handy? Bring it in and I can keep going.',
-  'When the JSON report is in, I can pick up the mirror right away.'
+  'If you already have the JSON export file—the download from Math Brain or AstroSeek—upload or paste it and I’ll continue.',
+  'Already sitting on the JSON export file—the download from Math Brain or AstroSeek? Drop it here and I’ll move forward.',
+  'Have that JSON export file—the download from Math Brain or AstroSeek—handy? Bring it in and I can keep going.',
+  'Once the JSON export file—the download from Math Brain or AstroSeek—is here, I can pick up the mirror right away.'
 ] as const;
 
 function pick<T>(items: readonly T[], rng: RandomSource): T {

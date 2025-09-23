@@ -28,7 +28,10 @@ async function testNoChartNoPersonalReading() {
   const text = await post('/api/chat', payload);
   // Expect guard guidance (from route.ts guidance string)
   const containsCorePhrases = text.includes('Generate Math Brain') && text.includes('planetary weather only');
-  const mentionsJsonHelp = /export file/i.test(text) && /astroseek/i.test(text);
+  const mentionsJsonHelp =
+    /json export file/i.test(text) &&
+    /download from math brain or astroseek/i.test(text) &&
+    /astroseek/i.test(text);
   if (!containsCorePhrases || !mentionsJsonHelp) {
     throw new Error('Guard text not found in response (missing AstroSeek JSON export guidance)');
   }
