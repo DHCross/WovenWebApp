@@ -305,12 +305,12 @@ export async function POST(req: NextRequest){
   // Detect if user is asking for specific personal astrological readings/analysis
   const wantsPersonalReading = /\b(my chart|my birth|personal reading|mirror|balance meter|read me|analyze me|what do you see in me|my aspects|my placements|my transits)\b/i.test(text);
 
-  // MODIFIED GATE: Only block personal astrological readings without chart context, allow general conversation
-  if (!hasAnyReportContext && wantsPersonalReading && !wantsWeatherOnly) {
+  const astroseekReference = referencesAstroSeekWithoutGeometry(text);
+
+  // MODIFIED GATE: Block personal readings or AstroSeek references without chart context, allow general conversation or weather-only
+  if (!hasAnyReportContext && !wantsWeatherOnly && (wantsPersonalReading || astroseekReference)) {
     const hook = pickHook(text);
     const climate = undefined;
-
-    const astroseekReference = referencesAstroSeekWithoutGeometry(text);
     const guardCopy = buildNoContextGuardCopy();
     const introPicture = astroseekReference
       ? 'I see the AstroSeek export—one more bridge and we can go deep…'

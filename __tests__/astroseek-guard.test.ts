@@ -70,4 +70,49 @@ describe('AstroSeek guard guidance', () => {
     expect(firstFrame.delta).toContain(ASTROSEEK_REFERENCE_GUIDANCE);
     expect(firstFrame.delta).not.toContain(NO_CONTEXT_GUIDANCE);
   });
+
+  test('chat streaming guard fires when only AstroSeek data is mentioned', async () => {
+    const chatBody = {
+      persona: 'raven',
+      messages: [
+        { role: 'raven', content: 'Hello' },
+        {
+          role: 'user',
+          content: 'AstroSeek export data: Sun Aries, Moon Taurus, Ascendant Leo. I cannot add the file here right now.'
+        }
+      ],
+      reportContexts: [],
+    };
+
+    const req: any = {
+      json: async () => chatBody,
+      headers: new Headers(),
+    };
+
+    const res = await chatPost(req);
+    const reader = res.body?.getReader();
+    expect(reader).toBeDefined();
+
+    const decoder = new TextDecoder();
+    let aggregated = '';
+    if (reader) {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        aggregated += decoder.decode(value, { stream: true });
+      }
+      aggregated += decoder.decode();
+    }
+
+    const frames = aggregated
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean)
+      .map(line => JSON.parse(line));
+
+    expect(frames.length).toBeGreaterThan(0);
+    const firstFrame = frames[0];
+    expect(firstFrame.delta).toContain(ASTROSEEK_REFERENCE_GUIDANCE);
+    expect(firstFrame.delta).not.toContain(NO_CONTEXT_GUIDANCE);
+  });
 });
