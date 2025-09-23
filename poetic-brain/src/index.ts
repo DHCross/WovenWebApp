@@ -142,37 +142,35 @@ function hasActivationData(payload: InputPayload): boolean {
 
 function buildMirrorVoice(payload: InputPayload): string {
   const hooks = normalizeHooks(payload.hooks);
+  const baseline = payload.constitutionalClimate?.trim();
+  const blueprintLine = baseline
+    ? `Blueprint — ${baseline}`
+    : 'Blueprint — Baseline reflection unavailable; rely on lived experience.';
+
   if (!hasActivationData(payload)) {
-    const lines: string[] = [];
-    const baseline = payload.constitutionalClimate?.trim();
-    if (baseline) {
-      lines.push(baseline);
-    } else {
-      lines.push('Baseline reflection: no current activation data supplied.');
-    }
-    if (hooks.length) {
-      lines.push(`Baseline Hooks — ${formatHooksLine(hooks)}`);
-    }
+    const lines: string[] = [
+      blueprintLine,
+      'Current Mode — No activation data supplied; holding to the natal baseline.',
+      `Baseline Hooks — ${formatHooksLine(hooks)}`,
+      'Reflection — Map, not mandate: integrate what resonates and release the rest.',
+    ];
     return lines.join('\n');
   }
 
   const s = seismographSummary(payload);
-  const lines: string[] = [];
-  // FIELD → MAP → VOICE
-  // FIELD: climate headline
-  if (payload.climateLine && payload.climateLine.trim().length > 0) {
-    lines.push(payload.climateLine.trim());
-  } else {
-    lines.push(`Climate: ${s.headline}.`);
-  }
-  // MAP: seismograph summary
-  lines.push(`Seismograph — ${s.details}.`);
-  // MAP: Hook Stack
-  lines.push(`Hook Stack — ${formatHooksLine(hooks)}`);
-  // VOICE: narrative synthesis, agency-preserving
-  lines.push(
-    'Map, not mandate: treat this as symbolic weather. If it lands, log it; if not, discard and proceed.'
-  );
+  const weatherDescriptor =
+    payload.climateLine && payload.climateLine.trim().length > 0
+      ? payload.climateLine.trim()
+      : `Current atmosphere leans ${s.headline}.`;
+  const hookSummary = formatHooksLine(hooks);
+  const tensionParts: string[] = [`Seismograph — ${s.details}.`, `Hooks — ${hookSummary}`];
+
+  const lines: string[] = [
+    blueprintLine,
+    `Weather — ${weatherDescriptor}`,
+    `Tensions — ${tensionParts.join(' · ')}`,
+    'Reflection — Map, not mandate: treat this as symbolic weather. If it lands, log it; if not, discard and proceed.',
+  ];
   return lines.join('\n');
 }
 
