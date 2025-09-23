@@ -5,6 +5,70 @@ interface RenderOptions {
   conversational?: boolean;
 }
 
+function isSimpleGreeting(message: string): boolean {
+  if (!message) return false;
+  const trimmed = message.trim();
+  if (!trimmed) return false;
+
+  const sanitized = trimmed
+    .replace(/^[\s.,!?;:-]+/g, "")
+    .replace(/[\s.,!?;:-]+$/g, "")
+    .toLowerCase();
+
+  if (!sanitized) return false;
+
+  const rawTokens = sanitized.split(/\s+/).filter(Boolean);
+  const tokens = rawTokens
+    .map((token) => token.replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, ""))
+    .filter(Boolean);
+
+  if (tokens.length === 0 || tokens.length > 3) {
+    return false;
+  }
+
+  const base = tokens[0];
+  const greetingRoots = new Set([
+    "hi",
+    "hello",
+    "hey",
+    "hiya",
+    "yo",
+    "sup",
+    "ahoy",
+  ]);
+  const allowedSuffixes = new Set([
+    "there",
+    "ya",
+    "yall",
+    "y'all",
+    "everyone",
+    "folks",
+    "friend",
+    "friends",
+    "team",
+    "raven",
+  ]);
+
+  if (greetingRoots.has(base)) {
+    if (tokens.length === 1) return true;
+    return tokens.slice(1).every((token) => allowedSuffixes.has(token));
+  }
+
+  if (base === "greetings") {
+    if (tokens.length === 1) return true;
+    return tokens.slice(1).every((token) => allowedSuffixes.has(token));
+  }
+
+  if (base === "good" && tokens.length >= 2) {
+    const dayParts = new Set(["morning", "afternoon", "evening", "day", "night"]);
+    if (!dayParts.has(tokens[1])) return false;
+    if (tokens.length === 2) return true;
+    return tokens.length === 3 && allowedSuffixes.has(tokens[2]);
+  }
+
+  return false;
+}
+
 /**
  * Renders a "Shareable Mirror" draft in the standard Raven Calder format.
  * (picture → feeling → container → option → next step)
@@ -15,6 +79,14 @@ export async function renderShareableMirror({ geo, prov, options, conversational
   // If conversational mode is requested, call the LLM to produce an uncanned, natural-language response
   if (conversational) {
     const userMessage = options?.userMessage || '';
+    if (isSimpleGreeting(userMessage)) {
+      const simpleReply = "Hey. Good to see you here. Whenever you're ready, let me know what's on your mind.";
+      return {
+        raw: simpleReply,
+        mirror_suppressed: true,
+        appendix: { provenance_source: prov?.source },
+      };
+    }
     const prompt = `You are Poetic Brain, an empathetic, direct assistant. The user says: "${userMessage}". Reply naturally in plain language, then also provide a short structured mirror in five labeled parts: PICTURE, FEELING, CONTAINER, OPTION, NEXT_STEP. Keep the structure clear but use natural, non-form-like language for the primary reply.`;
     // Dynamic import to avoid loading heavy LLM provider at module evaluation time
     let full = '';
