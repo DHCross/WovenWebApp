@@ -2519,6 +2519,20 @@ function Header({
                 e.stopPropagation();
                 setShowPoeticMenu(!showPoeticMenu);
               }}
+              onTouchStart={(e) => {
+                // iOS Safari touch handling improvement
+                e.stopPropagation();
+              }}
+              onTouchEnd={(e) => {
+                // iOS Safari fallback for click events
+                e.preventDefault();
+                e.stopPropagation();
+                setShowPoeticMenu(!showPoeticMenu);
+              }}
+              style={{
+                WebkitTapHighlightColor: 'transparent',
+                cursor: 'pointer'
+              }}
               title="Poetic analysis and reading tools"
             >
               🎭 Poetic ▼
@@ -3272,6 +3286,8 @@ function Stream({
         gap: 12,
         overflow: "auto",
         height: "100%",
+        minHeight: 0,
+        WebkitOverflowScrolling: "touch",
       }}
     >
       {messages.map((m) => (
@@ -3668,6 +3684,14 @@ function Composer({
               onSend();
             }
           }}
+          onKeyPress={(e) => {
+            // iOS Safari fallback for Enter key handling
+            if (e.key === "Enter" && !e.shiftKey && e.which === 13) {
+              e.preventDefault();
+              onSend();
+            }
+          }}
+          enterKeyHint="send"
           onPaste={() => showPasteMessage("Clipboard pasted into the composer.")}
           placeholder={INPUT_PLACEHOLDER}
           aria-label="Message for Raven Calder"

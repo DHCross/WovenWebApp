@@ -2505,6 +2505,20 @@ export default function MathBrainPage() {
                           setStartDate(e.target.value);
                           setUserHasSetDates(true);
                         }}
+                        style={{
+                          WebkitAppearance: 'none',
+                          appearance: 'none'
+                        }}
+                        onFocus={(e) => {
+                          // iOS Safari fix: ensure the input is interactive
+                          e.target.showPicker?.();
+                        }}
+                        onTouchStart={(e) => {
+                          // iOS touch handling improvement
+                          e.preventDefault();
+                          e.target.focus();
+                          e.target.showPicker?.();
+                        }}
                       />
                     </div>
                     <div>
@@ -2517,6 +2531,20 @@ export default function MathBrainPage() {
                         onChange={(e) => {
                           setEndDate(e.target.value);
                           setUserHasSetDates(true);
+                        }}
+                        style={{
+                          WebkitAppearance: 'none',
+                          appearance: 'none'
+                        }}
+                        onFocus={(e) => {
+                          // iOS Safari fix: ensure the input is interactive
+                          e.target.showPicker?.();
+                        }}
+                        onTouchStart={(e) => {
+                          // iOS touch handling improvement
+                          e.preventDefault();
+                          e.target.focus();
+                          e.target.showPicker?.();
                         }}
                       />
                     </div>
