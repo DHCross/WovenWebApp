@@ -329,15 +329,17 @@ export default function MathBrainPage() {
   const soloModeOption = includeTransits
     ? { value: 'NATAL_TRANSITS' as ReportMode, label: 'Natal + Transits' }
     : { value: 'NATAL_ONLY' as ReportMode, label: 'Natal Only' };
-  const relationalModeOptions: { value: ReportMode; label: string }[] = includeTransits
-    ? [
-        { value: 'SYNASTRY_TRANSITS', label: 'Synastry + Transits' },
-        { value: 'COMPOSITE_TRANSITS', label: 'Composite + Transits' },
-      ]
-    : [
-        { value: 'SYNASTRY', label: 'Synastry' },
-        { value: 'COMPOSITE', label: 'Composite' },
-      ];
+  const relationalModeOptions: { value: ReportMode; label: string }[] = includePersonB
+    ? includeTransits
+      ? [
+          { value: 'SYNASTRY_TRANSITS', label: 'Synastry + Transits' },
+          { value: 'COMPOSITE_TRANSITS', label: 'Composite + Transits' },
+        ]
+      : [
+          { value: 'SYNASTRY', label: 'Synastry' },
+          { value: 'COMPOSITE', label: 'Composite' },
+        ]
+    : [];
 
   useEffect(() => {
     setTranslocation((prev) => {
@@ -2335,14 +2337,21 @@ export default function MathBrainPage() {
                       <optgroup label="Solo">
                         <option value={soloModeOption.value}>{soloModeOption.label}</option>
                       </optgroup>
-                      <optgroup label="Relational">
-                        {relationalModeOptions.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </optgroup>
+                      {includePersonB && relationalModeOptions.length > 0 && (
+                        <optgroup label="Relational">
+                          {relationalModeOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
                     </select>
+                    {!includePersonB && (
+                      <p className="mt-1 text-xs text-slate-400">
+                        Enable “Include Person B” to unlock synastry or composite modes.
+                      </p>
+                    )}
                     {!includePersonB && RELATIONAL_MODES.includes(mode) && (
                       <p className="mt-1 text-xs text-amber-400">
                         Selecting a relational mode will enable “Include Person B”.
