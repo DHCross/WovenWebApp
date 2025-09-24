@@ -159,6 +159,14 @@ export default function MathBrainPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResult>(null);
   const [includePersonB, setIncludePersonB] = useState<boolean>(false);
+
+  // Interactive drill-down state for Resonance Spectrum Source Geometry
+  const [selectedPole, setSelectedPole] = useState<{
+    date: string;
+    type: 'magnitude' | 'volatility' | 'sfd' | 'valence';
+    pole: 'wb' | 'abe';
+    geometry: string[];
+  } | null>(null);
   const [personB, setPersonB] = useState<Subject>({
     name: "",
     year: "",
@@ -692,6 +700,176 @@ export default function MathBrainPage() {
 
   function handlePrint() {
     try { window.print(); } catch {/* noop */}
+  }
+
+  // Generate a PDF specifically focused on Balance Meter graphs and charts
+  async function downloadGraphsPDF() {
+    if (!result || reportType !== 'balance') {
+      setToast('Balance Meter charts not available');
+      setTimeout(() => setToast(null), 2000);
+      return;
+    }
+
+    try {
+      const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+
+      // Create new PDF document
+      const pdfDoc = await PDFDocument.create();
+      const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+      const courierFont = await pdfDoc.embedFont(StandardFonts.Courier);
+
+      // Page dimensions
+      const PAGE_WIDTH = 612; // 8.5" * 72 DPI
+      const PAGE_HEIGHT = 792; // 11" * 72 DPI
+      const MARGIN = 50;
+
+      let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+      let yPosition = PAGE_HEIGHT - MARGIN;
+
+      // Title
+      page.drawText('Balance Meter Dashboard - Visual Charts', {
+        x: MARGIN,
+        y: yPosition,
+        size: 18,
+        font: timesRomanFont,
+        color: rgb(0.2, 0.2, 0.2),
+      });
+      yPosition -= 40;
+
+      // Extract data for visualization
+      const daily = result?.person_a?.chart?.transitsByDate || {};
+      const dates = Object.keys(daily).sort();
+
+      if (dates.length === 0) {
+        page.drawText('No chart data available for visualization.', {
+          x: MARGIN,
+          y: yPosition,
+          size: 12,
+          font: timesRomanFont,
+        });
+      } else {
+        // Create text-based sparkline charts
+        const createTextChart = (values: number[], label: string, maxValue = 5) => {
+          const chars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+          const sparkline = values.slice(-20).map(val => {
+            const normalized = Math.max(0, Math.min(1, val / maxValue));
+            const index = Math.floor(normalized * (chars.length - 1));
+            return chars[index] || chars[0];
+          }).join('');
+
+          return `${label.padEnd(12)} ${sparkline}`;
+        };
+
+        const series = dates.map(d => ({
+          date: d,
+          magnitude: Number(daily[d]?.seismograph?.magnitude ?? 0),
+          valence: Number(daily[d]?.seismograph?.valence_bounded ?? daily[d]?.seismograph?.valence ?? 0),
+          volatility: Number(daily[d]?.seismograph?.volatility ?? 0),
+          sfd: Number(daily[d]?.sfd ?? 0)
+        }));
+
+        // Chart section
+        page.drawText('Trend Analysis (Last 20 Days)', {
+          x: MARGIN,
+          y: yPosition,
+          size: 14,
+          font: timesRomanFont,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+        yPosition -= 30;
+
+        const magnitudes = series.map(s => s.magnitude);
+        const volatilities = series.map(s => s.volatility);
+        const valences = series.map(s => s.valence + 5); // Shift valence to positive range for visualization
+        const sfds = series.map(s => Math.abs(s.sfd / 10)); // Scale SFD for visualization
+
+        const charts = [
+          createTextChart(magnitudes, '⚡ Magnitude:', 5),
+          createTextChart(volatilities, '🌀 Volatility:', 5),
+          createTextChart(valences, '✨ Valence:', 10),
+          createTextChart(sfds, 'SFD Balance:', 10)
+        ];
+
+        charts.forEach(chart => {
+          page.drawText(chart, {
+            x: MARGIN,
+            y: yPosition,
+            size: 10,
+            font: courierFont,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+          yPosition -= 20;
+        });
+
+        yPosition -= 20;
+
+        // Add daily diagnostic data
+        page.drawText('Recent Daily Diagnostics', {
+          x: MARGIN,
+          y: yPosition,
+          size: 14,
+          font: timesRomanFont,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+        yPosition -= 30;
+
+        // Show last 7 days of data
+        dates.slice(-7).forEach(date => {
+          const dayData = daily[date];
+          const mag = Number(dayData?.seismograph?.magnitude ?? 0);
+          const val = Number(dayData?.seismograph?.valence_bounded ?? dayData?.seismograph?.valence ?? 0);
+          const vol = Number(dayData?.seismograph?.volatility ?? 0);
+          const sfd = Number(dayData?.sfd ?? 0);
+
+          const dateStr = new Date(date).toLocaleDateString('en-US', {
+            weekday: 'short', month: 'short', day: 'numeric'
+          });
+
+          if (yPosition < MARGIN + 100) {
+            page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+            yPosition = PAGE_HEIGHT - MARGIN;
+          }
+
+          page.drawText(`${dateStr}: Mag ${mag.toFixed(1)} | Val ${val >= 0 ? '+' : ''}${val.toFixed(1)} | Vol ${vol.toFixed(1)} | SFD ${sfd > 0 ? '+' : ''}${sfd}`, {
+            x: MARGIN,
+            y: yPosition,
+            size: 10,
+            font: courierFont,
+            color: rgb(0.2, 0.2, 0.2),
+          });
+          yPosition -= 18;
+        });
+      }
+
+      // Add footer with timestamp
+      const timestamp = new Date().toLocaleString();
+      page.drawText(`Generated: ${timestamp} | Balance Meter Dashboard Charts`, {
+        x: MARGIN,
+        y: MARGIN - 20,
+        size: 8,
+        font: timesRomanFont,
+        color: rgb(0.5, 0.5, 0.5),
+      });
+
+      // Save and download
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `balance-meter-charts-${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setToast('Charts PDF downloaded successfully');
+      setTimeout(() => setToast(null), 2500);
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      setToast('Failed to generate charts PDF');
+      setTimeout(() => setToast(null), 2500);
+    }
   }
 
   // Generate a text-based PDF with schema rule-patch compliance and sanitization
@@ -2978,6 +3156,11 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
             <div className="flex items-center gap-2">
               <button type="button" onClick={downloadResultJSON} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download result JSON">Download JSON</button>
               <button type="button" onClick={downloadResultPDF} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download PDF">Download PDF</button>
+              {reportType === 'balance' && (
+                <button type="button" onClick={downloadGraphsPDF} className="rounded-md border border-emerald-700 bg-emerald-800/50 px-3 py-1.5 text-emerald-100 hover:bg-emerald-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" aria-label="Download graphs and charts as PDF">
+                  📊 Download Graphs PDF
+                </button>
+              )}
             </div>
           </div>
           {reportType==='balance' && (<>
@@ -3069,6 +3252,164 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                   <div>
                     <div className="text-sm text-slate-300">Time Series</div>
                     <div className="mt-2 text-xs text-slate-400">Entries: {ts.length || 0}{first && last ? ` · ${first} → ${last}` : ''}</div>
+
+                    {/* Trend Sparklines */}
+                    {ts.length > 1 && (() => {
+                      const createSparkline = (values, maxValue = 5, color = 'text-emerald-400') => {
+                        const chars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+                        return values.slice(-20).map(val => {
+                          const normalized = Math.max(0, Math.min(1, val / maxValue));
+                          const index = Math.floor(normalized * (chars.length - 1));
+                          return chars[index] || chars[0];
+                        }).join('');
+                      };
+
+                      const createSFDSparkline = (values) => {
+                        return values.slice(-20).map(val => {
+                          if (val > 10) return '▇'; // Strong support
+                          if (val > 0) return '▅';  // Support
+                          if (val === 0) return '▃'; // Neutral
+                          if (val > -10) return '▂'; // Friction
+                          return '▁'; // Strong friction
+                        }).join('');
+                      };
+
+                      const calculateResonanceScore = (sfdA, sfdB) => {
+                        if (!sfdA || !sfdB || sfdA.length !== sfdB.length) return [];
+                        return sfdA.map((a, i) => Math.abs(a - sfdB[i]) / 20); // Normalized 0-5 scale
+                      };
+
+                      // Check for relational data (Person B)
+                      const isRelational = result?.person_b?.chart?.transitsByDate || wm?.type?.includes('synastry') || wm?.type?.includes('composite');
+                      const tsB = wm?.time_series_b || []; // Assuming person B time series exists
+
+                      const magnitudes = ts.map(r => Number(r.magnitude ?? 0));
+                      const valences = ts.map(r => Number(r.valence_bounded ?? r.valence ?? 0));
+                      const volatilities = ts.map(r => Number(r.volatility ?? 0));
+                      const sfds = ts.map(r => Number(r.sfd ?? 0));
+
+                      let magB = [], valB = [], volB = [], sfdB = [], resonanceScores = [];
+
+                      if (isRelational && tsB.length > 0) {
+                        magB = tsB.map(r => Number(r.magnitude ?? 0));
+                        valB = tsB.map(r => Number(r.valence_bounded ?? r.valence ?? 0));
+                        volB = tsB.map(r => Number(r.volatility ?? 0));
+                        sfdB = tsB.map(r => Number(r.sfd ?? 0));
+                        resonanceScores = calculateResonanceScore(sfds, sfdB);
+                      }
+
+                      return (
+                        <div className="mt-3 rounded border border-slate-700 bg-slate-900/40 p-3">
+                          <div className="text-xs font-medium text-slate-300 mb-2">
+                            {isRelational && tsB.length > 0 ? 'Relational Trend Analysis' : 'Trend Analysis'}
+                          </div>
+                          <div className="space-y-2 text-xs">
+                            {/* Magnitude */}
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400 w-16">⚡ Mag:</span>
+                              {isRelational && magB.length > 0 ? (
+                                <div className="flex items-center gap-1 font-mono text-sm">
+                                  <span className="text-emerald-400">{createSparkline(magnitudes)}</span>
+                                  <span className="text-slate-600">|</span>
+                                  <span className="text-emerald-300">{createSparkline(magB)}</span>
+                                </div>
+                              ) : (
+                                <span className="font-mono text-emerald-400 text-sm">{createSparkline(magnitudes)}</span>
+                              )}
+                              <span className="text-slate-500 w-12 text-right">
+                                {(() => {
+                                  const mag = magnitudes.length > 0 ? magnitudes[magnitudes.length - 1] : 0;
+                                  const vol = volatilities.length > 0 ? volatilities[volatilities.length - 1] : 0;
+                                  const sfd = sfds.length > 0 ? sfds[sfds.length - 1] : 0;
+
+                                  if (mag >= 4.5 && sfd < -50) return '⚫️'; // Pressure Point
+                                  if (mag >= 4.5 && vol >= 4.5) return '🌀'; // Vortex
+                                  return '';
+                                })()}
+                              </span>
+                            </div>
+
+                            {/* Valence */}
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400 w-16">🌕 Val:</span>
+                              {isRelational && valB.length > 0 ? (
+                                <div className="flex items-center gap-1 font-mono text-sm">
+                                  <span className="text-blue-400">{createSparkline(valences.map(v => Math.abs(v)), 5)}</span>
+                                  <span className="text-slate-600">|</span>
+                                  <span className="text-blue-300">{createSparkline(valB.map(v => Math.abs(v)), 5)}</span>
+                                </div>
+                              ) : (
+                                <span className="font-mono text-blue-400 text-sm">{createSparkline(valences.map(v => Math.abs(v)), 5)}</span>
+                              )}
+                              <span className="text-slate-500 w-12 text-right">
+                                {(() => {
+                                  const mag = magnitudes.length > 0 ? magnitudes[magnitudes.length - 1] : 0;
+                                  const vol = volatilities.length > 0 ? volatilities[volatilities.length - 1] : 0;
+                                  const sfd = sfds.length > 0 ? sfds[sfds.length - 1] : 0;
+
+                                  if (mag >= 2 && mag <= 4 && vol < 2 && sfd > 50) return '💧'; // Coherent Flow
+                                  return '';
+                                })()}
+                              </span>
+                            </div>
+
+                            {/* Volatility */}
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400 w-16">🔀 Vol:</span>
+                              {isRelational && volB.length > 0 ? (
+                                <div className="flex items-center gap-1 font-mono text-sm">
+                                  <span className="text-amber-400">{createSparkline(volatilities)}</span>
+                                  <span className="text-slate-600">|</span>
+                                  <span className="text-amber-300">{createSparkline(volB)}</span>
+                                </div>
+                              ) : (
+                                <span className="font-mono text-amber-400 text-sm">{createSparkline(volatilities)}</span>
+                              )}
+                              <span className="text-slate-500 w-12 text-right">
+                                {/* Volatility-specific field states would go here if needed */}
+                              </span>
+                            </div>
+
+                            {/* SFD */}
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400 w-16">SFD:</span>
+                              {isRelational && sfdB.length > 0 ? (
+                                <div className="flex items-center gap-1 font-mono text-sm">
+                                  <span className="text-purple-400">{createSFDSparkline(sfds)}</span>
+                                  <span className="text-slate-600">|</span>
+                                  <span className="text-purple-300">{createSFDSparkline(sfdB)}</span>
+                                </div>
+                              ) : (
+                                <span className="font-mono text-purple-400 text-sm">{createSFDSparkline(sfds)}</span>
+                              )}
+                              <span className="text-slate-500 w-12 text-right">
+                                {sfds.length > 1 && ((sfds[sfds.length - 2] < 0 && sfds[sfds.length - 1] > 0) || (sfds[sfds.length - 2] > 0 && sfds[sfds.length - 1] < 0)) ? '🌗' : ''}
+                              </span>
+                            </div>
+
+                            {/* Field Resonance Score (Relational only) */}
+                            {isRelational && resonanceScores.length > 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 w-16">Res:</span>
+                                <span className="font-mono text-cyan-400 text-sm">{createSparkline(resonanceScores, 5)}</span>
+                                <span className="text-slate-500 w-12 text-right">
+                                  {resonanceScores.length > 0 && resonanceScores[resonanceScores.length - 1] < 0.5 ? '◊' : ''}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="mt-2 text-xs text-slate-500">
+                            {isRelational && tsB.length > 0 ? (
+                              <>A | B overlay • Field states: ⚫️ Pressure Point, 🌀 Vortex, 💧 Coherent Flow, 🌗 Field Shift, ◊ High resonance</>
+                            ) : (
+                              <>Field State Markers: ⚫️ Pressure Point, 🌀 Vortex, 💧 Coherent Flow, 🌗 Field Shift</>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     <div className="mt-2 max-h-40 overflow-auto rounded border border-slate-700 bg-slate-900/40 p-2">
                       <table className="w-full text-xs text-slate-300">
                         <thead>
@@ -3158,142 +3499,497 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
             const valenceLabel = summary.valence_label || (val > 0.5 ? 'Supportive' : val < -0.5 ? 'Challenging' : 'Mixed');
             const volatilityLabel = summary.volatility_label || (vol >= 3 ? 'Scattered' : vol >= 1 ? 'Variable' : 'Stable');
             return (
-              <Section title="Balance Meter">
-                <div className="flex flex-wrap items-center gap-3 text-sm">
-                  <span className="inline-flex items-center gap-2 rounded bg-slate-700/60 px-3 py-1 text-slate-100">
-                    <span>⚡</span>
-                    <span>Magnitude</span>
-                    <span className="text-slate-300">· {magnitudeLabel}</span>
-                  </span>
-                  <span className="inline-flex items-center gap-2 rounded bg-slate-700/60 px-3 py-1 text-slate-100">
-                    <span>🌓</span>
-                    <span>Valence</span>
-                    <span className="text-slate-300">· {valenceLabel}</span>
-                  </span>
-                  <span className="inline-flex items-center gap-2 rounded bg-slate-700/60 px-3 py-1 text-slate-100">
-                    <span>🔷</span>
-                    <span>Volatility</span>
-                    <span className="text-slate-300">· {volatilityLabel}</span>
-                  </span>
-                </div>
+              <Section title="Balance Meter Dashboard">
+                {/* LAYER 1: SUMMARY VIEW (At a Glance) */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium text-slate-200 mb-3">Summary View</h3>
 
-                {(() => {
-                  const daily = result?.person_a?.chart?.transitsByDate || {};
-                  const dates = Object.keys(daily).sort();
-                  if (!dates.length) return null;
-                  const series = dates.map(d => ({
-                    date: d,
-                    magnitude: Number(daily[d]?.seismograph?.magnitude ?? 0),
-                    valence: Number(daily[d]?.seismograph?.valence_bounded ?? daily[d]?.seismograph?.valence ?? 0),
-                    volatility: Number(daily[d]?.seismograph?.volatility ?? 0)
-                  }));
-                  // Weekly aggregate: group every 7 entries and average each channel
-                  const sampled = step === 'weekly'
-                    ? (() => {
-                        const groups: typeof series[] = [] as any;
-                        for (let i = 0; i < series.length; i += 7) {
-                          const chunk = series.slice(i, i + 7);
-                          if (!chunk.length) continue;
-                          const mean = (arr: number[]) => arr.reduce((a,b)=>a+b,0) / arr.length;
-                          const max = (arr: number[]) => arr.reduce((a,b)=>Math.max(a,b), -Infinity);
-                          const aggFn = weeklyAgg === 'max' ? max : mean;
-                          groups.push([{
-                            date: chunk[0].date,
-                            magnitude: Number(aggFn(chunk.map(c=>c.magnitude)).toFixed(2)),
-                            valence: Number(aggFn(chunk.map(c=>c.valence)).toFixed(2)),
-                            volatility: Number(aggFn(chunk.map(c=>c.volatility)).toFixed(2)),
-                          } as any]);
-                        }
-                        return groups.map(g => g[0]);
-                      })()
-                    : series;
-                  const maxBars = Math.min(28, sampled.length);
-                  const bars = sampled.slice(-maxBars);
-                  const H = 96;
-                  return (
-                    <div className="mt-4">
-                      <div className="mb-1 text-[11px] text-slate-400">Legend: ⚡ Magnitude · 🌓 Valence · 🔷 Volatility</div>
-                      <div className="mb-1 flex justify-between text-[10px] text-slate-500">
-                        <span>Top ≈ 5</span>
-                        <span>Date labels show MM-DD</span>
-                      </div>
-                      {(() => {
-                        const first = bars[0]?.date;
-                        const last = bars[bars.length-1]?.date;
-                        if (!first || !last) return null;
-                        return (
-                          <div className="mb-1 text-[10px] text-slate-500">{first} | {last}</div>
-                        );
-                      })()}
-                      <div className="flex items-end gap-2 overflow-x-auto rounded border border-slate-700 bg-slate-900/40 p-2">
-                        {bars.map((pt, idx) => {
-                          const magH = Math.max(0, Math.min(H, Math.round((pt.magnitude/5) * H)));
-                          const valH = Math.max(0, Math.min(H, Math.round((Math.min(5, Math.abs(pt.valence))/5) * H)));
-                          const volH = Math.max(0, Math.min(H, Math.round((pt.volatility/5) * H)));
-                          return (
-                            <div key={idx} className="flex w-6 flex-col items-center justify-end gap-0.5">
-                              <svg width="16" height="96" viewBox="0 0 16 96" className="block">
-                                <rect x="0" y={96 - magH} width="5" height={magH} className="fill-indigo-500 opacity-80" />
-                                <rect x="6" y={96 - valH} width="4" height={valH} className="fill-emerald-500 opacity-70" />
-                                <rect x="11" y={96 - volH} width="5" height={volH} className="fill-sky-500 opacity-70" />
-                              </svg>
-                              <div className="text-[10px] text-center text-slate-400 truncate w-full" title={pt.date}>{pt.date.slice(5)}</div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
+                  {/* Current Day SFD Balance Bar */}
+                  <div className="mb-4 rounded border border-slate-600 bg-slate-900/50 p-4">
+                    <div className="text-xs text-slate-400 mb-2">Today's Balance ({new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })})</div>
+                    {(() => {
+                      const sfdValue = result?.person_a?.sfd?.sfd ?? 0;
+                      const sPlus = result?.person_a?.sfd?.s_plus ?? 0;
+                      const sMinus = result?.person_a?.sfd?.s_minus ?? 0;
+                      const maxValue = Math.max(sPlus, sMinus, 100);
 
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
-                  {(() => {
-                    const magN = Math.min(1, Math.max(0, mag/5));
-                    const volN = Math.min(1, Math.max(0, vol/5));
-                    const valN = (Math.max(-2, Math.min(2, val)) + 2) / 4; // map -2..2 -> 0..1
-                    const cards = [
-                      { name: 'Fertile Field', hint: 'Growth-friendly openings', score: (valN*0.7 + (1-volN)*0.3) },
-                      { name: 'Harmonic Resonance', hint: 'Easier flow and alignment', score: (valN*0.6 + (1-volN)*0.4) },
-                      { name: 'Expansion Lift', hint: 'Momentum and reach', score: (magN*0.6 + valN*0.4) },
-                      { name: 'Combustion Clarity', hint: 'Honest frictions surface', score: (magN*0.5 + volN*0.5) },
-                      { name: 'Liberation / Release', hint: 'Letting go, reset', score: (volN*0.7 + (1-valN)*0.3) },
-                      { name: 'Integration', hint: 'Synthesis and grounding', score: ((1-volN)*0.6 + valN*0.4) },
-                    ];
-                    return cards.map((c, i) => {
-                      const pct = Math.round(c.score*100);
+                      const getSFDState = (sfd) => {
+                        if (sfd > 50) return 'Strong Support';
+                        if (sfd >= 1) return 'Supportive';
+                        if (sfd >= -50) return 'Frictional';
+                        return 'Strong Friction';
+                      };
+
                       return (
-                        <div key={i} className="rounded-md border border-slate-700 bg-slate-800/50 p-3">
-                          <div className="flex items-center justify-between">
-                            <div className="text-slate-100 font-medium">{c.name}</div>
-                            <div className="text-xs text-slate-400">{pct}%</div>
+                        <div className="space-y-3">
+                          {/* Balance Bar */}
+                          <div className="relative h-8 rounded bg-slate-800 overflow-hidden">
+                            {/* Support (right side) */}
+                            <div
+                              className="absolute right-0 top-0 h-full bg-emerald-600/80 flex items-center justify-end pr-2"
+                              style={{ width: `${(sPlus / maxValue) * 50}%` }}
+                            >
+                              <span className="text-xs text-emerald-100 font-mono">S+ {sPlus}</span>
+                            </div>
+
+                            {/* Friction (left side) */}
+                            <div
+                              className="absolute left-0 top-0 h-full bg-red-600/80 flex items-center justify-start pl-2"
+                              style={{ width: `${(sMinus / maxValue) * 50}%` }}
+                            >
+                              <span className="text-xs text-red-100 font-mono">S- {sMinus}</span>
+                            </div>
+
+                            {/* Center line */}
+                            <div className="absolute left-1/2 top-0 h-full w-px bg-slate-300"></div>
                           </div>
-                          <svg viewBox="0 0 100 8" className="mt-2 h-2 w-full">
-                            <rect x="0" y="0" width="100" height="8" className="fill-slate-700" />
-                            <rect x="0" y="0" width={pct} height="8" className="fill-emerald-500" />
-                          </svg>
-                          <p className="mt-2 text-xs text-slate-400">{c.hint}</p>
+
+                          {/* SFD Score */}
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-slate-100">
+                              SFD: {sfdValue > 0 ? '+' : ''}{sfdValue}
+                            </div>
+                            <div className="text-sm text-slate-400">{getSFDState(sfdValue)}</div>
+                          </div>
                         </div>
                       );
-                    })
+                    })()}
+                  </div>
+
+                  {/* Trend Sparklines - moved from time series section */}
+                  <div className="rounded border border-slate-700 bg-slate-900/40 p-3">
+                    <div className="text-xs font-medium text-slate-300 mb-2">Trend Analysis (Last 20 Days)</div>
+                    {(() => {
+                      const daily = result?.person_a?.chart?.transitsByDate || {};
+                      const dates = Object.keys(daily).sort();
+                      if (!dates.length) return <div className="text-xs text-slate-500">No trend data available</div>;
+
+                      const series = dates.map(d => ({
+                        magnitude: Number(daily[d]?.seismograph?.magnitude ?? 0),
+                        valence: Number(daily[d]?.seismograph?.valence_bounded ?? daily[d]?.seismograph?.valence ?? 0),
+                        volatility: Number(daily[d]?.seismograph?.volatility ?? 0),
+                        sfd: Number(daily[d]?.sfd ?? 0)
+                      }));
+
+                      const createSparkline = (values, maxValue = 5) => {
+                        const chars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+                        return values.slice(-20).map(val => {
+                          const normalized = Math.max(0, Math.min(1, val / maxValue));
+                          const index = Math.floor(normalized * (chars.length - 1));
+                          return chars[index] || chars[0];
+                        }).join('');
+                      };
+
+                      const createSFDSparkline = (values) => {
+                        return values.slice(-20).map(val => {
+                          if (val > 10) return '▇'; // Strong support
+                          if (val > 0) return '▅';  // Support
+                          if (val === 0) return '▃'; // Neutral
+                          if (val > -10) return '▂'; // Friction
+                          return '▁'; // Strong friction
+                        }).join('');
+                      };
+
+                      const magnitudes = series.map(s => s.magnitude);
+                      const volatilities = series.map(s => s.volatility);
+                      const sfds = series.map(s => s.sfd);
+
+                      return (
+                        <div className="space-y-2 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 w-16">⚡ Mag:</span>
+                            <span className="font-mono text-emerald-400 text-sm">{createSparkline(magnitudes)}</span>
+                            <span className="text-slate-500 w-12 text-right">
+                              {magnitudes.length > 0 && magnitudes[magnitudes.length - 1] >= 4.5 && sfds[sfds.length - 1] < -50 ? '⚫️' : ''}
+                              {magnitudes.length > 0 && magnitudes[magnitudes.length - 1] >= 4.5 && volatilities[volatilities.length - 1] >= 4.5 ? '🌀' : ''}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 w-16">🔀 Vol:</span>
+                            <span className="font-mono text-amber-400 text-sm">{createSparkline(volatilities)}</span>
+                            <span className="text-slate-500 w-12 text-right"></span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 w-16">SFD:</span>
+                            <span className="font-mono text-purple-400 text-sm">{createSFDSparkline(sfds)}</span>
+                            <span className="text-slate-500 w-12 text-right">
+                              {sfds.length > 1 && ((sfds[sfds.length - 2] < 0 && sfds[sfds.length - 1] > 0) || (sfds[sfds.length - 2] > 0 && sfds[sfds.length - 1] < 0)) ? '🌗' : ''}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    <div className="mt-2 text-xs text-slate-500">
+                      Field State Markers: ⚫️ Pressure Point, 🌀 Vortex, 💧 Coherent Flow, 🌗 Field Shift
+                    </div>
+                  </div>
+                </div>
+
+                {/* LAYER 2: DAILY DIAGNOSTIC CARDS (The Details) */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium text-slate-200 mb-3">Daily Diagnostic Cards</h3>
+                  {(() => {
+                    const daily = result?.person_a?.chart?.transitsByDate || {};
+                    const dates = Object.keys(daily).sort();
+                    if (!dates.length) {
+                      return <div className="text-sm text-slate-500 p-4 border border-slate-700 rounded bg-slate-900/20">No daily data available</div>;
+                    }
+
+                    // State descriptor functions
+                    const getMagnitudeState = (mag) => {
+                      if (mag <= 1) return 'Latent';
+                      if (mag <= 2) return 'Murmur';
+                      if (mag <= 4) return 'Active';
+                      return 'Threshold';
+                    };
+
+                    const getValenceStyle = (valence, magnitude) => {
+                      const magLevel = magnitude <= 2 ? 'low' : 'high'; // For emoji count selection
+
+                      if (valence >= 4.5) {
+                        const emojis = magLevel === 'low' ? ['🦋', '🌈'] : ['🦋', '🌈', '🔥'];
+                        return { emojis, descriptor: 'Liberation', anchor: '+5', pattern: 'peak openness; breakthroughs / big‑sky view' };
+                      } else if (valence >= 3.5) {
+                        const emojis = magLevel === 'low' ? ['💎', '🔥'] : ['💎', '🔥', '🦋'];
+                        return { emojis, descriptor: 'Expansion', anchor: '+4', pattern: 'widening opportunities; clear insight fuels growth' };
+                      } else if (valence >= 2.5) {
+                        const emojis = magLevel === 'low' ? ['🧘', '✨'] : ['🧘', '✨', '🌊'];
+                        return { emojis, descriptor: 'Harmony', anchor: '+3', pattern: 'coherent progress; both/and solutions' };
+                      } else if (valence >= 1.5) {
+                        const emojis = magLevel === 'low' ? ['🌊', '🧘'] : ['🌊', '🧘'];
+                        return { emojis, descriptor: 'Flow', anchor: '+2', pattern: 'smooth adaptability; things click' };
+                      } else if (valence >= 0.5) {
+                        const emojis = magLevel === 'low' ? ['🌱', '✨'] : ['🌱', '✨'];
+                        return { emojis, descriptor: 'Lift', anchor: '+1', pattern: 'gentle tailwind; beginnings sprout' };
+                      } else if (valence >= -0.5) {
+                        return { emojis: ['⚖️'], descriptor: 'Equilibrium', anchor: '0', pattern: 'net‑neutral tilt; forces cancel or diffuse' };
+                      } else if (valence >= -1.5) {
+                        const emojis = magLevel === 'low' ? ['🌪', '🌫'] : ['🌪', '🌫'];
+                        return { emojis, descriptor: 'Drag', anchor: '−1', pattern: 'subtle headwind; minor loops or haze' };
+                      } else if (valence >= -2.5) {
+                        const emojis = magLevel === 'low' ? ['🌫', '🧩'] : ['🌫', '🧩', '⬇️'];
+                        return { emojis, descriptor: 'Contraction', anchor: '−2', pattern: 'narrowing options; ambiguity or energy drain' };
+                      } else if (valence >= -3.5) {
+                        const emojis = magLevel === 'low' ? ['⚔️', '🌊'] : ['⚔️', '🌊', '🌫'];
+                        return { emojis, descriptor: 'Friction', anchor: '−3', pattern: 'conflicts or cross‑purposes slow motion' };
+                      } else if (valence >= -4.5) {
+                        const emojis = magLevel === 'low' ? ['🕰', '⚔️'] : ['🕰', '⚔️', '🌪'];
+                        return { emojis, descriptor: 'Grind', anchor: '−4', pattern: 'sustained resistance; heavy duty load' };
+                      } else {
+                        const emojis = magLevel === 'low' ? ['🌋', '🧩'] : ['🌋', '🧩', '⬇️'];
+                        return { emojis, descriptor: 'Collapse', anchor: '−5', pattern: 'maximum restrictive tilt; compression / failure points' };
+                      }
+                    };
+
+                    const getVolatilityState = (vol) => {
+                      if (vol <= 2) return 'Coherent';
+                      if (vol <= 4) return 'Complex';
+                      return 'Dispersed';
+                    };
+
+                    const getSFDState = (sfd) => {
+                      if (sfd > 50) return 'Strong Support';
+                      if (sfd >= 1) return 'Supportive';
+                      if (sfd >= -50) return 'Frictional';
+                      return 'Strong Friction';
+                    };
+
+                    return dates.slice(-7).map(date => { // Show last 7 days
+                      const dayData = daily[date];
+                      const mag = Number(dayData?.seismograph?.magnitude ?? 0);
+                      const val = Number(dayData?.seismograph?.valence_bounded ?? dayData?.seismograph?.valence ?? 0);
+                      const vol = Number(dayData?.seismograph?.volatility ?? 0);
+                      const sfd = Number(dayData?.sfd ?? 0);
+                      const valenceStyle = getValenceStyle(val, mag);
+
+                      // Get driver aspects
+                      const aspects = dayData?.aspects || [];
+                      const drivers = aspects.slice(0, 3).map(a => `${a.from || a.transit} ${a.aspect} ${a.to || a.natal}`);
+
+                      return (
+                        <div key={date} className="mb-4 rounded border border-slate-700 bg-slate-900/30 p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="text-sm font-medium text-slate-100">
+                              {new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                            </div>
+                            <button
+                              className="text-xs px-3 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-300"
+                              onClick={() => {/* TODO: Implement modal with Poetic Brain translation */}}
+                            >
+                              [Translate]
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-3">
+                            <div className="text-center">
+                              <div className="text-xs text-slate-400">⚡ Magnitude</div>
+                              <div className="text-lg font-bold text-slate-100">{mag.toFixed(2)}</div>
+                              <div className="text-xs text-slate-500">{getMagnitudeState(mag)}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-xs text-slate-400">{valenceStyle.emojis.join('')} Valence</div>
+                              <div className="text-lg font-bold text-slate-100">{val >= 0 ? '+' : ''}{val.toFixed(2)}</div>
+                              <div className="text-xs text-slate-500">{valenceStyle.descriptor} {valenceStyle.anchor}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-xs text-slate-400">{vol >= 5.0 ? '🌀' : '🔀'} Volatility</div>
+                              <div className="text-lg font-bold text-slate-100">{vol.toFixed(2)}</div>
+                              <div className="text-xs text-slate-500">{getVolatilityState(vol)}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-xs text-slate-400">SFD</div>
+                              <div className="text-lg font-bold text-slate-100">{sfd > 0 ? '+' : ''}{sfd}</div>
+                              <div className="text-xs text-slate-500">{getSFDState(sfd)}</div>
+                            </div>
+                          </div>
+
+                          {/* Driver Aspects with Sources of Force indicators */}
+                          {drivers.length > 0 && (
+                            <div className="text-xs text-slate-400">
+                              <span className="font-medium">🎯∠🪐 Sources of Force:</span> {drivers.join(', ')}
+                            </div>
+                          )}
+
+                          {/* Resonance Spectrum - Interactive Drill-Down showing range of possibility */}
+                          <div className="mt-4 rounded border border-slate-600 bg-slate-800/30 p-3">
+                            <div className="text-xs font-medium text-slate-300 mb-2">
+                              Resonance Spectrum for this Climate
+                              <sup className="ml-1 text-slate-500 cursor-help" title="Click any pole to view underlying astrological geometry">¹</sup>
+                            </div>
+                            <div className="text-xs text-slate-400 mb-3 italic">
+                              This symbolic weather often oscillates between two poles of experience. The key is observing which pole most closely matches your lived reality.
+                            </div>
+
+                            <div className="space-y-3">
+                              {/* Magnitude Spectrum */}
+                              {mag >= 4.5 && (
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                  <div
+                                    className="text-xs cursor-pointer hover:bg-slate-700/50 rounded p-2 -m-2 transition-colors"
+                                    onClick={() => setSelectedPole({
+                                      date,
+                                      type: 'magnitude',
+                                      pole: 'wb',
+                                      geometry: drivers
+                                    })}
+                                  >
+                                    <div className="font-medium text-emerald-400">⚡ Paradox Pole (WB) ↗</div>
+                                    <div className="text-slate-300">Activation: A powerful, energizing call to action or breakthrough.</div>
+                                  </div>
+                                  <div
+                                    className="text-xs cursor-pointer hover:bg-slate-700/50 rounded p-2 -m-2 transition-colors"
+                                    onClick={() => setSelectedPole({
+                                      date,
+                                      type: 'magnitude',
+                                      pole: 'abe',
+                                      geometry: drivers
+                                    })}
+                                  >
+                                    <div className="font-medium text-red-400">⚡ Conflict Pole (ABE) ↗</div>
+                                    <div className="text-slate-300">Overload: A stressful feeling of being overwhelmed by too much input.</div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Volatility Spectrum */}
+                              {vol >= 4.5 && (
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                  <div
+                                    className="text-xs cursor-pointer hover:bg-slate-700/50 rounded p-2 -m-2 transition-colors"
+                                    onClick={() => setSelectedPole({
+                                      date,
+                                      type: 'volatility',
+                                      pole: 'wb',
+                                      geometry: drivers
+                                    })}
+                                  >
+                                    <div className="font-medium text-emerald-400">🌀 Paradox Pole (WB) ↗</div>
+                                    <div className="text-slate-300">Dynamic: Engaging with multiple exciting opportunities at once.</div>
+                                  </div>
+                                  <div
+                                    className="text-xs cursor-pointer hover:bg-slate-700/50 rounded p-2 -m-2 transition-colors"
+                                    onClick={() => setSelectedPole({
+                                      date,
+                                      type: 'volatility',
+                                      pole: 'abe',
+                                      geometry: drivers
+                                    })}
+                                  >
+                                    <div className="font-medium text-red-400">🌀 Conflict Pole (ABE) ↗</div>
+                                    <div className="text-slate-300">Scattered: Feeling pulled in too many directions, leading to exhaustion.</div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* SFD Spectrum */}
+                              {Math.abs(sfd) >= 10 && (
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                  <div
+                                    className="text-xs cursor-pointer hover:bg-slate-700/50 rounded p-2 -m-2 transition-colors"
+                                    onClick={() => setSelectedPole({
+                                      date,
+                                      type: 'sfd',
+                                      pole: 'wb',
+                                      geometry: drivers
+                                    })}
+                                  >
+                                    <div className="font-medium text-emerald-400">SFD Paradox Pole (WB) ↗</div>
+                                    <div className="text-slate-300">
+                                      {sfd > 0
+                                        ? "Flow State: Effortless momentum, things clicking into place naturally."
+                                        : "Productive Challenge: Navigating necessary friction to achieve growth."}
+                                    </div>
+                                  </div>
+                                  <div
+                                    className="text-xs cursor-pointer hover:bg-slate-700/50 rounded p-2 -m-2 transition-colors"
+                                    onClick={() => setSelectedPole({
+                                      date,
+                                      type: 'sfd',
+                                      pole: 'abe',
+                                      geometry: drivers
+                                    })}
+                                  >
+                                    <div className="font-medium text-red-400">SFD Conflict Pole (ABE) ↗</div>
+                                    <div className="text-slate-300">
+                                      {sfd > 0
+                                        ? "Complacency: Missing important details due to overconfidence in ease."
+                                        : "Resistance: Feeling drained, as if you're running in sand."}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Valence Spectrum - based on the anchor pattern */}
+                              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                <div
+                                  className="text-xs cursor-pointer hover:bg-slate-700/50 rounded p-2 -m-2 transition-colors"
+                                  onClick={() => setSelectedPole({
+                                    date,
+                                    type: 'valence',
+                                    pole: 'wb',
+                                    geometry: drivers
+                                  })}
+                                >
+                                  <div className="font-medium text-emerald-400">{valenceStyle.emojis.join('')} Paradox Pole (WB) ↗</div>
+                                  <div className="text-slate-300">
+                                    {(() => {
+                                      if (val >= 4) return "Liberation Flow: Peak openness creates breakthrough opportunities and big-sky perspective.";
+                                      if (val >= 3) return "Expansion Clarity: Clear insight fuels sustainable growth and widening possibilities.";
+                                      if (val >= 2) return "Harmony Integration: Both/and solutions emerge through coherent progress.";
+                                      if (val >= 1) return "Lift Momentum: Gentle tailwinds support natural beginnings and growth.";
+                                      if (val >= -1) return "Equilibrium Balance: Forces in dynamic balance create space for choice.";
+                                      if (val >= -2) return "Contraction Focus: Narrowing options create necessary boundaries and clarity.";
+                                      if (val >= -3) return "Friction Catalyst: Conflicts reveal important truths and drive innovation.";
+                                      if (val >= -4) return "Grind Persistence: Sustained resistance builds strength and character.";
+                                      return "Collapse Reset: Compression breaks down what no longer serves, making space for renewal.";
+                                    })()}
+                                  </div>
+                                </div>
+                                <div
+                                  className="text-xs cursor-pointer hover:bg-slate-700/50 rounded p-2 -m-2 transition-colors"
+                                  onClick={() => setSelectedPole({
+                                    date,
+                                    type: 'valence',
+                                    pole: 'abe',
+                                    geometry: drivers
+                                  })}
+                                >
+                                  <div className="font-medium text-red-400">{valenceStyle.emojis.join('')} Conflict Pole (ABE) ↗</div>
+                                  <div className="text-slate-300">
+                                    {(() => {
+                                      if (val >= 4) return "Liberation Overwhelm: Too much openness creates paralysis from infinite options.";
+                                      if (val >= 3) return "Expansion Overreach: Growth ambitions exceed capacity, leading to scattered efforts.";
+                                      if (val >= 2) return "Harmony Avoidance: Trying to please everyone leads to avoiding necessary decisions.";
+                                      if (val >= 1) return "Lift Impatience: Gentle pace feels frustratingly slow when you want quick results.";
+                                      if (val >= -1) return "Equilibrium Stagnation: Balanced forces create frustrating lack of clear direction.";
+                                      if (val >= -2) return "Contraction Anxiety: Narrowing options create fear and energy drain.";
+                                      if (val >= -3) return "Friction Exhaustion: Conflicts slow motion and create stress without resolution.";
+                                      if (val >= -4) return "Grind Depletion: Heavy resistance feels overwhelming and unsustainable.";
+                                      return "Collapse Crisis: Maximum compression creates panic and sense of failure.";
+                                    })()}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Source Geometry Footnote Panel - Interactive Drill-Down */}
+                            {selectedPole && selectedPole.date === date && (
+                              <div className="mt-4 rounded border border-amber-600/50 bg-amber-900/20 p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="text-xs font-medium text-amber-300">
+                                    Hook_Stack_Geometry → {selectedPole.type.charAt(0).toUpperCase() + selectedPole.type.slice(1)} {selectedPole.pole.toUpperCase()} Pole
+                                  </div>
+                                  <button
+                                    onClick={() => setSelectedPole(null)}
+                                    className="text-slate-400 hover:text-slate-200 text-sm"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                                <div className="text-xs text-amber-200 mb-2">
+                                  <strong>Source Geometry (Auditable Footnote):</strong>
+                                </div>
+                                <div className="text-xs text-slate-300 bg-slate-800/50 rounded p-2 font-mono">
+                                  {selectedPole.geometry.length > 0
+                                    ? selectedPole.geometry.join(', ')
+                                    : 'Primary drivers: Transit patterns generating symbolic pressure for this climate.'}
+                                </div>
+                                <div className="text-xs text-amber-300/70 mt-2 italic">
+                                  ¹ The spectrum above maps the inherent duality of these specific geometric configurations, showing how the same astrological forces can manifest as either the WB (Within Boundary/Paradoxical Vitality) or ABE (At Boundary Edge/Conflict-Management) experience depending on lived context.
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    });
                   })()}
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
-                    <div className="text-xs text-slate-400">Magnitude</div>
-                    <div className="text-lg text-slate-100">{mag.toFixed(2)}</div>
-                  </div>
-                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
-                    <div className="text-xs text-slate-400">Valence</div>
-                    <div className="text-lg text-slate-100">{val.toFixed(2)}</div>
-                  </div>
-                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
-                    <div className="text-xs text-slate-400">Volatility</div>
-                    <div className="text-lg text-slate-100">{vol.toFixed(2)}</div>
-                  </div>
-                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
-                    <div className="text-xs text-slate-400">SFD</div>
-                    <div className="text-lg text-slate-100">{result?.person_a?.sfd?.sfd ?? '—'}</div>
+                {/* LAYER 3: FIELD CONTEXT (Simple Descriptive Language) */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-slate-200 mb-3">Field Context</h3>
+                  <div className="rounded border border-slate-700 bg-slate-900/40 p-4">
+                    <div className="text-sm text-slate-300 leading-relaxed">
+                      {(() => {
+                        const sfdValue = result?.person_a?.sfd?.sfd ?? 0;
+                        const getMagnitudeState = (mag) => {
+                          if (mag <= 1) return 'latent';
+                          if (mag <= 2) return 'murmur-level';
+                          if (mag <= 4) return 'active';
+                          return 'threshold-level';
+                        };
+
+                        const getVolatilityState = (vol) => {
+                          if (vol <= 2) return 'coherent';
+                          if (vol <= 4) return 'complex';
+                          return 'dispersed';
+                        };
+
+                        const magState = getMagnitudeState(mag);
+                        const volState = getVolatilityState(vol);
+                        const valencePattern = getValenceStyle(val, mag);
+
+                        // Simple descriptive combinations using flavor patterns - NOT predictive
+                        let description = `The symbolic field shows ${magState} pressure with ${volState} patterns.`;
+
+                        if (sfdValue > 0) {
+                          description += ` The Support-Friction balance leans toward supportive conditions (${sfdValue > 0 ? '+' : ''}${sfdValue}).`;
+                        } else if (sfdValue < 0) {
+                          description += ` The Support-Friction balance shows frictional conditions (${sfdValue}).`;
+                        } else {
+                          description += ` The Support-Friction balance is neutral.`;
+                        }
+
+                        // Add valence flavor pattern
+                        description += ` Valence signature: ${valencePattern.emojis.join('')} ${valencePattern.descriptor} (${valencePattern.anchor}) — ${valencePattern.pattern}.`;
+
+                        return description;
+                      })()}
+                    </div>
+                    <div className="mt-3 text-xs text-slate-500">
+                      Note: This describes the mathematical field state only. Upload to Poetic Brain for experiential interpretation.
+                    </div>
                   </div>
                 </div>
               </Section>
