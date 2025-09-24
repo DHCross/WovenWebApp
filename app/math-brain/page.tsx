@@ -354,12 +354,26 @@ export default function MathBrainPage() {
     });
   }, [includeTransits, isDyadMode, mode, reportType]);
 
-  // Update date range when report type changes
+  // Track if user has manually set dates to avoid overriding their choices
+  const [userHasSetDates, setUserHasSetDates] = useState(false);
+  const [initialReportType] = useState(reportType);
+
+  // Update date range when report type changes (but only if user hasn't manually set dates)
+  // OR when report type changes from initial - give them fresh defaults for different report types
   useEffect(() => {
-    const defaultDates = getDefaultDates(reportType);
-    setStartDate(defaultDates.start);
-    setEndDate(defaultDates.end);
-  }, [reportType, today, getDefaultDates]);
+    const reportTypeChanged = reportType !== initialReportType;
+
+    if (!userHasSetDates || reportTypeChanged) {
+      const defaultDates = getDefaultDates(reportType);
+      setStartDate(defaultDates.start);
+      setEndDate(defaultDates.end);
+
+      // If report type changed, reset the user flag to allow future report type changes to work
+      if (reportTypeChanged) {
+        setUserHasSetDates(false);
+      }
+    }
+  }, [reportType, getDefaultDates, userHasSetDates, initialReportType]);
 
   const relocationSelectLabels: Record<TranslocationOption, string> = useMemo(() => ({
     NONE: 'Birthplace (no relocation)',
@@ -549,8 +563,14 @@ export default function MathBrainPage() {
       if (typeof saved.includePersonB === 'boolean') setIncludePersonB(saved.includePersonB);
       if (saved.mode) setMode(normalizeReportMode(saved.mode));
       if (saved.step) setStep(saved.step);
-      if (saved.startDate) setStartDate(saved.startDate);
-      if (saved.endDate) setEndDate(saved.endDate);
+      if (saved.startDate) {
+        setStartDate(saved.startDate);
+        setUserHasSetDates(true);
+      }
+      if (saved.endDate) {
+        setEndDate(saved.endDate);
+        setUserHasSetDates(true);
+      }
       if (saved.relationshipType) setRelationshipType(saved.relationshipType);
       if (typeof saved.exEstranged === 'boolean') setExEstranged(saved.exEstranged);
       if (typeof saved.relationshipNotes === 'string') setRelationshipNotes(saved.relationshipNotes);
@@ -1052,8 +1072,14 @@ export default function MathBrainPage() {
 
         if (data.period) {
           const pr = data.period;
-          if (pr.start) setStartDate(String(pr.start));
-          if (pr.end) setEndDate(String(pr.end));
+          if (pr.start) {
+            setStartDate(String(pr.start));
+            setUserHasSetDates(true);
+          }
+          if (pr.end) {
+            setEndDate(String(pr.end));
+            setUserHasSetDates(true);
+          }
           if (pr.step) setStep(String(pr.step).toLowerCase());
         }
 
@@ -1072,8 +1098,14 @@ export default function MathBrainPage() {
         if (typeof data.includePersonB === 'boolean') setIncludePersonB(data.includePersonB);
         if (data.mode) setMode(normalizeReportMode(data.mode));
         if (data.step) setStep(data.step);
-        if (data.startDate) setStartDate(data.startDate);
-        if (data.endDate) setEndDate(data.endDate);
+        if (data.startDate) {
+          setStartDate(data.startDate);
+          setUserHasSetDates(true);
+        }
+        if (data.endDate) {
+          setEndDate(data.endDate);
+          setUserHasSetDates(true);
+        }
         if (typeof data.exEstranged === 'boolean') setExEstranged(data.exEstranged);
         if (typeof data.relationshipNotes === 'string') setRelationshipNotes(data.relationshipNotes);
         if (typeof data.relationshipTier === 'string') setRelationshipTier(data.relationshipTier);
@@ -2250,7 +2282,10 @@ export default function MathBrainPage() {
                         type="date"
                         className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                         value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
+                        onChange={(e) => {
+                          setStartDate(e.target.value);
+                          setUserHasSetDates(true);
+                        }}
                       />
                     </div>
                     <div>
@@ -2260,7 +2295,10 @@ export default function MathBrainPage() {
                         type="date"
                         className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                         value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
+                        onChange={(e) => {
+                          setEndDate(e.target.value);
+                          setUserHasSetDates(true);
+                        }}
                       />
                     </div>
                     <div>
