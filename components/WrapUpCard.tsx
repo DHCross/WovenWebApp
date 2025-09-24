@@ -212,34 +212,31 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
 
   const handleExportPDF = async () => {
     try {
-      // Check if html2pdf is available (it should be loaded from the types file)
-      if (typeof window !== 'undefined' && (window as any).html2pdf) {
-        const element = document.querySelector('.wrap-up-card');
-        if (element) {
-          const opt = {
-            margin: 0.5,
-            filename: `raven-wrapup-${new Date().toISOString().slice(0,10)}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-          };
+      // Dynamically import html2pdf.js
+      const html2pdf = (await import('html2pdf.js')).default;
 
-          await (window as any).html2pdf().from(element).set(opt).save();
-          setToast('PDF exported successfully');
-          setTimeout(() => setToast(null), 2500);
-          logEvent('pdf_export_success', { sessionId: sessionId || pingTracker.getCurrentSessionId() });
-        }
-      } else {
-        // Fallback: just export the JSON data
-        setToast('PDF export not available. Exporting JSON instead...');
-        setTimeout(() => {
-          setToast(null);
-          handleExportJSON();
-        }, 1500);
+      const element = document.querySelector('.wrap-up-card');
+      if (element) {
+        const opt = {
+          margin: 0.5,
+          filename: `raven-wrapup-${new Date().toISOString().slice(0,10)}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        await html2pdf().from(element).set(opt).save();
+        setToast('PDF exported successfully');
+        setTimeout(() => setToast(null), 2500);
+        logEvent('pdf_export_success', { sessionId: sessionId || pingTracker.getCurrentSessionId() });
       }
     } catch (error) {
-      setToast('PDF export failed. Please try again.');
-      setTimeout(() => setToast(null), 2500);
+      // Fallback: just export the JSON data
+      setToast('PDF export not available. Exporting JSON instead...');
+      setTimeout(() => {
+        setToast(null);
+        handleExportJSON();
+      }, 1500);
       logEvent('pdf_export_failed', { error: String(error) });
     }
   };

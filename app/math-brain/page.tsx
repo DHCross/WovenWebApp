@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseCoordinates, formatDecimal } from "../../src/coords";
 // AuthProvider removed - auth handled globally by HomeHero component
 import { needsLocation, isTimeUnknown } from "../../lib/relocation";
@@ -112,8 +112,21 @@ export default function MathBrainPage() {
 
   const today = useMemo(() => new Date(), []);
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
-  const defaultStart = fmt(today);
-  const defaultEnd = fmt(new Date(today.getTime() + 6 * 24 * 60 * 60 * 1000));
+
+  // Different default date ranges for different report types
+  const getDefaultDates = useCallback((reportType: 'balance' | 'mirror') => {
+    if (reportType === 'balance') {
+      // Balance reports use a 30-day range for better health correlation data
+      const start = fmt(today);
+      const end = fmt(new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000));
+      return { start, end };
+    } else {
+      // Mirror reports use a 7-day range
+      const start = fmt(today);
+      const end = fmt(new Date(today.getTime() + 6 * 24 * 60 * 60 * 1000));
+      return { start, end };
+    }
+  }, [today, fmt]);
 
   const [personA, setPersonA] = useState<Subject>({
     name: "Dan",
@@ -135,8 +148,8 @@ export default function MathBrainPage() {
   const [aCoordsError, setACoordsError] = useState<string | null>(null);
   const [aCoordsValid, setACoordsValid] = useState<boolean>(true);
 
-  const [startDate, setStartDate] = useState<string>(defaultStart);
-  const [endDate, setEndDate] = useState<string>(defaultEnd);
+  const [startDate, setStartDate] = useState<string>(() => getDefaultDates('mirror').start);
+  const [endDate, setEndDate] = useState<string>(() => getDefaultDates('mirror').end);
   const [mode, setMode] = useState<ReportMode>('NATAL_ONLY');
   const [step, setStep] = useState<string>("daily");
   const [loading, setLoading] = useState(false);
@@ -340,6 +353,13 @@ export default function MathBrainPage() {
       return prev;
     });
   }, [includeTransits, isDyadMode, mode, reportType]);
+
+  // Update date range when report type changes
+  useEffect(() => {
+    const defaultDates = getDefaultDates(reportType);
+    setStartDate(defaultDates.start);
+    setEndDate(defaultDates.end);
+  }, [reportType, today, getDefaultDates]);
 
   const relocationSelectLabels: Record<TranslocationOption, string> = useMemo(() => ({
     NONE: 'Birthplace (no relocation)',
