@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseCoordinates, formatDecimal } from "../../src/coords";
 // AuthProvider removed - auth handled globally by HomeHero component
 import { needsLocation, isTimeUnknown } from "../../lib/relocation";
+import { sanitizeReportForPDF, sanitizeForPDF } from "../../src/pdf-sanitizer";
+import { ContractLinter } from "../../src/contract-linter";
+import { renderShareableMirror } from "../../lib/raven/render";
 
 export const dynamic = "force-dynamic";
 
@@ -691,7 +694,7 @@ export default function MathBrainPage() {
     try { window.print(); } catch {/* noop */}
   }
 
-  // Generate a text-based PDF so downstream tools (including Poetic Brain) can parse content
+  // Generate a text-based PDF with schema rule-patch compliance and sanitization
   async function downloadResultPDF() {
     if (!result) {
       setToast('No report available to export');
@@ -715,25 +718,148 @@ export default function MathBrainPage() {
           .trim();
       }
 
+      // Determine report mode based on type and data
+      const reportMode = reportType === 'balance' ? 'balance' : 'natal-only';
+
+      // Apply schema rule-patch validation and compliance
+      let processedResult = result;
+      let contractCompliant = false;
+      let lintReport = '';
+
+      try {
+        // Attempt to render with new schema system for compliance
+        const mirrorResult = await renderShareableMirror({
+          geo: null,
+          prov: { source: 'pdf-export' },
+          mode: reportMode as any,
+          options: {
+            mode: reportMode,
+            person_a: result.person_a,
+            indices: result.person_a?.chart?.transitsByDate ? {
+              days: Object.values(result.person_a.chart.transitsByDate).map((entry: any) => ({
+                date: entry.date || new Date().toISOString().slice(0, 10),
+                magnitude: entry.seismograph?.magnitude,
+                volatility: entry.seismograph?.volatility,
+                sf_diff: entry.sfd?.sfd_cont
+              })).filter(day => day.magnitude || day.volatility || day.sf_diff)
+            } : null,
+            ...result
+          }
+        });
+
+        if (mirrorResult.contract && mirrorResult.mode) {
+          processedResult = {
+            ...result,
+            contract_compliance: {
+              contract: mirrorResult.contract,
+              mode: mirrorResult.mode,
+              frontstage_policy: mirrorResult.frontstage_policy,
+              backstage: mirrorResult.backstage
+            },
+            schema_enforced_render: {
+              picture: mirrorResult.picture,
+              feeling: mirrorResult.feeling,
+              container: mirrorResult.container,
+              option: mirrorResult.option,
+              next_step: mirrorResult.next_step,
+              symbolic_weather: mirrorResult.symbolic_weather
+            }
+          };
+          contractCompliant = true;
+        }
+      } catch (error) {
+        console.warn('Schema rule-patch rendering failed, using legacy data:', error);
+      }
+
+      // Run contract linting for diagnostics
+      try {
+        const lintResult = ContractLinter.lint({
+          mode: reportMode,
+          ...result
+        });
+        lintReport = ContractLinter.generateReport(lintResult);
+      } catch (error) {
+        console.warn('Contract linting failed:', error);
+      }
+
       const reportKind = reportType === 'balance' ? 'Balance Meter' : 'Mirror';
       const generatedAt = new Date();
+
+      // Sanitize all text content for PDF
+      const sanitizedReport = sanitizeReportForPDF({
+        renderedText,
+        rawJSON: processedResult,
+        title: `Woven Web App — ${reportKind} Report`,
+        sections: []
+      });
+
       const sections: Array<{ title: string; body: string; mode: 'regular' | 'mono' }> = [];
 
-      if (renderedText) {
-        sections.push({ title: 'Rendered Summary', body: renderedText, mode: 'regular' });
+      // Add contract compliance section if available
+      if (contractCompliant) {
+        const complianceText = `
+Contract: ${processedResult.contract_compliance?.contract || 'clear-mirror/1.3'}
+Mode: ${processedResult.contract_compliance?.mode || reportMode}
+Frontstage Policy: ${JSON.stringify(processedResult.contract_compliance?.frontstage_policy || {}, null, 2)}
+
+Schema-Enforced Render:
+• Picture: ${processedResult.schema_enforced_render?.picture || 'N/A'}
+• Container: ${processedResult.schema_enforced_render?.container || 'N/A'}
+• Symbolic Weather: ${processedResult.schema_enforced_render?.symbolic_weather || 'Suppressed in natal-only mode'}
+• Option: ${processedResult.schema_enforced_render?.option || 'N/A'}
+• Next Step: ${processedResult.schema_enforced_render?.next_step || 'N/A'}
+
+Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringify(processedResult.contract_compliance.backstage, null, 2) : 'None'}
+        `.trim();
+
+        sections.push({
+          title: 'Schema Rule-Patch Compliance',
+          body: sanitizeForPDF(complianceText),
+          mode: 'regular'
+        });
       }
+
+      // Add rendered summary if available
+      if (sanitizedReport.renderedText) {
+        sections.push({
+          title: 'Rendered Summary',
+          body: sanitizedReport.renderedText,
+          mode: 'regular'
+        });
+      }
+
+      // Add contract lint report if available
+      if (lintReport) {
+        sections.push({
+          title: 'Contract Validation Report',
+          body: sanitizeForPDF(lintReport),
+          mode: 'regular'
+        });
+      }
+
+      // Add sanitized raw JSON
       sections.push({
-        title: 'Raw JSON Snapshot',
-        body: JSON.stringify(result, null, 2),
+        title: 'Raw JSON Snapshot (Sanitized)',
+        body: sanitizedReport.rawJSON || '{}',
         mode: 'mono',
       });
 
       const pdfDoc = await PDFDocument.create();
-      pdfDoc.setTitle(`Woven Web App — ${reportKind} Report`);
-      pdfDoc.setSubject('Math Brain geometry export');
+      const titleSuffix = contractCompliant ? ' (Schema Compliant)' : '';
+      pdfDoc.setTitle(sanitizeForPDF(`Woven Web App — ${reportKind} Report${titleSuffix}`));
+      pdfDoc.setSubject(sanitizeForPDF('Math Brain geometry export with schema rule-patch enforcement'));
       pdfDoc.setAuthor('Woven Web App');
       pdfDoc.setCreationDate(generatedAt);
       pdfDoc.setModificationDate(generatedAt);
+      if (contractCompliant) {
+        pdfDoc.setKeywords([
+          'astrology',
+          'schema-compliant',
+          `mode-${reportMode}`,
+          'clear-mirror-1.3',
+          'contract-validated'
+        ]);
+      }
 
       const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
       const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -764,13 +890,15 @@ export default function MathBrainPage() {
       ) => {
         const { font, size, color = rgb(0.1, 0.1, 0.1), gap = 4, xOffset = 0 } = options;
         ensureSpace(size + gap);
-        page.drawText(text, { x: margin + xOffset, y: cursorY, size, font, color });
+        // Sanitize text before drawing to prevent PDF encoding errors
+        const sanitizedText = sanitizeForPDF(text);
+        page.drawText(sanitizedText, { x: margin + xOffset, y: cursorY, size, font, color });
         cursorY -= size + gap;
       };
 
       const wrapRegular = (input: string) => {
         const lines: string[] = [];
-        const text = input.replace(/\s+/g, ' ').trim();
+        const text = sanitizeForPDF(input).replace(/\s+/g, ' ').trim();
         if (!text) {
           lines.push('');
           return lines;
@@ -823,7 +951,8 @@ export default function MathBrainPage() {
       };
 
       const writeMonospace = (text: string) => {
-        const normalized = text.replace(/\r/g, '');
+        const sanitized = sanitizeForPDF(text);
+        const normalized = sanitized.replace(/\r/g, '');
         const lines = normalized.split('\n');
         const charWidth = monoFont.widthOfTextAtSize('M', monoSize) || monoSize * 0.6;
         const maxChars = Math.max(1, Math.floor(maxWidth / charWidth));

@@ -1,10 +1,14 @@
 import type { NormalizedGeometry, NormalizedPlacement, NormalizedAspect } from './normalize';
+import { ContractLinter, lintAndFixPayload } from '../../src/contract-linter';
+import { renderFrontstage as renderFrontstageNew, validatePayload } from '../../src/frontstage-renderer';
+import { ReportMode } from '../../src/schema-rule-patch';
 
 interface RenderOptions {
   geo: NormalizedGeometry | null;
   prov: Record<string, any>;
   options?: Record<string, any>;
   conversational?: boolean;
+  mode?: ReportMode;
 }
 
 const ELEMENT_TONES: Record<'Fire' | 'Earth' | 'Air' | 'Water', { feeling: string; option: string; next: string }> = {
@@ -315,10 +319,67 @@ function isSimpleGreeting(message: string): boolean {
 /**
  * Renders a "Shareable Mirror" draft in the standard Raven Calder format.
  * (picture → feeling → container → option → next step)
+ * Now supports the new schema rule-patch system for mode-specific rendering.
  * @param {RenderOptions} params - The rendering parameters.
  * @returns A structured draft object.
  */
-export async function renderShareableMirror({ geo, prov, options, conversational = false }: RenderOptions): Promise<Record<string, any>> {
+export async function renderShareableMirror({ geo, prov, options, conversational = false, mode }: RenderOptions): Promise<Record<string, any>> {
+  // NEW: Schema rule-patch integration for mode-specific rendering
+  if (mode && ['natal-only', 'balance', 'relational-balance', 'relational-mirror'].includes(mode)) {
+    try {
+      // Construct payload with all available data
+      const payload = {
+        mode,
+        person_a: options?.person_a || null,
+        indices: options?.indices || null,
+        geo: geo,
+        provenance: prov,
+        natal_summary: options?.natal_summary || null,
+        // Add any other fields from options
+        ...options
+      };
+
+      // Lint and validate the payload
+      const { payload: cleanedPayload, result: lintResult } = lintAndFixPayload(payload);
+
+      // Log lint results if there are warnings or errors
+      if (lintResult.warnings.length > 0 || lintResult.errors.length > 0) {
+        console.log('Contract Lint Report:', ContractLinter.generateReport(lintResult));
+      }
+
+      // If validation fails completely, fall back to legacy rendering
+      if (!lintResult.valid) {
+        console.warn('Schema validation failed, falling back to legacy rendering');
+      } else {
+        // Use new frontstage renderer
+        const frontstage = await renderFrontstageNew(cleanedPayload);
+
+        // Return new format with contract compliance
+        return {
+          contract: cleanedPayload.contract || 'clear-mirror/1.3',
+          mode: cleanedPayload.mode,
+          frontstage_policy: cleanedPayload.frontstage_policy,
+          picture: frontstage.blueprint,
+          feeling: 'Schema-compliant rendering active',
+          container: frontstage.stitched_reflection,
+          option: 'Use this as a natal baseline—track themes over the next few days',
+          next_step: 'Log one lived moment where this pattern shows up today',
+          symbolic_weather: frontstage.symbolic_weather,
+          backstage: cleanedPayload.backstage,
+          appendix: {
+            geometry_summary: geo ? `Placements parsed: ${geo.placements?.length || 0} · Aspects parsed: ${geo.aspects?.length || 0}` : 'No geometry data',
+            provenance_source: prov?.source,
+            contract_validation: lintResult,
+            mode_enforcement: mode
+          }
+        };
+      }
+    } catch (error) {
+      console.warn('New rendering system failed, falling back to legacy:', error);
+    }
+  }
+
+  // LEGACY: Original rendering logic (conversational mode and geometry-based)
   // If conversational mode is requested, call the LLM to produce an uncanned, natural-language response
   if (conversational) {
     const userMessage = options?.userMessage || '';
