@@ -2479,7 +2479,28 @@ export default function MathBrainPage() {
               {includeTransits && step === 'weekly' && (
                 <div className="mt-2 flex items-center gap-3">
                   <span className="text-xs text-slate-400">Weekly aggregation</span>
-                  <button type="button" className="h-5 w-5 rounded-full border border-slate-600 text-[11px] text-slate-300 hover:bg-slate-700/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Mean = average of daily values per week; Max = highest daily value per week" aria-label="Help: Weekly aggregation semantics">?</button>
+                  <div className="relative group">
+                    <button type="button" className="h-5 w-5 rounded-full border border-slate-600 text-[11px] text-slate-300 hover:bg-slate-700/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" aria-label="Help: Weekly aggregation semantics">?</button>
+                    <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white text-xs rounded-lg py-3 px-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none border border-slate-700 shadow-lg z-50" style={{width: '280px'}}>
+                      <div>
+                        <div className="font-semibold mb-2 text-indigo-300">Weekly Aggregation Methods</div>
+                        <div className="space-y-2">
+                          <div>
+                            <strong className="text-green-300">Mean:</strong> Average of daily values per week
+                            <div className="text-slate-400 text-[10px] mt-0.5">Best for understanding typical weekly patterns</div>
+                          </div>
+                          <div>
+                            <strong className="text-orange-300">Max:</strong> Highest daily value per week
+                            <div className="text-slate-400 text-[10px] mt-0.5">Best for tracking peak intensity moments</div>
+                          </div>
+                        </div>
+                        <div className="text-slate-400 text-[10px] mt-2 pt-2 border-t border-slate-700">
+                          For seismograph analysis: Mean shows flow, Max shows spikes
+                        </div>
+                      </div>
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900"></div>
+                    </div>
+                  </div>
                   <div role="group" aria-label="Weekly aggregation" className="inline-flex overflow-hidden rounded-md border border-slate-700 bg-slate-800">
                     <button type="button" onClick={()=>setWeeklyAgg('mean')} className={`px-3 py-1 text-xs ${weeklyAgg==='mean' ? 'bg-indigo-600 text-white' : 'text-slate-200 hover:bg-slate-700'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}>Mean</button>
                     <button type="button" onClick={()=>setWeeklyAgg('max')} className={`px-3 py-1 text-xs ${weeklyAgg==='max' ? 'bg-indigo-600 text-white' : 'text-slate-200 hover:bg-slate-700'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}>Max</button>
