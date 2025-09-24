@@ -682,6 +682,53 @@ export default function MathBrainPage() {
     try { window.print(); } catch {/* noop */}
   }
 
+  const PDF_CHAR_REPLACEMENTS: Record<string, string> = {
+    '⚡': '[Magnitude]',
+    '🌓': '[Valence]',
+    '🔷': '[Volatility]',
+    '—': '--',
+    '–': '-',
+    '“': '"',
+    '”': '"',
+    '‘': "'",
+    '’': "'",
+    '…': '...',
+    '≈': '~',
+  };
+  const COMBINING_MARKS_REGEX = /[\u0300-\u036f]/g;
+
+  function sanitizeForPdf(input: string): string {
+    if (!input) return '';
+    let output = '';
+    for (const char of input.normalize('NFC')) {
+      if (char === '\r') continue;
+      if (char === ' ') {
+        output += ' ';
+        continue;
+      }
+      const mapped = PDF_CHAR_REPLACEMENTS[char];
+      if (mapped !== undefined) {
+        output += mapped;
+        continue;
+      }
+      const codePoint = char.codePointAt(0)!;
+      if (codePoint <= 0xff) {
+        output += char;
+        continue;
+      }
+      const decomposed = char
+        .normalize('NFKD')
+        .replace(COMBINING_MARKS_REGEX, '')
+        .trim();
+      if (decomposed && Array.from(decomposed).every((c) => (c.codePointAt(0) || 0) <= 0xff)) {
+        output += decomposed;
+        continue;
+      }
+      output += `[U+${codePoint.toString(16).toUpperCase().padStart(4, '0')}]`;
+    }
+    return output;
+  }
+
   // Generate a text-based PDF so downstream tools (including Poetic Brain) can parse content
   async function downloadResultPDF() {
     if (!result) {
@@ -701,7 +748,7 @@ export default function MathBrainPage() {
         printableHidden.forEach((el) => el.remove());
         clone.querySelectorAll('button, input, textarea, select').forEach((el) => el.remove());
         renderedText = clone.innerText
-          .replace(/\u00a0/g, ' ')
+          .replace(/ /g, ' ')
           .replace(/\n{3,}/g, '\n\n')
           .trim();
       }
@@ -710,12 +757,13 @@ export default function MathBrainPage() {
       const generatedAt = new Date();
       const sections: Array<{ title: string; body: string; mode: 'regular' | 'mono' }> = [];
 
-      if (renderedText) {
-        sections.push({ title: 'Rendered Summary', body: renderedText, mode: 'regular' });
+      const sanitizedRendered = sanitizeForPdf(renderedText);
+      if (sanitizedRendered) {
+        sections.push({ title: 'Rendered Summary', body: sanitizedRendered, mode: 'regular' });
       }
       sections.push({
         title: 'Raw JSON Snapshot',
-        body: JSON.stringify(result, null, 2),
+        body: sanitizeForPdf(JSON.stringify(result, null, 2)),
         mode: 'mono',
       });
 
@@ -754,14 +802,15 @@ export default function MathBrainPage() {
         options: { font: any; size: number; color?: ReturnType<typeof rgb>; gap?: number; xOffset?: number },
       ) => {
         const { font, size, color = rgb(0.1, 0.1, 0.1), gap = 4, xOffset = 0 } = options;
+        const safeText = sanitizeForPdf(text);
         ensureSpace(size + gap);
-        page.drawText(text, { x: margin + xOffset, y: cursorY, size, font, color });
+        page.drawText(safeText, { x: margin + xOffset, y: cursorY, size, font, color });
         cursorY -= size + gap;
       };
 
       const wrapRegular = (input: string) => {
         const lines: string[] = [];
-        const text = input.replace(/\s+/g, ' ').trim();
+        const text = sanitizeForPdf(input).replace(/\s+/g, ' ').trim();
         if (!text) {
           lines.push('');
           return lines;
@@ -793,7 +842,7 @@ export default function MathBrainPage() {
       };
 
       const writeParagraph = (text: string) => {
-        const normalized = text.replace(/\r/g, '');
+        const normalized = sanitizeForPdf(text);
         const chunks = normalized.split(/\n+/);
         for (const chunk of chunks) {
           const trimmed = chunk.trim();
@@ -814,7 +863,7 @@ export default function MathBrainPage() {
       };
 
       const writeMonospace = (text: string) => {
-        const normalized = text.replace(/\r/g, '');
+        const normalized = sanitizeForPdf(text);
         const lines = normalized.split('\n');
         const charWidth = monoFont.widthOfTextAtSize('M', monoSize) || monoSize * 0.6;
         const maxChars = Math.max(1, Math.floor(maxWidth / charWidth));
