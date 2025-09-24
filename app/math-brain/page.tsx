@@ -892,6 +892,218 @@ export default function MathBrainPage() {
     } catch {/* noop */}
   }
 
+  function persistSessionArtifacts(data: any) {
+    if (typeof window === 'undefined' || !data) return;
+
+    const toNumber = (value: any): number | undefined => {
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+      if (typeof value === 'string') {
+        const parsed = Number(value);
+        if (!Number.isNaN(parsed)) return parsed;
+      }
+      if (value && typeof value === 'object') {
+        if (typeof value.value === 'number' && Number.isFinite(value.value)) return value.value;
+        if (typeof value.mean === 'number' && Number.isFinite(value.mean)) return value.mean;
+        if (typeof value.score === 'number' && Number.isFinite(value.score)) return value.score;
+      }
+      return undefined;
+    };
+
+    const summarySource =
+      data?.balance_meter?.channel_summary ||
+      data?.person_a?.derived?.seismograph_summary ||
+      data?.summary?.balance_meter ||
+      null;
+
+    const magnitude = toNumber(summarySource?.magnitude ?? summarySource?.magnitude_value);
+    const valence = toNumber(
+      summarySource?.valence_bounded ?? summarySource?.valence ?? summarySource?.valence_mean,
+    );
+    const volatility = toNumber(summarySource?.volatility);
+    const hasSummary =
+      summarySource && [magnitude, valence, volatility].some((value) => typeof value === 'number');
+
+    const hasDailySeries = Boolean(
+      data?.person_a?.chart?.transitsByDate &&
+        Object.keys(data.person_a.chart.transitsByDate || {}).length > 0,
+    );
+
+    const summaryForResume = hasSummary && hasDailySeries
+      ? {
+          magnitude: typeof magnitude === 'number' ? magnitude : 0,
+          valence: typeof valence === 'number' ? valence : 0,
+          volatility: typeof volatility === 'number' ? volatility : 0,
+          magnitudeLabel:
+            summarySource?.magnitude_label ??
+            (typeof magnitude === 'number'
+              ? magnitude >= 3
+                ? 'Surge'
+                : magnitude >= 1
+                  ? 'Active'
+                  : 'Calm'
+              : undefined),
+          valenceLabel:
+            summarySource?.valence_label ??
+            (typeof valence === 'number'
+              ? valence > 0.5
+                ? 'Supportive'
+                : valence < -0.5
+                  ? 'Challenging'
+                  : 'Mixed'
+              : undefined),
+          volatilityLabel:
+            summarySource?.volatility_label ??
+            (typeof volatility === 'number'
+              ? volatility >= 3
+                ? 'Scattered'
+                : volatility >= 1
+                  ? 'Variable'
+                  : 'Stable'
+              : undefined),
+        }
+      : undefined;
+
+    try {
+      const sessionPayload: Record<string, any> = {
+        createdAt: new Date().toISOString(),
+        from: 'math-brain',
+        inputs: {
+          mode,
+          step,
+          reportType,
+          startDate,
+          endDate,
+          includePersonB,
+          includeTransits,
+          translocation,
+          contactState,
+          relationship: {
+            type: relationshipType,
+            intimacy_tier: relationshipType === 'PARTNER' ? relationshipTier || undefined : undefined,
+            role: relationshipType !== 'PARTNER' ? relationshipRole || undefined : undefined,
+            contact_state: contactState,
+            ex_estranged: relationshipType === 'FRIEND' ? undefined : exEstranged,
+            notes: relationshipNotes || undefined,
+          },
+          personA: {
+            name: personA.name,
+            timezone: personA.timezone,
+            city: personA.city,
+            state: personA.state,
+          },
+          ...(includePersonB
+            ? {
+                personB: {
+                  name: personB.name,
+                  timezone: personB.timezone,
+                  city: personB.city,
+                  state: personB.state,
+                },
+              }
+            : {}),
+        },
+        resultPreview: { hasDaily: hasDailySeries },
+      };
+      if (summaryForResume) {
+        sessionPayload.summary = summaryForResume;
+      }
+      window.localStorage.setItem('mb.lastSession', JSON.stringify(sessionPayload));
+    } catch (error) {
+      console.error('Failed to persist Math Brain session resume data', error);
+    }
+
+    if (reportType !== 'mirror') {
+      return;
+    }
+
+    try {
+      const birthDate = (() => {
+        const y = Number(personA.year);
+        const m = Number(personA.month);
+        const d = Number(personA.day);
+        if (![y, m, d].every((n) => Number.isFinite(n))) return undefined;
+        return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      })();
+      const birthTime = (() => {
+        if (allowUnknownA) return 'Unknown (planetary-only)';
+        const hour = Number(personA.hour);
+        const minute = Number(personA.minute);
+        if (![hour, minute].every((n) => Number.isFinite(n))) return undefined;
+        return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+      })();
+      const locationParts = [personA.city, personA.state]
+        .map((value) => (typeof value === 'string' ? value.trim() : ''))
+        .filter(Boolean);
+      const baseLocation = locationParts.join(', ');
+      const birthLocation = baseLocation
+        ? personA.timezone
+          ? `${baseLocation} (${personA.timezone})`
+          : baseLocation
+        : personA.timezone || undefined;
+
+      const contextPieces: string[] = [];
+      contextPieces.push('Math Brain mirror geometry');
+      if (includeTransits && startDate && endDate) {
+        contextPieces.push(`Window ${startDate} → ${endDate}`);
+      }
+      if (RELATIONAL_MODES.includes(mode)) {
+        contextPieces.push(mode.replace(/_/g, ' '));
+      }
+      if (includePersonB && personB.name) {
+        contextPieces.push(`with ${personB.name}`);
+      }
+      if (translocation && translocation !== 'NONE') {
+        contextPieces.push(`Relocation ${translocation}`);
+      }
+      if (relocLabel) {
+        contextPieces.push(relocLabel);
+      }
+
+      const meta: Record<string, any> = {
+        timestamp: new Date().toISOString(),
+        reportType,
+        mode,
+        context: contextPieces.filter(Boolean).join(' · ') || 'Mirror geometry ready for interpretation',
+        person: {
+          name: personA.name?.trim() || undefined,
+          birthDate,
+          birthTime,
+          birthLocation,
+        },
+      };
+      if (hasSummary) {
+        meta.summary = {
+          ...(typeof magnitude === 'number' ? { magnitude } : {}),
+          ...(typeof valence === 'number' ? { valence } : {}),
+          ...(typeof volatility === 'number' ? { volatility } : {}),
+          ...(summarySource?.magnitude_label ? { magnitudeLabel: summarySource.magnitude_label } : {}),
+          ...(summarySource?.valence_label ? { valenceLabel: summarySource.valence_label } : {}),
+          ...(summarySource?.volatility_label ? { volatilityLabel: summarySource.volatility_label } : {}),
+        };
+      }
+      if (includeTransits && startDate && endDate) {
+        meta.window = { start: startDate, end: endDate, step };
+      }
+      if (includePersonB && personB.name) {
+        meta.partner = { name: personB.name?.trim() || undefined };
+      }
+      if (relocLabel || (translocation && translocation !== 'NONE')) {
+        meta.relocation = {
+          ...(relocLabel ? { label: relocLabel } : {}),
+          ...(relocTz ? { tz: relocTz } : {}),
+          ...(translocation && translocation !== 'NONE' ? { mode: translocation } : {}),
+        };
+      }
+
+      window.sessionStorage.setItem(
+        'woven_report_for_raven',
+        JSON.stringify({ meta, reportData: data }),
+      );
+    } catch (error) {
+      console.error('Failed to stage Math Brain report for Raven', error);
+    }
+  }
+
   // Shared: Save current setup to JSON
   type SaveWhich = 'AUTO' | 'A_ONLY' | 'A_B';
   function handleSaveSetupJSON(which: SaveWhich = 'AUTO') {
@@ -1360,6 +1572,7 @@ export default function MathBrainPage() {
       }
       // Always store result to enable downloads for both report types
       setResult(data);
+      persistSessionArtifacts(data);
       // Optional: store a quick meta view to guide banners
       try {
         const metaA = (data?.person_a?.meta) || (data?.provenance?.time_meta_a);
