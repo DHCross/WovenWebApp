@@ -299,7 +299,7 @@ export default function MathBrainPage() {
 
   // Session memory flags
   const [hasSavedInputs, setHasSavedInputs] = useState<boolean>(false);
-  const [saveForNextSession, setSaveForNextSession] = useState<boolean>(true);
+  const [saveForNextSession, setSaveForNextSession] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   // Shared file input ref for bottom Session Presets box
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -589,6 +589,8 @@ export default function MathBrainPage() {
         setTranslocation(normalizeTranslocationOption(saved.translocation));
       }
 
+      // Hide the resume prompt after successful load
+      setHasSavedInputs(false);
     } catch {/* noop */}
   }
 
