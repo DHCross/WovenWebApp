@@ -59,7 +59,221 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
   }, [sessionId]);
 
   const totalScore = rubricScores.pressure + rubricScores.outlet + rubricScores.conflict + rubricScores.tone + rubricScores.surprise;
-  const scoreBand = totalScore >= 13 ? 'Strong signal' : totalScore >= 10 ? 'Some clear hits' : totalScore >= 6 ? 'Mild resonance' : 'Didn’t land';
+  const scoreBand = totalScore >= 13 ? 'Strong signal' : totalScore >= 10 ? 'Some clear hits' : totalScore >= 6 ? 'Mild resonance' : 'Didn\'t land';
+
+  // Enhanced PDF content creation with better formatting
+  const createEnhancedPDFContent = async (): Promise<HTMLElement> => {
+    const container = document.createElement('div');
+    container.style.cssText = `
+      font-family: 'Times New Roman', serif;
+      max-width: 8in;
+      margin: 0 auto;
+      padding: 0.5in;
+      background: white;
+      color: #1a1a1a;
+      line-height: 1.6;
+    `;
+
+    const currentSessionId = sessionId || pingTracker.getCurrentSessionId();
+    const exportDate = new Date();
+
+    container.innerHTML = `
+      <div style="text-align: center; border-bottom: 2px solid #4338ca; padding-bottom: 0.5in; margin-bottom: 0.5in;">
+        <h1 style="color: #4338ca; font-size: 24pt; margin: 0; font-weight: bold;">
+          Raven Calder Session Report
+        </h1>
+        <p style="color: #666; font-size: 12pt; margin: 0.2in 0;">
+          Session ID: ${currentSessionId} | Export Date: ${exportDate.toLocaleDateString()} ${exportDate.toLocaleTimeString()}
+        </p>
+      </div>
+
+      ${composite ? `
+        <div style="margin-bottom: 0.4in;">
+          <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">
+            Actor/Role Composite Analysis
+          </h2>
+          <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px; border-left: 4px solid #4338ca;">
+            <h3 style="color: #1f2937; font-size: 16pt; margin: 0 0 0.15in 0;">
+              ${composite.composite}
+            </h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.2in; margin-bottom: 0.15in;">
+              <div>
+                <strong>Actor (Driver):</strong> ${composite.actor}<br>
+                <strong>Role (Style):</strong> ${composite.role}
+              </div>
+              <div>
+                <strong>Confidence:</strong> ${(composite.confidence * 100).toFixed(1)}% (${composite.confidenceBand})<br>
+                <strong>Sample Size:</strong> ${composite.sampleSize || 'N/A'} interactions
+              </div>
+            </div>
+            ${composite.siderealDrift ? `
+              <div style="background: #fef3c7; padding: 0.15in; border-radius: 4px; border-left: 3px solid #f59e0b;">
+                <strong>Sidereal Drift Detected:</strong> ${composite.driftBand} (${(composite.driftIndex || 0 * 100).toFixed(1)}%)
+                <br><small>Evidence from ${composite.evidenceN || 0} OSR probes</small>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      ` : ''}
+
+      ${sessionStats ? `
+        <div style="margin-bottom: 0.4in;">
+          <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">
+            Session Statistics
+          </h2>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.2in;">
+            <div style="text-align: center; background: #dcfce7; padding: 0.2in; border-radius: 6px;">
+              <div style="font-size: 20pt; font-weight: bold; color: #166534;">
+                ${sessionStats.wb || 0}
+              </div>
+              <div style="font-size: 10pt; color: #166534;">Works Beautifully</div>
+            </div>
+            <div style="text-align: center; background: #fef3c7; padding: 0.2in; border-radius: 6px;">
+              <div style="font-size: 20pt; font-weight: bold; color: #92400e;">
+                ${sessionStats.abe || 0}
+              </div>
+              <div style="font-size: 10pt; color: #92400e;">About But Enhanced</div>
+            </div>
+            <div style="text-align: center; background: #fee2e2; padding: 0.2in; border-radius: 6px;">
+              <div style="font-size: 20pt; font-weight: bold; color: #dc2626;">
+                ${sessionStats.osr || 0}
+              </div>
+              <div style="font-size: 10pt; color: #dc2626;">Off-Signal Response</div>
+            </div>
+          </div>
+          <div style="margin-top: 0.2in; text-align: center;">
+            <strong>Resonance Fidelity:</strong>
+            ${sessionStats.resonanceFidelity ? `${sessionStats.resonanceFidelity}%` : 'Calculating...'}
+            <span style="color: #666;">
+              (${sessionStats.resonanceBand || 'Pending'})
+            </span>
+          </div>
+        </div>
+      ` : ''}
+
+      ${rubricSealedSessionId ? `
+        <div style="margin-bottom: 0.4in;">
+          <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">
+            Session Rubric (Post-Session Assessment)
+          </h2>
+          <div style="background: #f1f5f9; padding: 0.3in; border-radius: 8px;">
+            <div style="margin-bottom: 0.2in;"><strong>Total Score:</strong> ${totalScore}/15 - ${scoreBand}</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.15in;">
+              <div>
+                <strong>Pressure/Tension:</strong> ${rubricScores.pressure}/3 ${rubricNulls.pressure ? '(Null)' : ''}<br>
+                <strong>Emotional Outlet:</strong> ${rubricScores.outlet}/3 ${rubricNulls.outlet ? '(Null)' : ''}<br>
+                <strong>Inner Conflict:</strong> ${rubricScores.conflict}/3 ${rubricNulls.conflict ? '(Null)' : ''}
+              </div>
+              <div>
+                <strong>Tone/Mood:</strong> ${rubricScores.tone}/3 ${rubricNulls.tone ? '(Null)' : ''}<br>
+                <strong>Surprise Factor:</strong> ${rubricScores.surprise}/3 ${rubricNulls.surprise ? '(Null)' : ''}
+              </div>
+            </div>
+          </div>
+        </div>
+      ` : ''}
+
+      <div style="margin-bottom: 0.4in;">
+        <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">
+          Session Overview
+        </h2>
+        <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
+          <p><strong>Session Duration:</strong> ${sessionStats?.interactionCount ? `${sessionStats.interactionCount} interactions` : 'In progress'}</p>
+          <p><strong>Communication Patterns:</strong> ${sessionStats?.totalPatterns || 0} patterns analyzed</p>
+          <p><strong>Engagement Level:</strong> ${sessionStats?.engagementLevel || 'High'}</p>
+          ${sessionStats?.sessionNotes ? `<p><strong>Notes:</strong> ${sessionStats.sessionNotes}</p>` : ''}
+        </div>
+      </div>
+
+      <div style="margin-top: 0.6in; padding-top: 0.3in; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 10pt;">
+        <p>Generated by Raven Calder • Woven Web Application • ${exportDate.toISOString()}</p>
+        <p style="font-style: italic;">"Here's what resonated, here's what didn't, here's what pattern Raven is tentatively guessing — but you remain the validator."</p>
+      </div>
+    `;
+
+    // Add to DOM temporarily for rendering
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    document.body.appendChild(container);
+
+    return container;
+  };
+
+  // CSV export function for analytical data
+  const handleExportCSV = async () => {
+    try {
+      const response = await fetch('/api/raven', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'export',
+          sessionId: sessionId || pingTracker.getCurrentSessionId()
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Create CSV content with richer data
+        const csvRows = [
+          ['Session Export - Analytical Data'],
+          ['Export Date', new Date().toISOString()],
+          ['Session ID', data.sessionId],
+          [''],
+          ['Metric', 'Value', 'Category', 'Notes'],
+          ['Works Beautifully (WB)', sessionStats?.wb || 0, 'Feedback', 'Positive resonance'],
+          ['About But Enhanced (ABE)', sessionStats?.abe || 0, 'Feedback', 'Partial resonance with refinement'],
+          ['Off-Signal Response (OSR)', sessionStats?.osr || 0, 'Feedback', 'No resonance'],
+          ['Resonance Fidelity', `${sessionStats?.resonanceFidelity || 0}%`, 'Calculated', 'Overall session alignment'],
+          [''],
+          ['Actor (Driver)', composite?.actor || 'Unknown', 'Detection', 'Sidereal motivation'],
+          ['Role (Style)', composite?.role || 'Unknown', 'Detection', 'Tropical presentation'],
+          ['Composite Pattern', composite?.composite || 'Unknown', 'Detection', 'Combined cipher'],
+          ['Detection Confidence', `${(composite?.confidence || 0) * 100}%`, 'Detection', composite?.confidenceBand || 'Unknown'],
+          ['Sample Size', composite?.sampleSize || 0, 'Detection', 'Interaction count'],
+          [''],
+          ['Sidereal Drift', composite?.siderealDrift ? 'Yes' : 'No', 'Advanced', 'OSR pattern analysis'],
+          ['Drift Strength', composite?.driftBand || 'None', 'Advanced', `${composite?.evidenceN || 0} probes`],
+          [''],
+        ];
+
+        // Add rubric data if available
+        if (rubricSealedSessionId) {
+          csvRows.push(['Rubric Assessment', '', '', '']);
+          csvRows.push(['Pressure/Tension', rubricScores.pressure, 'Rubric', rubricNulls.pressure ? 'Marked as Null' : '']);
+          csvRows.push(['Emotional Outlet', rubricScores.outlet, 'Rubric', rubricNulls.outlet ? 'Marked as Null' : '']);
+          csvRows.push(['Inner Conflict', rubricScores.conflict, 'Rubric', rubricNulls.conflict ? 'Marked as Null' : '']);
+          csvRows.push(['Tone/Mood', rubricScores.tone, 'Rubric', rubricNulls.tone ? 'Marked as Null' : '']);
+          csvRows.push(['Surprise Factor', rubricScores.surprise, 'Rubric', rubricNulls.surprise ? 'Marked as Null' : '']);
+          csvRows.push(['Total Rubric Score', `${totalScore}/15`, 'Rubric', scoreBand]);
+        }
+
+        const csvContent = csvRows.map(row =>
+          row.map(cell => `"${cell}"`).join(',')
+        ).join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `raven-session-${data.sessionId.slice(-8)}-analytics-${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        setToast('CSV analytics exported successfully');
+        setTimeout(() => setToast(null), 2500);
+        logEvent('csv_export_success', { sessionId: data.sessionId });
+      } else {
+        throw new Error('Export failed');
+      }
+    } catch (error) {
+      setToast('CSV export failed. Please try again.');
+      setTimeout(() => setToast(null), 2500);
+      logEvent('csv_export_failed', { error: String(error) });
+    }
+  };
 
   function ScoreSlider({ label, helper, keyName }:{ label:string; helper?:string; keyName:keyof typeof rubricScores }){
     const value = rubricScores[keyName];
@@ -177,14 +391,62 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
 
       if (response.ok) {
         const data = await response.json();
+        // Enhanced JSON export with comprehensive data
         const exportData = {
+          // Core session metadata
           sessionId: data.sessionId,
           exportDate: new Date().toISOString(),
-          composite,
-          sessionStats: data.scores,
-          sessionLog: data.log,
-          rubricScores: rubricSealedSessionId ? rubricScores : null,
-          rubricNulls: rubricSealedSessionId ? rubricNulls : null
+          exportVersion: '2.0',
+
+          // Actor/Role detection results
+          actorRoleComposite: composite ? {
+            ...composite,
+            exportNotes: 'Enhanced diagnostic matrix composite detection'
+          } : null,
+
+          // Session scoring and statistics
+          sessionStats: {
+            ...data.scores,
+            resonanceBand: data.scores?.resonanceBand || 'Unknown',
+            totalInteractions: data.scores?.interactionCount || 0,
+            sessionDuration: data.scores?.sessionDuration || null,
+            engagementMetrics: {
+              averageResponseTime: data.scores?.avgResponseTime || null,
+              longestPause: data.scores?.longestPause || null,
+              conversationFlow: data.scores?.conversationFlow || 'Natural'
+            }
+          },
+
+          // Rubric assessment (if completed)
+          rubricAssessment: rubricSealedSessionId ? {
+            scores: rubricScores,
+            nullFlags: rubricNulls,
+            totalScore: totalScore,
+            scoreBand: scoreBand,
+            completionDate: rubricSealedSessionId,
+            assessmentDuration: rubricStartTs ? Date.now() - rubricStartTs : null
+          } : null,
+
+          // Enhanced session log with metadata
+          sessionLog: {
+            ...data.log,
+            logProcessed: new Date().toISOString(),
+            totalEntries: data.log?.entries?.length || 0
+          },
+
+          // Export metadata
+          exportMetadata: {
+            ravenVersion: '1.3',
+            matrixVersion: 'Enhanced Diagnostic Matrix 8.16.25',
+            schemaVersion: 'WM-Chart-1.3-lite',
+            exportFeatures: [
+              'Actor/Role Detection',
+              'Resonance Scoring',
+              'Session Analytics',
+              'Rubric Assessment',
+              'Comprehensive Logging'
+            ]
+          }
         };
 
         const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -217,18 +479,41 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
 
       const element = document.querySelector('.wrap-up-card');
       if (element) {
+        // Create an enhanced version for PDF export with better formatting
+        const enhancedElement = await createEnhancedPDFContent();
+
         const opt = {
-          margin: 0.5,
-          filename: `raven-wrapup-${new Date().toISOString().slice(0,10)}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2 },
-          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+          margin: 0.75,
+          filename: `raven-wrapup-${sessionId?.slice(-8) || 'session'}-${new Date().toISOString().slice(0,10)}.pdf`,
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            allowTaint: false,
+            backgroundColor: '#ffffff',
+            scrollX: 0,
+            scrollY: 0
+          },
+          jsPDF: {
+            unit: 'in',
+            format: 'letter',
+            orientation: 'portrait',
+            putOnlyUsedFonts: true,
+            compress: true
+          }
         };
 
-        await html2pdf().from(element).set(opt).save();
-        setToast('PDF exported successfully');
+        await html2pdf().from(enhancedElement).set(opt).save();
+
+        // Clean up the temporary element
+        document.body.removeChild(enhancedElement);
+
+        setToast('Enhanced PDF exported successfully');
         setTimeout(() => setToast(null), 2500);
-        logEvent('pdf_export_success', { sessionId: sessionId || pingTracker.getCurrentSessionId() });
+        logEvent('pdf_export_success', {
+          sessionId: sessionId || pingTracker.getCurrentSessionId(),
+          exportType: 'enhanced_pdf'
+        });
       }
     } catch (error) {
       // Fallback: just export the JSON data
@@ -546,16 +831,23 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
           <button
             className="btn export-btn"
             onClick={handleExportJSON}
-            title="Download session data as JSON"
+            title="Download complete session data as JSON"
           >
             📄 Export JSON
           </button>
           <button
-            className="btn export-btn"
+            className="btn export-btn enhanced"
             onClick={handleExportPDF}
-            title="Download wrap-up card as PDF"
+            title="Download enhanced wrap-up report as PDF"
           >
             📋 Export PDF
+          </button>
+          <button
+            className="btn export-btn"
+            onClick={handleExportCSV}
+            title="Download analytical data as CSV spreadsheet"
+          >
+            📊 Export CSV
           </button>
         </div>
       </div>

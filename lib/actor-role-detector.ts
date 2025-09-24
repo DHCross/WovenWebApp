@@ -27,25 +27,25 @@ export interface DiagnosticPattern {
   behaviors: string[];
 }
 
-// Enhanced Diagnostic Matrix mapping
+// Enhanced Diagnostic Matrix mapping based on communication drivers (sidereal motivation)
 export const ACTOR_PATTERNS: Record<string, DiagnosticPattern> = {
   'Initiator': {
     signs: ['Aries'],
-    keywords: ['ignite', 'spark', 'drive', 'action', 'catalyst', 'start', 'begin'],
-    tonality: ['bold', 'urgent', 'direct', 'fast'],
-    behaviors: ['fears stagnation', 'needs action', 'initiates', 'leads']
+    keywords: ['ignite', 'spark', 'drive', 'action', 'catalyst', 'start', 'begin', 'act', 'go', 'move', 'push', 'launch'],
+    tonality: ['bold', 'urgent', 'direct', 'fast', 'immediate', 'decisive', 'energetic'],
+    behaviors: ['fears stagnation', 'needs action', 'initiates', 'leads', 'sparks action but risks burnout', 'commands pace', 'avoids hesitation']
   },
   'Stabilizer': {
     signs: ['Taurus'],
-    keywords: ['anchor', 'endure', 'stable', 'steady', 'persist', 'build'],
-    tonality: ['calm', 'grounded', 'solid', 'reliable'],
-    behaviors: ['fears chaos', 'needs security', 'preserves', 'maintains']
+    keywords: ['anchor', 'endure', 'stable', 'steady', 'persist', 'build', 'solid', 'reliable', 'secure', 'consistent', 'maintain', 'preserve'],
+    tonality: ['calm', 'grounded', 'solid', 'reliable', 'steady', 'measured', 'deliberate', 'patient'],
+    behaviors: ['fears chaos', 'needs security', 'preserves', 'maintains', 'anchors firmly but stifles growth', 'emphasizes reliability', 'avoids change', 'builds slowly but resists pivot']
   },
   'Connector': {
     signs: ['Gemini'],
-    keywords: ['connect', 'share', 'communicate', 'link', 'exchange', 'network'],
-    tonality: ['quick', 'witty', 'verbal', 'fluid'],
-    behaviors: ['fears isolation', 'needs interaction', 'bridges', 'translates']
+    keywords: ['connect', 'share', 'communicate', 'link', 'exchange', 'network', 'bridge', 'translate', 'relate', 'converse', 'discuss'],
+    tonality: ['quick', 'witty', 'verbal', 'fluid', 'lively', 'rapid', 'conversational', 'engaging'],
+    behaviors: ['fears isolation', 'needs interaction', 'bridges', 'translates', 'links endlessly but loses depth', 'scatters focus', 'engages with questions', 'avoids silence']
   },
   'Nurturer': {
     signs: ['Cancer'],
@@ -55,9 +55,9 @@ export const ACTOR_PATTERNS: Record<string, DiagnosticPattern> = {
   },
   'Validator': {
     signs: ['Leo'],
-    keywords: ['shine', 'validate', 'recognize', 'celebrate', 'honor', 'appreciate'],
-    tonality: ['vibrant', 'confident', 'expressive', 'warm'],
-    behaviors: ['fears obscurity', 'needs recognition', 'affirms', 'celebrates']
+    keywords: ['shine', 'validate', 'recognize', 'celebrate', 'honor', 'appreciate', 'acknowledge', 'praise', 'affirm', 'spotlight', 'radiate'],
+    tonality: ['vibrant', 'confident', 'expressive', 'warm', 'charismatic', 'bold', 'magnetic', 'generous'],
+    behaviors: ['fears obscurity', 'needs recognition', 'affirms', 'celebrates', 'commands presence but craves applause', 'shines boldly', 'seeks validation', 'performs emotions']
   },
   'Optimizer': {
     signs: ['Virgo'],
@@ -67,15 +67,15 @@ export const ACTOR_PATTERNS: Record<string, DiagnosticPattern> = {
   },
   'Harmonizer': {
     signs: ['Libra'],
-    keywords: ['balance', 'harmonize', 'mediate', 'fair', 'equalize', 'diplomatic'],
-    tonality: ['polished', 'fair', 'balanced', 'gracious'],
-    behaviors: ['fears conflict', 'needs harmony', 'mediates', 'balances']
+    keywords: ['balance', 'harmonize', 'mediate', 'fair', 'equalize', 'diplomatic', 'negotiate', 'compromise', 'reconcile', 'smooth', 'peaceful'],
+    tonality: ['polished', 'fair', 'balanced', 'gracious', 'diplomatic', 'refined', 'courteous', 'measured'],
+    behaviors: ['fears conflict', 'needs harmony', 'mediates', 'balances', 'mediates gracefully but avoids conflict', 'seeks compromise', 'harmonizes but avoids depth', 'risks indecision']
   },
   'Investigator': {
     signs: ['Scorpio'],
-    keywords: ['probe', 'uncover', 'investigate', 'penetrate', 'reveal', 'transform'],
-    tonality: ['intense', 'probing', 'deep', 'private'],
-    behaviors: ['fears deception', 'needs truth', 'investigates', 'transforms']
+    keywords: ['probe', 'uncover', 'investigate', 'penetrate', 'reveal', 'transform', 'discover', 'expose', 'dig', 'search', 'analyze', 'scrutinize'],
+    tonality: ['intense', 'probing', 'deep', 'private', 'penetrating', 'sharp', 'focused', 'thorough'],
+    behaviors: ['fears deception', 'needs truth', 'investigates', 'transforms', 'uncovers deeply but withdraws', 'guards secrets', 'penetrates covertly', 'respects privacy']
   },
   'Visionary': {
     signs: ['Sagittarius'],
@@ -85,9 +85,9 @@ export const ACTOR_PATTERNS: Record<string, DiagnosticPattern> = {
   },
   'Architect': {
     signs: ['Capricorn'],
-    keywords: ['build', 'structure', 'organize', 'plan', 'achieve', 'master'],
-    tonality: ['authoritative', 'structured', 'formal', 'disciplined'],
-    behaviors: ['fears failure', 'needs control', 'builds', 'achieves']
+    keywords: ['build', 'structure', 'organize', 'plan', 'achieve', 'master', 'construct', 'establish', 'command', 'lead', 'control', 'discipline'],
+    tonality: ['authoritative', 'structured', 'formal', 'disciplined', 'commanding', 'steady', 'methodical', 'serious'],
+    behaviors: ['fears failure', 'needs control', 'builds', 'achieves', 'constructs masterfully but controls', 'commands respect but isolates', 'plans meticulously', 'respects authority']
   },
   'Reformer': {
     signs: ['Aquarius'],
@@ -97,18 +97,18 @@ export const ACTOR_PATTERNS: Record<string, DiagnosticPattern> = {
   },
   'Empath': {
     signs: ['Pisces'],
-    keywords: ['feel', 'empathize', 'flow', 'merge', 'dissolve', 'transcend'],
-    tonality: ['fluid', 'evasive', 'gentle', 'impressionistic'],
-    behaviors: ['fears disconnection', 'needs unity', 'flows', 'transcends']
+    keywords: ['feel', 'empathize', 'flow', 'merge', 'dissolve', 'transcend', 'absorb', 'sense', 'intuit', 'connect', 'understand', 'compassion'],
+    tonality: ['fluid', 'evasive', 'gentle', 'impressionistic', 'soft', 'dreamy', 'intuitive', 'sensitive'],
+    behaviors: ['fears disconnection', 'needs unity', 'flows', 'transcends', 'feels profoundly but dissolves', 'empathizes deeply', 'absorbs emotions', 'withdraws to process']
   }
 };
 
 export const ROLE_PATTERNS: Record<string, DiagnosticPattern> = {
   'Direct & Fast': {
     signs: ['Aries'],
-    keywords: ['direct', 'immediate', 'urgent', 'quick', 'decisive'],
-    tonality: ['bold', 'urgent', 'fast'],
-    behaviors: ['acts quickly', 'speaks directly', 'moves fast']
+    keywords: ['direct', 'immediate', 'urgent', 'quick', 'decisive', 'fast', 'rapid', 'instant', 'swift', 'abrupt', 'blunt'],
+    tonality: ['bold', 'urgent', 'fast', 'sharp', 'crisp', 'energetic', 'impatient'],
+    behaviors: ['acts quickly', 'speaks directly', 'moves fast', 'cuts to the chase', 'avoids delays', 'shows impatience', 'demands immediate response']
   },
   'Deliberate & Grounded': {
     signs: ['Taurus'],
@@ -118,9 +118,9 @@ export const ROLE_PATTERNS: Record<string, DiagnosticPattern> = {
   },
   'Verbal & Multi-threaded': {
     signs: ['Gemini'],
-    keywords: ['talkative', 'quick', 'multiple', 'varied', 'changeable'],
-    tonality: ['witty', 'rapid', 'verbal'],
-    behaviors: ['talks much', 'changes topics', 'multitasks']
+    keywords: ['talkative', 'quick', 'multiple', 'varied', 'changeable', 'conversational', 'articulate', 'expressive', 'chatty', 'communicative'],
+    tonality: ['witty', 'rapid', 'verbal', 'lively', 'animated', 'clever', 'engaging'],
+    behaviors: ['talks much', 'changes topics', 'multitasks', 'juggles ideas', 'thinks aloud', 'connects concepts', 'avoids single focus']
   },
   'Emotionally Coded': {
     signs: ['Cancer'],
@@ -148,21 +148,21 @@ export const ROLE_PATTERNS: Record<string, DiagnosticPattern> = {
   },
   'Penetrating & Private': {
     signs: ['Scorpio'],
-    keywords: ['penetrating', 'private', 'intense', 'secretive', 'probing'],
-    tonality: ['intense', 'private', 'probing'],
-    behaviors: ['penetrates', 'keeps secrets', 'investigates']
+    keywords: ['penetrating', 'private', 'intense', 'secretive', 'probing', 'deep', 'mysterious', 'guarded', 'reserved', 'hidden'],
+    tonality: ['intense', 'private', 'probing', 'quiet', 'focused', 'magnetic', 'controlled'],
+    behaviors: ['penetrates', 'keeps secrets', 'investigates', 'guards information', 'speaks selectively', 'maintains mystery', 'reveals gradually']
   },
   'Candid & Expansive': {
     signs: ['Sagittarius'],
-    keywords: ['candid', 'expansive', 'open', 'honest', 'broad'],
-    tonality: ['candid', 'expansive', 'open'],
-    behaviors: ['speaks truth', 'expands', 'explores']
+    keywords: ['candid', 'expansive', 'open', 'honest', 'broad', 'frank', 'straightforward', 'unfiltered', 'blunt', 'wide-ranging'],
+    tonality: ['candid', 'expansive', 'open', 'enthusiastic', 'philosophical', 'adventurous', 'optimistic'],
+    behaviors: ['speaks truth', 'expands', 'explores', 'shares openly', 'thinks big picture', 'avoids small details', 'embraces possibilities']
   },
   'Formal & Structured': {
     signs: ['Capricorn'],
-    keywords: ['formal', 'structured', 'organized', 'disciplined', 'authoritative'],
-    tonality: ['formal', 'structured', 'authoritative'],
-    behaviors: ['organizes', 'disciplines', 'structures']
+    keywords: ['formal', 'structured', 'organized', 'disciplined', 'authoritative', 'methodical', 'systematic', 'professional', 'proper', 'hierarchical'],
+    tonality: ['formal', 'structured', 'authoritative', 'measured', 'serious', 'respectful', 'controlled'],
+    behaviors: ['organizes', 'disciplines', 'structures', 'follows protocol', 'maintains order', 'respects hierarchy', 'plans systematically']
   },
   'Detached & Conceptual': {
     signs: ['Aquarius'],
@@ -172,9 +172,9 @@ export const ROLE_PATTERNS: Record<string, DiagnosticPattern> = {
   },
   'Impressionistic & Evasive': {
     signs: ['Pisces'],
-    keywords: ['impressionistic', 'evasive', 'fluid', 'vague', 'dreamy'],
-    tonality: ['fluid', 'evasive', 'impressionistic'],
-    behaviors: ['evades', 'flows', 'dreams']
+    keywords: ['impressionistic', 'evasive', 'fluid', 'vague', 'dreamy', 'subtle', 'indirect', 'elusive', 'ambiguous', 'metaphorical'],
+    tonality: ['fluid', 'evasive', 'impressionistic', 'soft', 'gentle', 'poetic', 'mystical'],
+    behaviors: ['evades', 'flows', 'dreams', 'speaks in metaphors', 'avoids direct answers', 'changes subject gracefully', 'uses imagery']
   }
 };
 
@@ -363,12 +363,29 @@ class ActorRoleDetector {
 
   // Analyze text content for Actor/Role patterns with token-aware matching and per-pattern normalization
   analyzeContent(content: string): { actor: string; role: string; actorScore: number; roleScore: number } {
-    // Normalize locale-sensitive text: NFKD to split accents, replace hyphens/dashes with spaces,
-    // then strip diacritics and non-letters. TODO: Inject language for non-English tokenization.
+    // Enhanced normalization: handle contractions, compound words, and preserve meaningful punctuation
     const normalized = content
       .normalize('NFKD')
-      .replace(/[\u2010-\u2015\-]/g, ' ') // hyphen, en/em dashes, minus
-      .replace(/[“”‘’]/g, ' ') // smart quotes to spaces
+      // Expand common contractions for better negation detection
+      .replace(/\b(can't|cannot)\b/gi, 'can not')
+      .replace(/\b(won't)\b/gi, 'will not')
+      .replace(/\b(don't)\b/gi, 'do not')
+      .replace(/\b(isn't)\b/gi, 'is not')
+      .replace(/\b(aren't)\b/gi, 'are not')
+      .replace(/\b(wasn't)\b/gi, 'was not')
+      .replace(/\b(weren't)\b/gi, 'were not')
+      .replace(/\b(didn't)\b/gi, 'did not')
+      .replace(/\b(doesn't)\b/gi, 'does not')
+      .replace(/\b(haven't)\b/gi, 'have not')
+      .replace(/\b(hasn't)\b/gi, 'has not')
+      .replace(/\b(hadn't)\b/gi, 'had not')
+      .replace(/\b(shouldn't)\b/gi, 'should not')
+      .replace(/\b(wouldn't)\b/gi, 'would not')
+      .replace(/\b(couldn't)\b/gi, 'could not')
+      // Handle compound words more intelligently
+      .replace(/([a-z])-([a-z])/g, '$1 $2') // split hyphenated words
+      .replace(/[\u2010-\u2015]/g, ' ') // other dashes to spaces
+      .replace(/[""'']/g, ' ') // smart quotes to spaces
       .toLowerCase()
       .replace(/\p{M}+/gu, '') // remove combining marks (diacritics)
       .replace(/[^a-z\s]/g, ' ');
@@ -377,53 +394,119 @@ class ActorRoleDetector {
       .split(/\s+/)
       .filter(Boolean);
 
-    const negations = new Set(['no', 'not', 'never', 'rarely', 'hardly', 'seldom', 'without']);
-    const hasNegationBefore = (index: number, window: number = 2) => {
+    // Enhanced negation detection with more patterns and intensifiers
+    const negations = new Set(['no', 'not', 'never', 'rarely', 'hardly', 'seldom', 'without', 'barely', 'scarcely']);
+    const intensifiers = new Set(['very', 'extremely', 'really', 'quite', 'rather', 'fairly', 'somewhat', 'pretty']);
+    const modalizers = new Set(['maybe', 'perhaps', 'possibly', 'probably', 'likely', 'seems', 'appears']);
+
+    const hasNegationBefore = (index: number, window: number = 3) => {
       for (let i = 1; i <= window; i++) {
         const t = tokens[index - i];
         if (!t) break;
         if (negations.has(t)) return true;
+        // Skip over intensifiers and modalizers when checking negation
+        if (intensifiers.has(t) || modalizers.has(t)) continue;
       }
       return false;
     };
 
+    const hasIntensifierBefore = (index: number, window: number = 2) => {
+      for (let i = 1; i <= window; i++) {
+        const t = tokens[index - i];
+        if (!t) break;
+        if (intensifiers.has(t)) return 1.5; // boost score
+        if (modalizers.has(t)) return 0.8; // reduce certainty
+      }
+      return 1.0;
+    };
+
     const tokenSet = new Set(tokens);
 
-    // Only treat these tonality tokens as strong signals; others are down-weighted unless keywords also fire
-    const TONALITY_STRONG = new Set(['bold','urgent','direct','fast','expansive','precise']);
+    // Expanded strong tonality signals with contextual weighting
+    const TONALITY_STRONG = new Set(['bold','urgent','direct','fast','expansive','precise','intense','warm','fluid','structured']);
+    const TONALITY_CONTEXTUAL = new Set(['deep', 'high', 'strong', 'clear', 'bright', 'soft', 'hard', 'smooth', 'rough']);
 
-    // Helper to determine if a phrase appears with proximity and optional negation check
+    // Enhanced phrase detection with flexible matching and semantic proximity
     const phraseHit = (phrase: string) => {
       const parts = phrase.toLowerCase().split(/\s+/).filter(Boolean);
       if (parts.length === 0) return 0;
+
       if (parts.length === 1) {
-        // single word behaves like a token match with negation penalty
         const pw = parts[0];
+        let bestScore = 0;
+
         for (let i = 0; i < tokens.length; i++) {
           if (tokens[i] === pw) {
-            return hasNegationBefore(i) ? 0.5 : 1; // penalize but still count
+            const negationPenalty = hasNegationBefore(i) ? 0.6 : 1.0; // less harsh penalty
+            const intensifierBoost = hasIntensifierBefore(i);
+            bestScore = Math.max(bestScore, negationPenalty * intensifierBoost);
+          }
+          // Also check for partial/stem matches for robustness
+          else if (tokens[i].startsWith(pw) || pw.startsWith(tokens[i])) {
+            if (Math.abs(tokens[i].length - pw.length) <= 2) { // close length match
+              const partialScore = 0.7;
+              const negationPenalty = hasNegationBefore(i) ? 0.6 : 1.0;
+              const intensifierBoost = hasIntensifierBefore(i);
+              bestScore = Math.max(bestScore, partialScore * negationPenalty * intensifierBoost);
+            }
           }
         }
-        return 0;
+        return bestScore;
       }
-      // multi-word: require ordered appearance within a small window
-      const windowSpan = 4;
+
+      // Multi-word phrases: flexible window with order preference
+      const windowSpan = Math.max(6, parts.length + 2); // adaptive window
+      let bestScore = 0;
+
       for (let i = 0; i < tokens.length; i++) {
         if (tokens[i] !== parts[0]) continue;
+
+        // Try exact order first (highest score)
         let j = i;
-        let ok = true;
+        let exactMatch = true;
+        const foundPositions = [i];
+
         for (let p = 1; p < parts.length; p++) {
           let found = false;
           for (let k = j + 1; k <= j + windowSpan && k < tokens.length; k++) {
-            if (tokens[k] === parts[p]) { found = true; j = k; break; }
+            if (tokens[k] === parts[p]) {
+              found = true;
+              j = k;
+              foundPositions.push(k);
+              break;
+            }
           }
-          if (!found) { ok = false; break; }
+          if (!found) { exactMatch = false; break; }
         }
-        if (ok) {
-          return hasNegationBefore(i) ? 0.5 : 1;
+
+        if (exactMatch) {
+          const negationPenalty = hasNegationBefore(i) ? 0.6 : 1.0;
+          const intensifierBoost = hasIntensifierBefore(i);
+          const proximityBonus = foundPositions.length > 1 ?
+            1.0 + (0.1 * Math.max(0, 4 - (foundPositions[foundPositions.length-1] - foundPositions[0]))) : 1.0;
+          bestScore = Math.max(bestScore, negationPenalty * intensifierBoost * proximityBonus);
+        }
+
+        // Try flexible order (lower score but still valuable)
+        else {
+          const wordsFound = parts.filter(part => {
+            for (let k = i; k < Math.min(i + windowSpan, tokens.length); k++) {
+              if (tokens[k] === part) return true;
+            }
+            return false;
+          });
+
+          if (wordsFound.length >= Math.ceil(parts.length * 0.7)) { // 70% threshold
+            const coverage = wordsFound.length / parts.length;
+            const flexibleScore = coverage * 0.8; // penalty for non-exact order
+            const negationPenalty = hasNegationBefore(i) ? 0.6 : 1.0;
+            const intensifierBoost = hasIntensifierBefore(i);
+            bestScore = Math.max(bestScore, flexibleScore * negationPenalty * intensifierBoost);
+          }
         }
       }
-      return 0;
+
+      return bestScore;
     };
 
     // Helper to score a pattern: 2 points for exact token keyword hits, 1 point for tonal includes
@@ -488,6 +571,64 @@ class ActorRoleDetector {
     });
 
     return { actor: bestActor, role: bestRole, actorScore: bestActorScore, roleScore: bestRoleScore };
+  }
+
+  // Semantic similarity checker for enhanced pattern matching
+  private checkSemanticSimilarity(word1: string, word2: string): boolean {
+    // Define semantic clusters for common astrological concepts
+    const semanticClusters = {
+      'action': ['act', 'do', 'move', 'start', 'begin', 'initiate', 'drive', 'push', 'go'],
+      'stability': ['stable', 'steady', 'solid', 'firm', 'strong', 'reliable', 'consistent', 'enduring'],
+      'communication': ['talk', 'speak', 'share', 'tell', 'express', 'communicate', 'connect', 'link'],
+      'emotion': ['feel', 'emotion', 'heart', 'sensitive', 'caring', 'warm', 'tender', 'gentle'],
+      'expression': ['show', 'display', 'express', 'perform', 'shine', 'radiate', 'vibrant'],
+      'analysis': ['analyze', 'study', 'examine', 'detail', 'precise', 'careful', 'exact'],
+      'harmony': ['balance', 'fair', 'equal', 'diplomatic', 'peaceful', 'gracious'],
+      'intensity': ['intense', 'deep', 'penetrating', 'powerful', 'strong', 'probing'],
+      'expansion': ['expand', 'grow', 'broad', 'wide', 'explore', 'open', 'free'],
+      'structure': ['organize', 'build', 'plan', 'formal', 'disciplined', 'methodical'],
+      'innovation': ['new', 'different', 'unique', 'change', 'reform', 'innovate', 'radical'],
+      'fluidity': ['flow', 'fluid', 'soft', 'gentle', 'adaptable', 'flexible', 'evasive']
+    };
+
+    for (const cluster of Object.values(semanticClusters)) {
+      if (cluster.includes(word1) && cluster.includes(word2)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // Contextual bonus calculator for pattern coherence
+  private getContextualBonus(tokens: string[], index: number, pattern: DiagnosticPattern): number {
+    const windowSize = 5;
+    const start = Math.max(0, index - windowSize);
+    const end = Math.min(tokens.length, index + windowSize + 1);
+    const contextTokens = tokens.slice(start, end);
+
+    // Count related words in context
+    let contextMatches = 0;
+    const allPatternWords = [...pattern.keywords, ...pattern.tonality, ...pattern.behaviors.join(' ').split(' ')]
+      .map(w => w.toLowerCase());
+
+    for (const token of contextTokens) {
+      if (allPatternWords.includes(token)) {
+        contextMatches++;
+      } else {
+        // Check semantic similarity
+        for (const patternWord of allPatternWords) {
+          if (this.checkSemanticSimilarity(token, patternWord)) {
+            contextMatches += 0.5;
+            break;
+          }
+        }
+      }
+    }
+
+    // Return bonus between 1.0 and 1.3 based on context density
+    const density = contextMatches / contextTokens.length;
+    return 1.0 + Math.min(density * 0.6, 0.3);
   }
 
   // Compute Drift Index from probed OSR clarifications

@@ -1253,7 +1253,7 @@ export default function MathBrainPage() {
             applies: true,
             method: methodMap[mode] || 'Custom',
             coords:
-              mode === 'MIDPOINT' || !relocCoords
+              !relocCoords
                 ? undefined
                 : { latitude: relocCoords.lat, longitude: relocCoords.lon },
             current_location: relocLabel || undefined,
