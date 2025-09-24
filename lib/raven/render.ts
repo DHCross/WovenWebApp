@@ -1,8 +1,251 @@
+import type { NormalizedGeometry, NormalizedPlacement, NormalizedAspect } from './normalize';
+
 interface RenderOptions {
-  geo: Record<string, any> | null;
+  geo: NormalizedGeometry | null;
   prov: Record<string, any>;
   options?: Record<string, any>;
   conversational?: boolean;
+}
+
+const ELEMENT_TONES: Record<'Fire' | 'Earth' | 'Air' | 'Water', { feeling: string; option: string; next: string }> = {
+  Fire: {
+    feeling: 'pressurised heat that wants motion',
+    option: 'Move the energy through your body or initiate the conversation instead of letting it simmer.',
+    next: 'Log one moment you chose action over rumination today.',
+  },
+  Earth: {
+    feeling: 'dense, deliberate weight',
+    option: 'Choose one tangible task and treat it as your anchor point.',
+    next: 'Name one structure that keeps this steady for you right now.',
+  },
+  Air: {
+    feeling: 'fast mental current and social static',
+    option: 'Write or talk it out so the wind has a channel.',
+    next: 'Capture the conversation loop that keeps returning.',
+  },
+  Water: {
+    feeling: 'slow tidal pull with deep saturation',
+    option: 'Give the feeling a container—music, water, or quiet reflection.',
+    next: 'Note one emotional swell and what set it in motion.',
+  },
+};
+
+const MODALITY_TONES: Record<'Cardinal' | 'Fixed' | 'Mutable', string> = {
+  Cardinal: 'Ready to launch—test a move quickly and adjust from the feedback.',
+  Fixed: 'Holding pattern—notice where you clamp down or refuse to pivot.',
+  Mutable: 'Shifting lanes—watch for diffusion or agile pivots.',
+};
+
+const ASPECT_PRIORITY: Record<string, number> = {
+  Opposition: 4,
+  Square: 4,
+  Conjunction: 3,
+  Quincunx: 2,
+  Sextile: 1,
+  Trine: 1,
+};
+
+const ASPECT_METADATA: Record<string, { connector: string; feeling: string; option: string }> = {
+  Opposition: {
+    connector: 'opposing',
+    feeling: 'Primary polarity asking for a bridge',
+    option: 'Name both poles and choose which one you will stand inside today.',
+  },
+  Square: {
+    connector: 'squaring',
+    feeling: 'Cross-current demanding movement',
+    option: 'Channel the friction into one decisive action or physical release.',
+  },
+  Conjunction: {
+    connector: 'conjunct with',
+    feeling: 'Merged impulses that can blur boundaries',
+    option: 'Decide how the merged energy shows up before someone else chooses for you.',
+  },
+  Trine: {
+    connector: 'trine to',
+    feeling: 'Open lane flowing easily',
+    option: 'Use the ease intentionally so it does not slide into autopilot.',
+  },
+  Sextile: {
+    connector: 'sextile to',
+    feeling: 'Low-friction opening that responds when you engage it',
+    option: 'Invite collaboration or take the small opening that appears.',
+  },
+  Quincunx: {
+    connector: 'tilting toward',
+    feeling: 'Uneasy angle asking for adjustment',
+    option: 'Experiment with small adjustments until the fit makes sense.',
+  },
+};
+
+const PRIORITY_BODIES = new Set(['Sun', 'Moon', 'Ascendant', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn']);
+
+function ordinal(n: number): string {
+  const rem100 = n % 100;
+  if (rem100 >= 11 && rem100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1:
+      return `${n}st`;
+    case 2:
+      return `${n}nd`;
+    case 3:
+      return `${n}rd`;
+    default:
+      return `${n}th`;
+  }
+}
+
+function formatHouse(house?: number): string | undefined {
+  if (!house || !Number.isFinite(house)) return undefined;
+  return `${ordinal(house)} house`;
+}
+
+function ensureSentence(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return trimmed;
+  return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
+function formatPlacementDetail(placement?: NormalizedPlacement): string | undefined {
+  if (!placement) return undefined;
+  const parts: string[] = [];
+  if (placement.sign) parts.push(placement.sign);
+  if (typeof placement.degree === 'number' && Number.isFinite(placement.degree)) {
+    parts.push(`${Math.round(placement.degree)}°`);
+  }
+  const extras: string[] = [];
+  const houseLabel = formatHouse(placement.house);
+  if (houseLabel) extras.push(houseLabel);
+  if (placement.retrograde) extras.push('R');
+  const suffix = extras.length ? ` (${extras.join(' · ')})` : '';
+  const core = parts.length ? parts.join(' ') : '—';
+  return `${placement.body} ${core}${suffix}`.trim();
+}
+
+function aspectConnector(type: string): string {
+  return ASPECT_METADATA[type]?.connector ?? 'linking with';
+}
+
+function aspectFeelingLine(aspect: NormalizedAspect): string {
+  const descriptor = ASPECT_METADATA[aspect.type]?.feeling ?? `Aspect emphasis: ${aspect.type}`;
+  const orb = typeof aspect.orb === 'number' && Number.isFinite(aspect.orb) ? ` (${aspect.orb.toFixed(1)}°)` : '';
+  return `${descriptor}: ${aspect.from} ${aspectConnector(aspect.type)} ${aspect.to}${orb}`;
+}
+
+function aspectOptionLine(aspect: NormalizedAspect): string {
+  const descriptor = ASPECT_METADATA[aspect.type]?.option ?? `Track how ${aspect.from} ${aspectConnector(aspect.type)} ${aspect.to}`;
+  return descriptor;
+}
+
+function findAspectBetween(aspects: NormalizedAspect[], a: string, b: string): NormalizedAspect | undefined {
+  return aspects.find(
+    (asp) =>
+      (asp.from === a && asp.to === b) ||
+      (asp.from === b && asp.to === a),
+  );
+}
+
+function scoreAspect(aspect: NormalizedAspect): number {
+  let score = ASPECT_PRIORITY[aspect.type] ?? 0;
+  if (aspect.from === 'Sun' || aspect.to === 'Sun') score += 1.2;
+  if (aspect.from === 'Moon' || aspect.to === 'Moon') score += 1.2;
+  if (aspect.from === 'Ascendant' || aspect.to === 'Ascendant') score += 0.7;
+  if (PRIORITY_BODIES.has(aspect.from)) score += 0.4;
+  if (PRIORITY_BODIES.has(aspect.to)) score += 0.4;
+  if (typeof aspect.orb === 'number' && Number.isFinite(aspect.orb)) {
+    score -= Math.min(aspect.orb, 10) / 5;
+  }
+  return score;
+}
+
+function pickPrimaryAspect(aspects: NormalizedAspect[]): NormalizedAspect | undefined {
+  if (!Array.isArray(aspects) || aspects.length === 0) return undefined;
+  const sorted = [...aspects].sort((a, b) => scoreAspect(b) - scoreAspect(a));
+  return sorted[0];
+}
+
+function extractPrimaryElement(summary?: NormalizedGeometry['summary']): keyof typeof ELEMENT_TONES | undefined {
+  const raw = summary?.dominantElement;
+  if (!raw) return undefined;
+  const candidate = raw.split('+')[0].trim() as keyof typeof ELEMENT_TONES;
+  return candidate in ELEMENT_TONES ? candidate : undefined;
+}
+
+function extractPrimaryModality(summary?: NormalizedGeometry['summary']): keyof typeof MODALITY_TONES | undefined {
+  const raw = summary?.dominantModality;
+  if (!raw) return undefined;
+  const candidate = raw.split('+')[0].trim() as keyof typeof MODALITY_TONES;
+  return candidate in MODALITY_TONES ? candidate : undefined;
+}
+
+function buildPicture(geo: NormalizedGeometry, primaryAspect?: NormalizedAspect): string {
+  const placements = geo.placements ?? [];
+  if (!placements.length) {
+    return 'Geometry detected but no recognizable placements were parsed.';
+  }
+  const placementMap = new Map<string, NormalizedPlacement>();
+  for (const placement of placements) {
+    placementMap.set(placement.body, placement);
+  }
+
+  const aspects = geo.aspects ?? [];
+  let highlight = primaryAspect;
+  if (!highlight) {
+    highlight = findAspectBetween(aspects, 'Sun', 'Moon') ?? undefined;
+  }
+
+  const pictureSegments: string[] = [];
+  if (highlight) {
+    const fromPlacement = placementMap.get(highlight.from);
+    const toPlacement = placementMap.get(highlight.to);
+    const fromDetail = formatPlacementDetail(fromPlacement);
+    const toDetail = formatPlacementDetail(toPlacement);
+    if (fromDetail && toDetail) {
+      pictureSegments.push(`${fromDetail} ${aspectConnector(highlight.type)} ${toDetail}`);
+    }
+  }
+
+  if (!pictureSegments.length) {
+    const sunDetail = formatPlacementDetail(placementMap.get('Sun'));
+    const moonDetail = formatPlacementDetail(placementMap.get('Moon'));
+    if (sunDetail && moonDetail) {
+      pictureSegments.push(`${sunDetail} alongside ${moonDetail}`);
+    } else if (sunDetail) {
+      pictureSegments.push(sunDetail);
+    } else if (moonDetail) {
+      pictureSegments.push(moonDetail);
+    }
+  }
+
+  const asc = placementMap.get('Ascendant');
+  if (asc && asc.sign) {
+    const ascHouse = formatHouse(asc.house);
+    pictureSegments.push(`Rising on a ${asc.sign} horizon${ascHouse ? ` (${ascHouse})` : ''}`);
+  }
+
+  const mc = placementMap.get('Midheaven');
+  if (mc && mc.sign) {
+    const mcHouse = formatHouse(mc.house);
+    pictureSegments.push(`Aiming toward a ${mc.sign} Midheaven${mcHouse ? ` (${mcHouse})` : ''}`);
+  }
+
+  if (!pictureSegments.length) {
+    const fallback = placements.slice(0, 2).map((p) => formatPlacementDetail(p)).filter(Boolean) as string[];
+    if (fallback.length) {
+      pictureSegments.push(fallback.join(' · '));
+    }
+  }
+
+  const picture = pictureSegments.join('. ');
+  return ensureSentence(picture || 'Geometry present, but no clear placements were recognized.');
+}
+
+function buildContainer(summary: NormalizedGeometry['summary']): string {
+  const primaryElement = extractPrimaryElement(summary);
+  if (primaryElement) {
+    return `Use this as a natal baseline—track ${primaryElement.toLowerCase()} themes over the next few days and see what holds.`;
+  }
+  return 'Treat this as a natal mirror—check it whenever the pattern surfaces and test it against lived experience.';
 }
 
 function isSimpleGreeting(message: string): boolean {
@@ -130,15 +373,126 @@ export async function renderShareableMirror({ geo, prov, options, conversational
   }
 
   // Non-conversational (geometry-driven) rendering
-  return {
-    picture: "A compass needle spinning, then finding north.",
-    feeling: "Clarity.",
-    container: "The next 24 hours.",
-    option: "You can act on this new direction, or you can wait and gather more information.",
-    next_step: "Write down the first action that comes to mind.",
-    appendix: {
-      geometry_summary: geo ? "Geometry data processed." : "No geometry data provided.",
-      provenance_source: prov.source,
+  if (!geo) {
+    return {
+      picture: 'No geometry data provided—upload the chart or report so I can mirror it.',
+      feeling: 'Without placements, there is no symbolic map to reflect.',
+      container: 'Bring in the Math Brain report or the AstroSeek export when you have it.',
+      option: 'Export or copy the full placement table, then paste it here so I can work cleanly.',
+      next_step: 'Next step: resend the geometry once it is ready.',
+      appendix: {
+        geometry_summary: 'No geometry data provided.',
+        provenance_source: prov?.source,
+      },
+    };
+  }
+
+  const placements = Array.isArray(geo.placements) ? geo.placements : [];
+  if (!placements.length) {
+    return {
+      picture: 'Geometry detected, but the placement table was empty.',
+      feeling: 'I need the planetary lines to reflect accurately—right now the mirror would be guesswork.',
+      container: 'Grab the AstroSeek export or Math Brain report again and include the full planet table.',
+      option: 'Option: re-export the chart with placements + aspects and drop it back in.',
+      next_step: 'Next step: paste the complete geometry so I can translate it.',
+      appendix: {
+        geometry_summary: 'Geometry payload present but no placements were parsed.',
+        provenance_source: prov?.source,
+      },
+    };
+  }
+
+  const aspects = Array.isArray(geo.aspects) ? geo.aspects : [];
+  const summary = geo.summary;
+
+  const primaryAspect = pickPrimaryAspect(aspects);
+  const picture = buildPicture(geo, primaryAspect);
+
+  const primaryElement = extractPrimaryElement(summary);
+  const primaryModality = extractPrimaryModality(summary);
+
+  const feelingSegments: string[] = [];
+  if (primaryElement) {
+    feelingSegments.push(`Feels like ${ELEMENT_TONES[primaryElement].feeling}`);
+  } else if (summary?.dominantElement) {
+    feelingSegments.push(`Element spread: ${summary.dominantElement}`);
+  }
+  if (primaryModality) {
+    feelingSegments.push(MODALITY_TONES[primaryModality]);
+  } else if (summary?.dominantModality) {
+    feelingSegments.push(`Modality mix: ${summary.dominantModality}`);
+  }
+  if (primaryAspect) {
+    feelingSegments.push(aspectFeelingLine(primaryAspect));
+  }
+  const feeling = feelingSegments.length
+    ? feelingSegments.map(ensureSentence).join(' ')
+    : 'Staying observational—test what lands against lived experience and discard the rest.';
+
+  const container = ensureSentence(buildContainer(summary));
+
+  const optionSegments: string[] = [];
+  if (primaryElement) {
+    optionSegments.push(ELEMENT_TONES[primaryElement].option);
+  }
+  if (primaryAspect) {
+    optionSegments.push(aspectOptionLine(primaryAspect));
+  }
+  const option = optionSegments.length
+    ? optionSegments.map(ensureSentence).join(' ')
+    : 'You can either act on the pieces that resonate or simply log them as null data for now.';
+
+  let nextStep = '';
+  if (primaryAspect) {
+    nextStep = `Log one lived moment where ${primaryAspect.from} and ${primaryAspect.to} ${aspectConnector(primaryAspect.type)} each other today.`;
+  } else if (primaryElement) {
+    nextStep = ELEMENT_TONES[primaryElement].next;
+  } else {
+    nextStep = 'Write down the first situation where this mirror shows up in real life.';
+  }
+  nextStep = ensureSentence(nextStep);
+
+  const appendix: Record<string, any> = {
+    geometry_summary: `Placements parsed: ${placements.length} · Aspects parsed: ${aspects.length}.`,
+    provenance_source: prov?.source,
+  };
+
+  if (summary?.dominantElement) {
+    appendix.dominant_element = summary.dominantElement;
+  }
+  if (summary?.dominantModality) {
+    appendix.dominant_modality = summary.dominantModality;
+  }
+  const luminaryParts: string[] = [];
+  if (summary?.luminaries?.sun) luminaryParts.push(`Sun ${summary.luminaries.sun}`);
+  if (summary?.luminaries?.moon) luminaryParts.push(`Moon ${summary.luminaries.moon}`);
+  if (summary?.luminaries?.ascendant) luminaryParts.push(`Asc ${summary.luminaries.ascendant}`);
+  if (luminaryParts.length) {
+    appendix.luminary_axis = luminaryParts.join(' · ');
+  }
+  if (summary?.retrogradeBodies?.length) {
+    appendix.retrogrades = summary.retrogradeBodies.join(', ');
+  }
+  if (primaryAspect) {
+    const orbText = typeof primaryAspect.orb === 'number' && Number.isFinite(primaryAspect.orb)
+      ? ` (${primaryAspect.orb.toFixed(1)}°)`
+      : '';
+    appendix.primary_aspect = `${primaryAspect.from} ${primaryAspect.type} ${primaryAspect.to}${orbText}`;
+  }
+
+  Object.keys(appendix).forEach((key) => {
+    const value = appendix[key];
+    if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
+      delete appendix[key];
     }
+  });
+
+  return {
+    picture,
+    feeling,
+    container,
+    option,
+    next_step: nextStep,
+    appendix,
   };
 }
