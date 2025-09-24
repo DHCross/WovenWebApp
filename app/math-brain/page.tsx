@@ -111,7 +111,7 @@ export default function MathBrainPage() {
   // Auth0 restored: authentication functionality available
 
   const today = useMemo(() => new Date(), []);
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  const fmt = useCallback((d: Date) => d.toISOString().slice(0, 10), []);
 
   // Different default date ranges for different report types
   const getDefaultDates = useCallback((reportType: 'balance' | 'mirror') => {
@@ -358,12 +358,17 @@ export default function MathBrainPage() {
 
   // Track if user has manually set dates to avoid overriding their choices
   const [userHasSetDates, setUserHasSetDates] = useState(false);
-  const [initialReportType] = useState(reportType);
+  const prevReportTypeRef = useRef(reportType);
 
   // Update date range when report type changes (but only if user hasn't manually set dates)
   // OR when report type changes from initial - give them fresh defaults for different report types
   useEffect(() => {
-    const reportTypeChanged = reportType !== initialReportType;
+    const previousReportType = prevReportTypeRef.current;
+    const reportTypeChanged = previousReportType !== reportType;
+
+    if (reportTypeChanged) {
+      prevReportTypeRef.current = reportType;
+    }
 
     if (!userHasSetDates || reportTypeChanged) {
       const defaultDates = getDefaultDates(reportType);
@@ -375,7 +380,7 @@ export default function MathBrainPage() {
         setUserHasSetDates(false);
       }
     }
-  }, [reportType, getDefaultDates, userHasSetDates, initialReportType]);
+  }, [reportType, getDefaultDates, userHasSetDates]);
 
   const relocationSelectLabels: Record<TranslocationOption, string> = useMemo(() => ({
     NONE: 'Birthplace (no relocation)',
@@ -852,10 +857,7 @@ export default function MathBrainPage() {
       });
 
       const pdfBytes = await pdfDoc.save();
-
-      const pdfArrayBuffer = new ArrayBuffer(pdfBytes.byteLength);
-      new Uint8Array(pdfArrayBuffer).set(pdfBytes);
-      const pdfBlob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
+      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
 
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
@@ -864,8 +866,10 @@ export default function MathBrainPage() {
       link.download = `math-brain-report-${stamp}.pdf`;
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        try { document.body.removeChild(link); } catch {/* noop */}
+        try { URL.revokeObjectURL(url); } catch {/* noop */}
+      }, 150);
       setToast('Downloading PDF report');
       setTimeout(() => setToast(null), 1600);
     } catch (err) {
