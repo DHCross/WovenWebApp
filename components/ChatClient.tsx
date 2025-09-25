@@ -3691,7 +3691,6 @@ function Composer({
               onSend();
             }
           }}
-          enterKeyHint="send"
           onPaste={() => showPasteMessage("Clipboard pasted into the composer.")}
           placeholder={INPUT_PLACEHOLDER}
           aria-label="Message for Raven Calder"

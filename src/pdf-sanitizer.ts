@@ -34,7 +34,6 @@ const GLYPH_MAP: Record<string, string> = {
   '□': 'square',
   '△': 'trine',
   '✶': 'sextile',
-  '⚹': 'sextile',
   '⚼': 'quincunx',
 
   // Other astrological symbols
@@ -69,8 +68,6 @@ const GLYPH_MAP: Record<string, string> = {
 
   // Common Unicode characters that break PDF encoding
   '"': '"',
-  '"': '"',
-  "'": "'",
   "'": "'",
   '…': '...',
   '–': '-',
@@ -186,7 +183,6 @@ const GLYPH_MAP: Record<string, string> = {
   '⚡': '*lightning*',
   '🌙': 'Moon',
   '🌞': 'Sun',
-  '⭐': 'star',
   '🌍': 'Earth',
   '🚀': 'rocket',
 

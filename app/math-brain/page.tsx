@@ -853,7 +853,7 @@ export default function MathBrainPage() {
 
       // Save and download
       const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -1166,7 +1166,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
       });
 
       const pdfBytes = await pdfDoc.save();
-      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const pdfBlob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
 
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
@@ -2825,8 +2825,8 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                         onTouchStart={(e) => {
                           // iOS touch handling improvement
                           e.preventDefault();
-                          e.target.focus();
-                          e.target.showPicker?.();
+                          (e.target as HTMLInputElement).focus();
+                          (e.target as HTMLInputElement).showPicker?.();
                         }}
                       />
                     </div>
@@ -2852,8 +2852,8 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                         onTouchStart={(e) => {
                           // iOS touch handling improvement
                           e.preventDefault();
-                          e.target.focus();
-                          e.target.showPicker?.();
+                          (e.target as HTMLInputElement).focus();
+                          (e.target as HTMLInputElement).showPicker?.();
                         }}
                       />
                     </div>
@@ -3255,7 +3255,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
 
                     {/* Trend Sparklines */}
                     {ts.length > 1 && (() => {
-                      const createSparkline = (values, maxValue = 5, color = 'text-emerald-400') => {
+                      const createSparkline = (values: number[], maxValue = 5, color = 'text-emerald-400') => {
                         const chars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
                         return values.slice(-20).map(val => {
                           const normalized = Math.max(0, Math.min(1, val / maxValue));
@@ -3264,7 +3264,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                         }).join('');
                       };
 
-                      const createSFDSparkline = (values) => {
+                      const createSFDSparkline = (values: number[]) => {
                         return values.slice(-20).map(val => {
                           if (val > 10) return '▇'; // Strong support
                           if (val > 0) return '▅';  // Support
@@ -3274,7 +3274,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                         }).join('');
                       };
 
-                      const calculateResonanceScore = (sfdA, sfdB) => {
+                      const calculateResonanceScore = (sfdA: number[], sfdB: number[]) => {
                         if (!sfdA || !sfdB || sfdA.length !== sfdB.length) return [];
                         return sfdA.map((a, i) => Math.abs(a - sfdB[i]) / 20); // Normalized 0-5 scale
                       };
@@ -3283,18 +3283,18 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                       const isRelational = result?.person_b?.chart?.transitsByDate || wm?.type?.includes('synastry') || wm?.type?.includes('composite');
                       const tsB = wm?.time_series_b || []; // Assuming person B time series exists
 
-                      const magnitudes = ts.map(r => Number(r.magnitude ?? 0));
-                      const valences = ts.map(r => Number(r.valence_bounded ?? r.valence ?? 0));
-                      const volatilities = ts.map(r => Number(r.volatility ?? 0));
-                      const sfds = ts.map(r => Number(r.sfd ?? 0));
+                      const magnitudes = ts.map((r: any) => Number(r.magnitude ?? 0));
+                      const valences = ts.map((r: any) => Number(r.valence_bounded ?? r.valence ?? 0));
+                      const volatilities = ts.map((r: any) => Number(r.volatility ?? 0));
+                      const sfds = ts.map((r: any) => Number(r.sfd ?? 0));
 
-                      let magB = [], valB = [], volB = [], sfdB = [], resonanceScores = [];
+                      let magB: number[] = [], valB: number[] = [], volB: number[] = [], sfdB: number[] = [], resonanceScores: number[] = [];
 
                       if (isRelational && tsB.length > 0) {
-                        magB = tsB.map(r => Number(r.magnitude ?? 0));
-                        valB = tsB.map(r => Number(r.valence_bounded ?? r.valence ?? 0));
-                        volB = tsB.map(r => Number(r.volatility ?? 0));
-                        sfdB = tsB.map(r => Number(r.sfd ?? 0));
+                        magB = tsB.map((r: any) => Number(r.magnitude ?? 0));
+                        valB = tsB.map((r: any) => Number(r.valence_bounded ?? r.valence ?? 0));
+                        volB = tsB.map((r: any) => Number(r.volatility ?? 0));
+                        sfdB = tsB.map((r: any) => Number(r.sfd ?? 0));
                         resonanceScores = calculateResonanceScore(sfds, sfdB);
                       }
 
@@ -3334,12 +3334,12 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                               <span className="text-slate-400 w-16">🌕 Val:</span>
                               {isRelational && valB.length > 0 ? (
                                 <div className="flex items-center gap-1 font-mono text-sm">
-                                  <span className="text-blue-400">{createSparkline(valences.map(v => Math.abs(v)), 5)}</span>
+                                  <span className="text-blue-400">{createSparkline(valences.map((v: number) => Math.abs(v)), 5)}</span>
                                   <span className="text-slate-600">|</span>
-                                  <span className="text-blue-300">{createSparkline(valB.map(v => Math.abs(v)), 5)}</span>
+                                  <span className="text-blue-300">{createSparkline(valB.map((v: number) => Math.abs(v)), 5)}</span>
                                 </div>
                               ) : (
-                                <span className="font-mono text-blue-400 text-sm">{createSparkline(valences.map(v => Math.abs(v)), 5)}</span>
+                                <span className="font-mono text-blue-400 text-sm">{createSparkline(valences.map((v: number) => Math.abs(v)), 5)}</span>
                               )}
                               <span className="text-slate-500 w-12 text-right">
                                 {(() => {
@@ -3513,7 +3513,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                       const sMinus = result?.person_a?.sfd?.s_minus ?? 0;
                       const maxValue = Math.max(sPlus, sMinus, 100);
 
-                      const getSFDState = (sfd) => {
+                      const getSFDState = (sfd: number) => {
                         if (sfd > 50) return 'Strong Support';
                         if (sfd >= 1) return 'Supportive';
                         if (sfd >= -50) return 'Frictional';
@@ -3571,7 +3571,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                         sfd: Number(daily[d]?.sfd ?? 0)
                       }));
 
-                      const createSparkline = (values, maxValue = 5) => {
+                      const createSparkline = (values: number[], maxValue = 5) => {
                         const chars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
                         return values.slice(-20).map(val => {
                           const normalized = Math.max(0, Math.min(1, val / maxValue));
@@ -3580,7 +3580,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                         }).join('');
                       };
 
-                      const createSFDSparkline = (values) => {
+                      const createSFDSparkline = (values: number[]) => {
                         return values.slice(-20).map(val => {
                           if (val > 10) return '▇'; // Strong support
                           if (val > 0) return '▅';  // Support
@@ -3636,14 +3636,14 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                     }
 
                     // State descriptor functions
-                    const getMagnitudeState = (mag) => {
+                    const getMagnitudeState = (mag: number) => {
                       if (mag <= 1) return 'Latent';
                       if (mag <= 2) return 'Murmur';
                       if (mag <= 4) return 'Active';
                       return 'Threshold';
                     };
 
-                    const getValenceStyle = (valence, magnitude) => {
+                    const getValenceStyle = (valence: number, magnitude: number) => {
                       const magLevel = magnitude <= 2 ? 'low' : 'high'; // For emoji count selection
 
                       if (valence >= 4.5) {
@@ -3681,13 +3681,13 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                       }
                     };
 
-                    const getVolatilityState = (vol) => {
+                    const getVolatilityState = (vol: number) => {
                       if (vol <= 2) return 'Coherent';
                       if (vol <= 4) return 'Complex';
                       return 'Dispersed';
                     };
 
-                    const getSFDState = (sfd) => {
+                    const getSFDState = (sfd: number) => {
                       if (sfd > 50) return 'Strong Support';
                       if (sfd >= 1) return 'Supportive';
                       if (sfd >= -50) return 'Frictional';
@@ -3704,7 +3704,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
 
                       // Get driver aspects
                       const aspects = dayData?.aspects || [];
-                      const drivers = aspects.slice(0, 3).map(a => `${a.from || a.transit} ${a.aspect} ${a.to || a.natal}`);
+                      const drivers = aspects.slice(0, 3).map((a: any) => `${a.from || a.transit} ${a.aspect} ${a.to || a.natal}`);
 
                       return (
                         <div key={date} className="mb-4 rounded border border-slate-700 bg-slate-900/30 p-4">
@@ -3953,17 +3953,54 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                     <div className="text-sm text-slate-300 leading-relaxed">
                       {(() => {
                         const sfdValue = result?.person_a?.sfd?.sfd ?? 0;
-                        const getMagnitudeState = (mag) => {
+                        const getMagnitudeState = (mag: number) => {
                           if (mag <= 1) return 'latent';
                           if (mag <= 2) return 'murmur-level';
                           if (mag <= 4) return 'active';
                           return 'threshold-level';
                         };
 
-                        const getVolatilityState = (vol) => {
+                        const getVolatilityState = (vol: number) => {
                           if (vol <= 2) return 'coherent';
                           if (vol <= 4) return 'complex';
                           return 'dispersed';
+                        };
+
+                        const getValenceStyle = (valence: number, magnitude: number) => {
+                          const magLevel = magnitude <= 2 ? 'low' : 'high';
+                          if (valence >= 4.5) {
+                            const emojis = magLevel === 'low' ? ['🦋', '🌈'] : ['🦋', '🌈', '🔥'];
+                            return { emojis, descriptor: 'Liberation', anchor: '+5', pattern: 'peak openness; breakthroughs / big‑sky view' };
+                          } else if (valence >= 3.5) {
+                            const emojis = magLevel === 'low' ? ['💎', '🔥'] : ['💎', '🔥', '🦋'];
+                            return { emojis, descriptor: 'Expansion', anchor: '+4', pattern: 'widening opportunities; clear insight fuels growth' };
+                          } else if (valence >= 2.5) {
+                            const emojis = magLevel === 'low' ? ['🧘', '✨'] : ['🧘', '✨', '🌊'];
+                            return { emojis, descriptor: 'Harmony', anchor: '+3', pattern: 'coherent progress; both/and solutions' };
+                          } else if (valence >= 1.5) {
+                            const emojis = magLevel === 'low' ? ['🌊', '🧘'] : ['🌊', '🧘'];
+                            return { emojis, descriptor: 'Flow', anchor: '+2', pattern: 'smooth adaptability; things click' };
+                          } else if (valence >= 0.5) {
+                            const emojis = magLevel === 'low' ? ['🌱', '✨'] : ['🌱', '✨'];
+                            return { emojis, descriptor: 'Lift', anchor: '+1', pattern: 'gentle tailwind; beginnings sprout' };
+                          } else if (valence >= -0.5) {
+                            return { emojis: ['⚖️'], descriptor: 'Equilibrium', anchor: '0', pattern: 'net‑neutral tilt; forces cancel or diffuse' };
+                          } else if (valence >= -1.5) {
+                            const emojis = magLevel === 'low' ? ['🌪', '🌫'] : ['🌪', '🌫'];
+                            return { emojis, descriptor: 'Drag', anchor: '−1', pattern: 'subtle headwind; minor loops or haze' };
+                          } else if (valence >= -2.5) {
+                            const emojis = magLevel === 'low' ? ['🌫', '🧩'] : ['🌫', '🧩', '⬇️'];
+                            return { emojis, descriptor: 'Contraction', anchor: '−2', pattern: 'narrowing options; ambiguity or energy drain' };
+                          } else if (valence >= -3.5) {
+                            const emojis = magLevel === 'low' ? ['⚔️', '🌊'] : ['⚔️', '🌊', '🌫'];
+                            return { emojis, descriptor: 'Tension', anchor: '−3', pattern: 'hard choices; competing forces create friction' };
+                          } else if (valence >= -4.5) {
+                            const emojis = magLevel === 'low' ? ['🌊', '⚔️'] : ['🌊', '⚔️', '💥'];
+                            return { emojis, descriptor: 'Disruption', anchor: '−4', pattern: 'systemic challenges; breakdown precedes breakthrough' };
+                          } else {
+                            const emojis = magLevel === 'low' ? ['💥', '🌊'] : ['💥', '🌊', '⚔️'];
+                            return { emojis, descriptor: 'Collapse', anchor: '−5', pattern: 'maximum restrictive tilt; compression / failure points' };
+                          }
                         };
 
                         const magState = getMagnitudeState(mag);
