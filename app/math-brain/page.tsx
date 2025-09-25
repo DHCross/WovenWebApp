@@ -702,6 +702,159 @@ export default function MathBrainPage() {
     try { window.print(); } catch {/* noop */}
   }
 
+  // Generate condensed Markdown summary export (limited to ~29,000 tokens for ChatGPT compatibility)
+  function downloadMarkdownSummary() {
+    if (!result) {
+      setToast('No report available to export');
+      setTimeout(() => setToast(null), 2000);
+      return;
+    }
+
+    try {
+      const personAName = personA?.name || 'PersonA';
+      const personBName = personB?.name || (mode === 'NATAL_ONLY' ? '' : 'PersonB');
+      const exportDate = new Date();
+      const reportTypeTitle = reportType === 'balance' ? 'Balance Meter Report' : 'Mirror Report';
+
+      let markdown = '';
+
+      // Header
+      markdown += `# ${reportTypeTitle}\n\n`;
+      markdown += `**Generated:** ${exportDate.toLocaleDateString()} ${exportDate.toLocaleTimeString()}\n`;
+      markdown += `**Subject:** ${personAName}`;
+      if (personBName && mode !== 'NATAL_ONLY') {
+        markdown += ` & ${personBName}`;
+      }
+      markdown += `\n`;
+      markdown += `**Report Type:** ${reportTypeTitle}\n`;
+      markdown += `**Session ID:** ${result.sessionId?.slice(-8) || 'N/A'}\n\n`;
+
+      // Executive Summary
+      markdown += `## Executive Summary\n\n`;
+      if (reportType === 'balance') {
+        markdown += `This Balance Meter report analyzes energetic patterns and trends using astrological calculations. `;
+        markdown += `The data reveals the interplay between magnitude (intensity), valence (positive/negative tilt), `;
+        markdown += `volatility (instability), and SFD (structural field dynamics).\n\n`;
+      } else {
+        markdown += `This Mirror report provides insights into archetypal patterns and behavioral dynamics `;
+        markdown += `through astrological analysis, revealing the Actor/Role composite and confidence metrics.\n\n`;
+      }
+
+      if (reportType === 'balance') {
+        // Balance Meter specific data
+        const daily = result?.person_a?.chart?.transitsByDate || {};
+        const dates = Object.keys(daily)
+          .filter(d => d && d.match(/^\d{4}-\d{2}-\d{2}$/))
+          .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+        if (dates.length > 0) {
+          markdown += `### Analysis Period\n\n`;
+          markdown += `**Date Range:** ${new Date(dates[0]).toLocaleDateString()} - ${new Date(dates[dates.length - 1]).toLocaleDateString()}\n`;
+          markdown += `**Total Days:** ${dates.length}\n\n`;
+
+          // Summary statistics
+          const series = dates.map(d => ({
+            date: d,
+            magnitude: Number(daily[d]?.seismograph?.magnitude ?? 0),
+            valence: Number(daily[d]?.seismograph?.valence_bounded ?? daily[d]?.seismograph?.valence ?? 0),
+            volatility: Number(daily[d]?.seismograph?.volatility ?? 0),
+            sfd: Number(daily[d]?.sfd?.sfd_cont ?? daily[d]?.sfd ?? 0)
+          }));
+
+          const avgMagnitude = series.reduce((sum, s) => sum + s.magnitude, 0) / series.length;
+          const avgValence = series.reduce((sum, s) => sum + s.valence, 0) / series.length;
+          const avgVolatility = series.reduce((sum, s) => sum + s.volatility, 0) / series.length;
+          const avgSFD = series.reduce((sum, s) => sum + s.sfd, 0) / series.length;
+
+          markdown += `### Key Metrics Summary\n\n`;
+          markdown += `| Metric | Average | Range |\n`;
+          markdown += `|--------|---------|-------|\n`;
+          markdown += `| **Magnitude** | ${avgMagnitude.toFixed(2)} | ${Math.min(...series.map(s => s.magnitude)).toFixed(1)} - ${Math.max(...series.map(s => s.magnitude)).toFixed(1)} |\n`;
+          markdown += `| **Valence** | ${avgValence >= 0 ? '+' : ''}${avgValence.toFixed(2)} | ${Math.min(...series.map(s => s.valence)).toFixed(1)} - ${Math.max(...series.map(s => s.valence)).toFixed(1)} |\n`;
+          markdown += `| **Volatility** | ${avgVolatility.toFixed(2)} | ${Math.min(...series.map(s => s.volatility)).toFixed(1)} - ${Math.max(...series.map(s => s.volatility)).toFixed(1)} |\n`;
+          markdown += `| **SFD** | ${avgSFD >= 0 ? '+' : ''}${avgSFD.toFixed(0)} | ${Math.min(...series.map(s => s.sfd)).toFixed(0)} - ${Math.max(...series.map(s => s.sfd)).toFixed(0)} |\n\n`;
+
+          // Recent daily data (last 7 days)
+          markdown += `### Recent Daily Data (Last 7 Days)\n\n`;
+          markdown += `| Date | Magnitude | Valence | Volatility | SFD |\n`;
+          markdown += `|------|-----------|---------|------------|-----|\n`;
+
+          dates.slice(-7).forEach(date => {
+            const dayData = daily[date];
+            const mag = Number(dayData?.seismograph?.magnitude ?? 0);
+            const val = Number(dayData?.seismograph?.valence_bounded ?? dayData?.seismograph?.valence ?? 0);
+            const vol = Number(dayData?.seismograph?.volatility ?? 0);
+            const sfd = Number(dayData?.sfd?.sfd_cont ?? dayData?.sfd ?? 0);
+
+            const dateStr = new Date(date).toLocaleDateString('en-US', {
+              month: 'short', day: 'numeric'
+            });
+
+            markdown += `| ${dateStr} | ${mag.toFixed(1)} | ${val >= 0 ? '+' : ''}${val.toFixed(1)} | ${vol.toFixed(1)} | ${sfd > 0 ? '+' : ''}${sfd} |\n`;
+          });
+          markdown += `\n`;
+        }
+      }
+
+      // Interpretation guide (condensed)
+      markdown += `## Quick Reference\n\n`;
+
+      if (reportType === 'balance') {
+        markdown += `### Balance Meter Metrics\n\n`;
+        markdown += `- **Magnitude (0-5):** Overall intensity of energetic patterns\n`;
+        markdown += `- **Valence (-5 to +5):** Positive (expansion/opportunity) vs Negative (contraction/challenge)\n`;
+        markdown += `- **Volatility (0-5):** Instability and unpredictability level\n`;
+        markdown += `- **SFD:** Structural Field Dynamics - underlying stability\n\n`;
+
+        markdown += `### Valence Scale\n\n`;
+        markdown += `- **+5 Liberation:** Peak openness, breakthroughs\n`;
+        markdown += `- **+4 Expansion:** Widening opportunities, growth\n`;
+        markdown += `- **+3 Harmony:** Coherent progress, solutions\n`;
+        markdown += `- **+2 Flow:** Smooth adaptability\n`;
+        markdown += `- **+1 Lift:** Gentle tailwind, beginnings\n`;
+        markdown += `- **0 Equilibrium:** Net-neutral, balanced\n`;
+        markdown += `- **-1 Drag:** Subtle resistance, minor obstacles\n`;
+        markdown += `- **-2 Contraction:** Narrowing options, energy drain\n`;
+        markdown += `- **-3 Friction:** Conflicts, slow progress\n`;
+        markdown += `- **-4 Grind:** Sustained resistance, heavy load\n`;
+        markdown += `- **-5 Collapse:** Maximum restriction, failure points\n\n`;
+      }
+
+      markdown += `## Usage Notes\n\n`;
+      markdown += `This condensed summary is optimized for ChatGPT analysis (~29k tokens). `;
+      markdown += `For complete data, use the JSON export. This system combines traditional astrological `;
+      markdown += `principles with modern data analysis for timing and decision-making insights.\n\n`;
+      markdown += `**Generated by:** Raven Calder • Woven Web Application\n`;
+      markdown += `**Export Date:** ${exportDate.toISOString()}\n`;
+
+      // Create and download the file
+      const blob = new Blob([markdown], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+
+      // Create filename
+      const dateStr = exportDate.toISOString().slice(0, 10);
+      const filename = personBName ?
+        `${reportType}-summary-${personAName.replace(/[^a-zA-Z0-9]/g, '')}-${personBName.replace(/[^a-zA-Z0-9]/g, '')}-${dateStr}.md` :
+        `${reportType}-summary-${personAName.replace(/[^a-zA-Z0-9]/g, '')}-${dateStr}.md`;
+
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setToast('Markdown summary exported successfully');
+      setTimeout(() => setToast(null), 2500);
+
+    } catch (error) {
+      console.error('Markdown export failed:', error);
+      setToast('Markdown export failed. Please try again.');
+      setTimeout(() => setToast(null), 2500);
+    }
+  }
+
   // Generate a PDF specifically focused on Balance Meter graphs and charts
   async function downloadGraphsPDF() {
     if (!result || reportType !== 'balance') {
@@ -3541,6 +3694,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
               <button type="button" onClick={downloadResultJSON} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download result JSON">Download JSON</button>
               <button type="button" onClick={downloadBackstageJSON} className="rounded-md border border-orange-700 bg-orange-800/50 px-3 py-1.5 text-orange-100 hover:bg-orange-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400" aria-label="Download backstage JSON for debugging">🔍 Debug JSON</button>
               <button type="button" onClick={downloadResultPDF} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download PDF">Download PDF</button>
+              <button type="button" onClick={downloadMarkdownSummary} className="rounded-md border border-purple-700 bg-purple-800/50 px-3 py-1.5 text-purple-100 hover:bg-purple-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400" aria-label="Download condensed Markdown summary for ChatGPT">📝 Markdown Summary</button>
               {reportType === 'balance' && (
                 <button type="button" onClick={downloadGraphsPDF} className="rounded-md border border-emerald-700 bg-emerald-800/50 px-3 py-1.5 text-emerald-100 hover:bg-emerald-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" aria-label="Download graphs and charts as PDF">
                   📊 Download Graphs PDF
