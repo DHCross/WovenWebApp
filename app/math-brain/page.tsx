@@ -1208,6 +1208,24 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
     } catch {/* noop */}
   }
 
+  function downloadBackstageJSON() {
+    if (!result) return;
+    try {
+      // Download raw result with all backstage data for debugging
+      const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
+      a.href = url;
+      a.download = `math-brain-backstage-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      try { setToast('Downloading backstage JSON for debugging'); setTimeout(()=>setToast(null), 1400); } catch {/* noop */}
+    } catch {/* noop */}
+  }
+
   // Create frontstage-only version with normalized Balance Meter values (0-5 scale)
   function createFrontStageResult(rawResult: any) {
     const toNumber = (value: any): number | undefined => {
@@ -3281,6 +3299,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
             </div>
             <div className="flex items-center gap-2">
               <button type="button" onClick={downloadResultJSON} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download result JSON">Download JSON</button>
+              <button type="button" onClick={downloadBackstageJSON} className="rounded-md border border-orange-700 bg-orange-800/50 px-3 py-1.5 text-orange-100 hover:bg-orange-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400" aria-label="Download backstage JSON for debugging">🔍 Debug JSON</button>
               <button type="button" onClick={downloadResultPDF} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download PDF">Download PDF</button>
               {reportType === 'balance' && (
                 <button type="button" onClick={downloadGraphsPDF} className="rounded-md border border-emerald-700 bg-emerald-800/50 px-3 py-1.5 text-emerald-100 hover:bg-emerald-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" aria-label="Download graphs and charts as PDF">
