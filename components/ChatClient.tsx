@@ -1863,10 +1863,13 @@ export default function ChatClient() {
     const climateDisplay = formatClimate(response?.climate ?? undefined);
     const hook = formatIntentHook(response?.intent, response?.prov ?? null);
     console.log('[RAVEN_DEBUG] Setting message with html length:', html.length);
+    console.log('[RAVEN_DEBUG] HTML preview:', html.substring(0, 200) + '...');
+    console.log('[RAVEN_DEBUG] iOS check - User agent:', navigator.userAgent);
+    console.log('[RAVEN_DEBUG] iOS check - Platform:', navigator.platform);
     setMessages((prev) =>
       prev.map((msg) => {
         if (msg.id !== ravenId) return msg;
-        return {
+        const updated = {
           ...msg,
           html,
           climate: climateDisplay ?? msg.climate,
@@ -1876,6 +1879,8 @@ export default function ChatClient() {
           draft: response.draft ?? null,
           prov: response.prov ?? null,
         };
+        console.log('[RAVEN_DEBUG] Updated message:', { id: updated.id, htmlLength: updated.html?.length, role: updated.role });
+        return updated;
       }),
     );
     console.log('[RAVEN_DEBUG] Message update completed');
@@ -3505,7 +3510,18 @@ function Bubble({
       <div
         className={msg.role === "raven" ? "raven-response" : ""}
         dangerouslySetInnerHTML={{ __html: primaryHtml }}
+        style={{
+          minHeight: msg.role === "raven" && !primaryHtml ? '20px' : 'auto',
+          WebkitTextSizeAdjust: '100%',
+          textSizeAdjust: '100%'
+        }}
       />
+      {/* iOS Debug Info - remove in production */}
+      {process.env.NODE_ENV === 'development' && msg.role === "raven" && (
+        <div style={{ fontSize: '10px', color: '#666', marginTop: '4px', fontFamily: 'monospace' }}>
+          [DEBUG] HTML length: {primaryHtml?.length || 0} | Has draft: {!!msg.draft} | Draft raw: {!!msg.draft?.raw}
+        </div>
+      )}
 
       {/* Structured mirror (collapsible) when available from draft */}
       {msg.draft && !mirrorSuppressed && (

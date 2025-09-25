@@ -727,7 +727,7 @@ export default function MathBrainPage() {
       let yPosition = PAGE_HEIGHT - MARGIN;
 
       // Title
-      page.drawText('Balance Meter Dashboard - Visual Charts', {
+      page.drawText(sanitizeForPDF('Balance Meter Dashboard - Visual Charts'), {
         x: MARGIN,
         y: yPosition,
         size: 18,
@@ -741,16 +741,16 @@ export default function MathBrainPage() {
       const dates = Object.keys(daily).sort();
 
       if (dates.length === 0) {
-        page.drawText('No chart data available for visualization.', {
+        page.drawText(sanitizeForPDF('No chart data available for visualization.'), {
           x: MARGIN,
           y: yPosition,
           size: 12,
           font: timesRomanFont,
         });
       } else {
-        // Create text-based sparkline charts
+        // Create text-based sparkline charts with PDF-safe characters
         const createTextChart = (values: number[], label: string, maxValue = 5) => {
-          const chars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+          const chars = ['_', '.', '-', '=', '+', '|', '#', 'X'];
           const sparkline = values.slice(-20).map(val => {
             const normalized = Math.max(0, Math.min(1, val / maxValue));
             const index = Math.floor(normalized * (chars.length - 1));
@@ -769,7 +769,7 @@ export default function MathBrainPage() {
         }));
 
         // Chart section
-        page.drawText('Trend Analysis (Last 20 Days)', {
+        page.drawText(sanitizeForPDF('Trend Analysis (Last 20 Days)'), {
           x: MARGIN,
           y: yPosition,
           size: 14,
@@ -784,14 +784,15 @@ export default function MathBrainPage() {
         const sfds = series.map(s => Math.abs(s.sfd / 10)); // Scale SFD for visualization
 
         const charts = [
-          createTextChart(magnitudes, '⚡ Magnitude:', 5),
-          createTextChart(volatilities, '🌀 Volatility:', 5),
-          createTextChart(valences, '✨ Valence:', 10),
+          createTextChart(magnitudes, '*lightning* Magnitude:', 5),
+          createTextChart(volatilities, '*tornado* Volatility:', 5),
+          createTextChart(valences, '*sparkles* Valence:', 10),
           createTextChart(sfds, 'SFD Balance:', 10)
         ];
 
         charts.forEach(chart => {
-          page.drawText(chart, {
+          const sanitizedChart = sanitizeForPDF(chart);
+          page.drawText(sanitizedChart, {
             x: MARGIN,
             y: yPosition,
             size: 10,
@@ -804,7 +805,7 @@ export default function MathBrainPage() {
         yPosition -= 20;
 
         // Add daily diagnostic data
-        page.drawText('Recent Daily Diagnostics', {
+        page.drawText(sanitizeForPDF('Recent Daily Diagnostics'), {
           x: MARGIN,
           y: yPosition,
           size: 14,
@@ -830,7 +831,8 @@ export default function MathBrainPage() {
             yPosition = PAGE_HEIGHT - MARGIN;
           }
 
-          page.drawText(`${dateStr}: Mag ${mag.toFixed(1)} | Val ${val >= 0 ? '+' : ''}${val.toFixed(1)} | Vol ${vol.toFixed(1)} | SFD ${sfd > 0 ? '+' : ''}${sfd}`, {
+          const dayLine = `${dateStr}: Mag ${mag.toFixed(1)} | Val ${val >= 0 ? '+' : ''}${val.toFixed(1)} | Vol ${vol.toFixed(1)} | SFD ${sfd > 0 ? '+' : ''}${sfd}`;
+          page.drawText(sanitizeForPDF(dayLine), {
             x: MARGIN,
             y: yPosition,
             size: 10,
@@ -843,7 +845,8 @@ export default function MathBrainPage() {
 
       // Add footer with timestamp
       const timestamp = new Date().toLocaleString();
-      page.drawText(`Generated: ${timestamp} | Balance Meter Dashboard Charts`, {
+      const footerText = `Generated: ${timestamp} | Balance Meter Dashboard Charts`;
+      page.drawText(sanitizeForPDF(footerText), {
         x: MARGIN,
         y: MARGIN - 20,
         size: 8,
