@@ -1,5 +1,19 @@
 /* PDF Sanitization Helper - Maps Math Brain glyphs and non-WinAnsi characters to ASCII-safe fallbacks */
 
+// First, strip all variation selectors and combining characters that cause encoding issues
+function stripVariationSelectors(text: string): string {
+  return text
+    // Remove Variation Selector-16 (U+FE0F) - forces emoji rendering
+    .replace(/\uFE0F/g, '')
+    // Remove Variation Selector-15 (U+FE0E) - forces text rendering
+    .replace(/\uFE0E/g, '')
+    // Remove other combining characters that cause issues
+    .replace(/[\u0300-\u036F]/g, '') // Combining diacritical marks
+    .replace(/[\u20D0-\u20FF]/g, '') // Combining marks for symbols
+    .replace(/[\u1AB0-\u1AFF]/g, '') // Combining diacritical marks extended
+    .replace(/[\u1DC0-\u1DFF]/g, ''); // Combining diacritical marks supplement
+}
+
 // Map of common astrological glyphs and symbols to ASCII equivalents
 const GLYPH_MAP: Record<string, string> = {
   // Planetary symbols
@@ -181,10 +195,38 @@ const GLYPH_MAP: Record<string, string> = {
   '📈': '*trending_up*',
   '📉': '*trending_down*',
   '⚡': '*lightning*',
+  '⚡️': '*lightning*', // With variation selector
+  '🔥️': '*fire*', // With variation selector
+  '✨️': '*sparkles*', // With variation selector
+  '⭐️': '*', // With variation selector
   '🌙': 'Moon',
   '🌞': 'Sun',
   '🌍': 'Earth',
   '🚀': 'rocket',
+
+  // Common Balance Meter symbols with variation selectors
+  '💎': '*diamond*',
+  '💎️': '*diamond*',
+  '🦋': '*butterfly*',
+  '🦋️': '*butterfly*',
+  '🌈': '*rainbow*',
+  '🌈️': '*rainbow*',
+  '🧘': '*meditation*',
+  '🧘️': '*meditation*',
+  '🌊': '*wave*',
+  '🌊️': '*wave*',
+  '🌱': '*seedling*',
+  '🌱️': '*seedling*',
+  '⚖️': '*balance*',
+  '🌪': '*tornado*',
+  '🌪️': '*tornado*',
+  '🌫': '*fog*',
+  '🌫️': '*fog*',
+  '🧩': '*puzzle*',
+  '🧩️': '*puzzle*',
+  '⚔️': '*swords*',
+  '💥': '*explosion*',
+  '💥️': '*explosion*',
 
   // Common problematic symbols
   '§': 'section',
@@ -232,7 +274,8 @@ export function sanitizeForPDF(text: string): string {
     return '';
   }
 
-  let sanitized = text;
+  // First, strip all variation selectors and combining characters
+  let sanitized = stripVariationSelectors(text);
 
   // First pass: Replace known glyphs and symbols
   for (const [original, replacement] of Object.entries(GLYPH_MAP)) {
