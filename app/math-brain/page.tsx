@@ -723,22 +723,68 @@ export default function MathBrainPage() {
       const PAGE_HEIGHT = 792; // 11" * 72 DPI
       const MARGIN = 50;
 
+      // Extract data for visualization
+      const daily = result?.person_a?.chart?.transitsByDate || {};
+      // Fix date sorting - ensure dates are sorted as Date objects, not strings
+      const dates = Object.keys(daily)
+        .filter(d => d && d.match(/^\d{4}-\d{2}-\d{2}$/)) // Only valid ISO date strings
+        .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
       let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
       let yPosition = PAGE_HEIGHT - MARGIN;
 
       // Title
-      page.drawText(sanitizeForPDF('Balance Meter Dashboard - Visual Charts'), {
+      page.drawText(sanitizeForPDF('Balance Meter Dashboard - Complete Analysis Report'), {
         x: MARGIN,
         y: yPosition,
         size: 18,
         font: timesRomanFont,
         color: rgb(0.2, 0.2, 0.2),
       });
+      yPosition -= 30;
+
+      // Subtitle with date range
+      const dateRangeText = dates.length > 0 ?
+        `Analysis Period: ${new Date(dates[0]).toLocaleDateString()} - ${new Date(dates[dates.length - 1]).toLocaleDateString()}` :
+        'Complete Analysis Report';
+      page.drawText(sanitizeForPDF(dateRangeText), {
+        x: MARGIN,
+        y: yPosition,
+        size: 12,
+        font: timesRomanFont,
+        color: rgb(0.4, 0.4, 0.4),
+      });
       yPosition -= 40;
 
-      // Extract data for visualization
-      const daily = result?.person_a?.chart?.transitsByDate || {};
-      const dates = Object.keys(daily).sort();
+      // Executive Summary Section
+      page.drawText(sanitizeForPDF('EXECUTIVE SUMMARY'), {
+        x: MARGIN,
+        y: yPosition,
+        size: 14,
+        font: timesRomanFont,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+      yPosition -= 25;
+
+      const summaryText = [
+        'This Balance Meter Dashboard provides a comprehensive analysis of energetic patterns',
+        'and trends over time, using a combination of astrological calculations and symbolic',
+        'climate indicators. The data reveals the interplay between magnitude (intensity),',
+        'valence (positive/negative tilt), volatility (instability), and SFD (structural',
+        'field dynamics) to give you insights into the energetic signature of each day.'
+      ];
+
+      summaryText.forEach(line => {
+        page.drawText(sanitizeForPDF(line), {
+          x: MARGIN,
+          y: yPosition,
+          size: 10,
+          font: timesRomanFont,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+        yPosition -= 16;
+      });
+      yPosition -= 20;
 
       if (dates.length === 0) {
         page.drawText(sanitizeForPDF('No chart data available for visualization.'), {
@@ -765,7 +811,7 @@ export default function MathBrainPage() {
           magnitude: Number(daily[d]?.seismograph?.magnitude ?? 0),
           valence: Number(daily[d]?.seismograph?.valence_bounded ?? daily[d]?.seismograph?.valence ?? 0),
           volatility: Number(daily[d]?.seismograph?.volatility ?? 0),
-          sfd: Number(daily[d]?.sfd ?? 0)
+          sfd: Number(daily[d]?.sfd?.sfd_cont ?? daily[d]?.sfd ?? 0)
         }));
 
         // Chart section
@@ -820,7 +866,7 @@ export default function MathBrainPage() {
           const mag = Number(dayData?.seismograph?.magnitude ?? 0);
           const val = Number(dayData?.seismograph?.valence_bounded ?? dayData?.seismograph?.valence ?? 0);
           const vol = Number(dayData?.seismograph?.volatility ?? 0);
-          const sfd = Number(dayData?.sfd ?? 0);
+          const sfd = Number(dayData?.sfd?.sfd_cont ?? dayData?.sfd ?? 0);
 
           const dateStr = new Date(date).toLocaleDateString('en-US', {
             weekday: 'short', month: 'short', day: 'numeric'
@@ -843,6 +889,186 @@ export default function MathBrainPage() {
         });
       }
 
+      // Add new page for methodology and glossary
+      page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+      yPosition = PAGE_HEIGHT - MARGIN;
+
+      // METHODOLOGY SECTION
+      page.drawText(sanitizeForPDF('METHODOLOGY & INTERPRETATION'), {
+        x: MARGIN,
+        y: yPosition,
+        size: 16,
+        font: timesRomanFont,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+      yPosition -= 30;
+
+      const methodologyContent = [
+        'UNDERSTANDING THE METRICS',
+        '',
+        'MAGNITUDE (Lightning Symbol): Measures the overall intensity or strength of energetic',
+        'patterns on a scale from 0-5. Higher values indicate more significant astrological',
+        'activity and potential for notable events or experiences.',
+        '',
+        'VALENCE (Balance Scale): Represents the positive (+5) to negative (-5) tilt of the',
+        'energetic climate. Positive values suggest expansion, opportunity, and flow, while',
+        'negative values indicate contraction, challenges, or resistance.',
+        '',
+        'VOLATILITY (Tornado Symbol): Measures instability and unpredictability on a 0-5 scale.',
+        'Higher volatility suggests rapid changes, unexpected developments, or turbulent',
+        'energy patterns that may require extra attention and adaptability.',
+        '',
+        'SFD (Structural Field Dynamics): Advanced calculation representing the underlying',
+        'structural stability of the energetic field. Positive values indicate supportive',
+        'structures, while negative values suggest areas needing attention or reinforcement.',
+        '',
+        'CHART INTERPRETATION GUIDE',
+        '',
+        'Text-based Charts: The visual representations use ASCII characters to show trends:',
+        '_ (lowest) . - = + | # X (highest). Look for patterns, peaks, and valleys',
+        'to understand the flow of energy over the selected time period.',
+        '',
+        'Daily Diagnostics: The last 7 days of detailed data provide specific numerical',
+        'values for immediate reference and trend analysis.'
+      ];
+
+      methodologyContent.forEach(line => {
+        if (yPosition < MARGIN + 60) {
+          page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+          yPosition = PAGE_HEIGHT - MARGIN;
+        }
+
+        const isHeader = line.toUpperCase() === line && line.length > 10;
+        const fontSize = isHeader ? 12 : 9;
+        const fontColor = isHeader ? rgb(0.2, 0.2, 0.2) : rgb(0.4, 0.4, 0.4);
+
+        page.drawText(sanitizeForPDF(line), {
+          x: MARGIN,
+          y: yPosition,
+          size: fontSize,
+          font: timesRomanFont,
+          color: fontColor,
+        });
+        yPosition -= isHeader ? 20 : 14;
+      });
+
+      yPosition -= 20;
+
+      // VALENCE SCALE GLOSSARY
+      page.drawText(sanitizeForPDF('VALENCE SCALE REFERENCE'), {
+        x: MARGIN,
+        y: yPosition,
+        size: 14,
+        font: timesRomanFont,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+      yPosition -= 25;
+
+      const valenceExplanation = [
+        'The Valence Scale provides detailed interpretation of energy quality from -5 to +5:',
+        ''
+      ];
+
+      valenceExplanation.forEach(line => {
+        page.drawText(sanitizeForPDF(line), {
+          x: MARGIN,
+          y: yPosition,
+          size: 10,
+          font: timesRomanFont,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+        yPosition -= 14;
+      });
+
+      // Import valence levels from climate renderer
+      const valenceLevels = [
+        { level: -5, anchor: 'Collapse', description: 'Maximum restrictive tilt; compression/failure points' },
+        { level: -4, anchor: 'Grind', description: 'Sustained resistance; heavy duty load' },
+        { level: -3, anchor: 'Friction', description: 'Conflicts or cross-purposes slow motion' },
+        { level: -2, anchor: 'Contraction', description: 'Narrowing options; ambiguity or energy drain' },
+        { level: -1, anchor: 'Drag', description: 'Subtle headwind; minor loops or haze' },
+        { level: 0, anchor: 'Equilibrium', description: 'Net-neutral tilt; forces cancel or diffuse' },
+        { level: 1, anchor: 'Lift', description: 'Gentle tailwind; beginnings sprout' },
+        { level: 2, anchor: 'Flow', description: 'Smooth adaptability; things click' },
+        { level: 3, anchor: 'Harmony', description: 'Coherent progress; both/and solutions' },
+        { level: 4, anchor: 'Expansion', description: 'Widening opportunities; clear insight fuels growth' },
+        { level: 5, anchor: 'Liberation', description: 'Peak openness; breakthroughs/big-sky view' }
+      ];
+
+      valenceLevels.forEach(level => {
+        if (yPosition < MARGIN + 40) {
+          page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+          yPosition = PAGE_HEIGHT - MARGIN;
+        }
+
+        const levelStr = level.level >= 0 ? `+${level.level}` : level.level.toString();
+        const levelLine = `${levelStr.padStart(3)} ${level.anchor.padEnd(12)} ${level.description}`;
+
+        page.drawText(sanitizeForPDF(levelLine), {
+          x: MARGIN,
+          y: yPosition,
+          size: 9,
+          font: courierFont,
+          color: level.level === 0 ? rgb(0.3, 0.3, 0.7) : (level.level > 0 ? rgb(0.2, 0.6, 0.2) : rgb(0.6, 0.2, 0.2)),
+        });
+        yPosition -= 16;
+      });
+
+      yPosition -= 20;
+
+      // PRACTICAL APPLICATIONS
+      if (yPosition < MARGIN + 150) {
+        page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+        yPosition = PAGE_HEIGHT - MARGIN;
+      }
+
+      page.drawText(sanitizeForPDF('PRACTICAL APPLICATIONS'), {
+        x: MARGIN,
+        y: yPosition,
+        size: 14,
+        font: timesRomanFont,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+      yPosition -= 25;
+
+      const practicalContent = [
+        'DAILY PLANNING: Use magnitude and valence to plan activities. High magnitude +',
+        'positive valence days are ideal for launches, important meetings, or creative',
+        'projects. High magnitude + negative valence days may require extra caution.',
+        '',
+        'VOLATILITY MANAGEMENT: High volatility days (3+ rating) suggest maintaining',
+        'flexibility and avoiding rigid schedules. Keep backup plans and expect the',
+        'unexpected during these periods.',
+        '',
+        'SFD MONITORING: Negative SFD values may indicate structural weaknesses in',
+        'plans or relationships that need attention. Positive SFD supports stable',
+        'progress and reliable foundations.',
+        '',
+        'TREND ANALYSIS: Look for patterns in the charts over time. Sustained positive',
+        'valence periods offer expansion opportunities, while negative periods may',
+        'require patience and consolidation of gains.',
+        '',
+        'Note: This system combines traditional astrological principles with modern',
+        'data analysis to provide insights for timing and decision-making. Use as',
+        'one factor among many in your planning and reflection process.'
+      ];
+
+      practicalContent.forEach(line => {
+        if (yPosition < MARGIN + 40) {
+          page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+          yPosition = PAGE_HEIGHT - MARGIN;
+        }
+
+        page.drawText(sanitizeForPDF(line), {
+          x: MARGIN,
+          y: yPosition,
+          size: 9,
+          font: timesRomanFont,
+          color: rgb(0.4, 0.4, 0.4),
+        });
+        yPosition -= 13;
+      });
+
       // Add footer with timestamp
       const timestamp = new Date().toLocaleString();
       const footerText = `Generated: ${timestamp} | Balance Meter Dashboard Charts`;
@@ -854,13 +1080,24 @@ export default function MathBrainPage() {
         color: rgb(0.5, 0.5, 0.5),
       });
 
-      // Save and download
+      // Save and download with descriptive filename
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `balance-meter-charts-${new Date().toISOString().slice(0, 10)}.pdf`;
+
+      // Create descriptive filename with person names and date range
+      const personAName = sanitizeForPDF(personA?.name || 'PersonA').replace(/[^a-zA-Z0-9]/g, '');
+      const personBName = sanitizeForPDF(personB?.name || (mode === 'NATAL_ONLY' ? '' : 'PersonB')).replace(/[^a-zA-Z0-9]/g, '');
+      const dateRange = dates.length > 0 ? `${dates[0]}_to_${dates[dates.length - 1]}` : new Date().toISOString().slice(0, 10);
+      const reportTypeStr = reportType === 'balance' ? 'balance-meter' : 'mirror';
+
+      const filename = personBName ?
+        `${reportTypeStr}-${personAName}-${personBName}-${dateRange}.pdf` :
+        `${reportTypeStr}-${personAName}-${dateRange}.pdf`;
+
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
