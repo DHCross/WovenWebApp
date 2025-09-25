@@ -61,11 +61,11 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
   const totalScore = rubricScores.pressure + rubricScores.outlet + rubricScores.conflict + rubricScores.tone + rubricScores.surprise;
   const scoreBand = totalScore >= 13 ? 'Strong signal' : totalScore >= 10 ? 'Some clear hits' : totalScore >= 6 ? 'Mild resonance' : 'Didn\'t land';
 
-  // Enhanced PDF content creation with better formatting
+  // Distinct PDF content creation for Mirror and Balance reports
   const createEnhancedPDFContent = async (): Promise<HTMLElement> => {
     const container = document.createElement('div');
     container.style.cssText = `
-      font-family: 'Times New Roman', serif;
+      font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
       max-width: 8in;
       margin: 0 auto;
       padding: 0.5in;
@@ -76,126 +76,81 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
 
     const currentSessionId = sessionId || pingTracker.getCurrentSessionId();
     const exportDate = new Date();
+    // Auto-detect report type (simple heuristic: if sessionStats has magnitude/valence/volatility, treat as Balance)
+    const isBalance = sessionStats && typeof sessionStats.magnitude !== 'undefined' && typeof sessionStats.valence !== 'undefined' && typeof sessionStats.volatility !== 'undefined';
 
-    container.innerHTML = `
-      <div style="text-align: center; border-bottom: 2px solid #4338ca; padding-bottom: 0.5in; margin-bottom: 0.5in;">
-        <h1 style="color: #4338ca; font-size: 24pt; margin: 0; font-weight: bold;">
-          Raven Calder Session Report
-        </h1>
-        <p style="color: #666; font-size: 12pt; margin: 0.2in 0;">
-          Session ID: ${currentSessionId} | Export Date: ${exportDate.toLocaleDateString()} ${exportDate.toLocaleTimeString()}
-        </p>
-      </div>
-
-      ${composite ? `
+    if (isBalance) {
+      // Balance Report PDF
+      container.innerHTML = `
+        <div style="text-align: center; border-bottom: 2px solid #4338ca; padding-bottom: 0.5in; margin-bottom: 0.5in;">
+          <h1 style="color: #4338ca; font-size: 24pt; margin: 0; font-weight: bold;">Balance Meter Report</h1>
+          <p style="color: #666; font-size: 12pt; margin: 0.2in 0;">Session ID: ${currentSessionId} | Export Date: ${exportDate.toLocaleDateString()} ${exportDate.toLocaleTimeString()}</p>
+        </div>
         <div style="margin-bottom: 0.4in;">
-          <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">
-            Actor/Role Composite Analysis
-          </h2>
-          <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px; border-left: 4px solid #4338ca;">
-            <h3 style="color: #1f2937; font-size: 16pt; margin: 0 0 0.15in 0;">
-              ${composite.composite}
-            </h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.2in; margin-bottom: 0.15in;">
-              <div>
-                <strong>Actor (Driver):</strong> ${composite.actor}<br>
-                <strong>Role (Style):</strong> ${composite.role}
-              </div>
-              <div>
-                <strong>Confidence:</strong> ${(composite.confidence * 100).toFixed(1)}% (${composite.confidenceBand})<br>
-                <strong>Sample Size:</strong> ${composite.sampleSize || 'N/A'} interactions
-              </div>
+          <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Triple-Channel Seismograph</h2>
+          <div style="display: flex; gap: 0.5in; justify-content: center;">
+            <div style="background: #dcfce7; padding: 0.2in; border-radius: 6px; text-align: center;">
+              <div style="font-size: 20pt; font-weight: bold; color: #166534;">${sessionStats.magnitude}</div>
+              <div style="font-size: 10pt; color: #166534;">Magnitude</div>
             </div>
-            ${composite.siderealDrift ? `
-              <div style="background: #fef3c7; padding: 0.15in; border-radius: 4px; border-left: 3px solid #f59e0b;">
-                <strong>Sidereal Drift Detected:</strong> ${composite.driftBand} (${(composite.driftIndex || 0 * 100).toFixed(1)}%)
-                <br><small>Evidence from ${composite.evidenceN || 0} OSR probes</small>
-              </div>
-            ` : ''}
+            <div style="background: #fef3c7; padding: 0.2in; border-radius: 6px; text-align: center;">
+              <div style="font-size: 20pt; font-weight: bold; color: #92400e;">${sessionStats.valence}</div>
+              <div style="font-size: 10pt; color: #92400e;">Valence</div>
+            </div>
+            <div style="background: #fee2e2; padding: 0.2in; border-radius: 6px; text-align: center;">
+              <div style="font-size: 20pt; font-weight: bold; color: #dc2626;">${sessionStats.volatility}</div>
+              <div style="font-size: 10pt; color: #dc2626;">Volatility</div>
+            </div>
           </div>
         </div>
-      ` : ''}
-
-      ${sessionStats ? `
         <div style="margin-bottom: 0.4in;">
-          <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">
-            Session Statistics
-          </h2>
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.2in;">
-            <div style="text-align: center; background: #dcfce7; padding: 0.2in; border-radius: 6px;">
-              <div style="font-size: 20pt; font-weight: bold; color: #166534;">
-                ${sessionStats.wb || 0}
-              </div>
-              <div style="font-size: 10pt; color: #166534;">Works Beautifully</div>
-            </div>
-            <div style="text-align: center; background: #fef3c7; padding: 0.2in; border-radius: 6px;">
-              <div style="font-size: 20pt; font-weight: bold; color: #92400e;">
-                ${sessionStats.abe || 0}
-              </div>
-              <div style="font-size: 10pt; color: #92400e;">About But Enhanced</div>
-            </div>
-            <div style="text-align: center; background: #fee2e2; padding: 0.2in; border-radius: 6px;">
-              <div style="font-size: 20pt; font-weight: bold; color: #dc2626;">
-                ${sessionStats.osr || 0}
-              </div>
-              <div style="font-size: 10pt; color: #dc2626;">Off-Signal Response</div>
-            </div>
-          </div>
-          <div style="margin-top: 0.2in; text-align: center;">
-            <strong>Resonance Fidelity:</strong>
-            ${sessionStats.resonanceFidelity ? `${sessionStats.resonanceFidelity}%` : 'Calculating...'}
-            <span style="color: #666;">
-              (${sessionStats.resonanceBand || 'Pending'})
-            </span>
+          <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Session Load Table</h2>
+          <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
+            <p><strong>Session Duration:</strong> ${sessionStats?.interactionCount ? `${sessionStats.interactionCount} interactions` : 'In progress'}</p>
+            <p><strong>Engagement Level:</strong> ${sessionStats?.engagementLevel || 'High'}</p>
+            <p><strong>Notes:</strong> ${sessionStats?.sessionNotes || '—'}</p>
           </div>
         </div>
-      ` : ''}
-
-      ${rubricSealedSessionId ? `
+        <div style="margin-top: 0.6in; padding-top: 0.3in; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 10pt;">
+          <p>Generated by Raven Calder • Woven Web Application • ${exportDate.toISOString()}</p>
+          <p style="font-style: italic;">"Symbolic weather, not deterministic prediction."</p>
+        </div>
+      `;
+    } else {
+      // Mirror Report PDF
+      container.innerHTML = `
+        <div style="text-align: center; border-bottom: 2px solid #4338ca; padding-bottom: 0.5in; margin-bottom: 0.5in;">
+          <h1 style="color: #4338ca; font-size: 24pt; margin: 0; font-weight: bold;">Mirror Report</h1>
+          <p style="color: #666; font-size: 12pt; margin: 0.2in 0;">Session ID: ${currentSessionId} | Export Date: ${exportDate.toLocaleDateString()} ${exportDate.toLocaleTimeString()}</p>
+        </div>
         <div style="margin-bottom: 0.4in;">
-          <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">
-            Session Rubric (Post-Session Assessment)
-          </h2>
+          <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">FIELD → MAP → VOICE</h2>
+          <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
+            <h3 style="color: #1f2937; font-size: 16pt; margin: 0 0 0.15in 0;">Pattern Map</h3>
+            <p><strong>Actor/Role Composite:</strong> ${composite?.composite || '—'}</p>
+            <p><strong>Actor (Driver):</strong> ${composite?.actor || '—'}</p>
+            <p><strong>Role (Style):</strong> ${composite?.role || '—'}</p>
+            <p><strong>Confidence:</strong> ${composite ? `${(composite.confidence * 100).toFixed(1)}% (${composite.confidenceBand})` : '—'}</p>
+            ${composite?.siderealDrift ? `<p><strong>Sidereal Drift:</strong> ${composite.driftBand} (${(composite.driftIndex || 0 * 100).toFixed(1)}%)</p>` : ''}
+          </div>
+        </div>
+        <div style="margin-bottom: 0.4in;">
+          <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Narrative Reflection</h2>
           <div style="background: #f1f5f9; padding: 0.3in; border-radius: 8px;">
-            <div style="margin-bottom: 0.2in;"><strong>Total Score:</strong> ${totalScore}/15 - ${scoreBand}</div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.15in;">
-              <div>
-                <strong>Pressure/Tension:</strong> ${rubricScores.pressure}/3 ${rubricNulls.pressure ? '(Null)' : ''}<br>
-                <strong>Emotional Outlet:</strong> ${rubricScores.outlet}/3 ${rubricNulls.outlet ? '(Null)' : ''}<br>
-                <strong>Inner Conflict:</strong> ${rubricScores.conflict}/3 ${rubricNulls.conflict ? '(Null)' : ''}
-              </div>
-              <div>
-                <strong>Tone/Mood:</strong> ${rubricScores.tone}/3 ${rubricNulls.tone ? '(Null)' : ''}<br>
-                <strong>Surprise Factor:</strong> ${rubricScores.surprise}/3 ${rubricNulls.surprise ? '(Null)' : ''}
-              </div>
-            </div>
+            <p><strong>Reflection:</strong> "Here's what resonated, here's what didn't, here's what pattern Raven is tentatively guessing — but you remain the validator."</p>
           </div>
         </div>
-      ` : ''}
-
-      <div style="margin-bottom: 0.4in;">
-        <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">
-          Session Overview
-        </h2>
-        <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
-          <p><strong>Session Duration:</strong> ${sessionStats?.interactionCount ? `${sessionStats.interactionCount} interactions` : 'In progress'}</p>
-          <p><strong>Communication Patterns:</strong> ${sessionStats?.totalPatterns || 0} patterns analyzed</p>
-          <p><strong>Engagement Level:</strong> ${sessionStats?.engagementLevel || 'High'}</p>
-          ${sessionStats?.sessionNotes ? `<p><strong>Notes:</strong> ${sessionStats.sessionNotes}</p>` : ''}
+        <div style="margin-top: 0.6in; padding-top: 0.3in; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 10pt;">
+          <p>Generated by Raven Calder • Woven Web Application • ${exportDate.toISOString()}</p>
+          <p style="font-style: italic;">"Symbolic weather, not deterministic prediction."</p>
         </div>
-      </div>
-
-      <div style="margin-top: 0.6in; padding-top: 0.3in; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 10pt;">
-        <p>Generated by Raven Calder • Woven Web Application • ${exportDate.toISOString()}</p>
-        <p style="font-style: italic;">"Here's what resonated, here's what didn't, here's what pattern Raven is tentatively guessing — but you remain the validator."</p>
-      </div>
-    `;
+      `;
+    }
 
     // Add to DOM temporarily for rendering
     container.style.position = 'absolute';
     container.style.left = '-9999px';
     document.body.appendChild(container);
-
     return container;
   };
 

@@ -1191,7 +1191,10 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
   function downloadResultJSON() {
     if (!result) return;
     try {
-      const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
+      // Create frontstage-only version with normalized values
+      const frontStageResult = createFrontStageResult(result);
+
+      const blob = new Blob([JSON.stringify(frontStageResult, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       const stamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
@@ -1203,6 +1206,129 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
       URL.revokeObjectURL(url);
       try { setToast('Downloading result JSON'); setTimeout(()=>setToast(null), 1400); } catch {/* noop */}
     } catch {/* noop */}
+  }
+
+  // Create frontstage-only version with normalized Balance Meter values (0-5 scale)
+  function createFrontStageResult(rawResult: any) {
+    const toNumber = (value: any): number | undefined => {
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+      if (typeof value === 'string') {
+        const parsed = Number(value);
+        if (!Number.isNaN(parsed)) return parsed;
+      }
+      if (value && typeof value === 'object') {
+        if (typeof value.value === 'number' && Number.isFinite(value.value)) return value.value;
+        if (typeof value.mean === 'number' && Number.isFinite(value.mean)) return value.mean;
+        if (typeof value.score === 'number' && Number.isFinite(value.score)) return value.score;
+      }
+      return undefined;
+    };
+
+    // Normalize raw values to frontstage ranges
+    const normalizeToFrontStage = (rawValue: number, type: 'magnitude' | 'valence' | 'volatility'): number => {
+      if (type === 'magnitude' || type === 'volatility') {
+        // Raw values typically range 0-500+, normalize to 0-5
+        return Math.min(5, Math.max(0, Math.round((rawValue / 100) * 10) / 10));
+      } else if (type === 'valence') {
+        // Raw values typically range -500 to +500, normalize to -5 to +5
+        return Math.min(5, Math.max(-5, Math.round((rawValue / 100) * 10) / 10));
+      }
+      return rawValue;
+    };
+
+    const getStateLabel = (value: number, type: 'magnitude' | 'valence' | 'volatility'): string => {
+      if (type === 'magnitude') {
+        if (value >= 4) return 'High';
+        if (value >= 2) return 'Active';
+        if (value >= 1) return 'Murmur';
+        return 'Latent';
+      } else if (type === 'valence') {
+        if (value >= 3) return 'High-Positive';
+        if (value >= 1) return 'Positive';
+        if (value >= -1) return 'Neutral';
+        if (value >= -3) return 'Low-Negative';
+        return 'High-Negative';
+      } else if (type === 'volatility') {
+        if (value >= 4) return 'Very High';
+        if (value >= 2) return 'High';
+        if (value >= 1) return 'Moderate';
+        return 'Low';
+      }
+      return 'Unknown';
+    };
+
+    // Create a clean copy with frontstage values
+    const frontStageResult: any = {
+      ...rawResult,
+      _frontstage_notice: "This export shows normalized Balance Meter values in the user-facing 0-5 scale range. Raw backstage calculations have been converted to frontstage presentation format.",
+      balance_meter: {}
+    };
+
+    // Process person_a summary data
+    if (rawResult?.person_a?.summary) {
+      const summary = rawResult.person_a.summary;
+      const rawMag = toNumber(summary.magnitude);
+      const rawVal = toNumber(summary.valence_bounded ?? summary.valence);
+      const rawVol = toNumber(summary.volatility);
+
+      frontStageResult.balance_meter = {
+        magnitude: rawMag ? normalizeToFrontStage(rawMag, 'magnitude') : undefined,
+        valence: rawVal ? normalizeToFrontStage(rawVal, 'valence') : undefined,
+        volatility: rawVol ? normalizeToFrontStage(rawVol, 'volatility') : undefined,
+        magnitude_label: rawMag ? getStateLabel(normalizeToFrontStage(rawMag, 'magnitude'), 'magnitude') : undefined,
+        valence_label: rawVal ? getStateLabel(normalizeToFrontStage(rawVal, 'valence'), 'valence') : undefined,
+        volatility_label: rawVol ? getStateLabel(normalizeToFrontStage(rawVol, 'volatility'), 'volatility') : undefined,
+        _scale_note: "magnitude: 0-5, valence: -5 to +5, volatility: 0-5"
+      };
+
+      // Update the summary in person_a to use frontstage values
+      frontStageResult.person_a.summary = {
+        ...summary,
+        magnitude: frontStageResult.balance_meter.magnitude,
+        valence: frontStageResult.balance_meter.valence,
+        volatility: frontStageResult.balance_meter.volatility,
+        magnitude_label: frontStageResult.balance_meter.magnitude_label,
+        valence_label: frontStageResult.balance_meter.valence_label,
+        volatility_label: frontStageResult.balance_meter.volatility_label
+      };
+    }
+
+    // Process daily time series data if present
+    if (rawResult?.person_a?.chart?.transitsByDate) {
+      const daily = rawResult.person_a.chart.transitsByDate;
+      const normalizedDaily: any = {};
+
+      Object.keys(daily).forEach(date => {
+        const dayData = daily[date];
+        if (dayData?.seismograph) {
+          const rawMag = toNumber(dayData.seismograph.magnitude);
+          const rawVal = toNumber(dayData.seismograph.valence_bounded ?? dayData.seismograph.valence);
+          const rawVol = toNumber(dayData.seismograph.volatility);
+
+          normalizedDaily[date] = {
+            ...dayData,
+            seismograph: {
+              ...dayData.seismograph,
+              magnitude: rawMag ? normalizeToFrontStage(rawMag, 'magnitude') : dayData.seismograph.magnitude,
+              valence: rawVal ? normalizeToFrontStage(rawVal, 'valence') : dayData.seismograph.valence,
+              volatility: rawVol ? normalizeToFrontStage(rawVol, 'volatility') : dayData.seismograph.volatility
+            }
+          };
+        } else {
+          normalizedDaily[date] = dayData;
+        }
+      });
+
+      frontStageResult.person_a.chart.transitsByDate = normalizedDaily;
+    }
+
+    // Remove or hide backstage calculation details
+    if (frontStageResult.person_a?.sfd) {
+      // Keep SFD as it's meant to be shown, but add a note
+      frontStageResult.person_a.sfd._note = "SFD (Support-Friction Differential) values are preserved as calculated";
+    }
+
+    return frontStageResult;
   }
 
   function persistSessionArtifacts(data: any) {
