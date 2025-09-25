@@ -126,9 +126,17 @@ export function formatClimateDisplay(climate: ClimateData, weights?: ForceWeight
  * Enhanced formatter that includes volatility display
  */
 export function formatFullClimateDisplay(climate: ClimateData, weights?: ForceWeights): string {
-  const baseDisplay = formatClimateDisplay(climate, weights);
+  const selected = selectClimateEmojis(climate, weights);
+  const level = getValenceLevel(getCanonicalValence(climate));
   const volatilityEmojis = ['➿', '🔄', '🔀', '🧩', '🌀'];
   const volEmoji = volatilityEmojis[Math.min(Math.floor(climate.volatility), 4)] || '➿';
-  
-  return `${baseDisplay} · ${volEmoji} ${climate.volatility}`;
+
+  if (selected.length === 0) {
+    return `Symbolic Climate: ⚡ ${climate.magnitude} magnitude · ⚖️ neutral balance · ${volEmoji} ${climate.volatility} volatility`;
+  }
+
+  const emojiPart = selected.map(s => s.emoji).join('');
+  const emojiExplanation = `${emojiPart} = ${level.anchor.toLowerCase()} energy`;
+
+  return `Symbolic Climate: ⚡ ${climate.magnitude} magnitude · ${emojiExplanation} · ${volEmoji} ${climate.volatility} volatility`;
 }

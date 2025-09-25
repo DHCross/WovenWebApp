@@ -1448,6 +1448,7 @@ export default function ChatClient() {
       },
     ]);
     try {
+      console.log('[RAVEN_DEBUG] Starting request for:', text.substring(0, 50) + '...');
       const relocationPayload = mapRelocationToPayload(relocation);
       const payload = {
         input: text,
@@ -1467,13 +1468,16 @@ export default function ChatClient() {
           ...(relocationPayload ? { relocation: relocationPayload } : {}),
         },
       };
+      console.log('[RAVEN_DEBUG] Payload prepared, making API call...');
       const res = await fetch("/api/raven", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
         signal: ctrl.signal,
       });
+      console.log('[RAVEN_DEBUG] API response received:', res.status, res.ok);
       const data: RavenDraftResponse = await res.json().catch(() => ({}));
+      console.log('[RAVEN_DEBUG] Response data:', data?.ok, data?.draft ? 'has draft' : 'no draft', data?.error);
       if (!res.ok || !data?.ok) {
         const fallback =
           typeof data?.error === "string"
@@ -1481,9 +1485,11 @@ export default function ChatClient() {
             : res.ok
               ? "Raven could not complete that request."
               : `Request failed (${res.status})`;
+        console.log('[RAVEN_DEBUG] Error handling fallback:', fallback);
         commitRavenError(ravenId, fallback);
         return;
       }
+      console.log('[RAVEN_DEBUG] Applying response...');
       applyRavenResponse(ravenId, data, "No mirror returned for this lane.");
     } catch (e: any) {
       if (e?.name === "AbortError") {
@@ -1844,6 +1850,7 @@ export default function ChatClient() {
     response: RavenDraftResponse,
     fallbackMessage?: string,
   ) {
+    console.log('[RAVEN_DEBUG] commitRavenResult called with:', { ravenId, hasResponse: !!response, hasDraft: !!response?.draft });
     const guidance =
       typeof response?.guidance === "string" ? response.guidance.trim() : "";
     const html = response?.draft
@@ -1855,6 +1862,7 @@ export default function ChatClient() {
           : "<i>No mirror returned.</i>";
     const climateDisplay = formatClimate(response?.climate ?? undefined);
     const hook = formatIntentHook(response?.intent, response?.prov ?? null);
+    console.log('[RAVEN_DEBUG] Setting message with html length:', html.length);
     setMessages((prev) =>
       prev.map((msg) => {
         if (msg.id !== ravenId) return msg;
@@ -1870,6 +1878,7 @@ export default function ChatClient() {
         };
       }),
     );
+    console.log('[RAVEN_DEBUG] Message update completed');
   }
 
   function applyRavenResponse(
@@ -1877,6 +1886,7 @@ export default function ChatClient() {
     response: RavenDraftResponse,
     fallbackMessage?: string,
   ) {
+    console.log('[RAVEN_DEBUG] applyRavenResponse called with:', { ravenId, hasSessionId: !!response.sessionId, intent: response.intent });
     if (response.sessionId) {
       setRavenSessionId(response.sessionId);
     }
