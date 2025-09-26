@@ -87,95 +87,95 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
           <h1 style="color: #4338ca; font-size: 24pt; margin: 0; font-weight: bold;">${sanitizeForPDF('Balance Meter Report')}</h1>
           <p style="color: #666; font-size: 12pt; margin: 0.2in 0;">${sanitizeForPDF(`Session ID: ${currentSessionId} | Export Date: ${exportDate.toLocaleDateString()} ${exportDate.toLocaleTimeString()}`)}</p>
         </div>
-        <div style="margin-bottom: 0.4in;">
-          <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">${sanitizeForPDF('Triple-Channel Seismograph')}</h2>
-          <div style="display: flex; gap: 0.5in; justify-content: center;">
-            <div style="background: #dcfce7; padding: 0.2in; border-radius: 6px; text-align: center;">
-              <div style="font-size: 20pt; font-weight: bold; color: #166534;">${sanitizeForPDF(String(sessionStats.magnitude))}</div>
-              <div style="font-size: 10pt; color: #166534;">${sanitizeForPDF('Magnitude')}</div>
+        if (isBalance) {
+          // Balance Report PDF - protocol-compliant summary
+          container.innerHTML = `
+            <div style="text-align: center; border-bottom: 2px solid #4338ca; padding-bottom: 0.5in; margin-bottom: 0.5in;">
+              <h1 style="color: #4338ca; font-size: 24pt; margin: 0; font-weight: bold;">Balance Meter Report</h1>
+              <p style="color: #666; font-size: 12pt; margin: 0.2in 0;">
+                <strong>Report Type:</strong> ${sanitizeForPDF(reportType)} | <strong>Person A:</strong> ${personA} | <strong>Person B:</strong> ${personB}<br>
+                ${sanitizeForPDF(`Session ID: ${currentSessionId} | Export Date: ${exportDate.toLocaleDateString()} ${exportDate.toLocaleTimeString()}`)}
+              </p>
             </div>
-            <div style="background: #fef3c7; padding: 0.2in; border-radius: 6px; text-align: center;">
-              <div style="font-size: 20pt; font-weight: bold; color: #92400e;">${sanitizeForPDF(String(sessionStats.valence))}</div>
-              <div style="font-size: 10pt; color: #92400e;">${sanitizeForPDF('Valence')}</div>
+            <div style="margin-bottom: 0.4in;">
+              <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Executive Summary</h2>
+              <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
+                <p><strong>Magnitude:</strong> ${sanitizeForPDF(sessionStats?.magnitude !== undefined ? String(sessionStats.magnitude) : '—')}</p>
+                <p><strong>Valence:</strong> ${sanitizeForPDF(sessionStats?.valence !== undefined ? String(sessionStats.valence) : '—')}</p>
+                <p><strong>Volatility:</strong> ${sanitizeForPDF(sessionStats?.volatility !== undefined ? String(sessionStats.volatility) : '—')}</p>
+                <p><strong>Balance Ready:</strong> ${sanitizeForPDF(sessionStats?.balance_ready !== undefined ? String(sessionStats.balance_ready) : '—')}</p>
+              </div>
             </div>
-            <div style="background: #fee2e2; padding: 0.2in; border-radius: 6px; text-align: center;">
-              <div style="font-size: 20pt; font-weight: bold; color: #dc2626;">${sanitizeForPDF(String(sessionStats.volatility))}</div>
-              <div style="font-size: 10pt; color: #dc2626;">${sanitizeForPDF('Volatility')}</div>
+            <div style="margin-bottom: 0.4in;">
+              <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Session Statistics</h2>
+              <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
+                <p><strong>Works Beautifully (WB):</strong> ${sanitizeForPDF(sessionStats?.wb !== undefined ? String(sessionStats.wb) : '—')}</p>
+                <p><strong>About But Enhanced (ABE):</strong> ${sanitizeForPDF(sessionStats?.abe !== undefined ? String(sessionStats.abe) : '—')}</p>
+                <p><strong>Off-Signal Response (OSR):</strong> ${sanitizeForPDF(sessionStats?.osr !== undefined ? String(sessionStats.osr) : '—')}</p>
+                <p><strong>Resonance Fidelity:</strong> ${sanitizeForPDF(sessionStats?.resonanceFidelity !== undefined ? `${sessionStats.resonanceFidelity}%` : '—')}</p>
+                <p><strong>Session Duration:</strong> ${sanitizeForPDF(sessionStats?.interactionCount !== undefined ? `${sessionStats.interactionCount} interactions` : '—')}</p>
+                <p><strong>Engagement Level:</strong> ${sanitizeForPDF(sessionStats?.engagementLevel !== undefined ? String(sessionStats.engagementLevel) : '—')}</p>
+                <p><strong>Session Notes:</strong> ${sanitizeForPDF(sessionStats?.sessionNotes !== undefined ? String(sessionStats.sessionNotes) : '—')}</p>
+              </div>
             </div>
-          </div>
-        </div>
-        <div style="margin-bottom: 0.4in;">
-          <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">${sanitizeForPDF('Session Load Table')}</h2>
-          <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
-            <p><strong>${sanitizeForPDF('Session Duration:')}</strong> ${sanitizeForPDF(sessionStats?.interactionCount ? `${sessionStats.interactionCount} interactions` : 'In progress')}</p>
-            <p><strong>${sanitizeForPDF('Engagement Level:')}</strong> ${sanitizeForPDF(sessionStats?.engagementLevel || 'High')}</p>
-            <p><strong>${sanitizeForPDF('Notes:')}</strong> ${sanitizeForPDF(sessionStats?.sessionNotes || '—')}</p>
-          </div>
-        </div>
-        <div style="margin-top: 0.6in; padding-top: 0.3in; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 10pt;">
-          <p>${sanitizeForPDF(`Generated by Raven Calder • Woven Web Application • ${exportDate.toISOString()}`)}</p>
-          <p style="font-style: italic;">${sanitizeForPDF('"Symbolic weather, not deterministic prediction."')}</p>
-        </div>
-      `;
-    } else {
-      // Mirror Report PDF
-      container.innerHTML = `
-        <div style="text-align: center; border-bottom: 2px solid #4338ca; padding-bottom: 0.5in; margin-bottom: 0.5in;">
-          <h1 style="color: #4338ca; font-size: 24pt; margin: 0; font-weight: bold;">${sanitizeForPDF('Mirror Report')}</h1>
-          <p style="color: #666; font-size: 12pt; margin: 0.2in 0;">${sanitizeForPDF(`Session ID: ${currentSessionId} | Export Date: ${exportDate.toLocaleDateString()} ${exportDate.toLocaleTimeString()}`)}</p>
-        </div>
-        <div style="margin-bottom: 0.4in;">
-          <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">${sanitizeForPDF('FIELD → MAP → VOICE')}</h2>
-          <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
-            <h3 style="color: #1f2937; font-size: 16pt; margin: 0 0 0.15in 0;">${sanitizeForPDF('Pattern Map')}</h3>
-            <p><strong>${sanitizeForPDF('Actor/Role Composite:')}</strong> ${sanitizeForPDF(composite?.composite || '—')}</p>
-            <p><strong>${sanitizeForPDF('Actor (Driver):')}</strong> ${sanitizeForPDF(composite?.actor || '—')}</p>
-            <p><strong>${sanitizeForPDF('Role (Style):')}</strong> ${sanitizeForPDF(composite?.role || '—')}</p>
-            <p><strong>${sanitizeForPDF('Confidence:')}</strong> ${sanitizeForPDF(composite ? `${(composite.confidence * 100).toFixed(1)}% (${composite.confidenceBand})` : '—')}</p>
-            ${composite?.siderealDrift ? `<p><strong>${sanitizeForPDF('Sidereal Drift:')}</strong> ${sanitizeForPDF(`${composite.driftBand} (${(composite.driftIndex || 0 * 100).toFixed(1)}%)`)}</p>` : ''}
-          </div>
-        </div>
-        <div style="margin-bottom: 0.4in;">
-          <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">${sanitizeForPDF('Narrative Reflection')}</h2>
-          <div style="background: #f1f5f9; padding: 0.3in; border-radius: 8px;">
-            <p><strong>${sanitizeForPDF('Reflection:')}</strong> ${sanitizeForPDF('"Here\'s what resonated, here\'s what didn\'t, here\'s what pattern Raven is tentatively guessing — but you remain the validator."')}</p>
-          </div>
-        </div>
-        <div style="margin-top: 0.6in; padding-top: 0.3in; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 10pt;">
-          <p>${sanitizeForPDF(`Generated by Raven Calder • Woven Web Application • ${exportDate.toISOString()}`)}</p>
-          <p style="font-style: italic;">${sanitizeForPDF('"Symbolic weather, not deterministic prediction."')}</p>
-        </div>
-      `;
-    }
-
-    // Add to DOM temporarily for rendering
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    document.body.appendChild(container);
-    return container;
-  };
-
-  // CSV export function for analytical data
-  const handleExportCSV = async () => {
-    try {
-      const response = await fetch('/api/raven', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'export',
-          sessionId: sessionId || pingTracker.getCurrentSessionId()
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-
-        // Create CSV content with richer data
-        const csvRows = [
-          ['Session Export - Analytical Data'],
-          ['Export Date', new Date().toISOString()],
-          ['Session ID', data.sessionId],
-          [''],
+            <div style="margin-bottom: 0.4in;">
+              <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Patterns & Highlights</h2>
+              <div style="background: #f1f5f9; padding: 0.3in; border-radius: 8px;">
+                <p><strong>Notable Patterns:</strong> ${sanitizeForPDF(sessionStats?.totalPatterns !== undefined ? `${sessionStats.totalPatterns} patterns analyzed` : '—')}</p>
+                <p><strong>Balance Missing:</strong> ${sanitizeForPDF(sessionStats?.balance_missing !== undefined ? String(sessionStats.balance_missing) : '—')}</p>
+              </div>
+            </div>
+            <div style="margin-top: 0.6in; padding-top: 0.3in; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 10pt;">
+              <p>Generated by Raven Calder • Woven Web Application • ${sanitizeForPDF(exportDate.toISOString())}</p>
+              <p style="font-style: italic;">"Symbolic weather, not deterministic prediction."</p>
+            </div>
+          `;
+        } else {
+          // Mirror Report PDF - protocol-compliant summary
+          container.innerHTML = `
+            <div style="text-align: center; border-bottom: 2px solid #4338ca; padding-bottom: 0.5in; margin-bottom: 0.5in;">
+              <h1 style="color: #4338ca; font-size: 24pt; margin: 0; font-weight: bold;">Mirror Report</h1>
+              <p style="color: #666; font-size: 12pt; margin: 0.2in 0;">
+                <strong>Report Type:</strong> ${sanitizeForPDF(reportType)} | <strong>Person A:</strong> ${personA} | <strong>Person B:</strong> ${personB}<br>
+                ${sanitizeForPDF(`Session ID: ${currentSessionId} | Export Date: ${exportDate.toLocaleDateString()} ${exportDate.toLocaleTimeString()}`)}
+              </p>
+            </div>
+            <div style="margin-bottom: 0.4in;">
+              <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Executive Summary</h2>
+              <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
+                <p><strong>Actor/Role Composite:</strong> ${sanitizeForPDF(composite?.composite || '—')}</p>
+                <p><strong>Actor (Driver):</strong> ${sanitizeForPDF(composite?.actor || '—')}</p>
+                <p><strong>Role (Style):</strong> ${sanitizeForPDF(composite?.role || '—')}</p>
+                <p><strong>Confidence:</strong> ${composite ? `${sanitizeForPDF(String((composite.confidence ?? 0) * 100))}% (${sanitizeForPDF(composite.confidenceBand ?? '')})` : '—'}</p>
+                <p><strong>Sample Size:</strong> ${sanitizeForPDF(composite?.sampleSize !== undefined ? String(composite.sampleSize) : '—')}</p>
+                ${composite?.siderealDrift ? `<p><strong>Sidereal Drift:</strong> ${sanitizeForPDF(composite.driftBand ?? '')} (${sanitizeForPDF(String(composite.driftIndex !== undefined ? composite.driftIndex * 100 : 0))}%)</p>` : ''}
+              </div>
+            </div>
+            <div style="margin-bottom: 0.4in;">
+              <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Session Statistics</h2>
+              <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
+                <p><strong>Works Beautifully (WB):</strong> ${sanitizeForPDF(sessionStats?.wb !== undefined ? String(sessionStats.wb) : '—')}</p>
+                <p><strong>About But Enhanced (ABE):</strong> ${sanitizeForPDF(sessionStats?.abe !== undefined ? String(sessionStats.abe) : '—')}</p>
+                <p><strong>Off-Signal Response (OSR):</strong> ${sanitizeForPDF(sessionStats?.osr !== undefined ? String(sessionStats.osr) : '—')}</p>
+                <p><strong>Resonance Fidelity:</strong> ${sanitizeForPDF(sessionStats?.resonanceFidelity !== undefined ? `${sessionStats.resonanceFidelity}%` : '—')}</p>
+                <p><strong>Session Duration:</strong> ${sanitizeForPDF(sessionStats?.interactionCount !== undefined ? `${sessionStats.interactionCount} interactions` : '—')}</p>
+                <p><strong>Engagement Level:</strong> ${sanitizeForPDF(sessionStats?.engagementLevel !== undefined ? String(sessionStats.engagementLevel) : '—')}</p>
+                <p><strong>Session Notes:</strong> ${sanitizeForPDF(sessionStats?.sessionNotes !== undefined ? String(sessionStats.sessionNotes) : '—')}</p>
+              </div>
+            </div>
+            <div style="margin-bottom: 0.4in;">
+              <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Patterns & Highlights</h2>
+              <div style="background: #f1f5f9; padding: 0.3in; border-radius: 8px;">
+                <p><strong>Notable Patterns:</strong> ${sanitizeForPDF(sessionStats?.totalPatterns !== undefined ? `${sessionStats.totalPatterns} patterns analyzed` : '—')}</p>
+                ${composite?.tieBreak ? `<p><strong>Tie-break favored:</strong> ${sanitizeForPDF(composite.tieBreak ?? '')}</p>` : ''}
+                ${composite?.siderealDrift ? `<p><strong>Sidereal Drift Evidence:</strong> ${sanitizeForPDF(composite.evidenceN !== undefined ? `${composite.evidenceN} OSR probes` : '')}</p>` : ''}
+              </div>
+            </div>
+            <div style="margin-top: 0.6in; padding-top: 0.3in; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 10pt;">
+              <p>Generated by Raven Calder • Woven Web Application • ${sanitizeForPDF(exportDate.toISOString())}</p>
+              <p style="font-style: italic;">"Here's what resonated, here's what didn't, here's what pattern Raven is tentatively guessing — but you remain the validator."</p>
+            </div>
+          `;
           ['Metric', 'Value', 'Category', 'Notes'],
           ['Works Beautifully (WB)', sessionStats?.wb || 0, 'Feedback', 'Positive resonance'],
           ['About But Enhanced (ABE)', sessionStats?.abe || 0, 'Feedback', 'Partial resonance with refinement'],
@@ -434,31 +434,95 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
       const html2pdf = (await import('html2pdf.js')).default;
 
       const element = document.querySelector('.wrap-up-card');
-      if (element) {
-        // Create an enhanced version for PDF export with better formatting
-        const enhancedElement = await createEnhancedPDFContent();
-
-        const opt = {
-          margin: 0.75,
-          filename: `raven-wrapup-${sessionId?.slice(-8) || 'session'}-${new Date().toISOString().slice(0,10)}.pdf`,
-          image: { type: 'jpeg', quality: 0.95 },
-          html2canvas: {
-            scale: 2,
-            useCORS: true,
-            allowTaint: false,
-            backgroundColor: '#ffffff',
-            scrollX: 0,
-            scrollY: 0
-          },
-          jsPDF: {
-            unit: 'in',
-            format: 'letter',
-            orientation: 'portrait',
-            putOnlyUsedFonts: true,
-            compress: true
-          }
-        };
-
+      if (isBalance) {
+        // Balance Report PDF - protocol-compliant summary
+        container.innerHTML = `
+          <div style="text-align: center; border-bottom: 2px solid #4338ca; padding-bottom: 0.5in; margin-bottom: 0.5in;">
+            <h1 style="color: #4338ca; font-size: 24pt; margin: 0; font-weight: bold;">Balance Meter Report</h1>
+            <p style="color: #666; font-size: 12pt; margin: 0.2in 0;">
+              <strong>Report Type:</strong> ${sanitizeForPDF(reportType)} | <strong>Person A:</strong> ${personA} | <strong>Person B:</strong> ${personB}<br>
+              ${sanitizeForPDF(`Session ID: ${currentSessionId} | Export Date: ${exportDate.toLocaleDateString()} ${exportDate.toLocaleTimeString()}`)}
+            </p>
+          </div>
+          <div style="margin-bottom: 0.4in;">
+            <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Executive Summary</h2>
+            <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
+              <p><strong>Magnitude:</strong> ${sanitizeForPDF(sessionStats?.magnitude !== undefined ? String(sessionStats.magnitude) : '—')}</p>
+              <p><strong>Valence:</strong> ${sanitizeForPDF(sessionStats?.valence !== undefined ? String(sessionStats.valence) : '—')}</p>
+              <p><strong>Volatility:</strong> ${sanitizeForPDF(sessionStats?.volatility !== undefined ? String(sessionStats.volatility) : '—')}</p>
+              <p><strong>Balance Ready:</strong> ${sanitizeForPDF(sessionStats?.balance_ready !== undefined ? String(sessionStats.balance_ready) : '—')}</p>
+            </div>
+          </div>
+          <div style="margin-bottom: 0.4in;">
+            <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Session Statistics</h2>
+            <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
+              <p><strong>Works Beautifully (WB):</strong> ${sanitizeForPDF(sessionStats?.wb || '—')}</p>
+              <p><strong>About But Enhanced (ABE):</strong> ${sanitizeForPDF(sessionStats?.abe || '—')}</p>
+              <p><strong>Off-Signal Response (OSR):</strong> ${sanitizeForPDF(sessionStats?.osr || '—')}</p>
+              <p><strong>Resonance Fidelity:</strong> ${sanitizeForPDF(sessionStats?.resonanceFidelity ? `${sessionStats.resonanceFidelity}%` : '—')}</p>
+              <p><strong>Session Duration:</strong> ${sanitizeForPDF(sessionStats?.interactionCount ? `${sessionStats.interactionCount} interactions` : '—')}</p>
+              <p><strong>Engagement Level:</strong> ${sanitizeForPDF(sessionStats?.engagementLevel || '—')}</p>
+              <p><strong>Session Notes:</strong> ${sanitizeForPDF(sessionStats?.sessionNotes || '—')}</p>
+            </div>
+          </div>
+          <div style="margin-bottom: 0.4in;">
+            <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Patterns & Highlights</h2>
+            <div style="background: #f1f5f9; padding: 0.3in; border-radius: 8px;">
+              <p><strong>Notable Patterns:</strong> ${sanitizeForPDF(sessionStats?.totalPatterns ? `${sessionStats.totalPatterns} patterns analyzed` : '—')}</p>
+              <p><strong>Balance Missing:</strong> ${sanitizeForPDF(sessionStats?.balance_missing !== undefined ? String(sessionStats.balance_missing) : '—')}</p>
+            </div>
+          </div>
+          <div style="margin-top: 0.6in; padding-top: 0.3in; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 10pt;">
+            <p>Generated by Raven Calder • Woven Web Application • ${exportDate.toISOString()}</p>
+            <p style="font-style: italic;">"Symbolic weather, not deterministic prediction."</p>
+          </div>
+        `;
+      } else {
+        // Mirror Report PDF - protocol-compliant summary
+        container.innerHTML = `
+          <div style="text-align: center; border-bottom: 2px solid #4338ca; padding-bottom: 0.5in; margin-bottom: 0.5in;">
+            <h1 style="color: #4338ca; font-size: 24pt; margin: 0; font-weight: bold;">Mirror Report</h1>
+            <p style="color: #666; font-size: 12pt; margin: 0.2in 0;">
+              <strong>Report Type:</strong> ${sanitizeForPDF(reportType)} | <strong>Person A:</strong> ${personA} | <strong>Person B:</strong> ${personB}<br>
+              ${sanitizeForPDF(`Session ID: ${currentSessionId} | Export Date: ${exportDate.toLocaleDateString()} ${exportDate.toLocaleTimeString()}`)}
+            </p>
+          </div>
+          <div style="margin-bottom: 0.4in;">
+            <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Executive Summary</h2>
+            <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
+              <p><strong>Actor/Role Composite:</strong> ${sanitizeForPDF(composite?.composite || '—')}</p>
+              <p><strong>Actor (Driver):</strong> ${sanitizeForPDF(composite?.actor || '—')}</p>
+              <p><strong>Role (Style):</strong> ${sanitizeForPDF(composite?.role || '—')}</p>
+              <p><strong>Confidence:</strong> ${composite ? `${sanitizeForPDF((composite.confidence * 100).toFixed(1))}% (${sanitizeForPDF(composite.confidenceBand)})` : '—'}</p>
+              <p><strong>Sample Size:</strong> ${sanitizeForPDF(composite?.sampleSize ? String(composite.sampleSize) : '—')}</p>
+              ${composite?.siderealDrift ? `<p><strong>Sidereal Drift:</strong> ${sanitizeForPDF(composite.driftBand)} (${sanitizeForPDF((composite.driftIndex || 0 * 100).toFixed(1))}%)</p>` : ''}
+            </div>
+          </div>
+          <div style="margin-bottom: 0.4in;">
+            <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Session Statistics</h2>
+            <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
+              <p><strong>Works Beautifully (WB):</strong> ${sanitizeForPDF(sessionStats?.wb || '—')}</p>
+              <p><strong>About But Enhanced (ABE):</strong> ${sanitizeForPDF(sessionStats?.abe || '—')}</p>
+              <p><strong>Off-Signal Response (OSR):</strong> ${sanitizeForPDF(sessionStats?.osr || '—')}</p>
+              <p><strong>Resonance Fidelity:</strong> ${sanitizeForPDF(sessionStats?.resonanceFidelity ? `${sessionStats.resonanceFidelity}%` : '—')}</p>
+              <p><strong>Session Duration:</strong> ${sanitizeForPDF(sessionStats?.interactionCount ? `${sessionStats.interactionCount} interactions` : '—')}</p>
+              <p><strong>Engagement Level:</strong> ${sanitizeForPDF(sessionStats?.engagementLevel || '—')}</p>
+              <p><strong>Session Notes:</strong> ${sanitizeForPDF(sessionStats?.sessionNotes || '—')}</p>
+            </div>
+          </div>
+          <div style="margin-bottom: 0.4in;">
+            <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Patterns & Highlights</h2>
+            <div style="background: #f1f5f9; padding: 0.3in; border-radius: 8px;">
+              <p><strong>Notable Patterns:</strong> ${sanitizeForPDF(sessionStats?.totalPatterns ? `${sessionStats.totalPatterns} patterns analyzed` : '—')}</p>
+              ${composite?.tieBreak ? `<p><strong>Tie-break favored:</strong> ${sanitizeForPDF(composite.tieBreak)}</p>` : ''}
+              ${composite?.siderealDrift ? `<p><strong>Sidereal Drift Evidence:</strong> ${sanitizeForPDF(composite.evidenceN ? `${composite.evidenceN} OSR probes` : '')}</p>` : ''}
+            </div>
+          </div>
+          <div style="margin-top: 0.6in; padding-top: 0.3in; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 10pt;">
+            <p>Generated by Raven Calder • Woven Web Application • ${exportDate.toISOString()}</p>
+            <p style="font-style: italic;">"Here's what resonated, here's what didn't, here's what pattern Raven is tentatively guessing — but you remain the validator."</p>
+          </div>
+        `;
         await html2pdf().from(enhancedElement).set(opt).save();
 
         // Clean up the temporary element

@@ -749,7 +749,12 @@ export default function MathBrainPage() {
 
         if (dates.length > 0) {
           markdown += `### Analysis Period\n\n`;
-          markdown += `**Date Range:** ${new Date(dates[0]).toLocaleDateString()} - ${new Date(dates[dates.length - 1]).toLocaleDateString()}\n`;
+          // Format dates without timezone conversion to avoid date shifts
+          const formatDateString = (dateStr: string) => {
+            const [year, month, day] = dateStr.split('-');
+            return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toLocaleDateString();
+          };
+          markdown += `**Date Range:** ${formatDateString(dates[0])} - ${formatDateString(dates[dates.length - 1])}\n`;
           markdown += `**Total Days:** ${dates.length}\n\n`;
 
           // Summary statistics
@@ -793,6 +798,279 @@ export default function MathBrainPage() {
             markdown += `| ${dateStr} | ${mag.toFixed(1)} | ${val >= 0 ? '+' : ''}${val.toFixed(1)} | ${vol.toFixed(1)} | ${sfd > 0 ? '+' : ''}${sfd} |\n`;
           });
           markdown += `\n`;
+
+          // Additional Balance Report details
+          const wm = (result as any)?.woven_map;
+          if (wm) {
+            // Seismograph patterns and trends
+            markdown += `### Seismograph Analysis\n\n`;
+
+            // Trend analysis
+            const recent = series.slice(-7);
+            const older = series.slice(0, -7);
+            if (older.length > 0 && recent.length > 0) {
+              const recentAvgMag = recent.reduce((sum, s) => sum + s.magnitude, 0) / recent.length;
+              const olderAvgMag = older.reduce((sum, s) => sum + s.magnitude, 0) / older.length;
+              const magTrend = recentAvgMag - olderAvgMag;
+
+              const recentAvgVal = recent.reduce((sum, s) => sum + s.valence, 0) / recent.length;
+              const olderAvgVal = older.reduce((sum, s) => sum + s.valence, 0) / older.length;
+              const valTrend = recentAvgVal - olderAvgVal;
+
+              markdown += `**Recent Trends (Last 7 vs Previous):**\n`;
+              markdown += `- Magnitude: ${magTrend >= 0 ? '↗' : '↘'} ${magTrend >= 0 ? '+' : ''}${magTrend.toFixed(2)} (${recentAvgMag.toFixed(2)} recent vs ${olderAvgMag.toFixed(2)} previous)\n`;
+              markdown += `- Valence: ${valTrend >= 0 ? '↗' : '↘'} ${valTrend >= 0 ? '+' : ''}${valTrend.toFixed(2)} (${recentAvgVal.toFixed(2)} recent vs ${olderAvgVal.toFixed(2)} previous)\n`;
+            }
+
+            // Peak and valley identification
+            const maxMag = Math.max(...series.map(s => s.magnitude));
+            const minMag = Math.min(...series.map(s => s.magnitude));
+            const maxVal = Math.max(...series.map(s => s.valence));
+            const minVal = Math.min(...series.map(s => s.valence));
+
+            const peakMagDate = series.find(s => s.magnitude === maxMag)?.date;
+            const valleyMagDate = series.find(s => s.magnitude === minMag)?.date;
+            const peakValDate = series.find(s => s.valence === maxVal)?.date;
+            const valleyValDate = series.find(s => s.valence === minVal)?.date;
+
+            markdown += `\n**Notable Points:**\n`;
+            markdown += `- Highest Magnitude: ${maxMag.toFixed(1)} on ${peakMagDate ? new Date(peakMagDate).toLocaleDateString() : 'N/A'}\n`;
+            markdown += `- Lowest Magnitude: ${minMag.toFixed(1)} on ${valleyMagDate ? new Date(valleyMagDate).toLocaleDateString() : 'N/A'}\n`;
+            markdown += `- Peak Valence: ${maxVal >= 0 ? '+' : ''}${maxVal.toFixed(1)} on ${peakValDate ? new Date(peakValDate).toLocaleDateString() : 'N/A'}\n`;
+            markdown += `- Valley Valence: ${minVal >= 0 ? '+' : ''}${minVal.toFixed(1)} on ${valleyValDate ? new Date(valleyValDate).toLocaleDateString() : 'N/A'}\n\n`;
+
+            // Volatility patterns
+            const highVolDays = series.filter(s => s.volatility > avgVolatility + 1).length;
+            const lowVolDays = series.filter(s => s.volatility < avgVolatility - 1).length;
+            if (highVolDays > 0 || lowVolDays > 0) {
+              markdown += `**Volatility Patterns:**\n`;
+              markdown += `- High volatility days (>${(avgVolatility + 1).toFixed(1)}): ${highVolDays}/${series.length}\n`;
+              markdown += `- Low volatility days (<${(avgVolatility - 1).toFixed(1)}): ${lowVolDays}/${series.length}\n\n`;
+            }
+          }
+
+          // Integration factors and quality metrics
+          if (wm?.integration_factors) {
+            markdown += `### Integration Factors\n\n`;
+            const factors = wm.integration_factors;
+            const factorKeys = [
+              'fertile_field', 'harmonic_resonance', 'expansion_lift',
+              'combustion_clarity', 'liberation_release', 'integration'
+            ];
+
+            markdown += `**Quality Metrics:**\n`;
+            factorKeys.forEach(key => {
+              if (factors[key] !== undefined) {
+                const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                markdown += `- ${label}: ${factors[key]}\n`;
+              }
+            });
+            markdown += `\n`;
+          }
+
+          // Session metadata
+          if (result?.sessionId || wm?.context) {
+            markdown += `### Session Details\n\n`;
+            if (result?.sessionId) {
+              markdown += `**Session ID:** ${result.sessionId.slice(-8)}\n`;
+            }
+            if (wm?.context?.mode) {
+              markdown += `**Analysis Mode:** ${wm.context.mode}\n`;
+            }
+            if (wm?.context?.period?.step) {
+              markdown += `**Step Size:** ${wm.context.period.step}\n`;
+            }
+            if (wm?.provenance?.math_brain_version) {
+              markdown += `**Engine Version:** ${wm.provenance.math_brain_version}\n`;
+            }
+            if (wm?.provenance?.house_system_name) {
+              markdown += `**House System:** ${wm.provenance.house_system_name}\n`;
+            }
+            markdown += `\n`;
+          }
+
+          // Statistical insights
+          markdown += `### Statistical Insights\n\n`;
+
+          // Stability metrics
+          const magStdev = Math.sqrt(series.reduce((sum, s) => sum + Math.pow(s.magnitude - avgMagnitude, 2), 0) / series.length);
+          const valStdev = Math.sqrt(series.reduce((sum, s) => sum + Math.pow(s.valence - avgValence, 2), 0) / series.length);
+          const volStdev = Math.sqrt(series.reduce((sum, s) => sum + Math.pow(s.volatility - avgVolatility, 2), 0) / series.length);
+
+          markdown += `**Stability Metrics (Standard Deviation):**\n`;
+          markdown += `- Magnitude stability: ${magStdev.toFixed(2)} (lower = more stable)\n`;
+          markdown += `- Valence stability: ${valStdev.toFixed(2)} (lower = more stable)\n`;
+          markdown += `- Volatility stability: ${volStdev.toFixed(2)} (lower = more consistent)\n\n`;
+
+          // Balance meter climate assessment
+          let climate = 'Neutral';
+          if (avgValence > 2) climate = 'Expansive';
+          else if (avgValence > 0.5) climate = 'Positive';
+          else if (avgValence < -2) climate = 'Contractive';
+          else if (avgValence < -0.5) climate = 'Challenging';
+
+          let intensity = 'Moderate';
+          if (avgMagnitude > 3.5) intensity = 'High';
+          else if (avgMagnitude > 2.5) intensity = 'Elevated';
+          else if (avgMagnitude < 1.5) intensity = 'Low';
+
+          markdown += `**Climate Assessment:**\n`;
+          markdown += `- Overall Climate: ${climate} (avg valence: ${avgValence >= 0 ? '+' : ''}${avgValence.toFixed(2)})\n`;
+          markdown += `- Intensity Level: ${intensity} (avg magnitude: ${avgMagnitude.toFixed(2)})\n`;
+
+          if (avgVolatility > 2.5) {
+            markdown += `- Stability: High turbulence (avg volatility: ${avgVolatility.toFixed(2)})\n`;
+          } else if (avgVolatility > 1.5) {
+            markdown += `- Stability: Moderate fluctuation (avg volatility: ${avgVolatility.toFixed(2)})\n`;
+          } else {
+            markdown += `- Stability: Relatively stable (avg volatility: ${avgVolatility.toFixed(2)})\n`;
+          }
+          markdown += `\n`;
+        }
+      } else {
+        // Mirror Report specific data
+        const wm = (result as any)?.woven_map;
+        if (wm) {
+          markdown += `### Mirror Report Summary\n\n`;
+
+          // Actor/Role composite with confidence and sample size
+          if (wm.mirror_voice || wm.polarity_cards) {
+            markdown += `### Actor/Role Composite\n\n`;
+
+            // Extract Actor/Role information from mirror_voice or derived data
+            if (wm.mirror_voice) {
+              markdown += `**Mirror Voice:** ${wm.mirror_voice?.slice(0, 200) || 'N/A'}...\n\n`;
+            }
+
+            // Polarity cards summary
+            if (wm.polarity_cards && Array.isArray(wm.polarity_cards)) {
+              const cardCount = wm.polarity_cards.length;
+              markdown += `**Polarity Cards:** ${cardCount} active cards\n`;
+              if (cardCount > 0) {
+                const activeCards = wm.polarity_cards.filter((card: any) => card?.field_tone || card?.voice_slot);
+                markdown += `**Active Fields:** ${activeCards.length}/${cardCount}\n`;
+              }
+            }
+
+            // Actor/Role drift tracking if available
+            if (wm.vector_integrity?.drift_index || wm.integration_factors?.drift) {
+              const driftIndex = wm.vector_integrity?.drift_index || wm.integration_factors?.drift || 0;
+              markdown += `**Drift Index:** ${typeof driftIndex === 'number' ? driftIndex.toFixed(2) : 'N/A'}\n`;
+            }
+            markdown += `\n`;
+          }
+
+          // Session Statistics (WB, ABE, OSR counts)
+          if (wm.hook_stack || wm.integration_factors) {
+            markdown += `### Session Statistics\n\n`;
+
+            // Hook stack summary
+            if (wm.hook_stack) {
+              const hooks = wm.hook_stack.hooks || [];
+              const tier1Count = wm.hook_stack.tier_1_orbs || 0;
+              const totalIntensity = wm.hook_stack.total_intensity || 0;
+              const coverage = wm.hook_stack.coverage || 'unknown';
+
+              markdown += `**Hook Stack:** ${hooks.length} patterns • ${tier1Count} Tier-1 (≤1°)\n`;
+              markdown += `**Total Intensity:** ${totalIntensity}\n`;
+              markdown += `**Coverage:** ${coverage}\n`;
+            }
+
+            // Integration factors (resonance fidelity approximation)
+            if (wm.integration_factors) {
+              const factors = wm.integration_factors;
+              const resonanceKeys = ['harmonic_resonance', 'fertile_field', 'integration'];
+              markdown += `**Resonance Factors:**\n`;
+              resonanceKeys.forEach(key => {
+                if (factors[key] !== undefined) {
+                  markdown += `- ${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}: ${factors[key]}\n`;
+                }
+              });
+            }
+            markdown += `\n`;
+          }
+
+          // Notable patterns and special flags
+          if (wm.vector_integrity || wm.context) {
+            markdown += `### Notable Patterns\n\n`;
+
+            // Vector integrity patterns
+            if (wm.vector_integrity) {
+              const latent = wm.vector_integrity.latent || [];
+              const suppressed = wm.vector_integrity.suppressed || [];
+              if (latent.length > 0 || suppressed.length > 0) {
+                markdown += `**Vector Integrity:**\n`;
+                if (latent.length > 0) markdown += `- Latent influences: ${latent.length}\n`;
+                if (suppressed.length > 0) markdown += `- Suppressed influences: ${suppressed.length}\n`;
+              }
+            }
+
+            // Sidereal drift detection
+            if (wm.context?.sidereal_drift || wm.provenance?.zodiac_type === 'Sidereal') {
+              markdown += `**Special Flags:**\n`;
+              if (wm.context?.sidereal_drift) {
+                markdown += `- Sidereal drift detected: ${wm.context.sidereal_drift}\n`;
+              }
+              if (wm.provenance?.zodiac_type === 'Sidereal') {
+                markdown += `- Zodiac system: Sidereal\n`;
+              }
+            }
+
+            markdown += `\n`;
+          }
+
+          // Date range and session notes for Mirror reports
+          if (wm.context?.period || result?.sessionId) {
+            markdown += `### Session Details\n\n`;
+
+            if (wm.context?.period) {
+              const period = wm.context.period;
+              if (period.start && period.end) {
+                // Format dates without timezone conversion for Mirror reports too
+                const formatDateString = (dateStr: string) => {
+                  const [year, month, day] = dateStr.split('-');
+                  return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toLocaleDateString();
+                };
+                markdown += `**Date Range:** ${formatDateString(period.start)} - ${formatDateString(period.end)}\n`;
+
+                // Calculate days between dates
+                const startDate = new Date(period.start);
+                const endDate = new Date(period.end);
+                const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Include both start and end dates
+                markdown += `**Total Days:** ${diffDays}\n`;
+              }
+              if (period.step) {
+                markdown += `**Step:** ${period.step}\n`;
+              }
+            }
+
+            if (result?.sessionId) {
+              markdown += `**Session ID:** ${result.sessionId.slice(-8)}\n`;
+            }
+
+            // Report type and mode
+            if (wm.type) {
+              markdown += `**Report Mode:** ${wm.type}\n`;
+            }
+
+            markdown += `\n`;
+          }
+
+          // Rubric scores if available
+          if (wm.integration_factors) {
+            markdown += `### Quality Metrics\n\n`;
+            const factors = wm.integration_factors;
+            const rubricKeys = ['expansion_lift', 'combustion_clarity', 'liberation_release'];
+
+            markdown += `**Rubric Scores:**\n`;
+            rubricKeys.forEach(key => {
+              if (factors[key] !== undefined) {
+                markdown += `- ${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}: ${factors[key]}\n`;
+              }
+            });
+            markdown += `\n`;
+          }
         }
       }
 
@@ -818,6 +1096,24 @@ export default function MathBrainPage() {
         markdown += `- **-3 Friction:** Conflicts, slow progress\n`;
         markdown += `- **-4 Grind:** Sustained resistance, heavy load\n`;
         markdown += `- **-5 Collapse:** Maximum restriction, failure points\n\n`;
+      } else {
+        // Mirror Report interpretation guide
+        markdown += `### Mirror Report Components\n\n`;
+        markdown += `- **Hook Stack:** High-intensity patterns from tightest aspects that serve as recognition gateways\n`;
+        markdown += `- **Polarity Cards:** Three-card field mapping using FIELD → MAP → VOICE progression\n`;
+        markdown += `- **Integration Factors:** Quality metrics including harmonic resonance, fertile field, and integration scores\n`;
+        markdown += `- **Vector Integrity:** Analysis of latent vs suppressed influences in the symbolic field\n`;
+        markdown += `- **Drift Index:** Measures Actor (driver) vs Role (style) weighting balance\n\n`;
+
+        markdown += `### SST Classification\n\n`;
+        markdown += `- **WB (Works Beautifully):** Full resonance, 1.0 weight - feeds both Actor and Role\n`;
+        markdown += `- **ABE (At Boundary Edge):** Partial/inverted/off-tone resonance, 0.5 weight\n`;
+        markdown += `- **OSR (Outside Symbolic Range):** No resonance, 0 weight - valuable null data\n\n`;
+
+        markdown += `### Quality Thresholds\n\n`;
+        markdown += `- **Tier-1 Aspects:** ≤1° orb, highest intensity patterns\n`;
+        markdown += `- **Minimum Intensity:** 8+ threshold for hook inclusion\n`;
+        markdown += `- **Coverage Levels:** minimal | adequate | comprehensive | saturated\n\n`;
       }
 
       markdown += `## Usage Notes\n\n`;
