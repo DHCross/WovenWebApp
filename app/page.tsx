@@ -1,7 +1,16 @@
 export const dynamic = 'force-dynamic';
 import HomeHero from "../components/HomeHero";
+import { buildInfo } from "../lib/buildInfo";
 
 export default function Home() {
+  const formattedTimestamp =
+    buildInfo.timestamp !== "unknown"
+      ? new Intl.DateTimeFormat("en-US", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(new Date(buildInfo.timestamp))
+      : "unknown";
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
       <header className="text-center">
@@ -40,6 +49,10 @@ export default function Home() {
       </section>
 
       <HomeHero />
+
+      <footer className="mt-12 text-right text-xs text-slate-500">
+        <span className="font-medium text-slate-400">Deployment:</span> {buildInfo.commit} · {formattedTimestamp}
+      </footer>
     </main>
   );
 }
