@@ -4,6 +4,25 @@ import ActorRoleDetector, { ActorRoleComposite } from '../lib/actor-role-detecto
 import { pingTracker } from '../lib/ping-tracker';
 import { sanitizeForPDF } from '../src/pdf-sanitizer';
 
+type AnalyticsPayload = Record<string, unknown>;
+type RubricKey = 'pressure' | 'outlet' | 'conflict' | 'tone' | 'surprise';
+
+const logEvent = (eventName: string, payload: AnalyticsPayload = {}) => {
+  if (typeof window !== 'undefined') {
+    const analyticsWindow = window as typeof window & {
+      dataLayer?: Array<Record<string, unknown>>;
+    };
+
+    if (Array.isArray(analyticsWindow.dataLayer)) {
+      analyticsWindow.dataLayer.push({ event: eventName, ...payload });
+    }
+  }
+
+  if (typeof console !== 'undefined') {
+    console.debug(`[analytics] ${eventName}`, payload);
+  }
+};
+
 interface WrapUpCardProps {
   sessionId?: string;
   onClose?: () => void;
@@ -35,6 +54,56 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
   const [rubricSealedSessionId, setRubricSealedSessionId] = useState<string | null>(null);
   const [showPendingNote, setShowPendingNote] = useState<number>(0);
 
+  const ScoreSlider: React.FC<{ label: string; helper: string; keyName: RubricKey }> = ({
+    label,
+    helper,
+    keyName
+  }) => {
+    const value = rubricScores[keyName];
+    const isNull = rubricNulls[keyName];
+
+    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      const numericValue = Number(event.target.value);
+      setRubricScores(prev => ({ ...prev, [keyName]: numericValue }));
+      setRubricNulls(prev => ({ ...prev, [keyName]: false }));
+      logEvent('rubric_score_changed', { key: keyName, value: numericValue });
+    };
+
+    const toggleNull = () => {
+      setRubricNulls(prev => {
+        const nextNull = !prev[keyName];
+        if (nextNull) {
+          setRubricScores(scores => ({ ...scores, [keyName]: 0 }));
+        }
+        logEvent('rubric_score_null_toggled', { key: keyName, null: nextNull });
+        return { ...prev, [keyName]: nextNull };
+      });
+    };
+
+    return (
+      <div className="rubric-row">
+        <div className="rubric-label">
+          <div>{label}</div>
+          <div className="rubric-helper">{helper}</div>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={3}
+          step={1}
+          value={value}
+          onChange={handleChange}
+          disabled={isNull}
+          aria-label={`${label} score`}
+        />
+        <div className="rubric-value">{isNull ? '—' : value}</div>
+        <label className="rubric-null">
+          <input type="checkbox" checked={isNull} onChange={toggleNull} /> Null
+        </label>
+      </div>
+    );
+  };
+
   const generateActorRoleReveal = async () => {
     setIsGenerating(true);
     
@@ -61,6 +130,141 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
 
   const totalScore = rubricScores.pressure + rubricScores.outlet + rubricScores.conflict + rubricScores.tone + rubricScores.surprise;
   const scoreBand = totalScore >= 13 ? 'Strong signal' : totalScore >= 10 ? 'Some clear hits' : totalScore >= 6 ? 'Mild resonance' : 'Didn\'t land';
+
+  const handleOpenRubric = () => {
+    const pendingCount = typeof sessionStats?.breakdown?.pending === 'number'
+      ? sessionStats.breakdown.pending
+      : 0;
+    setShowRubric(true);
+    setShowPendingNote(pendingCount);
+    setRubricStartTs(Date.now());
+    logEvent('rubric_opened', {
+      sessionId: sessionId || pingTracker.getCurrentSessionId(),
+      pendingCount
+    });
+  };
+
+  const handleSkipRubric = () => {
+    setShowRubric(false);
+    setShowPendingNote(0);
+    setRubricStartTs(null);
+    setToast('Rubric skipped');
+    setTimeout(() => setToast(null), 2000);
+    logEvent('rubric_skipped', { sessionId: sessionId || pingTracker.getCurrentSessionId() });
+  };
+
+  const handleCancelRubric = () => {
+    setShowRubric(false);
+    setShowPendingNote(0);
+    setRubricStartTs(null);
+    setToast('Rubric canceled');
+    setTimeout(() => setToast(null), 2000);
+    logEvent('rubric_cancelled', { sessionId: sessionId || pingTracker.getCurrentSessionId() });
+  };
+
+  const handleSealRubric = () => {
+    const activeSessionId = sessionId || pingTracker.getCurrentSessionId();
+    const nullCount = Object.values(rubricNulls).filter(Boolean).length;
+    const durationMs = rubricStartTs ? Date.now() - rubricStartTs : undefined;
+
+    pingTracker.sealSession(sessionId);
+    const nextSessionId = pingTracker.getCurrentSessionId();
+
+    setRubricSealedSessionId(activeSessionId);
+    setShowRubric(false);
+    setShowPendingNote(0);
+    setRubricStartTs(null);
+    setToast('Rubric submitted. Reading sealed.');
+    setTimeout(() => setToast(null), 2500);
+
+    if (onSealed) {
+      onSealed(activeSessionId, nextSessionId);
+    }
+
+    logEvent('rubric_sealed', {
+      sessionId: activeSessionId,
+      totalScore,
+      scoreBand,
+      nullCount,
+      durationMs
+    });
+  };
+
+  const handleExportCSV = async () => {
+    try {
+      const diagnostics = pingTracker.exportSessionDiagnostics(sessionId);
+      const rows: string[][] = [];
+      const pushRow = (label: string, value: unknown) => {
+        const normalized = value === null || value === undefined
+          ? ''
+          : Array.isArray(value)
+            ? value.map(item => (typeof item === 'string' ? item : JSON.stringify(item))).join(' | ')
+            : typeof value === 'object'
+              ? JSON.stringify(value)
+              : String(value);
+        rows.push([label, normalized]);
+      };
+
+      pushRow('Export Generated At', new Date().toISOString());
+      pushRow('Session ID', diagnostics.sessionId);
+      pushRow('Total Mirrors', diagnostics.stats.total);
+      pushRow('Accuracy Rate (%)', diagnostics.stats.accuracyRate.toFixed(2));
+      pushRow('Clarity Rate (%)', diagnostics.stats.clarityRate.toFixed(2));
+
+      Object.entries(diagnostics.stats.breakdown || {}).forEach(([key, value]) => {
+        pushRow(`Breakdown - ${key}`, value);
+      });
+
+      Object.entries(diagnostics.stats.byCheckpointType || {}).forEach(([key, value]) => {
+        pushRow(`Checkpoint ${key} Total`, value.total);
+        pushRow(`Checkpoint ${key} Accuracy (%)`, value.accuracyRate.toFixed(2));
+        pushRow(`Checkpoint ${key} Clarity (%)`, value.clarityRate.toFixed(2));
+      });
+
+      if (composite) {
+        pushRow('Composite', composite.composite || '');
+        pushRow('Actor', composite.actor || '');
+        pushRow('Role', composite.role || '');
+        pushRow('Confidence (%)', (composite.confidence ?? 0) * 100);
+        pushRow('Confidence Band', composite.confidenceBand || '');
+        pushRow('Sample Size', composite.sampleSize ?? '');
+      }
+
+      if (rubricSealedSessionId) {
+        pushRow('Rubric Session', rubricSealedSessionId);
+        pushRow('Rubric Total Score', totalScore);
+        pushRow('Rubric Score Band', scoreBand);
+        Object.entries(rubricScores).forEach(([key, value]) => {
+          const label = `Rubric ${key}`;
+          pushRow(label, value);
+          pushRow(`${label} Null`, rubricNulls[key as RubricKey]);
+        });
+      }
+
+      const csvContent = rows
+        .map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
+        .join('\r\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `raven-session-${diagnostics.sessionId.slice(-8)}-${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setToast('CSV exported successfully');
+      setTimeout(() => setToast(null), 2500);
+      logEvent('csv_export_success', { sessionId: diagnostics.sessionId });
+    } catch (error) {
+      console.error('CSV export failed:', error);
+      setToast('CSV export failed. Please try again.');
+      setTimeout(() => setToast(null), 2500);
+      logEvent('csv_export_failed', { error: String(error) });
+    }
+  };
 
   // Distinct PDF content creation for Mirror and Balance reports
   const createEnhancedPDFContent = (): HTMLElement => {
