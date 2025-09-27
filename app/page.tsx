@@ -3,13 +3,14 @@ import HomeHero from "../components/HomeHero";
 import { buildInfo } from "../lib/buildInfo";
 
 export default function Home() {
-  const formattedTimestamp =
-    buildInfo.timestamp !== "unknown"
-      ? new Intl.DateTimeFormat("en-US", {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }).format(new Date(buildInfo.timestamp))
-      : "unknown";
+  const hasCommit = buildInfo.commit && buildInfo.commit !== "unknown";
+  const hasTimestamp = buildInfo.timestamp && buildInfo.timestamp !== "unknown";
+  const formattedTimestamp = hasTimestamp
+    ? new Intl.DateTimeFormat("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(buildInfo.timestamp))
+    : null;
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -51,7 +52,18 @@ export default function Home() {
       <HomeHero />
 
       <footer className="mt-12 text-right text-xs text-slate-500">
-        <span className="font-medium text-slate-400">Deployment:</span> {buildInfo.commit} · {formattedTimestamp}
+        <span className="font-medium text-slate-400">Deployment:</span>{" "}
+        {hasCommit || hasTimestamp ? (
+          <>
+            {hasCommit ? buildInfo.commit : "commit unavailable"}
+            {hasCommit && hasTimestamp && " · "}
+            {hasTimestamp ? formattedTimestamp : "timestamp unavailable"}
+          </>
+        ) : (
+          <span className="text-slate-500">
+            Metadata unavailable — configure build metadata to populate this section.
+          </span>
+        )}
       </footer>
     </main>
   );
