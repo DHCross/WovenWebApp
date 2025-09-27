@@ -250,5 +250,40 @@ Schema-Enforced Render:
       expect(parsed.schema_enforced_render.picture).toContain('Sun');
       expect(parsed.schema_enforced_render.picture).not.toContain('☉');
     });
+
+    test('should retain vector integrity drift metrics in sanitized payload', () => {
+      const vectorIntegrityBlock = {
+        drift_index: 0.623,
+        drift_band: 'POSSIBLE',
+        drift_samples: 5,
+        drift_areas: ['communication', 'relationships'],
+        drift_state_dependent: false,
+        summary: {
+          active_vectors: 3,
+          latent_vectors: 2,
+          suppressed_vectors: 1,
+          dormant_vectors: 0,
+          active_events: 9,
+          latent_events: 4,
+          suppressed_events: 2,
+          dormant_events: 0
+        }
+      };
+
+      const sanitizedJSON = sanitizeReportForPDF({
+        rawJSON: {
+          woven_map: {
+            vector_integrity: vectorIntegrityBlock
+          }
+        }
+      });
+
+      const parsed = JSON.parse(sanitizedJSON.rawJSON!);
+      expect(parsed.woven_map.vector_integrity.drift_index).toBeCloseTo(0.623, 3);
+      expect(parsed.woven_map.vector_integrity.drift_band).toBe('POSSIBLE');
+      expect(parsed.woven_map.vector_integrity.drift_samples).toBe(5);
+      expect(parsed.woven_map.vector_integrity.drift_areas).toEqual(expect.arrayContaining(['communication', 'relationships']));
+      expect(parsed.woven_map.vector_integrity.summary.active_vectors).toBe(3);
+    });
   });
 });
