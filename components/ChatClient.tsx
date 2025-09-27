@@ -3286,6 +3286,8 @@ function Stream({
     note?: string,
   ) => void;
 }) {
+  // Rely on flex sizing so mobile Safari calculates the scrollable
+  // conversation height correctly without collapsing the stream.
   return (
     <section
       ref={containerRef}
@@ -3300,7 +3302,7 @@ function Stream({
         flexDirection: "column",
         gap: 12,
         overflow: "auto",
-        height: "100%",
+        flex: 1,
         minHeight: 0,
         WebkitOverflowScrolling: "touch",
       }}
