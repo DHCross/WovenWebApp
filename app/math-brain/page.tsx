@@ -88,7 +88,14 @@ const toNatalMode = (mode: ReportMode): ReportMode => {
 };
 
 // Helper functions to extract UI/UX Contract types from existing data
-function extractReportHeader(mode: ReportMode, startDate: string, endDate: string, step: string, relocationStatus: any): ReportHeader {
+function extractReportHeader(
+  mode: ReportMode,
+  startDate: string,
+  endDate: string,
+  step: string,
+  relocationStatus: any,
+  relocationLabel?: string
+): ReportHeader {
   const normalizedMode = (() => {
     switch (mode) {
       case 'NATAL_ONLY': return 'NATAL';
@@ -110,7 +117,10 @@ function extractReportHeader(mode: ReportMode, startDate: string, endDate: strin
     } : undefined,
     relocated: {
       active: relocationStatus.effectiveMode !== 'NONE',
-      label: relocationStatus.effectiveMode !== 'NONE' ? (relocLabel || undefined) : undefined
+      label:
+        relocationStatus.effectiveMode !== 'NONE'
+          ? (relocationLabel?.trim() ? relocationLabel.trim() : undefined)
+          : undefined
     }
   };
 }
@@ -470,12 +480,6 @@ export default function MathBrainPage() {
     ? { value: 'NATAL_TRANSITS' as ReportMode, label: 'Natal + Transits' }
     : { value: 'NATAL_ONLY' as ReportMode, label: 'Natal Only' };
 
-  // Extract UI/UX Contract types (computed once, passed down to children)
-  const reportHeader = useMemo(() =>
-    extractReportHeader(mode, startDate, endDate, step, relocationStatus),
-    [mode, startDate, endDate, step, relocationStatus]
-  );
-
   const weather = useMemo(() =>
     extractWeather(startDate, endDate, result),
     [startDate, endDate, result]
@@ -690,6 +694,12 @@ export default function MathBrainPage() {
 
     return { effectiveMode, notice };
   }, [includeTransits, translocation, relocationInputReady, isDyadMode, personBLocationReady]);
+
+  // Extract UI/UX Contract types (computed once, passed down to children)
+  const reportHeader = useMemo(
+    () => extractReportHeader(mode, startDate, endDate, step, relocationStatus, relocLabel),
+    [mode, startDate, endDate, step, relocationStatus, relocLabel]
+  );
 
   // If Person B is turned off while a relational mode is selected, reset to a solo mode
   useEffect(() => {
