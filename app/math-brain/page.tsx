@@ -88,7 +88,14 @@ const toNatalMode = (mode: ReportMode): ReportMode => {
 };
 
 // Helper functions to extract UI/UX Contract types from existing data
-function extractReportHeader(mode: ReportMode, startDate: string, endDate: string, step: string, relocationStatus: any): ReportHeader {
+function extractReportHeader(
+  mode: ReportMode,
+  startDate: string,
+  endDate: string,
+  step: string,
+  relocationStatus: any,
+  relocLabel?: string | null
+): ReportHeader {
   const normalizedMode = (() => {
     switch (mode) {
       case 'NATAL_ONLY': return 'NATAL';
@@ -472,8 +479,8 @@ export default function MathBrainPage() {
 
   // Extract UI/UX Contract types (computed once, passed down to children)
   const reportHeader = useMemo(() =>
-    extractReportHeader(mode, startDate, endDate, step, relocationStatus),
-    [mode, startDate, endDate, step, relocationStatus]
+    extractReportHeader(mode, startDate, endDate, step, relocationStatus, relocLabel),
+    [mode, startDate, endDate, step, relocationStatus, relocLabel]
   );
 
   const weather = useMemo(() =>
