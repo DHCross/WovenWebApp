@@ -299,6 +299,7 @@ function Section({ title, children, className = "" }: { title: string; children:
 export default function MathBrainPage() {
   const showLegacyLink = process.env.NEXT_PUBLIC_ENABLE_LEGACY_LINK === 'true';
   // Auth0 restored: authentication functionality available
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const today = useMemo(() => new Date(), []);
   const fmt = useCallback((d: Date) => d.toISOString().slice(0, 10), []);
@@ -643,6 +644,32 @@ export default function MathBrainPage() {
       setLayerVisibility((prev) => ({ ...prev, balance: false }));
     }
   }, [includeTransits, layerVisibility.balance]);
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        if (typeof window !== 'undefined' && window.auth0?.createAuth0Client) {
+          const client = await window.auth0.createAuth0Client({
+            domain: process.env.NEXT_PUBLIC_AUTH0_DOMAIN,
+            clientId: process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID,
+            authorizationParams: {
+              audience: process.env.NEXT_PUBLIC_AUTH0_AUDIENCE || undefined,
+              redirect_uri: window.location.origin,
+            },
+          });
+          const isAuthenticated = await client.isAuthenticated();
+          if (isAuthenticated) {
+            const user = await client.getUser();
+            setIsAdmin(user?.email === 'nathal@gmail.com');
+          }
+        }
+      } catch (error) {
+        // Silently fail - admin features just won't show
+      }
+    };
+    checkAdminStatus();
+  }, []);
 
   // Track if user has manually set dates to avoid overriding their choices
   const [userHasSetDates, setUserHasSetDates] = useState(false);
@@ -2907,17 +2934,42 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
           if (!timeUnknown) return 'user_provided';
           return timePolicy;
         })(),
-        ...(wantsTransits ? {
+        ...(wantsTransits || reportType === 'balance' ? {
           window: { start: startDate, end: endDate, step },
           transits: { from: startDate, to: endDate, step },
+          ...(reportType === 'balance' ? {
+            indices: {
+              window: { start: startDate, end: endDate, step },
+              request_daily: true
+            }
+          } : {})
         } : {}),
         transitStartDate: startDate,
         transitEndDate: endDate,
         transitStep: step,
         report_type: reportContractType,
+        // Frontstage policy for Balance Mode
+        ...(reportType === 'balance' ? {
+          frontstage_policy: {
+            autogenerate: true,
+            allow_symbolic_weather: true
+          }
+        } : {}),
         // Report mode drives backend routing semantics
         context: {
           mode: determineContextMode(mode, reportContractType),
+          ...(reportType === 'balance' ? {
+            location: {
+              timezone: relocationStatus.effectiveMode !== 'NONE' && relocTz ? relocTz : personA.timezone,
+              coordinates: relocationStatus.effectiveMode !== 'NONE' && relocCoords ? {
+                latitude: relocCoords.lat,
+                longitude: relocCoords.lon
+              } : {
+                latitude: Number(personA.latitude),
+                longitude: Number(personA.longitude)
+              }
+            }
+          } : {})
         },
         // Pass translocation intent to backend (data-only context)
         translocation: ((): any => {
@@ -4324,9 +4376,6 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
             const summary = vector.summary || {};
             const latentEvents = Number(summary.latent_events ?? 0);
             const suppressedEvents = Number(summary.suppressed_events ?? 0);
-            const driftIndex = typeof vector.drift_index === 'number' ? Number(vector.drift_index) : null;
-            const driftBand = vector.drift_band || null;
-            const driftSamples = vector.drift_samples ?? null;
             const classification = (Array.isArray((wm as any)?.sst_tags) ? (wm as any).sst_tags : null) || (result as any)?.relational_mirror?.sst_tags || [];
 
             return (
@@ -4338,21 +4387,31 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                       {voice || `Natal foundation established with ${tier1Count} key aspect patterns. Ready for Poetic Brain interpretation and symbolic weather overlay.`}
                     </p>
                   </div>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <div className="rounded-md border border-slate-700 bg-slate-900/50 p-3">
                       <div className="text-xs uppercase tracking-wide text-slate-400">Tier‑1 Hooks</div>
-                      <div className="mt-1 text-2xl font-semibold text-slate-100">{tier1Count}</div>
-                      <div className="text-xs text-slate-400">Intensity: {Math.round(totalIntensity)} · Coverage: {coverage || 'n/a'}</div>
+                      {(() => {
+                        const tier1Hooks = hooks.filter((hook: any) => hook?.is_tier_1);
+                        if (tier1Hooks.length === 0) {
+                          return <div className="mt-1 text-sm text-slate-400">No Tier‑1 hooks detected</div>;
+                        }
+                        return (
+                          <div className="mt-1 space-y-1">
+                            {tier1Hooks.map((hook: any, index: number) => (
+                              <div key={index} className="text-sm text-slate-100">
+                                {hook.title || hook.name || `Hook ${index + 1}`}
+                                {hook.why && <span className="text-xs text-slate-400 ml-1">— {hook.why}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                      <div className="text-xs text-slate-400 mt-2">Intensity: {Math.round(totalIntensity)} · Coverage: {coverage || 'n/a'}</div>
                     </div>
                     <div className="rounded-md border border-slate-700 bg-slate-900/50 p-3">
                       <div className="text-xs uppercase tracking-wide text-slate-400">Vector Integrity</div>
                       <div className="mt-1 text-2xl font-semibold text-slate-100">{latentEvents}/{suppressedEvents}</div>
                       <div className="text-xs text-slate-400">Latent vs Suppressed event counts</div>
-                    </div>
-                    <div className="rounded-md border border-slate-700 bg-slate-900/50 p-3">
-                      <div className="text-xs uppercase tracking-wide text-slate-400">Drift Index</div>
-                      <div className="mt-1 text-2xl font-semibold text-slate-100">{driftIndex != null ? driftIndex.toFixed(2) : '—'}</div>
-                      <div className="text-xs text-slate-400">{driftBand ? `Band: ${driftBand}` : 'Balanced window'}{driftSamples != null ? ` · Samples: ${driftSamples}` : ''}</div>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -4376,8 +4435,6 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
               <span>Download the geometry or continue in Poetic Brain whenever you want a narrative pass.</span>
             </div>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={downloadResultJSON} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download result JSON">Download JSON</button>
-              <button type="button" onClick={downloadBackstageJSON} className="rounded-md border border-orange-700 bg-orange-800/50 px-3 py-1.5 text-orange-100 hover:bg-orange-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400" aria-label="Download backstage JSON for debugging">🔍 Debug JSON</button>
               <button type="button" onClick={downloadResultPDF} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download PDF">Download PDF</button>
               <button type="button" onClick={downloadMarkdownSummary} className="rounded-md border border-purple-700 bg-purple-800/50 px-3 py-1.5 text-purple-100 hover:bg-purple-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400" aria-label="Download condensed Markdown summary for ChatGPT">📝 Markdown Summary</button>
               {includeTransits && (
