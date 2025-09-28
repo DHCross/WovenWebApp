@@ -129,11 +129,12 @@ export default function MathBrainPage() {
   const fmt = useCallback((d: Date) => d.toISOString().slice(0, 10), []);
 
   // Default date ranges differ based on whether symbolic weather (transits) are enabled
+  // - Transits default to a single-day window that users can expand as needed
+  // - Natal-only defaults to a week-long planning window
   const getDefaultDates = useCallback((withTransits: boolean) => {
     const start = fmt(today);
     if (withTransits) {
-      const end = fmt(new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000));
-      return { start, end };
+      return { start, end: start };
     }
     const end = fmt(new Date(today.getTime() + 6 * 24 * 60 * 60 * 1000));
     return { start, end };
