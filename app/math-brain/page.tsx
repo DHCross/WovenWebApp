@@ -94,11 +94,7 @@ function extractReportHeader(
   endDate: string,
   step: string,
   relocationStatus: any,
-
   relocLabel?: string | null
-
-  relocationLabel?: string
-
 ): ReportHeader {
   const normalizedMode = (() => {
     switch (mode) {
@@ -123,7 +119,7 @@ function extractReportHeader(
       active: relocationStatus.effectiveMode !== 'NONE',
       label:
         relocationStatus.effectiveMode !== 'NONE'
-          ? (relocationLabel?.trim() ? relocationLabel.trim() : undefined)
+          ? (relocLabel?.trim() ? relocLabel.trim() : undefined)
           : undefined
     }
   };
@@ -483,14 +479,6 @@ export default function MathBrainPage() {
   const soloModeOption = includeTransits
     ? { value: 'NATAL_TRANSITS' as ReportMode, label: 'Natal + Transits' }
     : { value: 'NATAL_ONLY' as ReportMode, label: 'Natal Only' };
-
-
-  // Extract UI/UX Contract types (computed once, passed down to children)
-  const reportHeader = useMemo(() =>
-    extractReportHeader(mode, startDate, endDate, step, relocationStatus, relocLabel),
-    [mode, startDate, endDate, step, relocationStatus, relocLabel]
-  );
-
 
 
   const weather = useMemo(() =>
