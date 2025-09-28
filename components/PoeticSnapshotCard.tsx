@@ -87,6 +87,26 @@ export default function PoeticSnapshotCard({ data }: PoeticSnapshotCardProps) {
     return text.length > maxLength ? text.slice(0, maxLength - 1) + '…' : text;
   };
 
+  const renderWithStrong = (text: string) => {
+    const segments = text.split('**');
+
+    if (segments.length === 1) {
+      return text;
+    }
+
+    return segments.map((segment, index) =>
+      index % 2 === 1 ? (
+        <strong key={`strong-${index}`}>{segment}</strong>
+      ) : (
+        <React.Fragment key={`text-${index}`}>{segment}</React.Fragment>
+      ),
+    );
+  };
+
+  const truncatedLineA = truncate(lineA);
+  const truncatedLineB = truncate(lineB);
+  const truncatedLineC = truncate(lineC);
+
   const lensText = data.topHouse.relocated
     ? `Lens: ${data.auditFooter.lens}`
     : "Lens: Natal houses (no relocation).";
@@ -110,15 +130,9 @@ export default function PoeticSnapshotCard({ data }: PoeticSnapshotCardProps) {
 
       {/* Three-stanza snapshot */}
       <div className="space-y-3 text-sm leading-relaxed">
-        <p className="text-slate-100">
-          {truncate(lineA).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}
-        </p>
-        <p className="text-slate-100">
-          {truncate(lineB).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}
-        </p>
-        <p className="text-slate-100">
-          {truncate(lineC).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}
-        </p>
+        <p className="text-slate-100">{renderWithStrong(truncatedLineA)}</p>
+        <p className="text-slate-100">{renderWithStrong(truncatedLineB)}</p>
+        <p className="text-slate-100">{renderWithStrong(truncatedLineC)}</p>
       </div>
 
       {/* Audit footer */}
