@@ -7,6 +7,7 @@ import { needsLocation, isTimeUnknown } from "../../lib/relocation";
 import { sanitizeReportForPDF, sanitizeForPDF } from "../../src/pdf-sanitizer";
 import { ContractLinter } from "../../src/contract-linter";
 import { renderShareableMirror } from "../../lib/raven/render";
+import { ReportHeader, Weather, Blueprint } from "../../lib/ui-types";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +86,116 @@ const toNatalMode = (mode: ReportMode): ReportMode => {
       return mode;
   }
 };
+
+// Helper functions to extract UI/UX Contract types from existing data
+function extractReportHeader(mode: ReportMode, startDate: string, endDate: string, step: string, relocationStatus: any): ReportHeader {
+  const normalizedMode = (() => {
+    switch (mode) {
+      case 'NATAL_ONLY': return 'NATAL';
+      case 'NATAL_TRANSITS': return 'TRANSITS';
+      case 'SYNASTRY': return 'SYNASTRY';
+      case 'SYNASTRY_TRANSITS': return 'SYNASTRY_TRANSITS';
+      case 'COMPOSITE': return 'SYNASTRY'; // Treat composite as synastry for UI purposes
+      case 'COMPOSITE_TRANSITS': return 'SYNASTRY_TRANSITS';
+      default: return 'NATAL';
+    }
+  })() as ReportHeader['mode'];
+
+  return {
+    mode: normalizedMode,
+    window: startDate && endDate ? {
+      start: startDate,
+      end: endDate,
+      step: step as "daily" | "hourly" | "none"
+    } : undefined,
+    relocated: {
+      active: relocationStatus.effectiveMode !== 'NONE',
+      label: relocationStatus.effectiveMode !== 'NONE' ? (relocLabel || undefined) : undefined
+    }
+  };
+}
+
+function extractWeather(startDate: string, endDate: string, result: any): Weather {
+  // hasWindow computed once: valid start+end+step
+  const hasWindow = !!(
+    startDate &&
+    endDate &&
+    startDate.trim() &&
+    endDate.trim() &&
+    startDate.match(/^\d{4}-\d{2}-\d{2}$/) &&
+    endDate.match(/^\d{4}-\d{2}-\d{2}$/)
+  );
+
+  // Extract balance meter data if available
+  let balanceMeter: Weather['balanceMeter'] | undefined;
+  const summary = result?.person_a?.derived?.seismograph_summary;
+  if (summary) {
+    const mag = Number(summary.magnitude ?? 0);
+    const val = Number(summary.valence_bounded ?? summary.valence ?? 0);
+    const vol = Number(summary.volatility ?? 0);
+
+    balanceMeter = {
+      magnitude: mag >= 3 ? 'High' : mag >= 1.5 ? 'Moderate' : 'Low',
+      valence: val > 0.5 ? 'Harmonious' : val < -0.5 ? 'Tense' : 'Complex',
+      volatility: vol >= 3 ? 'Unstable' : vol >= 1 ? 'Variable' : 'Stable'
+    };
+  }
+
+  // Extract tier-1 hooks with plain language explanations (no bare counts)
+  const tier1Hooks: Weather['tier1Hooks'] = [];
+  const hooks = result?.person_a?.derived?.woven_map?.hook_stack?.hooks || [];
+
+  hooks.filter((hook: any) => (hook.orb || 0) <= 1.0).slice(0, 3).forEach((hook: any) => {
+    const planetA = hook.planet_a || hook.p1_name || '';
+    const planetB = hook.planet_b || hook.p2_name || '';
+    const aspect = hook.aspect || hook.type || '';
+    const houseNum = String(hook.house || 1).padStart(2, '0');
+
+    tier1Hooks.push({
+      label: `${planetA} ↔ ${planetB}`,
+      why: generatePlainLanguageExplanation(planetA, planetB, aspect),
+      houseTag: `A:${houseNum}`
+    });
+  });
+
+  return {
+    hasWindow,
+    balanceMeter,
+    tier1Hooks
+  };
+}
+
+function extractBlueprint(result: any): Blueprint {
+  // Extract thesis - must be non-empty per contract
+  const voice = result?.person_a?.derived?.woven_map?.voice;
+  const tier1Count = result?.person_a?.derived?.woven_map?.hook_stack?.tier_1_orbs || 0;
+
+  let thesis = voice || '';
+  if (!thesis) {
+    // Friendly, plain fallback language for all users
+    thesis = tier1Count > 0
+      ? `You have ${tier1Count} standout patterns in your chart. These shape how you connect, grow, and make choices every day.`
+      : `Your chart is steady and balanced, offering gentle support and clear direction for your life.`;
+  }
+
+  return { thesis };
+}
+
+function generatePlainLanguageExplanation(planetA: string, planetB: string, aspect: string): string {
+  // Simple explanations that newcomers can understand
+  const explanations: Record<string, string> = {
+    'Sun opposition Saturn': 'tests the balance between personal expression and responsibility',
+    'Moon square Mars': 'creates tension between emotional needs and taking action',
+    'Venus trine Jupiter': 'opens opportunities for growth, relationships, and abundance',
+    'Mercury conjunction Pluto': 'intensifies communication and brings depth to thinking',
+    'Mars square Jupiter': 'challenges you to balance ambition with realistic limits',
+    'Sun conjunct Moon': 'aligns your identity with your emotional nature',
+    'Venus square Mars': 'creates dynamic tension between attraction and assertion'
+  };
+
+  const key = `${planetA} ${aspect} ${planetB}`;
+  return explanations[key] || `creates important interaction between ${planetA.toLowerCase()} and ${planetB.toLowerCase()} themes`;
+}
 
 const normalizeReportMode = (value: unknown): ReportMode => {
   if (!value && value !== 0) return 'NATAL_ONLY';
@@ -358,6 +469,22 @@ export default function MathBrainPage() {
   const soloModeOption = includeTransits
     ? { value: 'NATAL_TRANSITS' as ReportMode, label: 'Natal + Transits' }
     : { value: 'NATAL_ONLY' as ReportMode, label: 'Natal Only' };
+
+  // Extract UI/UX Contract types (computed once, passed down to children)
+  const reportHeader = useMemo(() =>
+    extractReportHeader(mode, startDate, endDate, step, relocationStatus),
+    [mode, startDate, endDate, step, relocationStatus]
+  );
+
+  const weather = useMemo(() =>
+    extractWeather(startDate, endDate, result),
+    [startDate, endDate, result]
+  );
+
+  const blueprint = useMemo(() =>
+    extractBlueprint(result),
+    [result]
+  );
   const relationalModeOptions: { value: ReportMode; label: string }[] = includePersonB
     ? includeTransits
       ? [
@@ -994,9 +1121,21 @@ export default function MathBrainPage() {
               const totalIntensity = wm.hook_stack.total_intensity || 0;
               const coverage = wm.hook_stack.coverage || 'unknown';
 
-              markdown += `**Hook Stack:** ${hooks.length} patterns • ${tier1Count} Tier-1 (≤1°)\n`;
+              markdown += `**Key Patterns:** ${hooks.length} significant connections\n`;
               markdown += `**Total Intensity:** ${totalIntensity}\n`;
               markdown += `**Coverage:** ${coverage}\n`;
+
+              // Add named tier-1 hooks instead of bare counts
+              if (tier1Count > 0) {
+                markdown += `\n**Top Activations:**\n`;
+                const topHooks = hooks.filter((hook: any) => (hook.orb || 0) <= 1.0).slice(0, 3);
+                topHooks.forEach((hook: any) => {
+                  const planetA = hook.planet_a || hook.p1_name || '';
+                  const planetB = hook.planet_b || hook.p2_name || '';
+                  const aspect = hook.aspect || hook.type || '';
+                  markdown += `- ${planetA} ↔ ${planetB}: ${generatePlainLanguageExplanation(planetA, planetB, aspect)}\n`;
+                });
+              }
             }
 
             // Integration factors (resonance fidelity approximation)
@@ -1133,9 +1272,9 @@ export default function MathBrainPage() {
         markdown += `- **ABE (At Boundary Edge):** Partial/inverted/off-tone resonance, 0.5 weight\n`;
         markdown += `- **OSR (Outside Symbolic Range):** No resonance, 0 weight - valuable null data\n\n`;
 
-        markdown += `### Quality Thresholds\n\n`;
-        markdown += `- **Tier-1 Aspects:** ≤1° orb, highest intensity patterns\n`;
-        markdown += `- **Minimum Intensity:** 8+ threshold for hook inclusion\n`;
+        markdown += `### Pattern Strength Guide\n\n`;
+        markdown += `- **Top Activations:** Very close connections (≤1° apart), highest impact\n`;
+        markdown += `- **Minimum Significance:** 8+ threshold for meaningful patterns\n`;
         markdown += `- **Coverage Levels:** minimal | adequate | comprehensive | saturated\n\n`;
       }
 
@@ -2810,6 +2949,15 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
         </div>
       </header>
 
+      {/* Lens stripe - exact microcopy per UI/UX contract */}
+      <div className="mt-6 mb-8 rounded-lg border border-slate-600 bg-slate-800/40 px-4 py-3 text-center print:hidden">
+        <div className="text-sm text-slate-200">
+          {reportHeader.relocated.active
+            ? `Lens: ${reportHeader.relocated.label || "Relocated (label missing)."}`
+            : "Lens: Natal houses (no relocation)."}
+        </div>
+      </div>
+
 
       <div className="mt-8 flex flex-wrap gap-3 justify-center print:hidden">
         <a
@@ -3977,7 +4125,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
             <div className="flex flex-wrap items-center gap-2 rounded-md border border-slate-700 bg-slate-900/50 px-4 py-3 text-xs font-semibold uppercase tracking-wide">
               <span className="text-indigo-200">Mirror Summary</span>
               <span className="text-slate-600">→</span>
-              <span className={includeTransits ? (layerVisibility.balance ? 'text-indigo-200' : 'text-slate-500') : 'text-slate-700'}>
+              <span className={weather.hasWindow ? (layerVisibility.balance ? 'text-indigo-200' : 'text-slate-500') : 'text-slate-700'}>
                 Balance Metrics
               </span>
               <span className="text-slate-600">→</span>
@@ -3990,7 +4138,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
               <span className={canVisitPoetic ? 'text-emerald-300' : 'text-slate-500'}>Poetic Brain</span>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              {includeTransits && (
+              {weather.hasWindow ? (
                 <button
                   type="button"
                   onClick={() => toggleLayerVisibility('balance')}
@@ -3998,6 +4146,23 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                 >
                   {layerVisibility.balance ? 'Hide Balance Metrics' : 'Show Balance Metrics'}
                 </button>
+              ) : (
+                <div className="relative group">
+                  <button
+                    type="button"
+                    className="h-6 w-6 rounded-full border border-slate-600 text-xs text-slate-400 hover:bg-slate-700/60 cursor-help"
+                    aria-describedby="balance-info-tooltip"
+                    tabIndex={0}
+                  >
+                    i
+                  </button>
+                  <div
+                    id="balance-info-tooltip"
+                    className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white text-xs rounded-lg py-2 px-3 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-200 pointer-events-none border border-slate-700 shadow-lg z-50 whitespace-nowrap"
+                  >
+                    Add dates to see activations.
+                  </div>
+                </div>
               )}
               <button
                 type="button"
@@ -4102,7 +4267,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
             </div>
           </div>
 
-          {includeTransits && layerVisibility.balance && (
+          {weather.hasWindow && layerVisibility.balance && (
             <>
           {(() => {
             const daily = result?.person_a?.chart?.transitsByDate || {};
@@ -4673,12 +4838,34 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
             if (!wm?.hook_stack?.hooks?.length) return null;
             const hooks = wm.hook_stack.hooks || [];
             return (
-              <Section title="Core Natal Aspects — Blueprint Tensions">
+              <Section title="Core Natal Aspects — Key Patterns">
                 <div className="mb-3 text-sm text-slate-400">
-                  Front-door UX: {hooks.length} high-charge patterns from tightest aspects
-                  {wm.hook_stack.tier_1_orbs > 0 && ` · ${wm.hook_stack.tier_1_orbs} Tier-1 (≤1°)`}
+                  {hooks.length} significant patterns from tightest connections
                   · Coverage: {wm.hook_stack.coverage}
                 </div>
+                {weather.tier1Hooks.length > 0 && (
+                  <div className="mb-4 rounded border border-amber-600/30 bg-amber-900/20 p-3">
+                    <div className="text-xs font-medium text-amber-200 mb-2">Top Activations:</div>
+                    <ul className="space-y-2">
+                      {weather.tier1Hooks.map((hook, i) => (
+                        <li key={i} className="text-sm">
+                          <div className="font-medium text-amber-100">{hook.label}</div>
+                          <div className="text-xs text-amber-200/80">{hook.why}</div>
+                          {hook.houseTag && (
+                            <div className="text-xs text-amber-300 mt-1">
+                              Primary area: {hook.houseTag}
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {weather.tier1Hooks.length === 0 && weather.hasWindow && (
+                  <div className="mb-4 rounded border border-slate-600 bg-slate-900/40 p-3">
+                    <div className="text-sm text-slate-300">No top activations in this window.</div>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {hooks.map((hook: any, i: number) => (
                     <div key={i} className="rounded-md border border-amber-600/30 bg-amber-900/20 p-4">

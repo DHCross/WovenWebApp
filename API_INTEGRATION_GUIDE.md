@@ -1,6 +1,15 @@
 
 
 # Woven Map — Revised Report Guide (Lessons Learned)
+A note on API endpoints:
+
+**Relationship Endpoints:**
+- `/api/v4/synastry-chart` — for synastry (relationship) reports
+- `/api/v4/composite-chart` — for composite (merged chart) reports
+
+**Parameter Naming (Standardized):**
+- Both endpoints use `first_subject` and `second_subject` for input payloads.
+
 
 A single, practical guide that preserves the original architecture (Mirror Flow vs Balance Meter; FIELD → MAP → VOICE; Poetic Brain) while integrating operational lessons discovered during implementation and live testing: API resolver quirks, relocation brittleness, provenance needs, orb policy, formation/fallback rules, developer UX, and QA checks.
 

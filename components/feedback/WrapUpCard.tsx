@@ -8,6 +8,7 @@ interface WrapUpCardProps {
       title: string;
       intensity: number;
       is_tier_1: boolean;
+      why?: string;
     }>;
     coverage: string;
   };
@@ -117,20 +118,22 @@ export default function WrapUpCard({
         </div>
       </div>
 
-      {/* Hook Stack Titles */}
+
+      {/* Hook Stack Titles with Named Explanations */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-slate-200 mb-2">Strongest Hook Stack</h4>
-        <div className="space-y-1">
+        <div className="space-y-2">
           {hookStack.hooks.slice(0, 3).map((hook, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <span className="text-xs text-slate-400 mt-0.5 w-4">{i + 1}.</span>
-              <span className="text-sm text-amber-100 leading-relaxed">
-                "{hook.title}"
-              </span>
-              {hook.is_tier_1 && (
-                <span className="inline-flex items-center rounded bg-amber-600 px-1 py-0.5 text-xs font-medium text-amber-100 ml-1">
-                  T1
-                </span>
+            <div key={i} className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 mt-0.5 w-4">{i + 1}.</span>
+                <span className="text-sm text-amber-100 leading-relaxed">"{hook.title}"</span>
+                {hook.is_tier_1 && (
+                  <span className="inline-flex items-center rounded bg-amber-600 px-1 py-0.5 text-xs font-medium text-amber-100 ml-1">T1</span>
+                )}
+              </div>
+              {hook.why && (
+                <div className="text-xs text-amber-200/80 ml-6">{hook.why}</div>
               )}
             </div>
           ))}

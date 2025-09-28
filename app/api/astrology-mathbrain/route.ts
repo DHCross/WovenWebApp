@@ -125,13 +125,16 @@ export async function POST(request: NextRequest) {
         personA,
         ...(personB ? { personB } : {}),
         ...(window ? { window } : {}),
-        context: { mode: (()=>{
-          const rt = String(input.report_type||'').toLowerCase();
-          if (rt.includes('synastry_transits')) return 'synastry_transits';
-          if (rt.includes('synastry')) return 'synastry';
-          if (rt.includes('balance_meter')) return 'balance_meter';
-          return (input.context?.mode || 'mirror');
-        })() },
+        context: {
+          mode: (()=>{
+            const rt = String(input.report_type||'').toLowerCase();
+            if (rt.includes('synastry_transits')) return 'synastry_transits';
+            if (rt.includes('synastry')) return 'synastry';
+            if (rt.includes('balance_meter')) return 'balance_meter';
+            return (input.context?.mode || 'mirror');
+          })(),
+          ...(input.translocation ? { translocation: input.translocation } : {})
+        },
         relocation_mode: input.relocation_mode,
         orbs_profile: input.orbs_profile,
         ...(houses ? { houses_system_identifier: houses } : {})

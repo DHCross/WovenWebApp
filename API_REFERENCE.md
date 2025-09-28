@@ -109,17 +109,21 @@ POST /api/v4/transit-aspects-data
 
 ---
 
-### 6. Composite Aspects Data
+
+### 6. Composite Chart
 ```http
-POST /api/v4/composite-aspects-data
+POST /api/v4/composite-chart
 ```
-**Purpose**: Calculate composite chart aspects between two subjects.
+**Purpose**: Calculate the full composite chart (not just aspects) between two subjects.
 
 **Used by**: `computeComposite()` function
 
-**Request Model**: `CompositeChartRequestModel`
+**Request Model**: CompositeChartRequestModel
 
-**Response**: Composite aspects data
+**Parameter Naming (Standardized):**
+- Both synastry and composite endpoints use `first_subject` and `second_subject` for input payloads.
+
+**Response**: Composite chart data (full chart, including aspects)
 
 ---
 
