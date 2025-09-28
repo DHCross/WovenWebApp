@@ -10,6 +10,18 @@ import { renderShareableMirror } from "../../lib/raven/render";
 
 export const dynamic = "force-dynamic";
 
+type LayerVisibility = {
+  balance: boolean;
+  geometries: boolean;
+  diagnostics: boolean;
+};
+
+const DEFAULT_LAYER_VISIBILITY: LayerVisibility = Object.freeze({
+  balance: false,
+  geometries: false,
+  diagnostics: false,
+});
+
 type Subject = {
   name: string;
   year: number | string;
@@ -116,19 +128,15 @@ export default function MathBrainPage() {
   const today = useMemo(() => new Date(), []);
   const fmt = useCallback((d: Date) => d.toISOString().slice(0, 10), []);
 
-  // Different default date ranges for different report types
-  const getDefaultDates = useCallback((reportType: 'balance' | 'mirror') => {
-    if (reportType === 'balance') {
-      // Balance reports use a 30-day range for better health correlation data
-      const start = fmt(today);
+  // Default date ranges differ based on whether symbolic weather (transits) are enabled
+  const getDefaultDates = useCallback((withTransits: boolean) => {
+    const start = fmt(today);
+    if (withTransits) {
       const end = fmt(new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000));
       return { start, end };
-    } else {
-      // Mirror reports use a 7-day range
-      const start = fmt(today);
-      const end = fmt(new Date(today.getTime() + 6 * 24 * 60 * 60 * 1000));
-      return { start, end };
     }
+    const end = fmt(new Date(today.getTime() + 6 * 24 * 60 * 60 * 1000));
+    return { start, end };
   }, [today, fmt]);
 
   const [personA, setPersonA] = useState<Subject>({
@@ -151,13 +159,30 @@ export default function MathBrainPage() {
   const [aCoordsError, setACoordsError] = useState<string | null>(null);
   const [aCoordsValid, setACoordsValid] = useState<boolean>(true);
 
-  const [startDate, setStartDate] = useState<string>(() => getDefaultDates('mirror').start);
-  const [endDate, setEndDate] = useState<string>(() => getDefaultDates('mirror').end);
+  const [startDate, setStartDate] = useState<string>(() => getDefaultDates(false).start);
+  const [endDate, setEndDate] = useState<string>(() => getDefaultDates(false).end);
   const [mode, setMode] = useState<ReportMode>('NATAL_ONLY');
   const [step, setStep] = useState<string>("daily");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResult>(null);
+  const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>(() => {
+    if (typeof window === 'undefined') {
+      return { ...DEFAULT_LAYER_VISIBILITY };
+    }
+    try {
+      const saved = window.localStorage.getItem('mb.layerVisibility');
+      if (!saved) return { ...DEFAULT_LAYER_VISIBILITY };
+      const parsed = JSON.parse(saved);
+      return {
+        balance: !!parsed?.balance,
+        geometries: !!parsed?.geometries,
+        diagnostics: !!parsed?.diagnostics,
+      } as LayerVisibility;
+    } catch {
+      return { ...DEFAULT_LAYER_VISIBILITY };
+    }
+  });
   const [includePersonB, setIncludePersonB] = useState<boolean>(false);
 
   // Interactive drill-down state for Resonance Spectrum Source Geometry
@@ -191,6 +216,10 @@ export default function MathBrainPage() {
   const [contactState, setContactState] = useState<"ACTIVE" | "LATENT">("ACTIVE");
   const [exEstranged, setExEstranged] = useState<boolean>(false);
   const [relationshipNotes, setRelationshipNotes] = useState<string>("");
+
+  const toggleLayerVisibility = useCallback((key: keyof LayerVisibility) => {
+    setLayerVisibility((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
 
   // Time policy UI state
   type TimePolicyChoice = 'planetary_only'|'whole_sign'|'sensitivity_scan'|'user_provided';
@@ -273,25 +302,10 @@ export default function MathBrainPage() {
   const lastSubmitRef = useRef<number>(0);
   // Lightweight toast for ephemeral notices (e.g., Mirror failure)
   const [toast, setToast] = useState<string | null>(null);
-  // Report type: 'balance' (on-screen gauges) | 'mirror' (handoff only)
-  const [reportType, setReportType] = useState<'balance' | 'mirror'>('mirror');
-  // Persist report type and allow deep-link via ?report=mirror
   useEffect(() => {
     try {
       // Initialize from URL and localStorage
       const url = new URL(window.location.href);
-
-      // Check URL parameter for report type
-      const q = url.searchParams.get('report');
-      if (q === 'mirror' || q === 'balance') {
-        setReportType(q as any);
-      } else {
-        // Then check localStorage if no URL parameter
-        const saved = window.localStorage.getItem('mb.reportType');
-        if (saved === 'mirror' || saved === 'balance') {
-          setReportType(saved as any);
-        }
-      }
 
       // Initialize weeklyAgg from localStorage
       const savedWeeklyAgg = window.localStorage.getItem('weeklyAgg');
@@ -304,9 +318,6 @@ export default function MathBrainPage() {
     } catch {/* noop */}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  useEffect(() => {
-    try { window.localStorage.setItem('mb.reportType', reportType); } catch {/* ignore */}
-  }, [reportType]);
 
   // Session memory flags
   const [hasSavedInputs, setHasSavedInputs] = useState<boolean>(false);
@@ -322,6 +333,11 @@ export default function MathBrainPage() {
       window.localStorage.setItem('weeklyAgg', weeklyAgg);
     } catch {/* ignore */}
   }, [weeklyAgg]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('mb.layerVisibility', JSON.stringify(layerVisibility));
+    } catch {/* ignore */}
+  }, [layerVisibility]);
 
   // Check for saved inputs on mount
   useEffect(() => {
@@ -337,6 +353,7 @@ export default function MathBrainPage() {
   const isRelationalMode = RELATIONAL_MODES.includes(mode);
   const isDyadMode = includePersonB && isRelationalMode;
   const includeTransits = TRANSIT_MODES.has(mode);
+  const reportType: 'balance' | 'mirror' = includeTransits ? 'balance' : 'mirror';
   const soloModeOption = includeTransits
     ? { value: 'NATAL_TRANSITS' as ReportMode, label: 'Natal + Transits' }
     : { value: 'NATAL_ONLY' as ReportMode, label: 'Natal Only' };
@@ -360,38 +377,43 @@ export default function MathBrainPage() {
       if (!isDyadMode && (prev === 'B_LOCAL' || prev === 'BOTH_LOCAL' || prev === 'MIDPOINT')) {
         return 'NONE';
       }
-      if (prev === 'MIDPOINT' && (mode !== 'COMPOSITE_TRANSITS' || reportType !== 'balance')) {
+      if (prev === 'MIDPOINT' && (mode !== 'COMPOSITE_TRANSITS' || !includeTransits)) {
         return isDyadMode ? 'BOTH_LOCAL' : 'NONE';
       }
       return prev;
     });
-  }, [includeTransits, isDyadMode, mode, reportType]);
+  }, [includeTransits, isDyadMode, mode]);
+
+  useEffect(() => {
+    if (!includeTransits && layerVisibility.balance) {
+      setLayerVisibility((prev) => ({ ...prev, balance: false }));
+    }
+  }, [includeTransits, layerVisibility.balance]);
 
   // Track if user has manually set dates to avoid overriding their choices
   const [userHasSetDates, setUserHasSetDates] = useState(false);
-  const prevReportTypeRef = useRef(reportType);
+  const prevTransitFlagRef = useRef(includeTransits);
 
-  // Update date range when report type changes (but only if user hasn't manually set dates)
-  // OR when report type changes from initial - give them fresh defaults for different report types
+  // Update date range when transit inclusion toggles (unless the user already picked custom dates)
   useEffect(() => {
-    const previousReportType = prevReportTypeRef.current;
-    const reportTypeChanged = previousReportType !== reportType;
+    const previousValue = prevTransitFlagRef.current;
+    const toggled = previousValue !== includeTransits;
 
-    if (reportTypeChanged) {
-      prevReportTypeRef.current = reportType;
+    if (toggled) {
+      prevTransitFlagRef.current = includeTransits;
     }
 
-    if (!userHasSetDates || reportTypeChanged) {
-      const defaultDates = getDefaultDates(reportType);
+    if (!userHasSetDates || toggled) {
+      const defaultDates = getDefaultDates(includeTransits);
       setStartDate(defaultDates.start);
       setEndDate(defaultDates.end);
 
-      // If report type changed, reset the user flag to allow future report type changes to work
-      if (reportTypeChanged) {
+      // If the transit toggle changed, reset the user flag to allow future toggles to apply defaults
+      if (toggled) {
         setUserHasSetDates(false);
       }
     }
-  }, [reportType, getDefaultDates, userHasSetDates]);
+  }, [includeTransits, getDefaultDates, userHasSetDates]);
 
   const relocationSelectLabels: Record<TranslocationOption, string> = useMemo(() => ({
     NONE: 'Birthplace (no relocation)',
@@ -438,12 +460,12 @@ export default function MathBrainPage() {
     });
 
     if (mode === 'COMPOSITE_TRANSITS') {
-      const midpointDisabled = relationalDisabled || reportType !== 'balance';
+      const midpointDisabled = relationalDisabled || !includeTransits;
       options.push({
         value: 'MIDPOINT',
         disabled: midpointDisabled,
         title: midpointDisabled
-          ? (reportType !== 'balance'
+          ? (!includeTransits
               ? 'Midpoint relocation is only supported in Relational Balance reports.'
               : 'Midpoint relocation requires both Person A and Person B.')
           : 'Experimental — bond midpoint, not a physical place.',
@@ -455,7 +477,7 @@ export default function MathBrainPage() {
     }
 
     return options;
-  }, [isDyadMode, mode, reportType, translocation]);
+  }, [isDyadMode, includeTransits, mode, translocation]);
 
   const parseMaybeNumber = (value: unknown): number | null => {
     if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -486,7 +508,7 @@ export default function MathBrainPage() {
     let effectiveMode: TranslocationOption = translocation;
     let notice: string | null = null;
 
-    if (reportType === 'mirror') {
+    if (!includeTransits) {
       if (translocation === 'A_LOCAL' && !relocationInputReady) {
         effectiveMode = 'NONE';
         notice = 'Relocation not provided; defaulting to natal houses.';
@@ -529,7 +551,7 @@ export default function MathBrainPage() {
         if (!isDyadMode) {
           effectiveMode = relocationInputReady ? 'A_LOCAL' : 'NONE';
           notice = 'Midpoint relocation requires both Person A and Person B.';
-        } else if (reportType !== 'balance') {
+        } else if (!includeTransits) {
           effectiveMode = relocationInputReady ? 'BOTH_LOCAL' : 'NONE';
           notice = 'Midpoint relocation is only available for Relational Balance reports.';
         } else {
@@ -539,7 +561,7 @@ export default function MathBrainPage() {
     }
 
     return { effectiveMode, notice };
-  }, [translocation, reportType, relocationInputReady, isDyadMode, personBLocationReady]);
+  }, [includeTransits, translocation, relocationInputReady, isDyadMode, personBLocationReady]);
 
   // If Person B is turned off while a relational mode is selected, reset to a solo mode
   useEffect(() => {
@@ -2505,7 +2527,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
     // Allow unknown birth time when user selected a time policy (non-user_provided)
     const allowUnknownA = timeUnknown && timePolicy !== 'user_provided';
     // For Mirror runs, allow city/state/timezone without requiring lat/lon upfront
-    const requireCoords = (reportType === 'balance');
+    const requireCoords = includeTransits;
     const numbers = [
       Number(personA.year),
       Number(personA.month),
@@ -2517,8 +2539,8 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
 
   const isRelational = RELATIONAL_MODES.includes(mode);
     if (!isRelational) {
-      // Mirror does not need a date window; Balance Meter does
-      if (reportType === 'mirror') return allPresent;
+      // Natal-only runs (no transits) do not require a date window
+      if (!includeTransits) return allPresent;
       return allPresent && Boolean(startDate) && Boolean(endDate);
     }
 
@@ -2542,8 +2564,8 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
   }, [personA, personB, includePersonB, relationshipType, relationshipTier, relationshipRole, mode, startDate, endDate, aCoordsValid, bCoordsValid, timeUnknown, timeUnknownB, timePolicy]);
   const submitDisabled = useMemo(() => {
     // Additional relocation/report gate
-    const locGate = needsLocation(reportType, false, personA); // includeTransitTag handled in backend; UI enforces for balance only
-    if (reportType === 'balance' && !locGate.hasLoc) return true;
+    const locGate = needsLocation(reportType, includeTransits, personA);
+    if (includeTransits && !locGate.hasLoc) return true;
     if (!canSubmit || loading) return true;
     return false;
   }, [canSubmit, loading, personA, reportType]);
@@ -2553,7 +2575,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
 
   const debugInfo = useMemo(() => ({
     reportType,
-    needsLocation: needsLocation(reportType, false, personA),
+    needsLocation: needsLocation(reportType, includeTransits, personA),
     canSubmit,
     submitDisabled,
     aCoordsValid,
@@ -2565,14 +2587,14 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
     contactState,
     personA_lat_type: typeof (personA as any).latitude,
     personA_lon_type: typeof (personA as any).longitude,
-  }), [reportType, canSubmit, submitDisabled, aCoordsValid, bCoordsValid, includePersonB, timeUnknown, timeUnknownB, timePolicy, contactState, personA]);
+  }), [reportType, includeTransits, canSubmit, submitDisabled, aCoordsValid, bCoordsValid, includePersonB, timeUnknown, timeUnknownB, timePolicy, contactState, personA]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     // Frontend relocation gate for Balance Meter
-    const locGate = needsLocation(reportType, false, personA);
-    if (reportType === 'balance' && !locGate.hasLoc) {
-      setToast('Transits need current location to place houses correctly. Add a location or switch to Mirror (no transits).');
+    const locGate = needsLocation(reportType, includeTransits, personA);
+    if (includeTransits && !locGate.hasLoc) {
+      setToast('Transits need current location to place houses correctly. Add a location or switch to natal-only mode.');
       setTimeout(()=>setToast(null), 2500);
       return;
     }
@@ -2709,15 +2731,13 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
       const data = await res.json();
       if (!res.ok || data?.success === false) {
         const msg = data?.error || `Request failed (${res.status})`;
-        // Show inline error and brief toast if mirror was selected
-        if (reportType === 'mirror') {
-          setToast('Mirror preparation failed');
-          setTimeout(()=>setToast(null), 2500);
-        }
+        setToast('Report preparation failed.');
+        setTimeout(()=>setToast(null), 2500);
         throw new Error(msg);
       }
       // Always store result to enable downloads for both report types
       setResult(data);
+      setLayerVisibility({ ...DEFAULT_LAYER_VISIBILITY });
       persistSessionArtifacts(data);
       // Optional: store a quick meta view to guide banners
       try {
@@ -2736,10 +2756,8 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
         console.info('[MB] Completed in', Math.round(t1 - t0), 'ms');
       }
     } catch (err: any) {
-      if (reportType === 'mirror') {
-        setToast('Mirror preparation failed');
-        setTimeout(()=>setToast(null), 2500);
-      }
+      setToast('Report preparation failed.');
+      setTimeout(()=>setToast(null), 2500);
       setError(err?.message || "Unexpected error");
       if (process.env.NODE_ENV !== 'production') {
         const t1 = typeof performance !== 'undefined' ? performance.now() : 0;
@@ -2752,6 +2770,15 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
   }
 
   // Duplicate download functions removed - using downloadResultJSON and downloadResultPDF instead
+
+  const canVisitPoetic = layerVisibility.geometries || layerVisibility.diagnostics;
+  const handlePoeticBrainClick = useCallback((event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!canVisitPoetic) {
+      event.preventDefault();
+      setToast('Open the Key Geometries layer before continuing to Poetic Brain.');
+      setTimeout(() => setToast(null), 2500);
+    }
+  }, [canVisitPoetic]);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
@@ -2800,12 +2827,6 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
             Open Legacy Math Brain
           </a>
         )}
-        <a
-          href="/chat"
-          className="rounded-md bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500"
-        >
-          Go to Poetic Brain
-        </a>
       </div>
 
       {hasSavedInputs && (
@@ -2880,52 +2901,21 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
           )}
         </div>
 
-        {/* Report Type selector (moved above grid) */}
-        <section aria-labelledby="report-type-heading" className="mb-6 rounded-lg border border-slate-700 bg-slate-800/60 p-4">
-          <h3 id="report-type-heading" className="text-sm font-medium text-slate-200">Report Type</h3>
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <fieldset className="inline-flex overflow-hidden rounded-md border border-slate-700 bg-slate-800 px-0 py-0">
-              <legend className="sr-only">Choose report type</legend>
-              <label
-                className={`px-3 py-1.5 text-sm cursor-pointer ${reportType==='mirror' ? 'bg-indigo-600 text-white' : 'text-slate-200 hover:bg-slate-700'}`}
-                title="Send to Poetic Brain"
-                onClick={() => setReportType('mirror')}
-              >
-                <input
-                  type="radio"
-                  name="reportType"
-                  value="mirror"
-                  className="sr-only"
-                  checked={reportType==='mirror'}
-                  onChange={() => setReportType('mirror')}
-                />
-                Mirror
-                <span className="ml-1 text-[11px] text-slate-300/80">(send to Poetic Brain)</span>
-              </label>
-              <label
-                className={`px-3 py-1.5 text-sm cursor-pointer ${reportType==='balance' ? 'bg-indigo-600 text-white' : 'text-slate-200 hover:bg-slate-700'}`}
-                title="Show gauges on screen"
-                onClick={() => setReportType('balance')}
-              >
-                <input
-                  type="radio"
-                  name="reportType"
-                  value="balance"
-                  className="sr-only"
-                  checked={reportType==='balance'}
-                  onChange={() => setReportType('balance')}
-                />
-                Balance Meter
-                <span className="ml-1 text-[11px] text-slate-300/80">(gauges on screen)</span>
-              </label>
-            </fieldset>
-            <div className="text-xs text-slate-400 max-w-md">
-              {reportType === 'mirror' && (
-                "Full narrative analysis with geometric handoff to Poetic Brain for interpretive synthesis"
-              )}
-              {reportType === 'balance' && (
-                "Triple-channel readings (Seismograph v1.0 · Balance v1.1 · SFD v1.2) for health data correlation"
-              )}
+        {/* Session framing copy replaces the old Mirror vs Balance fork */}
+        <section aria-labelledby="session-path-heading" className="mb-6 rounded-lg border border-slate-700 bg-slate-800/60 p-4">
+          <h3 id="session-path-heading" className="text-sm font-medium text-slate-200">Dynamic Report Flow</h3>
+          <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <p className="text-sm text-slate-300 md:max-w-xl">
+              Math Brain now runs a single dynamic report. Every session opens with a Mirror-first summary and then lets you reveal
+              Balance metrics, key geometries, and audits step-by-step after the geometry is ready.
+            </p>
+            <div className="flex flex-col gap-2 text-xs text-slate-400 md:text-right">
+              <div className="inline-flex items-center gap-2 self-start rounded-full border border-indigo-500/70 bg-indigo-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-indigo-200 md:self-end">
+                <span>Field → Map → Voice</span>
+              </div>
+              <span>
+                Toggle <strong>Include Transits</strong> on the right to add symbolic weather. Leave it off for natal baseline runs.
+              </span>
             </div>
           </div>
         </section>
@@ -3917,7 +3907,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                 disabled={submitDisabled}
                 className="inline-flex items-center rounded-md px-4 py-2 text-white disabled:opacity-50 bg-indigo-600 hover:bg-indigo-500"
               >
-                {loading ? "Mapping geometry…" : (reportType==='balance' ? 'Generate Report' : 'Prepare Mirror')}
+                {loading ? "Mapping geometry…" : (includeTransits ? 'Generate Report' : 'Prepare Mirror')}
               </button>
             </div>
             {(RELATIONAL_MODES.includes(mode) && !includePersonB) && (
@@ -3981,24 +3971,138 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
               </div>
             );
           })()}
+          {/* Layer progression + toggle controls */}
+          <div className="print:hidden">
+            <div className="flex flex-wrap items-center gap-2 rounded-md border border-slate-700 bg-slate-900/50 px-4 py-3 text-xs font-semibold uppercase tracking-wide">
+              <span className="text-indigo-200">Mirror Summary</span>
+              <span className="text-slate-600">→</span>
+              <span className={includeTransits ? (layerVisibility.balance ? 'text-indigo-200' : 'text-slate-500') : 'text-slate-700'}>
+                Balance Metrics
+              </span>
+              <span className="text-slate-600">→</span>
+              <span className={layerVisibility.geometries ? 'text-indigo-200' : 'text-slate-500'}>Key Geometries</span>
+              <span className="text-slate-600">→</span>
+              <span className={layerVisibility.diagnostics ? 'text-indigo-200' : (includeTransits ? 'text-slate-500' : 'text-slate-700')}>
+                Full Diagnostics
+              </span>
+              <span className="text-slate-600">→</span>
+              <span className={canVisitPoetic ? 'text-emerald-300' : 'text-slate-500'}>Poetic Brain</span>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {includeTransits && (
+                <button
+                  type="button"
+                  onClick={() => toggleLayerVisibility('balance')}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${layerVisibility.balance ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'border border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800'}`}
+                >
+                  {layerVisibility.balance ? 'Hide Balance Metrics' : 'Show Balance Metrics'}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => toggleLayerVisibility('geometries')}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${layerVisibility.geometries ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'border border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800'}`}
+              >
+                {layerVisibility.geometries ? 'Hide Key Geometries' : 'Show Key Geometries'}
+              </button>
+              <button
+                type="button"
+                onClick={() => includeTransits ? toggleLayerVisibility('diagnostics') : undefined}
+                disabled={!includeTransits}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${!includeTransits ? 'cursor-not-allowed border border-slate-700 bg-slate-800 text-slate-500' : layerVisibility.diagnostics ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'border border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800'}`}
+              >
+                {layerVisibility.diagnostics ? 'Hide Diagnostics' : 'Show Diagnostics'}
+              </button>
+            </div>
+          </div>
+
+          {(() => {
+            const wm = (result as any)?.woven_map;
+            if (!wm) return null;
+            const voice = typeof wm.mirror_voice === 'string' ? wm.mirror_voice.trim() : '';
+            const polarityCards = Array.isArray(wm.polarity_cards) ? wm.polarity_cards : [];
+            const hookStack = wm.hook_stack || {};
+            const hooks = Array.isArray(hookStack.hooks) ? hookStack.hooks : [];
+            const tier1Count = hooks.filter((hook: any) => hook?.is_tier_1).length;
+            const totalIntensity = Number(hookStack.total_intensity ?? 0);
+            const coverage = hookStack.coverage || null;
+            const vector = wm.vector_integrity || {};
+            const summary = vector.summary || {};
+            const latentEvents = Number(summary.latent_events ?? 0);
+            const suppressedEvents = Number(summary.suppressed_events ?? 0);
+            const driftIndex = typeof vector.drift_index === 'number' ? Number(vector.drift_index) : null;
+            const driftBand = vector.drift_band || null;
+            const driftSamples = vector.drift_samples ?? null;
+            const classification = (Array.isArray((wm as any)?.sst_tags) ? (wm as any).sst_tags : null) || (result as any)?.relational_mirror?.sst_tags || [];
+
+            return (
+              <Section title="Mirror Flow Summary">
+                <div className="space-y-4">
+                  <div className="rounded-md border border-slate-700 bg-slate-900/60 p-4">
+                    <div className="text-xs uppercase tracking-wide text-indigo-200">Mirror Voice Prelude</div>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-100">
+                      {voice || 'Mirror Flow narrative will populate after Poetic Brain translation. Geometry hooks are ready.'}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                    <div className="rounded-md border border-slate-700 bg-slate-900/50 p-3">
+                      <div className="text-xs uppercase tracking-wide text-slate-400">Tier‑1 Hooks</div>
+                      <div className="mt-1 text-2xl font-semibold text-slate-100">{tier1Count}</div>
+                      <div className="text-xs text-slate-400">Intensity: {Math.round(totalIntensity)} · Coverage: {coverage || 'n/a'}</div>
+                    </div>
+                    <div className="rounded-md border border-slate-700 bg-slate-900/50 p-3">
+                      <div className="text-xs uppercase tracking-wide text-slate-400">Vector Integrity</div>
+                      <div className="mt-1 text-2xl font-semibold text-slate-100">{latentEvents}/{suppressedEvents}</div>
+                      <div className="text-xs text-slate-400">Latent vs Suppressed event counts</div>
+                    </div>
+                    <div className="rounded-md border border-slate-700 bg-slate-900/50 p-3">
+                      <div className="text-xs uppercase tracking-wide text-slate-400">Drift Index</div>
+                      <div className="mt-1 text-2xl font-semibold text-slate-100">{driftIndex != null ? driftIndex.toFixed(2) : '—'}</div>
+                      <div className="text-xs text-slate-400">{driftBand ? `Band: ${driftBand}` : 'Balanced window'}{driftSamples != null ? ` · Samples: ${driftSamples}` : ''}</div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3">
+                      <div className="text-xs uppercase tracking-wide text-slate-400">Polarity Cards Active</div>
+                      <div className="mt-1 text-sm text-slate-200">{polarityCards.length ? `${polarityCards.length} structural cards primed` : 'Cards seeded for MAP translation.'}</div>
+                    </div>
+                    <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3">
+                      <div className="text-xs uppercase tracking-wide text-slate-400">SST Tags</div>
+                      <div className="mt-1 text-sm text-slate-200">{Array.isArray(classification) && classification.length ? classification.join(' · ') : 'WB/ABE/OSR markers pending downstream'}</div>
+                    </div>
+                  </div>
+                </div>
+              </Section>
+            );
+          })()}
+
           {/* Post-generation actions */}
           <div className="flex items-center justify-between gap-4 print:hidden">
             <div className="text-sm text-slate-400">
-              <span>Download your report, then visit <a href="/chat" className="text-emerald-400 hover:text-emerald-300 underline">Poetic Brain</a> to upload it for interpretation.</span>
+              <span>Download your report. Poetic Brain unlocks after you review the geometry layers.</span>
             </div>
             <div className="flex items-center gap-2">
               <button type="button" onClick={downloadResultJSON} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download result JSON">Download JSON</button>
               <button type="button" onClick={downloadBackstageJSON} className="rounded-md border border-orange-700 bg-orange-800/50 px-3 py-1.5 text-orange-100 hover:bg-orange-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400" aria-label="Download backstage JSON for debugging">🔍 Debug JSON</button>
               <button type="button" onClick={downloadResultPDF} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download PDF">Download PDF</button>
               <button type="button" onClick={downloadMarkdownSummary} className="rounded-md border border-purple-700 bg-purple-800/50 px-3 py-1.5 text-purple-100 hover:bg-purple-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400" aria-label="Download condensed Markdown summary for ChatGPT">📝 Markdown Summary</button>
-              {reportType === 'balance' && (
+              {includeTransits && (
                 <button type="button" onClick={downloadGraphsPDF} className="rounded-md border border-emerald-700 bg-emerald-800/50 px-3 py-1.5 text-emerald-100 hover:bg-emerald-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" aria-label="Download graphs and charts as PDF">
                   📊 Download Graphs PDF
                 </button>
               )}
+              <a
+                href="/chat"
+                onClick={handlePoeticBrainClick}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${canVisitPoetic ? 'bg-emerald-600 text-white hover:bg-emerald-500' : 'cursor-not-allowed border border-emerald-700 bg-emerald-800/40 text-emerald-200/60'}`}
+              >
+                Go to Poetic Brain
+              </a>
             </div>
           </div>
-          {reportType==='balance' && (<>
+
+          {includeTransits && layerVisibility.balance && (
+            <>
           {(() => {
             const daily = result?.person_a?.chart?.transitsByDate || {};
             const hasAny = Object.keys(daily).length > 0;
@@ -4012,317 +4116,6 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
               );
             }
             return null;
-          })()}
-          {(() => {
-            const wm = (result as any)?.woven_map;
-            if (!wm?.hook_stack?.hooks?.length) return null;
-            const hooks = wm.hook_stack.hooks || [];
-            return (
-              <Section title="Hook Stack — Recognition Gateway">
-                <div className="mb-3 text-sm text-slate-400">
-                  Front-door UX: {hooks.length} high-charge patterns from tightest aspects
-                  {wm.hook_stack.tier_1_orbs > 0 && ` · ${wm.hook_stack.tier_1_orbs} Tier-1 (≤1°)`}
-                  · Coverage: {wm.hook_stack.coverage}
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {hooks.map((hook: any, i: number) => (
-                    <div key={i} className="rounded-md border border-amber-600/30 bg-amber-900/20 p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="text-amber-100 font-medium leading-tight">
-                          {hook.title}
-                        </div>
-                        {hook.is_tier_1 && (
-                          <span className="ml-2 inline-flex items-center rounded bg-amber-600 px-1.5 py-0.5 text-xs font-medium text-amber-100">
-                            T1
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-amber-200/70 space-y-1">
-                        <div>Orb: {hook.orb?.toFixed(1)}° · Intensity: {Math.round(hook.intensity)}</div>
-                        <div>{hook.planets?.join(' ') || ''} {hook.aspect_type}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-3 text-xs text-slate-400">
-                  Purpose: Bypass analysis → trigger "that's me" recognition → open depth work
-                </div>
-              </Section>
-            );
-          })()}
-          {(() => {
-            const wm = (result as any)?.woven_map;
-            if (!wm) return null;
-            const factors = wm.integration_factors || {};
-            const keys: Array<{key: keyof typeof factors, label: string}> = [
-              { key: 'fertile_field' as any, label: 'Fertile Field' },
-              { key: 'harmonic_resonance' as any, label: 'Harmonic Resonance' },
-              { key: 'expansion_lift' as any, label: 'Expansion Lift' },
-              { key: 'combustion_clarity' as any, label: 'Combustion Clarity' },
-              { key: 'liberation_release' as any, label: 'Liberation / Release' },
-              { key: 'integration' as any, label: 'Integration' },
-            ];
-            const ts = Array.isArray(wm.time_series) ? wm.time_series : [];
-            const first = ts[0]?.date; const last = ts[ts.length-1]?.date;
-            return (
-              <Section title="Woven Map (data-only)">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <div className="text-sm text-slate-300">Integration Factors</div>
-                    <div className="mt-2 space-y-2">
-                      {keys.map(({key,label}) => {
-                        const pct = Math.max(0, Math.min(100, Number((factors as any)[key] ?? 0)));
-                        return (
-                          <div key={String(key)}>
-                            <div className="flex items-center justify-between text-xs text-slate-400"><span>{label}</span><span>{pct}%</span></div>
-                            <svg viewBox="0 0 100 6" className="h-1.5 w-full">
-                              <rect x="0" y="0" width="100" height="6" className="fill-slate-700" />
-                              <rect x="0" y="0" width={pct} height="6" className="fill-emerald-500" />
-                            </svg>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-slate-300">Time Series</div>
-                    <div className="mt-2 text-xs text-slate-400">Entries: {ts.length || 0}{first && last ? ` · ${first} → ${last}` : ''}</div>
-
-                    {/* Trend Sparklines */}
-                    {ts.length > 1 && (() => {
-                      const createSparkline = (values: number[], maxValue = 5, color = 'text-emerald-400') => {
-                        const chars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
-                        return values.slice(-20).map(val => {
-                          const normalized = Math.max(0, Math.min(1, val / maxValue));
-                          const index = Math.floor(normalized * (chars.length - 1));
-                          return chars[index] || chars[0];
-                        }).join('');
-                      };
-
-                      const createSFDSparkline = (values: number[]) => {
-                        return values.slice(-20).map(val => {
-                          if (val > 10) return '▇'; // Strong support
-                          if (val > 0) return '▅';  // Support
-                          if (val === 0) return '▃'; // Neutral
-                          if (val > -10) return '▂'; // Friction
-                          return '▁'; // Strong friction
-                        }).join('');
-                      };
-
-                      const calculateResonanceScore = (sfdA: number[], sfdB: number[]) => {
-                        if (!sfdA || !sfdB || sfdA.length !== sfdB.length) return [];
-                        return sfdA.map((a, i) => Math.abs(a - sfdB[i]) / 20); // Normalized 0-5 scale
-                      };
-
-                      // Check for relational data (Person B)
-                      const isRelational = result?.person_b?.chart?.transitsByDate || wm?.type?.includes('synastry') || wm?.type?.includes('composite');
-                      const tsB = wm?.time_series_b || []; // Assuming person B time series exists
-
-                      const magnitudes = ts.map((r: any) => Number(r.magnitude ?? 0));
-                      const valences = ts.map((r: any) => Number(r.valence_bounded ?? r.valence ?? 0));
-                      const volatilities = ts.map((r: any) => Number(r.volatility ?? 0));
-                      const sfds = ts.map((r: any) => Number(r.sfd ?? 0));
-
-                      let magB: number[] = [], valB: number[] = [], volB: number[] = [], sfdB: number[] = [], resonanceScores: number[] = [];
-
-                      if (isRelational && tsB.length > 0) {
-                        magB = tsB.map((r: any) => Number(r.magnitude ?? 0));
-                        valB = tsB.map((r: any) => Number(r.valence_bounded ?? r.valence ?? 0));
-                        volB = tsB.map((r: any) => Number(r.volatility ?? 0));
-                        sfdB = tsB.map((r: any) => Number(r.sfd ?? 0));
-                        resonanceScores = calculateResonanceScore(sfds, sfdB);
-                      }
-
-                      return (
-                        <div className="mt-3 rounded border border-slate-700 bg-slate-900/40 p-3">
-                          <div className="text-xs font-medium text-slate-300 mb-2">
-                            {isRelational && tsB.length > 0 ? 'Relational Trend Analysis' : 'Trend Analysis'}
-                          </div>
-                          <div className="space-y-2 text-xs">
-                            {/* Magnitude */}
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-400 w-16">⚡ Mag:</span>
-                              {isRelational && magB.length > 0 ? (
-                                <div className="flex items-center gap-1 font-mono text-sm">
-                                  <span className="text-emerald-400">{createSparkline(magnitudes)}</span>
-                                  <span className="text-slate-600">|</span>
-                                  <span className="text-emerald-300">{createSparkline(magB)}</span>
-                                </div>
-                              ) : (
-                                <span className="font-mono text-emerald-400 text-sm">{createSparkline(magnitudes)}</span>
-                              )}
-                              <span className="text-slate-500 w-12 text-right">
-                                {(() => {
-                                  const mag = magnitudes.length > 0 ? magnitudes[magnitudes.length - 1] : 0;
-                                  const vol = volatilities.length > 0 ? volatilities[volatilities.length - 1] : 0;
-                                  const sfd = sfds.length > 0 ? sfds[sfds.length - 1] : 0;
-
-                                  if (mag >= 4.5 && sfd < -50) return '⚫️'; // Pressure Point
-                                  if (mag >= 4.5 && vol >= 4.5) return '🌀'; // Vortex
-                                  return '';
-                                })()}
-                              </span>
-                            </div>
-
-                            {/* Valence */}
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-400 w-16">🌕 Val:</span>
-                              {isRelational && valB.length > 0 ? (
-                                <div className="flex items-center gap-1 font-mono text-sm">
-                                  <span className="text-blue-400">{createSparkline(valences.map((v: number) => Math.abs(v)), 5)}</span>
-                                  <span className="text-slate-600">|</span>
-                                  <span className="text-blue-300">{createSparkline(valB.map((v: number) => Math.abs(v)), 5)}</span>
-                                </div>
-                              ) : (
-                                <span className="font-mono text-blue-400 text-sm">{createSparkline(valences.map((v: number) => Math.abs(v)), 5)}</span>
-                              )}
-                              <span className="text-slate-500 w-12 text-right">
-                                {(() => {
-                                  const mag = magnitudes.length > 0 ? magnitudes[magnitudes.length - 1] : 0;
-                                  const vol = volatilities.length > 0 ? volatilities[volatilities.length - 1] : 0;
-                                  const sfd = sfds.length > 0 ? sfds[sfds.length - 1] : 0;
-
-                                  if (mag >= 2 && mag <= 4 && vol < 2 && sfd > 50) return '💧'; // Coherent Flow
-                                  return '';
-                                })()}
-                              </span>
-                            </div>
-
-                            {/* Volatility */}
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-400 w-16">🔀 Vol:</span>
-                              {isRelational && volB.length > 0 ? (
-                                <div className="flex items-center gap-1 font-mono text-sm">
-                                  <span className="text-amber-400">{createSparkline(volatilities)}</span>
-                                  <span className="text-slate-600">|</span>
-                                  <span className="text-amber-300">{createSparkline(volB)}</span>
-                                </div>
-                              ) : (
-                                <span className="font-mono text-amber-400 text-sm">{createSparkline(volatilities)}</span>
-                              )}
-                              <span className="text-slate-500 w-12 text-right">
-                                {/* Volatility-specific field states would go here if needed */}
-                              </span>
-                            </div>
-
-                            {/* SFD */}
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-400 w-16">SFD:</span>
-                              {isRelational && sfdB.length > 0 ? (
-                                <div className="flex items-center gap-1 font-mono text-sm">
-                                  <span className="text-purple-400">{createSFDSparkline(sfds)}</span>
-                                  <span className="text-slate-600">|</span>
-                                  <span className="text-purple-300">{createSFDSparkline(sfdB)}</span>
-                                </div>
-                              ) : (
-                                <span className="font-mono text-purple-400 text-sm">{createSFDSparkline(sfds)}</span>
-                              )}
-                              <span className="text-slate-500 w-12 text-right">
-                                {sfds.length > 1 && ((sfds[sfds.length - 2] < 0 && sfds[sfds.length - 1] > 0) || (sfds[sfds.length - 2] > 0 && sfds[sfds.length - 1] < 0)) ? '🌗' : ''}
-                              </span>
-                            </div>
-
-                            {/* Field Resonance Score (Relational only) */}
-                            {isRelational && resonanceScores.length > 0 && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-slate-400 w-16">Res:</span>
-                                <span className="font-mono text-cyan-400 text-sm">{createSparkline(resonanceScores, 5)}</span>
-                                <span className="text-slate-500 w-12 text-right">
-                                  {resonanceScores.length > 0 && resonanceScores[resonanceScores.length - 1] < 0.5 ? '◊' : ''}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="mt-2 text-xs text-slate-500">
-                            {isRelational && tsB.length > 0 ? (
-                              <>A | B overlay • Field states: ⚫️ Pressure Point, 🌀 Vortex, 💧 Coherent Flow, 🌗 Field Shift, ◊ High resonance</>
-                            ) : (
-                              <>Field State Markers: ⚫️ Pressure Point, 🌀 Vortex, 💧 Coherent Flow, 🌗 Field Shift</>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    <div className="mt-2 max-h-40 overflow-auto rounded border border-slate-700 bg-slate-900/40 p-2">
-                      <table className="w-full text-xs text-slate-300">
-                        <thead>
-                          <tr className="text-slate-400">
-                            <th className="text-left font-medium">Date</th>
-                            <th className="text-right font-medium">Mag</th>
-                            <th className="text-right font-medium">Val</th>
-                            <th className="text-right font-medium">Vol</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {ts.slice(-10).map((r:any, i:number) => (
-                            <tr key={i}>
-                              <td className="py-0.5 pr-2">{r.date}</td>
-                              <td className="py-0.5 text-right">{Number(r.magnitude ?? 0).toFixed(2)}</td>
-                              <td className="py-0.5 text-right">{Number(r.valence_bounded ?? r.valence ?? 0).toFixed(2)}</td>
-                              <td className="py-0.5 text-right">{Number(r.volatility ?? 0).toFixed(2)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
-                    <div className="text-xs text-slate-400">Natal aspects (A)</div>
-                    <div className="text-lg text-slate-100">{(wm.natal_summary?.major_aspects?.length ?? 0)}</div>
-                  </div>
-                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
-                    <div className="text-xs text-slate-400">Polarity cards (hooks)</div>
-                    <div className="text-lg text-slate-100">{(Array.isArray(wm.polarity_cards) ? wm.polarity_cards.length : 0)}</div>
-                  </div>
-                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
-                    <div className="text-xs text-slate-400">Report type</div>
-                    <div className="text-lg text-slate-100 capitalize">{wm.type || 'solo'}</div>
-                  </div>
-                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
-                    <div className="text-xs text-slate-400">Schema</div>
-                    <div className="text-xs text-slate-100">{wm.schema}</div>
-                  </div>
-                </div>
-              </Section>
-            );
-          })()}
-          {(() => {
-            const cx = (result as any)?.context;
-            if (!cx?.translocation) return null;
-            const t = cx.translocation;
-            return (
-              <Section title="Translocation Context" className="print:hidden">
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-sm text-slate-300">
-                  <div>
-                    <div className="text-xs text-slate-400">Applies</div>
-                    <div className="text-slate-100">{t.applies ? 'Yes' : 'No'}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-400">Method</div>
-                    <div className="text-slate-100">{(() => {
-                      const m = String(t.method || 'Natal');
-                      if (/^A[_ ]?local$/i.test(m) || m === 'A_local') return 'Person A';
-                      if (/^B[_ ]?local$/i.test(m) || m === 'B_local') return 'Person B';
-                      if (/^midpoint$/i.test(m)) return 'Person A + B';
-                      if (/^natal$/i.test(m)) return 'None (Natal Base)';
-                      return m;
-                    })()}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-400">House System</div>
-                    <div className="text-slate-100">{t.house_system || 'Placidus'}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-400">TZ</div>
-                    <div className="text-slate-100">{t.tz || (personA?.timezone || '—')}</div>
-                  </div>
-                </div>
-              </Section>
-            );
           })()}
           {(() => {
             const summary = result?.person_a?.derived?.seismograph_summary;
@@ -4460,10 +4253,10 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                   </div>
                 </div>
 
-                {/* LAYER 2: DAILY DIAGNOSTIC CARDS (The Details) */}
-                <div className="mb-6">
-                  <h3 className="text-sm font-medium text-slate-200 mb-3">Daily Diagnostic Cards</h3>
-                  {(() => {
+                {layerVisibility.diagnostics && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-medium text-slate-200 mb-3">Daily Diagnostic Cards</h3>
+                    {(() => {
                     const daily = result?.person_a?.chart?.transitsByDate || {};
                     const dates = Object.keys(daily).sort();
                     if (!dates.length) {
@@ -4779,14 +4572,16 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                       );
                     });
                   })()}
-                </div>
+                  </div>
+                )}
 
                 {/* LAYER 3: FIELD CONTEXT (Simple Descriptive Language) */}
-                <div className="mb-4">
-                  <h3 className="text-sm font-medium text-slate-200 mb-3">Field Context</h3>
-                  <div className="rounded border border-slate-700 bg-slate-900/40 p-4">
-                    <div className="text-sm text-slate-300 leading-relaxed">
-                      {(() => {
+                {layerVisibility.diagnostics && (
+                  <div className="mb-4">
+                    <h3 className="text-sm font-medium text-slate-200 mb-3">Field Context</h3>
+                    <div className="rounded border border-slate-700 bg-slate-900/40 p-4">
+                      <div className="text-sm text-slate-300 leading-relaxed">
+                        {(() => {
                         const sfdValue = result?.person_a?.sfd?.sfd ?? 0;
                         const getMagnitudeState = (mag: number) => {
                           if (mag <= 1) return 'latent';
@@ -4858,16 +4653,305 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
 
                         return description;
                       })()}
+                      </div>
+                      <div className="mt-3 text-xs text-slate-500">
+                        Note: This describes the mathematical field state only. Upload to Poetic Brain for experiential interpretation.
+                      </div>
                     </div>
-                    <div className="mt-3 text-xs text-slate-500">
-                      Note: This describes the mathematical field state only. Upload to Poetic Brain for experiential interpretation.
+                  </div>
+                )}
+              </Section>
+            );
+          })()}
+          </>)}
+
+          {layerVisibility.geometries && (
+            <>
+          {(() => {
+            const wm = (result as any)?.woven_map;
+            if (!wm?.hook_stack?.hooks?.length) return null;
+            const hooks = wm.hook_stack.hooks || [];
+            return (
+              <Section title="Hook Stack — Recognition Gateway">
+                <div className="mb-3 text-sm text-slate-400">
+                  Front-door UX: {hooks.length} high-charge patterns from tightest aspects
+                  {wm.hook_stack.tier_1_orbs > 0 && ` · ${wm.hook_stack.tier_1_orbs} Tier-1 (≤1°)`}
+                  · Coverage: {wm.hook_stack.coverage}
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {hooks.map((hook: any, i: number) => (
+                    <div key={i} className="rounded-md border border-amber-600/30 bg-amber-900/20 p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="text-amber-100 font-medium leading-tight">
+                          {hook.title}
+                        </div>
+                        {hook.is_tier_1 && (
+                          <span className="ml-2 inline-flex items-center rounded bg-amber-600 px-1.5 py-0.5 text-xs font-medium text-amber-100">
+                            T1
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-amber-200/70 space-y-1">
+                        <div>Orb: {hook.orb?.toFixed(1)}° · Intensity: {Math.round(hook.intensity)}</div>
+                        <div>{hook.planets?.join(' ') || ''} {hook.aspect_type}</div>
+                      </div>
                     </div>
+                  ))}
+                </div>
+                <div className="mt-3 text-xs text-slate-400">
+                  Purpose: Bypass analysis → trigger "that's me" recognition → open depth work
+                </div>
+              </Section>
+            );
+          })()}
+          {(() => {
+            const wm = (result as any)?.woven_map;
+            if (!wm) return null;
+            const factors = wm.integration_factors || {};
+            const keys: Array<{key: keyof typeof factors, label: string}> = [
+              { key: 'fertile_field' as any, label: 'Fertile Field' },
+              { key: 'harmonic_resonance' as any, label: 'Harmonic Resonance' },
+              { key: 'expansion_lift' as any, label: 'Expansion Lift' },
+              { key: 'combustion_clarity' as any, label: 'Combustion Clarity' },
+              { key: 'liberation_release' as any, label: 'Liberation / Release' },
+              { key: 'integration' as any, label: 'Integration' },
+            ];
+            const ts = Array.isArray(wm.time_series) ? wm.time_series : [];
+            const first = ts[0]?.date; const last = ts[ts.length-1]?.date;
+            return (
+              <Section title="Woven Map (data-only)">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <div className="text-sm text-slate-300">Integration Factors</div>
+                    <div className="mt-2 space-y-2">
+                      {keys.map(({key,label}) => {
+                        const pct = Math.max(0, Math.min(100, Number((factors as any)[key] ?? 0)));
+                        return (
+                          <div key={String(key)}>
+                            <div className="flex items-center justify-between text-xs text-slate-400"><span>{label}</span><span>{pct}%</span></div>
+                            <svg viewBox="0 0 100 6" className="h-1.5 w-full">
+                              <rect x="0" y="0" width="100" height="6" className="fill-slate-700" />
+                              <rect x="0" y="0" width={pct} height="6" className="fill-emerald-500" />
+                            </svg>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-slate-300">Time Series</div>
+                    <div className="mt-2 text-xs text-slate-400">Entries: {ts.length || 0}{first && last ? ` · ${first} → ${last}` : ''}</div>
+
+                    {/* Trend Sparklines */}
+                    {ts.length > 1 && (() => {
+                      const createSparkline = (values: number[], maxValue = 5) => {
+                        const chars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+                        return values.slice(-20).map(val => {
+                          const normalized = Math.max(0, Math.min(1, val / maxValue));
+                          const index = Math.floor(normalized * (chars.length - 1));
+                          return chars[index] || chars[0];
+                        }).join('');
+                      };
+
+                      const createSFDSparkline = (values: number[]) => {
+                        return values.slice(-20).map(val => {
+                          if (val > 10) return '▇';
+                          if (val > 0) return '▅';
+                          if (val === 0) return '▃';
+                          if (val > -10) return '▂';
+                          return '▁';
+                        }).join('');
+                      };
+
+                      const calculateResonanceScore = (sfdA: number[], sfdB: number[]) => {
+                        if (!sfdA || !sfdB || sfdA.length !== sfdB.length) return [];
+                        return sfdA.map((a, i) => Math.abs(a - sfdB[i]) / 20);
+                      };
+
+                      const isRelational = result?.person_b?.chart?.transitsByDate || wm?.type?.includes('synastry') || wm?.type?.includes('composite');
+                      const tsB = wm?.time_series_b || [];
+
+                      const magnitudes = ts.map((r: any) => Number(r.magnitude ?? 0));
+                      const valences = ts.map((r: any) => Number(r.valence_bounded ?? r.valence ?? 0));
+                      const volatilities = ts.map((r: any) => Number(r.volatility ?? 0));
+                      const sfds = ts.map((r: any) => Number(r.sfd ?? 0));
+
+                      let magB: number[] = [], valB: number[] = [], volB: number[] = [], sfdB: number[] = [], resonanceScores: number[] = [];
+
+                      if (isRelational && tsB.length > 0) {
+                        magB = tsB.map((r: any) => Number(r.magnitude ?? 0));
+                        valB = tsB.map((r: any) => Number(r.valence_bounded ?? r.valence ?? 0));
+                        volB = tsB.map((r: any) => Number(r.volatility ?? 0));
+                        sfdB = tsB.map((r: any) => Number(r.sfd ?? 0));
+                        resonanceScores = calculateResonanceScore(sfds, sfdB);
+                      }
+
+                      return (
+                        <div className="mt-3 rounded border border-slate-700 bg-slate-900/40 p-3">
+                          <div className="text-xs font-medium text-slate-300 mb-2">
+                            {isRelational && tsB.length > 0 ? 'Relational Trend Analysis' : 'Trend Analysis'}
+                          </div>
+                          <div className="space-y-2 text-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400 w-16">⚡ Mag:</span>
+                              {isRelational && magB.length > 0 ? (
+                                <div className="flex items-center gap-1 font-mono text-sm">
+                                  <span className="text-emerald-400">{createSparkline(magnitudes)}</span>
+                                  <span className="text-slate-600">|</span>
+                                  <span className="text-emerald-300">{createSparkline(magB)}</span>
+                                </div>
+                              ) : (
+                                <span className="font-mono text-emerald-400 text-sm">{createSparkline(magnitudes)}</span>
+                              )}
+                              <span className="text-slate-500 w-12 text-right">
+                                {magnitudes.length > 0 && magnitudes[magnitudes.length - 1] >= 4.5 && sfds[sfds.length - 1] < -50 ? '⚫️' : ''}
+                                {magnitudes.length > 0 && magnitudes[magnitudes.length - 1] >= 4.5 && volatilities[volatilities.length - 1] >= 4.5 ? '🌀' : ''}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400 w-16">🌕 Val:</span>
+                              {isRelational && valB.length > 0 ? (
+                                <div className="flex items-center gap-1 font-mono text-sm">
+                                  <span className="text-blue-400">{createSparkline(valences.map((v: number) => Math.abs(v)), 5)}</span>
+                                  <span className="text-slate-600">|</span>
+                                  <span className="text-blue-300">{createSparkline(valB.map((v: number) => Math.abs(v)), 5)}</span>
+                                </div>
+                              ) : (
+                                <span className="font-mono text-blue-400 text-sm">{createSparkline(valences.map((v: number) => Math.abs(v)), 5)}</span>
+                              )}
+                              <span className="text-slate-500 w-12 text-right">
+                                {(() => {
+                                  const mag = magnitudes.length > 0 ? magnitudes[magnitudes.length - 1] : 0;
+                                  const vol = volatilities.length > 0 ? volatilities[volatilities.length - 1] : 0;
+                                  const sfd = sfds.length > 0 ? sfds[sfds.length - 1] : 0;
+
+                                  if (mag >= 2 && mag <= 4 && vol < 2 && sfd > 50) return '💧';
+                                  return '';
+                                })()}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400 w-16">🔀 Vol:</span>
+                              {isRelational && volB.length > 0 ? (
+                                <div className="flex items-center gap-1 font-mono text-sm">
+                                  <span className="text-amber-400">{createSparkline(volatilities)}</span>
+                                  <span className="text-slate-600">|</span>
+                                  <span className="text-amber-300">{createSparkline(volB)}</span>
+                                </div>
+                              ) : (
+                                <span className="font-mono text-amber-400 text-sm">{createSparkline(volatilities)}</span>
+                              )}
+                              <span className="text-slate-500 w-12 text-right"></span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400 w-16">SFD:</span>
+                              {isRelational && sfdB.length > 0 ? (
+                                <div className="flex items-center gap-1 font-mono text-sm">
+                                  <span className="text-purple-400">{createSFDSparkline(sfds)}</span>
+                                  <span className="text-slate-600">|</span>
+                                  <span className="text-purple-300">{createSFDSparkline(sfdB)}</span>
+                                </div>
+                              ) : (
+                                <span className="font-mono text-purple-400 text-sm">{createSFDSparkline(sfds)}</span>
+                              )}
+                              <span className="text-slate-500 w-12 text-right">
+                                {sfds.length > 1 && ((sfds[sfds.length - 2] < 0 && sfds[sfds.length - 1] > 0) || (sfds[sfds.length - 2] > 0 && sfds[sfds.length - 1] < 0)) ? '🌗' : ''}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="mt-2 text-xs text-slate-500">
+                            {isRelational && tsB.length > 0 ? (
+                              <>A | B overlay • Field states: ⚫️ Pressure Point, 🌀 Vortex, 💧 Coherent Flow, 🌗 Field Shift, ◊ High resonance</>
+                            ) : (
+                              <>Field State Markers: ⚫️ Pressure Point, 🌀 Vortex, 💧 Coherent Flow, 🌗 Field Shift</>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    <div className="mt-2 max-h-40 overflow-auto rounded border border-slate-700 bg-slate-900/40 p-2">
+                      <table className="w-full text-xs text-slate-300">
+                        <thead>
+                          <tr className="text-slate-400">
+                            <th className="text-left font-medium">Date</th>
+                            <th className="text-right font-medium">Mag</th>
+                            <th className="text-right font-medium">Val</th>
+                            <th className="text-right font-medium">Vol</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ts.slice(-10).map((r:any, i:number) => (
+                            <tr key={i}>
+                              <td className="py-0.5 pr-2">{r.date}</td>
+                              <td className="py-0.5 text-right">{Number(r.magnitude ?? 0).toFixed(2)}</td>
+                              <td className="py-0.5 text-right">{Number(r.valence_bounded ?? r.valence ?? 0).toFixed(2)}</td>
+                              <td className="py-0.5 text-right">{Number(r.volatility ?? 0).toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
+                    <div className="text-xs text-slate-400">Natal aspects (A)</div>
+                    <div className="text-lg text-slate-100">{(wm.natal_summary?.major_aspects?.length ?? 0)}</div>
+                  </div>
+                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
+                    <div className="text-xs text-slate-400">Polarity cards (hooks)</div>
+                    <div className="text-lg text-slate-100">{(Array.isArray(wm.polarity_cards) ? wm.polarity_cards.length : 0)}</div>
+                  </div>
+                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
+                    <div className="text-xs text-slate-400">Report type</div>
+                    <div className="text-lg text-slate-100 capitalize">{wm.type || 'solo'}</div>
+                  </div>
+                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
+                    <div className="text-xs text-slate-400">Schema</div>
+                    <div className="text-xs text-slate-100">{wm.schema}</div>
                   </div>
                 </div>
               </Section>
             );
           })()}
-          </>)}
+          {(() => {
+            const cx = (result as any)?.context;
+            if (!cx?.translocation) return null;
+            const t = cx.translocation;
+            return (
+              <Section title="Translocation Context" className="print:hidden">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-sm text-slate-300">
+                  <div>
+                    <div className="text-xs text-slate-400">Applies</div>
+                    <div className="text-slate-100">{t.applies ? 'Yes' : 'No'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-400">Method</div>
+                    <div className="text-slate-100">{(() => {
+                      const m = String(t.method || 'Natal');
+                      if (/^A[_ ]?local$/i.test(m) || m === 'A_local') return 'Person A';
+                      if (/^B[_ ]?local$/i.test(m) || m === 'B_local') return 'Person B';
+                      if (/^midpoint$/i.test(m)) return 'Person A + B';
+                      if (/^natal$/i.test(m)) return 'None (Natal Base)';
+                      return m;
+                    })()}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-400">House System</div>
+                    <div className="text-slate-100">{t.house_system || 'Placidus'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-400">TZ</div>
+                    <div className="text-slate-100">{t.tz || (personA?.timezone || '—')}</div>
+                  </div>
+                </div>
+              </Section>
+            );
+          })()}
+            </>
+          )}
         </div>
       )}
     </main>

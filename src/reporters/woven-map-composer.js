@@ -344,9 +344,193 @@ function formatVectorName(a, type, b) {
   return [a, glyph, b].filter(Boolean).join(' ').trim();
 }
 
-function computeVectorIntegrity(transitsByDate) {
+function normalizeDriftEvidenceEntry(entry) {
+  if (!entry || typeof entry !== 'object') return null;
+  const mappedRaw = entry.mappedTo || entry.mapped_to || entry.alignment || entry.result;
+  if (!mappedRaw) return null;
+  const mappedToken = String(mappedRaw).trim().toUpperCase();
+  if (mappedToken !== 'DRIVER' && mappedToken !== 'ROLE') return null;
+  const areaRaw = entry.area || entry.domain || entry.scope;
+  const area = typeof areaRaw === 'string' ? areaRaw.trim().toLowerCase() : undefined;
+  return { mappedTo: mappedToken, area };
+}
+
+function computeDriftFromEvidence(evidence) {
+  if (!Array.isArray(evidence) || !evidence.length) return null;
+  const filtered = evidence.map(normalizeDriftEvidenceEntry).filter(Boolean);
+  const driver = filtered.filter(e => e.mappedTo === 'DRIVER').length;
+  const role = filtered.filter(e => e.mappedTo === 'ROLE').length;
+  const denom = driver + role;
+  const driftIndex = denom > 0 ? +(driver / denom).toFixed(4) : 0;
+
+  const allowedAreas = new Set(['agency','boundaries','communication','energy','relationships','work','home','identity']);
+  const areaSet = new Set();
+  for (const item of filtered) {
+    if (item.area && allowedAreas.has(item.area)) {
+      areaSet.add(item.area);
+    }
+  }
+  const areas = Array.from(areaSet);
+
+  let band = 'NONE';
+  const n = filtered.length;
+  if (n >= 4 && areas.length >= 2 && driftIndex >= 0.7) band = 'STRONG';
+  else if (n >= 3 && driftIndex >= 0.5) band = 'POSSIBLE';
+
+  const stateDependent = areas.length < 2 && band !== 'NONE';
+  return {
+    driftIndex,
+    band: stateDependent ? 'NONE' : band,
+    evidenceN: n,
+    areasSpanned: areas,
+    stateDependent
+  };
+}
+
+function coerceArray(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  return [];
+}
+
+function gatherDriftInputs(result) {
+  const evidence = [];
+  const candidateArrays = [
+    result?.session_context?.osrProbes,
+    result?.session_context?.osr_probes,
+    result?.feedback?.session_context?.osrProbes,
+    result?.feedback?.session_context?.osr_probes,
+    result?.feedback?.session_patterns?.osrProbes,
+    result?.feedback?.session_patterns?.osr_probes,
+    result?.feedback?.osrProbes,
+    result?.feedback?.osr_probes,
+    result?.frontstage?.mirror?.session_context?.osrProbes,
+    result?.frontstage?.mirror?.session_context?.osr_probes,
+    result?.frontstage?.mirror?.diagnostics?.osrProbes,
+    result?.frontstage?.mirror?.diagnostics?.osr_probes,
+    result?.backstage?.session?.osrProbes,
+    result?.backstage?.session?.osr_probes,
+    result?.backstage?.diagnostics?.osrProbes,
+    result?.backstage?.diagnostics?.osr_probes,
+    result?.actor_role?.osrProbes,
+    result?.actor_role?.osr_probes
+  ];
+
+  for (const arr of candidateArrays) {
+    const list = coerceArray(arr);
+    for (const item of list) {
+      const normalized = normalizeDriftEvidenceEntry(item);
+      if (normalized) evidence.push(normalized);
+    }
+  }
+
+  const driftIndexCandidates = [
+    result?.session_context?.driftIndex,
+    result?.session_context?.drift_index,
+    result?.feedback?.session_context?.driftIndex,
+    result?.feedback?.session_context?.drift_index,
+    result?.feedback?.driftIndex,
+    result?.feedback?.drift_index,
+    result?.frontstage?.mirror?.diagnostics?.driftIndex,
+    result?.frontstage?.mirror?.diagnostics?.drift_index,
+    result?.backstage?.diagnostics?.driftIndex,
+    result?.backstage?.diagnostics?.drift_index,
+    result?.actor_role?.driftIndex,
+    result?.actor_role?.drift_index
+  ];
+
+  const driftBandCandidates = [
+    result?.session_context?.driftBand,
+    result?.session_context?.drift_band,
+    result?.feedback?.session_context?.driftBand,
+    result?.feedback?.session_context?.drift_band,
+    result?.feedback?.driftBand,
+    result?.feedback?.drift_band,
+    result?.actor_role?.driftBand,
+    result?.actor_role?.drift_band
+  ];
+
+  const driftEvidenceCountCandidates = [
+    result?.session_context?.driftEvidenceN,
+    result?.session_context?.drift_evidence_n,
+    result?.feedback?.session_context?.driftEvidenceN,
+    result?.feedback?.session_context?.drift_evidence_n,
+    result?.actor_role?.evidenceN,
+    result?.actor_role?.evidence_n
+  ];
+
+  const driftAreasCandidates = [
+    result?.session_context?.driftAreas,
+    result?.session_context?.drift_areas,
+    result?.feedback?.session_context?.driftAreas,
+    result?.feedback?.session_context?.drift_areas,
+    result?.actor_role?.areasSpanned,
+    result?.actor_role?.areas_spanned
+  ];
+
+  const driftStateCandidates = [
+    result?.session_context?.driftStateDependent,
+    result?.session_context?.drift_state_dependent,
+    result?.feedback?.session_context?.driftStateDependent,
+    result?.feedback?.session_context?.drift_state_dependent,
+    result?.actor_role?.stateDependent,
+    result?.actor_role?.state_dependent
+  ];
+
+  const firstFinite = (list) => {
+    for (const value of list) {
+      const num = safeNum(value);
+      if (num != null) return num;
+    }
+    return null;
+  };
+
+  const pickString = (list) => {
+    for (const value of list) {
+      if (typeof value === 'string' && value.trim()) return value.trim().toUpperCase();
+    }
+    return null;
+  };
+
+  const pickBoolean = (list) => {
+    for (const value of list) {
+      if (typeof value === 'boolean') return value;
+    }
+    return null;
+  };
+
+  const pickArray = (list) => {
+    for (const value of list) {
+      if (Array.isArray(value) && value.length) return value;
+    }
+    return null;
+  };
+
+  return {
+    driftEvidence: evidence,
+    driftIndex: firstFinite(driftIndexCandidates),
+    driftBand: pickString(driftBandCandidates),
+    driftEvidenceCount: firstFinite(driftEvidenceCountCandidates),
+    driftAreas: pickArray(driftAreasCandidates),
+    driftStateDependent: pickBoolean(driftStateCandidates)
+  };
+}
+
+function computeVectorIntegrity(transitsByDate, driftMeta = {}) {
   const base = { active: [], latent: [], suppressed: [], dormant: [], method: 'vector-scan-2', sample_size: 0 };
-  if (!transitsByDate || typeof transitsByDate !== 'object') return base;
+  if (!transitsByDate || typeof transitsByDate !== 'object') {
+    const drift = Array.isArray(driftMeta?.driftEvidence) && driftMeta.driftEvidence.length
+      ? computeDriftFromEvidence(driftMeta.driftEvidence)
+      : null;
+    return {
+      ...base,
+      drift_index: drift?.driftIndex ?? safeNum(driftMeta?.driftIndex),
+      drift_band: drift?.band || (typeof driftMeta?.driftBand === 'string' ? driftMeta.driftBand : null),
+      drift_samples: drift?.evidenceN ?? safeNum(driftMeta?.driftEvidenceCount) ?? (Array.isArray(driftMeta?.driftEvidence) ? driftMeta.driftEvidence.length : null),
+      drift_areas: drift?.areasSpanned || (Array.isArray(driftMeta?.driftAreas) ? driftMeta.driftAreas : null),
+      drift_state_dependent: drift?.stateDependent ?? (typeof driftMeta?.driftStateDependent === 'boolean' ? driftMeta.driftStateDependent : null)
+    };
+  }
 
   const activeMap = new Map();
   const latentMap = new Map();
@@ -425,6 +609,14 @@ function computeVectorIntegrity(transitsByDate) {
     if (dayTouched) sampleDays += 1;
   }
 
+  const summarizeMapCounts = (map) => {
+    let events = 0;
+    map.forEach(item => {
+      if (item && typeof item.count === 'number') events += item.count;
+    });
+    return events;
+  };
+
   const finalizeRejections = (map) => Array.from(map.values()).map(item => {
     const avgOrb = item.orb_count ? +(item.total_orb / item.orb_count).toFixed(2) : null;
     const reasons = Object.entries(item.reasons)
@@ -461,13 +653,43 @@ function computeVectorIntegrity(transitsByDate) {
     };
   }).sort((a, b) => b.count - a.count).slice(0, 5);
 
+  const activeFinal = finalizeActive();
+  const latentFinal = finalizeRejections(latentMap);
+  const suppressedFinal = finalizeRejections(suppressedMap);
+  const dormantFinal = finalizeRejections(dormantMap);
+
+  const drift = Array.isArray(driftMeta?.driftEvidence) && driftMeta.driftEvidence.length
+    ? computeDriftFromEvidence(driftMeta.driftEvidence)
+    : null;
+
+  const driftIndex = drift?.driftIndex ?? safeNum(driftMeta?.driftIndex);
+  const driftBand = drift?.band || (typeof driftMeta?.driftBand === 'string' ? driftMeta.driftBand : null);
+  const driftSamples = drift?.evidenceN ?? safeNum(driftMeta?.driftEvidenceCount) ?? (Array.isArray(driftMeta?.driftEvidence) ? driftMeta.driftEvidence.length : null);
+  const driftAreas = drift?.areasSpanned || (Array.isArray(driftMeta?.driftAreas) ? driftMeta.driftAreas : null);
+  const driftStateDependent = drift?.stateDependent ?? (typeof driftMeta?.driftStateDependent === 'boolean' ? driftMeta.driftStateDependent : null);
+
   return {
-    active: finalizeActive(),
-    latent: finalizeRejections(latentMap),
-    suppressed: finalizeRejections(suppressedMap),
-    dormant: finalizeRejections(dormantMap),
+    active: activeFinal,
+    latent: latentFinal,
+    suppressed: suppressedFinal,
+    dormant: dormantFinal,
     method: 'vector-scan-2',
-    sample_size: sampleDays
+    sample_size: sampleDays,
+    summary: {
+      active_vectors: activeMap.size,
+      latent_vectors: latentMap.size,
+      suppressed_vectors: suppressedMap.size,
+      dormant_vectors: dormantMap.size,
+      active_events: summarizeMapCounts(activeMap),
+      latent_events: summarizeMapCounts(latentMap),
+      suppressed_events: summarizeMapCounts(suppressedMap),
+      dormant_events: summarizeMapCounts(dormantMap)
+    },
+    drift_index: driftIndex != null ? +Number(driftIndex).toFixed(3) : null,
+    drift_band: driftBand,
+    drift_samples: driftSamples != null ? Math.round(driftSamples) : (driftSamples === 0 ? 0 : null),
+    drift_areas: driftAreas && driftAreas.length ? driftAreas : null,
+    drift_state_dependent: driftStateDependent === true ? true : driftStateDependent === false ? false : null
   };
 }
 
@@ -575,7 +797,8 @@ function composeWovenMapReport({ result, mode, period, options = {} }) {
   const meterChannels = summarizeMeterChannels(transits);
   const integration = computeIntegrationFactors(summary, meterChannels?.balance?.value ?? null);
   const timeSeries = extractTimeSeries(transits);
-  const vectorIntegrity = computeVectorIntegrity(transits);
+  const vectorInputs = gatherDriftInputs(result);
+  const vectorIntegrity = computeVectorIntegrity(transits, vectorInputs);
   const hookStack = composeHookStack(result, { maxHooks: 4, minIntensity: 8 });
 
   const report = {
