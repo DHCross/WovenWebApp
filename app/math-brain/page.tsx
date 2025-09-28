@@ -94,7 +94,11 @@ function extractReportHeader(
   endDate: string,
   step: string,
   relocationStatus: any,
+
   relocLabel?: string | null
+
+  relocationLabel?: string
+
 ): ReportHeader {
   const normalizedMode = (() => {
     switch (mode) {
@@ -117,7 +121,10 @@ function extractReportHeader(
     } : undefined,
     relocated: {
       active: relocationStatus.effectiveMode !== 'NONE',
-      label: relocationStatus.effectiveMode !== 'NONE' ? (relocLabel || undefined) : undefined
+      label:
+        relocationStatus.effectiveMode !== 'NONE'
+          ? (relocationLabel?.trim() ? relocationLabel.trim() : undefined)
+          : undefined
     }
   };
 }
@@ -477,11 +484,14 @@ export default function MathBrainPage() {
     ? { value: 'NATAL_TRANSITS' as ReportMode, label: 'Natal + Transits' }
     : { value: 'NATAL_ONLY' as ReportMode, label: 'Natal Only' };
 
+
   // Extract UI/UX Contract types (computed once, passed down to children)
   const reportHeader = useMemo(() =>
     extractReportHeader(mode, startDate, endDate, step, relocationStatus, relocLabel),
     [mode, startDate, endDate, step, relocationStatus, relocLabel]
   );
+
+
 
   const weather = useMemo(() =>
     extractWeather(startDate, endDate, result),
@@ -697,6 +707,12 @@ export default function MathBrainPage() {
 
     return { effectiveMode, notice };
   }, [includeTransits, translocation, relocationInputReady, isDyadMode, personBLocationReady]);
+
+  // Extract UI/UX Contract types (computed once, passed down to children)
+  const reportHeader = useMemo(
+    () => extractReportHeader(mode, startDate, endDate, step, relocationStatus, relocLabel),
+    [mode, startDate, endDate, step, relocationStatus, relocLabel]
+  );
 
   // If Person B is turned off while a relational mode is selected, reset to a solo mode
   useEffect(() => {

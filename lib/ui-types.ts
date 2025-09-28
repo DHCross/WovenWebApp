@@ -19,3 +19,46 @@ export type Weather = {
 export type Blueprint = {
   thesis: string; // non-empty string; always provided
 };
+
+export type SnapshotTone = {
+  magnitude: "Low" | "Moderate" | "High";
+  valence: "Harmonious" | "Tense" | "Complex";
+  volatility: "Stable" | "Variable" | "Unstable";
+};
+
+export type SnapshotAnchor = {
+  name: string;
+  strength: number;
+  valence: "supportive" | "challenging" | "mixed";
+  benefit: string;
+  friction: string;
+};
+
+export type SnapshotHook = {
+  label: string;
+  intensity: number;
+  targetHouse: string;
+};
+
+export type SnapshotData = {
+  header: {
+    location: string;
+    dateRange: string;
+    type: "Snapshot" | "Overview";
+  };
+  tone: SnapshotTone;
+  anchors: SnapshotAnchor[];
+  hooks: SnapshotHook[];
+  topHouse: {
+    tag: string;
+    keywords: string;
+    relocated: boolean;
+  };
+  heatband?: Array<{ day: string; intensity: "light" | "medium" | "dark" }>;
+  auditFooter: {
+    anchorsCount: number;
+    hooksCount: number;
+    lens: string;
+    peaks?: string;
+  };
+};
