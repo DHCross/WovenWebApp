@@ -8,6 +8,7 @@ import { sanitizeReportForPDF, sanitizeForPDF } from "../../src/pdf-sanitizer";
 import { ContractLinter } from "../../src/contract-linter";
 import { renderShareableMirror } from "../../lib/raven/render";
 import { ReportHeader, Weather, Blueprint } from "../../lib/ui-types";
+import DailyClimateCard from "../../components/mathbrain/DailyClimateCard";
 
 export const dynamic = "force-dynamic";
 
@@ -307,13 +308,7 @@ export default function MathBrainPage() {
   });
   const [includePersonB, setIncludePersonB] = useState<boolean>(false);
 
-  // Interactive drill-down state for Resonance Spectrum Source Geometry
-  const [selectedPole, setSelectedPole] = useState<{
-    date: string;
-    type: 'magnitude' | 'volatility' | 'sfd' | 'valence';
-    pole: 'wb' | 'abe';
-    geometry: string[];
-  } | null>(null);
+  // Person B subject state
   const [personB, setPersonB] = useState<Subject>({
     name: "",
     year: "",
@@ -4449,7 +4444,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                     };
 
                     const getValenceStyle = (valence: number, magnitude: number) => {
-                      const magLevel = magnitude <= 2 ? 'low' : 'high'; // For emoji count selection
+                      const magLevel = magnitude <= 2 ? 'low' : 'high';
 
                       if (valence >= 4.5) {
                         const emojis = magLevel === 'low' ? ['🦋', '🌈'] : ['🦋', '🌈', '🔥'];
@@ -4499,253 +4494,176 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                       return 'Strong Friction';
                     };
 
+                    const classifyMagnitude = (mag: number) => {
+                      if (mag <= 2) {
+                        return { key: 'low' as const, label: 'Low', badge: 'Low Intensity' };
+                      }
+                      if (mag <= 4) {
+                        return { key: 'medium' as const, label: 'Medium', badge: 'Medium Intensity' };
+                      }
+                      return { key: 'high' as const, label: 'High', badge: 'High Intensity' };
+                    };
+
+                    const classifyValence = (val: number) => {
+                      if (val >= 1.5) {
+                        return {
+                          key: 'supportive' as const,
+                          label: 'Supportive',
+                          badge: 'Positive Tilt',
+                        };
+                      }
+                      if (val <= -1.5) {
+                        return {
+                          key: 'tense' as const,
+                          label: 'Tense',
+                          badge: 'Tense Tilt',
+                        };
+                      }
+                      return {
+                        key: 'mixed' as const,
+                        label: 'Mixed',
+                        badge: 'Mixed Tilt',
+                      };
+                    };
+
+                    const classifyVolatility = (vol: number) => {
+                      if (vol <= 2) {
+                        return { key: 'stable' as const, label: 'Stable', badge: 'Stable Distribution' };
+                      }
+                      if (vol <= 4) {
+                        return { key: 'variable' as const, label: 'Variable', badge: 'Variable Distribution' };
+                      }
+                      return { key: 'scattered' as const, label: 'Scattered', badge: 'Scattered Distribution' };
+                    };
+
+                    const magnitudeForkText = (mag: number) => {
+                      if (mag >= 4) {
+                        return {
+                          wb: 'Breakthrough wave: high charge favors bold moves and outreach.',
+                          abe: 'Overload wave: same charge can oversaturate the schedule or nervous system.',
+                        };
+                      }
+                      if (mag >= 2) {
+                        return {
+                          wb: 'Productive surge: solid momentum to advance priority work.',
+                          abe: 'Overextension risk: adding too much can fragment focus.',
+                        };
+                      }
+                      return {
+                        wb: 'Integration window: gentle charge supports rest or soft starts.',
+                        abe: 'Stagnation risk: low voltage may feel stuck without intentional sparks.',
+                      };
+                    };
+
+                    const valenceForkText = (val: number) => {
+                      if (val >= 4) {
+                        return {
+                          wb: 'Liberation flow: peak openness creates breakthrough possibilities.',
+                          abe: 'Liberation overwhelm: infinite options can freeze momentum.',
+                        };
+                      }
+                      if (val >= 3) {
+                        return {
+                          wb: 'Expansion clarity: widening opportunities land with clarity.',
+                          abe: 'Expansion overreach: ambition outruns capacity and scatters energy.',
+                        };
+                      }
+                      if (val >= 2) {
+                        return {
+                          wb: 'Harmony integration: both/and solutions emerge through coherent progress.',
+                          abe: 'Harmony avoidance: pleasing everyone delays necessary calls.',
+                        };
+                      }
+                      if (val >= 1) {
+                        return {
+                          wb: 'Lift momentum: gentle tailwinds back natural beginnings.',
+                          abe: 'Lift impatience: slow build can feel frustrating when you want speed.',
+                        };
+                      }
+                      if (val >= -1) {
+                        return {
+                          wb: 'Equilibrium balance: forces offset, leaving space for discernment.',
+                          abe: 'Equilibrium stall: neutrality can feel like treading water.',
+                        };
+                      }
+                      if (val >= -2) {
+                        return {
+                          wb: 'Contraction focus: narrowing options create useful boundaries.',
+                          abe: 'Contraction anxiety: tightening scope can spark scarcity thinking.',
+                        };
+                      }
+                      if (val >= -3) {
+                        return {
+                          wb: 'Friction catalyst: tension reveals truths that unlock progress.',
+                          abe: 'Friction exhaustion: unresolved cross-currents burn energy fast.',
+                        };
+                      }
+                      if (val >= -4) {
+                        return {
+                          wb: 'Grind stamina: disciplined effort builds staying power.',
+                          abe: 'Grind depletion: heavy resistance risks burnout.',
+                        };
+                      }
+                      return {
+                        wb: 'Collapse reset: breakdown clears what no longer fits.',
+                        abe: 'Collapse crisis: extreme compression can trigger shutdown.',
+                      };
+                    };
+
                     return dates.slice(-7).map(date => { // Show last 7 days
                       const dayData = daily[date];
                       const mag = Number(dayData?.seismograph?.magnitude ?? 0);
                       const val = Number(dayData?.seismograph?.valence_bounded ?? dayData?.seismograph?.valence ?? 0);
                       const vol = Number(dayData?.seismograph?.volatility ?? 0);
-                      const sfd = Number(dayData?.sfd ?? 0);
+                      const sfdRaw = dayData?.sfd;
+                      const sfd = typeof sfdRaw === 'number' ? sfdRaw : Number.NaN;
                       const valenceStyle = getValenceStyle(val, mag);
 
-                      // Get driver aspects
-                      const aspects = dayData?.aspects || [];
-                      const drivers = aspects.slice(0, 3).map((a: any) => `${a.from || a.transit} ${a.aspect} ${a.to || a.natal}`);
+                      const magnitudeClass = classifyMagnitude(mag);
+                      const valenceClass = classifyValence(val);
+                      const volatilityClass = classifyVolatility(vol);
+                      const magnitudeFork = magnitudeForkText(mag);
+                      const valenceFork = valenceForkText(val);
+                      const badgeLine = `${magnitudeClass.badge} / ${valenceClass.badge} / ${volatilityClass.badge}`;
+
+                      const dateLabel = new Date(date).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric',
+                      });
+
+                      const baseLocation = [personA.city, personA.state].filter(Boolean).join(', ') || personA.city || '';
+                      const locationLabel = relocationStatus.effectiveMode !== 'NONE'
+                        ? (relocLabel || baseLocation || 'Relocation lens active')
+                        : (baseLocation || 'Location not specified');
+
+                      const modeKind = RELATIONAL_MODES.includes(mode) ? 'relational' : 'single';
+                      const relationalNames: [string, string] | undefined = modeKind === 'relational'
+                        ? [personA.name || 'Person A', personB.name || 'Person B']
+                        : undefined;
 
                       return (
-                        <div key={date} className="mb-4 rounded border border-slate-700 bg-slate-900/30 p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="text-sm font-medium text-slate-100">
-                              {new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                            </div>
-                            <button
-                              className="text-xs px-3 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-300"
-                              onClick={() => {/* TODO: Implement modal with Poetic Brain translation */}}
-                            >
-                              [Translate]
-                            </button>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-3">
-                            <div className="text-center">
-                              <div className="text-xs text-slate-400">⚡ Magnitude</div>
-                              <div className="text-lg font-bold text-slate-100">{mag.toFixed(2)}</div>
-                              <div className="text-xs text-slate-500">{getMagnitudeState(mag)}</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-xs text-slate-400">{valenceStyle.emojis.join('')} Valence</div>
-                              <div className="text-lg font-bold text-slate-100">{val >= 0 ? '+' : ''}{val.toFixed(2)}</div>
-                              <div className="text-xs text-slate-500">{valenceStyle.descriptor} {valenceStyle.anchor}</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-xs text-slate-400">{vol >= 5.0 ? '🌀' : '🔀'} Volatility</div>
-                              <div className="text-lg font-bold text-slate-100">{vol.toFixed(2)}</div>
-                              <div className="text-xs text-slate-500">{getVolatilityState(vol)}</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-xs text-slate-400">SFD</div>
-                              <div className="text-lg font-bold text-slate-100">{sfd > 0 ? '+' : ''}{sfd}</div>
-                              <div className="text-xs text-slate-500">{getSFDState(sfd)}</div>
-                            </div>
-                          </div>
-
-                          {/* Driver Aspects with Sources of Force indicators */}
-                          {drivers.length > 0 && (
-                            <div className="text-xs text-slate-400">
-                              <span className="font-medium">🎯∠🪐 Sources of Force:</span> {drivers.join(', ')}
-                            </div>
-                          )}
-
-                          {/* Resonance Spectrum - Interactive Drill-Down showing range of possibility */}
-                          <div className="mt-4 rounded border border-slate-600 bg-slate-800/30 p-3">
-                            <div className="text-xs font-medium text-slate-300 mb-2">
-                              Resonance Spectrum for this Climate
-                              <sup className="ml-1 text-slate-500 cursor-help" title="Click any pole to view underlying astrological geometry">¹</sup>
-                            </div>
-                            <div className="text-xs text-slate-400 mb-3 italic">
-                              This symbolic weather often oscillates between two poles of experience. The key is observing which pole most closely matches your lived reality.
-                            </div>
-
-                            <div className="space-y-3">
-                              {/* Magnitude Spectrum */}
-                              {mag >= 4.5 && (
-                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                  <div
-                                    className="text-xs cursor-pointer hover:bg-slate-700/50 rounded p-2 -m-2 transition-colors"
-                                    onClick={() => setSelectedPole({
-                                      date,
-                                      type: 'magnitude',
-                                      pole: 'wb',
-                                      geometry: drivers
-                                    })}
-                                  >
-                                    <div className="font-medium text-emerald-400">⚡ Paradox Pole (WB) ↗</div>
-                                    <div className="text-slate-300">Activation: A powerful, energizing call to action or breakthrough.</div>
-                                  </div>
-                                  <div
-                                    className="text-xs cursor-pointer hover:bg-slate-700/50 rounded p-2 -m-2 transition-colors"
-                                    onClick={() => setSelectedPole({
-                                      date,
-                                      type: 'magnitude',
-                                      pole: 'abe',
-                                      geometry: drivers
-                                    })}
-                                  >
-                                    <div className="font-medium text-red-400">⚡ Conflict Pole (ABE) ↗</div>
-                                    <div className="text-slate-300">Overload: A stressful feeling of being overwhelmed by too much input.</div>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Volatility Spectrum */}
-                              {vol >= 4.5 && (
-                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                  <div
-                                    className="text-xs cursor-pointer hover:bg-slate-700/50 rounded p-2 -m-2 transition-colors"
-                                    onClick={() => setSelectedPole({
-                                      date,
-                                      type: 'volatility',
-                                      pole: 'wb',
-                                      geometry: drivers
-                                    })}
-                                  >
-                                    <div className="font-medium text-emerald-400">🌀 Paradox Pole (WB) ↗</div>
-                                    <div className="text-slate-300">Dynamic: Engaging with multiple exciting opportunities at once.</div>
-                                  </div>
-                                  <div
-                                    className="text-xs cursor-pointer hover:bg-slate-700/50 rounded p-2 -m-2 transition-colors"
-                                    onClick={() => setSelectedPole({
-                                      date,
-                                      type: 'volatility',
-                                      pole: 'abe',
-                                      geometry: drivers
-                                    })}
-                                  >
-                                    <div className="font-medium text-red-400">🌀 Conflict Pole (ABE) ↗</div>
-                                    <div className="text-slate-300">Scattered: Feeling pulled in too many directions, leading to exhaustion.</div>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* SFD Spectrum */}
-                              {Math.abs(sfd) >= 10 && (
-                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                  <div
-                                    className="text-xs cursor-pointer hover:bg-slate-700/50 rounded p-2 -m-2 transition-colors"
-                                    onClick={() => setSelectedPole({
-                                      date,
-                                      type: 'sfd',
-                                      pole: 'wb',
-                                      geometry: drivers
-                                    })}
-                                  >
-                                    <div className="font-medium text-emerald-400">SFD Paradox Pole (WB) ↗</div>
-                                    <div className="text-slate-300">
-                                      {sfd > 0
-                                        ? "Flow State: Effortless momentum, things clicking into place naturally."
-                                        : "Productive Challenge: Navigating necessary friction to achieve growth."}
-                                    </div>
-                                  </div>
-                                  <div
-                                    className="text-xs cursor-pointer hover:bg-slate-700/50 rounded p-2 -m-2 transition-colors"
-                                    onClick={() => setSelectedPole({
-                                      date,
-                                      type: 'sfd',
-                                      pole: 'abe',
-                                      geometry: drivers
-                                    })}
-                                  >
-                                    <div className="font-medium text-red-400">SFD Conflict Pole (ABE) ↗</div>
-                                    <div className="text-slate-300">
-                                      {sfd > 0
-                                        ? "Complacency: Missing important details due to overconfidence in ease."
-                                        : "Resistance: Feeling drained, as if you're running in sand."}
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Valence Spectrum - based on the anchor pattern */}
-                              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                <div
-                                  className="text-xs cursor-pointer hover:bg-slate-700/50 rounded p-2 -m-2 transition-colors"
-                                  onClick={() => setSelectedPole({
-                                    date,
-                                    type: 'valence',
-                                    pole: 'wb',
-                                    geometry: drivers
-                                  })}
-                                >
-                                  <div className="font-medium text-emerald-400">{valenceStyle.emojis.join('')} Paradox Pole (WB) ↗</div>
-                                  <div className="text-slate-300">
-                                    {(() => {
-                                      if (val >= 4) return "Liberation Flow: Peak openness creates breakthrough opportunities and big-sky perspective.";
-                                      if (val >= 3) return "Expansion Clarity: Clear insight fuels sustainable growth and widening possibilities.";
-                                      if (val >= 2) return "Harmony Integration: Both/and solutions emerge through coherent progress.";
-                                      if (val >= 1) return "Lift Momentum: Gentle tailwinds support natural beginnings and growth.";
-                                      if (val >= -1) return "Equilibrium Balance: Forces in dynamic balance create space for choice.";
-                                      if (val >= -2) return "Contraction Focus: Narrowing options create necessary boundaries and clarity.";
-                                      if (val >= -3) return "Friction Catalyst: Conflicts reveal important truths and drive innovation.";
-                                      if (val >= -4) return "Grind Persistence: Sustained resistance builds strength and character.";
-                                      return "Collapse Reset: Compression breaks down what no longer serves, making space for renewal.";
-                                    })()}
-                                  </div>
-                                </div>
-                                <div
-                                  className="text-xs cursor-pointer hover:bg-slate-700/50 rounded p-2 -m-2 transition-colors"
-                                  onClick={() => setSelectedPole({
-                                    date,
-                                    type: 'valence',
-                                    pole: 'abe',
-                                    geometry: drivers
-                                  })}
-                                >
-                                  <div className="font-medium text-red-400">{valenceStyle.emojis.join('')} Conflict Pole (ABE) ↗</div>
-                                  <div className="text-slate-300">
-                                    {(() => {
-                                      if (val >= 4) return "Liberation Overwhelm: Too much openness creates paralysis from infinite options.";
-                                      if (val >= 3) return "Expansion Overreach: Growth ambitions exceed capacity, leading to scattered efforts.";
-                                      if (val >= 2) return "Harmony Avoidance: Trying to please everyone leads to avoiding necessary decisions.";
-                                      if (val >= 1) return "Lift Impatience: Gentle pace feels frustratingly slow when you want quick results.";
-                                      if (val >= -1) return "Equilibrium Stagnation: Balanced forces create frustrating lack of clear direction.";
-                                      if (val >= -2) return "Contraction Anxiety: Narrowing options create fear and energy drain.";
-                                      if (val >= -3) return "Friction Exhaustion: Conflicts slow motion and create stress without resolution.";
-                                      if (val >= -4) return "Grind Depletion: Heavy resistance feels overwhelming and unsustainable.";
-                                      return "Collapse Crisis: Maximum compression creates panic and sense of failure.";
-                                    })()}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Source Geometry Footnote Panel - Interactive Drill-Down */}
-                            {selectedPole && selectedPole.date === date && (
-                              <div className="mt-4 rounded border border-amber-600/50 bg-amber-900/20 p-3">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="text-xs font-medium text-amber-300">
-                                    Hook_Stack_Geometry → {selectedPole.type.charAt(0).toUpperCase() + selectedPole.type.slice(1)} {selectedPole.pole.toUpperCase()} Pole
-                                  </div>
-                                  <button
-                                    onClick={() => setSelectedPole(null)}
-                                    className="text-slate-400 hover:text-slate-200 text-sm"
-                                  >
-                                    ✕
-                                  </button>
-                                </div>
-                                <div className="text-xs text-amber-200 mb-2">
-                                  <strong>Source Geometry (Auditable Footnote):</strong>
-                                </div>
-                                <div className="text-xs text-slate-300 bg-slate-800/50 rounded p-2 font-mono">
-                                  {selectedPole.geometry.length > 0
-                                    ? selectedPole.geometry.join(', ')
-                                    : 'Primary drivers: Transit patterns generating symbolic pressure for this climate.'}
-                                </div>
-                                <div className="text-xs text-amber-300/70 mt-2 italic">
-                                  ¹ The spectrum above maps the inherent duality of these specific geometric configurations, showing how the same astrological forces can manifest as either the WB (Within Boundary/Paradoxical Vitality) or ABE (At Boundary Edge/Conflict-Management) experience depending on lived context.
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                        <DailyClimateCard
+                          key={date}
+                          date={dateLabel}
+                          location={locationLabel}
+                          mode={modeKind}
+                          names={relationalNames}
+                          magnitude={mag}
+                          magnitudeLabel={getMagnitudeState(mag)}
+                          valence={val}
+                          valenceLabel={valenceStyle.descriptor}
+                          valenceIcon={valenceStyle.emojis[0] || '⚖️'}
+                          volatility={vol}
+                          volatilityLabel={getVolatilityState(vol)}
+                          magnitudeWB={magnitudeFork.wb}
+                          magnitudeABE={magnitudeFork.abe}
+                          valenceWB={valenceFork.wb}
+                          valenceABE={valenceFork.abe}
+                          sfd={sfd}
+                          sfdLabel={Number.isNaN(sfd) ? 'Not available' : getSFDState(sfd)}
+                          badge={badgeLine}
+                        />
                       );
                     });
                   })()}
