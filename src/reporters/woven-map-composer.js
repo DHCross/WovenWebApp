@@ -713,6 +713,86 @@ function buildPolarityCardsHooks(a /* person_a */) {
   ];
 }
 
+// Helper functions for unified report structure
+function extractSynastrySummary(result) {
+  const synastry = result?.synastry;
+  if (!synastry) return null;
+
+  const aspects = synastry.aspects || [];
+  const supportiveAspects = aspects.filter(asp => ['trine', 'sextile'].includes(asp.aspect));
+  const challengingAspects = aspects.filter(asp => ['square', 'opposition'].includes(asp.aspect));
+
+  return {
+    total_aspects: aspects.length,
+    supportive_count: supportiveAspects.length,
+    challenging_count: challengingAspects.length,
+    top_supportive: supportiveAspects.slice(0, 3),
+    top_challenging: challengingAspects.slice(0, 3),
+    dominant_theme: aspects.length > challengingAspects.length * 2 ? 'harmonious' :
+                   challengingAspects.length > supportiveAspects.length * 2 ? 'dynamic' : 'balanced'
+  };
+}
+
+function extractRelationshipScore(result) {
+  // Extract relationship score if available from result
+  return result?.relationship_score || result?.synastry?.score || null;
+}
+
+function extractTransitContext(result) {
+  const transitsByDate = result?.person_a?.chart?.transitsByDate || {};
+  const dates = Object.keys(transitsByDate).sort();
+  if (!dates.length) return null;
+
+  const firstDate = dates[0];
+  const lastDate = dates[dates.length - 1];
+  const totalDays = dates.length;
+
+  // Find strongest transit across the period
+  let strongestTransit = null;
+  let minOrb = 999;
+
+  Object.values(transitsByDate).forEach(dayData => {
+    const aspects = Array.isArray(dayData) ? dayData :
+                   Array.isArray(dayData?.aspects) ? dayData.aspects :
+                   Array.isArray(dayData?.filtered_aspects) ? dayData.filtered_aspects : [];
+
+    aspects.forEach(asp => {
+      if (asp.orbit < minOrb) {
+        minOrb = asp.orbit;
+        strongestTransit = `${asp.p1_name} ${asp.aspect} ${asp.p2_name}`;
+      }
+    });
+  });
+
+  return {
+    period: { start: firstDate, end: lastDate },
+    total_days: totalDays,
+    strongest_transit: strongestTransit,
+    min_orb: minOrb
+  };
+}
+
+function extractFieldTriggers(result) {
+  const transitsByDate = result?.person_a?.chart?.transitsByDate || {};
+  const triggers = new Set();
+
+  Object.values(transitsByDate).forEach(dayData => {
+    const aspects = Array.isArray(dayData) ? dayData :
+                   Array.isArray(dayData?.aspects) ? dayData.aspects :
+                   Array.isArray(dayData?.filtered_aspects) ? dayData.filtered_aspects : [];
+
+    aspects.forEach(asp => {
+      if (asp.orbit < 3) { // Only close aspects
+        triggers.add(asp.p1_name); // Transit planet
+        triggers.add(asp.p2_name); // Natal planet
+        triggers.add(asp.aspect);  // Aspect type
+      }
+    });
+  });
+
+  return Array.from(triggers).slice(0, 10); // Limit to top 10 triggers
+}
+
 function inferReportType(modeToken, hasB) {
   const m = (modeToken || '').toUpperCase();
   if (m.includes('SYNASTRY') || m.includes('COMPOSITE') || hasB) return 'relational';
@@ -723,9 +803,13 @@ function inferReportType(modeToken, hasB) {
 function inferFamily(modeToken, result) {
   const m = (modeToken || '').toUpperCase();
   const hasTransits = !!(result?.person_a?.chart?.transitsByDate && Object.keys(result.person_a.chart.transitsByDate).length);
-  if (m.includes('BALANCE')) return 'balance_meter';
-  if (m.includes('MIRROR')) return 'mirror_flow';
-  return hasTransits ? 'balance_meter' : 'mirror_flow';
+
+  // Legacy mode support
+  if (m.includes('BALANCE_METER_ONLY')) return 'balance_meter';
+  if (m.includes('MIRROR_FLOW_ONLY')) return 'mirror_flow';
+
+  // Default to unified comprehensive structure
+  return 'comprehensive';
 }
 
 function buildBalanceMeter(summary, meterChannels, provenanceVersions) {
@@ -832,7 +916,61 @@ function composeWovenMapReport({ result, mode, period, options = {} }) {
     provenance: result.provenance || null
   };
 
-  if (report_family === 'mirror_flow') {
+  // Unified comprehensive report structure (replaces mirror_flow/balance_meter split)
+  if (report_family === 'comprehensive' || report_family === 'unified') {
+    // BLUEPRINT LAYER (natal/relational foundation - always present)
+    const natalSummary = extractNatalSummary(a);
+    const driversSummary = (() => {
+      const placements = natalSummary?.placements || {};
+      const listNames = (arr) => Array.isArray(arr) ? arr.map(item => item?.name).filter(Boolean) : [];
+      return {
+        core_planets: listNames(placements.core),
+        supporting_points: listNames(placements.supporting),
+        derived: listNames(placements.derived)
+      };
+    })();
+
+    report.blueprint = {
+      natal_summary: natalSummary,
+      drivers: driversSummary,
+      polarity_cards: buildPolarityCardsHooks(a),
+      vector_integrity: vectorIntegrity,
+      ...(type === 'relational' && {
+        synastry_summary: extractSynastrySummary(result),
+        relationship_score: extractRelationshipScore(result)
+      })
+    };
+
+    // SYMBOLIC WEATHER LAYER (only if transits present)
+    const hasTransits = !!(result?.person_a?.chart?.transitsByDate && Object.keys(result.person_a.chart.transitsByDate).length);
+    if (hasTransits) {
+      report.symbolic_weather = {
+        balance_meter: buildBalanceMeter(summary, meterChannels, result?.provenance?.engine_versions),
+        time_series: timeSeries,
+        integration_factors: integration,
+        transit_context: extractTransitContext(result),
+        field_triggers: extractFieldTriggers(result)
+      };
+    }
+
+    // COMPREHENSIVE DATA TABLES (for PDF export)
+    const tableBuilders = require('./table-builders');
+    report.data_tables = {
+      natal_positions: tableBuilders.buildNatalPositionsTable(a),
+      natal_aspects: tableBuilders.buildNatalAspectsTable(a),
+      summary_stats: tableBuilders.buildSummaryStats(result),
+      ...(hasTransits && {
+        transit_aspects: tableBuilders.buildTransitAspectsTable(result),
+        daily_readings: tableBuilders.buildDailyReadingsTable(timeSeries)
+      }),
+      ...(type === 'relational' && {
+        synastry_aspects: tableBuilders.buildSynastryAspectsTable(result),
+        composite_positions: tableBuilders.buildCompositePositionsTable(result)
+      })
+    };
+
+  } else if (report_family === 'mirror_flow') {
+    // Legacy mirror_flow structure (maintained for backward compatibility)
     const natalSummary = extractNatalSummary(a);
     const driversSummary = (() => {
       const placements = natalSummary?.placements || {};
@@ -846,13 +984,13 @@ function composeWovenMapReport({ result, mode, period, options = {} }) {
     report.natal_summary = natalSummary;
     report.drivers = driversSummary;
     report.vector_integrity = vectorIntegrity;
-    report.polarity_cards = buildPolarityCardsHooks(a); // DATA hooks only
-    // mirror_flow intentionally omits balance_meter/time_series
+    report.polarity_cards = buildPolarityCardsHooks(a);
+
   } else if (report_family === 'balance_meter') {
+    // Legacy balance_meter structure (maintained for backward compatibility)
     report.balance_meter = buildBalanceMeter(summary, meterChannels, result?.provenance?.engine_versions);
     report.time_series = timeSeries;
     report.integration_factors = integration;
-    // balance_meter reports avoid polarity_cards
   }
 
   report.hook_stack = hookStack;
