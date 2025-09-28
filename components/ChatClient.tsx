@@ -2050,7 +2050,6 @@ export default function ChatClient() {
               start && end ? `${start} → ${end}` : start || end || "recent";
             const loadContext = () => {
               const prompt = `Resume from Math Brain (${range}). Climate: ${climate}. Continue with a concise mirror in Raven Calder style for ${a}${b}.`;
-              setInput(prompt);
               const preface: Message = {
                 id: generateId(),
                 role: "raven",
@@ -2060,6 +2059,8 @@ export default function ChatClient() {
               };
               setMessages((prev) => [...prev, preface]);
               setShowMbResume(false);
+              setInput("");
+              void sendProgrammatic(prompt);
             };
             return (
               <div className="flex items-center gap-2 border border-[var(--line)] bg-[var(--soft)] rounded-lg px-3 py-2 max-w-[900px] w-full">
