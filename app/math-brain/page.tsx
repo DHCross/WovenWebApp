@@ -56,6 +56,49 @@ const RELATIONAL_MODES: ReportMode[] = [
   'COMPOSITE_TRANSITS',
 ];
 
+const sanitizeSlug = (value: string, fallback: string) => {
+  const slug = value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug || fallback;
+};
+
+const determineReportContract = (
+  mode: ReportMode,
+  includeTransits: boolean,
+  includePersonB: boolean
+): 'solo_mirror' | 'solo_balance_meter' | 'relational_mirror' | 'relational_balance_meter' => {
+  const relational = RELATIONAL_MODES.includes(mode) || includePersonB;
+  const hasTransits = includeTransits || mode === 'NATAL_TRANSITS' || mode === 'SYNASTRY_TRANSITS' || mode === 'COMPOSITE_TRANSITS';
+
+  if (relational) {
+    return hasTransits ? 'relational_balance_meter' : 'relational_mirror';
+  }
+
+  return hasTransits ? 'solo_balance_meter' : 'solo_mirror';
+};
+
+const determineContextMode = (mode: ReportMode, contract: string): string => {
+  switch (mode) {
+    case 'SYNASTRY_TRANSITS':
+      return 'synastry_transits';
+    case 'SYNASTRY':
+      return 'synastry';
+    case 'COMPOSITE_TRANSITS':
+      return 'synastry_transits';
+    case 'COMPOSITE':
+      return 'synastry';
+    case 'NATAL_TRANSITS':
+      return 'balance_meter';
+    case 'NATAL_ONLY':
+      return contract.includes('balance') ? 'balance_meter' : 'mirror';
+    default:
+      return contract.includes('balance') ? 'balance_meter' : 'mirror';
+  }
+};
+
 const TRANSIT_MODES = new Set<ReportMode>([
   'NATAL_TRANSITS',
   'SYNASTRY_TRANSITS',
@@ -334,6 +377,78 @@ export default function MathBrainPage() {
   const [exEstranged, setExEstranged] = useState<boolean>(false);
   const [relationshipNotes, setRelationshipNotes] = useState<string>("");
 
+  const personASlug = useMemo(() => {
+    const sourceName =
+      (result as any)?.person_a?.details?.name ||
+      (result as any)?.person_a?.name ||
+      personA.name ||
+      'person-a';
+    return sanitizeSlug(String(sourceName), 'person-a');
+  }, [result, personA.name]);
+
+  const personBSlug = useMemo(() => {
+    const sourceName =
+      (result as any)?.person_b?.details?.name ||
+      (result as any)?.person_b?.name ||
+      personB.name ||
+      'person-b';
+    return sanitizeSlug(String(sourceName), 'person-b');
+  }, [result, personB.name]);
+
+  const dateRangeSlug = useMemo(() => {
+    const directRange = () => {
+      if (startDate && endDate) {
+        return `${startDate}_to_${endDate}`;
+      }
+      return null;
+    };
+
+    const fromPeriod = (period: any) => {
+      if (period?.start && period?.end) {
+        return `${period.start}_to_${period.end}`;
+      }
+      return null;
+    };
+
+    const fromTransits = () => {
+      const entries = (result as any)?.person_a?.chart?.transitsByDate;
+      if (entries && typeof entries === 'object') {
+        const keys = Object.keys(entries).filter(Boolean).sort();
+        if (keys.length >= 2) {
+          return `${keys[0]}_to_${keys[keys.length - 1]}`;
+        }
+      }
+      return null;
+    };
+
+    const fallback = new Date().toISOString().slice(0, 10);
+
+    return (
+      directRange() ||
+      fromPeriod((result as any)?.balance_meter?.period) ||
+      fromPeriod((result as any)?.context?.period) ||
+      fromPeriod((result as any)?.woven_map?.context?.period) ||
+      fromTransits() ||
+      fallback
+    ).replace(/[^0-9a-zA-Z_\-]+/g, '-');
+  }, [startDate, endDate, result]);
+
+  const reportContractType = useMemo(
+    () => determineReportContract(mode, includeTransits, includePersonB),
+    [mode, includeTransits, includePersonB]
+  );
+
+  const filenameBase = useCallback(
+    (prefix: string) => {
+      const reportSlug = sanitizeSlug(reportContractType.replace(/_/g, '-'), 'report');
+      const duo = reportContractType.includes('relational') || includePersonB
+        ? `${personASlug}-${personBSlug}`
+        : personASlug;
+      return [prefix, reportSlug, duo, dateRangeSlug].filter(Boolean).join('-');
+    },
+    [reportContractType, includePersonB, personASlug, personBSlug, dateRangeSlug]
+  );
+
   const toggleLayerVisibility = useCallback((key: keyof LayerVisibility) => {
     setLayerVisibility((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
@@ -470,7 +585,7 @@ export default function MathBrainPage() {
   const isRelationalMode = RELATIONAL_MODES.includes(mode);
   const isDyadMode = includePersonB && isRelationalMode;
   const includeTransits = TRANSIT_MODES.has(mode);
-  const reportType: 'balance' | 'mirror' = includeTransits ? 'balance' : 'mirror';
+  const reportType: 'balance' | 'mirror' = reportContractType.includes('balance') ? 'balance' : 'mirror';
   const soloModeOption = includeTransits
     ? { value: 'NATAL_TRANSITS' as ReportMode, label: 'Natal + Transits' }
     : { value: 'NATAL_ONLY' as ReportMode, label: 'Natal Only' };
@@ -870,7 +985,18 @@ export default function MathBrainPage() {
       const personAName = personA?.name || 'PersonA';
       const personBName = personB?.name || (mode === 'NATAL_ONLY' ? '' : 'PersonB');
       const exportDate = new Date();
-      const reportTypeTitle = reportType === 'balance' ? 'Balance Meter Report' : 'Mirror Report';
+      const reportTypeTitle = (() => {
+        switch (reportContractType) {
+          case 'relational_balance_meter':
+            return 'Relational Balance Meter Report';
+          case 'relational_mirror':
+            return 'Relational Mirror Report';
+          case 'solo_balance_meter':
+            return 'Balance Meter Report';
+          default:
+            return 'Mirror Report';
+        }
+      })();
 
       let markdown = '';
 
@@ -1297,13 +1423,7 @@ export default function MathBrainPage() {
       const a = document.createElement('a');
       a.href = url;
 
-      // Create filename
-      const dateStr = exportDate.toISOString().slice(0, 10);
-      const filename = personBName ?
-        `${reportType}-summary-${personAName.replace(/[^a-zA-Z0-9]/g, '')}-${personBName.replace(/[^a-zA-Z0-9]/g, '')}-${dateStr}.md` :
-        `${reportType}-summary-${personAName.replace(/[^a-zA-Z0-9]/g, '')}-${dateStr}.md`;
-
-      a.download = filename;
+      a.download = `${filenameBase('mathbrain-summary')}.md`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -1705,16 +1825,7 @@ export default function MathBrainPage() {
       a.href = url;
 
       // Create descriptive filename with person names and date range
-      const personAName = sanitizeForPDF(personA?.name || 'PersonA').replace(/[^a-zA-Z0-9]/g, '');
-      const personBName = sanitizeForPDF(personB?.name || (mode === 'NATAL_ONLY' ? '' : 'PersonB')).replace(/[^a-zA-Z0-9]/g, '');
-      const dateRange = dates.length > 0 ? `${dates[0]}_to_${dates[dates.length - 1]}` : new Date().toISOString().slice(0, 10);
-      const reportTypeStr = reportType === 'balance' ? 'balance-meter' : 'mirror';
-
-      const filename = personBName ?
-        `${reportTypeStr}-${personAName}-${personBName}-${dateRange}.pdf` :
-        `${reportTypeStr}-${personAName}-${dateRange}.pdf`;
-
-      a.download = filename;
+      a.download = `${filenameBase('mathbrain-graphs')}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -1817,7 +1928,18 @@ export default function MathBrainPage() {
         console.warn('Contract linting failed:', error);
       }
 
-      const reportKind = reportType === 'balance' ? 'Balance Meter' : 'Mirror';
+      const reportKind = (() => {
+        switch (reportContractType) {
+          case 'relational_balance_meter':
+            return 'Relational Balance Meter';
+          case 'relational_mirror':
+            return 'Relational Mirror';
+          case 'solo_balance_meter':
+            return 'Balance Meter';
+          default:
+            return 'Mirror';
+        }
+      })();
       const generatedAt = new Date();
 
       // Sanitize all text content for PDF
@@ -2027,9 +2149,8 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
 
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
-      const stamp = generatedAt.toISOString().slice(0, 10);
       link.href = url;
-      link.download = `math-brain-report-${stamp}.pdf`;
+      link.download = `${filenameBase('mathbrain-report')}.pdf`;
       document.body.appendChild(link);
       link.click();
       setTimeout(() => {
@@ -2054,9 +2175,8 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
       const blob = new Blob([JSON.stringify(frontStageResult, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      const stamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
       a.href = url;
-      a.download = `math-brain-result-${stamp}.json`;
+      a.download = `${filenameBase('mathbrain-result')}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -2072,9 +2192,8 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
       const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      const stamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
       a.href = url;
-      a.download = `math-brain-backstage-${stamp}.json`;
+      a.download = `${filenameBase('mathbrain-backstage')}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -2784,9 +2903,10 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
         transitStartDate: startDate,
         transitEndDate: endDate,
         transitStep: step,
-        // Report type drives backend routing semantics (mirror vs balance meter)
+        report_type: reportContractType,
+        // Report mode drives backend routing semantics
         context: {
-          mode: reportType === 'balance' ? 'balance_meter' : 'mirror',
+          mode: determineContextMode(mode, reportContractType),
         },
         // Pass translocation intent to backend (data-only context)
         translocation: ((): any => {
@@ -2916,15 +3036,6 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
   }
 
   // Duplicate download functions removed - using downloadResultJSON and downloadResultPDF instead
-
-  const canVisitPoetic = layerVisibility.geometries || layerVisibility.diagnostics;
-  const handlePoeticBrainClick = useCallback((event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (!canVisitPoetic) {
-      event.preventDefault();
-      setToast('Open the Key Geometries layer before continuing to Poetic Brain.');
-      setTimeout(() => setToast(null), 2500);
-    }
-  }, [canVisitPoetic]);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
@@ -4251,7 +4362,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
           {/* Post-generation actions */}
           <div className="flex items-center justify-between gap-4 print:hidden">
             <div className="text-sm text-slate-400">
-              <span>Download your report. Poetic Brain unlocks after you review the geometry layers.</span>
+              <span>Download the geometry or continue in Poetic Brain whenever you want a narrative pass.</span>
             </div>
             <div className="flex items-center gap-2">
               <button type="button" onClick={downloadResultJSON} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download result JSON">Download JSON</button>
@@ -4265,8 +4376,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
               )}
               <a
                 href="/chat"
-                onClick={handlePoeticBrainClick}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${canVisitPoetic ? 'bg-emerald-600 text-white hover:bg-emerald-500' : 'cursor-not-allowed border border-emerald-700 bg-emerald-800/40 text-emerald-200/60'}`}
+                className="rounded-md px-3 py-1.5 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-500 transition"
               >
                 Go to Poetic Brain
               </a>
@@ -4750,7 +4860,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                       })()}
                       </div>
                       <div className="mt-3 text-xs text-slate-500">
-                        Note: This describes the mathematical field state only. Upload to Poetic Brain for experiential interpretation.
+                        Note: This describes the mathematical field state only. Pair it with your preferred narrative layer for lived interpretation.
                       </div>
                     </div>
                   </div>
