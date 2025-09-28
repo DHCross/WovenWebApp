@@ -1926,7 +1926,8 @@ export default function ChatClient() {
       style={{
         display: "flex",
         flexDirection: "column",
-        height: "100vh",
+        minHeight: "100vh",
+        height: "100%",
         maxWidth: 980,
         margin: "0 auto",
       }}
