@@ -323,6 +323,99 @@ function isSimpleGreeting(message: string): boolean {
  * @param {RenderOptions} params - The rendering parameters.
  * @returns A structured draft object.
  */
+function ensureWindowFraming(payload: Record<string, any>) {
+  const windowSource =
+    payload.window ||
+    payload.indices?.window ||
+    payload.indices_window ||
+    payload.balance_meter?.period ||
+    payload.context?.period ||
+    payload.context?.window;
+
+  if (!windowSource) return;
+
+  const start = windowSource.start || windowSource.from || windowSource.begin;
+  const end = windowSource.end || windowSource.to || windowSource.finish;
+  if (!start || !end) return;
+
+  if (!payload.window) {
+    payload.window = { start, end };
+    if (windowSource.step) payload.window.step = windowSource.step;
+  }
+
+  if (!payload.indices) payload.indices = {};
+
+  if (!payload.indices.window) {
+    payload.indices.window = {
+      start,
+      end,
+      ...(windowSource.step ? { step: windowSource.step } : {}),
+    };
+  }
+
+  const existingDays = Array.isArray(payload.indices?.days) ? payload.indices.days : undefined;
+  const sourceDays =
+    existingDays && existingDays.length > 0
+      ? existingDays
+      : Array.isArray(windowSource.days)
+        ? windowSource.days
+        : Array.isArray(payload.indices_window?.days)
+          ? payload.indices_window.days
+          : undefined;
+
+  if (sourceDays && (!existingDays || existingDays.length === 0)) {
+    payload.indices.days = sourceDays.map((day: any) => {
+      const indices = day?.indices || day;
+      const seismograph = day?.seismograph || day;
+      const base: Record<string, any> = {};
+      if (day?.date) base.date = day.date;
+      if (typeof indices?.sf_diff === 'number') base.sf_diff = indices.sf_diff;
+      if (typeof indices?.s_plus === 'number') base.s_plus = indices.s_plus;
+      if (typeof indices?.s_minus === 'number') base.s_minus = indices.s_minus;
+      if (typeof seismograph?.magnitude === 'number') base.magnitude = seismograph.magnitude;
+      if (typeof seismograph?.volatility === 'number') base.volatility = seismograph.volatility;
+      if (typeof seismograph?.valence === 'number') base.valence = seismograph.valence;
+      if (Object.keys(base).length === 0) return day;
+      return base;
+    });
+  }
+}
+
+function ensureLocationFraming(payload: Record<string, any>) {
+  const timezone =
+    payload?.location?.timezone ||
+    payload?.person_a?.meta?.timezone ||
+    payload?.person_a?.details?.timezone ||
+    payload?.provenance?.timezone ||
+    payload?.provenance?.time_meta_a?.timezone ||
+    payload?.provenance?.time_meta_a?.tz ||
+    payload?.context?.person_a?.timezone ||
+    payload?.context?.participants?.person_a?.timezone;
+
+  const coordinates =
+    payload?.location?.coordinates ||
+    payload?.person_a?.details?.coordinates ||
+    payload?.person_a?.coordinates ||
+    payload?.context?.person_a?.coordinates ||
+    payload?.context?.participants?.person_a?.coordinates ||
+    payload?.provenance?.identity?.person_a?.coordinates ||
+    payload?.provenance?.coordinates;
+
+  if (!payload.location) payload.location = {};
+  if (timezone && !payload.location.timezone) payload.location.timezone = timezone;
+  if (coordinates && !payload.location.coordinates) payload.location.coordinates = coordinates;
+
+  if (!payload.context) payload.context = {};
+  if (!payload.context.person_a) payload.context.person_a = {};
+  if (timezone && !payload.context.person_a.timezone) payload.context.person_a.timezone = timezone;
+  if (coordinates && !payload.context.person_a.coordinates) payload.context.person_a.coordinates = coordinates;
+}
+
+function enrichContractPayload(payload: Record<string, any>) {
+  ensureWindowFraming(payload);
+  ensureLocationFraming(payload);
+}
+
 export async function renderShareableMirror({ geo, prov, options, conversational = false, mode }: RenderOptions): Promise<Record<string, any>> {
   // NEW: Schema rule-patch integration for mode-specific rendering
   if (mode && ['natal-only', 'balance', 'relational-balance', 'relational-mirror'].includes(mode)) {
@@ -338,6 +431,8 @@ export async function renderShareableMirror({ geo, prov, options, conversational
         // Add any other fields from options
         ...options
       };
+
+      enrichContractPayload(payload);
 
       // Lint and validate the payload
       const { payload: cleanedPayload, result: lintResult } = lintAndFixPayload(payload);
