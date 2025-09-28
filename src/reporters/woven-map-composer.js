@@ -795,7 +795,16 @@ function extractFieldTriggers(result) {
 
 function inferReportType(modeToken, hasB) {
   const m = (modeToken || '').toUpperCase();
-  if (m.includes('SYNASTRY') || m.includes('COMPOSITE') || hasB) return 'relational';
+
+  // Check for explicit relational indicators
+  if (m.includes('SYNASTRY') ||
+      m.includes('COMPOSITE') ||
+      m.includes('RELATIONAL') ||
+      m.includes('DYADIC') ||
+      hasB) {
+    return 'relational';
+  }
+
   return 'solo';
 }
 

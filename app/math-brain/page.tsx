@@ -4039,9 +4039,9 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
               <Section title="Mirror Flow Summary">
                 <div className="space-y-4">
                   <div className="rounded-md border border-slate-700 bg-slate-900/60 p-4">
-                    <div className="text-xs uppercase tracking-wide text-indigo-200">Mirror Voice Prelude</div>
+                    <div className="text-xs uppercase tracking-wide text-indigo-200">Blueprint Foundation</div>
                     <p className="mt-2 text-sm leading-relaxed text-slate-100">
-                      {voice || 'Mirror Flow narrative will populate after Poetic Brain translation. Geometry hooks are ready.'}
+                      {voice || `Natal foundation established with ${tier1Count} key aspect patterns. Ready for Poetic Brain interpretation and symbolic weather overlay.`}
                     </p>
                   </div>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -4672,7 +4672,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
             if (!wm?.hook_stack?.hooks?.length) return null;
             const hooks = wm.hook_stack.hooks || [];
             return (
-              <Section title="Hook Stack — Recognition Gateway">
+              <Section title="Core Natal Aspects — Blueprint Tensions">
                 <div className="mb-3 text-sm text-slate-400">
                   Front-door UX: {hooks.length} high-charge patterns from tightest aspects
                   {wm.hook_stack.tier_1_orbs > 0 && ` · ${wm.hook_stack.tier_1_orbs} Tier-1 (≤1°)`}
@@ -4740,7 +4740,15 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                   </div>
                   <div>
                     <div className="text-sm text-slate-300">Time Series</div>
-                    <div className="mt-2 text-xs text-slate-400">Entries: {ts.length || 0}{first && last ? ` · ${first} → ${last}` : ''}</div>
+                    <div className="mt-2 text-xs text-slate-400">
+                      Entries: {ts.length || 0}{first && last ? ` · ${first} → ${last}` : ''}
+                      {/* Show note if actual range differs from requested */}
+                      {first && last && startDate && endDate && (first !== startDate || last !== endDate) && (
+                        <div className="mt-1 text-xs text-amber-400">
+                          ⚠️ Data range differs from requested {startDate} → {endDate}
+                        </div>
+                      )}
+                    </div>
 
                     {/* Trend Sparklines */}
                     {ts.length > 1 && (() => {
