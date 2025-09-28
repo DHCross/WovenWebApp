@@ -131,6 +131,16 @@ const toNatalMode = (mode: ReportMode): ReportMode => {
   }
 };
 
+const POETIC_BRAIN_ENABLED = (() => {
+  const raw = process.env.NEXT_PUBLIC_ENABLE_POETIC_BRAIN;
+  if (typeof raw !== 'string') return true;
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === '' || normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on') {
+    return true;
+  }
+  return false;
+})();
+
 // Helper functions to extract UI/UX Contract types from existing data
 function extractReportHeader(
   mode: ReportMode,
@@ -350,6 +360,8 @@ export default function MathBrainPage() {
     }
   });
   const [includePersonB, setIncludePersonB] = useState<boolean>(false);
+  const includeTransits = TRANSIT_MODES.has(mode);
+  const canVisitPoetic = POETIC_BRAIN_ENABLED;
 
   // Person B subject state
   const [personB, setPersonB] = useState<Subject>({
@@ -584,7 +596,6 @@ export default function MathBrainPage() {
   // Relational modes list used for UI guards
   const isRelationalMode = RELATIONAL_MODES.includes(mode);
   const isDyadMode = includePersonB && isRelationalMode;
-  const includeTransits = TRANSIT_MODES.has(mode);
   const reportType: 'balance' | 'mirror' = reportContractType.includes('balance') ? 'balance' : 'mirror';
   const soloModeOption = includeTransits
     ? { value: 'NATAL_TRANSITS' as ReportMode, label: 'Natal + Transits' }
@@ -4374,12 +4385,18 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                   📊 Download Graphs PDF
                 </button>
               )}
-              <a
-                href="/chat"
-                className="rounded-md px-3 py-1.5 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-500 transition"
-              >
-                Go to Poetic Brain
-              </a>
+              {canVisitPoetic ? (
+                <a
+                  href="/chat"
+                  className="rounded-md px-3 py-1.5 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-500 transition"
+                >
+                  Go to Poetic Brain
+                </a>
+              ) : (
+                <span className="rounded-md border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-sm text-slate-400">
+                  Poetic Brain offline
+                </span>
+              )}
             </div>
           </div>
 
