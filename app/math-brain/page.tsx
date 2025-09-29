@@ -8,7 +8,8 @@ import { sanitizeReportForPDF, sanitizeForPDF } from "../../src/pdf-sanitizer";
 import { ContractLinter } from "../../src/contract-linter";
 import { renderShareableMirror } from "../../lib/raven/render";
 import { ReportHeader, Weather, Blueprint } from "../../lib/ui-types";
-import DailyClimateCard from "../../components/mathbrain/DailyClimateCard";
+import EnhancedDailyClimateCard from "../../components/mathbrain/EnhancedDailyClimateCard";
+import BalanceMeterSummary from "../../components/mathbrain/BalanceMeterSummary";
 
 export const dynamic = "force-dynamic";
 
@@ -140,6 +141,165 @@ const POETIC_BRAIN_ENABLED = (() => {
   }
   return false;
 })();
+
+const RAVEN_RELOCATION_RECIPE = String.raw`///////////////////////////////////////////////////////////////
+// RAVEN CALDER -- INTERNAL PROCEDURE: RELOCATED HOUSES ENGINE //
+///////////////////////////////////////////////////////////////
+
+INPUT:
+  birth_date        // YYYY-MM-DD
+  birth_time_local  // HH:MM:SS (local civil time at birth place)
+  birth_tz_offset   // hours from UTC at birth place (including DST if applicable)
+  birth_lat         // degrees (+N, -S)
+  birth_lon         // degrees (+E, -W)
+  relocate_lat      // degrees (+N, -S)
+  relocate_lon      // degrees (+E, -W)
+  relocate_tz_offset// hours from UTC at relocate place (display only; do not alter UT)
+  house_system      // "WHOLE_SIGN" | "EQUAL" | "PLACIDUS"
+  zodiac            // "TROPICAL" or "SIDEREAL" (sidereal requires ayanamsa)
+  planets[]         // natal planetary ecliptic longitudes (lambda, deg) and latitudes (beta, deg) if needed
+
+OUTPUT:
+  asc, mc                   // relocated Ascendant and Midheaven (ecliptic longitudes, deg)
+  houses[1..12]             // 12 relocated house cusps (ecliptic longitudes, deg)
+  placements[planet]        // planet -> house index (1..12) under relocated houses
+
+CONVENTIONS:
+  - Angles in degrees unless noted; normalize with norm360(x) = (x % 360 + 360) % 360
+  - Longitudes east-positive; if using west-positive source, invert signs consistently
+  - Time: UT drives sidereal time; do not alter UT for relocation
+  - For sidereal zodiac, subtract ayanamsa from tropical longitudes after computing ASC/MC/houses
+
+/////////////////////////////////////
+// 1) TIMEBASE -> UT -> JULIAN DAY //
+/////////////////////////////////////
+function toUT(birth_time_local, birth_tz_offset):
+  // local -> UT
+  return birth_time_local - birth_tz_offset hours
+
+JD = julianDay(birth_date, toUT(birth_time_local, birth_tz_offset))
+T = (JD - 2451545.0) / 36525.0
+
+//////////////////////////////////////////////////////
+// 2) EARTH ORIENTATION -> GMST -> LST (RELOCATION) //
+//////////////////////////////////////////////////////
+function gmst_deg(JD):
+  // IAU 1982 approximation (sufficient for astrology):
+  // GMST (hours) = 6.697374558 + 0.06570982441908*(JD0-2451545.0)
+  //                + 1.00273790935*UT_in_hours + 0.000026*T^2
+  // Convert to degrees: * 15
+  return norm360( 280.46061837 + 360.98564736629*(JD - 2451545.0)
+                  + 0.000387933*T*T - (T*T*T)/38710000.0 )
+
+GMST = gmst_deg(JD)
+LST  = norm360( GMST + relocate_lon )
+
+//////////////////////////////////////////////////////
+// 3) OBLIQUITY OF ECLIPTIC (epsilon) -- TROPICAL   //
+//////////////////////////////////////////////////////
+function meanObliquity_deg(T):
+  // IAU 2006 series (compact form):
+  return 23.43929111 - 0.0130041667*T - 1.6667e-7*T*T + 5.02778e-7*T*T*T
+
+epsilon = meanObliquity_deg(T)
+eps = deg2rad(epsilon)
+
+//////////////////////////////////////////////////////
+// 4) MC (ECLIPTIC LONGITUDE) FROM LST              //
+//////////////////////////////////////////////////////
+theta = deg2rad(LST)
+lambda_mc = atan2( sin(theta)/cos(eps), cos(theta) )
+mc = norm360( rad2deg(lambda_mc) )
+
+//////////////////////////////////////////////////////
+// 5) ASC (ECLIPTIC LONGITUDE) FROM LST, LATITUDE   //
+//////////////////////////////////////////////////////
+phi = deg2rad(relocate_lat)
+numer = -cos(theta)*sin(eps) - sin(theta)*tan(phi)*cos(eps)
+denom =  cos(theta)
+lambda_asc = atan2( sin(theta)*cos(eps) - tan(phi)*sin(eps), cos(theta) )
+asc = norm360( rad2deg(lambda_asc) )
+
+//////////////////////////////////////////////////////
+// 6) HOUSE CUSPS                                   //
+//////////////////////////////////////////////////////
+switch (house_system):
+  case "WHOLE_SIGN":
+    sign_index = floor(asc / 30)
+    for i in 0..11:
+      houses[i+1] = norm360( (sign_index + i) * 30 )
+    break
+
+  case "EQUAL":
+    for i in 0..11:
+      houses[i+1] = norm360( asc + 30*i )
+    break
+
+  case "PLACIDUS":
+    RA_MC = LST
+    function placidus_cusp(n):
+      // Iteratively solve hour angle for cusp n (semi-arc division)
+      // Then convert resulting right ascension to ecliptic longitude
+      return lambda_cusp_deg
+
+    houses[10] = mc
+    houses[1]  = asc
+    houses[11] = placidus_cusp(11)
+    houses[12] = placidus_cusp(12)
+    houses[2]  = placidus_cusp(2)
+    houses[3]  = placidus_cusp(3)
+    houses[4]  = norm360( houses[10] + 180 )
+    houses[5]  = norm360( houses[11] + 180 )
+    houses[6]  = norm360( houses[12] + 180 )
+    houses[7]  = norm360( houses[1]  + 180 )
+    houses[8]  = norm360( houses[2]  + 180 )
+    houses[9]  = norm360( houses[3]  + 180 )
+    break
+
+//////////////////////////////////////////////////////
+// 7) ZODIAC MODE (OPTIONAL SIDEREAL)               //
+//////////////////////////////////////////////////////
+if zodiac == "SIDEREAL":
+  ayan = getAyanamsa(JD)
+  asc  = norm360( asc  - ayan )
+  mc   = norm360( mc   - ayan )
+  for i in 1..12:
+    houses[i] = norm360( houses[i] - ayan )
+  // Planets must also subtract ayanamsa
+
+//////////////////////////////////////////////////////
+// 8) PLANET -> HOUSE ASSIGNMENT                    //
+//////////////////////////////////////////////////////
+function houseIndex(lambda, houses[1..12]):
+  seq = unwrapCircular(houses)
+  lam = unwrapToNear(lambda, seq[1])
+  for h in 1..12:
+    hi = h % 12 + 1
+    if lam >= seq[h] && lam < seq[hi]:
+      return h
+  return 12
+
+for each planet p in planets:
+  placements[p] = houseIndex(planets[p].lambda, houses)
+
+//////////////////////////////////////////////////////
+// 9) REPORT MERGE                                  //
+//////////////////////////////////////////////////////
+return { asc, mc, houses, placements }
+
+//////////////////////////////////////////////////////
+// 10) VALIDATION / SANITY TESTS                    //
+//////////////////////////////////////////////////////
+assert planets_natal_unchanged()
+assert asc != null && mc != null
+assert houses[1] == asc for EQUAL system
+assert houses[10] == mc for all systems
+
+Notes for the human reading this PDF:
+  - The relocation time zone is only for displaying local clock times. All math runs on UT plus longitude for LST.
+  - Whole Sign and Equal implementations are direct. Placidus requires the semi-diurnal arc solver indicated above.
+  - Lock natal planet longitudes, signs, and aspects. Only the houses and angle placements are swapped to the relocated frame.
+`;
 
 // Helper functions to extract UI/UX Contract types from existing data
 function extractReportHeader(
@@ -1012,7 +1172,7 @@ export default function MathBrainPage() {
   }
 
   // Generate condensed Markdown summary export (limited to ~29,000 tokens for ChatGPT compatibility)
-  function downloadMarkdownSummary() {
+  async function downloadMarkdownSummary() {
     if (!result) {
       setToast('No report available to export');
       setTimeout(() => setToast(null), 2000);
@@ -1455,20 +1615,24 @@ export default function MathBrainPage() {
       markdown += `**Generated by:** Raven Calder • Woven Web Application\n`;
       markdown += `**Export Date:** ${exportDate.toISOString()}\n`;
 
-      // Create and download the file
-      const blob = new Blob([markdown], { type: 'text/markdown' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-
-      a.download = `${filenameBase('mathbrain-summary')}.md`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      setToast('Markdown summary exported successfully');
-      setTimeout(() => setToast(null), 2500);
+      // Copy to clipboard instead of downloading
+      try {
+        await navigator.clipboard.writeText(markdown);
+        setToast('Markdown summary copied to clipboard! Ready to paste into ChatGPT.');
+        setTimeout(() => setToast(null), 3000);
+      } catch (clipboardError) {
+        // Fallback: create temporary textarea for manual copy
+        const textarea = document.createElement('textarea');
+        textarea.value = markdown;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        setToast('Markdown summary selected for copy (Ctrl+C to copy)');
+        setTimeout(() => setToast(null), 3000);
+      }
 
     } catch (error) {
       console.error('Markdown export failed:', error);
@@ -2029,6 +2193,21 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
           title: 'Contract Validation Report',
           body: sanitizeForPDF(lintReport),
           mode: 'regular'
+        });
+      }
+
+      const shouldIncludeRelocationRecipe = translocation !== 'NONE';
+
+      if (shouldIncludeRelocationRecipe) {
+        sections.push({
+          title: 'Relocation Directive (Poetic Brain)',
+          body: 'Upstream geometry API does not compute relocated houses. Before narrating Person A or Person B in a relocated city, derive the houses using the Raven Calder recipe below.',
+          mode: 'regular'
+        });
+        sections.push({
+          title: 'Raven Calder Internal Procedure: Relocated Houses Engine',
+          body: RAVEN_RELOCATION_RECIPE,
+          mode: 'mono'
         });
       }
 
@@ -4436,7 +4615,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
             </div>
             <div className="flex items-center gap-2">
               <button type="button" onClick={downloadResultPDF} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download PDF">Download PDF</button>
-              <button type="button" onClick={downloadMarkdownSummary} className="rounded-md border border-purple-700 bg-purple-800/50 px-3 py-1.5 text-purple-100 hover:bg-purple-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400" aria-label="Download condensed Markdown summary for ChatGPT">📝 Markdown Summary</button>
+              <button type="button" onClick={downloadMarkdownSummary} className="rounded-md border border-purple-700 bg-purple-800/50 px-3 py-1.5 text-purple-100 hover:bg-purple-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400" aria-label="Copy condensed Markdown summary to clipboard for ChatGPT">📋 Copy Markdown Summary</button>
               {includeTransits && (
                 <button type="button" onClick={downloadGraphsPDF} className="rounded-md border border-emerald-700 bg-emerald-800/50 px-3 py-1.5 text-emerald-100 hover:bg-emerald-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" aria-label="Download graphs and charts as PDF">
                   📊 Download Graphs PDF
@@ -4485,8 +4664,33 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
             return (
               <Section title="Balance Meter Dashboard">
                 {/* LAYER 1: SUMMARY VIEW (At a Glance) */}
+                <BalanceMeterSummary
+                  dateRange={{
+                    start: startDate || 'Unknown',
+                    end: endDate || 'Unknown'
+                  }}
+                  location={relocationStatus.effectiveMode !== 'NONE'
+                    ? (relocLabel || `${personA.city || 'Unknown'}, ${personA.state || 'Unknown'}`)
+                    : `${personA.city || 'Unknown'}, ${personA.state || 'Unknown'}`
+                  }
+                  mode={RELATIONAL_MODES.includes(mode) ? 'relational' : 'single'}
+                  names={RELATIONAL_MODES.includes(mode)
+                    ? [personA.name || 'Person A', personB.name || 'Person B']
+                    : undefined
+                  }
+                  overallClimate={{
+                    magnitude: mag,
+                    valence: val,
+                    volatility: vol
+                  }}
+                  overallSfd={result?.person_a?.sfd?.sfd ?? 0}
+                  totalDays={(() => {
+                    const daily = result?.person_a?.chart?.transitsByDate || {};
+                    return Object.keys(daily).filter(d => d && d.match(/^\d{4}-\d{2}-\d{2}$/)).length;
+                  })()}
+                />
                 <div className="mb-6">
-                  <h3 className="text-sm font-medium text-slate-200 mb-3">Summary View</h3>
+                  <h3 className="text-sm font-medium text-slate-200 mb-3">Daily Details</h3>
 
                   {/* Current Day SFD Balance Bar */}
                   <div className="mb-4 rounded border border-slate-600 bg-slate-900/50 p-4">
@@ -4827,26 +5031,18 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                         : undefined;
 
                       return (
-                        <DailyClimateCard
+                        <EnhancedDailyClimateCard
                           key={date}
                           date={dateLabel}
                           location={locationLabel}
                           mode={modeKind}
                           names={relationalNames}
-                          magnitude={mag}
-                          magnitudeLabel={getMagnitudeState(mag)}
-                          valence={val}
-                          valenceLabel={valenceStyle.descriptor}
-                          valenceIcon={valenceStyle.emojis[0] || '⚖️'}
-                          volatility={vol}
-                          volatilityLabel={getVolatilityState(vol)}
-                          magnitudeWB={magnitudeFork.wb}
-                          magnitudeABE={magnitudeFork.abe}
-                          valenceWB={valenceFork.wb}
-                          valenceABE={valenceFork.abe}
-                          sfd={sfd}
-                          sfdLabel={Number.isNaN(sfd) ? 'Not available' : getSFDState(sfd)}
-                          badge={badgeLine}
+                          climate={{
+                            magnitude: mag,
+                            valence: val,
+                            volatility: vol
+                          }}
+                          sfd={Number.isNaN(sfd) ? undefined : sfd}
                         />
                       );
                     });
