@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { FocusEvent, TouchEvent } from "react";
 import { parseCoordinates, formatDecimal } from "../../src/coords";
 // AuthProvider removed - auth handled globally by HomeHero component
 import { needsLocation, isTimeUnknown } from "../../lib/relocation";
@@ -460,6 +461,31 @@ export default function MathBrainPage() {
   const showLegacyLink = process.env.NEXT_PUBLIC_ENABLE_LEGACY_LINK === 'true';
   // Auth0 restored: authentication functionality available
   const [isAdmin, setIsAdmin] = useState(false);
+
+  const isIOS = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    const { userAgent = '', platform = '' } = window.navigator || {};
+    return /iPad|iPhone|iPod/i.test(userAgent) || /iPad|iPhone|iPod/i.test(platform);
+  }, []);
+
+  const handleDateFocus = useCallback((event: FocusEvent<HTMLInputElement>) => {
+    if (isIOS) {
+      return;
+    }
+    event.currentTarget.showPicker?.();
+  }, [isIOS]);
+
+  const handleDateTouchStart = useCallback((event: TouchEvent<HTMLInputElement>) => {
+    if (isIOS) {
+      return;
+    }
+    event.preventDefault();
+    const input = event.currentTarget;
+    input.focus();
+    input.showPicker?.();
+  }, [isIOS]);
 
   const today = useMemo(() => new Date(), []);
   const fmt = useCallback((d: Date) => d.toISOString().slice(0, 10), []);
@@ -4149,16 +4175,8 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                           WebkitAppearance: 'none',
                           appearance: 'none'
                         }}
-                        onFocus={(e) => {
-                          // iOS Safari fix: ensure the input is interactive
-                          e.target.showPicker?.();
-                        }}
-                        onTouchStart={(e) => {
-                          // iOS touch handling improvement
-                          e.preventDefault();
-                          (e.target as HTMLInputElement).focus();
-                          (e.target as HTMLInputElement).showPicker?.();
-                        }}
+                        onFocus={handleDateFocus}
+                        onTouchStart={handleDateTouchStart}
                       />
                     </div>
                     <div>
@@ -4176,16 +4194,8 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                           WebkitAppearance: 'none',
                           appearance: 'none'
                         }}
-                        onFocus={(e) => {
-                          // iOS Safari fix: ensure the input is interactive
-                          e.target.showPicker?.();
-                        }}
-                        onTouchStart={(e) => {
-                          // iOS touch handling improvement
-                          e.preventDefault();
-                          (e.target as HTMLInputElement).focus();
-                          (e.target as HTMLInputElement).showPicker?.();
-                        }}
+                        onFocus={handleDateFocus}
+                        onTouchStart={handleDateTouchStart}
                       />
                     </div>
                     <div>
