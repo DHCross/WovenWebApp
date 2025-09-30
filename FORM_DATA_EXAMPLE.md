@@ -163,6 +163,7 @@ Here's what the complete form data structure should look like:
     "latitude": 40.7128,
     "longitude": -74.0060,
     "zodiac_type": "Tropic",
+    "sidereal_mode": "LAHIRI",
     "timezone": "America/New_York"
   },
   "personB": {
@@ -178,6 +179,7 @@ Here's what the complete form data structure should look like:
     "latitude": 34.0522,
     "longitude": -118.2437,
     "zodiac_type": "Tropic",
+    "sidereal_mode": "LAHIRI",
     "timezone": "America/Los_Angeles"
   },
   "context": {
@@ -185,6 +187,8 @@ Here's what the complete form data structure should look like:
     "relationship_type": "partner",
     "intimacy_tier": "P3"
   },
+  "includeSidereal": true,
+  "default_sidereal_mode": "LAHIRI",
   "relocation": {
     "enabled": false
   }
@@ -192,3 +196,5 @@ Here's what the complete form data structure should look like:
 ```
 
 Use this as a reference when implementing form data validation and submission.
+
+Set `includeSidereal` to `true` to receive both the Tropic and Sidereal charts in a single response. Use `default_sidereal_mode` (or `sidereal_mode` on each person) to pick the ayanamsa used for the sidereal computation.
