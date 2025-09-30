@@ -271,7 +271,7 @@ const API_ENDPOINTS = {
 ```javascript
 const defaultActivePoints = [
   "Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn",
-  "Uranus", "Neptune", "Pluto", "Mean_Node", "Chiron", 
+  "Uranus", "Neptune", "Pluto", "Mean_Node", "Chiron",
   "Ascendant", "Medium_Coeli", "Mean_Lilith", "Mean_South_Node"
 ];
 
@@ -283,6 +283,14 @@ const defaultActiveAspects = [
   { name: "sextile", orb: 5 }
 ];
 ```
+
+### Sidereal Variants
+
+- Set `includeSidereal: true` on the request body to fetch both the Tropic and Sidereal variants in a single round-trip.
+- Provide either `default_sidereal_mode` (global ayanamsa) or `sidereal_mode` on each person block—values are normalized to
+  RapidAPI's uppercase identifiers such as `LAHIRI`, `FAGAN_BRADLEY`, etc.
+- When the sidereal branch is active the service automatically normalizes any lowercase `zodiac_type` strings (`"tropical"` →
+  `"Tropic"`, `"sidereal"` → `"Sidereal"`) before proxying to the upstream API.
 
 ---
 
