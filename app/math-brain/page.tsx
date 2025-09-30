@@ -147,16 +147,23 @@ const RAVEN_RELOCATION_RECIPE = String.raw`/////////////////////////////////////
 // RAVEN CALDER -- INTERNAL PROCEDURE: RELOCATED HOUSES ENGINE //
 ///////////////////////////////////////////////////////////////
 
+UNIVERSAL RELOCATION DIRECTIVE
+This procedure works for ANY coordinates worldwide. The user may relocate to:
+  - Any city (New York, London, Tokyo, Sydney, etc.)
+  - Any latitude from 85°N to 85°S (polar regions excluded due to house instability)
+  - Any longitude from 180°W to 180°E (full global coverage)
+  - Any timezone (algorithm auto-converts to UT for calculations)
+
 INPUT:
   birth_date        // YYYY-MM-DD
   birth_time_local  // HH:MM:SS (local civil time at birth place)
   birth_tz_offset   // hours from UTC at birth place (including DST if applicable)
-  birth_lat         // degrees (+N, -S)
-  birth_lon         // degrees (+E, -W)
-  relocate_lat      // degrees (+N, -S)
-  relocate_lon      // degrees (+E, -W)
+  birth_lat         // degrees (+N, -S, range: -85 to +85)
+  birth_lon         // degrees (+E, -W, range: -180 to +180)
+  relocate_lat      // degrees (+N, -S, range: -85 to +85) -- CURRENT LOCATION
+  relocate_lon      // degrees (+E, -W, range: -180 to +180) -- CURRENT LOCATION
   relocate_tz_offset// hours from UTC at relocate place (display only; do not alter UT)
-  house_system      // "WHOLE_SIGN" | "EQUAL" | "PLACIDUS"
+  house_system      // "WHOLE_SIGN" | "EQUAL" | "PLACIDUS" | "PORPHYRY"
   zodiac            // "TROPICAL" or "SIDEREAL" (sidereal requires ayanamsa)
   planets[]         // natal planetary ecliptic longitudes (lambda, deg) and latitudes (beta, deg) if needed
 
@@ -165,10 +172,12 @@ OUTPUT:
   houses[1..12]             // 12 relocated house cusps (ecliptic longitudes, deg)
   placements[planet]        // planet -> house index (1..12) under relocated houses
 
-CONVENTIONS:
+GLOBAL CONVENTIONS:
   - Angles in degrees unless noted; normalize with norm360(x) = (x % 360 + 360) % 360
-  - Longitudes east-positive; if using west-positive source, invert signs consistently
-  - Time: UT drives sidereal time; do not alter UT for relocation
+  - Longitudes: East-positive standard (0° = Greenwich, +180° = International Date Line)
+  - Latitudes: North-positive standard (0° = Equator, +90° = North Pole, -90° = South Pole)
+  - Time: Universal Time (UT) drives sidereal calculations; local time zones are for display only
+  - Polar regions (|lat| > 85°): Fall back to Whole Sign houses if Placidus fails
   - For sidereal zodiac, subtract ayanamsa from tropical longitudes after computing ASC/MC/houses
 
 /////////////////////////////////////
@@ -295,11 +304,46 @@ assert planets_natal_unchanged()
 assert asc != null && mc != null
 assert houses[1] == asc for EQUAL system
 assert houses[10] == mc for all systems
+assert relocate_lat >= -85 && relocate_lat <= 85   // polar check
+assert relocate_lon >= -180 && relocate_lon <= 180 // longitude bounds
+
+//////////////////////////////////////////////////////
+// 11) GLOBAL EDGE CASES & EXAMPLES                 //
+//////////////////////////////////////////////////////
+
+HIGH LATITUDE LOCATIONS (approaching polar regions):
+  - If |relocate_lat| > 85°: automatically fall back to WHOLE_SIGN houses
+  - Examples: Svalbard (78°N), McMurdo Station (-77°S), northern Alaska/Canada
+  - Disclosure: "Polar latitude detected; using Whole Sign houses for stability"
+
+INTERNATIONAL DATE LINE CROSSING:
+  - Longitude normalization: ensure -180° ≤ lon ≤ +180°
+  - Examples: Fiji (+178°E), Samoa (-172°W), Kamchatka (+160°E)
+  - No special handling needed; standard LST calculation applies
+
+EXTREME TIMEZONE OFFSETS:
+  - Handle UTC-12 (Baker Island) to UTC+14 (Kiribati)
+  - Examples: Honolulu (UTC-10), Auckland (UTC+12), Chatham Islands (UTC+12:45)
+  - Remember: timezone offset affects DISPLAY only, not house calculations
+
+EQUATORIAL LOCATIONS:
+  - Near 0° latitude: standard calculations apply
+  - Examples: Quito (0°S), Singapore (1°N), Nairobi (-1°S)
+  - No special handling required
+
+COMMON RELOCATION EXAMPLES:
+  - NYC: 40.7°N, -74.0°W (UTC-5/-4)
+  - London: 51.5°N, -0.1°W (UTC+0/+1)
+  - Tokyo: 35.7°N, 139.7°E (UTC+9)
+  - Sydney: -33.9°S, 151.2°E (UTC+10/+11)
+  - Mumbai: 19.1°N, 72.8°E (UTC+5:30)
 
 Notes for the human reading this PDF:
-  - The relocation time zone is only for displaying local clock times. All math runs on UT plus longitude for LST.
-  - Whole Sign and Equal implementations are direct. Placidus requires the semi-diurnal arc solver indicated above.
-  - Lock natal planet longitudes, signs, and aspects. Only the houses and angle placements are swapped to the relocated frame.
+  - This algorithm works globally for any Earth coordinates within habitable latitudes
+  - The relocation timezone is only for displaying local clock times; all math runs on UT
+  - Whole Sign and Equal implementations are direct; Placidus requires the semi-diurnal arc solver
+  - Lock natal planet longitudes, signs, and aspects; only houses/angles relocate to the new frame
+  - When in doubt, test with known coordinates: your relocated ASC should match astro software
 `;
 
 // Helper functions to extract UI/UX Contract types from existing data
