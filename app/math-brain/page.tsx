@@ -703,6 +703,7 @@ export default function MathBrainPage() {
   // Auth states removed while Auth0 is paused
   const resultsRef = useRef<HTMLDivElement | null>(null);
   const reportRef = useRef<HTMLDivElement | null>(null);
+  const balanceGraphsRef = useRef<HTMLDivElement | null>(null);
   const bNameRef = useRef<HTMLInputElement | null>(null);
   const lastSubmitRef = useRef<number>(0);
   // Lightweight toast for ephemeral notices (e.g., Mirror failure)
@@ -1649,30 +1650,121 @@ export default function MathBrainPage() {
       return;
     }
 
+    let revertVisibility: (() => void) | null = null;
+
     try {
       const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+      const html2canvasModule = await import('html2canvas');
+      const html2canvas = html2canvasModule?.default;
 
-      // Create new PDF document
+      if (typeof html2canvas !== 'function') {
+        throw new Error('html2canvas unavailable');
+      }
+
+      if (!layerVisibility.balance && weather.hasWindow) {
+        setLayerVisibility((prev) => ({ ...prev, balance: true }));
+        revertVisibility = () => setLayerVisibility((prev) => ({ ...prev, balance: false }));
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      }
+
       const pdfDoc = await PDFDocument.create();
       const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
       const courierFont = await pdfDoc.embedFont(StandardFonts.Courier);
 
-      // Page dimensions
       const PAGE_WIDTH = 612; // 8.5" * 72 DPI
       const PAGE_HEIGHT = 792; // 11" * 72 DPI
       const MARGIN = 50;
 
-      // Extract data for visualization
       const daily = result?.person_a?.chart?.transitsByDate || {};
-      // Fix date sorting - ensure dates are sorted as Date objects, not strings
       const dates = Object.keys(daily)
-        .filter(d => d && d.match(/^\d{4}-\d{2}-\d{2}$/)) // Only valid ISO date strings
+        .filter((d) => d && d.match(/^\d{4}-\d{2}-\d{2}$/))
         .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+      const dateRangeText = dates.length > 0
+        ? `Analysis Period: ${new Date(dates[0]).toLocaleDateString()} - ${new Date(dates[dates.length - 1]).toLocaleDateString()}`
+        : 'Complete Analysis Report';
+
+      let target = balanceGraphsRef.current;
+      if (!target) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        target = balanceGraphsRef.current;
+      }
+
+      if (!target) {
+        setToast('Open Balance Metrics to capture the charts');
+        setTimeout(() => setToast(null), 2500);
+        return;
+      }
+
+      const exportTimestamp = new Date();
+      const canvas = await html2canvas(target, {
+        backgroundColor: '#0f172a',
+        scale: Math.min(3, window.devicePixelRatio || 2),
+        useCORS: true,
+        logging: false,
+        scrollY: -window.scrollY,
+        windowWidth: target.scrollWidth,
+        windowHeight: target.scrollHeight,
+        ignoreElements: (element) => {
+          if (!(element instanceof HTMLElement)) return false;
+          return element.classList.contains('print:hidden') || element.dataset?.exportSkip === 'true';
+        },
+      });
+
+      const graphImage = await pdfDoc.embedPng(canvas.toDataURL('image/png'));
+
+      const graphPage = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+      let visualY = PAGE_HEIGHT - MARGIN;
+
+      graphPage.drawText(sanitizeForPDF('Balance Meter Dashboard - Visual Overview'), {
+        x: MARGIN,
+        y: visualY,
+        size: 18,
+        font: timesRomanFont,
+        color: rgb(0.2, 0.2, 0.2),
+      });
+      visualY -= 30;
+
+      graphPage.drawText(sanitizeForPDF(dateRangeText), {
+        x: MARGIN,
+        y: visualY,
+        size: 12,
+        font: timesRomanFont,
+        color: rgb(0.4, 0.4, 0.4),
+      });
+      visualY -= 40;
+
+      const availableHeight = Math.max(0, visualY - MARGIN);
+      const graphDimensions = graphImage.scaleToFit(PAGE_WIDTH - 2 * MARGIN, availableHeight);
+      const graphY = visualY - graphDimensions.height;
+
+      graphPage.drawImage(graphImage, {
+        x: MARGIN,
+        y: graphY,
+        width: graphDimensions.width,
+        height: graphDimensions.height,
+      });
+      visualY = graphY - 20;
+
+      graphPage.drawText(sanitizeForPDF('Captured directly from the Balance Meter dashboard.'), {
+        x: MARGIN,
+        y: Math.max(MARGIN, visualY),
+        size: 10,
+        font: timesRomanFont,
+        color: rgb(0.35, 0.35, 0.35),
+      });
+
+      graphPage.drawText(sanitizeForPDF(`Generated: ${exportTimestamp.toLocaleString()} | Balance Meter Visuals`), {
+        x: MARGIN,
+        y: MARGIN - 20,
+        size: 8,
+        font: timesRomanFont,
+        color: rgb(0.5, 0.5, 0.5),
+      });
 
       let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
       let yPosition = PAGE_HEIGHT - MARGIN;
 
-      // Title
       page.drawText(sanitizeForPDF('Balance Meter Dashboard - Complete Analysis Report'), {
         x: MARGIN,
         y: yPosition,
@@ -1682,10 +1774,6 @@ export default function MathBrainPage() {
       });
       yPosition -= 30;
 
-      // Subtitle with date range
-      const dateRangeText = dates.length > 0 ?
-        `Analysis Period: ${new Date(dates[0]).toLocaleDateString()} - ${new Date(dates[dates.length - 1]).toLocaleDateString()}` :
-        'Complete Analysis Report';
       page.drawText(sanitizeForPDF(dateRangeText), {
         x: MARGIN,
         y: yPosition,
@@ -1695,7 +1783,6 @@ export default function MathBrainPage() {
       });
       yPosition -= 40;
 
-      // Executive Summary Section
       page.drawText(sanitizeForPDF('EXECUTIVE SUMMARY'), {
         x: MARGIN,
         y: yPosition,
@@ -1704,7 +1791,6 @@ export default function MathBrainPage() {
         color: rgb(0.1, 0.1, 0.1),
       });
       yPosition -= 25;
-
       const summaryText = [
         'This Balance Meter Dashboard provides a comprehensive analysis of energetic patterns',
         'and trends over time, using a combination of astrological calculations and symbolic',
@@ -1733,7 +1819,6 @@ export default function MathBrainPage() {
           font: timesRomanFont,
         });
       } else {
-        // Create text-based sparkline charts with PDF-safe characters
         const createTextChart = (values: number[], label: string, maxValue = 5) => {
           const chars = ['_', '.', '-', '=', '+', '|', '#', 'X'];
           const sparkline = values.slice(-20).map(val => {
@@ -1753,7 +1838,6 @@ export default function MathBrainPage() {
           sfd: Number(daily[d]?.sfd?.sfd_cont ?? daily[d]?.sfd ?? 0)
         }));
 
-        // Chart section
         page.drawText(sanitizeForPDF('Trend Analysis (Last 20 Days)'), {
           x: MARGIN,
           y: yPosition,
@@ -1765,8 +1849,8 @@ export default function MathBrainPage() {
 
         const magnitudes = series.map(s => s.magnitude);
         const volatilities = series.map(s => s.volatility);
-        const valences = series.map(s => s.valence + 5); // Shift valence to positive range for visualization
-        const sfds = series.map(s => Math.abs(s.sfd / 10)); // Scale SFD for visualization
+        const valences = series.map(s => s.valence + 5);
+        const sfds = series.map(s => Math.abs(s.sfd / 10));
 
         const charts = [
           createTextChart(magnitudes, '*lightning* Magnitude:', 5),
@@ -1789,7 +1873,6 @@ export default function MathBrainPage() {
 
         yPosition -= 20;
 
-        // Add daily diagnostic data
         page.drawText(sanitizeForPDF('Recent Daily Diagnostics'), {
           x: MARGIN,
           y: yPosition,
@@ -1799,7 +1882,6 @@ export default function MathBrainPage() {
         });
         yPosition -= 30;
 
-        // Show last 7 days of data
         dates.slice(-7).forEach(date => {
           const dayData = daily[date];
           const mag = Number(dayData?.seismograph?.magnitude ?? 0);
@@ -1822,195 +1904,188 @@ export default function MathBrainPage() {
             y: yPosition,
             size: 10,
             font: courierFont,
-            color: rgb(0.2, 0.2, 0.2),
+            color: rgb(0.1, 0.1, 0.1),
           });
           yPosition -= 18;
         });
-      }
 
-      // Add new page for methodology and glossary
-      page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-      yPosition = PAGE_HEIGHT - MARGIN;
+        yPosition -= 20;
 
-      // METHODOLOGY SECTION
-      page.drawText(sanitizeForPDF('METHODOLOGY & INTERPRETATION'), {
-        x: MARGIN,
-        y: yPosition,
-        size: 16,
-        font: timesRomanFont,
-        color: rgb(0.1, 0.1, 0.1),
-      });
-      yPosition -= 30;
+        const weeklySummary = (() => {
+          const chunks: string[] = [];
+          if (series.length === 0) return chunks;
+          const chunkSize = Math.max(1, Math.floor(series.length / 4));
+          for (let i = 0; i < series.length; i += chunkSize) {
+            const segment = series.slice(i, i + chunkSize);
+            if (segment.length === 0) continue;
+            const peak = segment.reduce((max, current) => current.magnitude > max.magnitude ? current : max, segment[0]);
+            const lowValence = segment.reduce((min, current) => current.valence < min.valence ? current : min, segment[0]);
+            const highVol = segment.reduce((max, current) => current.volatility > max.volatility ? current : max, segment[0]);
+            const sfdShift = segment.reduce((prev, current) => Math.abs(current.sfd) > Math.abs(prev.sfd) ? current : prev, segment[0]);
+            chunks.push(`Segment ${Math.floor(i / chunkSize) + 1}: peak magnitude ${peak.magnitude.toFixed(1)}, sharpest valence ${lowValence.valence.toFixed(1)}, volatility spike ${highVol.volatility.toFixed(1)}, SFD shift ${sfdShift.sfd.toFixed(1)}`);
+          }
+          return chunks;
+        })();
 
-      const methodologyContent = [
-        'UNDERSTANDING THE METRICS',
-        '',
-        'MAGNITUDE (Lightning Symbol): Measures the overall intensity or strength of energetic',
-        'patterns on a scale from 0-5. Higher values indicate more significant astrological',
-        'activity and potential for notable events or experiences.',
-        '',
-        'VALENCE (Balance Scale): Represents the positive (+5) to negative (-5) tilt of the',
-        'energetic climate. Positive values suggest expansion, opportunity, and flow, while',
-        'negative values indicate contraction, challenges, or resistance.',
-        '',
-        'VOLATILITY (Tornado Symbol): Measures instability and unpredictability on a 0-5 scale.',
-        'Higher volatility suggests rapid changes, unexpected developments, or turbulent',
-        'energy patterns that may require extra attention and adaptability.',
-        '',
-        'SFD (Structural Field Dynamics): Advanced calculation representing the underlying',
-        'structural stability of the energetic field. Positive values indicate supportive',
-        'structures, while negative values suggest areas needing attention or reinforcement.',
-        '',
-        'CHART INTERPRETATION GUIDE',
-        '',
-        'Text-based Charts: The visual representations use ASCII characters to show trends:',
-        '_ (lowest) . - = + | # X (highest). Look for patterns, peaks, and valleys',
-        'to understand the flow of energy over the selected time period.',
-        '',
-        'Daily Diagnostics: The last 7 days of detailed data provide specific numerical',
-        'values for immediate reference and trend analysis.'
-      ];
+        if (weeklySummary.length > 0) {
+          page.drawText(sanitizeForPDF('Window Summary Highlights'), {
+            x: MARGIN,
+            y: yPosition,
+            size: 14,
+            font: timesRomanFont,
+            color: rgb(0.3, 0.3, 0.3),
+          });
+          yPosition -= 25;
 
-      methodologyContent.forEach(line => {
-        if (yPosition < MARGIN + 60) {
+          weeklySummary.forEach((summary) => {
+            if (yPosition < MARGIN + 60) {
+              page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+              yPosition = PAGE_HEIGHT - MARGIN;
+            }
+
+            page.drawText(sanitizeForPDF(`• ${summary}`), {
+              x: MARGIN,
+              y: yPosition,
+              size: 10,
+              font: timesRomanFont,
+              color: rgb(0.3, 0.3, 0.3),
+            });
+            yPosition -= 16;
+          });
+
+          yPosition -= 20;
+        }
+
+        if (yPosition < MARGIN + 120) {
           page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
           yPosition = PAGE_HEIGHT - MARGIN;
         }
 
-        const isHeader = line.toUpperCase() === line && line.length > 10;
-        const fontSize = isHeader ? 12 : 9;
-        const fontColor = isHeader ? rgb(0.2, 0.2, 0.2) : rgb(0.4, 0.4, 0.4);
-
-        page.drawText(sanitizeForPDF(line), {
+        page.drawText(sanitizeForPDF('Key Interpretation Guide'), {
           x: MARGIN,
           y: yPosition,
-          size: fontSize,
-          font: timesRomanFont,
-          color: fontColor,
-        });
-        yPosition -= isHeader ? 20 : 14;
-      });
-
-      yPosition -= 20;
-
-      // VALENCE SCALE GLOSSARY
-      page.drawText(sanitizeForPDF('VALENCE SCALE REFERENCE'), {
-        x: MARGIN,
-        y: yPosition,
-        size: 14,
-        font: timesRomanFont,
-        color: rgb(0.1, 0.1, 0.1),
-      });
-      yPosition -= 25;
-
-      const valenceExplanation = [
-        'The Valence Scale provides detailed interpretation of energy quality from -5 to +5:',
-        ''
-      ];
-
-      valenceExplanation.forEach(line => {
-        page.drawText(sanitizeForPDF(line), {
-          x: MARGIN,
-          y: yPosition,
-          size: 10,
+          size: 14,
           font: timesRomanFont,
           color: rgb(0.3, 0.3, 0.3),
         });
-        yPosition -= 14;
-      });
+        yPosition -= 25;
 
-      // Import valence levels from climate renderer
-      const valenceLevels = [
-        { level: -5, anchor: 'Collapse', description: 'Maximum restrictive tilt; compression/failure points' },
-        { level: -4, anchor: 'Grind', description: 'Sustained resistance; heavy duty load' },
-        { level: -3, anchor: 'Friction', description: 'Conflicts or cross-purposes slow motion' },
-        { level: -2, anchor: 'Contraction', description: 'Narrowing options; ambiguity or energy drain' },
-        { level: -1, anchor: 'Drag', description: 'Subtle headwind; minor loops or haze' },
-        { level: 0, anchor: 'Equilibrium', description: 'Net-neutral tilt; forces cancel or diffuse' },
-        { level: 1, anchor: 'Lift', description: 'Gentle tailwind; beginnings sprout' },
-        { level: 2, anchor: 'Flow', description: 'Smooth adaptability; things click' },
-        { level: 3, anchor: 'Harmony', description: 'Coherent progress; both/and solutions' },
-        { level: 4, anchor: 'Expansion', description: 'Widening opportunities; clear insight fuels growth' },
-        { level: 5, anchor: 'Liberation', description: 'Peak openness; breakthroughs/big-sky view' }
-      ];
+        const magnitudeLevels = [
+          { level: 5, description: 'Breakpoint surge — full charge, expect major shifts.' },
+          { level: 4, description: 'High activation — strong momentum, high stakes.' },
+          { level: 3, description: 'Sustained movement — reliable drive and motivation.' },
+          { level: 2, description: 'Moderate charge — manageable activity, steady progress.' },
+          { level: 1, description: 'Gentle activation — soft signals, low stakes.' },
+          { level: 0, description: 'Baseline — stable, quiet conditions, integration time.' },
+        ];
 
-      valenceLevels.forEach(level => {
-        if (yPosition < MARGIN + 40) {
-          page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-          yPosition = PAGE_HEIGHT - MARGIN;
-        }
+        magnitudeLevels.forEach(level => {
+          if (yPosition < MARGIN + 40) {
+            page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+            yPosition = PAGE_HEIGHT - MARGIN;
+          }
 
-        const levelStr = level.level >= 0 ? `+${level.level}` : level.level.toString();
-        const levelLine = `${levelStr.padStart(3)} ${level.anchor.padEnd(12)} ${level.description}`;
-
-        page.drawText(sanitizeForPDF(levelLine), {
-          x: MARGIN,
-          y: yPosition,
-          size: 9,
-          font: courierFont,
-          color: level.level === 0 ? rgb(0.3, 0.3, 0.7) : (level.level > 0 ? rgb(0.2, 0.6, 0.2) : rgb(0.6, 0.2, 0.2)),
+          const levelLine = `${level.level.toString().padStart(2)}  ${level.description}`;
+          page.drawText(sanitizeForPDF(levelLine), {
+            x: MARGIN,
+            y: yPosition,
+            size: 9,
+            font: courierFont,
+            color: rgb(0.2, 0.2, 0.2),
+          });
+          yPosition -= 16;
         });
-        yPosition -= 16;
-      });
 
-      yPosition -= 20;
+        yPosition -= 15;
 
-      // PRACTICAL APPLICATIONS
-      if (yPosition < MARGIN + 150) {
-        page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-        yPosition = PAGE_HEIGHT - MARGIN;
-      }
+        const valenceLevels = [
+          { level: 5, anchor: 'Liberation', description: 'Peak openness, breakthroughs, fully supportive field.' },
+          { level: 4, anchor: 'Expansion', description: 'Widening opportunities, accelerated growth, strong allies.' },
+          { level: 3, anchor: 'Harmony', description: 'Coherent progress, beneficial connections, smooth support.' },
+          { level: 2, anchor: 'Flow', description: 'Smooth adaptability, conditions help momentum build.' },
+          { level: 1, anchor: 'Lift', description: 'Gentle tailwind, encouraging early wins.' },
+          { level: 0, anchor: 'Equilibrium', description: 'Net-neutral tilt; forces cancel or diffuse.' },
+          { level: -1, anchor: 'Drag', description: 'Subtle headwind; minor loops or haze to navigate.' },
+          { level: -2, anchor: 'Contraction', description: 'Narrowing options; ambiguity or energy drain.' },
+          { level: -3, anchor: 'Friction', description: 'Conflicts; cross-purposes slow momentum.' },
+          { level: -4, anchor: 'Grind', description: 'Sustained resistance; heavy duty load.' },
+          { level: -5, anchor: 'Collapse', description: 'Maximum restrictive tilt; compression/failure points.' },
+        ];
 
-      page.drawText(sanitizeForPDF('PRACTICAL APPLICATIONS'), {
-        x: MARGIN,
-        y: yPosition,
-        size: 14,
-        font: timesRomanFont,
-        color: rgb(0.1, 0.1, 0.1),
-      });
-      yPosition -= 25;
+        valenceLevels.forEach(level => {
+          if (yPosition < MARGIN + 40) {
+            page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+            yPosition = PAGE_HEIGHT - MARGIN;
+          }
 
-      const practicalContent = [
-        'DAILY PLANNING: Use magnitude and valence to plan activities. High magnitude +',
-        'positive valence days are ideal for launches, important meetings, or creative',
-        'projects. High magnitude + negative valence days may require extra caution.',
-        '',
-        'VOLATILITY MANAGEMENT: High volatility days (3+ rating) suggest maintaining',
-        'flexibility and avoiding rigid schedules. Keep backup plans and expect the',
-        'unexpected during these periods.',
-        '',
-        'SFD MONITORING: Negative SFD values may indicate structural weaknesses in',
-        'plans or relationships that need attention. Positive SFD supports stable',
-        'progress and reliable foundations.',
-        '',
-        'TREND ANALYSIS: Look for patterns in the charts over time. Sustained positive',
-        'valence periods offer expansion opportunities, while negative periods may',
-        'require patience and consolidation of gains.',
-        '',
-        'Note: This system combines traditional astrological principles with modern',
-        'data analysis to provide insights for timing and decision-making. Use as',
-        'one factor among many in your planning and reflection process.'
-      ];
+          const levelStr = level.level >= 0 ? `+${level.level}` : level.level.toString();
+          const levelLine = `${levelStr.padStart(3)} ${level.anchor.padEnd(12)} ${level.description}`;
 
-      practicalContent.forEach(line => {
-        if (yPosition < MARGIN + 40) {
+          page.drawText(sanitizeForPDF(levelLine), {
+            x: MARGIN,
+            y: yPosition,
+            size: 9,
+            font: courierFont,
+            color: level.level === 0 ? rgb(0.3, 0.3, 0.7) : (level.level > 0 ? rgb(0.2, 0.6, 0.2) : rgb(0.6, 0.2, 0.2)),
+          });
+          yPosition -= 16;
+        });
+
+        yPosition -= 20;
+
+        if (yPosition < MARGIN + 150) {
           page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
           yPosition = PAGE_HEIGHT - MARGIN;
         }
 
-        page.drawText(sanitizeForPDF(line), {
+        page.drawText(sanitizeForPDF('PRACTICAL APPLICATIONS'), {
           x: MARGIN,
           y: yPosition,
-          size: 9,
+          size: 14,
           font: timesRomanFont,
-          color: rgb(0.4, 0.4, 0.4),
+          color: rgb(0.1, 0.1, 0.1),
         });
-        yPosition -= 13;
-      });
+        yPosition -= 25;
 
-      // Add footer with timestamp
-      const timestamp = new Date().toLocaleString();
-      const footerText = `Generated: ${timestamp} | Balance Meter Dashboard Charts`;
+        const practicalContent = [
+          'DAILY PLANNING: Use magnitude and valence to plan activities. High magnitude +',
+          'positive valence days are ideal for launches, important meetings, or creative',
+          'projects. High magnitude + negative valence days may require extra caution.',
+          '',
+          'VOLATILITY MANAGEMENT: High volatility days (3+ rating) suggest maintaining',
+          'flexibility and avoiding rigid schedules. Keep backup plans and expect the',
+          'unexpected during these periods.',
+          '',
+          'SFD MONITORING: Negative SFD values may indicate structural weaknesses in',
+          'plans or relationships that need attention. Positive SFD supports stable',
+          'progress and reliable foundations.',
+          '',
+          'TREND ANALYSIS: Look for patterns in the charts over time. Sustained positive',
+          'valence periods offer expansion opportunities, while negative periods may',
+          'require patience and consolidation of gains.',
+          '',
+          'Note: This system combines traditional astrological principles with modern',
+          'data analysis to provide insights for timing and decision-making. Use as',
+          'one factor among many in your planning and reflection process.'
+        ];
+
+        practicalContent.forEach(line => {
+          if (yPosition < MARGIN + 40) {
+            page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+            yPosition = PAGE_HEIGHT - MARGIN;
+          }
+
+          page.drawText(sanitizeForPDF(line), {
+            x: MARGIN,
+            y: yPosition,
+            size: 9,
+            font: timesRomanFont,
+            color: rgb(0.4, 0.4, 0.4),
+          });
+          yPosition -= 13;
+        });
+      }
+      const footerText = `Generated: ${exportTimestamp.toLocaleString()} | Balance Meter Dashboard Charts`;
       page.drawText(sanitizeForPDF(footerText), {
         x: MARGIN,
         y: MARGIN - 20,
@@ -2019,14 +2094,11 @@ export default function MathBrainPage() {
         color: rgb(0.5, 0.5, 0.5),
       });
 
-      // Save and download with descriptive filename
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-
-      // Create descriptive filename with person names and date range
       a.download = `${filenameBase('mathbrain-graphs')}.pdf`;
       document.body.appendChild(a);
       a.click();
@@ -2039,6 +2111,10 @@ export default function MathBrainPage() {
       console.error('PDF generation failed:', error);
       setToast('Failed to generate charts PDF');
       setTimeout(() => setToast(null), 2500);
+    } finally {
+      if (revertVisibility) {
+        revertVisibility();
+      }
     }
   }
 
@@ -4662,7 +4738,8 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
             const valenceLabel = summary.valence_label || (val > 0.5 ? 'Supportive' : val < -0.5 ? 'Challenging' : 'Mixed');
             const volatilityLabel = summary.volatility_label || (vol >= 3 ? 'Scattered' : vol >= 1 ? 'Variable' : 'Stable');
             return (
-              <Section title="Balance Meter Dashboard">
+              <div ref={balanceGraphsRef} data-balance-export="true">
+                <Section title="Balance Meter Dashboard">
                 {/* LAYER 1: SUMMARY VIEW (At a Glance) */}
                 <BalanceMeterSummary
                   dateRange={{
@@ -5135,7 +5212,8 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                     </div>
                   </div>
                 )}
-              </Section>
+                </Section>
+              </div>
             );
           })()}
           </>)}
