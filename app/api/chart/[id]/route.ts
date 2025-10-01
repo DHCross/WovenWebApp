@@ -41,7 +41,8 @@ export async function GET(request: NextRequest, context: { params: { id: string 
   headers.set('X-Chart-Expires', new Date(asset.expiresAt).toISOString());
   headers.set('Content-Disposition', `inline; filename="${decodedId}.${asset.metadata?.format || 'bin'}"`);
 
-  return new NextResponse(asset.buffer, {
+  // Convert Buffer to Uint8Array for NextResponse compatibility
+  return new NextResponse(new Uint8Array(asset.buffer), {
     status: 200,
     headers,
   });

@@ -37,6 +37,11 @@ interface RenderContext {
       volatility?: number;
       sf_diff?: number;
     }>;
+    window?: {
+      start?: string;
+      end?: string;
+      step?: string;
+    };
   };
   [key: string]: any;
 }
