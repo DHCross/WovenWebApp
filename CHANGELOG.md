@@ -1,4 +1,32 @@
 
+## [2025-10-01] FEATURE: Raven Output Protocol - Unified Construction Algorithm & Terminology Map
+
+**Summary**: Created single source of truth for how Raven speaks—construction algorithm, terminology map, and Copilot rules unified into one protocol document.
+
+**New Documentation**:
+- **`Developers Notes/Poetic Brain/RAVEN_OUTPUT_PROTOCOL.md`** ⭐ **PRIMARY REFERENCE**
+  - Step-by-step construction algorithm: Opening Signals → Composite Personality Summary → Behavioral Anchors → Conditional Impulses → Pressure Patterns → Calibration Markers
+  - Complete terminology map (Internal → Reader-Facing): Hook Stack → Opening Signals, WB/ABE/OSR → Calibration Notes, etc.
+  - Copilot rules: Jargon suppression, translation requirements, frontstage vs backstage enforcement
+  - Output validation checklist for quality assurance
+
+**Why This Matters**:
+- Previous docs scattered across multiple files with inconsistent terminology
+- AI assistants (Copilot, ChatGPT) now have single playbook for generating human-facing text
+- Eliminates jargon leaks by providing explicit translation table for every technical term
+- Ensures dual-pole phrasing ("Disciplined or Shut Down") replaces technical labels ("Saturn-Moon Square")
+
+**Integration**:
+- `Developers Notes/Poetic Brain/README.md` updated to list RAVEN_OUTPUT_PROTOCOL.md as primary reference
+- `Developers Notes/README.md` updated to reference protocol in quick navigation
+- Protocol supersedes scattered instructions in previous docs while preserving their specialized content
+
+**Related Changes**:
+- This builds on the lexicon-driven scenario work (Human Translation Layer) documented below
+
+---
+
+
 ## [2025-10-01] FEATURE: Poetic Brain Lexicon-Driven Scenario & Human Translation Layer
 
 - Refined the lexicon-driven scenario so Raven speaks in human, testable language instead of raw polarity riddles.

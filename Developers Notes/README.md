@@ -56,6 +56,7 @@ Find your implementation guide:
 - [`Implementation/SMOKE_TESTS_GUIDE.md`](Implementation/SMOKE_TESTS_GUIDE.md)
 
 ### Voice & Content Generation?
+- [`Poetic Brain/RAVEN_OUTPUT_PROTOCOL.md`](Poetic%20Brain/RAVEN_OUTPUT_PROTOCOL.md) ⭐ **START HERE** - Unified output protocol
 - [`Poetic Brain/RAVEN-PERSONA-SPEC.md`](Poetic%20Brain/RAVEN-PERSONA-SPEC.md)
 - [`Poetic Brain/How Raven Speaks v2.md`](Poetic%20Brain/How%20Raven%20Speaks%20v2.md)
 - [`Implementation/LINTER_SPECIFICATIONS.md`](Implementation/LINTER_SPECIFICATIONS.md) - Quality checks
@@ -106,18 +107,23 @@ Find your implementation guide:
 
 **Purpose:** Voice specifications, persona guidelines, and narrative generation.
 
+**Priority File:**
+- **[`RAVEN_OUTPUT_PROTOCOL.md`](Poetic%20Brain/RAVEN_OUTPUT_PROTOCOL.md)** ⭐ **START HERE** - Unified construction algorithm, terminology map, and Copilot rules
+
 **Key Files:**
 - [`RAVEN-PERSONA-SPEC.md`](Poetic%20Brain/RAVEN-PERSONA-SPEC.md) - Persona definition
 - [`How Raven Speaks v2.md`](Poetic%20Brain/How%20Raven%20Speaks%20v2.md) - Voice style guide
 - [`POETIC_CODEX_CARD_SPEC.md`](Poetic%20Brain/POETIC_CODEX_CARD_SPEC.md) - Card generation spec (v2.1)
 - [`IMPLEMENTATION_SPEC_MIRROR_REPORTS.md`](Poetic%20Brain/IMPLEMENTATION_SPEC_MIRROR_REPORTS.md) - Translation protocol
 - [`QUEUE_ANALYSIS_FILTERS_GUIDE.md`](Poetic%20Brain/QUEUE_ANALYSIS_FILTERS_GUIDE.md) - Chat filtering
+- [`Woven Map Probabilistic Field Lexicon 8.28.25 copy.md`](Poetic%20Brain/Woven%20Map%20Probabilistic%20Field%20Lexicon%208.28.25%20copy.md) - Symbolic weather vocabulary
 
 **Read this folder when:**
 - Writing or reviewing content
 - Implementing narrative generation
 - Debugging voice consistency
 - Building chat features
+- Training AI assistants on Raven voice
 
 ---
 

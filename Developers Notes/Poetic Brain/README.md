@@ -18,6 +18,27 @@ The Poetic Brain follows the **FIELD → MAP → VOICE** translation protocol, e
 
 ## Core Persona & Voice
 
+### [RAVEN_OUTPUT_PROTOCOL.md](RAVEN_OUTPUT_PROTOCOL.md) ⭐ **PRIMARY REFERENCE**
+**Purpose:** Unified construction algorithm, terminology map, and AI assistant rules  
+**Audience:** All contributors, AI assistants (Copilot, ChatGPT), developers
+
+**Contents:**
+- Step-by-step construction algorithm (Opening Signals → Mirror Voice)
+- Complete terminology map (Internal → Reader-Facing)
+- Copilot rules (jargon suppression, translation requirements)
+- Output validation checklist
+- Frontstage vs Backstage separation enforcement
+
+**When to use:** 
+- **Before generating ANY Raven output**
+- Training AI assistants or human contributors
+- Reviewing/debugging output for jargon leaks
+- Implementing new narrative features
+
+**Why it's primary:** Single source of truth for how Raven speaks. All other persona docs build on this foundation.
+
+---
+
 ### [RAVEN-PERSONA-SPEC.md](RAVEN-PERSONA-SPEC.md)
 **Purpose:** Canonical Raven Calder persona definition  
 **Audience:** All contributors, content designers
