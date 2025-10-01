@@ -591,6 +591,31 @@ export default function MathBrainPage() {
       setIncludePersonB(true);
     }
   }, []);
+
+  // Mode dropdown options
+  type ModeOption = { value: ReportMode; label: string };
+
+  const soloModeOption: ModeOption = useMemo(() => {
+    const baseMode = includeTransits ? 'NATAL_TRANSITS' : 'NATAL_ONLY';
+    const label = includeTransits ? 'Natal with Transits' : 'Natal Only';
+    return { value: baseMode, label };
+  }, [includeTransits]);
+
+  const relationalModeOptions = useMemo<ModeOption[]>(() => {
+    if (!includePersonB) return [];
+
+    return [
+      {
+        value: includeTransits ? 'SYNASTRY_TRANSITS' : 'SYNASTRY',
+        label: includeTransits ? 'Synastry with Transits' : 'Synastry'
+      },
+      {
+        value: includeTransits ? 'COMPOSITE_TRANSITS' : 'COMPOSITE',
+        label: includeTransits ? 'Composite with Transits' : 'Composite'
+      },
+    ];
+  }, [includePersonB, includeTransits]);
+
   const [step, setStep] = useState<string>("daily");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -964,6 +989,7 @@ export default function MathBrainPage() {
   const isRelationalStructure = reportStructure !== 'solo';
   const isDyadMode = includePersonB && isRelationalStructure;
   const reportContractKind: 'balance' | 'mirror' = reportContractType.includes('balance') ? 'balance' : 'mirror';
+  const reportType = reportContractKind; // Legacy alias for reportContractKind
 
   const weather = useMemo(() =>
     extractWeather(startDate, endDate, result),
@@ -4575,7 +4601,44 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
 
           {/* Right column: Transits + actions */}
           <div className="space-y-6">
-            <Section title="Transits">
+            {/* Report Type Radio Group */}
+            <Section title="Report Type">
+              <div className="space-y-3">
+                <p className="text-xs text-slate-400">Choose the astrological report structure</p>
+                <div className="flex flex-col gap-2">
+                  {(['solo', 'synastry', 'composite'] as const).map((type) => (
+                    <label
+                      key={type}
+                      className="flex items-center gap-3 rounded-md border border-slate-700 bg-slate-800/60 px-3 py-2.5 cursor-pointer hover:bg-slate-800 transition"
+                    >
+                      <input
+                        type="radio"
+                        name="report-type"
+                        value={type}
+                        checked={reportStructure === type}
+                        onChange={(e) => {
+                          setReportStructure(e.target.value as ReportStructure);
+                          if (e.target.value !== 'solo') {
+                            setIncludePersonB(true);
+                          }
+                        }}
+                        className="h-4 w-4 border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <div>
+                        <span className="block text-sm font-medium text-slate-100 capitalize">{type}</span>
+                        <span className="block text-xs text-slate-400">
+                          {type === 'solo' && 'Individual natal chart analysis'}
+                          {type === 'synastry' && 'Relationship dynamics between two charts'}
+                          {type === 'composite' && 'Blended chart representing the relationship itself'}
+                        </span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </Section>
+
+            <Section title="Symbolic Weather (Transits)">
               <div className="space-y-4">
                 <div className="flex items-start gap-3 rounded-md border border-slate-700 bg-slate-800/60 px-3 py-3">
                   <input
@@ -4593,7 +4656,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                       Include Transits
                     </label>
                     <p className="mt-1 text-xs text-slate-400">
-                      Unchecked = natal-only modes; checked = natal + symbolic weather.
+                      Layer symbolic weather over your chosen report type (Mirror → Balance Meter).
                     </p>
                   </div>
                 </div>
@@ -4663,10 +4726,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                       value={mode}
                       onChange={(e) => {
                         const normalized = normalizeReportMode(e.target.value);
-                        setMode(normalized);
-                        if (RELATIONAL_MODES.includes(normalized)) {
-                          setIncludePersonB(true);
-                        }
+                        applyMode(normalized);
                       }}
                     >
                       <optgroup label="Solo">
