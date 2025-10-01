@@ -7,6 +7,9 @@ import {
   stripBalancePayload,
   enforceNatalOnlyMode
 } from './schema-rule-patch';
+import { generateBlueprintMetaphor, narrateBlueprintClimate } from '../lib/blueprint-narrator';
+import { narrateSymbolicWeather, hasValidIndices as hasWeatherIndices } from '../lib/weather-narrator';
+import { narrateStitchedReflection, narrateRelationalReflection } from '../lib/reflection-narrator';
 
 interface RenderContext {
   mode: ReportMode;
@@ -45,28 +48,32 @@ interface RenderedFrontstage {
 
 export class FrontstageRenderer {
   private async narrateBlueprint(doc: RenderContext): Promise<string> {
-    // Extract natal placements for blueprint narrative
-    const placements = doc.person_a?.chart?.planets || doc.natal_summary?.placements?.core || [];
+    // Extract constitutional modes (should be in doc.constitutional_modes or similar)
+    const modes = doc.constitutional_modes || doc.blueprint_modes;
 
-    if (!placements.length) {
-      return "Blueprint unavailable: no natal placements found in payload.";
+    if (!modes?.primary_mode || !modes?.secondary_mode || !modes?.shadow_mode) {
+      return "Blueprint unavailable: constitutional modes not extracted from chart.";
     }
 
-    // Basic blueprint from key placements
-    const sun = placements.find((p: any) => p.name === 'Sun');
-    const moon = placements.find((p: any) => p.name === 'Moon');
-    const ascendant = placements.find((p: any) => p.name === 'Ascendant');
+    // Extract natal context for metaphor generation
+    const chartData = doc.person_a?.chart || doc.chart || {};
+    const planets = chartData.planets || chartData.data || {};
 
-    const parts = [];
-    if (sun?.sign) parts.push(`Sun in ${sun.sign}`);
-    if (moon?.sign) parts.push(`Moon in ${moon.sign}`);
-    if (ascendant?.sign) parts.push(`${ascendant.sign} Rising`);
+    const natalContext = {
+      sun: planets.sun ? { sign: planets.sun.sign, house: planets.sun.house, element: planets.sun.element } : undefined,
+      moon: planets.moon ? { sign: planets.moon.sign, house: planets.moon.house, element: planets.moon.element } : undefined,
+      ascendant: planets.ascendant ? { sign: planets.ascendant.sign, element: planets.ascendant.element } : undefined,
+      mercury: planets.mercury ? { sign: planets.mercury.sign, element: planets.mercury.element } : undefined,
+      aspects: chartData.aspects || []
+    };
 
-    const blueprint = parts.length > 0
-      ? `Core blueprint: ${parts.join(', ')}.`
-      : "Blueprint detected but key placements unclear.";
+    // Generate unique metaphor via LLM
+    const metaphor = await generateBlueprintMetaphor(modes, natalContext);
 
-    return blueprint;
+    // Generate full narrative via LLM
+    const narrative = await narrateBlueprintClimate(modes, metaphor, natalContext);
+
+    return narrative;
   }
 
   private async narrateWeatherFromIndices(doc: RenderContext): Promise<string> {
@@ -75,47 +82,66 @@ export class FrontstageRenderer {
     }
 
     const days = doc.indices?.days || [];
-    const recentDays = days.slice(-3); // Last 3 days for weather summary
 
-    if (!recentDays.length) {
-      return "Weather data present but no recent daily readings available.";
+    if (!days.length) {
+      return "Weather data present but no daily readings available.";
     }
 
-    // Simple weather narrative from indices
-    const avgMagnitude = recentDays.reduce((sum: number, day: any) => sum + (day.magnitude || 0), 0) / recentDays.length;
-    const avgVolatility = recentDays.reduce((sum: number, day: any) => sum + (day.volatility || 0), 0) / recentDays.length;
+    // Get blueprint metaphor if available for context
+    const modes = doc.constitutional_modes || doc.blueprint_modes;
+    const blueprintMetaphor = modes?.blueprint_metaphor || undefined;
 
-    let weatherTone = "Neutral weather patterns";
-    if (avgMagnitude > 3 && avgVolatility > 3) {
-      weatherTone = "High-intensity weather with significant volatility";
-    } else if (avgMagnitude > 3) {
-      weatherTone = "Elevated magnitude with steady undercurrents";
-    } else if (avgVolatility > 3) {
-      weatherTone = "Scattered weather patterns with variable intensity";
-    }
+    // Extract transits if available
+    const transits = doc.transits || doc.filtered_aspects || [];
 
-    return `${weatherTone} over the recent ${recentDays.length}-day window.`;
+    // Build window context
+    const window = doc.window || doc.indices?.window;
+
+    // Generate weather narrative via LLM
+    const weatherContext = {
+      indices: days,
+      transits: transits,
+      blueprintMetaphor: blueprintMetaphor,
+      window: window
+    };
+
+    const narrative = await narrateSymbolicWeather(weatherContext);
+    return narrative;
   }
 
-  private async narrateStitch(doc: RenderContext, mode: ReportMode, allowWeather: boolean): Promise<string> {
-    const hasBlueprint = !!(doc.person_a?.chart?.planets?.length || doc.natal_summary?.placements);
+  private async narrateStitch(
+    doc: RenderContext,
+    mode: ReportMode,
+    allowWeather: boolean,
+    blueprintNarrative?: string,
+    weatherNarrative?: string
+  ): Promise<string> {
+    const modes = doc.constitutional_modes || doc.blueprint_modes;
+    const hasBlueprint = !!(modes?.primary_mode);
     const hasWeather = allowWeather && hasValidIndices(doc);
 
-    if (mode === 'natal-only') {
-      return hasBlueprint
-        ? "Natal reflection stands alone—track how these patterns surface in lived experience."
-        : "Natal structure unclear—re-export the chart with full placements.";
-    }
+    // Extract blueprint metaphor
+    const blueprintMetaphor = modes?.blueprint_metaphor || 'constitutional architecture';
 
-    if (hasBlueprint && hasWeather) {
-      return "Blueprint and current weather patterns intersect—observe how natal themes respond to daily transits.";
-    } else if (hasBlueprint) {
-      return "Blueprint present without current weather data—using natal baseline only.";
-    } else if (hasWeather) {
-      return "Weather patterns available but missing natal context for full integration.";
-    }
+    // Build reflection context
+    const reflectionContext = {
+      mode: mode,
+      blueprintMetaphor: blueprintMetaphor,
+      blueprintNarrative: blueprintNarrative,
+      weatherNarrative: weatherNarrative,
+      hasWeatherData: hasWeather,
+      hasBlueprintData: hasBlueprint,
+      coreTensions: doc.core_tensions || [],
+      relocationContext: doc.relocation ? {
+        enabled: true,
+        location: doc.relocation.location,
+        timezone: doc.relocation.timezone
+      } : undefined
+    };
 
-    return "Integration limited: missing both natal blueprint and current weather data.";
+    // Generate stitched reflection via LLM
+    const reflection = await narrateStitchedReflection(reflectionContext);
+    return reflection;
   }
 
   public async renderFrontstage(doc: RenderContext): Promise<RenderedFrontstage> {
@@ -149,12 +175,16 @@ export class FrontstageRenderer {
     }
 
     const result: RenderedFrontstage = {};
+    let blueprintNarrative: string | undefined;
+    let weatherNarrative: string | undefined;
 
     // Generate blueprint
     if (include.includes('blueprint')) {
       try {
-        result.blueprint = await this.narrateBlueprint(processedDoc);
+        blueprintNarrative = await this.narrateBlueprint(processedDoc);
+        result.blueprint = blueprintNarrative;
       } catch (error) {
+        console.error('Blueprint generation error:', error);
         result.blueprint = "Blueprint generation failed—check payload structure.";
       }
     }
@@ -163,8 +193,10 @@ export class FrontstageRenderer {
     if (include.includes('symbolic_weather')) {
       if (allowWeather && hasValidIndices(processedDoc)) {
         try {
-          result.symbolic_weather = await this.narrateWeatherFromIndices(processedDoc);
+          weatherNarrative = await this.narrateWeatherFromIndices(processedDoc);
+          result.symbolic_weather = weatherNarrative;
         } catch (error) {
+          console.error('Weather generation error:', error);
           result.symbolic_weather = "Weather generation failed—indices may be corrupted.";
         }
       } else {
@@ -183,11 +215,18 @@ export class FrontstageRenderer {
       }
     }
 
-    // Generate stitched reflection
+    // Generate stitched reflection (passes blueprint and weather narratives for context)
     if (include.includes('stitched_reflection')) {
       try {
-        result.stitched_reflection = await this.narrateStitch(processedDoc, mode, allowWeather);
+        result.stitched_reflection = await this.narrateStitch(
+          processedDoc,
+          mode,
+          allowWeather,
+          blueprintNarrative,
+          weatherNarrative
+        );
       } catch (error) {
+        console.error('Stitched reflection generation error:', error);
         result.stitched_reflection = "Integration reflection unavailable due to processing error.";
       }
     }
