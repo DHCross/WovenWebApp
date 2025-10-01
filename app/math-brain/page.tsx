@@ -1230,6 +1230,13 @@ export default function MathBrainPage() {
     [mode, startDate, endDate, step, relocationStatus, relocLabel]
   );
 
+  const isTransitLensMode =
+    reportHeader.mode === "TRANSITS" || reportHeader.mode === "SYNASTRY_TRANSITS";
+  const lensStripeText =
+    isTransitLensMode && reportHeader.relocated.active
+      ? `Lens: ${reportHeader.relocated.label || "Relocated (label missing)."}`
+      : "Lens: Natal houses (no relocation).";
+
   // If Person B is turned off while a relational mode is selected, reset to a solo mode
   useEffect(() => {
     if (!includePersonB && reportStructure !== 'solo') {
@@ -3056,6 +3063,8 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
         sessionPayload.summary = summaryForResume;
       }
       window.localStorage.setItem('mb.lastSession', JSON.stringify(sessionPayload));
+      setSavedSession(sessionPayload);
+      setShowSessionResumePrompt(true);
     } catch (error) {
       console.error('Failed to persist Math Brain session resume data', error);
     }
@@ -3794,9 +3803,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
       {/* Lens stripe - exact microcopy per UI/UX contract */}
       <div className="mt-6 mb-8 rounded-lg border border-slate-600 bg-slate-800/40 px-4 py-3 text-center print:hidden">
         <div className="text-sm text-slate-200">
-          {reportHeader.relocated.active
-            ? `Lens: ${reportHeader.relocated.label || "Relocated (label missing)."}`
-            : "Lens: Natal houses (no relocation)."}
+          {lensStripeText}
         </div>
       </div>
 
