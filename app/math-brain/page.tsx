@@ -870,6 +870,13 @@ export default function MathBrainPage() {
     });
   }, [includeTransits, isDyadMode, mode]);
 
+  // Automatically enable includePersonB when a relationship type is selected
+  useEffect(() => {
+    if (relationshipType && relationshipType !== 'NONE') {
+      setIncludePersonB(true);
+    }
+  }, [relationshipType]);
+
   useEffect(() => {
     if (!includeTransits && layerVisibility.balance) {
       setLayerVisibility((prev) => ({ ...prev, balance: false }));
