@@ -4232,33 +4232,33 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                     {' '}Select the role to clarify Person B's relationship to Person A.</div>
                 </div>
               </div>
-              <div className="sm:col-span-2">
-                <span className="block text-sm text-slate-300">Contact State</span>
-                <div className="mt-2 inline-flex overflow-hidden rounded-md border border-slate-600 bg-slate-900/80">
-                  <button
-                    type="button"
-                    disabled={!includePersonB}
-                    onClick={() => setContactState('ACTIVE')}
-                    className={`px-3 py-1.5 text-sm transition ${contactState === 'ACTIVE' ? 'bg-emerald-600 text-white' : 'text-slate-200 hover:bg-slate-800'} ${!includePersonB ? 'cursor-not-allowed opacity-70' : ''}`}
-                    aria-pressed={contactState === 'ACTIVE'}
-                  >
-                    Active
-                  </button>
-                  <div className="h-6 w-px bg-slate-700 my-1" />
-                  <button
-                    type="button"
-                    disabled={!includePersonB}
-                    onClick={() => setContactState('LATENT')}
-                    className={`px-3 py-1.5 text-sm transition ${contactState === 'LATENT' ? 'bg-indigo-600 text-white' : 'text-slate-200 hover:bg-slate-800'} ${!includePersonB ? 'cursor-not-allowed opacity-70' : ''}`}
-                    aria-pressed={contactState === 'LATENT'}
-                  >
-                    Latent
-                  </button>
+              {includePersonB && (
+                <div className="sm:col-span-2">
+                  <span className="block text-sm text-slate-300">Contact State</span>
+                  <div className="mt-2 inline-flex overflow-hidden rounded-md border border-slate-600 bg-slate-900/80">
+                    <button
+                      type="button"
+                      onClick={() => setContactState('ACTIVE')}
+                      className={`px-3 py-1.5 text-sm transition ${contactState === 'ACTIVE' ? 'bg-emerald-600 text-white' : 'text-slate-200 hover:bg-slate-800'}`}
+                      aria-pressed={contactState === 'ACTIVE'}
+                    >
+                      Active
+                    </button>
+                    <div className="h-6 w-px bg-slate-700 my-1" />
+                    <button
+                      type="button"
+                      onClick={() => setContactState('LATENT')}
+                      className={`px-3 py-1.5 text-sm transition ${contactState === 'LATENT' ? 'bg-indigo-600 text-white' : 'text-slate-200 hover:bg-slate-800'}`}
+                      aria-pressed={contactState === 'LATENT'}
+                    >
+                      Latent
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-400">
+                    Active treats overlays as live contact pressure; Latent logs the geometry but marks it dormant until reactivation.
+                  </p>
                 </div>
-                <p className="mt-2 text-xs text-slate-400">
-                  Active treats overlays as live contact pressure; Latent logs the geometry but marks it dormant until reactivation.
-                </p>
-              </div>
+              )}
               {relationshipType === 'PARTNER' && (
                 <div>
                   <label htmlFor="rel-tier" className="block text-sm text-slate-300">Intimacy Tier</label>
