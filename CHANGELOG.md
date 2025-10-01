@@ -1,3 +1,92 @@
+## [2025-10-01] IN PROGRESS: Relational Reports - Bidirectional Cross-Transit Implementation
+
+**Issue Identified**
+Synastry and relational reports were generating Mirror-only or Balance Meter-only PDFs. Initial fix implemented **incorrect computation model** that averaged metrics instead of computing bidirectional cross-activation.
+
+**Current Status: PARTIAL FIX - REQUIRES CORRECTION**
+
+**Changes Implemented**
+
+1. **Removed Relational Blocking** ([astrology-mathbrain.js:4238](lib/server/astrology-mathbrain.js#L4238))
+   - Removed `!relationshipMode` guard that prevented Balance Meter from running for synastry reports
+   - Balance Meter now generates for both solo and relational reports
+
+2. **Enhanced Relational Balance Meter Computation** ([astrology-mathbrain.js:2540-2637](lib/server/astrology-mathbrain.js#L2540-L2637))
+   - Implemented proper relational Balance Meter using:
+     - Base synastry aspects (structural relational field)
+     - Both people's daily transits (temporal activation)
+     - Daily combined metrics (magnitude, valence, volatility, SFD)
+   - Computation note: "Relational Balance Meter v1.0: Combines Person A + Person B daily transits with synastry baseline"
+
+3. **Person B Transit Computation** ([astrology-mathbrain.js:4261-4280](lib/server/astrology-mathbrain.js#L4261-L4280))
+   - When in relational mode, system now computes transits for Person B
+   - Both people's transit data included in Balance Meter report structure
+   - Daily metrics computed individually and combined for relational field assessment
+
+4. **Unified Report Structure** ([woven-map-composer.js:928-984](src/reporters/woven-map-composer.js#L928-L984))
+   - Reports now use comprehensive/unified structure by default
+   - **Blueprint Layer**: Natal/synastry foundation with polarity cards, vector integrity
+   - **Symbolic Weather Layer**: Balance Meter metrics for both individuals + relational composite
+   - **Data Tables**: Comprehensive backstage data for PDF export
+
+5. **Fixed Synastry Summary Extraction** ([woven-map-composer.js:717-741](src/reporters/woven-map-composer.js#L717-L741))
+   - Updated to check multiple locations for synastry aspects
+   - Properly extracts from `result.composite.synastry_aspects`
+   - Includes supportive/challenging aspect counts and dominant theme classification
+
+**Report Structure Now Follows Spec**
+- **Frontstage**: Single stitched Mirror using FIELD → MAP → VOICE
+- **Symbolic Weather**: Balance Meter indices from relational field (both charts + synastry)
+- **Backstage**: Raw geometry with synastry grid, aspect lists, channel version labels (already present in `provenance.engine_versions`)
+
+### ❌ Known Issues with Current Implementation:
+
+**CRITICAL: Relational Balance Meter Uses Wrong Model** ([astrology-mathbrain.js:2540-2637](lib/server/astrology-mathbrain.js#L2540-L2637))
+
+Current implementation (INCORRECT):
+- Averages Person A and Person B daily transit metrics
+- Creates "collapsed blob" losing asymmetry
+- Missing bidirectional cross-activation (A←B, B←A)
+- Example: `magnitude = (magA + magB) / 2` ❌
+
+Required implementation (per spec):
+- Compute **A←B**: How B's transits + natal activate A's experience
+- Compute **B←A**: How A's transits + natal activate B's experience
+- Preserve asymmetry (different lived experiences)
+- Show **who is under more pressure from whom**
+
+**Hook Stack Empty** - Because cross-activation not computed, ranked bidirectional activation points missing
+
+### ✅ Progress Update - Phase 1 (Bidirectional Computation):
+
+**Completed**:
+- [x] Created comprehensive implementation spec: [IMPLEMENTATION_SPEC_MIRROR_REPORTS.md](IMPLEMENTATION_SPEC_MIRROR_REPORTS.md)
+- [x] Implemented `computeBidirectionalOverlays()` function ([astrology-mathbrain.js:2541-2613](lib/server/astrology-mathbrain.js#L2541-L2613))
+  - Partitions synastry aspects by direction (A←B vs B←A)
+  - Classifies each aspect as support/compression/friction/neutral
+  - Computes separate Balance Meter (SFD) for each direction
+  - Preserves asymmetry - no averaging
+- [x] Added aspect role classification ([astrology-mathbrain.js:2618-2644](lib/server/astrology-mathbrain.js#L2618-L2644))
+- [x] Added experience descriptions for each direction ([astrology-mathbrain.js:2649-2673](lib/server/astrology-mathbrain.js#L2649-L2673))
+- [x] Integrated into `generateRelationalMirror()` ([astrology-mathbrain.js:2856-2865](lib/server/astrology-mathbrain.js#L2856-L2865))
+- [x] Updated `woven-map-composer.js` to include bidirectional overlays in reports ([woven-map-composer.js:973-976](src/reporters/woven-map-composer.js#L973-L976))
+- [x] Deprecated old averaging function as `computeRelationalBalanceMeter_DEPRECATED`
+
+**What This Fixes**:
+- Hook stack should now populate with actual cross-activation data
+- Relational reports preserve "Dan experiences Saturn from Stephanie differently than Stephanie experiences Moon from Dan"
+- Each person's experience tracked separately
+
+**Next Steps**:
+- [ ] Extract blueprint modes (Primary/Secondary/Shadow) from natal
+- [ ] Generate polarity cards from natal paradoxes
+- [ ] Add relocation mode selection (None/A_local/B_local/Midpoint)
+- [ ] Implement house/angle recomputation
+- [ ] Create Mirror Voice generator (4-paragraph Raven Calder output)
+- [ ] Test with real synastry data
+
+---
+
 ## [2025-09-20] CRITICAL FIXES: Auth Redirect, API Field Mapping, and Deployment Configuration
 
 **Summary**

@@ -715,12 +715,19 @@ function buildPolarityCardsHooks(a /* person_a */) {
 
 // Helper functions for unified report structure
 function extractSynastrySummary(result) {
+  // Check multiple locations for synastry aspects
   const synastry = result?.synastry;
-  if (!synastry) return null;
+  const composite = result?.composite;
 
-  const aspects = synastry.aspects || [];
-  const supportiveAspects = aspects.filter(asp => ['trine', 'sextile'].includes(asp.aspect));
-  const challengingAspects = aspects.filter(asp => ['square', 'opposition'].includes(asp.aspect));
+  const aspects = synastry?.aspects
+    || composite?.synastry_aspects
+    || composite?.relational_mirror?.synastry_aspects
+    || [];
+
+  if (!aspects.length) return null;
+
+  const supportiveAspects = aspects.filter(asp => ['trine', 'sextile', 'conjunction'].includes(asp.aspect?.toLowerCase()));
+  const challengingAspects = aspects.filter(asp => ['square', 'opposition'].includes(asp.aspect?.toLowerCase()));
 
   return {
     total_aspects: aspects.length,
@@ -728,8 +735,8 @@ function extractSynastrySummary(result) {
     challenging_count: challengingAspects.length,
     top_supportive: supportiveAspects.slice(0, 3),
     top_challenging: challengingAspects.slice(0, 3),
-    dominant_theme: aspects.length > challengingAspects.length * 2 ? 'harmonious' :
-                   challengingAspects.length > supportiveAspects.length * 2 ? 'dynamic' : 'balanced'
+    dominant_theme: supportiveAspects.length > challengingAspects.length * 1.5 ? 'harmonious' :
+                   challengingAspects.length > supportiveAspects.length * 1.5 ? 'dynamic' : 'balanced'
   };
 }
 
@@ -953,13 +960,35 @@ function composeWovenMapReport({ result, mode, period, options = {} }) {
     // SYMBOLIC WEATHER LAYER (only if transits present)
     const hasTransits = !!(result?.person_a?.chart?.transitsByDate && Object.keys(result.person_a.chart.transitsByDate).length);
     if (hasTransits) {
-      report.symbolic_weather = {
+      const weatherLayer = {
         balance_meter: buildBalanceMeter(summary, meterChannels, result?.provenance?.engine_versions),
         time_series: timeSeries,
         integration_factors: integration,
         transit_context: extractTransitContext(result),
         field_triggers: extractFieldTriggers(result)
       };
+
+      // Add relational data if available
+      if (type === 'relational') {
+        // CRITICAL: Bidirectional overlays (preserves asymmetry A←B and B←A)
+        if (result?.composite?.relational_mirror?.bidirectional_overlays) {
+          weatherLayer.bidirectional_overlays = result.composite.relational_mirror.bidirectional_overlays;
+        }
+
+        // Legacy: Deprecated averaged metrics (kept for compatibility)
+        if (result?.balance_meter?.relational_balance_meter) {
+          weatherLayer.relational_balance_meter_legacy = result.balance_meter.relational_balance_meter;
+        }
+
+        // Person B transit summary
+        if (result?.person_b?.chart?.transitsByDate) {
+          const summaryB = result.person_b.derived?.seismograph_summary || null;
+          const meterChannelsB = summarizeMeterChannels(result.person_b.chart.transitsByDate);
+          weatherLayer.person_b_balance_meter = buildBalanceMeter(summaryB, meterChannelsB, result?.provenance?.engine_versions);
+        }
+      }
+
+      report.symbolic_weather = weatherLayer;
     }
 
     // COMPREHENSIVE DATA TABLES (for PDF export)
