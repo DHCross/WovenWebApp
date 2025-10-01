@@ -456,6 +456,7 @@ export async function renderShareableMirror({ geo, prov, options, conversational
           frontstage_policy: cleanedPayload.frontstage_policy,
           preface: frontstage.preface,
           scenario_prompt: frontstage.scenario_prompt,
+          scenario_question: frontstage.scenario_question,
           picture: frontstage.blueprint,
           feeling: 'Schema-compliant rendering active',
           container: frontstage.stitched_reflection,

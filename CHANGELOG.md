@@ -1,3 +1,13 @@
+
+## [2025-10-01] FEATURE: Poetic Brain Lexicon-Driven Scenario & Human Translation Layer
+
+- Refined the lexicon-driven scenario so Raven speaks in human, testable language instead of raw polarity riddles.
+- `lib/weather-lexicon-adapter.ts` now returns both an internal scenario question and a reader-facing translation paragraph. The translation layer covers Openness↔Restriction, Supported↔Unsanctioned, Risk↔Stability, and Visibility↔Obscurity, applying neutral, conditional phrasing rules.
+- `src/frontstage-renderer.ts` surfaces the new translation (and keeps the internal cue separately) so Poetic Brain replies start with practical hypotheses the reader can test.
+- `lib/raven/render.ts` and `app/math-brain/page.tsx` pass the translation through to schema-enforced renders and PDFs, listing both the reader paragraph and the internal prompt for diagnostics.
+- `Developers Notes/Poetic Brain/Woven Map Probabilistic Field Lexicon 8.28.25 copy.md` documents this “Human Translation Layer” so future contributors know the lexicon must always be surfaced through that adapter.
+- No automated tests were run. TypeScript build expected to pass, but patch if any lint warnings appear.
+
 ## [2025-10-01] Relational Reports + User Experience Improvements
 
 **Three Major Improvements**:

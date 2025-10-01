@@ -52,6 +52,7 @@ interface RenderedFrontstage {
     relational_focus?: string | null;
   };
   scenario_prompt?: string | null;
+  scenario_question?: string | null;
 }
 
 export class FrontstageRenderer {
@@ -277,7 +278,8 @@ export class FrontstageRenderer {
           if (Array.isArray(days) && days.length) {
             try {
               const scenario = indicesToScenario(days);
-              result.scenario_prompt = scenario.prompt;
+              result.scenario_prompt = scenario.translation;
+              result.scenario_question = scenario.prompt;
             } catch {}
           }
         } catch (error) {

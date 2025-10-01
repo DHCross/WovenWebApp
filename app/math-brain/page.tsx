@@ -2373,6 +2373,7 @@ export default function MathBrainPage() {
             schema_enforced_render: {
               preface: mirrorResult.preface,
               scenario_prompt: mirrorResult.scenario_prompt,
+              scenario_question: mirrorResult.scenario_question,
               picture: mirrorResult.picture,
               feeling: mirrorResult.feeling,
               container: mirrorResult.container,
@@ -2443,7 +2444,8 @@ Frontstage Policy: ${JSON.stringify(processedResult.contract_compliance?.frontst
 
 Schema-Enforced Render:
 • Preface:\n${prefaceLines || 'N/A'}
-• Scenario: ${processedResult.schema_enforced_render?.scenario_prompt || 'N/A'}
+• Scenario (reader): ${processedResult.schema_enforced_render?.scenario_prompt || 'N/A'}
+• Scenario (internal cue): ${processedResult.schema_enforced_render?.scenario_question || 'N/A'}
 • Picture: ${processedResult.schema_enforced_render?.picture || 'N/A'}
 • Container: ${processedResult.schema_enforced_render?.container || 'N/A'}
 • Symbolic Weather: ${processedResult.schema_enforced_render?.symbolic_weather || 'Suppressed in natal-only mode'}

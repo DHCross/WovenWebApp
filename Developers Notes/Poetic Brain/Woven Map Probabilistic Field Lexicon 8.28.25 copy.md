@@ -132,4 +132,14 @@ Designed for use in **Balance Meter climate lines** or **scenario questions**. E
    * **ABE:** possible, with inversion or mismatch
    * **OSR:** absent, not supported
 
-   
+---
+
+## **Human Translation Layer**
+
+When Raven speaks to a reader, raw polarity labels never appear. Each axis is converted into everyday language that:
+
+1. Names the tension in lived terms (e.g., "sharing more of yourself" vs "keeping things private").
+2. Frames both poles as conditional signals the reader can test in real situations.
+3. Stays neutral—neither side is declared better; the emphasis is on observation.
+
+Implementation note: `lib/weather-lexicon-adapter.ts` picks the leading axis from recent indices and returns both an internal cue (for agent use) and a human translation paragraph. Frontstage surfaces only the translation so reports open with practical hypotheses instead of lexicon shorthand.
