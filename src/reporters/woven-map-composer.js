@@ -946,14 +946,21 @@ function composeWovenMapReport({ result, mode, period, options = {} }) {
       };
     })();
 
+    // Extract blueprint modes (Primary/Secondary/Shadow) for Raven Calder
+    const { extractBlueprintModes } = require('../../lib/blueprint-extraction');
+    const blueprintModes = extractBlueprintModes(a.chart || a);
+
     report.blueprint = {
       natal_summary: natalSummary,
       drivers: driversSummary,
+      modes: blueprintModes, // NEW: Jungian function extraction
       polarity_cards: buildPolarityCardsHooks(a),
       vector_integrity: vectorIntegrity,
       ...(type === 'relational' && {
         synastry_summary: extractSynastrySummary(result),
-        relationship_score: extractRelationshipScore(result)
+        relationship_score: extractRelationshipScore(result),
+        // Extract modes for Person B as well
+        person_b_modes: b ? extractBlueprintModes(b.chart || b) : null
       })
     };
 

@@ -2,6 +2,8 @@
 // Balance Channel (v1.1) + Support–Friction Differential (SFD, v1.2)
 // Standalone computation based on "Balance Meter.txt" spec (v1.2 Draft, Sep 5, 2025)
 
+const { getEffectiveOrb, isWithinOrb } = require('../lib/config/orb-profiles');
+
 function clamp(n, lo, hi){ return Math.max(lo, Math.min(hi, n)); }
 function round(n, p=2){ return Math.round(n * (10**p)) / (10**p); }
 
@@ -58,23 +60,13 @@ function bodyClass(name){
 function isBenefic(name){ return name==='Jupiter' || name==='Venus'; }
 function isHeavy(name){ return name==='Saturn' || name==='Pluto' || name==='Chiron'; }
 
-// Linear orb multiplier with caps per class, 1.0 at exact → 0 at/over cap.
-function orbMultiplier(aspect, orbDeg, aName, bName){
-  const aClass = bodyClass(aName);
-  const bClass = bodyClass(bName);
-  const isMinor = (aspect==='quintile' || aspect==='biquintile' || aspect==='quincunx' || aspect==='sesquiquadrate' || aspect==='semi-square' || aspect==='semi-sextile');
-  const minorCap = 1.0;
-  const capByClass = (cls)=>{
-    if (cls==='luminary' || cls==='angle') return 6.0;
-    if (cls==='point') return 3.0;
-    return 4.0; // planets default
-  };
-  const capBodies = Math.max(capByClass(aClass), capByClass(bClass));
-  const cap = isMinor ? minorCap : capBodies;
+// Linear orb multiplier with dynamic caps from orb profile, 1.0 at exact → 0 at/over cap.
+function orbMultiplier(aspect, orbDeg, aName, bName, orbsProfile = 'wm-spec-2025-09'){
+  const effectiveOrb = getEffectiveOrb(aspect, aName, bName, orbsProfile);
   const o = Math.abs(Number(orbDeg||0));
   if (!(o>=0)) return 0;
-  if (o>=cap) return 0;
-  return +(1 - (o/cap));
+  if (o>=effectiveOrb) return 0;
+  return +(1 - (o/effectiveOrb));
 }
 
 // Sensitivity multiplier: angles/luminaries/personals boosted symmetrically
@@ -147,7 +139,7 @@ function isHardBetween(type, aName, bName, setA, setB){
 
 // Balance Channel v1.1 (rebalanced valence only)
 // Simple pass: reuse SFD support weights but with gentler base table per Appendix (if needed later)
-function computeBalanceValence(dayAspects){
+function computeBalanceValence(dayAspects, orbsProfile = 'wm-spec-2025-09'){
   if (!Array.isArray(dayAspects)) return 0;
   let v = 0;
   for (const rec of dayAspects){
@@ -155,7 +147,7 @@ function computeBalanceValence(dayAspects){
     const a = normBody(rec.p1_name || rec.a || rec.transit);
     const b = normBody(rec.p2_name || rec.b || rec.natal);
     const orb = rec.orb != null ? rec.orb : (rec.orbit != null ? rec.orbit : rec._orb);
-    const o = orbMultiplier(type, orb, a, b);
+    const o = orbMultiplier(type, orb, a, b, orbsProfile);
     const s = sensitivity(a,b);
     // v1.1 base: softer positives/negatives than v1.0; here approximate using SFD support and skip negatives except hard to benefics
     let base = 0;
@@ -175,7 +167,7 @@ function computeBalanceValence(dayAspects){
 }
 
 // Core SFD computation (v1.2)
-function computeSFD(dayAspects){
+function computeSFD(dayAspects, orbsProfile = 'wm-spec-2025-09'){
   if (!Array.isArray(dayAspects)) return { SFD: 0, Splus: 0, Sminus: 0 };
 
   let support = 0;
@@ -196,7 +188,7 @@ function computeSFD(dayAspects){
     if (base > 0){
       const mA = planetMultiplier(a, 'support');
       const mB = planetMultiplier(b, 'support');
-      const o = orbMultiplier(type, orb, a, b);
+      const o = orbMultiplier(type, orb, a, b, orbsProfile);
       const s = sensitivity(a,b);
       const w = base * mA * mB * o * s;
       support += Math.max(w, 0);
@@ -240,7 +232,7 @@ function computeSFD(dayAspects){
     if (base < 0){
       const mA = planetMultiplier(a, 'counter');
       const mB = planetMultiplier(b, 'counter');
-      const o = orbMultiplier(type, orb, a, b);
+      const o = orbMultiplier(type, orb, a, b, orbsProfile);
       const s = sensitivity(a,b);
       let w = Math.abs(base) * mA * mB * o * s;
       if (!touched(a,b)) w *= 0.7; // locality factor if not touching S+ nodes

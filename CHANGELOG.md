@@ -3,7 +3,7 @@
 **Issue Identified**
 Synastry and relational reports were generating Mirror-only or Balance Meter-only PDFs. Initial fix implemented **incorrect computation model** that averaged metrics instead of computing bidirectional cross-activation.
 
-**Current Status: PARTIAL FIX - REQUIRES CORRECTION**
+**Current Status: PHASE 1 COMPLETE - Phase 2 In Progress**
 
 **Changes Implemented**
 
@@ -38,6 +38,44 @@ Synastry and relational reports were generating Mirror-only or Balance Meter-onl
 - **Frontstage**: Single stitched Mirror using FIELD → MAP → VOICE
 - **Symbolic Weather**: Balance Meter indices from relational field (both charts + synastry)
 - **Backstage**: Raw geometry with synastry grid, aspect lists, channel version labels (already present in `provenance.engine_versions`)
+
+### ✅ Phase 1 Complete - Foundation Modules
+
+6. **Orb Profile Module** ([lib/config/orb-profiles.js](lib/config/orb-profiles.js))
+   - Centralized orb configuration supporting multiple profiles (Balance Default, Astro-Seek Strict)
+   - Dynamic orb calculation with modifiers:
+     - Moon bonus: +1.0°
+     - Outer-to-personal penalty: -1.0°
+     - Luminary-to-angle bonus: +1.0°
+   - Profile IDs: `wm-spec-2025-09` (default), `astro-seek-strict`
+   - Includes aspect filtering: `filterByOrbProfile()`, `isWithinOrb()`
+   - Test coverage: [test/orb-profiles.spec.js](test/orb-profiles.spec.js) with 20+ test cases
+
+7. **Blueprint Extraction Module** ([lib/blueprint-extraction.js](lib/blueprint-extraction.js))
+   - Maps natal chart to Jungian functions (Primary/Secondary/Shadow modes)
+   - Element-to-function mapping: Fire→Intuition, Earth→Sensation, Air→Thinking, Water→Feeling
+   - Weighted scoring: Sun(3.0), Asc(2.5), Moon(2.0), Saturn(2.0), Mercury(1.5)
+   - Returns blueprint metaphor for Raven Calder narrative generation
+   - Confidence ratings: high/medium/low based on data quality
+
+8. **Orb Profile Integration** ([src/balance-meter.js](src/balance-meter.js), [lib/server/astrology-mathbrain.js](lib/server/astrology-mathbrain.js))
+   - Replaced hardcoded orb caps with dynamic calculation from orb-profiles.js
+   - `orbMultiplier()` now uses `getEffectiveOrb()` with profile parameter
+   - `computeSFD()` and `computeBalanceValence()` accept `orbsProfile` parameter (default: 'wm-spec-2025-09')
+   - `calculateSeismograph()` threads `orbsProfile` through all balance meter computations
+   - All 10 call sites updated to pass `body.orbs_profile || 'wm-spec-2025-09'`
+
+9. **Bidirectional Overlays Enhancement** ([lib/server/astrology-mathbrain.js:2543-2615](lib/server/astrology-mathbrain.js#L2543-L2615))
+   - `computeBidirectionalOverlays()` now accepts `orbsProfile` parameter
+   - Separate SFD computation for A←B and B←A using profile-specific orbs
+   - `generateRelationalMirror()` threads `orbsProfile` to bidirectional computation
+   - All 4 call sites updated to pass orb profile
+
+10. **Blueprint Integration** ([src/reporters/woven-map-composer.js:949-965](src/reporters/woven-map-composer.js#L949-L965))
+    - Wired `extractBlueprintModes()` into report composer
+    - `report.blueprint.modes` now contains Primary/Secondary/Shadow modes
+    - For relational reports, also extracts `person_b_modes`
+    - Ready for Raven Calder Mirror Voice generation (Phase 2)
 
 ### ❌ Known Issues with Current Implementation:
 
@@ -77,13 +115,28 @@ Required implementation (per spec):
 - Relational reports preserve "Dan experiences Saturn from Stephanie differently than Stephanie experiences Moon from Dan"
 - Each person's experience tracked separately
 
-**Next Steps**:
-- [ ] Extract blueprint modes (Primary/Secondary/Shadow) from natal
-- [ ] Generate polarity cards from natal paradoxes
+**Phase 1 Complete - Config & Data Layer**:
+- [x] Orb profiles module ([orb-profiles.js](lib/config/orb-profiles.js))
+  - Balance Default (wm-spec-2025-09): Standard orbs with Moon +1°, outer-to-personal -1°
+  - Astro-Seek Strict: Tighter orbs to reduce false positives
+  - Full test coverage ([orb-profiles.spec.js](test/orb-profiles.spec.js))
+- [x] Blueprint extraction module ([blueprint-extraction.js](lib/blueprint-extraction.js))
+  - Extracts Primary/Secondary/Shadow modes from natal placements
+  - Maps to Jungian functions (Thinking/Feeling/Sensation/Intuition)
+  - Generates blueprint metaphor for Raven Calder
+  - Weighted scoring with confidence levels
+- [x] Bidirectional overlays fully wired to composer
+- [x] Comprehensive implementation spec created ([IMPLEMENTATION_SPEC_MIRROR_REPORTS.md](IMPLEMENTATION_SPEC_MIRROR_REPORTS.md))
+
+**Next Steps (Phase 2 - Integration)**:
+- [ ] Wire blueprint extraction into woven-map-composer
+- [ ] Integrate orb profile filtering into balance-meter calculations
 - [ ] Add relocation mode selection (None/A_local/B_local/Midpoint)
-- [ ] Implement house/angle recomputation
-- [ ] Create Mirror Voice generator (4-paragraph Raven Calder output)
-- [ ] Test with real synastry data
+- [ ] Broaden relocation shim to cover relational mirror outputs
+- [ ] Refactor Mirror Voice generator (4 paragraphs)
+- [ ] Define structured backstage data model
+- [ ] Restructure PDF ordering
+- [ ] Create Dan+Stephanie regression test
 
 ---
 
