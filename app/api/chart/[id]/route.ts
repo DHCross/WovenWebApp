@@ -1,7 +1,12 @@
 import { Buffer } from 'node:buffer';
 import { NextRequest, NextResponse } from 'next/server';
 
-const { getChartAsset, pruneExpired } = require('../../../../lib/server/chart-cache');
+const chartCache = require('../../../../lib/server/chart-cache') as {
+  getChartAsset: (id: string) => { buffer: Buffer; contentType?: string; metadata?: Record<string, any>; expiresAt: number } | null;
+  pruneExpired: (now?: number) => void;
+};
+
+const { getChartAsset, pruneExpired } = chartCache;
 
 function buildNotFoundResponse(id: string) {
   return NextResponse.json({
@@ -32,7 +37,7 @@ export async function GET(request: NextRequest, context: { params: { id: string 
   const headers = new Headers();
   headers.set('Content-Type', asset.contentType || 'application/octet-stream');
   headers.set('Cache-Control', 'private, max-age=300');
-  headers.set('Content-Length', Buffer.byteLength(asset.buffer).toString());
+  headers.set('Content-Length', asset.buffer.length.toString());
   headers.set('X-Chart-Expires', new Date(asset.expiresAt).toISOString());
   headers.set('Content-Disposition', `inline; filename="${decodedId}.${asset.metadata?.format || 'bin'}"`);
 

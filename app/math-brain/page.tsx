@@ -43,6 +43,17 @@ type Subject = {
 };
 
 type ApiResult = Record<string, any> | null;
+type ChartAssetDisplay = {
+  id: string;
+  url: string;
+  label: string;
+  contentType: string;
+  subject: string | null;
+  chartType: string | null;
+  scope: string | null;
+  expiresAt?: number;
+  size?: number;
+};
 
 type ReportMode =
   | 'NATAL_ONLY'
@@ -574,6 +585,82 @@ export default function MathBrainPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResult>(null);
+  const chartAssets = useMemo<ChartAssetDisplay[]>(() => {
+    if (!result) return [];
+
+    const seen = new Set<string>();
+    const items: ChartAssetDisplay[] = [];
+
+    const formatToken = (input?: string | null) => {
+      if (!input) return '';
+      return String(input)
+        .split(/[^A-Za-z0-9]+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+    };
+
+    const subjectAliases: Record<string, string> = {
+      person_a: 'Person A',
+      person_b: 'Person B',
+      synastry: 'Synastry',
+      composite: 'Composite',
+      transit: 'Transit',
+    };
+
+    const addAssets = (list: any, defaultSubject?: string, defaultScope?: string) => {
+      if (!Array.isArray(list)) return;
+      list.forEach((raw: any) => {
+        if (!raw || typeof raw !== 'object') return;
+        const idValue = raw.id ?? raw.key ?? raw.url;
+        const id = typeof idValue === 'string' ? idValue.trim() : String(idValue || '').trim();
+        if (!id || seen.has(id)) return;
+        seen.add(id);
+
+        const subjectKeyRaw = typeof raw.subject === 'string' ? raw.subject : defaultSubject;
+        const subjectKey = subjectKeyRaw ? String(subjectKeyRaw) : null;
+        const normalizedSubject = subjectKey ? subjectKey.toLowerCase() : '';
+        const subjectLabel = subjectKey
+          ? subjectAliases[normalizedSubject] || formatToken(subjectKey)
+          : (defaultSubject ? formatToken(defaultSubject) : '');
+
+        const chartToken = typeof raw.chartType === 'string'
+          ? raw.chartType
+          : (typeof raw.scope === 'string' ? raw.scope : (defaultScope || (raw.key ? String(raw.key) : '')));
+        let chartLabel = chartToken ? formatToken(chartToken) : (subjectLabel ? 'Wheel' : 'Chart');
+        if (chartLabel && !/wheel|chart/i.test(chartLabel)) {
+          chartLabel = `${chartLabel} Wheel`;
+        }
+
+        const labelParts = [subjectLabel, chartLabel].filter(Boolean);
+        const label = labelParts.length ? labelParts.join(' · ') : 'Chart';
+
+        const rawUrl = typeof raw.url === 'string' ? raw.url.trim() : '';
+        const url = rawUrl || `/api/chart/${encodeURIComponent(id)}`;
+        const contentType = typeof raw.contentType === 'string' ? raw.contentType : 'application/octet-stream';
+
+        items.push({
+          id,
+          url,
+          label,
+          contentType,
+          subject: subjectKey,
+          chartType: typeof raw.chartType === 'string' ? raw.chartType : null,
+          scope: typeof raw.scope === 'string' ? raw.scope : null,
+          expiresAt: typeof raw.expiresAt === 'number' ? raw.expiresAt : undefined,
+          size: typeof raw.size === 'number' ? raw.size : undefined,
+        });
+      });
+    };
+
+    addAssets((result as any)?.person_a?.chart_assets, 'person_a', 'natal');
+    addAssets((result as any)?.person_b?.chart_assets, 'person_b', 'natal');
+    addAssets((result as any)?.synastry_chart_assets, 'synastry', 'synastry');
+    addAssets((result as any)?.composite?.chart_assets, 'composite', 'composite');
+    addAssets((result as any)?.chart_assets);
+
+    return items;
+  }, [result]);
   const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>(() => {
     if (typeof window === 'undefined') {
       return { ...DEFAULT_LAYER_VISIBILITY };
@@ -690,7 +777,7 @@ export default function MathBrainPage() {
   const filenameBase = useCallback(
     (prefix: string) => {
       const reportSlug = sanitizeSlug(reportContractType.replace(/_/g, '-'), 'report');
-      const duo = reportContractType.includes('relational') || includePersonB
+      const duo = includePersonB
         ? `${personASlug}-${personBSlug}`
         : personASlug;
       return [prefix, reportSlug, duo, dateRangeSlug].filter(Boolean).join('-');
@@ -2418,6 +2505,32 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
       const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
       const monoFont = await pdfDoc.embedFont(StandardFonts.Courier);
 
+      const chartImages: Array<{ asset: ChartAssetDisplay; image: any }> = [];
+      if (chartAssets.length) {
+        for (const asset of chartAssets) {
+          try {
+            const response = await fetch(asset.url);
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            const bytes = new Uint8Array(await response.arrayBuffer());
+            const type = (asset.contentType || '').toLowerCase();
+            let embedded;
+            if (type.includes('png')) {
+              embedded = await pdfDoc.embedPng(bytes);
+            } else if (type.includes('jpeg') || type.includes('jpg')) {
+              embedded = await pdfDoc.embedJpg(bytes);
+            } else {
+              console.warn('Unsupported chart asset for PDF export:', asset.id, type);
+              continue;
+            }
+            chartImages.push({ asset, image: embedded });
+          } catch (error) {
+            console.warn('Failed to fetch chart asset for PDF export:', asset.id, error);
+          }
+        }
+      }
+
       const margin = 48;
       const headerSize = 16;
       const bodySize = 11;
@@ -2539,6 +2652,65 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
         }
         cursorY -= 6;
       });
+
+      if (chartImages.length) {
+        chartImages.forEach((entry, index) => {
+          page = pdfDoc.addPage();
+          ({ width, height } = page.getSize());
+          maxWidth = width - margin * 2;
+          cursorY = height - margin;
+
+          const headerLabel = chartImages.length > 1
+            ? `Chart Wheel ${index + 1} of ${chartImages.length}`
+            : 'Chart Wheel';
+          page.drawText(sanitizeForPDF(headerLabel), {
+            x: margin,
+            y: cursorY,
+            size: headerSize,
+            font: boldFont,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+          cursorY -= headerSize + 10;
+
+          page.drawText(sanitizeForPDF(entry.asset.label), {
+            x: margin,
+            y: cursorY,
+            size: bodySize,
+            font: regularFont,
+            color: rgb(0.35, 0.35, 0.35),
+          });
+          cursorY -= bodySize + 16;
+
+          const availableHeight = Math.max(margin, cursorY - margin);
+          const availableWidth = maxWidth;
+          const imgWidth = entry.image.width;
+          const imgHeight = entry.image.height;
+          const scale = Math.min(availableWidth / imgWidth, availableHeight / imgHeight, 1);
+          const drawWidth = imgWidth * scale;
+          const drawHeight = imgHeight * scale;
+          const imgX = margin + (availableWidth - drawWidth) / 2;
+          const imgY = cursorY - drawHeight;
+
+          page.drawImage(entry.image, {
+            x: imgX,
+            y: imgY,
+            width: drawWidth,
+            height: drawHeight,
+          });
+
+          cursorY = imgY - 14;
+          if (entry.asset.expiresAt) {
+            const expiry = sanitizeForPDF(`Source expires: ${new Date(entry.asset.expiresAt).toLocaleString()}`);
+            page.drawText(expiry, {
+              x: margin,
+              y: Math.max(margin, cursorY),
+              size: 9,
+              font: regularFont,
+              color: rgb(0.45, 0.45, 0.45),
+            });
+          }
+        });
+      }
 
       const pdfBytes = await pdfDoc.save();
       const pdfBlob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
@@ -4709,6 +4881,48 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
               </div>
             );
           })()}
+          {!!chartAssets.length && (
+            <section className="rounded-lg border border-slate-700 bg-slate-800/40 p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-lg font-semibold text-slate-100">Chart Wheels</h2>
+                <span className="text-xs text-slate-400">
+                  Temporary renderings expire shortly after generation.
+                </span>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                {chartAssets.map((asset) => {
+                  const expiresLabel = asset.expiresAt
+                    ? new Date(asset.expiresAt).toLocaleTimeString()
+                    : null;
+                  return (
+                    <figure key={asset.id} className="rounded-md border border-slate-700 bg-slate-900/60 p-3">
+                      <a
+                        href={asset.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group block"
+                      >
+                        <div className="relative mx-auto aspect-square w-full max-w-sm overflow-hidden rounded bg-slate-950/50">
+                          <img
+                            src={asset.url}
+                            alt={asset.label}
+                            className="h-full w-full object-contain transition-opacity duration-150 group-hover:opacity-90"
+                            loading="lazy"
+                          />
+                        </div>
+                      </a>
+                      <figcaption className="mt-3 text-center text-sm text-slate-200">
+                        <span className="block font-medium">{asset.label}</span>
+                        <span className="block text-xs text-slate-400">
+                          {asset.contentType}{expiresLabel ? ` · expires ${expiresLabel}` : ''}
+                        </span>
+                      </figcaption>
+                    </figure>
+                  );
+                })}
+              </div>
+            </section>
+          )}
           {/* Layer progression + toggle controls */}
           <div className="print:hidden">
             <div className="flex flex-wrap items-center gap-2 rounded-md border border-slate-700 bg-slate-900/50 px-4 py-3 text-xs font-semibold uppercase tracking-wide">
