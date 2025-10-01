@@ -79,19 +79,17 @@ const sanitizeSlug = (value: string, fallback: string) => {
   return slug || fallback;
 };
 
+type ReportStructure = 'solo' | 'synastry' | 'composite';
+
 const determineReportContract = (
-  mode: ReportMode,
-  includeTransits: boolean,
-  includePersonB: boolean
+  structure: ReportStructure,
+  includeTransits: boolean
 ): 'solo_mirror' | 'solo_balance_meter' | 'relational_mirror' | 'relational_balance_meter' => {
-  const relational = RELATIONAL_MODES.includes(mode) || includePersonB;
-  const hasTransits = includeTransits || mode === 'NATAL_TRANSITS' || mode === 'SYNASTRY_TRANSITS' || mode === 'COMPOSITE_TRANSITS';
-
+  const relational = structure !== 'solo';
   if (relational) {
-    return hasTransits ? 'relational_balance_meter' : 'relational_mirror';
+    return includeTransits ? 'relational_balance_meter' : 'relational_mirror';
   }
-
-  return hasTransits ? 'solo_balance_meter' : 'solo_mirror';
+  return includeTransits ? 'solo_balance_meter' : 'solo_mirror';
 };
 
 const determineContextMode = (mode: ReportMode, contract: string): string => {
@@ -119,29 +117,30 @@ const TRANSIT_MODES = new Set<ReportMode>([
   'COMPOSITE_TRANSITS',
 ]);
 
-const toTransitMode = (mode: ReportMode): ReportMode => {
-  switch (mode) {
-    case 'NATAL_ONLY':
-      return 'NATAL_TRANSITS';
-    case 'SYNASTRY':
-      return 'SYNASTRY_TRANSITS';
-    case 'COMPOSITE':
-      return 'COMPOSITE_TRANSITS';
+const modeFromStructure = (structure: ReportStructure, includeTransits: boolean): ReportMode => {
+  switch (structure) {
+    case 'synastry':
+      return includeTransits ? 'SYNASTRY_TRANSITS' : 'SYNASTRY';
+    case 'composite':
+      return includeTransits ? 'COMPOSITE_TRANSITS' : 'COMPOSITE';
+    case 'solo':
     default:
-      return mode;
+      return includeTransits ? 'NATAL_TRANSITS' : 'NATAL_ONLY';
   }
 };
 
-const toNatalMode = (mode: ReportMode): ReportMode => {
+const structureFromMode = (mode: ReportMode): ReportStructure => {
   switch (mode) {
-    case 'NATAL_TRANSITS':
-      return 'NATAL_ONLY';
+    case 'SYNASTRY':
     case 'SYNASTRY_TRANSITS':
-      return 'SYNASTRY';
+      return 'synastry';
+    case 'COMPOSITE':
     case 'COMPOSITE_TRANSITS':
-      return 'COMPOSITE';
+      return 'composite';
+    case 'NATAL_ONLY':
+    case 'NATAL_TRANSITS':
     default:
-      return mode;
+      return 'solo';
   }
 };
 
@@ -580,7 +579,18 @@ export default function MathBrainPage() {
 
   const [startDate, setStartDate] = useState<string>(() => getDefaultDates(false).start);
   const [endDate, setEndDate] = useState<string>(() => getDefaultDates(false).end);
-  const [mode, setMode] = useState<ReportMode>('NATAL_ONLY');
+  const [reportStructure, setReportStructure] = useState<ReportStructure>('solo');
+  const [includeTransits, setIncludeTransits] = useState<boolean>(false);
+  const [includePersonB, setIncludePersonB] = useState<boolean>(false);
+  const mode = useMemo<ReportMode>(() => modeFromStructure(reportStructure, includeTransits), [reportStructure, includeTransits]);
+  const applyMode = useCallback((nextMode: ReportMode) => {
+    const nextStructure = structureFromMode(nextMode);
+    setReportStructure(nextStructure);
+    setIncludeTransits(TRANSIT_MODES.has(nextMode));
+    if (nextStructure !== 'solo') {
+      setIncludePersonB(true);
+    }
+  }, []);
   const [step, setStep] = useState<string>("daily");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -609,48 +619,62 @@ export default function MathBrainPage() {
     };
 
     const addAssets = (list: any, defaultSubject?: string, defaultScope?: string) => {
-      if (!Array.isArray(list)) return;
-      list.forEach((raw: any) => {
-        if (!raw || typeof raw !== 'object') return;
-        const idValue = raw.id ?? raw.key ?? raw.url;
-        const id = typeof idValue === 'string' ? idValue.trim() : String(idValue || '').trim();
-        if (!id || seen.has(id)) return;
-        seen.add(id);
+      if (!list) return;
 
-        const subjectKeyRaw = typeof raw.subject === 'string' ? raw.subject : defaultSubject;
-        const subjectKey = subjectKeyRaw ? String(subjectKeyRaw) : null;
-        const normalizedSubject = subjectKey ? subjectKey.toLowerCase() : '';
-        const subjectLabel = subjectKey
-          ? subjectAliases[normalizedSubject] || formatToken(subjectKey)
-          : (defaultSubject ? formatToken(defaultSubject) : '');
+      if (Array.isArray(list)) {
+        list.forEach((raw: any) => {
+          if (!raw || typeof raw !== 'object') return;
+          const idValue = raw.id ?? raw.key ?? raw.url;
+          const id = typeof idValue === 'string' ? idValue.trim() : String(idValue || '').trim();
+          if (!id || seen.has(id)) return;
+          seen.add(id);
 
-        const chartToken = typeof raw.chartType === 'string'
-          ? raw.chartType
-          : (typeof raw.scope === 'string' ? raw.scope : (defaultScope || (raw.key ? String(raw.key) : '')));
-        let chartLabel = chartToken ? formatToken(chartToken) : (subjectLabel ? 'Wheel' : 'Chart');
-        if (chartLabel && !/wheel|chart/i.test(chartLabel)) {
-          chartLabel = `${chartLabel} Wheel`;
-        }
+          const subjectKeyRaw = typeof raw.subject === 'string' ? raw.subject : defaultSubject;
+          const subjectKey = subjectKeyRaw ? String(subjectKeyRaw) : null;
+          const normalizedSubject = subjectKey ? subjectKey.toLowerCase() : '';
+          const subjectLabel = subjectKey
+            ? subjectAliases[normalizedSubject] || formatToken(subjectKey)
+            : (defaultSubject ? formatToken(defaultSubject) : '');
 
-        const labelParts = [subjectLabel, chartLabel].filter(Boolean);
-        const label = labelParts.length ? labelParts.join(' · ') : 'Chart';
+          const chartTokenRaw = typeof raw.chartType === 'string'
+            ? raw.chartType
+            : (typeof raw.scope === 'string' ? raw.scope : (defaultScope || (raw.key ? String(raw.key) : '')));
+          const chartToken = chartTokenRaw ? String(chartTokenRaw) : '';
 
-        const rawUrl = typeof raw.url === 'string' ? raw.url.trim() : '';
-        const url = rawUrl || `/api/chart/${encodeURIComponent(id)}`;
-        const contentType = typeof raw.contentType === 'string' ? raw.contentType : 'application/octet-stream';
+          let chartLabel = chartToken ? formatToken(chartToken) : '';
+          if (/wheel/i.test(chartToken)) {
+            chartLabel = 'Wheel';
+          } else if (chartLabel && !/wheel|chart/i.test(chartLabel)) {
+            chartLabel = `${chartLabel} Chart`;
+          } else if (!chartLabel) {
+            chartLabel = subjectLabel ? '' : 'Chart';
+          }
 
-        items.push({
-          id,
-          url,
-          label,
-          contentType,
-          subject: subjectKey,
-          chartType: typeof raw.chartType === 'string' ? raw.chartType : null,
-          scope: typeof raw.scope === 'string' ? raw.scope : null,
-          expiresAt: typeof raw.expiresAt === 'number' ? raw.expiresAt : undefined,
-          size: typeof raw.size === 'number' ? raw.size : undefined,
+          const labelParts = [subjectLabel, chartLabel].filter(Boolean);
+          const label = labelParts.length ? labelParts.join(' · ') : 'Chart';
+
+          const rawUrl = typeof raw.url === 'string' ? raw.url.trim() : '';
+          const url = rawUrl || `/api/chart/${encodeURIComponent(id)}`;
+          const contentType = typeof raw.contentType === 'string' ? raw.contentType : 'application/octet-stream';
+
+          items.push({
+            id,
+            url,
+            label,
+            contentType,
+            subject: subjectKey,
+            chartType: typeof raw.chartType === 'string' ? raw.chartType : chartToken || null,
+            scope: typeof raw.scope === 'string' ? raw.scope : defaultScope || null,
+            expiresAt: typeof raw.expiresAt === 'number' ? raw.expiresAt : undefined,
+            size: typeof raw.size === 'number' ? raw.size : undefined,
+          });
         });
-      });
+        return;
+      }
+
+      if (typeof list === 'object') {
+        Object.values(list).forEach((value) => addAssets(value, defaultSubject, defaultScope));
+      }
     };
 
     addAssets((result as any)?.person_a?.chart_assets, 'person_a', 'natal');
@@ -678,8 +702,6 @@ export default function MathBrainPage() {
       return { ...DEFAULT_LAYER_VISIBILITY };
     }
   });
-  const [includePersonB, setIncludePersonB] = useState<boolean>(false);
-  const includeTransits = TRANSIT_MODES.has(mode);
   const canVisitPoetic = POETIC_BRAIN_ENABLED;
 
   // Person B subject state
@@ -770,8 +792,8 @@ export default function MathBrainPage() {
   }, [startDate, endDate, result]);
 
   const reportContractType = useMemo(
-    () => determineReportContract(mode, includeTransits, includePersonB),
-    [mode, includeTransits, includePersonB]
+    () => determineReportContract(reportStructure, includeTransits),
+    [reportStructure, includeTransits]
   );
 
   const filenameBase = useCallback(
@@ -939,13 +961,9 @@ export default function MathBrainPage() {
   }, []);
 
   // Relational modes list used for UI guards
-  const isRelationalMode = RELATIONAL_MODES.includes(mode);
-  const isDyadMode = includePersonB && isRelationalMode;
-  const reportType: 'balance' | 'mirror' = reportContractType.includes('balance') ? 'balance' : 'mirror';
-  const soloModeOption = includeTransits
-    ? { value: 'NATAL_TRANSITS' as ReportMode, label: 'Natal + Transits' }
-    : { value: 'NATAL_ONLY' as ReportMode, label: 'Natal Only' };
-
+  const isRelationalStructure = reportStructure !== 'solo';
+  const isDyadMode = includePersonB && isRelationalStructure;
+  const reportContractKind: 'balance' | 'mirror' = reportContractType.includes('balance') ? 'balance' : 'mirror';
 
   const weather = useMemo(() =>
     extractWeather(startDate, endDate, result),
@@ -956,32 +974,17 @@ export default function MathBrainPage() {
     extractBlueprint(result),
     [result]
   );
-  const relationalModeOptions: { value: ReportMode; label: string }[] = includePersonB
-    ? includeTransits
-      ? [
-          { value: 'SYNASTRY_TRANSITS', label: 'Synastry + Transits' },
-          { value: 'COMPOSITE_TRANSITS', label: 'Composite + Transits' },
-        ]
-      : [
-          { value: 'SYNASTRY', label: 'Synastry' },
-          { value: 'COMPOSITE', label: 'Composite' },
-        ]
-    : [];
-
   useEffect(() => {
     setTranslocation((prev) => {
-      if (!includeTransits) {
-        return 'NONE';
-      }
       if (!isDyadMode && (prev === 'B_LOCAL' || prev === 'BOTH_LOCAL' || prev === 'MIDPOINT')) {
         return 'NONE';
       }
-      if (prev === 'MIDPOINT' && (mode !== 'COMPOSITE_TRANSITS' || !includeTransits)) {
+      if (prev === 'MIDPOINT' && (reportStructure !== 'composite' || !includeTransits)) {
         return isDyadMode ? 'BOTH_LOCAL' : 'NONE';
       }
       return prev;
     });
-  }, [includeTransits, isDyadMode, mode]);
+  }, [includeTransits, isDyadMode, reportStructure]);
 
   // Automatically enable includePersonB when a relationship type is selected
   useEffect(() => {
@@ -1091,7 +1094,7 @@ export default function MathBrainPage() {
       title: relationalDisabled ? 'Requires Person B in a relational report.' : undefined,
     });
 
-    if (mode === 'COMPOSITE_TRANSITS') {
+    if (reportStructure === 'composite' && includeTransits) {
       const midpointDisabled = relationalDisabled || !includeTransits;
       options.push({
         value: 'MIDPOINT',
@@ -1109,7 +1112,7 @@ export default function MathBrainPage() {
     }
 
     return options;
-  }, [isDyadMode, includeTransits, mode, translocation]);
+  }, [isDyadMode, includeTransits, reportStructure, translocation]);
 
   const parseMaybeNumber = (value: unknown): number | null => {
     if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -1203,10 +1206,10 @@ export default function MathBrainPage() {
 
   // If Person B is turned off while a relational mode is selected, reset to a solo mode
   useEffect(() => {
-    if (!includePersonB && RELATIONAL_MODES.includes(mode)) {
-      setMode((prev) => (TRANSIT_MODES.has(prev) ? 'NATAL_TRANSITS' : 'NATAL_ONLY'));
+    if (!includePersonB && reportStructure !== 'solo') {
+      setReportStructure('solo');
     }
-  }, [includePersonB, mode]);
+  }, [includePersonB, reportStructure]);
 
   useEffect(() => {
     if (!includePersonB && (translocation === 'B_LOCAL' || translocation === 'MIDPOINT' || translocation === 'BOTH_LOCAL')) {
@@ -1239,7 +1242,7 @@ export default function MathBrainPage() {
       if (saved.personA) setPersonA(saved.personA);
       if (saved.personB) setPersonB(saved.personB);
       if (typeof saved.includePersonB === 'boolean') setIncludePersonB(saved.includePersonB);
-      if (saved.mode) setMode(normalizeReportMode(saved.mode));
+      if (saved.mode) applyMode(normalizeReportMode(saved.mode));
       if (saved.step) setStep(saved.step);
       if (saved.startDate) {
         setStartDate(saved.startDate);
@@ -3329,7 +3332,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
         if (data.personA) setPersonA(data.personA);
         if (data.personB) setPersonB(data.personB);
         if (typeof data.includePersonB === 'boolean') setIncludePersonB(data.includePersonB);
-        if (data.mode) setMode(normalizeReportMode(data.mode));
+        if (data.mode) applyMode(normalizeReportMode(data.mode));
         if (data.step) setStep(data.step);
         if (data.startDate) {
           setStartDate(data.startDate);
@@ -3366,12 +3369,27 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
     if (e.currentTarget) e.currentTarget.value = '';
   }
 
+  const handleResumePrompt = useCallback(() => {
+    if (!savedSession) {
+      setToast('No saved session found yet. Run a report to create one.');
+      setTimeout(() => setToast(null), 2500);
+      return;
+    }
+    setShowSessionResumePrompt(true);
+    if (typeof window !== 'undefined') {
+      window.requestAnimationFrame?.(() => {
+        const el = document.getElementById('mb-resume-card');
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+  }, [savedSession, setShowSessionResumePrompt, setToast]);
+
   const loadSavedSession = () => {
     if (!savedSession?.inputs) return;
 
     const { inputs } = savedSession;
     try {
-      if (inputs.mode) setMode(normalizeReportMode(inputs.mode));
+      if (inputs.mode) applyMode(normalizeReportMode(inputs.mode));
       if (inputs.step) setStep(inputs.step);
       if (inputs.startDate) setStartDate(inputs.startDate);
       if (inputs.endDate) setEndDate(inputs.endDate);
@@ -3691,7 +3709,10 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
 
         {/* Resume from Past Session Prompt */}
         {showSessionResumePrompt && savedSession && (
-          <div className="mt-6 mx-auto max-w-2xl rounded-lg border border-indigo-500/30 bg-indigo-950/20 p-4">
+          <div
+            id="mb-resume-card"
+            className="mt-6 mx-auto max-w-2xl rounded-lg border border-indigo-500/30 bg-indigo-950/20 p-4"
+          >
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 mt-0.5">
                 <svg className="h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -3770,6 +3791,15 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
           >
             Open Legacy Math Brain
           </a>
+        )}
+        {savedSession && (
+          <button
+            type="button"
+            onClick={handleResumePrompt}
+            className="rounded-md border border-indigo-600 px-4 py-2 text-indigo-200 hover:bg-indigo-600/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >
+            Resume Last Session
+          </button>
         )}
       </div>
 
@@ -4396,7 +4426,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
           </Section>
 
           {/* Relationship Context (only when Person B included) */}
-          <Section title="Relationship Context">
+          <Section title="Relationship Context" className="md:-mt-4">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-xs text-slate-400">These fields unlock when Person B is included.</p>
             </div>
@@ -4555,7 +4585,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                     checked={includeTransits}
                     onChange={(e) => {
                       const checked = e.target.checked;
-                      setMode((prev) => (checked ? toTransitMode(prev) : toNatalMode(prev)));
+                      setIncludeTransits(checked);
                     }}
                   />
                   <div>
