@@ -2371,6 +2371,8 @@ export default function MathBrainPage() {
               backstage: mirrorResult.backstage
             },
             schema_enforced_render: {
+              preface: mirrorResult.preface,
+              scenario_prompt: mirrorResult.scenario_prompt,
               picture: mirrorResult.picture,
               feeling: mirrorResult.feeling,
               container: mirrorResult.container,
@@ -2422,12 +2424,26 @@ export default function MathBrainPage() {
 
       // Add contract compliance section if available
       if (contractCompliant) {
+        const preface = processedResult.schema_enforced_render?.preface || {} as any;
+        const prefaceLines = [
+          preface?.persona_intro ? `Intro: ${preface.persona_intro}` : null,
+          Array.isArray(preface?.resonance_profile) && preface.resonance_profile.length
+            ? `Resonance: ${preface.resonance_profile.join(' | ')}`
+            : null,
+          Array.isArray(preface?.paradoxes) && preface.paradoxes.length
+            ? `Paradoxes: ${preface.paradoxes.join(' | ')}`
+            : null,
+          preface?.relational_focus ? `Relational: ${preface.relational_focus}` : null
+        ].filter(Boolean).join('\n');
+
         const complianceText = `
 Contract: ${processedResult.contract_compliance?.contract || 'clear-mirror/1.3'}
 Mode: ${processedResult.contract_compliance?.mode || reportMode}
 Frontstage Policy: ${JSON.stringify(processedResult.contract_compliance?.frontstage_policy || {}, null, 2)}
 
 Schema-Enforced Render:
+• Preface:\n${prefaceLines || 'N/A'}
+• Scenario: ${processedResult.schema_enforced_render?.scenario_prompt || 'N/A'}
 • Picture: ${processedResult.schema_enforced_render?.picture || 'N/A'}
 • Container: ${processedResult.schema_enforced_render?.container || 'N/A'}
 • Symbolic Weather: ${processedResult.schema_enforced_render?.symbolic_weather || 'Suppressed in natal-only mode'}

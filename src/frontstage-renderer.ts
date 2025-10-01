@@ -10,6 +10,7 @@ import {
 import { generateBlueprintMetaphor, narrateBlueprintClimate } from '../lib/blueprint-narrator';
 import { narrateSymbolicWeather, hasValidIndices as hasWeatherIndices } from '../lib/weather-narrator';
 import { narrateStitchedReflection, narrateRelationalReflection } from '../lib/reflection-narrator';
+import { indicesToScenario } from '../lib/weather-lexicon-adapter';
 
 interface RenderContext {
   mode: ReportMode;
@@ -44,9 +45,85 @@ interface RenderedFrontstage {
   blueprint?: string | null;
   symbolic_weather?: string | null;
   stitched_reflection?: string | null;
+  preface?: {
+    persona_intro: string | null;
+    resonance_profile: string[] | null;
+    paradoxes: string[] | null;
+    relational_focus?: string | null;
+  };
+  scenario_prompt?: string | null;
 }
 
 export class FrontstageRenderer {
+  private buildPreface(
+    doc: RenderContext,
+    opts: { blueprintNarrative?: string; weatherNarrative?: string }
+  ): RenderedFrontstage['preface'] {
+    const mode = (doc.mode || 'natal-only') as ReportMode;
+    const isRelational = mode === 'relational-balance' || mode === 'relational-mirror';
+
+    const nameA: string | undefined =
+      doc?.person_a?.details?.name || doc?.person_a?.name || doc?.name_a || undefined;
+    const nameB: string | undefined =
+      doc?.person_b?.details?.name || doc?.person_b?.name || doc?.name_b || undefined;
+
+    // Persona intro: conversational Raven-in-the-coffee-shop tone
+    const who = nameA ? `${nameA}` : 'friend';
+    const persona_intro = `I’m the raven in the corner booth—here to mirror, not to judge. ${who}, let’s sip this pattern and see what rings true.`;
+
+    // Resonance profile: derive from constitutional modes if present
+    const modes = (doc as any).constitutional_modes || (doc as any).blueprint_modes || {};
+    const p = modes?.primary_mode;
+    const s = modes?.secondary_mode;
+    const sh = modes?.shadow_mode;
+
+    const resonance_profile: string[] = [];
+    if (p?.function || s?.function) {
+      const lead = p?.function ? String(p.function).toLowerCase() : 'primary mode';
+      const steady = s?.function ? String(s.function).toLowerCase() : 'support mode';
+      resonance_profile.push(`You lead with ${lead} and steady with ${steady}.`);
+    }
+    if (p?.signature || p?.axis) {
+      const sig = p?.signature || p?.axis;
+      resonance_profile.push(`Baseline current: ${sig}.`);
+    }
+    if (modes?.confidence) {
+      resonance_profile.push(`Blueprint confidence: ${modes.confidence}.`);
+    }
+    if (resonance_profile.length === 0) {
+      resonance_profile.push('Blueprint present—watch what resonates and discard what doesn’t.');
+    }
+
+    // Paradoxes: favor explicit tensions if provided; otherwise synthesize from modes
+    const tensions: string[] = Array.isArray((doc as any).core_tensions)
+      ? (doc as any).core_tensions.filter((x: any) => typeof x === 'string')
+      : [];
+    const paradoxes: string[] = [];
+    if (tensions.length) {
+      paradoxes.push(...tensions.slice(0, 3));
+    } else if (p?.function && sh?.function) {
+      paradoxes.push(
+        `Craves ${String(p.function).toLowerCase()} while protecting ${String(sh.function).toLowerCase()}—both true, both useful.`
+      );
+    } else {
+      paradoxes.push('Holds two truths at once—tension is not a flaw, it’s fuel.');
+    }
+
+    // Relational focus
+    let relational_focus: string | undefined;
+    if (isRelational) {
+      const a = nameA || 'Person A';
+      const b = nameB || 'Person B';
+      relational_focus = `Relational weave: from ${a} to ${b} and back again—we’ll name who holds which end and how the bridge is built.`;
+    }
+
+    return {
+      persona_intro,
+      resonance_profile,
+      paradoxes,
+      relational_focus: relational_focus || null
+    };
+  }
   private async narrateBlueprint(doc: RenderContext): Promise<string> {
     // Extract constitutional modes (should be in doc.constitutional_modes or similar)
     const modes = doc.constitutional_modes || doc.blueprint_modes;
@@ -195,6 +272,14 @@ export class FrontstageRenderer {
         try {
           weatherNarrative = await this.narrateWeatherFromIndices(processedDoc);
           result.symbolic_weather = weatherNarrative;
+          // Derive a single scenario question from indices
+          const days = processedDoc.indices?.days || [];
+          if (Array.isArray(days) && days.length) {
+            try {
+              const scenario = indicesToScenario(days);
+              result.scenario_prompt = scenario.prompt;
+            } catch {}
+          }
         } catch (error) {
           console.error('Weather generation error:', error);
           result.symbolic_weather = "Weather generation failed—indices may be corrupted.";
@@ -229,6 +314,22 @@ export class FrontstageRenderer {
         console.error('Stitched reflection generation error:', error);
         result.stitched_reflection = "Integration reflection unavailable due to processing error.";
       }
+    }
+
+    // Always attach preface so reports start conversationally
+    try {
+      result.preface = this.buildPreface(processedDoc, {
+        blueprintNarrative,
+        weatherNarrative
+      });
+    } catch (e) {
+      // Non-fatal; omit preface on error
+      result.preface = {
+        persona_intro: 'I’m the raven in the corner booth—here to mirror, not to judge.',
+        resonance_profile: ['Blueprint present—watch what resonates and discard what doesn’t.'],
+        paradoxes: ['Holds two truths at once—tension is not a flaw, it’s fuel.'],
+        relational_focus: null
+      };
     }
 
     return result;

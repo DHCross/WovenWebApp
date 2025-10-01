@@ -22,9 +22,18 @@ export const FrontStageMirrorSchema = z.object({
   stitched_reflection: z.string().nullable().default(null)
 });
 
+// Optional preface section to guide conversational entry in reports
+export const FrontStagePrefaceSchema = z.object({
+  persona_intro: z.string().nullable().default(null),
+  resonance_profile: z.array(z.string()).nullable().default(null),
+  paradoxes: z.array(z.string()).nullable().default(null),
+  relational_focus: z.string().nullable().default(null)
+});
+
 export const FrontStageSchema = z.object({
   directive: FrontStageDirectiveSchema,
-  mirror: FrontStageMirrorSchema
+  mirror: FrontStageMirrorSchema,
+  preface: FrontStagePrefaceSchema.optional()
 });
 
 export const BackstageSchema = z.object({
