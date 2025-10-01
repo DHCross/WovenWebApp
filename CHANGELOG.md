@@ -5,6 +5,59 @@ Synastry and relational reports were generating Mirror-only or Balance Meter-onl
 
 **Current Status: PHASE 1 COMPLETE - Phase 2 In Progress**
 
+---
+
+## 🌍 ARCHITECTURAL PRINCIPLE: "LANDSCAPE FIRST" - Protocol Ratified
+
+**Context is Everything**
+
+The old bias was describing the rain while ignoring the earth it fell upon. The system was brilliant at reading "symbolic weather" but risked leaving the person—the unique landscape shaped by a lifetime of sun and shadow—out of the picture.
+
+> *"A flash flood is a catastrophe in a dry wash but a Tuesday in a cypress swamp."*
+
+**The Correction**: By mandating **"Landscape First,"** every report is, and will always be, **person-centric**. We are no longer just tracking symbols; we are **mirroring a soul's journey through a symbolic climate**.
+
+### Hierarchical Narrative Structure (Mandatory Order)
+
+All reports MUST follow this sequence, which builds, deepens, and lands with integrity:
+
+```
+1. BLUEPRINT (The Landscape)
+   └─ Natal chart foundation
+   └─ Primary/Secondary/Shadow modes (Jungian functions)
+   └─ Polarity cards, vector integrity
+   └─ For relational: synastry structure, echo loops, shared SST tags
+
+2. SYMBOLIC WEATHER (The Climate)
+   └─ Balance Meter metrics (Magnitude, Valence, Volatility, SFD)
+   └─ Daily transit activation against the blueprint
+   └─ For relational: bidirectional overlays (A←B, B←A)
+
+3. RESONANCE & INTERACTIVE DATA (The Living Document)
+   └─ Hook stack (ranked activation points)
+   └─ Transit tables with phase annotations
+   └─ Backstage provenance and audit trail
+```
+
+### Developer Mandates
+
+1. **Blueprint Before Weather**: Never compute transits or Balance Meter indices without first establishing the natal foundation
+2. **Context Before Interpretation**: The Mirror Voice (FIELD → MAP → VOICE) must reference the blueprint's functional modes
+3. **Person Before Pattern**: SFD values are meaningless without knowing the person's baseline climate
+4. **Relational Asymmetry**: In relational reports, preserve the different lived experiences (A←B ≠ B←A)
+
+### Rationale
+
+This protocol ensures that:
+- Reports are **soul-mirroring**, not just data visualization
+- Transits are interpreted **through the lens of the natal landscape**
+- Relational dynamics honor **asymmetric experience** (your Saturn on my Moon ≠ my Moon on your Saturn)
+- The narrative **builds organically** from foundation → activation → interaction
+
+**Status**: ✅ RATIFIED - The loom is re-threaded.
+
+---
+
 **Changes Implemented**
 
 1. **Removed Relational Blocking** ([astrology-mathbrain.js:4238](lib/server/astrology-mathbrain.js#L4238))
@@ -58,12 +111,40 @@ Synastry and relational reports were generating Mirror-only or Balance Meter-onl
    - Returns blueprint metaphor for Raven Calder narrative generation
    - Confidence ratings: high/medium/low based on data quality
 
-8. **Orb Profile Integration** ([src/balance-meter.js](src/balance-meter.js), [lib/server/astrology-mathbrain.js](lib/server/astrology-mathbrain.js))
-   - Replaced hardcoded orb caps with dynamic calculation from orb-profiles.js
+8. **Complete Orb Profile Integration** ([src/balance-meter.js](src/balance-meter.js), [lib/server/astrology-mathbrain.js](lib/server/astrology-mathbrain.js), [lib/config/orb-profiles.js](lib/config/orb-profiles.js))
+
+   **Balance Meter Layer** (Lines 61-248):
    - `orbMultiplier()` now uses `getEffectiveOrb()` with profile parameter
-   - `computeSFD()` and `computeBalanceValence()` accept `orbsProfile` parameter (default: 'wm-spec-2025-09')
-   - `calculateSeismograph()` threads `orbsProfile` through all balance meter computations
-   - All 10 call sites updated to pass `body.orbs_profile || 'wm-spec-2025-09'`
+   - `computeSFD()` and `computeBalanceValence()` accept `orbsProfile` parameter
+   - All SFD scoring respects profile-specific orb tolerances
+
+   **Core Filtering & Weighting Pipeline** (Lines 1421-1528):
+   - `enrichDailyAspects()` now accepts `orbsProfile` parameter (default: 'wm-spec-2025-09')
+   - Replaced legacy `ASPECT_ORB_CAPS` and `BODY_CLASS_CAPS` with `getEffectiveOrb()` calls
+   - Replaced `adjustOrbCapForSpecials()` with profile-based modifier logic
+   - `weightAspect()` now uses profile caps for tightness calculation
+   - **Hook stack, transit tables, and diagnostics now respect orb profile**
+
+   **API Payload** (Lines 3823-3887):
+   - `pass.active_aspects` defaults now loaded from selected orb profile
+   - Upstream API aspect list clamped using profile caps, not hardcoded values
+   - Profile selection (`body.orbs_profile`) controls all aspect filtering
+
+   **Bidirectional Overlays** (Lines 2540-2610):
+   - Synastry aspects filtered by `filterByOrbProfile()` before partitioning
+   - A←B and B←A aspect lists respect strict/default profile selection
+   - Wide-orb contacts removed from narrative descriptions when using strict profile
+
+   **Seismograph Integration** (Line 2070):
+   - `calculateSeismograph()` threads `orbsProfile` to `enrichDailyAspects()`
+   - All 10+ call sites updated to pass `body.orbs_profile || 'wm-spec-2025-09'`
+
+   **Legacy Code Deprecated**:
+   - `ASPECT_ORB_CAPS` → `ASPECT_ORB_CAPS_LEGACY` (reference only)
+   - `BODY_CLASS_CAPS` → `BODY_CLASS_CAPS_LEGACY` (reference only)
+   - `adjustOrbCapForSpecials()` → `adjustOrbCapForSpecials_DEPRECATED()` (reference only)
+
+   **Result**: Orb profile selection now governs **all** gating, weighting, and filtering. Switching from "Balance Default" to "Astro-Seek Strict" will tighten hooks, drivers, transit tables, SFD scores, and relational overlays system-wide.
 
 9. **Bidirectional Overlays Enhancement** ([lib/server/astrology-mathbrain.js:2543-2615](lib/server/astrology-mathbrain.js#L2543-L2615))
    - `computeBidirectionalOverlays()` now accepts `orbsProfile` parameter
@@ -77,23 +158,39 @@ Synastry and relational reports were generating Mirror-only or Balance Meter-onl
     - For relational reports, also extracts `person_b_modes`
     - Ready for Raven Calder Mirror Voice generation (Phase 2)
 
-### ❌ Known Issues with Current Implementation:
+### ✅ RESOLVED: Bidirectional Computation Implemented
 
-**CRITICAL: Relational Balance Meter Uses Wrong Model** ([astrology-mathbrain.js:2540-2637](lib/server/astrology-mathbrain.js#L2540-L2637))
+**Previous Issue**: Relational Balance Meter averaged metrics instead of computing bidirectional cross-activation
 
-Current implementation (INCORRECT):
-- Averages Person A and Person B daily transit metrics
-- Creates "collapsed blob" losing asymmetry
-- Missing bidirectional cross-activation (A←B, B←A)
-- Example: `magnitude = (magA + magB) / 2` ❌
+**Resolution**:
+- ✅ Implemented `computeBidirectionalOverlays()` with proper A←B and B←A partitioning
+- ✅ Integrated into all relational report types (synastry, composite, relational mirror)
+- ✅ Orb profile support fully threaded through balance meter computations
+- ✅ Hook stack now populates with actual cross-activation data
+- ✅ Asymmetry preserved: "Dan experiences Saturn from Stephanie ≠ Stephanie experiences Moon from Dan"
 
-Required implementation (per spec):
-- Compute **A←B**: How B's transits + natal activate A's experience
-- Compute **B←A**: How A's transits + natal activate B's experience
-- Preserve asymmetry (different lived experiences)
-- Show **who is under more pressure from whom**
+### 🔧 Remaining Work (Phase 2):
 
-**Hook Stack Empty** - Because cross-activation not computed, ranked bidirectional activation points missing
+**Mirror Voice Generator** (Priority: HIGH)
+- Refactor to produce 4-paragraph structure (FIELD → MAP → VOICE)
+- Integrate blueprint modes into narrative generation
+- Connect to Raven Calder's Poetic Brain endpoint
+- Ensure relational voice honors bidirectional overlays
+
+**Relocation Mode** (Priority: MEDIUM)
+- Add UI dropdown: None / A_local / B_local / Midpoint
+- Broaden relocation shim to cover relational mirror outputs
+- Document translocation math for house realignment
+
+**Backstage Data Model** (Priority: MEDIUM)
+- Define structured audit format
+- Include provenance: house system, orb profile, relocation mode, engine versions
+- PDF ordering: Frontstage (narrative) first, Backstage (tables) appendix
+
+**Testing & Validation** (Priority: HIGH)
+- Create Dan+Stephanie automated regression test
+- Verify bidirectional overlays populate correctly
+- Validate orb profile switching (Balance vs Astro-Seek)
 
 ### ✅ Progress Update - Phase 1 (Bidirectional Computation):
 
@@ -129,14 +226,57 @@ Required implementation (per spec):
 - [x] Comprehensive implementation spec created ([IMPLEMENTATION_SPEC_MIRROR_REPORTS.md](IMPLEMENTATION_SPEC_MIRROR_REPORTS.md))
 
 **Next Steps (Phase 2 - Integration)**:
-- [ ] Wire blueprint extraction into woven-map-composer
-- [ ] Integrate orb profile filtering into balance-meter calculations
+- [x] Wire blueprint extraction into woven-map-composer
+- [x] Integrate orb profile filtering into balance-meter calculations
 - [ ] Add relocation mode selection (None/A_local/B_local/Midpoint)
 - [ ] Broaden relocation shim to cover relational mirror outputs
 - [ ] Refactor Mirror Voice generator (4 paragraphs)
 - [ ] Define structured backstage data model
 - [ ] Restructure PDF ordering
 - [ ] Create Dan+Stephanie regression test
+
+---
+
+## 📊 Summary: Phase 1 Implementation Status
+
+**What Was Built**:
+
+1. **Foundation Modules** (Complete)
+   - Orb profiles system with dynamic calculation and multiple profile support
+   - Blueprint extraction mapping natal charts to Jungian functional modes
+   - Bidirectional overlay computation preserving relational asymmetry
+
+2. **Integration Layer** (Complete)
+   - Orb profiles threaded through 10+ calculation sites in astrology-mathbrain.js
+   - Blueprint extraction wired to report composer
+   - Bidirectional overlays integrated into 4 relational report types
+
+3. **Architectural Protocol** (Ratified)
+   - "Landscape First" principle codified
+   - Mandatory narrative hierarchy: Blueprint → Symbolic Weather → Resonance
+   - Developer mandates for person-centric reporting
+
+**What This Enables**:
+
+- ✅ Dynamic orb tolerance (Balance Default vs Astro-Seek Strict)
+- ✅ Person-centric narrative grounding (blueprint before weather)
+- ✅ Relational asymmetry preservation (A←B ≠ B←A)
+- ✅準備 for Raven Calder integration (blueprint modes available)
+- ✅ Hook stack population with cross-activation data
+
+**Technical Debt Cleared**:
+
+- ❌ Hardcoded orb caps → ✅ Dynamic profile-based calculation
+- ❌ Averaged relational metrics → ✅ Bidirectional separate computation
+- ❌ Missing blueprint context → ✅ Jungian mode extraction available
+- ❌ Synastry reports failing → ✅ Full relational mirror structure
+
+**Remaining Phase 2 Work**:
+
+Priority areas for next development cycle:
+1. Mirror Voice generator (4-paragraph FIELD → MAP → VOICE structure)
+2. Relocation mode UI and computation broadening
+3. Dan+Stephanie validation test with regression baseline
 
 ---
 
