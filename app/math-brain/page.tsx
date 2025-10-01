@@ -11,6 +11,7 @@ import { renderShareableMirror } from "../../lib/raven/render";
 import { ReportHeader, Weather, Blueprint } from "../../lib/ui-types";
 import EnhancedDailyClimateCard from "../../components/mathbrain/EnhancedDailyClimateCard";
 import BalanceMeterSummary from "../../components/mathbrain/BalanceMeterSummary";
+import { getSavedCharts, saveChart, deleteChart, type SavedChart } from "../../lib/saved-charts";
 
 export const dynamic = "force-dynamic";
 
@@ -619,6 +620,11 @@ export default function MathBrainPage() {
   const [contactState, setContactState] = useState<"ACTIVE" | "LATENT">("ACTIVE");
   const [exEstranged, setExEstranged] = useState<boolean>(false);
   const [relationshipNotes, setRelationshipNotes] = useState<string>("");
+  const [savedSession, setSavedSession] = useState<any>(null);
+  const [showSessionResumePrompt, setShowSessionResumePrompt] = useState<boolean>(false);
+  const [savedCharts, setSavedCharts] = useState<SavedChart[]>([]);
+  const [showSaveChartModal, setShowSaveChartModal] = useState<boolean>(false);
+  const [saveChartName, setSaveChartName] = useState<string>("");
 
   const personASlug = useMemo(() => {
     const sourceName =
@@ -791,6 +797,26 @@ export default function MathBrainPage() {
 
       // Initialize debug mode from URL
       setDebugMode(url.searchParams.get('debug') === '1');
+
+      // Check for saved session
+      try {
+        const savedSessionStr = window.localStorage.getItem('mb.lastSession');
+        if (savedSessionStr) {
+          const parsed = JSON.parse(savedSessionStr);
+          setSavedSession(parsed);
+          setShowSessionResumePrompt(true);
+        }
+      } catch (e) {
+        // Silently fail - not critical
+      }
+
+      // Load saved charts
+      try {
+        const charts = getSavedCharts(); // TODO: Pass userId when Auth0 is integrated
+        setSavedCharts(charts);
+      } catch (e) {
+        // Silently fail - not critical
+      }
     } catch {/* noop */}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -3150,6 +3176,37 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
     if (e.currentTarget) e.currentTarget.value = '';
   }
 
+  const loadSavedSession = () => {
+    if (!savedSession?.inputs) return;
+
+    const { inputs } = savedSession;
+    try {
+      if (inputs.mode) setMode(normalizeReportMode(inputs.mode));
+      if (inputs.step) setStep(inputs.step);
+      if (inputs.startDate) setStartDate(inputs.startDate);
+      if (inputs.endDate) setEndDate(inputs.endDate);
+      if (typeof inputs.includePersonB === 'boolean') setIncludePersonB(inputs.includePersonB);
+      if (inputs.translocation) setTranslocation(normalizeTranslocationOption(inputs.translocation));
+
+      if (inputs.relationship) {
+        const rel = inputs.relationship;
+        if (rel.type) setRelationshipType(rel.type);
+        if (rel.intimacy_tier) setRelationshipTier(rel.intimacy_tier);
+        if (rel.role) setRelationshipRole(rel.role);
+        if (typeof rel.ex_estranged === 'boolean') setExEstranged(rel.ex_estranged);
+        if (typeof rel.notes === 'string') setRelationshipNotes(rel.notes);
+        if (rel.contact_state) setContactState(rel.contact_state);
+      }
+
+      // Note: We don't restore full person data because session only saves partial data
+      // Users will need to re-enter birth details
+      setShowSessionResumePrompt(false);
+      setToast('Session settings restored! Please verify person details.');
+    } catch (e) {
+      setToast('Failed to restore session: ' + String(e));
+    }
+  };
+
   const canSubmit = useMemo(() => {
     // Basic local checks
     const required = [
@@ -3441,7 +3498,43 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
         <p className="mt-4 text-base md:text-lg text-slate-300">
           Run the geometry first. Then jump into Chat to synthesize the narrative.
         </p>
-        
+
+        {/* Resume from Past Session Prompt */}
+        {showSessionResumePrompt && savedSession && (
+          <div className="mt-6 mx-auto max-w-2xl rounded-lg border border-indigo-500/30 bg-indigo-950/20 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                <svg className="h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1 text-left">
+                <h3 className="text-sm font-medium text-indigo-200">Resume from past session?</h3>
+                <p className="mt-1 text-xs text-slate-300">
+                  Last session: {savedSession.createdAt ? new Date(savedSession.createdAt).toLocaleString() : 'Unknown date'}
+                  {savedSession.summary && ` • ${savedSession.summary}`}
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={loadSavedSession}
+                    className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                  >
+                    Resume Session
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowSessionResumePrompt(false)}
+                    className="rounded-md border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                  >
+                    Start Fresh
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Math Brain: FIELD Layer Only */}
         <div className="mt-6 flex items-center justify-center gap-4 text-sm text-slate-400">
           <div className="flex items-center gap-2">

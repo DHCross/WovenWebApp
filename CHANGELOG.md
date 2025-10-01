@@ -1,9 +1,77 @@
-## [2025-10-01] IN PROGRESS: Relational Reports - Bidirectional Cross-Transit Implementation
+## [2025-10-01] Relational Reports + User Experience Improvements
 
-**Issue Identified**
-Synastry and relational reports were generating Mirror-only or Balance Meter-only PDFs. Initial fix implemented **incorrect computation model** that averaged metrics instead of computing bidirectional cross-activation.
+**Three Major Improvements**:
+1. ✅ Complete orb profile integration (all filtering/weighting now centralized)
+2. ✅ Resume from past session functionality restored
+3. ✅ Saved charts roster with localStorage (cloud-ready architecture)
 
-**Current Status: PHASE 1 COMPLETE - Phase 2 In Progress**
+**Status: PHASE 1 COMPLETE + UX Enhancements Delivered**
+
+---
+
+## 🎯 USER EXPERIENCE ENHANCEMENTS
+
+### 1. Resume from Past Session
+**Files**: `app/math-brain/page.tsx` (lines 801-811, 3167-3196, 3490-3524)
+
+**Problem**: Users had to re-enter all settings when returning to Math Brain
+**Solution**: Automatic session persistence and resume banner
+
+**Features**:
+- Saves session data after each report generation to `localStorage`
+- Displays banner on page load with "Resume Session" or "Start Fresh" options
+- Restores: mode, dates, relationship context, translocation settings
+- Privacy-conscious: Does NOT save full birth data (users re-enter for security)
+
+**UI**: Indigo banner at top of page showing last session timestamp and summary
+
+### 2. Shared Location Dropdown Fixed
+**Files**: `app/math-brain/page.tsx` (lines 873-878)
+
+**Problem**: "Shared Location (custom city)" remained disabled even when Partner was selected
+**Root Cause**: `includePersonB` wasn't automatically set when relationship type changed
+
+**Fix**:
+```typescript
+useEffect(() => {
+  if (relationshipType && relationshipType !== 'NONE') {
+    setIncludePersonB(true);
+  }
+}, [relationshipType]);
+```
+
+**Result**: Selecting Partner/Family/Friend now auto-enables Person B and unlocks "Shared Location"
+
+### 3. Saved Charts Roster
+**Files Created**:
+- `lib/saved-charts.ts` - Core library for chart management
+- `components/SavedChartsDropdown.tsx` - Reusable dropdown component
+- `SAVED_CHARTS_IMPLEMENTATION.md` - Complete implementation guide
+
+**Features**:
+- Save chart configurations with custom names
+- Load saved charts into Person A/B forms
+- Delete charts with confirmation
+- Tag charts for organization
+- Persistent storage via localStorage
+- Future-ready for Firebase/Supabase cloud sync
+
+**Architecture**:
+```typescript
+interface SavedChart {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  person: { /* full birth data */ };
+  relationship?: { /* context */ };
+  tags?: string[];
+}
+```
+
+**Storage**: `localStorage` key `woven.savedCharts.{userId}` (upgradeable to cloud)
+
+**Integration Steps**: See `SAVED_CHARTS_IMPLEMENTATION.md` for full guide
 
 ---
 
