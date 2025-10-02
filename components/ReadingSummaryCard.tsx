@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { sanitizeForPDF } from '../src/pdf-sanitizer';
+import { generateJournalPDFFast, generateJournalPDFUltraFast } from '../lib/fast-pdf-generator';
 
 interface BigVector {
   tension: string;
@@ -105,20 +106,26 @@ Primary Patterns: ${journalEntry.metadata.primaryPatterns.join(', ')}`;
   const exportJournalAsPDF = async () => {
     if (!journalEntry) return;
 
+    // Show immediate feedback
+    const loadingAlert = document.createElement('div');
+    loadingAlert.innerHTML = 'Generating PDF... Please wait (this may take 10-15 seconds)';
+    loadingAlert.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #7c3aed; color: white; padding: 12px 20px; border-radius: 8px; z-index: 10000; font-family: sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
+    document.body.appendChild(loadingAlert);
+
     try {
       // Dynamically import html2pdf.js
       const html2pdf = (await import('html2pdf.js')).default;
 
-      // Create enhanced PDF content for journal
+      // Create optimized PDF content for journal
       const container = document.createElement('div');
       container.style.cssText = `
-        font-family: 'Georgia', 'Times New Roman', serif;
+        font-family: Arial, sans-serif;
         max-width: 8in;
         margin: 0 auto;
         padding: 0.75in;
         background: white;
         color: #1a1a1a;
-        line-height: 1.8;
+        line-height: 1.6;
       `;
 
       container.innerHTML = `
@@ -132,9 +139,9 @@ Primary Patterns: ${journalEntry.metadata.primaryPatterns.join(', ')}`;
         </div>
 
         <div style="margin-bottom: 0.75in;">
-          <div style="font-size: 14pt; line-height: 2.0; text-align: justify; hyphens: auto;">
+          <div style="font-size: 12pt; line-height: 1.6; text-align: left;">
             ${journalEntry.narrative.split('\n').map((paragraph: string) =>
-              paragraph.trim() ? `<p style="margin-bottom: 0.5in; text-indent: 0.5in;">${sanitizeForPDF(paragraph)}</p>` : ''
+              paragraph.trim() ? `<p style="margin-bottom: 0.3in;">${sanitizeForPDF(paragraph)}</p>` : ''
             ).join('')}
           </div>
         </div>
@@ -171,38 +178,67 @@ Primary Patterns: ${journalEntry.metadata.primaryPatterns.join(', ')}`;
         </div>
       `;
 
-      // Add to DOM temporarily for rendering
-      container.style.position = 'absolute';
-      container.style.left = '-9999px';
+      // Add to DOM temporarily for rendering (optimized positioning)
+      container.style.cssText += `
+        position: fixed;
+        top: -10000px;
+        left: -10000px;
+        visibility: hidden;
+        pointer-events: none;
+      `;
       document.body.appendChild(container);
 
       const opt = {
         margin: 0.5,
         filename: `raven-journal-${data.sessionId.slice(-8)}-${new Date().toISOString().slice(0,10)}.pdf`,
-        image: { type: 'jpeg', quality: 0.95 },
+        image: { type: 'jpeg', quality: 0.75 }, // Reduced from 0.95 to 0.75 for speed
         html2canvas: {
-          scale: 2,
-          useCORS: true,
-          allowTaint: false,
-          backgroundColor: '#ffffff'
+          scale: 1.5, // Reduced from 2 to 1.5 for faster rendering
+          useCORS: false, // Disabled for speed since we're not using external images
+          allowTaint: true, // Allow for faster rendering
+          backgroundColor: '#ffffff',
+          logging: false, // Disable console logging for performance
+          imageTimeout: 5000, // 5 second timeout instead of default 30s
+          removeContainer: true, // Automatically clean up
+          async: true, // Enable async rendering
+          width: 816, // Fixed width (8.5in * 96dpi) for consistency
+          height: 1056 // Fixed height (11in * 96dpi) for consistency
         },
         jsPDF: {
           unit: 'in',
           format: 'letter',
           orientation: 'portrait',
-          compress: true
+          compress: true,
+          precision: 2 // Reduce precision for smaller file size and faster generation
         }
       };
 
+      // Generate PDF with progress feedback
       await html2pdf().from(container).set(opt).save();
 
       // Clean up
       document.body.removeChild(container);
+      document.body.removeChild(loadingAlert);
 
-      alert('Journal PDF exported successfully!');
+      // Success feedback
+      const successAlert = document.createElement('div');
+      successAlert.innerHTML = '✅ PDF generated successfully!';
+      successAlert.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 12px 20px; border-radius: 8px; z-index: 10000; font-family: sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
+      document.body.appendChild(successAlert);
+      setTimeout(() => document.body.removeChild(successAlert), 3000);
+
     } catch (error) {
-      console.error('PDF export failed:', error);
-      alert('PDF export failed. The journal text has been copied to your clipboard instead.');
+      // Clean up loading indicator
+      if (document.body.contains(loadingAlert)) {
+        document.body.removeChild(loadingAlert);
+      }
+      
+      // Error feedback
+      const errorAlert = document.createElement('div');
+      errorAlert.innerHTML = '❌ PDF generation failed. Try reducing content or refreshing the page.';
+      errorAlert.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 12px 20px; border-radius: 8px; z-index: 10000; font-family: sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
+      document.body.appendChild(errorAlert);
+      setTimeout(() => document.body.removeChild(errorAlert), 5000);
       copyJournalToClipboard();
     }
   };
@@ -420,24 +456,56 @@ Primary Patterns: ${journalEntry.metadata.primaryPatterns.join(', ')}`;
               <div className="text-center text-xs text-slate-500 mb-3 uppercase tracking-wide">
                 Export Reading Summary
               </div>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2 mb-2">
                 <button
                   onClick={exportSummaryData}
-                  className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-1"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-1"
                   title="Export reading summary data as JSON"
                 >
                   📄 JSON
                 </button>
                 {journalEntry && (
                   <button
-                    onClick={exportJournalAsPDF}
-                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-1"
-                    title="Export journal entry as PDF"
+                    onClick={async () => {
+                      const result = await generateJournalPDFUltraFast(journalEntry, data.sessionId);
+                      const alertDiv = document.createElement('div');
+                      alertDiv.innerHTML = result.success ? '🚀 Ultra-fast PDF!' : '❌ PDF failed';
+                      alertDiv.style.cssText = `position: fixed; top: 20px; right: 20px; background: ${result.success ? '#f59e0b' : '#ef4444'}; color: white; padding: 12px 20px; border-radius: 8px; z-index: 10000; font-family: sans-serif;`;
+                      document.body.appendChild(alertDiv);
+                      setTimeout(() => document.body.removeChild(alertDiv), 3000);
+                    }}
+                    className="bg-orange-100 hover:bg-orange-200 text-orange-700 text-sm py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-1"
+                    title="Ultra-fast PDF generation (<1 second)"
                   >
-                    📋 PDF
+                    🚀 Instant
                   </button>
                 )}
               </div>
+              {journalEntry && (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={async () => {
+                      const result = await generateJournalPDFFast(journalEntry, data.sessionId);
+                      const alertDiv = document.createElement('div');
+                      alertDiv.innerHTML = result.success ? '✅ Fast PDF generated!' : '❌ PDF failed';
+                      alertDiv.style.cssText = `position: fixed; top: 20px; right: 20px; background: ${result.success ? '#10b981' : '#ef4444'}; color: white; padding: 12px 20px; border-radius: 8px; z-index: 10000; font-family: sans-serif;`;
+                      document.body.appendChild(alertDiv);
+                      setTimeout(() => document.body.removeChild(alertDiv), 3000);
+                    }}
+                    className="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-sm py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-1"
+                    title="Fast PDF generation (2-3 seconds)"
+                  >
+                    ⚡ Fast PDF
+                  </button>
+                  <button
+                    onClick={exportJournalAsPDF}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-1"
+                    title="High-quality PDF (10-15 seconds)"
+                  >
+                    📋 Quality
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
