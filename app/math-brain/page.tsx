@@ -2659,7 +2659,7 @@ export default function MathBrainPage() {
         sections: []
       });
 
-      const sections: Array<{ title: string; body: string; mode: 'regular' | 'mono' }> = [];
+      const sections: Array<{ title: string; body: string; mode: 'regular' | 'mono'; pageBreakBefore?: boolean }> = [];
 
       // Raven Calder conversational presentation instructions (always included)
       const conversationalInstructions = `
@@ -2997,8 +2997,7 @@ Generate the full reading that a professional astrologer would provide.
         }
 
         pieces.push('House cusps remain in the natal tables for any future recalculation.');
-        return pieces.join('
-');
+        return pieces.join('\n');
       })();
 
       sections.push({
@@ -3008,6 +3007,14 @@ Generate the full reading that a professional astrologer would provide.
       });
 
       // Relationship context definitions are available in-app; omit here to slim the PDF.
+
+      // Dedicated data appendix so JSON stays consolidated at the end of the document.
+      sections.push({
+        title: 'Data Appendix: Direct JSON Access',
+        body: 'Use the in-app "Download JSON (Raw)" or "Clean JSON (0-5 scale)" actions for pristine copies of this report\'s data. The sanitized snapshot below is included for reference but may span multiple pages when printed.',
+        mode: 'regular',
+        pageBreakBefore: true,
+      });
 
       // Add sanitized raw JSON
       sections.push({
@@ -3073,12 +3080,16 @@ Generate the full reading that a professional astrologer would provide.
       let cursorY = height - margin;
       let maxWidth = width - margin * 2;
 
+      const startNewPage = () => {
+        page = pdfDoc.addPage();
+        ({ width, height } = page.getSize());
+        maxWidth = width - margin * 2;
+        cursorY = height - margin;
+      };
+
       const ensureSpace = (needed: number) => {
         if (cursorY - needed < margin) {
-          page = pdfDoc.addPage();
-          ({ width, height } = page.getSize());
-          maxWidth = width - margin * 2;
-          cursorY = height - margin;
+          startNewPage();
         }
       };
 
@@ -3173,6 +3184,9 @@ Generate the full reading that a professional astrologer would provide.
       drawLine(`Generated: ${generatedAt.toLocaleString()}`, { font: regularFont, size: 10, color: rgb(0.35, 0.35, 0.35), gap: 12 });
 
       sections.forEach((section) => {
+        if (section.pageBreakBefore) {
+          startNewPage();
+        }
         drawLine(section.title, { font: boldFont, size: 13, gap: 6 });
         if (section.mode === 'mono') {
           writeMonospace(section.body);
@@ -5697,6 +5711,23 @@ Generate the full reading that a professional astrologer would provide.
                 ) : (
                   'Download PDF'
                 )}
+              </button>
+              <button
+                type="button"
+                onClick={downloadBackstageJSON}
+                className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                aria-label="Download raw JSON"
+              >
+                Download JSON (Raw)
+              </button>
+              <button
+                type="button"
+                onClick={downloadResultJSON}
+                className="rounded-md border border-slate-700/70 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                aria-label="Download normalized JSON"
+                title="Download normalized frontstage JSON (0-5 scale)"
+              >
+                Clean JSON (0-5 scale)
               </button>
               {includeTransits && (
                 <button type="button" onClick={downloadGraphsPDF} className="rounded-md border border-emerald-700 bg-emerald-800/50 px-3 py-1.5 text-emerald-100 hover:bg-emerald-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" aria-label="Download graphs and charts as PDF">
