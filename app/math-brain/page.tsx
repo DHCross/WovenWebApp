@@ -2652,8 +2652,51 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
         });
       }
 
-      // Add constitutional data (natal blueprints)
+      // ========================================
+      // CRITICAL: RESONANT SUMMARY MUST APPEAR FIRST
+      // Per Four Report Types documentation, every report needs
+      // a 3-4 paragraph Resonant Summary at the top for Raven Calder
+      // ========================================
       const wovenMap = (processedResult as any)?.woven_map;
+
+      // Check for frontstage blueprint narrative (the Mirror/personality reading)
+      if (wovenMap?.frontstage) {
+        const blueprintNarrative = wovenMap.frontstage.blueprint ||
+                                    wovenMap.frontstage.mirror?.blueprint ||
+                                    wovenMap.frontstage.narrative;
+
+        if (blueprintNarrative && typeof blueprintNarrative === 'string') {
+          sections.unshift({
+            title: '0. Resonant Summary (Personality Mirror - Required by Raven Calder)',
+            body: blueprintNarrative,
+            mode: 'regular'
+          });
+        } else if (wovenMap.blueprint?.modes) {
+          // Fallback: Generate basic summary from blueprint modes
+          const modes = wovenMap.blueprint.modes;
+          let summary = 'CONSTITUTIONAL BASELINE (Natal Blueprint)\n\n';
+
+          if (modes.primary_mode) {
+            summary += `PRIMARY MODE: ${modes.primary_mode.function}\n${modes.primary_mode.description}\n\n`;
+          }
+          if (modes.secondary_mode) {
+            summary += `SECONDARY MODE: ${modes.secondary_mode.function}\n${modes.secondary_mode.description}\n\n`;
+          }
+          if (modes.shadow_mode) {
+            summary += `SHADOW PATTERN: ${modes.shadow_mode.function}\n${modes.shadow_mode.description}\n\n`;
+          }
+
+          if (summary) {
+            sections.unshift({
+              title: '0. Blueprint Foundation (Structural Personality Diagnostic)',
+              body: summary,
+              mode: 'regular'
+            });
+          }
+        }
+      }
+
+      // Add constitutional data (natal blueprints)
       if (wovenMap?.blueprint) {
         // Person A natal data
         if (wovenMap.blueprint.natal_summary) {
