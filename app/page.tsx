@@ -15,6 +15,14 @@ export default function Home() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
       <header className="text-center">
+        {/* Woven Map Visualization */}
+        <div className="mb-8 flex justify-center">
+          <img
+            src="/art/woven-map-image.png"
+            alt="The Woven Map - interconnected astrological geometry"
+            className="w-80 md:w-96 h-auto animate-woven-map hover:opacity-100 transition-opacity duration-300"
+          />
+        </div>
         <h1 className="text-3xl font-semibold tracking-tight">Woven Web App</h1>
         <p className="mt-3 text-slate-500">FIELD → MAP → VOICE. Start with the geometry (Math Brain), then Chat.</p>
       </header>

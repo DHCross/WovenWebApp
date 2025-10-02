@@ -30,3 +30,21 @@
     background: linear-gradient(180deg, #0c0e13, #0f1115 30%, #0f1115 100%);
   }
 }
+
+@layer utilities {
+  /* Woven Map Animation - Subtle celestial motion */
+  @keyframes woven-breathe {
+    0%, 100% {
+      opacity: 0.85;
+      transform: scale(1) rotate(0deg);
+    }
+    50% {
+      opacity: 0.95;
+      transform: scale(1.02) rotate(1deg);
+    }
+  }
+
+  .animate-woven-map {
+    animation: woven-breathe 8s ease-in-out infinite;
+  }
+}
