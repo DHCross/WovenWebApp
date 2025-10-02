@@ -144,6 +144,22 @@ const structureFromMode = (mode: ReportMode): ReportStructure => {
   }
 };
 
+const toFiniteNumber = (value: unknown): number => {
+  if (value == null) return Number.NaN;
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : Number.NaN;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed === '') {
+      return Number.NaN;
+    }
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : Number.NaN;
+  }
+  return Number.NaN;
+};
+
 const POETIC_BRAIN_ENABLED = (() => {
   const raw = process.env.NEXT_PUBLIC_ENABLE_POETIC_BRAIN;
   if (typeof raw !== 'string') return true;
@@ -3464,15 +3480,15 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
     // For Mirror runs, allow city/state/timezone without requiring lat/lon upfront
     const requireCoords = includeTransits;
     const numbers = [
-      Number(personA.year),
-      Number(personA.month),
-      Number(personA.day),
-      ...(allowUnknownA ? [] as number[] : [Number(personA.hour), Number(personA.minute)]),
-      ...(requireCoords ? [Number(personA.latitude), Number(personA.longitude)] : [])
+      toFiniteNumber(personA.year),
+      toFiniteNumber(personA.month),
+      toFiniteNumber(personA.day),
+      ...(allowUnknownA ? [] as number[] : [toFiniteNumber(personA.hour), toFiniteNumber(personA.minute)]),
+      ...(requireCoords ? [toFiniteNumber(personA.latitude), toFiniteNumber(personA.longitude)] : [])
     ];
     const allPresent = required.every(Boolean) && numbers.every((n) => !Number.isNaN(n)) && aCoordsValid;
 
-  const isRelational = RELATIONAL_MODES.includes(mode);
+    const isRelational = RELATIONAL_MODES.includes(mode);
     if (!isRelational) {
       // Natal-only runs (no transits) do not require a date window
       if (!includeTransits) return allPresent;
@@ -3480,15 +3496,15 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
     }
 
     // For relational modes, Person B must be included and minimally valid
-  if (!includePersonB) return false;
-  const bRequired = [personB.name, personB.city, personB.state, personB.timezone, personB.zodiac_type];
-  const allowUnknownB = timeUnknownB && timePolicy !== 'user_provided';
-  const bNums = [
-    Number(personB.year), Number(personB.month), Number(personB.day),
-    ...(allowUnknownB ? [] as number[] : [Number(personB.hour), Number(personB.minute)]),
-    Number(personB.latitude), Number(personB.longitude)
-  ];
-  const bOk = bRequired.every(Boolean) && bNums.every((n)=>!Number.isNaN(n)) && bCoordsValid;
+    if (!includePersonB) return false;
+    const bRequired = [personB.name, personB.city, personB.state, personB.timezone, personB.zodiac_type];
+    const allowUnknownB = timeUnknownB && timePolicy !== 'user_provided';
+    const bNums = [
+      toFiniteNumber(personB.year), toFiniteNumber(personB.month), toFiniteNumber(personB.day),
+      ...(allowUnknownB ? [] as number[] : [toFiniteNumber(personB.hour), toFiniteNumber(personB.minute)]),
+      toFiniteNumber(personB.latitude), toFiniteNumber(personB.longitude)
+    ];
+    const bOk = bRequired.every(Boolean) && bNums.every((n) => !Number.isNaN(n)) && bCoordsValid;
 
     // Relationship context soft validation (backend will enforce precisely)
     let relOk = true;
@@ -3496,14 +3512,14 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
     if (relationshipType === 'FAMILY') relOk = !!relationshipRole;
 
     return allPresent && bOk && relOk && Boolean(startDate) && Boolean(endDate);
-  }, [personA, personB, includePersonB, relationshipType, relationshipTier, relationshipRole, mode, startDate, endDate, aCoordsValid, bCoordsValid, timeUnknown, timeUnknownB, timePolicy]);
+  }, [personA, personB, includePersonB, relationshipType, relationshipTier, relationshipRole, mode, startDate, endDate, aCoordsValid, bCoordsValid, timeUnknown, timeUnknownB, timePolicy, includeTransits]);
   const submitDisabled = useMemo(() => {
     // Additional relocation/report gate
     const locGate = needsLocation(reportType, includeTransits, personA);
     if (includeTransits && !locGate.hasLoc) return true;
     if (!canSubmit || loading) return true;
     return false;
-  }, [canSubmit, loading, personA, reportType]);
+  }, [canSubmit, loading, personA, reportType, includeTransits]);
 
   // Debug panel toggle (append ?debug=1 to the URL to enable)
   const [debugMode, setDebugMode] = useState(false);
