@@ -2166,7 +2166,10 @@ export default function ChatClient() {
         currentRavenIndex={currentRavenIndex}
         scrollToBottom={scrollToBottom}
       />
-      <main className="relative flex flex-1 flex-col gap-3 overflow-hidden p-3 min-h-0 lg:grid lg:grid-cols-[280px_1fr] lg:gap-4">
+      <main
+        className="relative flex flex-1 flex-col gap-3 overflow-y-auto overscroll-contain lg:overflow-hidden p-3 min-h-0 lg:grid lg:grid-cols-[280px_1fr] lg:gap-4"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
         <div className="hidden h-full lg:block">
           <Sidebar
             onInsert={(m) => {
@@ -2276,6 +2279,7 @@ export default function ChatClient() {
             onToggleCollapse={toggleReportCollapse}
             onRemove={removeReport}
             onPingFeedback={handlePingFeedback}
+            isDesktop={isDesktop}
           />
         </div>
         {/* Scroll hint button */}
@@ -3342,6 +3346,7 @@ function Stream({
   onToggleCollapse,
   onRemove,
   onPingFeedback,
+  isDesktop,
 }: {
   messages: Message[];
   typing: boolean;
@@ -3354,6 +3359,7 @@ function Stream({
     response: PingResponse,
     note?: string,
   ) => void;
+  isDesktop: boolean;
 }) {
   // Rely on flex sizing so mobile Safari calculates the scrollable
   // conversation height correctly without collapsing the stream.
@@ -3370,7 +3376,7 @@ function Stream({
         display: "flex",
         flexDirection: "column",
         gap: 12,
-        overflow: "auto",
+        overflow: isDesktop ? "auto" : "visible",
         flex: 1,
         minHeight: 0,
         WebkitOverflowScrolling: "touch",
