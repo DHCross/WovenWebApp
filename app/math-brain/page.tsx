@@ -596,6 +596,7 @@ export default function MathBrainPage() {
   const [startDate, setStartDate] = useState<string>(() => getDefaultDates(false).start);
   const [endDate, setEndDate] = useState<string>(() => getDefaultDates(false).end);
   const [reportStructure, setReportStructure] = useState<ReportStructure>('solo');
+  const [reportFormat, setReportFormat] = useState<'comprehensive' | 'preferred_structure'>('comprehensive');
   const [includeTransits, setIncludeTransits] = useState<boolean>(false);
   const [includePersonB, setIncludePersonB] = useState<boolean>(false);
   const mode = useMemo<ReportMode>(() => modeFromStructure(reportStructure, includeTransits), [reportStructure, includeTransits]);
@@ -3763,6 +3764,7 @@ Analyze the midpoint chart representing the relationship itself as a third entit
         includePersonB,
         translocation,
         reportStructure, // ADDED: Save report type (solo/synastry/composite)
+        reportFormat, // ADDED: Save report format preference
         personA,
         personB,
         relationshipType,
@@ -3970,6 +3972,10 @@ Analyze the midpoint chart representing the relationship itself as a third entit
         if (typeof data.reportStructure === 'string' && ['solo', 'synastry', 'composite'].includes(data.reportStructure)) {
           setReportStructure(data.reportStructure as ReportStructure);
         }
+        // ADDED: Load report format preference
+        if (typeof data.reportFormat === 'string' && ['comprehensive', 'preferred_structure'].includes(data.reportFormat)) {
+          setReportFormat(data.reportFormat as 'comprehensive' | 'preferred_structure');
+        }
         if (typeof data.exEstranged === 'boolean') setExEstranged(data.exEstranged);
         if (typeof data.relationshipNotes === 'string') setRelationshipNotes(data.relationshipNotes);
         if (typeof data.relationshipTier === 'string') setRelationshipTier(data.relationshipTier);
@@ -4026,6 +4032,10 @@ Analyze the midpoint chart representing the relationship itself as a third entit
       // ADDED: Restore report structure from session
       if (typeof inputs.reportStructure === 'string' && ['solo', 'synastry', 'composite'].includes(inputs.reportStructure)) {
         setReportStructure(inputs.reportStructure as ReportStructure);
+      }
+      // ADDED: Restore report format from session
+      if (typeof inputs.reportFormat === 'string' && ['comprehensive', 'preferred_structure'].includes(inputs.reportFormat)) {
+        setReportFormat(inputs.reportFormat as 'comprehensive' | 'preferred_structure');
       }
 
       if (inputs.relationship) {
@@ -4167,6 +4177,8 @@ Analyze the midpoint chart representing the relationship itself as a third entit
         })(),
         // Foundation phase: no transits, always mirror contract
         report_type: RELATIONAL_MODES.includes(mode) ? 'relational_mirror' : 'solo_mirror',
+        // Report format selection
+        report_family: reportFormat,
         // Report mode drives backend routing semantics
         context: {
           mode: determineContextMode(mode, RELATIONAL_MODES.includes(mode) ? 'relational_mirror' : 'solo_mirror'),
@@ -5298,6 +5310,38 @@ Analyze the midpoint chart representing the relationship itself as a third entit
                           {type === 'synastry' && 'Relationship dynamics between two charts'}
                           {type === 'composite' && 'Blended chart representing the relationship itself'}
                         </span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </Section>
+
+            <Section title="Report Format">
+              <div className="space-y-3">
+                <p className="text-xs text-slate-400">Choose how you want your report structured</p>
+                <div className="flex flex-col gap-2">
+                  {([
+                    { value: 'comprehensive', label: 'Comprehensive', description: 'Full technical analysis with all data points' },
+                    { value: 'preferred_structure', label: 'Preferred Structure', description: 'Solo mirrors → Relational engines → Weather (conversational)' }
+                  ] as const).map((format) => (
+                    <label
+                      key={format.value}
+                      className="flex items-center gap-3 rounded-md border border-slate-700 bg-slate-800/60 px-3 py-2.5 cursor-pointer hover:bg-slate-800 transition"
+                    >
+                      <input
+                        type="radio"
+                        name="report-format"
+                        value={format.value}
+                        checked={reportFormat === format.value}
+                        onChange={(e) => {
+                          setReportFormat(e.target.value as 'comprehensive' | 'preferred_structure');
+                        }}
+                        className="h-4 w-4 border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <div>
+                        <span className="block text-sm font-medium text-slate-100">{format.label}</span>
+                        <span className="block text-xs text-slate-400">{format.description}</span>
                       </div>
                     </label>
                   ))}
