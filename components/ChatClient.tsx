@@ -699,48 +699,115 @@ export default function ChatClient() {
       }
     } catch {}
 
-    const reportData = sessionStorage.getItem("woven_report_for_raven");
-    if (reportData) {
-      try {
-        const parsed = JSON.parse(reportData);
+    const staged = sessionStorage.getItem("woven_report_for_raven");
+    if (!staged) return;
 
-        // Clear the sessionStorage so it doesn't auto-load again
-        sessionStorage.removeItem("woven_report_for_raven");
+    sessionStorage.removeItem("woven_report_for_raven");
 
-        // Create a welcome message with the report data
-        const reportMessage: Message = {
-          id: generateId(),
-          role: "user",
-          html: `Hi Raven! I've generated a chart analysis and would love your interpretation. Here's my information: ${parsed.meta?.person?.name || "Name not provided"}, born ${parsed.meta?.person?.birthDate || "unknown date"} at ${parsed.meta?.person?.birthTime || "unknown time"} in ${parsed.meta?.person?.birthLocation || "unknown location"}. Context: ${parsed.meta?.context || "general reading"}.`,
-          isReport: true,
-          reportType: "mirror",
-          reportName: `Chart Analysis - ${parsed.meta?.person?.name || "Unknown"}`,
-          reportSummary: `Math Brain report from ${parsed.meta?.timestamp ? new Date(parsed.meta.timestamp).toLocaleDateString() : "today"}`,
-          fullContent: JSON.stringify(parsed.reportData, null, 2),
-        };
+    try {
+      const parsed = JSON.parse(staged);
+      const meta = parsed?.meta ?? {};
+      const rawReport = parsed?.reportData ?? parsed?.report ?? parsed;
 
-        // Add the report message to the conversation
-        setMessages((prev) => [...prev, reportMessage]);
+      const reportTypeToken = String(meta?.reportType || "mirror")
+        .toLowerCase()
+        .trim();
+      const reportType: "mirror" | "balance" | "journal" =
+        reportTypeToken === "balance"
+          ? "balance"
+          : reportTypeToken === "journal"
+            ? "journal"
+            : "mirror";
 
-        // Auto-send a request for interpretation
+      const personName = meta?.person?.name?.trim();
+      const reportName = personName
+        ? `${personName} · Math Brain`
+        : "Math Brain Report";
+
+      const summaryParts: string[] = [];
+      if (meta?.context) summaryParts.push(String(meta.context));
+      const metaSummary = meta?.summary ?? {};
+      const climatePieces = [
+        metaSummary.magnitudeLabel
+          ? `Magnitude ${metaSummary.magnitudeLabel}`
+          : null,
+        metaSummary.valenceLabel
+          ? `Valence ${metaSummary.valenceLabel}`
+          : null,
+        metaSummary.volatilityLabel
+          ? `Volatility ${metaSummary.volatilityLabel}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      if (climatePieces) summaryParts.push(climatePieces);
+      const reportSummary = summaryParts.join(" • ");
+
+      const contentString = (() => {
+        if (typeof rawReport === "string") return rawReport;
+        try {
+          return JSON.stringify(rawReport, null, 2);
+        } catch {
+          return staged;
+        }
+      })();
+
+      const timestamp = (() => {
+        if (!meta?.timestamp) return null;
+        try {
+          return new Date(meta.timestamp).toLocaleString();
+        } catch {
+          return null;
+        }
+      })();
+
+      const introLines: string[] = [];
+      introLines.push(
+        personName
+          ? `Loaded Math Brain geometry for ${personName}.`
+          : "Loaded Math Brain geometry.",
+      );
+      if (meta?.context) introLines.push(`Context: ${meta.context}.`);
+      if (timestamp) introLines.push(`Generated on ${timestamp}.`);
+
+      const reportMessage: Message = {
+        id: generateId(),
+        role: "user",
+        html: `<p>${escapeHtml(introLines.join(" ")).replace(/\n/g, "<br/>")}</p>`,
+        isReport: true,
+        reportType,
+        reportName,
+        reportSummary: reportSummary || undefined,
+        collapsed: true,
+        fullContent: contentString,
+      };
+
+      setMessages((prev) => [...prev, reportMessage]);
+
+      const reportContext: ReportContext = {
+        id: generateId(),
+        type: reportType,
+        name: reportName,
+        summary:
+          reportSummary || "Math Brain geometry ready for interpretation",
+        content: contentString,
+      };
+
+      setReportContexts((prev) => {
+        const contextsForAnalysis = [...prev, reportContext];
+        // Kick off analysis once contexts are staged
         setTimeout(() => {
-          const interpretationRequest = `Please provide your interpretation of this chart data. I'm particularly interested in understanding the key patterns and what they might reveal about my current life dynamics.`;
-          setInput(interpretationRequest);
-          // Auto-submit after a brief delay to let the user see what's happening
-          setTimeout(() => {
-            const submitEvent = new Event("submit", {
-              bubbles: true,
-              cancelable: true,
-            });
-            document.querySelector("form")?.dispatchEvent(submitEvent);
-          }, 1000);
-        }, 500);
-      } catch (error) {
-        console.error(
-          "Failed to parse report data from sessionStorage:",
-          error,
-        );
+          analyzeReportContext(reportContext, contextsForAnalysis);
+        }, 0);
+        return contextsForAnalysis;
+      });
+
+      setRelocation(null);
+      if (reportType === "mirror") {
+        setHasMirrorData(true);
       }
+    } catch (error) {
+      console.error("Failed to parse report data from sessionStorage:", error);
     }
   }, []); // Run once on component mount
 
