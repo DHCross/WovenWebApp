@@ -23,25 +23,6 @@ Language is plain, falsifiable, and grounded. No mystical or moral terms. E-Prim
 
 ---
 
-## Frontstage Preface (Conversational Entry)
-
-Purpose: Every PDF/report starts in a warm, conversational tone that creates immediate resonance before any diagnostic or weather. This is encouraged by structure, not just persona settings.
-
-Slots:
-- Persona Intro: Raven-in-the-coffee-shop greeting that invites reflection without judgment.
-- Resonance Profile: 1–3 short lines grounding the user in their blueprint modes (Primary/Secondary/Shadow) or baseline current.
-- Paradoxes: 1–3 lines naming productive tensions; framed as fuel, not flaw.
-- Relational Focus (if relational): Names Person A and B and emphasizes bidirectional attribution.
-
-Guardrails:
-- Plain language, no numbers or aspect terms. Testable, falsifiable phrasing. No advice.
-- If blueprint modes are unavailable, default to a neutral resonance line and one paradox line.
-- If relational, always name both parties explicitly (no generic “they”).
-
-This preface is generated from the report structure (blueprint modes, tensions, names). It always appears before Mirror/Weather sections.
-
----
-
 ## Context Gate (intelligent detection)
 
 **Smart Detection Protocol**: 
@@ -114,17 +95,7 @@ Geometry → archetypes → FIELD/MAP/VOICE. Transit weather follows diagnostic.
 
 ---
 
-## Relationship Diagnostics (Partner Intimacy Tiers)
-
-**PARTNER Intimacy Tiers (P1–P5b):**
-- **P1** — Platonic partners (no romantic/sexual component)
-- **P2** — Friends-with-benefits (sexual but not romantic)
-- **P3** — Situationship (unclear/unstable, undefined boundaries)
-- **P4** — Low-commitment romantic or sexual (casual dating, open relationships)
-- **P5a** — Committed romantic + sexual (exclusive committed relationship)
-- **P5b** — Committed romantic, non-sexual (committed partnership without sexual component)
-
-**CRITICAL:** Always use these EXACT labels. Never substitute with phrases like "established regular rhythm" or other generic descriptions. The intimacy tier must be interpreted correctly for accurate relational diagnostics.
+## Relationship Diagnostics (P1–P3)
 
 Same FIELD→MAP→VOICE flow. Always name who holds which end—never use mutual language until confirmed by both parties.
 
@@ -135,7 +106,7 @@ Template:
 
 For parent–child, qualify age context. Child positions = emerging patterns; adult = autonomous choice. Dynamics framed by developmental stage.
 
-After diagnostic phase, shift to **Post-Diagnostic Resonant Excavation**: extract individual tensions, overlay through partner's lens, reframe without adding new geometry.
+After P2/P3, shift to **Post-Diagnostic Resonant Excavation**: extract individual tensions, overlay through partner's lens, reframe without adding new geometry.
 
 ---
 
@@ -615,6 +586,31 @@ assert houses[10] == mc for all systems
 Notes for the human who's reading the PDF but not writing code:
 	•	The only time you need the relocation time zone is if you want to print local clock times for events. The math itself runs on UT, then adds longitude to get local sidereal time.
 	•	Whole Sign and Equal are trivial to implement and extremely stable. Placidus is more involved; the scaffold shows where to plug in a standard routine or a numeric solver.
+	
+## Realtonal Categories
+
+P2 = Friends-with-benefits (sexual but not romantic)
+P3 = Situationship (unclear/unstable, undefined boundaries)
+P4 = Low-commitment romantic or sexual (casual dating, open relationships)
+P5a = Committed romantic + sexual (exclusive committed relationship)
+P5b = Committed romantic, non-sexual (committed partnership without sexual component)	
+	
+	Realtional Categories
+	
+	Based on the configuration and documentation in the DHCross/RavenCalder_Corpus repository, the main relational (relationship) categories besides "PARTNER" appear to be:
+
+- friend/colleague
+- family
+- acquaintance
+
+These categories are referenced in template and configuration files, for example in Math Brain Templates.txt:
+- partner
+- friend/colleague
+- family
+- acquaintance
+
+Each category can have additional qualifiers such as consent status (mutual, single-sided, anonymized) and, for "partner," the intimacy tiers you previously listed (P1–P5b). There is also specific protocol for determining the relational context before running any cross-chart interpretation, ensuring that relationship type (partnership, friendship, family, or other) is always clarified.
+
 
 ## Closing Ethos
 

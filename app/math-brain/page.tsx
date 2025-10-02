@@ -2498,6 +2498,57 @@ export default function MathBrainPage() {
     return lines.join('\n');
   }
 
+  function formatDailyReadingsTable(dailyReadings: any[]): string {
+    if (!dailyReadings || !dailyReadings.length) return 'No daily readings available.';
+
+    const lines: string[] = [];
+    lines.push('DATE         MAGNITUDE  VALENCE    VOLATILITY  SFD      NOTES');
+    lines.push('─'.repeat(80));
+
+    dailyReadings.forEach(day => {
+      const date = (day.date || '').padEnd(12);
+      const mag = String(day.magnitude || 0).padEnd(10);
+      const val = String(day.valence || 0).padEnd(10);
+      const vol = String(day.volatility || 0).padEnd(11);
+      const sfd = String(day.sfd || 0).padEnd(8);
+      const notes = day.notes || day.label || '';
+
+      lines.push(`${date} ${mag} ${val} ${vol} ${sfd} ${notes}`);
+    });
+
+    return lines.join('\n');
+  }
+
+  function formatSymbolicWeatherSummary(symbolicWeather: any): string {
+    if (!symbolicWeather) return '';
+
+    const lines: string[] = [];
+
+    if (symbolicWeather.balance_meter) {
+      const bm = symbolicWeather.balance_meter;
+      lines.push('BALANCE METER SUMMARY');
+      lines.push('─'.repeat(40));
+      if (bm.magnitude !== undefined) lines.push(`Overall Magnitude: ${bm.magnitude_label || bm.magnitude} (${bm.magnitude}/5)`);
+      if (bm.valence !== undefined) lines.push(`Overall Valence: ${bm.valence_label || bm.valence} (${bm.valence})`);
+      if (bm.volatility !== undefined) lines.push(`Overall Volatility: ${bm.volatility_label || bm.volatility} (${bm.volatility}/5)`);
+      if (bm.sfd !== undefined) lines.push(`SFD (Support-Friction): ${bm.sfd}`);
+      lines.push('');
+    }
+
+    if (symbolicWeather.transit_context) {
+      const tc = symbolicWeather.transit_context;
+      lines.push('TRANSIT CONTEXT');
+      lines.push('─'.repeat(40));
+      if (tc.date_range) lines.push(`Date Range: ${tc.date_range.start} to ${tc.date_range.end}`);
+      if (tc.peak_dates && tc.peak_dates.length) {
+        lines.push(`Peak Activity Dates: ${tc.peak_dates.join(', ')}`);
+      }
+      lines.push('');
+    }
+
+    return lines.join('\n');
+  }
+
   // Generate a text-based PDF with schema rule-patch compliance and sanitization
   async function downloadResultPDF() {
     if (!result) {
@@ -2757,6 +2808,28 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
             mode: 'mono'
           });
         }
+
+        // Add daily readings if transits are present
+        if (wovenMap.data_tables.daily_readings && Array.isArray(wovenMap.data_tables.daily_readings)) {
+          const dailyText = formatDailyReadingsTable(wovenMap.data_tables.daily_readings);
+          sections.push({
+            title: 'Daily Symbolic Weather (Transit Activations)',
+            body: dailyText,
+            mode: 'mono'
+          });
+        }
+      }
+
+      // Add symbolic weather summary if available
+      if (wovenMap?.symbolic_weather) {
+        const weatherSummary = formatSymbolicWeatherSummary(wovenMap.symbolic_weather);
+        if (weatherSummary) {
+          sections.push({
+            title: 'Symbolic Weather Overview',
+            body: weatherSummary,
+            mode: 'regular'
+          });
+        }
       }
 
       // Add rendered summary if available
@@ -2777,20 +2850,157 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
         });
       }
 
-      const shouldIncludeRelocationRecipe = translocation !== 'NONE';
+      // ALWAYS include relocation math instructions for Raven Calder
+      // This ensures Raven knows how to handle house relocation correctly
+      const relocationInstructions = `# 🔢 House Relocation Math Instructions (Tropical, Raven Calder)
 
-      if (shouldIncludeRelocationRecipe) {
-        sections.push({
-          title: 'Relocation Directive (Poetic Brain)',
-          body: 'Upstream geometry API does not compute relocated houses. Before narrating Person A or Person B in a relocated city, derive the houses using the Raven Calder recipe below.',
-          mode: 'regular'
-        });
-        sections.push({
-          title: 'Raven Calder Internal Procedure: Relocated Houses Engine',
-          body: RAVEN_RELOCATION_RECIPE,
-          mode: 'mono'
-        });
-      }
+**Objective:** Keep all planetary positions fixed to the natal chart, while recalculating house cusps for a new geographic location. This produces a relocated house system that reflects *where you are now* without altering the natal blueprint.
+
+---
+
+### Step 1. Fix the Natal Planetary Positions
+
+* Compute all planetary longitudes in the **tropical zodiac** at the exact birth time and birth location.
+* Store these as the **immutable natal positions**.
+* Do not recompute planetary positions when relocating.
+
+---
+
+### Step 2. Recalculate the Local Sidereal Time (LST)
+
+* Input: relocated longitude, relocated latitude, relocated timezone offset.
+* Compute **Greenwich Sidereal Time (GST)** at birth moment.
+* Adjust GST for the relocated longitude to get **Local Sidereal Time (LST)**.
+
+Formula (simplified):
+
+\`\`\`
+LST = GST + (relocated_longitude / 15° per hour)
+\`\`\`
+
+(Keep LST normalized to 0–24h range).
+
+---
+
+### Step 3. Ascendant & Midheaven
+
+* Use the relocated latitude and LST to compute the angles:
+
+  * **MC (Medium Coeli)** = longitude of the zodiac crossing the meridian at LST.
+  * **ASC (Ascendant)** = longitude of the zodiac rising on the eastern horizon at that latitude and sidereal time.
+
+---
+
+### Step 4. House Cusps
+
+* Once ASC and MC are computed, calculate all 12 house cusps according to the selected system:
+
+  * **Whole Sign:** Houses begin at 0° of the sign containing the ASC.
+  * **Equal:** Houses are 30° each, starting from the ASC.
+  * **Placidus (default):** Use time-division method based on diurnal arcs of the ASC and MC.
+
+---
+
+### Step 5. Place Natal Planets into Relocated Houses
+
+* Keep each planet's zodiac degree fixed (from natal).
+* Reassign planets into **new house positions** based on the relocated cusps.
+* Example: Natal Mars 15° Gemini may move from the 11th house to the 10th house if the relocated cusps shift.
+
+---
+
+### Step 6. Provenance
+
+Every report must record:
+
+* House system used (Placidus, Whole Sign, etc.)
+* Relocation mode (none / A_local / B_local / shared)
+* Relocated coordinates and timezone
+* Math brain version + ephemeris source
+
+---
+
+✅ **Raven's Rule:**
+
+* Always interpret **sign and aspects** from the natal chart.
+* Always interpret **house positions** from the relocated chart.
+* If relocation data is missing or uncertain, default to natal houses and issue a *House Uncertainty Notice*.`;
+
+      sections.push({
+        title: 'House Relocation Math Instructions (For Raven Calder)',
+        body: relocationInstructions,
+        mode: 'regular'
+      });
+
+      // Add relationship context definitions
+      const relationshipDefinitions = `# Relationship Context Definitions (Math Brain)
+
+## Relationship Types
+
+### PARTNER
+Romantic, sexual, or intimate partnership (requires intimacy tier)
+
+**Intimacy Tiers:**
+- **P1** — Platonic partners (no romantic/sexual component)
+- **P2** — Friends-with-benefits (sexual but not romantic)
+- **P3** — Situationship (unclear/unstable, undefined boundaries)
+- **P4** — Low-commitment romantic or sexual (casual dating, open relationships)
+- **P5a** — Committed romantic + sexual (exclusive committed relationship)
+- **P5b** — Committed romantic, non-sexual (committed partnership without sexual component)
+
+### FAMILY
+Family relationships (requires role specification)
+
+**Family Roles:**
+- Parent
+- Child
+- Sibling
+- Extended (aunts, uncles, cousins, etc.)
+
+### PROFESSIONAL
+Work or professional relationships (requires role specification)
+
+**Professional Roles:**
+- Manager
+- Direct Report
+- Colleague/Peer
+- Client
+- Vendor
+
+---
+
+## Contact State
+
+### ACTIVE
+Currently in regular contact, relationship is live and ongoing
+
+### LATENT
+Not currently in contact, relationship is dormant or past
+
+**Important:** For LATENT relationships, use past-tense language and acknowledge the relationship is no longer active.
+
+---
+
+## Relational Mode
+
+### SYNASTRY
+Analyze the relationship between two people's natal charts (Person A ↔ Person B cross-aspects)
+
+### COMPOSITE
+Analyze the midpoint chart representing the relationship itself as a third entity
+
+---
+
+**Raven's Rule:**
+- Always use the EXACT intimacy tier labels as defined above
+- Never substitute with outdated labels like "established regular rhythm" or generic descriptions
+- The intimacy tier appears in the relationship context and must be interpreted correctly`;
+
+      sections.push({
+        title: 'Relationship Context Reference (For Raven Calder)',
+        body: relationshipDefinitions,
+        mode: 'regular'
+      });
 
       // Add sanitized raw JSON
       sections.push({
@@ -4100,15 +4310,6 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
           >
             Open Legacy Math Brain
           </a>
-        )}
-        {savedSession && (
-          <button
-            type="button"
-            onClick={handleResumePrompt}
-            className="rounded-md border border-indigo-600 px-4 py-2 text-indigo-200 hover:bg-indigo-600/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-          >
-            Resume Last Session
-          </button>
         )}
       </div>
 
