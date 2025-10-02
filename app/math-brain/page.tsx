@@ -597,7 +597,7 @@ export default function MathBrainPage() {
   const [startDate, setStartDate] = useState<string>(() => getDefaultDates(false).start);
   const [endDate, setEndDate] = useState<string>(() => getDefaultDates(false).end);
   const [reportStructure, setReportStructure] = useState<ReportStructure>('solo');
-  const [reportFormat, setReportFormat] = useState<'comprehensive' | 'preferred_structure'>('comprehensive');
+  // reportFormat removed - Raven Calder always uses conversational voice per corpus/persona
   const [includeTransits, setIncludeTransits] = useState<boolean>(false);
   const [includePersonB, setIncludePersonB] = useState<boolean>(false);
   const mode = useMemo<ReportMode>(() => modeFromStructure(reportStructure, includeTransits), [reportStructure, includeTransits]);
@@ -2666,23 +2666,23 @@ export default function MathBrainPage() {
 
       const sections: Array<{ title: string; body: string; mode: 'regular' | 'mono' }> = [];
 
-      // Add presentation instructions based on user preference
-      if (reportFormat === 'preferred_structure') {
-        const conversationalInstructions = `
-AI SYNTHESIS INSTRUCTIONS - CONVERSATIONAL PRESENTATION
+      // Raven Calder conversational presentation instructions (always included)
+      const conversationalInstructions = `
+AI SYNTHESIS INSTRUCTIONS - RAVEN CALDER CONVERSATIONAL VOICE
 
-When presenting this astrological analysis, follow these guidelines:
+When presenting this astrological analysis, follow the Raven Calder corpus/persona:
 
 STRUCTURE: Present in this exact order:
 1. Solo Mirrors: Short, plain-language snapshots for each person (if relational) or individual (if solo)
 2. Relational Engines: Named, recognizable patterns (Spark Engine, Sweet Glue, Growth Pressure Cooker, etc.)
 3. Weather Overlay: Continuous narrative paragraphs describing current symbolic weather
 
-TONE & LANGUAGE:
+TONE & LANGUAGE (Per Raven Calder Persona):
 • Use conversational, accessible language - no heavy astrological jargon
 • Frame patterns as tendencies and probabilities, NOT prescriptions or fixed fate
 • Make it shareable - suitable for discussing with partners, friends, or family
 • Focus on "here's how your system tends to move" rather than technical analysis
+• Falsifiable, agency-first, plain language
 
 SOLO MIRRORS FORMAT:
 "[Name]'s system tends to [movement pattern] with a [style] approach. [Current influence]. This creates a [climate] kind of energy that [expression pattern]."
@@ -2701,14 +2701,13 @@ CRITICAL DATA REQUIREMENTS:
 • Synthesize ALL the technical analysis into conversational format while preserving analytical accuracy
 
 IMPORTANT: This comprehensive astrological data should be synthesized into the conversational format above, but retain all the analytical depth. Present insights as conversation starters about energy patterns rather than definitive statements.
-        `.trim();
+      `.trim();
 
-        sections.push({
-          title: 'PRESENTATION INSTRUCTIONS FOR AI SYNTHESIS',
-          body: conversationalInstructions,
-          mode: 'regular'
-        });
-      }
+      sections.push({
+        title: 'RAVEN CALDER SYNTHESIS INSTRUCTIONS',
+        body: conversationalInstructions,
+        mode: 'regular'
+      });
 
       // Add contract compliance section if available
       if (contractCompliant) {
@@ -3845,7 +3844,7 @@ Analyze the midpoint chart representing the relationship itself as a third entit
         includePersonB,
         translocation,
         reportStructure, // ADDED: Save report type (solo/synastry/composite)
-        reportFormat, // ADDED: Save report format preference
+        // reportFormat removed - always conversational
         personA,
         personB,
         relationshipType,
@@ -4054,9 +4053,7 @@ Analyze the midpoint chart representing the relationship itself as a third entit
           setReportStructure(data.reportStructure as ReportStructure);
         }
         // ADDED: Load report format preference
-        if (typeof data.reportFormat === 'string' && ['comprehensive', 'preferred_structure'].includes(data.reportFormat)) {
-          setReportFormat(data.reportFormat as 'comprehensive' | 'preferred_structure');
-        }
+        // reportFormat removed - always conversational
         if (typeof data.exEstranged === 'boolean') setExEstranged(data.exEstranged);
         if (typeof data.relationshipNotes === 'string') setRelationshipNotes(data.relationshipNotes);
         if (typeof data.relationshipTier === 'string') setRelationshipTier(data.relationshipTier);
@@ -4115,9 +4112,7 @@ Analyze the midpoint chart representing the relationship itself as a third entit
         setReportStructure(inputs.reportStructure as ReportStructure);
       }
       // ADDED: Restore report format from session
-      if (typeof inputs.reportFormat === 'string' && ['comprehensive', 'preferred_structure'].includes(inputs.reportFormat)) {
-        setReportFormat(inputs.reportFormat as 'comprehensive' | 'preferred_structure');
-      }
+      // reportFormat removed - always conversational
 
       if (inputs.relationship) {
         const rel = inputs.relationship;
@@ -4258,8 +4253,8 @@ Analyze the midpoint chart representing the relationship itself as a third entit
         })(),
         // Foundation phase: no transits, always mirror contract
         report_type: RELATIONAL_MODES.includes(mode) ? 'relational_mirror' : 'solo_mirror',
-        // Presentation style preference (affects AI synthesis, not data generation)
-        presentation_style: reportFormat === 'preferred_structure' ? 'conversational' : 'technical',
+        // Raven Calder always uses conversational voice (per corpus/persona)
+        presentation_style: 'conversational',
         // Report mode drives backend routing semantics
         context: {
           mode: determineContextMode(mode, RELATIONAL_MODES.includes(mode) ? 'relational_mirror' : 'solo_mirror'),
@@ -5394,50 +5389,6 @@ Analyze the midpoint chart representing the relationship itself as a third entit
                       </div>
                     </label>
                   ))}
-                </div>
-              </div>
-            </Section>
-
-            <Section title="Presentation Style">
-              <div className="space-y-3">
-                <p className="text-xs text-slate-400">Choose how AI should present your comprehensive analysis</p>
-                <div className="flex flex-col gap-2">
-                  {([
-                    { value: 'comprehensive', label: 'Technical', description: 'Full astrological terminology and detailed analysis' },
-                    { value: 'preferred_structure', label: 'Conversational', description: 'Plain language, accessible format (Solo mirrors → Engines → Weather)' }
-                  ] as const).map((style) => (
-                    <label
-                      key={style.value}
-                      className="flex items-center gap-3 rounded-md border border-slate-700 bg-slate-800/60 px-3 py-2.5 cursor-pointer hover:bg-slate-800 transition"
-                    >
-                      <input
-                        type="radio"
-                        name="presentation-style"
-                        value={style.value}
-                        checked={reportFormat === style.value}
-                        onChange={(e) => {
-                          setReportFormat(e.target.value as 'comprehensive' | 'preferred_structure');
-                        }}
-                        className="h-4 w-4 border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <div>
-                        <span className="block text-sm font-medium text-slate-100">{style.label}</span>
-                        <span className="block text-xs text-slate-400">{style.description}</span>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-                <div className="rounded-md border border-amber-700 bg-amber-900/20 p-3">
-                  <div className="flex items-start gap-2">
-                    <svg className="h-4 w-4 text-amber-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div>
-                      <p className="text-xs text-amber-100">
-                        Both options generate the same comprehensive astrological analysis. This setting only affects how the AI presents the information in PDFs and narrative synthesis.
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </div>
             </Section>
