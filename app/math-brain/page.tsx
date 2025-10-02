@@ -2360,6 +2360,144 @@ export default function MathBrainPage() {
     }
   }
 
+  // Helper functions to format data for PDF
+  function formatNatalSummaryForPDF(natalSummary: any, personContext: any): string {
+    const lines: string[] = [];
+
+    if (personContext) {
+      lines.push(`Name: ${personContext.name || 'Unknown'}`);
+      lines.push(`Birth Date: ${personContext.birth_date || 'Unknown'}`);
+      lines.push(`Birth Time: ${personContext.birth_time || 'Unknown'}${personContext.birth_time_exact ? ' (exact)' : ' (approximate)'}`);
+
+      if (personContext.birthplace) {
+        const bp = personContext.birthplace;
+        lines.push(`Birthplace: ${[bp.city, bp.state, bp.country].filter(Boolean).join(', ')}`);
+        if (bp.coordinates) {
+          lines.push(`Coordinates: ${bp.coordinates.lat.toFixed(4)}°, ${bp.coordinates.lon.toFixed(4)}°`);
+        }
+      }
+
+      lines.push(`House System: ${personContext.house_system || 'Placidus'}`);
+      lines.push(`Zodiac Type: ${personContext.zodiac_type || 'Tropical'}`);
+      lines.push('');
+    }
+
+    if (natalSummary.placements) {
+      lines.push('KEY PLACEMENTS:');
+      const pl = natalSummary.placements;
+      if (pl.core && pl.core.length) {
+        lines.push(`Core: ${pl.core.map((p: any) => `${p.name} in ${p.sign}`).join(', ')}`);
+      }
+      if (pl.supporting && pl.supporting.length) {
+        lines.push(`Supporting: ${pl.supporting.map((p: any) => `${p.name} in ${p.sign}`).join(', ')}`);
+      }
+      lines.push('');
+    }
+
+    return lines.join('\n');
+  }
+
+  function formatPersonBBlueprintForPDF(blueprint: any, personBContext: any): string {
+    const lines: string[] = [];
+
+    if (personBContext) {
+      lines.push(`Name: ${personBContext.name || 'Unknown'}`);
+      lines.push(`Birth Date: ${personBContext.birth_date || 'Unknown'}`);
+      lines.push(`Birth Time: ${personBContext.birth_time || 'Unknown'}${personBContext.birth_time_exact ? ' (exact)' : ' (approximate)'}`);
+
+      if (personBContext.birthplace) {
+        const bp = personBContext.birthplace;
+        lines.push(`Birthplace: ${[bp.city, bp.state, bp.country].filter(Boolean).join(', ')}`);
+      }
+
+      lines.push(`House System: ${personBContext.house_system || 'Placidus'}`);
+      lines.push('');
+    }
+
+    if (blueprint.person_b_modes) {
+      const modes = blueprint.person_b_modes;
+      if (modes.primary_mode) {
+        lines.push(`Primary Mode: ${modes.primary_mode.function}`);
+      }
+      if (modes.secondary_mode) {
+        lines.push(`Secondary Mode: ${modes.secondary_mode.function}`);
+      }
+    }
+
+    return lines.join('\n');
+  }
+
+  function formatSynastrySummaryForPDF(synastry: any): string {
+    const lines: string[] = [];
+
+    if (synastry.connection_type) {
+      lines.push(`Connection Type: ${synastry.connection_type}`);
+    }
+
+    if (synastry.major_themes && Array.isArray(synastry.major_themes)) {
+      lines.push('\nMAJOR THEMES:');
+      synastry.major_themes.forEach((theme: any) => {
+        lines.push(`- ${theme}`);
+      });
+    }
+
+    if (synastry.strengths && Array.isArray(synastry.strengths)) {
+      lines.push('\nSTRENGTHS:');
+      synastry.strengths.forEach((strength: any) => {
+        lines.push(`- ${strength}`);
+      });
+    }
+
+    if (synastry.challenges && Array.isArray(synastry.challenges)) {
+      lines.push('\nCHALLENGES:');
+      synastry.challenges.forEach((challenge: any) => {
+        lines.push(`- ${challenge}`);
+      });
+    }
+
+    return lines.join('\n');
+  }
+
+  function formatPlanetaryPositionsTable(positions: any[]): string {
+    if (!positions || !positions.length) return 'No planetary positions available.';
+
+    const lines: string[] = [];
+    lines.push('BODY           SIGN          DEGREE      HOUSE    RETROGRADE');
+    lines.push('─'.repeat(65));
+
+    positions.forEach(pos => {
+      const body = (pos.body || '').padEnd(14);
+      const sign = (pos.sign || '').padEnd(13);
+      const degree = (pos.degree || '').padEnd(11);
+      const house = (pos.house || '').padEnd(8);
+      const retro = pos.retrograde || '';
+
+      lines.push(`${body} ${sign} ${degree} ${house} ${retro}`);
+    });
+
+    return lines.join('\n');
+  }
+
+  function formatAspectsTable(aspects: any[]): string {
+    if (!aspects || !aspects.length) return 'No aspects available.';
+
+    const lines: string[] = [];
+    lines.push('PLANET 1    ASPECT        PLANET 2    ORB        APPLYING');
+    lines.push('─'.repeat(60));
+
+    aspects.forEach(asp => {
+      const p1 = (asp.planet1 || '').padEnd(11);
+      const aspect = (asp.aspect || '').padEnd(13);
+      const p2 = (asp.planet2 || '').padEnd(11);
+      const orb = (asp.orb || '').padEnd(10);
+      const applying = asp.applying || '';
+
+      lines.push(`${p1} ${aspect} ${p2} ${orb} ${applying}`);
+    });
+
+    return lines.join('\n');
+  }
+
   // Generate a text-based PDF with schema rule-patch compliance and sanitization
   async function downloadResultPDF() {
     if (!result) {
@@ -2512,6 +2650,70 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
           body: sanitizeForPDF(complianceText),
           mode: 'regular'
         });
+      }
+
+      // Add constitutional data (natal blueprints)
+      const wovenMap = (processedResult as any)?.woven_map;
+      if (wovenMap?.blueprint) {
+        // Person A natal data
+        if (wovenMap.blueprint.natal_summary) {
+          const natalText = formatNatalSummaryForPDF(wovenMap.blueprint.natal_summary, wovenMap.context?.person_a);
+          sections.push({
+            title: 'Person A: Natal Blueprint',
+            body: natalText,
+            mode: 'regular'
+          });
+        }
+
+        // Person B natal data (for relational reports)
+        if (wovenMap.blueprint.person_b_modes && wovenMap.context?.person_b) {
+          const personBText = formatPersonBBlueprintForPDF(wovenMap.blueprint, wovenMap.context.person_b);
+          sections.push({
+            title: 'Person B: Natal Blueprint',
+            body: personBText,
+            mode: 'regular'
+          });
+        }
+
+        // Synastry summary (for relational reports)
+        if (wovenMap.blueprint.synastry_summary) {
+          const synastryText = formatSynastrySummaryForPDF(wovenMap.blueprint.synastry_summary);
+          sections.push({
+            title: 'Synastry Analysis',
+            body: synastryText,
+            mode: 'regular'
+          });
+        }
+      }
+
+      // Add data tables if available
+      if (wovenMap?.data_tables) {
+        if (wovenMap.data_tables.natal_positions && Array.isArray(wovenMap.data_tables.natal_positions)) {
+          const positionsText = formatPlanetaryPositionsTable(wovenMap.data_tables.natal_positions);
+          sections.push({
+            title: 'Planetary Positions (Person A)',
+            body: positionsText,
+            mode: 'mono'
+          });
+        }
+
+        if (wovenMap.data_tables.natal_aspects && Array.isArray(wovenMap.data_tables.natal_aspects)) {
+          const aspectsText = formatAspectsTable(wovenMap.data_tables.natal_aspects);
+          sections.push({
+            title: 'Major Aspects (Person A)',
+            body: aspectsText,
+            mode: 'mono'
+          });
+        }
+
+        if (wovenMap.data_tables.synastry_aspects) {
+          const synAspectsText = formatAspectsTable(wovenMap.data_tables.synastry_aspects);
+          sections.push({
+            title: 'Synastry Aspects',
+            body: synAspectsText,
+            mode: 'mono'
+          });
+        }
       }
 
       // Add rendered summary if available
@@ -3190,6 +3392,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
         endDate,
         includePersonB,
         translocation,
+        reportStructure, // ADDED: Save report type (solo/synastry/composite)
         personA,
         personB,
         relationshipType,
@@ -3393,6 +3596,10 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
           setEndDate(data.endDate);
           setUserHasSetDates(true);
         }
+        // ADDED: Load report structure (solo/synastry/composite)
+        if (typeof data.reportStructure === 'string' && ['solo', 'synastry', 'composite'].includes(data.reportStructure)) {
+          setReportStructure(data.reportStructure as ReportStructure);
+        }
         if (typeof data.exEstranged === 'boolean') setExEstranged(data.exEstranged);
         if (typeof data.relationshipNotes === 'string') setRelationshipNotes(data.relationshipNotes);
         if (typeof data.relationshipTier === 'string') setRelationshipTier(data.relationshipTier);
@@ -3446,6 +3653,10 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
       if (inputs.endDate) setEndDate(inputs.endDate);
       if (typeof inputs.includePersonB === 'boolean') setIncludePersonB(inputs.includePersonB);
       if (inputs.translocation) setTranslocation(normalizeTranslocationOption(inputs.translocation));
+      // ADDED: Restore report structure from session
+      if (typeof inputs.reportStructure === 'string' && ['solo', 'synastry', 'composite'].includes(inputs.reportStructure)) {
+        setReportStructure(inputs.reportStructure as ReportStructure);
+      }
 
       if (inputs.relationship) {
         const rel = inputs.relationship;
@@ -3774,7 +3985,13 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
                 <h3 className="text-sm font-medium text-indigo-200">Resume from past session?</h3>
                 <p className="mt-1 text-xs text-slate-300">
                   Last session: {savedSession.createdAt ? new Date(savedSession.createdAt).toLocaleString() : 'Unknown date'}
-                  {savedSession.summary && ` • ${savedSession.summary}`}
+                  {savedSession.summary && typeof savedSession.summary === 'object' && (
+                    <span>
+                      {' • '}
+                      {savedSession.summary.magnitudeLabel || 'Activity'}: {savedSession.summary.valenceLabel || 'Mixed'}
+                    </span>
+                  )}
+                  {savedSession.summary && typeof savedSession.summary === 'string' && ` • ${savedSession.summary}`}
                 </p>
                 <div className="mt-3 flex gap-2">
                   <button
@@ -4952,8 +5169,29 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
               </button>
             </div>
             {(RELATIONAL_MODES.includes(mode) && !includePersonB) && (
-              <p className="mt-2 text-xs text-amber-400">Hint: Toggle “Include Person B” and fill in required fields to enable relational modes.</p>
+              <p className="mt-2 text-xs text-amber-400">Hint: Toggle "Include Person B" and fill in required fields to enable relational modes.</p>
             )}
+            {submitDisabled && !loading && (() => {
+              const locGate = needsLocation(reportType, includeTransits, personA);
+              if (includeTransits && !locGate.hasLoc) {
+                return <p className="mt-2 text-xs text-amber-400">⚠️ Transits require location data. Please enter coordinates or city/state for Person A.</p>;
+              }
+              if (!aCoordsValid && (personA.latitude || personA.longitude)) {
+                return <p className="mt-2 text-xs text-amber-400">⚠️ Invalid coordinates for Person A. Please check latitude/longitude format.</p>;
+              }
+              if (includePersonB && !bCoordsValid && (personB.latitude || personB.longitude)) {
+                return <p className="mt-2 text-xs text-amber-400">⚠️ Invalid coordinates for Person B. Please check latitude/longitude format.</p>;
+              }
+              const missing: string[] = [];
+              if (!personA.name) missing.push('Name');
+              if (!personA.city) missing.push('City');
+              if (!personA.state) missing.push('State');
+              if (!personA.timezone) missing.push('Timezone');
+              if (missing.length > 0) {
+                return <p className="mt-2 text-xs text-amber-400">⚠️ Missing required fields for Person A: {missing.join(', ')}</p>;
+              }
+              return <p className="mt-2 text-xs text-amber-400">⚠️ Please complete all required fields to generate report.</p>;
+            })()}
           </div>
         </div>
       </form>

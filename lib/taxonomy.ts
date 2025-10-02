@@ -56,11 +56,11 @@ export const SOURCES_OF_FORCE: SourceForce[] = [
 export const MAGNITUDE_SYMBOL = '⚡';
 export interface MagnitudeLevel { level: number; label: string; notes: string; }
 export const MAGNITUDE_LADDER: MagnitudeLevel[] = [
-  { level: 0, label: 'Latent', notes: 'Symbolic pressure not measurable; background rhythm; potential present.' },
-  { level: 1, label: 'Murmur', notes: 'Subtle impressions; passing signals.' },
-  { level: 2, label: 'Pulse', notes: 'Noticeable bursts; often personal-planet triggered.' },
-  { level: 3, label: 'Stirring', notes: 'Clear activation; events or demands emerge.' },
-  { level: 4, label: 'Convergence', notes: 'Stacked factors; concentrated symbolic weight.' },
+  { level: 0, label: 'Trace', notes: 'Barely measurable; background rhythm; potential present.' },
+  { level: 1, label: 'Pulse', notes: 'Subtle impressions; passing signals.' },
+  { level: 2, label: 'Wave', notes: 'Noticeable bursts; often personal-planet triggered.' },
+  { level: 3, label: 'Surge', notes: 'Clear activation; events or demands emerge.' },
+  { level: 4, label: 'Peak', notes: 'Stacked factors; concentrated symbolic weight.' },
   { level: 5, label: 'Threshold', notes: 'Ceiling of measurable load; life-defining, not catastrophic.' }
 ];
 export function formatMagnitude(level: number | null | undefined): string {

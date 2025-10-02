@@ -53,8 +53,8 @@ const CLIMATE_PATTERNS: Record<string, ClimatePattern> = {
     signature: 'Powerful, steady, constructive energy',
     advice: 'Use this coherent energy for significant progress. The stability allows for bold moves.'
   },
-  'hurricane': {
-    name: 'Hurricane',
+  'surge_scatter': {
+    name: 'Surge Scatter',
     icon: '🌀⚡',
     description: 'High positive valence with high volatility',
     signature: 'Immense power geared toward change, but scattered and chaotic',
@@ -117,11 +117,12 @@ function getValenceLevel(valence: number): ValenceLevel {
 }
 
 function getMagnitudeLabel(value: number): string {
-  if (value < 1) return 'Latent';
-  if (value < 2) return 'Murmur';
-  if (value < 3) return 'Pulse';
-  if (value < 4) return 'Stirring';
-  if (value < 4.5) return 'Convergence';
+  // Official magnitude scale from metric-labels.js
+  if (value <= 0.5) return 'Trace';
+  if (value <= 1.5) return 'Pulse';
+  if (value <= 2.5) return 'Wave';
+  if (value <= 3.5) return 'Surge';
+  if (value <= 4.5) return 'Peak';
   return 'Threshold';
 }
 
@@ -154,7 +155,7 @@ function determineClimatePattern(valence: number, volatility: number, magnitude:
   // High valence patterns
   if (isHighValence) {
     if (isPositive) {
-      return isLowVolatility ? CLIMATE_PATTERNS.favorable_wind : CLIMATE_PATTERNS.hurricane;
+      return isLowVolatility ? CLIMATE_PATTERNS.favorable_wind : CLIMATE_PATTERNS.surge_scatter;
     } else {
       return isLowVolatility ? CLIMATE_PATTERNS.diamond_pressure : CLIMATE_PATTERNS.storm_system;
     }

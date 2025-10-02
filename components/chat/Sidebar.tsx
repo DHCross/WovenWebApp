@@ -28,7 +28,7 @@ function Glossary(){
   return (
     <div>
   <div style={sectionTitle}>Balance Meter Framework</div>
-  <GlossaryItem symbol={MAGNITUDE_SYMBOL} title="Magnitude" description="Neutral pressure scale (0–5)" details={["0 Latent","1 Murmur","2 Pulse","3 Stirring","4 Convergence","5 Threshold"]} />
+  <GlossaryItem symbol={MAGNITUDE_SYMBOL} title="Magnitude" description="Neutral pressure scale (0–5)" details={["0 Trace","1 Pulse","2 Wave","3 Surge","4 Peak","5 Threshold"]} />
   <GlossaryItem symbol="��🌞" title="Valence" description="Directional tone (neg/pos)" details={["Negative & Positive modes separated","Not moral—just energetic orientation"]} />
   <GlossaryItem symbol="�" title="Volatility" description="Distribution pattern (0→5)" details={["0 = aligned flow","5 = vortex dispersion","Shape not moral judgment"]} />
   <GlossaryItem symbol="�∠🪐📡♾️" title="Sources of Force" description="Amplifiers & structural factors" details={["Orb · Aspect · Potency · Resonance · Recursion"]} />

@@ -2761,11 +2761,11 @@ function Sidebar({
             title="Magnitude"
             description="Symbolic intensity scale"
             details={[
-              "0 = Latent",
-              "1 = Murmur",
-              "2 = Pulse",
-              "3 = Stirring",
-              "4 = Convergence",
+              "0 = Trace",
+              "1 = Pulse",
+              "2 = Wave",
+              "3 = Surge",
+              "4 = Peak",
               "5 = Threshold",
             ]}
           />
