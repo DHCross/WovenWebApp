@@ -913,19 +913,35 @@ function composeWovenMapReport({ result, mode, period, options = {} }) {
         name: a?.details?.name || 'Subject',
         birth_date: a?.details?.birth_date || null,
         birth_time: a?.details?.birth_time || null,
-        coordinates: (a?.details?.latitude != null && a?.details?.longitude != null)
-          ? { lat: a.details.latitude, lon: a.details.longitude }
-          : null,
-        timezone: a?.details?.timezone || null
+        birth_time_exact: a?.details?.birth_time_exact ?? true, // Flag if birth time is exact or approximate
+        birthplace: {
+          city: a?.details?.city || null,
+          state: a?.details?.state || null,
+          country: a?.details?.country || null,
+          coordinates: (a?.details?.latitude != null && a?.details?.longitude != null)
+            ? { lat: a.details.latitude, lon: a.details.longitude }
+            : null
+        },
+        timezone: a?.details?.timezone || null,
+        house_system: 'Placidus', // Explicitly stated per requirements
+        zodiac_type: a?.details?.zodiac_type || 'Tropic' // Tropical (not sidereal yet)
       },
       person_b: b ? {
         name: b?.details?.name || 'Subject B',
         birth_date: b?.details?.birth_date || null,
         birth_time: b?.details?.birth_time || null,
-        coordinates: (b?.details?.latitude != null && b?.details?.longitude != null)
-          ? { lat: b.details.latitude, lon: b.details.longitude }
-          : null,
-        timezone: b?.details?.timezone || null
+        birth_time_exact: b?.details?.birth_time_exact ?? true,
+        birthplace: {
+          city: b?.details?.city || null,
+          state: b?.details?.state || null,
+          country: b?.details?.country || null,
+          coordinates: (b?.details?.latitude != null && b?.details?.longitude != null)
+            ? { lat: b.details.latitude, lon: b.details.longitude }
+            : null
+        },
+        timezone: b?.details?.timezone || null,
+        house_system: 'Placidus',
+        zodiac_type: b?.details?.zodiac_type || 'Tropic'
       } : null
     },
     raw_geometry: extractRawGeometry(result),
