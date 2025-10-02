@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { generateId } from "../lib/id";
 import { formatFullClimateDisplay, ClimateData } from "../lib/climate-renderer";
@@ -1096,9 +1096,16 @@ export default function ChatClient() {
   }, [messages, ravenMessages.length]);
 
   const SCROLL_OFFSET = 120; // header + nav panel padding
+
+  const shouldUseWindowScroll = useCallback(() => {
+    const container = streamContainerRef.current;
+    if (!isDesktop || !container) return true;
+    return container.scrollHeight <= container.clientHeight + 1;
+  }, [isDesktop]);
+
   const scrollMessageElementIntoView = (el: HTMLElement) => {
     const container = streamContainerRef.current;
-    if (container) {
+    if (!shouldUseWindowScroll() && container) {
       const target = el.offsetTop - SCROLL_OFFSET;
       container.scrollTo({ top: target < 0 ? 0 : target, behavior: "smooth" });
     } else {
@@ -1117,7 +1124,12 @@ export default function ChatClient() {
   };
 
   const scrollToTop = () => {
-    streamContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    const container = streamContainerRef.current;
+    if (!shouldUseWindowScroll() && container) {
+      container.scrollTo({ top: 0, behavior: "smooth" });
+    } else if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   const scrollToBottom = () => {
@@ -1160,29 +1172,50 @@ export default function ChatClient() {
 
   // Check if user has manually scrolled away from reading position during streaming
   useEffect(() => {
-    if (!streamContainerRef.current) return;
-
     const container = streamContainerRef.current;
+    const useWindowScroll = shouldUseWindowScroll();
+    const target: (Window | HTMLElement) | null = useWindowScroll
+      ? typeof window !== "undefined"
+        ? window
+        : null
+      : container;
+
+    if (!target) return;
 
     const handleScroll = () => {
-      if (typing) {
-        // More lenient check - only show hint if user scrolls significantly up from current content
-        const isSignificantlyScrolledUp =
-          container.scrollTop + container.clientHeight <
-          container.scrollHeight - 200;
-        setShowScrollHint(isSignificantlyScrolledUp);
-      }
+      if (!typing) return;
+
+      const { scrollTop, clientHeight, scrollHeight } = useWindowScroll
+        ? (() => {
+            const doc = document.documentElement;
+            const top = window.scrollY ?? doc.scrollTop;
+            return {
+              scrollTop: top,
+              clientHeight: window.innerHeight ?? doc.clientHeight,
+              scrollHeight: doc.scrollHeight,
+            };
+          })()
+        : {
+            scrollTop: container!.scrollTop,
+            clientHeight: container!.clientHeight,
+            scrollHeight: container!.scrollHeight,
+          };
+
+      // More lenient check - only show hint if user scrolls significantly up from current content
+      const isSignificantlyScrolledUp =
+        scrollTop + clientHeight < scrollHeight - 200;
+      setShowScrollHint(isSignificantlyScrolledUp);
     };
 
-    container.addEventListener("scroll", handleScroll);
+    target.addEventListener("scroll", handleScroll);
 
     // Don't show hint initially when typing starts - let Raven position naturally
     if (!typing) {
       setShowScrollHint(false);
     }
 
-    return () => container.removeEventListener("scroll", handleScroll);
-  }, [typing]);
+    return () => target.removeEventListener("scroll", handleScroll);
+  }, [typing, isDesktop, shouldUseWindowScroll]);
 
   function toggleReportCollapse(messageId: string) {
     setMessages((m) =>
