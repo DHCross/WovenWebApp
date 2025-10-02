@@ -842,25 +842,26 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
       {/* Export Options */}
       <div className="export-options">
         <div className="export-title">Export Session Data</div>
+        <div className="export-note">These exports are for your records and analysis, not AI consumption.</div>
         <div className="export-buttons">
           <button
             className="btn export-btn"
             onClick={handleExportJSON}
-            title="Download complete session data as JSON"
+            title="Download complete session data as JSON (machine-readable format)"
           >
             📄 Export JSON
           </button>
           <button
             className="btn export-btn enhanced"
             onClick={handleExportPDF}
-            title="Download enhanced wrap-up report as PDF"
+            title="Download session summary as PDF (human-readable summary)"
           >
             📋 Export PDF
           </button>
           <button
             className="btn export-btn"
             onClick={handleExportCSV}
-            title="Download analytical data as CSV spreadsheet"
+            title="Download session metrics as CSV spreadsheet (for analysis)"
           >
             📊 Export CSV
           </button>
@@ -1117,7 +1118,8 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
         .toast { position:absolute; top:8px; right:8px; background:#0b1220; border:1px solid rgba(148,163,184,0.3); color:#e2e8f0; padding:8px 10px; border-radius:8px; font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,0.4); }
 
         .export-options { margin: 20px 0; padding: 16px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 8px; }
-        .export-title { color: #f1f5f9; font-weight: 600; text-align: center; margin-bottom: 12px; font-size: 14px; }
+        .export-title { color: #f1f5f9; font-weight: 600; text-align: center; margin-bottom: 6px; font-size: 14px; }
+        .export-note { color: #94a3b8; font-size: 12px; text-align: center; margin-bottom: 12px; font-style: italic; }
         .export-buttons { display: flex; gap: 12px; justify-content: center; }
         .export-btn { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #93c5fd; padding: 8px 16px; font-size: 13px; }
         .export-btn:hover { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.5); }

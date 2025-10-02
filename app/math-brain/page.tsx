@@ -13,6 +13,7 @@ import EnhancedDailyClimateCard from "../../components/mathbrain/EnhancedDailyCl
 import BalanceMeterSummary from "../../components/mathbrain/BalanceMeterSummary";
 
 import { getSavedCharts, saveChart, deleteChart, type SavedChart } from "../../lib/saved-charts";
+import { generateDownloadReadme } from "../../lib/download-readme-template";
 
 export const dynamic = "force-dynamic";
 
@@ -2861,111 +2862,107 @@ IMPORTANT: This comprehensive astrological data should be synthesized into the c
       // ========================================
       // ANALYSIS DIRECTIVE FOR RAVEN CALDER
       // ========================================
-      const analysisDirective = `# 🚨 ANALYSIS DIRECTIVE (Raven Calder GPT) — READ FIRST 🚨
+      const analysisDirective = `# 🚨 YOU ARE RAVEN CALDER — EXECUTE THIS DIRECTIVE 🚨
 
-**CONTEXT:** This is a PDF export from Math Brain containing natal blueprint data for full chart analysis.
-
-**YOUR TASK:** Generate complete, comprehensive personality readings from the natal blueprints in this PDF.
+**YOU ARE RAVEN CALDER.** This PDF contains chart data for you to analyze. This is your work order, not documentation to describe.
 
 ---
 
-## 📌 CRITICAL DISTINCTION:
+## YOUR TASK: Generate a Full Conversational Reading
 
-**"Resonant Summary" ≠ Full Reading**
-- The "Resonant Summary" section below is a SHORT preview (3-4 paragraphs)
-- It is NOT a complete chart analysis
-- You must EXPAND on it by analyzing ALL aspects, ALL polarities, ALL house placements
-- Think of Resonant Summary as the "teaser" — you're providing the full movie
+This is a **MIRROR and CONVERSATION STARTER**, not just a weather report or data summary.
 
----
-
-## Report Type: ${reportKind}
+### MANDATORY STRUCTURE — DO NOT DEVIATE:
 
 ${reportKind.includes('Solo') ? `
-### Solo Report Requirements:
-✅ **FULL NATAL CHART READING** — Analyze ALL planetary positions, aspects, and houses
-✅ **PERSONALITY MIRROR** — Multi-paragraph conversational diagnostic covering:
-   - Constitutional baseline (dominant modes, shadow patterns)
-   - All major aspects (conjunctions, oppositions, squares, trines, sextiles)
-   - Angular placements (planets near ASC, MC, DSC, IC)
-   - House emphasis patterns
-   - Element/modality distribution
-✅ **POLARITY CARDS** — Identify 3-4 defining polarities with FIELD→MAP→VOICE translations
-✅ **ASPECT-BY-ASPECT BREAKDOWN** — Translate each significant aspect into behavioral patterns
-✅ **MIRROR VOICE** — Integrative closing that weaves all patterns together
-${reportKind.includes('Balance Meter') ? '✅ **SYMBOLIC WEATHER** — Transit analysis showing current activations (data below)' : ''}
-
-⛔ **DO NOT SKIP THE PERSONALITY READING** — This is the core deliverable
+#### 1️⃣ SOLO MIRROR — Individual Foundation
+**Synthesize the natal chart into a conversational, plain-language snapshot:**
+- **"Here's how your system tends to move"** — behavioral anchors, not abstract symbolism
+- **Include:** Core drives, natural strengths, key tensions, constitutional patterns
+- **NO JARGON** — Conversational, testable against lived experience
+- **Frame as tendencies/probabilities**, not prescriptions or fixed fate
+- **Use ALL provided data:** planetary positions, aspects, house placements from tables below
 ` : `
-### Relational Report Requirements:
-✅ **PERSON A FULL READING** — Complete natal chart analysis (all aspects, houses, patterns)
-✅ **PERSON B FULL READING** — Complete natal chart analysis (all aspects, houses, patterns)
-✅ **SYNASTRY ANALYSIS** — How their charts interact:
-   - Person A planets → Person B planets (e.g., "Dan's Mars squares Stephie's Moon")
-   - Person B planets → Person A planets (bidirectional)
-   - Support vs. Friction differential
-   - Cross-aspect patterns and themes
-✅ **RELATIONAL DYNAMICS** — Specific behavioral loops using actual names (never "they")
-✅ **INTIMACY TIER CONTEXT** — Interpret through relationship type lens (see definitions below)
-${reportKind.includes('Balance Meter') ? '✅ **SYMBOLIC WEATHER** — Transit overlay for current activations (data below)' : ''}
+#### 1️⃣ SOLO MIRRORS — Individual Foundations (BOTH PEOPLE)
+**For EACH person, provide a separate solo mirror:**
+- **Synthesize their natal chart** into plain-language behavioral snapshot
+- **"Here's how [Name]'s system tends to move"** — specific, falsifiable patterns
+- **Include:** Core drives, strengths, tensions, how they process the world
+- **NO JARGON** — Conversational, grounded in lived experience
+- **Use ALL provided data** for each chart (positions, aspects, houses)
 
-⛔ **DO NOT SKIP INDIVIDUAL READINGS** — Both people need full mirrors before synastry
+**DO NOT SKIP INDIVIDUAL READINGS** — Even in relational reports, each person gets their own mirror first.
+
+#### 2️⃣ RELATIONAL ENGINES — Synastry Dynamics
+**After solo mirrors, synthesize how the charts interact:**
+- **Named patterns** (e.g., "Spark Engine," "Crossed-Wires Loop," "Sweet Glue")
+- **Mechanism + tendency** in plain language for each engine
+- **Clear list format** with engine names as headers
+- **Focus:** Where energies harmonize vs. where friction/growth pressure appears
+- **Use actual names** (e.g., "Dan's Mars squares Stephie's Moon") — never "they" or generic pronouns
 `}
+
+${reportKind.includes('Balance Meter') ? `
+#### ${reportKind.includes('Solo') ? '2️⃣' : '3️⃣'} WEATHER OVERLAY — Transits (Current Symbolic Climate)
+**Layer current transit weather over the foundational patterns:**
+- **Continuous narrative form** (paragraphs, NOT bullet lists)
+- **Describe the climate** currently activating natal/relational foundations
+- **NO assigned percentages, NO prescriptive advice**
+- **Generalized atmosphere:** "What's stirring right now" — how transits light up the blueprint
+- **Ground in the data:** Reference specific transit aspects from tables below
+` : ''}
 
 ---
 
-## ⚙️ Execution Protocol:
+## CRITICAL DATA REQUIREMENTS:
 
-**STEP 1:** Read natal blueprint data sections (planetary positions, aspects, houses)
-**STEP 2:** Generate COMPREHENSIVE personality diagnostics (minimum 8-12 paragraphs for solo, 15+ for relational)
-**STEP 3:** ${reportKind.includes('Relational') ? 'Provide detailed synastry aspect-by-aspect analysis with directional attribution' : 'Add transit weather analysis if Balance Meter report'}
-**STEP 4:** Deliver in conversational Raven Calder voice (plain language, falsifiable, agency-first)
+✅ **Use ALL provided planetary positions, aspects, and house placements** from tables
+✅ **Reference the comprehensive data** — this is geometry-first, then symbolic translation
+${reportKind.includes('Relational') ? '✅ **For relational readings:** Use BOTH complete natal charts, then cross-aspects' : ''}
+✅ **Ground every insight** in the actual chart data, not generic astrology
+
+---
+
+## TONE & VOICE — RAVEN CALDER MANDATE:
+
+- **Conversational, shareable, accessible** language
+- **Plain language** — avoid heavy astrological jargon in body text
+- **Falsifiable claims** that can be tested against lived experience
+- **Agency-first:** Frame as probabilities/tendencies, never fixed fate
+- **Support possibility** — the user decides what resonates
+- **Conversation starter** — this is a mirror to reflect on, not a prescription to follow
+
+---
+
+## WORKFLOW: FIELD → MAP → VOICE
+
+You have been given the **FIELD** (geometric data) and **MAP** (structural patterns).
+Your job is **VOICE** — synthesize this into resonant, lived-experience language.
 
 ---
 
 ## 🎯 What "Full Reading" Means:
 
 **NOT ACCEPTABLE:**
-❌ "Here's a brief overview based on the Resonant Summary"
-❌ "The data shows some interesting patterns" [then stops]
-❌ Skipping aspects or houses
-❌ Generic descriptions without chart-specific details
+❌ Describing the PDF contents or reflecting on what you've received
+❌ "Here's a brief overview based on the summary below"
+❌ Skipping aspects, houses, or chart details
+❌ Generic astrology without specific chart references
 
 **ACCEPTABLE:**
-✅ Analyzing EVERY major aspect in the aspects table
-✅ Discussing house placements for ALL personal planets (Sun, Moon, Mercury, Venus, Mars)
-✅ Explaining how outer planet aspects (Jupiter, Saturn, Uranus, Neptune, Pluto) shape the personality
-✅ Translating geometric patterns into specific behavioral tendencies
-✅ Using chart-specific degrees, signs, and houses (e.g., "Sun at 24° Virgo in the 3rd house")
+✅ **Analyzing EVERY major aspect** from the aspects table
+✅ **Translating geometric patterns** into behavioral tendencies
+✅ **Using chart-specific details** (degrees, signs, houses)
+✅ **Conversational synthesis** that feels personal and testable
 
 ---
 
-## 📋 Quality Checklist (Before Delivering):
+## EXECUTE NOW:
 
-- [ ] Analyzed all planetary positions from the table?
-- [ ] Translated all major aspects (at least 8-12 aspects for solo charts)?
-- [ ] Discussed house placements for personal planets?
-- [ ] Identified and explained key polarities/paradoxes?
-- [ ] Used conversational language (no jargon in body text)?
-- [ ] For relational: analyzed BOTH charts individually first?
-- [ ] For relational: provided synastry cross-aspects with names?
-- [ ] Maintained agency-first, falsifiable phrasing?
+Generate the full reading following the mandatory structure above.
+Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relational Engines, then ' : ''}${reportKind.includes('Balance Meter') ? 'Weather Overlay' : 'close with integration'}.
 
----
-
-**CRITICAL REMINDERS:**
-- Blueprints = Natal Charts (constitutional baseline, NOT transit weather)
-- ALWAYS generate full readings even if Resonant Summary exists (expand on it!)
-- Use FIELD → MAP → VOICE flow (geometry → archetype → lived experience)
-- Plain language, no jargon dumps, falsifiable statements only
-- For relational: use actual names (e.g., "Dan" and "Stephie"), never "they" or "one partner"
-- Paradoxes are productive fuel, not flaws
-
----
-
-**PDF PROCESSING MODE:**
-When you receive a Math Brain PDF, your task is ANALYSIS, not just data extraction.
-Generate the full reading that a professional astrologer would provide.
+**Do not describe what you're about to do. Do it.**
 
 ---`;
 
@@ -3316,6 +3313,60 @@ Generate the full reading that a professional astrologer would provide.
       URL.revokeObjectURL(url);
       try { setToast('Downloading backstage JSON for debugging'); setTimeout(()=>setToast(null), 1400); } catch {/* noop */}
     } catch {/* noop */}
+  }
+
+  // Download complete package as ZIP with README
+  async function downloadCompletePackage() {
+    if (!result) {
+      setToast('No report available to export');
+      setTimeout(() => setToast(null), 2000);
+      return;
+    }
+
+    try {
+      setToast('Preparing complete package...');
+
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+
+      // Generate README
+      const readme = generateDownloadReadme({
+        reportType: reportContractType,
+        personA: personA.name || 'Person A',
+        personB: includePersonB ? (personB.name || 'Person B') : undefined,
+        exportDate: new Date(),
+        includesTransits: includeTransits
+      });
+      zip.file('README.txt', readme);
+
+      // Add frontstage JSON
+      const frontStageResult = createFrontStageResult(result);
+      zip.file(`${filenameBase('chart-data')}.json`, JSON.stringify(frontStageResult, null, 2));
+
+      // Generate and add PDF (reuse existing PDF generation logic)
+      // Note: This is a simplified approach - in production you'd want to refactor the PDF generation
+      // into a separate function that returns the blob instead of downloading it
+      setToast('Generating package files... This may take a moment.');
+
+      // For now, we'll create a simpler package without the PDF
+      // The user can download the PDF separately if needed
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${filenameBase('raven-calder-package')}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      setToast('Package ready! Check your downloads.');
+      setTimeout(() => setToast(null), 2500);
+    } catch (error) {
+      console.error('Package generation failed:', error);
+      setToast('Package generation failed. Try individual downloads instead.');
+      setTimeout(() => setToast(null), 2500);
+    }
   }
 
   // Create frontstage-only version with normalized Balance Meter values (0-5 scale)
@@ -5690,15 +5741,25 @@ Generate the full reading that a professional astrologer would provide.
           {/* Post-generation actions */}
           <div className="flex items-center justify-between gap-4 print:hidden">
             <div className="text-sm text-slate-400">
-              <span>Download the geometry or continue in Poetic Brain whenever you want a narrative pass.</span>
+              <span>Download chart data for AI analysis (Gemini GEM, Poetic Brain, or custom GPT) — not meant for human reading.</span>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={downloadCompletePackage}
+                className="rounded-md border border-indigo-700 bg-indigo-800 px-3 py-1.5 text-indigo-100 hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                aria-label="Download complete package (ZIP with README, JSON, and instructions)"
+                title="Download ZIP package with README explaining how to use the data"
+              >
+                📦 Download Package (Recommended)
+              </button>
               <button
                 type="button"
                 onClick={downloadResultPDF}
                 disabled={pdfGenerating}
                 className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                aria-label="Download PDF"
+                aria-label="Download PDF for AI instance (Raven Calder GEM or Poetic Brain)"
+                title="Download chart data with ANALYSIS DIRECTIVE for AI instance"
               >
                 {pdfGenerating ? (
                   <>
@@ -5709,7 +5770,7 @@ Generate the full reading that a professional astrologer would provide.
                     Generating...
                   </>
                 ) : (
-                  'Download PDF'
+                  '📄 PDF Only'
                 )}
               </button>
               <button
