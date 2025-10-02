@@ -599,6 +599,7 @@ export default function MathBrainPage() {
   const [reportStructure, setReportStructure] = useState<ReportStructure>('solo');
   // reportFormat removed - Raven Calder always uses conversational voice per corpus/persona
   const [includeTransits, setIncludeTransits] = useState<boolean>(false);
+  const [pdfGenerating, setPdfGenerating] = useState<boolean>(false);
   const [includePersonB, setIncludePersonB] = useState<boolean>(false);
   const mode = useMemo<ReportMode>(() => modeFromStructure(reportStructure, includeTransits), [reportStructure, includeTransits]);
   const applyMode = useCallback((nextMode: ReportMode) => {
@@ -2559,7 +2560,13 @@ export default function MathBrainPage() {
       return;
     }
 
+    setPdfGenerating(true);
+    setToast('Generating PDF... This may take 10-15 seconds');
+
     try {
+      // Yield to browser to show loading state
+      await new Promise(resolve => setTimeout(resolve, 50));
+
       const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
 
       const target = reportRef.current;
@@ -2581,7 +2588,6 @@ export default function MathBrainPage() {
       // Apply schema rule-patch validation and compliance
       let processedResult = result;
       let contractCompliant = false;
-      let lintReport = '';
 
       try {
         // Attempt to render with new schema system for compliance
@@ -2629,17 +2635,6 @@ export default function MathBrainPage() {
         }
       } catch (error) {
         console.warn('Schema rule-patch rendering failed, using legacy data:', error);
-      }
-
-      // Run contract linting for diagnostics
-      try {
-        const lintResult = ContractLinter.lint({
-          mode: reportMode,
-          ...result
-        });
-        lintReport = ContractLinter.generateReport(lintResult);
-      } catch (error) {
-        console.warn('Contract linting failed:', error);
       }
 
       const reportKind = (() => {
@@ -2710,44 +2705,6 @@ IMPORTANT: This comprehensive astrological data should be synthesized into the c
       });
 
       // Add contract compliance section if available
-      if (contractCompliant) {
-        const preface = processedResult.schema_enforced_render?.preface || {} as any;
-        const prefaceLines = [
-          preface?.persona_intro ? `Intro: ${preface.persona_intro}` : null,
-          Array.isArray(preface?.resonance_profile) && preface.resonance_profile.length
-            ? `Resonance: ${preface.resonance_profile.join(' | ')}`
-            : null,
-          Array.isArray(preface?.paradoxes) && preface.paradoxes.length
-            ? `Paradoxes: ${preface.paradoxes.join(' | ')}`
-            : null,
-          preface?.relational_focus ? `Relational: ${preface.relational_focus}` : null
-        ].filter(Boolean).join('\n');
-
-        const complianceText = `
-Contract: ${processedResult.contract_compliance?.contract || 'clear-mirror/1.3'}
-Mode: ${processedResult.contract_compliance?.mode || reportMode}
-Frontstage Policy: ${JSON.stringify(processedResult.contract_compliance?.frontstage_policy || {}, null, 2)}
-
-Schema-Enforced Render:
-• Preface:\n${prefaceLines || 'N/A'}
-• Scenario (reader): ${processedResult.schema_enforced_render?.scenario_prompt || 'N/A'}
-• Scenario (internal cue): ${processedResult.schema_enforced_render?.scenario_question || 'N/A'}
-• Picture: ${processedResult.schema_enforced_render?.picture || 'N/A'}
-• Container: ${processedResult.schema_enforced_render?.container || 'N/A'}
-• Symbolic Weather: ${processedResult.schema_enforced_render?.symbolic_weather || 'Suppressed in natal-only mode'}
-• Option: ${processedResult.schema_enforced_render?.option || 'N/A'}
-• Next Step: ${processedResult.schema_enforced_render?.next_step || 'N/A'}
-
-Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringify(processedResult.contract_compliance.backstage, null, 2) : 'None'}
-        `.trim();
-
-        sections.push({
-          title: 'Schema Rule-Patch Compliance',
-          body: sanitizeForPDF(complianceText),
-          mode: 'regular'
-        });
-      }
-
       // ========================================
       // CRITICAL: RESONANT SUMMARY MUST APPEAR FIRST
       // Per Four Report Types documentation, every report needs
@@ -2814,15 +2771,7 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
           });
         }
 
-        // Synastry summary (for relational reports)
-        if (wovenMap.blueprint.synastry_summary) {
-          const synastryText = formatSynastrySummaryForPDF(wovenMap.blueprint.synastry_summary);
-          sections.push({
-            title: 'Synastry Analysis',
-            body: synastryText,
-            mode: 'regular'
-          });
-        }
+        // Synastry summary removed - aspect grid below is sufficient
       }
 
       // Add data tables if available
@@ -2855,15 +2804,6 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
           });
         }
 
-        if (wovenMap.data_tables.person_b_aspects && Array.isArray(wovenMap.data_tables.person_b_aspects)) {
-          const aspectsBText = formatAspectsTable(wovenMap.data_tables.person_b_aspects);
-          sections.push({
-            title: 'Major Aspects (Person B)',
-            body: aspectsBText,
-            mode: 'mono'
-          });
-        }
-
         if (wovenMap.data_tables.synastry_aspects) {
           const synAspectsText = formatAspectsTable(wovenMap.data_tables.synastry_aspects);
           sections.push({
@@ -2873,14 +2813,33 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
           });
         }
 
-        // Add daily readings if transits are present
+        // Add daily readings as TREND SUMMARY only (not verbose daily tables)
         if (wovenMap.data_tables.daily_readings && Array.isArray(wovenMap.data_tables.daily_readings)) {
-          const dailyText = formatDailyReadingsTable(wovenMap.data_tables.daily_readings);
-          sections.push({
-            title: 'Daily Symbolic Weather (Transit Activations)',
-            body: dailyText,
-            mode: 'mono'
-          });
+          const readings = wovenMap.data_tables.daily_readings;
+          const trendLines = [];
+
+          if (readings.length > 0) {
+            const avgMag = readings.reduce((sum: number, r: any) => sum + (r.magnitude || 0), 0) / readings.length;
+            const avgVal = readings.reduce((sum: number, r: any) => sum + (r.valence || 0), 0) / readings.length;
+            const avgVol = readings.reduce((sum: number, r: any) => sum + (r.volatility || 0), 0) / readings.length;
+
+            const dateRange = `${readings[0]?.date || 'Start'} to ${readings[readings.length - 1]?.date || 'End'}`;
+            const peakDays = readings.filter((r: any) => (r.magnitude || 0) >= 4).map((r: any) => r.date).join(', ') || 'None';
+
+            trendLines.push(`Period: ${dateRange} (${readings.length} days analyzed)`);
+            trendLines.push(`Average Climate: Magnitude ${avgMag.toFixed(1)}, Valence ${avgVal > 0 ? '+' : ''}${avgVal.toFixed(1)}, Volatility ${avgVol.toFixed(1)}`);
+            trendLines.push(`Peak Activation Days (Mag ≥4): ${peakDays}`);
+            trendLines.push('');
+            trendLines.push('Note: Full daily data preserved in JSON export for detailed analysis.');
+          }
+
+          if (trendLines.length > 0) {
+            sections.push({
+              title: 'Transit Trend Summary',
+              body: trendLines.join('\n'),
+              mode: 'regular'
+            });
+          }
         }
       }
 
@@ -2896,23 +2855,8 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
         }
       }
 
-      // Add rendered summary if available
-      if (sanitizedReport.renderedText) {
-        sections.push({
-          title: 'Rendered Summary',
-          body: sanitizedReport.renderedText,
-          mode: 'regular'
-        });
-      }
-
-      // Add contract lint report if available
-      if (lintReport) {
-        sections.push({
-          title: 'Contract Validation Report',
-          body: sanitizeForPDF(lintReport),
-          mode: 'regular'
-        });
-      }
+      // Rendered summary removed - duplicates other sections
+      // Contract lint report removed - debug metadata only
 
       // ========================================
       // ANALYSIS DIRECTIVE FOR RAVEN CALDER
@@ -3031,174 +2975,39 @@ Generate the full reading that a professional astrologer would provide.
         mode: 'regular'
       });
 
-      // ALWAYS include relocation math instructions for Raven Calder
-      // This ensures Raven knows how to handle house relocation correctly
-      const relocationInstructions = `# 🔢 House Relocation Math Instructions (Tropical, Raven Calder)
+      const relocationSummary = (() => {
+        const pieces: string[] = [];
+        const personAContext = processedResult?.context?.person_a;
+        const relocationContext = processedResult?.context?.translocation;
+        if (personAContext) {
+          const locationParts = [personAContext.city, personAContext.state, personAContext.country]
+            .filter(Boolean)
+            .join(', ');
+          if (locationParts) pieces.push(`Location lens: ${locationParts}`);
+          if (personAContext.coordinates && typeof personAContext.coordinates.lat === 'number' && typeof personAContext.coordinates.lon === 'number') {
+            pieces.push(`Coordinates: ${personAContext.coordinates.lat.toFixed(2)}, ${personAContext.coordinates.lon.toFixed(2)}`);
+          }
+          if (personAContext.timezone) {
+            pieces.push(`Timezone: ${personAContext.timezone}`);
+          }
+        }
 
-**Objective:** Keep all planetary positions fixed to the natal chart, while recalculating house cusps for a new geographic location. This produces a relocated house system that reflects *where you are now* without altering the natal blueprint.
+        if (relocationContext?.method) {
+          pieces.push(`Relocation mode: ${relocationContext.method}`);
+        }
 
----
-
-### Step 1. Fix the Natal Planetary Positions
-
-* Compute all planetary longitudes in the **tropical zodiac** at the exact birth time and birth location.
-* Store these as the **immutable natal positions**.
-* Do not recompute planetary positions when relocating.
-
----
-
-### Step 2. Recalculate the Local Sidereal Time (LST)
-
-* Input: relocated longitude, relocated latitude, relocated timezone offset.
-* Compute **Greenwich Sidereal Time (GST)** at birth moment.
-* Adjust GST for the relocated longitude to get **Local Sidereal Time (LST)**.
-
-Formula (simplified):
-
-\`\`\`
-LST = GST + (relocated_longitude / 15° per hour)
-\`\`\`
-
-(Keep LST normalized to 0–24h range).
-
----
-
-### Step 3. Ascendant & Midheaven
-
-* Use the relocated latitude and LST to compute the angles:
-
-  * **MC (Medium Coeli)** = longitude of the zodiac crossing the meridian at LST.
-  * **ASC (Ascendant)** = longitude of the zodiac rising on the eastern horizon at that latitude and sidereal time.
-
----
-
-### Step 4. House Cusps
-
-* Once ASC and MC are computed, calculate all 12 house cusps according to the selected system:
-
-  * **Whole Sign:** Houses begin at 0° of the sign containing the ASC.
-  * **Equal:** Houses are 30° each, starting from the ASC.
-  * **Placidus (default):** Use time-division method based on diurnal arcs of the ASC and MC.
-
----
-
-### Step 5. Place Natal Planets into Relocated Houses
-
-* Keep each planet's zodiac degree fixed (from natal).
-* Reassign planets into **new house positions** based on the relocated cusps.
-* Example: Natal Mars 15° Gemini may move from the 11th house to the 10th house if the relocated cusps shift.
-
----
-
-### Step 6. Provenance
-
-Every report must record:
-
-* House system used (Placidus, Whole Sign, etc.)
-* Relocation mode (none / A_local / B_local / shared)
-* Relocated coordinates and timezone
-* Math brain version + ephemeris source
-
----
-
-✅ **Raven's Rule:**
-
-* Always interpret **sign and aspects** from the natal chart.
-* Always interpret **house positions** from the relocated chart.
-* If relocation data is missing or uncertain, default to natal houses and issue a *House Uncertainty Notice*.`;
+        pieces.push('House cusps remain in the natal tables for any future recalculation.');
+        return pieces.join('
+');
+      })();
 
       sections.push({
-        title: 'House Relocation Math Instructions (For Raven Calder)',
-        body: relocationInstructions,
+        title: 'Relocation Summary',
+        body: relocationSummary,
         mode: 'regular'
       });
 
-      // Add reader-facing relocation explanation
-      const relocationExplanation = `# 📖 Relocation and Houses (For Readers)
-
-Your planets never change signs or aspects — those are set the moment you were born. What does change when you move is how those planets are arranged into houses.
-
-* The houses are tied to the local horizon and meridian (the Ascendant and Midheaven). When you relocate, those angles shift, and the houses are redrawn.
-* A planet that was in your natal 11th house (friends, networks) might move into the 10th house (career, public life) when you live somewhere else.
-* This doesn't erase your natal chart — it's like putting the same pattern into a new frame, showing how your inner blueprint plays out in a different environment.
-
-**If your exact birth time isn't known, house information may be less reliable.** In those cases, Raven will flag this with a *House Uncertainty Notice*.`;
-
-      sections.push({
-        title: 'Understanding Relocation (For Readers)',
-        body: relocationExplanation,
-        mode: 'regular'
-      });
-
-      // Add relationship context definitions
-      const relationshipDefinitions = `# Relationship Context Definitions (Math Brain)
-
-## Relationship Types
-
-### PARTNER
-Romantic, sexual, or intimate partnership (requires intimacy tier)
-
-**Intimacy Tiers:**
-- **P1** — Platonic partners (no romantic/sexual component)
-- **P2** — Friends-with-benefits (sexual but not romantic)
-- **P3** — Situationship (unclear/unstable, undefined boundaries)
-- **P4** — Low-commitment romantic or sexual (casual dating, open relationships)
-- **P5a** — Committed romantic + sexual (exclusive committed relationship)
-- **P5b** — Committed romantic, non-sexual (committed partnership without sexual component)
-
-### FAMILY
-Family relationships (requires role specification)
-
-**Family Roles:**
-- Parent
-- Child
-- Sibling
-- Extended (aunts, uncles, cousins, etc.)
-
-### PROFESSIONAL
-Work or professional relationships (requires role specification)
-
-**Professional Roles:**
-- Manager
-- Direct Report
-- Colleague/Peer
-- Client
-- Vendor
-
----
-
-## Contact State
-
-### ACTIVE
-Currently in regular contact, relationship is live and ongoing
-
-### LATENT
-Not currently in contact, relationship is dormant or past
-
-**Important:** For LATENT relationships, use past-tense language and acknowledge the relationship is no longer active.
-
----
-
-## Relational Mode
-
-### SYNASTRY
-Analyze the relationship between two people's natal charts (Person A ↔ Person B cross-aspects)
-
-### COMPOSITE
-Analyze the midpoint chart representing the relationship itself as a third entity
-
----
-
-**Raven's Rule:**
-- Always use the EXACT intimacy tier labels as defined above
-- Never substitute with outdated labels like "established regular rhythm" or generic descriptions
-- The intimacy tier appears in the relationship context and must be interpreted correctly`;
-
-      sections.push({
-        title: 'Relationship Context Reference (For Raven Calder)',
-        body: relationshipDefinitions,
-        mode: 'regular'
-      });
+      // Relationship context definitions are available in-app; omit here to slim the PDF.
 
       // Add sanitized raw JSON
       sections.push({
@@ -3448,10 +3257,12 @@ Analyze the midpoint chart representing the relationship itself as a third entit
         try { document.body.removeChild(link); } catch {/* noop */}
         try { URL.revokeObjectURL(url); } catch {/* noop */}
       }, 150);
-      setToast('Downloading PDF report');
+      setPdfGenerating(false);
+      setToast('PDF ready!');
       setTimeout(() => setToast(null), 1600);
     } catch (err) {
       console.error('PDF export failed', err);
+      setPdfGenerating(false);
       setToast('Could not generate PDF');
       setTimeout(() => setToast(null), 2000);
     }
@@ -5227,7 +5038,7 @@ Analyze the midpoint chart representing the relationship itself as a third entit
                   <div className="font-medium text-slate-300">Primary Relational Tiers (scope):</div>
                   <div>• Partner — full map access, including intimacy arcs & legacy patterns.</div>
                   <div>• Friend / Acquaintance — emotional, behavioral, social dynamics; intimacy overlays de-emphasized.</div>
-                  <div>• Family Member — legacy patterns and behavioral overlays; sexual resonance suppressed.
+                  <div>• Family Member — legacy patterns and behavioral overlays.
                     {' '}Select the role to clarify Person B's relationship to Person A.</div>
                 </div>
               </div>
@@ -5750,13 +5561,6 @@ Analyze the midpoint chart representing the relationship itself as a third entit
                     Angles unavailable without birth time; houses suppressed.
                   </div>
                 )}
-                {eff && (
-                  <div className="inline-flex items-center gap-2 rounded-full border border-emerald-700 bg-emerald-900/30 px-3 py-1 text-xs text-emerald-200">
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
-                    <span className="font-medium">Effective time</span>
-                    <span className="text-emerald-100">{eff}</span>
-                  </div>
-                )}
                 {precision === 'unknown' && (timePolicy === 'planetary_only') && (
                   <div className="rounded-md border border-amber-700 bg-amber-900/30 px-3 py-1 text-xs text-amber-200">
                     Using planetary-only mode. You can run a sensitivity scan for house-dependent work.
@@ -5875,8 +5679,25 @@ Analyze the midpoint chart representing the relationship itself as a third entit
               <span>Download the geometry or continue in Poetic Brain whenever you want a narrative pass.</span>
             </div>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={downloadResultPDF} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" aria-label="Download PDF">Download PDF</button>
-              <button type="button" onClick={downloadMarkdownSummary} className="rounded-md border border-purple-700 bg-purple-800/50 px-3 py-1.5 text-purple-100 hover:bg-purple-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400" aria-label="Copy condensed Markdown summary to clipboard for ChatGPT">📋 Copy Markdown Summary</button>
+              <button
+                type="button"
+                onClick={downloadResultPDF}
+                disabled={pdfGenerating}
+                className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                aria-label="Download PDF"
+              >
+                {pdfGenerating ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Generating...
+                  </>
+                ) : (
+                  'Download PDF'
+                )}
+              </button>
               {includeTransits && (
                 <button type="button" onClick={downloadGraphsPDF} className="rounded-md border border-emerald-700 bg-emerald-800/50 px-3 py-1.5 text-emerald-100 hover:bg-emerald-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" aria-label="Download graphs and charts as PDF">
                   📊 Download Graphs PDF

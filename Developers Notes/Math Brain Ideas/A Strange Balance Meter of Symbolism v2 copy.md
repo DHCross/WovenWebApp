@@ -84,11 +84,11 @@ Orbs decide what enters the pipeline.
 * **Default (v1.2):** ≤6° luminaries, ≤4° planets, ≤3° points, ≤1° minors.  
 * **Strict (Astro‑Seek):** 8° personals, 7° Jup/Sat, 5° outers; sextiles 5/4/3; minors 2/1.5/1.
 
-**Effects:** Tight orbs reduce noise (fewer, truer inputs), sharpen SFD, and tame crisis/green‑wash bias. Valence is qualitative; orbs are quantitative and orthogonal.
+**Effects:** Tight orbs reduce noise (fewer, truer inputs), sharpen SFD, and tame crisis/green-wash bias. Valence is qualitative; orbs are quantitative and orthogonal.
 
 ### Orb Resolution Modes
 
-Orb Resolution is the quantitative throttle for the diagnostic engine. Switching between tight and loose tolerances determines whether we are reading the **surgical weather** (direct, body‑felt hits) or the **broad climate** (ambient symbolic atmosphere).
+Orb Resolution is the quantitative throttle for the diagnostic engine. Switching between tight and loose tolerances determines whether we are reading the **surgical weather** (direct, body-felt hits) or the **broad climate** (ambient symbolic atmosphere).
 
 * **Tight orbs (≤3° majors, ≤1° minors):**
   * Deliver the precision ping—high voltage moments that are immediately testable in lived experience.
@@ -110,7 +110,18 @@ Orb Resolution is the quantitative throttle for the diagnostic engine. Switching
 
 Orbs are purely quantitative (math filter) and remain orthogonal to qualitative interpretation. **Math Brain** enforces the strict profile before weighting, the **Hook Stack** surfaces only tight‑orb contacts for resonance, and provenance always stamps `orbs_profile` so the resolution is auditable.
 
-**Falsifiability:** Tight orbit standards keep the Balance Meter falsifiable. Relaxing tolerances should be an explicit, reviewable decision; otherwise the signal‑to‑noise ratio collapses and “hits” lose statistical scarcity.
+**Falsifiability:** Tight orbit standards keep the Balance Meter falsifiable. Relaxing tolerances should be an explicit, reviewable decision; otherwise the signal-to-noise ratio collapses and “hits” lose statistical scarcity.
+
+### Balance Indices Impact (NotebookLM synthesis)
+
+| Metric | Tight Orb Effect | Loose Orb Effect |
+| --- | --- | --- |
+| **Numinosity (⚡)** | Rewards exact geometry; pushes high-voltage events to the top of the stack and keeps the narrative testable against lived experience. | Dilutes intensity by averaging in ambient alignments, flattening meaningful spikes. |
+| **Directional Bias (↗️/↘️)** | Prevents supportive `S+` padding from weak contacts, so the tilt reflects real leverage points. | Risks false “supportive” readings if ambient trines/sextiles accumulate. |
+| **Narrative Coherence (📖)** | Highlights the decisive storyline; fewer threads, clearer arc. | Adds stray plot lines that make the narrative feel scattered or contradictory. |
+| **Integration Bias (SFD)** | Counts only genuinely active stabilisers, keeping the differential honest. | “Greenwashes” the differential if weak support aspects overrun the friction column. |
+
+NotebookLM takeaway: treat Orb Resolution as a *quantitative gatekeeper*. Tight caps defend falsifiability and keep symbolic weather aligned with statistically rare activations. Loose caps are useful for season-level climate work but should always be an intentional choice with a note about the trade-off.
 
 ---
 
