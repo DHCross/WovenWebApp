@@ -643,6 +643,15 @@ export default function MathBrainPage() {
   const chartAssets = useMemo<ChartAssetDisplay[]>(() => {
     if (!result) return [];
 
+    // Debug: Check if chart_assets exist in result
+    console.log('[Chart Assets Debug]', {
+      person_a_assets: (result as any)?.person_a?.chart_assets,
+      person_b_assets: (result as any)?.person_b?.chart_assets,
+      synastry_assets: (result as any)?.synastry_chart_assets,
+      composite_assets: (result as any)?.composite?.chart_assets,
+      top_level_assets: (result as any)?.chart_assets
+    });
+
     const seen = new Set<string>();
     const items: ChartAssetDisplay[] = [];
 
@@ -4358,14 +4367,29 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
   // Duplicate download functions removed - using downloadResultJSON and downloadResultPDF instead
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-12">
-      {/* Auth handled globally by HomeHero - Math Brain works independently */}
+    <main className="relative mx-auto max-w-6xl px-6 py-12">
+      {/* Subtle background image - The Silent Architect */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 opacity-[0.08]"
+        style={{
+          backgroundImage: 'url(/art/math-brain.png)',
+          backgroundSize: 'contain',
+          backgroundPosition: 'center top',
+          backgroundRepeat: 'no-repeat',
+          mixBlendMode: 'lighten'
+        }}
+      />
 
-      <header className="text-center print:hidden">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-100">Math Brain</h1>
-        <p className="mt-4 text-base md:text-lg text-slate-300">
-          Run the geometry first. Then jump into Chat to synthesize the narrative.
-        </p>
+      {/* Content layer */}
+      <div className="relative z-10">
+        {/* Auth handled globally by HomeHero - Math Brain works independently */}
+
+        <header className="text-center print:hidden">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-100">Math Brain</h1>
+          <p className="mt-2 text-sm text-slate-400 font-medium tracking-wide uppercase">The Silent Architect</p>
+          <p className="mt-4 text-base md:text-lg text-slate-300">
+            Calculate precise astrological geometry, then synthesize meaning in Poetic Brain.
+          </p>
 
         {/* Resume from Past Session Prompt */}
         {showSessionResumePrompt && savedSession && (
@@ -5649,21 +5673,45 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                     : null;
                   return (
                     <figure key={asset.id} className="rounded-md border border-slate-700 bg-slate-900/60 p-3">
-                      <a
-                        href={asset.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group block"
-                      >
-                        <div className="relative mx-auto aspect-square w-full max-w-sm overflow-hidden rounded bg-slate-950/50">
-                          <img
-                            src={asset.url}
-                            alt={asset.label}
-                            className="h-full w-full object-contain transition-opacity duration-150 group-hover:opacity-90"
-                            loading="lazy"
-                          />
+                      <div className="relative mx-auto aspect-square w-full max-w-sm overflow-hidden rounded bg-slate-950/50 group">
+                        <img
+                          src={asset.url}
+                          alt={asset.label}
+                          className="h-full w-full object-contain transition-opacity duration-150 group-hover:opacity-90"
+                          loading="lazy"
+                        />
+                        {/* Hover overlay with actions */}
+                        <div className="absolute inset-0 bg-slate-950/80 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-3">
+                          <button
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(asset.url);
+                                const blob = await response.blob();
+                                const item = new ClipboardItem({ [blob.type]: blob });
+                                await navigator.clipboard.write([item]);
+                                setToast('Chart copied to clipboard!');
+                                setTimeout(() => setToast(null), 2000);
+                              } catch (err) {
+                                console.error('Failed to copy chart:', err);
+                                setToast('Failed to copy chart');
+                                setTimeout(() => setToast(null), 2000);
+                              }
+                            }}
+                            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-100 rounded-md text-sm font-medium transition-colors"
+                            title="Copy to clipboard"
+                          >
+                            📋 Copy
+                          </button>
+                          <a
+                            href={asset.url}
+                            download={`${asset.label.replace(/\s+/g, '-').toLowerCase()}.svg`}
+                            className="px-4 py-2 bg-indigo-700 hover:bg-indigo-600 text-indigo-100 rounded-md text-sm font-medium transition-colors"
+                            title="Download chart"
+                          >
+                            💾 Download
+                          </a>
                         </div>
-                      </a>
+                      </div>
                       <figcaption className="mt-3 text-center text-sm text-slate-200">
                         <span className="block font-medium">{asset.label}</span>
                         <span className="block text-xs text-slate-400">
@@ -6513,6 +6561,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
           )}
         </div>
       )}
+      </div>
     </main>
   );
 }
