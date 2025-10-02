@@ -11,7 +11,7 @@ import { renderShareableMirror } from "../../lib/raven/render";
 import { ReportHeader, Weather, Blueprint } from "../../lib/ui-types";
 import EnhancedDailyClimateCard from "../../components/mathbrain/EnhancedDailyClimateCard";
 import BalanceMeterSummary from "../../components/mathbrain/BalanceMeterSummary";
-import PreferredReportDisplay from "../../components/PreferredReportDisplay";
+
 import { getSavedCharts, saveChart, deleteChart, type SavedChart } from "../../lib/saved-charts";
 
 export const dynamic = "force-dynamic";
@@ -2666,6 +2666,50 @@ export default function MathBrainPage() {
 
       const sections: Array<{ title: string; body: string; mode: 'regular' | 'mono' }> = [];
 
+      // Add presentation instructions based on user preference
+      if (reportFormat === 'preferred_structure') {
+        const conversationalInstructions = `
+AI SYNTHESIS INSTRUCTIONS - CONVERSATIONAL PRESENTATION
+
+When presenting this astrological analysis, follow these guidelines:
+
+STRUCTURE: Present in this exact order:
+1. Solo Mirrors: Short, plain-language snapshots for each person (if relational) or individual (if solo)
+2. Relational Engines: Named, recognizable patterns (Spark Engine, Sweet Glue, Growth Pressure Cooker, etc.)
+3. Weather Overlay: Continuous narrative paragraphs describing current symbolic weather
+
+TONE & LANGUAGE:
+• Use conversational, accessible language - no heavy astrological jargon
+• Frame patterns as tendencies and probabilities, NOT prescriptions or fixed fate
+• Make it shareable - suitable for discussing with partners, friends, or family
+• Focus on "here's how your system tends to move" rather than technical analysis
+
+SOLO MIRRORS FORMAT:
+"[Name]'s system tends to [movement pattern] with a [style] approach. [Current influence]. This creates a [climate] kind of energy that [expression pattern]."
+
+RELATIONAL ENGINES FORMAT:
+**[Engine Name]**
+[Mechanism description]. [Tendency description].
+
+WEATHER OVERLAY FORMAT:
+Continuous paragraphs without bullet points, lists, or percentages. Describe the overall climate, undercurrents, visibility, pressure, and temperature as symbolic weather patterns.
+
+CRITICAL DATA REQUIREMENTS:
+• Use the complete natal chart data included in this PDF (planetary positions, aspects, house system, birth details)
+• For synastry readings, ensure both Person A AND Person B natal data are present and used
+• DO NOT rely on prior uploads or defaults - use only the comprehensive astrological data provided in this document
+• Synthesize ALL the technical analysis into conversational format while preserving analytical accuracy
+
+IMPORTANT: This comprehensive astrological data should be synthesized into the conversational format above, but retain all the analytical depth. Present insights as conversation starters about energy patterns rather than definitive statements.
+        `.trim();
+
+        sections.push({
+          title: 'PRESENTATION INSTRUCTIONS FOR AI SYNTHESIS',
+          body: conversationalInstructions,
+          mode: 'regular'
+        });
+      }
+
       // Add contract compliance section if available
       if (contractCompliant) {
         const preface = processedResult.schema_enforced_render?.preface || {} as any;
@@ -2798,6 +2842,25 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
           sections.push({
             title: 'Major Aspects (Person A)',
             body: aspectsText,
+            mode: 'mono'
+          });
+        }
+
+        // Add Person B data for relational readings
+        if (wovenMap.data_tables.person_b_positions && Array.isArray(wovenMap.data_tables.person_b_positions)) {
+          const positionsBText = formatPlanetaryPositionsTable(wovenMap.data_tables.person_b_positions);
+          sections.push({
+            title: 'Planetary Positions (Person B)',
+            body: positionsBText,
+            mode: 'mono'
+          });
+        }
+
+        if (wovenMap.data_tables.person_b_aspects && Array.isArray(wovenMap.data_tables.person_b_aspects)) {
+          const aspectsBText = formatAspectsTable(wovenMap.data_tables.person_b_aspects);
+          sections.push({
+            title: 'Major Aspects (Person B)',
+            body: aspectsBText,
             mode: 'mono'
           });
         }
@@ -4178,8 +4241,8 @@ Analyze the midpoint chart representing the relationship itself as a third entit
         })(),
         // Foundation phase: no transits, always mirror contract
         report_type: RELATIONAL_MODES.includes(mode) ? 'relational_mirror' : 'solo_mirror',
-        // Report format selection
-        report_family: reportFormat,
+        // Presentation style preference (affects AI synthesis, not data generation)
+        presentation_style: reportFormat === 'preferred_structure' ? 'conversational' : 'technical',
         // Report mode drives backend routing semantics
         context: {
           mode: determineContextMode(mode, RELATIONAL_MODES.includes(mode) ? 'relational_mirror' : 'solo_mirror'),
@@ -5318,34 +5381,46 @@ Analyze the midpoint chart representing the relationship itself as a third entit
               </div>
             </Section>
 
-            <Section title="Report Format">
+            <Section title="Presentation Style">
               <div className="space-y-3">
-                <p className="text-xs text-slate-400">Choose how you want your report structured</p>
+                <p className="text-xs text-slate-400">Choose how AI should present your comprehensive analysis</p>
                 <div className="flex flex-col gap-2">
                   {([
-                    { value: 'comprehensive', label: 'Comprehensive', description: 'Full technical analysis with all data points' },
-                    { value: 'preferred_structure', label: 'Preferred Structure', description: 'Solo mirrors → Relational engines → Weather (conversational)' }
-                  ] as const).map((format) => (
+                    { value: 'comprehensive', label: 'Technical', description: 'Full astrological terminology and detailed analysis' },
+                    { value: 'preferred_structure', label: 'Conversational', description: 'Plain language, accessible format (Solo mirrors → Engines → Weather)' }
+                  ] as const).map((style) => (
                     <label
-                      key={format.value}
+                      key={style.value}
                       className="flex items-center gap-3 rounded-md border border-slate-700 bg-slate-800/60 px-3 py-2.5 cursor-pointer hover:bg-slate-800 transition"
                     >
                       <input
                         type="radio"
-                        name="report-format"
-                        value={format.value}
-                        checked={reportFormat === format.value}
+                        name="presentation-style"
+                        value={style.value}
+                        checked={reportFormat === style.value}
                         onChange={(e) => {
                           setReportFormat(e.target.value as 'comprehensive' | 'preferred_structure');
                         }}
                         className="h-4 w-4 border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
                       />
                       <div>
-                        <span className="block text-sm font-medium text-slate-100">{format.label}</span>
-                        <span className="block text-xs text-slate-400">{format.description}</span>
+                        <span className="block text-sm font-medium text-slate-100">{style.label}</span>
+                        <span className="block text-xs text-slate-400">{style.description}</span>
                       </div>
                     </label>
                   ))}
+                </div>
+                <div className="rounded-md border border-amber-700 bg-amber-900/20 p-3">
+                  <div className="flex items-start gap-2">
+                    <svg className="h-4 w-4 text-amber-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-xs text-amber-100">
+                        Both options generate the same comprehensive astrological analysis. This setting only affects how the AI presents the information in PDFs and narrative synthesis.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </Section>
@@ -5842,23 +5917,6 @@ Analyze the midpoint chart representing the relationship itself as a third entit
             const suppressedEvents = Number(summary.suppressed_events ?? 0);
             const classification = (Array.isArray((wm as any)?.sst_tags) ? (wm as any).sst_tags : null) || (result as any)?.relational_mirror?.sst_tags || [];
 
-            // Check if this is a preferred structure report
-            const preferredStructure = (result as any)?.woven_map?.preferred_structure;
-            
-            if (preferredStructure) {
-              return (
-                <section>
-                  <div className="mb-4 flex items-center gap-3">
-                    <h2 className="text-xl font-semibold text-slate-100">Preferred Reading Structure</h2>
-                    <span className="inline-flex items-center rounded-full bg-emerald-900/30 px-2 py-1 text-xs text-emerald-200">
-                      Solo Mirrors → Engines → Weather
-                    </span>
-                  </div>
-                  <PreferredReportDisplay data={preferredStructure} />
-                </section>
-              );
-            }
-            
             return (
               <Section title="Mirror Flow Summary">
                 <div className="space-y-4">

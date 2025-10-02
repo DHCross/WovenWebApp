@@ -1,8 +1,8 @@
-# Preferred Report Structure Implementation
+# Conversational Presentation Style Implementation
 
 ## Overview
 
-This implementation adds a new "Preferred Structure" report format to WovenWebApp that follows the exact flow requested:
+This implementation adds a "Conversational" presentation style preference to WovenWebApp that instructs AI to present the same comprehensive astrological analysis in an accessible, conversational format following the exact flow requested:
 
 1. **Solo Mirrors** - Short, plain-language snapshots for each person
 2. **Relational Engines** - Structured, named patterns (Spark Engine, Sweet Glue, etc.)
@@ -12,11 +12,21 @@ This implementation adds a new "Preferred Structure" report format to WovenWebAp
 
 ### In the Math Brain Interface
 
-1. **Select Report Format**: In the "Report Format" section, choose "Preferred Structure"
-2. **Generate Report**: Run your analysis as normal
-3. **View Results**: The report will display in the new conversational format instead of the technical comprehensive format
+1. **Select Presentation Style**: In the "Presentation Style" section, choose "Conversational"
+2. **Generate Report**: Run your analysis as normal (same comprehensive data is generated)
+3. **Export to PDF**: The PDF will include instructions for AI to present data conversationally
+4. **Use in AI Chat**: The presentation style guides how AI synthesizes the data
 
-### Format Characteristics
+### Key Difference from Previous Approach
+
+**IMPORTANT**: This is NOT a different report format. Both "Technical" and "Conversational" generate the exact same comprehensive astrological analysis. The difference is only in how the AI is instructed to present that analysis.
+
+- **Same Data Generated**: Full natal charts, symbolic weather, all astrological calculations
+- **Different Presentation**: Instructions for conversational vs technical synthesis
+- **Affects**: PDF export instructions, AI synthesis guidelines
+- **Preserves**: All analytical depth and accuracy
+
+## Format Characteristics
 
 **Solo Mirrors:**
 - Conversational snapshot style
@@ -25,14 +35,9 @@ This implementation adds a new "Preferred Structure" report format to WovenWebAp
 
 **Relational Engines:**
 - Clean, modular named patterns:
-  - Spark Engine
-  - Crossed-Wires Loop  
-  - Sweet Glue
-  - Growth Pressure Cooker
-  - Stability Anchor
-  - Creative Amplifier
-  - Mirror Effect
-  - Complementary Flow
+  - Spark Engine, Crossed-Wires Loop, Sweet Glue
+  - Growth Pressure Cooker, Stability Anchor
+  - Creative Amplifier, Mirror Effect, Complementary Flow
 - Each engine shows mechanism and tendency
 
 **Weather Overlay:**
@@ -41,37 +46,20 @@ This implementation adds a new "Preferred Structure" report format to WovenWebAp
 - Climate descriptions rather than prescriptions
 - Example: "The overall climate between you feels generally supportive with some scattered intensity..."
 
-## Technical Details
+## Technical Implementation
+
+### Frontend Changes
+
+- **UI Element**: "Presentation Style" selector (Technical vs Conversational)
+- **Data Flow**: `presentation_style: 'conversational'` passed to API
+- **PDF Integration**: Instructions included in PDF exports
+- **Session Memory**: Preference saved with user settings
 
 ### Backend Integration
 
-The system integrates at multiple levels:
-
-- **Report Family**: Added `preferred_structure` as a new report family option
-- **Data Formatter**: `lib/preferred-report-formatter.js` handles the conversion
-- **Report Composer**: `src/reporters/woven-map-composer.js` includes the new format
-- **UI Component**: `components/PreferredReportDisplay.tsx` renders the format
-
-### Data Flow
-
-1. User selects "Preferred Structure" format
-2. `report_family: 'preferred_structure'` is passed to API
-3. Backend detects this and uses `generatePreferredReport()` function
-4. Actual astrological data is analyzed and converted to conversational format
-5. Frontend displays using `PreferredReportDisplay` component
-
-### Format Detection
-
-The system automatically detects when to show the preferred structure:
-
-```javascript
-const preferredStructure = result?.woven_map?.preferred_structure;
-if (preferredStructure) {
-  // Show preferred format
-} else {
-  // Show standard format
-}
-```
+- **Report Generation**: Always uses `comprehensive` report family (full analysis)
+- **Presentation Hint**: `presentation_style` parameter guides PDF instructions
+- **No Data Splitting**: Same astrological calculations regardless of style
 
 ## Key Features
 

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { sanitizeForPDF } from '../src/pdf-sanitizer';
-import { generateJournalPDFFast, generateJournalPDFUltraFast } from '../lib/fast-pdf-generator';
+import { generateJournalPDFFast } from '../lib/fast-pdf-generator';
 
 interface BigVector {
   tension: string;
@@ -101,176 +100,6 @@ Primary Patterns: ${journalEntry.metadata.primaryPatterns.join(', ')}`;
     navigator.clipboard.writeText(fullText).then(() => {
       alert('Journal entry copied to clipboard!');
     });
-  };
-
-  const exportJournalAsPDF = async () => {
-    if (!journalEntry) return;
-
-    // Show immediate feedback
-    const loadingAlert = document.createElement('div');
-    loadingAlert.innerHTML = 'Generating PDF... Please wait (this may take 10-15 seconds)';
-    loadingAlert.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #7c3aed; color: white; padding: 12px 20px; border-radius: 8px; z-index: 10000; font-family: sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
-    document.body.appendChild(loadingAlert);
-
-    try {
-      // Dynamically import html2pdf.js
-      const html2pdf = (await import('html2pdf.js')).default;
-
-      // Detect multi-person reading context
-      const isMultiPerson = journalEntry.title.toLowerCase().includes('relationship') || 
-                           journalEntry.title.toLowerCase().includes('synastry') ||
-                           journalEntry.title.toLowerCase().includes('composite') ||
-                           journalEntry.narrative.toLowerCase().includes('both people') ||
-                           journalEntry.narrative.toLowerCase().includes('between you');
-
-      // Create optimized PDF content for journal
-      const container = document.createElement('div');
-      container.style.cssText = `
-        font-family: Arial, sans-serif;
-        max-width: 8in;
-        margin: 0 auto;
-        padding: 0.75in;
-        background: white;
-        color: #1a1a1a;
-        line-height: 1.6;
-      `;
-
-      container.innerHTML = `
-        <div style="text-align: center; border-bottom: 2px solid #7c3aed; padding-bottom: 0.5in; margin-bottom: 0.75in;">
-          <h1 style="color: #7c3aed; font-size: 28pt; margin: 0; font-weight: bold; font-family: Georgia;">
-            ${sanitizeForPDF(journalEntry.title)}
-          </h1>
-          <p style="color: #666; font-size: 14pt; margin: 0.3in 0; font-style: italic;">
-            ${sanitizeForPDF(`Raven Calder Journal Entry • ${journalEntry.metadata.sessionDate}`)}
-          </p>
-        </div>
-
-        ${isMultiPerson ? `
-        <div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 0.4in; margin-bottom: 0.75in;">
-          <h3 style="color: #d97706; font-size: 14pt; margin: 0 0 0.2in 0; font-weight: bold;">
-            📋 Essential for Relationship Readings
-          </h3>
-          <p style="color: #92400e; font-size: 11pt; line-height: 1.6; margin: 0;">
-            ${sanitizeForPDF('You need BOTH complete natal charts (birth date, time, and location for each person). No shortcuts! This snapshot shows the relationship themes, but individual charts reveal the unique patterns each person brings. Think of this as the weather between you - the full story needs both personal charts to see how each person experiences and responds to these energies.')}
-          </p>
-        </div>
-        ` : `
-        <div style="background: #e0e7ff; border: 2px solid #7c3aed; border-radius: 8px; padding: 0.4in; margin-bottom: 0.75in;">
-          <h3 style="color: #5b21b6; font-size: 14pt; margin: 0 0 0.2in 0; font-weight: bold;">
-            💡 Reading Context
-          </h3>
-          <p style="color: #5b21b6; font-size: 11pt; line-height: 1.6; margin: 0;">
-            ${sanitizeForPDF('This is your symbolic weather report - a snapshot of current astrological themes. Use it as a conversation starter with yourself about energy patterns you might be noticing. Your choices and responses shape how these patterns actually unfold in your life.')}
-          </p>
-        </div>
-        `}
-
-        <div style="margin-bottom: 0.75in;">
-          <div style="font-size: 12pt; line-height: 1.6; text-align: left;">
-            ${journalEntry.narrative.split('\n').map((paragraph: string) =>
-              paragraph.trim() ? `<p style="margin-bottom: 0.3in;">${sanitizeForPDF(paragraph)}</p>` : ''
-            ).join('')}
-          </div>
-        </div>
-
-        <div style="border-top: 1px solid #e5e7eb; padding-top: 0.5in; margin-top: 0.75in;">
-          <h2 style="color: #7c3aed; font-size: 16pt; margin-bottom: 0.3in;">${sanitizeForPDF('Session Analytics')}</h2>
-          <div style="background: #f8fafc; padding: 0.4in; border-radius: 8px; border-left: 4px solid #7c3aed;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.3in;">
-              <div>
-                <p><strong>${sanitizeForPDF('Total Interactions:')}</strong> ${sanitizeForPDF(String(journalEntry.metadata.totalInteractions))}</p>
-                <p><strong>${sanitizeForPDF('Session Date:')}</strong> ${sanitizeForPDF(journalEntry.metadata.sessionDate)}</p>
-              </div>
-              <div>
-                <p><strong>${sanitizeForPDF('Resonance Fidelity:')}</strong> ${sanitizeForPDF(`${journalEntry.metadata.resonanceFidelity}%`)}</p>
-                <p><strong>${sanitizeForPDF('Session ID:')}</strong> ${sanitizeForPDF(data.sessionId.slice(-8))}</p>
-              </div>
-            </div>
-            ${journalEntry.metadata.primaryPatterns.length > 0 ? `
-              <div style="margin-top: 0.3in; border-top: 1px solid #e5e7eb; padding-top: 0.3in;">
-                <p style="margin-bottom: 0.15in;"><strong>${sanitizeForPDF('Primary Communication Patterns:')}</strong></p>
-                <div style="display: flex; flex-wrap: wrap; gap: 0.1in;">
-                  ${journalEntry.metadata.primaryPatterns.map((pattern: string) =>
-                    `<span style="background: white; padding: 0.1in 0.2in; border-radius: 4px; border: 1px solid #d1d5db; font-size: 11pt;">${sanitizeForPDF(pattern)}</span>`
-                  ).join('')}
-                </div>
-              </div>
-            ` : ''}
-          </div>
-        </div>
-
-        <div style="margin-top: 0.75in; padding-top: 0.4in; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 11pt;">
-          <p>${sanitizeForPDF('Generated by Raven Calder • Woven Web Application')}</p>
-          <p style="font-style: italic; margin-top: 0.2in;">${sanitizeForPDF('"Here\'s what resonated, here\'s what didn\'t, here\'s what pattern Raven is tentatively guessing — but you remain the validator."')}</p>
-          <p style="font-size: 10pt; color: #888; margin-top: 0.3in; font-weight: normal;">
-            ${sanitizeForPDF('Remember: This is symbolic weather, not fate. Think of it as a conversation starter about energy patterns you might notice in daily life. The language here aims to be accessible - no need to decode astro-jargon. Your choices and responses matter most.')}
-          </p>
-        </div>
-      `;
-
-      // Add to DOM temporarily for rendering (optimized positioning)
-      container.style.cssText += `
-        position: fixed;
-        top: -10000px;
-        left: -10000px;
-        visibility: hidden;
-        pointer-events: none;
-      `;
-      document.body.appendChild(container);
-
-      const opt = {
-        margin: 0.5,
-        filename: `raven-journal-${data.sessionId.slice(-8)}-${new Date().toISOString().slice(0,10)}.pdf`,
-        image: { type: 'jpeg', quality: 0.75 }, // Reduced from 0.95 to 0.75 for speed
-        html2canvas: {
-          scale: 1.5, // Reduced from 2 to 1.5 for faster rendering
-          useCORS: false, // Disabled for speed since we're not using external images
-          allowTaint: true, // Allow for faster rendering
-          backgroundColor: '#ffffff',
-          logging: false, // Disable console logging for performance
-          imageTimeout: 5000, // 5 second timeout instead of default 30s
-          removeContainer: true, // Automatically clean up
-          async: true, // Enable async rendering
-          width: 816, // Fixed width (8.5in * 96dpi) for consistency
-          height: 1056 // Fixed height (11in * 96dpi) for consistency
-        },
-        jsPDF: {
-          unit: 'in',
-          format: 'letter',
-          orientation: 'portrait',
-          compress: true,
-          precision: 2 // Reduce precision for smaller file size and faster generation
-        }
-      };
-
-      // Generate PDF with progress feedback
-      await html2pdf().from(container).set(opt).save();
-
-      // Clean up
-      document.body.removeChild(container);
-      document.body.removeChild(loadingAlert);
-
-      // Success feedback
-      const successAlert = document.createElement('div');
-      successAlert.innerHTML = '✅ PDF generated successfully!';
-      successAlert.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 12px 20px; border-radius: 8px; z-index: 10000; font-family: sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
-      document.body.appendChild(successAlert);
-      setTimeout(() => document.body.removeChild(successAlert), 3000);
-
-    } catch (error) {
-      // Clean up loading indicator
-      if (document.body.contains(loadingAlert)) {
-        document.body.removeChild(loadingAlert);
-      }
-      
-      // Error feedback
-      const errorAlert = document.createElement('div');
-      errorAlert.innerHTML = '❌ PDF generation failed. Try reducing content or refreshing the page.';
-      errorAlert.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 12px 20px; border-radius: 8px; z-index: 10000; font-family: sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
-      document.body.appendChild(errorAlert);
-      setTimeout(() => document.body.removeChild(errorAlert), 5000);
-      copyJournalToClipboard();
-    }
   };
 
   const exportSummaryData = () => {
@@ -486,56 +315,31 @@ Primary Patterns: ${journalEntry.metadata.primaryPatterns.join(', ')}`;
               <div className="text-center text-xs text-slate-500 mb-3 uppercase tracking-wide">
                 Export Reading Summary
               </div>
-              <div className="grid grid-cols-2 gap-2 mb-2">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={exportSummaryData}
                   className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-1"
-                  title="Export reading summary data as JSON"
+                  title="Export reading summary data as JSON for archival"
                 >
                   📄 JSON
                 </button>
                 {journalEntry && (
                   <button
                     onClick={async () => {
-                      const result = await generateJournalPDFUltraFast(journalEntry, data.sessionId);
-                      const alertDiv = document.createElement('div');
-                      alertDiv.innerHTML = result.success ? '🚀 Ultra-fast PDF!' : '❌ PDF failed';
-                      alertDiv.style.cssText = `position: fixed; top: 20px; right: 20px; background: ${result.success ? '#f59e0b' : '#ef4444'}; color: white; padding: 12px 20px; border-radius: 8px; z-index: 10000; font-family: sans-serif;`;
-                      document.body.appendChild(alertDiv);
-                      setTimeout(() => document.body.removeChild(alertDiv), 3000);
-                    }}
-                    className="bg-orange-100 hover:bg-orange-200 text-orange-700 text-sm py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-1"
-                    title="Ultra-fast PDF generation (<1 second)"
-                  >
-                    🚀 Instant
-                  </button>
-                )}
-              </div>
-              {journalEntry && (
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={async () => {
                       const result = await generateJournalPDFFast(journalEntry, data.sessionId);
                       const alertDiv = document.createElement('div');
-                      alertDiv.innerHTML = result.success ? '✅ Fast PDF generated!' : '❌ PDF failed';
+                      alertDiv.innerHTML = result.success ? '✅ PDF ready!' : '❌ PDF failed';
                       alertDiv.style.cssText = `position: fixed; top: 20px; right: 20px; background: ${result.success ? '#10b981' : '#ef4444'}; color: white; padding: 12px 20px; border-radius: 8px; z-index: 10000; font-family: sans-serif;`;
                       document.body.appendChild(alertDiv);
                       setTimeout(() => document.body.removeChild(alertDiv), 3000);
                     }}
-                    className="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-sm py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-1"
-                    title="Fast PDF generation (2-3 seconds)"
+                    className="bg-purple-100 hover:bg-purple-200 text-purple-700 text-sm py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-1"
+                    title="Generate comprehensive PDF report"
                   >
-                    ⚡ Fast PDF
+                    📋 PDF
                   </button>
-                  <button
-                    onClick={exportJournalAsPDF}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-1"
-                    title="High-quality PDF (10-15 seconds)"
-                  >
-                    📋 Quality
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -615,9 +419,16 @@ Primary Patterns: ${journalEntry.metadata.primaryPatterns.join(', ')}`;
                       📋 Copy Text
                     </button>
                     <button
-                      onClick={exportJournalAsPDF}
+                      onClick={async () => {
+                        const result = await generateJournalPDFFast(journalEntry, data.sessionId);
+                        const alertDiv = document.createElement('div');
+                        alertDiv.innerHTML = result.success ? '✅ PDF ready!' : '❌ PDF failed';
+                        alertDiv.style.cssText = `position: fixed; top: 20px; right: 20px; background: ${result.success ? '#10b981' : '#ef4444'}; color: white; padding: 12px 20px; border-radius: 8px; z-index: 10000; font-family: sans-serif;`;
+                        document.body.appendChild(alertDiv);
+                        setTimeout(() => document.body.removeChild(alertDiv), 3000);
+                      }}
                       className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-colors text-sm"
-                      title="Export journal as formatted PDF"
+                      title="Export journal as PDF report"
                     >
                       📄 Export PDF
                     </button>

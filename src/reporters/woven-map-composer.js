@@ -823,9 +823,6 @@ function inferFamily(modeToken, result) {
   // Legacy mode support
   if (m.includes('BALANCE_METER_ONLY')) return 'balance_meter';
   if (m.includes('MIRROR_FLOW_ONLY')) return 'mirror_flow';
-  
-  // Preferred structure mode (Solo Mirrors → Relational Engines → Weather)
-  if (m.includes('PREFERRED_STRUCTURE') || m.includes('SOLO_ENGINES_WEATHER')) return 'preferred_structure';
 
   // Default to unified comprehensive structure
   return 'comprehensive';
@@ -1028,6 +1025,9 @@ function composeWovenMapReport({ result, mode, period, options = {} }) {
         daily_readings: tableBuilders.buildDailyReadingsTable(timeSeries)
       }),
       ...(type === 'relational' && {
+        // For relational readings, include both Person A and Person B complete data
+        person_b_positions: tableBuilders.buildNatalPositionsTable(b),
+        person_b_aspects: tableBuilders.buildNatalAspectsTable(b),
         synastry_aspects: tableBuilders.buildSynastryAspectsTable(result),
         composite_positions: tableBuilders.buildCompositePositionsTable(result)
       })
@@ -1055,48 +1055,6 @@ function composeWovenMapReport({ result, mode, period, options = {} }) {
     report.balance_meter = buildBalanceMeter(summary, meterChannels, result?.provenance?.engine_versions);
     report.time_series = timeSeries;
     report.integration_factors = integration;
-  } else if (report_family === 'preferred_structure') {
-    // PREFERRED STRUCTURE: Solo Mirrors → Relational Engines → Weather Overlay
-    const { generatePreferredReport } = require('../../lib/preferred-report-formatter');
-    
-    const person1Name = a?.details?.name || 'Person A';
-    const person2Name = b?.details?.name || 'Person B';
-    
-    // Build simplified data objects for the formatter
-    const person1Data = {
-      natal: extractNatalSummary(a),
-      placements: summary?.placements || {}
-    };
-    
-    const person2Data = b ? {
-      natal: extractNatalSummary(b),
-      placements: summaryB?.placements || {}
-    } : null;
-    
-    const relationshipData = {
-      synastry: result?.composite?.synastry_aspects || [],
-      person1Transits: result?.person_a?.chart?.transitsByDate || {},
-      person2Transits: result?.person_b?.chart?.transitsByDate || {},
-      balanceMeter: summary
-    };
-    
-    if (type === 'relational' && person2Data) {
-      // Generate relational report with preferred structure
-      const preferredReport = generatePreferredReport(
-        person1Name, person1Data, 
-        person2Name, person2Data, 
-        relationshipData
-      );
-      report.preferred_structure = preferredReport;
-    } else {
-      // Generate solo report in preferred format
-      const soloData = generatePreferredReport(
-        person1Name, person1Data,
-        null, null,
-        relationshipData
-      );
-      report.preferred_structure = soloData;
-    }
   }
 
   report.hook_stack = hookStack;
