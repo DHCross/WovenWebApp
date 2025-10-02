@@ -3114,6 +3114,23 @@ Every report must record:
         mode: 'regular'
       });
 
+      // Add reader-facing relocation explanation
+      const relocationExplanation = `# 📖 Relocation and Houses (For Readers)
+
+Your planets never change signs or aspects — those are set the moment you were born. What does change when you move is how those planets are arranged into houses.
+
+* The houses are tied to the local horizon and meridian (the Ascendant and Midheaven). When you relocate, those angles shift, and the houses are redrawn.
+* A planet that was in your natal 11th house (friends, networks) might move into the 10th house (career, public life) when you live somewhere else.
+* This doesn't erase your natal chart — it's like putting the same pattern into a new frame, showing how your inner blueprint plays out in a different environment.
+
+**If your exact birth time isn't known, house information may be less reliable.** In those cases, Raven will flag this with a *House Uncertainty Notice*.`;
+
+      sections.push({
+        title: 'Understanding Relocation (For Readers)',
+        body: relocationExplanation,
+        mode: 'regular'
+      });
+
       // Add relationship context definitions
       const relationshipDefinitions = `# Relationship Context Definitions (Math Brain)
 
@@ -5901,73 +5918,6 @@ Analyze the midpoint chart representing the relationship itself as a third entit
             </div>
           </div>
 
-          {(() => {
-            const wm = (result as any)?.woven_map;
-            if (!wm) return null;
-            const voice = typeof wm.mirror_voice === 'string' ? wm.mirror_voice.trim() : '';
-            const polarityCards = Array.isArray(wm.polarity_cards) ? wm.polarity_cards : [];
-            const hookStack = wm.hook_stack || {};
-            const hooks = Array.isArray(hookStack.hooks) ? hookStack.hooks : [];
-            const tier1Count = hooks.filter((hook: any) => hook?.is_tier_1).length;
-            const totalIntensity = Number(hookStack.total_intensity ?? 0);
-            const coverage = hookStack.coverage || null;
-            const vector = wm.vector_integrity || {};
-            const summary = vector.summary || {};
-            const latentEvents = Number(summary.latent_events ?? 0);
-            const suppressedEvents = Number(summary.suppressed_events ?? 0);
-            const classification = (Array.isArray((wm as any)?.sst_tags) ? (wm as any).sst_tags : null) || (result as any)?.relational_mirror?.sst_tags || [];
-
-            return (
-              <Section title="Mirror Flow Summary">
-                <div className="space-y-4">
-                  <div className="rounded-md border border-slate-700 bg-slate-900/60 p-4">
-                    <div className="text-xs uppercase tracking-wide text-indigo-200">Blueprint Foundation</div>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-100">
-                      {voice || `Natal foundation established with ${tier1Count} key aspect patterns. Ready for Poetic Brain interpretation and symbolic weather overlay.`}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div className="rounded-md border border-slate-700 bg-slate-900/50 p-3">
-                      <div className="text-xs uppercase tracking-wide text-slate-400">Tier‑1 Hooks</div>
-                      {(() => {
-                        const tier1Hooks = hooks.filter((hook: any) => hook?.is_tier_1);
-                        if (tier1Hooks.length === 0) {
-                          return <div className="mt-1 text-sm text-slate-400">No Tier‑1 hooks detected</div>;
-                        }
-                        return (
-                          <div className="mt-1 space-y-1">
-                            {tier1Hooks.map((hook: any, index: number) => (
-                              <div key={index} className="text-sm text-slate-100">
-                                {hook.title || hook.name || `Hook ${index + 1}`}
-                                {hook.why && <span className="text-xs text-slate-400 ml-1">— {hook.why}</span>}
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      })()}
-                      <div className="text-xs text-slate-400 mt-2">Intensity: {Math.round(totalIntensity)} · Coverage: {coverage || 'n/a'}</div>
-                    </div>
-                    <div className="rounded-md border border-slate-700 bg-slate-900/50 p-3">
-                      <div className="text-xs uppercase tracking-wide text-slate-400">Vector Integrity</div>
-                      <div className="mt-1 text-2xl font-semibold text-slate-100">{latentEvents}/{suppressedEvents}</div>
-                      <div className="text-xs text-slate-400">Latent vs Suppressed event counts</div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3">
-                      <div className="text-xs uppercase tracking-wide text-slate-400">Polarity Cards Active</div>
-                      <div className="mt-1 text-sm text-slate-200">{polarityCards.length ? `${polarityCards.length} structural cards primed` : 'Cards seeded for MAP translation.'}</div>
-                    </div>
-                    <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3">
-                      <div className="text-xs uppercase tracking-wide text-slate-400">SST Tags</div>
-                      <div className="mt-1 text-sm text-slate-200">{Array.isArray(classification) && classification.length ? classification.join(' · ') : 'WB/ABE/OSR markers pending downstream'}</div>
-                    </div>
-                  </div>
-                </div>
-              </Section>
-            );
-          })()}
-
           {/* Post-generation actions */}
           <div className="flex items-center justify-between gap-4 print:hidden">
             <div className="text-sm text-slate-400">
@@ -6049,130 +5999,8 @@ Analyze the midpoint chart representing the relationship itself as a third entit
                     const daily = result?.person_a?.chart?.transitsByDate || {};
                     return Object.keys(daily).filter(d => d && d.match(/^\d{4}-\d{2}-\d{2}$/)).length;
                   })()}
+                  isLatentField={exEstranged}
                 />
-                <div className="mb-6">
-                  <h3 className="text-sm font-medium text-slate-200 mb-3">Daily Details</h3>
-
-                  {/* Current Day SFD Balance Bar */}
-                  <div className="mb-4 rounded border border-slate-600 bg-slate-900/50 p-4">
-                    <div className="text-xs text-slate-400 mb-2">Today's Balance ({new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })})</div>
-                    {(() => {
-                      const sfdValue = result?.person_a?.sfd?.sfd ?? 0;
-                      const sPlus = result?.person_a?.sfd?.s_plus ?? 0;
-                      const sMinus = result?.person_a?.sfd?.s_minus ?? 0;
-                      const maxValue = Math.max(sPlus, sMinus, 100);
-
-                      const getSFDState = (sfd: number) => {
-                        if (sfd > 50) return 'Strong Support';
-                        if (sfd >= 1) return 'Supportive';
-                        if (sfd >= -50) return 'Frictional';
-                        return 'Strong Friction';
-                      };
-
-                      return (
-                        <div className="space-y-3">
-                          {/* Balance Bar */}
-                          <div className="relative h-8 rounded bg-slate-800 overflow-hidden">
-                            {/* Support (right side) */}
-                            <div
-                              className="absolute right-0 top-0 h-full bg-emerald-600/80 flex items-center justify-end pr-2"
-                              style={{ width: `${(sPlus / maxValue) * 50}%` }}
-                            >
-                              <span className="text-xs text-emerald-100 font-mono">S+ {sPlus}</span>
-                            </div>
-
-                            {/* Friction (left side) */}
-                            <div
-                              className="absolute left-0 top-0 h-full bg-red-600/80 flex items-center justify-start pl-2"
-                              style={{ width: `${(sMinus / maxValue) * 50}%` }}
-                            >
-                              <span className="text-xs text-red-100 font-mono">S- {sMinus}</span>
-                            </div>
-
-                            {/* Center line */}
-                            <div className="absolute left-1/2 top-0 h-full w-px bg-slate-300"></div>
-                          </div>
-
-                          {/* SFD Score */}
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-slate-100">
-                              SFD: {sfdValue > 0 ? '+' : ''}{sfdValue}
-                            </div>
-                            <div className="text-sm text-slate-400">{getSFDState(sfdValue)}</div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Trend Sparklines - moved from time series section */}
-                  <div className="rounded border border-slate-700 bg-slate-900/40 p-3">
-                    <div className="text-xs font-medium text-slate-300 mb-2">Trend Analysis (Last 20 Days)</div>
-                    {(() => {
-                      const daily = result?.person_a?.chart?.transitsByDate || {};
-                      const dates = Object.keys(daily).sort();
-                      if (!dates.length) return <div className="text-xs text-slate-500">No trend data available</div>;
-
-                      const series = dates.map(d => ({
-                        magnitude: Number(daily[d]?.seismograph?.magnitude ?? 0),
-                        valence: Number(daily[d]?.seismograph?.valence_bounded ?? daily[d]?.seismograph?.valence ?? 0),
-                        volatility: Number(daily[d]?.seismograph?.volatility ?? 0),
-                        sfd: Number(daily[d]?.sfd ?? 0)
-                      }));
-
-                      const createSparkline = (values: number[], maxValue = 5) => {
-                        const chars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
-                        return values.slice(-20).map(val => {
-                          const normalized = Math.max(0, Math.min(1, val / maxValue));
-                          const index = Math.floor(normalized * (chars.length - 1));
-                          return chars[index] || chars[0];
-                        }).join('');
-                      };
-
-                      const createSFDSparkline = (values: number[]) => {
-                        return values.slice(-20).map(val => {
-                          if (val > 10) return '▇'; // Strong support
-                          if (val > 0) return '▅';  // Support
-                          if (val === 0) return '▃'; // Neutral
-                          if (val > -10) return '▂'; // Friction
-                          return '▁'; // Strong friction
-                        }).join('');
-                      };
-
-                      const magnitudes = series.map(s => s.magnitude);
-                      const volatilities = series.map(s => s.volatility);
-                      const sfds = series.map(s => s.sfd);
-
-                      return (
-                        <div className="space-y-2 text-xs">
-                          <div className="flex items-center justify-between">
-                            <span className="text-slate-400 w-16">⚡ Mag:</span>
-                            <span className="font-mono text-emerald-400 text-sm">{createSparkline(magnitudes)}</span>
-                            <span className="text-slate-500 w-12 text-right">
-                              {magnitudes.length > 0 && magnitudes[magnitudes.length - 1] >= 4.5 && sfds[sfds.length - 1] < -50 ? '⚫️' : ''}
-                              {magnitudes.length > 0 && magnitudes[magnitudes.length - 1] >= 4.5 && volatilities[volatilities.length - 1] >= 4.5 ? '🌀' : ''}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-slate-400 w-16">🔀 Vol:</span>
-                            <span className="font-mono text-amber-400 text-sm">{createSparkline(volatilities)}</span>
-                            <span className="text-slate-500 w-12 text-right"></span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-slate-400 w-16">SFD:</span>
-                            <span className="font-mono text-purple-400 text-sm">{createSFDSparkline(sfds)}</span>
-                            <span className="text-slate-500 w-12 text-right">
-                              {sfds.length > 1 && ((sfds[sfds.length - 2] < 0 && sfds[sfds.length - 1] > 0) || (sfds[sfds.length - 2] > 0 && sfds[sfds.length - 1] < 0)) ? '🌗' : ''}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                    <div className="mt-2 text-xs text-slate-500">
-                      Field State Markers: ⚫️ Pressure Point, 🌀 Vortex, 💧 Coherent Flow, 🌗 Field Shift
-                    </div>
-                  </div>
-                </div>
 
                 {layerVisibility.diagnostics && (
                   <div className="mb-6">

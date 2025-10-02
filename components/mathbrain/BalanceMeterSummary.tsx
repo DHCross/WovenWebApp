@@ -13,6 +13,7 @@ interface BalanceMeterSummaryProps {
   overallSfd: number;
   totalDays: number;
   activatedHouses?: string[];
+  isLatentField?: boolean; // NEW: indicates ex/estranged relationship
   // Additional summary data
   trends?: {
     magnitudeTrend: "increasing" | "decreasing" | "stable";
@@ -30,9 +31,10 @@ export default function BalanceMeterSummary({
   overallSfd,
   totalDays,
   activatedHouses,
+  isLatentField,
   trends,
 }: BalanceMeterSummaryProps) {
-  const narrative = generateClimateNarrative(overallClimate, overallSfd, activatedHouses, true);
+  const narrative = generateClimateNarrative(overallClimate, overallSfd, activatedHouses, true, isLatentField || false);
 
   const modeLabel =
     mode === "single"
@@ -152,7 +154,7 @@ export default function BalanceMeterSummary({
       {/* Period Paradox Analysis */}
       <div className="mb-6">
         <h4 className="text-sm font-semibold text-slate-300 mb-4 uppercase tracking-wider">
-          Period Pattern Analysis
+          {isLatentField ? 'Dormant Field Climate (Conditional)' : 'Period Pattern Analysis'}
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-yellow-900/20 rounded-lg p-4 border border-yellow-700/40">
@@ -161,11 +163,11 @@ export default function BalanceMeterSummary({
               <span>Numinosity Pattern</span>
             </div>
             <div className="text-sm text-slate-200 mb-3">
-              <span className="font-medium">📈 Field Conditions: </span>
+              <span className="font-medium">{isLatentField ? 'Dormant Field Conditions: ' : '📈 Field Conditions: '}</span>
               {narrative.paradox.magnitude.wb}
             </div>
             <div className="text-sm text-amber-200">
-              <span className="font-medium">⚙️ Navigation Note: </span>
+              <span className="font-medium">{isLatentField ? 'Awareness Note: ' : '⚙️ Navigation Note: '}</span>
               {narrative.paradox.magnitude.abe}
             </div>
           </div>
@@ -176,11 +178,11 @@ export default function BalanceMeterSummary({
               <span>Directional Bias Pattern</span>
             </div>
             <div className="text-sm text-slate-200 mb-3">
-              <span className="font-medium">📈 Field Conditions: </span>
+              <span className="font-medium">{isLatentField ? 'Dormant Field Conditions: ' : '📈 Field Conditions: '}</span>
               {narrative.paradox.valence.wb}
             </div>
             <div className="text-sm text-amber-200">
-              <span className="font-medium">⚙️ Navigation Note: </span>
+              <span className="font-medium">{isLatentField ? 'Awareness Note: ' : '⚙️ Navigation Note: '}</span>
               {narrative.paradox.valence.abe}
             </div>
           </div>

@@ -211,7 +211,7 @@ function generateStory(climate: ClimateData, pattern: ClimatePattern, isRangeSum
   return `${timeFrame} ${intensityPhrase} flowing through ${coherencePhrase} channels with a ${directionPhrase} tilt. ${pattern.signature}.`;
 }
 
-function generateParadoxPoles(climate: ClimateData): { magnitude: { wb: string; abe: string }; valence: { wb: string; abe: string }} {
+function generateParadoxPoles(climate: ClimateData, isLatentField: boolean = false): { magnitude: { wb: string; abe: string }; valence: { wb: string; abe: string }} {
   const magnitudeLabel = getMagnitudeLabel(climate.magnitude);
   const valenceLevel = getValenceLevel(climate.valence_bounded ?? climate.valence ?? 0);
 
@@ -219,39 +219,78 @@ function generateParadoxPoles(climate: ClimateData): { magnitude: { wb: string; 
   let magnitudeWB = '';
   let magnitudeABE = '';
 
-  if (climate.magnitude >= 4) {
-    magnitudeWB = 'Perfect conditions for breakthrough actions and significant decisions';
-    magnitudeABE = 'Risk of overwhelming your system or taking on too much at once';
-  } else if (climate.magnitude >= 3) {
-    magnitudeWB = 'Solid energy for making meaningful progress on important projects';
-    magnitudeABE = 'May scatter attention across too many priorities';
-  } else if (climate.magnitude >= 2) {
-    magnitudeWB = 'Steady energy for consistent, incremental progress';
-    magnitudeABE = 'Might feel underwhelming if expecting major shifts';
+  if (isLatentField) {
+    // Dormant/ex relationship - conditional phrasing
+    if (climate.magnitude >= 4) {
+      magnitudeWB = 'If this field were re-engaged, it would carry breakthrough-level archetypal charge';
+      magnitudeABE = 'Awareness Note: High symbolic charge may tempt re-engagement without clear boundaries';
+    } else if (climate.magnitude >= 3) {
+      magnitudeWB = 'If stirred, this dormant field would surface with solid energetic intensity';
+      magnitudeABE = 'Notice if symbolic flare-ups feel like invitations for action — they may simply dramatize closure';
+    } else if (climate.magnitude >= 2) {
+      magnitudeWB = 'Dormant field carries moderate potential if contact reopens';
+      magnitudeABE = 'Low enough charge that reactivation is unlikely unless deliberately pursued';
+    } else {
+      magnitudeWB = 'Minimal symbolic charge in this dormant field — largely settled';
+      magnitudeABE = 'May still surface in dreams or peripheral awareness but carries little active pull';
+    }
   } else {
-    magnitudeWB = 'Perfect for reflection, planning, and gentle beginnings';
-    magnitudeABE = 'May feel sluggish or unproductive if forcing action';
+    // Active relationship - standard phrasing
+    if (climate.magnitude >= 4) {
+      magnitudeWB = 'Perfect conditions for breakthrough actions and significant decisions';
+      magnitudeABE = 'Risk of overwhelming your system or taking on too much at once';
+    } else if (climate.magnitude >= 3) {
+      magnitudeWB = 'Solid energy for making meaningful progress on important projects';
+      magnitudeABE = 'May scatter attention across too many priorities';
+    } else if (climate.magnitude >= 2) {
+      magnitudeWB = 'Steady energy for consistent, incremental progress';
+      magnitudeABE = 'Might feel underwhelming if expecting major shifts';
+    } else {
+      magnitudeWB = 'Perfect for reflection, planning, and gentle beginnings';
+      magnitudeABE = 'May feel sluggish or unproductive if forcing action';
+    }
   }
 
   // Valence poles
   let valenceWB = '';
   let valenceABE = '';
 
-  if (valenceLevel.level >= 3) {
-    valenceWB = 'Harmonious energy supports both/and solutions and collaborative progress';
-    valenceABE = 'Harmony-seeking might avoid necessary direct conversations or tough decisions';
-  } else if (valenceLevel.level >= 1) {
-    valenceWB = 'Gentle supportive flow that makes things feel easier and more natural';
-    valenceABE = 'Could lead to complacency or avoiding growth-edge challenges';
-  } else if (valenceLevel.level <= -3) {
-    valenceWB = 'Intense compression creates valuable transformation and clarity';
-    valenceABE = 'Pressure might feel overwhelming or trigger resistance patterns';
-  } else if (valenceLevel.level <= -1) {
-    valenceWB = 'Moderate challenges strengthen skills and build resilience';
-    valenceABE = 'Friction could accumulate into frustration if not addressed mindfully';
+  if (isLatentField) {
+    // Dormant/ex relationship - conditional phrasing
+    if (valenceLevel.level >= 3) {
+      valenceWB = 'Liberation-tilted energy suggests renewed contact would surface themes of freedom and independence';
+      valenceABE = 'Symbolic harmony may romanticize what was actually a completed cycle';
+    } else if (valenceLevel.level >= 1) {
+      valenceWB = 'Gentle supportive undertones in the dormant field — if re-engaged, may feel collaborative';
+      valenceABE = 'Ease could mask unresolved patterns that led to the original separation';
+    } else if (valenceLevel.level <= -3) {
+      valenceWB = 'Compression-tilted energy signals that this field, if stirred, would highlight restriction themes';
+      valenceABE = 'Even dormant, intense friction patterns may surface in imagination or peripheral contact';
+    } else if (valenceLevel.level <= -1) {
+      valenceWB = 'Moderate friction signals that reactivation would likely resurface familiar challenges';
+      valenceABE = 'Be mindful of interpreting symbolic tension as unfinished business requiring action';
+    } else {
+      valenceWB = 'Neutral dormant field — neither pulling toward reconnection nor pushing away';
+      valenceABE = 'Balanced energy may simply reflect that the story is complete, with no charge either way';
+    }
   } else {
-    valenceWB = 'Balanced conditions allow for clear thinking and neutral assessment';
-    valenceABE = 'Lack of directional energy might feel stagnant or unclear';
+    // Active relationship - standard phrasing
+    if (valenceLevel.level >= 3) {
+      valenceWB = 'Harmonious energy supports both/and solutions and collaborative progress';
+      valenceABE = 'Harmony-seeking might avoid necessary direct conversations or tough decisions';
+    } else if (valenceLevel.level >= 1) {
+      valenceWB = 'Gentle supportive flow that makes things feel easier and more natural';
+      valenceABE = 'Could lead to complacency or avoiding growth-edge challenges';
+    } else if (valenceLevel.level <= -3) {
+      valenceWB = 'Intense compression creates valuable transformation and clarity';
+      valenceABE = 'Pressure might feel overwhelming or trigger resistance patterns';
+    } else if (valenceLevel.level <= -1) {
+      valenceWB = 'Moderate challenges strengthen skills and build resilience';
+      valenceABE = 'Friction could accumulate into frustration if not addressed mindfully';
+    } else {
+      valenceWB = 'Balanced conditions allow for clear thinking and neutral assessment';
+      valenceABE = 'Lack of directional energy might feel stagnant or unclear';
+    }
   }
 
   return {
@@ -264,12 +303,13 @@ export function generateClimateNarrative(
   climate: ClimateData,
   sfd?: number,
   activatedHouses?: string[],
-  isRangeSummary: boolean = false
+  isRangeSummary: boolean = false,
+  isLatentField: boolean = false
 ): ClimateNarrative {
   const valence = climate.valence_bounded ?? climate.valence ?? 0;
   const pattern = determineClimatePattern(valence, climate.volatility, climate.magnitude);
   const story = generateStory(climate, pattern, isRangeSummary);
-  const paradox = generateParadoxPoles(climate);
+  const paradox = generateParadoxPoles(climate, isLatentField);
   const valenceLevel = getValenceLevel(valence);
 
   const headline = `${pattern.name}: ${getMagnitudeLabel(climate.magnitude)} ${valenceLevel.anchor}`;
