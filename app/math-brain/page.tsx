@@ -2850,6 +2850,123 @@ Backstage Notes: ${processedResult.contract_compliance?.backstage ? JSON.stringi
         });
       }
 
+      // ========================================
+      // ANALYSIS DIRECTIVE FOR RAVEN CALDER
+      // ========================================
+      const analysisDirective = `# 🚨 ANALYSIS DIRECTIVE (Raven Calder GPT) — READ FIRST 🚨
+
+**CONTEXT:** This is a PDF export from Math Brain containing natal blueprint data for full chart analysis.
+
+**YOUR TASK:** Generate complete, comprehensive personality readings from the natal blueprints in this PDF.
+
+---
+
+## 📌 CRITICAL DISTINCTION:
+
+**"Resonant Summary" ≠ Full Reading**
+- The "Resonant Summary" section below is a SHORT preview (3-4 paragraphs)
+- It is NOT a complete chart analysis
+- You must EXPAND on it by analyzing ALL aspects, ALL polarities, ALL house placements
+- Think of Resonant Summary as the "teaser" — you're providing the full movie
+
+---
+
+## Report Type: ${reportKind}
+
+${reportKind.includes('Solo') ? `
+### Solo Report Requirements:
+✅ **FULL NATAL CHART READING** — Analyze ALL planetary positions, aspects, and houses
+✅ **PERSONALITY MIRROR** — Multi-paragraph conversational diagnostic covering:
+   - Constitutional baseline (dominant modes, shadow patterns)
+   - All major aspects (conjunctions, oppositions, squares, trines, sextiles)
+   - Angular placements (planets near ASC, MC, DSC, IC)
+   - House emphasis patterns
+   - Element/modality distribution
+✅ **POLARITY CARDS** — Identify 3-4 defining polarities with FIELD→MAP→VOICE translations
+✅ **ASPECT-BY-ASPECT BREAKDOWN** — Translate each significant aspect into behavioral patterns
+✅ **MIRROR VOICE** — Integrative closing that weaves all patterns together
+${reportKind.includes('Balance Meter') ? '✅ **SYMBOLIC WEATHER** — Transit analysis showing current activations (data below)' : ''}
+
+⛔ **DO NOT SKIP THE PERSONALITY READING** — This is the core deliverable
+` : `
+### Relational Report Requirements:
+✅ **PERSON A FULL READING** — Complete natal chart analysis (all aspects, houses, patterns)
+✅ **PERSON B FULL READING** — Complete natal chart analysis (all aspects, houses, patterns)
+✅ **SYNASTRY ANALYSIS** — How their charts interact:
+   - Person A planets → Person B planets (e.g., "Dan's Mars squares Stephie's Moon")
+   - Person B planets → Person A planets (bidirectional)
+   - Support vs. Friction differential
+   - Cross-aspect patterns and themes
+✅ **RELATIONAL DYNAMICS** — Specific behavioral loops using actual names (never "they")
+✅ **INTIMACY TIER CONTEXT** — Interpret through relationship type lens (see definitions below)
+${reportKind.includes('Balance Meter') ? '✅ **SYMBOLIC WEATHER** — Transit overlay for current activations (data below)' : ''}
+
+⛔ **DO NOT SKIP INDIVIDUAL READINGS** — Both people need full mirrors before synastry
+`}
+
+---
+
+## ⚙️ Execution Protocol:
+
+**STEP 1:** Read natal blueprint data sections (planetary positions, aspects, houses)
+**STEP 2:** Generate COMPREHENSIVE personality diagnostics (minimum 8-12 paragraphs for solo, 15+ for relational)
+**STEP 3:** ${reportKind.includes('Relational') ? 'Provide detailed synastry aspect-by-aspect analysis with directional attribution' : 'Add transit weather analysis if Balance Meter report'}
+**STEP 4:** Deliver in conversational Raven Calder voice (plain language, falsifiable, agency-first)
+
+---
+
+## 🎯 What "Full Reading" Means:
+
+**NOT ACCEPTABLE:**
+❌ "Here's a brief overview based on the Resonant Summary"
+❌ "The data shows some interesting patterns" [then stops]
+❌ Skipping aspects or houses
+❌ Generic descriptions without chart-specific details
+
+**ACCEPTABLE:**
+✅ Analyzing EVERY major aspect in the aspects table
+✅ Discussing house placements for ALL personal planets (Sun, Moon, Mercury, Venus, Mars)
+✅ Explaining how outer planet aspects (Jupiter, Saturn, Uranus, Neptune, Pluto) shape the personality
+✅ Translating geometric patterns into specific behavioral tendencies
+✅ Using chart-specific degrees, signs, and houses (e.g., "Sun at 24° Virgo in the 3rd house")
+
+---
+
+## 📋 Quality Checklist (Before Delivering):
+
+- [ ] Analyzed all planetary positions from the table?
+- [ ] Translated all major aspects (at least 8-12 aspects for solo charts)?
+- [ ] Discussed house placements for personal planets?
+- [ ] Identified and explained key polarities/paradoxes?
+- [ ] Used conversational language (no jargon in body text)?
+- [ ] For relational: analyzed BOTH charts individually first?
+- [ ] For relational: provided synastry cross-aspects with names?
+- [ ] Maintained agency-first, falsifiable phrasing?
+
+---
+
+**CRITICAL REMINDERS:**
+- Blueprints = Natal Charts (constitutional baseline, NOT transit weather)
+- ALWAYS generate full readings even if Resonant Summary exists (expand on it!)
+- Use FIELD → MAP → VOICE flow (geometry → archetype → lived experience)
+- Plain language, no jargon dumps, falsifiable statements only
+- For relational: use actual names (e.g., "Dan" and "Stephie"), never "they" or "one partner"
+- Paradoxes are productive fuel, not flaws
+
+---
+
+**PDF PROCESSING MODE:**
+When you receive a Math Brain PDF, your task is ANALYSIS, not just data extraction.
+Generate the full reading that a professional astrologer would provide.
+
+---`;
+
+      sections.unshift({
+        title: '⚠️ ANALYSIS DIRECTIVE (READ FIRST)',
+        body: analysisDirective,
+        mode: 'regular'
+      });
+
       // ALWAYS include relocation math instructions for Raven Calder
       // This ensures Raven knows how to handle house relocation correctly
       const relocationInstructions = `# 🔢 House Relocation Math Instructions (Tropical, Raven Calder)
@@ -4029,7 +4146,9 @@ Analyze the midpoint chart representing the relationship itself as a third entit
     setResult(null);
     try {
       const wantsTransits = includeTransits;
-      const payload = {
+      
+      // STEP 1: Always generate foundation first (natal/synastry/composite without transits)
+      const basePayload = {
         mode,
         personA: {
           ...personA,
@@ -4046,76 +4165,172 @@ Analyze the midpoint chart representing the relationship itself as a third entit
           if (!timeUnknown) return 'user_provided';
           return timePolicy;
         })(),
-        ...(wantsTransits || reportType === 'balance' ? {
+        // Foundation phase: no transits, always mirror contract
+        report_type: RELATIONAL_MODES.includes(mode) ? 'relational_mirror' : 'solo_mirror',
+        // Report mode drives backend routing semantics
+        context: {
+          mode: determineContextMode(mode, RELATIONAL_MODES.includes(mode) ? 'relational_mirror' : 'solo_mirror'),
+        },
+        // Foundation phase: no translocation
+        translocation: { applies: false, method: 'Natal' },
+      };
+
+      // Attach Person B and relationship context for relational modes
+      if (RELATIONAL_MODES.includes(mode) && includePersonB) {
+        (basePayload as any).personB = {
+          ...personB,
+          nation: "US", // Always send "US" as country for API compatibility
+          year: Number(personB.year),
+          month: Number(personB.month),
+          day: Number(personB.day),
+          hour: Number(personB.hour),
+          minute: Number(personB.minute),
+          latitude: Number(personB.latitude),
+          longitude: Number(personB.longitude),
+        };
+        (basePayload as any).relationship_context = {
+          type: relationshipType,
+          intimacy_tier: relationshipType === 'PARTNER' ? relationshipTier : undefined,
+          role: relationshipType !== 'PARTNER' ? relationshipRole : undefined,
+          contact_state: contactState,
+          ex_estranged: relationshipType === 'FRIEND' ? undefined : exEstranged,
+          notes: relationshipNotes || undefined,
+        };
+      }
+
+      // Derive foundation framing (mirror / synastry / composite without transits)
+      const foundationMode = modeFromStructure(reportStructure, false);
+      const foundationContract =
+        foundationMode === 'SYNASTRY' || foundationMode === 'COMPOSITE'
+          ? 'relational_mirror'
+          : 'solo_mirror';
+      const foundationContextMode = determineContextMode(foundationMode, foundationContract);
+
+      const foundationPayload = {
+        ...basePayload,
+        report_type: foundationContract,
+        // Override mode/context so backend treats this as mirror rather than balance
+        mode: foundationMode,
+        context: {
+          mode: foundationContextMode,
+        },
+      };
+
+      // Generate foundation first (always)
+      setToast('Generating foundational reading...');
+      const foundationRes = await fetch("/api/astrology-mathbrain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(foundationPayload),
+      });
+      const foundationData = await foundationRes.json();
+      if (!foundationRes.ok || foundationData?.success === false) {
+        const msg = foundationData?.error || `Foundation generation failed (${foundationRes.status})`;
+        setToast('Foundation generation failed.');
+        setTimeout(()=>setToast(null), 2500);
+        throw new Error(msg);
+      }
+
+      let finalData = foundationData;
+
+      // STEP 2: Layer weather if transits requested
+      if (wantsTransits) {
+        setToast('Foundation complete. Layering symbolic weather...');
+        
+        const weatherPayload = {
+          ...basePayload,
+          // Add transit-specific fields
           window: { start: startDate, end: endDate, step },
           transits: { from: startDate, to: endDate, step },
+          transitStartDate: startDate,
+          transitEndDate: endDate,
+          transitStep: step,
+          report_type: reportType === 'balance' ? reportContractType : (RELATIONAL_MODES.includes(mode) ? 'relational_balance_meter' : 'solo_balance_meter'),
+          // Balance Meter specific fields
           ...(reportType === 'balance' ? {
             indices: {
               window: { start: startDate, end: endDate, step },
               request_daily: true
+            },
+            frontstage_policy: {
+              autogenerate: true,
+              allow_symbolic_weather: true
             }
-          } : {})
-        } : {}),
-        transitStartDate: startDate,
-        transitEndDate: endDate,
-        transitStep: step,
-        report_type: reportContractType,
-        // Frontstage policy for Balance Mode
-        ...(reportType === 'balance' ? {
-          frontstage_policy: {
-            autogenerate: true,
-            allow_symbolic_weather: true
-          }
-        } : {}),
-        // Report mode drives backend routing semantics
-        context: {
-          mode: determineContextMode(mode, reportContractType),
-          ...(reportType === 'balance' ? {
-            location: {
-              timezone: relocationStatus.effectiveMode !== 'NONE' && relocTz ? relocTz : personA.timezone,
-              coordinates: relocationStatus.effectiveMode !== 'NONE' && relocCoords ? {
-                latitude: relocCoords.lat,
-                longitude: relocCoords.lon
-              } : {
-                latitude: Number(personA.latitude),
-                longitude: Number(personA.longitude)
+          } : {}),
+          // Add location context for transits
+          context: {
+            mode: determineContextMode(mode, reportContractType),
+            ...(reportType === 'balance' ? {
+              location: {
+                timezone: relocationStatus.effectiveMode !== 'NONE' && relocTz ? relocTz : personA.timezone,
+                coordinates: relocationStatus.effectiveMode !== 'NONE' && relocCoords ? {
+                  latitude: relocCoords.lat,
+                  longitude: relocCoords.lon
+                } : {
+                  latitude: Number(personA.latitude),
+                  longitude: Number(personA.longitude)
+                }
               }
+            } : {})
+          },
+          // Pass translocation intent for transits
+          translocation: ((): any => {
+            const mode = relocationStatus.effectiveMode;
+            if (mode === 'NONE' || mode === 'A_NATAL' || mode === 'B_NATAL') {
+              return { applies: false, method: 'Natal' };
             }
-          } : {})
-        },
-        // Pass translocation intent to backend (data-only context)
-        translocation: ((): any => {
-          if (!includeTransits) {
-            return { applies: false, method: 'Natal' };
-          }
-          const mode = relocationStatus.effectiveMode;
-          if (mode === 'NONE' || mode === 'A_NATAL' || mode === 'B_NATAL') {
-            return { applies: false, method: 'Natal' };
-          }
-          if (mode === 'MIDPOINT') {
-            return { applies: true, method: 'Midpoint' };
-          }
-          const methodMap: Record<TranslocationOption, string> = {
-            NONE: 'Natal',
-            A_NATAL: 'Natal',
-            A_LOCAL: 'A_local',
-            B_NATAL: 'Natal',
-            B_LOCAL: 'B_local',
-            BOTH_LOCAL: 'Both_local',
-            MIDPOINT: 'Midpoint',
-          };
-          return {
-            applies: true,
-            method: methodMap[mode] || 'Custom',
-            coords:
-              !relocCoords
-                ? undefined
-                : { latitude: relocCoords.lat, longitude: relocCoords.lon },
-            current_location: relocLabel || undefined,
-            tz: relocTz || undefined,
-          };
-        })(),
-      };
+            if (mode === 'MIDPOINT') {
+              return { applies: true, method: 'Midpoint' };
+            }
+            const methodMap: Record<TranslocationOption, string> = {
+              NONE: 'Natal',
+              A_NATAL: 'Natal',
+              A_LOCAL: 'A_local',
+              B_NATAL: 'Natal',
+              B_LOCAL: 'B_local',
+              BOTH_LOCAL: 'Both_local',
+              MIDPOINT: 'Midpoint',
+            };
+            return {
+              applies: true,
+              method: methodMap[mode] || 'Custom',
+              coords:
+                !relocCoords
+                  ? undefined
+                  : { latitude: relocCoords.lat, longitude: relocCoords.lon },
+              current_location: relocLabel || undefined,
+              tz: relocTz || undefined,
+            };
+          })(),
+          // Include foundation data for layering
+          foundationData: foundationData,
+        };
+
+        const weatherRes = await fetch("/api/astrology-mathbrain", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(weatherPayload),
+        });
+        const weatherData = await weatherRes.json();
+        if (!weatherRes.ok || weatherData?.success === false) {
+          const msg = weatherData?.error || `Weather layer failed (${weatherRes.status})`;
+          setToast('Weather layer failed.');
+          setTimeout(()=>setToast(null), 2500);
+          throw new Error(msg);
+        }
+
+        // Merge foundation and weather data
+        finalData = {
+          ...weatherData,
+          // Preserve foundation data
+          foundational_reading: foundationData.narrative || foundationData.mirror_text,
+          constitutional_modes: foundationData.constitutional_modes || foundationData.woven_map?.blueprint?.modes,
+          behavioral_anchors: foundationData.behavioral_anchors,
+          core_tensions: foundationData.core_tensions,
+          opening_signals: foundationData.opening_signals || foundationData.hooks,
+          foundation_blueprint: foundationData.woven_map?.blueprint,
+        };
+      }
 
       // Persist last inputs for resume (conditional)
       try {
@@ -4126,7 +4341,7 @@ Analyze the midpoint chart representing the relationship itself as a third entit
             startDate,
             endDate,
             includePersonB,
-            translocation,
+            translocation: relocationStatus.effectiveMode,
             relationshipType,
             relationshipTier,
             relationshipRole,
@@ -4141,48 +4356,14 @@ Analyze the midpoint chart representing the relationship itself as a third entit
         }
       } catch {/* ignore */}
 
-      // Attach Person B and relationship context for relational or dual modes
-      if (RELATIONAL_MODES.includes(mode) && includePersonB) {
-        (payload as any).personB = {
-          ...personB,
-          nation: "US", // Always send "US" as country for API compatibility
-          year: Number(personB.year),
-          month: Number(personB.month),
-          day: Number(personB.day),
-          hour: Number(personB.hour),
-          minute: Number(personB.minute),
-          latitude: Number(personB.latitude),
-          longitude: Number(personB.longitude),
-        };
-        (payload as any).relationship_context = {
-          type: relationshipType,
-          intimacy_tier: relationshipType === 'PARTNER' ? relationshipTier : undefined,
-          role: relationshipType !== 'PARTNER' ? relationshipRole : undefined,
-          contact_state: contactState,
-          ex_estranged: relationshipType === 'FRIEND' ? undefined : exEstranged,
-          notes: relationshipNotes || undefined,
-        };
-      }
-
-      const res = await fetch("/api/astrology-mathbrain", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok || data?.success === false) {
-        const msg = data?.error || `Request failed (${res.status})`;
-        setToast('Report preparation failed.');
-        setTimeout(()=>setToast(null), 2500);
-        throw new Error(msg);
-      }
       // Always store result to enable downloads for both report types
-      setResult(data);
+      setResult(finalData);
       setLayerVisibility({ ...DEFAULT_LAYER_VISIBILITY });
-      persistSessionArtifacts(data);
+      persistSessionArtifacts(finalData);
+      setToast(wantsTransits ? 'Foundation + weather complete!' : 'Foundation complete!');
       // Optional: store a quick meta view to guide banners
       try {
-        const metaA = (data?.person_a?.meta) || (data?.provenance?.time_meta_a);
+        const metaA = (finalData?.person_a?.meta) || (finalData?.provenance?.time_meta_a);
         if (metaA) {
           // Reflect server meta back into UI hints (no mutation of inputs)
           // Could update a local banner state here if desired
@@ -5101,8 +5282,10 @@ Analyze the midpoint chart representing the relationship itself as a third entit
                         value={type}
                         checked={reportStructure === type}
                         onChange={(e) => {
-                          setReportStructure(e.target.value as ReportStructure);
-                          if (e.target.value !== 'solo') {
+                          const newStructure = e.target.value as ReportStructure;
+                          setReportStructure(newStructure);
+                          // Automatically enable Person B for relational modes
+                          if (newStructure !== 'solo') {
                             setIncludePersonB(true);
                           }
                         }}

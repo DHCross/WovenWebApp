@@ -84,47 +84,47 @@ export default function EnhancedDailyClimateCard({
         </div>
       </div>
 
-      {/* Core Metrics - Compact but Meaningful */}
+      {/* Core Metrics - v2.0 Neutral Field Assessment */}
       <div className="mb-6">
-        <h4 className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">Core Dimensions</h4>
+        <h4 className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">Field Conditions</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-slate-900/40 rounded-md p-3 border border-slate-700/50">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-slate-400">Magnitude ⚡</span>
+              <span className="text-xs text-slate-400">Numinosity ⚡</span>
               <span className={`text-lg ${climateClasses.weight} ${climateClasses.text}`}>{formatValue(narrative.dimensions.magnitude.value)}</span>
             </div>
             <div className="text-xs text-slate-300 mb-1">{narrative.dimensions.magnitude.label}</div>
-            <div className="text-xs text-slate-400">{narrative.dimensions.magnitude.meaning}</div>
+            <div className="text-xs text-slate-400">How much archetypal charge is present</div>
           </div>
 
           <div className="bg-slate-900/40 rounded-md p-3 border border-slate-700/50">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-slate-400">Valence {valenceVisuals.icon}</span>
+              <span className="text-xs text-slate-400">Directional Bias ↗️↘️</span>
               <span className={`text-lg ${climateClasses.weight} ${climateClasses.text}`}>{formatValue(narrative.dimensions.valence.value, true)}</span>
             </div>
             <div className="text-xs text-slate-300 mb-1">{narrative.dimensions.valence.label}</div>
-            <div className="text-xs text-slate-400">{narrative.dimensions.valence.meaning}</div>
+            <div className="text-xs text-slate-400">Which way energy leans (inward/outward)</div>
           </div>
 
           <div className="bg-slate-900/40 rounded-md p-3 border border-slate-700/50">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-slate-400">Volatility 🔀</span>
+              <span className="text-xs text-slate-400">Narrative Coherence 📖</span>
               <span className={`text-lg ${climateClasses.weight} ${climateClasses.text} ${climateClasses.animation}`}>{formatValue(narrative.dimensions.volatility.value)}</span>
             </div>
             <div className="text-xs text-slate-300 mb-1">{narrative.dimensions.volatility.label}</div>
-            <div className="text-xs text-slate-400">{narrative.dimensions.volatility.meaning}</div>
+            <div className="text-xs text-slate-400">How stable is the storyline</div>
           </div>
         </div>
 
-        {/* SFD if available */}
+        {/* Integration Bias if available */}
         {narrative.dimensions.sfd && (
           <div className="mt-4 bg-slate-900/40 rounded-md p-3 border border-slate-700/50">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-slate-400">Support–Friction Differential ⚖️</span>
+              <span className="text-xs text-slate-400">Integration Bias 🤝</span>
               <span className={`text-lg ${climateClasses.weight} ${climateClasses.text}`}>{formatValue(narrative.dimensions.sfd.value, true)}</span>
             </div>
             <div className="text-xs text-slate-300 mb-1">{narrative.dimensions.sfd.label}</div>
-            <div className="text-xs text-slate-400">{narrative.dimensions.sfd.meaning}</div>
+            <div className="text-xs text-slate-400">Do forces cooperate or fragment</div>
           </div>
         )}
       </div>
@@ -147,12 +147,12 @@ export default function EnhancedDailyClimateCard({
 
           <div className="space-y-3">
             <div className="bg-blue-900/20 rounded-md p-3 border border-blue-800/30">
-              <div className="font-semibold text-blue-200 mb-2">Valence</div>
+              <div className="font-semibold text-blue-200 mb-2">Directional Bias</div>
               <div className="text-xs text-emerald-200 mb-2">
-                <span className="font-medium">✅ WB: </span>{narrative.paradox.valence.wb}
+                <span className="font-medium">🌱 Inward Flow: </span>{narrative.paradox.valence.wb}
               </div>
               <div className="text-xs text-red-200">
-                <span className="font-medium">⚠️ ABE: </span>{narrative.paradox.valence.abe}
+                <span className="font-medium">🔄 Outward Flow: </span>{narrative.paradox.valence.abe}
               </div>
             </div>
           </div>

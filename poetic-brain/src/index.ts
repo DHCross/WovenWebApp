@@ -48,22 +48,22 @@ function clamp(n: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, n));
 }
 
-function classifyValenceTone(v?: number): { tone: 'supportive' | 'restrictive' | 'mixed'; descriptor: string } {
-  if (v === undefined) return { tone: 'mixed', descriptor: 'mixed tilt' };
+function classifyDirectionalBias(v?: number): { bias: 'inward' | 'outward' | 'neutral'; descriptor: string } {
+  if (v === undefined) return { bias: 'neutral', descriptor: 'neutral flow' };
   // thresholds are conservative to avoid over-claiming
-  if (v > 0.25) return { tone: 'supportive', descriptor: 'supportive tilt' };
-  if (v < -0.25) return { tone: 'restrictive', descriptor: 'restrictive tilt' };
-  return { tone: 'mixed', descriptor: 'mixed tilt' };
+  if (v > 0.25) return { bias: 'outward', descriptor: 'outward energy lean' };
+  if (v < -0.25) return { bias: 'inward', descriptor: 'inward energy lean' };
+  return { bias: 'neutral', descriptor: 'balanced flow' };
 }
 
-function classifyVolatility(vol?: number): { label: string } {
-  if (vol === undefined) return { label: 'variable distribution' };
-  if (vol >= 0.66) return { label: 'high volatility (scattered strikes)' };
-  if (vol <= 0.33) return { label: 'low volatility (focused pull)' };
-  return { label: 'moderate volatility' };
+function classifyNarrativeCoherence(vol?: number): { label: string } {
+  if (vol === undefined) return { label: 'variable coherence' };
+  if (vol >= 0.66) return { label: 'fragmented narrative (scattered themes)' };
+  if (vol <= 0.33) return { label: 'unified narrative (focused thread)' };
+  return { label: 'mixed coherence' };
 }
 
-function magnitudeBand(mag?: number): { band: 0 | 1 | 2 | 3 | 4 | 5; label: string } {
+function classifyNuminosity(mag?: number): { band: 0 | 1 | 2 | 3 | 4 | 5; label: string } {
   if (mag === undefined || mag < 0.5) return { band: 0, label: 'Dormant / Baseline' };
   if (mag < 1.5) return { band: 1, label: 'Murmur / Whisper' };
   if (mag < 2.5) return { band: 2, label: 'Pulse / Stirring' };
@@ -100,14 +100,14 @@ function seismographSummary(payload: InputPayload): { headline: string; details:
   const mag = num(payload.seismograph?.magnitude);
   const val = num(payload.seismograph?.valence_bounded ?? payload.seismograph?.valence);
   const vol = num(payload.seismograph?.volatility);
-  const { band, label } = magnitudeBand(mag);
-  const vt = classifyValenceTone(val);
-  const vv = classifyVolatility(vol);
+  const { band, label } = classifyNuminosity(mag);
+  const vt = classifyDirectionalBias(val);
+  const vv = classifyNarrativeCoherence(vol);
   const parts: string[] = [];
-  parts.push(`Magnitude ${mag !== undefined ? mag.toFixed(2) : '—'} (⚡ ${label} at ${band})`);
+  parts.push(`Numinosity ${mag !== undefined ? mag.toFixed(2) : '—'} (⚡ ${label} at ${band})`);
   const valLabel = payload.seismograph?.valence_label || vt.descriptor;
-  parts.push(`Valence ${val !== undefined ? val.toFixed(2) : '—'} (${valLabel})`);
-  parts.push(`Volatility ${vol !== undefined ? vol.toFixed(2) : '—'} (${vv.label})`);
+  parts.push(`Directional Bias ${val !== undefined ? val.toFixed(2) : '—'} (${valLabel})`);
+  parts.push(`Narrative Coherence ${vol !== undefined ? vol.toFixed(2) : '—'} (${vv.label})`);
   return {
     headline: `${label} with ${valLabel}`,
     details: parts.join(' · '),
@@ -178,20 +178,20 @@ function buildPolarityCard(payload: InputPayload): string {
   const mag = num(payload.seismograph?.magnitude);
   const val = num(payload.seismograph?.valence_bounded ?? payload.seismograph?.valence);
   const vol = num(payload.seismograph?.volatility);
-  const { band, label } = magnitudeBand(mag);
-  const vt = classifyValenceTone(val);
-  const vv = classifyVolatility(vol);
+  const { band, label } = classifyNuminosity(mag);
+  const vt = classifyDirectionalBias(val);
+  const vv = classifyNarrativeCoherence(vol);
   const hooks = normalizeHooks(payload.hooks);
 
   // Title pieces
-  const toneTitle = vt.tone === 'supportive' ? 'Supportive' : vt.tone === 'restrictive' ? 'Restrictive' : 'Mixed';
-  const volTitle = vv.label.includes('high') ? 'Scattered' : vv.label.includes('low') ? 'Focused' : 'Variable';
-  const title = `${toneTitle} · ${volTitle}`;
+  const biasTitle = vt.bias === 'outward' ? 'Outward Flow' : vt.bias === 'inward' ? 'Inward Flow' : 'Neutral Flow';
+  const coherenceTitle = vv.label.includes('fragmented') ? 'Fragmented' : vv.label.includes('unified') ? 'Unified' : 'Mixed';
+  const title = `${biasTitle} · ${coherenceTitle}`;
 
   const captionParts: string[] = [];
   captionParts.push(`⚡ ${label} (${band})`);
-  if (val !== undefined) captionParts.push(`Valence ${val.toFixed(2)} (${vt.descriptor})`);
-  if (vol !== undefined) captionParts.push(`Volatility ${vol.toFixed(2)}`);
+  if (val !== undefined) captionParts.push(`Directional Bias ${val.toFixed(2)} (${vt.descriptor})`);
+  if (vol !== undefined) captionParts.push(`Narrative Coherence ${vol.toFixed(2)}`);
   const topHook = hooks[0]?.label ? ` · Anchor: ${hooks[0].label}` : '';
 
   return `${title}\n${captionParts.join(' · ')}${topHook}`;

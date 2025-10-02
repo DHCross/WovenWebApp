@@ -95,11 +95,11 @@ export default function BalanceMeterSummary({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-slate-900/60 rounded-lg p-4 border border-slate-600/50">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-slate-400">Avg Magnitude ⚡</span>
+              <span className="text-xs text-slate-400">Numinosity ⚡</span>
               <span className="text-xl font-bold text-yellow-300">{formatValue(narrative.dimensions.magnitude.value)}</span>
             </div>
             <div className="text-sm text-slate-200 mb-1">{narrative.dimensions.magnitude.label}</div>
-            <div className="text-xs text-slate-400">{narrative.dimensions.magnitude.meaning}</div>
+            <div className="text-xs text-slate-400">How much archetypal charge is present</div>
             {trends && (
               <div className="text-xs text-slate-300 mt-2 flex items-center gap-1">
                 <span>{getTrendIcon(trends.magnitudeTrend)}</span>
@@ -110,11 +110,11 @@ export default function BalanceMeterSummary({
 
           <div className="bg-slate-900/60 rounded-lg p-4 border border-slate-600/50">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-slate-400">Avg Valence 🌞🌑</span>
+              <span className="text-xs text-slate-400">Directional Bias ↗️↘️</span>
               <span className="text-xl font-bold text-blue-300">{formatValue(narrative.dimensions.valence.value, true)}</span>
             </div>
             <div className="text-sm text-slate-200 mb-1">{narrative.dimensions.valence.label}</div>
-            <div className="text-xs text-slate-400">{narrative.dimensions.valence.meaning}</div>
+            <div className="text-xs text-slate-400">Which way energy leans (inward/outward)</div>
             {trends && (
               <div className="text-xs text-slate-300 mt-2 flex items-center gap-1">
                 <span>{getTrendIcon(trends.valenceTrend)}</span>
@@ -125,11 +125,11 @@ export default function BalanceMeterSummary({
 
           <div className="bg-slate-900/60 rounded-lg p-4 border border-slate-600/50">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-slate-400">Avg Volatility 🔀</span>
+              <span className="text-xs text-slate-400">Narrative Coherence 📖</span>
               <span className="text-xl font-bold text-cyan-300">{formatValue(narrative.dimensions.volatility.value)}</span>
             </div>
             <div className="text-sm text-slate-200 mb-1">{narrative.dimensions.volatility.label}</div>
-            <div className="text-xs text-slate-400">{narrative.dimensions.volatility.meaning}</div>
+            <div className="text-xs text-slate-400">How stable is the storyline</div>
             {trends && (
               <div className="text-xs text-slate-300 mt-2 flex items-center gap-1">
                 <span>{getTrendIcon(trends.volatilityTrend)}</span>
@@ -140,11 +140,11 @@ export default function BalanceMeterSummary({
 
           <div className="bg-slate-900/60 rounded-lg p-4 border border-slate-600/50">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-slate-400">Overall SFD ✅</span>
+              <span className="text-xs text-slate-400">Integration Bias 🤝</span>
               <span className="text-xl font-bold text-pink-300">{formatValue(overallSfd, true)}</span>
             </div>
             <div className="text-sm text-slate-200 mb-1">{narrative.dimensions.sfd?.label}</div>
-            <div className="text-xs text-slate-400">{narrative.dimensions.sfd?.meaning}</div>
+            <div className="text-xs text-slate-400">Do forces cooperate or fragment</div>
           </div>
         </div>
       </div>
@@ -158,29 +158,29 @@ export default function BalanceMeterSummary({
           <div className="bg-yellow-900/20 rounded-lg p-4 border border-yellow-700/40">
             <div className="font-semibold text-yellow-200 mb-3 flex items-center gap-2">
               <span>⚡</span>
-              <span>Magnitude Pattern</span>
+              <span>Numinosity Pattern</span>
             </div>
-            <div className="text-sm text-emerald-200 mb-3">
-              <span className="font-medium">✅ Worked Well: </span>
+            <div className="text-sm text-slate-200 mb-3">
+              <span className="font-medium">📈 Field Conditions: </span>
               {narrative.paradox.magnitude.wb}
             </div>
-            <div className="text-sm text-red-200">
-              <span className="font-medium">⚠️ Watch Out: </span>
+            <div className="text-sm text-amber-200">
+              <span className="font-medium">⚙️ Navigation Note: </span>
               {narrative.paradox.magnitude.abe}
             </div>
           </div>
 
           <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-700/40">
             <div className="font-semibold text-blue-200 mb-3 flex items-center gap-2">
-              <span>🌞🌑</span>
-              <span>Valence Pattern</span>
+              <span>↗️↘️</span>
+              <span>Directional Bias Pattern</span>
             </div>
-            <div className="text-sm text-emerald-200 mb-3">
-              <span className="font-medium">✅ Worked Well: </span>
+            <div className="text-sm text-slate-200 mb-3">
+              <span className="font-medium">📈 Field Conditions: </span>
               {narrative.paradox.valence.wb}
             </div>
-            <div className="text-sm text-red-200">
-              <span className="font-medium">⚠️ Watch Out: </span>
+            <div className="text-sm text-amber-200">
+              <span className="font-medium">⚙️ Navigation Note: </span>
               {narrative.paradox.valence.abe}
             </div>
           </div>

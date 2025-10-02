@@ -32,10 +32,10 @@ interface ResonanceFidelity {
 }
 
 interface BalanceMeterClimate {
-  magnitude: number; // 1-5 ⚡
-  valence: 'bright' | 'neutral' | 'drag'; // 🌞/🌑
-  volatility: 'aligned' | 'mixed' | 'chaotic'; // 🔀
-  sfdVerdict: string;
+  magnitude: number; // 1-5 ⚡ (v2: Numinosity - archetypal charge)
+  valence: 'bright' | 'neutral' | 'drag'; // 🌞/🌑 (v2: Directional Bias - inward/outward energy lean)
+  volatility: 'aligned' | 'mixed' | 'chaotic'; // 🔀 (v2: Narrative Coherence - story stability)
+  sfdVerdict: string; // (v2: Integration Bias - forces cooperation assessment)
   housePlacement?: string;
   narrative: string;
 }
@@ -237,11 +237,11 @@ Primary Patterns: ${journalEntry.metadata.primaryPatterns.join(', ')}`;
     alert('Reading summary data exported successfully!');
   };
 
-  const getMagnitudeEmoji = (mag: number) => {
+  const getNuminosityEmoji = (mag: number) => {
     return '⚡'.repeat(Math.min(mag, 5));
   };
 
-  const getValenceEmoji = (valence: string) => {
+  const getDirectionalBiasEmoji = (valence: string) => {
     switch (valence) {
       case 'bright': return '🌞';
       case 'drag': return '🌑';
@@ -249,7 +249,7 @@ Primary Patterns: ${journalEntry.metadata.primaryPatterns.join(', ')}`;
     }
   };
 
-  const getVolatilityEmoji = (volatility: string) => {
+  const getNarrativeCoherenceEmoji = (volatility: string) => {
     switch (volatility) {
       case 'chaotic': return '🌀';
       case 'mixed': return '🔀';
@@ -356,14 +356,14 @@ Primary Patterns: ${journalEntry.metadata.primaryPatterns.join(', ')}`;
             </h4>
             <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
               <div className="flex items-center justify-center gap-3 mb-2">
-                <span title={`Magnitude ${data.balanceMeterClimate.magnitude}`}>
-                  {getMagnitudeEmoji(data.balanceMeterClimate.magnitude)}
+                <span title={`Numinosity ${data.balanceMeterClimate.magnitude}`}>
+                  {getNuminosityEmoji(data.balanceMeterClimate.magnitude)}
                 </span>
-                <span title={`Valence: ${data.balanceMeterClimate.valence}`}>
-                  {getValenceEmoji(data.balanceMeterClimate.valence)}
+                <span title={`Directional Bias: ${data.balanceMeterClimate.valence}`}>
+                  {getDirectionalBiasEmoji(data.balanceMeterClimate.valence)}
                 </span>
-                <span title={`Volatility: ${data.balanceMeterClimate.volatility}`}>
-                  {getVolatilityEmoji(data.balanceMeterClimate.volatility)}
+                <span title={`Narrative Coherence: ${data.balanceMeterClimate.volatility}`}>
+                  {getNarrativeCoherenceEmoji(data.balanceMeterClimate.volatility)}
                 </span>
               </div>
               <p className="text-slate-700 text-center text-[13px] leading-relaxed">
