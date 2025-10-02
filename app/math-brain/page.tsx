@@ -11,6 +11,7 @@ import { renderShareableMirror } from "../../lib/raven/render";
 import { ReportHeader, Weather, Blueprint } from "../../lib/ui-types";
 import EnhancedDailyClimateCard from "../../components/mathbrain/EnhancedDailyClimateCard";
 import BalanceMeterSummary from "../../components/mathbrain/BalanceMeterSummary";
+import PreferredReportDisplay from "../../components/PreferredReportDisplay";
 import { getSavedCharts, saveChart, deleteChart, type SavedChart } from "../../lib/saved-charts";
 
 export const dynamic = "force-dynamic";
@@ -5841,6 +5842,23 @@ Analyze the midpoint chart representing the relationship itself as a third entit
             const suppressedEvents = Number(summary.suppressed_events ?? 0);
             const classification = (Array.isArray((wm as any)?.sst_tags) ? (wm as any).sst_tags : null) || (result as any)?.relational_mirror?.sst_tags || [];
 
+            // Check if this is a preferred structure report
+            const preferredStructure = (result as any)?.woven_map?.preferred_structure;
+            
+            if (preferredStructure) {
+              return (
+                <section>
+                  <div className="mb-4 flex items-center gap-3">
+                    <h2 className="text-xl font-semibold text-slate-100">Preferred Reading Structure</h2>
+                    <span className="inline-flex items-center rounded-full bg-emerald-900/30 px-2 py-1 text-xs text-emerald-200">
+                      Solo Mirrors → Engines → Weather
+                    </span>
+                  </div>
+                  <PreferredReportDisplay data={preferredStructure} />
+                </section>
+              );
+            }
+            
             return (
               <Section title="Mirror Flow Summary">
                 <div className="space-y-4">
