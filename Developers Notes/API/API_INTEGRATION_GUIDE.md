@@ -1,5 +1,3 @@
-
-
 # Woven Map — Revised Report Guide (Lessons Learned)
 A note on API endpoints:
 
@@ -271,3 +269,19 @@ Coords-only note: remove city/state/nation and include lat, lon (or lng per upst
 3. Strange orbs/weights:
   - Ensure orb clamping applied pre-weight (8/7/5 + Moon/outer adjustments).
   - Check orbs_profile in provenance.
+
+---
+
+## Vertex AI User Role and Gemini API Access (2025-10-02)
+
+You're correct: when assigning access in Google Cloud, the role for AI model APIs is called **Vertex AI User** (or similar)—not "Gemini" specifically.
+
+**Explanation:**
+- **Vertex AI** is Google Cloud’s managed AI platform. The Gemini large language model (LLM) is one model available through Vertex AI, along with others.
+- Granting the "Vertex AI User" role lets a user access all Vertex AI services, including Gemini, so your tester can use the Gemini API in that project.
+- There is no permission called "Gemini"; it's controlled by the broader Vertex AI role.
+
+**Summary:**  
+Choosing the Vertex AI role was the correct advice. It covers Gemini and future Google-managed models accessible in Vertex AI. Your tester will be able to use Gemini when you grant her "Vertex AI User" (or any appropriate AI/ML role) privileges for your project.
+
+[Google Cloud IAM Console](https://console.cloud.google.com/iam-admin/iam?project=analog-codex-423606-r2)
