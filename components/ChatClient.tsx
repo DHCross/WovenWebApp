@@ -2150,18 +2150,19 @@ export default function ChatClient() {
             const range =
               start && end ? `${start} → ${end}` : start || end || "recent";
             const loadContext = () => {
-              const prompt = `Resume from Math Brain (${range}). Climate: ${climate}. Continue with a concise mirror in Raven Calder style for ${a}${b}.`;
+              // Guide user to upload the actual report file for proper reading
+              const guidance = `I see you generated a Math Brain report (${range}) with ${climate}.\n\nFor a proper Raven Calder reading, I need the complete report data — not just the summary. Please upload one of these files from your Math Brain session:\n\n• **Symbolic Weather JSON** (best for pattern analysis)\n• **PDF Report** (complete natal + analysis directive)\n\nClick the upload button (📎) and drop the file here. Once I have the full geometric data, I can give you a real mirror instead of a generic response.`;
+
               const preface: Message = {
                 id: generateId(),
                 role: "raven",
-                html: `<i>Loaded Math Brain context • ${climate} • ${range}</i>`,
+                html: `<p style="white-space: pre-wrap">${escapeHtml(guidance)}</p>`,
                 climate,
-                hook: "Math Brain → Poetic Brain",
+                hook: "Upload Required",
               };
               setMessages((prev) => [...prev, preface]);
               setShowMbResume(false);
               setInput("");
-              void sendProgrammatic(prompt);
             };
             return (
               <div className="flex items-center gap-2 border border-[var(--line)] bg-[var(--soft)] rounded-lg px-3 py-2 max-w-[900px] w-full">

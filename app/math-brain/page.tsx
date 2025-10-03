@@ -5962,12 +5962,28 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                 </button>
               )}
               {canVisitPoetic ? (
-                <a
-                  href="/chat"
+                <button
+                  type="button"
+                  onClick={() => {
+                    const hasReport = Boolean(result);
+                    if (hasReport) {
+                      const confirmNav = window.confirm(
+                        '⚠️ Download your report before leaving!\n\n' +
+                        'Your Math Brain report will be lost when you navigate away. ' +
+                        'Click "Download PDF" or "📊 Symbolic Weather JSON" first.\n\n' +
+                        'Continue to Poetic Brain anyway?'
+                      );
+                      if (confirmNav) {
+                        window.location.href = '/chat';
+                      }
+                    } else {
+                      window.location.href = '/chat';
+                    }
+                  }}
                   className="rounded-md px-3 py-1.5 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-500 transition"
                 >
                   Go to Poetic Brain
-                </a>
+                </button>
               ) : (
                 <span className="rounded-md border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-sm text-slate-400">
                   Poetic Brain offline

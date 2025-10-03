@@ -1,7 +1,7 @@
 ## [2025-10-02] FEATURE: Symbolic Weather JSON Export + Enhanced Natal Charts
 
 **Summary**
-Implemented AI-optimized symbolic weather JSON export and enhanced PDF natal charts to AstroSeek-level completeness. Removed unnecessary ZIP package download.
+Implemented AI-optimized symbolic weather JSON export and enhanced PDF natal charts to AstroSeek-level completeness. Removed unnecessary ZIP package download. Fixed Poetic Brain upload recognition for new JSON format.
 
 **New Features**
 
@@ -60,10 +60,32 @@ Implemented AI-optimized symbolic weather JSON export and enhanced PDF natal cha
 - ✅ Maintains PDF as comprehensive human-readable + AI-synthesis format
 - ✅ Cleaner download UX without ZIP complexity
 
+**Bug Fixes**
+
+4. **Poetic Brain Upload Recognition**
+   - Fixed "Math Brain Failed" error when uploading Symbolic Weather JSON to Poetic Brain
+   - Added `symbolic_weather` and `balance_meter_summary` to JSON detection patterns
+   - Added support for `export_info.person_a` and `export_info.date_range` paths
+   - Poetic Brain now correctly recognizes and parses new format
+
+5. **Poetic Brain "Load Context" Response Quality**
+   - Fixed generic fallback response when clicking "Load Context"
+   - Changed behavior to guide users to upload actual report file (PDF or JSON)
+   - Prevents Gemini from receiving bare summary prompts without geometric data
+   - Users now get proper instructions to upload Symbolic Weather JSON or PDF
+
+6. **Math Brain Report Persistence Warning**
+   - Added confirmation dialog before navigating to Poetic Brain
+   - Warns users to download report first (report lost on navigation)
+   - "Go to Poetic Brain" button now checks if report exists before navigating
+   - Prevents accidental loss of generated reports
+
 **Files Changed:**
-- `app/math-brain/page.tsx` (symbolic weather export, house cusps formatting, ZIP removal)
+- `app/math-brain/page.tsx` (symbolic weather export, house cusps formatting, ZIP removal, navigation warning)
 - `src/reporters/table-builders.js` (additional points, house cusps builder)
 - `src/reporters/woven-map-composer.js` (house cusps integration)
+- `app/api/raven/route.ts` (symbolic weather JSON recognition and parsing)
+- `components/ChatClient.tsx` (load context guidance update)
 
 ---
 

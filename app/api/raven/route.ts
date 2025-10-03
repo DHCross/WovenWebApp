@@ -99,7 +99,7 @@ function summariseUploadedReportJson(raw: string): {
   if (!trimmed.startsWith('{') || trimmed.length < 20) {
     return null;
   }
-  if (!/"balance_meter"|"solo_mirror"|"mirror_voice"/i.test(trimmed)) {
+  if (!/"balance_meter"|"solo_mirror"|"mirror_voice"|"symbolic_weather"|"balance_meter_summary"/i.test(trimmed)) {
     return null;
   }
 
@@ -132,6 +132,7 @@ function summariseUploadedReportJson(raw: string): {
     ['context', 'person', 'name'],
     ['context', 'person_a', 'name'],
     ['provenance', 'person_name'],
+    ['export_info', 'person_a'],
   ]);
 
   const climateLine = pickString(parsed, [
@@ -154,6 +155,7 @@ function summariseUploadedReportJson(raw: string): {
     ['summary', 'balance_meter', 'magnitude', 'value'],
     ['reports', 'balance_meter', 'magnitude'],
     ['reports', 'balance_meter', 'magnitude', 'value'],
+    ['balance_meter_summary', 'magnitude'],
   ]);
   const magnitudeLabel = pickString(parsed, [
     ['balance_meter', 'magnitude', 'label'],
@@ -174,6 +176,7 @@ function summariseUploadedReportJson(raw: string): {
     ['summary', 'balance_meter', 'valence', 'value'],
     ['reports', 'balance_meter', 'valence'],
     ['reports', 'balance_meter', 'valence', 'value'],
+    ['balance_meter_summary', 'valence'],
   ]);
   const valenceLabel = pickString(parsed, [
     ['balance_meter', 'valence', 'label'],
@@ -192,6 +195,7 @@ function summariseUploadedReportJson(raw: string): {
     ['summary', 'balance_meter', 'volatility'],
     ['reports', 'balance_meter', 'volatility'],
     ['reports', 'balance_meter', 'volatility', 'value'],
+    ['balance_meter_summary', 'volatility'],
   ]);
   const volatilityLabel = pickString(parsed, [
     ['balance_meter', 'volatility', 'label'],
@@ -205,6 +209,7 @@ function summariseUploadedReportJson(raw: string): {
     ['context', 'window', 'start'],
     ['window', 'start'],
     ['reports', 'balance_meter', 'period', 'start'],
+    ['export_info', 'date_range', 'start'],
   ]);
   const periodEnd = pickString(parsed, [
     ['balance_meter', 'period', 'end'],
@@ -212,6 +217,7 @@ function summariseUploadedReportJson(raw: string): {
     ['context', 'window', 'end'],
     ['window', 'end'],
     ['reports', 'balance_meter', 'period', 'end'],
+    ['export_info', 'date_range', 'end'],
   ]);
 
   const hooksRoot =
