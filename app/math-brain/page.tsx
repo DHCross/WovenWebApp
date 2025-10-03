@@ -13,7 +13,6 @@ import EnhancedDailyClimateCard from "../../components/mathbrain/EnhancedDailyCl
 import BalanceMeterSummary from "../../components/mathbrain/BalanceMeterSummary";
 
 import { getSavedCharts, saveChart, deleteChart, type SavedChart } from "../../lib/saved-charts";
-import { generateDownloadReadme } from "../../lib/download-readme-template";
 
 export const dynamic = "force-dynamic";
 
@@ -993,11 +992,25 @@ export default function MathBrainPage() {
 
   // Weekly aggregation preference: 'mean' | 'max' (for seismograph weekly bars)
   const [weeklyAgg, setWeeklyAgg] = useState<'mean' | 'max'>('mean');
+  // Sampling frequency for Balance Meter / seismograph resolution: 'weekly' | 'daily'
+  // Default is 'weekly' to preserve historical behavior (5 pulses month effect)
+  const [samplingFrequency, setSamplingFrequency] = useState<'weekly' | 'daily'>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? window.localStorage.getItem('mb.samplingFrequency') : null;
+      if (saved === 'weekly' || saved === 'daily') return saved;
+    } catch {/* ignore */}
+    return 'weekly';
+  });
   useEffect(() => {
     try {
       window.localStorage.setItem('weeklyAgg', weeklyAgg);
     } catch {/* ignore */}
   }, [weeklyAgg]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('mb.samplingFrequency', samplingFrequency);
+    } catch {/* ignore */}
+  }, [samplingFrequency]);
   useEffect(() => {
     try {
       window.localStorage.setItem('mb.layerVisibility', JSON.stringify(layerVisibility));
@@ -2511,6 +2524,26 @@ export default function MathBrainPage() {
     return lines.join('\n');
   }
 
+  function formatHouseCuspsTable(cusps: any[]): string {
+    if (!cusps || !cusps.length) return 'No house cusps available.';
+
+    const lines: string[] = [];
+    lines.push('HOUSE                    SIGN          DEGREE      QUALITY    ELEMENT');
+    lines.push('─'.repeat(75));
+
+    cusps.forEach(cusp => {
+      const house = (cusp.house || '').padEnd(24);
+      const sign = (cusp.sign || '').padEnd(13);
+      const degree = (cusp.degree || '').padEnd(11);
+      const quality = (cusp.quality || '').padEnd(10);
+      const element = cusp.element || '';
+
+      lines.push(`${house} ${sign} ${degree} ${quality} ${element}`);
+    });
+
+    return lines.join('\n');
+  }
+
   function formatDailyReadingsTable(dailyReadings: any[]): string {
     if (!dailyReadings || !dailyReadings.length) return 'No daily readings available.';
 
@@ -2795,6 +2828,15 @@ IMPORTANT: This comprehensive astrological data should be synthesized into the c
           });
         }
 
+        if (wovenMap.data_tables.house_cusps && Array.isArray(wovenMap.data_tables.house_cusps)) {
+          const cuspsText = formatHouseCuspsTable(wovenMap.data_tables.house_cusps);
+          sections.push({
+            title: 'House Cusps (Person A)',
+            body: cuspsText,
+            mode: 'mono'
+          });
+        }
+
         if (wovenMap.data_tables.natal_aspects && Array.isArray(wovenMap.data_tables.natal_aspects)) {
           const aspectsText = formatAspectsTable(wovenMap.data_tables.natal_aspects);
           sections.push({
@@ -2810,6 +2852,15 @@ IMPORTANT: This comprehensive astrological data should be synthesized into the c
           sections.push({
             title: 'Planetary Positions (Person B)',
             body: positionsBText,
+            mode: 'mono'
+          });
+        }
+
+        if (wovenMap.data_tables.person_b_house_cusps && Array.isArray(wovenMap.data_tables.person_b_house_cusps)) {
+          const cuspsBText = formatHouseCuspsTable(wovenMap.data_tables.person_b_house_cusps);
+          sections.push({
+            title: 'House Cusps (Person B)',
+            body: cuspsBText,
             mode: 'mono'
           });
         }
@@ -3324,57 +3375,122 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
     } catch {/* noop */}
   }
 
-  // Download complete package as ZIP with README
-  async function downloadCompletePackage() {
-    if (!result) {
-      setToast('No report available to export');
-      setTimeout(() => setToast(null), 2000);
-      return;
-    }
+  // Download symbolic weather JSON - optimized for AI pattern analysis
+  function downloadSymbolicWeatherJSON() {
+    if (!result) return;
 
     try {
-      setToast('Preparing complete package...');
+      const toNumber = (value: any): number | undefined => {
+        if (typeof value === 'number' && Number.isFinite(value)) return value;
+        if (typeof value === 'string') {
+          const parsed = Number(value);
+          if (!Number.isNaN(parsed)) return parsed;
+        }
+        if (value && typeof value === 'object') {
+          if (typeof value.value === 'number' && Number.isFinite(value.value)) return value.value;
+          if (typeof value.mean === 'number' && Number.isFinite(value.mean)) return value.mean;
+          if (typeof value.score === 'number' && Number.isFinite(value.score)) return value.score;
+        }
+        return undefined;
+      };
 
-      const JSZip = (await import('jszip')).default;
-      const zip = new JSZip();
+      const normalizeToFrontStage = (rawValue: number, metric: 'magnitude' | 'valence' | 'volatility'): number => {
+        if (metric === 'valence') {
+          const clamped = Math.max(-500, Math.min(500, rawValue));
+          return Number((clamped / 100).toFixed(2));
+        }
+        const clamped = Math.max(0, Math.min(500, rawValue));
+        return Number((clamped / 100).toFixed(2));
+      };
 
-      // Generate README
-      const readme = generateDownloadReadme({
-        reportType: reportContractType,
-        personA: personA.name || 'Person A',
-        personB: includePersonB ? (personB.name || 'Person B') : undefined,
-        exportDate: new Date(),
-        includesTransits: includeTransits
-      });
-      zip.file('README.txt', readme);
+      // Extract symbolic weather data structure
+      const weatherData: any = {
+        _format: "symbolic_weather_json",
+        _version: "1.0",
+        _description: "Symbolic weather data optimized for AI pattern analysis. Contains daily seismograph readings with normalized values.",
+        _usage: "This JSON is designed for LLM consumption (ChatGPT, Claude, Gemini) for trend analysis, correlation studies, and pattern recognition.",
+        export_info: {
+          report_type: reportContractType,
+          date_range: {
+            start: startDate || null,
+            end: endDate || null
+          },
+          export_timestamp: new Date().toISOString(),
+          person_a: personA.name || 'Person A',
+          person_b: includePersonB ? (personB.name || 'Person B') : null
+        }
+      };
 
-      // Add frontstage JSON
-      const frontStageResult = createFrontStageResult(result);
-      zip.file(`${filenameBase('chart-data')}.json`, JSON.stringify(frontStageResult, null, 2));
+      // Add summary balance meter data
+      if (result?.person_a?.summary) {
+        const summary = result.person_a.summary;
+        const rawMag = toNumber(summary.magnitude);
+        const rawVal = toNumber(summary.valence_bounded ?? summary.valence);
+        const rawVol = toNumber(summary.volatility);
 
-      // Generate and add PDF (reuse existing PDF generation logic)
-      // Note: This is a simplified approach - in production you'd want to refactor the PDF generation
-      // into a separate function that returns the blob instead of downloading it
-      setToast('Generating package files... This may take a moment.');
+        weatherData.balance_meter_summary = {
+          magnitude: rawMag ? normalizeToFrontStage(rawMag, 'magnitude') : null,
+          valence: rawVal ? normalizeToFrontStage(rawVal, 'valence') : null,
+          volatility: rawVol ? normalizeToFrontStage(rawVol, 'volatility') : null,
+          sfd: toNumber(summary.sfd) || null,
+          _scale_note: "magnitude: 0-5, valence: -5 to +5, volatility: 0-5"
+        };
+      }
 
-      // For now, we'll create a simpler package without the PDF
-      // The user can download the PDF separately if needed
-      const blob = await zip.generateAsync({ type: 'blob' });
+      // Add daily seismograph readings
+      if (result?.person_a?.chart?.transitsByDate) {
+        const daily = result.person_a.chart.transitsByDate;
+        const dailyReadings: any[] = [];
+
+        Object.keys(daily).sort().forEach(date => {
+          const dayData = daily[date];
+          if (dayData?.seismograph) {
+            const rawMag = toNumber(dayData.seismograph.magnitude);
+            const rawVal = toNumber(dayData.seismograph.valence_bounded ?? dayData.seismograph.valence);
+            const rawVol = toNumber(dayData.seismograph.volatility);
+
+            dailyReadings.push({
+              date,
+              magnitude: rawMag ? normalizeToFrontStage(rawMag, 'magnitude') : null,
+              valence: rawVal ? normalizeToFrontStage(rawVal, 'valence') : null,
+              volatility: rawVol ? normalizeToFrontStage(rawVol, 'volatility') : null,
+              sfd: toNumber(dayData.seismograph.sfd) || null,
+              // Include aspect context for reference
+              aspects: dayData.aspects || [],
+              aspect_count: dayData.aspects?.length || 0
+            });
+          }
+        });
+
+        weatherData.daily_readings = dailyReadings;
+        weatherData.reading_count = dailyReadings.length;
+      }
+
+      // Add symbolic weather context if available
+      if (result?.woven_map?.symbolic_weather) {
+        weatherData.symbolic_weather_context = result.woven_map.symbolic_weather;
+      }
+
+      const blob = new Blob([JSON.stringify(weatherData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${filenameBase('raven-calder-package')}.zip`;
+      a.download = `${filenameBase('symbolic-weather')}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
 
-      setToast('Package ready! Check your downloads.');
-      setTimeout(() => setToast(null), 2500);
+      try {
+        setToast('📊 Downloading symbolic weather JSON for AI analysis');
+        setTimeout(()=>setToast(null), 1800);
+      } catch {/* noop */}
     } catch (error) {
-      console.error('Package generation failed:', error);
-      setToast('Package generation failed. Try individual downloads instead.');
-      setTimeout(() => setToast(null), 2500);
+      console.error('Symbolic weather JSON export failed:', error);
+      try {
+        setToast('Failed to export symbolic weather JSON');
+        setTimeout(()=>setToast(null), 2000);
+      } catch {/* noop */}
     }
   }
 
@@ -5794,15 +5910,6 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={downloadCompletePackage}
-                className="rounded-md border border-indigo-700 bg-indigo-800 px-3 py-1.5 text-indigo-100 hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                aria-label="Download complete package (ZIP with README, JSON, and instructions)"
-                title="Download ZIP package with README explaining how to use the data"
-              >
-                📦 Download Package (Recommended)
-              </button>
-              <button
-                type="button"
                 onClick={downloadResultPDF}
                 disabled={pdfGenerating}
                 className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
@@ -5838,6 +5945,17 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
               >
                 Clean JSON (0-5 scale)
               </button>
+              {includeTransits && (
+                <button
+                  type="button"
+                  onClick={downloadSymbolicWeatherJSON}
+                  className="rounded-md border border-blue-700 bg-blue-800/50 px-3 py-1.5 text-blue-100 hover:bg-blue-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                  aria-label="Download symbolic weather JSON for AI analysis"
+                  title="Lightweight JSON optimized for AI pattern analysis (ChatGPT, Claude, Gemini)"
+                >
+                  📊 Symbolic Weather JSON
+                </button>
+              )}
               {includeTransits && (
                 <button type="button" onClick={downloadGraphsPDF} className="rounded-md border border-emerald-700 bg-emerald-800/50 px-3 py-1.5 text-emerald-100 hover:bg-emerald-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" aria-label="Download graphs and charts as PDF">
                   📊 Download Graphs PDF

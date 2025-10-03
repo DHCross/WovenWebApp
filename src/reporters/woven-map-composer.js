@@ -1018,6 +1018,7 @@ function composeWovenMapReport({ result, mode, period, options = {} }) {
     const tableBuilders = require('./table-builders');
     report.data_tables = {
       natal_positions: tableBuilders.buildNatalPositionsTable(a),
+      house_cusps: tableBuilders.buildHouseCuspsTable(a),
       natal_aspects: tableBuilders.buildNatalAspectsTable(a),
       summary_stats: tableBuilders.buildSummaryStats(result),
       ...(hasTransits && {
@@ -1027,6 +1028,7 @@ function composeWovenMapReport({ result, mode, period, options = {} }) {
       ...(type === 'relational' && {
         // For relational readings, include both Person A and Person B complete data
         person_b_positions: tableBuilders.buildNatalPositionsTable(b),
+        person_b_house_cusps: tableBuilders.buildHouseCuspsTable(b),
         person_b_aspects: tableBuilders.buildNatalAspectsTable(b),
         synastry_aspects: tableBuilders.buildSynastryAspectsTable(result),
         composite_positions: tableBuilders.buildCompositePositionsTable(result)

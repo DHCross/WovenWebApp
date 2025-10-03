@@ -78,6 +78,30 @@ function buildNatalPositionsTable(personA) {
     }
   });
 
+  // Additional Points (Chiron, Nodes, Lilith)
+  const additionalPoints = [
+    { key: 'chiron', name: 'Chiron' },
+    { key: 'mean_node', name: 'North Node' },
+    { key: 'mean_south_node', name: 'South Node' },
+    { key: 'mean_lilith', name: 'Lilith' }
+  ];
+
+  additionalPoints.forEach(({ key, name }) => {
+    const data = chart.data[key];
+    if (data) {
+      positions.push({
+        body: name,
+        sign: data.sign || 'N/A',
+        degree: formatDegree(data.abs_pos),
+        house: data.house ? `${data.house}` : 'N/A',
+        quality: data.quality || '',
+        element: data.element || '',
+        retrograde: data.retrograde ? 'R' : (data.stationary ? 'S' : ''),
+        speed: data.speed_deg_per_day ? `${data.speed_deg_per_day.toFixed(4)}°/day` : ''
+      });
+    }
+  });
+
   // Angles
   const angles = [
     { key: 'ascendant', name: 'Ascendant', house: '1st Cusp' },
@@ -103,6 +127,46 @@ function buildNatalPositionsTable(personA) {
   });
 
   return positions;
+}
+
+/**
+ * Build house cusps table for PDF export
+ */
+function buildHouseCuspsTable(personA) {
+  const cusps = [];
+  const chart = personA?.chart?.natal;
+  if (!chart?.data) return cusps;
+
+  // All 12 house cusps
+  const houseKeys = [
+    { key: 'ascendant', house: 1, name: '1st House (Ascendant)' },
+    { key: 'house_2', house: 2, name: '2nd House' },
+    { key: 'house_3', house: 3, name: '3rd House' },
+    { key: 'imum_coeli', house: 4, name: '4th House (IC)' },
+    { key: 'house_5', house: 5, name: '5th House' },
+    { key: 'house_6', house: 6, name: '6th House' },
+    { key: 'descendant', house: 7, name: '7th House (Descendant)' },
+    { key: 'house_8', house: 8, name: '8th House' },
+    { key: 'house_9', house: 9, name: '9th House' },
+    { key: 'medium_coeli', house: 10, name: '10th House (MC)' },
+    { key: 'house_11', house: 11, name: '11th House' },
+    { key: 'house_12', house: 12, name: '12th House' }
+  ];
+
+  houseKeys.forEach(({ key, house, name }) => {
+    const data = chart.data[key];
+    if (data) {
+      cusps.push({
+        house: name,
+        sign: data.sign || 'N/A',
+        degree: formatDegree(data.abs_pos),
+        quality: data.quality || '',
+        element: data.element || ''
+      });
+    }
+  });
+
+  return cusps;
 }
 
 /**
@@ -318,6 +382,7 @@ function buildSummaryStats(result) {
 
 module.exports = {
   buildNatalPositionsTable,
+  buildHouseCuspsTable,
   buildNatalAspectsTable,
   buildTransitAspectsTable,
   buildDailyReadingsTable,
