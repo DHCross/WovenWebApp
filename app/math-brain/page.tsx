@@ -50,6 +50,7 @@ type ChartAssetDisplay = {
   url: string;
   label: string;
   contentType: string;
+  format?: string;
   subject: string | null;
   chartType: string | null;
   scope: string | null;
@@ -645,6 +646,10 @@ export default function MathBrainPage() {
   // reportFormat removed - Raven Calder always uses conversational voice per corpus/persona
   const [includeTransits, setIncludeTransits] = useState<boolean>(false);
   const [pdfGenerating, setPdfGenerating] = useState<boolean>(false);
+  const [graphsPdfGenerating, setGraphsPdfGenerating] = useState<boolean>(false);
+  const [cleanJsonGenerating, setCleanJsonGenerating] = useState<boolean>(false);
+  const [engineConfigGenerating, setEngineConfigGenerating] = useState<boolean>(false);
+  const [weatherJsonGenerating, setWeatherJsonGenerating] = useState<boolean>(false);
   const [includePersonB, setIncludePersonB] = useState<boolean>(false);
   const mode = useMemo<ReportMode>(() => modeFromStructure(reportStructure, includeTransits), [reportStructure, includeTransits]);
   const applyMode = useCallback((nextMode: ReportMode) => {
@@ -754,12 +759,14 @@ export default function MathBrainPage() {
           const rawUrl = typeof raw.url === 'string' ? raw.url.trim() : '';
           const url = rawUrl || `/api/chart/${encodeURIComponent(id)}`;
           const contentType = typeof raw.contentType === 'string' ? raw.contentType : 'application/octet-stream';
+          const format = typeof raw.format === 'string' ? raw.format : undefined;
 
           items.push({
             id,
             url,
             label,
             contentType,
+            format,
             subject: subjectKey,
             chartType: typeof raw.chartType === 'string' ? raw.chartType : chartToken || null,
             scope: typeof raw.scope === 'string' ? raw.scope : defaultScope || null,
@@ -907,7 +914,7 @@ export default function MathBrainPage() {
 
   // User-friendly filename helper (Raven Calder naming system)
   const friendlyFilename = useCallback(
-    (type: 'directive' | 'dashboard' | 'weather-log' | 'engine-config') => {
+    (type: 'directive' | 'dashboard' | 'symbolic-weather' | 'weather-log' | 'engine-config') => {
       const duo = includePersonB
         ? `${personASlug}-${personBSlug}`
         : personASlug;
@@ -916,6 +923,7 @@ export default function MathBrainPage() {
       const nameMap = {
         'directive': 'Mirror_Directive',
         'dashboard': 'Weather_Dashboard',
+        'symbolic-weather': 'Symbolic_Weather_Dashboard',
         'weather-log': 'Weather_Log',
         'engine-config': 'Engine_Configuration'
       };
@@ -1983,6 +1991,7 @@ export default function MathBrainPage() {
       return;
     }
 
+    setGraphsPdfGenerating(true);
     let revertVisibility: (() => void) | null = null;
 
     try {
@@ -2094,6 +2103,68 @@ export default function MathBrainPage() {
         font: timesRomanFont,
         color: rgb(0.5, 0.5, 0.5),
       });
+
+      // Add natal chart wheels if available
+      if (chartAssets.length > 0) {
+        for (const asset of chartAssets) {
+          try {
+            // Only include natal charts for the primary person
+            if (asset.scope !== 'natal' || (asset.subject !== 'person_a' && asset.subject !== 'person_b')) {
+              continue;
+            }
+
+            const response = await fetch(asset.url);
+            if (!response.ok) continue;
+
+            const imageBytes = await response.arrayBuffer();
+            let chartImage;
+            if (asset.format === 'png') {
+              chartImage = await pdfDoc.embedPng(imageBytes);
+            } else if (asset.format === 'jpg' || asset.format === 'jpeg') {
+              chartImage = await pdfDoc.embedJpg(imageBytes);
+            } else {
+              continue;
+            }
+
+            const chartPage = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+            let chartY = PAGE_HEIGHT - MARGIN;
+
+            const subjectLabel = asset.subject === 'person_a' ?
+              (personA.name || 'Person A') :
+              (includePersonB ? (personB.name || 'Person B') : 'Person B');
+
+            chartPage.drawText(sanitizeForPDF(`Natal Chart: ${subjectLabel}`), {
+              x: MARGIN,
+              y: chartY,
+              size: 16,
+              font: timesRomanFont,
+              color: rgb(0.2, 0.2, 0.2),
+            });
+            chartY -= 35;
+
+            const availableChartHeight = chartY - MARGIN - 30;
+            const chartDimensions = chartImage.scaleToFit(PAGE_WIDTH - 2 * MARGIN, availableChartHeight);
+            const chartImageY = chartY - chartDimensions.height;
+
+            chartPage.drawImage(chartImage, {
+              x: MARGIN + (PAGE_WIDTH - 2 * MARGIN - chartDimensions.width) / 2,
+              y: chartImageY,
+              width: chartDimensions.width,
+              height: chartDimensions.height,
+            });
+
+            chartPage.drawText(sanitizeForPDF(`Generated: ${exportTimestamp.toLocaleString()} | Natal Chart Wheel`), {
+              x: MARGIN,
+              y: MARGIN - 20,
+              size: 8,
+              font: timesRomanFont,
+              color: rgb(0.5, 0.5, 0.5),
+            });
+          } catch (error) {
+            console.error('Failed to embed chart asset:', asset.id, error);
+          }
+        }
+      }
 
       let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
       let yPosition = PAGE_HEIGHT - MARGIN;
@@ -2432,13 +2503,13 @@ export default function MathBrainPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${friendlyFilename('dashboard')}.pdf`;
+      a.download = `${friendlyFilename('symbolic-weather')}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      setToast('Charts PDF downloaded successfully');
+      setToast('Symbolic Weather Dashboard PDF downloaded successfully');
       setTimeout(() => setToast(null), 2500);
     } catch (error) {
       console.error('PDF generation failed:', error);
@@ -2448,6 +2519,7 @@ export default function MathBrainPage() {
       if (revertVisibility) {
         revertVisibility();
       }
+      setGraphsPdfGenerating(false);
     }
   }
 
@@ -3436,6 +3508,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
 
   function downloadResultJSON() {
     if (!result) return;
+    setCleanJsonGenerating(true);
     try {
       // Create frontstage-only version with normalized values
       const frontStageResult = createFrontStageResult(result);
@@ -3451,10 +3524,15 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
       URL.revokeObjectURL(url);
       try { setToast('Downloading result JSON'); setTimeout(()=>setToast(null), 1400); } catch {/* noop */}
     } catch {/* noop */}
+    finally {
+      // Brief delay to show spinner even for instant downloads
+      setTimeout(() => setCleanJsonGenerating(false), 300);
+    }
   }
 
   function downloadBackstageJSON() {
     if (!result) return;
+    setEngineConfigGenerating(true);
     try {
       // Download raw result with all backstage data for debugging
       const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
@@ -3468,11 +3546,16 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
       URL.revokeObjectURL(url);
       try { setToast('Downloading backstage JSON for debugging'); setTimeout(()=>setToast(null), 1400); } catch {/* noop */}
     } catch {/* noop */}
+    finally {
+      // Brief delay to show spinner even for instant downloads
+      setTimeout(() => setEngineConfigGenerating(false), 300);
+    }
   }
 
   // Download symbolic weather JSON - optimized for AI pattern analysis
   function downloadSymbolicWeatherJSON() {
     if (!result) return;
+    setWeatherJsonGenerating(true);
 
     try {
       const toNumber = (value: any): number | undefined => {
@@ -3596,6 +3679,9 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
         setToast('Failed to export symbolic weather JSON');
         setTimeout(()=>setToast(null), 2000);
       } catch {/* noop */}
+    } finally {
+      // Brief delay to show spinner even for instant downloads
+      setTimeout(() => setWeatherJsonGenerating(false), 300);
     }
   }
 
@@ -6149,13 +6235,23 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                 <button
                   type="button"
                   onClick={downloadSymbolicWeatherJSON}
-                  className="w-full rounded-md border border-blue-600 bg-blue-700/30 px-4 py-3 text-left hover:bg-blue-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 transition"
+                  disabled={weatherJsonGenerating}
+                  className="w-full rounded-md border border-blue-600 bg-blue-700/30 px-4 py-3 text-left hover:bg-blue-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   aria-label="Download Symbolic Weather Log JSON for AI pattern analysis"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">🌦️</span>
+                    {weatherJsonGenerating ? (
+                      <svg className="animate-spin h-5 w-5 text-blue-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : (
+                      <span className="text-2xl">🌦️</span>
+                    )}
                     <div className="flex-1">
-                      <div className="text-sm font-medium text-slate-100">Symbolic Weather Package</div>
+                      <div className="text-sm font-medium text-slate-100">
+                        {weatherJsonGenerating ? 'Generating...' : 'Symbolic Weather Package'}
+                      </div>
                       <div className="text-xs text-slate-400 mt-0.5">
                         Day-by-day transit patterns + climate data (JSON)
                       </div>
@@ -6173,13 +6269,23 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                 <button
                   type="button"
                   onClick={downloadGraphsPDF}
-                  className="w-full rounded-md border border-emerald-600 bg-emerald-700/30 px-4 py-3 text-left hover:bg-emerald-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition"
+                  disabled={graphsPdfGenerating}
+                  className="w-full rounded-md border border-emerald-600 bg-emerald-700/30 px-4 py-3 text-left hover:bg-emerald-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   aria-label="Download Symbolic Weather Dashboard PDF (visual summary)"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">📊</span>
+                    {graphsPdfGenerating ? (
+                      <svg className="animate-spin h-5 w-5 text-emerald-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : (
+                      <span className="text-2xl">📊</span>
+                    )}
                     <div className="flex-1">
-                      <div className="text-sm font-medium text-slate-100">Symbolic Weather Dashboard</div>
+                      <div className="text-sm font-medium text-slate-100">
+                        {graphsPdfGenerating ? 'Generating...' : 'Symbolic Weather Dashboard'}
+                      </div>
                       <div className="text-xs text-slate-400 mt-0.5">
                         At-a-glance charts and summaries (PDF)
                       </div>
@@ -6198,13 +6304,21 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                 <button
                   type="button"
                   onClick={downloadBackstageJSON}
-                  className="w-full rounded border border-slate-700 bg-slate-800/50 px-3 py-2 text-left text-xs hover:bg-slate-700/50 transition"
+                  disabled={engineConfigGenerating}
+                  className="w-full rounded border border-slate-700 bg-slate-800/50 px-3 py-2 text-left text-xs hover:bg-slate-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   aria-label="Download Engine Configuration JSON"
                 >
                   <div className="flex items-center gap-2">
-                    <span>🔧</span>
+                    {engineConfigGenerating ? (
+                      <svg className="animate-spin h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : (
+                      <span>🔧</span>
+                    )}
                     <div className="flex-1">
-                      <div className="font-medium text-slate-200">Engine Configuration</div>
+                      <div className="font-medium text-slate-200">{engineConfigGenerating ? 'Generating...' : 'Engine Configuration'}</div>
                       <div className="text-slate-500 text-[10px] mt-0.5">Foundation natal data + system settings (JSON)</div>
                     </div>
                   </div>
@@ -6212,13 +6326,21 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                 <button
                   type="button"
                   onClick={downloadResultJSON}
-                  className="w-full rounded border border-slate-700 bg-slate-800/50 px-3 py-2 text-left text-xs hover:bg-slate-700/50 transition"
+                  disabled={cleanJsonGenerating}
+                  className="w-full rounded border border-slate-700 bg-slate-800/50 px-3 py-2 text-left text-xs hover:bg-slate-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   aria-label="Download normalized JSON"
                 >
                   <div className="flex items-center gap-2">
-                    <span>📋</span>
+                    {cleanJsonGenerating ? (
+                      <svg className="animate-spin h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : (
+                      <span>📋</span>
+                    )}
                     <div className="flex-1">
-                      <div className="font-medium text-slate-200">Clean JSON (0-5 scale)</div>
+                      <div className="font-medium text-slate-200">{cleanJsonGenerating ? 'Generating...' : 'Clean JSON (0-5 scale)'}</div>
                       <div className="text-slate-500 text-[10px] mt-0.5">Normalized frontstage data (JSON)</div>
                     </div>
                   </div>
