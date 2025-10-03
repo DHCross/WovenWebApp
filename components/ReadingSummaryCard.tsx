@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { generateJournalPDFFast } from '../lib/fast-pdf-generator';
+import type { ActorRoleComposite as DetectorActorRoleComposite } from '../lib/actor-role-detector';
 
 interface BigVector {
   tension: string;
@@ -15,12 +16,9 @@ interface ResonanceSnapshot {
   keyMoments: string[];
 }
 
-interface ActorRoleComposite {
-  actor: string; // Sidereal driver
-  role: string; // Tropical style
-  composite: string; // Combined expression
-  confidence: 'tentative' | 'emerging' | 'clear';
-}
+type SummaryActorRoleComposite = DetectorActorRoleComposite & {
+  displayConfidence?: 'tentative' | 'emerging' | 'clear';
+};
 
 interface ResonanceFidelity {
   percentage: number;
@@ -43,7 +41,7 @@ interface BalanceMeterClimate {
 interface ReadingSummaryData {
   bigVectors: BigVector[];
   resonanceSnapshot: ResonanceSnapshot;
-  actorRoleComposite: ActorRoleComposite;
+  actorRoleComposite: SummaryActorRoleComposite;
   resonanceFidelity: ResonanceFidelity;
   explanation: string;
   balanceMeterClimate: BalanceMeterClimate;
@@ -67,6 +65,18 @@ export default function ReadingSummaryCard({
   const [showJournal, setShowJournal] = useState(false);
   const [journalEntry, setJournalEntry] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const actorRole = data.actorRoleComposite;
+  const actorSignalAvailable = actorRole.actor && actorRole.actor !== 'Unknown';
+  const roleSignalAvailable = actorRole.role && actorRole.role !== 'Unknown';
+  const confidenceLabel = actorRole.displayConfidence
+    || (actorRole.confidenceBand === 'HIGH'
+      ? 'clear'
+      : actorRole.confidenceBand === 'MODERATE'
+        ? 'emerging'
+        : 'tentative');
+  const actorBreakdown = actorRole.actorBreakdown || [];
+  const roleBreakdown = actorRole.roleBreakdown || [];
 
   const handleGenerateJournal = async () => {
     if (!onGenerateJournal) return;
@@ -169,21 +179,55 @@ Primary Patterns: ${journalEntry.metadata.primaryPatterns.join(', ')}`;
         <div className="p-7 space-y-7">
           
           {/* 1. HEADLINER: Big Vectors (Recognition Layer) */}
-          {data.bigVectors.length > 0 && (
-            <div className="text-center">
-              <h2 className="text-[11px] uppercase tracking-[0.2em] text-slate-500 mb-3">
-                ACTOR / ROLE COMPOSITE
-              </h2>
-              <div className="text-[28px] font-serif font-bold text-slate-800 mb-1">
-                {data.bigVectors[0].polarity}
-              </div>
-              <div className="flex justify-center gap-3 text-2xl opacity-70">
-                {/* Astrological symbols - you can replace with actual symbols */}
-                <span title="Sidereal emphasis">☽</span>
-                <span title="Tropical emphasis">☿</span>
-              </div>
+          <div className="text-center">
+            <h2 className="text-[11px] uppercase tracking-[0.2em] text-slate-500 mb-3">
+              ACTOR / ROLE PATTERN
+            </h2>
+            <div className="text-[28px] font-serif font-bold text-slate-800 mb-1">
+              {actorSignalAvailable || roleSignalAvailable ? actorRole.composite : 'Signal still forming'}
             </div>
-          )}
+            <div className="text-sm text-slate-600">
+              <span className="font-semibold text-slate-700">Actor:</span>{' '}
+              {actorSignalAvailable ? actorRole.actor : 'awaiting data'}
+              {' · '}
+              <span className="font-semibold text-slate-700">Role:</span>{' '}
+              {roleSignalAvailable ? actorRole.role : 'awaiting data'}
+            </div>
+            <div className="mt-2 text-xs uppercase tracking-[0.16em] text-slate-400">
+              Confidence: {confidenceLabel}
+              {actorRole.siderealDrift && actorRole.driftBand !== 'NONE' ? ' · Sidereal drift flag' : ''}
+            </div>
+            {(actorBreakdown.length > 0 || roleBreakdown.length > 0) && (
+              <div className="mt-3 flex flex-col md:flex-row md:justify-center md:gap-4 gap-2 text-xs text-slate-500">
+                {actorBreakdown.length > 0 && (
+                  <div>
+                    <div className="font-semibold text-slate-600 mb-1 text-xs uppercase tracking-wide">Actors</div>
+                    <div className="flex flex-wrap justify-center gap-1">
+                      {actorBreakdown.map(({ key, score, sources }) => (
+                        <span key={key} className="px-2 py-1 rounded-full bg-slate-100 text-slate-700">
+                          {key} · {Math.round(score * 100)}
+                          {sources?.wb ? ` (WB ${sources.wb.toFixed(1)})` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {roleBreakdown.length > 0 && (
+                  <div>
+                    <div className="font-semibold text-slate-600 mb-1 text-xs uppercase tracking-wide">Roles</div>
+                    <div className="flex flex-wrap justify-center gap-1">
+                      {roleBreakdown.map(({ key, score, sources }) => (
+                        <span key={key} className="px-2 py-1 rounded-full bg-indigo-50 text-indigo-700">
+                          {key} · {Math.round(score * 100)}
+                          {sources?.wb ? ` (WB ${sources.wb.toFixed(1)})` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* 2. Resonance Fidelity % (Scored) */}
           <div className="text-center">

@@ -1,6 +1,6 @@
 # Poetic Brain Integration
 
-This project includes a self-contained `poetic-brain` module (FIELD → MAP → VOICE narrative layer). We intentionally **do not rewrite or duplicate** its logic—only provide a safe adapter + API surface.
+This project includes a self-contained `poetic-brain` module (FIELD → MAP → VOICE narrative layer). We intentionally **do not rewrite or duplicate** its logic—only provide a safe adapter + API surface. For a deep dive into Actor/Role diagnostics, see `ACTOR_ROLE_OVERVIEW.md`.
 
 ## Directory Layout
 ```

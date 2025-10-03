@@ -14,6 +14,7 @@ import WrapUpCard from "./WrapUpCard";
 import PoeticCard from "./PoeticCard";
 import ReadingSummaryCard from "./ReadingSummaryCard";
 import { pingTracker } from "../lib/ping-tracker";
+import ActorRoleDetector from "../lib/actor-role-detector";
 import { naturalFollowUpFlow } from "../lib/natural-followup-flow";
 import {
   APP_NAME,
@@ -914,68 +915,97 @@ export default function ChatClient() {
 
   // Function to generate reading summary data
   const generateReadingSummaryData = () => {
-    // Extract user name from messages or use default
-    const userMessages = messages.filter((m) => m.role === "user");
-    const firstUserMessage = userMessages[0]?.html || "";
-    const nameMatch =
-      firstUserMessage.match(/my name is (\w+)/i) ||
-      firstUserMessage.match(/i'm (\w+)/i) ||
-      firstUserMessage.match(/i am (\w+)/i);
-    const userName = nameMatch ? nameMatch[1] : "the user";
+    const currentSessionId = pingTracker.getCurrentSessionId();
+    const patterns = pingTracker.getSessionPatterns(currentSessionId);
+    const detector = ActorRoleDetector.getInstance();
+    const composite = detector.generateComposite(patterns);
 
-    // Calculate resonance fidelity
-    const wb = sessionContext.wbHits.length;
-    const abe = sessionContext.abeHits.length;
-    const osr = sessionContext.osrMisses.length;
-
+    const wb = patterns.wbPatterns.length;
+    const abe = patterns.abePatterns.length;
+    const osr = patterns.osrPatterns.length + (patterns.osrProbes?.length || 0);
+    const totalResponses = wb + abe + osr;
     const numerator = wb + 0.5 * abe;
-    const denominator = wb + abe + osr;
-    const percentage =
-      denominator > 0 ? Math.round((numerator / denominator) * 100) : 0;
+    const percentage = totalResponses > 0 ? Math.round((numerator / totalResponses) * 100) : 0;
 
     let band: "HIGH" | "MIXED" | "LOW" = "LOW";
-    let label = "Extensive New Territory";
-
-    if (percentage >= 70) {
+    let label = totalResponses === 0 ? "Waiting for feedback" : "Extensive New Territory";
+    if (percentage >= 70 && totalResponses > 0) {
       band = "HIGH";
       label = "Strong Harmonic Alignment";
-    } else if (percentage >= 40) {
+    } else if (percentage >= 40 && totalResponses > 0) {
       band = "MIXED";
       label = "Mixed Alignment";
     }
 
+    const snippet = (text: string) => {
+      const plain = stripHtml(text || "");
+      const first = firstSentenceOf(plain);
+      return first.length > 180 ? `${first.slice(0, 177)}…` : first;
+    };
+
+    const wbSnippets = patterns.wbPatterns.map(snippet).filter(Boolean);
+    const abeSnippets = patterns.abePatterns.map(snippet).filter(Boolean);
+    const osrSnippets = patterns.osrPatterns.map((p) => snippet(p.content)).filter(Boolean);
+    const probeSnippets = (patterns.osrProbes || [])
+      .map((probe) => snippet(probe.text || ""))
+      .filter(Boolean);
+
+    const poemLines = wbSnippets.slice(0, 2);
+    if (poemLines.length < 2 && abeSnippets.length) {
+      poemLines.push(...abeSnippets.slice(0, 2 - poemLines.length));
+    }
+
+    const keyMoments = [...wbSnippets, ...abeSnippets, ...probeSnippets].slice(0, 3);
+
+    const symbolicImages: string[] = [];
+    if (composite.siderealDrift) {
+      symbolicImages.push("Sidereal drift signal surfaced in OSR probes");
+    }
+
+    const confidenceLabel: "tentative" | "emerging" | "clear" =
+      composite.confidenceBand === "HIGH"
+        ? "clear"
+        : composite.confidenceBand === "MODERATE"
+          ? "emerging"
+          : "tentative";
+
+    const actorRoleComposite = {
+      actor: composite.actor,
+      role: composite.role,
+      composite: composite.composite,
+      confidence: composite.confidence,
+      confidenceBand: composite.confidenceBand,
+      sampleSize: composite.sampleSize ?? totalResponses,
+      siderealDrift: composite.siderealDrift,
+      driftBand: composite.driftBand,
+      actorBreakdown: (composite.actorBreakdown || []).slice(0, 3),
+      roleBreakdown: (composite.roleBreakdown || []).slice(0, 3),
+      displayConfidence: confidenceLabel as const,
+    };
+
+    const explanation = totalResponses === 0
+      ? "No resonance feedback was logged this session. Tag mirrors as WB / ABE / OSR to build a fidelity trace."
+      : `Resonance fidelity pulls from ${wb} WB confirmations, ${abe} near-hits, and ${osr} misses or probes. That yields a ${percentage}% alignment score with a ${confidenceLabel} Actor/Role signal.`;
+
+    const compositeCharge = composite.confidenceBand === "HIGH" ? 5 : composite.confidenceBand === "MODERATE" ? 3 : 2;
+    const bigVectors = (composite.actor !== "Unknown" || composite.role !== "Unknown")
+      ? [{
+          tension: composite.actor,
+          polarity: composite.composite,
+          charge: compositeCharge,
+          source: "hook-stack" as const,
+        }]
+      : [];
+
     return {
-      bigVectors: [
-        {
-          tension: "restless-contained",
-          polarity: "Visionary Driver / Cutting Truth Style",
-          charge: 4,
-          source: "personal-outer" as const,
-        },
-      ],
+      bigVectors,
       resonanceSnapshot: {
-        affirmedParadoxes: sessionContext.wbHits
-          .slice(0, 3)
-          .map((hit: any) => hit.content || "Pattern recognized"),
-        poemLines: [
-          "The compass spins, a restless heart",
-          "A whispered promise, barely heard",
-        ],
-        symbolicImages: [
-          "spinning compass",
-          "restless energy",
-          "whispered truth",
-        ],
-        keyMoments: sessionContext.wbHits
-          .slice(0, 2)
-          .map((hit: any) => hit.content || "Key moment"),
+        affirmedParadoxes: wbSnippets.slice(0, 3),
+        poemLines: poemLines.length ? poemLines : ["Actor/Role engine needs at least one WB response to surface poetic lines."],
+        symbolicImages,
+        keyMoments,
       },
-      actorRoleComposite: {
-        actor: "Visionary Driver",
-        role: "Cutting Truth Style",
-        composite: "Visionary Driver / Cutting Truth Style",
-        confidence: "emerging" as const,
-      },
+      actorRoleComposite,
       resonanceFidelity: {
         percentage,
         band,
@@ -984,19 +1014,17 @@ export default function ChatClient() {
         abe,
         osr,
       },
-      explanation: `You recognized the restless pull more than the steadying hand. That leans the weight toward your inner Driver. Raven reads this as a sidereal lean.`,
+      explanation,
       balanceMeterClimate: {
-        magnitude: 3,
-        valence: "drag" as const,
-        volatility: "mixed" as const,
-        sfdVerdict: "Stirring with Drag",
-        housePlacement: "House of Maintenance (work/health rhythm)",
+        magnitude: 0,
+        valence: "neutral" as const,
+        volatility: "aligned" as const,
+        sfdVerdict: "Balance Meter integration planned",
         narrative:
-          "The week trends at ⚡⚡⚡ 3 Stirring with 🌑 Drag—steady pull with a headwind in routines.",
+          "Balance Meter climate summaries will rejoin the wrap-up once the Math Brain bridge is ready. For now, review the resonance feedback above.",
       },
-      poemLine:
-        "The compass spins, a restless heart. A whispered promise, barely heard.",
-      sessionId: generateId(),
+      poemLine: poemLines.length ? poemLines[0] : undefined,
+      sessionId: currentSessionId,
     };
   };
 

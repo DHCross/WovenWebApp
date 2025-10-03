@@ -18,6 +18,8 @@ export interface ActorRoleComposite {
   stateDependent?: boolean; // drift evidence concentrated in one area
   tieBreak?: 'WB' | 'ABE' | 'OSR'; // which source resolved a near-tie (if any)
   aspectNotes?: string[]; // stub for future UI rendering and tiny bonus application
+  actorBreakdown?: Array<{ key: string; score: number; sources: { wb: number; abe: number; osr: number } }>;
+  roleBreakdown?: Array<{ key: string; score: number; sources: { wb: number; abe: number; osr: number } }>;
 }
 
 export interface DiagnosticPattern {
@@ -712,6 +714,16 @@ class ActorRoleDetector {
     // Choose best Actor/Role with tie-break preference on WB contributions
     const sortedActors = Object.entries(actorScores).sort((a,b)=>b[1]-a[1]);
     const sortedRoles  = Object.entries(roleScores).sort((a,b)=>b[1]-a[1]);
+    const actorBreakdown = sortedActors.map(([key, score]) => ({
+      key,
+      score,
+      sources: actorSource[key] || { wb: 0, abe: 0, osr: 0 },
+    }));
+    const roleBreakdown = sortedRoles.map(([key, score]) => ({
+      key,
+      score,
+      sources: roleSource[key] || { wb: 0, abe: 0, osr: 0 },
+    }));
     const bestActorEntry = sortedActors[0] ? { k: sortedActors[0][0], v: sortedActors[0][1] } : { k: 'Unknown', v: 0 };
     const bestRoleEntry  = sortedRoles[0]  ? { k: sortedRoles[0][0],  v: sortedRoles[0][1]  } : { k: 'Unknown', v: 0 };
     let tieBreak: 'WB' | 'ABE' | 'OSR' | undefined;
@@ -787,7 +799,9 @@ class ActorRoleDetector {
       roleSigns,
   stateDependent,
   tieBreak,
-  aspectNotes: opts?.aspectNotes || []
+  aspectNotes: opts?.aspectNotes || [],
+  actorBreakdown,
+  roleBreakdown,
     };
   }
 }
