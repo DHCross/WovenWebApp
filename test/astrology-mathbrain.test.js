@@ -29,8 +29,18 @@ const MOCK_COMPOSITE_RESPONSE = {
 
 const MOCK_TRANSIT_RESPONSE = {
     status: "OK",
-    data: { transitsByDate: { "2024-01-01": [{ p1_name: "Jupiter", p2_name: "Sun", aspect: "trine", orbit: 0.5 }] } },
-    aspects: [{ p1_name: "Jupiter", p2_name: "Sun", aspect: "trine", orbit: 0.5 }]
+    data: {
+      transitsByDate: {
+        "2024-01-01": [
+          { p1_name: "Saturn", p2_name: "Sun", aspect: "square", orbit: 0.4 },
+          { p1_name: "Mars", p2_name: "Moon", aspect: "opposition", orbit: 0.6 }
+        ]
+      }
+    },
+    aspects: [
+      { p1_name: "Saturn", p2_name: "Sun", aspect: "square", orbit: 0.4 },
+      { p1_name: "Mars", p2_name: "Moon", aspect: "opposition", orbit: 0.6 }
+    ]
 };
 
 // Test framework
@@ -143,6 +153,23 @@ async function runTests() {
     runner.assert(body.person_a.chart.transitsByDate, 'Should have transitsByDate');
     runner.assert(body.person_a.chart.transitsByDate['2024-01-01'].seismograph, 'Daily transit should have seismograph data');
     runner.assert(body.person_a.derived.seismograph_summary, 'Should have seismograph summary');
+  });
+
+  runner.test('Directional bias remains signed for contraction days', async () => {
+    const event = { httpMethod: 'POST', body: JSON.stringify({ personA: VALID_PERSON_A, transitParams: VALID_TRANSIT_PARAMS, context: { mode: 'NATAL_TRANSITS' } }) };
+    const result = await handler(event);
+    runner.assertEqual(result.statusCode, 200);
+    const body = JSON.parse(result.body);
+    const daily = body.person_a.chart.transitsByDate['2024-01-01'];
+    runner.assert(daily?.seismograph, 'Expected seismograph data on the contraction day');
+    const bias = daily.seismograph.bias_signed ?? daily.seismograph.valence;
+    runner.assert(typeof bias === 'number', 'bias_signed should be numeric');
+    const rawValence = daily.seismograph.valence_raw_unbounded;
+    runner.assert(rawValence <= 0, `Expected raw valence to reflect contraction, received ${rawValence}`);
+    runner.assert(bias <= 0, `Expected inward or neutral bias, received ${bias}`);
+    const summaryBias = body.person_a.derived.seismograph_summary?.bias_signed ?? body.person_a.derived.seismograph_summary?.valence;
+    runner.assert(typeof summaryBias === 'number', 'Summary should carry bias_signed');
+    runner.assert(summaryBias <= 0, `Summary bias should mirror contraction, received ${summaryBias}`);
   });
 
   runner.test('Should handle synastry mode', async () => {

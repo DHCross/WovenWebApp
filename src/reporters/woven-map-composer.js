@@ -4,10 +4,12 @@
 
 const { composeHookStack } = require('../feedback/hook-stack-composer');
 const {
-  classifyValence,
+  classifyDirectionalBias,
   classifyMagnitude,
   classifyVolatility,
   classifySfd,
+  classifyNarrativeCoherence,
+  classifyIntegrationBias,
   clamp,
 } = require('../../lib/reporting/metric-labels');
 
@@ -139,20 +141,32 @@ function extractTimeSeries(transitsByDate) {
   for (const [date, v] of Object.entries(transitsByDate)) {
     const seismo = v?.seismograph || v;
     // prefer bounded/balance valence; clamp defensively
-    const balanceVal = safeNum(v?.balance?.valence ?? v?.balance?.valence_bounded);
-    const balanceInfo = balanceVal != null ? classifyValence(balanceVal) : null;
+    const balanceVal = safeNum(
+      v?.balance?.bias_signed ??
+      v?.balance?.valence ??
+      v?.balance?.valence_bounded
+    );
+    const balanceInfo = balanceVal != null ? classifyDirectionalBias(balanceVal) : null;
     const magnitudeVal = safeNum(seismo?.magnitude);
     const magnitudeInfo = magnitudeVal != null ? classifyMagnitude(magnitudeVal) : null;
     const volatilityVal = safeNum(seismo?.volatility);
     const volatilityInfo = volatilityVal != null ? classifyVolatility(volatilityVal) : null;
-    const valenceBounded = safeNum(seismo?.valence_bounded ?? balanceVal ?? seismo?.valence);
-    const valenceInfo = valenceBounded != null ? classifyValence(valenceBounded) : null;
+    const valenceBounded = safeNum(
+      seismo?.bias_signed ??
+      seismo?.valence_bounded ??
+      seismo?.valence ??
+      balanceVal
+    );
+    const valenceInfo = valenceBounded != null ? classifyDirectionalBias(valenceBounded) : null;
     const valenceRaw = safeNum(seismo?.valence_raw_unbounded ?? seismo?.valence_raw ?? seismo?.valence);
     const valenceLabel = seismo?.valence_label || balanceInfo?.label || valenceInfo?.label || null;
     const valenceCode = seismo?.valence_code || balanceInfo?.code || valenceInfo?.code || null;
-    const valenceRange = seismo?.valence_range || v?.balance?.range || [-5, 5];
+    const valenceRange = seismo?.bias_range || seismo?.valence_range || v?.balance?.range || [-5, 5];
     const valenceVersion = seismo?.valence_version || v?.balance?.version || BALANCE_CALIBRATION_VERSION;
-    const valencePolarity = seismo?.valence_polarity || balanceInfo?.polarity || valenceInfo?.polarity || (valenceBounded >= 0 ? 'positive' : 'negative');
+    const valencePolarity = seismo?.valence_polarity || (valenceBounded > 0 ? 'positive' : valenceBounded < 0 ? 'negative' : 'neutral');
+    const biasDirection = seismo?.bias_direction || balanceInfo?.direction || (valenceBounded > 0 ? 'outward' : valenceBounded < 0 ? 'inward' : 'neutral');
+    const biasMethod = seismo?.bias_method || v?.balance?.bias_method || (valenceVersion === BALANCE_CALIBRATION_VERSION ? 'balance_signed_v1' : 'raw_clamp_v1');
+    const biasAbs = safeNum(seismo?.bias_abs ?? Math.abs(valenceBounded));
     const sfdBlock = v?.sfd || {};
     const sfdCont = safeNum(sfdBlock.sfd_cont ?? sfdBlock.value ?? sfdBlock.sfd);
     const sfdInfo = sfdCont != null ? classifySfd(sfdCont) : null;
@@ -174,13 +188,22 @@ function extractTimeSeries(transitsByDate) {
       valence_range: valenceRange,
       valence_version: valenceVersion || BALANCE_CALIBRATION_VERSION,
       valence_polarity: valencePolarity,
+      bias_signed: valenceBounded,
+      bias_abs: biasAbs != null ? +biasAbs.toFixed(2) : null,
+      bias_direction: biasDirection,
+      bias_label: seismo?.bias_label || valenceLabel,
+      bias_code: seismo?.bias_code || valenceCode,
+      bias_motion: seismo?.bias_motion || valenceInfo?.motion || balanceInfo?.motion || null,
+      bias_method: biasMethod,
       volatility: volatilityVal,
       volatility_label: seismo?.volatility_label || volatilityInfo?.label || null,
       confidence: safeNum(seismo?.scaling_confidence),
       balance_valence: balanceVal,
       balance_label: balanceInfo?.label || null,
       balance_emoji: balanceInfo?.emoji || null,
-      balance_polarity: balanceInfo?.polarity || valencePolarity,
+      balance_direction: balanceInfo?.direction || biasDirection,
+      balance_polarity: valencePolarity,
+      balance_bias_method: v?.balance?.bias_method || (balanceVal != null ? biasMethod : null),
       balance_version: v?.balance?.version || seismo?.valence_version || BALANCE_CALIBRATION_VERSION,
       balance_range: v?.balance?.range || valenceRange,
       sfd_cont: sfdCont,
@@ -260,6 +283,7 @@ function summarizeMeterChannels(transitsByDate) {
   let confidenceSum = 0;
   let confidenceCount = 0;
   const balanceValues = [];
+  const balanceMethods = new Set();
   const sfdValues = [];
   const sPlusValues = [];
   const sMinusValues = [];
@@ -271,8 +295,14 @@ function summarizeMeterChannels(transitsByDate) {
       confidenceCount += 1;
     }
 
-    const balVal = safeNum(entry?.balance?.valence ?? entry?.balance?.valence_bounded);
+    const balVal = safeNum(
+      entry?.balance?.bias_signed ??
+      entry?.balance?.valence ??
+      entry?.balance?.valence_bounded
+    );
     if (balVal != null) balanceValues.push(balVal);
+    const balMethod = entry?.balance?.bias_method;
+    if (balMethod) balanceMethods.add(balMethod);
 
     const sfd = safeNum(entry?.sfd?.sfd_cont ?? entry?.sfd?.value ?? entry?.sfd?.sfd);
     if (sfd != null) {
@@ -289,7 +319,7 @@ function summarizeMeterChannels(transitsByDate) {
   const confidence = confidenceCount ? + (confidenceSum / confidenceCount).toFixed(2) : null;
   const balanceAvgRaw = avg(balanceValues);
   const balanceAvg = balanceAvgRaw != null ? +balanceAvgRaw.toFixed(2) : null;
-  const balanceMeta = balanceAvg != null ? classifyValence(balanceAvg) : null;
+  const balanceMeta = balanceAvg != null ? classifyDirectionalBias(balanceAvg) : null;
   const sfdAvgRaw = avg(sfdValues);
   const sfdAvg = sfdAvgRaw != null ? +sfdAvgRaw.toFixed(2) : null;
   const sfdMeta = sfdAvg != null ? classifySfd(sfdAvg) : null;
@@ -306,11 +336,16 @@ function summarizeMeterChannels(transitsByDate) {
     balance: balanceAvg != null ? {
       value: balanceMeta?.value ?? balanceAvg,
       valence: balanceMeta?.value ?? balanceAvg,
+      bias_signed: balanceMeta?.value ?? balanceAvg,
+      bias_abs: balanceMeta?.value != null ? +Math.abs(balanceMeta.value).toFixed(2) : +Math.abs(balanceAvg).toFixed(2),
       label: balanceMeta?.label || null,
       emoji: balanceMeta?.emoji || null,
-      polarity: balanceMeta?.polarity || (balanceAvg >= 0 ? 'positive' : 'negative'),
+      polarity: balanceAvg >= 0 ? 'positive' : (balanceAvg < 0 ? 'negative' : 'neutral'),
+      direction: balanceMeta?.direction || (balanceAvg > 0 ? 'outward' : balanceAvg < 0 ? 'inward' : 'neutral'),
       band: balanceMeta?.band || null,
       code: balanceMeta?.code || null,
+      motion: balanceMeta?.motion || null,
+      bias_method: balanceMethods.size === 1 ? [...balanceMethods][0] : (balanceMethods.size > 1 ? 'mixed' : null),
       sample_size: balanceValues.length,
       version: BALANCE_CALIBRATION_VERSION,
       calibration_mode: BALANCE_CALIBRATION_VERSION,
@@ -328,6 +363,101 @@ function summarizeMeterChannels(transitsByDate) {
       version: SFD_VERSION,
       range: [-5, 5]
     } : null
+  };
+}
+
+function computeFieldSignature(summary, meterChannels, fallbackSfd = null) {
+  const directionSource = safeNum(
+    summary?.bias_signed ??
+    summary?.valence_bounded ??
+    meterChannels?.balance?.bias_signed ??
+    meterChannels?.balance?.value ??
+    summary?.valence
+  );
+  const magnitudeSource = safeNum(summary?.magnitude);
+  const volatilitySource = safeNum(summary?.volatility);
+  const sfdSource = safeNum(
+    meterChannels?.sfd?.value ??
+    meterChannels?.sfd?.sfd_cont ??
+    summary?.support_friction?.value ??
+    summary?.support_friction ??
+    fallbackSfd
+  );
+
+  if (
+    directionSource == null &&
+    magnitudeSource == null &&
+    volatilitySource == null &&
+    sfdSource == null
+  ) {
+    return null;
+  }
+
+  const directionMeta = directionSource != null ? classifyDirectionalBias(directionSource) : null;
+  const magnitudeMeta = magnitudeSource != null ? classifyMagnitude(magnitudeSource) : null;
+  const coherenceMeta = volatilitySource != null ? classifyNarrativeCoherence(volatilitySource) : null;
+  const integrationMeta = sfdSource != null ? classifyIntegrationBias(sfdSource) : null;
+
+  const directionValue = directionMeta?.value ?? (directionSource != null ? +clamp(directionSource, -5, 5).toFixed(2) : null);
+  const chargeValue = magnitudeMeta?.value ?? (magnitudeSource != null ? +clamp(magnitudeSource, 0, 5).toFixed(2) : null);
+  const coherenceValue = volatilitySource != null ? +(5 - clamp(volatilitySource, 0, 5)).toFixed(2) : null;
+  const coherenceRatio = coherenceValue != null ? +(coherenceValue / 5).toFixed(4) : null;
+  const integrationValue = integrationMeta?.value ?? (sfdSource != null ? +clamp(sfdSource, -5, 5).toFixed(2) : null);
+
+  let product = null;
+  if (
+    typeof directionValue === 'number' &&
+    typeof chargeValue === 'number' &&
+    typeof coherenceValue === 'number' &&
+    typeof integrationValue === 'number'
+  ) {
+    const normalizedDirection = directionValue / 5;
+    const normalizedCharge = chargeValue / 5;
+    const normalizedIntegration = integrationValue / 5;
+    product = +(normalizedDirection * normalizedCharge * (coherenceValue / 5) * normalizedIntegration).toFixed(4);
+  }
+
+  return {
+    schema: 'FIELD_SIGNATURE.v1',
+    components: {
+      direction: directionValue,
+      charge: chargeValue,
+      coherence: coherenceValue,
+      coherence_raw: volatilitySource != null ? +volatilitySource.toFixed(2) : null,
+      integration: integrationValue
+    },
+    descriptors: {
+      direction: directionMeta ? {
+        label: directionMeta.label,
+        emoji: directionMeta.emoji,
+        direction: directionMeta.direction,
+        motion: directionMeta.motion
+      } : null,
+      charge: magnitudeMeta ? {
+        label: magnitudeMeta.label
+      } : null,
+      coherence: coherenceMeta ? {
+        label: coherenceMeta.label,
+        emoji: coherenceMeta.emoji,
+        description: coherenceMeta.description
+      } : null,
+      integration: integrationMeta ? {
+        label: integrationMeta.label,
+        cooperation: integrationMeta.cooperation,
+        description: integrationMeta.description
+      } : null
+    },
+    product,
+    notes: {
+      formula: 'Direction × Charge × Coherence × SFD',
+      tooltip: 'Directional lean only lands when charge, storyline coherence, and support-friction alignment agree. Values normalized to front-stage scales (direction −5…+5, charge 0…5, coherence 0…5, SFD −5…+5).'
+    },
+    ratios: {
+      direction: directionValue != null ? +(directionValue / 5).toFixed(4) : null,
+      charge: chargeValue != null ? +(chargeValue / 5).toFixed(4) : null,
+      coherence: coherenceRatio,
+      integration: integrationValue != null ? +(integrationValue / 5).toFixed(4) : null
+    }
   };
 }
 
@@ -837,20 +967,29 @@ function buildBalanceMeter(summary, meterChannels, provenanceVersions) {
   const volatilityVal = volatilityInfo?.value ?? safeNum(summary.volatility);
   const volatilityLabel = summary.volatility_label || volatilityInfo?.label || null;
   const balanceMeta = meterChannels?.balance || null;
-  const valenceSource = summary.valence_bounded ?? balanceMeta?.value ?? summary.valence;
-  const valenceInfo = classifyValence(valenceSource);
-  const valenceVal = valenceInfo?.value ?? safeNum(valenceSource);
+  const valenceSource = safeNum(
+    summary.bias_signed ??
+    summary.valence_bounded ??
+    balanceMeta?.bias_signed ??
+    balanceMeta?.value ??
+    summary.valence
+  );
+  const valenceInfo = valenceSource != null ? classifyDirectionalBias(valenceSource) : null;
+  const valenceVal = valenceInfo?.value ?? valenceSource;
   const valenceRaw = safeNum(summary.valence_raw_unbounded ?? summary.valence_raw);
   const valenceLabel = summary.valence_label || balanceMeta?.label || valenceInfo?.label || null;
-  const valenceRange = Array.isArray(summary.valence_range)
-    ? summary.valence_range
+  const valenceRange = Array.isArray(summary.bias_range || summary.valence_range)
+    ? (summary.bias_range || summary.valence_range)
     : (balanceMeta?.range || [-5, 5]);
   const valenceVersion = summary?.valence_version
     || balanceMeta?.calibration_mode
     || balanceMeta?.version
     || BALANCE_CALIBRATION_VERSION;
   const valenceCode = balanceMeta?.code || valenceInfo?.code || null;
-  const valencePolarity = balanceMeta?.polarity || valenceInfo?.polarity || (valenceVal >= 0 ? 'positive' : 'negative');
+  const biasAbs = safeNum(summary.bias_abs ?? Math.abs(valenceVal ?? 0));
+  const biasDirection = summary.bias_direction || balanceMeta?.direction || valenceInfo?.direction || (valenceVal > 0 ? 'outward' : valenceVal < 0 ? 'inward' : 'neutral');
+  const biasMethod = summary.bias_method || balanceMeta?.bias_method || (valenceVersion === BALANCE_CALIBRATION_VERSION ? 'balance_signed_v1' : 'raw_clamp_v1');
+  const valencePolarity = summary.bias_polarity || (valenceVal > 0 ? 'positive' : valenceVal < 0 ? 'negative' : 'neutral');
   return {
     magnitude: { value: magnitudeVal, label: magnitudeLabel },
     magnitude_label: magnitudeLabel,
@@ -873,6 +1012,14 @@ function buildBalanceMeter(summary, meterChannels, provenanceVersions) {
     valence_range: valenceRange,
     valence_version: valenceVersion,
     valence_raw_unbounded: valenceRaw,
+    bias_signed: valenceVal,
+    bias_abs: biasAbs != null ? +Number(biasAbs).toFixed(2) : null,
+    bias_direction: biasDirection,
+    bias_label: valenceLabel,
+    bias_code: valenceCode,
+    bias_motion: summary.bias_motion || balanceMeta?.motion || valenceInfo?.motion || null,
+    bias_method: biasMethod,
+    bias_range: valenceRange,
     volatility: { value: volatilityVal, label: volatilityLabel, emoji: volatilityInfo?.emoji || null },
     volatility_label: volatilityLabel,
     confidence: meterChannels?.seismograph?.confidence ?? null,
@@ -901,8 +1048,10 @@ function composeWovenMapReport({ result, mode, period, options = {} }) {
   const vectorIntegrity = computeVectorIntegrity(transits, vectorInputs);
   const hookStack = composeHookStack(result, { maxHooks: 4, minIntensity: 8 });
 
+  const fieldSignature = computeFieldSignature(summary, meterChannels, a?.sfd?.sfd ?? a?.summary?.sfd);
+
   const report = {
-    schema: 'WM-WovenMap-1.0',
+    schema: 'WM-WovenMap-1.1',
     type, // 'solo' | 'relational'
     report_family,
     context: {
@@ -948,6 +1097,10 @@ function composeWovenMapReport({ result, mode, period, options = {} }) {
     provenance: result.provenance || null
   };
 
+  if (fieldSignature) {
+    report.field_signature = fieldSignature;
+  }
+
   // Unified comprehensive report structure (replaces mirror_flow/balance_meter split)
   if (report_family === 'comprehensive' || report_family === 'unified') {
     // BLUEPRINT LAYER (natal/relational foundation - always present)
@@ -988,7 +1141,8 @@ function composeWovenMapReport({ result, mode, period, options = {} }) {
         time_series: timeSeries,
         integration_factors: integration,
         transit_context: extractTransitContext(result),
-        field_triggers: extractFieldTriggers(result)
+        field_triggers: extractFieldTriggers(result),
+        field_signature: fieldSignature
       };
 
       // Add relational data if available

@@ -20,6 +20,29 @@ interface BalanceMeterSummaryProps {
     valenceTrend: "improving" | "declining" | "stable";
     volatilityTrend: "stabilizing" | "increasing" | "stable";
   };
+  fieldSignature?: {
+    components?: {
+      direction?: number | null;
+      charge?: number | null;
+      coherence?: number | null;
+      coherence_raw?: number | null;
+      integration?: number | null;
+    };
+    descriptors?: {
+      direction?: { label?: string | null; emoji?: string | null; direction?: string | null; motion?: string | null } | null;
+      charge?: { label?: string | null } | null;
+      coherence?: { label?: string | null; emoji?: string | null; description?: string | null } | null;
+      integration?: { label?: string | null; cooperation?: string | null; description?: string | null } | null;
+    };
+    product?: number | null;
+    notes?: { formula?: string; tooltip?: string } | null;
+    ratios?: {
+      direction?: number | null;
+      charge?: number | null;
+      coherence?: number | null;
+      integration?: number | null;
+    };
+  } | null;
 }
 
 export default function BalanceMeterSummary({
@@ -33,6 +56,7 @@ export default function BalanceMeterSummary({
   activatedHouses,
   isLatentField,
   trends,
+  fieldSignature,
 }: BalanceMeterSummaryProps) {
   const narrative = generateClimateNarrative(overallClimate, overallSfd, activatedHouses, true, isLatentField || false);
 
@@ -46,6 +70,13 @@ export default function BalanceMeterSummary({
     return showSign && value > 0 ? `+${formatted}` : formatted;
   };
 
+  const formatSignatureValue = (value: number | null | undefined, showSign = false): string => {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return formatValue(value, showSign);
+    }
+    return "—";
+  };
+
   const getTrendIcon = (trend: string) => {
     switch (trend) {
       case "increasing": case "improving": return "📈";
@@ -53,6 +84,28 @@ export default function BalanceMeterSummary({
       case "stabilizing": return "📊";
       default: return "➖";
     }
+  };
+
+  const signatureComponents = fieldSignature?.components ?? {};
+  const signatureDescriptors = fieldSignature?.descriptors ?? {};
+  const signatureRatios = fieldSignature?.ratios ?? {};
+  const directionComponent = signatureComponents.direction;
+  const chargeComponent = signatureComponents.charge;
+  const coherenceComponent = signatureComponents.coherence;
+  const coherenceRaw = signatureComponents.coherence_raw;
+  const integrationComponent = signatureComponents.integration;
+  const signatureProduct = fieldSignature?.product ?? null;
+  const signatureTooltip = fieldSignature?.notes?.tooltip;
+  const signatureFormula = fieldSignature?.notes?.formula || "Direction × Charge × Coherence × SFD";
+  const signatureReady = [directionComponent, chargeComponent, coherenceComponent, integrationComponent].every(
+    value => typeof value === "number" && Number.isFinite(value)
+  );
+  const formatRatio = (value: number | null | undefined): string => {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      const signed = value >= 0 ? `+${value.toFixed(3)}` : value.toFixed(3);
+      return signed;
+    }
+    return "—";
   };
 
   return (
@@ -74,6 +127,26 @@ export default function BalanceMeterSummary({
             <span className="text-2xl" aria-hidden="true">{narrative.pattern.icon}</span>
             <span>{narrative.headline}</span>
           </div>
+        </div>
+      </div>
+
+      {/* Axis Legend */}
+      <div className="mb-6 grid grid-cols-1 gap-2 text-xs text-slate-300 md:grid-cols-2">
+        <div className="rounded-md border border-slate-700/60 bg-slate-900/60 p-3">
+          <div className="font-semibold text-indigo-200 uppercase tracking-wider text-[11px] mb-1">Numinosity ⚡</div>
+          <div>0 latent • 3 wave • 5 peak pressure</div>
+        </div>
+        <div className="rounded-md border border-slate-700/60 bg-slate-900/60 p-3">
+          <div className="font-semibold text-indigo-200 uppercase tracking-wider text-[11px] mb-1">Directional Bias ↗️↘️</div>
+          <div>-5 inward • 0 neutral • +5 outward</div>
+        </div>
+        <div className="rounded-md border border-slate-700/60 bg-slate-900/60 p-3">
+          <div className="font-semibold text-indigo-200 uppercase tracking-wider text-[11px] mb-1">Narrative Coherence 📖</div>
+          <div>0 single-thread • 3 mixed • 5 chaotic</div>
+        </div>
+        <div className="rounded-md border border-slate-700/60 bg-slate-900/60 p-3">
+          <div className="font-semibold text-indigo-200 uppercase tracking-wider text-[11px] mb-1">Integration Bias 🤝</div>
+          <div>-1 fragmenting • 0 mixed • +1 stabilizing</div>
         </div>
       </div>
 
@@ -149,6 +222,67 @@ export default function BalanceMeterSummary({
             <div className="text-xs text-slate-400">Do forces cooperate or fragment</div>
           </div>
         </div>
+
+        {fieldSignature && (signatureReady || signatureTooltip || signatureProduct != null) && (
+          <div className="mt-5 rounded-lg border border-indigo-600/30 bg-indigo-900/30 p-4">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-indigo-200">
+              <span>Field Signature</span>
+              <span className="text-[11px] text-indigo-300/90">{signatureFormula}</span>
+              {signatureTooltip && (
+                <span
+                  title={signatureTooltip}
+                  className="ml-auto cursor-help text-indigo-100/80"
+                  aria-label={signatureTooltip}
+                >
+                  ⓘ
+                </span>
+              )}
+            </div>
+
+            <div className="mt-3 text-sm text-slate-100 flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-indigo-100">
+                {formatSignatureValue(directionComponent, true)}
+              </span>
+              <span className="text-xs text-slate-400">
+                {signatureDescriptors.direction?.emoji ? `${signatureDescriptors.direction.emoji} ` : ''}
+                {signatureDescriptors.direction?.label || 'Direction'}
+              </span>
+              <span className="text-slate-500">×</span>
+              <span className="font-semibold text-amber-100">{formatSignatureValue(chargeComponent)}</span>
+              <span className="text-xs text-slate-400">
+                {signatureDescriptors.charge?.label || 'Charge'}
+              </span>
+              <span className="text-slate-500">×</span>
+              <span className="font-semibold text-cyan-100">{formatSignatureValue(coherenceComponent)}</span>
+              <span className="text-xs text-slate-400">
+                {signatureDescriptors.coherence?.emoji ? `${signatureDescriptors.coherence.emoji} ` : ''}
+                {signatureDescriptors.coherence?.label || 'Coherence'}
+                {typeof coherenceRaw === 'number' && Number.isFinite(coherenceRaw) && (
+                  <span className="ml-1 text-[11px] text-slate-500">(vol {formatSignatureValue(coherenceRaw)})</span>
+                )}
+              </span>
+              <span className="text-slate-500">×</span>
+              <span className="font-semibold text-emerald-100">{formatSignatureValue(integrationComponent, true)}</span>
+              <span className="text-xs text-slate-400">
+                {signatureDescriptors.integration?.label || 'SFD'}
+              </span>
+              <span className="text-slate-500">=</span>
+              <span className="font-semibold text-emerald-300">
+                {signatureReady && typeof signatureProduct === 'number' && Number.isFinite(signatureProduct)
+                  ? signatureProduct.toFixed(4)
+                  : '—'}
+              </span>
+            </div>
+
+            <div className="mt-2 text-xs text-slate-400 flex flex-wrap gap-3">
+              <span>Normalized ratios:</span>
+              <span>Dir {formatRatio(signatureRatios.direction)}</span>
+              <span>Charge {formatRatio(signatureRatios.charge)}</span>
+              <span>Coherence {formatRatio(signatureRatios.coherence)}</span>
+              <span>SFD {formatRatio(signatureRatios.integration)}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Period Paradox Analysis */}

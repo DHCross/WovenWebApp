@@ -414,6 +414,37 @@ interface ReportContext {
   relocation?: RelocationSummary;
 }
 
+interface StoredMathBrainPayload {
+  savedAt: string;
+  from?: string;
+  reportType?: string;
+  mode?: string;
+  includeTransits?: boolean;
+  window?: {
+    start?: string;
+    end?: string;
+    step?: string;
+  } | null;
+  subjects?: {
+    personA?: {
+      name?: string;
+      timezone?: string;
+      city?: string;
+      state?: string;
+    } | null;
+    personB?: {
+      name?: string;
+      timezone?: string;
+      city?: string;
+      state?: string;
+    } | null;
+  } | null;
+  payload: any;
+}
+
+const MB_LAST_PAYLOAD_KEY = "mb.lastPayload";
+const MB_LAST_PAYLOAD_ACK_KEY = "mb.lastPayloadAck";
+
 const mapRelocationToPayload = (
   summary: RelocationSummary | null | undefined,
 ): Record<string, any> | undefined => {
@@ -579,7 +610,9 @@ export default function ChatClient() {
   const [priorFocusKeywords, setPriorFocusKeywords] = useState<string[]>([]);
   const [viewportWidth, setViewportWidth] = useState<number | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [storedMbPayload, setStoredMbPayload] = useState<StoredMathBrainPayload | null>(null);
   const isDesktop = (viewportWidth ?? 1024) >= 1024;
+  const reportContextCount = reportContexts.length;
 
   // Developer-only session download functionality
   const [devMode, setDevMode] = useState<boolean>(false);
@@ -596,7 +629,7 @@ export default function ChatClient() {
   const mapVoiceArmed = hasNamedContext('Mirror') || hasNamedContext('Balance');
 
   // Check developer authentication
-  const checkDevAuth = () => {
+  const checkDevAuth = useCallback(() => {
     // Check if user is DHCross via Auth0 or use fallback
     if (typeof window !== "undefined") {
       const auth0User = (window as any).__auth0_user;
@@ -624,7 +657,7 @@ export default function ChatClient() {
     setToast("Developer authentication failed");
     setTimeout(() => setToast(null), 1500);
     return false;
-  };
+  }, [setToast]);
   useEffect(() => {
     return () => {
       if (toastTimeoutRef.current) {
@@ -646,6 +679,31 @@ export default function ChatClient() {
       setIsSidebarOpen(false);
     }
   }, [isDesktop]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (storedMbPayload) return;
+    if (reportContextCount > 0) return;
+    try {
+      const raw = window.localStorage.getItem(MB_LAST_PAYLOAD_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as StoredMathBrainPayload | null;
+      if (!parsed || !parsed.payload) return;
+      const savedAt =
+        typeof parsed.savedAt === "string" && parsed.savedAt
+          ? parsed.savedAt
+          : new Date().toISOString();
+      const ack = window.localStorage.getItem(MB_LAST_PAYLOAD_ACK_KEY);
+      if (ack && ack === savedAt) return;
+      setStoredMbPayload({ ...parsed, savedAt });
+    } catch {
+      // Ignore malformed stored payloads
+    }
+  }, [reportContextCount, storedMbPayload]);
+  useEffect(() => {
+    if (reportContextCount > 0 && storedMbPayload) {
+      setStoredMbPayload(null);
+    }
+  }, [reportContextCount, storedMbPayload]);
   // Math Brain handoff resume (v1.7)
   interface MBLastSession {
     createdAt?: string;
@@ -709,10 +767,11 @@ export default function ChatClient() {
     // Keep most recent messages
     setMessages(prev => {
       const pruned = prev.slice(-MAX_MESSAGES);
+      // eslint-disable-next-line no-console
       console.log(`[Memory] Pruned ${prev.length - pruned.length} old messages`);
       return pruned;
     });
-  }, [messages.length]);
+  }, [messages.length, MAX_MESSAGES]);
 
   useEffect(() => {
     // Truncate large content in messages
@@ -725,140 +784,8 @@ export default function ChatClient() {
       }
       return msg;
     }));
-  }, [messages.length]);
+  }, [messages.length, MAX_CONTENT_SIZE]);
 
-  // Check for report data from Math Brain integration
-  useEffect(() => {
-    // v1.7: Detect Math Brain last session in localStorage for resume banner
-    try {
-      const raw = localStorage.getItem("mb.lastSession");
-      if (raw) {
-        const parsed: MBLastSession = JSON.parse(raw);
-        setMbLastSession(parsed);
-        setShowMbResume(true);
-        // If navigated via deep link, show an extra tiny banner confirming hand-off
-        try {
-          const params = new URLSearchParams(window.location.search);
-          if (params.get("from") === "math-brain") {
-            setShowMbBanner(true);
-          }
-        } catch {}
-      }
-    } catch {}
-
-    const staged = sessionStorage.getItem("woven_report_for_raven");
-    if (!staged) return;
-
-    sessionStorage.removeItem("woven_report_for_raven");
-
-    try {
-      const parsed = JSON.parse(staged);
-      const meta = parsed?.meta ?? {};
-      const rawReport = parsed?.reportData ?? parsed?.report ?? parsed;
-
-      const reportTypeToken = String(meta?.reportType || "mirror")
-        .toLowerCase()
-        .trim();
-      const reportType: "mirror" | "balance" | "journal" =
-        reportTypeToken === "balance"
-          ? "balance"
-          : reportTypeToken === "journal"
-            ? "journal"
-            : "mirror";
-
-      const personName = meta?.person?.name?.trim();
-      const reportName = personName
-        ? `${personName} · Math Brain`
-        : "Math Brain Report";
-
-      const summaryParts: string[] = [];
-      if (meta?.context) summaryParts.push(String(meta.context));
-      const metaSummary = meta?.summary ?? {};
-      const climatePieces = [
-        metaSummary.magnitudeLabel
-          ? `Magnitude ${metaSummary.magnitudeLabel}`
-          : null,
-        metaSummary.valenceLabel
-          ? `Valence ${metaSummary.valenceLabel}`
-          : null,
-        metaSummary.volatilityLabel
-          ? `Volatility ${metaSummary.volatilityLabel}`
-          : null,
-      ]
-        .filter(Boolean)
-        .join(" · ");
-      if (climatePieces) summaryParts.push(climatePieces);
-      const reportSummary = summaryParts.join(" • ");
-
-      const contentString = (() => {
-        if (typeof rawReport === "string") return rawReport;
-        try {
-          return JSON.stringify(rawReport, null, 2);
-        } catch {
-          return staged;
-        }
-      })();
-
-      const timestamp = (() => {
-        if (!meta?.timestamp) return null;
-        try {
-          return new Date(meta.timestamp).toLocaleString();
-        } catch {
-          return null;
-        }
-      })();
-
-      const introLines: string[] = [];
-      introLines.push(
-        personName
-          ? `Loaded Math Brain geometry for ${personName}.`
-          : "Loaded Math Brain geometry.",
-      );
-      if (meta?.context) introLines.push(`Context: ${meta.context}.`);
-      if (timestamp) introLines.push(`Generated on ${timestamp}.`);
-
-      const reportMessage: Message = {
-        id: generateId(),
-        role: "user",
-        html: `<p>${escapeHtml(introLines.join(" ")).replace(/\n/g, "<br/>")}</p>`,
-        isReport: true,
-        reportType,
-        reportName,
-        reportSummary: reportSummary || undefined,
-        collapsed: true,
-        fullContent: contentString,
-      };
-
-      setMessages((prev) => [...prev, reportMessage]);
-
-      const reportContext: ReportContext = {
-        id: generateId(),
-        type: reportType,
-        name: reportName,
-        summary:
-          reportSummary || "Math Brain geometry ready for interpretation",
-        content: contentString,
-      };
-
-      setReportContexts((prev) => {
-        const contextsForAnalysis = [...prev, reportContext];
-        // Kick off analysis once contexts are staged
-        setTimeout(() => {
-          analyzeReportContext(reportContext, contextsForAnalysis);
-        }, 0);
-        return contextsForAnalysis;
-      });
-
-      setRelocation(null);
-      if (reportType === "mirror") {
-        setHasMirrorData(true);
-      }
-    } catch (error) {
-      console.error("Failed to parse report data from sessionStorage:", error);
-    }
-  }, []); // Run once on component mount
-
-  // Developer authentication check on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       const auth0User = (window as any).__auth0_user;
@@ -1140,7 +1067,7 @@ export default function ChatClient() {
       const idx = ravenMessages.findIndex((r) => r.id === last.id);
       if (idx !== -1) setCurrentRavenIndex(idx);
     }
-  }, [messages, ravenMessages.length]);
+  }, [messages, ravenMessages]);
 
   const SCROLL_OFFSET = 120; // header + nav panel padding
 
@@ -1150,7 +1077,7 @@ export default function ChatClient() {
     return container.scrollHeight <= container.clientHeight + 1;
   }, [isDesktop]);
 
-  const scrollMessageElementIntoView = (el: HTMLElement) => {
+  const scrollMessageElementIntoView = useCallback((el: HTMLElement) => {
     const container = streamContainerRef.current;
     if (!shouldUseWindowScroll() && container) {
       const target = el.offsetTop - SCROLL_OFFSET;
@@ -1158,7 +1085,7 @@ export default function ChatClient() {
     } else {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-  };
+  }, [shouldUseWindowScroll]);
 
   const scrollToRavenMessage = (index: number) => {
     const ravenMessage = ravenMessages[index];
@@ -1195,7 +1122,7 @@ export default function ChatClient() {
         if (element) scrollMessageElementIntoView(element);
       }
     }
-  }, [typing, messages]);
+  }, [typing, messages, scrollMessageElementIntoView]);
 
   // Auto-scroll immediately for new user messages to bottom
   useEffect(() => {
@@ -1215,7 +1142,7 @@ export default function ChatClient() {
         if (element) scrollMessageElementIntoView(element);
       }, 100);
     }
-  }, [messages.length]);
+  }, [messages, scrollMessageElementIntoView]);
 
   // IntersectionObserver for reliable auto-scroll on mobile and desktop
   useEffect(() => {
@@ -1309,91 +1236,7 @@ export default function ChatClient() {
     setMessages((m) => m.filter((msg) => msg.id !== messageId));
   }
 
-  async function analyzeReportContext(
-    reportContext: ReportContext,
-    contextsForPayload?: ReportContext[],
-  ) {
-    if (typing) return; // Don't start if already processing
 
-    setTyping(true);
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-
-    // Create optimistic placeholder for Raven's response
-    const ravenId = generateId();
-    setMessages((m: Message[]) => [
-      ...m,
-      {
-        id: ravenId,
-        role: "raven",
-        html: "",
-        climate: "",
-        hook: "",
-        intent: undefined,
-        probe: null,
-        draft: null,
-        prov: null,
-      },
-    ]);
-
-    try {
-      const relocationPayload = mapRelocationToPayload(reportContext.relocation);
-      const baseContexts = contextsForPayload ?? reportContexts;
-      const contextsToSend = baseContexts.some((ctx) => ctx.id === reportContext.id)
-        ? baseContexts
-        : [...baseContexts, reportContext];
-      const payload = {
-        input: reportContext.content,
-        sessionId: ravenSessionId ?? undefined,
-        options: {
-          reportType: reportContext.type,
-          reportId: reportContext.id,
-          reportName: reportContext.name,
-          reportSummary: reportContext.summary,
-          ...(relocationPayload ? { relocation: relocationPayload } : {}),
-          reportContexts: contextsToSend.map((rc) => {
-            const ctxRelocation = mapRelocationToPayload(rc.relocation);
-            return {
-              id: rc.id,
-              type: rc.type,
-              name: rc.name,
-              summary: rc.summary,
-              content: rc.content,
-              ...(ctxRelocation ? { relocation: ctxRelocation } : {}),
-            };
-          }),
-        },
-      };
-      const res = await fetch("/api/raven", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: ctrl.signal,
-      });
-      const data: RavenDraftResponse = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.ok) {
-        const fallback =
-          typeof data?.error === "string"
-            ? data.error
-            : res.ok
-              ? "Raven could not analyze that report."
-              : `Request failed (${res.status})`;
-        commitRavenError(ravenId, fallback);
-        return;
-      }
-      applyRavenResponse(ravenId, data, "No mirror returned for this report.");
-    } catch (e: any) {
-      if (e?.name === "AbortError") {
-        commitRavenError(ravenId, "Report analysis cancelled.");
-      } else {
-        console.error("Report analysis failed:", e);
-        commitRavenError(ravenId, "Analysis error. Try again.");
-      }
-    } finally {
-      setTyping(false);
-      abortRef.current = null;
-    }
-  }
 
   function removeReportContext(contextId: string) {
     setReportContexts((prev) => prev.filter((ctx) => ctx.id !== contextId));
@@ -1826,6 +1669,245 @@ export default function ChatClient() {
     setMessages((m) => [...m, aboutMessage]);
   };
 
+  const exportSessionTranscript = () => {
+    if (typeof window === "undefined") return;
+    try {
+      const stripHtml = (html: string) =>
+        html
+          .replace(/<[^>]*>/g, " ")
+          .replace(/&nbsp;/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      const transcript = {
+        exportedAt: new Date().toISOString(),
+        sessionId: ravenSessionId,
+        contexts: reportContexts.map((ctx) => ({
+          id: ctx.id,
+          type: ctx.type,
+          name: ctx.name,
+          summary: ctx.summary,
+          relocation: ctx.relocation ?? null,
+        })),
+        messages: messages.map((msg) => ({
+          id: msg.id,
+          role: msg.role,
+          html: msg.html,
+          plain: msg.html ? stripHtml(msg.html) : "",
+          climate: msg.climate ?? null,
+          hook: msg.hook ?? null,
+        })),
+        session: sessionContext,
+      };
+      const blob = new Blob([JSON.stringify(transcript, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const stamp = new Date().toISOString().replace(/[:]/g, "-").replace(/\..+$/, "");
+      a.download = `poetic-brain-transcript-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setToast("Transcript exported.");
+      window.setTimeout(() => setToast(null), 2000);
+    } catch {
+      setToast("Transcript export failed. Try again.");
+      window.setTimeout(() => setToast(null), 2200);
+    }
+  };
+
+  const acknowledgeStoredPayload = (timestamp?: string) => {
+    if (typeof window === "undefined") return;
+    try {
+      const token =
+        typeof timestamp === "string" && timestamp
+          ? timestamp
+          : new Date().toISOString();
+      window.localStorage.setItem(MB_LAST_PAYLOAD_ACK_KEY, token);
+    } catch {
+      // ignore storage quota issues
+    }
+  };
+
+  const dismissStoredPayload = (record?: StoredMathBrainPayload | null) => {
+    acknowledgeStoredPayload(record?.savedAt);
+    setStoredMbPayload(null);
+  };
+
+  const applyStoredPayload = async (record: StoredMathBrainPayload) => {
+    if (!record?.payload) {
+      dismissStoredPayload(record);
+      return;
+    }
+    if (typing) {
+      setToast("Hold on—analysis already in progress.");
+      window.setTimeout(() => setToast(null), 2200);
+      return;
+    }
+
+    try {
+      let rawContent: string;
+      let jsonData: any = null;
+
+      if (record.payload && typeof record.payload === "object") {
+        jsonData = record.payload;
+        try {
+          rawContent = JSON.stringify(record.payload);
+        } catch {
+          rawContent = String(record.payload);
+        }
+      } else if (typeof record.payload === "string") {
+        rawContent = record.payload;
+        try {
+          jsonData = JSON.parse(record.payload);
+        } catch {
+          jsonData = null;
+        }
+      } else {
+        rawContent = JSON.stringify(record.payload ?? "");
+      }
+
+      let relocationSummary: RelocationSummary | null = null;
+      let reportInfo = "";
+      let inferredType: ReportContext["type"] | null = null;
+      const typeFromRecord = (() => {
+        const contract = record.reportType?.toLowerCase() ?? "";
+        if (contract.includes("mirror")) return "mirror" as const;
+        if (contract.includes("balance")) return "balance" as const;
+        if (contract.includes("journal")) return "journal" as const;
+        return null;
+      })();
+
+      if (jsonData && typeof jsonData === "object") {
+        const context = jsonData.context || null;
+        const balanceMeter = jsonData.balance_meter || null;
+        if (context) {
+          try {
+            const provenance = jsonData.provenance || context?.provenance || null;
+            if (context?.translocation || provenance?.relocation_mode) {
+              const trans = context?.translocation || {};
+              relocationSummary = summarizeRelocation({
+                type: jsonData.type || record.reportType || "balance",
+                natal:
+                  context.natal || {
+                    name: "",
+                    birth_date: "",
+                    birth_time: "",
+                    birth_place: "",
+                  },
+                translocation: {
+                  applies: Boolean(
+                    (trans?.applies ?? provenance?.relocation_mode ?? false) as boolean,
+                  ),
+                  method: trans?.method || trans?.mode,
+                  mode: trans?.mode,
+                  current_location: trans?.current_location || "Natal Base",
+                  label: trans?.label,
+                  house_system: trans?.house_system,
+                  tz: trans?.tz || trans?.timezone,
+                  timezone: trans?.timezone,
+                  coords: trans?.coords || trans?.coordinates || null,
+                  coordinates: trans?.coordinates || trans?.coords || null,
+                  zodiac_type: trans?.zodiac_type,
+                },
+                provenance,
+                relocation_mode:
+                  provenance?.relocation_mode || trans?.mode || trans?.method || null,
+                relocation_label:
+                  provenance?.relocation_label ||
+                  trans?.label ||
+                  trans?.current_location ||
+                  null,
+              } as any);
+            }
+          } catch {
+            relocationSummary = null;
+          }
+
+          const subjectName =
+            context?.natal?.name ||
+            record.subjects?.personA?.name ||
+            "Unknown";
+
+          if (balanceMeter) {
+            const magnitude = balanceMeter.magnitude || balanceMeter.magnitude_value;
+            const valence = balanceMeter.valence || balanceMeter.valence_label;
+            const magValue =
+              typeof magnitude?.value !== "undefined"
+                ? `${magnitude.value}${magnitude.term ? ` (${magnitude.term})` : ""}`
+                : magnitude?.term || magnitude?.label || "";
+            const valText =
+              valence?.emoji && valence?.term
+                ? `${valence.emoji} ${valence.term}`
+                : valence?.term || "";
+            reportInfo = `Math Brain report for ${subjectName}`;
+            if (magValue) {
+              reportInfo += ` | Magnitude: ${magValue}`;
+            }
+            if (valText) {
+              reportInfo += ` | Valence: ${valText}`;
+            }
+          } else {
+            reportInfo = `Math Brain report for ${subjectName}`;
+          }
+
+          if (
+            jsonData.reports?.templates?.solo_mirror ||
+            /solo mirror/i.test(rawContent)
+          ) {
+            inferredType = "mirror";
+          } else if (
+            jsonData.reports?.templates?.solo_balance_meter ||
+            jsonData.balance_meter
+          ) {
+            inferredType = "balance";
+          }
+        }
+      }
+
+      const resolvedType = (inferredType || typeFromRecord || "balance") as ReportContext["type"];
+      const summaryParts: string[] = [];
+      if (reportInfo) summaryParts.push(reportInfo);
+      if (record.window?.start && record.window?.end) {
+        summaryParts.push(`Window ${record.window.start} → ${record.window.end}`);
+      }
+      if (relocationSummary?.disclosure) summaryParts.push(relocationSummary.disclosure);
+      if (relocationSummary?.status) summaryParts.push(relocationSummary.status);
+
+      const reportContext: ReportContext = {
+        id: generateId(),
+        type: resolvedType,
+        name:
+          reportInfo?.split("|")[0]?.trim() ||
+          (resolvedType === "mirror" ? "Mirror Report" : "Balance Report"),
+        summary: summaryParts.filter(Boolean).join(" • "),
+        content: rawContent,
+        relocation: relocationSummary || undefined,
+      };
+
+      const contextsForAnalysis = [
+        ...reportContexts.filter((ctx) => ctx.id !== reportContext.id),
+        reportContext,
+      ];
+      setReportContexts(contextsForAnalysis);
+      setRelocation(relocationSummary);
+      await analyzeReportContext(reportContext, contextsForAnalysis);
+
+      if (resolvedType === "mirror" || /Math Brain report/i.test(reportInfo)) {
+        setHasMirrorData(true);
+      }
+
+      dismissStoredPayload(record);
+      setToast("Math Brain payload loaded");
+      window.setTimeout(() => setToast(null), 2200);
+    } catch {
+      setToast("Couldn't load the stored Math Brain report. Please upload it manually.");
+      window.setTimeout(() => setToast(null), 2600);
+    }
+  };
+
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -2015,7 +2097,7 @@ export default function ChatClient() {
     return undefined;
   }
 
-  function pushIntentToast(intent?: Intent) {
+  const pushIntentToast = useCallback((intent?: Intent) => {
     const message = getIntentToast(intent);
     if (!message) return;
     setToast(message);
@@ -2023,14 +2105,14 @@ export default function ChatClient() {
       window.clearTimeout(toastTimeoutRef.current);
     }
     toastTimeoutRef.current = window.setTimeout(() => setToast(null), 3200);
-  }
+  }, [setToast, toastTimeoutRef]);
 
-  function commitRavenResult(
+  const applyRavenResponse = useCallback((
     ravenId: string,
     response: RavenDraftResponse,
     fallbackMessage?: string,
-  ) {
-    console.log('[RAVEN_DEBUG] commitRavenResult called with:', { ravenId, hasResponse: !!response, hasDraft: !!response?.draft });
+  ) => {
+    console.log('[RAVEN_DEBUG] applyRavenResponse called with:', { ravenId, hasResponse: !!response, hasDraft: !!response?.draft });
     const guidance =
       typeof response?.guidance === "string" ? response.guidance.trim() : "";
     const html = response?.draft
@@ -2064,20 +2146,144 @@ export default function ChatClient() {
       }),
     );
     console.log('[RAVEN_DEBUG] Message update completed');
-  }
-
-  function applyRavenResponse(
-    ravenId: string,
-    response: RavenDraftResponse,
-    fallbackMessage?: string,
-  ) {
-    console.log('[RAVEN_DEBUG] applyRavenResponse called with:', { ravenId, hasSessionId: !!response.sessionId, intent: response.intent });
+    pushIntentToast(response.intent);
     if (response.sessionId) {
       setRavenSessionId(response.sessionId);
     }
-    pushIntentToast(response.intent);
-    commitRavenResult(ravenId, response, fallbackMessage);
-  }
+  }, [setMessages, setRavenSessionId, pushIntentToast]);
+
+  const analyzeReportContext = useCallback(async (
+    reportContext: ReportContext,
+    contextsForPayload?: ReportContext[],
+  ) => {
+    if (typing) return; // Don't start if already processing
+
+    setTyping(true);
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
+    // Create optimistic placeholder for Raven's response
+    const ravenId = generateId();
+    setMessages((m: Message[]) => [
+      ...m,
+      {
+        id: ravenId,
+        role: "raven",
+        html: "",
+        climate: "",
+        hook: "",
+        intent: undefined,
+        probe: null,
+        draft: null,
+        prov: null,
+      },
+    ]);
+
+    try {
+      const relocationPayload = mapRelocationToPayload(reportContext.relocation);
+      const baseContexts = contextsForPayload ?? reportContexts;
+      const contextsToSend = baseContexts.some((ctx) => ctx.id === reportContext.id)
+        ? baseContexts
+        : [...baseContexts, reportContext];
+      const payload = {
+        input: reportContext.content,
+        sessionId: ravenSessionId ?? undefined,
+        options: {
+          reportType: reportContext.type,
+          reportId: reportContext.id,
+          reportName: reportContext.name,
+          reportSummary: reportContext.summary,
+          ...(relocationPayload ? { relocation: relocationPayload } : {}),
+          reportContexts: contextsToSend.map((rc) => {
+            const ctxRelocation = mapRelocationToPayload(rc.relocation);
+            return {
+              id: rc.id,
+              type: rc.type,
+              name: rc.name,
+              summary: rc.summary,
+              content: rc.content,
+              ...(ctxRelocation ? { relocation: ctxRelocation } : {}),
+            };
+          }),
+        },
+      };
+      const res = await fetch("/api/raven", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: ctrl.signal,
+      });
+      const data: RavenDraftResponse = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        const fallback =
+          typeof data?.error === "string"
+            ? data.error
+            : res.ok
+              ? "Raven could not analyze that report."
+              : `Request failed (${res.status})`;
+        commitRavenError(ravenId, fallback);
+        return;
+      }
+      applyRavenResponse(ravenId, data, "No mirror returned for this report.");
+    } catch (e: any) {
+      if (e?.name === "AbortError") {
+        commitRavenError(ravenId, "Report analysis cancelled.");
+      } else {
+        // eslint-disable-next-line no-console
+        console.error("Report analysis failed:", e);
+        commitRavenError(ravenId, "Analysis error. Try again.");
+      }
+    } finally {
+      setTyping(false);
+      abortRef.current = null;
+    }
+  }, [typing, setTyping, setMessages, ravenSessionId, reportContexts, applyRavenResponse]);
+
+  useEffect(() => {
+    const storedReportContext = sessionStorage.getItem('reportContext');
+    if (storedReportContext) {
+      try {
+        const parsed = JSON.parse(storedReportContext);
+        setTimeout(() => analyzeReportContext(parsed), 100);
+      } catch (e) {
+        // Failed to parse stored report context
+      }
+    }
+  }, [analyzeReportContext]);
+
+  const commitRavenResult = useCallback((
+    ravenId: string,
+    response: RavenDraftResponse,
+    fallbackMessage?: string,
+  ) => {
+    const guidance =
+      typeof response?.guidance === "string" ? response.guidance.trim() : "";
+    const html = response?.draft
+      ? formatShareableDraft(response.draft, response.prov ?? null)
+      : guidance
+        ? `<div class="raven-guard" style="font-size:13px; line-height:1.5; color:var(--muted); white-space:pre-line;">${escapeHtml(guidance)}</div>`
+        : fallbackMessage
+          ? `<p>${escapeHtml(fallbackMessage)}</p>`
+          : "<i>No mirror returned.</i>";
+    const climateDisplay = formatClimate(response?.climate ?? undefined);
+    const hook = formatIntentHook(response?.intent, response?.prov ?? null);
+    setMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id !== ravenId) return msg;
+        const updated = {
+          ...msg,
+          html,
+          climate: climateDisplay ?? msg.climate,
+          hook: hook ?? msg.hook,
+          intent: response.intent ?? msg.intent,
+          probe: response.probe ?? null,
+          draft: response.draft ?? null,
+          prov: response.prov ?? null,
+        };
+        return updated;
+      }),
+    );
+  }, [setMessages]);
 
   function commitRavenError(ravenId: string, message: string) {
     const html = `<i>${escapeHtml(message)}</i>`;
@@ -2129,6 +2335,7 @@ export default function ChatClient() {
         sidebarOpen={isSidebarOpen}
         reportContexts={reportContexts}
         onRemoveReportContext={removeReportContext}
+        onExportTranscript={exportSessionTranscript}
         onPoeticCard={() => {
           generateVisualCard();
         }}
@@ -2165,6 +2372,61 @@ export default function ChatClient() {
         </div>
       )}
       {/* Tiny hand-off banner confirming FIELD → MAP → VOICE context with Balance Meter terms */}
+      {storedMbPayload && reportContextCount === 0 && (
+        <div className="flex justify-center px-3 py-3 bg-[var(--panel)] border-b border-[var(--line)]">
+          {(() => {
+            const subjectName =
+              storedMbPayload.subjects?.personA?.name?.trim() ||
+              "Math Brain report";
+            const partnerName = storedMbPayload.subjects?.personB?.name?.trim();
+            const windowLabel = storedMbPayload.window?.start && storedMbPayload.window?.end
+              ? `${storedMbPayload.window.start} → ${storedMbPayload.window.end}`
+              : storedMbPayload.window?.start || storedMbPayload.window?.end || null;
+            const savedDisplay = (() => {
+              const date = new Date(storedMbPayload.savedAt);
+              return Number.isNaN(date.getTime()) ? "recent" : date.toLocaleString();
+            })();
+            const summary = [
+              windowLabel ? `Window ${windowLabel}` : null,
+              storedMbPayload.includeTransits ? "Transits on" : null,
+              partnerName ? `with ${partnerName}` : null,
+            ]
+              .filter(Boolean)
+              .join(" • ");
+            return (
+              <div className="flex items-center gap-3 border border-[var(--line)] bg-[var(--soft)] rounded-lg px-3 py-2 max-w-[900px] w-full">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11px] text-[var(--muted)]">
+                    Math Brain payload detected
+                  </div>
+                  <div className="text-[13px] text-[var(--text)] truncate">
+                    {subjectName} • {savedDisplay}
+                  </div>
+                  {summary && (
+                    <div className="mt-1 text-[12px] text-[var(--muted)] truncate">
+                      {summary}
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => storedMbPayload && void applyStoredPayload(storedMbPayload)}
+                    className="btn text-[12px] px-2 py-1"
+                  >
+                    Load now
+                  </button>
+                  <button
+                    onClick={() => dismissStoredPayload(storedMbPayload)}
+                    className="btn text-[12px] px-2 py-1 bg-transparent"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
       {showMbBanner && mbLastSession && (
         <div className="flex items-center justify-center gap-3 px-3 py-2 bg-[var(--panel)] border-b border-[var(--line)] text-[13px]">
           {(() => {
@@ -2463,6 +2725,7 @@ export default function ChatClient() {
         setInput={setInput}
         onSend={send}
         onStop={stop}
+        onAttach={() => handleFileSelect(null)}
         disabled={typing}
       />
       {/* Actor/Role Wrap-Up Card (appears only at wrap-up; offers optional rubric) */}
@@ -2564,6 +2827,7 @@ function Header({
   sidebarOpen,
   reportContexts,
   onRemoveReportContext,
+  onExportTranscript,
   onShowWrapUp,
   onShowPendingReview,
   onShowHelp,
@@ -2571,7 +2835,7 @@ function Header({
   showPoeticMenu,
   setShowPoeticMenu,
 }: {
-  onFileSelect: (type: "mirror" | "balance" | "journal") => void;
+  onFileSelect: (type: "mirror" | "balance" | "journal" | null) => void;
   hasMirrorData: boolean;
   onPoeticInsert: () => void;
   onPoeticCard: () => void;
@@ -2581,6 +2845,7 @@ function Header({
   sidebarOpen: boolean;
   reportContexts: ReportContext[];
   onRemoveReportContext: (contextId: string) => void;
+  onExportTranscript: () => void;
   onShowWrapUp: () => void;
   onShowPendingReview: () => void;
   onShowHelp: () => void;
@@ -2606,7 +2871,7 @@ function Header({
       document.addEventListener("click", handleClickOutside);
       return () => document.removeEventListener("click", handleClickOutside);
     }
-  }, [showPoeticMenu]);
+  }, [setShowPoeticMenu, showPoeticMenu]);
 
   const getReportIcon = (type: "mirror" | "balance" | "journal") => {
     switch (type) {
@@ -2706,9 +2971,10 @@ function Header({
           </button>
           <button
             className="btn rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-[10px] py-2 text-[13px] text-[var(--text)]"
-            onClick={() => onFileSelect("journal")}
+            onClick={onExportTranscript}
+            title="Export this session's chat transcript"
           >
-            📔 Journal
+            📔 Transcript
           </button>
 
           {/* Poetic Options Dropdown */}
@@ -3567,6 +3833,7 @@ function Bubble({
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000); // Hide after 2 seconds
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error("Failed to copy text:", err);
     }
   };
@@ -3788,12 +4055,14 @@ function Composer({
   setInput,
   onSend,
   onStop,
+  onAttach,
   disabled,
 }: {
   input: string;
   setInput: React.Dispatch<React.SetStateAction<string>>;
   onSend: () => void;
   onStop: () => void;
+  onAttach: () => void;
   disabled: boolean;
 }) {
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -3859,6 +4128,7 @@ function Composer({
         }
       });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Clipboard paste failed", error);
       showPasteMessage(
         "Clipboard permission was denied—use your device's paste gesture.",
@@ -3876,7 +4146,7 @@ function Composer({
             className="inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-[var(--line)] bg-[var(--soft)] text-[13px] text-[var(--text)] cursor-pointer"
             title="Attach"
             aria-label="Attach a file"
-            onClick={() => (document.getElementById('fileInput') as HTMLInputElement)?.click()}
+            onClick={onAttach}
           >
             📎
           </button>

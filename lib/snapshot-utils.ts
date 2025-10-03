@@ -64,18 +64,25 @@ export function extractWeather(startDate: string, endDate: string, result: any):
 
   // Extract tier-1 hooks with plain language explanations
   const tier1Hooks: Weather['tier1Hooks'] = [];
-  const hooks = result?.person_a?.derived?.woven_map?.hook_stack?.hooks || [];
+  const wovenMap = result?.person_a?.derived?.woven_map ?? result?.woven_map ?? null;
+  const hooks = wovenMap?.hook_stack?.hooks || [];
 
-  hooks.filter((hook: any) => (hook.orb || 0) <= 1.0).slice(0, 3).forEach((hook: any) => {
+  const pushHook = (hook: any) => {
+    if (!hook) return;
     const planetA = hook.planet_a || hook.p1_name || '';
     const planetB = hook.planet_b || hook.p2_name || '';
     const aspect = hook.aspect || hook.type || '';
 
     tier1Hooks.push({
-      label: `${planetA} ${aspect} ${planetB}`,
+      label: `${planetA} ${aspect} ${planetB}`.trim(),
       why: generateHookExplanation(planetA, planetB, aspect)
     });
-  });
+  };
+
+  hooks.filter((hook: any) => (hook.orb || hook.orbit || 0) <= 1.0).slice(0, 3).forEach(pushHook);
+  if (tier1Hooks.length === 0 && hooks.length > 0) {
+    hooks.slice(0, 2).forEach(pushHook);
+  }
 
   return {
     hasWindow,
@@ -86,8 +93,9 @@ export function extractWeather(startDate: string, endDate: string, result: any):
 
 export function extractBlueprint(result: any): Blueprint {
   // Extract thesis from result or generate fallback
-  const voice = result?.person_a?.derived?.woven_map?.voice;
-  const tier1Count = result?.person_a?.derived?.woven_map?.hook_stack?.tier_1_orbs || 0;
+  const wovenMap = result?.person_a?.derived?.woven_map ?? result?.woven_map ?? null;
+  const voice = wovenMap?.voice;
+  const tier1Count = wovenMap?.hook_stack?.tier_1_orbs || 0;
 
   let thesis = voice || '';
   if (!thesis) {
@@ -164,7 +172,8 @@ function generateHookExplanation(planetA: string, planetB: string, aspect: strin
 
 function extractAnchors(result: any): SnapshotAnchor[] {
   const anchors: SnapshotAnchor[] = [];
-  const hooks = result?.person_a?.derived?.woven_map?.hook_stack?.hooks || [];
+  const wovenMap = result?.person_a?.derived?.woven_map ?? result?.woven_map ?? null;
+  const hooks = wovenMap?.hook_stack?.hooks || [];
 
   // Get strongest aspects and convert to anchors
   hooks.slice(0, 3).forEach((hook: any) => {
@@ -187,9 +196,10 @@ function extractAnchors(result: any): SnapshotAnchor[] {
 
 function extractHooks(result: any, relocated: boolean): SnapshotHook[] {
   const hooks: SnapshotHook[] = [];
-  const hookData = result?.person_a?.derived?.woven_map?.hook_stack?.hooks || [];
+  const wovenMap = result?.person_a?.derived?.woven_map ?? result?.woven_map ?? null;
+  const hookData = wovenMap?.hook_stack?.hooks || [];
 
-  hookData.filter((hook: any) => (hook.orb || 0) <= 1.0).slice(0, 3).forEach((hook: any) => {
+  hookData.filter((hook: any) => (hook.orb || hook.orbit || 0) <= 1.0).slice(0, 3).forEach((hook: any) => {
     const planetA = hook.planet_a || hook.p1_name || '';
     const planetB = hook.planet_b || hook.p2_name || '';
     const aspect = hook.aspect || hook.type || '';

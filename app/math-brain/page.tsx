@@ -440,20 +440,29 @@ function extractWeather(startDate: string, endDate: string, result: any): Weathe
 
   // Extract tier-1 hooks with plain language explanations (no bare counts)
   const tier1Hooks: Weather['tier1Hooks'] = [];
-  const hooks = result?.person_a?.derived?.woven_map?.hook_stack?.hooks || [];
+  const wovenMap = result?.person_a?.derived?.woven_map ?? (result as any)?.woven_map ?? null;
+  const hooks = wovenMap?.hook_stack?.hooks || [];
 
-  hooks.filter((hook: any) => (hook.orb || 0) <= 1.0).slice(0, 3).forEach((hook: any) => {
+  const pushHook = (hook: any) => {
+    if (!hook) return;
     const planetA = hook.planet_a || hook.p1_name || '';
     const planetB = hook.planet_b || hook.p2_name || '';
     const aspect = hook.aspect || hook.type || '';
-    const houseNum = String(hook.house || 1).padStart(2, '0');
+    const houseRaw = hook.house || hook.houseTag || hook.house_label || null;
+    const houseNum = houseRaw != null ? String(houseRaw).padStart(2, '0') : null;
 
     tier1Hooks.push({
-      label: `${planetA} ↔ ${planetB}`,
+      label: `${planetA} ↔ ${planetB}`.trim(),
       why: generatePlainLanguageExplanation(planetA, planetB, aspect),
-      houseTag: `A:${houseNum}`
+      houseTag: houseNum ? `A:${houseNum}` : undefined
     });
-  });
+  };
+
+  hooks.filter((hook: any) => (hook.orb || hook.orbit || 0) <= 1.0).slice(0, 3).forEach(pushHook);
+
+  if (tier1Hooks.length === 0 && hooks.length > 0) {
+    hooks.slice(0, 2).forEach(pushHook);
+  }
 
   return {
     hasWindow,
@@ -464,8 +473,9 @@ function extractWeather(startDate: string, endDate: string, result: any): Weathe
 
 function extractBlueprint(result: any): Blueprint {
   // Extract thesis - must be non-empty per contract
-  const voice = result?.person_a?.derived?.woven_map?.voice;
-  const tier1Count = result?.person_a?.derived?.woven_map?.hook_stack?.tier_1_orbs || 0;
+  const wovenMap = result?.person_a?.derived?.woven_map ?? (result as any)?.woven_map ?? null;
+  const voice = wovenMap?.voice;
+  const tier1Count = wovenMap?.hook_stack?.tier_1_orbs || 0;
 
   let thesis = voice || '';
   if (!thesis) {
@@ -2004,7 +2014,7 @@ export default function MathBrainPage() {
       const graphPage = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
       let visualY = PAGE_HEIGHT - MARGIN;
 
-      graphPage.drawText(sanitizeForPDF('Balance Meter Dashboard - Visual Overview'), {
+      graphPage.drawText(sanitizeForPDF('Symbolic Weather Log - Visual Overview'), {
         x: MARGIN,
         y: visualY,
         size: 18,
@@ -2053,7 +2063,7 @@ export default function MathBrainPage() {
       let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
       let yPosition = PAGE_HEIGHT - MARGIN;
 
-      page.drawText(sanitizeForPDF('Balance Meter Dashboard - Complete Analysis Report'), {
+      page.drawText(sanitizeForPDF('Symbolic Weather Log - Complete Analysis Report'), {
         x: MARGIN,
         y: yPosition,
         size: 18,
@@ -2080,7 +2090,7 @@ export default function MathBrainPage() {
       });
       yPosition -= 25;
       const summaryText = [
-        'This Balance Meter Dashboard provides a comprehensive analysis of energetic patterns',
+        'This Symbolic Weather Log provides a comprehensive analysis of energetic patterns',
         'and trends over time, using a combination of astrological calculations and symbolic',
         'climate indicators. The data reveals the interplay between magnitude (intensity),',
         'valence (positive/negative tilt), volatility (instability), and SFD (structural',
@@ -2373,7 +2383,7 @@ export default function MathBrainPage() {
           yPosition -= 13;
         });
       }
-      const footerText = `Generated: ${exportTimestamp.toLocaleString()} | Balance Meter Dashboard Charts`;
+      const footerText = `Generated: ${exportTimestamp.toLocaleString()} | Symbolic Weather Log Charts`;
       page.drawText(sanitizeForPDF(footerText), {
         x: MARGIN,
         y: MARGIN - 20,
@@ -2594,10 +2604,23 @@ export default function MathBrainPage() {
       const bm = symbolicWeather.balance_meter;
       lines.push('BALANCE METER SUMMARY');
       lines.push('─'.repeat(40));
-      if (bm.magnitude !== undefined) lines.push(`Overall Magnitude: ${bm.magnitude_label || bm.magnitude} (${bm.magnitude}/5)`);
-      if (bm.valence !== undefined) lines.push(`Overall Valence: ${bm.valence_label || bm.valence} (${bm.valence})`);
-      if (bm.volatility !== undefined) lines.push(`Overall Volatility: ${bm.volatility_label || bm.volatility} (${bm.volatility}/5)`);
-      if (bm.sfd !== undefined) lines.push(`SFD (Support-Friction): ${bm.sfd}`);
+      if (bm.magnitude !== undefined) {
+        lines.push(`Numinosity (Magnitude): ${bm.magnitude_label || bm.magnitude} (${bm.magnitude}/5)`);
+      }
+      if (bm.bias_signed !== undefined) {
+        lines.push(`Directional Bias: ${bm.bias_label || bm.bias_signed} (${bm.bias_signed})`);
+      } else if (bm.valence !== undefined) {
+        lines.push(`Directional Bias: ${bm.valence_label || bm.valence} (${bm.valence})`);
+      }
+      if (bm.volatility !== undefined) {
+        lines.push(`Narrative Coherence (Volatility): ${bm.volatility_label || bm.volatility} (${bm.volatility}/5)`);
+      }
+      if (bm.support_friction) {
+        const sfd = bm.support_friction;
+        lines.push(`Integration Bias (SFD): ${sfd.sfd_label || sfd.sfd_cont ?? sfd.value}`);
+      } else if (bm.sfd !== undefined) {
+        lines.push(`Integration Bias (SFD): ${bm.sfd}`);
+      }
       lines.push('');
     }
 
@@ -3431,8 +3454,8 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
         return undefined;
       };
 
-      const normalizeToFrontStage = (rawValue: number, metric: 'magnitude' | 'valence' | 'volatility'): number => {
-        if (metric === 'valence') {
+      const normalizeToFrontStage = (rawValue: number, metric: 'magnitude' | 'directional_bias' | 'volatility'): number => {
+        if (metric === 'directional_bias') {
           const clamped = Math.max(-500, Math.min(500, rawValue));
           return Number((clamped / 100).toFixed(2));
         }
@@ -3462,15 +3485,20 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
       if (result?.person_a?.summary) {
         const summary = result.person_a.summary;
         const rawMag = toNumber(summary.magnitude);
-        const rawVal = toNumber(summary.valence_bounded ?? summary.valence);
+        const rawVal = toNumber(summary.bias_signed ?? summary.valence_bounded ?? summary.valence);
         const rawVol = toNumber(summary.volatility);
 
+        const normalizedMag = rawMag ? normalizeToFrontStage(rawMag, 'magnitude') : null;
+        const normalizedBias = rawVal ? normalizeToFrontStage(rawVal, 'directional_bias') : null;
+        const normalizedVol = rawVol ? normalizeToFrontStage(rawVol, 'volatility') : null;
+
         weatherData.balance_meter_summary = {
-          magnitude: rawMag ? normalizeToFrontStage(rawMag, 'magnitude') : null,
-          valence: rawVal ? normalizeToFrontStage(rawVal, 'valence') : null,
-          volatility: rawVol ? normalizeToFrontStage(rawVol, 'volatility') : null,
+          magnitude: normalizedMag,
+          directional_bias: normalizedBias,
+          valence: normalizedBias, // legacy alias
+          volatility: normalizedVol,
           sfd: toNumber(summary.sfd) || null,
-          _scale_note: "magnitude: 0-5, valence: -5 to +5, volatility: 0-5"
+          _scale_note: "magnitude: 0-5, directional_bias: -5 to +5, volatility: 0-5"
         };
       }
 
@@ -3483,14 +3511,19 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
           const dayData = daily[date];
           if (dayData?.seismograph) {
             const rawMag = toNumber(dayData.seismograph.magnitude);
-            const rawVal = toNumber(dayData.seismograph.valence_bounded ?? dayData.seismograph.valence);
+            const rawVal = toNumber(dayData.seismograph.bias_signed ?? dayData.seismograph.valence_bounded ?? dayData.seismograph.valence);
             const rawVol = toNumber(dayData.seismograph.volatility);
+
+            const normalizedMag = rawMag ? normalizeToFrontStage(rawMag, 'magnitude') : null;
+            const normalizedBias = rawVal ? normalizeToFrontStage(rawVal, 'directional_bias') : null;
+            const normalizedVol = rawVol ? normalizeToFrontStage(rawVol, 'volatility') : null;
 
             dailyReadings.push({
               date,
-              magnitude: rawMag ? normalizeToFrontStage(rawMag, 'magnitude') : null,
-              valence: rawVal ? normalizeToFrontStage(rawVal, 'valence') : null,
-              volatility: rawVol ? normalizeToFrontStage(rawVol, 'volatility') : null,
+              magnitude: normalizedMag,
+              directional_bias: normalizedBias,
+              valence: normalizedBias, // legacy alias
+              volatility: normalizedVol,
               sfd: toNumber(dayData.seismograph.sfd) || null,
               // Include aspect context for reference
               aspects: dayData.aspects || [],
@@ -3548,29 +3581,29 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
     };
 
     // Normalize raw values to frontstage ranges
-    const normalizeToFrontStage = (rawValue: number, type: 'magnitude' | 'valence' | 'volatility'): number => {
+    const normalizeToFrontStage = (rawValue: number, type: 'magnitude' | 'directional_bias' | 'volatility'): number => {
       if (type === 'magnitude' || type === 'volatility') {
         // Raw values typically range 0-500+, normalize to 0-5
         return Math.min(5, Math.max(0, Math.round((rawValue / 100) * 10) / 10));
-      } else if (type === 'valence') {
+      } else if (type === 'directional_bias') {
         // Raw values typically range -500 to +500, normalize to -5 to +5
         return Math.min(5, Math.max(-5, Math.round((rawValue / 100) * 10) / 10));
       }
       return rawValue;
     };
 
-    const getStateLabel = (value: number, type: 'magnitude' | 'valence' | 'volatility'): string => {
+    const getStateLabel = (value: number, type: 'magnitude' | 'directional_bias' | 'volatility'): string => {
       if (type === 'magnitude') {
         if (value >= 4) return 'High';
         if (value >= 2) return 'Active';
         if (value >= 1) return 'Murmur';
         return 'Latent';
-      } else if (type === 'valence') {
-        if (value >= 3) return 'High-Positive';
-        if (value >= 1) return 'Positive';
-        if (value >= -1) return 'Neutral';
-        if (value >= -3) return 'Low-Negative';
-        return 'High-Negative';
+      } else if (type === 'directional_bias') {
+        if (value >= 3) return 'Strong Outward';
+        if (value >= 1) return 'Mild Outward';
+        if (value >= -1) return 'Equilibrium';
+        if (value >= -3) return 'Mild Inward';
+        return 'Strong Inward';
       } else if (type === 'volatility') {
         if (value >= 4) return 'Very High';
         if (value >= 2) return 'High';
@@ -3591,17 +3624,23 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
     if (rawResult?.person_a?.summary) {
       const summary = rawResult.person_a.summary;
       const rawMag = toNumber(summary.magnitude);
-      const rawVal = toNumber(summary.valence_bounded ?? summary.valence);
+      const rawVal = toNumber(summary.bias_signed ?? summary.valence_bounded ?? summary.valence);
       const rawVol = toNumber(summary.volatility);
 
+      const normalizedMag = rawMag ? normalizeToFrontStage(rawMag, 'magnitude') : undefined;
+      const normalizedBias = rawVal ? normalizeToFrontStage(rawVal, 'directional_bias') : undefined;
+      const normalizedVol = rawVol ? normalizeToFrontStage(rawVol, 'volatility') : undefined;
+
       frontStageResult.balance_meter = {
-        magnitude: rawMag ? normalizeToFrontStage(rawMag, 'magnitude') : undefined,
-        valence: rawVal ? normalizeToFrontStage(rawVal, 'valence') : undefined,
-        volatility: rawVol ? normalizeToFrontStage(rawVol, 'volatility') : undefined,
-        magnitude_label: rawMag ? getStateLabel(normalizeToFrontStage(rawMag, 'magnitude'), 'magnitude') : undefined,
-        valence_label: rawVal ? getStateLabel(normalizeToFrontStage(rawVal, 'valence'), 'valence') : undefined,
-        volatility_label: rawVol ? getStateLabel(normalizeToFrontStage(rawVol, 'volatility'), 'volatility') : undefined,
-        _scale_note: "magnitude: 0-5, valence: -5 to +5, volatility: 0-5"
+        magnitude: normalizedMag,
+        directional_bias: normalizedBias,
+        valence: normalizedBias, // legacy alias
+        volatility: normalizedVol,
+        magnitude_label: normalizedMag !== undefined ? getStateLabel(normalizedMag, 'magnitude') : undefined,
+        directional_bias_label: normalizedBias !== undefined ? getStateLabel(normalizedBias, 'directional_bias') : undefined,
+        valence_label: normalizedBias !== undefined ? getStateLabel(normalizedBias, 'directional_bias') : undefined,
+        volatility_label: normalizedVol !== undefined ? getStateLabel(normalizedVol, 'volatility') : undefined,
+        _scale_note: "magnitude: 0-5, directional_bias: -5 to +5, volatility: 0-5"
       };
 
       // Update the summary in person_a to use frontstage values
@@ -3609,6 +3648,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
         ...summary,
         magnitude: frontStageResult.balance_meter.magnitude,
         valence: frontStageResult.balance_meter.valence,
+        bias_signed: frontStageResult.balance_meter.directional_bias,
         volatility: frontStageResult.balance_meter.volatility,
         magnitude_label: frontStageResult.balance_meter.magnitude_label,
         valence_label: frontStageResult.balance_meter.valence_label,
@@ -3625,7 +3665,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
         const dayData = daily[date];
         if (dayData?.seismograph) {
           const rawMag = toNumber(dayData.seismograph.magnitude);
-          const rawVal = toNumber(dayData.seismograph.valence_bounded ?? dayData.seismograph.valence);
+          const rawVal = toNumber(dayData.seismograph.bias_signed ?? dayData.seismograph.valence_bounded ?? dayData.seismograph.valence);
           const rawVol = toNumber(dayData.seismograph.volatility);
 
           normalizedDaily[date] = {
@@ -3633,7 +3673,8 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
             seismograph: {
               ...dayData.seismograph,
               magnitude: rawMag ? normalizeToFrontStage(rawMag, 'magnitude') : dayData.seismograph.magnitude,
-              valence: rawVal ? normalizeToFrontStage(rawVal, 'valence') : dayData.seismograph.valence,
+              valence: rawVal ? normalizeToFrontStage(rawVal, 'directional_bias') : dayData.seismograph.valence,
+              bias_signed: rawVal ? normalizeToFrontStage(rawVal, 'directional_bias') : dayData.seismograph.bias_signed,
               volatility: rawVol ? normalizeToFrontStage(rawVol, 'volatility') : dayData.seismograph.volatility
             }
           };
@@ -3774,6 +3815,39 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
       setShowSessionResumePrompt(true);
     } catch (error) {
       console.error('Failed to persist Math Brain session resume data', error);
+    }
+
+    try {
+      const lastPayload = {
+        savedAt: new Date().toISOString(),
+        from: 'math-brain',
+        reportType,
+        mode,
+        includeTransits,
+        window: includeTransits && startDate && endDate ? { start: startDate, end: endDate, step } : undefined,
+        subjects: {
+          personA: {
+            name: personA.name?.trim() || undefined,
+            timezone: personA.timezone || undefined,
+            city: personA.city || undefined,
+            state: personA.state || undefined,
+          },
+          personB:
+            includePersonB && personB
+              ? {
+                  name: personB.name?.trim() || undefined,
+                  timezone: personB.timezone || undefined,
+                  city: personB.city || undefined,
+                  state: personB.state || undefined,
+                }
+              : undefined,
+        },
+        payload: data,
+      };
+      window.localStorage.setItem('mb.lastPayload', JSON.stringify(lastPayload));
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to persist Math Brain payload for Poetic Brain reuse', error);
     }
 
     if (reportType !== 'mirror') {
@@ -5988,10 +6062,10 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                   type="button"
                   onClick={downloadSymbolicWeatherJSON}
                   className="rounded-md border border-blue-700 bg-blue-800/50 px-3 py-1.5 text-blue-100 hover:bg-blue-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-                  aria-label="Download Weather Log JSON for AI pattern analysis"
-                  title="Weather Log: Day-by-day numerical data for trend tracking and AI analysis"
-                >
-                  📊 Weather Log
+                aria-label="Download Symbolic Weather Log JSON for AI pattern analysis"
+                title="Symbolic Weather Log: Day-by-day directional bias, numinosity, and coherence data"
+              >
+                🌦️ Symbolic Weather Log
                 </button>
               )}
               {includeTransits && (
@@ -6014,7 +6088,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                       const confirmNav = window.confirm(
                         '⚠️ Download your report before leaving!\n\n' +
                         'Your Math Brain report will be lost when you navigate away. ' +
-                        'Download "📄 Mirror Directive" or "📊 Weather Log" first.\n\n' +
+                        'Download "📄 Mirror Directive" or "🌦️ Symbolic Weather Log" first.\n\n' +
                         'Continue to Poetic Brain anyway?'
                       );
                       if (confirmNav) {
@@ -6063,7 +6137,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
             const volatilityLabel = summary.volatility_label || (vol >= 3 ? 'Scattered' : vol >= 1 ? 'Variable' : 'Stable');
             return (
               <div ref={balanceGraphsRef} data-balance-export="true">
-                <Section title="Balance Meter Dashboard">
+                <Section title="Symbolic Weather Log">
                 {/* LAYER 1: SUMMARY VIEW (At a Glance) */}
                 <BalanceMeterSummary
                   dateRange={{
@@ -6090,6 +6164,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                     return Object.keys(daily).filter(d => d && d.match(/^\d{4}-\d{2}-\d{2}$/)).length;
                   })()}
                   isLatentField={exEstranged}
+                  fieldSignature={(result as any)?.woven_map?.field_signature ?? null}
                 />
 
                 {layerVisibility.diagnostics && (
