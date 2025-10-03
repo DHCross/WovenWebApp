@@ -499,9 +499,19 @@ function RelocationBanner({ summary }: { summary: RelocationSummary }) {
         {summary.invariants && (
           <div className="text-[11px] text-[var(--muted)]">{summary.invariants}</div>
         )}
-        {summary.coordinates?.timezone && (
+        {summary.active && (summary.natalTimezone || summary.coordinates?.timezone) && (
+          <div className="text-[10px] text-[var(--muted)] space-y-0.5">
+            {summary.natalTimezone && (
+              <div>Natal timezone: {summary.natalTimezone}</div>
+            )}
+            {summary.coordinates?.timezone && (
+              <div>Relocation timezone: {summary.coordinates.timezone}</div>
+            )}
+          </div>
+        )}
+        {!summary.active && summary.natalTimezone && (
           <div className="text-[10px] text-[var(--muted)]">
-            Timezone: {summary.coordinates.timezone}
+            Timezone: {summary.natalTimezone}
           </div>
         )}
         {summary.confidence === "low" && (
@@ -1788,6 +1798,10 @@ export default function ChatClient() {
             const provenance = jsonData.provenance || context?.provenance || null;
             if (context?.translocation || provenance?.relocation_mode) {
               const trans = context?.translocation || {};
+              const personA = jsonData.person_a || {};
+              const personADetails = personA.details || {};
+              const natalTz = personADetails.timezone || context.natal?.timezone || null;
+
               relocationSummary = summarizeRelocation({
                 type: jsonData.type || record.reportType || "balance",
                 natal:
@@ -1796,6 +1810,7 @@ export default function ChatClient() {
                     birth_date: "",
                     birth_time: "",
                     birth_place: "",
+                    timezone: natalTz,
                   },
                 translocation: {
                   applies: Boolean(
@@ -1974,6 +1989,10 @@ export default function ChatClient() {
           const provenance = jsonData.provenance || context.provenance || null;
           if (context?.translocation || provenance?.relocation_mode) {
             const trans = context?.translocation || {};
+            const personA = jsonData.person_a || {};
+            const personADetails = personA.details || {};
+            const natalTz = personADetails.timezone || context.natal?.timezone || null;
+
             relocationSummary = summarizeRelocation({
               // @ts-ignore allow flexible json
               type: jsonData.type || "balance",
@@ -1982,6 +2001,7 @@ export default function ChatClient() {
                 birth_date: "",
                 birth_time: "",
                 birth_place: "",
+                timezone: natalTz,
               },
               translocation: {
                 applies: Boolean(trans?.applies ?? provenance?.relocation_mode),
@@ -2343,6 +2363,7 @@ export default function ChatClient() {
           requestDemoCard();
         }}
         onShowWrapUp={() => setShowWrapUpCard(true)}
+        onShowReadingSummary={() => setShowReadingSummary(true)}
         onShowPendingReview={() => setShowPendingReview(true)}
         onShowHelp={() => setShowHelp(true)}
         devMode={devMode}
@@ -2709,17 +2730,6 @@ export default function ChatClient() {
         </>
       )}
 
-      {/* End Current Reading Button - Subtle placement */}
-      <div className="flex items-center justify-end border-t border-[var(--line)] bg-[var(--bg)] px-[18px] py-2">
-        <button
-          className="btn cursor-pointer rounded-[10px] border border-[var(--line)] bg-transparent px-2 py-1 text-[11px] text-[var(--muted)] opacity-60 transition-opacity hover:opacity-100"
-          onClick={() => setShowReadingSummary(true)}
-          title="End current reading and show comprehensive summary"
-        >
-          🔮 End Reading
-        </button>
-      </div>
-
       <Composer
         input={input}
         setInput={setInput}
@@ -2829,6 +2839,7 @@ function Header({
   onRemoveReportContext,
   onExportTranscript,
   onShowWrapUp,
+  onShowReadingSummary,
   onShowPendingReview,
   onShowHelp,
   devMode,
@@ -2847,6 +2858,7 @@ function Header({
   onRemoveReportContext: (contextId: string) => void;
   onExportTranscript: () => void;
   onShowWrapUp: () => void;
+  onShowReadingSummary: () => void;
   onShowPendingReview: () => void;
   onShowHelp: () => void;
   devMode?: boolean;
@@ -2941,8 +2953,8 @@ function Header({
           </div>
         </div>
 
-        <div className="hidden items-center gap-2.5 md:flex">
-          <HitRateDisplay className="hidden sm:block" />
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <HitRateDisplay />
           <UsageMeter compact={true} className="block" />
           {pendingCount > 0 && (
             <button
@@ -2953,6 +2965,13 @@ function Header({
               ● {pendingCount} pending
             </button>
           )}
+          <button
+            className="btn rounded-[10px] border border-purple-600 bg-purple-900/20 px-3 py-1.5 text-[12px] text-purple-200 hover:bg-purple-900/40 transition-colors"
+            onClick={onShowReadingSummary}
+            title="End current reading and show comprehensive summary"
+          >
+            🔮 End Reading
+          </button>
         </div>
 
         {/* Core File Upload Buttons - Always Visible */}

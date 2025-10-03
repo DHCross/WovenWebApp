@@ -76,6 +76,7 @@ export interface NatalContext {
   birth_date: string;
   birth_time: string;
   birth_place: string;
+  timezone?: string; // Natal timezone (IANA)
 }
 
 export interface ReportContext {
@@ -97,6 +98,7 @@ export interface RelocationSummary {
   invariants: string;
   confidence: "normal" | "low";
   coordinates: RelocationCoordinates | null;
+  natalTimezone: string | null; // Birth timezone from natal chart
   houseSystem: string | null;
   zodiacType: string | null;
   engineVersions: Record<string, string> | null;
@@ -105,6 +107,7 @@ export interface RelocationSummary {
     relocation_label: string | null;
     coords: RelocationCoordinates | null;
     tz: string | null;
+    natal_tz: string | null;
     house_system: string | null;
     zodiac_type: string | null;
     engine_versions: Record<string, string> | null;
@@ -269,6 +272,13 @@ export function summarizeRelocation(ctx: ReportContext): RelocationSummary {
     (applies ? "event" : "birthplace");
   const mode = normalizeRelocationMode(rawMode, fallbackMode);
 
+  // Extract natal timezone from natal context
+  const natalTimezone = firstDefined(
+    ctx?.natal?.timezone,
+    provenance?.natal_timezone,
+    provenance?.birth_timezone,
+  );
+
   const active = relocationActive(mode);
   const label = firstDefined(
     t?.current_location,
@@ -337,6 +347,7 @@ export function summarizeRelocation(ctx: ReportContext): RelocationSummary {
     invariants,
     confidence,
     coordinates,
+    natalTimezone: natalTimezone ?? null,
     houseSystem: houseSystem ?? null,
     zodiacType: zodiacType ?? null,
     engineVersions,
@@ -345,6 +356,7 @@ export function summarizeRelocation(ctx: ReportContext): RelocationSummary {
       relocation_label: active ? (label ?? null) : null,
       coords: coordinates,
       tz: coordinates?.timezone ?? null,
+      natal_tz: natalTimezone ?? null,
       house_system: houseSystem ?? null,
       zodiac_type: zodiacType ?? null,
       engine_versions: engineVersions,

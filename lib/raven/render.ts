@@ -1,7 +1,5 @@
 import type { NormalizedGeometry, NormalizedPlacement, NormalizedAspect } from './normalize';
-import { ContractLinter, lintAndFixPayload } from '../../src/contract-linter';
-import { renderFrontstage as renderFrontstageNew, validatePayload } from '../../src/frontstage-renderer';
-import { ReportMode } from '../../src/schema-rule-patch';
+import type { ReportMode } from '../../src/schema-rule-patch';
 
 interface RenderOptions {
   geo: NormalizedGeometry | null;
@@ -9,6 +7,31 @@ interface RenderOptions {
   options?: Record<string, any>;
   conversational?: boolean;
   mode?: ReportMode;
+}
+
+type ContractLinterModule = typeof import('../../src/contract-linter');
+type FrontstageRendererModule = typeof import('../../src/frontstage-renderer');
+
+let contractLinterMod: ContractLinterModule | null = null;
+let frontstageRendererMod: FrontstageRendererModule | null = null;
+
+async function ensureFrontstageModules() {
+  if (!contractLinterMod) {
+    try {
+      contractLinterMod = await import('../../src/contract-linter');
+    } catch (error) {
+      console.warn('Contract linter module unavailable; falling back to legacy rendering.', error);
+      contractLinterMod = null;
+    }
+  }
+  if (!frontstageRendererMod) {
+    try {
+      frontstageRendererMod = await import('../../src/frontstage-renderer');
+    } catch (error) {
+      console.warn('Frontstage renderer module unavailable; falling back to legacy rendering.', error);
+      frontstageRendererMod = null;
+    }
+  }
 }
 
 const ELEMENT_TONES: Record<'Fire' | 'Earth' | 'Air' | 'Water', { feeling: string; option: string; next: string }> = {
@@ -433,6 +456,14 @@ export async function renderShareableMirror({ geo, prov, options, conversational
       };
 
       enrichContractPayload(payload);
+
+      await ensureFrontstageModules();
+      if (!contractLinterMod || !frontstageRendererMod) {
+        throw new Error('Frontstage modules unavailable');
+      }
+
+      const { lintAndFixPayload, ContractLinter } = contractLinterMod;
+      const { renderFrontstage: renderFrontstageNew } = frontstageRendererMod;
 
       // Lint and validate the payload
       const { payload: cleanedPayload, result: lintResult } = lintAndFixPayload(payload);

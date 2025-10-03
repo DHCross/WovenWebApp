@@ -160,7 +160,7 @@ export default function BalanceMeterSummary({
 
       {/* Overall Period Story */}
       <div className="mb-6 rounded-md bg-indigo-900/30 p-5 border-l-4 border-indigo-300">
-        <h3 className="text-sm font-semibold text-indigo-200 mb-3">Period Climate Pattern</h3>
+        <h3 className="text-sm font-semibold text-indigo-200 mb-3">Period Symbolic Climate Pattern</h3>
         <p className="text-slate-100 leading-relaxed mb-3 text-base">
           {narrative.story}
         </p>
@@ -191,27 +191,52 @@ export default function BalanceMeterSummary({
             )}
           </div>
 
-          <div className="bg-slate-900/60 rounded-lg p-4 border border-slate-600/50">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-slate-400">Directional Bias ↗️↘️</span>
-              <span className="text-xl font-bold text-blue-300">{formatValue(narrative.dimensions.valence.value, true)}</span>
-            </div>
-            <div className="text-sm text-slate-200 mb-1">{narrative.dimensions.valence.label}</div>
-            <div className="text-xs text-slate-400">Which way energy leans (inward/outward)</div>
-            {dailyRanges && (dailyRanges.biasMin !== dailyRanges.biasMax) && (
-              <div className="mt-2 pt-2 border-t border-slate-700/50">
-                <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Daily Range</div>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className={`${dailyRanges.biasMin < 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                    {formatValue(dailyRanges.biasMin, true)} {dailyRanges.biasMin < 0 ? '(contraction)' : ''}
-                  </span>
-                  <span className="text-slate-600">→</span>
-                  <span className={`${dailyRanges.biasMax > 0 ? 'text-green-400' : 'text-slate-400'}`}>
-                    {formatValue(dailyRanges.biasMax, true)} {dailyRanges.biasMax > 0 ? '(expansion)' : ''}
-                  </span>
-                </div>
+          <div className="bg-slate-900/60 rounded-lg p-4 border border-slate-600/50 relative overflow-hidden">
+            {/* Visual indicator background for positive/negative bias */}
+            <div 
+              className={`absolute inset-0 opacity-10 ${
+                narrative.dimensions.valence.value > 0 
+                  ? 'bg-gradient-to-r from-transparent to-emerald-500' 
+                  : narrative.dimensions.valence.value < 0 
+                  ? 'bg-gradient-to-r from-rose-500 to-transparent'
+                  : 'bg-slate-800'
+              }`}
+              aria-hidden="true"
+            />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-slate-400">Directional Bias ↗️↘️</span>
+                <span className={`text-xl font-bold ${
+                  narrative.dimensions.valence.value > 0 
+                    ? 'text-emerald-300' 
+                    : narrative.dimensions.valence.value < 0 
+                    ? 'text-rose-300'
+                    : 'text-blue-300'
+                }`}>
+                  {formatValue(narrative.dimensions.valence.value, true)}
+                </span>
               </div>
-            )}
+              <div className="text-sm text-slate-200 mb-1">{narrative.dimensions.valence.label}</div>
+              <div className="text-xs text-slate-400">
+                {narrative.dimensions.valence.value > 0 && '↗️ Outward expansion energy'}
+                {narrative.dimensions.valence.value < 0 && '↘️ Inward contraction energy'}
+                {narrative.dimensions.valence.value === 0 && 'Neutral equilibrium'}
+              </div>
+              {dailyRanges && (dailyRanges.biasMin !== dailyRanges.biasMax) && (
+                <div className="mt-2 pt-2 border-t border-slate-700/50">
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Daily Range</div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className={`font-medium ${dailyRanges.biasMin < 0 ? 'text-rose-400' : 'text-slate-400'}`}>
+                      {formatValue(dailyRanges.biasMin, true)} {dailyRanges.biasMin < 0 ? '↘️' : ''}
+                    </span>
+                    <span className="text-slate-600">→</span>
+                    <span className={`font-medium ${dailyRanges.biasMax > 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
+                      {formatValue(dailyRanges.biasMax, true)} {dailyRanges.biasMax > 0 ? '↗️' : ''}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
             {trends && (
               <div className="text-xs text-slate-300 mt-2 flex items-center gap-1">
                 <span>{getTrendIcon(trends.valenceTrend)}</span>
@@ -310,7 +335,7 @@ export default function BalanceMeterSummary({
       {/* Period Paradox Analysis */}
       <div className="mb-6">
         <h4 className="text-sm font-semibold text-slate-300 mb-4 uppercase tracking-wider">
-          {isLatentField ? 'Dormant Field Climate (Conditional)' : 'Period Pattern Analysis'}
+          {isLatentField ? 'Dormant Field Symbolic Climate (Conditional)' : 'Period Pattern Analysis'}
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-yellow-900/20 rounded-lg p-4 border border-yellow-700/40">

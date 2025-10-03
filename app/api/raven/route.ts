@@ -143,19 +143,24 @@ function summariseUploadedReportJson(raw: string): {
     ['reports', 'balance_meter', 'climate', 'line'],
   ]);
 
+  // BM-v3: magnitude_0to5 is the primary field
   const magnitude = pickNumber(parsed, [
+    ['balance_meter', 'magnitude_0to5'],
     ['balance_meter', 'magnitude'],
     ['balance_meter', 'magnitude', 'value'],
     ['balance_meter', 'summary', 'magnitude'],
     ['balance_meter', 'summary', 'magnitude', 'value'],
+    ['balance_meter', 'seismograph', 'magnitude_0to5'],
     ['balance_meter', 'seismograph', 'magnitude'],
     ['balance_meter', 'climate', 'magnitude'],
+    ['seismograph', 'magnitude_0to5'],
     ['seismograph', 'magnitude'],
     ['summary', 'balance_meter', 'magnitude'],
     ['summary', 'balance_meter', 'magnitude', 'value'],
     ['reports', 'balance_meter', 'magnitude'],
     ['reports', 'balance_meter', 'magnitude', 'value'],
     ['balance_meter_summary', 'magnitude'],
+    ['dailyRanges', 'magnitudeMin'], // Fallback to min if single value not found
   ]);
   const magnitudeLabel = pickString(parsed, [
     ['balance_meter', 'magnitude', 'label'],
@@ -165,42 +170,87 @@ function summariseUploadedReportJson(raw: string): {
     ['summary', 'balance_meter', 'magnitude_label'],
   ]);
 
+  // BM-v3: bias_signed replaced valence (with -5 to +5 range)
   const valence = pickNumber(parsed, [
+    ['balance_meter', 'bias_signed'],
+    ['balance_meter', 'directional_bias'],
     ['balance_meter', 'valence'],
     ['balance_meter', 'valence', 'value'],
     ['balance_meter', 'valence_bounded'],
+    ['balance_meter', 'climate', 'bias_signed'],
     ['balance_meter', 'climate', 'valence'],
     ['balance_meter', 'climate', 'valence_bounded'],
+    ['balance_meter', 'seismograph', 'bias_signed'],
+    ['seismograph', 'bias_signed'],
     ['seismograph', 'valence'],
+    ['summary', 'balance_meter', 'bias_signed'],
     ['summary', 'balance_meter', 'valence'],
     ['summary', 'balance_meter', 'valence', 'value'],
+    ['reports', 'balance_meter', 'bias_signed'],
     ['reports', 'balance_meter', 'valence'],
     ['reports', 'balance_meter', 'valence', 'value'],
+    ['balance_meter_summary', 'bias_signed'],
     ['balance_meter_summary', 'valence'],
+    ['dailyRanges', 'biasMin'], // Fallback to min if single value not found
   ]);
   const valenceLabel = pickString(parsed, [
+    ['balance_meter', 'bias_signed', 'label'],
+    ['balance_meter', 'directional_bias', 'label'],
     ['balance_meter', 'valence', 'label'],
     ['balance_meter', 'valence', 'term'],
     ['balance_meter', 'valence_label'],
+    ['balance_meter', 'climate', 'bias_label'],
     ['balance_meter', 'climate', 'valence_label'],
+    ['summary', 'balance_meter', 'bias_label'],
     ['summary', 'balance_meter', 'valence_label'],
   ]);
 
+  // BM-v3: coherence_0to5 replaced volatility
   const volatility = pickNumber(parsed, [
+    ['balance_meter', 'coherence_0to5'],
+    ['balance_meter', 'coherence'],
+    ['balance_meter', 'narrative_coherence'],
     ['balance_meter', 'volatility'],
     ['balance_meter', 'volatility', 'value'],
+    ['balance_meter', 'climate', 'coherence'],
     ['balance_meter', 'climate', 'volatility'],
+    ['balance_meter', 'seismograph', 'coherence_0to5'],
     ['balance_meter', 'seismograph', 'volatility'],
+    ['seismograph', 'coherence_0to5'],
     ['seismograph', 'volatility'],
+    ['summary', 'balance_meter', 'coherence'],
     ['summary', 'balance_meter', 'volatility'],
+    ['reports', 'balance_meter', 'coherence'],
     ['reports', 'balance_meter', 'volatility'],
     ['reports', 'balance_meter', 'volatility', 'value'],
+    ['balance_meter_summary', 'coherence'],
     ['balance_meter_summary', 'volatility'],
   ]);
   const volatilityLabel = pickString(parsed, [
+    ['balance_meter', 'coherence', 'label'],
+    ['balance_meter', 'coherence_label'],
     ['balance_meter', 'volatility', 'label'],
     ['balance_meter', 'volatility', 'term'],
     ['balance_meter', 'volatility_label'],
+  ]);
+
+  // BM-v3: sfd_cont_minus1to1 (Integration Bias / Support-Friction Differential)
+  const sfd = pickNumber(parsed, [
+    ['balance_meter', 'sfd_cont_minus1to1'],
+    ['balance_meter', 'sfd_cont'],
+    ['balance_meter', 'sfd'],
+    ['balance_meter', 'integration_bias'],
+    ['balance_meter', 'seismograph', 'sfd_cont_minus1to1'],
+    ['balance_meter', 'seismograph', 'sfd_cont'],
+    ['seismograph', 'sfd_cont_minus1to1'],
+    ['seismograph', 'sfd_cont'],
+    ['summary', 'balance_meter', 'sfd'],
+    ['reports', 'balance_meter', 'sfd'],
+  ]);
+  const sfdLabel = pickString(parsed, [
+    ['balance_meter', 'sfd', 'label'],
+    ['balance_meter', 'sfd_label'],
+    ['balance_meter', 'integration_bias_label'],
   ]);
 
   const periodStart = pickString(parsed, [
@@ -251,12 +301,17 @@ function summariseUploadedReportJson(raw: string): {
   }
   if (typeof valence === 'number') {
     summaryPieces.push(
-      `Valence ${valence.toFixed(2)}${valenceLabel ? ` (${valenceLabel})` : ''}`
+      `Directional Bias ${valence.toFixed(2)}${valenceLabel ? ` (${valenceLabel})` : ''}`
     );
   }
   if (typeof volatility === 'number') {
     summaryPieces.push(
-      `Volatility ${volatility.toFixed(2)}${volatilityLabel ? ` (${volatilityLabel})` : ''}`
+      `Coherence ${volatility.toFixed(2)}${volatilityLabel ? ` (${volatilityLabel})` : ''}`
+    );
+  }
+  if (typeof sfd === 'number') {
+    summaryPieces.push(
+      `Integration ${sfd.toFixed(2)}${sfdLabel ? ` (${sfdLabel})` : ''}`
     );
   }
 
@@ -287,10 +342,12 @@ function summariseUploadedReportJson(raw: string): {
   if (periodEnd) appendix.period_end = periodEnd;
   if (typeof magnitude === 'number') appendix.magnitude = magnitude;
   if (magnitudeLabel) appendix.magnitude_label = magnitudeLabel;
-  if (typeof valence === 'number') appendix.valence = valence;
-  if (valenceLabel) appendix.valence_label = valenceLabel;
-  if (typeof volatility === 'number') appendix.volatility = volatility;
-  if (volatilityLabel) appendix.volatility_label = volatilityLabel;
+  if (typeof valence === 'number') appendix.directional_bias = valence;
+  if (valenceLabel) appendix.directional_bias_label = valenceLabel;
+  if (typeof volatility === 'number') appendix.coherence = volatility;
+  if (volatilityLabel) appendix.coherence_label = volatilityLabel;
+  if (typeof sfd === 'number') appendix.integration_bias = sfd;
+  if (sfdLabel) appendix.integration_bias_label = sfdLabel;
   if (hooks.length) appendix.hooks = hooks.slice(0, 3);
 
   const draft: Record<string, any> = { picture, feeling, container, option, next_step };
@@ -470,7 +527,31 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error('Raven API Error:', error);
+
+    // Enhanced error logging
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+
+    // Log request details for debugging
+    try {
+      const url = new URL(req.url);
+      console.error('Request URL:', url.pathname);
+      console.error('Request method:', req.method);
+    } catch (e) {
+      console.error('Could not log request details:', e);
+    }
+
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    return NextResponse.json({ ok: false, error: 'Failed to process request', details: errorMessage }, { status: 500 });
+    const errorDetails = error instanceof Error && error.stack ? error.stack.split('\n').slice(0, 3).join('\n') : errorMessage;
+
+    return NextResponse.json({
+      ok: false,
+      error: 'Failed to process request',
+      details: errorMessage,
+      stack: process.env.NODE_ENV === 'development' ? errorDetails : undefined
+    }, { status: 500 });
   }
 }
