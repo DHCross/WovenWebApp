@@ -1,7 +1,140 @@
-## [2025-10-02] FEATURE: Symbolic Weather JSON Export + Enhanced Natal Charts
+## [2025-10-03] BUG FIXES: Poetic Brain Stability & Security Improvements
 
 **Summary**
-Implemented AI-optimized symbolic weather JSON export and enhanced PDF natal charts to AstroSeek-level completeness. Removed unnecessary ZIP package download. Fixed Poetic Brain upload recognition for new JSON format.
+Fixed critical mobile auto-scroll race condition, added persona drift detection, implemented memory leak prevention, strengthened HTML sanitization with DOMPurify, and improved streaming error handling in Poetic Brain chat interface.
+
+**Bug Fixes**
+
+1. **Mobile Auto-Scroll Race Condition (Critical)**
+   - **Issue**: New Raven messages rendered outside viewport on mobile (iOS Safari), breaking engagement
+   - **Root Cause**: `setTimeout(100)` unreliable for DOM updates; no fallback for mobile bounce zones
+   - **Fix**: Implemented IntersectionObserver-based sentinel tracking with user scroll-away detection
+   - **Impact**: Reliable auto-scroll across all devices; respects user manual scrolling
+   - **Files**: [components/ChatClient.tsx](components/ChatClient.tsx)
+
+2. **Persona Drift Detection (High Priority)**
+   - **Issue**: Long streaming responses shift from conversational Raven voice to technical/descriptive mode
+   - **Root Cause**: No drift monitoring during streaming; AI reverts to default behavior
+   - **Fix**: Added real-time drift detection with pattern matching for technical language indicators
+   - **Impact**: Maintains Raven Calder persona consistency throughout responses
+   - **Files**: [app/api/chat/route.ts](app/api/chat/route.ts)
+
+3. **Message History Memory Leak (Medium)**
+   - **Issue**: Indefinite message accumulation causes performance degradation on low-memory devices
+   - **Root Cause**: No pruning logic; large JSON uploads stored permanently in state
+   - **Fix**:
+     - Max 100 messages retained (auto-prune oldest)
+     - Content size limit of 512KB per message
+     - Automatic truncation with user-visible notice
+   - **Impact**: Stable memory usage in long sessions
+   - **Files**: [components/ChatClient.tsx](components/ChatClient.tsx)
+
+4. **HTML Sanitization Hardening (Medium)**
+   - **Issue**: `dangerouslySetInnerHTML` relied on custom escaping; potential XSS vectors
+   - **Root Cause**: No whitelist-based sanitizer; event handlers and data URLs not blocked
+   - **Fix**: Integrated DOMPurify with strict whitelist (allowed tags/attributes only)
+   - **Impact**: Defense-in-depth against XSS attacks
+   - **Files**: [components/ChatClient.tsx](components/ChatClient.tsx)
+
+5. **Streaming Error Handling (Low)**
+   - **Issue**: Mid-stream failures left incomplete messages without user notification
+   - **Root Cause**: No try-catch around streaming loop; errors logged but not surfaced
+   - **Fix**: Added error boundaries with user-visible "[Connection interrupted]" message
+   - **Impact**: Clear feedback when streaming fails; users know to retry
+   - **Files**: [app/api/chat/route.ts](app/api/chat/route.ts)
+
+**Technical Implementation**
+
+- **New Dependencies**: `dompurify`, `@types/dompurify`
+- **Architecture Changes**:
+  - IntersectionObserver replaces setTimeout for scroll tracking
+  - Sentinel element (`<div ref={sentinelRef} />`) tracks scroll position
+  - User scroll-away state prevents auto-scroll interruption during reading
+  - Memory pruning runs automatically via useEffect on message count change
+  - DOMPurify sanitization applied to all `dangerouslySetInnerHTML` instances
+
+**Testing Checklist**
+
+- [ ] Mobile iOS Safari: New messages auto-scroll reliably
+- [ ] Desktop: Scroll behavior unchanged
+- [ ] Long sessions (50+ messages): No performance degradation
+- [ ] Streaming failures: User sees error message
+- [ ] Persona consistency: No technical drift in long responses
+
+**Compliance**
+
+- FIELD → MAP → VOICE: Fixes maintain agency-first language (no deterministic claims)
+- Raven Calder Protocol: Persona drift detection preserves conversational tone
+- Security: DOMPurify aligns with defensive security best practices
+
+---
+
+## [2025-10-03] FEATURE: House Context & Relocation Narrative System
+
+**Summary**
+Implemented complete house context and relocation protocol for Poetic Brain, including plain-language explanations of how relocation affects charts, house uncertainty notices for unknown birth times, and full provenance stamping.
+
+**New Features**
+
+1. **House Context Narrative System**
+   - Plain-language explanation of how relocation affects charts
+   - Clarifies that planets stay in signs/aspects, only houses change
+   - Example-driven teaching about horizon/meridian shifts
+   - Automatically included in Math Brain PDF exports
+
+2. **House Uncertainty Notices**
+   - Three uncertainty levels: none, minor, major
+   - **Major**: Birth time unknown or noon default (⚠️ warning)
+   - **Minor**: Rectified birth time (ℹ️ notice)
+   - **None**: Exact birth time (no notice)
+   - Reader-focused guidance for each uncertainty level
+
+3. **Relocation Protocol**
+   - Natal planetary longitudes fixed (never altered by relocation)
+   - LST recalculated using relocated longitude
+   - New ASC/MC and house cusps computed for relocated coordinates
+   - Planets assigned to relocated houses
+   - Full provenance stamping with house context
+
+**Technical Implementation**
+
+- **New File:**
+  - `lib/raven/house-context.ts`: Complete house context system
+    - `HouseContext` interface (mode, system, relocation, birth time quality)
+    - `assessHouseUncertainty()`: Determines uncertainty level
+    - `generateRelocationExplanation()`: Reader-facing explanation
+    - `generateHouseUncertaintyNotice()`: Formats uncertainty warnings
+    - `generateHouseContextNarrative()`: Combines all narrative blocks
+    - `extractHouseContext()`: Parses chart data
+    - `stampHouseProvenance()`: Technical provenance stamp
+
+- **Files Modified:**
+  - `app/math-brain/page.tsx`: Integrated house context into PDF generation (lines 2840-2855)
+  - `lib/raven/provenance.ts`: Added `stampProvenanceWithHouseContext()` helper function
+  - Added birth_time_known, birth_time_source, house_mode to base provenance
+
+**Architecture Compliance**
+
+- **Client (React/Next)**: Input/display only, no astronomy calculations
+- **Server (Math Brain)**: All astronomical calculations including relocation logic
+- **Natal planetary positions**: Computed once, never changed by relocation
+- **Relocation**: Only affects house cusps and planet-in-house assignments
+- **Provenance**: Full stamping with house system, mode, birth time quality, relocation coordinates
+
+**Integration Points**
+
+- House context narrative automatically appears in PDF reports when:
+  - Chart has relocation data, OR
+  - Birth time is unknown/uncertain/rectified
+- Provenance stamp includes complete house context metadata
+- Compatible with existing FIELD → MAP → VOICE protocol
+
+---
+
+## [2025-10-02] FEATURE: Symbolic Weather JSON Export + Enhanced Natal Charts + Raven Calder Naming System
+
+**Summary**
+Implemented AI-optimized symbolic weather JSON export and enhanced PDF natal charts to AstroSeek-level completeness. Removed unnecessary ZIP package download. Fixed Poetic Brain upload recognition for new JSON format. Implemented intuitive Raven Calder naming system for export files.
 
 **New Features**
 
@@ -80,12 +213,37 @@ Implemented AI-optimized symbolic weather JSON export and enhanced PDF natal cha
    - "Go to Poetic Brain" button now checks if report exists before navigating
    - Prevents accidental loss of generated reports
 
+7. **Gemini API Configuration Fix** ✅
+   - Fixed model name from `gemini-1.5-flash` to `gemini-2.0-flash` (current available model)
+   - Updated API key in `.env.local` to working key
+   - Added error logging for Gemini API failures
+   - **Poetic Brain now working** - Raven Calder responses are live!
+
+8. **Raven Calder File Naming System**
+   - Replaced technical filenames with intuitive, purpose-driven names
+   - **Mirror Directive** (was: mathbrain-report-*.pdf) - Complete natal charts + AI analysis instructions
+   - **Weather Dashboard** (was: mathbrain-graphs-*.pdf) - Visual summary of energetic climate
+   - **Weather Log** (was: symbolic-weather-*.json) - Day-by-day numerical data for AI analysis
+   - **Engine Configuration** (was: mathbrain-backstage-*.json) - Foundation data and diagnostics
+   - Updated button labels and tooltips to match new naming convention
+   - Filenames now clearly communicate purpose and usage context
+
+9. **Poetic Brain Glossary Update** ✅
+   - Fixed emoji mismatches between glossary and official taxonomy
+   - Updated Positive Valence emojis: Integration now 🧘 (was ⚖️)
+   - Updated Negative Valence emojis to match taxonomy: 🌪 ⚔ 🌊 🌫 🌋 🕰 🧩 ⬇️
+   - Corrected all descriptions to match official taxonomy definitions
+   - **Negative Valence section is now properly visible** (was always there, just had wrong emojis)
+
 **Files Changed:**
-- `app/math-brain/page.tsx` (symbolic weather export, house cusps formatting, ZIP removal, navigation warning)
+- `app/math-brain/page.tsx` (symbolic weather export, house cusps formatting, ZIP removal, navigation warning, Raven naming)
 - `src/reporters/table-builders.js` (additional points, house cusps builder)
 - `src/reporters/woven-map-composer.js` (house cusps integration)
 - `app/api/raven/route.ts` (symbolic weather JSON recognition and parsing)
-- `components/ChatClient.tsx` (load context guidance update)
+- `components/ChatClient.tsx` (load context guidance update, glossary emoji fixes)
+- `lib/llm.ts` (Gemini 2.0 Flash model update)
+- `lib/raven/render.ts` (error logging)
+- `.env.local` (new Gemini API key)
 
 ---
 

@@ -43,6 +43,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "dompurify": "^3.2.7",
     "dotenv": "^17.2.2",
     "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.12.1",
@@ -64,6 +65,7 @@
   "devDependencies": {
     "@babel/preset-env": "^7.28.3",
     "@netlify/plugin-nextjs": "^5.13.2",
+    "@types/dompurify": "^3.0.5",
     "@types/jest": "^30.0.0",
     "@types/node": "20.11.30",
     "@types/react": "18.2.79",

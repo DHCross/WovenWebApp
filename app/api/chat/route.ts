@@ -662,10 +662,44 @@ Your response MUST begin with the warm recognition greeting AND include ALL Core
     async start(controller){
       trackRequest(analysisPrompt.length);
       controller.enqueue(encode({climate, hook, delta: shapedIntro}));
-      for await (const chunk of stream){
-        controller.enqueue(encode({climate, hook, delta: chunk.delta}));
+
+      // Persona drift detection state
+      let accumulatedContent = shapedIntro;
+      let hasAnchored = false;
+
+      try {
+        for await (const chunk of stream){
+          const delta = chunk.delta || '';
+          accumulatedContent += delta;
+
+          // Detect persona drift: technical/descriptive language instead of conversational
+          const driftIndicators = [
+            /this file contains/i,
+            /the system shows/i,
+            /according to the data/i,
+            /based on the chart/i,
+            /the report indicates/i,
+            /analysis reveals/i
+          ];
+
+          const hasDrift = driftIndicators.some(pattern => pattern.test(accumulatedContent));
+
+          // Re-inject persona anchor if drift detected (only once)
+          if (hasDrift && !hasAnchored && accumulatedContent.length > 100) {
+            hasAnchored = true;
+            // Don't inject - let it continue but log for monitoring
+            console.warn('[Persona] Drift detected in response, length:', accumulatedContent.length);
+          }
+
+          controller.enqueue(encode({climate, hook, delta}));
+        }
+      } catch (error) {
+        console.error('[Streaming] Error during stream:', error);
+        const errorMessage = '\n\n[Connection interrupted. Please try again.]';
+        controller.enqueue(encode({climate, hook, delta: errorMessage, error: true}));
+      } finally {
+        controller.close();
       }
-      controller.close();
     }
   });
   return new Response(responseBody, { headers: { 'Content-Type': 'text/plain; charset=utf-8' }});

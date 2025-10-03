@@ -1,6 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import DOMPurify from "dompurify";
 import { generateId } from "../lib/id";
 import { formatFullClimateDisplay, ClimateData } from "../lib/climate-renderer";
 import UsageMeter from "./UsageMeter";
@@ -21,6 +22,21 @@ import {
 } from "../lib/ui-strings";
 import type { Intent } from "../lib/raven/intent";
 import type { SSTProbe } from "../lib/raven/sst";
+
+// Sanitize HTML with DOMPurify - whitelist-based for security
+const sanitizeHtml = (html: string): string => {
+  if (typeof window === 'undefined' || !DOMPurify) {
+    // On server or if DOMPurify not available, return escaped HTML
+    return escapeHtml(html);
+  }
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['div', 'span', 'p', 'strong', 'em', 'b', 'i', 'ul', 'ol', 'li', 'br', 'a', 'code', 'pre', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'style'],
+    ALLOW_DATA_ATTR: false,
+    KEEP_CONTENT: true
+  });
+};
+
 // simple HTML escaper for user-originated plain text rendering safety
 const escapeHtml = (s: string) =>
   s.replace(
@@ -546,7 +562,10 @@ export default function ChatClient() {
   >(null);
   const [hasMirrorData, setHasMirrorData] = useState(false);
   const [showScrollHint, setShowScrollHint] = useState(false);
+
   const streamContainerRef = useRef<HTMLElement | null>(null);
+  const [userScrolledAway, setUserScrolledAway] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [ravenSessionId, setRavenSessionId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimeoutRef = useRef<number | null>(null);
@@ -679,6 +698,34 @@ export default function ChatClient() {
 
   // Navigation state for Raven messages
   const [currentRavenIndex, setCurrentRavenIndex] = useState(0);
+
+  // Memory management: prune old messages to prevent leaks
+  const MAX_MESSAGES = 100;
+  const MAX_CONTENT_SIZE = 512 * 1024; // 512KB per message
+
+  useEffect(() => {
+    if (messages.length <= MAX_MESSAGES) return;
+
+    // Keep most recent messages
+    setMessages(prev => {
+      const pruned = prev.slice(-MAX_MESSAGES);
+      console.log(`[Memory] Pruned ${prev.length - pruned.length} old messages`);
+      return pruned;
+    });
+  }, [messages.length]);
+
+  useEffect(() => {
+    // Truncate large content in messages
+    setMessages(prev => prev.map(msg => {
+      if (msg.fullContent && msg.fullContent.length > MAX_CONTENT_SIZE) {
+        return {
+          ...msg,
+          fullContent: msg.fullContent.substring(0, MAX_CONTENT_SIZE) + '\n\n[Content truncated for memory management]'
+        };
+      }
+      return msg;
+    }));
+  }, [messages.length]);
 
   // Check for report data from Math Brain integration
   useEffect(() => {
@@ -1170,6 +1217,38 @@ export default function ChatClient() {
     }
   }, [messages.length]);
 
+  // IntersectionObserver for reliable auto-scroll on mobile and desktop
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // Track if user has scrolled away from the sentinel
+        const isNearBottom = entry.isIntersecting || entry.intersectionRatio > 0;
+        setUserScrolledAway(!isNearBottom);
+      },
+      { threshold: [0, 0.1, 1.0], rootMargin: "0px 0px 50px 0px" }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
+
+  // Auto-scroll to sentinel when new messages arrive (unless user scrolled away)
+  useEffect(() => {
+    if (messages.length === 0) return;
+    if (userScrolledAway && typing) return; // Don't interrupt user reading
+
+    const sentinel = sentinelRef.current;
+    if (sentinel) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        sentinel.scrollIntoView({ behavior: "smooth", block: "end" });
+      }, 100);
+    }
+  }, [messages.length, typing, userScrolledAway]);
+
   // Check if user has manually scrolled away from reading position during streaming
   useEffect(() => {
     const container = streamContainerRef.current;
@@ -1212,6 +1291,7 @@ export default function ChatClient() {
     // Don't show hint initially when typing starts - let Raven position naturally
     if (!typing) {
       setShowScrollHint(false);
+      setUserScrolledAway(false); // Reset scroll-away state when typing stops
     }
 
     return () => target.removeEventListener("scroll", handleScroll);
@@ -1604,8 +1684,8 @@ export default function ChatClient() {
     }
   }
 
-  const handleFileSelect = (type: "mirror" | "balance" | "journal") => {
-    setUploadType(type);
+  const handleFileSelect = (type: "mirror" | "balance" | "journal" | null) => {
+    if (type) setUploadType(type);
     fileInputRef.current?.click();
   };
 
@@ -2034,6 +2114,7 @@ export default function ChatClient() {
     >
       <input
         type="file"
+        id="fileInput"
         ref={fileInputRef}
         onChange={handleFileChange}
         style={{ display: "none" }}
@@ -2306,6 +2387,7 @@ export default function ChatClient() {
             messages={messages}
             typing={typing}
             endRef={endRef}
+            sentinelRef={sentinelRef}
             containerRef={streamContainerRef}
             onToggleCollapse={toggleReportCollapse}
             onRemove={removeReport}
@@ -2914,42 +2996,42 @@ function Sidebar({
           <GlossaryItem
             symbol="🌱"
             title="Fertile Field"
-            description="Growth-supportive conditions"
+            description="Growth, fresh shoots"
           />
           <GlossaryItem
             symbol="✨"
             title="Harmonic Resonance"
-            description="Natural alignment and flow"
+            description="Natural ease"
           />
           <GlossaryItem
             symbol="💎"
             title="Expansion Lift"
-            description="Elevating, broadening energy"
+            description="Confidence, abundance"
           />
           <GlossaryItem
             symbol="🔥"
             title="Combustion Clarity"
-            description="Clear, focused intensity"
+            description="Breakthrough insight"
           />
           <GlossaryItem
             symbol="🦋"
-            title="Liberation/Release"
-            description="Freedom from constraints"
+            title="Liberation / Release"
+            description="Uranian fresh air"
           />
           <GlossaryItem
-            symbol="⚖️"
+            symbol="🧘"
             title="Integration"
-            description="Balanced synthesis"
+            description="Opposites reconcile"
           />
           <GlossaryItem
             symbol="🌊"
             title="Flow Tide"
-            description="Natural momentum"
+            description="Smooth adaptability"
           />
           <GlossaryItem
             symbol="🌈"
             title="Visionary Spark"
-            description="Inspirational breakthrough"
+            description="Inspiration, transcendence"
           />
 
           <div
@@ -2963,44 +3045,44 @@ function Sidebar({
             Negative Valence Modes
           </div>
           <GlossaryItem
-            symbol="♾️"
+            symbol="🌪"
             title="Recursion Pull"
-            description="Repetitive patterns drawing back"
+            description="Old cycles re-emerge"
           />
           <GlossaryItem
-            symbol="⚔️"
+            symbol="⚔"
             title="Friction Clash"
-            description="Opposing forces in conflict"
+            description="Conflict, accidents"
           />
           <GlossaryItem
-            symbol="↔️"
+            symbol="🌊"
             title="Cross Current"
-            description="Contradictory energies"
+            description="Competing flows, confusion"
           />
           <GlossaryItem
-            symbol="🌫️"
-            title="Fog/Dissolution"
-            description="Unclear, dissolving boundaries"
+            symbol="🌫"
+            title="Fog / Dissolution"
+            description="Blurred boundaries, signals scatter"
           />
           <GlossaryItem
             symbol="🌋"
-            title="Pressure/Eruption"
-            description="Building tension seeking release"
+            title="Pressure / Eruption"
+            description="Compression until release"
           />
           <GlossaryItem
-            symbol="⏳"
+            symbol="🕰"
             title="Saturn Weight"
-            description="Heavy, restrictive pressure"
+            description="Heaviness, delay"
           />
           <GlossaryItem
             symbol="🧩"
             title="Fragmentation"
-            description="Scattered, disconnected pieces"
+            description="Fractured focus"
           />
           <GlossaryItem
-            symbol="🕳️"
+            symbol="⬇️"
             title="Entropy Drift"
-            description="Dissolving structure"
+            description="Inertia, energy drains away"
           />
 
           <div style={sectionTitle}>Sources of Force</div>
@@ -3372,6 +3454,7 @@ function Stream({
   messages,
   typing,
   endRef,
+  sentinelRef,
   containerRef,
   onToggleCollapse,
   onRemove,
@@ -3380,6 +3463,7 @@ function Stream({
   messages: Message[];
   typing: boolean;
   endRef: React.Ref<HTMLDivElement>;
+  sentinelRef: React.Ref<HTMLDivElement>;
   containerRef: React.Ref<HTMLElement>;
   onToggleCollapse: (messageId: string) => void;
   onRemove: (messageId: string) => void;
@@ -3427,6 +3511,7 @@ function Stream({
           typing…
         </div>
       )}
+      <div ref={sentinelRef} style={{ height: "1px", visibility: "hidden" }} />
       <div ref={endRef} />
     </section>
   );
@@ -3559,7 +3644,7 @@ function Bubble({
         {!msg.collapsed && (
           <div
             className={msg.role === "raven" ? "raven-response" : ""}
-            dangerouslySetInnerHTML={{ __html: msg.html }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(msg.html) }}
           />
         )}
       </article>
@@ -3614,7 +3699,7 @@ function Bubble({
       )}
       <div
         className={msg.role === "raven" ? "raven-response" : ""}
-        dangerouslySetInnerHTML={{ __html: primaryHtml }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(primaryHtml) }}
         style={{
           minHeight: msg.role === "raven" && !primaryHtml ? '20px' : 'auto',
           WebkitTextSizeAdjust: '100%',
@@ -3640,7 +3725,7 @@ function Bubble({
           {showMirror && (
             <div
               dangerouslySetInnerHTML={{
-                __html: formatShareableDraft(msg.draft, msg.prov),
+                __html: sanitizeHtml(formatShareableDraft(msg.draft, msg.prov)),
               }}
             />
           )}
@@ -3791,6 +3876,7 @@ function Composer({
             className="inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-[var(--line)] bg-[var(--soft)] text-[13px] text-[var(--text)] cursor-pointer"
             title="Attach"
             aria-label="Attach a file"
+            onClick={() => (document.getElementById('fileInput') as HTMLInputElement)?.click()}
           >
             📎
           </button>
@@ -3978,7 +4064,7 @@ function PendingReviewSheet({ onClose }: { onClose: () => void }) {
           >
             <div
               className="text-[12px] text-[#e2e8f0] mb-2"
-              dangerouslySetInnerHTML={{ __html: it.messageContent || "" }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(it.messageContent || "") }}
             />
             <div className="flex gap-2 flex-wrap mb-2">
               {(["yes", "maybe", "no", "unclear"] as PingResponse[]).map(

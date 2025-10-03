@@ -860,6 +860,26 @@ export default function MathBrainPage() {
     [reportContractType, includePersonB, personASlug, personBSlug, dateRangeSlug]
   );
 
+  // User-friendly filename helper (Raven Calder naming system)
+  const friendlyFilename = useCallback(
+    (type: 'directive' | 'dashboard' | 'weather-log' | 'engine-config') => {
+      const duo = includePersonB
+        ? `${personASlug}-${personBSlug}`
+        : personASlug;
+      const dateStr = dateRangeSlug || 'no-dates';
+
+      const nameMap = {
+        'directive': 'Mirror_Directive',
+        'dashboard': 'Weather_Dashboard',
+        'weather-log': 'Weather_Log',
+        'engine-config': 'Engine_Configuration'
+      };
+
+      return `${nameMap[type]}_${duo}_${dateStr}`;
+    },
+    [includePersonB, personASlug, personBSlug, dateRangeSlug]
+  );
+
   const toggleLayerVisibility = useCallback((key: keyof LayerVisibility) => {
     setLayerVisibility((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
@@ -2367,7 +2387,7 @@ export default function MathBrainPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${filenameBase('mathbrain-graphs')}.pdf`;
+      a.download = `${friendlyFilename('dashboard')}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -2815,6 +2835,23 @@ IMPORTANT: This comprehensive astrological data should be synthesized into the c
         }
 
         // Synastry summary removed - aspect grid below is sufficient
+      }
+
+      // Add house context and relocation narrative
+      try {
+        const { extractHouseContext, generateHouseContextNarrative } = await import('@/lib/raven/house-context');
+        const houseContext = extractHouseContext(result);
+        const houseNarrative = generateHouseContextNarrative(houseContext);
+
+        if (houseNarrative) {
+          sections.push({
+            title: 'House Context & Relocation',
+            body: houseNarrative,
+            mode: 'regular'
+          });
+        }
+      } catch (err) {
+        console.error('House context generation failed:', err);
       }
 
       // Add data tables if available
@@ -3321,7 +3358,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${filenameBase('mathbrain-report')}.pdf`;
+      link.download = `${friendlyFilename('directive')}.pdf`;
       document.body.appendChild(link);
       link.click();
       setTimeout(() => {
@@ -3349,7 +3386,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${filenameBase('mathbrain-result')}.json`;
+      a.download = `${filenameBase('mathbrain-result')}.json`; // Keep technical name for "Clean JSON" (not in Raven system)
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -3366,7 +3403,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${filenameBase('mathbrain-backstage')}.json`;
+      a.download = `${friendlyFilename('engine-config')}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -3475,7 +3512,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${filenameBase('symbolic-weather')}.json`;
+      a.download = `${friendlyFilename('weather-log')}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -5913,8 +5950,8 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                 onClick={downloadResultPDF}
                 disabled={pdfGenerating}
                 className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                aria-label="Download PDF for AI instance (Raven Calder GEM or Poetic Brain)"
-                title="Download chart data with ANALYSIS DIRECTIVE for AI instance"
+                aria-label="Download Mirror Directive PDF (complete natal charts + Raven Calder analysis instructions)"
+                title="Mirror Directive: Complete natal data with AI reading instructions"
               >
                 {pdfGenerating ? (
                   <>
@@ -5925,16 +5962,17 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                     Generating...
                   </>
                 ) : (
-                  '📄 PDF Only'
+                  '📄 Mirror Directive'
                 )}
               </button>
               <button
                 type="button"
                 onClick={downloadBackstageJSON}
                 className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-                aria-label="Download raw JSON"
+                aria-label="Download Engine Configuration JSON"
+                title="Engine Configuration: Foundation natal data, system settings, and diagnostics"
               >
-                Download JSON (Raw)
+                🔧 Engine Configuration
               </button>
               <button
                 type="button"
@@ -5950,15 +5988,21 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                   type="button"
                   onClick={downloadSymbolicWeatherJSON}
                   className="rounded-md border border-blue-700 bg-blue-800/50 px-3 py-1.5 text-blue-100 hover:bg-blue-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-                  aria-label="Download symbolic weather JSON for AI analysis"
-                  title="Lightweight JSON optimized for AI pattern analysis (ChatGPT, Claude, Gemini)"
+                  aria-label="Download Weather Log JSON for AI pattern analysis"
+                  title="Weather Log: Day-by-day numerical data for trend tracking and AI analysis"
                 >
-                  📊 Symbolic Weather JSON
+                  📊 Weather Log
                 </button>
               )}
               {includeTransits && (
-                <button type="button" onClick={downloadGraphsPDF} className="rounded-md border border-emerald-700 bg-emerald-800/50 px-3 py-1.5 text-emerald-100 hover:bg-emerald-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" aria-label="Download graphs and charts as PDF">
-                  📊 Download Graphs PDF
+                <button
+                  type="button"
+                  onClick={downloadGraphsPDF}
+                  className="rounded-md border border-emerald-700 bg-emerald-800/50 px-3 py-1.5 text-emerald-100 hover:bg-emerald-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                  aria-label="Download Weather Dashboard PDF (visual summary)"
+                  title="Weather Dashboard: At-a-glance visual summary of energetic climate"
+                >
+                  📊 Weather Dashboard
                 </button>
               )}
               {canVisitPoetic ? (
@@ -5970,7 +6014,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                       const confirmNav = window.confirm(
                         '⚠️ Download your report before leaving!\n\n' +
                         'Your Math Brain report will be lost when you navigate away. ' +
-                        'Click "Download PDF" or "📊 Symbolic Weather JSON" first.\n\n' +
+                        'Download "📄 Mirror Directive" or "📊 Weather Log" first.\n\n' +
                         'Continue to Poetic Brain anyway?'
                       );
                       if (confirmNav) {

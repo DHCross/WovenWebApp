@@ -498,6 +498,7 @@ export async function renderShareableMirror({ geo, prov, options, conversational
       full = await generateText(prompt, { personaHook: 'poetic' });
     } catch (err) {
       // Fallback: if LLM is unavailable, produce a short human-friendly canned reply
+      console.error('[RAVEN] Gemini API call failed, using fallback response:', err);
       full = `I'm here and listening. ${userMessage ? `You said: "${userMessage}".` : ''} I notice a quiet moment — take one breath.\nPICTURE: A quiet room at dusk.\nFEELING: Contemplative.\nCONTAINER: Just this moment, right here.\nOPTION: You can either explore this feeling further or shift your focus to something practical.\nNEXT_STEP: Take one deep breath.`;
     }
     // Attempt to extract structured five parts from the model output if present; otherwise create fallback stubs
