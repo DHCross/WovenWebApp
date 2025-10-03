@@ -27,6 +27,8 @@
  * @property {number} S
  */
 
+const { scaleMagnitude } = require('../lib/reporting/canonical-scaling');
+
 const OUTER = new Set(["Saturn","Uranus","Neptune","Pluto"]);
 const PERSONAL = new Set(["Sun","Moon","Mercury","Venus","Mars","ASC","MC","IC","DSC"]);
 const ANGLES = new Set(["ASC","MC","IC","DSC"]);
@@ -112,6 +114,16 @@ function sensitivityMultiplier(natalBody, isAngle=false, isLum=false, critical=f
   if (critical) s *= 1.1;
   return s;
 } 
+
+function median(values = []) {
+  if (!Array.isArray(values) || values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+  return sorted[mid];
+}
 
 function scoreAspect(inA, flags={}){
   const a = normalizeAspect(inA);
@@ -261,34 +273,63 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
 
   let X = Math.min(5, X_raw / opts.magnitudeDivisor);
   X = Math.min(5, X + multiplicityBonus(scored, opts));
-  
+
   // Store the original magnitude before normalization
   const X_original = X;
-  
+
   // Calculate confidence based on available data
   let scale_confidence = 1.0;
-  if (options.rollingContext && options.rollingContext.magnitudes) {
-    const n = options.rollingContext.magnitudes.length;
+  const rollingMagnitudes = options.rollingContext && Array.isArray(options.rollingContext.magnitudes)
+    ? options.rollingContext.magnitudes
+    : null;
+  if (rollingMagnitudes) {
+    const n = rollingMagnitudes.length;
     scale_confidence = round(n / 14, 2);
   }
-  
-  // Apply rolling magnitude normalization if context provided
-  if (options.rollingContext) {
-    X = normalizeWithRollingWindow(X, options.rollingContext, opts);
+
+  let legacyNormalized = null;
+  if (rollingMagnitudes && rollingMagnitudes.length) {
+    legacyNormalized = normalizeWithRollingWindow(X, options.rollingContext, opts);
   }
 
-  const Y_effective = Y_raw * (0.8 + 0.2 * X);
+  const scalingContext = rollingMagnitudes && rollingMagnitudes.length
+    ? {
+        median: median(rollingMagnitudes),
+        prior: 4.0,
+        windowSize: rollingMagnitudes.length
+      }
+    : {
+        prior: 4.0,
+        windowSize: rollingMagnitudes ? rollingMagnitudes.length : 0
+      };
+
+  const magnitudeScaling = scaleMagnitude(X_original, {
+    normalisedMagnitude: legacyNormalized,
+    context: scalingContext,
+    cap: 5,
+    precision: 2,
+    method: rollingMagnitudes && rollingMagnitudes.length ? 'rolling_window_v3' : 'raw_direct_v3',
+    confidence: scale_confidence
+  });
+
+  const magnitudeValue = magnitudeScaling.value;
+
+  const Y_effective = Y_raw * (0.8 + 0.2 * magnitudeValue);
 
   const VI = volatility(scored, prevCtx, opts);
 
   return {
-    magnitude: round(X, 2),
+    magnitude: magnitudeValue,
     valence: round(Y_effective, 2),
     volatility: VI,
     scored,
     rawMagnitude: round(X_raw / opts.magnitudeDivisor, 2), // For debugging/tracking
     originalMagnitude: round(X_original, 2), // Before rolling normalization
-    scaleConfidence: scale_confidence
+    scaleConfidence: scale_confidence,
+    magnitude_meta: magnitudeScaling.meta,
+    magnitude_range: magnitudeScaling.range,
+    magnitude_clamped: magnitudeScaling.clamped,
+    magnitude_legacy: legacyNormalized
   };
 }
 
@@ -296,6 +337,6 @@ module.exports = {
   aggregate,
   _internals: {
     normalizeAspect, baseValence, planetTier, orbMultiplier, sensitivityMultiplier,
-    scoreAspect, multiplicityBonus, volatility, normalizeWithRollingWindow
+    scoreAspect, multiplicityBonus, volatility, normalizeWithRollingWindow, median
   }
 };

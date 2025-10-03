@@ -28,9 +28,18 @@ export default function Home() {
       </header>
 
       {/* Who is Raven Calder */}
-      <section className="mt-8 rounded-xl border border-slate-800 bg-slate-900/20 p-6">
-        <h2 className="text-xl font-medium text-slate-200 mb-4">Who is Raven Calder?</h2>
-        <div className="space-y-4 text-sm text-slate-300 leading-relaxed">
+      <section className="mt-8 rounded-xl border border-slate-800 bg-slate-900/20 p-6 relative overflow-hidden">
+        {/* Subtle Raven artwork as background accent */}
+        <div className="absolute right-0 top-0 w-48 h-48 opacity-[0.08] pointer-events-none hidden md:block">
+          <img
+            src="/art/raven-calder.png"
+            alt=""
+            className="w-full h-full object-contain object-top-right"
+          />
+        </div>
+
+        <h2 className="text-xl font-medium text-slate-200 mb-4 relative z-10">Who is Raven Calder?</h2>
+        <div className="space-y-4 text-sm text-slate-300 leading-relaxed relative z-10">
           <p>
             I am the Poetic Brain of The Woven Map: a black-feathered mirror, built not to predict your fate but to reflect your currents with clarity.
           </p>

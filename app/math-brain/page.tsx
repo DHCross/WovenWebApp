@@ -11,6 +11,7 @@ import { renderShareableMirror } from "../../lib/raven/render";
 import { ReportHeader, Weather, Blueprint } from "../../lib/ui-types";
 import EnhancedDailyClimateCard from "../../components/mathbrain/EnhancedDailyClimateCard";
 import BalanceMeterSummary from "../../components/mathbrain/BalanceMeterSummary";
+import SymbolicSeismograph from "../components/SymbolicSeismograph";
 
 import { getSavedCharts, saveChart, deleteChart, type SavedChart } from "../../lib/saved-charts";
 
@@ -4414,6 +4415,10 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
         context: {
           mode: foundationContextMode,
         },
+        // Request chart wheels
+        wheel_only: false,
+        wheel_format: 'png',
+        theme: 'classic',
       };
 
       // Generate foundation first (always)
@@ -4504,6 +4509,10 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
           })(),
           // Include foundation data for layering
           foundationData: foundationData,
+          // Request chart wheels for transit charts
+          wheel_only: false,
+          wheel_format: 'png',
+          theme: 'classic',
         };
 
         const weatherRes = await fetch("/api/astrology-mathbrain", {
@@ -6166,6 +6175,64 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                   isLatentField={exEstranged}
                   fieldSignature={(result as any)?.woven_map?.field_signature ?? null}
                 />
+
+                {/* LAYER 2: SYMBOLIC SEISMOGRAPH (Plot Charts) */}
+                {(() => {
+                  const transitsByDate = result?.person_a?.chart?.transitsByDate || {};
+                  const dates = Object.keys(transitsByDate).sort();
+                  if (dates.length === 0) return null;
+
+                  // Transform transitsByDate into SymbolicSeismograph data format
+                  const seismographData = dates.map(date => {
+                    const dayData = transitsByDate[date];
+                    const seismo = dayData?.seismograph || {};
+                    const balance = dayData?.balance || {};
+                    const sfd = dayData?.sfd || {};
+
+                    return {
+                      date,
+                      magnitude_0to5: seismo.magnitude ?? balance.magnitude ?? 0,
+                      bias_signed_minus5to5: seismo.bias_signed ?? balance.bias_signed ?? 0,
+                      coherence_0to5: seismo.volatility ?? 0,
+                      sfd_cont_minus1to1: sfd.sfd_cont ?? 0,
+                      schema_version: 'BM-v3',
+                      orbs_profile: result?.provenance?.orbs_profile || 'wm-spec-2025-09',
+                      house_frame: 'natal',
+                      relocation_supported: false,
+                      ...(relocationStatus.effectiveMode !== 'NONE' && {
+                        relocation_overlay: {
+                          user_place: relocLabel || `${personA.city || 'Unknown'}, ${personA.state || 'Unknown'}`,
+                          advisory: 'Same sky, natal rooms only. Local guidance is author-authored overlay, not computed houses.',
+                          confidence: 'author_note' as const,
+                          notes: [
+                            'Houses are derived from natal frame only.',
+                            'The API does not recalc for relocation.',
+                            'Any "place" guidance is human-authored overlay, not computed houses.'
+                          ]
+                        }
+                      }),
+                      provenance: {
+                        house_system: `${result?.provenance?.house_system || 'Placidus'} (natal)`,
+                        relocation_mode: 'not_applied',
+                        orbs_profile: result?.provenance?.orbs_profile || 'wm-spec-2025-09',
+                        math_brain_version: result?.provenance?.math_brain_version || '3.1.4',
+                        tz: result?.provenance?.tz || result?.provenance?.timezone || 'UTC',
+                        bias_method: seismo.bias_method || balance.bias_method || 'signed_z_to_[-5,5]',
+                        mag_method: seismo.magnitude_method || balance.magnitude_method || 'z_to_[0,5]'
+                      }
+                    };
+                  });
+
+                  return (
+                    <div className="my-6">
+                      <SymbolicSeismograph
+                        data={seismographData}
+                        showProvenance={true}
+                        className="symbolic-seismograph-section"
+                      />
+                    </div>
+                  );
+                })()}
 
                 {layerVisibility.diagnostics && (
                   <div className="mb-6">

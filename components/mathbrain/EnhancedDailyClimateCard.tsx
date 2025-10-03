@@ -90,11 +90,11 @@ export default function EnhancedDailyClimateCard({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-slate-900/40 rounded-md p-3 border border-slate-700/50">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-slate-400">Numinosity ⚡</span>
+              <span className="text-xs text-slate-400">Magnitude ⚡</span>
               <span className={`text-lg ${climateClasses.weight} ${climateClasses.text}`}>{formatValue(narrative.dimensions.magnitude.value)}</span>
             </div>
             <div className="text-xs text-slate-300 mb-1">{narrative.dimensions.magnitude.label}</div>
-            <div className="text-xs text-slate-400">How much archetypal charge is present</div>
+            <div className="text-xs text-slate-400">How loud the symbolic climate is</div>
           </div>
 
           <div className="bg-slate-900/40 rounded-md p-3 border border-slate-700/50">

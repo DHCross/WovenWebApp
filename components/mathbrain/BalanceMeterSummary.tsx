@@ -133,16 +133,16 @@ export default function BalanceMeterSummary({
       {/* Axis Legend */}
       <div className="mb-6 grid grid-cols-1 gap-2 text-xs text-slate-300 md:grid-cols-2">
         <div className="rounded-md border border-slate-700/60 bg-slate-900/60 p-3">
-          <div className="font-semibold text-indigo-200 uppercase tracking-wider text-[11px] mb-1">Numinosity ⚡</div>
-          <div>0 latent • 3 wave • 5 peak pressure</div>
+          <div className="font-semibold text-indigo-200 uppercase tracking-wider text-[11px] mb-1">Magnitude ⚡</div>
+          <div>0-1 background hum • 3 noticeable motifs • 5 peak storm</div>
         </div>
         <div className="rounded-md border border-slate-700/60 bg-slate-900/60 p-3">
           <div className="font-semibold text-indigo-200 uppercase tracking-wider text-[11px] mb-1">Directional Bias ↗️↘️</div>
-          <div>-5 inward • 0 neutral • +5 outward</div>
+          <div>-5 inward (contract) • 0 neutral • +5 outward (expand)</div>
         </div>
         <div className="rounded-md border border-slate-700/60 bg-slate-900/60 p-3">
           <div className="font-semibold text-indigo-200 uppercase tracking-wider text-[11px] mb-1">Narrative Coherence 📖</div>
-          <div>0 single-thread • 3 mixed • 5 chaotic</div>
+          <div>0-1 single-thread • 3 mixed • 5 chaotic</div>
         </div>
         <div className="rounded-md border border-slate-700/60 bg-slate-900/60 p-3">
           <div className="font-semibold text-indigo-200 uppercase tracking-wider text-[11px] mb-1">Integration Bias 🤝</div>
@@ -170,11 +170,11 @@ export default function BalanceMeterSummary({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-slate-900/60 rounded-lg p-4 border border-slate-600/50">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-slate-400">Numinosity ⚡</span>
+              <span className="text-xs text-slate-400">Magnitude ⚡</span>
               <span className="text-xl font-bold text-yellow-300">{formatValue(narrative.dimensions.magnitude.value)}</span>
             </div>
             <div className="text-sm text-slate-200 mb-1">{narrative.dimensions.magnitude.label}</div>
-            <div className="text-xs text-slate-400">How much archetypal charge is present</div>
+            <div className="text-xs text-slate-400">How loud is the symbolic field today</div>
             {trends && (
               <div className="text-xs text-slate-300 mt-2 flex items-center gap-1">
                 <span>{getTrendIcon(trends.magnitudeTrend)}</span>
@@ -294,7 +294,7 @@ export default function BalanceMeterSummary({
           <div className="bg-yellow-900/20 rounded-lg p-4 border border-yellow-700/40">
             <div className="font-semibold text-yellow-200 mb-3 flex items-center gap-2">
               <span>⚡</span>
-              <span>Numinosity Pattern</span>
+              <span>Magnitude Pattern</span>
             </div>
             <div className="text-sm text-slate-200 mb-3">
               <span className="font-medium">{isLatentField ? 'Dormant Field Conditions: ' : '📈 Field Conditions: '}</span>
