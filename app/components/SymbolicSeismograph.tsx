@@ -114,6 +114,9 @@ export default function SymbolicSeismograph({
       setLoading(true);
       setError(null);
       try {
+        if (!apiEndpoint) {
+          throw new Error('API endpoint is required');
+        }
         const url = new URL(apiEndpoint, window.location.origin);
         if (startDate) url.searchParams.set('start', startDate);
         if (endDate) url.searchParams.set('end', endDate);
