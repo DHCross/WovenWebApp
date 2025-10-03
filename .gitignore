@@ -3,8 +3,8 @@ legacy/*
 !legacy/.keep
 # Node and environment files
 node_modules/
-.env
-.env.local
+.env*
+!.env.example
 .DS_Store
 
 # Logs
