@@ -12,8 +12,10 @@ import { ReportHeader, Weather, Blueprint } from "../../lib/ui-types";
 import EnhancedDailyClimateCard from "../../components/mathbrain/EnhancedDailyClimateCard";
 import BalanceMeterSummary from "../../components/mathbrain/BalanceMeterSummary";
 import SymbolicSeismograph from "../components/SymbolicSeismograph";
+import HealthDataUpload from "../../components/HealthDataUpload";
 
 import { getSavedCharts, saveChart, deleteChart, type SavedChart } from "../../lib/saved-charts";
+import type { SeismographMap } from "../../lib/health-data-types";
 
 export const dynamic = "force-dynamic";
 
@@ -689,6 +691,7 @@ export default function MathBrainPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResult>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const chartAssets = useMemo<ChartAssetDisplay[]>(() => {
     if (!result) return [];
 
@@ -1115,6 +1118,30 @@ export default function MathBrainPage() {
     extractBlueprint(result),
     [result]
   );
+
+  // Build seismograph map for health data correlation
+  const seismographMap = useMemo<SeismographMap>(() => {
+    if (!result) return {};
+    const transitsByDate = result?.person_a?.chart?.transitsByDate || {};
+    const map: SeismographMap = {};
+
+    Object.entries(transitsByDate).forEach(([date, dayData]: [string, any]) => {
+      const seismo = dayData?.seismograph || dayData?.balance || {};
+      if (seismo.magnitude !== undefined) {
+        map[date] = {
+          magnitude: Number(seismo.magnitude ?? 0),
+          valence: Number(seismo.valence ?? seismo.valence_bounded ?? 0),
+          valence_bounded: Number(seismo.valence_bounded ?? seismo.valence ?? 0),
+          volatility: Number(seismo.volatility ?? 0),
+          sfd: Number(seismo.sfd ?? 0),
+          coherence: Number(seismo.coherence ?? 0),
+        };
+      }
+    });
+
+    return map;
+  }, [result]);
+
   useEffect(() => {
     setTranslocation((prev) => {
       if (!isDyadMode && (prev === 'B_LOCAL' || prev === 'BOTH_LOCAL' || prev === 'MIDPOINT')) {
@@ -1140,7 +1167,7 @@ export default function MathBrainPage() {
     }
   }, [includeTransits, layerVisibility.balance]);
 
-  // Check if user is admin
+  // Check if user is admin and authentication status
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
@@ -1153,8 +1180,9 @@ export default function MathBrainPage() {
               redirect_uri: window.location.origin,
             },
           });
-          const isAuthenticated = await client.isAuthenticated();
-          if (isAuthenticated) {
+          const authed = await client.isAuthenticated();
+          setIsAuthenticated(authed);
+          if (authed) {
             const user = await client.getUser();
             setIsAdmin(user?.email === 'nathal@gmail.com');
           }
@@ -6347,6 +6375,14 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                 </button>
               </div>
             </details>
+
+            {/* Uncanny Scoring (Apple Health correlation) - Auth required */}
+            {includeTransits && Object.keys(seismographMap).length > 0 && (
+              <HealthDataUpload
+                seismographData={seismographMap}
+                isAuthenticated={isAuthenticated}
+              />
+            )}
 
             {/* Navigation to Poetic Brain */}
             <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-700/50">
