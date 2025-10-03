@@ -6045,7 +6045,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
           {/* Chart Wheels Section with dedicated reveal */}
           {(() => {
             const hasCharts = chartAssets.length > 0;
-            const [showCharts, setShowCharts] = React.useState(false);
+            const [showCharts, setShowCharts] = useState(false);
 
             // Debug: Check chart asset sources
             const debugChartSources = {
@@ -6512,7 +6512,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                   const dates = Object.keys(transitsByDate).sort();
                   const hasTransitData = dates.length > 0 && includeTransits;
 
-                  const [showSeismograph, setShowSeismograph] = React.useState(false);
+                  const [showSeismograph, setShowSeismograph] = useState(false);
 
                   if (!hasTransitData) {
                     return (
