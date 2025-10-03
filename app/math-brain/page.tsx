@@ -790,7 +790,7 @@ export default function MathBrainPage() {
   const [relationshipType, setRelationshipType] = useState<string>("PARTNER");
   const [relationshipTier, setRelationshipTier] = useState<string>("");
   const [relationshipRole, setRelationshipRole] = useState<string>("");
-  const [contactState, setContactState] = useState<"ACTIVE" | "LATENT">("ACTIVE");
+  const [contactState, setContactState] = useState<"ACTIVE" | "LATENT">("LATENT");
   const [exEstranged, setExEstranged] = useState<boolean>(false);
   const [relationshipNotes, setRelationshipNotes] = useState<string>("");
   const [savedSession, setSavedSession] = useState<any>(null);
@@ -2757,7 +2757,7 @@ When presenting this astrological analysis, follow the Raven Calder corpus/perso
 STRUCTURE: Present in this exact order:
 1. Solo Mirrors: Short, plain-language snapshots for each person (if relational) or individual (if solo)
 2. Relational Engines: Named, recognizable patterns (Spark Engine, Sweet Glue, Growth Pressure Cooker, etc.)
-3. Weather Overlay: Continuous narrative paragraphs describing current symbolic weather
+3. Symbolic Weather Overlay: Continuous narrative paragraphs describing current symbolic weather
 
 TONE & LANGUAGE (Per Raven Calder Persona):
 • Use conversational, accessible language - no heavy astrological jargon
@@ -2773,7 +2773,7 @@ RELATIONAL ENGINES FORMAT:
 **[Engine Name]**
 [Mechanism description]. [Tendency description].
 
-WEATHER OVERLAY FORMAT:
+SYMBOLIC WEATHER OVERLAY FORMAT:
 Continuous paragraphs without bullet points, lists, or percentages. Describe the overall climate, undercurrents, visibility, pressure, and temperature as symbolic weather patterns.
 
 CRITICAL DATA REQUIREMENTS:
@@ -3024,8 +3024,8 @@ ${reportKind.includes('Solo') ? `
 `}
 
 ${reportKind.includes('Balance Meter') ? `
-#### ${reportKind.includes('Solo') ? '2️⃣' : '3️⃣'} WEATHER OVERLAY — Transits (Current Symbolic Climate)
-**Layer current transit weather over the foundational patterns:**
+#### ${reportKind.includes('Solo') ? '2️⃣' : '3️⃣'} SYMBOLIC WEATHER OVERLAY — Transits (Current Symbolic Climate)
+**Layer current symbolic weather over the foundational patterns:**
 - **Continuous narrative form** (paragraphs, NOT bullet lists)
 - **Describe the climate** currently activating natal/relational foundations
 - **NO assigned percentages, NO prescriptive advice**
@@ -3081,7 +3081,7 @@ Your job is **VOICE** — synthesize this into resonant, lived-experience langua
 ## EXECUTE NOW:
 
 Generate the full reading following the mandatory structure above.
-Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relational Engines, then ' : ''}${reportKind.includes('Balance Meter') ? 'Weather Overlay' : 'close with integration'}.
+Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relational Engines, then ' : ''}${reportKind.includes('Balance Meter') ? 'Symbolic Weather Overlay' : 'close with integration'}.
 
 **Do not describe what you're about to do. Do it.**
 
@@ -4438,7 +4438,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
 
       let finalData = foundationData;
 
-      // STEP 2: Layer weather if transits requested
+      // STEP 2: Layer symbolic weather if transits requested
       if (wantsTransits) {
         setToast('Foundation complete. Layering symbolic weather...');
         
@@ -4522,13 +4522,13 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
         });
         const weatherData = await weatherRes.json();
         if (!weatherRes.ok || weatherData?.success === false) {
-          const msg = weatherData?.error || `Weather layer failed (${weatherRes.status})`;
-          setToast('Weather layer failed.');
+          const msg = weatherData?.error || `Symbolic weather layer failed (${weatherRes.status})`;
+          setToast('Symbolic weather layer failed.');
           setTimeout(()=>setToast(null), 2500);
           throw new Error(msg);
         }
 
-        // Merge foundation and weather data
+        // Merge foundation and symbolic weather data
         finalData = {
           ...weatherData,
           // Preserve foundation data
@@ -4569,7 +4569,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
       setResult(finalData);
       setLayerVisibility({ ...DEFAULT_LAYER_VISIBILITY });
       persistSessionArtifacts(finalData);
-      setToast(wantsTransits ? 'Foundation + weather complete!' : 'Foundation complete!');
+      setToast(wantsTransits ? 'Foundation + symbolic weather complete!' : 'Foundation complete!');
       // Optional: store a quick meta view to guide banners
       try {
         const metaA = (finalData?.person_a?.meta) || (finalData?.provenance?.time_meta_a);
@@ -6022,72 +6022,130 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
             </div>
           </div>
 
-          {/* Post-generation actions */}
-          <div className="flex items-center justify-between gap-4 print:hidden">
-            <div className="text-sm text-slate-400">
-              <span>Download chart data for AI analysis (Gemini GEM, Poetic Brain, or custom GPT) — not meant for human reading.</span>
+          {/* Post-generation actions - Restructured for clarity */}
+          <div className="space-y-4 print:hidden">
+            {/* Header */}
+            <div className="text-sm text-slate-300">
+              <span className="font-medium">Your report is ready.</span> Choose how to use it:
             </div>
-            <div className="flex items-center gap-2">
+
+            {/* Primary: For AI Analysis */}
+            <div className="rounded-lg border border-slate-700 bg-slate-800/40 p-4 space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">For Raven Calder (AI Analysis)</h3>
+
               <button
                 type="button"
                 onClick={downloadResultPDF}
                 disabled={pdfGenerating}
-                className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="w-full rounded-md border border-indigo-600 bg-indigo-700/30 px-4 py-3 text-left hover:bg-indigo-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 aria-label="Download Mirror Directive PDF (complete natal charts + Raven Calder analysis instructions)"
-                title="Mirror Directive: Complete natal data with AI reading instructions"
               >
-                {pdfGenerating ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <div className="flex items-center gap-3">
+                  {pdfGenerating ? (
+                    <svg className="animate-spin h-5 w-5 text-indigo-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Generating...
-                  </>
-                ) : (
-                  '📄 Mirror Directive'
-                )}
+                  ) : (
+                    <span className="text-2xl">📄</span>
+                  )}
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-slate-100">
+                      {pdfGenerating ? 'Generating Complete Chart Package...' : 'Complete Chart Package'}
+                    </div>
+                    <div className="text-xs text-slate-400 mt-0.5">
+                      Full natal data + AI reading instructions (Mirror Directive)
+                    </div>
+                  </div>
+                </div>
               </button>
-              <button
-                type="button"
-                onClick={downloadBackstageJSON}
-                className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-                aria-label="Download Engine Configuration JSON"
-                title="Engine Configuration: Foundation natal data, system settings, and diagnostics"
-              >
-                🔧 Engine Configuration
-              </button>
-              <button
-                type="button"
-                onClick={downloadResultJSON}
-                className="rounded-md border border-slate-700/70 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
-                aria-label="Download normalized JSON"
-                title="Download normalized frontstage JSON (0-5 scale)"
-              >
-                Clean JSON (0-5 scale)
-              </button>
+
               {includeTransits && (
                 <button
                   type="button"
                   onClick={downloadSymbolicWeatherJSON}
-                  className="rounded-md border border-blue-700 bg-blue-800/50 px-3 py-1.5 text-blue-100 hover:bg-blue-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-                aria-label="Download Symbolic Weather Log JSON for AI pattern analysis"
-                title="Symbolic Weather Log: Day-by-day directional bias, numinosity, and coherence data"
-              >
-                🌦️ Symbolic Weather Log
+                  className="w-full rounded-md border border-blue-600 bg-blue-700/30 px-4 py-3 text-left hover:bg-blue-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 transition"
+                  aria-label="Download Symbolic Weather Log JSON for AI pattern analysis"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🌦️</span>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-slate-100">Symbolic Weather Package</div>
+                      <div className="text-xs text-slate-400 mt-0.5">
+                        Day-by-day transit patterns + climate data (JSON)
+                      </div>
+                    </div>
+                  </div>
                 </button>
               )}
-              {includeTransits && (
+            </div>
+
+            {/* Secondary: For Human Review */}
+            {includeTransits && (
+              <div className="rounded-lg border border-slate-700 bg-slate-800/40 p-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">For Human Review</h3>
+
                 <button
                   type="button"
                   onClick={downloadGraphsPDF}
-                  className="rounded-md border border-emerald-700 bg-emerald-800/50 px-3 py-1.5 text-emerald-100 hover:bg-emerald-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-                  aria-label="Download Weather Dashboard PDF (visual summary)"
-                  title="Weather Dashboard: At-a-glance visual summary of energetic climate"
+                  className="w-full rounded-md border border-emerald-600 bg-emerald-700/30 px-4 py-3 text-left hover:bg-emerald-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition"
+                  aria-label="Download Symbolic Weather Dashboard PDF (visual summary)"
                 >
-                  📊 Weather Dashboard
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">📊</span>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-slate-100">Symbolic Weather Dashboard</div>
+                      <div className="text-xs text-slate-400 mt-0.5">
+                        At-a-glance charts and summaries (PDF)
+                      </div>
+                    </div>
+                  </div>
                 </button>
-              )}
+              </div>
+            )}
+
+            {/* Tertiary: Advanced/Developer Exports */}
+            <details className="rounded-lg border border-slate-700/50 bg-slate-900/20">
+              <summary className="cursor-pointer px-4 py-2 text-xs font-medium text-slate-400 hover:text-slate-300 select-none">
+                Advanced / Developer Exports
+              </summary>
+              <div className="border-t border-slate-700/50 p-3 space-y-2">
+                <button
+                  type="button"
+                  onClick={downloadBackstageJSON}
+                  className="w-full rounded border border-slate-700 bg-slate-800/50 px-3 py-2 text-left text-xs hover:bg-slate-700/50 transition"
+                  aria-label="Download Engine Configuration JSON"
+                >
+                  <div className="flex items-center gap-2">
+                    <span>🔧</span>
+                    <div className="flex-1">
+                      <div className="font-medium text-slate-200">Engine Configuration</div>
+                      <div className="text-slate-500 text-[10px] mt-0.5">Foundation natal data + system settings (JSON)</div>
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={downloadResultJSON}
+                  className="w-full rounded border border-slate-700 bg-slate-800/50 px-3 py-2 text-left text-xs hover:bg-slate-700/50 transition"
+                  aria-label="Download normalized JSON"
+                >
+                  <div className="flex items-center gap-2">
+                    <span>📋</span>
+                    <div className="flex-1">
+                      <div className="font-medium text-slate-200">Clean JSON (0-5 scale)</div>
+                      <div className="text-slate-500 text-[10px] mt-0.5">Normalized frontstage data (JSON)</div>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </details>
+
+            {/* Navigation to Poetic Brain */}
+            <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-700/50">
+              <div className="text-xs text-slate-400">
+                Ready for AI reading?
+              </div>
               {canVisitPoetic ? (
                 <button
                   type="button"
@@ -6097,7 +6155,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                       const confirmNav = window.confirm(
                         '⚠️ Download your report before leaving!\n\n' +
                         'Your Math Brain report will be lost when you navigate away. ' +
-                        'Download "📄 Mirror Directive" or "🌦️ Symbolic Weather Log" first.\n\n' +
+                        'Download "Complete Chart Package" or "Symbolic Weather Package" first.\n\n' +
                         'Continue to Poetic Brain anyway?'
                       );
                       if (confirmNav) {
@@ -6107,12 +6165,13 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                       window.location.href = '/chat';
                     }
                   }}
-                  className="rounded-md px-3 py-1.5 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-500 transition"
+                  className="rounded-md px-4 py-2 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-500 transition flex items-center gap-2"
                 >
                   Go to Poetic Brain
+                  <span className="text-lg">→</span>
                 </button>
               ) : (
-                <span className="rounded-md border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-sm text-slate-400">
+                <span className="rounded-md border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm text-slate-400">
                   Poetic Brain offline
                 </span>
               )}
