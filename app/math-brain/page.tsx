@@ -427,15 +427,49 @@ function extractWeather(startDate: string, endDate: string, result: any): Weathe
   // Extract balance meter data if available
   let balanceMeter: Weather['balanceMeter'] | undefined;
   const summary = result?.person_a?.derived?.seismograph_summary;
+
+  // Calculate daily ranges to show texture (not just averages)
+  const transitsByDate = result?.person_a?.chart?.transitsByDate || {};
+  const dailyBiasValues: number[] = [];
+  const dailyMagnitudeValues: number[] = [];
+  const dailyVolatilityValues: number[] = [];
+
+  Object.values(transitsByDate).forEach((dayData: any) => {
+    const seismo = dayData?.seismograph || {};
+    const balance = dayData?.balance || {};
+
+    const bias = Number(seismo.bias_signed ?? balance.bias_signed ?? 0);
+    const mag = Number(seismo.magnitude ?? balance.magnitude ?? 0);
+    const vol = Number(seismo.volatility ?? 0);
+
+    if (Number.isFinite(bias)) dailyBiasValues.push(bias);
+    if (Number.isFinite(mag)) dailyMagnitudeValues.push(mag);
+    if (Number.isFinite(vol)) dailyVolatilityValues.push(vol);
+  });
+
   if (summary) {
     const mag = Number(summary.magnitude ?? 0);
     const val = Number(summary.valence_bounded ?? summary.valence ?? 0);
     const vol = Number(summary.volatility ?? 0);
 
+    // Calculate ranges
+    const biasMin = dailyBiasValues.length > 0 ? Math.min(...dailyBiasValues) : val;
+    const biasMax = dailyBiasValues.length > 0 ? Math.max(...dailyBiasValues) : val;
+    const magMin = dailyMagnitudeValues.length > 0 ? Math.min(...dailyMagnitudeValues) : mag;
+    const magMax = dailyMagnitudeValues.length > 0 ? Math.max(...dailyMagnitudeValues) : mag;
+
     balanceMeter = {
       magnitude: mag >= 3 ? 'High' : mag >= 1.5 ? 'Moderate' : 'Low',
       valence: val > 0.5 ? 'Harmonious' : val < -0.5 ? 'Tense' : 'Complex',
-      volatility: vol >= 3 ? 'Unstable' : vol >= 1 ? 'Variable' : 'Stable'
+      volatility: vol >= 3 ? 'Unstable' : vol >= 1 ? 'Variable' : 'Stable',
+      // Add range data
+      biasRange: { min: biasMin, max: biasMax, average: val },
+      magnitudeRange: { min: magMin, max: magMax, average: mag },
+      volatilityRange: {
+        min: dailyVolatilityValues.length > 0 ? Math.min(...dailyVolatilityValues) : vol,
+        max: dailyVolatilityValues.length > 0 ? Math.max(...dailyVolatilityValues) : vol,
+        average: vol
+      }
     };
   }
 
@@ -6197,12 +6231,34 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
           {(() => {
             const summary = result?.person_a?.derived?.seismograph_summary;
             if (!summary) return null;
+
             const mag = Number(summary.magnitude ?? 0);
             const val = Number(summary.valence_bounded ?? summary.valence ?? 0);
             const vol = Number(summary.volatility ?? 0);
+
+            // Calculate daily ranges from transitsByDate
+            const transitsByDate = result?.person_a?.chart?.transitsByDate || {};
+            const dailyBiasValues: number[] = [];
+            const dailyMagValues: number[] = [];
+
+            Object.values(transitsByDate).forEach((dayData: any) => {
+              const seismo = dayData?.seismograph || {};
+              const balance = dayData?.balance || {};
+              const bias = Number(seismo.bias_signed ?? balance.bias_signed ?? 0);
+              const dayMag = Number(seismo.magnitude ?? balance.magnitude ?? 0);
+              if (Number.isFinite(bias)) dailyBiasValues.push(bias);
+              if (Number.isFinite(dayMag)) dailyMagValues.push(dayMag);
+            });
+
+            const biasMin = dailyBiasValues.length > 0 ? Math.min(...dailyBiasValues) : val;
+            const biasMax = dailyBiasValues.length > 0 ? Math.max(...dailyBiasValues) : val;
+            const magMin = dailyMagValues.length > 0 ? Math.min(...dailyMagValues) : mag;
+            const magMax = dailyMagValues.length > 0 ? Math.max(...dailyMagValues) : mag;
+
             const magnitudeLabel = summary.magnitude_label || (mag >= 3 ? 'Surge' : mag >= 1 ? 'Active' : 'Calm');
             const valenceLabel = summary.valence_label || (val > 0.5 ? 'Supportive' : val < -0.5 ? 'Challenging' : 'Mixed');
             const volatilityLabel = summary.volatility_label || (vol >= 3 ? 'Scattered' : vol >= 1 ? 'Variable' : 'Stable');
+
             return (
               <div ref={balanceGraphsRef} data-balance-export="true">
                 <Section title="Symbolic Weather Log">
@@ -6225,6 +6281,12 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                     magnitude: mag,
                     valence: val,
                     volatility: vol
+                  }}
+                  dailyRanges={{
+                    biasMin,
+                    biasMax,
+                    magnitudeMin: magMin,
+                    magnitudeMax: magMax
                   }}
                   overallSfd={result?.person_a?.sfd?.sfd ?? 0}
                   totalDays={(() => {

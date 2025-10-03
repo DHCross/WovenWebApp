@@ -20,6 +20,13 @@ interface BalanceMeterSummaryProps {
     valenceTrend: "improving" | "declining" | "stable";
     volatilityTrend: "stabilizing" | "increasing" | "stable";
   };
+  // Daily ranges to show texture
+  dailyRanges?: {
+    biasMin: number;
+    biasMax: number;
+    magnitudeMin: number;
+    magnitudeMax: number;
+  };
   fieldSignature?: {
     components?: {
       direction?: number | null;
@@ -56,6 +63,7 @@ export default function BalanceMeterSummary({
   activatedHouses,
   isLatentField,
   trends,
+  dailyRanges,
   fieldSignature,
 }: BalanceMeterSummaryProps) {
   const narrative = generateClimateNarrative(overallClimate, overallSfd, activatedHouses, true, isLatentField || false);
@@ -190,6 +198,20 @@ export default function BalanceMeterSummary({
             </div>
             <div className="text-sm text-slate-200 mb-1">{narrative.dimensions.valence.label}</div>
             <div className="text-xs text-slate-400">Which way energy leans (inward/outward)</div>
+            {dailyRanges && (dailyRanges.biasMin !== dailyRanges.biasMax) && (
+              <div className="mt-2 pt-2 border-t border-slate-700/50">
+                <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Daily Range</div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className={`${dailyRanges.biasMin < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                    {formatValue(dailyRanges.biasMin, true)} {dailyRanges.biasMin < 0 ? '(contraction)' : ''}
+                  </span>
+                  <span className="text-slate-600">→</span>
+                  <span className={`${dailyRanges.biasMax > 0 ? 'text-green-400' : 'text-slate-400'}`}>
+                    {formatValue(dailyRanges.biasMax, true)} {dailyRanges.biasMax > 0 ? '(expansion)' : ''}
+                  </span>
+                </div>
+              </div>
+            )}
             {trends && (
               <div className="text-xs text-slate-300 mt-2 flex items-center gap-1">
                 <span>{getTrendIcon(trends.valenceTrend)}</span>
