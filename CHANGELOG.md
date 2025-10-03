@@ -1,3 +1,71 @@
+## [2025-10-02] FEATURE: Symbolic Weather JSON Export + Enhanced Natal Charts
+
+**Summary**
+Implemented AI-optimized symbolic weather JSON export and enhanced PDF natal charts to AstroSeek-level completeness. Removed unnecessary ZIP package download.
+
+**New Features**
+
+1. **Symbolic Weather JSON Export**
+   - Lightweight format specifically designed for AI pattern analysis (ChatGPT, Claude, Gemini)
+   - Daily seismograph readings with normalized values (magnitude 0-5, valence -5 to +5, volatility 0-5)
+   - Balance meter summary data
+   - Export metadata with date range and person information
+   - Solves ChatGPT's "too much text content" error with PDFs
+   - UI: Blue "📊 Symbolic Weather JSON" button (appears when transits enabled)
+
+2. **Enhanced Natal Chart Data in PDFs**
+   - **Additional Points Added to Positions Table:**
+     - Chiron (with stationary/retrograde status)
+     - North Node (with retrograde status)
+     - South Node
+     - Lilith (Black Moon)
+   - **New House Cusps Table:**
+     - All 12 house cusps (previously only 4 angles)
+     - Sign, degree, quality, element for each cusp
+     - Separate tables for Person A and Person B (relational charts)
+   - PDFs now match AstroSeek-level completeness
+
+3. **Removed ZIP Package Download**
+   - ZIP download button and function removed
+   - Users download individual files as needed
+   - Cleaner UX without redundant bundling
+
+**Technical Implementation**
+
+- **Files Modified:**
+  - `app/math-brain/page.tsx`: Added `downloadSymbolicWeatherJSON()` function, symbolic weather button, removed ZIP code
+  - `src/reporters/table-builders.js`: Added Chiron/Nodes/Lilith to `buildNatalPositionsTable()`, new `buildHouseCuspsTable()` function
+  - `src/reporters/woven-map-composer.js`: Integrated house cusps into data_tables export
+  - `app/math-brain/page.tsx`: Added `formatHouseCuspsTable()` formatter and PDF sections
+
+- **Export Architecture:**
+  - **PDF**: Complete natal charts + analysis directive for Raven Calder (human-readable + AI synthesis)
+  - **Symbolic Weather JSON**: AI-optimized pattern analysis (lightweight, token-efficient)
+  - **Raw JSON**: Complete backstage data for debugging
+  - **Clean JSON**: Normalized frontstage values (0-5 scale)
+
+**Data Flow to Poetic Brain**
+
+- User manually downloads PDF or JSON from Math Brain
+- User uploads to Poetic Brain (/chat) via file picker
+- PDF extraction via PDF.js provides complete natal data
+- JSON parsing provides balance meter and daily readings
+- Poetic Brain API (`/api/raven`) processes via `summariseUploadedReportJson()`
+
+**Impact**
+
+- ✅ Solves ChatGPT token limit issues with lightweight JSON format
+- ✅ Provides complete natal data (Raven no longer sees "lite" schemas)
+- ✅ Supports AI pattern analysis across all major LLMs
+- ✅ Maintains PDF as comprehensive human-readable + AI-synthesis format
+- ✅ Cleaner download UX without ZIP complexity
+
+**Files Changed:**
+- `app/math-brain/page.tsx` (symbolic weather export, house cusps formatting, ZIP removal)
+- `src/reporters/table-builders.js` (additional points, house cusps builder)
+- `src/reporters/woven-map-composer.js` (house cusps integration)
+
+---
 
 ## [2025-10-01] FEATURE: Raven Output Protocol - Unified Construction Algorithm & Terminology Map
 
