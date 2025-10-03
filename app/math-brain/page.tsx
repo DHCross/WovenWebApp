@@ -2652,7 +2652,7 @@ export default function MathBrainPage() {
       }
       if (bm.support_friction) {
         const sfd = bm.support_friction;
-        lines.push(`Integration Bias (SFD): ${sfd.sfd_label || sfd.sfd_cont ?? sfd.value}`);
+        lines.push(`Integration Bias (SFD): ${sfd.sfd_label || (sfd.sfd_cont ?? sfd.value)}`);
       } else if (bm.sfd !== undefined) {
         lines.push(`Integration Bias (SFD): ${bm.sfd}`);
       }
