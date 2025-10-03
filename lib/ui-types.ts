@@ -11,7 +11,10 @@ export type Weather = {
   balanceMeter?: {
     magnitude: "Low" | "Moderate" | "High";
     valence: "Harmonious" | "Tense" | "Complex";
-    volatility: "Stable" | "Variable" | "Unstable"
+    volatility: "Stable" | "Variable" | "Unstable";
+    biasRange?: { min: number; max: number; average: number };
+    magnitudeRange?: { min: number; max: number; average: number };
+    volatilityRange?: { min: number; max: number; average: number };
   };
   tier1Hooks: Array<{ label: string; why: string; houseTag?: string }>;
 };
