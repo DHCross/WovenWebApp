@@ -5928,16 +5928,65 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
               </div>
             );
           })()}
-          {!!chartAssets.length && (
-            <section className="rounded-lg border border-slate-700 bg-slate-800/40 p-4">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-lg font-semibold text-slate-100">Chart Wheels</h2>
-                <span className="text-xs text-slate-400">
-                  Temporary renderings expire shortly after generation.
-                </span>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                {chartAssets.map((asset) => {
+          {/* Chart Wheels Section with dedicated reveal */}
+          {(() => {
+            const hasCharts = chartAssets.length > 0;
+            const [showCharts, setShowCharts] = React.useState(false);
+
+            // Debug: Check chart asset sources
+            const debugChartSources = {
+              person_a_assets: (result as any)?.person_a?.chart_assets?.length || 0,
+              person_b_assets: (result as any)?.person_b?.chart_assets?.length || 0,
+              synastry_assets: (result as any)?.synastry_chart_assets?.length || 0,
+              composite_assets: (result as any)?.composite?.chart_assets?.length || 0,
+              top_level_assets: (result as any)?.chart_assets?.length || 0,
+              total: chartAssets.length
+            };
+
+            return (
+              <section className="rounded-lg border border-slate-700 bg-slate-800/40 p-4">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-lg font-semibold text-slate-100">Chart Wheels</h2>
+                  {hasCharts ? (
+                    <button
+                      onClick={() => setShowCharts(!showCharts)}
+                      className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 transition-colors flex items-center gap-2"
+                    >
+                      {showCharts ? '👁️ Hide Charts' : '🎨 Reveal Charts'}
+                      <span className="rounded-full bg-indigo-400 px-2 py-0.5 text-xs">
+                        {chartAssets.length}
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="text-sm text-slate-400">
+                      No chart wheels generated
+                      {/* Debug info */}
+                      <details className="mt-2 text-xs">
+                        <summary className="cursor-pointer text-slate-500 hover:text-slate-400">
+                          Debug chart sources
+                        </summary>
+                        <pre className="mt-2 rounded bg-slate-900 p-2 text-[10px] text-slate-300">
+                          {JSON.stringify(debugChartSources, null, 2)}
+                        </pre>
+                      </details>
+                    </div>
+                  )}
+                </div>
+
+                {!hasCharts && (
+                  <div className="rounded-md border border-amber-600/30 bg-amber-900/20 p-4">
+                    <p className="text-sm text-amber-200">
+                      <strong>Chart wheels not available.</strong> The API may not be generating visual charts for this request.
+                    </p>
+                    <p className="mt-2 text-xs text-amber-300/70">
+                      Chart preferences were requested: wheel_format='png', theme='classic'
+                    </p>
+                  </div>
+                )}
+
+                {hasCharts && showCharts && (
+                  <div className="grid gap-4 md:grid-cols-2 mt-4">
+                    {chartAssets.map((asset) => {
                   const expiresLabel = asset.expiresAt
                     ? new Date(asset.expiresAt).toLocaleTimeString()
                     : null;
@@ -5992,8 +6041,10 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                   );
                 })}
               </div>
-            </section>
-          )}
+            )}
+          </section>
+        );
+      })()}
           {/* Layer progression + toggle controls */}
           <div className="print:hidden">
             <div className="flex flex-wrap items-center gap-2 rounded-md border border-slate-700 bg-slate-900/50 px-4 py-3 text-xs font-semibold uppercase tracking-wide">
@@ -6301,7 +6352,25 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                 {(() => {
                   const transitsByDate = result?.person_a?.chart?.transitsByDate || {};
                   const dates = Object.keys(transitsByDate).sort();
-                  if (dates.length === 0) return null;
+                  const hasTransitData = dates.length > 0 && includeTransits;
+
+                  const [showSeismograph, setShowSeismograph] = React.useState(false);
+
+                  if (!hasTransitData) {
+                    return (
+                      <div className="mt-6 rounded-md border border-slate-600 bg-slate-900/40 p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-sm font-medium text-slate-300">Symbolic Plot Charts</h3>
+                            <p className="mt-1 text-xs text-slate-400">
+                              Not available - transits were not included in this report
+                            </p>
+                          </div>
+                          <span className="text-slate-600">📊</span>
+                        </div>
+                      </div>
+                    );
+                  }
 
                   // Transform transitsByDate into SymbolicSeismograph data format
                   const seismographData = dates.map(date => {
@@ -6346,11 +6415,31 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
 
                   return (
                     <div className="my-6">
-                      <SymbolicSeismograph
-                        data={seismographData}
-                        showProvenance={true}
-                        className="symbolic-seismograph-section"
-                      />
+                      <div className="mb-4 flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-medium text-slate-200">Symbolic Plot Charts</h3>
+                          <p className="text-xs text-slate-400 mt-1">
+                            Time-series visualization of daily symbolic weather patterns
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setShowSeismograph(!showSeismograph)}
+                          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-colors flex items-center gap-2"
+                        >
+                          {showSeismograph ? '👁️ Hide Charts' : '📊 Reveal Plot Charts'}
+                          <span className="rounded-full bg-blue-400 px-2 py-0.5 text-xs">
+                            {dates.length} days
+                          </span>
+                        </button>
+                      </div>
+
+                      {showSeismograph && (
+                        <SymbolicSeismograph
+                          data={seismographData}
+                          showProvenance={true}
+                          className="symbolic-seismograph-section"
+                        />
+                      )}
                     </div>
                   );
                 })()}
@@ -6719,27 +6808,87 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                   </div>
                 )}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {hooks.map((hook: any, i: number) => (
-                    <div key={i} className="rounded-md border border-amber-600/30 bg-amber-900/20 p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="text-amber-100 font-medium leading-tight">
-                          {hook.title}
+                  {hooks.map((hook: any, i: number) => {
+                    // Helper functions for accessibility
+                    const getStrength = (intensity: number): string => {
+                      if (intensity >= 150) return 'High';
+                      if (intensity >= 80) return 'Medium';
+                      return 'Low';
+                    };
+
+                    const getExactness = (orb: number): string => {
+                      const absOrb = Math.abs(orb);
+                      if (absOrb <= 3) return `Tight (${absOrb.toFixed(1)}°)`;
+                      if (absOrb <= 6) return `Moderate (${absOrb.toFixed(1)}°)`;
+                      return `Wide (${absOrb.toFixed(1)}°)`;
+                    };
+
+                    const getStyleTag = (title: string): string => {
+                      if (title.includes('Challenge') || title.includes('Confrontational')) return 'Challenging';
+                      if (title.includes('Tension') || title.includes('Frustrated')) return 'Tense';
+                      if (title.includes('Opportunity') || title.includes('Flowing')) return 'Supportive';
+                      if (title.includes('Complacent')) return 'Supportive';
+                      return 'Neutral';
+                    };
+
+                    const getFeltSense = (title: string, planets: string[], aspect: string): string => {
+                      // Generate simple one-line descriptions based on aspect patterns
+                      if (title.includes('External Challenge') || title.includes('Polarized')) {
+                        return 'Conversations may bring hidden tensions to the surface, forcing you to face differences of perspective.';
+                      }
+                      if (title.includes('Dynamic Tension') || title.includes('Blocked')) {
+                        return 'Relational or creative needs feel blocked, leading to frustration that eventually sparks growth.';
+                      }
+                      if (title.includes('Flowing Opportunity') || title.includes('Complacent')) {
+                        return 'Ideas and communication flow easily—inspiration comes naturally, though details may slip.';
+                      }
+                      // Default
+                      return 'This pattern shows a recurring symbolic pressure that may feel familiar in daily life.';
+                    };
+
+                    const styleTag = getStyleTag(hook.title);
+                    const strength = getStrength(hook.intensity);
+                    const exactness = getExactness(hook.orb);
+                    const feltSense = getFeltSense(hook.title, hook.planets || [], hook.aspect_type);
+
+                    return (
+                      <div key={i} className="rounded-md border border-amber-600/30 bg-amber-900/20 p-4">
+                        {/* Title and Style Tag */}
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <div className="text-amber-100 font-medium leading-tight mb-1">
+                              {hook.title.split('/')[0].trim()}
+                            </div>
+                            <div className="text-xs text-amber-300/60">
+                              ({styleTag})
+                            </div>
+                          </div>
+                          {hook.is_tier_1 && (
+                            <span className="ml-2 inline-flex items-center rounded bg-amber-600 px-1.5 py-0.5 text-xs font-medium text-amber-100">
+                              T1
+                            </span>
+                          )}
                         </div>
-                        {hook.is_tier_1 && (
-                          <span className="ml-2 inline-flex items-center rounded bg-amber-600 px-1.5 py-0.5 text-xs font-medium text-amber-100">
-                            T1
-                          </span>
-                        )}
+
+                        {/* Accessible Metrics */}
+                        <div className="text-xs text-amber-200/80 space-y-1 mb-3">
+                          <div>Strength: {strength} · Exactness: {exactness}</div>
+                          <div className="text-amber-300/60">
+                            Symbol: {hook.planets?.join(' ') || ''} {hook.aspect_type}
+                          </div>
+                        </div>
+
+                        {/* Felt Sense */}
+                        <div className="text-xs text-slate-300 italic pt-2 border-t border-amber-700/30">
+                          <span className="text-amber-300/60 not-italic font-medium">What it feels like: </span>
+                          {feltSense}
+                        </div>
                       </div>
-                      <div className="text-xs text-amber-200/70 space-y-1">
-                        <div>Orb: {hook.orb?.toFixed(1)}° · Intensity: {Math.round(hook.intensity)}</div>
-                        <div>{hook.planets?.join(' ') || ''} {hook.aspect_type}</div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <div className="mt-3 text-xs text-slate-400">
-                  Purpose: Bypass analysis → trigger "that's me" recognition → open depth work
+                  These are patterns of symbolic pressure. They don't predict what will happen, but describe moods or themes you may notice.
                 </div>
               </Section>
             );
