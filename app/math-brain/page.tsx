@@ -722,6 +722,12 @@ export default function MathBrainPage() {
   const [result, setResult] = useState<ApiResult>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(() => !AUTH_ENABLED);
   const [authReady, setAuthReady] = useState(() => !AUTH_ENABLED);
+
+  // Snapshot state
+  const [snapshotResult, setSnapshotResult] = useState<any>(null);
+  const [snapshotLocation, setSnapshotLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [snapshotTimestamp, setSnapshotTimestamp] = useState<Date | null>(null);
+
   const broadcastAuthStatus = useCallback((authedValue: boolean) => {
     if (typeof window === 'undefined') {
       return;
@@ -1170,6 +1176,26 @@ export default function MathBrainPage() {
   const isDyadMode = includePersonB && isRelationalStructure;
   const reportContractKind: 'balance' | 'mirror' = reportContractType.includes('balance') ? 'balance' : 'mirror';
   const reportType = reportContractKind; // Legacy alias for reportContractKind
+
+  const {
+    downloadResultPDF,
+    downloadResultMarkdown,
+    downloadResultJSON,
+    downloadBackstageJSON,
+    downloadSymbolicWeatherJSON,
+    pdfGenerating,
+    cleanJsonGenerating,
+    engineConfigGenerating,
+    weatherJsonGenerating,
+  } = useChartExport({
+    result,
+    reportType,
+    reportContractType,
+    reportRef,
+    friendlyFilename,
+    filenameBase,
+    setToast,
+  });
 
   const weather = useMemo(() =>
     extractWeather(startDate, endDate, result),
