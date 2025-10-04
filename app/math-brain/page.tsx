@@ -7,14 +7,17 @@ import { parseCoordinates, formatDecimal } from "../../src/coords";
 import { getRedirectUri } from "../../lib/auth";
 // AuthProvider removed - auth handled globally by HomeHero component
 import { needsLocation, isTimeUnknown } from "../../lib/relocation";
-import { sanitizeReportForPDF, sanitizeForPDF } from "../../src/pdf-sanitizer";
+import { sanitizeForPDF } from "../../src/pdf-sanitizer";
+import { useChartExport } from "./hooks/useChartExport";
+import type { ReportContractType } from "./types";
 import { ContractLinter } from "../../src/contract-linter";
-import { renderShareableMirror } from "../../lib/raven/render";
 import { ReportHeader, Weather, Blueprint } from "../../lib/ui-types";
 import EnhancedDailyClimateCard from "../../components/mathbrain/EnhancedDailyClimateCard";
 import BalanceMeterSummary from "../../components/mathbrain/BalanceMeterSummary";
 import SymbolicSeismograph from "../components/SymbolicSeismograph";
 import HealthDataUpload from "../../components/HealthDataUpload";
+import SnapshotButton from "./components/SnapshotButton";
+import SnapshotDisplay from "./components/SnapshotDisplay";
 
 import { getSavedCharts, saveChart, deleteChart, type SavedChart } from "../../lib/saved-charts";
 import type { SeismographMap } from "../../lib/health-data-types";
@@ -87,11 +90,6 @@ const sanitizeSlug = (value: string, fallback: string) => {
 };
 
 type ReportStructure = 'solo' | 'synastry' | 'composite';
-type ReportContractType =
-  | 'solo_mirror'
-  | 'solo_balance_meter'
-  | 'relational_mirror'
-  | 'relational_balance_meter';
 
 const formatReportKind = (contractType: ReportContractType): string => {
   switch (contractType) {
@@ -681,11 +679,7 @@ export default function MathBrainPage() {
   const [reportStructure, setReportStructure] = useState<ReportStructure>('solo');
   // reportFormat removed - Raven Calder always uses conversational voice per corpus/persona
   const [includeTransits, setIncludeTransits] = useState<boolean>(false);
-  const [pdfGenerating, setPdfGenerating] = useState<boolean>(false);
   const [graphsPdfGenerating, setGraphsPdfGenerating] = useState<boolean>(false);
-  const [cleanJsonGenerating, setCleanJsonGenerating] = useState<boolean>(false);
-  const [engineConfigGenerating, setEngineConfigGenerating] = useState<boolean>(false);
-  const [weatherJsonGenerating, setWeatherJsonGenerating] = useState<boolean>(false);
   const [includePersonB, setIncludePersonB] = useState<boolean>(false);
   const mode = useMemo<ReportMode>(() => modeFromStructure(reportStructure, includeTransits), [reportStructure, includeTransits]);
   const applyMode = useCallback((nextMode: ReportMode) => {
