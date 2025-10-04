@@ -24,6 +24,8 @@ import {
 import type { Intent } from "../lib/raven/intent";
 import type { SSTProbe } from "../lib/raven/sst";
 
+type ConfidenceLabel = "tentative" | "emerging" | "clear";
+
 // Sanitize HTML with DOMPurify - whitelist-based for security
 const sanitizeHtml = (html: string): string => {
   if (typeof window === 'undefined' || !DOMPurify) {
@@ -962,7 +964,7 @@ export default function ChatClient() {
       symbolicImages.push("Sidereal drift signal surfaced in OSR probes");
     }
 
-    const confidenceLabel: "tentative" | "emerging" | "clear" =
+    const confidenceLabel: ConfidenceLabel =
       composite.confidenceBand === "HIGH"
         ? "clear"
         : composite.confidenceBand === "MODERATE"
@@ -980,7 +982,7 @@ export default function ChatClient() {
       driftBand: composite.driftBand,
       actorBreakdown: (composite.actorBreakdown || []).slice(0, 3),
       roleBreakdown: (composite.roleBreakdown || []).slice(0, 3),
-      displayConfidence: confidenceLabel as const,
+  displayConfidence: confidenceLabel,
     };
 
     const explanation = totalResponses === 0
