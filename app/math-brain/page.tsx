@@ -1,8 +1,10 @@
 "use client";
+/* eslint-disable no-console */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FocusEvent, TouchEvent } from "react";
 import { parseCoordinates, formatDecimal } from "../../src/coords";
+import { getRedirectUri } from "../../lib/auth";
 // AuthProvider removed - auth handled globally by HomeHero component
 import { needsLocation, isTimeUnknown } from "../../lib/relocation";
 import { sanitizeReportForPDF, sanitizeForPDF } from "../../src/pdf-sanitizer";
@@ -174,6 +176,19 @@ const POETIC_BRAIN_ENABLED = (() => {
   }
   return false;
 })();
+
+const AUTH_ENABLED = (() => {
+  const raw = process.env.NEXT_PUBLIC_ENABLE_AUTH;
+  if (typeof raw !== 'string') return true;
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === '' || normalized === 'false' || normalized === '0' || normalized === 'off') {
+    return false;
+  }
+  return true;
+})();
+
+const AUTH_STATUS_STORAGE_KEY = 'auth.status';
+const AUTH_STATUS_EVENT = 'auth-status-change';
 
 const RAVEN_RELOCATION_RECIPE = String.raw`///////////////////////////////////////////////////////////////
 // RAVEN CALDER -- INTERNAL PROCEDURE: RELOCATED HOUSES ENGINE //
@@ -692,7 +707,24 @@ export default function MathBrainPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResult>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !AUTH_ENABLED);
+  const [authReady, setAuthReady] = useState(() => !AUTH_ENABLED);
+  const broadcastAuthStatus = useCallback((authedValue: boolean) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const payload = {
+        authed: authedValue,
+        updatedAt: Date.now(),
+      };
+      window.localStorage.setItem(AUTH_STATUS_STORAGE_KEY, JSON.stringify(payload));
+      window.dispatchEvent(new CustomEvent(AUTH_STATUS_EVENT, { detail: payload }));
+    } catch (err) {
+      console.warn('Failed to broadcast auth status from Math Brain', err);
+    }
+  }, []);
   const [showChartAssets, setShowChartAssets] = useState(false);
   const [showSeismographCharts, setShowSeismographCharts] = useState(false);
   const chartAssets = useMemo<ChartAssetDisplay[]>(() => {
@@ -970,7 +1002,7 @@ export default function MathBrainPage() {
     } else if (timeUnknown && timePolicy === 'user_provided') {
       setTimePolicy('planetary_only');
     }
-  }, [timeUnknown]);
+  }, [timeUnknown, timePolicy]);
   // Timezone dropdown options (US-centric + GMT/UTC) - simplified format
   const tzOptions = useMemo(() => [
     'GMT', 'UTC', 'US/Eastern', 'US/Central', 'US/Mountain', 'US/Pacific',
@@ -1182,32 +1214,158 @@ export default function MathBrainPage() {
     }
   }, [includeTransits, layerVisibility.balance]);
 
-  // Check if user is admin and authentication status
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      try {
-        if (typeof window !== 'undefined' && window.auth0?.createAuth0Client) {
-          const client = await window.auth0.createAuth0Client({
-            domain: process.env.NEXT_PUBLIC_AUTH0_DOMAIN,
-            clientId: process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID,
-            authorizationParams: {
-              audience: process.env.NEXT_PUBLIC_AUTH0_AUDIENCE || undefined,
-              redirect_uri: window.location.origin,
-            },
-          });
-          const authed = await client.isAuthenticated();
-          setIsAuthenticated(authed);
-          if (authed) {
-            const user = await client.getUser();
-            setIsAdmin(user?.email === 'nathal@gmail.com');
-          }
-        }
-      } catch (error) {
-        // Silently fail - admin features just won't show
+    if (!AUTH_ENABLED || typeof window === 'undefined') {
+      return;
+    }
+
+    const applyAuthStatus = (payload: { authed?: boolean | null }) => {
+      if (typeof payload?.authed === 'boolean') {
+        setIsAuthenticated(payload.authed);
+        setAuthReady(true);
       }
     };
-    checkAdminStatus();
+
+    try {
+      const raw = window.localStorage.getItem(AUTH_STATUS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        applyAuthStatus(parsed);
+      }
+    } catch (err) {
+      console.warn('Failed to read stored auth status', err);
+    }
+
+    const handleCustom = (event: Event) => {
+      const custom = event as CustomEvent<{ authed?: boolean | null }>;
+      if (custom?.detail) {
+        applyAuthStatus(custom.detail);
+      }
+    };
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== AUTH_STATUS_STORAGE_KEY) return;
+      if (event.newValue) {
+        try {
+          applyAuthStatus(JSON.parse(event.newValue));
+        } catch (err) {
+          console.warn('Failed to parse auth status from storage event', err);
+        }
+      }
+    };
+
+    window.addEventListener(AUTH_STATUS_EVENT, handleCustom as EventListener);
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener(AUTH_STATUS_EVENT, handleCustom as EventListener);
+      window.removeEventListener('storage', handleStorage);
+    };
   }, []);
+
+  // Check if user is admin and authentication status
+  useEffect(() => {
+    if (!AUTH_ENABLED) {
+      setIsAuthenticated(true);
+      setIsAdmin(false);
+      setAuthReady(true);
+      broadcastAuthStatus(true);
+      return;
+    }
+
+    let cancelled = false;
+
+    const ensureSdk = () => {
+      if (typeof window === 'undefined') return Promise.resolve();
+      const win = window as any;
+      const hasCreate = typeof win?.auth0?.createAuth0Client === 'function' || typeof win?.createAuth0Client === 'function';
+      if (hasCreate) return Promise.resolve();
+      return new Promise<void>((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = '/vendor/auth0-spa-js.production.js';
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Failed to load Auth0 SDK'));
+        document.head.appendChild(script);
+      });
+    };
+
+    const checkAdminStatus = async () => {
+      try {
+        if (typeof window === 'undefined') return;
+        await ensureSdk();
+
+        const res = await fetch('/api/auth-config', { cache: 'no-store' });
+        if (!res.ok) throw new Error('Auth config fetch failed');
+        const cfg = await res.json();
+        if (!cfg?.domain || !cfg?.clientId) throw new Error('Auth0 config missing domain/clientId');
+
+        const win = window as any;
+        const creator = win?.auth0?.createAuth0Client || win?.createAuth0Client;
+        if (typeof creator !== 'function') throw new Error('Auth0 SDK not available');
+
+        const client = await creator({
+          domain: String(cfg.domain).replace(/^https?:\/\//, ''),
+          clientId: cfg.clientId,
+          cacheLocation: 'localstorage',
+          useRefreshTokens: true,
+          useRefreshTokensFallback: true,
+          authorizationParams: {
+            redirect_uri: getRedirectUri(),
+            ...(cfg.audience ? { audience: cfg.audience } : {}),
+          },
+        });
+
+        let authed = false;
+        try {
+          authed = await client.isAuthenticated();
+          if (!authed && typeof client.checkSession === 'function') {
+            await client.checkSession();
+            authed = await client.isAuthenticated();
+          }
+        } catch (authError) {
+          if (!cancelled) {
+            console.warn('Math Brain auth check failed, continuing with stored state', authError);
+          }
+        }
+
+        if (cancelled) return;
+
+        setIsAuthenticated(authed);
+        setAuthReady(true);
+        broadcastAuthStatus(authed);
+
+        if (authed) {
+          try {
+            const user = await client.getUser();
+            if (!cancelled) {
+              setIsAdmin(user?.email === 'nathal@gmail.com');
+            }
+          } catch {
+            if (!cancelled) {
+              setIsAdmin(false);
+            }
+          }
+        } else {
+          setIsAdmin(false);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setIsAuthenticated(false);
+          setIsAdmin(false);
+          setAuthReady(true);
+          broadcastAuthStatus(false);
+          console.warn('Math Brain auth initialization failed', err);
+        }
+      }
+    };
+
+    checkAdminStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [broadcastAuthStatus]);
 
   // Track if user has manually set dates to avoid overriding their choices
   const [userHasSetDates, setUserHasSetDates] = useState(false);
@@ -6388,12 +6546,19 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
               </div>
             </details>
 
-            {/* Uncanny Scoring (Apple Health correlation) - Auth required */}
+            {/* Optional Apple Health overlay for Uncanny Scoring — Auth required */}
             {includeTransits && Object.keys(seismographMap).length > 0 && (
-              <HealthDataUpload
-                seismographData={seismographMap}
-                isAuthenticated={isAuthenticated}
-              />
+              authReady ? (
+                <HealthDataUpload
+                  seismographData={seismographMap}
+                  isAuthenticated={isAuthenticated}
+                />
+              ) : (
+                <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-6 text-sm text-slate-300">
+                  Checking your sign-in status
+                  <span className="ml-1 animate-pulse">…</span>
+                </div>
+              )
             )}
 
             {/* Navigation to Poetic Brain */}

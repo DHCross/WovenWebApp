@@ -3,6 +3,7 @@
 // Requires Google authentication
 
 "use client";
+/* eslint-disable no-console */
 
 import { useState, useCallback } from 'react';
 import type {
@@ -83,13 +84,13 @@ export default function HealthDataUpload({
           </svg>
           <div>
             <h3 className="text-base font-semibold text-amber-100 mb-1">
-              Authentication Required
+              Health Overlay Locked
             </h3>
             <p className="text-sm text-amber-200/80">
-              Uncanny Scoring (Apple Health correlation) requires Google sign-in to protect your health data privacy.
+              Uncanny Scoring itself is always available. Sign in with Google to unlock the optional health data overlay, which lets you compare Apple Health exports against symbolic weather.
             </p>
             <p className="text-xs text-amber-300/60 mt-2">
-              Your health data is never stored on our servers—all processing happens in your browser.
+              Your physiological data never leaves the browser—OAuth simply keeps the overlay secure and personal to you.
             </p>
           </div>
         </div>
@@ -103,10 +104,10 @@ export default function HealthDataUpload({
       <div className="rounded-lg border border-indigo-500/30 bg-indigo-900/10 p-6">
         <h3 className="text-lg font-semibold text-indigo-100 mb-2 flex items-center gap-2">
           <span>🩺</span>
-          <span>Uncanny Scoring</span>
+          <span>Health Data Overlay (Optional)</span>
         </h3>
         <p className="text-sm text-indigo-200/80 mb-4">
-          Upload your <strong>Apple Health Auto Export</strong> JSON to see how symbolic weather correlates with your physiology, mood, and lived experience.
+          Uncanny Scoring already runs on symbolic weather and your narrative logs. This overlay adds physiological context—upload an <strong>Apple Health Auto Export</strong> JSON to compare HRV, sleep, and more against the symbolic weather stream.
         </p>
 
         {!healthData && (

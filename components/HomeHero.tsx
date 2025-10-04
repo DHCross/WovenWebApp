@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+/* eslint-disable no-console */
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { getRedirectUri } from "../lib/auth";
 
 type Auth0Client = {
@@ -37,6 +38,9 @@ const poeticBrainEnabled = (() => {
   return false;
 })();
 
+const AUTH_STATUS_STORAGE_KEY = 'auth.status';
+const AUTH_STATUS_EVENT = 'auth-status-change';
+
 export default function HomeHero() {
   const authDisabled = !authEnabled;
   const [ready, setReady] = useState(false);
@@ -51,6 +55,25 @@ export default function HomeHero() {
   const [enableDev, setEnableDev] = useState(false);
   const clientRef = useRef<Auth0Client | null>(null);
 
+  const persistAuthState = useCallback((authedValue: boolean, nameValue: string | null) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const payload = {
+        authed: authedValue,
+        user: nameValue,
+        updatedAt: Date.now(),
+      };
+      window.localStorage.setItem(AUTH_STATUS_STORAGE_KEY, JSON.stringify(payload));
+      window.dispatchEvent(new CustomEvent(AUTH_STATUS_EVENT, { detail: payload }));
+    } catch (err) {
+      // Silent failure – auth should still work without persistence
+      console.warn('Auth status persistence failed', err);
+    }
+  }, []);
+
   // Set dev tools flag on client side only to avoid hydration mismatch
   useEffect(() => {
     setEnableDev(String(process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS) === 'true');
@@ -60,6 +83,7 @@ export default function HomeHero() {
     if (authDisabled) {
       setReady(true);
       setAuthed(true);
+      persistAuthState(true, null);
       return;
     }
     let cancelled = false;
@@ -159,6 +183,7 @@ export default function HomeHero() {
           setUserName(name);
           setAuthed(isAuthed);
           setReady(true);
+          persistAuthState(isAuthed, name);
           clearTimeout(safety); // Clear timeout since we completed successfully
         }
       } catch (e: any) {
@@ -175,7 +200,7 @@ export default function HomeHero() {
       cancelled = true;
       clearTimeout(safety);
     };
-  }, [authDisabled]);
+  }, [authDisabled, persistAuthState]);
 
   const loginWithGoogle = async () => {
     // Guard against inert click if client hasn't initialized yet
@@ -217,11 +242,13 @@ export default function HomeHero() {
           returnTo: window.location.origin
         }
       });
+      persistAuthState(false, null);
     } catch (e) {
       console.error("Logout failed", e);
       // Fallback: clear local state and reload
       setAuthed(false);
       setUserName(null);
+      persistAuthState(false, null);
       window.location.reload();
     }
   };
