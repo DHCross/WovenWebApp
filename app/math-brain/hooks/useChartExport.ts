@@ -14,12 +14,14 @@ import {
   formatChartTables,
 } from '../utils/formatting';
 
+type FriendlyFilenameType = 'directive' | 'dashboard' | 'symbolic-weather' | 'weather-log' | 'engine-config';
+
 interface UseChartExportOptions {
   result: any | null;
   reportType: string;
   reportContractType: ReportContractType;
   reportRef: MutableRefObject<HTMLElement | null>;
-  friendlyFilename: (slug: string) => string;
+  friendlyFilename: (type: FriendlyFilenameType) => string;
   filenameBase: (slug: string) => string;
   setToast?: (value: string | null) => void;
 }
@@ -631,7 +633,7 @@ Start with the Solo Mirror(s), then ${
 
       const pdfBytes = await pdfDoc.save();
 
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;

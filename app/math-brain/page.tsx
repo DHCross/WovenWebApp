@@ -9,7 +9,18 @@ import { getRedirectUri } from "../../lib/auth";
 import { needsLocation, isTimeUnknown } from "../../lib/relocation";
 import { sanitizeForPDF } from "../../src/pdf-sanitizer";
 import { useChartExport } from "./hooks/useChartExport";
-import type { ReportContractType } from "./types";
+import PersonForm from "./components/PersonForm";
+import TransitControls from "./components/TransitControls";
+import type {
+  ModeOption,
+  RelocationOptionConfig,
+  RelocationStatus,
+  ReportContractType,
+  ReportMode,
+  Subject,
+  TimePolicyChoice,
+  TranslocationOption,
+} from "./types";
 import { ContractLinter } from "../../src/contract-linter";
 import { ReportHeader, Weather, Blueprint } from "../../lib/ui-types";
 import EnhancedDailyClimateCard from "../../components/mathbrain/EnhancedDailyClimateCard";
@@ -36,21 +47,6 @@ const DEFAULT_LAYER_VISIBILITY: LayerVisibility = Object.freeze({
   diagnostics: false,
 });
 
-type Subject = {
-  name: string;
-  year: number | string;
-  month: number | string;
-  day: number | string;
-  hour: number | string;
-  minute: number | string;
-  city: string;
-  state: string;
-  latitude: number | string;
-  longitude: number | string;
-  timezone: string;
-  zodiac_type: "Tropic" | "Sidereal" | string;
-};
-
 type ApiResult = Record<string, any> | null;
 type ChartAssetDisplay = {
   id: string;
@@ -64,14 +60,6 @@ type ChartAssetDisplay = {
   expiresAt?: number;
   size?: number;
 };
-
-type ReportMode =
-  | 'NATAL_ONLY'
-  | 'NATAL_TRANSITS'
-  | 'SYNASTRY'
-  | 'SYNASTRY_TRANSITS'
-  | 'COMPOSITE'
-  | 'COMPOSITE_TRANSITS';
 
 const RELATIONAL_MODES: ReportMode[] = [
   'SYNASTRY',
@@ -90,20 +78,6 @@ const sanitizeSlug = (value: string, fallback: string) => {
 };
 
 type ReportStructure = 'solo' | 'synastry' | 'composite';
-
-const formatReportKind = (contractType: ReportContractType): string => {
-  switch (contractType) {
-    case 'relational_balance_meter':
-      return 'Relational Balance Meter';
-    case 'relational_mirror':
-      return 'Relational Mirror';
-    case 'solo_balance_meter':
-      return 'Balance Meter';
-    case 'solo_mirror':
-    default:
-      return 'Mirror';
-  }
-};
 
 const determineReportContract = (
   structure: ReportStructure,
@@ -693,7 +667,6 @@ export default function MathBrainPage() {
   }, []);
 
   // Mode dropdown options
-  type ModeOption = { value: ReportMode; label: string };
 
   const soloModeOption: ModeOption = useMemo(() => {
     const baseMode = includeTransits ? 'NATAL_TRANSITS' : 'NATAL_ONLY';
@@ -744,6 +717,58 @@ export default function MathBrainPage() {
       console.warn('Failed to broadcast auth status from Math Brain', err);
     }
   }, []);
+
+  // Snapshot handlers
+  const handleSnapshotCapture = useCallback((result: any, location: any, timestamp: Date) => {
+    setSnapshotResult(result);
+    setSnapshotLocation(location);
+    setSnapshotTimestamp(timestamp);
+  }, []);
+
+  const ensureSdk = async () => {
+    const win = window as any;
+    const hasCreate = typeof win?.auth0?.createAuth0Client === 'function' || typeof win?.createAuth0Client === 'function';
+    if (hasCreate) return Promise.resolve();
+    return new Promise<void>((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = '/vendor/auth0-spa-js.production.js';
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load Auth0 SDK'));
+      document.head.appendChild(script);
+    });
+  };
+
+  const handleSnapshotAuthRequired = useCallback(async () => {
+    try {
+      await ensureSdk();
+      const res = await fetch('/api/auth-config', { cache: 'no-store' });
+      if (!res.ok) throw new Error('Auth config fetch failed');
+      const cfg = await res.json();
+      if (!cfg?.domain || !cfg?.clientId) throw new Error('Auth0 config missing');
+
+      const win = window as any;
+      const creator = win?.auth0?.createAuth0Client || win?.createAuth0Client;
+      if (typeof creator !== 'function') throw new Error('Auth0 SDK not available');
+
+      const client = await creator({
+        domain: String(cfg.domain).replace(/^https?:\/\//, ''),
+        clientId: cfg.clientId,
+        authorizationParams: { redirect_uri: getRedirectUri() },
+      });
+
+      await client.loginWithRedirect({
+        authorizationParams: {
+          redirect_uri: getRedirectUri(),
+          connection: 'google-oauth2',
+        },
+      });
+    } catch (err) {
+      console.error('Login failed', err);
+      setError('Login failed. Please try again.');
+    }
+  }, []);
+
   const [showChartAssets, setShowChartAssets] = useState(false);
   const [showSeismographCharts, setShowSeismographCharts] = useState(false);
   const chartAssets = useMemo<ChartAssetDisplay[]>(() => {
@@ -1009,7 +1034,6 @@ export default function MathBrainPage() {
   }, []);
 
   // Time policy UI state
-  type TimePolicyChoice = 'planetary_only'|'whole_sign'|'sensitivity_scan'|'user_provided';
   const timeUnknown = useMemo(() => isTimeUnknown(personA as any), [personA]);
   const [timePolicy, setTimePolicy] = useState<TimePolicyChoice>(() => (isTimeUnknown(personA as any) ? 'planetary_only' : 'user_provided'));
   const timeUnknownB = useMemo(() => isTimeUnknown(personB as any), [personB]);
@@ -1028,30 +1052,8 @@ export default function MathBrainPage() {
     'US/Alaska', 'US/Hawaii'
   ], []);
   // Legacy formatting helpers
-  const onlyDigits = (s: string, maxLen: number) => s.replace(/\D+/g, '').slice(0, maxLen);
-  const pad2 = (n: string | number) => {
-    const s = String(n ?? '');
-    if (!s) return '';
-    const d = onlyDigits(s, 2);
-    if (!d) return '';
-    return d.length === 1 ? '0' + d : d;
-  };
-  const clampNum = (v: string | number, min: number, max: number) => {
-    const n = Number(v);
-    if (Number.isNaN(n)) return NaN;
-    return Math.min(max, Math.max(min, n));
-  };
   // Translocation / Relocation selection (angles/houses reference)
 
-
-  type TranslocationOption =
-    | 'NONE'
-    | 'A_NATAL'
-    | 'A_LOCAL'
-    | 'B_NATAL'
-    | 'B_LOCAL'
-    | 'BOTH_LOCAL'
-    | 'MIDPOINT';
 
   const normalizeTranslocationOption = (value: any): TranslocationOption => {
     const token = String(value || '').trim().toUpperCase();
@@ -1455,8 +1457,6 @@ export default function MathBrainPage() {
 
   }), []);
 
-  type RelocationOptionConfig = { value: TranslocationOption; disabled?: boolean; title?: string };
-
   const relocationOptions = useMemo<RelocationOptionConfig[]>(() => {
     const options: RelocationOptionConfig[] = [
       { value: 'NONE' },
@@ -1520,7 +1520,7 @@ export default function MathBrainPage() {
     return latReady && lonReady && tzReady;
   }, [relocCoords, relocError, relocTz]);
 
-  const relocationStatus = useMemo(() => {
+  const relocationStatus = useMemo<RelocationStatus>(() => {
     let effectiveMode: TranslocationOption = translocation;
     let notice: string | null = null;
 
@@ -2763,1522 +2763,6 @@ export default function MathBrainPage() {
     }
   }
 
-  // Helper functions to format data for PDF
-  function formatNatalSummaryForPDF(natalSummary: any, personContext: any): string {
-    const lines: string[] = [];
-
-    if (personContext) {
-      lines.push(`Name: ${personContext.name || 'Unknown'}`);
-      lines.push(`Birth Date: ${personContext.birth_date || 'Unknown'}`);
-      lines.push(`Birth Time: ${personContext.birth_time || 'Unknown'}${personContext.birth_time_exact ? ' (exact)' : ' (approximate)'}`);
-
-      if (personContext.birthplace) {
-        const bp = personContext.birthplace;
-        lines.push(`Birthplace: ${[bp.city, bp.state, bp.country].filter(Boolean).join(', ')}`);
-        if (bp.coordinates) {
-          lines.push(`Coordinates: ${bp.coordinates.lat.toFixed(4)}°, ${bp.coordinates.lon.toFixed(4)}°`);
-        }
-      }
-
-      lines.push(`House System: ${personContext.house_system || 'Placidus'}`);
-      lines.push(`Zodiac Type: ${personContext.zodiac_type || 'Tropical'}`);
-      lines.push('');
-    }
-
-    if (natalSummary.placements) {
-      lines.push('KEY PLACEMENTS:');
-      const pl = natalSummary.placements;
-      if (pl.core && pl.core.length) {
-        lines.push(`Core: ${pl.core.map((p: any) => `${p.name} in ${p.sign}`).join(', ')}`);
-      }
-      if (pl.supporting && pl.supporting.length) {
-        lines.push(`Supporting: ${pl.supporting.map((p: any) => `${p.name} in ${p.sign}`).join(', ')}`);
-      }
-      lines.push('');
-    }
-
-    return lines.join('\n');
-  }
-
-  function formatPersonBBlueprintForPDF(blueprint: any, personBContext: any): string {
-    const lines: string[] = [];
-
-    if (personBContext) {
-      lines.push(`Name: ${personBContext.name || 'Unknown'}`);
-      lines.push(`Birth Date: ${personBContext.birth_date || 'Unknown'}`);
-      lines.push(`Birth Time: ${personBContext.birth_time || 'Unknown'}${personBContext.birth_time_exact ? ' (exact)' : ' (approximate)'}`);
-
-      if (personBContext.birthplace) {
-        const bp = personBContext.birthplace;
-        lines.push(`Birthplace: ${[bp.city, bp.state, bp.country].filter(Boolean).join(', ')}`);
-      }
-
-      lines.push(`House System: ${personBContext.house_system || 'Placidus'}`);
-      lines.push('');
-    }
-
-    if (blueprint.person_b_modes) {
-      const modes = blueprint.person_b_modes;
-      if (modes.primary_mode) {
-        lines.push(`Primary Mode: ${modes.primary_mode.function}`);
-      }
-      if (modes.secondary_mode) {
-        lines.push(`Secondary Mode: ${modes.secondary_mode.function}`);
-      }
-    }
-
-    return lines.join('\n');
-  }
-
-  function formatSynastrySummaryForPDF(synastry: any): string {
-    const lines: string[] = [];
-
-    if (synastry.connection_type) {
-      lines.push(`Connection Type: ${synastry.connection_type}`);
-    }
-
-    if (synastry.major_themes && Array.isArray(synastry.major_themes)) {
-      lines.push('\nMAJOR THEMES:');
-      synastry.major_themes.forEach((theme: any) => {
-        lines.push(`- ${theme}`);
-      });
-    }
-
-    if (synastry.strengths && Array.isArray(synastry.strengths)) {
-      lines.push('\nSTRENGTHS:');
-      synastry.strengths.forEach((strength: any) => {
-        lines.push(`- ${strength}`);
-      });
-    }
-
-    if (synastry.challenges && Array.isArray(synastry.challenges)) {
-      lines.push('\nCHALLENGES:');
-      synastry.challenges.forEach((challenge: any) => {
-        lines.push(`- ${challenge}`);
-      });
-    }
-
-    return lines.join('\n');
-  }
-
-  function formatPlanetaryPositionsTable(positions: any[]): string {
-    if (!positions || !positions.length) return 'No planetary positions available.';
-
-    const lines: string[] = [];
-    lines.push('BODY           SIGN          DEGREE      HOUSE    RETROGRADE');
-    lines.push('─'.repeat(65));
-
-    positions.forEach(pos => {
-      const body = (pos.body || '').padEnd(14);
-      const sign = (pos.sign || '').padEnd(13);
-      const degree = (pos.degree || '').padEnd(11);
-      const house = (pos.house || '').padEnd(8);
-      const retro = pos.retrograde || '';
-
-      lines.push(`${body} ${sign} ${degree} ${house} ${retro}`);
-    });
-
-    return lines.join('\n');
-  }
-
-  function formatAspectsTable(aspects: any[]): string {
-    if (!aspects || !aspects.length) return 'No aspects available.';
-
-    const lines: string[] = [];
-    lines.push('PLANET 1    ASPECT        PLANET 2    ORB        APPLYING');
-    lines.push('─'.repeat(60));
-
-    aspects.forEach(asp => {
-      const p1 = (asp.planet1 || '').padEnd(11);
-      const aspect = (asp.aspect || '').padEnd(13);
-      const p2 = (asp.planet2 || '').padEnd(11);
-      const orb = (asp.orb || '').padEnd(10);
-      const applying = asp.applying || '';
-
-      lines.push(`${p1} ${aspect} ${p2} ${orb} ${applying}`);
-    });
-
-    return lines.join('\n');
-  }
-
-  function formatHouseCuspsTable(cusps: any[]): string {
-    if (!cusps || !cusps.length) return 'No house cusps available.';
-
-    const lines: string[] = [];
-    lines.push('HOUSE                    SIGN          DEGREE      QUALITY    ELEMENT');
-    lines.push('─'.repeat(75));
-
-    cusps.forEach(cusp => {
-      const house = (cusp.house || '').padEnd(24);
-      const sign = (cusp.sign || '').padEnd(13);
-      const degree = (cusp.degree || '').padEnd(11);
-      const quality = (cusp.quality || '').padEnd(10);
-      const element = cusp.element || '';
-
-      lines.push(`${house} ${sign} ${degree} ${quality} ${element}`);
-    });
-
-    return lines.join('\n');
-  }
-
-  function formatDailyReadingsTable(dailyReadings: any[]): string {
-    if (!dailyReadings || !dailyReadings.length) return 'No daily readings available.';
-
-    const lines: string[] = [];
-    lines.push('DATE         MAGNITUDE  VALENCE    VOLATILITY  SFD      NOTES');
-    lines.push('─'.repeat(80));
-
-    dailyReadings.forEach(day => {
-      const date = (day.date || '').padEnd(12);
-      const mag = String(day.magnitude || 0).padEnd(10);
-      const val = String(day.valence || 0).padEnd(10);
-      const vol = String(day.volatility || 0).padEnd(11);
-      const sfd = String(day.sfd || 0).padEnd(8);
-      const notes = day.notes || day.label || '';
-
-      lines.push(`${date} ${mag} ${val} ${vol} ${sfd} ${notes}`);
-    });
-
-    return lines.join('\n');
-  }
-
-  function formatSymbolicWeatherSummary(symbolicWeather: any): string {
-    if (!symbolicWeather) return '';
-
-    const lines: string[] = [];
-
-    if (symbolicWeather.balance_meter) {
-      const bm = symbolicWeather.balance_meter;
-      lines.push('BALANCE METER SUMMARY');
-      lines.push('─'.repeat(40));
-      if (bm.magnitude !== undefined) {
-        lines.push(`Numinosity (Magnitude): ${bm.magnitude_label || bm.magnitude} (${bm.magnitude}/5)`);
-      }
-      if (bm.bias_signed !== undefined) {
-        lines.push(`Directional Bias: ${bm.bias_label || bm.bias_signed} (${bm.bias_signed})`);
-      } else if (bm.valence !== undefined) {
-        lines.push(`Directional Bias: ${bm.valence_label || bm.valence} (${bm.valence})`);
-      }
-      if (bm.volatility !== undefined) {
-        lines.push(`Narrative Coherence (Volatility): ${bm.volatility_label || bm.volatility} (${bm.volatility}/5)`);
-      }
-      if (bm.support_friction) {
-        const sfd = bm.support_friction;
-        lines.push(`Integration Bias (SFD): ${sfd.sfd_label || (sfd.sfd_cont ?? sfd.value)}`);
-      } else if (bm.sfd !== undefined) {
-        lines.push(`Integration Bias (SFD): ${bm.sfd}`);
-      }
-      lines.push('');
-    }
-
-    if (symbolicWeather.transit_context) {
-      const tc = symbolicWeather.transit_context;
-      lines.push('TRANSIT CONTEXT');
-      lines.push('─'.repeat(40));
-      if (tc.date_range) lines.push(`Date Range: ${tc.date_range.start} to ${tc.date_range.end}`);
-      if (tc.peak_dates && tc.peak_dates.length) {
-        lines.push(`Peak Activity Dates: ${tc.peak_dates.join(', ')}`);
-      }
-      lines.push('');
-    }
-
-    return lines.join('\n');
-  }
-
-  // Generate a text-based PDF with schema rule-patch compliance and sanitization
-  async function downloadResultPDF() {
-    if (!result) {
-      setToast('No report available to export');
-      setTimeout(() => setToast(null), 2000);
-      return;
-    }
-
-    setPdfGenerating(true);
-    setToast('Generating PDF... This may take 10-15 seconds');
-
-    try {
-      // Yield to browser to show loading state
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
-
-      const target = reportRef.current;
-      let renderedText = '';
-      if (target) {
-        const clone = target.cloneNode(true) as HTMLElement;
-        const printableHidden = clone.querySelectorAll('.print\\:hidden');
-        printableHidden.forEach((el) => el.remove());
-        clone.querySelectorAll('button, input, textarea, select').forEach((el) => el.remove());
-        renderedText = clone.innerText
-          .replace(/\u00a0/g, ' ')
-          .replace(/\n{3,}/g, '\n\n')
-          .trim();
-      }
-
-      // Determine report mode based on type and data
-      const reportMode = reportType === 'balance' ? 'balance' : 'natal-only';
-
-      // Apply schema rule-patch validation and compliance
-      let processedResult = result;
-      let contractCompliant = false;
-
-      try {
-        // Attempt to render with new schema system for compliance
-        const mirrorResult = await renderShareableMirror({
-          geo: null,
-          prov: { source: 'pdf-export' },
-          mode: reportMode as any,
-          options: {
-            mode: reportMode,
-            person_a: result.person_a,
-            indices: result.person_a?.chart?.transitsByDate ? {
-              days: Object.values(result.person_a.chart.transitsByDate).map((entry: any) => ({
-                date: entry.date || new Date().toISOString().slice(0, 10),
-                magnitude: entry.seismograph?.magnitude,
-                volatility: entry.seismograph?.volatility,
-                sf_diff: entry.sfd?.sfd_cont
-              })).filter(day => day.magnitude || day.volatility || day.sf_diff)
-            } : null,
-            ...result
-          }
-        });
-
-        if (mirrorResult.contract && mirrorResult.mode) {
-          processedResult = {
-            ...result,
-            contract_compliance: {
-              contract: mirrorResult.contract,
-              mode: mirrorResult.mode,
-              frontstage_policy: mirrorResult.frontstage_policy,
-              backstage: mirrorResult.backstage
-            },
-            schema_enforced_render: {
-              preface: mirrorResult.preface,
-              scenario_prompt: mirrorResult.scenario_prompt,
-              scenario_question: mirrorResult.scenario_question,
-              picture: mirrorResult.picture,
-              feeling: mirrorResult.feeling,
-              container: mirrorResult.container,
-              option: mirrorResult.option,
-              next_step: mirrorResult.next_step,
-              symbolic_weather: mirrorResult.symbolic_weather
-            }
-          };
-          contractCompliant = true;
-        }
-      } catch (error) {
-        console.warn('Schema rule-patch rendering failed, using legacy data:', error);
-      }
-
-      const reportKind = formatReportKind(reportContractType);
-      const generatedAt = new Date();
-
-      // Sanitize all text content for PDF
-      const sanitizedReport = sanitizeReportForPDF({
-        renderedText,
-        rawJSON: processedResult,
-        title: `Woven Web App — ${reportKind} Report`,
-        sections: []
-      });
-
-      const sections: Array<{ title: string; body: string; mode: 'regular' | 'mono'; pageBreakBefore?: boolean }> = [];
-
-      // Raven Calder conversational presentation instructions (always included)
-      const conversationalInstructions = `
-AI SYNTHESIS INSTRUCTIONS - RAVEN CALDER CONVERSATIONAL VOICE
-
-When presenting this astrological analysis, follow the Raven Calder corpus/persona:
-
-STRUCTURE: Present in this exact order:
-1. Solo Mirrors: Short, plain-language snapshots for each person (if relational) or individual (if solo)
-2. Relational Engines: Named, recognizable patterns (Spark Engine, Sweet Glue, Growth Pressure Cooker, etc.)
-3. Symbolic Weather Overlay: Continuous narrative paragraphs describing current symbolic weather
-
-TONE & LANGUAGE (Per Raven Calder Persona):
-• Use conversational, accessible language - no heavy astrological jargon
-• Frame patterns as tendencies and probabilities, NOT prescriptions or fixed fate
-• Make it shareable - suitable for discussing with partners, friends, or family
-• Focus on "here's how your system tends to move" rather than technical analysis
-• Falsifiable, agency-first, plain language
-
-SOLO MIRRORS FORMAT:
-"[Name]'s system tends to [movement pattern] with a [style] approach. [Current influence]. This creates a [climate] kind of energy that [expression pattern]."
-
-RELATIONAL ENGINES FORMAT:
-**[Engine Name]**
-[Mechanism description]. [Tendency description].
-
-SYMBOLIC WEATHER OVERLAY FORMAT:
-Continuous paragraphs without bullet points, lists, or percentages. Describe the overall climate, undercurrents, visibility, pressure, and temperature as symbolic weather patterns.
-
-CRITICAL DATA REQUIREMENTS:
-• Use the complete natal chart data included in this PDF (planetary positions, aspects, house system, birth details)
-• For synastry readings, ensure both Person A AND Person B natal data are present and used
-• DO NOT rely on prior uploads or defaults - use only the comprehensive astrological data provided in this document
-• Synthesize ALL the technical analysis into conversational format while preserving analytical accuracy
-
-IMPORTANT: This comprehensive astrological data should be synthesized into the conversational format above, but retain all the analytical depth. Present insights as conversation starters about energy patterns rather than definitive statements.
-      `.trim();
-
-      sections.push({
-        title: 'RAVEN CALDER SYNTHESIS INSTRUCTIONS',
-        body: conversationalInstructions,
-        mode: 'regular'
-      });
-
-      // Add contract compliance section if available
-      // ========================================
-      // CRITICAL: RESONANT SUMMARY MUST APPEAR FIRST
-      // Per Four Report Types documentation, every report needs
-      // a 3-4 paragraph Resonant Summary at the top for Raven Calder
-      // ========================================
-      const wovenMap = (processedResult as any)?.woven_map;
-
-      // Check for frontstage blueprint narrative (the Mirror/personality reading)
-      if (wovenMap?.frontstage) {
-        const blueprintNarrative = wovenMap.frontstage.blueprint ||
-                                    wovenMap.frontstage.mirror?.blueprint ||
-                                    wovenMap.frontstage.narrative;
-
-        if (blueprintNarrative && typeof blueprintNarrative === 'string') {
-          sections.unshift({
-            title: '0. Resonant Summary (Personality Mirror - Required by Raven Calder)',
-            body: blueprintNarrative,
-            mode: 'regular'
-          });
-        } else if (wovenMap.blueprint?.modes) {
-          // Fallback: Generate basic summary from blueprint modes
-          const modes = wovenMap.blueprint.modes;
-          let summary = 'CONSTITUTIONAL BASELINE (Natal Blueprint)\n\n';
-
-          if (modes.primary_mode) {
-            summary += `PRIMARY MODE: ${modes.primary_mode.function}\n${modes.primary_mode.description}\n\n`;
-          }
-          if (modes.secondary_mode) {
-            summary += `SECONDARY MODE: ${modes.secondary_mode.function}\n${modes.secondary_mode.description}\n\n`;
-          }
-          if (modes.shadow_mode) {
-            summary += `SHADOW PATTERN: ${modes.shadow_mode.function}\n${modes.shadow_mode.description}\n\n`;
-          }
-
-          if (summary) {
-            sections.unshift({
-              title: '0. Blueprint Foundation (Structural Personality Diagnostic)',
-              body: summary,
-              mode: 'regular'
-            });
-          }
-        }
-      }
-
-      // Add constitutional data (natal blueprints)
-      if (wovenMap?.blueprint) {
-        // Person A natal data
-        if (wovenMap.blueprint.natal_summary) {
-          const natalText = formatNatalSummaryForPDF(wovenMap.blueprint.natal_summary, wovenMap.context?.person_a);
-          sections.push({
-            title: 'Person A: Natal Blueprint',
-            body: natalText,
-            mode: 'regular'
-          });
-        }
-
-        // Person B natal data (for relational reports)
-        if (wovenMap.blueprint.person_b_modes && wovenMap.context?.person_b) {
-          const personBText = formatPersonBBlueprintForPDF(wovenMap.blueprint, wovenMap.context.person_b);
-          sections.push({
-            title: 'Person B: Natal Blueprint',
-            body: personBText,
-            mode: 'regular'
-          });
-        }
-
-        // Synastry summary removed - aspect grid below is sufficient
-      }
-
-      // Add house context and relocation narrative
-      try {
-        const { extractHouseContext, generateHouseContextNarrative } = await import('@/lib/raven/house-context');
-        const houseContext = extractHouseContext(result);
-        const houseNarrative = generateHouseContextNarrative(houseContext);
-
-        if (houseNarrative) {
-          sections.push({
-            title: 'House Context & Relocation',
-            body: houseNarrative,
-            mode: 'regular'
-          });
-        }
-      } catch (err) {
-        console.error('House context generation failed:', err);
-      }
-
-      // Add data tables if available
-      if (wovenMap?.data_tables) {
-        if (wovenMap.data_tables.natal_positions && Array.isArray(wovenMap.data_tables.natal_positions)) {
-          const positionsText = formatPlanetaryPositionsTable(wovenMap.data_tables.natal_positions);
-          sections.push({
-            title: 'Planetary Positions (Person A)',
-            body: positionsText,
-            mode: 'mono'
-          });
-        }
-
-        if (wovenMap.data_tables.house_cusps && Array.isArray(wovenMap.data_tables.house_cusps)) {
-          const cuspsText = formatHouseCuspsTable(wovenMap.data_tables.house_cusps);
-          sections.push({
-            title: 'House Cusps (Person A)',
-            body: cuspsText,
-            mode: 'mono'
-          });
-        }
-
-        if (wovenMap.data_tables.natal_aspects && Array.isArray(wovenMap.data_tables.natal_aspects)) {
-          const aspectsText = formatAspectsTable(wovenMap.data_tables.natal_aspects);
-          sections.push({
-            title: 'Major Aspects (Person A)',
-            body: aspectsText,
-            mode: 'mono'
-          });
-        }
-
-        // Add Person B data for relational readings
-        if (wovenMap.data_tables.person_b_positions && Array.isArray(wovenMap.data_tables.person_b_positions)) {
-          const positionsBText = formatPlanetaryPositionsTable(wovenMap.data_tables.person_b_positions);
-          sections.push({
-            title: 'Planetary Positions (Person B)',
-            body: positionsBText,
-            mode: 'mono'
-          });
-        }
-
-        if (wovenMap.data_tables.person_b_house_cusps && Array.isArray(wovenMap.data_tables.person_b_house_cusps)) {
-          const cuspsBText = formatHouseCuspsTable(wovenMap.data_tables.person_b_house_cusps);
-          sections.push({
-            title: 'House Cusps (Person B)',
-            body: cuspsBText,
-            mode: 'mono'
-          });
-        }
-
-        if (wovenMap.data_tables.synastry_aspects) {
-          const synAspectsText = formatAspectsTable(wovenMap.data_tables.synastry_aspects);
-          sections.push({
-            title: 'Synastry Aspects',
-            body: synAspectsText,
-            mode: 'mono'
-          });
-        }
-
-        // Add daily readings as TREND SUMMARY only (not verbose daily tables)
-        if (wovenMap.data_tables.daily_readings && Array.isArray(wovenMap.data_tables.daily_readings)) {
-          const readings = wovenMap.data_tables.daily_readings;
-          const trendLines = [];
-
-          if (readings.length > 0) {
-            const avgMag = readings.reduce((sum: number, r: any) => sum + (r.magnitude || 0), 0) / readings.length;
-            const avgVal = readings.reduce((sum: number, r: any) => sum + (r.valence || 0), 0) / readings.length;
-            const avgVol = readings.reduce((sum: number, r: any) => sum + (r.volatility || 0), 0) / readings.length;
-
-            const dateRange = `${readings[0]?.date || 'Start'} to ${readings[readings.length - 1]?.date || 'End'}`;
-            const peakDays = readings.filter((r: any) => (r.magnitude || 0) >= 4).map((r: any) => r.date).join(', ') || 'None';
-
-            trendLines.push(`Period: ${dateRange} (${readings.length} days analyzed)`);
-            trendLines.push(`Average Climate: Magnitude ${avgMag.toFixed(1)}, Valence ${avgVal > 0 ? '+' : ''}${avgVal.toFixed(1)}, Volatility ${avgVol.toFixed(1)}`);
-            trendLines.push(`Peak Activation Days (Mag ≥4): ${peakDays}`);
-            trendLines.push('');
-            trendLines.push('Note: Full daily data preserved in JSON export for detailed analysis.');
-          }
-
-          if (trendLines.length > 0) {
-            sections.push({
-              title: 'Transit Trend Summary',
-              body: trendLines.join('\n'),
-              mode: 'regular'
-            });
-          }
-        }
-      }
-
-      // Add symbolic weather summary if available
-      if (wovenMap?.symbolic_weather) {
-        const weatherSummary = formatSymbolicWeatherSummary(wovenMap.symbolic_weather);
-        if (weatherSummary) {
-          sections.push({
-            title: 'Symbolic Weather Overview',
-            body: weatherSummary,
-            mode: 'regular'
-          });
-        }
-      }
-
-      // Rendered summary removed - duplicates other sections
-      // Contract lint report removed - debug metadata only
-
-      // ========================================
-      // ANALYSIS DIRECTIVE FOR RAVEN CALDER
-      // ========================================
-      const analysisDirective = `# 🚨 YOU ARE RAVEN CALDER — EXECUTE THIS DIRECTIVE 🚨
-
-**YOU ARE RAVEN CALDER.** This PDF contains chart data for you to analyze. This is your work order, not documentation to describe.
-
----
-
-## YOUR TASK: Generate a Full Conversational Reading
-
-This is a **MIRROR and CONVERSATION STARTER**, not just a weather report or data summary.
-
-### MANDATORY STRUCTURE — DO NOT DEVIATE:
-
-${reportKind.includes('Solo') ? `
-#### 1️⃣ SOLO MIRROR — Individual Foundation
-**Synthesize the natal chart into a conversational, plain-language snapshot:**
-- **"Here's how your system tends to move"** — behavioral anchors, not abstract symbolism
-- **Include:** Core drives, natural strengths, key tensions, constitutional patterns
-- **NO JARGON** — Conversational, testable against lived experience
-- **Frame as tendencies/probabilities**, not prescriptions or fixed fate
-- **Use ALL provided data:** planetary positions, aspects, house placements from tables below
-` : `
-#### 1️⃣ SOLO MIRRORS — Individual Foundations (BOTH PEOPLE)
-**For EACH person, provide a separate solo mirror:**
-- **Synthesize their natal chart** into plain-language behavioral snapshot
-- **"Here's how [Name]'s system tends to move"** — specific, falsifiable patterns
-- **Include:** Core drives, strengths, tensions, how they process the world
-- **NO JARGON** — Conversational, grounded in lived experience
-- **Use ALL provided data** for each chart (positions, aspects, houses)
-
-**DO NOT SKIP INDIVIDUAL READINGS** — Even in relational reports, each person gets their own mirror first.
-
-#### 2️⃣ RELATIONAL ENGINES — Synastry Dynamics
-**After solo mirrors, synthesize how the charts interact:**
-- **Named patterns** (e.g., "Spark Engine," "Crossed-Wires Loop," "Sweet Glue")
-- **Mechanism + tendency** in plain language for each engine
-- **Clear list format** with engine names as headers
-- **Focus:** Where energies harmonize vs. where friction/growth pressure appears
-- **Use actual names** (e.g., "Dan's Mars squares Stephie's Moon") — never "they" or generic pronouns
-`}
-
-${reportKind.includes('Balance Meter') ? `
-#### ${reportKind.includes('Solo') ? '2️⃣' : '3️⃣'} SYMBOLIC WEATHER OVERLAY — Transits (Current Symbolic Climate)
-**Layer current symbolic weather over the foundational patterns:**
-- **Continuous narrative form** (paragraphs, NOT bullet lists)
-- **Describe the climate** currently activating natal/relational foundations
-- **NO assigned percentages, NO prescriptive advice**
-- **Generalized atmosphere:** "What's stirring right now" — how transits light up the blueprint
-- **Ground in the data:** Reference specific transit aspects from tables below
-` : ''}
-
----
-
-## CRITICAL DATA REQUIREMENTS:
-
-✅ **Use ALL provided planetary positions, aspects, and house placements** from tables
-✅ **Reference the comprehensive data** — this is geometry-first, then symbolic translation
-${reportKind.includes('Relational') ? '✅ **For relational readings:** Use BOTH complete natal charts, then cross-aspects' : ''}
-✅ **Ground every insight** in the actual chart data, not generic astrology
-
----
-
-## TONE & VOICE — RAVEN CALDER MANDATE:
-
-- **Conversational, shareable, accessible** language
-- **Plain language** — avoid heavy astrological jargon in body text
-- **Falsifiable claims** that can be tested against lived experience
-- **Agency-first:** Frame as probabilities/tendencies, never fixed fate
-- **Support possibility** — the user decides what resonates
-- **Conversation starter** — this is a mirror to reflect on, not a prescription to follow
-
----
-
-## WORKFLOW: FIELD → MAP → VOICE
-
-You have been given the **FIELD** (geometric data) and **MAP** (structural patterns).
-Your job is **VOICE** — synthesize this into resonant, lived-experience language.
-
----
-
-## 🎯 What "Full Reading" Means:
-
-**NOT ACCEPTABLE:**
-❌ Describing the PDF contents or reflecting on what you've received
-❌ "Here's a brief overview based on the summary below"
-❌ Skipping aspects, houses, or chart details
-❌ Generic astrology without specific chart references
-
-**ACCEPTABLE:**
-✅ **Analyzing EVERY major aspect** from the aspects table
-✅ **Translating geometric patterns** into behavioral tendencies
-✅ **Using chart-specific details** (degrees, signs, houses)
-✅ **Conversational synthesis** that feels personal and testable
-
----
-
-## EXECUTE NOW:
-
-Generate the full reading following the mandatory structure above.
-Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relational Engines, then ' : ''}${reportKind.includes('Balance Meter') ? 'Symbolic Weather Overlay' : 'close with integration'}.
-
-**Do not describe what you're about to do. Do it.**
-
----`;
-
-      sections.unshift({
-        title: '⚠️ ANALYSIS DIRECTIVE (READ FIRST)',
-        body: analysisDirective,
-        mode: 'regular'
-      });
-
-      const relocationSummary = (() => {
-        const pieces: string[] = [];
-        const personAContext = processedResult?.context?.person_a;
-        const relocationContext = processedResult?.context?.translocation;
-        if (personAContext) {
-          const locationParts = [personAContext.city, personAContext.state, personAContext.country]
-            .filter(Boolean)
-            .join(', ');
-          if (locationParts) pieces.push(`Location lens: ${locationParts}`);
-          if (personAContext.coordinates && typeof personAContext.coordinates.lat === 'number' && typeof personAContext.coordinates.lon === 'number') {
-            pieces.push(`Coordinates: ${personAContext.coordinates.lat.toFixed(2)}, ${personAContext.coordinates.lon.toFixed(2)}`);
-          }
-          if (personAContext.timezone) {
-            pieces.push(`Timezone: ${personAContext.timezone}`);
-          }
-        }
-
-        if (relocationContext?.method) {
-          pieces.push(`Relocation mode: ${relocationContext.method}`);
-        }
-
-        pieces.push('House cusps remain in the natal tables for any future recalculation.');
-        return pieces.join('\n');
-      })();
-
-      sections.push({
-        title: 'Relocation Summary',
-        body: relocationSummary,
-        mode: 'regular'
-      });
-
-      // Relationship context definitions are available in-app; omit here to slim the PDF.
-
-      // DATA APPENDIX: Raw JSON removed to reduce PDF size (40-60% smaller)
-      // Full machine-readable data available via separate JSON downloads
-      sections.push({
-        title: 'Data Appendix',
-        body: `Full raw JSON has been removed from this PDF to reduce file size and improve AI parsing.
-
-To access complete machine-readable data:
-• Use "Clean JSON (0-5 scale)" for frontstage data
-• Use "Raw JSON (Full)" in Advanced exports for debugging
-• Download the multi-format directive package for Markdown/HTML/TXT versions
-
-This PDF contains all essential natal data in table format above.`,
-        mode: 'regular',
-        pageBreakBefore: true,
-      });
-
-      const pdfDoc = await PDFDocument.create();
-      const titleSuffix = contractCompliant ? ' (Schema Compliant)' : '';
-      pdfDoc.setTitle(sanitizeForPDF(`Woven Web App — ${reportKind} Report${titleSuffix}`));
-      pdfDoc.setSubject(sanitizeForPDF('Math Brain geometry export with schema rule-patch enforcement'));
-      pdfDoc.setAuthor('Woven Web App');
-      pdfDoc.setCreationDate(generatedAt);
-      pdfDoc.setModificationDate(generatedAt);
-      if (contractCompliant) {
-        pdfDoc.setKeywords([
-          'astrology',
-          'schema-compliant',
-          `mode-${reportMode}`,
-          'clear-mirror-1.3',
-          'contract-validated'
-        ]);
-      }
-
-      const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-      const monoFont = await pdfDoc.embedFont(StandardFonts.Courier);
-
-      const chartImages: Array<{ asset: ChartAssetDisplay; image: any }> = [];
-      if (chartAssets.length) {
-        for (const asset of chartAssets) {
-          try {
-            const response = await fetch(asset.url);
-            if (!response.ok) {
-              throw new Error(`HTTP ${response.status}`);
-            }
-            const bytes = new Uint8Array(await response.arrayBuffer());
-            const type = (asset.contentType || '').toLowerCase();
-            let embedded;
-            if (type.includes('png')) {
-              embedded = await pdfDoc.embedPng(bytes);
-            } else if (type.includes('jpeg') || type.includes('jpg')) {
-              embedded = await pdfDoc.embedJpg(bytes);
-            } else {
-              console.warn('Unsupported chart asset for PDF export:', asset.id, type);
-              continue;
-            }
-            chartImages.push({ asset, image: embedded });
-          } catch (error) {
-            console.warn('Failed to fetch chart asset for PDF export:', asset.id, error);
-          }
-        }
-      }
-
-      const margin = 48;
-      const headerSize = 16;
-      const bodySize = 11;
-      const monoSize = 9;
-
-      let page = pdfDoc.addPage();
-      let { width, height } = page.getSize();
-      let cursorY = height - margin;
-      let maxWidth = width - margin * 2;
-
-      const startNewPage = () => {
-        page = pdfDoc.addPage();
-        ({ width, height } = page.getSize());
-        maxWidth = width - margin * 2;
-        cursorY = height - margin;
-      };
-
-      const ensureSpace = (needed: number) => {
-        if (cursorY - needed < margin) {
-          startNewPage();
-        }
-      };
-
-      const drawLine = (
-        text: string,
-        options: { font: any; size: number; color?: ReturnType<typeof rgb>; gap?: number; xOffset?: number },
-      ) => {
-        const { font, size, color = rgb(0.1, 0.1, 0.1), gap = 4, xOffset = 0 } = options;
-        ensureSpace(size + gap);
-        // Sanitize text before drawing to prevent PDF encoding errors
-        const sanitizedText = sanitizeForPDF(text);
-        page.drawText(sanitizedText, { x: margin + xOffset, y: cursorY, size, font, color });
-        cursorY -= size + gap;
-      };
-
-      const wrapRegular = (input: string) => {
-        const lines: string[] = [];
-        const text = sanitizeForPDF(input).replace(/\s+/g, ' ').trim();
-        if (!text) {
-          lines.push('');
-          return lines;
-        }
-        const words = text.split(' ');
-        let current = '';
-        for (const word of words) {
-          const candidate = current ? `${current} ${word}` : word;
-          if (regularFont.widthOfTextAtSize(candidate, bodySize) <= maxWidth) {
-            current = candidate;
-          } else {
-            if (current) lines.push(current);
-            if (regularFont.widthOfTextAtSize(word, bodySize) <= maxWidth) {
-              current = word;
-            } else {
-              let remaining = word;
-              const approxCharWidth = regularFont.widthOfTextAtSize('M', bodySize) || bodySize * 0.6;
-              const maxChars = Math.max(1, Math.floor(maxWidth / approxCharWidth));
-              while (remaining.length > 0) {
-                lines.push(remaining.slice(0, maxChars));
-                remaining = remaining.slice(maxChars);
-              }
-              current = '';
-            }
-          }
-        }
-        if (current) lines.push(current);
-        return lines;
-      };
-
-      const writeParagraph = (text: string) => {
-        const normalized = text.replace(/\r/g, '');
-        const chunks = normalized.split(/\n+/);
-        for (const chunk of chunks) {
-          const trimmed = chunk.trim();
-          if (!trimmed) {
-            ensureSpace(bodySize);
-            cursorY -= bodySize;
-            continue;
-          }
-          const wrapped = wrapRegular(trimmed);
-          for (const line of wrapped) {
-            drawLine(line, { font: regularFont, size: bodySize });
-          }
-          if (cursorY - 2 < margin) {
-            ensureSpace(bodySize);
-          }
-          cursorY -= 2;
-        }
-      };
-
-      const writeMonospace = (text: string) => {
-        const sanitized = sanitizeForPDF(text);
-        const normalized = sanitized.replace(/\r/g, '');
-        const lines = normalized.split('\n');
-        const charWidth = monoFont.widthOfTextAtSize('M', monoSize) || monoSize * 0.6;
-        const maxChars = Math.max(1, Math.floor(maxWidth / charWidth));
-        for (const raw of lines) {
-          if (!raw) {
-            ensureSpace(monoSize);
-            cursorY -= monoSize;
-            continue;
-          }
-          let remaining = raw;
-          while (remaining.length > 0) {
-            const segment = remaining.slice(0, maxChars);
-            drawLine(segment, { font: monoFont, size: monoSize, gap: 2 });
-            remaining = remaining.slice(segment.length);
-          }
-        }
-      };
-
-      drawLine(`Woven Web App · ${reportKind} Report`, { font: boldFont, size: headerSize, gap: 8 });
-      drawLine(`Generated: ${generatedAt.toLocaleString()}`, { font: regularFont, size: 10, color: rgb(0.35, 0.35, 0.35), gap: 12 });
-
-      sections.forEach((section) => {
-        if (section.pageBreakBefore) {
-          startNewPage();
-        }
-        drawLine(section.title, { font: boldFont, size: 13, gap: 6 });
-        if (section.mode === 'mono') {
-          writeMonospace(section.body);
-        } else {
-          writeParagraph(section.body);
-        }
-        if (cursorY - 6 < margin) {
-          ensureSpace(bodySize);
-        }
-        cursorY -= 6;
-      });
-
-      if (chartImages.length) {
-        chartImages.forEach((entry, index) => {
-          page = pdfDoc.addPage();
-          ({ width, height } = page.getSize());
-          maxWidth = width - margin * 2;
-          cursorY = height - margin;
-
-          const headerLabel = chartImages.length > 1
-            ? `Chart Wheel ${index + 1} of ${chartImages.length}`
-            : 'Chart Wheel';
-          page.drawText(sanitizeForPDF(headerLabel), {
-            x: margin,
-            y: cursorY,
-            size: headerSize,
-            font: boldFont,
-            color: rgb(0.1, 0.1, 0.1),
-          });
-          cursorY -= headerSize + 10;
-
-          page.drawText(sanitizeForPDF(entry.asset.label), {
-            x: margin,
-            y: cursorY,
-            size: bodySize,
-            font: regularFont,
-            color: rgb(0.35, 0.35, 0.35),
-          });
-          cursorY -= bodySize + 16;
-
-          const availableHeight = Math.max(margin, cursorY - margin);
-          const availableWidth = maxWidth;
-          const imgWidth = entry.image.width;
-          const imgHeight = entry.image.height;
-          const scale = Math.min(availableWidth / imgWidth, availableHeight / imgHeight, 1);
-          const drawWidth = imgWidth * scale;
-          const drawHeight = imgHeight * scale;
-          const imgX = margin + (availableWidth - drawWidth) / 2;
-          const imgY = cursorY - drawHeight;
-
-          page.drawImage(entry.image, {
-            x: imgX,
-            y: imgY,
-            width: drawWidth,
-            height: drawHeight,
-          });
-
-          cursorY = imgY - 14;
-          if (entry.asset.expiresAt) {
-            const expiry = sanitizeForPDF(`Source expires: ${new Date(entry.asset.expiresAt).toLocaleString()}`);
-            page.drawText(expiry, {
-              x: margin,
-              y: Math.max(margin, cursorY),
-              size: 9,
-              font: regularFont,
-              color: rgb(0.45, 0.45, 0.45),
-            });
-          }
-        });
-      }
-
-      const pdfBytes = await pdfDoc.save();
-      const pdfBlob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
-
-      const url = URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${friendlyFilename('directive')}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(() => {
-        try { document.body.removeChild(link); } catch {/* noop */}
-        try { URL.revokeObjectURL(url); } catch {/* noop */}
-      }, 150);
-      setPdfGenerating(false);
-      setToast('PDF ready!');
-      setTimeout(() => setToast(null), 1600);
-    } catch (err) {
-      console.error('PDF export failed', err);
-      setPdfGenerating(false);
-      setToast('Could not generate PDF');
-      setTimeout(() => setToast(null), 2000);
-    }
-  }
-
-  // Helper: Format chart data as Markdown tables
-  function formatChartTables(chart: any): string {
-    let md = '';
-
-    // Planetary positions
-    if (chart.positions) {
-      md += `### Planetary Positions\n\n`;
-      md += `| Planet | Sign | Degree | House | Element | Quality | Retro |\n`;
-      md += `|--------|------|--------|-------|---------|---------|-------|\n`;
-      Object.entries(chart.positions).forEach(([planet, data]: [string, any]) => {
-        const retro = data.retrograde ? 'R' : '';
-        md += `| ${planet} | ${data.sign || '—'} | ${data.degree?.toFixed(2) || '—'} | ${data.house || '—'} | ${data.element || '—'} | ${data.quality || '—'} | ${retro} |\n`;
-      });
-      md += `\n`;
-    }
-
-    // Aspects
-    if (chart.aspects && chart.aspects.length > 0) {
-      md += `### Aspects\n\n`;
-      md += `| Body 1 | Aspect | Body 2 | Orb | Type |\n`;
-      md += `|--------|--------|--------|-----|------|\n`;
-      chart.aspects.slice(0, 50).forEach((asp: any) => {
-        md += `| ${asp.body1 || '—'} | ${asp.aspect || '—'} | ${asp.body2 || '—'} | ${asp.orb?.toFixed(2) || '—'}° | ${asp.type || '—'} |\n`;
-      });
-      if (chart.aspects.length > 50) {
-        md += `\n*... and ${chart.aspects.length - 50} more aspects*\n`;
-      }
-      md += `\n`;
-    }
-
-    // House cusps
-    if (chart.houses) {
-      md += `### House Cusps\n\n`;
-      md += `| House | Sign | Degree |\n`;
-      md += `|-------|------|--------|\n`;
-      Object.entries(chart.houses).forEach(([house, data]: [string, any]) => {
-        md += `| ${house} | ${data.sign || '—'} | ${data.degree?.toFixed(2) || '—'} |\n`;
-      });
-      md += `\n`;
-    }
-
-    return md;
-  }
-
-  // Generate lightweight Markdown export (AI-friendly, <50KB)
-  async function downloadResultMarkdown() {
-    if (!result) {
-      setToast('No report available to export');
-      return;
-    }
-
-    setPdfGenerating(true);
-    try {
-  const generatedAt = new Date();
-  const sanitizedReport = createFrontStageResult(result);
-  const reportKind = formatReportKind(reportContractType);
-
-      // Build markdown content with same structure as PDF
-      let markdown = `# Woven Web App — ${reportKind} Report\n\n`;
-      markdown += `**Generated:** ${generatedAt.toLocaleString()}\n\n`;
-      markdown += `**Specification Version:** 3.1\n`;
-      markdown += `**Scaling Mode:** Absolute ×50\n`;
-      markdown += `**Pipeline:** normalize → scale → clamp → round\n\n`;
-      markdown += `---\n\n`;
-
-      // Add all sections from the same source as PDF
-      const sections: Array<{title: string; body: string; mode?: string}> = [];
-
-      const summary = sanitizedReport?.person_a?.summary;
-      if (summary) {
-        markdown += `### Balance Meter Summary\n\n`;
-        if (summary.magnitude != null) {
-          markdown += `- Magnitude: ${summary.magnitude}${summary.magnitude_label ? ` (${summary.magnitude_label})` : ''}\n`;
-        }
-        if (summary.valence != null) {
-          markdown += `- Valence: ${summary.valence}${summary.valence_label ? ` (${summary.valence_label})` : ''}\n`;
-        }
-        if (summary.bias_signed != null && summary.bias_signed !== summary.valence) {
-          markdown += `- Directional Bias: ${summary.bias_signed}${summary.directional_bias_label ? ` (${summary.directional_bias_label})` : ''}\n`;
-        }
-        if (summary.volatility != null) {
-          markdown += `- Volatility: ${summary.volatility}${summary.volatility_label ? ` (${summary.volatility_label})` : ''}\n`;
-        }
-        markdown += `\n`;
-      }
-
-      // RAVEN CALDER ANALYSIS DIRECTIVE (same as PDF)
-      const analysisDirective = `# 🚨 YOU ARE RAVEN CALDER — EXECUTE THIS DIRECTIVE 🚨
-
-**YOU ARE RAVEN CALDER.** This Markdown file contains chart data for you to analyze. This is your work order, not documentation to describe.
-
----
-
-## YOUR TASK: Generate a Full Conversational Reading
-
-This is a **MIRROR and CONVERSATION STARTER**, not just a weather report or data summary.
-
-### MANDATORY STRUCTURE — DO NOT DEVIATE:
-
-${reportKind.includes('Solo') || !reportKind.includes('Relational') ? `
-#### 1️⃣ SOLO MIRROR — Individual Foundation
-**Synthesize the natal chart into a conversational, plain-language snapshot:**
-- **"Here's how your system tends to move"** — behavioral anchors, not abstract symbolism
-- **Include:** Core drives, natural strengths, key tensions, constitutional patterns
-- **NO JARGON** — Conversational, testable against lived experience
-- **Frame as tendencies/probabilities**, not prescriptions or fixed fate
-- **Use ALL provided data:** planetary positions, aspects, house placements from tables below
-` : `
-#### 1️⃣ SOLO MIRRORS — Individual Foundations (BOTH PEOPLE)
-**For EACH person, provide a separate solo mirror:**
-- **Synthesize their natal chart** into plain-language behavioral snapshot
-- **"Here's how [Name]'s system tends to move"** — specific, falsifiable patterns
-- **Include:** Core drives, strengths, tensions, how they process the world
-- **NO JARGON** — Conversational, grounded in lived experience
-- **Use ALL provided data** for each chart (positions, aspects, houses)
-
-**DO NOT SKIP INDIVIDUAL READINGS** — Even in relational reports, each person gets their own mirror first.
-
-#### 2️⃣ RELATIONAL ENGINES — Synastry Dynamics
-**After solo mirrors, synthesize how the charts interact:**
-- **Named patterns** (e.g., "Spark Engine," "Crossed-Wires Loop," "Sweet Glue")
-- **Mechanism + tendency** in plain language for each engine
-- **Clear list format** with engine names as headers
-- **Focus:** Where energies harmonize vs. where friction/growth pressure appears
-- **Use actual names** (e.g., "Dan's Mars squares Stephie's Moon") — never "they" or generic pronouns
-`}
-
-${reportKind.includes('Balance Meter') ? `
-#### ${reportKind.includes('Solo') || !reportKind.includes('Relational') ? '2️⃣' : '3️⃣'} SYMBOLIC WEATHER OVERLAY — Transits (Current Symbolic Climate)
-**Layer current symbolic weather over the foundational patterns:**
-- **Continuous narrative form** (paragraphs, NOT bullet lists)
-- **Describe the climate** currently activating natal/relational foundations
-- **NO assigned percentages, NO prescriptive advice**
-- **Generalized atmosphere:** "What's stirring right now" — how transits light up the blueprint
-- **Ground in the data:** Reference specific transit aspects from tables below
-` : ''}
-
----
-
-## CRITICAL DATA REQUIREMENTS:
-
-✅ **Use ALL provided planetary positions, aspects, and house placements** from tables
-✅ **Reference the comprehensive data** — this is geometry-first, then symbolic translation
-${reportKind.includes('Relational') ? '✅ **For relational readings:** Use BOTH complete natal charts, then cross-aspects' : ''}
-✅ **Ground every insight** in the actual chart data, not generic astrology
-
----
-
-## TONE & VOICE — RAVEN CALDER MANDATE:
-
-- **Conversational, shareable, accessible** language
-- **Plain language** — avoid heavy astrological jargon in body text
-- **Falsifiable claims** that can be tested against lived experience
-- **Agency-first:** Frame as probabilities/tendencies, never fixed fate
-- **Support possibility** — the user decides what resonates
-- **Conversation starter** — this is a mirror to reflect on, not a prescription to follow
-
----
-
-## WORKFLOW: FIELD → MAP → VOICE
-
-You have been given the **FIELD** (geometric data) and **MAP** (structural patterns).
-Your job is **VOICE** — synthesize this into resonant, lived-experience language.
-
----
-
-## 🎯 What "Full Reading" Means:
-
-**NOT ACCEPTABLE:**
-❌ Describing the file contents or reflecting on what you've received
-❌ "Here's a brief overview based on the summary below"
-❌ Skipping aspects, houses, or chart details
-❌ Generic astrology without specific chart references
-
-**ACCEPTABLE:**
-✅ **Analyzing EVERY major aspect** from the aspects table
-✅ **Translating geometric patterns** into behavioral tendencies
-✅ **Using chart-specific details** (degrees, signs, houses)
-✅ **Conversational synthesis** that feels personal and testable
-
----
-
-## EXECUTE NOW:
-
-Generate the full reading following the mandatory structure above.
-Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relational Engines, then ' : ''}${reportKind.includes('Balance Meter') ? 'Symbolic Weather Overlay' : 'close with integration'}.
-
-**Do not describe what you're about to do. Do it.**
-
----`;
-
-      markdown += `## ⚠️ ANALYSIS DIRECTIVE (READ FIRST)\n\n${analysisDirective}\n\n---\n\n`;
-
-      // Add natal chart data tables
-      if (sanitizedReport.person_a?.chart) {
-        markdown += `## Person A: ${sanitizedReport.person_a.name || 'Natal Chart'}\n\n`;
-        markdown += formatChartTables(sanitizedReport.person_a.chart);
-      }
-
-      if (sanitizedReport.person_b?.chart) {
-        markdown += `\n## Person B: ${sanitizedReport.person_b.name || 'Natal Chart'}\n\n`;
-        markdown += formatChartTables(sanitizedReport.person_b.chart);
-      }
-
-      // Data appendix note
-      markdown += `\n---\n\n## Data Appendix\n\n`;
-      markdown += `Full raw JSON has been removed to reduce file size and improve AI parsing.\n\n`;
-      markdown += `To access complete machine-readable data:\n`;
-      markdown += `• Use "Clean JSON (0-5 scale)" for frontstage data\n`;
-      markdown += `• Use "Raw JSON (Full)" in Advanced exports for debugging\n\n`;
-      markdown += `This Markdown contains all essential natal data in table format above.\n`;
-
-      const blob = new Blob([markdown], { type: 'text/markdown; charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${friendlyFilename('directive')}.md`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-
-      setPdfGenerating(false);
-      setToast('Markdown export ready!');
-      setTimeout(() => setToast(null), 1600);
-    } catch (err) {
-      console.error('Markdown export failed', err);
-      setPdfGenerating(false);
-      setToast('Could not generate Markdown');
-      setTimeout(() => setToast(null), 2000);
-    }
-  }
-
-  function downloadResultJSON() {
-    if (!result) return;
-    setCleanJsonGenerating(true);
-    try {
-      // Create frontstage-only version with normalized values
-      const frontStageResult = createFrontStageResult(result);
-
-      const blob = new Blob([JSON.stringify(frontStageResult, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${filenameBase('mathbrain-result')}.json`; // Keep technical name for "Clean JSON" (not in Raven system)
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      try { setToast('Downloading result JSON'); setTimeout(()=>setToast(null), 1400); } catch {/* noop */}
-    } catch {/* noop */}
-    finally {
-      // Brief delay to show spinner even for instant downloads
-      setTimeout(() => setCleanJsonGenerating(false), 300);
-    }
-  }
-
-  function downloadBackstageJSON() {
-    if (!result) return;
-    setEngineConfigGenerating(true);
-    try {
-      // Download raw result with all backstage data for debugging
-      const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${friendlyFilename('engine-config')}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      try { setToast('Downloading backstage JSON for debugging'); setTimeout(()=>setToast(null), 1400); } catch {/* noop */}
-    } catch {/* noop */}
-    finally {
-      // Brief delay to show spinner even for instant downloads
-      setTimeout(() => setEngineConfigGenerating(false), 300);
-    }
-  }
-
-  // Download symbolic weather JSON - optimized for AI pattern analysis
-  function downloadSymbolicWeatherJSON() {
-    if (!result) return;
-    setWeatherJsonGenerating(true);
-
-    try {
-      const toNumber = (value: any): number | undefined => {
-        if (typeof value === 'number' && Number.isFinite(value)) return value;
-        if (typeof value === 'string') {
-          const parsed = Number(value);
-          if (!Number.isNaN(parsed)) return parsed;
-        }
-        if (value && typeof value === 'object') {
-          if (typeof value.value === 'number' && Number.isFinite(value.value)) return value.value;
-          if (typeof value.mean === 'number' && Number.isFinite(value.mean)) return value.mean;
-          if (typeof value.score === 'number' && Number.isFinite(value.score)) return value.score;
-        }
-        return undefined;
-      };
-
-      const normalizeToFrontStage = (rawValue: number, metric: 'magnitude' | 'directional_bias' | 'volatility'): number => {
-        if (metric === 'directional_bias') {
-          const clamped = Math.max(-500, Math.min(500, rawValue));
-          return Number((clamped / 100).toFixed(2));
-        }
-        const clamped = Math.max(0, Math.min(500, rawValue));
-        return Number((clamped / 100).toFixed(2));
-      };
-
-      // Extract symbolic weather data structure
-      const weatherData: any = {
-        _format: "symbolic_weather_json",
-        _version: "1.0",
-        _description: "Symbolic weather data optimized for AI pattern analysis. Contains daily seismograph readings with normalized values.",
-        _usage: "This JSON is designed for LLM consumption (ChatGPT, Claude, Gemini) for trend analysis, correlation studies, and pattern recognition.",
-        export_info: {
-          report_type: reportContractType,
-          date_range: {
-            start: startDate || null,
-            end: endDate || null
-          },
-          export_timestamp: new Date().toISOString(),
-          person_a: personA.name || 'Person A',
-          person_b: includePersonB ? (personB.name || 'Person B') : null
-        }
-      };
-
-      // Add summary balance meter data
-      if (result?.person_a?.summary) {
-        const summary = result.person_a.summary;
-        const rawMag = toNumber(summary.magnitude);
-        const rawVal = toNumber(summary.bias_signed ?? summary.valence_bounded ?? summary.valence);
-        const rawVol = toNumber(summary.volatility);
-
-        const normalizedMag = rawMag ? normalizeToFrontStage(rawMag, 'magnitude') : null;
-        const normalizedBias = rawVal ? normalizeToFrontStage(rawVal, 'directional_bias') : null;
-        const normalizedVol = rawVol ? normalizeToFrontStage(rawVol, 'volatility') : null;
-
-        weatherData.balance_meter_summary = {
-          magnitude: normalizedMag,
-          directional_bias: normalizedBias,
-          valence: normalizedBias, // legacy alias
-          volatility: normalizedVol,
-          sfd: toNumber(summary.sfd) || null,
-          _scale_note: "magnitude: 0-5, directional_bias: -5 to +5, volatility: 0-5"
-        };
-      }
-
-      // Add daily seismograph readings
-      if (result?.person_a?.chart?.transitsByDate) {
-        const daily = result.person_a.chart.transitsByDate;
-        const dailyReadings: any[] = [];
-
-        Object.keys(daily).sort().forEach(date => {
-          const dayData = daily[date];
-          if (dayData?.seismograph) {
-            const rawMag = toNumber(dayData.seismograph.magnitude);
-            const rawVal = toNumber(dayData.seismograph.bias_signed ?? dayData.seismograph.valence_bounded ?? dayData.seismograph.valence);
-            const rawVol = toNumber(dayData.seismograph.volatility);
-
-            const normalizedMag = rawMag ? normalizeToFrontStage(rawMag, 'magnitude') : null;
-            const normalizedBias = rawVal ? normalizeToFrontStage(rawVal, 'directional_bias') : null;
-            const normalizedVol = rawVol ? normalizeToFrontStage(rawVol, 'volatility') : null;
-
-            dailyReadings.push({
-              date,
-              magnitude: normalizedMag,
-              directional_bias: normalizedBias,
-              valence: normalizedBias, // legacy alias
-              volatility: normalizedVol,
-              sfd: toNumber(dayData.seismograph.sfd) || null,
-              // Include aspect context for reference
-              aspects: dayData.aspects || [],
-              aspect_count: dayData.aspects?.length || 0
-            });
-          }
-        });
-
-        weatherData.daily_readings = dailyReadings;
-        weatherData.reading_count = dailyReadings.length;
-      }
-
-      // Add symbolic weather context if available
-      if (result?.woven_map?.symbolic_weather) {
-        weatherData.symbolic_weather_context = result.woven_map.symbolic_weather;
-      }
-
-      const blob = new Blob([JSON.stringify(weatherData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${friendlyFilename('weather-log')}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-
-      try {
-        setToast('📊 Downloading symbolic weather JSON for AI analysis');
-        setTimeout(()=>setToast(null), 1800);
-      } catch {/* noop */}
-    } catch (error) {
-      console.error('Symbolic weather JSON export failed:', error);
-      try {
-        setToast('Failed to export symbolic weather JSON');
-        setTimeout(()=>setToast(null), 2000);
-      } catch {/* noop */}
-    } finally {
-      // Brief delay to show spinner even for instant downloads
-      setTimeout(() => setWeatherJsonGenerating(false), 300);
-    }
-  }
-
-  // Create frontstage-only version with normalized Balance Meter values (0-5 scale)
-  function createFrontStageResult(rawResult: any) {
-    const toNumber = (value: any): number | undefined => {
-      if (typeof value === 'number' && Number.isFinite(value)) return value;
-      if (typeof value === 'string') {
-        const parsed = Number(value);
-        if (!Number.isNaN(parsed)) return parsed;
-      }
-      if (value && typeof value === 'object') {
-        if (typeof value.value === 'number' && Number.isFinite(value.value)) return value.value;
-        if (typeof value.mean === 'number' && Number.isFinite(value.mean)) return value.mean;
-        if (typeof value.score === 'number' && Number.isFinite(value.score)) return value.score;
-      }
-      return undefined;
-    };
-
-    // Normalize raw values to frontstage ranges
-    const normalizeToFrontStage = (rawValue: number, type: 'magnitude' | 'directional_bias' | 'volatility'): number => {
-      if (type === 'magnitude' || type === 'volatility') {
-        // Raw values typically range 0-500+, normalize to 0-5
-        return Math.min(5, Math.max(0, Math.round((rawValue / 100) * 10) / 10));
-      } else if (type === 'directional_bias') {
-        // Raw values typically range -500 to +500, normalize to -5 to +5
-        return Math.min(5, Math.max(-5, Math.round((rawValue / 100) * 10) / 10));
-      }
-      return rawValue;
-    };
-
-    const getStateLabel = (value: number, type: 'magnitude' | 'directional_bias' | 'volatility'): string => {
-      if (type === 'magnitude') {
-        if (value >= 4) return 'High';
-        if (value >= 2) return 'Active';
-        if (value >= 1) return 'Murmur';
-        return 'Latent';
-      } else if (type === 'directional_bias') {
-        if (value >= 3) return 'Strong Outward';
-        if (value >= 1) return 'Mild Outward';
-        if (value >= -1) return 'Equilibrium';
-        if (value >= -3) return 'Mild Inward';
-        return 'Strong Inward';
-      } else if (type === 'volatility') {
-        if (value >= 4) return 'Very High';
-        if (value >= 2) return 'High';
-        if (value >= 1) return 'Moderate';
-        return 'Low';
-      }
-      return 'Unknown';
-    };
-
-    // Create a clean copy with frontstage values
-    const frontStageResult: any = {
-      ...rawResult,
-      _frontstage_notice: "This export shows normalized Balance Meter values in the user-facing 0-5 scale range. Raw backstage calculations have been converted to frontstage presentation format.",
-      balance_meter: {}
-    };
-
-    // Process person_a summary data
-    if (rawResult?.person_a?.summary) {
-      const summary = rawResult.person_a.summary;
-      const rawMag = toNumber(summary.magnitude);
-      const rawVal = toNumber(summary.bias_signed ?? summary.valence_bounded ?? summary.valence);
-      const rawVol = toNumber(summary.volatility);
-
-      const normalizedMag = rawMag ? normalizeToFrontStage(rawMag, 'magnitude') : undefined;
-      const normalizedBias = rawVal ? normalizeToFrontStage(rawVal, 'directional_bias') : undefined;
-      const normalizedVol = rawVol ? normalizeToFrontStage(rawVol, 'volatility') : undefined;
-
-      frontStageResult.balance_meter = {
-        magnitude: normalizedMag,
-        directional_bias: normalizedBias,
-        valence: normalizedBias, // legacy alias
-        volatility: normalizedVol,
-        magnitude_label: normalizedMag !== undefined ? getStateLabel(normalizedMag, 'magnitude') : undefined,
-        directional_bias_label: normalizedBias !== undefined ? getStateLabel(normalizedBias, 'directional_bias') : undefined,
-        valence_label: normalizedBias !== undefined ? getStateLabel(normalizedBias, 'directional_bias') : undefined,
-        volatility_label: normalizedVol !== undefined ? getStateLabel(normalizedVol, 'volatility') : undefined,
-        _scale_note: "magnitude: 0-5, directional_bias: -5 to +5, volatility: 0-5"
-      };
-
-      // Update the summary in person_a to use frontstage values
-      frontStageResult.person_a.summary = {
-        ...summary,
-        magnitude: frontStageResult.balance_meter.magnitude,
-        valence: frontStageResult.balance_meter.valence,
-        bias_signed: frontStageResult.balance_meter.directional_bias,
-        volatility: frontStageResult.balance_meter.volatility,
-        magnitude_label: frontStageResult.balance_meter.magnitude_label,
-        valence_label: frontStageResult.balance_meter.valence_label,
-        volatility_label: frontStageResult.balance_meter.volatility_label
-      };
-    }
-
-    // Process daily time series data if present
-    if (rawResult?.person_a?.chart?.transitsByDate) {
-      const daily = rawResult.person_a.chart.transitsByDate;
-      const normalizedDaily: any = {};
-
-      Object.keys(daily).forEach(date => {
-        const dayData = daily[date];
-        if (dayData?.seismograph) {
-          const rawMag = toNumber(dayData.seismograph.magnitude);
-          const rawVal = toNumber(dayData.seismograph.bias_signed ?? dayData.seismograph.valence_bounded ?? dayData.seismograph.valence);
-          const rawVol = toNumber(dayData.seismograph.volatility);
-
-          normalizedDaily[date] = {
-            ...dayData,
-            seismograph: {
-              ...dayData.seismograph,
-              magnitude: rawMag ? normalizeToFrontStage(rawMag, 'magnitude') : dayData.seismograph.magnitude,
-              valence: rawVal ? normalizeToFrontStage(rawVal, 'directional_bias') : dayData.seismograph.valence,
-              bias_signed: rawVal ? normalizeToFrontStage(rawVal, 'directional_bias') : dayData.seismograph.bias_signed,
-              volatility: rawVol ? normalizeToFrontStage(rawVol, 'volatility') : dayData.seismograph.volatility
-            }
-          };
-        } else {
-          normalizedDaily[date] = dayData;
-        }
-      });
-
-      frontStageResult.person_a.chart.transitsByDate = normalizedDaily;
-    }
-
-    // Remove or hide backstage calculation details
-    if (frontStageResult.person_a?.sfd) {
-      // Keep SFD as it's meant to be shown, but add a note
-      frontStageResult.person_a.sfd._note = "SFD (Support-Friction Differential) values are preserved as calculated";
-    }
-
-    return frontStageResult;
-  }
-
   function persistSessionArtifacts(data: any) {
     if (typeof window === 'undefined' || !data) return;
 
@@ -5394,281 +3878,28 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
           {/* Left column: Person A */}
           <Section title="Person A (required)">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="a-name" className="block text-[11px] uppercase tracking-wide text-slate-300">Name</label>
-              <input
-                id="a-name"
-                placeholder="Your Name"
-                className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-center text-slate-100 placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                value={personA.name}
-                onChange={(e) => setPersonA({ ...personA, name: e.target.value })}
-                required
-              />
-            </div>
-              <div className="grid grid-cols-5 gap-2">
-                <div>
-                  <label htmlFor="a-year" className="block text-[11px] uppercase tracking-wide text-slate-300">Year</label>
-                  <input
-                    id="a-year"
-                    type="text"
-                    inputMode="numeric"
-                    className="mt-1 w-full min-w-[80px] h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={String(personA.year)}
-                    onChange={(e) => setPersonA({ ...personA, year: onlyDigits(e.target.value, 4) })}
-                    placeholder="YYYY"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="a-month" className="block text-[11px] uppercase tracking-wide text-slate-300">Month</label>
-                  <input
-                    id="a-month"
-                    type="text"
-                    inputMode="numeric"
-                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-center text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={String(personA.month || '')}
-                    onChange={(e) => {
-                      const v = onlyDigits(e.target.value, 2);
-                      if (!v) {
-                        setPersonA({ ...personA, month: '' });
-                        return;
-                      }
-                      const num = Number(v);
-                      // Allow incomplete input (like "0") and valid range (1-12)
-                      if (v === "0" || (num >= 1 && num <= 12)) {
-                        setPersonA({ ...personA, month: v }); // Keep raw input like "0" or "04"
-                      } else {
-                        // Only clamp if it's a complete invalid number
-                        const clamped = Math.min(12, Math.max(1, num));
-                        setPersonA({ ...personA, month: String(clamped) });
-                      }
-                    }}
-                    onBlur={(e) => {
-                      const v = onlyDigits(e.target.value, 2);
-                      const n = clampNum(v, 1, 12);
-                      // Pad on blur for final formatting
-                      setPersonA({ ...personA, month: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
-                    }}
-                    placeholder="MM"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="a-day" className="block text-[11px] uppercase tracking-wide text-slate-300">Day</label>
-                  <input
-                    id="a-day"
-                    type="text"
-                    inputMode="numeric"
-                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-center text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={String(personA.day || '')}
-                    onChange={(e) => {
-                      const v = onlyDigits(e.target.value, 2);
-                      if (!v) {
-                        setPersonA({ ...personA, day: '' });
-                        return;
-                      }
-                      const num = Number(v);
-                      if (v === "0" || (num >= 1 && num <= 31)) {
-                        setPersonA({ ...personA, day: v });
-                      } else {
-                        const clamped = Math.min(31, Math.max(1, num));
-                        setPersonA({ ...personA, day: String(clamped) });
-                      }
-                    }}
-                    onBlur={(e) => {
-                      const v = onlyDigits(e.target.value, 2);
-                      const n = clampNum(v, 1, 31);
-                      // Pad on blur for final formatting
-                      setPersonA({ ...personA, day: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
-                    }}
-                    placeholder="DD"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="a-hour" className="block text-[11px] uppercase tracking-wide text-slate-300">Hour</label>
-                  <input
-                    id="a-hour"
-                    type="text"
-                    inputMode="numeric"
-                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={String(personA.hour || '')}
-                    onChange={(e) => {
-                      const v = onlyDigits(e.target.value, 2);
-                      const n = clampNum(v, 0, 23);
-                      // Keep raw input while typing, only clamp if out of bounds
-                      setPersonA({ ...personA, hour: Number.isNaN(n) ? v : (n === Number(v) ? v : String(n)) });
-                    }}
-                    onBlur={(e) => {
-                      const v = onlyDigits(e.target.value, 2);
-                      const n = clampNum(v, 0, 23);
-                      // Pad on blur for final formatting
-                      setPersonA({ ...personA, hour: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
-                    }}
-                    placeholder="HH"
-                    required={!allowUnknownA}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="a-minute" className="block text-[11px] uppercase tracking-wide text-slate-300">Minute</label>
-                  <input
-                    id="a-minute"
-                    type="text"
-                    inputMode="numeric"
-                    className="mt-1 w-full min-w-[60px] h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={String(personA.minute || '')}
-                    onChange={(e) => {
-                      const v = onlyDigits(e.target.value, 2);
-                      const n = clampNum(v, 0, 59);
-                      // Keep raw input while typing, only clamp if out of bounds
-                      setPersonA({ ...personA, minute: Number.isNaN(n) ? v : (n === Number(v) ? v : String(n)) });
-                    }}
-                    onBlur={(e) => {
-                      const v = onlyDigits(e.target.value, 2);
-                      const n = clampNum(v, 0, 59);
-                      // Pad on blur for final formatting
-                      setPersonA({ ...personA, minute: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
-                    }}
-                    placeholder="MM"
-                    required={!allowUnknownA}
-                  />
-                </div>
-              </div>            <div>
-              <label htmlFor="a-city" className="block text-[11px] uppercase tracking-wide text-slate-300">City</label>
-              <input
-                id="a-city"
-                className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                value={personA.city}
-                onChange={(e) => setPersonA({ ...personA, city: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="a-state" className="block text-[11px] uppercase tracking-wide text-slate-300">State / Province</label>
-              <input
-                id="a-state"
-                className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                value={personA.state}
-                onChange={(e) => setPersonA({ ...personA, state: e.target.value })}
-                required
-              />
-              <p className="mt-1 text-[11px] text-slate-500">Nation assumed “US” for API compatibility.</p>
-            </div>
-
-            <div className="sm:col-span-2">
-              <label htmlFor="a-coords" className="block text-[11px] uppercase tracking-wide text-slate-300">Birth Coordinates</label>
-              <input
-                id="a-coords"
-                type="text"
-                className={`mt-1 w-full rounded-md border bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${aCoordsError ? 'border-red-600' : 'border-slate-600'}`}
-                value={aCoordsInput}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setACoordsInput(v);
-                  const parsed = parseCoordinates(v, { rejectZeroZero: true });
-                  if (parsed) {
-                    setPersonA({ ...personA, latitude: parsed.lat, longitude: parsed.lon });
-                    setACoordsError(null);
-                    setACoordsValid(true);
-                  } else {
-                    setACoordsError('Invalid coordinates. Try "40°42′N, 74°0′W" or "40.7128, -74.006".');
-                    setACoordsValid(false);
-                  }
-                }}
-                aria-describedby="a-coords-help"
-                placeholder="e.g., 40°42′N, 74°0′W or 40.7128, -74.006"
-                required
-              />
-              <p id="a-coords-help" className="mt-1 text-xs text-slate-400">
-                Examples: 40°42′N, 74°0′W · 34°3′S, 18°25′E · 40.7128, -74.006
-              </p>
-              {aCoordsError ? (
-                <p className="mt-1 text-xs text-red-400">{aCoordsError}</p>
-              ) : (
-                <p className="mt-1 text-xs text-slate-400">
-                  Normalized: {formatDecimal(Number(personA.latitude), Number(personA.longitude))}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="a-tz" className="block text-[11px] uppercase tracking-wide text-slate-300">Timezone</label>
-              <select
-                id="a-tz"
-                className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                value={personA.timezone}
-                onChange={(e) => setPersonA({ ...personA, timezone: e.target.value })}
-                required
-              >
-                {tzOptions.map((tz)=> (
-                  <option key={tz} value={tz}>{tz}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="a-zodiac" className="block text-[11px] uppercase tracking-wide text-slate-300">Zodiac Type</label>
-              <select
-                id="a-zodiac"
-                className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100"
-                value={personA.zodiac_type}
-                onChange={(e) => setPersonA({ ...personA, zodiac_type: e.target.value })}
-              >
-                <option value="Tropic">Tropic</option>
-                <option value="Sidereal">Sidereal</option>
-              </select>
-            </div>
-            {/* Birth time policy (when time unknown) */}
-            {timeUnknown && (
-              <div className="sm:col-span-2">
-                <fieldset className="rounded-md border border-slate-700 bg-slate-900/50 p-3">
-                  <legend className="px-1 text-xs font-medium text-slate-200">Birth time policy</legend>
-                  <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                    <label className={`flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-xs ${timePolicy==='planetary_only' ? 'border-indigo-600 bg-indigo-900/20 text-slate-100' : 'border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-800'}`}>
-                      <input
-                        type="radio"
-                        name="time-policy"
-                        className="mt-0.5"
-                        checked={timePolicy==='planetary_only'}
-                        onChange={()=>setTimePolicy('planetary_only')}
-                      />
-                      <div>
-                        <div className="font-medium">Planetary-only</div>
-                        <div className="text-slate-400">No houses/angles; tightest, falsifiable geometry</div>
-                      </div>
-                    </label>
-                    <label className={`flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-xs ${timePolicy==='whole_sign' ? 'border-indigo-600 bg-indigo-900/20 text-slate-100' : 'border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-800'}`}>
-                      <input
-                        type="radio"
-                        name="time-policy"
-                        className="mt-0.5"
-                        checked={timePolicy==='whole_sign'}
-                        onChange={()=>setTimePolicy('whole_sign')}
-                      />
-                      <div>
-                        <div className="font-medium">Whole-sign houses</div>
-                        <div className="text-slate-400">House semantics without exact time; angles still suppressed</div>
-                      </div>
-                    </label>
-                    <label className={`flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-xs ${timePolicy==='sensitivity_scan' ? 'border-indigo-600 bg-indigo-900/20 text-slate-100' : 'border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-800'}`}>
-                      <input
-                        type="radio"
-                        name="time-policy"
-                        className="mt-0.5"
-                        checked={timePolicy==='sensitivity_scan'}
-                        onChange={()=>setTimePolicy('sensitivity_scan')}
-                      />
-                      <div>
-                        <div className="font-medium">Sensitivity scan</div>
-                        <div className="text-slate-400">Test a window of possible times; house-dependent insights flagged</div>
-                      </div>
-                    </label>
-                  </div>
-                </fieldset>
-              </div>
-            )}
-            </div>
+            <PersonForm
+              idPrefix="a"
+              person={personA}
+              setPerson={setPersonA}
+              coordsInput={aCoordsInput}
+              setCoordsInput={setACoordsInput}
+              coordsError={aCoordsError}
+              setCoordsError={setACoordsError}
+              setCoordsValid={setACoordsValid}
+              timezoneOptions={tzOptions}
+              allowUnknownTime={allowUnknownA}
+              showTimePolicy={timeUnknown}
+              timePolicy={timePolicy}
+              onTimePolicyChange={setTimePolicy}
+              requireName
+              requireBirthDate
+              requireTime
+              requireLocation
+              requireTimezone
+            />
           </Section>
+
 
           {/* Left column continues: Person B (optional for relational modes) */}
           <Section title="Person B (optional for relational)">
@@ -5698,231 +3929,27 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
             </div>
 
             <div className={`mt-4 ${!includePersonB ? 'opacity-50' : ''}`}>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="b-name" className="block text-[11px] uppercase tracking-wide text-slate-300">Name</label>
-                <input
-                  id="b-name"
-                  ref={bNameRef}
-                  placeholder="Their Name"
-                  disabled={!includePersonB}
-                  className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-center text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
-                  value={personB.name}
-                  onChange={(e) => setPersonB({ ...personB, name: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-5 gap-2">
-                <div>
-                  <label htmlFor="b-year" className="block text-[11px] uppercase tracking-wide text-slate-300">Year</label>
-                  <input
-                    id="b-year"
-                    type="text"
-                    inputMode="numeric"
-                    disabled={!includePersonB}
-                    className="mt-1 w-full min-w-[80px] h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={String(personB.year)}
-                    onChange={(e) => setPersonB({ ...personB, year: onlyDigits(e.target.value, 4) })}
-                    placeholder="YYYY"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="b-month" className="block text-[11px] uppercase tracking-wide text-slate-300">Month</label>
-                  <input
-                    id="b-month"
-                    type="text"
-                    inputMode="numeric"
-                    disabled={!includePersonB}
-                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-center text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={String(personB.month || '')}
-                    onChange={(e) => {
-                      const v = onlyDigits(e.target.value, 2);
-                      if (!v) {
-                        setPersonB({ ...personB, month: '' });
-                        return;
-                      }
-                      const num = Number(v);
-                      // Allow incomplete input (like "0") and valid range (1-12)
-                      if (v === "0" || (num >= 1 && num <= 12)) {
-                        setPersonB({ ...personB, month: v }); // Keep raw input like "0" or "04"
-                      } else {
-                        // Only clamp if it's a complete invalid number
-                        const clamped = Math.min(12, Math.max(1, num));
-                        setPersonB({ ...personB, month: String(clamped) });
-                      }
-                    }}
-                    onBlur={(e) => {
-                      const v = onlyDigits(e.target.value, 2);
-                      const n = clampNum(v, 1, 12);
-                      // Pad on blur for final formatting
-                      setPersonB({ ...personB, month: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
-                    }}
-                    placeholder="MM"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="b-day" className="block text-[11px] uppercase tracking-wide text-slate-300">Day</label>
-                  <input
-                    id="b-day"
-                    type="text"
-                    inputMode="numeric"
-                    disabled={!includePersonB}
-                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={String(personB.day || '')}
-                    onChange={(e) => {
-                      const v = onlyDigits(e.target.value, 2);
-                      if (!v) {
-                        setPersonB({ ...personB, day: '' });
-                        return;
-                      }
-                      const num = Number(v);
-                      if (v === "0" || (num >= 1 && num <= 31)) {
-                        setPersonB({ ...personB, day: v });
-                      } else {
-                        const clamped = Math.min(31, Math.max(1, num));
-                        setPersonB({ ...personB, day: String(clamped) });
-                      }
-                    }}
-                    onBlur={(e) => {
-                      const v = onlyDigits(e.target.value, 2);
-                      const n = clampNum(v, 1, 31);
-                      // Pad on blur for final formatting
-                      setPersonB({ ...personB, day: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
-                    }}
-                    placeholder="DD"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="b-hour" className="block text-[11px] uppercase tracking-wide text-slate-300">Hour</label>
-                  <input
-                    id="b-hour"
-                    type="text"
-                    inputMode="numeric"
-                    disabled={!includePersonB}
-                    className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={String(personB.hour || '')}
-                    onChange={(e) => {
-                      const v = onlyDigits(e.target.value, 2);
-                      const n = clampNum(v, 0, 23);
-                      // Keep raw input while typing, only clamp if out of bounds
-                      setPersonB({ ...personB, hour: Number.isNaN(n) ? v : (n === Number(v) ? v : String(n)) });
-                    }}
-                    onBlur={(e) => {
-                      const v = onlyDigits(e.target.value, 2);
-                      const n = clampNum(v, 0, 23);
-                      // Pad on blur for final formatting
-                      setPersonB({ ...personB, hour: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
-                    }}
-                    placeholder="HH"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="b-minute" className="block text-[11px] uppercase tracking-wide text-slate-300">Minute</label>
-                  <input
-                    id="b-minute"
-                    type="text"
-                    inputMode="numeric"
-                    disabled={!includePersonB}
-                    className="mt-1 w-full min-w-[60px] h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    value={String(personB.minute || '')}
-                    onChange={(e) => {
-                      const v = onlyDigits(e.target.value, 2);
-                      const n = clampNum(v, 0, 59);
-                      // Keep raw input while typing, only clamp if out of bounds
-                      setPersonB({ ...personB, minute: Number.isNaN(n) ? v : (n === Number(v) ? v : String(n)) });
-                    }}
-                    onBlur={(e) => {
-                      const v = onlyDigits(e.target.value, 2);
-                      const n = clampNum(v, 0, 59);
-                      // Pad on blur for final formatting
-                      setPersonB({ ...personB, minute: Number.isNaN(n) ? '' : String(n).padStart(2, '0') });
-                    }}
-                    placeholder="MM"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="b-city" className="block text-[11px] uppercase tracking-wide text-slate-300">City</label>
-                <input
-                  id="b-city"
-                  disabled={!includePersonB}
-                  className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                  value={personB.city}
-                  onChange={(e) => setPersonB({ ...personB, city: e.target.value })}
-                />
-              </div>
-              <div>
-                <label htmlFor="b-state" className="block text-[11px] uppercase tracking-wide text-slate-300">State / Province</label>
-                <input
-                  id="b-state"
-                  disabled={!includePersonB}
-                  className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                  value={personB.state}
-                  onChange={(e) => setPersonB({ ...personB, state: e.target.value })}
-                />
-                <p className="mt-1 text-[11px] text-slate-500">Nation assumed “US” for API compatibility.</p>
-              </div>
-
-              <div className="sm:col-span-2">
-                <label htmlFor="b-coords" className="block text-[11px] uppercase tracking-wide text-slate-300">Birth Coordinates (B)</label>
-                <input
-                  id="b-coords"
-                  type="text"
-                  disabled={!includePersonB}
-                  className={`mt-1 w-full rounded-md border bg-slate-900 px-3 py-2 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${bCoordsError ? 'border-red-600' : 'border-slate-600'}`}
-                  value={bCoordsInput}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setBCoordsInput(v);
-                    if (!includePersonB) return;
-                    const parsed = parseCoordinates(v, { rejectZeroZero: true });
-                    if (parsed) {
-                      setPersonB({ ...personB, latitude: parsed.lat as any, longitude: parsed.lon as any });
-                      setBCoordsError(null);
-                      setBCoordsValid(true);
-                    } else {
-                      setBCoordsError('Invalid coordinates');
-                      setBCoordsValid(false);
-                    }
-                  }}
-                  placeholder="e.g., 34°03′S, 18°25′E or -34.0500, 18.4167"
-                />
-                <p className="mt-1 text-xs text-slate-400">Examples: 40°42′N, 74°0′W · 34°3′S, 18°25′E · 40.7128, -74.006</p>
-                <p className="mt-1 text-xs text-slate-400">Normalized: {Number(personB.latitude) || Number(personB.longitude) ? formatDecimal(Number(personB.latitude), Number(personB.longitude)) : '—'}</p>
-                {bCoordsError && <p className="mt-1 text-xs text-red-400">{bCoordsError}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="b-tz" className="block text-[11px] uppercase tracking-wide text-slate-300">Timezone</label>
-                <select
-                  id="b-tz"
-                  disabled={!includePersonB}
-                  className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                  value={personB.timezone}
-                  onChange={(e) => setPersonB({ ...personB, timezone: e.target.value })}
-                >
-                  {tzOptions.map((tz)=> (
-                    <option key={tz} value={tz}>{tz}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="b-zodiac" className="block text-[11px] uppercase tracking-wide text-slate-300">Zodiac Type</label>
-                <select
-                  id="b-zodiac"
-                  disabled={!includePersonB}
-                  className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 disabled:opacity-50"
-                  value={personB.zodiac_type}
-                  onChange={(e) => setPersonB({ ...personB, zodiac_type: e.target.value })}
-                >
-                  <option value="Tropic">Tropic</option>
-                  <option value="Sidereal">Sidereal</option>
-                </select>
-              </div>
-              </div>
+              <PersonForm
+                idPrefix="b"
+                person={personB}
+                setPerson={setPersonB}
+                coordsInput={bCoordsInput}
+                setCoordsInput={setBCoordsInput}
+                coordsError={bCoordsError}
+                setCoordsError={setBCoordsError}
+                setCoordsValid={setBCoordsValid}
+                timezoneOptions={tzOptions}
+                allowUnknownTime={allowUnknownB}
+                showTimePolicy={false}
+                disabled={!includePersonB}
+                coordinateLabel="Birth Coordinates (B)"
+                coordinatePlaceholder="e.g., 34°03′S, 18°25′E or -34.0500, 18.4167"
+                normalizedFallback="—"
+                nameInputRef={bNameRef}
+                skipParseWhenDisabled
+              />
             </div>
           </Section>
-
           {/* Relationship Context (only when Person B included) */}
           <Section title="Relationship Context" className="md:-mt-4">
             <div className="mb-2 flex items-center justify-between">
@@ -6111,276 +4138,72 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
             </Section>
 
             <Section title="Symbolic Weather (Transits)">
-              <div className="space-y-4">
-                <div className="flex items-start gap-3 rounded-md border border-slate-700 bg-slate-800/60 px-3 py-3">
-                  <input
-                    id="include-transits"
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
-                    checked={includeTransits}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      setIncludeTransits(checked);
-                    }}
-                  />
-                  <div>
-                    <label htmlFor="include-transits" className="block text-sm font-medium text-slate-100">
-                      Include Transits
-                    </label>
-                    <p className="mt-1 text-xs text-slate-400">
-                      Layer symbolic weather over your chosen report type (Mirror → Balance Meter).
-                    </p>
-                  </div>
-                </div>
+            <TransitControls
+              includeTransits={includeTransits}
+              onIncludeTransitsChange={setIncludeTransits}
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+              onUserHasSetDatesChange={setUserHasSetDates}
+              onDateFocus={handleDateFocus}
+              onDateTouchStart={handleDateTouchStart}
+              step={step}
+              onStepChange={setStep}
+              mode={mode}
+              onModeChange={(value) => applyMode(normalizeReportMode(value))}
+              soloModeOption={soloModeOption}
+              relationalModeOptions={relationalModeOptions}
+              includePersonB={includePersonB}
+              isRelationalMode={RELATIONAL_MODES.includes(mode)}
+              translocation={translocation}
+              onTranslocationChange={(value) => setTranslocation(normalizeTranslocationOption(value))}
+              relocationOptions={relocationOptions}
+              relocationLabels={relocationSelectLabels}
+              relocationStatus={relocationStatus}
+              relocationModeCaption={relocationModeCaption}
+              relocInput={relocInput}
+              onRelocInputChange={setRelocInput}
+              relocCoords={relocCoords}
+              onRelocCoordsChange={setRelocCoords}
+              relocError={relocError}
+              onRelocErrorChange={setRelocError}
+              relocLabel={relocLabel}
+              onRelocLabelChange={setRelocLabel}
+              relocTz={relocTz}
+              onRelocTzChange={setRelocTz}
+              tzOptions={tzOptions}
+              weeklyAgg={weeklyAgg}
+              onWeeklyAggChange={setWeeklyAgg}
+              personATimezone={personA.timezone}
+            />
+          </Section>
 
-                {includeTransits && (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <div>
-                      <label htmlFor="t-start" className="block text-sm text-slate-300">Start Date</label>
-                      <input
-                        id="t-start"
-                        type="date"
-                        className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                        value={startDate}
-                        onChange={(e) => {
-                          setStartDate(e.target.value);
-                          setUserHasSetDates(true);
-                        }}
-                        style={{
-                          WebkitAppearance: 'none',
-                          appearance: 'none'
-                        }}
-                        onFocus={handleDateFocus}
-                        onTouchStart={handleDateTouchStart}
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="t-end" className="block text-sm text-slate-300">End Date</label>
-                      <input
-                        id="t-end"
-                        type="date"
-                        className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                        value={endDate}
-                        onChange={(e) => {
-                          setEndDate(e.target.value);
-                          setUserHasSetDates(true);
-                        }}
-                        style={{
-                          WebkitAppearance: 'none',
-                          appearance: 'none'
-                        }}
-                        onFocus={handleDateFocus}
-                        onTouchStart={handleDateTouchStart}
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="t-step" className="block text-sm text-slate-300">Step</label>
-                      <select
-                        id="t-step"
-                        className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                        value={step}
-                        onChange={(e) => setStep(e.target.value)}
-                      >
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="monthly">Monthly</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                <div className={`grid grid-cols-1 gap-4 ${includeTransits ? 'sm:grid-cols-2' : ''}`}>
-                  <div>
-                    <label htmlFor="t-mode" className="block text-sm text-slate-300">Mode</label>
-                    <select
-                      id="t-mode"
-                      className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                      value={mode}
-                      onChange={(e) => {
-                        const normalized = normalizeReportMode(e.target.value);
-                        applyMode(normalized);
-                      }}
-                    >
-                      <optgroup label="Solo">
-                        <option value={soloModeOption.value}>{soloModeOption.label}</option>
-                      </optgroup>
-                      {includePersonB && relationalModeOptions.length > 0 && (
-                        <optgroup label="Relational">
-                          {relationalModeOptions.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </optgroup>
-                      )}
-                    </select>
-                    {!includePersonB && (
-                      <p className="mt-1 text-xs text-slate-400">
-                        Enable “Include Person B” to unlock synastry or composite modes.
-                      </p>
-                    )}
-                    {!includePersonB && RELATIONAL_MODES.includes(mode) && (
-                      <p className="mt-1 text-xs text-amber-400">
-                        Selecting a relational mode will enable “Include Person B”.
-                      </p>
-                    )}
-                  </div>
-                  {includeTransits && (
-                    <div>
-                      <label htmlFor="t-reloc" className="block text-sm text-slate-300">Relocation (angles/houses)</label>
-                      <select
-                        id="t-reloc"
-                        className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                        value={translocation}
-                        onChange={(e) => setTranslocation(normalizeTranslocationOption(e.target.value))}
-                      >
-                        {relocationOptions.map((opt) => (
-                          <option key={opt.value} value={opt.value} disabled={opt.disabled} title={opt.title}>
-                            {relocationSelectLabels[opt.value]}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="mt-1 text-xs text-slate-400">
-                        Relocation remaps houses/angles only; planets stay fixed. Choose the lens that fits this report.
-                      </p>
-                      {mode === 'COMPOSITE_TRANSITS' && (
-                        <p className="mt-1 text-xs text-emerald-300">
-                          Experimental — bond midpoint, not a physical place.
-                        </p>
-                      )}
-                      {relocationStatus.notice && (
-                        <p className="mt-1 text-xs text-amber-400">{relocationStatus.notice}</p>
-                      )}
-                      {(() => {
-                        const relocActive = ['A_LOCAL', 'B_LOCAL', 'MIDPOINT', 'BOTH_LOCAL'].includes(
-                          relocationStatus.effectiveMode
-                        );
-                        if (!relocActive) {
-                          return (
-                            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1 text-xs text-slate-200">
-                              <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" aria-hidden />
-                              <span>{relocationModeCaption[relocationStatus.effectiveMode]}</span>
-                            </div>
-                          );
-                        }
-                        const lensLabel =
-                          relocationStatus.effectiveMode === 'MIDPOINT'
-                            ? 'Computed midpoint (A + B)'
-                            : relocLabel || 'Custom';
-                        const tzLabel =
-                          relocationStatus.effectiveMode === 'MIDPOINT'
-                            ? personA.timezone || '—'
-                            : relocTz || personA.timezone || '—';
-                        return (
-                          <div className="mt-4 inline-flex flex-wrap items-center gap-2 rounded-full border border-emerald-700 bg-emerald-900/30 px-3 py-1 text-xs text-emerald-200">
-                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
-                            <span className="font-medium">{relocationModeCaption[relocationStatus.effectiveMode]}</span>
-                            <span className="text-emerald-100">Lens: {lensLabel}</span>
-                            <span className="text-emerald-300">({tzLabel})</span>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  )}
-                </div>
-
-                {!includeTransits && (
-                  <p className="text-xs text-slate-400">
-                    Relocation options appear when transits are included.
-                  </p>
-                )}
-              </div>
-              {includeTransits && translocation !== 'NONE' && translocation !== 'A_NATAL' && translocation !== 'B_NATAL' && (
-                <div className="mt-4">
-                  <label htmlFor="t-reloc-coords" className="block text-sm text-slate-300">Relocation Coordinates</label>
-                  <input
-                    id="t-reloc-coords"
-                    type="text"
-                    className={`mt-1 w-full h-10 rounded-md border bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${relocError ? 'border-red-600' : 'border-slate-600'}`}
-                    value={relocInput}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setRelocInput(v);
-                      const parsed = parseCoordinates(v, { rejectZeroZero: true });
-                      if (parsed) {
-                        setRelocCoords(parsed);
-                        setRelocError(null);
-                      } else {
-                        setRelocCoords(null);
-                        setRelocError('Invalid coordinates');
-                      }
-                    }}
-                    placeholder="e.g., 30°10′N, 85°40′W"
-                  />
-                  <p className="mt-1 text-xs text-slate-400">Default: 30°10′N, 85°40′W · Normalized: {relocCoords ? formatDecimal(relocCoords.lat, relocCoords.lon) : '—'}</p>
-                  {relocError && <p className="mt-1 text-xs text-red-400">{relocError}</p>}
-
-                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div>
-                      <label htmlFor="t-reloc-label" className="block text-sm text-slate-300">Relocation Label</label>
-                      <input
-                        id="t-reloc-label"
-                        type="text"
-                        className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                        value={relocLabel}
-                        onChange={(e)=>setRelocLabel(e.target.value)}
-                        placeholder="e.g., Panama City, FL"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="t-reloc-tz" className="block text-sm text-slate-300">Relocation Timezone</label>
-                      <select
-                        id="t-reloc-tz"
-                        className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                        value={relocTz}
-                        onChange={(e)=>setRelocTz(e.target.value)}
-                      >
-                        {tzOptions.map((tz)=> (
-                          <option key={tz} value={tz}>{tz}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {includeTransits && step === 'weekly' && (
-                <div className="mt-2 flex items-center gap-3">
-                  <span className="text-xs text-slate-400">Weekly aggregation</span>
-                  <div className="relative group">
-                    <button type="button" className="h-5 w-5 rounded-full border border-slate-600 text-[11px] text-slate-300 hover:bg-slate-700/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" aria-label="Help: Weekly aggregation semantics">?</button>
-                    <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white text-xs rounded-lg py-3 px-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none border border-slate-700 shadow-lg z-50" style={{width: '280px'}}>
-                      <div>
-                        <div className="font-semibold mb-2 text-indigo-300">Weekly Aggregation Methods</div>
-                        <div className="space-y-2">
-                          <div>
-                            <strong className="text-green-300">Mean:</strong> Average of daily values per week
-                            <div className="text-slate-400 text-[10px] mt-0.5">Best for understanding typical weekly patterns</div>
-                          </div>
-                          <div>
-                            <strong className="text-orange-300">Max:</strong> Highest daily value per week
-                            <div className="text-slate-400 text-[10px] mt-0.5">Best for tracking peak intensity moments</div>
-                          </div>
-                        </div>
-                        <div className="text-slate-400 text-[10px] mt-2 pt-2 border-t border-slate-700">
-                          For seismograph analysis: Mean shows flow, Max shows spikes
-                        </div>
-                      </div>
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900"></div>
-                    </div>
-                  </div>
-                  <div role="group" aria-label="Weekly aggregation" className="inline-flex overflow-hidden rounded-md border border-slate-700 bg-slate-800">
-                    <button type="button" onClick={()=>setWeeklyAgg('mean')} className={`px-3 py-1 text-xs ${weeklyAgg==='mean' ? 'bg-indigo-600 text-white' : 'text-slate-200 hover:bg-slate-700'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}>Mean</button>
-                    <button type="button" onClick={()=>setWeeklyAgg('max')} className={`px-3 py-1 text-xs ${weeklyAgg==='max' ? 'bg-indigo-600 text-white' : 'text-slate-200 hover:bg-slate-700'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}>Max</button>
-                  </div>
-                </div>
-              )}
-            </Section>
-
-            {/* Report Type selector moved above */}
+            {/* Snapshot Button */}
+            <div className="mb-4">
+              <SnapshotButton
+                personA={personA}
+                personB={includePersonB ? personB : undefined}
+                mode={mode}
+                isAuthenticated={isAuthenticated}
+                disabled={loading}
+                includePersonB={includePersonB}
+                includeTransits={includeTransits}
+                startDate={startDate}
+                endDate={endDate}
+                reportType={reportType}
+                onSnapshot={handleSnapshotCapture}
+                onAuthRequired={handleSnapshotAuthRequired}
+                onDateChange={(date) => {
+                  setStartDate(date);
+                  setEndDate(date);
+                }}
+              />
+            </div>
 
             <div className="flex items-center justify-between">
               <p className="text-xs text-slate-500">
-          All processing is geometry-first and non-deterministic. Your data isn’t stored.
+          All processing is geometry-first and non-deterministic. Your data isn't stored.
               </p>
               <div className="mr-2 hidden sm:flex items-center gap-2 text-[11px] text-slate-400">
                 <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800 px-2 py-0.5">
@@ -7770,6 +5593,15 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
             );
           })()}
             </>
+          )}
+
+          {/* Snapshot Display */}
+          {snapshotResult && snapshotLocation && snapshotTimestamp && (
+            <SnapshotDisplay
+              result={snapshotResult}
+              location={snapshotLocation}
+              timestamp={snapshotTimestamp}
+            />
           )}
         </div>
       )}
