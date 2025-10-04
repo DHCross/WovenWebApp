@@ -47,3 +47,11 @@ test-output-*
 
 # Local testing files
 test-composite-scaffolding.html
+
+# Generated specification artifacts (built from source)
+specs/*/spec.html
+specs/*/spec.txt
+specs/*/spec.pdf
+specs/*/manifest.yaml
+specs/*/index.html
+specs/*/api/*.json

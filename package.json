@@ -38,6 +38,8 @@
     "smoke-test": "npm run test:all",
     "fix:auth0": "node scripts/fix-auth0.js",
     "smoke:auth0": "node scripts/smoke-auth0.js",
+    "build:specs": "node specs/symbolic-weather-directive/build.js",
+    "validate:specs": "node specs/symbolic-weather-directive/validate.js",
     "postinstall": "if [ -f package.json ] && node -e \"try{require('concurrently')}catch(e){process.exit(1)}\"; then echo 'concurrently already installed'; else echo 'Installing concurrently...'; npm i -D concurrently; fi",
     "auth:check": "node scripts/auth-config-check.js"
   },
@@ -78,6 +80,7 @@
     "cross-env": "^7.0.3",
     "eslint": "8.57.0",
     "eslint-config-next": "14.2.5",
+    "js-yaml": "^4.1.0",
     "jsdom": "^27.0.0",
     "nodemon": "3.1.4",
     "postcss": "^8.4.0",
