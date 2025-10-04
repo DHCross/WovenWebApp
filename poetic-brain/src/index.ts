@@ -14,6 +14,28 @@ export interface HookObject {
   orb?: number; // degrees
   retrograde_involved?: boolean;
   exact?: boolean;
+  resonanceState?: 'WB' | 'ABE' | 'OSR';
+  shadowMode?: 'translatable' | 'inverted' | 'integrated' | 'unknown';
+}
+
+export interface ShadowTension {
+  aspect: string;
+  orb?: number;
+  mode?: 'Saturn' | 'Pluto' | 'Neptune' | 'Chiron' | 'Other';
+  hypothesis?: string;
+}
+
+export interface ShadowLayer {
+  structuralTensions?: ShadowTension[];
+  shadowHypothesis?: string;
+  integrationStatus?: 'active' | 'O-Integration' | 'partial';
+}
+
+export interface EnhancedMatrix {
+  tropicalSun?: string;
+  siderealSun?: string;
+  complexArchetype?: string;
+  lensRotationTriggered?: boolean;
 }
 
 export interface InputPayload {
@@ -31,6 +53,11 @@ export interface InputPayload {
   angles?: any[];
   transits?: any[];
   focusTheme?: string;
+  // Diagnostic Integrity Protocol
+  shadowLayer?: ShadowLayer;
+  enhancedMatrix?: EnhancedMatrix;
+  toolDescription?: string;
+  expressionContext?: string;
   // passthrough allowed
   [key: string]: any;
 }
@@ -121,9 +148,85 @@ function formatHooksLine(hooks: HookObject[]): string {
     if (h.exact) tags.push('exact');
     if (typeof h.orb === 'number') tags.push(`${h.orb.toFixed(1)}° orb`);
     if (h.retrograde_involved) tags.push('retrograde signature');
+
+    // Add shadow mode indicator if present
+    if (h.shadowMode === 'inverted') tags.push('⚠ inverted');
+    else if (h.shadowMode === 'integrated') tags.push('✓ integrated');
+
+    // Add resonance state indicator
+    if (h.resonanceState === 'ABE') tags.push('boundary edge');
+    else if (h.resonanceState === 'OSR') tags.push('non-ping');
+
     return tags.length ? `${h.label} (${tags.join(', ')})` : h.label;
   });
   return items.join(' | ');
+}
+
+function buildShadowLayerSummary(shadowLayer?: ShadowLayer): string | null {
+  if (!shadowLayer) return null;
+
+  const parts: string[] = [];
+
+  if (shadowLayer.integrationStatus === 'O-Integration') {
+    return 'Shadow Pattern: Previously active patterns now integrated (O-Integration logged).';
+  }
+
+  if (shadowLayer.shadowHypothesis) {
+    parts.push(`Shadow Hypothesis: ${shadowLayer.shadowHypothesis}`);
+  }
+
+  if (shadowLayer.structuralTensions && shadowLayer.structuralTensions.length > 0) {
+    const tensionList = shadowLayer.structuralTensions
+      .map(t => {
+        const mode = t.mode ? ` [${t.mode} mode]` : '';
+        return `${t.aspect}${mode}`;
+      })
+      .join(', ');
+    parts.push(`Structural Tensions: ${tensionList}`);
+  }
+
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
+function buildToolFirstFraming(toolDescription?: string, expressionContext?: string): string | null {
+  if (!toolDescription) return null;
+
+  const parts: string[] = [];
+  parts.push(`Archetypal Tool: ${toolDescription}`);
+
+  if (expressionContext) {
+    parts.push(`Expression Context: ${expressionContext}`);
+  }
+
+  parts.push('Remember: This describes the instrument, not guaranteed outcomes. You are the musician.');
+
+  return parts.join(' · ');
+}
+
+function buildEnhancedMatrixSummary(matrix?: EnhancedMatrix): string | null {
+  if (!matrix) return null;
+
+  const parts: string[] = [];
+
+  if (matrix.complexArchetype) {
+    parts.push(`Enhanced Matrix: ${matrix.complexArchetype}`);
+  } else if (matrix.tropicalSun && matrix.siderealSun) {
+    parts.push(`Enhanced Matrix: Tropical ${matrix.tropicalSun} / Sidereal ${matrix.siderealSun}`);
+  }
+
+  if (matrix.tropicalSun) {
+    parts.push(`Ego Grammar: ${matrix.tropicalSun}`);
+  }
+
+  if (matrix.siderealSun) {
+    parts.push(`Structural Mirror: ${matrix.siderealSun}`);
+  }
+
+  if (matrix.lensRotationTriggered) {
+    parts.push('Lens Rotation Doctrine (LRD-1) triggered: checking Sidereal for O-Integration');
+  }
+
+  return parts.length > 0 ? parts.join(' · ') : null;
 }
 
 function hasActivationData(payload: InputPayload): boolean {
@@ -147,13 +250,24 @@ function buildMirrorVoice(payload: InputPayload): string {
     ? `Blueprint — ${baseline}`
     : 'Blueprint — Baseline reflection unavailable; rely on lived experience.';
 
+  // Build optional diagnostic sections
+  const matrixSummary = buildEnhancedMatrixSummary(payload.enhancedMatrix);
+  const shadowSummary = buildShadowLayerSummary(payload.shadowLayer);
+  const toolFraming = buildToolFirstFraming(payload.toolDescription, payload.expressionContext);
+
   if (!hasActivationData(payload)) {
-    const lines: string[] = [
-      blueprintLine,
-      'Current Mode — No activation data supplied; holding to the natal baseline.',
-      `Baseline Hooks — ${formatHooksLine(hooks)}`,
-      'Reflection — Map, not mandate: integrate what resonates and release the rest.',
-    ];
+    const lines: string[] = [blueprintLine];
+
+    if (matrixSummary) lines.push(matrixSummary);
+    if (toolFraming) lines.push(toolFraming);
+
+    lines.push('Current Mode — No activation data supplied; holding to the natal baseline.');
+    lines.push(`Baseline Hooks — ${formatHooksLine(hooks)}`);
+
+    if (shadowSummary) lines.push(shadowSummary);
+
+    lines.push('Reflection — Map, not mandate: integrate what resonates and release the rest.');
+
     return lines.join('\n');
   }
 
@@ -165,12 +279,18 @@ function buildMirrorVoice(payload: InputPayload): string {
   const hookSummary = formatHooksLine(hooks);
   const tensionParts: string[] = [`Seismograph — ${s.details}.`, `Hooks — ${hookSummary}`];
 
-  const lines: string[] = [
-    blueprintLine,
-    `Weather — ${weatherDescriptor}`,
-    `Tensions — ${tensionParts.join(' · ')}`,
-    'Reflection — Map, not mandate: treat this as symbolic weather. If it lands, log it; if not, discard and proceed.',
-  ];
+  const lines: string[] = [blueprintLine];
+
+  if (matrixSummary) lines.push(matrixSummary);
+  if (toolFraming) lines.push(toolFraming);
+
+  lines.push(`Weather — ${weatherDescriptor}`);
+  lines.push(`Tensions — ${tensionParts.join(' · ')}`);
+
+  if (shadowSummary) lines.push(shadowSummary);
+
+  lines.push('Reflection — Map, not mandate: treat this as symbolic weather. If it lands, log it; if not, discard and proceed.');
+
   return lines.join('\n');
 }
 
