@@ -1,6 +1,7 @@
 /* Contract Linter - Prevents Schema Violations Before Reaching Poetic Brain */
 
 import { ReportMode, validateContract, enforceNatalOnlyMode } from './schema-rule-patch';
+import { lintPayload as lintLexical, LexicalLintResult } from './validation/lexical-guard';
 
 export interface LintResult {
   valid: boolean;
@@ -8,6 +9,7 @@ export interface LintResult {
   warnings: string[];
   fixes_applied: string[];
   severity: 'clean' | 'warnings' | 'errors';
+  lexical?: LexicalLintResult;
 }
 
 export class ContractLinter {
@@ -69,6 +71,18 @@ export class ContractLinter {
     // Contract version validation
     this.lintContractVersion(payload, warnings, fixesApplied);
 
+    // Lexical integrity check (epistemic rigor)
+    const lexicalResult = lintLexical(payload);
+    if (!lexicalResult.valid) {
+      lexicalResult.violations.forEach(violation => {
+        if (violation.severity === 'error') {
+          errors.push(`🔤 LEXICAL BLEED: ${violation.message}`);
+        } else {
+          warnings.push(`🔤 ${violation.message}`);
+        }
+      });
+    }
+
     // Determine severity
     let severity: 'clean' | 'warnings' | 'errors' = 'clean';
     if (errors.length > 0) {
@@ -82,7 +96,8 @@ export class ContractLinter {
       errors,
       warnings,
       fixes_applied: fixesApplied,
-      severity
+      severity,
+      lexical: lexicalResult
     };
   }
 

@@ -1,3 +1,79 @@
+## [2025-01-21] FEATURE: Epistemic Rigor & Formal Falsifiability Framework
+
+**Summary**
+Implemented formal epistemic rigor framework transforming the Woven Map from interpretive art to structured epistemic instrument. Added symbolic entropy measurement, narrative flattening detection, lexical orthogonality enforcement, transformation traceability, and observer bias risk labeling.
+
+**Core Philosophy**
+"Truth = fidelity across layers. When geometry, data, and language align, the mirror holds."
+
+**New Modules**
+
+1. **Epistemic Integrity Module** (`lib/reporting/epistemic-integrity.js`)
+   - Quantifies symbolic entropy (coherence variance + drift)
+   - Detects narrative flattening (coherence < 2.0 AND |bias| ≥ 4.5)
+   - Validates axes orthogonality (prevents magnitude = |bias| collapse)
+   - Detects epistemic key leakage (fabricated data, missing provenance)
+   - Assesses misinterpretation risk (high signal + low coherence)
+   - Enforces null honesty (no fabricated defaults)
+
+2. **Transformation Trace Module** (`lib/reporting/transformation-trace.js`)
+   - Auditable pipeline for all data transformations
+   - Enforces canonical order: normalize → scale → clamp → round
+   - Creates provenance stamps with full audit trail
+   - Enables replay/verification of transformation chains
+   - Detects pipeline violations and duplicate operations
+
+3. **Lexical Guard Module** (`src/validation/lexical-guard.ts`)
+   - Prevents cross-contamination between axes (lexical bleed)
+   - Enforces directional vocabulary (expansion/contraction) for Bias only
+   - Enforces cohesion vocabulary (harmony/friction) for SFD only
+   - Provides build-time assertions and suggested replacements
+   - Generates violation reports with actionable guidance
+
+**Enhancements**
+
+- **Canonical Scaling** (`lib/reporting/canonical-scaling.js`)
+  - Added provenance metadata to all scaling operations
+  - Transform pipeline tracking with timestamps
+  - Full audit trail for sign resolution and magnitude selection
+
+**Tests Added**
+
+- `test/epistemic-integrity.test.js` - All core functions validated
+- `test/transformation-trace.test.js` - Pipeline and provenance verified
+- `test/lexical-guard.test.ts` - Semantic orthogonality enforced
+
+**Documentation**
+
+- `Developers Notes/Implementation/EPISTEMIC_RIGOR_SPECIFICATION.md`
+  - Complete specification with philosophy, implementation, usage
+  - Recovery protocols for narrative flattening and key leakage
+  - Glossary of formal terms
+
+**Impact**
+
+- System moves from "metaphor soup" to falsifiable specification
+- Every value's journey is auditable (transformation traces)
+- Axes remain semantically orthogonal (lexical guard)
+- Observers receive risk warnings (high signal/high misread)
+- Catastrophic failures are detectable and recoverable
+- Truth = repeatable fidelity, not belief
+
+**Files Changed**
+- Added: `lib/reporting/epistemic-integrity.js`
+- Added: `lib/reporting/transformation-trace.js`
+- Added: `src/validation/lexical-guard.ts`
+- Added: `test/epistemic-integrity.test.js`
+- Added: `test/transformation-trace.test.js`
+- Added: `test/lexical-guard.test.ts`
+- Added: `Developers Notes/Implementation/EPISTEMIC_RIGOR_SPECIFICATION.md`
+- Modified: `lib/reporting/canonical-scaling.js` (provenance metadata)
+
+**AI Collaboration Notes**
+Implementation based on "From Metaphor to Specification" philosophical framework. All modules tested and validated before integration. Minimal changes to existing codebase; extensions rather than rewrites.
+
+---
+
 ## [2025-10-03] BUG FIXES: Poetic Brain Stability & Security Improvements
 
 **Summary**
