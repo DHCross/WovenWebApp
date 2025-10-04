@@ -1,5 +1,5 @@
 import type { FocusEvent, TouchEvent } from 'react';
-import { parseCoordinates, formatDecimal } from '../../src/coords';
+import { parseCoordinates, formatDecimal } from '../../../src/coords';
 import type {
   ModeOption,
   RelocationOptionConfig,
