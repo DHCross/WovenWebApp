@@ -1,5 +1,5 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react';
-import { parseCoordinates, formatDecimal } from '../../../src/coords';
+import { parseCoordinates, formatDecimal } from '@/src/coords';
 import type { Subject, TimePolicyChoice } from '../types';
 import { onlyDigits, clampNumber } from '../utils/validation';
 
