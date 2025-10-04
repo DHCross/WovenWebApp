@@ -659,7 +659,8 @@ export default function MathBrainPage() {
     setReportStructure(nextStructure);
     setIncludeTransits(TRANSIT_MODES.has(nextMode));
     if (nextStructure !== 'solo') {
-      setIncludePersonB(true);
+      // Do not auto-enable Person B when switching to relational mode
+      // Only activate if user explicitly enables or provides Person B data
     }
   }, []);
 
@@ -1172,9 +1173,7 @@ export default function MathBrainPage() {
 
   // Automatically enable includePersonB when a relationship type is selected
   useEffect(() => {
-    if (relationshipType && relationshipType !== 'NONE') {
-      setIncludePersonB(true);
-    }
+      // Do not auto-enable Person B when relationshipType changes
   }, [relationshipType]);
 
   useEffect(() => {
@@ -5673,9 +5672,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                           const newStructure = e.target.value as ReportStructure;
                           setReportStructure(newStructure);
                           // Automatically enable Person B for relational modes
-                          if (newStructure !== 'solo') {
-                            setIncludePersonB(true);
-                          }
+                            // Do not auto-enable Person B for relational modes
                         }}
                         className="h-4 w-4 border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
                       />
