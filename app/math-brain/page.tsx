@@ -692,6 +692,8 @@ export default function MathBrainPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResult>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showChartAssets, setShowChartAssets] = useState(false);
+  const [showSeismographCharts, setShowSeismographCharts] = useState(false);
   const chartAssets = useMemo<ChartAssetDisplay[]>(() => {
     if (!result) return [];
 
@@ -793,6 +795,20 @@ export default function MathBrainPage() {
 
     return items;
   }, [result]);
+  useEffect(() => {
+    if (!chartAssets.length) {
+      setShowChartAssets(false);
+    }
+  }, [chartAssets]);
+
+  useEffect(() => {
+    const transitEntries = result?.person_a?.chart?.transitsByDate;
+    const hasTransitData = includeTransits && transitEntries && Object.keys(transitEntries).length > 0;
+    if (!hasTransitData) {
+      setShowSeismographCharts(false);
+    }
+  }, [includeTransits, result]);
+
   const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>(() => {
     if (typeof window === 'undefined') {
       return { ...DEFAULT_LAYER_VISIBILITY };
@@ -6045,7 +6061,6 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
           {/* Chart Wheels Section with dedicated reveal */}
           {(() => {
             const hasCharts = chartAssets.length > 0;
-            const [showCharts, setShowCharts] = useState(false);
 
             // Debug: Check chart asset sources
             const debugChartSources = {
@@ -6063,10 +6078,10 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                   <h2 className="text-lg font-semibold text-slate-100">Chart Wheels</h2>
                   {hasCharts ? (
                     <button
-                      onClick={() => setShowCharts(!showCharts)}
+                      onClick={() => setShowChartAssets((prev) => !prev)}
                       className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 transition-colors flex items-center gap-2"
                     >
-                      {showCharts ? '👁️ Hide Charts' : '🎨 Reveal Charts'}
+                      {showChartAssets ? '👁️ Hide Charts' : '🎨 Reveal Charts'}
                       <span className="rounded-full bg-indigo-400 px-2 py-0.5 text-xs">
                         {chartAssets.length}
                       </span>
@@ -6098,7 +6113,7 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                   </div>
                 )}
 
-                {hasCharts && showCharts && (
+                {hasCharts && showChartAssets && (
                   <div className="grid gap-4 md:grid-cols-2 mt-4">
                     {chartAssets.map((asset) => {
                   const expiresLabel = asset.expiresAt
@@ -6512,8 +6527,6 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                   const dates = Object.keys(transitsByDate).sort();
                   const hasTransitData = dates.length > 0 && includeTransits;
 
-                  const [showSeismograph, setShowSeismograph] = useState(false);
-
                   if (!hasTransitData) {
                     return (
                       <div className="mt-6 rounded-md border border-slate-600 bg-slate-900/40 p-4">
@@ -6581,17 +6594,17 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                           </p>
                         </div>
                         <button
-                          onClick={() => setShowSeismograph(!showSeismograph)}
+                          onClick={() => setShowSeismographCharts((prev) => !prev)}
                           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-colors flex items-center gap-2"
                         >
-                          {showSeismograph ? '👁️ Hide Charts' : '📊 Reveal Plot Charts'}
+                          {showSeismographCharts ? '👁️ Hide Charts' : '📊 Reveal Plot Charts'}
                           <span className="rounded-full bg-blue-400 px-2 py-0.5 text-xs">
                             {dates.length} days
                           </span>
                         </button>
                       </div>
 
-                      {showSeismograph && (
+                      {showSeismographCharts && (
                         <SymbolicSeismograph
                           data={seismographData}
                           showProvenance={true}
