@@ -80,6 +80,20 @@ const sanitizeSlug = (value: string, fallback: string) => {
 
 type ReportStructure = 'solo' | 'synastry' | 'composite';
 
+const formatReportKind = (contractType: ReportContractType): string => {
+  switch (contractType) {
+    case 'relational_balance_meter':
+      return 'Relational Balance Meter';
+    case 'relational_mirror':
+      return 'Relational Mirror';
+    case 'solo_balance_meter':
+      return 'Balance Meter';
+    case 'solo_mirror':
+    default:
+      return 'Mirror';
+  }
+};
+
 const determineReportContract = (
   structure: ReportStructure,
   includeTransits: boolean
@@ -1382,6 +1396,13 @@ export default function MathBrainPage() {
             const user = await client.getUser();
             if (!cancelled) {
               setIsAdmin(user?.email === 'nathal@gmail.com');
+            }
+          } catch {
+            if (!cancelled) {
+              setIsAdmin(false);
+            }
+          }
+        } else {
             }
           } catch {
             if (!cancelled) {
