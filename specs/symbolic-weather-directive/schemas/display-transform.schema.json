@@ -1,0 +1,249 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wovenwebapp.com/schemas/display-transform.schema.json",
+  "title": "Display Transform Schema",
+  "description": "Schema for Balance Meter display transformation (raw → display values)",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "example": "3.1.0"
+    },
+    "render_mode": {
+      "type": "string",
+      "description": "Rendering mode for values",
+      "enum": ["absolute_x50", "relative", "normalized"],
+      "default": "absolute_x50"
+    },
+    "pipeline": {
+      "type": "array",
+      "description": "Ordered transformation steps",
+      "items": {
+        "type": "string",
+        "enum": ["normalize", "scale", "clamp", "round"]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "example": ["normalize", "scale", "clamp", "round"]
+    },
+    "magnitude": {
+      "type": "object",
+      "description": "Magnitude (numinosity) transformation",
+      "properties": {
+        "raw_range": {
+          "type": "object",
+          "properties": {
+            "min": {"type": "number"},
+            "max": {"type": "number"}
+          },
+          "required": ["min", "max"]
+        },
+        "display_range": {
+          "type": "object",
+          "properties": {
+            "min": {"type": "number", "default": 0},
+            "max": {"type": "number", "default": 5}
+          },
+          "required": ["min", "max"]
+        },
+        "scale_factor": {
+          "type": "number",
+          "description": "Multiplier for absolute mode",
+          "default": 50
+        },
+        "labels": {
+          "type": "object",
+          "description": "Human-readable labels for ranges",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "example": {
+            "0-1": "Quiet",
+            "1-2": "Subtle",
+            "2-3": "Moderate",
+            "3-4": "Notable",
+            "4-5": "Intense"
+          }
+        }
+      },
+      "required": ["raw_range", "display_range"]
+    },
+    "valence": {
+      "type": "object",
+      "description": "Valence (directional bias) transformation",
+      "properties": {
+        "raw_range": {
+          "type": "object",
+          "properties": {
+            "min": {"type": "number"},
+            "max": {"type": "number"}
+          },
+          "required": ["min", "max"]
+        },
+        "display_range": {
+          "type": "object",
+          "properties": {
+            "min": {"type": "number", "default": -5},
+            "max": {"type": "number", "default": 5}
+          },
+          "required": ["min", "max"]
+        },
+        "scale_factor": {
+          "type": "number",
+          "description": "Multiplier for absolute mode",
+          "default": 50
+        },
+        "labels": {
+          "type": "object",
+          "description": "Human-readable labels for ranges",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "example": {
+            "-5--3": "Strongly Challenging",
+            "-3--1": "Mildly Challenging",
+            "-1-1": "Mixed/Neutral",
+            "1-3": "Mildly Supportive",
+            "3-5": "Strongly Supportive"
+          }
+        }
+      },
+      "required": ["raw_range", "display_range"]
+    },
+    "volatility": {
+      "type": "object",
+      "description": "Volatility (narrative coherence) transformation",
+      "properties": {
+        "raw_range": {
+          "type": "object",
+          "properties": {
+            "min": {"type": "number"},
+            "max": {"type": "number"}
+          },
+          "required": ["min", "max"]
+        },
+        "display_range": {
+          "type": "object",
+          "properties": {
+            "min": {"type": "number", "default": 0},
+            "max": {"type": "number", "default": 5}
+          },
+          "required": ["min", "max"]
+        },
+        "coherence_formula": {
+          "type": "string",
+          "description": "Formula for converting to coherence",
+          "default": "5 - (volatility * 50)",
+          "example": "5 - (volatility * 50)"
+        },
+        "labels": {
+          "type": "object",
+          "description": "Human-readable labels for ranges",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "example": {
+            "0-1": "Chaotic",
+            "1-2": "Scattered",
+            "2-3": "Moderate Coherence",
+            "3-4": "Stable",
+            "4-5": "Highly Coherent"
+          }
+        }
+      },
+      "required": ["raw_range", "display_range"]
+    },
+    "sfd": {
+      "type": "object",
+      "description": "Support/Friction Differential transformation",
+      "properties": {
+        "raw_range": {
+          "type": "object",
+          "properties": {
+            "min": {"type": "number"},
+            "max": {"type": "number"}
+          },
+          "required": ["min", "max"]
+        },
+        "display_range": {
+          "type": "object",
+          "properties": {
+            "min": {"type": "number", "default": -5},
+            "max": {"type": "number", "default": 5}
+          },
+          "required": ["min", "max"]
+        },
+        "labels": {
+          "type": "object",
+          "description": "Human-readable labels for ranges",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "example": {
+            "-5--2": "Friction-Heavy",
+            "-2-0": "Slight Friction",
+            "0-2": "Slight Support",
+            "2-5": "Support-Heavy"
+          }
+        }
+      },
+      "required": ["raw_range", "display_range"]
+    }
+  },
+  "required": ["version", "render_mode", "pipeline", "magnitude", "valence", "volatility"],
+  "examples": [
+    {
+      "version": "3.1.0",
+      "render_mode": "absolute_x50",
+      "pipeline": ["normalize", "scale", "clamp", "round"],
+      "magnitude": {
+        "raw_range": {"min": 0, "max": 0.1},
+        "display_range": {"min": 0, "max": 5},
+        "scale_factor": 50,
+        "labels": {
+          "0-1": "Quiet",
+          "1-2": "Subtle",
+          "2-3": "Moderate",
+          "3-4": "Notable",
+          "4-5": "Intense"
+        }
+      },
+      "valence": {
+        "raw_range": {"min": -0.1, "max": 0.1},
+        "display_range": {"min": -5, "max": 5},
+        "scale_factor": 50,
+        "labels": {
+          "-5--3": "Strongly Challenging",
+          "-3--1": "Mildly Challenging",
+          "-1-1": "Mixed/Neutral",
+          "1-3": "Mildly Supportive",
+          "3-5": "Strongly Supportive"
+        }
+      },
+      "volatility": {
+        "raw_range": {"min": 0, "max": 0.1},
+        "display_range": {"min": 0, "max": 5},
+        "coherence_formula": "5 - (volatility * 50)",
+        "labels": {
+          "0-1": "Chaotic",
+          "1-2": "Scattered",
+          "2-3": "Moderate Coherence",
+          "3-4": "Stable",
+          "4-5": "Highly Coherent"
+        }
+      },
+      "sfd": {
+        "raw_range": {"min": -0.1, "max": 0.1},
+        "display_range": {"min": -5, "max": 5},
+        "labels": {
+          "-5--2": "Friction-Heavy",
+          "-2-0": "Slight Friction",
+          "0-2": "Slight Support",
+          "2-5": "Support-Heavy"
+        }
+      }
+    }
+  ]
+}
