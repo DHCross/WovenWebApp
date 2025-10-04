@@ -35,88 +35,140 @@
  */
 
 import { NextResponse } from 'next/server';
+import {
+  renderSymbolicWeather,
+  SCALE_FACTORS,
+  type EngineDayInput,
+  type AspectInput,
+  type RendererResult
+} from '@/src/symbolic-weather/renderer';
 
-interface RelocationOverlay {
-  user_place: string;
-  advisory: string;
-  confidence: 'author_note' | 'heuristic' | 'computed';
-  notes: string[];
-}
+const DEFAULT_TIMEZONE = 'America/Chicago';
 
-/**
- * Extract time-series data from Math Brain transitsByDate structure
- *
- * CRITICAL: Houses are ALWAYS natal. The API does not support relocated houses.
- * The relocation shim only affects house filtering for Balance Meter scoring,
- * not the actual ephemeris house positions.
- */
-function extractSymbolicWeatherSeries(mathBrainResult: any, options: {
-  startDate: string;
-  endDate: string;
-  userPlace?: string;
-}) {
-  const { userPlace } = options;
+const logger = {
+  info: (message: string, context: Record<string, unknown> = {}) => {
+    // eslint-disable-next-line no-console
+    console.log(`[SymbolicWeather] ${message}`, context);
+  },
+  warn: (message: string, context: Record<string, unknown> = {}) => {
+    // eslint-disable-next-line no-console
+    console.warn(`[SymbolicWeather] ${message}`, context);
+  },
+  error: (message: string, context: Record<string, unknown> = {}) => {
+    // eslint-disable-next-line no-console
+    console.error(`[SymbolicWeather] ${message}`, context);
+  }
+};
 
-  // Extract transit data
-  const transitsByDate = mathBrainResult?.person_a?.chart?.transitsByDate || {};
-  const provenance = mathBrainResult?.provenance || {};
-
-  const series = [];
-  const dates = Object.keys(transitsByDate).sort();
-
-  for (const date of dates) {
-    const dayData = transitsByDate[date];
-    if (!dayData) continue;
-
-    const seismo = dayData.seismograph || {};
-    const balance = dayData.balance || {};
-    const sfd = dayData.sfd || {};
-
-    // Houses are ALWAYS natal - the API cannot recalculate for relocation
-    const houseFrame = 'natal';
-    const relocationSupported = false;
-
-    // Build author-overlay if user has a place context
-    let relocationOverlay: RelocationOverlay | null = null;
-    if (userPlace) {
-      relocationOverlay = {
-        user_place: userPlace,
-        advisory: 'Read "Maintenance/Work" themes through daily logistics rather than career status. Same sky, natal rooms only.',
-        confidence: 'author_note',
-        notes: [
-          'Houses are derived from natal frame only.',
-          'The API does not recalc for relocation.',
-          'Any "place" guidance is human-authored overlay, not computed houses.'
-        ]
-      };
-    }
-
-    const dataPoint = {
-      date,
-      magnitude_0to5: seismo.magnitude ?? balance.magnitude ?? 0,
-      bias_signed_minus5to5: seismo.bias_signed ?? balance.bias_signed ?? 0,
-      coherence_0to5: seismo.volatility ?? 0, // Volatility maps to narrative coherence
-      sfd_cont_minus1to1: sfd.sfd_cont ?? 0,
-      schema_version: 'BM-v3',
-      orbs_profile: provenance.orbs_profile || 'wm-spec-2025-09',
-      house_frame: houseFrame,
-      relocation_supported: relocationSupported,
-      ...(relocationOverlay && { relocation_overlay: relocationOverlay }),
-      provenance: {
-        house_system: `${provenance.house_system || 'Placidus'} (natal)`,
-        relocation_mode: 'not_applied', // Never applied to ephemeris
-        orbs_profile: provenance.orbs_profile || 'wm-spec-2025-09',
-        math_brain_version: provenance.math_brain_version || provenance.version || '3.1.4',
-        tz: provenance.tz || provenance.timezone || 'UTC',
-        bias_method: seismo.bias_method || balance.bias_method || 'signed_z_to_[-5,5]',
-        mag_method: seismo.magnitude_method || balance.magnitude_method || 'z_to_[0,5]'
-      }
-    };
-
-    series.push(dataPoint);
+function mapAspects(rawAspects: any[] | undefined): AspectInput[] {
+  if (!Array.isArray(rawAspects)) {
+    return [];
   }
 
-  return series;
+  return rawAspects
+    .map((aspect) => {
+      const aspectName = aspect?._aspect ?? aspect?.aspect ?? aspect?.type;
+      if (!aspectName) return null;
+
+      const orbCandidate = typeof aspect?._orb === 'number'
+        ? aspect._orb
+        : typeof aspect?.orb === 'number'
+        ? aspect.orb
+        : typeof aspect?.orbit === 'number'
+        ? aspect.orbit
+        : null;
+
+      if (orbCandidate == null || !Number.isFinite(orbCandidate)) {
+        return null;
+      }
+
+      const transitName = aspect?.p1_name
+        ?? aspect?.transit_name
+        ?? (typeof aspect?.transit === 'string' ? aspect.transit : aspect?.transit?.name);
+      const targetName = aspect?.p2_name
+        ?? aspect?.natal_name
+        ?? (typeof aspect?.target === 'string' ? aspect.target : aspect?.target?.name);
+
+      const record: AspectInput = {
+        aspect: aspectName,
+        orb: orbCandidate,
+        transit_potency: typeof aspect?.transit_potency === 'number' ? aspect.transit_potency : undefined,
+        target_potency: typeof aspect?.target_potency === 'number' ? aspect.target_potency : undefined,
+        transit: transitName ? { name: transitName } : undefined,
+        target: targetName ? { name: targetName } : undefined
+      };
+
+      return record;
+    })
+    .filter((aspect): aspect is AspectInput => Boolean(aspect));
+}
+
+function buildRendererResult(mathBrainResult: any, options: {
+  startDate: string;
+  endDate: string;
+}): RendererResult {
+  const transitsByDate = mathBrainResult?.person_a?.chart?.transitsByDate || {};
+  const provenance = mathBrainResult?.provenance || {};
+  const timezone = provenance.tz || provenance.timezone || DEFAULT_TIMEZONE;
+
+  const dates = Object.keys(transitsByDate)
+    .filter((date) => date >= options.startDate && date <= options.endDate)
+    .sort();
+
+  const engineInputs: EngineDayInput[] = dates.map((date) => {
+    const dayData = transitsByDate[date] || {};
+    const seismo = dayData.seismograph || {};
+    const balance = dayData.balance || {};
+    const sfdBlock = dayData.sfd || {};
+
+    const magnitudeRaw = Number(seismo.magnitude ?? balance.magnitude ?? 0);
+    const directionalRaw = Number(seismo.bias_signed ?? balance.bias_signed ?? 0);
+    const volatilityRaw = Number(seismo.volatility ?? 0);
+    const coherenceRaw = Number(seismo.coherence ?? 0);
+
+    const input: EngineDayInput = {
+      date,
+      magnitude: Number.isFinite(magnitudeRaw) ? magnitudeRaw / SCALE_FACTORS.magnitude : 0,
+      directional_bias: Number.isFinite(directionalRaw) ? directionalRaw / SCALE_FACTORS.directional_bias : 0,
+      volatility: Number.isFinite(volatilityRaw) ? volatilityRaw / SCALE_FACTORS.coherence : 0,
+      timezone,
+      aspects: mapAspects(dayData.filtered_aspects || dayData.aspects)
+    };
+
+    if (Number.isFinite(coherenceRaw)) {
+      input.coherence = coherenceRaw / SCALE_FACTORS.coherence;
+    }
+
+    const rawSfd = typeof sfdBlock.sfd_cont === 'number'
+      ? sfdBlock.sfd_cont
+      : typeof sfdBlock.value === 'number'
+      ? sfdBlock.value
+      : typeof sfdBlock.sfd === 'number'
+      ? sfdBlock.sfd
+      : null;
+
+    if (typeof rawSfd === 'number' && Number.isFinite(rawSfd)) {
+      if (Math.abs(rawSfd) <= 1) {
+        input.sfd = rawSfd;
+        input.sfd_pre_scaled = true;
+      } else {
+        input.sfd = rawSfd / SCALE_FACTORS.sfd;
+      }
+    }
+
+    return input;
+  });
+
+  return renderSymbolicWeather(engineInputs, {
+    coherenceFrom: 'volatility',
+    timezone,
+    provenance: {
+      engine_build: provenance.math_brain_version || provenance.version || 'unknown',
+      dataset_id: provenance.dataset_id || provenance.datasetId || 'unknown',
+      run_id: provenance.run_id || provenance.runId || 'unknown',
+      export_timestamp: new Date().toISOString()
+    }
+  });
 }
 
 export async function GET(request: Request) {
@@ -179,27 +231,30 @@ export async function GET(request: Request) {
       }
     };
 
-    const series = extractSymbolicWeatherSeries(mockMathBrainResult, {
+    const rendererOutput = buildRendererResult(mockMathBrainResult, {
       startDate: start,
-      endDate: end,
-      userPlace: 'Austin, TX, US' // TODO: get from user profile/session
+      endDate: end
     });
 
     return NextResponse.json({
       success: true,
-      data: series,
-      meta: {
+      data: rendererOutput.days,
+      metadata: rendererOutput.metadata,
+      observability: rendererOutput.observability,
+      window: {
         start,
         end,
         step,
-        count: series.length,
-        schema_version: 'BM-v3',
-        house_frame: 'natal', // ALWAYS natal - API cannot recalc
+        count: rendererOutput.days.length,
+        timezone: rendererOutput.metadata.timezone,
+        house_frame: 'natal',
         relocation_supported: false
       }
     });
   } catch (error) {
-    console.error('[Symbolic Weather API Error]', error);
+    logger.error('Symbolic Weather API error', {
+      error: error instanceof Error ? error.message : String(error)
+    });
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
