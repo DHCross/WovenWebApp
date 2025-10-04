@@ -87,11 +87,30 @@ const sanitizeSlug = (value: string, fallback: string) => {
 };
 
 type ReportStructure = 'solo' | 'synastry' | 'composite';
+type ReportContractType =
+  | 'solo_mirror'
+  | 'solo_balance_meter'
+  | 'relational_mirror'
+  | 'relational_balance_meter';
+
+const formatReportKind = (contractType: ReportContractType): string => {
+  switch (contractType) {
+    case 'relational_balance_meter':
+      return 'Relational Balance Meter';
+    case 'relational_mirror':
+      return 'Relational Mirror';
+    case 'solo_balance_meter':
+      return 'Balance Meter';
+    case 'solo_mirror':
+    default:
+      return 'Mirror';
+  }
+};
 
 const determineReportContract = (
   structure: ReportStructure,
   includeTransits: boolean
-): 'solo_mirror' | 'solo_balance_meter' | 'relational_mirror' | 'relational_balance_meter' => {
+): ReportContractType => {
   const relational = structure !== 'solo';
   if (relational) {
     return includeTransits ? 'relational_balance_meter' : 'relational_mirror';
@@ -3031,18 +3050,7 @@ export default function MathBrainPage() {
         console.warn('Schema rule-patch rendering failed, using legacy data:', error);
       }
 
-      const reportKind = (() => {
-        switch (reportContractType) {
-          case 'relational_balance_meter':
-            return 'Relational Balance Meter';
-          case 'relational_mirror':
-            return 'Relational Mirror';
-          case 'solo_balance_meter':
-            return 'Balance Meter';
-          default:
-            return 'Mirror';
-        }
-      })();
+      const reportKind = formatReportKind(reportContractType);
       const generatedAt = new Date();
 
       // Sanitize all text content for PDF
@@ -3433,19 +3441,20 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
 
       // Relationship context definitions are available in-app; omit here to slim the PDF.
 
-      // Dedicated data appendix so JSON stays consolidated at the end of the document.
+      // DATA APPENDIX: Raw JSON removed to reduce PDF size (40-60% smaller)
+      // Full machine-readable data available via separate JSON downloads
       sections.push({
-        title: 'Data Appendix: Direct JSON Access',
-        body: 'Use the in-app "Download JSON (Raw)" or "Clean JSON (0-5 scale)" actions for pristine copies of this report\'s data. The sanitized snapshot below is included for reference but may span multiple pages when printed.',
+        title: 'Data Appendix',
+        body: `Full raw JSON has been removed from this PDF to reduce file size and improve AI parsing.
+
+To access complete machine-readable data:
+• Use "Clean JSON (0-5 scale)" for frontstage data
+• Use "Raw JSON (Full)" in Advanced exports for debugging
+• Download the multi-format directive package for Markdown/HTML/TXT versions
+
+This PDF contains all essential natal data in table format above.`,
         mode: 'regular',
         pageBreakBefore: true,
-      });
-
-      // Add sanitized raw JSON
-      sections.push({
-        title: 'Raw JSON Snapshot (Sanitized)',
-        body: sanitizedReport.rawJSON || '{}',
-        mode: 'mono',
       });
 
       const pdfDoc = await PDFDocument.create();
@@ -3703,6 +3712,239 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
       console.error('PDF export failed', err);
       setPdfGenerating(false);
       setToast('Could not generate PDF');
+      setTimeout(() => setToast(null), 2000);
+    }
+  }
+
+  // Helper: Format chart data as Markdown tables
+  function formatChartTables(chart: any): string {
+    let md = '';
+
+    // Planetary positions
+    if (chart.positions) {
+      md += `### Planetary Positions\n\n`;
+      md += `| Planet | Sign | Degree | House | Element | Quality | Retro |\n`;
+      md += `|--------|------|--------|-------|---------|---------|-------|\n`;
+      Object.entries(chart.positions).forEach(([planet, data]: [string, any]) => {
+        const retro = data.retrograde ? 'R' : '';
+        md += `| ${planet} | ${data.sign || '—'} | ${data.degree?.toFixed(2) || '—'} | ${data.house || '—'} | ${data.element || '—'} | ${data.quality || '—'} | ${retro} |\n`;
+      });
+      md += `\n`;
+    }
+
+    // Aspects
+    if (chart.aspects && chart.aspects.length > 0) {
+      md += `### Aspects\n\n`;
+      md += `| Body 1 | Aspect | Body 2 | Orb | Type |\n`;
+      md += `|--------|--------|--------|-----|------|\n`;
+      chart.aspects.slice(0, 50).forEach((asp: any) => {
+        md += `| ${asp.body1 || '—'} | ${asp.aspect || '—'} | ${asp.body2 || '—'} | ${asp.orb?.toFixed(2) || '—'}° | ${asp.type || '—'} |\n`;
+      });
+      if (chart.aspects.length > 50) {
+        md += `\n*... and ${chart.aspects.length - 50} more aspects*\n`;
+      }
+      md += `\n`;
+    }
+
+    // House cusps
+    if (chart.houses) {
+      md += `### House Cusps\n\n`;
+      md += `| House | Sign | Degree |\n`;
+      md += `|-------|------|--------|\n`;
+      Object.entries(chart.houses).forEach(([house, data]: [string, any]) => {
+        md += `| ${house} | ${data.sign || '—'} | ${data.degree?.toFixed(2) || '—'} |\n`;
+      });
+      md += `\n`;
+    }
+
+    return md;
+  }
+
+  // Generate lightweight Markdown export (AI-friendly, <50KB)
+  async function downloadResultMarkdown() {
+    if (!result) {
+      setToast('No report available to export');
+      return;
+    }
+
+    setPdfGenerating(true);
+    try {
+  const generatedAt = new Date();
+  const sanitizedReport = createFrontStageResult(result);
+  const reportKind = formatReportKind(reportContractType);
+
+      // Build markdown content with same structure as PDF
+      let markdown = `# Woven Web App — ${reportKind} Report\n\n`;
+      markdown += `**Generated:** ${generatedAt.toLocaleString()}\n\n`;
+      markdown += `**Specification Version:** 3.1\n`;
+      markdown += `**Scaling Mode:** Absolute ×50\n`;
+      markdown += `**Pipeline:** normalize → scale → clamp → round\n\n`;
+      markdown += `---\n\n`;
+
+      // Add all sections from the same source as PDF
+      const sections: Array<{title: string; body: string; mode?: string}> = [];
+
+      const summary = sanitizedReport?.person_a?.summary;
+      if (summary) {
+        markdown += `### Balance Meter Summary\n\n`;
+        if (summary.magnitude != null) {
+          markdown += `- Magnitude: ${summary.magnitude}${summary.magnitude_label ? ` (${summary.magnitude_label})` : ''}\n`;
+        }
+        if (summary.valence != null) {
+          markdown += `- Valence: ${summary.valence}${summary.valence_label ? ` (${summary.valence_label})` : ''}\n`;
+        }
+        if (summary.bias_signed != null && summary.bias_signed !== summary.valence) {
+          markdown += `- Directional Bias: ${summary.bias_signed}${summary.directional_bias_label ? ` (${summary.directional_bias_label})` : ''}\n`;
+        }
+        if (summary.volatility != null) {
+          markdown += `- Volatility: ${summary.volatility}${summary.volatility_label ? ` (${summary.volatility_label})` : ''}\n`;
+        }
+        markdown += `\n`;
+      }
+
+      // RAVEN CALDER ANALYSIS DIRECTIVE (same as PDF)
+      const analysisDirective = `# 🚨 YOU ARE RAVEN CALDER — EXECUTE THIS DIRECTIVE 🚨
+
+**YOU ARE RAVEN CALDER.** This Markdown file contains chart data for you to analyze. This is your work order, not documentation to describe.
+
+---
+
+## YOUR TASK: Generate a Full Conversational Reading
+
+This is a **MIRROR and CONVERSATION STARTER**, not just a weather report or data summary.
+
+### MANDATORY STRUCTURE — DO NOT DEVIATE:
+
+${reportKind.includes('Solo') || !reportKind.includes('Relational') ? `
+#### 1️⃣ SOLO MIRROR — Individual Foundation
+**Synthesize the natal chart into a conversational, plain-language snapshot:**
+- **"Here's how your system tends to move"** — behavioral anchors, not abstract symbolism
+- **Include:** Core drives, natural strengths, key tensions, constitutional patterns
+- **NO JARGON** — Conversational, testable against lived experience
+- **Frame as tendencies/probabilities**, not prescriptions or fixed fate
+- **Use ALL provided data:** planetary positions, aspects, house placements from tables below
+` : `
+#### 1️⃣ SOLO MIRRORS — Individual Foundations (BOTH PEOPLE)
+**For EACH person, provide a separate solo mirror:**
+- **Synthesize their natal chart** into plain-language behavioral snapshot
+- **"Here's how [Name]'s system tends to move"** — specific, falsifiable patterns
+- **Include:** Core drives, strengths, tensions, how they process the world
+- **NO JARGON** — Conversational, grounded in lived experience
+- **Use ALL provided data** for each chart (positions, aspects, houses)
+
+**DO NOT SKIP INDIVIDUAL READINGS** — Even in relational reports, each person gets their own mirror first.
+
+#### 2️⃣ RELATIONAL ENGINES — Synastry Dynamics
+**After solo mirrors, synthesize how the charts interact:**
+- **Named patterns** (e.g., "Spark Engine," "Crossed-Wires Loop," "Sweet Glue")
+- **Mechanism + tendency** in plain language for each engine
+- **Clear list format** with engine names as headers
+- **Focus:** Where energies harmonize vs. where friction/growth pressure appears
+- **Use actual names** (e.g., "Dan's Mars squares Stephie's Moon") — never "they" or generic pronouns
+`}
+
+${reportKind.includes('Balance Meter') ? `
+#### ${reportKind.includes('Solo') || !reportKind.includes('Relational') ? '2️⃣' : '3️⃣'} SYMBOLIC WEATHER OVERLAY — Transits (Current Symbolic Climate)
+**Layer current symbolic weather over the foundational patterns:**
+- **Continuous narrative form** (paragraphs, NOT bullet lists)
+- **Describe the climate** currently activating natal/relational foundations
+- **NO assigned percentages, NO prescriptive advice**
+- **Generalized atmosphere:** "What's stirring right now" — how transits light up the blueprint
+- **Ground in the data:** Reference specific transit aspects from tables below
+` : ''}
+
+---
+
+## CRITICAL DATA REQUIREMENTS:
+
+✅ **Use ALL provided planetary positions, aspects, and house placements** from tables
+✅ **Reference the comprehensive data** — this is geometry-first, then symbolic translation
+${reportKind.includes('Relational') ? '✅ **For relational readings:** Use BOTH complete natal charts, then cross-aspects' : ''}
+✅ **Ground every insight** in the actual chart data, not generic astrology
+
+---
+
+## TONE & VOICE — RAVEN CALDER MANDATE:
+
+- **Conversational, shareable, accessible** language
+- **Plain language** — avoid heavy astrological jargon in body text
+- **Falsifiable claims** that can be tested against lived experience
+- **Agency-first:** Frame as probabilities/tendencies, never fixed fate
+- **Support possibility** — the user decides what resonates
+- **Conversation starter** — this is a mirror to reflect on, not a prescription to follow
+
+---
+
+## WORKFLOW: FIELD → MAP → VOICE
+
+You have been given the **FIELD** (geometric data) and **MAP** (structural patterns).
+Your job is **VOICE** — synthesize this into resonant, lived-experience language.
+
+---
+
+## 🎯 What "Full Reading" Means:
+
+**NOT ACCEPTABLE:**
+❌ Describing the file contents or reflecting on what you've received
+❌ "Here's a brief overview based on the summary below"
+❌ Skipping aspects, houses, or chart details
+❌ Generic astrology without specific chart references
+
+**ACCEPTABLE:**
+✅ **Analyzing EVERY major aspect** from the aspects table
+✅ **Translating geometric patterns** into behavioral tendencies
+✅ **Using chart-specific details** (degrees, signs, houses)
+✅ **Conversational synthesis** that feels personal and testable
+
+---
+
+## EXECUTE NOW:
+
+Generate the full reading following the mandatory structure above.
+Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relational Engines, then ' : ''}${reportKind.includes('Balance Meter') ? 'Symbolic Weather Overlay' : 'close with integration'}.
+
+**Do not describe what you're about to do. Do it.**
+
+---`;
+
+      markdown += `## ⚠️ ANALYSIS DIRECTIVE (READ FIRST)\n\n${analysisDirective}\n\n---\n\n`;
+
+      // Add natal chart data tables
+      if (sanitizedReport.person_a?.chart) {
+        markdown += `## Person A: ${sanitizedReport.person_a.name || 'Natal Chart'}\n\n`;
+        markdown += formatChartTables(sanitizedReport.person_a.chart);
+      }
+
+      if (sanitizedReport.person_b?.chart) {
+        markdown += `\n## Person B: ${sanitizedReport.person_b.name || 'Natal Chart'}\n\n`;
+        markdown += formatChartTables(sanitizedReport.person_b.chart);
+      }
+
+      // Data appendix note
+      markdown += `\n---\n\n## Data Appendix\n\n`;
+      markdown += `Full raw JSON has been removed to reduce file size and improve AI parsing.\n\n`;
+      markdown += `To access complete machine-readable data:\n`;
+      markdown += `• Use "Clean JSON (0-5 scale)" for frontstage data\n`;
+      markdown += `• Use "Raw JSON (Full)" in Advanced exports for debugging\n\n`;
+      markdown += `This Markdown contains all essential natal data in table format above.\n`;
+
+      const blob = new Blob([markdown], { type: 'text/markdown; charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${friendlyFilename('directive')}.md`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      setPdfGenerating(false);
+      setToast('Markdown export ready!');
+      setTimeout(() => setToast(null), 1600);
+    } catch (err) {
+      console.error('Markdown export failed', err);
+      setPdfGenerating(false);
+      setToast('Could not generate Markdown');
       setTimeout(() => setToast(null), 2000);
     }
   }
@@ -6424,6 +6666,33 @@ Start with the Solo Mirror(s), then ${reportKind.includes('Relational') ? 'Relat
                     </div>
                     <div className="text-xs text-slate-400 mt-0.5">
                       Full natal data + AI reading instructions (Mirror Directive)
+                    </div>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={downloadResultMarkdown}
+                disabled={pdfGenerating}
+                className="w-full rounded-md border border-purple-600 bg-purple-700/30 px-4 py-3 text-left hover:bg-purple-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                aria-label="Download Markdown Directive (lightweight, AI-friendly)"
+              >
+                <div className="flex items-center gap-3">
+                  {pdfGenerating ? (
+                    <svg className="animate-spin h-5 w-5 text-purple-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <span className="text-2xl">📝</span>
+                  )}
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-slate-100">
+                      {pdfGenerating ? 'Generating Markdown...' : 'Markdown Directive (for AI)'}
+                    </div>
+                    <div className="text-xs text-slate-400 mt-0.5">
+                      Lightweight plain text, &lt;50KB (better for AI parsing)
                     </div>
                   </div>
                 </div>

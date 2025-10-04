@@ -4,6 +4,21 @@ import { randomUUID } from 'crypto';
 // Reuse the legacy math brain implementation directly
 const mathBrainFunction = require('../../../lib/server/astrology-mathbrain.js');
 
+const logger = {
+  info: (message: string, context: Record<string, unknown> = {}) => {
+    // eslint-disable-next-line no-console
+    console.log(`[AstrologyMathBrain] ${message}`, context);
+  },
+  warn: (message: string, context: Record<string, unknown> = {}) => {
+    // eslint-disable-next-line no-console
+    console.warn(`[AstrologyMathBrain] ${message}`, context);
+  },
+  error: (message: string, context: Record<string, unknown> = {}) => {
+    // eslint-disable-next-line no-console
+    console.error(`[AstrologyMathBrain] ${message}`, context);
+  }
+};
+
 export async function GET(request: NextRequest) {
   // Convert Next.js request to Netlify event format
   const url = new URL(request.url);
@@ -47,7 +62,9 @@ export async function GET(request: NextRequest) {
       headers: new Headers(result.headers || {})
     });
   } catch (error: any) {
-    console.error('Astrology MathBrain API error:', error);
+    logger.error('Astrology MathBrain API error', {
+      error: error instanceof Error ? error.message : String(error)
+    });
     return NextResponse.json({
       success: false,
       error: 'Internal server error',
@@ -148,6 +165,12 @@ export async function POST(request: NextRequest) {
       if (!out.transits && start && end) {
         out.transits = { from: start, to: end, step: resolvedStep };
       }
+
+      ['wheel_only', 'wheel_format', 'theme', 'language'].forEach((key) => {
+        if (Object.prototype.hasOwnProperty.call(input, key)) {
+          out[key] = input[key];
+        }
+      });
       return JSON.stringify(out);
     })(raw);
     
@@ -192,7 +215,9 @@ export async function POST(request: NextRequest) {
       headers: new Headers(result.headers || {})
     });
   } catch (error: any) {
-    console.error('Astrology MathBrain API error:', error);
+    logger.error('Astrology MathBrain API error', {
+      error: error instanceof Error ? error.message : String(error)
+    });
     return NextResponse.json({
       success: false,
       error: 'Internal server error',
