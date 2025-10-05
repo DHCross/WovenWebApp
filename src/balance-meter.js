@@ -240,10 +240,26 @@ function computeSFD(dayAspects, orbsProfile = 'wm-spec-2025-09'){
     }
   }
 
-  const K = 4.0; // normalization constant, tuneable
+  // SFD v1.3: Ratio-difference formula per Raven Calder diagnostic
+  // (Support - Friction) / (Support + Friction) on [-1, +1] scale
+  const total = support + counter;
+
+  if (total === 0 || !Number.isFinite(total)) {
+    // No aspects: return null for SFD (show "n/a"), keep Splus/Sminus for backstage
+    const K = 4.0;
+    const Splus  = +(5 * Math.tanh(support / K)).toFixed(2);
+    const Sminus = +(5 * Math.tanh(counter / K)).toFixed(2);
+    return { SFD: null, Splus, Sminus };
+  }
+
+  const rawSFD = (support - counter) / total;
+  const SFD = round(clamp(rawSFD, -1, 1), 2);
+
+  // Keep Splus/Sminus for backstage debugging (tanh-normalized 0-5)
+  const K = 4.0;
   const Splus  = +(5 * Math.tanh(support / K)).toFixed(2);
   const Sminus = +(5 * Math.tanh(counter / K)).toFixed(2);
-  const SFD = round(clamp(Splus - Sminus, -5, 5), 2);
+
   return { SFD, Splus, Sminus };
 }
 
