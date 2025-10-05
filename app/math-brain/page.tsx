@@ -1403,13 +1403,6 @@ export default function MathBrainPage() {
             }
           }
         } else {
-            }
-          } catch {
-            if (!cancelled) {
-              setIsAdmin(false);
-            }
-          }
-        } else {
           setIsAdmin(false);
         }
       } catch (err) {
