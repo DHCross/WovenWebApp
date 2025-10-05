@@ -30,7 +30,7 @@
     "test:deployment": "node test/deployment-verification.js",
     "test:all": "node test/run-all-smoke-tests.js",
     "test:production": "node test/run-all-smoke-tests.js --environment=production",
-    "test:ci": "node test/run-all-smoke-tests.js --skip-network",
+    "test:ci": "vitest run && node test/run-all-smoke-tests.js --skip-network && npm run lexicon:lint",
     "test:vitest": "vitest",
     "test:vitest:ui": "vitest --ui",
     "test:vitest:run": "vitest run",
@@ -41,7 +41,8 @@
     "build:specs": "node specs/symbolic-weather-directive/build.js",
     "validate:specs": "node specs/symbolic-weather-directive/validate.js",
     "postinstall": "if [ -f package.json ] && node -e \"try{require('concurrently')}catch(e){process.exit(1)}\"; then echo 'concurrently already installed'; else echo 'Installing concurrently...'; npm i -D concurrently; fi",
-    "auth:check": "node scripts/auth-config-check.js"
+    "auth:check": "node scripts/auth-config-check.js",
+    "lexicon:lint": "node scripts/lexicon-lint.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

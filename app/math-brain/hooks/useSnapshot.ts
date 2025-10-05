@@ -87,9 +87,9 @@ export function useSnapshot() {
         transitStep: 'daily',
         // Report type (Balance Meter for snapshots)
         report_type: isRelational ? 'relational_balance_meter' : 'solo_balance_meter',
-        // Context
+        // Context (use 'balance_meter' mode for snapshots)
         context: {
-          mode: isRelational ? 'synastry_transits' : 'natal_transits',
+          mode: 'balance_meter',
         },
         // Relocation for current location
         relocation_mode: isRelational ? 'BOTH_LOCAL' : 'A_LOCAL',
@@ -157,7 +157,21 @@ export function useSnapshot() {
       }
 
       const result = await response.json();
-      console.log('[Snapshot] API success, result:', result);
+      console.log('[Snapshot] API success, result keys:', Object.keys(result || {}));
+      console.log('[Snapshot] API result sample:', {
+        statusCode: result?.statusCode,
+        error: result?.error,
+        hasBody: Boolean(result?.body),
+        hasDays: Boolean(result?.days),
+        hasReport: Boolean(result?.report)
+      });
+
+      // Check if API returned an error in the body (some APIs return 200 with error payload)
+      if (result?.error || result?.statusCode >= 400) {
+        const errorMsg = result?.error || 'API returned error status in response body';
+        console.error('[Snapshot] API returned error:', errorMsg);
+        throw new Error(errorMsg);
+      }
 
       console.log('[Snapshot] Setting state with result');
       setState({

@@ -6,7 +6,7 @@
  * final reflection that honors the complexity of the individual's experience
  */
 
-import { generateText } from './llm';
+import { callGemini } from './llm';
 
 interface ReflectionContext {
   mode: 'natal-only' | 'balance' | 'relational-mirror' | 'relational-balance';
@@ -72,7 +72,7 @@ export async function narrateStitchedReflection(
     ? `\n\nRelocation lens: Active (viewing from ${relocationContext.location || 'specified location'})`
     : '\n\nRelocation lens: Off (natal location)';
 
-  const prompt = `You are Raven Calder writing the final "Stitched Reflection" paragraph for a Woven Map report. This is the integrative synthesis that weaves everything together.
+  const prompt = `[narrateStitchedReflection]\nYou are Raven Calder writing the final "Stitched Reflection" paragraph for a Woven Map report. This is the integrative synthesis that weaves everything together.
 
 ${modeContext}${blueprintContext}${weatherContext}${tensionsContext}${relocationNote}
 
@@ -94,7 +94,7 @@ Your task:
 Output only the paragraph, no title or preamble.`;
 
   try {
-    const reflection = await generateText(prompt, { model: 'gemini-1.5-flash' });
+    const reflection = await callGemini(prompt, { model: 'gemini-1.5-flash' });
     return reflection.trim();
   } catch (error) {
     console.error('Stitched reflection generation failed:', error);
@@ -178,7 +178,7 @@ ${nameB}'s blueprint: "${personB.blueprintMetaphor}"
     ? `\n\nCurrent weather narrative:\n${weatherNarrative}`
     : '\n\nWeather: Not available (mirror mode)';
 
-  const prompt = `You are Raven Calder writing the final "Stitched Reflection" paragraph for a RELATIONAL Woven Map report. This reflection describes the between-space—the field that exists between these two people.
+  const prompt = `[narrateStitchedReflection]\nYou are Raven Calder writing the final "Stitched Reflection" paragraph for a RELATIONAL Woven Map report. This reflection describes the between-space—the field that exists between these two people.
 
 Report mode: ${mode}
 ${blueprintContext}${aspectsSummary}${weatherContext}
@@ -199,7 +199,7 @@ Your task:
 Output only the paragraph, no title or preamble.`;
 
   try {
-    const reflection = await generateText(prompt, { model: 'gemini-1.5-flash' });
+    const reflection = await callGemini(prompt, { model: 'gemini-1.5-flash' });
     return reflection.trim();
   } catch (error) {
     console.error('Relational reflection generation failed:', error);

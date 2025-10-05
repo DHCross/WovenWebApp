@@ -52,3 +52,7 @@ export async function generateText(prompt: string, opts: StreamOptions = {}): Pr
   }
   return normalizePrompt(out);
 }
+
+export async function callGemini(prompt: string, opts: StreamOptions = {}): Promise<string> {
+  return generateText(prompt, opts);
+}

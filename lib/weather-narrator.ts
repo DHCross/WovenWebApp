@@ -6,7 +6,7 @@
  * active transits, and the individual's blueprint into original prose
  */
 
-import { generateText } from './llm';
+import { callGemini } from './llm';
 
 interface DailyIndex {
   date: string;
@@ -83,7 +83,7 @@ Recent ${recentDays.length}-day window:
     ? `\nTime window: ${window.start} to ${window.end}`
     : '';
 
-  const prompt = `You are Raven Calder writing the "Weather" paragraph for a Woven Map report. This paragraph describes the current symbolic weather - the active atmospheric conditions right now.
+  const prompt = `[narrateSymbolicWeather]\nYou are Raven Calder writing the "Weather" paragraph for a Woven Map report. This paragraph describes the current symbolic weather - the active atmospheric conditions right now.
 
 DATA (Field Layer):
 ${indicesSummary}${transitsSummary}${blueprintContext}${windowContext}
@@ -103,7 +103,7 @@ Your task:
 Output only the paragraph, no title or preamble.`;
 
   try {
-    const narrative = await generateText(prompt, { model: 'gemini-1.5-flash' });
+    const narrative = await callGemini(prompt, { model: 'gemini-1.5-flash' });
     return narrative.trim();
   } catch (error) {
     console.error('Weather narrative generation failed:', error);
@@ -177,7 +177,7 @@ Today's conditions:
     ? `\nConstitutional blueprint: "${blueprintMetaphor}"`
     : '';
 
-  const prompt = `You are Raven Calder suggesting a concrete, same-day experiment to test today's symbolic weather.
+  const prompt = `[narrateSymbolicWeather]\nYou are Raven Calder suggesting a concrete, same-day experiment to test today's symbolic weather.
 
 ${indicesSummary}${blueprintContext}
 
@@ -197,7 +197,7 @@ Do NOT suggest: meditation, journaling, "being mindful", or other generic practi
 Output only the experiment suggestion, nothing else.`;
 
   try {
-    const experiment = await generateText(prompt, { model: 'gemini-1.5-flash' });
+    const experiment = await callGemini(prompt, { model: 'gemini-1.5-flash' });
     return experiment.trim();
   } catch (error) {
     console.error('Weather experiment generation failed:', error);

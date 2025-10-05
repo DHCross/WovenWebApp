@@ -2,6 +2,10 @@
 // Transforms raw climate metrics into story-first displays
 
 import { ClimateData, VALENCE_LEVELS, ValenceLevel } from './climate-renderer';
+import { buildPeriodLabel } from './voice/periodLabel';
+import { synthesizeLabel } from './voice/labels';
+import { assertApprovedLabel } from './voice/guard';
+import { clampValue, sfdDisplay } from './balance/scale';
 
 export interface ClimatePattern {
   name: string;
@@ -13,6 +17,8 @@ export interface ClimatePattern {
 
 export interface ClimateNarrative {
   headline: string;
+  labelSubtitle?: string;
+  voiceLabel: string;
   pattern: ClimatePattern;
   story: string;
   dimensions: {
@@ -68,7 +74,7 @@ const CLIMATE_PATTERNS: Record<string, ClimatePattern> = {
     advice: 'This pressure is creating something valuable. Stay present and work with the process.'
   },
   'storm_system': {
-    name: 'Storm System',
+    name: 'Compression Field',
     icon: '⛈️🌪',
     description: 'High negative valence with high volatility',
     signature: 'Chaotic restrictive forces; breakdown before breakthrough',
@@ -311,11 +317,30 @@ export function generateClimateNarrative(
   const story = generateStory(climate, pattern, isRangeSummary);
   const paradox = generateParadoxPoles(climate, isLatentField);
   const valenceLevel = getValenceLevel(valence);
+  const clampedVolatility = clampValue(climate.volatility ?? 0, 0, 5);
+  const coherenceForLabel = +(5 - clampedVolatility).toFixed(2);
+  const periodLabel = buildPeriodLabel({
+    magnitude: climate.magnitude,
+    bias: valence,
+    coherence: coherenceForLabel,
+    sfd: typeof sfd === 'number' ? sfd : null,
+  });
 
-  const headline = `${pattern.name}: ${getMagnitudeLabel(climate.magnitude)} ${valenceLevel.anchor}`;
+  const voiceLabel = assertApprovedLabel(
+    synthesizeLabel(
+      climate.magnitude,
+      valence,
+      coherenceForLabel,
+      typeof sfd === 'number' ? sfdDisplay(sfd) : 'n/a'
+    )
+  );
+
+  const headline = periodLabel.title;
 
   return {
     headline,
+    labelSubtitle: periodLabel.subtitle,
+    voiceLabel,
     pattern,
     story,
     dimensions: {

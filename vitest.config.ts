@@ -7,6 +7,7 @@ export default defineConfig({
     globals: true,
     testTimeout: 5000,
     include: ['test/**/*.test.ts', 'poetic-brain/test/**/*.test.ts'],
+    setupFiles: ['test/setup.ts'],
   },
   resolve: {
     alias: {

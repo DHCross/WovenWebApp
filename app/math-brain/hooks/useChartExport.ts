@@ -977,16 +977,24 @@ Start with the Solo Mirror(s), then ${
         return undefined;
       };
 
+      // IMPORTANT: Raw values from API are ALREADY frontstage (0-5 scale)
+      // DO NOT transform them - use them directly
+      // The old code was dividing by 100, creating double-normalization bug
       const normalizeToFrontStage = (
         rawValue: number,
         metric: 'magnitude' | 'directional_bias' | 'volatility',
       ): number => {
+        // Raw values are already frontstage (e.g., 5 for magnitude, -5 for bias)
+        // Just clamp and round appropriately
         if (metric === 'directional_bias') {
-          const clamped = Math.max(-500, Math.min(500, rawValue));
-          return Number((clamped / 100).toFixed(2));
+          return Math.round(Math.max(-5, Math.min(5, rawValue)) * 10) / 10;
         }
-        const clamped = Math.max(0, Math.min(500, rawValue));
-        return Number((clamped / 100).toFixed(2));
+        if (metric === 'volatility') {
+          // Volatility stays as-is (already 0-5)
+          return Math.round(Math.max(0, Math.min(5, rawValue)) * 10) / 10;
+        }
+        // Magnitude (already 0-5)
+        return Math.round(Math.max(0, Math.min(5, rawValue)) * 100) / 100;
       };
 
       const weatherData: any = {
@@ -1104,15 +1112,20 @@ function createFrontStageResult(rawResult: any) {
     return undefined;
   };
 
+  // IMPORTANT: Raw values from API are ALREADY frontstage (0-5 scale)
+  // DO NOT divide by 100 - that creates double-normalization bug
   const normalizeToFrontStage = (
     rawValue: number,
     type: 'magnitude' | 'directional_bias' | 'volatility',
   ): number => {
-    if (type === 'magnitude' || type === 'volatility') {
-      return Math.min(5, Math.max(0, Math.round((rawValue / 100) * 10) / 10));
+    if (type === 'magnitude') {
+      return Math.min(5, Math.max(0, Math.round(rawValue * 100) / 100));
+    }
+    if (type === 'volatility') {
+      return Math.min(5, Math.max(0, Math.round(rawValue * 10) / 10));
     }
     if (type === 'directional_bias') {
-      return Math.min(5, Math.max(-5, Math.round((rawValue / 100) * 10) / 10));
+      return Math.min(5, Math.max(-5, Math.round(rawValue * 10) / 10));
     }
     return rawValue;
   };

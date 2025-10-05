@@ -17,10 +17,10 @@ export function WeatherPlots({ data }: WeatherPlotsProps) {
   }
 
   const dates = data.map(d => d.date);
-  const biases = data.map(d => d.weather.directional_bias);
-  const magnitudes = data.map(d => d.weather.magnitude);
-  const coherences = data.map(d => d.weather.coherence);
-  const sfds = data.map(d => d.weather.sfd);
+  const biases = data.map(d => d.weather.axes.directional_bias.value);
+  const magnitudes = data.map(d => d.weather.axes.magnitude.value);
+  const coherences = data.map(d => d.weather.axes.coherence.value);
+  const sfds = data.map(d => d.weather.axes.sfd.value);
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

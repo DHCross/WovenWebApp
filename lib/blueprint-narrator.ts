@@ -6,7 +6,7 @@
  * constitutional modes that honor the specificity of their chart
  */
 
-import { generateText } from './llm';
+import { callGemini } from './llm';
 
 interface ConstitutionalMode {
   function: string;
@@ -93,7 +93,7 @@ Do NOT use these phrases: "structured lattice", "flowing current", "steady found
 Output ONLY the metaphor, nothing else.`;
 
   try {
-    const metaphor = await generateText(prompt, { model: 'gemini-1.5-flash' });
+    const metaphor = await callGemini(prompt, { model: 'gemini-1.5-flash' });
     return metaphor.trim();
   } catch (error) {
     console.error('Blueprint metaphor generation failed:', error);
@@ -123,7 +123,7 @@ export async function narrateBlueprintClimate(
     ? `\n\nKey placements: ${contextLines.join(', ')}`
     : '';
 
-  const prompt = `You are Raven Calder, writing the opening "Blueprint" paragraph for a Woven Map report. This paragraph describes the stable constitutional climate - the enduring psychological architecture.
+  const prompt = `[narrateBlueprintClimate]\nYou are Raven Calder, writing the opening "Blueprint" paragraph for a Woven Map report. This paragraph describes the stable constitutional climate - the enduring psychological architecture.
 
 Blueprint Metaphor (already generated):
 "${metaphor}"
@@ -148,7 +148,7 @@ Remember: This is BASELINE climate, not current weather. Keep it enduring and st
 Output only the paragraph, no title or preamble.`;
 
   try {
-    const narrative = await generateText(prompt, { model: 'gemini-1.5-flash' });
+    const narrative = await callGemini(prompt, { model: 'gemini-1.5-flash' });
     return narrative.trim();
   } catch (error) {
     console.error('Blueprint narrative generation failed:', error);

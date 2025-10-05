@@ -28,6 +28,14 @@
  */
 
 const { scaleMagnitude } = require('../lib/reporting/canonical-scaling');
+const { 
+  scaleBipolar, 
+  scaleCoherenceFromVol, 
+  scaleSFD,
+  amplifyByMagnitude,
+  normalizeAmplifiedBias,
+  normalizeVolatilityForCoherence
+} = require('../lib/balance/scale-bridge');
 
 const OUTER = new Set(["Saturn","Uranus","Neptune","Pluto"]);
 const PERSONAL = new Set(["Sun","Moon","Mercury","Venus","Mars","ASC","MC","IC","DSC"]);
@@ -351,45 +359,62 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   const magnitudeValue = magnitudeScaling.value;
 
   // Pipeline Treaty: Normalize → Scale (×50) → Clamp → Round
-  // Per v3 spec: display = clamp(normalized × 50, −5, +5)
+  // Per v3.1 spec: All scaling now uses canonical functions from lib/balance/scale.ts
   
-  // Step 1: Amplify directional signal based on magnitude
-  // Higher magnitude = more pronounced direction (asymmetric amplification)
-  const Y_amplified = Y_raw * (0.8 + 0.4 * magnitudeValue);
+  // === DIRECTIONAL BIAS ===
+  // Step 1: Apply domain amplification (magnitude-dependent)
+  const Y_amplified = amplifyByMagnitude(Y_raw, magnitudeValue);
   
   // Step 2: Normalize to [-0.1, +0.1] typical range
-  // Y_amplified typically ranges from -10 to +10 for extreme days
-  // Divide by 100 to get [-0.1, +0.1] for typical extreme
-  const Y_normalized = Y_amplified / 100;
+  const Y_normalized = normalizeAmplifiedBias(Y_amplified);
   
-  // Step 3: Scale by ×50 to get [-5, +5] display range
-  const directional_bias_scaled = Y_normalized * 50;
-  
-  // Step 4: Final clamp to [-5, +5] and round to 1 decimal (per v3 spec)
-  const directional_bias = round(Math.max(-5, Math.min(5, directional_bias_scaled)), 1);
+  // Step 3: Apply canonical bipolar scaling (×50, clamp [-5, +5], round 1dp)
+  const biasScaled = scaleBipolar(Y_normalized);
+  const directional_bias = biasScaled.value;
 
+  // === VOLATILITY & COHERENCE ===
   const VI = volatility(scored, prevCtx, opts);
   
-  // Calculate SFD (Integration Bias / Cohesion metric)
-  const sfd = calculateSFD(scored);
+  // Normalize volatility for coherence inversion
+  const VI_normalized = normalizeVolatilityForCoherence(VI);
   
-  // Coherence inversion: coherence = 5 − (volatility normalized to 0-5 scale)
-  // VI is typically 0-10+, so we normalize it first
-  const volatility_normalized = Math.min(5, VI / 2); // Assuming VI max ~10
-  const coherence = round(5 - volatility_normalized, 2);
+  // Apply canonical coherence scaling (inversion: 5 - vol×50, clamp [0, 5])
+  const coherenceScaled = scaleCoherenceFromVol(VI_normalized);
+  const coherence = coherenceScaled.value;
+  
+  // === SFD (Integration Bias) ===
+  // Calculate raw SFD (already in [-1, +1] range), then apply canonical formatting
+  const sfd_raw = calculateSFD(scored);
+  const sfdScaled = scaleSFD(sfd_raw, true); // preScaled=true since calculateSFD returns [-1, +1]
+  const sfd = sfdScaled.value;
 
   // Transform trace for observability
   const transform_trace = {
     pipeline: 'normalize_scale_clamp_round',
+    spec_version: '3.1',
+    canonical_scalers_used: true,
     steps: [
-      { stage: 'raw', Y_raw, X_raw },
+      { stage: 'raw', Y_raw, X_raw, VI },
       { stage: 'amplified', Y_amplified },
-      { stage: 'normalized', Y_normalized },
-      { stage: 'scaled', directional_bias_scaled },
-      { stage: 'final', directional_bias }
+      { stage: 'normalized', Y_normalized, VI_normalized },
+      { stage: 'scaled', directional_bias: biasScaled.raw, coherence: coherenceScaled.raw },
+      { stage: 'final', directional_bias, coherence, magnitude: magnitudeValue, sfd }
     ],
     clamp_events: [
-      ...(Math.abs(directional_bias_scaled) > 5 ? [{ axis: 'directional_bias_display', raw: directional_bias_scaled, clamped: directional_bias }] : [])
+      ...(biasScaled.flags.hitMin || biasScaled.flags.hitMax ? [{ 
+        axis: 'directional_bias', 
+        raw: biasScaled.raw, 
+        clamped: directional_bias,
+        hitMin: biasScaled.flags.hitMin,
+        hitMax: biasScaled.flags.hitMax
+      }] : []),
+      ...(coherenceScaled.flags.hitMin || coherenceScaled.flags.hitMax ? [{ 
+        axis: 'coherence', 
+        raw: coherenceScaled.raw, 
+        clamped: coherence,
+        hitMin: coherenceScaled.flags.hitMin,
+        hitMax: coherenceScaled.flags.hitMax
+      }] : [])
     ]
   };
 

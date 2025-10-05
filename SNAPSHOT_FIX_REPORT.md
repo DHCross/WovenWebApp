@@ -18,7 +18,11 @@ at async j
 
 ### The Fix
 
-**File:** `app/math-brain/hooks/useSnapshot.ts` (lines 135-140)
+**File:** `app/math-brain/hooks/useSnapshot.ts`
+
+**Two issues fixed:**
+
+#### Issue 1: Missing relationship_context (lines 135-140)
 
 **Before (broken):**
 ```typescript
@@ -43,6 +47,24 @@ if (isRelational) {
   };
 }
 ```
+
+#### Issue 2: Wrong context mode (lines 90-93)
+
+**Before (broken):**
+```typescript
+context: {
+  mode: isRelational ? 'synastry_transits' : 'natal_transits',  // ❌ Wrong mode!
+},
+```
+
+**After (fixed):**
+```typescript
+context: {
+  mode: 'balance_meter',  // ✅ Snapshots use Balance Meter mode
+},
+```
+
+**Why this matters:** The server checks `wantBalanceMeter = modeToken === 'BALANCE_METER' || body.context?.mode === 'balance_meter'`. Without the correct mode, the snapshot request wasn't recognized as a Balance Meter request.
 
 ---
 

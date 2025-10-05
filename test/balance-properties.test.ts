@@ -1,0 +1,234 @@
+/**
+ * Property-based tests for Balance Meter scaling functions.
+ * 
+ * These tests verify mathematical properties that must hold for ALL inputs:
+ * - Monotonicity: larger input → larger output
+ * - Range compliance: output always within spec bounds
+ * - Scaling linearity: small inputs produce proportional outputs
+ * - Symmetry: bipolar functions symmetric around zero
+ */
+
+import { describe, test, expect } from 'vitest';
+import { 
+  scaleBipolar, 
+  scaleUnipolar, 
+  scaleCoherenceFromVol, 
+  scaleSFD 
+} from '../lib/balance/scale';
+import spec from '../config/spec.json';
+
+describe('Balance Meter Property Tests', () => {
+  describe('scaleBipolar (Directional Bias)', () => {
+    test('is monotonic: larger normalized → larger display', () => {
+      const testCases = [
+        [-0.1, -0.05, -0.01, 0, 0.01, 0.05, 0.1],
+        [-0.08, -0.04, 0, 0.04, 0.08],
+      ];
+
+      testCases.forEach(cases => {
+        for (let i = 0; i < cases.length - 1; i++) {
+          const result1 = scaleBipolar(cases[i]);
+          const result2 = scaleBipolar(cases[i + 1]);
+          expect(result2.value).toBeGreaterThanOrEqual(result1.value);
+        }
+      });
+    });
+
+    test('stays in range [-5, +5] for all inputs', () => {
+      const testInputs = [
+        -1.0, -0.5, -0.1, -0.05, -0.01, 0, 0.01, 0.05, 0.1, 0.5, 1.0,
+        -10, -5, 5, 10, // Extreme values
+        Number.MIN_VALUE, Number.MAX_SAFE_INTEGER // Edge cases
+      ];
+
+      testInputs.forEach(input => {
+        const result = scaleBipolar(input);
+        expect(result.value).toBeGreaterThanOrEqual(spec.ranges.directional_bias.min);
+        expect(result.value).toBeLessThanOrEqual(spec.ranges.directional_bias.max);
+      });
+    });
+
+    test('small normalized inputs (±0.05) produce display ≈ ±2.5', () => {
+      const testCases = [
+        { input: -0.05, expected: -2.5, tolerance: 0.1 },
+        { input: 0.05, expected: 2.5, tolerance: 0.1 },
+        { input: -0.04, expected: -2.0, tolerance: 0.1 },
+        { input: 0.04, expected: 2.0, tolerance: 0.1 },
+      ];
+
+      testCases.forEach(({ input, expected, tolerance }) => {
+        const result = scaleBipolar(input);
+        expect(Math.abs(result.value - expected)).toBeLessThan(tolerance);
+      });
+    });
+
+    test('is symmetric around zero', () => {
+      const testInputs = [0.01, 0.05, 0.1];
+
+      testInputs.forEach(input => {
+        const positive = scaleBipolar(input);
+        const negative = scaleBipolar(-input);
+        expect(Math.abs(positive.value + negative.value)).toBeLessThan(0.01); // Should cancel out
+      });
+    });
+
+    test('clamp flags are set correctly', () => {
+      // Should NOT clamp for small values
+      const small = scaleBipolar(0.05);
+      expect(small.flags.hitMin).toBe(false);
+      expect(small.flags.hitMax).toBe(false);
+
+      // SHOULD clamp for extreme values
+      const large = scaleBipolar(1.0); // normalized 1.0 → raw 50 → clamped to 5
+      expect(large.value).toBe(5);
+      expect(large.flags.hitMax).toBe(true);
+
+      const veryNegative = scaleBipolar(-1.0);
+      expect(veryNegative.value).toBe(-5);
+      expect(veryNegative.flags.hitMin).toBe(true);
+    });
+  });
+
+  describe('scaleUnipolar (Magnitude)', () => {
+    test('is monotonic: larger normalized → larger display', () => {
+      const testInputs = [0, 0.01, 0.05, 0.1];
+
+      for (let i = 0; i < testInputs.length - 1; i++) {
+        const result1 = scaleUnipolar(testInputs[i]);
+        const result2 = scaleUnipolar(testInputs[i + 1]);
+        expect(result2.value).toBeGreaterThanOrEqual(result1.value);
+      }
+    });
+
+    test('stays in range [0, 5] for all inputs', () => {
+      const testInputs = [
+        0, 0.01, 0.05, 0.1, 0.5, 1.0,
+        -0.1, -1.0, // Negative (should clamp to 0)
+        10, 100 // Extreme positive
+      ];
+
+      testInputs.forEach(input => {
+        const result = scaleUnipolar(input);
+        expect(result.value).toBeGreaterThanOrEqual(spec.ranges.magnitude.min);
+        expect(result.value).toBeLessThanOrEqual(spec.ranges.magnitude.max);
+      });
+    });
+
+    test('zero input → zero output', () => {
+      const result = scaleUnipolar(0);
+      expect(result.value).toBe(0);
+    });
+
+    test('negative inputs clamp to zero', () => {
+      const testInputs = [-0.1, -1.0, -10];
+
+      testInputs.forEach(input => {
+        const result = scaleUnipolar(input);
+        expect(result.value).toBe(0);
+        expect(result.flags.hitMin).toBe(true);
+      });
+    });
+  });
+
+  describe('scaleCoherenceFromVol (Coherence Inversion)', () => {
+    test('is anti-monotonic: larger volatility → smaller coherence', () => {
+      const testInputs = [0, 0.02, 0.05, 0.1];
+
+      for (let i = 0; i < testInputs.length - 1; i++) {
+        const result1 = scaleCoherenceFromVol(testInputs[i]);
+        const result2 = scaleCoherenceFromVol(testInputs[i + 1]);
+        expect(result2.value).toBeLessThanOrEqual(result1.value); // Anti-monotonic
+      }
+    });
+
+    test('stays in range [0, 5] for all inputs', () => {
+      const testInputs = [0, 0.01, 0.05, 0.1, 0.5, 1.0];
+
+      testInputs.forEach(input => {
+        const result = scaleCoherenceFromVol(input);
+        expect(result.value).toBeGreaterThanOrEqual(spec.ranges.coherence.min);
+        expect(result.value).toBeLessThanOrEqual(spec.ranges.coherence.max);
+      });
+    });
+
+    test('zero volatility → maximum coherence (5.0)', () => {
+      const result = scaleCoherenceFromVol(0);
+      expect(result.value).toBe(5.0);
+    });
+
+    test('volatility = 0.1 → coherence = 0.0', () => {
+      // vol_norm × 50 = 0.1 × 50 = 5
+      // coherence = 5 - 5 = 0
+      const result = scaleCoherenceFromVol(0.1);
+      expect(result.value).toBe(0.0);
+    });
+  });
+
+  describe('scaleSFD (Integration Bias)', () => {
+    test('stays in range [-1, +1] for all valid inputs', () => {
+      const testInputs = [-1.0, -0.5, -0.1, 0, 0.1, 0.5, 1.0];
+
+      testInputs.forEach(input => {
+        const result = scaleSFD(input);
+        expect(result.value).toBeGreaterThanOrEqual(spec.ranges.sfd.min);
+        expect(result.value).toBeLessThanOrEqual(spec.ranges.sfd.max);
+      });
+    });
+
+    test('null input → null output with "n/a" display', () => {
+      const result = scaleSFD(null);
+      expect(result.value).toBe(null);
+      expect(result.display).toBe(spec.ranges.sfd.null_display);
+    });
+
+    test('formats with 2 decimal places', () => {
+      const testCases = [
+        { input: 0.12345, preScaled: true, expected: '0.12' },
+        { input: -0.12345, preScaled: true, expected: '−0.12' }, // Unicode minus
+        { input: 0, preScaled: true, expected: '0.00' },
+      ];
+
+      testCases.forEach(({ input, preScaled, expected }) => {
+        const result = scaleSFD(input, preScaled);
+        expect(result.display).toBe(expected);
+      });
+    });
+
+    test('is monotonic: larger input → larger output', () => {
+      const testInputs = [-1.0, -0.5, 0, 0.5, 1.0];
+
+      for (let i = 0; i < testInputs.length - 1; i++) {
+        const result1 = scaleSFD(testInputs[i]);
+        const result2 = scaleSFD(testInputs[i + 1]);
+        expect(result2.value!).toBeGreaterThanOrEqual(result1.value!);
+      }
+    });
+  });
+
+  describe('Cross-Function Properties', () => {
+    test('scaleBipolar and scaleUnipolar agree on positive inputs', () => {
+      const testInputs = [0, 0.01, 0.05, 0.1];
+
+      testInputs.forEach(input => {
+        const bipolar = scaleBipolar(input);
+        const unipolar = scaleUnipolar(input);
+        expect(bipolar.value).toBe(unipolar.value); // Should match for positive
+      });
+    });
+
+    test('all scalers handle NaN/Infinity gracefully', () => {
+      const invalidInputs = [NaN, Infinity, -Infinity];
+
+      invalidInputs.forEach(input => {
+        const bipolar = scaleBipolar(input);
+        const unipolar = scaleUnipolar(input);
+        const coherence = scaleCoherenceFromVol(input);
+
+        // Should not crash and should return finite values
+        expect(Number.isFinite(bipolar.value)).toBe(true);
+        expect(Number.isFinite(unipolar.value)).toBe(true);
+        expect(Number.isFinite(coherence.value)).toBe(true);
+      });
+    });
+  });
+});

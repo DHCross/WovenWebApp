@@ -135,6 +135,12 @@ export default function BalanceMeterSummary({
             <span className="text-2xl" aria-hidden="true">{narrative.pattern.icon}</span>
             <span>{narrative.headline}</span>
           </div>
+          {narrative.labelSubtitle && (
+            <div className="text-xs text-slate-400 mt-1">{narrative.labelSubtitle}</div>
+          )}
+          <div className="text-[11px] uppercase tracking-wide text-indigo-300 mt-1">
+            {narrative.voiceLabel}
+          </div>
         </div>
       </div>
 

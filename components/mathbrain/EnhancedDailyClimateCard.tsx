@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { generateClimateNarrative, ClimateNarrative } from "../../lib/climate-narrative";
+import { generateClimateNarrative } from "../../lib/climate-narrative";
 import { ClimateData } from "../../lib/climate-renderer";
 import { generateClimateClasses, getValenceVisuals } from "../../lib/symbolic-visuals";
 
@@ -66,6 +66,12 @@ export default function EnhancedDailyClimateCard({
           <div className={`text-lg font-semibold ${climateClasses.text} flex items-center gap-2 ${climateClasses.weight}`}>
             <span className="text-xl" aria-hidden="true">{narrative.pattern.icon}</span>
             <span>{narrative.headline}</span>
+          </div>
+          {narrative.labelSubtitle && (
+            <div className="text-xs text-slate-400 mt-1">{narrative.labelSubtitle}</div>
+          )}
+          <div className="text-[11px] uppercase tracking-wide text-slate-400 mt-1">
+            {narrative.voiceLabel}
           </div>
         </div>
       </div>

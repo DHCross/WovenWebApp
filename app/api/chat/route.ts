@@ -174,7 +174,7 @@ function pickHook(t:string){
           if (magnitude >= 4 && valence <= -4) {
             return 'Crisis & Structural Overload · Maximum Threshold';
           } else if (magnitude >= 3 && valence <= -3) {
-            return 'Pressure & Restriction · Storm Systems';
+            return 'Pressure & Restriction · Compression Field';
           }
         }
       }

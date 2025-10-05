@@ -525,8 +525,8 @@ export async function renderShareableMirror({ geo, prov, options, conversational
     let full = '';
     try {
       const mod = await import('@/lib/llm');
-      const generateText = mod.generateText as (p: string, o?: any) => Promise<string>;
-      full = await generateText(prompt, { personaHook: 'poetic' });
+      const callGemini = mod.callGemini as (p: string, o?: any) => Promise<string>;
+      full = await callGemini(prompt, { personaHook: 'poetic' });
     } catch (err) {
       // Fallback: if LLM is unavailable, produce a short human-friendly canned reply
       console.error('[RAVEN] Gemini API call failed, using fallback response:', err);
