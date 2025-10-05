@@ -1201,6 +1201,7 @@ export default function MathBrainPage() {
     downloadBackstageJSON,
     downloadSymbolicWeatherJSON,
     pdfGenerating,
+    markdownGenerating,
     cleanJsonGenerating,
     engineConfigGenerating,
     weatherJsonGenerating,
@@ -4509,6 +4510,7 @@ export default function MathBrainPage() {
           <DownloadControls
             includeTransits={includeTransits}
             pdfGenerating={pdfGenerating}
+            markdownGenerating={markdownGenerating}
             graphsPdfGenerating={graphsPdfGenerating}
             weatherJsonGenerating={weatherJsonGenerating}
             engineConfigGenerating={engineConfigGenerating}
@@ -4705,7 +4707,7 @@ export default function MathBrainPage() {
 
                 {layerVisibility.diagnostics && (
                   <div className="mb-6">
-                    <h3 className="text-sm font-medium text-slate-200 mb-3">Daily Diagnostic Cards</h3>
+                    <h3 className="text-sm font-medium text-slate-200 mb-3">Daily Climate Cards</h3>
                     {(() => {
                     const daily = result?.person_a?.chart?.transitsByDate || {};
                     const dates = Object.keys(daily).sort();
@@ -4888,7 +4890,7 @@ export default function MathBrainPage() {
                       };
                     };
 
-                    return dates.slice(-7).map(date => { // Show last 7 days
+                    return dates.map(date => { // Show all requested days
                       const dayData = daily[date];
                       const mag = Number(dayData?.seismograph?.magnitude ?? 0);
                       const val = Number(dayData?.seismograph?.valence_bounded ?? dayData?.seismograph?.valence ?? 0);
