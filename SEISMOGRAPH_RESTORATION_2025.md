@@ -254,15 +254,59 @@ Every calculation includes:
 
 ---
 
+## Three-Pillar Validation Framework
+
+The restored v3 seismograph has been comprehensively validated through three complementary studies:
+
+### Golden Standard Case #1: Hurricane Michael (October 10, 2018)
+- **Type**: Retrodictive validation (post-hoc correlation)
+- **Scope**: 6 family members, geographic differentiation (Panama City vs. distant)
+- **Hit Rate**: 85-89% Uncanny Scores for direct impact cohort
+- **Key Validation**: External catastrophic event, multi-subject, angular precision
+- **Documentation**: `HURRICANE_MICHAEL_VALIDATION_STUDY.md`
+
+### Golden Standard Case #2: September 2025 Medical Crisis
+- **Type**: Predictive validation (pre-registered forecast)
+- **Scope**: Personal crisis with blind forecasting (predicted Sept 3-6, occurred Sept 5)
+- **Hit Rate**: 77-89% Uncanny Scores for impact cohort
+- **Key Validation**: Temporal precision (±24h), field reset detection, blind protocol
+- **Documentation**: `SEPTEMBER_2025_VALIDATION_STUDY.md`
+
+### Golden Standard Case #3: Relationship Field Study (January-September 2025)
+- **Type**: Prospective validation (dyadic field dynamics)
+- **Scope**: 8-month synastry analysis with weekly blind forecasts
+- **Hit Rate**: 89% for relationship turning points
+- **Key Validation**: Translocation sensitivity, field reset prediction, structural sufficiency
+- **Documentation**: `RELATIONSHIP_FIELD_VALIDATION_2025.md`
+
+### Combined Validation Scope
+
+| Validation Type | Hurricane Michael | September 2025 | Relationship Field |
+|-----------------|-------------------|----------------|-------------------|
+| **Solo Charts** | ✅ | ✅ | ✅ |
+| **Relocated Charts** | ✅ | ✅ | ✅ |
+| **Synastry Overlays** | — | — | ✅ |
+| **Transit Activations** | ✅ | ✅ | ✅ |
+| **Field Variables** | Geographic | Medical crisis | Translocation |
+| **Blind Protocol** | Post-hoc | Pre-registered | Pre-registered |
+| **Hit Rate** | 85-89% | 77-89% | 89% |
+
+**Status**: All three cases serve as **Golden Standard benchmarks** for future development. Any system changes causing these test cases to fail indicate calibration regression.
+
+---
+
 ## References
 
 * `src/seismograph.js` - Core engine
 * `test/golden-standard-2018.test.ts` - Validation fixture
+* `HURRICANE_MICHAEL_VALIDATION_STUDY.md` - Full family field analysis (Case #1)
+* `SEPTEMBER_2025_VALIDATION_STUDY.md` - Predictive medical crisis (Case #2)
+* `RELATIONSHIP_FIELD_VALIDATION_2025.md` - Dyadic dynamics study (Case #3)
 * `CHANGELOG.md` - Historical changes
 * Raven Calder post-mortem (conversation context)
 
 ---
 
 **Date**: October 5, 2025  
-**Status**: Core engine restored, display layer updates pending  
-**Confidence**: High (validated against 2018 golden standard)
+**Status**: Core engine restored, three-pillar validation complete, display layer updates pending  
+**Confidence**: High (validated across external catastrophe, personal crisis, and relationship dynamics)

@@ -548,7 +548,7 @@ Start with the Solo Mirror(s), then ${
 ---`;
 
       sections.unshift({
-        title: '⚠️ ANALYSIS DIRECTIVE (READ FIRST)',
+        title: 'ANALYSIS DIRECTIVE (READ FIRST)',
         body: analysisDirective,
         mode: 'regular',
       });
@@ -872,7 +872,7 @@ Start with the Solo Mirror(s), then ${
 
 ---`;
 
-      markdown += `## ⚠️ ANALYSIS DIRECTIVE (READ FIRST)\n\n${analysisDirective}\n\n---\n\n`;
+      markdown += `## ANALYSIS DIRECTIVE (READ FIRST)\n\n${analysisDirective}\n\n---\n\n`;
 
       if (sanitizedReport.person_a?.chart) {
         markdown += `## Person A: ${sanitizedReport.person_a.name || 'Natal Chart'}\n\n`;
