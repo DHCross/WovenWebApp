@@ -560,37 +560,41 @@ Start with the Solo Mirror(s), then ${
       const pageWidth = 612;
       const pageHeight = 792;
 
+      let currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+      let currentY = pageHeight - pageMargin;
+
+      const startNewPage = () => {
+        currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+        currentY = pageHeight - pageMargin;
+      };
+
+      const ensurePageSpace = (linesNeeded: number) => {
+        if (currentY - linesNeeded * lineHeight < pageMargin) {
+          startNewPage();
+        }
+      };
+
       const addTextBlock = (
         text: string,
         options: { fontSize?: number; title?: string; pageBreakBefore?: boolean; mode?: 'regular' | 'mono' } = {},
       ) => {
         const fontSize = options.fontSize ?? 11;
         const textLines = text.split('\n');
-        let currentPage = pdfDoc.getPageCount() === 0 ? pdfDoc.addPage([pageWidth, pageHeight]) : pdfDoc.getPages()[pdfDoc.getPageCount() - 1];
-        let y = currentPage.getY() || pageHeight - pageMargin;
-
-        const ensurePageSpace = (linesNeeded: number) => {
-          if (y - linesNeeded * lineHeight < pageMargin) {
-            currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
-            y = pageHeight - pageMargin;
-          }
-        };
 
         if (options.pageBreakBefore) {
-          currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
-          y = pageHeight - pageMargin;
+          startNewPage();
         }
 
         if (options.title) {
           ensurePageSpace(2);
           currentPage.drawText(options.title, {
             x: pageMargin,
-            y,
+            y: currentY,
             size: fontSize + 2,
             font,
             color: rgb(0.2, 0.2, 0.2),
           });
-          y -= lineHeight * 1.4;
+          currentY -= lineHeight * 1.4;
         }
 
         textLines.forEach((line) => {
@@ -599,14 +603,14 @@ Start with the Solo Mirror(s), then ${
             ensurePageSpace(1);
             currentPage.drawText(wrappedLine, {
               x: pageMargin,
-              y,
+              y: currentY,
               size: fontSize,
               font,
               color: rgb(0, 0, 0),
             });
-            y -= lineHeight;
+            currentY -= lineHeight;
           });
-          y -= lineHeight * 0.3;
+          currentY -= lineHeight * 0.3;
         });
       };
 
