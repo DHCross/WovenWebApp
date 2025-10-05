@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 import { useState, useCallback } from 'react';
 import { getCurrentTimezone } from './useGeolocation';
 
@@ -50,12 +52,14 @@ export function useSnapshot() {
     personB?: any,
     mode: string = 'NATAL_TRANSITS'
   ): Promise<any | null> => {
+    console.log('[Snapshot] Starting capture...', { location, personA, personB, mode });
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
       const now = new Date();
       const todayStr = now.toISOString().slice(0, 10);
       const timezone = getCurrentTimezone();
+      console.log('[Snapshot] Building payload...', { todayStr, timezone });
 
       // Determine if this is relational (has Person B)
       const isRelational = personB && Object.keys(personB).length > 0;
@@ -108,6 +112,9 @@ export function useSnapshot() {
           allow_symbolic_weather: true
         },
         presentation_style: 'conversational',
+        // Chart wheel generation
+        wheel_format: 'png',
+        theme: 'classic',
       };
 
       // Add Person B if provided
@@ -126,18 +133,26 @@ export function useSnapshot() {
         };
       }
 
+      console.log('[Snapshot] Sending API request...', { endpoint: '/api/astrology-mathbrain', payload });
+      
       const response = await fetch('/api/astrology-mathbrain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
+      console.log('[Snapshot] API response status:', response.status);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Snapshot] API error:', response.status, errorText);
         throw new Error(`API error: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
+      console.log('[Snapshot] API success, result:', result);
 
+      console.log('[Snapshot] Setting state with result');
       setState({
         result,
         location,
@@ -146,8 +161,10 @@ export function useSnapshot() {
         error: null,
       });
 
+      console.log('[Snapshot] Capture complete!');
       return result;
     } catch (err) {
+      console.error('[Snapshot] Capture failed:', err);
       const errorMessage = err instanceof Error ? err.message : 'Snapshot capture failed';
       setState(prev => ({
         ...prev,

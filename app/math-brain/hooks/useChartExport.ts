@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 import { useCallback, useState } from 'react';
 import type { MutableRefObject } from 'react';
 import { sanitizeReportForPDF } from '../../../src/pdf-sanitizer';
@@ -33,6 +35,7 @@ interface UseChartExportResult {
   downloadBackstageJSON: () => void;
   downloadSymbolicWeatherJSON: () => void;
   pdfGenerating: boolean;
+  markdownGenerating: boolean;
   cleanJsonGenerating: boolean;
   engineConfigGenerating: boolean;
   weatherJsonGenerating: boolean;
@@ -50,6 +53,7 @@ export function useChartExport(options: UseChartExportOptions): UseChartExportRe
   } = options;
 
   const [pdfGenerating, setPdfGenerating] = useState<boolean>(false);
+  const [markdownGenerating, setMarkdownGenerating] = useState<boolean>(false);
   const [cleanJsonGenerating, setCleanJsonGenerating] = useState<boolean>(false);
   const [engineConfigGenerating, setEngineConfigGenerating] = useState<boolean>(false);
   const [weatherJsonGenerating, setWeatherJsonGenerating] = useState<boolean>(false);
@@ -81,16 +85,28 @@ export function useChartExport(options: UseChartExportOptions): UseChartExportRe
       return;
     }
 
+    const transitDayCount = Object.keys(result?.person_a?.chart?.transitsByDate || {}).length;
+    const isLargeTransitWindow = transitDayCount >= 35;
+
     setPdfGenerating(true);
-    if (setToast) {
-      try {
-        setToast('Generating PDF... This may take 10-15 seconds');
-      } catch {
-        // noop
-      }
-    }
+    const longRunningNotice = window.setTimeout(() => {
+      pushToast('Still generating the PDF… larger windows can take up to a minute.', 2600);
+    }, 16000);
 
     try {
+      if (setToast) {
+        try {
+          setToast('Generating PDF... This may take 10-15 seconds');
+        } catch {
+          // noop
+        }
+      }
+
+      if (isLargeTransitWindow) {
+        pushToast(`Large symbolic weather window detected (${transitDayCount} days). Optimizing export…`, 2800);
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      }
+
       await new Promise((resolve) => setTimeout(resolve, 50));
       const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
 
@@ -109,55 +125,59 @@ export function useChartExport(options: UseChartExportOptions): UseChartExportRe
       let processedResult = result;
       let contractCompliant = false;
 
-      try {
-        const mirrorResult = await renderShareableMirror({
-          geo: null,
-          prov: { source: 'pdf-export' },
-          mode: reportMode as any,
-          options: {
-            mode: reportMode,
-            person_a: result.person_a,
-            indices: result.person_a?.chart?.transitsByDate
-              ? {
-                  days: Object.values(result.person_a.chart.transitsByDate)
-                    .map((entry: any) => ({
-                      date: entry.date || new Date().toISOString().slice(0, 10),
-                      magnitude: entry.seismograph?.magnitude,
-                      volatility: entry.seismograph?.volatility,
-                      sf_diff: entry.sfd?.sfd_cont,
-                    }))
-                    .filter((day) => day.magnitude || day.volatility || day.sf_diff),
-                }
-              : null,
-            ...result,
-          },
-        });
+      if (!isLargeTransitWindow) {
+        try {
+          const mirrorResult = await renderShareableMirror({
+            geo: null,
+            prov: { source: 'pdf-export' },
+            mode: reportMode as any,
+            options: {
+              mode: reportMode,
+              person_a: result.person_a,
+              indices: result.person_a?.chart?.transitsByDate
+                ? {
+                    days: Object.values(result.person_a.chart.transitsByDate)
+                      .map((entry: any) => ({
+                        date: entry.date || new Date().toISOString().slice(0, 10),
+                        magnitude: entry.seismograph?.magnitude,
+                        volatility: entry.seismograph?.volatility,
+                        sf_diff: entry.sfd?.sfd_cont,
+                      }))
+                      .filter((day) => day.magnitude || day.volatility || day.sf_diff),
+                  }
+                : null,
+              ...result,
+            },
+          });
 
-        if (mirrorResult.contract && mirrorResult.mode) {
-          processedResult = {
-            ...result,
-            contract_compliance: {
-              contract: mirrorResult.contract,
-              mode: mirrorResult.mode,
-              frontstage_policy: mirrorResult.frontstage_policy,
-              backstage: mirrorResult.backstage,
-            },
-            schema_enforced_render: {
-              preface: mirrorResult.preface,
-              scenario_prompt: mirrorResult.scenario_prompt,
-              scenario_question: mirrorResult.scenario_question,
-              picture: mirrorResult.picture,
-              feeling: mirrorResult.feeling,
-              container: mirrorResult.container,
-              option: mirrorResult.option,
-              next_step: mirrorResult.next_step,
-              symbolic_weather: mirrorResult.symbolic_weather,
-            },
-          };
-          contractCompliant = true;
+          if (mirrorResult.contract && mirrorResult.mode) {
+            processedResult = {
+              ...result,
+              contract_compliance: {
+                contract: mirrorResult.contract,
+                mode: mirrorResult.mode,
+                frontstage_policy: mirrorResult.frontstage_policy,
+                backstage: mirrorResult.backstage,
+              },
+              schema_enforced_render: {
+                preface: mirrorResult.preface,
+                scenario_prompt: mirrorResult.scenario_prompt,
+                scenario_question: mirrorResult.scenario_question,
+                picture: mirrorResult.picture,
+                feeling: mirrorResult.feeling,
+                container: mirrorResult.container,
+                option: mirrorResult.option,
+                next_step: mirrorResult.next_step,
+                symbolic_weather: mirrorResult.symbolic_weather,
+              },
+            };
+            contractCompliant = true;
+          }
+        } catch (error) {
+          console.warn('Schema rule-patch rendering failed, using legacy data:', error);
         }
-      } catch (error) {
-        console.warn('Schema rule-patch rendering failed, using legacy data:', error);
+      } else {
+        console.info('Skipping schema rule-patch rendering for large transit window (>=35 days).');
       }
 
       const reportKind = formatReportKind(reportContractType);
@@ -652,12 +672,13 @@ Start with the Solo Mirror(s), then ${
           // noop
         }
       }, 150);
-      setPdfGenerating(false);
       pushToast('PDF ready!', 1600);
     } catch (err) {
       console.error('PDF export failed', err);
-      setPdfGenerating(false);
       pushToast('Could not generate PDF', 2000);
+    } finally {
+      clearTimeout(longRunningNotice);
+      setPdfGenerating(false);
     }
   }, [
     friendlyFilename,
@@ -675,8 +696,20 @@ Start with the Solo Mirror(s), then ${
       return;
     }
 
-    setPdfGenerating(true);
+    setMarkdownGenerating(true);
+    const transitDayCount = Object.keys(result?.person_a?.chart?.transitsByDate || {}).length;
+    const isLargeTransitWindow = transitDayCount >= 35;
+
+    const longRunningNotice = window.setTimeout(() => {
+      pushToast('Still working on the Markdown export…', 2600);
+    }, 12000);
+
     try {
+      if (isLargeTransitWindow) {
+        pushToast(`Large symbolic weather window detected (${transitDayCount} days). Markdown export may take longer.`, 2800);
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      }
+
       const generatedAt = new Date();
       const sanitizedReport = createFrontStageResult(result);
       const reportKind = formatReportKind(reportContractType);
@@ -864,12 +897,13 @@ Start with the Solo Mirror(s), then ${
       a.remove();
       URL.revokeObjectURL(url);
 
-      setPdfGenerating(false);
       pushToast('Markdown export ready!', 1600);
     } catch (err) {
       console.error('Markdown export failed', err);
-      setPdfGenerating(false);
       pushToast('Could not generate Markdown', 2000);
+    } finally {
+      clearTimeout(longRunningNotice);
+      setMarkdownGenerating(false);
     }
   }, [friendlyFilename, pushToast, reportContractType, result]);
 
@@ -1043,6 +1077,7 @@ Start with the Solo Mirror(s), then ${
     downloadBackstageJSON,
     downloadSymbolicWeatherJSON,
     pdfGenerating,
+    markdownGenerating,
     cleanJsonGenerating,
     engineConfigGenerating,
     weatherJsonGenerating,

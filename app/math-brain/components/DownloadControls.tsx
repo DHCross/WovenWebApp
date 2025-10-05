@@ -6,6 +6,7 @@ import type { SeismographMap } from "../../../lib/health-data-types";
 interface DownloadControlsProps {
   includeTransits: boolean;
   pdfGenerating: boolean;
+  markdownGenerating: boolean;
   graphsPdfGenerating: boolean;
   weatherJsonGenerating: boolean;
   engineConfigGenerating: boolean;
@@ -26,6 +27,7 @@ interface DownloadControlsProps {
 export default function DownloadControls({
   includeTransits,
   pdfGenerating,
+  markdownGenerating,
   graphsPdfGenerating,
   weatherJsonGenerating,
   engineConfigGenerating,
@@ -83,12 +85,12 @@ export default function DownloadControls({
         <button
           type="button"
           onClick={onDownloadMarkdown}
-          disabled={pdfGenerating}
+          disabled={markdownGenerating}
           className="w-full rounded-md border border-purple-600 bg-purple-700/30 px-4 py-3 text-left hover:bg-purple-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
           aria-label="Download Markdown Directive (lightweight, AI-friendly)"
         >
           <div className="flex items-center gap-3">
-            {pdfGenerating ? (
+            {markdownGenerating ? (
               <svg className="animate-spin h-5 w-5 text-purple-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -98,7 +100,7 @@ export default function DownloadControls({
             )}
             <div className="flex-1">
               <div className="text-sm font-medium text-slate-100">
-                {pdfGenerating ? "Generating Markdown..." : "Markdown Directive (for AI)"}
+                {markdownGenerating ? "Generating Markdown..." : "Markdown Directive (for AI)"}
               </div>
               <div className="text-xs text-slate-400 mt-0.5">
                 Lightweight plain text, &lt;50KB (better for AI parsing)
@@ -126,7 +128,7 @@ export default function DownloadControls({
               )}
               <div className="flex-1">
                 <div className="text-sm font-medium text-slate-100">
-                  {weatherJsonGenerating ? "Generating..." : "Symbolic Weather Package"}
+                  {weatherJsonGenerating ? "Generating..." : "Symbolic Weather"}
                 </div>
                 <div className="text-xs text-slate-400 mt-0.5">
                   Day-by-day transit patterns + climate data (JSON)

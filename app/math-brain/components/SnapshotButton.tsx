@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 'use client';
 
 import { useState } from 'react';
@@ -56,28 +57,37 @@ export default function SnapshotButton({
   })();
 
   const handleSnapshot = async () => {
+    console.log('[SnapshotButton] Button clicked');
+    
     // Check auth first
     if (!isAuthenticated) {
+      console.log('[SnapshotButton] Not authenticated, triggering auth required');
       onAuthRequired();
       return;
     }
 
     // Check if transits are enabled
     if (!includeTransits) {
+      console.log('[SnapshotButton] Transits not enabled, aborting');
       return; // Error message will be shown below
     }
 
     // Set date to today
     const today = new Date().toISOString().slice(0, 10);
+    console.log('[SnapshotButton] Setting date to today:', today);
     onDateChange(today);
 
     // Get location
+    console.log('[SnapshotButton] Requesting location...');
     const location = await geolocation.getCurrentLocation();
     if (!location) {
+      console.error('[SnapshotButton] Failed to get location');
       return; // Error already shown in geolocation state
     }
+    console.log('[SnapshotButton] Location obtained:', location);
 
     // Capture snapshot (pass Person B if included)
+    console.log('[SnapshotButton] Calling captureSnapshot...', { hasPersonB, mode });
     const result = await snapshot.captureSnapshot(
       location,
       personA,
@@ -85,9 +95,13 @@ export default function SnapshotButton({
       mode
     );
 
+    console.log('[SnapshotButton] Snapshot result:', result);
     if (result && snapshot.timestamp) {
+      console.log('[SnapshotButton] Calling onSnapshot callback');
       setShowLocationInfo(true);
       onSnapshot(result, location, snapshot.timestamp);
+    } else {
+      console.error('[SnapshotButton] No result or timestamp after snapshot');
     }
   };
 
