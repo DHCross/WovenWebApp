@@ -57,29 +57,74 @@ export function useSnapshot() {
       const todayStr = now.toISOString().slice(0, 10);
       const timezone = getCurrentTimezone();
 
-      const payload: SnapshotPayload = {
+      // Determine if this is relational (has Person B)
+      const isRelational = personB && Object.keys(personB).length > 0;
+
+      // Build payload matching the format page.tsx uses
+      const payload: any = {
+        mode,
         personA: {
           ...personA,
+          nation: "US", // Required for API compatibility
+          year: Number(personA.year),
+          month: Number(personA.month),
+          day: Number(personA.day),
+          hour: Number(personA.hour),
+          minute: Number(personA.minute),
           latitude: location.latitude,
           longitude: location.longitude,
           timezone,
         },
-        personB,
-        relocation_mode: 'A_LOCAL',
+        // Transit window
+        window: { start: todayStr, end: todayStr, step: 'daily' },
+        transits: { from: todayStr, to: todayStr, step: 'daily' },
+        transitStartDate: todayStr,
+        transitEndDate: todayStr,
+        transitStep: 'daily',
+        // Report type (Balance Meter for snapshots)
+        report_type: isRelational ? 'relational_balance_meter' : 'solo_balance_meter',
+        // Context
+        context: {
+          mode: isRelational ? 'synastry_transits' : 'natal_transits',
+        },
+        // Relocation for current location
+        relocation_mode: isRelational ? 'BOTH_LOCAL' : 'A_LOCAL',
         translocation: {
           applies: true,
-          method: 'A_LOCAL',
+          method: isRelational ? 'BOTH_LOCAL' : 'A_LOCAL',
           current_location: {
             latitude: location.latitude,
             longitude: location.longitude,
             timezone,
           },
         },
-        start: todayStr,
-        end: todayStr,
-        step: 'day',
-        mode,
+        // Balance Meter specific fields
+        indices: {
+          window: { start: todayStr, end: todayStr, step: 'daily' },
+          request_daily: true
+        },
+        frontstage_policy: {
+          autogenerate: true,
+          allow_symbolic_weather: true
+        },
+        presentation_style: 'conversational',
       };
+
+      // Add Person B if provided
+      if (isRelational) {
+        payload.personB = {
+          ...personB,
+          nation: "US",
+          year: Number(personB.year),
+          month: Number(personB.month),
+          day: Number(personB.day),
+          hour: Number(personB.hour),
+          minute: Number(personB.minute),
+          latitude: location.latitude,
+          longitude: location.longitude,
+          timezone,
+        };
+      }
 
       const response = await fetch('/api/astrology-mathbrain', {
         method: 'POST',
