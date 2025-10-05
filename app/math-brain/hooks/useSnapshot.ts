@@ -131,6 +131,13 @@ export function useSnapshot() {
           longitude: location.longitude,
           timezone,
         };
+
+        // Required: relationship_context for synastry/relational modes
+        payload.relationship_context = {
+          type: 'PARTNER',        // Default to PARTNER for snapshots
+          intimacy_tier: 'P2',    // Friends-with-benefits tier (default for snapshots)
+          contact_state: 'ACTIVE'
+        };
       }
 
       console.log('[Snapshot] Sending API request...', { endpoint: '/api/astrology-mathbrain', payload });
