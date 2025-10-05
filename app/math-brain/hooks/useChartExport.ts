@@ -916,8 +916,9 @@ Start with the Solo Mirror(s), then ${
     setCleanJsonGenerating(true);
 
     try {
-      const frontStageResult = createFrontStageResult(result);
-      const blob = new Blob([JSON.stringify(frontStageResult, null, 2)], {
+      const reportKind = formatReportKind(reportContractType);
+      const augmentedResult = augmentPayloadWithMirrorContract(result, reportKind);
+      const blob = new Blob([JSON.stringify(augmentedResult, null, 2)], {
         type: 'application/json',
       });
       const url = URL.createObjectURL(blob);
@@ -928,13 +929,13 @@ Start with the Solo Mirror(s), then ${
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      pushToast('Downloading result JSON', 1400);
+      pushToast('Downloading result JSON with mirror contract', 1600);
     } catch {
       // noop
     } finally {
       setTimeout(() => setCleanJsonGenerating(false), 300);
     }
-  }, [filenameBase, pushToast, result]);
+  }, [filenameBase, pushToast, reportContractType, result]);
 
   const downloadBackstageJSON = useCallback(() => {
     if (!result) return;
@@ -1222,4 +1223,337 @@ function createFrontStageResult(rawResult: any) {
   }
 
   return frontStageResult;
+}
+
+// ============================================================================
+// MIRROR CHART PACKAGE HELPERS
+// ============================================================================
+
+type ChartSection = {
+  title: string;
+  body: string;
+  mode: 'regular' | 'mono';
+  pageBreakBefore?: boolean;
+};
+
+function buildAnalysisDirective(reportKind: string): string {
+  return `# 🚨 YOU ARE RAVEN CALDER -- EXECUTE THIS DIRECTIVE 🚨\n\n**YOU ARE RAVEN CALDER.** This briefing contains chart data for you to analyze. This is your work order, not documentation to describe.\n\n---\n\n## YOUR TASK: Generate a Full Conversational Reading\n\nThis is a **MIRROR and CONVERSATION STARTER**, not just a weather report or data summary.\n\n### MANDATORY STRUCTURE -- DO NOT DEVIATE:\n\n${
+    reportKind.includes('Solo') && !reportKind.includes('Relational')
+      ? `#### 1️⃣ SOLO MIRROR -- Individual Foundation\n**Synthesize the natal chart into a conversational, plain-language snapshot:**\n- **"Here's how your system tends to move"** -- behavioral anchors, not abstract symbolism\n- **Include:** Core drives, natural strengths, key tensions, constitutional patterns\n- **NO JARGON** -- Conversational, testable against lived experience\n- **Frame as tendencies/probabilities**, not prescriptions or fixed fate\n- **Use ALL provided data:** planetary positions, aspects, house placements from tables below\n`
+      : `#### 1️⃣ SOLO MIRRORS -- Individual Foundations (BOTH PEOPLE)\n**For EACH person, provide a separate solo mirror:**\n- **Synthesize their natal chart** into plain-language behavioral snapshot\n- **"Here's how [Name]'s system tends to move"** -- specific, falsifiable patterns\n- **Include:** Core drives, strengths, tensions, how they process the world\n- **NO JARGON** -- Conversational, grounded in lived experience\n- **Use ALL provided data** for each chart (positions, aspects, houses)\n\n**DO NOT SKIP INDIVIDUAL READINGS** -- Even in relational reports, each person gets their own mirror first.\n\n#### 2️⃣ RELATIONAL ENGINES -- Synastry Dynamics\n**After solo mirrors, synthesize how the charts interact:**\n- **Named patterns** (e.g., "Spark Engine," "Crossed-Wires Loop," "Sweet Glue")\n- **Mechanism + tendency** in plain language for each engine\n- **Clear list format** with engine names as headers\n- **Focus:** Where energies harmonize vs. where friction/growth pressure appears\n- **Use actual names** (e.g., "Dan's Mars squares Stephie's Moon") -- never "they" or generic pronouns`
+  }\n\n${
+    reportKind.includes('Balance Meter')
+      ? `#### ${reportKind.includes('Relational') ? '3️⃣' : '2️⃣'} SYMBOLIC WEATHER OVERLAY -- Transits (Current Symbolic Climate)\n**Layer current symbolic weather over the foundational patterns:**\n- **Continuous narrative form** (paragraphs, NOT bullet lists)\n- **Describe the climate** currently activating natal/relational foundations\n- **NO assigned percentages, NO prescriptive advice**\n- **Generalized atmosphere:** "What's stirring right now" -- how transits light up the blueprint\n- **Ground in the data:** Reference specific transit aspects from tables below\n`
+      : ''
+  }\n\n---\n\n## CRITICAL DATA REQUIREMENTS:\n\n✅ **Use ALL provided planetary positions, aspects, and house placements** from tables\n✅ **Reference the comprehensive data** -- this is geometry-first, then symbolic translation\n${
+    reportKind.includes('Relational')
+      ? '✅ **For relational readings:** Use BOTH complete natal charts, then cross-aspects\n'
+      : ''
+  }✅ **Ground every insight** in the actual chart data, not generic astrology\n\n---\n\n## TONE & VOICE -- RAVEN CALDER MANDATE:\n\n- **Conversational, shareable, accessible** language\n- **Plain language** -- avoid heavy astrological jargon in body text\n- **Falsifiable claims** that can be tested against lived experience\n- **Agency-first:** Frame as probabilities/tendencies, never fixed fate\n- **Support possibility** -- the user decides what resonates\n- **Conversation starter** -- this is a mirror to reflect on, not a prescription to follow\n\n---\n\n## WORKFLOW: FIELD -> MAP -> VOICE\n\nYou have been given the **FIELD** (geometric data) and **MAP** (structural patterns).\nYour job is **VOICE** -- synthesize this into resonant, lived-experience language.\n\n---\n\n## 🎯 What "Full Reading" Means:\n\n**NOT ACCEPTABLE:**\n❌ Describing the document contents or reflecting on what you've received\n❌ "Here's a brief overview based on the summary below"\n❌ Skipping aspects, houses, or chart details\n❌ Generic astrology without specific chart references\n\n**ACCEPTABLE:**\n✅ **Analyzing EVERY major aspect** from the aspects table\n✅ **Translating geometric patterns** into behavioral tendencies\n✅ **Using chart-specific details** (degrees, signs, houses)\n✅ **Conversational synthesis** that feels personal and testable\n\n---\n\n## EXECUTE NOW:\n\nGenerate the full reading following the mandatory structure above.\nStart with the Solo Mirror(s), then ${
+    reportKind.includes('Relational') ? 'Relational Engines, then ' : ''
+  }${reportKind.includes('Balance Meter') ? 'Symbolic Weather Overlay' : 'close with integration'}.\n\n**Do not describe what you're about to do. Do it.**\n\n---`;
+}
+
+function buildConversationalInstructions(): string {
+  return `AI SYNTHESIS INSTRUCTIONS - RAVEN CALDER CONVERSATIONAL VOICE\n\nWhen presenting this astrological analysis, follow the Raven Calder corpus/persona:\n\nSTRUCTURE: Present in this exact order:\n1. Solo Mirrors: Short, plain-language snapshots for each person (if relational) or individual (if solo)\n2. Relational Engines: Named, recognizable patterns (Spark Engine, Sweet Glue, Growth Pressure Cooker, etc.)\n3. Symbolic Weather Overlay: Continuous narrative paragraphs describing current symbolic weather\n\nTONE & LANGUAGE (Per Raven Calder Persona):\n• Use conversational, accessible language - no heavy astrological jargon\n• Frame patterns as tendencies and probabilities, NOT prescriptions or fixed fate\n• Make it shareable - suitable for discussing with partners, friends, or family\n• Focus on "here's how your system tends to move" rather than technical analysis\n• Falsifiable, agency-first, plain language\n\nSOLO MIRRORS FORMAT:\n"[Name]'s system tends to [movement pattern] with a [style] approach. [Current influence]. This creates a [climate] kind of energy that [expression pattern]."\n\nRELATIONAL ENGINES FORMAT:\n**[Engine Name]**\n[Mechanism description]. [Tendency description].\n\nSYMBOLIC WEATHER OVERLAY FORMAT:\nContinuous paragraphs without bullet points, lists, or percentages. Describe the overall climate, undercurrents, visibility, pressure, and temperature as symbolic weather patterns.\n\nCRITICAL DATA REQUIREMENTS:\n• Use the complete natal chart data included in this export (planetary positions, aspects, house system, birth details)\n• For synastry readings, ensure both Person A AND Person B natal data are present and used\n• DO NOT rely on prior uploads or defaults - use only the comprehensive astrological data provided in this document\n• Synthesize ALL the technical analysis into conversational format while preserving analytical accuracy\n\nIMPORTANT: This comprehensive astrological data should be synthesized into the conversational format above, but retain all the analytical depth. Present insights as conversation starters about energy patterns rather than definitive statements.`;
+}
+
+function buildBalanceSummarySection(personSummary: any | null | undefined): ChartSection | null {
+  if (!personSummary) return null;
+
+  const lines: string[] = [];
+
+  if (personSummary.magnitude != null) {
+    lines.push(
+      `Magnitude: ${personSummary.magnitude}${
+        personSummary.magnitude_label ? ` (${personSummary.magnitude_label})` : ''
+      }`,
+    );
+  }
+  if (personSummary.valence != null) {
+    lines.push(
+      `Valence: ${personSummary.valence}${
+        personSummary.valence_label ? ` (${personSummary.valence_label})` : ''
+      }`,
+    );
+  }
+  if (personSummary.bias_signed != null && personSummary.bias_signed !== personSummary.valence) {
+    lines.push(
+      `Directional Bias: ${personSummary.bias_signed}${
+        personSummary.directional_bias_label ? ` (${personSummary.directional_bias_label})` : ''
+      }`,
+    );
+  }
+  if (personSummary.volatility != null) {
+    lines.push(
+      `Volatility: ${personSummary.volatility}${
+        personSummary.volatility_label ? ` (${personSummary.volatility_label})` : ''
+      }`,
+    );
+  }
+
+  if (!lines.length) return null;
+
+  return {
+    title: 'Balance Meter Summary',
+    body: lines.join('\n'),
+    mode: 'regular',
+  };
+}
+
+function buildChartPackageSections(result: any, reportKind: string): ChartSection[] {
+  const prefaceSections: ChartSection[] = [];
+  const instructionsSection: ChartSection = {
+    title: 'RAVEN CALDER SYNTHESIS INSTRUCTIONS',
+    body: buildConversationalInstructions(),
+    mode: 'regular',
+  };
+
+  const balanceSummary = buildBalanceSummarySection(result?.person_a?.summary);
+  if (balanceSummary) {
+    prefaceSections.push(balanceSummary);
+  }
+
+  const wovenMap = result?.woven_map;
+
+  if (wovenMap?.frontstage) {
+    const blueprintNarrative =
+      wovenMap.frontstage.blueprint ||
+      wovenMap.frontstage.mirror?.blueprint ||
+      wovenMap.frontstage.narrative;
+
+    if (typeof blueprintNarrative === 'string' && blueprintNarrative.trim().length) {
+      prefaceSections.push({
+        title: '0. Resonant Summary (Personality Mirror - Required by Raven Calder)',
+        body: blueprintNarrative,
+        mode: 'regular',
+      });
+    } else if (wovenMap.blueprint?.modes) {
+      const { modes } = wovenMap.blueprint;
+      let summary = 'CONSTITUTIONAL BASELINE (Natal Blueprint)\n\n';
+
+      if (modes.primary_mode) {
+        summary += `PRIMARY MODE: ${modes.primary_mode.function}\n${modes.primary_mode.description}\n\n`;
+      }
+      if (modes.secondary_mode) {
+        summary += `SECONDARY MODE: ${modes.secondary_mode.function}\n${modes.secondary_mode.description}\n\n`;
+      }
+      if (modes.shadow_mode) {
+        summary += `SHADOW PATTERN: ${modes.shadow_mode.function}\n${modes.shadow_mode.description}\n\n`;
+      }
+
+      if (summary.trim()) {
+        prefaceSections.push({
+          title: '0. Blueprint Foundation (Structural Personality Diagnostic)',
+          body: summary.trim(),
+          mode: 'regular',
+        });
+      }
+    }
+  }
+
+  const bodySections: ChartSection[] = [instructionsSection];
+
+  if (wovenMap?.blueprint) {
+    if (wovenMap.blueprint.natal_summary) {
+      const natalText = formatNatalSummaryForPDF(
+        wovenMap.blueprint.natal_summary,
+        wovenMap.context?.person_a,
+      );
+      if (natalText.trim()) {
+        bodySections.push({
+          title: 'Person A: Natal Blueprint',
+          body: natalText,
+          mode: 'regular',
+        });
+      }
+    }
+
+    if (wovenMap.blueprint.person_b_modes && wovenMap.context?.person_b) {
+      const personBText = formatPersonBBlueprintForPDF(
+        wovenMap.blueprint,
+        wovenMap.context.person_b,
+      );
+      if (personBText.trim()) {
+        bodySections.push({
+          title: 'Person B: Natal Blueprint',
+          body: personBText,
+          mode: 'regular',
+        });
+      }
+    }
+  }
+
+  if (wovenMap?.data_tables) {
+    if (wovenMap.data_tables.natal_positions && Array.isArray(wovenMap.data_tables.natal_positions)) {
+      const positionsText = formatPlanetaryPositionsTable(wovenMap.data_tables.natal_positions);
+      bodySections.push({
+        title: 'Planetary Positions (Person A)',
+        body: positionsText,
+        mode: 'mono',
+      });
+    }
+
+    if (wovenMap.data_tables.house_cusps && Array.isArray(wovenMap.data_tables.house_cusps)) {
+      const cuspsText = formatHouseCuspsTable(wovenMap.data_tables.house_cusps);
+      bodySections.push({
+        title: 'House Cusps (Person A)',
+        body: cuspsText,
+        mode: 'mono',
+      });
+    }
+
+    if (wovenMap.data_tables.natal_aspects && Array.isArray(wovenMap.data_tables.natal_aspects)) {
+      const aspectsText = formatAspectsTable(wovenMap.data_tables.natal_aspects);
+      bodySections.push({
+        title: 'Major Aspects (Person A)',
+        body: aspectsText,
+        mode: 'mono',
+      });
+    }
+
+    if (
+      wovenMap.data_tables.person_b_positions &&
+      Array.isArray(wovenMap.data_tables.person_b_positions)
+    ) {
+      const positionsBText = formatPlanetaryPositionsTable(
+        wovenMap.data_tables.person_b_positions,
+      );
+      bodySections.push({
+        title: 'Planetary Positions (Person B)',
+        body: positionsBText,
+        mode: 'mono',
+      });
+    }
+
+    if (
+      wovenMap.data_tables.person_b_house_cusps &&
+      Array.isArray(wovenMap.data_tables.person_b_house_cusps)
+    ) {
+      const cuspsBText = formatHouseCuspsTable(wovenMap.data_tables.person_b_house_cusps);
+      bodySections.push({
+        title: 'House Cusps (Person B)',
+        body: cuspsBText,
+        mode: 'mono',
+      });
+    }
+
+    if (wovenMap.data_tables.synastry_aspects) {
+      const synAspectsText = formatAspectsTable(wovenMap.data_tables.synastry_aspects);
+      bodySections.push({
+        title: 'Synastry Aspects',
+        body: synAspectsText,
+        mode: 'mono',
+      });
+    }
+
+    if (wovenMap.data_tables.daily_readings && Array.isArray(wovenMap.data_tables.daily_readings)) {
+      const readings = wovenMap.data_tables.daily_readings;
+      const trendLines: string[] = [];
+
+      if (readings.length > 0) {
+        const avgMag =
+          readings.reduce((sum: number, r: any) => sum + (r.magnitude || 0), 0) /
+          readings.length;
+        const avgVal =
+          readings.reduce((sum: number, r: any) => sum + (r.valence || 0), 0) /
+          readings.length;
+        const avgVol =
+          readings.reduce((sum: number, r: any) => sum + (r.volatility || 0), 0) /
+          readings.length;
+
+        const dateRange = `${readings[0]?.date || 'Start'} to ${
+          readings[readings.length - 1]?.date || 'End'
+        }`;
+        const peakDays =
+          readings
+            .filter((r: any) => (r.magnitude || 0) >= 4)
+            .map((r: any) => r.date)
+            .join(', ') || 'None';
+
+        trendLines.push(`Period: ${dateRange} (${readings.length} days analyzed)`);
+        trendLines.push(
+          `Average Climate: Magnitude ${avgMag.toFixed(1)}, Valence ${
+            avgVal > 0 ? '+' : ''
+          }${avgVal.toFixed(1)}, Volatility ${avgVol.toFixed(1)}`,
+        );
+        trendLines.push(`Peak Activation Days (Mag >=4): ${peakDays}`);
+        trendLines.push('');
+        trendLines.push('Note: Full daily data preserved in JSON export for detailed analysis.');
+      }
+
+      if (trendLines.length > 0) {
+        bodySections.push({
+          title: 'Transit Trend Summary',
+          body: trendLines.join('\n'),
+          mode: 'regular',
+        });
+      }
+    }
+  }
+
+  if (wovenMap?.symbolic_weather) {
+    const weatherSummary = formatSymbolicWeatherSummary(wovenMap.symbolic_weather);
+    if (weatherSummary) {
+      bodySections.push({
+        title: 'Symbolic Weather Overview',
+        body: weatherSummary,
+        mode: 'regular',
+      });
+    }
+  }
+
+  return [...prefaceSections, ...bodySections];
+}
+
+function buildMirrorMarkdown(result: any, reportKind: string): string {
+  const sections = buildChartPackageSections(result, reportKind);
+  const heading = reportKind.includes('Relational')
+    ? 'Mirror Chart -- Relational Reading'
+    : 'Mirror Chart -- Solo Reading';
+
+  const lines: string[] = [`# ${heading}`, ''];
+
+  sections.forEach((section) => {
+    lines.push(`## ${section.title}`);
+    lines.push('');
+
+    if (section.mode === 'mono') {
+      lines.push('```');
+      lines.push(section.body);
+      lines.push('```');
+    } else {
+      lines.push(section.body);
+    }
+
+    lines.push('');
+  });
+
+  const markdown = lines.join('\n');
+  return markdown.replace(/\n{3,}/g, '\n\n').trimEnd();
+}
+
+function augmentPayloadWithMirrorContract(payload: any, reportKind: string) {
+  if (!payload || typeof payload !== 'object') {
+    return payload;
+  }
+
+  const sanitized = createFrontStageResult(payload);
+  const sections = buildChartPackageSections(sanitized, reportKind);
+  const directive = buildAnalysisDirective(reportKind);
+  const mirrorMarkdown = buildMirrorMarkdown(sanitized, reportKind);
+
+  return {
+    ...sanitized,
+    export_contract: {
+      ...(sanitized.export_contract ?? {}),
+      mirror: {
+        kind: reportKind,
+        generated_at: new Date().toISOString(),
+        directive,
+        sections,
+        markdown: mirrorMarkdown,
+      },
+    },
+  };
 }

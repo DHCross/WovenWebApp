@@ -2466,11 +2466,11 @@ export default function MathBrainPage() {
       });
       yPosition -= 25;
       const summaryText = [
-        'This Symbolic Weather Log provides a comprehensive analysis of energetic patterns',
-        'and trends over time, using a combination of astrological calculations and symbolic',
-        'climate indicators. The data reveals the interplay between magnitude (intensity),',
-        'valence (positive/negative tilt), volatility (instability), and SFD (structural',
-        'field dynamics) to give you insights into the energetic signature of each day.'
+        'This Symbolic Weather Log provides a comprehensive analysis of geometric patterns',
+        'and trends over time, using astrological calculations mapped to a diagnostic framework.',
+        'The data shows the interplay between Magnitude (0–5), Directional Bias (−5…+5),',
+        'Coherence (0–5, formerly Volatility), and SFD (−1.00…+1.00) to map the structural',
+        'climate of each day. This is a field report, not a forecast.'
       ];
 
       summaryText.forEach(line => {
@@ -2527,10 +2527,10 @@ export default function MathBrainPage() {
         const sfds = series.map(s => Math.abs(s.sfd / 10));
 
         const charts = [
-          createTextChart(magnitudes, '*lightning* Magnitude:', 5),
-          createTextChart(volatilities, '*tornado* Volatility:', 5),
-          createTextChart(valences, '*sparkles* Valence:', 10),
-          createTextChart(sfds, 'SFD Balance:', 10)
+          createTextChart(magnitudes, 'Magnitude:', 5),
+          createTextChart(volatilities, 'Coherence:', 5),
+          createTextChart(valences, 'Dir. Bias:', 10),
+          createTextChart(sfds, 'SFD:', 10)
         ];
 
         charts.forEach(chart => {
@@ -2572,7 +2572,7 @@ export default function MathBrainPage() {
             yPosition = PAGE_HEIGHT - MARGIN;
           }
 
-          const dayLine = `${dateStr}: Mag ${mag.toFixed(1)} | Val ${val >= 0 ? '+' : ''}${val.toFixed(1)} | Vol ${vol.toFixed(1)} | SFD ${sfd > 0 ? '+' : ''}${sfd}`;
+          const dayLine = `${dateStr}: Mag ${mag.toFixed(1)} | Bias ${val >= 0 ? '+' : ''}${val.toFixed(1)} | Coh ${vol.toFixed(1)} | SFD ${sfd > 0 ? '+' : ''}${sfd.toFixed(2)}`;
           page.drawText(sanitizeForPDF(dayLine), {
             x: MARGIN,
             y: yPosition,
@@ -2596,7 +2596,7 @@ export default function MathBrainPage() {
             const lowValence = segment.reduce((min, current) => current.valence < min.valence ? current : min, segment[0]);
             const highVol = segment.reduce((max, current) => current.volatility > max.volatility ? current : max, segment[0]);
             const sfdShift = segment.reduce((prev, current) => Math.abs(current.sfd) > Math.abs(prev.sfd) ? current : prev, segment[0]);
-            chunks.push(`Segment ${Math.floor(i / chunkSize) + 1}: peak magnitude ${peak.magnitude.toFixed(1)}, sharpest valence ${lowValence.valence.toFixed(1)}, volatility spike ${highVol.volatility.toFixed(1)}, SFD shift ${sfdShift.sfd.toFixed(1)}`);
+            chunks.push(`Segment ${Math.floor(i / chunkSize) + 1}: peak magnitude ${peak.magnitude.toFixed(1)}, sharpest bias ${lowValence.valence.toFixed(1)}, coherence divergence ${highVol.volatility.toFixed(1)}, SFD shift ${sfdShift.sfd.toFixed(2)}`);
           }
           return chunks;
         })();
@@ -2645,12 +2645,12 @@ export default function MathBrainPage() {
         yPosition -= 25;
 
         const magnitudeLevels = [
-          { level: 5, description: 'Breakpoint surge — full charge, expect major shifts.' },
-          { level: 4, description: 'High activation — strong momentum, high stakes.' },
-          { level: 3, description: 'Sustained movement — reliable drive and motivation.' },
-          { level: 2, description: 'Moderate charge — manageable activity, steady progress.' },
-          { level: 1, description: 'Gentle activation — soft signals, low stakes.' },
-          { level: 0, description: 'Baseline — stable, quiet conditions, integration time.' },
+          { level: 5, description: 'Breakpoint — full system engagement, maximum vector density.' },
+          { level: 4, description: 'High charge — concentrated field, elevated load.' },
+          { level: 3, description: 'Sustained drive — stable momentum, persistent activation.' },
+          { level: 2, description: 'Moderate charge — manageable load, incremental motion.' },
+          { level: 1, description: 'Gentle signal — minimal activation, background hum.' },
+          { level: 0, description: 'Baseline — quiescent field, no detectable drive.' },
         ];
 
         magnitudeLevels.forEach(level => {
@@ -2673,17 +2673,17 @@ export default function MathBrainPage() {
         yPosition -= 15;
 
         const valenceLevels = [
-          { level: 5, anchor: 'Liberation', description: 'Peak openness, breakthroughs, fully supportive field.' },
-          { level: 4, anchor: 'Expansion', description: 'Widening opportunities, accelerated growth, strong allies.' },
-          { level: 3, anchor: 'Harmony', description: 'Coherent progress, beneficial connections, smooth support.' },
-          { level: 2, anchor: 'Flow', description: 'Smooth adaptability, conditions help momentum build.' },
-          { level: 1, anchor: 'Lift', description: 'Gentle tailwind, encouraging early wins.' },
-          { level: 0, anchor: 'Equilibrium', description: 'Net-neutral tilt; forces cancel or diffuse.' },
-          { level: -1, anchor: 'Drag', description: 'Subtle headwind; minor loops or haze to navigate.' },
-          { level: -2, anchor: 'Contraction', description: 'Narrowing options; ambiguity or energy drain.' },
-          { level: -3, anchor: 'Friction', description: 'Conflicts; cross-purposes slow momentum.' },
-          { level: -4, anchor: 'Grind', description: 'Sustained resistance; heavy duty load.' },
-          { level: -5, anchor: 'Collapse', description: 'Maximum restrictive tilt; compression/failure points.' },
+          { level: 5, anchor: 'Liberation', description: 'Peak expansive tilt, unrestricted field, maximum openness.' },
+          { level: 4, anchor: 'Expansion', description: 'Widening vectors, accelerated outward motion, reinforcing angles.' },
+          { level: 3, anchor: 'Stable Flow', description: 'Coherent outward bias, aligned geometry, smooth momentum.' },
+          { level: 2, anchor: 'Mild Expansion', description: 'Gentle outward tilt, incremental widening, favorable drift.' },
+          { level: 1, anchor: 'Slight Lift', description: 'Minimal outward bias, barely detectable assist.' },
+          { level: 0, anchor: 'Equilibrium', description: 'Net-neutral tilt; forces cancel or balance.' },
+          { level: -1, anchor: 'Slight Drag', description: 'Minimal inward bias, subtle resistance gradient.' },
+          { level: -2, anchor: 'Mild Contraction', description: 'Narrowing field, incremental restriction, tightening geometry.' },
+          { level: -3, anchor: 'Friction', description: 'Cross-pressure, conflicting vectors, impeded momentum.' },
+          { level: -4, anchor: 'Sustained Restriction', description: 'Heavy inward tilt, persistent load, grinding angles.' },
+          { level: -5, anchor: 'Compression', description: 'Maximum restrictive tilt, collapsed field, critical density.' },
         ];
 
         valenceLevels.forEach(level => {
@@ -2712,7 +2712,7 @@ export default function MathBrainPage() {
           yPosition = PAGE_HEIGHT - MARGIN;
         }
 
-        page.drawText(sanitizeForPDF('PRACTICAL APPLICATIONS'), {
+        page.drawText(sanitizeForPDF('DIAGNOSTIC FRAMEWORK'), {
           x: MARGIN,
           y: yPosition,
           size: 14,
@@ -2722,25 +2722,34 @@ export default function MathBrainPage() {
         yPosition -= 25;
 
         const practicalContent = [
-          'DAILY PLANNING: Use magnitude and valence to plan activities. High magnitude +',
-          'positive valence days are ideal for launches, important meetings, or creative',
-          'projects. High magnitude + negative valence days may require extra caution.',
+          'FIELD LAYER — Geometry and Raw Data',
+          'Planetary positions, aspects, and house placements. No interpretation; just',
+          'coordinates. Orbs and degrees define the geometric skeleton.',
           '',
-          'VOLATILITY MANAGEMENT: High volatility days (3+ rating) suggest maintaining',
-          'flexibility and avoiding rigid schedules. Keep backup plans and expect the',
-          'unexpected during these periods.',
+          'MAP LAYER — Transformations',
+          'Scale: Raw aspect scores × 50. Clamp: Cap at [0,500] for Magnitude/Coherence,',
+          '[-500,+500] for Directional Bias. Round: Nearest 0.1. Invert: Trine/sextile = +,',
+          'square/opposition = −. This converts geometry into diagnostic axes.',
           '',
-          'SFD MONITORING: Negative SFD values may indicate structural weaknesses in',
-          'plans or relationships that need attention. Positive SFD supports stable',
-          'progress and reliable foundations.',
+          'VOICE LAYER — Symbolic Translation',
+          'Magnitude (0–5): Energy density. Directional Bias (−5…+5): Expansive vs. restrictive',
+          'tilt. Coherence (0–5): Field stability (formerly Volatility). SFD (−1.00…+1.00):',
+          'Support vs. friction differential. These axes map lived patterns, not outcomes.',
           '',
-          'TREND ANALYSIS: Look for patterns in the charts over time. Sustained positive',
-          'valence periods offer expansion opportunities, while negative periods may',
-          'require patience and consolidation of gains.',
+          'PROVENANCE LAYER — Metadata and Null Handling',
+          'Missing data registers as NULL, not zero. Suppression thresholds prevent noise.',
+          'Timestamps and source attribution track lineage. This layer ensures traceability.',
           '',
-          'Note: This system combines traditional astrological principles with modern',
-          'data analysis to provide insights for timing and decision-making. Use as',
-          'one factor among many in your planning and reflection process.'
+          'INTERPRETIVE AFFORDANCES',
+          'High Magnitude + expansive Bias: Field shows widening vectors and reinforcing angles.',
+          'High Magnitude + restrictive Bias: Field shows compression and cross-pressure.',
+          'Low Coherence (3+): Dispersed geometry; maintaining flexibility stabilizes navigation.',
+          'Negative SFD: Friction exceeds support; structural review maps weak points.',
+          'Positive SFD: Support exceeds friction; foundation geometry holds under load.',
+          '',
+          'Note: This system maps astrological geometry to diagnostic coordinates. It registers',
+          'structural climate, not fixed outcomes. Use as one reference among many when',
+          'orienting to lived patterns and making falsifiable reflections.'
         ];
 
         practicalContent.forEach(line => {
@@ -2942,7 +2951,38 @@ export default function MathBrainPage() {
         },
         payload: data,
       };
-      window.localStorage.setItem('mb.lastPayload', JSON.stringify(lastPayload));
+      
+      // Trim payload to avoid QuotaExceededError: keep metadata + woven_map only
+      const trimmedPayload = {
+        ...lastPayload,
+        payload: {
+          person_a: data?.person_a
+            ? {
+                name: data.person_a.name,
+                summary: data.person_a.summary,
+              }
+            : undefined,
+          woven_map: data?.woven_map,
+          _trimmed: true,
+          _note: 'Payload trimmed for localStorage; full data in session export',
+        },
+      };
+
+      try {
+        window.localStorage.setItem('mb.lastPayload', JSON.stringify(trimmedPayload));
+      } catch (quotaError) {
+        // eslint-disable-next-line no-console
+        console.warn('localStorage quota exceeded; storing minimal payload', quotaError);
+        // Store absolute minimum
+        window.localStorage.setItem(
+          'mb.lastPayload',
+          JSON.stringify({
+            savedAt: lastPayload.savedAt,
+            from: lastPayload.from,
+            payload: { _note: 'Payload too large; fetch from chat history' },
+          }),
+        );
+      }
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to persist Math Brain payload for Poetic Brain reuse', error);
