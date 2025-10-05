@@ -88,18 +88,18 @@ export default function SnapshotButton({
 
     // Capture snapshot (pass Person B if included)
     console.log('[SnapshotButton] Calling captureSnapshot...', { hasPersonB, mode });
-    const result = await snapshot.captureSnapshot(
+    const snapshotResult = await snapshot.captureSnapshot(
       location,
       personA,
       hasPersonB ? personB : undefined,
       mode
     );
 
-    console.log('[SnapshotButton] Snapshot result:', result);
-    if (result && snapshot.timestamp) {
+    console.log('[SnapshotButton] Snapshot result:', snapshotResult);
+    if (snapshotResult) {
       console.log('[SnapshotButton] Calling onSnapshot callback');
       setShowLocationInfo(true);
-      onSnapshot(result, location, snapshot.timestamp);
+      onSnapshot(snapshotResult.result, snapshotResult.location, snapshotResult.timestamp);
     } else {
       console.error('[SnapshotButton] No result or timestamp after snapshot');
     }

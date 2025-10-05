@@ -1,14 +1,29 @@
 /* Test Suite for Schema Rule-Patch Implementation */
-
+import { vi } from 'vitest';
 import { ContractLinter } from '../src/contract-linter';
 import { renderFrontstage } from '../src/frontstage-renderer';
-import { enforceNatalOnlyMode, stripBalancePayload } from '../src/schema-rule-patch';
+import { enforceNatalOnlyMode, stripBalancePayload, ReportMode } from '../src/schema-rule-patch';
+
+vi.mock('../lib/llm', () => ({
+  callGemini: vi.fn(async (prompt: string) => {
+    if (prompt.includes('narrateSymbolicWeather')) {
+      return '3-day window of symbolic weather';
+    }
+    if (prompt.includes('narrateBlueprintClimate')) {
+      return 'The climate is one of resilience and watchfulness. You have a Leo Sun and a Scorpio Moon.';
+    }
+    if (prompt.includes('narrateStitchedReflection')) {
+      return 'The lighthouse stands alone, a beacon in the weather.';
+    }
+    return 'Default mock response';
+  }),
+}));
 
 describe('Schema Rule-Patch System', () => {
   describe('Natal-Only Mode', () => {
     test('should strip balance payload and enforce policies', () => {
       const payload = {
-        mode: 'natal-only',
+        mode: 'natal-only' as ReportMode,
         person_a: {
           chart: {
             planets: [
@@ -56,7 +71,7 @@ describe('Schema Rule-Patch System', () => {
 
     test('should generate only blueprint and stitched reflection', async () => {
       const payload = {
-        mode: 'natal-only',
+        mode: 'natal-only' as ReportMode,
         frontstage_policy: {
           autogenerate: true,
           allow_symbolic_weather: false
@@ -76,6 +91,11 @@ describe('Schema Rule-Patch System', () => {
               { name: 'Ascendant', sign: 'Virgo', degree: 5 }
             ]
           }
+        },
+        constitutional_modes: {
+          primary_mode: { function: 'Explore', signature: 'Cardinal' },
+          secondary_mode: { function: 'Stabilize', signature: 'Fixed' },
+          shadow_mode: { function: 'Innovate', signature: 'Mutable' }
         }
       };
 
@@ -98,7 +118,7 @@ describe('Schema Rule-Patch System', () => {
   describe('Balance Mode', () => {
     test('should require window and location', () => {
       const payload = {
-        mode: 'balance',
+        mode: 'balance' as ReportMode,
         person_a: {
           chart: { planets: [] }
         }
@@ -114,7 +134,7 @@ describe('Schema Rule-Patch System', () => {
 
     test('should generate symbolic weather when indices are present', async () => {
       const payload = {
-        mode: 'balance',
+        mode: 'balance' as ReportMode,
         frontstage_policy: {
           autogenerate: true,
           allow_symbolic_weather: true
@@ -143,6 +163,11 @@ describe('Schema Rule-Patch System', () => {
             voice: 'FIELD→MAP→VOICE',
             include: ['blueprint', 'symbolic_weather', 'stitched_reflection']
           }
+        },
+        constitutional_modes: {
+          primary_mode: { function: 'Explore', signature: 'Cardinal' },
+          secondary_mode: { function: 'Stabilize', signature: 'Fixed' },
+          shadow_mode: { function: 'Innovate', signature: 'Mutable' }
         }
       };
 
@@ -154,7 +179,7 @@ describe('Schema Rule-Patch System', () => {
       expect(result.symbolic_weather).not.toBeNull();
       expect(result.stitched_reflection).toBeDefined();
 
-      // Weather should reference the daily data
+      // Weather should reference the daily data from the mock
       expect(result.symbolic_weather).toContain('3-day window');
     });
   });
@@ -162,7 +187,7 @@ describe('Schema Rule-Patch System', () => {
   describe('Contract Linter', () => {
     test('should catch natal-only violations', () => {
       const payload = {
-        mode: 'natal-only',
+        mode: 'natal-only' as ReportMode,
         indices: {
           days: [{ date: '2025-09-15', magnitude: 4.0 }]
         },
@@ -179,7 +204,7 @@ describe('Schema Rule-Patch System', () => {
 
     test('should auto-fix common issues', () => {
       const payload = {
-        mode: 'balance',
+        mode: 'balance' as ReportMode,
         window: { start: '2025-09-14', end: '2025-10-03' },
         location: { lat: 40.7128, lon: -74.0060 },
         // Missing frontstage_policy and contract version
@@ -199,7 +224,7 @@ describe('Schema Rule-Patch System', () => {
 
     test('should generate readable lint reports', () => {
       const payload = {
-        mode: 'natal-only',
+        mode: 'natal-only' as ReportMode,
         indices: { days: [] },
         transitsByDate: {}
       };
@@ -216,7 +241,7 @@ describe('Schema Rule-Patch System', () => {
   describe('Integration Tests', () => {
     test('should handle the example natal-only payload from Raven Calder', () => {
       const payload = {
-        mode: 'natal-only',
+        mode: 'natal-only' as ReportMode,
         frontstage_policy: { autogenerate: true, allow_symbolic_weather: false },
         frontstage: {
           directive: {
@@ -250,7 +275,7 @@ describe('Schema Rule-Patch System', () => {
 
     test('should handle the example balance payload from Raven Calder', () => {
       const payload = {
-        mode: 'balance',
+        mode: 'balance' as ReportMode,
         frontstage_policy: { autogenerate: true, allow_symbolic_weather: true },
         window: { start: '2025-09-14', end: '2025-10-03' },
         location: { lat: 40.7128, lon: -74.0060 },

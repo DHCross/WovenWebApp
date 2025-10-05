@@ -256,10 +256,44 @@ function normalizeWithRollingWindow(magnitude, rollingContext = null, opts = DEF
   return normalized;
 }
 
+// ---------- SFD (Support-Friction Differential) calculation ----------
+function calculateSFD(scored){
+  if (!scored || scored.length === 0) return null;
+  
+  let sumSupport = 0;
+  let sumFriction = 0;
+  
+  for (const aspect of scored) {
+    const S = aspect.S;
+    if (S > 0) {
+      sumSupport += S;
+    } else if (S < 0) {
+      sumFriction += Math.abs(S);
+    }
+  }
+  
+  const total = sumSupport + sumFriction;
+  if (total === 0) return null; // No drivers, return null (not fabricated zero)
+  
+  const sfd = (sumSupport - sumFriction) / total;
+  return round(sfd, 2); // Always two decimals
+}
+
 // ---------- main aggregate ----------
 function aggregate(aspects = [], prevCtx = null, options = {}){
   if (!Array.isArray(aspects) || aspects.length === 0){
-    return { magnitude: 0, valence: prevCtx?.Y_effective ? round(prevCtx.Y_effective,2) : 0, volatility: 0, scored: [] };
+    return { 
+      magnitude: 0, 
+      directional_bias: prevCtx?.Y_effective ? round(prevCtx.Y_effective,2) : 0, 
+      volatility: 0, 
+      coherence: 5.0,
+      sfd: null, // No aspects = no SFD
+      scored: [],
+      transform_trace: {
+        pipeline: 'empty_aspect_array',
+        clamp_events: []
+      }
+    };
   }
   const opts = { ...DEFAULTS, ...options };
 
@@ -271,7 +305,9 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   const X_raw = scored.reduce((acc,x)=>acc + Math.abs(x.S), 0);
   const Y_raw = scored.reduce((acc,x)=>acc + x.S, 0);
 
-  let X = Math.min(5, X_raw / opts.magnitudeDivisor);
+  // Adjusted divisor to be more sensitive to extreme configurations
+  // Original was 4, but that was too conservative for tight outer planet aspects
+  let X = Math.min(5, X_raw / 3.0); // Reduced divisor for more sensitivity
   X = Math.min(5, X + multiplicityBonus(scored, opts));
 
   // Store the original magnitude before normalization
@@ -314,14 +350,55 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
 
   const magnitudeValue = magnitudeScaling.value;
 
-  const Y_effective = Y_raw * (0.8 + 0.2 * magnitudeValue);
+  // Pipeline Treaty: Normalize → Scale (×50) → Clamp → Round
+  // Per v3 spec: display = clamp(normalized × 50, −5, +5)
+  
+  // Step 1: Amplify directional signal based on magnitude
+  // Higher magnitude = more pronounced direction (asymmetric amplification)
+  const Y_amplified = Y_raw * (0.8 + 0.4 * magnitudeValue);
+  
+  // Step 2: Normalize to [-0.1, +0.1] typical range
+  // Y_amplified typically ranges from -10 to +10 for extreme days
+  // Divide by 100 to get [-0.1, +0.1] for typical extreme
+  const Y_normalized = Y_amplified / 100;
+  
+  // Step 3: Scale by ×50 to get [-5, +5] display range
+  const directional_bias_scaled = Y_normalized * 50;
+  
+  // Step 4: Final clamp to [-5, +5] and round to 1 decimal (per v3 spec)
+  const directional_bias = round(Math.max(-5, Math.min(5, directional_bias_scaled)), 1);
 
   const VI = volatility(scored, prevCtx, opts);
+  
+  // Calculate SFD (Integration Bias / Cohesion metric)
+  const sfd = calculateSFD(scored);
+  
+  // Coherence inversion: coherence = 5 − (volatility normalized to 0-5 scale)
+  // VI is typically 0-10+, so we normalize it first
+  const volatility_normalized = Math.min(5, VI / 2); // Assuming VI max ~10
+  const coherence = round(5 - volatility_normalized, 2);
+
+  // Transform trace for observability
+  const transform_trace = {
+    pipeline: 'normalize_scale_clamp_round',
+    steps: [
+      { stage: 'raw', Y_raw, X_raw },
+      { stage: 'amplified', Y_amplified },
+      { stage: 'normalized', Y_normalized },
+      { stage: 'scaled', directional_bias_scaled },
+      { stage: 'final', directional_bias }
+    ],
+    clamp_events: [
+      ...(Math.abs(directional_bias_scaled) > 5 ? [{ axis: 'directional_bias_display', raw: directional_bias_scaled, clamped: directional_bias }] : [])
+    ]
+  };
 
   return {
     magnitude: magnitudeValue,
-    valence: round(Y_effective, 2),
-    volatility: VI,
+    directional_bias, // Renamed from valence for lexicon clarity
+    volatility: round(VI, 2),
+    coherence, // NEW: Inverted from volatility
+    sfd, // NEW: Integration Bias (Support-Friction Differential)
     scored,
     rawMagnitude: round(X_raw / opts.magnitudeDivisor, 2), // For debugging/tracking
     originalMagnitude: round(X_original, 2), // Before rolling normalization
@@ -329,14 +406,18 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     magnitude_meta: magnitudeScaling.meta,
     magnitude_range: magnitudeScaling.range,
     magnitude_clamped: magnitudeScaling.clamped,
-    magnitude_legacy: legacyNormalized
+    magnitude_legacy: legacyNormalized,
+    transform_trace, // NEW: Full pipeline observability
+    coherence_from: 'volatility_inversion' // Sentinel to prevent double inversion
   };
 }
 
 module.exports = {
   aggregate,
+  calculateSeismograph: aggregate, // Alias for test compatibility
   _internals: {
     normalizeAspect, baseValence, planetTier, orbMultiplier, sensitivityMultiplier,
-    scoreAspect, multiplicityBonus, volatility, normalizeWithRollingWindow, median
+    scoreAspect, multiplicityBonus, volatility, normalizeWithRollingWindow, median,
+    calculateSFD // Export for testing
   }
 };

@@ -1,190 +1,301 @@
-# **A Strange Cosmic Symbolism — Balance Meter v3**
+# **A Strange Cosmic Symbolism — Balance Meter v3 (Corrected Specification)**
 
-⸻
+## **Core Principle — Map, Don’t Moralize**
 
-Core Principle — Map, Don’t Moralize
+A symbolic weather map for inner and relational fields. It **describes climate**, never prescribes behavior. It reports four orthogonal axes:
 
-This is a symbolic weather map for inner and relational fields. It shows: • How loud the day is (Magnitude). • Which way it leans (Directional Bias). • How stable the storyline is (Coherence). • Whether forces work together or fragment (Integration Bias / SFD).
+* **Magnitude (0–5):** how loud the field is.  
+* **Directional Bias (−5…+5):** which way it leans (inward contraction ↔ outward expansion).  
+* **Narrative Coherence (0–5):** how stable the storyline is (clarity vs. fragmentation).  
+* **Integration Bias / SFD (−1.00…+1.00):** whether forces cooperate or work at cross-purposes.
 
-It never predicts behavior. It produces a climate readout that invites testable reflection. • Sky geometry yields objective axes. • Daily experience is logged alongside, never assumed identical. • House placement grounds abstraction in lived domains: where the pressure lands.
+The engine measures sky geometry; the report logs lived experience beside it. House placement localizes “where the pressure lands.”
 
-⸻
+---
 
-The Four Axes (Neutral)
+## **Coherence with Coordinates — How Place Shapes Pattern**
 
-1\) Magnitude (0–5) — How loud is the field? • 0–1 Background hum. • 2–3 Noticeable motifs. • 4 Strong clustering, palpable weight. • 5 Peak storm, chapter-defining. Derived from raw aspect intensities; never suppressed into decimals.
+The Woven Map treats a chart as a **field in a rotating frame**. Planetary longitudes/aspects stay invariant; relocating changes the **angle grid** (ASC/DSC/MC/IC), re-anchoring *where* pressure expresses. That shift ties symbolism to domain:
 
-⸻
+* Same weather, different rooms (houses).  
+* Correlation honored, causation not claimed.  
+* If a day doesn’t resonate, we log **OSR (Outside Symbolic Range)**—a tool-level miss, not user error.
 
-2\) Directional Bias (−5 → \+5) — Which way is the flow leaning? • −5 Maximum contraction / inward / enforced boundary. • 0 Neutral balance. • \+5 Maximum expansion / outward / boundary-dissolving.
+Uncertainty is treated as the **coefficient of freedom**: room for agency. The system offers navigation, not orders.
 
-Directional, not moral. Expansion can overwhelm; contraction can protect. Both must surface.
+---
 
-⸻
+## **Four Axes (Neutral Lexicons)**
 
-3\) Narrative Coherence (0–5) — How stable is the story? • 0–1 Single-thread clarity. • 2 Mostly coherent; minor counter-pulls. • 3 Mixed storyline; ambiguous. • 4 Splintered; contradictory threads. • 5 Chaotic; no stable arc.
+### **1\) Magnitude (0–5) — Loudness of the field**
 
-⸻
+* 0–1: background hum  
+* 2–3: noticeable motifs  
+* 4: palpable weight  
+* 5: peak storm / chapter-defining
 
-4\) Integration Bias (SFD, −1 → \+1) — Do forces cooperate or fragment? • \> 0 Net supportive — cooperation, stabilisation. • 0 Neutral — outcome depends on choice. • \< 0 Net friction — fragmentation, opposition.
+**Math:** `display = clamp(normalized × 50, 0, 5)` → round **1 decimal**.
 
-SFD is the honesty check: prevents “red-wall bias” (crisis everywhere) or “greenwash bias” (false harmony).
+---
 
-⸻
+### **2\) Directional Bias (−5…+5) — Vector of flow (directional, not moral)**
 
-Houses — Where Pressure Lands
+* −5: maximum contraction / enforced boundary  
+* −3…−1: compression → drag  
+* 0: neutral balance  
+* \+1…+3: lift → broadening  
+* \+5: maximum expansion / boundary-dissolving
 
-Domains grounded by relocation: • I. Self — body, resources, expression. • II. Connection — communication, partnerships, networks. • III. Growth — home, shared load, horizon. • IV. Responsibility — work, career, dissolution.
+**Math:** `display = clamp(normalized × 50, −5, +5)` → round **1 decimal** (use proper minus “−”).
 
-Same sky, different rooms.
+---
 
-⸻
+### **3\) Narrative Coherence (0–5) — Story stability**
 
-Sources of Force (Geometry → Scores) • 🎯 Orb: closeness \= strength. • ∠ Aspect: majors roar, minors whisper. • 🪐 Potency: slower planets \= tectonic, faster \= sparks. • 📡 Resonance: amplifies at Sun, Moon, ASC, MC, Nodes. • ♾ Recursion: repeated themes echo louder.
+* 0–1: single-thread clarity  
+* 2: mostly coherent; minor counter-pulls  
+* 3: mixed / ambiguous  
+* 4: splintered  
+* 5: chaotic
 
-Glyphs are clean: 🌀 \= Coherence 5, 🌫 \= Fog, ⚡ \= Magnitude only.
+**Source JSON field is `volatility` (fragmentation, higher \= worse).** **Transform:** `coherence = clamp(5 − (volatility × 50), 0, 5)` → round **1 decimal**. Config guard: `coherence_from = "volatility" | "coherence"` to prevent double inversion.
 
-⸻
+---
 
-Orbs — Gatekeepers
+### **4\) Integration Bias (SFD, −1.00…+1.00) — Cooperation vs. fragmentation**
 
-Tight orbs sharpen intensity, keep valence honest, and prevent soft trines from “padding” positivity. Loose orbs capture climate background but blur the storyline. • Tight (surgical): ≤3° majors, ≤1° minors. • Loose (climate): ≤6° luminaries, ≤4° planets, ≤3° points, ≤1° minors.
+* 0: net supportive / stabilizing  
+* 0: neutral / outcome depends on choice  
+* \< 0: net friction / opposition
 
-Orbs remain quantitative filters only; they don’t moralize interpretation. Always stamp orbs\_profile for auditability.
+**Definition (ratio-difference):** `SFD_raw = (ΣSupportive − ΣFrictional) / (ΣSupportive + ΣFrictional)`
 
-⸻
+* Supportive aspects: **trine, sextile** (optionally quintiles with tight orbs)  
+* Frictional aspects: **square, opposition, quincunx, semi-square, sesquiquadrate**  
+* Conjunctions: **neutral** (exclude) unless a polarity table is enabled.  
+* **Angles bonus (optional):** ×1.2 when ASC/MC/IC/DSC involved.
 
-Resilience & Depletion Layer
+**Display:**
 
-An add-on that combines symbolic scores with physiology (if logged). • Stress Event: high magnitude \+ negative bias. • Load: cumulative contraction pressure. • Recovery: rebound within 1–2 days. • Resilience: rolling index of recovery success. • Depletion: quiet ≠ stable; flags collapse under low-magnitude, negative, fragmented days.
+* If **no qualifying aspects** → `SFD = "n/a"` (never synthesized).  
+* Else: use `SFD_raw` directly if already in −1…+1; otherwise `clamp(SFD_raw × 10, −1, +1)`.  
+* Round **2 decimals**; minus uses “−”.
 
-Keeps the model falsifiable against real resilience metrics (HRV, sleep, mood).
+---
 
-⸻
+## **Transformation Pipeline (Non-Negotiable)**
 
-Narrative Layer (Optional)
+**Correct order:** `Normalize → Scale → Clamp → Round → Display` **Never** clamp before scaling.
 
-Never moralize bias. Use motion words: extend, retract, concentrate, disperse.
+**Acceptance checks**
 
-Templates: • Supportive, coherent expansion: Outward lean, steady storyline, aligned forces. • Supportive, fragmented expansion: Outward lean, scattered openings. • Restrictive, coherent: Inward lean, clean arc, distillation. • Restrictive, fragmented: Inward lean, cross-pulls, rising pressure.
+* Normalized `bias = −0.05` must display **−2.5**, not −5.0.  
+* Lower volatility (e.g., 0.02) must yield **higher** coherence (4.0).  
+* SFD shows `"n/a"` when drivers are absent; no tiny fabricated positives.
 
-⸻
+---
 
-Reading a Day 1\. Score all four axes. 2\. Locate the houses. 3\. Combine: Bias × Magnitude × Coherence × SFD. 4\. Name one symbolic behavior consistent with the field. 5\. Log lived outcome in neutral, testable terms.
+## **Houses — Where Pressure Lands (Relocated)**
 
-⸻
+Domains by quadrant (example shorthand):
 
-Reconciliation Notes • Restores signed Directional Bias (−5 ↔ \+5). • Keeps Magnitude real (0 ↔ 5 full scale). • Clarifies Coherence as story stability. • Centers SFD as differential honesty. • Orbs kept as gatekeepers, not distorters.
+* **I. Self** — body, resources, expression  
+* **II. Connection** — communication, partners, networks  
+* **III. Growth** — home, intimacy, horizon  
+* **IV. Responsibility** — career, duty, dissolution
 
-⸻
+*Same sky, different rooms.*
 
-Glossary • Magnitude: loudness of archetypal charge. • Directional Bias: contraction vs. expansion. • Coherence: story stability. • SFD: supportive vs. frictional net force. • WB/ABE/OSR: shorthand for outcome fit.
+---
 
-⸻
+## **Sources of Force (Geometry → Scores)**
 
-Balance Meter v3 is the symbolic seismograph reborn. It surfaces real storms (like Oct 10, 2018\) instead of flattening them. It maps the climate, never dictates the story.
+* **Orb:** closer \= stronger  
+* **Aspect class:** majors roar, minors whisper  
+* **Planetary potency:** outers \= tectonic; inners \= sparks  
+* **Resonance:** Sun/Moon/ASC/MC/Nodes amplify  
+* **Recursion:** repeated motifs echo louder
 
-⸻
+---
 
-Got it — you want Balance Meter v3 as the clarified, reconciled spec, but also to preserve the old lexicon so nothing gets lost in translation. That way, magnitude vs. numinosity, valence vs. bias, etc., can still be cross-referenced. Here’s the rewrite with an embedded “Lexicon Bridge” section:
+## **Orbs — Gatekeepers (Audit-stamped)**
 
-⸻
+* **Tight (surgical):** ≤3° majors, ≤1° minors  
+* **Loose (climate):** ≤6° luminaries, ≤4° planets, ≤3° points, ≤1° minors
 
-A Strange Cosmic Symbolism — Balance Meter v3
+Tight orbs defend falsifiability and prevent **greenwash** (padding with soft/wide trines). Always stamp `orbs_profile`.
 
-⸻
+---
 
-Core Principle — Map, Don’t Moralize
+## **Resilience & Depletion Layer (Optional Physiological Overlay)**
 
-A symbolic weather map for inner and relational fields. It shows: •	How loud the day is (Magnitude). •	Which way it leans (Directional Bias). •	How stable the storyline is (Coherence). •	Whether forces work together or fragment (Integration Bias / SFD).
+* **Stress event:** high Magnitude \+ negative Bias  
+* **Load:** cumulative contraction pressure  
+* **Recovery:** rebound inside 1–2 days  
+* **Resilience:** rolling recovery index  
+* **Depletion:** quiet ≠ stable (flags low-Mag \+ negative \+ low Coherence)
 
-It never predicts behavior — it surfaces fields for testable reflection.
+Keeps the model testable against HRV/sleep/mood if tracked.
 
-⸻
+---
 
-The Four Axes
+## **Narrative Layer (Optional Copy)**
 
-1) Magnitude (0–5) — How loud is the field?
+Motion verbs only; never moralize bias.
 
-(Formerly: “Numinosity”) •	0–1 Latent hum. •	2–3 Noticeable motifs. •	4 Palpable weight. •	5 Peak storm; chapter-defining.
+* **Supportive, coherent expansion:** outward lean, steady storyline, aligned forces  
+* **Supportive, fragmented expansion:** outward lean, scattered openings  
+* **Restrictive, coherent:** inward lean, clean arc, distillation  
+* **Restrictive, fragmented:** inward lean, cross-pulls, rising pressure
 
-⸻
+---
 
-2) Directional Bias (−5 → \+5) — Which way is the flow leaning?
+## **How to Read a Day**
 
-(Formerly: “Valence”) •	−5 Maximum contraction (inward, enforced boundary). •	0 Neutral balance. •	\+5 Maximum expansion (outward, dissolved boundary).
+1. Score all four axes.  
+2. Locate the houses (relocated).  
+3. Combine: **Bias × Magnitude × Coherence × SFD** (interpretive composite).  
+4. Name one symbolic behavior consistent with the field.  
+5. Log the lived outcome neutrally (WB / ABE / OSR).
 
-Directional ≠ moral. Expansion can overwhelm; contraction can protect.
+---
 
-⸻
+## **Governance & Integrity**
 
-3) Narrative Coherence (0–5) — How stable is the story?
+**Lexicon separation (build-time lint):**
 
-(Formerly: “Volatility”) •	0–1 Single-thread clarity. •	2 Mostly coherent. •	3 Ambiguous pulls. •	4 Splintered. •	5 Chaotic.
+* Directional Bias uses **directional** words only (inward/outward, contraction/expansion, flow/drag).  
+* SFD uses **cohesion** words only (harmony/support/friction/fragmentation). Mixing terms fails the build.
 
-⸻
+**Observability (per-axis logs):**
 
-4) Integration Bias (−1 → \+1) — Do forces cooperate or fragment?
+* `normalized`, `scaled`, `clamped`, `rounded`, `display` values  
+* Clamp hit counters; double-inversion guard for Coherence  
+* **Fabrication sentinel:** SFD cannot render unless drivers exist or JSON SFD is present.
 
-(Formerly: “Support/Friction Differential, SFD”) •	\> 0 Supportive alignment. •	0 Neutral. •	\< 0 Frictional opposition.
+**Metadata (every export):** `spec_version, scaling_mode("absolute"), scale_factors, coherence_inversion, pipeline, orbs_profile, timezone("America/Chicago"), provenance, normalized_input_hash`.
 
-Acts as reality check, preventing red-wall (all crisis) or greenwash (all harmony).
+---
 
-⸻
+## **Reconciliation Notes**
 
-Lexicon Bridge (Old ↔ New)
+* Restores **signed** Directional Bias (−5…+5).  
+* Keeps Magnitude on a **true 0–5** scale.  
+* Correctly inverts volatility → **Coherence**.  
+* Centers **SFD** as the honesty differential.  
+* Orbs remain quantitative filters, not moralizers.
 
-To preserve continuity with prior drafts:
+---
 
-Old Term	New Term (v3)	Core Meaning Numinosity	Magnitude	Raw intensity / “charge” of symbolic weather. Valence	Directional Bias	Lean of energy: inward contraction vs. outward expansion. Volatility	Narrative Coherence	How stable or fragmented the symbolic storyline is. SFD (Support/Friction Differential)	Integration Bias	Net cooperation vs. opposition of forces. Greenwash	False Support	Spurious positivity from wide/weak trines/sextiles. Red-wall bias	False Crisis	Overweighting hard aspects without stabilisers. Magnitude/Numinosity “⚡”	Charge Index	Icon shorthand for intensity spikes. Directional Compass	Bias Scale (−5 to \+5)	Vector of flow. Noise / Quiet	Low Mag \+ Negative Bias \+ Low SFD	False calm, depletion zone.
+## **Lexicon Bridge (for continuity)**
 
-This preserves interpretive lineage — old reports can be re-read against the v3 axes without loss.
+* **Numinosity → Magnitude**  
+* **Valence → Directional Bias**  
+* **Volatility → Narrative Coherence**  
+* **SFD (Support/Friction Differential) → Integration Bias**
 
-⸻
+---
 
-Houses — Where Pressure Lands
+## **Glossary (Quick Reference)**
 
-Domains grounded by relocation: •	I. Self — body, resources, expression. •	II. Connection — communication, partnerships, networks. •	III. Growth — home, intimacy, horizon. •	IV. Responsibility — work, career, dissolution.
+* **Magnitude:** loudness of archetypal charge.  
+* **Directional Bias:** contraction vs. expansion lean.  
+* **Narrative Coherence:** stability of the story.  
+* **Integration Bias / SFD:** net support vs. friction.  
+* **WB / ABE / OSR:** Within Boundary / At Boundary Edge / Outside Symbolic Range.
 
-Same sky, different rooms.
+---
 
-⸻
+## **Calibration Touchstone**
 
-Sources of Force (Geometry → Scores) •	Orb closeness \= strength. •	Aspects: majors roar, minors whisper. •	Planetary speed: outers tectonic, inners sparky. •	Resonance: amplifiers at Sun, Moon, ASC, MC, Nodes. •	Recursion: repeated motifs echo louder.
+The rebuilt instrument should reproduce **Oct 10, 2018 (Hurricane Michael, Panama City)** as a near-maximum magnitude day with strong inward bias, non-inverted coherence, and mildly frictional SFD localized to the relevant houses. The goal is **restored fidelity**, not a new doctrine.
 
-⸻
+**Balance Meter v3**: a seismograph, not a sermon.
 
-Orbs — Gatekeepers •	Tight orbs (surgical) \= exact hits, testable against lived events. •	Loose orbs (climate) \= ambient atmosphere, season-level.
+You’re right to underline that. Finding the Hurricane Michael match **after** you’d already drawn the symbolic map is the whole ethical spine of the project. It wasn’t target-chasing; it was **post-hoc corroboration** against a frozen artifact. Let’s bake that into the spec so no one can “memory-hole” the order of operations.
 
-Always stamp orbs\_profile for auditability. Tight mode defends falsifiability.
+## **Where this matters**
 
-⸻
+* It guards against **Texas sharpshooter bias** (painting the bullseye after the shot).
 
-Resilience & Depletion Layer
+* It shows **falsifiability** in action: the map stood on its own before the event-level comparison.
 
-Extra diagnostic: •	Stress \= high mag \+ negative bias. •	Load \= cumulative contraction. •	Recovery \= rebound signals. •	Resilience \= rolling success at recovery. •	Depletion \= false calm (quiet \+ negative \+ fragmented).
+* It justifies our stance: *correlated synchrony, not causal prophecy*.
 
-⸻
+## **Add this to the spec (drop-in text)**
 
-Narrative Layer
+### **Provenance & Blind Corroboration Protocol**
 
-Motion words only: extend, retract, concentrate, disperse.
+**Purpose:** Preserve the order of operations so correlations discovered later count as evidence, not retrofitting.
 
-Examples: •	Outward, coherent, supportive → “Expansion with clarity; aligned openings.” •	Outward, fragmented → “Expansion with scatter; openings disperse fast.” •	Inward, coherent → “Restriction with focus; distillation possible.” •	Inward, fragmented → “Restriction under cross-pulls; conserve energy.”
+1. **Freeze the Map**
 
-⸻
+* Each run produces a **Signed Map Package (SMP)** containing:
 
-How to Read a Day 1\.	Score all 4 axes. 2\.	Locate by houses (relocated). 3\.	Combine: Bias × Magnitude × Coherence × Integration. 4\.	Pick one symbolic behavior that matches. 5\.	Log outcome neutrally (WB/ABE/OSR).
+  * `inputs.json` (birth data, ephemerides, orbs\_profile, timezone)
 
-⸻
+  * `normalized_weather.json` (raw axis values)
 
-Reconciliation Notes •	Restored signed bias (−5 → \+5). •	Kept Magnitude real (0–5) instead of washed out averages. •	Renamed Volatility → Coherence (clearer). •	Centered SFD → Integration Bias as sanity check. •	Lexicon preserved for continuity with old reports.
+  * `display_report.json` (scaled outputs)
 
-⸻
+  * `spec_version`, `engine_build`, `scaling_mode`, `coherence_from`, `sfd_policy`
 
-Glossary Quickref •	Magnitude (Numinosity): intensity of the symbolic weather. •	Directional Bias (Valence): contraction vs. expansion lean. •	Coherence (Volatility): story stability. •	Integration Bias (SFD): net support vs. friction. •	WB/ABE/OSR: Within Boundary / At Boundary Edge / Off-Signature Reversal.
+  * **hash**: `sha256(normalized_weather.json)`
 
-⸻
+  * **timestamp** (UTC) and **run\_id**
 
-Balance Meter v3 \= Symbolic Seismograph reborn. It restores contraction and expansion to both sides of the scale. It bridges old and new language so all prior logs remain legible.
+* Store SMP read-only. Any re-render must produce a new run\_id.
 
+2. **Blind Log Lived Outcomes**
+
+* Daily entries accept neutral tags (**WB/ABE/OSR**) and free-text observations.
+
+* No editing of the SMP after outcomes are logged.
+
+3. **Post-Hoc Corroboration**
+
+* When an external event is later identified, link it to the **preexisting** SMP:
+
+  * `corroboration_entry`: { `event_time`, `event_desc`, `evidence_link`, `map_run_id`, `created_at` }
+
+* The system shows the **SMP timestamp \< event timestamp** badge: *“Map preceded event reference.”*
+
+4. **No Target-Retrofitting**
+
+* Any change to orbs, scaling, or lexicon after SMP creation creates a **new** SMP; correlations must point to the correct version.
+
+5. **Audit Widgets**
+
+* In the report footer:
+
+  * “Provenance: SMP \#R2025-10-04-DANSTEP — signed at 2025-10-04T17:40Z — spec v3.1 — sha256:…”
+
+  * “Corroborations linked: 1 (Hurricane Michael, 2018-10-10) — **Map was created prior to this reference**.”
+
+---
+
+### **Case Note (for Appendix)**
+
+**Hurricane Michael, 2018-10-10 (Panama City)**
+
+* **Fact:** The symbolic map was authored and frozen **before** the hurricane correlation was noted.
+
+* **What the frozen map showed:** near-max Magnitude, strong inward Directional Bias, non-inverted Coherence, slightly frictional SFD, pressure localized to 2nd/4th house domains (resources/home) under relocation.
+
+* **Interpretation stance:** counts as **post-hoc corroboration** of a general pattern. No causal claim, no “prediction” victory lap. The mirror held; the world rhymed.
+
+---
+
+## **Acceptance criteria to enforce this**
+
+* Every report includes a **Provenance block** (spec version, run\_id, hash, timestamp).
+
+* Corroborations can only be attached to **existing** run\_ids; UI must show “Map preceded event reference.”
+
+* Editing an SMP is impossible; re-running creates a new SMP with a different hash.
+
+* CI test: attempting to attach a corroboration where `event_time ≤ smp_timestamp` triggers a **CorroborationOrderError**.
+
+## **Plain-language footer (UI copy)**
+
+*This correlation was logged after the map was created. The map is a frozen measurement; the event is an external reference. We record co-occurrence; we do not assert cause.*

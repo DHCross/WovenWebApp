@@ -507,7 +507,7 @@ ${
 
 ---
 
-## WORKFLOW: FIELD → MAP → VOICE
+## WORKFLOW: FIELD -> MAP -> VOICE
 
 You have been given the **FIELD** (geometric data) and **MAP** (structural patterns).
 Your job is **VOICE** — synthesize this into resonant, lived-experience language.
@@ -643,7 +643,7 @@ Start with the Solo Mirror(s), then ${
       addTextBlock(`Generated: ${generatedAt.toLocaleString()}`, { fontSize: 10 });
       addTextBlock(`Specification Version: 3.1`, { fontSize: 10 });
       addTextBlock(`Scaling Mode: Absolute ×50`, { fontSize: 10 });
-      addTextBlock(`Pipeline: normalize → scale → clamp → round`, { fontSize: 10 });
+      addTextBlock(`Pipeline: normalize -> scale -> clamp -> round`, { fontSize: 10 });
       addTextBlock('', { fontSize: 8 });
 
       sections.forEach((section) => {
@@ -722,7 +722,7 @@ Start with the Solo Mirror(s), then ${
       markdown += `**Generated:** ${generatedAt.toLocaleString()}\n\n`;
       markdown += `**Specification Version:** 3.1\n`;
       markdown += `**Scaling Mode:** Absolute ×50\n`;
-      markdown += `**Pipeline:** normalize → scale → clamp → round\n\n`;
+      markdown += `**Pipeline:** normalize -> scale -> clamp -> round\n\n`;
       markdown += `---\n\n`;
 
       const summary = sanitizedReport?.person_a?.summary;
@@ -836,7 +836,7 @@ ${
 
 ---
 
-## WORKFLOW: FIELD → MAP → VOICE
+## WORKFLOW: FIELD -> MAP -> VOICE
 
 You have been given the **FIELD** (geometric data) and **MAP** (structural patterns).
 Your job is **VOICE** — synthesize this into resonant, lived-experience language.

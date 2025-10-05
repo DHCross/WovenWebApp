@@ -51,7 +51,7 @@ export function useSnapshot() {
     personA: any,
     personB?: any,
     mode: string = 'NATAL_TRANSITS'
-  ): Promise<any | null> => {
+  ): Promise<{ result: any; timestamp: Date; location: SnapshotLocation } | null> => {
     console.log('[Snapshot] Starting capture...', { location, personA, personB, mode });
     setState(prev => ({ ...prev, loading: true, error: null }));
 
@@ -162,7 +162,11 @@ export function useSnapshot() {
       });
 
       console.log('[Snapshot] Capture complete!');
-      return result;
+      return {
+        result,
+        timestamp: now,
+        location,
+      };
     } catch (err) {
       console.error('[Snapshot] Capture failed:', err);
       const errorMessage = err instanceof Error ? err.message : 'Snapshot capture failed';
