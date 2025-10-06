@@ -72,10 +72,12 @@ export default function SnapshotButton({
       return; // Error message will be shown below
     }
 
-    // Set date to today
-    const today = new Date().toISOString().slice(0, 10);
-    console.log('[SnapshotButton] Setting date to today:', today);
-    onDateChange(today);
+    // *** FIX: The following line was removed. ***
+    // It was causing a re-render that created a race condition,
+    // leading to stale data being sent to the snapshot function.
+    // The snapshot logic creates its own timestamp, so this is not needed.
+    //
+    // onDateChange(new Date().toISOString().slice(0, 10));
 
     // Get location
     console.log('[SnapshotButton] Requesting location...');
@@ -87,7 +89,7 @@ export default function SnapshotButton({
     console.log('[SnapshotButton] Location obtained:', location);
 
     // Capture snapshot (pass Person B if included)
-    console.log('[SnapshotButton] Calling captureSnapshot...', { hasPersonB, mode });
+    console.log('[SnapshotButton] Calling captureSnapshot...', { hasPersonB, mode, personA, personB });
     const snapshotResult = await snapshot.captureSnapshot(
       location,
       personA,
@@ -100,6 +102,10 @@ export default function SnapshotButton({
       console.log('[SnapshotButton] Calling onSnapshot callback');
       setShowLocationInfo(true);
       onSnapshot(snapshotResult.result, snapshotResult.location, snapshotResult.timestamp);
+      
+      // We can update the UI date here, after the async operations are complete.
+      onDateChange(snapshotResult.timestamp.toISOString().slice(0, 10));
+
     } else {
       console.error('[SnapshotButton] No result or timestamp after snapshot');
     }
