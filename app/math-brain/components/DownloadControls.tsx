@@ -5,11 +5,13 @@ import type { SeismographMap } from "../../../lib/health-data-types";
 
 interface DownloadControlsProps {
   includeTransits: boolean;
+  pdfGenerating: boolean;
   markdownGenerating: boolean;
   graphsPdfGenerating: boolean;
   weatherJsonGenerating: boolean;
   engineConfigGenerating: boolean;
   cleanJsonGenerating: boolean;
+  onDownloadPDF: () => void;
   onDownloadMarkdown: () => void;
   onDownloadSymbolicWeather: () => void;
   onDownloadGraphsPDF: () => void;
@@ -24,11 +26,13 @@ interface DownloadControlsProps {
 
 export default function DownloadControls({
   includeTransits,
+  pdfGenerating,
   markdownGenerating,
   graphsPdfGenerating,
   weatherJsonGenerating,
   engineConfigGenerating,
   cleanJsonGenerating,
+  onDownloadPDF,
   onDownloadMarkdown,
   onDownloadSymbolicWeather,
   onDownloadGraphsPDF,
