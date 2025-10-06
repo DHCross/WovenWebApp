@@ -1,3 +1,34 @@
+## [2025-01-21] AUDIT SESSION: Export Fragmentation Recovery (Dashboard Still Broken)
+
+**Context:** After amplitude restoration, dashboard shows uncalibrated raw values (5.0/-5.0) instead of calibrated Golden Standard values (3.9/-2.3).
+
+**Added:**
+- `lib/ui/format.ts` - Safe axis value extraction (`fmtAxis`, `fmtAxisLabel`)
+- `lib/ui/sanitize.ts` - Internal directive scrubbing
+- `__tests__/rendering-sanity.test.ts` - 2/2 passing
+- `__tests__/dashboard-calibrated-values.test.ts` - 11/11 passing
+- `scripts/audit-balance-meter-reads.js` - Codebase audit tool
+- `docs/EXPORT_FRAGMENTATION_RECOVERY_REPORT.md` - Full recovery plan
+- `docs/DASHBOARD_FIX_QUICKSTART.md` - Quick fix guide
+
+**Modified:**
+- `app/math-brain/utils/formatting.ts` - User added extractAxisNumber (⚠️ includes 'raw' in priority)
+- `app/math-brain/hooks/useChartExport.ts` - Sanitization integrated
+
+**Validated:**
+- ✅ Golden Standard: 11/11 passing (math engine untouched)
+- ✅ Rendering: 2/2 passing (no [object Object], no prompt leakage)
+- ✅ Dashboard helpers: 11/11 passing
+
+**Known Issues (Documented, Not Fixed):**
+1. 🔴 Dashboard reads `summary.magnitude` (uncalibrated) - Fix: `page.tsx:4497`
+2. 🟡 Backend `summary.magnitude` averages uncalibrated values - Fix: Priority 1
+3. 🟡 extractAxisNumber includes 'raw' backdoor - Fix: Priority 3
+
+**Status:** Session paused awaiting Codex. See recovery report for full details.
+
+---
+
 ## [2025-01-21] CRITICAL FIX: Balance Meter Dual-Pipeline Elimination (v3.1)
 
 **Summary**

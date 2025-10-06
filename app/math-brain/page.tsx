@@ -8,7 +8,7 @@ import { getRedirectUri } from "../../lib/auth";
 // AuthProvider removed - auth handled globally by HomeHero component
 import { needsLocation, isTimeUnknown } from "../../lib/relocation";
 import { sanitizeForPDF } from "../../src/pdf-sanitizer";
-import { useChartExport } from "./hooks/useChartExport";
+import { useChartExport, createFrontStageResult } from "./hooks/useChartExport";
 import PersonForm from "./components/PersonForm";
 import TransitControls from "./components/TransitControls";
 import DownloadControls from "./components/DownloadControls";
@@ -711,6 +711,25 @@ export default function MathBrainPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => !AUTH_ENABLED);
   const [authReady, setAuthReady] = useState(() => !AUTH_ENABLED);
 
+  const frontStageResult = useMemo(() => {
+    if (!result) return null;
+    try {
+      return createFrontStageResult(result);
+    } catch (error) {
+      console.warn('[MathBrain] Failed to create frontstage result', error);
+      return null;
+    }
+  }, [result]);
+
+  const displayResult = frontStageResult ?? result;
+
+  const frontStageTransitsByDate = useMemo(() => {
+    if (frontStageResult?.person_a?.chart?.transitsByDate) {
+      return frontStageResult.person_a.chart.transitsByDate;
+    }
+    return result?.person_a?.chart?.transitsByDate || {};
+  }, [frontStageResult, result]);
+
   // Snapshot state
   const [snapshotResult, setSnapshotResult] = useState<any>(null);
   const [snapshotLocation, setSnapshotLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -894,12 +913,12 @@ export default function MathBrainPage() {
   }, [chartAssets]);
 
   useEffect(() => {
-    const transitEntries = result?.person_a?.chart?.transitsByDate;
+    const transitEntries = frontStageTransitsByDate;
     const hasTransitData = includeTransits && transitEntries && Object.keys(transitEntries).length > 0;
     if (!hasTransitData) {
       setShowSeismographCharts(false);
     }
-  }, [includeTransits, result]);
+  }, [frontStageTransitsByDate, includeTransits]);
 
   const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>(() => {
     if (typeof window === 'undefined') {
@@ -1216,8 +1235,8 @@ export default function MathBrainPage() {
   });
 
   const weather = useMemo(() =>
-    extractWeather(startDate, endDate, result),
-    [startDate, endDate, result]
+    extractWeather(startDate, endDate, displayResult),
+    [startDate, endDate, displayResult]
   );
 
   const blueprint = useMemo(() =>
@@ -1227,8 +1246,8 @@ export default function MathBrainPage() {
 
   // Build seismograph map for health data correlation
   const seismographMap = useMemo<SeismographMap>(() => {
-    if (!result) return {};
-    const transitsByDate = result?.person_a?.chart?.transitsByDate || {};
+    if (!result && !frontStageResult) return {};
+    const transitsByDate = frontStageTransitsByDate;
     const map: SeismographMap = {};
 
     Object.entries(transitsByDate).forEach(([date, dayData]: [string, any]) => {
@@ -1246,7 +1265,7 @@ export default function MathBrainPage() {
     });
 
     return map;
-  }, [result]);
+  }, [frontStageResult, frontStageTransitsByDate, result]);
 
   useEffect(() => {
     setTranslocation((prev) => {
@@ -1792,6 +1811,7 @@ export default function MathBrainPage() {
     }
 
     try {
+      const exportResult = frontStageResult ?? result;
       const personAName = personA?.name || 'PersonA';
       const personBName = personB?.name || (mode === 'NATAL_ONLY' ? '' : 'PersonB');
       const exportDate = new Date();
@@ -1834,7 +1854,7 @@ export default function MathBrainPage() {
 
       if (reportType === 'balance') {
         // Balance Meter specific data
-        const daily = result?.person_a?.chart?.transitsByDate || {};
+        const daily = frontStageTransitsByDate;
         const dates = Object.keys(daily)
           .filter(d => d && d.match(/^\d{4}-\d{2}-\d{2}$/))
           .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
@@ -1892,7 +1912,7 @@ export default function MathBrainPage() {
           markdown += `\n`;
 
           // Additional Balance Report details
-          const wm = (result as any)?.woven_map;
+          const wm = (exportResult as any)?.woven_map;
           if (wm) {
             // Seismograph patterns and trends
             markdown += `### Seismograph Analysis\n\n`;
@@ -2287,7 +2307,7 @@ export default function MathBrainPage() {
       const PAGE_HEIGHT = 792; // 11" * 72 DPI
       const MARGIN = 50;
 
-      const daily = result?.person_a?.chart?.transitsByDate || {};
+      const daily = frontStageTransitsByDate;
       const dates = Object.keys(daily)
         .filter((d) => d && d.match(/^\d{4}-\d{2}-\d{2}$/))
         .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
@@ -4477,7 +4497,7 @@ export default function MathBrainPage() {
           />          {weather.hasWindow && layerVisibility.balance && (
             <>
           {(() => {
-            const daily = result?.person_a?.chart?.transitsByDate || {};
+            const daily = frontStageTransitsByDate;
             const hasAny = Object.keys(daily).length > 0;
             if (!hasAny) {
               return (
@@ -4491,7 +4511,9 @@ export default function MathBrainPage() {
             return null;
           })()}
           {(() => {
-            const summary = result?.person_a?.derived?.seismograph_summary;
+            const summary = frontStageResult?.person_a?.summary
+              ?? result?.person_a?.summary
+              ?? result?.person_a?.derived?.seismograph_summary;
             if (!summary) return null;
 
             const mag = Number(summary.magnitude ?? 0);
@@ -4499,7 +4521,7 @@ export default function MathBrainPage() {
             const vol = Number(summary.volatility ?? 0);
 
             // Calculate daily ranges from transitsByDate
-            const transitsByDate = result?.person_a?.chart?.transitsByDate || {};
+            const transitsByDate = frontStageTransitsByDate;
             const dailyBiasValues: number[] = [];
             const dailyMagValues: number[] = [];
 
@@ -4550,18 +4572,18 @@ export default function MathBrainPage() {
                     magnitudeMin: magMin,
                     magnitudeMax: magMax
                   }}
-                  overallSfd={result?.person_a?.sfd?.sfd ?? 0}
+                  overallSfd={displayResult?.person_a?.sfd?.sfd ?? 0}
                   totalDays={(() => {
-                    const daily = result?.person_a?.chart?.transitsByDate || {};
+                    const daily = frontStageTransitsByDate;
                     return Object.keys(daily).filter(d => d && d.match(/^\d{4}-\d{2}-\d{2}$/)).length;
                   })()}
                   isLatentField={exEstranged}
-                  fieldSignature={(result as any)?.woven_map?.field_signature ?? null}
+                  fieldSignature={(displayResult as any)?.woven_map?.field_signature ?? null}
                 />
 
                 {/* LAYER 2: SYMBOLIC SEISMOGRAPH (Plot Charts) */}
                 {(() => {
-                  const transitsByDate = result?.person_a?.chart?.transitsByDate || {};
+                  const transitsByDate = frontStageTransitsByDate;
                   const dates = Object.keys(transitsByDate).sort();
                   const hasTransitData = dates.length > 0 && includeTransits;
 
@@ -4595,7 +4617,7 @@ export default function MathBrainPage() {
                       coherence_0to5: seismo.volatility ?? 0,
                       sfd_cont_minus1to1: sfd.sfd_cont ?? 0,
                       schema_version: 'BM-v3',
-                      orbs_profile: result?.provenance?.orbs_profile || 'wm-spec-2025-09',
+                      orbs_profile: displayResult?.provenance?.orbs_profile || 'wm-spec-2025-09',
                       house_frame: 'natal',
                       relocation_supported: false,
                       ...(relocationStatus.effectiveMode !== 'NONE' && {
@@ -4657,7 +4679,7 @@ export default function MathBrainPage() {
                   <div className="mb-6">
                     <h3 className="text-sm font-medium text-slate-200 mb-3">Daily Climate Cards</h3>
                     {(() => {
-                    const daily = result?.person_a?.chart?.transitsByDate || {};
+                    const daily = frontStageTransitsByDate;
                     const dates = Object.keys(daily).sort();
                     if (!dates.length) {
                       return <div className="text-sm text-slate-500 p-4 border border-slate-700 rounded bg-slate-900/20">No daily data available</div>;

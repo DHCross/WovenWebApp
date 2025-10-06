@@ -32,11 +32,22 @@ const extractAxisValue = (source: any, axis: AxisKey): number | undefined => {
   if (!axesBlock || typeof axesBlock !== 'object') return undefined;
   const axisField = AXIS_FIELD_MAP[axis];
   const axisData = axesBlock?.[axisField];
+  if (typeof axisData === 'number' && Number.isFinite(axisData)) {
+    return axisData;
+  }
+  if (typeof axisData === 'string') {
+    const parsed = Number(axisData);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
   if (!axisData || typeof axisData !== 'object') return undefined;
   const candidates = [axisData.value, axisData.display, axisData.final, axisData.scaled, axisData.score];
   for (const candidate of candidates) {
     if (typeof candidate === 'number' && Number.isFinite(candidate)) {
       return candidate;
+    }
+    if (typeof candidate === 'string') {
+      const parsed = Number(candidate);
+      if (!Number.isNaN(parsed)) return parsed;
     }
   }
   return undefined;
@@ -1180,7 +1191,7 @@ Start with the Solo Mirror(s), then ${
   };
 }
 
-function createFrontStageResult(rawResult: any) {
+export function createFrontStageResult(rawResult: any) {
   const toNumber = (
     value: any,
     axis?: AxisKey,

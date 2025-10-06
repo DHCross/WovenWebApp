@@ -1,6 +1,78 @@
 import type { ReportContractType } from '../types';
 import { fmtAxis, fmtAxisLabel } from '../../../lib/ui/format';
 
+type AxisName = 'magnitude' | 'directional_bias' | 'volatility';
+
+const AXIS_FIELD_MAP: Record<AxisName, string[]> = {
+  magnitude: ['magnitude'],
+  directional_bias: ['directional_bias', 'bias_signed', 'valence', 'valence_bounded'],
+  volatility: ['coherence', 'volatility'],
+};
+
+const AXIS_NUMBER_KEYS = [
+  'value',
+  'display',
+  'final',
+  'scaled',
+  'score',
+  'mean',
+  'raw',
+  'normalized',
+];
+
+const toAxisNumber = (candidate: any): number | undefined => {
+  if (typeof candidate === 'number' && Number.isFinite(candidate)) return candidate;
+  if (typeof candidate === 'string') {
+    const parsed = Number(candidate);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  if (candidate && typeof candidate === 'object') {
+    for (const key of AXIS_NUMBER_KEYS) {
+      const value = (candidate as Record<string, unknown>)[key];
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+      if (typeof value === 'string') {
+        const parsed = Number(value);
+        if (!Number.isNaN(parsed)) return parsed;
+      }
+    }
+  }
+  return undefined;
+};
+
+const extractAxisNumber = (source: any, axis: AxisName): number | undefined => {
+  if (!source || typeof source !== 'object') return toAxisNumber(source);
+
+  const axesBlock = source.axes || source.balance_meter?.axes;
+  if (axesBlock && typeof axesBlock === 'object') {
+    for (const key of AXIS_FIELD_MAP[axis]) {
+      const axisCandidate = (axesBlock as Record<string, unknown>)[key];
+      const value = toAxisNumber(axisCandidate);
+      if (value !== undefined) return value;
+      if (axisCandidate && typeof axisCandidate === 'object') {
+        for (const innerKey of AXIS_NUMBER_KEYS) {
+          const nested = (axisCandidate as Record<string, unknown>)[innerKey];
+          const nestedValue = toAxisNumber(nested);
+          if (nestedValue !== undefined) return nestedValue;
+        }
+      }
+    }
+  }
+
+  for (const key of AXIS_FIELD_MAP[axis]) {
+    const direct = (source as Record<string, unknown>)[key];
+    const directValue = toAxisNumber(direct);
+    if (directValue !== undefined) return directValue;
+  }
+
+  if (axis === 'directional_bias') {
+    const channel = (source as Record<string, unknown>).balance_channel;
+    const channelValue = toAxisNumber(channel);
+    if (channelValue !== undefined) return channelValue;
+  }
+
+  return undefined;
+};
+
 export const formatReportKind = (contractType: ReportContractType): string => {
   switch (contractType) {
     case 'relational_balance_meter':
@@ -206,9 +278,13 @@ export function formatSymbolicWeatherSummary(symbolicWeather: any): string {
     const bm = symbolicWeather.balance_meter;
     lines.push('BALANCE METER SUMMARY');
     lines.push('─'.repeat(40));
-    if (bm.magnitude !== undefined || bm.magnitude_label !== undefined) {
+    const magnitudeValue = extractAxisNumber(bm, 'magnitude');
+    if (magnitudeValue !== undefined || bm.magnitude_label !== undefined || bm.magnitude !== undefined) {
+      const magnitudeSource = magnitudeValue ?? bm.magnitude;
       lines.push(
-        `Numinosity (Magnitude): ${fmtAxisLabel(bm.magnitude_label, bm.magnitude)} (${fmtAxis(bm.magnitude)}/5)`,
+        `Numinosity (Magnitude): ${fmtAxisLabel(bm.magnitude_label, magnitudeSource)} (${fmtAxis(
+          magnitudeSource,
+        )}/5)`,
       );
     }
     if (
@@ -217,17 +293,22 @@ export function formatSymbolicWeatherSummary(symbolicWeather: any): string {
       bm.bias_label !== undefined ||
       bm.valence_label !== undefined
     ) {
-      const biasNum = bm.bias_signed ?? bm.valence;
-      const biasLabel = bm.bias_label ?? bm.valence_label;
+      const biasAxis = extractAxisNumber(bm, 'directional_bias');
+      const biasNum = biasAxis ?? bm.bias_signed ?? bm.directional_bias ?? bm.valence;
+      const biasLabel =
+        bm.directional_bias_label ?? bm.bias_label ?? bm.valence_label ?? bm.bias_motion;
       const biasDisp = fmtAxisLabel(biasLabel, biasNum);
       const biasNumDisp = fmtAxis(biasNum);
       lines.push(`Directional Bias: ${biasDisp} (${biasNumDisp})`);
     }
-    if (bm.volatility !== undefined || bm.volatility_label !== undefined) {
+    const volatilityValue = extractAxisNumber(bm, 'volatility');
+    if (volatilityValue !== undefined || bm.volatility !== undefined || bm.volatility_label !== undefined) {
+      const volatilitySource = volatilityValue ?? bm.volatility;
       lines.push(
-        `Narrative Coherence (Volatility): ${fmtAxisLabel(bm.volatility_label, bm.volatility)} (${fmtAxis(
-          bm.volatility,
-        )}/5)`,
+        `Narrative Coherence (Volatility): ${fmtAxisLabel(
+          bm.volatility_label,
+          volatilitySource,
+        )} (${fmtAxis(volatilitySource)}/5)`,
       );
     }
     if (bm.support_friction) {
