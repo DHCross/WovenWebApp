@@ -17,9 +17,10 @@ The project follows a modern web architecture, decoupling its core components to
 
 *   **Frontend:** A Next.js App Router application using React and styled with Tailwind CSS. The primary user interface for the Math Brain is a complex but increasingly modular page found at `/app/math-brain/page.tsx`.
 *   **Backend & API:**
-    *   Utilizes Next.js API routes for its own backend logic.
-    *   Integrates with the external **RapidAPI Astrologer** (Kerykeion) for core astrological calculations.
-    *   The **Poetic Brain** leverages a Large Language Model (e.g., Gemini) for narrative generation.
+    *   **Primary Backend:** Netlify serverless functions (`netlify/functions/astrology-mathbrain.js`) handle all core astronomical computations and data processing.
+    *   Integrates with the external **RapidAPI Astrologer** (Kerykeion) for ephemeris calculations.
+    *   The **Poetic Brain** leverages a Large Language Model (Gemini) for narrative generation and is gated behind **Auth0** (Google) authentication at the `/chat` route.
+*   **Deployment:** Netlify hosts the Next.js application with serverless functions. Requests authenticate through Auth0, execute in Netlify Functions, and return JSON to the React frontend.
 *   **Data Contract:** The `WovenMapBlueprint` is the canonical JSON schema that serves as the single source of truth for all data exchange between the Math Brain and the Poetic Brain. This strict contract is the foundation of the "Two-Mind" covenant.
 
 ## 3. Key Features & Protocols
@@ -31,6 +32,8 @@ A sophisticated diagnostic tool for measuring the symbolic "weather" of a given 
 1.  **Seismograph (v1.0):** The original crisis-weighted engine, preserved for historical continuity.
 2.  **Balance Channel (v1.1):** A rebalanced valence calculation that reveals stabilizing geometric patterns without diluting the overall intensity (magnitude).
 3.  **Support-Friction Differential (SFD, v1.2):** A bipolar meter that measures the net availability of supportive energy after accounting for targeted friction.
+
+**Calibration Pipeline:** All symbolic values are scaled through the canonical **0–5 frontstage system** using the Seismograph normalization pipeline (normalize → ×50 scale → clamp → round). This ensures consistent, user-facing ranges: Magnitude [0, 5], Directional Bias [-5, +5], Coherence [0, 5]. Raw backstage calculations are preserved for debugging but never exposed to users.
 
 ### The Poetic Codex
 
@@ -54,5 +57,8 @@ The project has undergone a significant architectural evolution, moving from a m
     *   `Developers Notes/Core/Four Report Types_Integrated 10.1.25.md` is designated as the **single source of truth** for report generation logic.
     *   Comprehensive README files exist at the root of each subdirectory to guide developers.
 *   **Refactoring:** There is an ongoing effort to refactor the monolithic `app/math-brain/page.tsx` file into smaller, reusable components and hooks to improve maintainability and performance.
-*   **Testing:** The project includes a growing suite of tests, including property-based tests for mathematical invariants and sanity checks for key outputs.
+*   **Testing:** The project includes a comprehensive test suite with Vitest:
+    *   Property-based tests for mathematical invariants (Golden Standard enforcement for high-magnitude events).
+    *   Export regression tests ensuring calibrated Balance Meter values (3.9/-2.3) survive JSON/PDF/Markdown export pipelines without reverting to raw values (5.0/-5.0).
+    *   Sanity checks for rendering, dashboard displays, and API integration.
 *   **AI Collaboration:** The project actively uses AI assistants for development, with clear instructions and "analysis directives" embedded in exported documents to guide the AI's interpretation and synthesis tasks.
