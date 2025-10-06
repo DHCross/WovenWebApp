@@ -606,6 +606,8 @@ export default function ChatClient() {
   >(null);
   const [hasMirrorData, setHasMirrorData] = useState(false);
   const [showScrollHint, setShowScrollHint] = useState(false);
+  const [scrollPadding, setScrollPadding] = useState(140);
+  const scrollPaddingRef = useRef(scrollPadding);
 
   const streamContainerRef = useRef<HTMLElement | null>(null);
   const [userScrolledAway, setUserScrolledAway] = useState(false);
@@ -1109,19 +1111,76 @@ export default function ChatClient() {
     }
   }, [messages, ravenMessages]);
 
-  const SCROLL_OFFSET = 120; // header + nav panel padding
+  const calculateScrollPadding = useCallback(() => {
+    if (typeof window === "undefined") return 140;
+
+    const header = document.querySelector<HTMLElement>(
+      "[data-chat-header]",
+    );
+    const nav = document.querySelector<HTMLElement>("[data-chat-nav]");
+    let total = 16;
+
+    if (header) {
+      total += header.getBoundingClientRect().height;
+    }
+    if (nav) {
+      total += nav.getBoundingClientRect().height;
+    }
+
+    const viewport = window.visualViewport;
+    if (viewport && viewport.offsetTop) {
+      total += viewport.offsetTop;
+    }
+
+    return Math.max(total, 128);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const update = () => {
+      const next = calculateScrollPadding();
+      setScrollPadding((prev) =>
+        Math.abs(prev - next) > 0.5 ? next : prev,
+      );
+    };
+
+    update();
+
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+    const viewport = window.visualViewport;
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+    };
+  }, [calculateScrollPadding]);
+
+  useEffect(() => {
+    scrollPaddingRef.current = scrollPadding;
+  }, [scrollPadding]);
 
   const shouldUseWindowScroll = useCallback(() => {
     const container = streamContainerRef.current;
-    if (!isDesktop || !container) return true;
+    if (!container) return true;
     return container.scrollHeight <= container.clientHeight + 1;
-  }, [isDesktop]);
+  }, []);
 
   const scrollMessageElementIntoView = useCallback((el: HTMLElement) => {
     const container = streamContainerRef.current;
+    const offset = scrollPaddingRef.current;
+
     if (!shouldUseWindowScroll() && container) {
-      const target = el.offsetTop - SCROLL_OFFSET;
+      const target = el.offsetTop - offset;
       container.scrollTo({ top: target < 0 ? 0 : target, behavior: "smooth" });
+    } else if (typeof window !== "undefined") {
+      const top = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: top < 0 ? 0 : top, behavior: "smooth" });
     } else {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -1262,7 +1321,7 @@ export default function ChatClient() {
     }
 
     return () => target.removeEventListener("scroll", handleScroll);
-  }, [typing, isDesktop, shouldUseWindowScroll]);
+  }, [typing, shouldUseWindowScroll]);
 
   function toggleReportCollapse(messageId: string) {
     setMessages((m) =>
@@ -2595,8 +2654,7 @@ export default function ChatClient() {
         scrollToBottom={scrollToBottom}
       />
       <main
-        className="relative flex flex-1 flex-col gap-3 overflow-y-auto overscroll-contain lg:overflow-hidden p-3 min-h-0 lg:grid lg:grid-cols-[280px_1fr] lg:gap-4"
-        style={{ WebkitOverflowScrolling: "touch" }}
+        className="relative flex flex-1 flex-col gap-3 p-3 min-h-0 lg:grid lg:grid-cols-[280px_1fr] lg:gap-4"
       >
         <div className="hidden h-full lg:block">
           <Sidebar
@@ -2708,7 +2766,7 @@ export default function ChatClient() {
             onToggleCollapse={toggleReportCollapse}
             onRemove={removeReport}
             onPingFeedback={handlePingFeedback}
-            isDesktop={isDesktop}
+            scrollPadding={scrollPadding}
           />
         </div>
         {/* Scroll hint button */}
@@ -2933,7 +2991,10 @@ function Header({
   };
 
   return (
-    <header className="sticky top-0 z-10 bg-[rgba(20,24,33,.9)] px-[18px] py-3 backdrop-blur border-b border-[var(--line)]">
+    <header
+      data-chat-header
+      className="sticky top-0 z-10 bg-[rgba(20,24,33,.9)] px-[18px] py-3 backdrop-blur border-b border-[var(--line)]"
+    >
       <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-3 sm:items-center">
@@ -3778,7 +3839,7 @@ function Stream({
   onToggleCollapse,
   onRemove,
   onPingFeedback,
-  isDesktop,
+  scrollPadding,
 }: {
   messages: Message[];
   typing: boolean;
@@ -3792,7 +3853,7 @@ function Stream({
     response: PingResponse,
     note?: string,
   ) => void;
-  isDesktop: boolean;
+  scrollPadding: number;
 }) {
   // Rely on flex sizing so mobile Safari calculates the scrollable
   // conversation height correctly without collapsing the stream.
@@ -3809,10 +3870,12 @@ function Stream({
         display: "flex",
         flexDirection: "column",
         gap: 12,
-        overflow: isDesktop ? "auto" : "visible",
+        overflow: "auto",
         flex: 1,
         minHeight: 0,
         WebkitOverflowScrolling: "touch",
+        overscrollBehavior: "contain",
+        scrollPaddingTop: scrollPadding,
       }}
     >
       {messages.map((m) => (
@@ -3822,6 +3885,7 @@ function Stream({
           onToggleCollapse={onToggleCollapse}
           onRemove={onRemove}
           onPingFeedback={onPingFeedback}
+          scrollPadding={scrollPadding}
         />
       ))}
       {typing && (
@@ -3843,6 +3907,7 @@ function Bubble({
   onToggleCollapse,
   onRemove,
   onPingFeedback,
+  scrollPadding,
 }: {
   msg: Message;
   onToggleCollapse: (messageId: string) => void;
@@ -3852,6 +3917,7 @@ function Bubble({
     response: PingResponse,
     note?: string,
   ) => void;
+  scrollPadding: number;
 }) {
   const [isCopied, setIsCopied] = useState(false);
   const [showMirror, setShowMirror] = useState(false);
@@ -3862,7 +3928,7 @@ function Bubble({
     position: "relative",
     boxShadow: "0 6px 16px rgba(0,0,0,.25)",
     border: "1px solid #1f2533",
-    scrollMarginTop: 120,
+    scrollMarginTop: scrollPadding + 16,
   };
   const style =
     msg.role === "user"
@@ -4284,7 +4350,10 @@ function NavigationPanel({
   if (ravenMessages.length === 0) return null;
 
   return (
-    <div className="flex items-center justify-center gap-2 px-[18px] py-2 bg-[var(--panel)] border-t border-b border-[var(--line)] text-[12px]">
+    <div
+      data-chat-nav
+      className="flex items-center justify-center gap-2 px-[18px] py-2 bg-[var(--panel)] border-t border-b border-[var(--line)] text-[12px]"
+    >
       <button
         onClick={scrollToTop}
         className="bg-transparent border border-[var(--line)] rounded-[6px] text-[var(--text)] px-[10px] py-[6px] text-[11px] cursor-pointer transition-all"
