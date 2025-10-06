@@ -155,7 +155,7 @@ function extractJSONFromUpload(text: string): string | null {
       return jsonStr;
     }
   } catch (e) {
-    console.log('Failed to extract JSON from upload:', e);
+    // console.log('Failed to extract JSON from upload:', e);
   }
   return null;
 }
@@ -222,7 +222,7 @@ function extractTextFromUpload(text: string): string {
         .trim();
     }
   } catch (e) {
-    console.log('Failed to extract text from upload:', e);
+    // console.log('Failed to extract text from upload:', e);
   }
   return text;
 }
@@ -658,49 +658,59 @@ Your response MUST begin with the warm recognition greeting AND include ALL Core
 
   const enhancedPrompt = v11PromptPrefix + analysisPrompt + contextAppendix + `\n\n[SESSION META] first_turn=${isFirstTurn}`;
   const stream = generateStream(enhancedPrompt, { model: process.env.MODEL_PROVIDER, personaHook: hook });
-  const responseBody = new ReadableStream<{ }|Uint8Array>({
-    async start(controller){
-      trackRequest(analysisPrompt.length);
-      controller.enqueue(encode({climate, hook, delta: shapedIntro}));
+  
+  try {
+    trackRequest(analysisPrompt.length);
+    let accumulatedContent = shapedIntro;
+    let finalClimate = climate;
+    let finalHook = hook;
+    let hasAnchored = false;
 
-      // Persona drift detection state
-      let accumulatedContent = shapedIntro;
-      let hasAnchored = false;
+    // Await the full stream and accumulate the content
+    for await (const chunk of stream) {
+      const delta = chunk.delta || '';
+      accumulatedContent += delta;
 
-      try {
-        for await (const chunk of stream){
-          const delta = chunk.delta || '';
-          accumulatedContent += delta;
-
-          // Detect persona drift: technical/descriptive language instead of conversational
-          const driftIndicators = [
-            /this file contains/i,
-            /the system shows/i,
-            /according to the data/i,
-            /based on the chart/i,
-            /the report indicates/i,
-            /analysis reveals/i
-          ];
-
-          const hasDrift = driftIndicators.some(pattern => pattern.test(accumulatedContent));
-
-          // Re-inject persona anchor if drift detected (only once)
-          if (hasDrift && !hasAnchored && accumulatedContent.length > 100) {
-            hasAnchored = true;
-            // Don't inject - let it continue but log for monitoring
-            console.warn('[Persona] Drift detected in response, length:', accumulatedContent.length);
-          }
-
-          controller.enqueue(encode({climate, hook, delta}));
-        }
-      } catch (error) {
-        console.error('[Streaming] Error during stream:', error);
-        const errorMessage = '\n\n[Connection interrupted. Please try again.]';
-        controller.enqueue(encode({climate, hook, delta: errorMessage, error: true}));
-      } finally {
-        controller.close();
+      // Detect persona drift
+      const driftIndicators = [
+        /this file contains/i,
+        /the system shows/i,
+        /according to the data/i,
+        /based on the chart/i,
+        /the report indicates/i,
+        /analysis reveals/i
+      ];
+      const hasDrift = driftIndicators.some(pattern => pattern.test(accumulatedContent));
+      if (hasDrift && !hasAnchored && accumulatedContent.length > 100) {
+        hasAnchored = true;
+        // console.warn('[Persona] Drift detected in response, length:', accumulatedContent.length);
       }
     }
-  });
-  return new Response(responseBody, { headers: { 'Content-Type': 'text/plain; charset=utf-8' }});
+
+    // Construct a single response object
+    const finalResponse = {
+      ok: true,
+      draft: {
+        raw: accumulatedContent,
+      },
+      climate: finalClimate,
+      hook: finalHook,
+      prov: { source: 'Woven Web App' },
+      intent: 'conversation' as const, // Default intent
+    };
+    
+    return new Response(JSON.stringify(finalResponse), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    // console.error('[API] Error during stream processing:', error);
+    return new Response(JSON.stringify({
+      ok: false,
+      error: 'Failed to process the request due to a server error.',
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 }
