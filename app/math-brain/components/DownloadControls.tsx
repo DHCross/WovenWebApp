@@ -5,13 +5,11 @@ import type { SeismographMap } from "../../../lib/health-data-types";
 
 interface DownloadControlsProps {
   includeTransits: boolean;
-  pdfGenerating: boolean;
   markdownGenerating: boolean;
   graphsPdfGenerating: boolean;
   weatherJsonGenerating: boolean;
   engineConfigGenerating: boolean;
   cleanJsonGenerating: boolean;
-  onDownloadPDF: () => void;
   onDownloadMarkdown: () => void;
   onDownloadSymbolicWeather: () => void;
   onDownloadGraphsPDF: () => void;
@@ -26,13 +24,11 @@ interface DownloadControlsProps {
 
 export default function DownloadControls({
   includeTransits,
-  pdfGenerating,
   markdownGenerating,
   graphsPdfGenerating,
   weatherJsonGenerating,
   engineConfigGenerating,
   cleanJsonGenerating,
-  onDownloadPDF,
   onDownloadMarkdown,
   onDownloadSymbolicWeather,
   onDownloadGraphsPDF,
@@ -55,32 +51,7 @@ export default function DownloadControls({
       <div className="rounded-lg border border-slate-700 bg-slate-800/40 p-4 space-y-3">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">For Raven Calder (AI Analysis)</h3>
 
-        <button
-          type="button"
-          onClick={onDownloadPDF}
-          disabled={pdfGenerating}
-          className="w-full rounded-md border border-indigo-600 bg-indigo-700/30 px-4 py-3 text-left hover:bg-indigo-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          aria-label="Download Mirror Directive PDF (complete natal charts + Raven Calder analysis instructions)"
-        >
-          <div className="flex items-center gap-3">
-            {pdfGenerating ? (
-              <svg className="animate-spin h-5 w-5 text-indigo-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-            ) : (
-              <span className="text-2xl">📄</span>
-            )}
-            <div className="flex-1">
-              <div className="text-sm font-medium text-slate-100">
-                {pdfGenerating ? "Generating Complete Chart Package..." : "Complete Chart Package"}
-              </div>
-              <div className="text-xs text-slate-400 mt-0.5">
-                Full natal data + AI reading instructions (Mirror Directive)
-              </div>
-            </div>
-          </div>
-        </button>
+
 
         <button
           type="button"

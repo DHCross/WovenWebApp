@@ -801,8 +801,8 @@ Start with the Solo Mirror(s), then ${
       markdown += `---\n\n`;
 
       const summary = sanitizedReport?.person_a?.summary;
-      if (summary) {
-        markdown += `### Balance Meter Summary\n\n`;
+      if (reportKind.includes('Balance Meter')) {
+        markdown += `\n### Balance Meter Summary\n\n`;
         if (summary.magnitude != null) {
           markdown += `- Magnitude: ${fmtAxis(summary.magnitude)}${
             summary.magnitude_label ? ` (${summary.magnitude_label})` : ''
