@@ -2,7 +2,24 @@
 
 import { useCallback, useState } from 'react';
 import type { MutableRefObject } from 'react';
-import { sanitizeReportForPDF } from '../../../src/pdf-sanitizer';
+
+// ===== Balance Meter frontstage helpers (prevent drift) =====
+const roundHalfUp = (n: number, dp: 0 | 1 | 2 = 1) => {
+  const f = Math.pow(10, dp);
+  return Math.round((n + Number.EPSILON) * f) / f;
+};
+const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+// Approved state labels used by this file only (VOICE guard exists elsewhere)
+const ALLOWED_STATE_LABELS = new Set<string>([
+  'High', 'Active', 'Murmur', 'Latent',
+  'Strong Outward', 'Mild Outward', 'Equilibrium', 'Mild Inward', 'Strong Inward',
+  'Very High', 'Moderate', 'Low',
+]);
+const safeLabel = (s?: string | null) => (s && ALLOWED_STATE_LABELS.has(s) ? s : undefined);
+// ============================================================
+
+import { sanitizeForPDF, sanitizeReportForPDF } from '../../../src/pdf-sanitizer';
 import { renderShareableMirror } from '../../../lib/raven/render';
 import type { ReportContractType } from '../types';
 import {
@@ -553,6 +570,12 @@ Start with the Solo Mirror(s), then ${
         mode: 'regular',
       });
 
+      const printableSections = sections.map((section) => ({
+        ...section,
+        title: sanitizeForPDF(section.title, { preserveWhitespace: true }),
+        body: sanitizeForPDF(section.body, { preserveWhitespace: true }),
+      }));
+
       const pdfDoc = await PDFDocument.create();
       const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
       const pageMargin = 50;
@@ -644,9 +667,10 @@ Start with the Solo Mirror(s), then ${
       addTextBlock(`Specification Version: 3.1`, { fontSize: 10 });
       addTextBlock(`Scaling Mode: Absolute ×50`, { fontSize: 10 });
       addTextBlock(`Pipeline: normalize -> scale -> clamp -> round`, { fontSize: 10 });
+      addTextBlock(`Coherence Inversion: ON (Coherence = 5 - vol_norm × 50)`, { fontSize: 10 });
       addTextBlock('', { fontSize: 8 });
 
-      sections.forEach((section) => {
+      printableSections.forEach((section) => {
         addTextBlock(section.body, {
           title: section.title,
           fontSize: section.mode === 'mono' ? 9 : 11,
@@ -722,7 +746,8 @@ Start with the Solo Mirror(s), then ${
       markdown += `**Generated:** ${generatedAt.toLocaleString()}\n\n`;
       markdown += `**Specification Version:** 3.1\n`;
       markdown += `**Scaling Mode:** Absolute ×50\n`;
-      markdown += `**Pipeline:** normalize -> scale -> clamp -> round\n\n`;
+      markdown += `**Pipeline:** normalize -> scale -> clamp -> round\n`;
+      markdown += `**Coherence Inversion:** ON (Coherence = 5 - vol_norm × 50)\n\n`;
       markdown += `---\n\n`;
 
       const summary = sanitizedReport?.person_a?.summary;
@@ -965,6 +990,8 @@ Start with the Solo Mirror(s), then ${
     try {
       const toNumber = (value: any): number | undefined => {
         if (typeof value === 'number' && Number.isFinite(value)) return value;
+        // IMPORTANT: Prefer .value (frontstage) over any derived .mean/.score to avoid accidental re-normalization
+        // (Order below preserves that priority.)
         if (typeof value === 'string') {
           const parsed = Number(value);
           if (!Number.isNaN(parsed)) return parsed;
@@ -984,17 +1011,11 @@ Start with the Solo Mirror(s), then ${
         rawValue: number,
         metric: 'magnitude' | 'directional_bias' | 'volatility',
       ): number => {
-        // Raw values are already frontstage (e.g., 5 for magnitude, -5 for bias)
-        // Just clamp and round appropriately
-        if (metric === 'directional_bias') {
-          return Math.round(Math.max(-5, Math.min(5, rawValue)) * 10) / 10;
-        }
-        if (metric === 'volatility') {
-          // Volatility stays as-is (already 0-5)
-          return Math.round(Math.max(0, Math.min(5, rawValue)) * 10) / 10;
-        }
-        // Magnitude (already 0-5)
-        return Math.round(Math.max(0, Math.min(5, rawValue)) * 100) / 100;
+        // Raw values are already frontstage; clamp + half-up rounding only
+        if (metric === 'directional_bias') return roundHalfUp(clamp(rawValue, -5, 5), 1);
+        if (metric === 'volatility') return roundHalfUp(clamp(rawValue, 0, 5), 1);
+        // magnitude
+        return roundHalfUp(clamp(rawValue, 0, 5), 2);
       };
 
       const weatherData: any = {
@@ -1118,15 +1139,9 @@ function createFrontStageResult(rawResult: any) {
     rawValue: number,
     type: 'magnitude' | 'directional_bias' | 'volatility',
   ): number => {
-    if (type === 'magnitude') {
-      return Math.min(5, Math.max(0, Math.round(rawValue * 100) / 100));
-    }
-    if (type === 'volatility') {
-      return Math.min(5, Math.max(0, Math.round(rawValue * 10) / 10));
-    }
-    if (type === 'directional_bias') {
-      return Math.min(5, Math.max(-5, Math.round(rawValue * 10) / 10));
-    }
+    if (type === 'magnitude') return roundHalfUp(clamp(rawValue, 0, 5), 2);
+    if (type === 'volatility') return roundHalfUp(clamp(rawValue, 0, 5), 1);
+    if (type === 'directional_bias') return roundHalfUp(clamp(rawValue, -5, 5), 1);
     return rawValue;
   };
 
@@ -1178,12 +1193,12 @@ function createFrontStageResult(rawResult: any) {
       directional_bias: normalizedBias,
       valence: normalizedBias,
       volatility: normalizedVol,
-      magnitude_label: normalizedMag !== undefined ? getStateLabel(normalizedMag, 'magnitude') : undefined,
+      magnitude_label: normalizedMag !== undefined ? safeLabel(getStateLabel(normalizedMag, 'magnitude')) : undefined,
       directional_bias_label:
-        normalizedBias !== undefined ? getStateLabel(normalizedBias, 'directional_bias') : undefined,
+        normalizedBias !== undefined ? safeLabel(getStateLabel(normalizedBias, 'directional_bias')) : undefined,
       valence_label:
-        normalizedBias !== undefined ? getStateLabel(normalizedBias, 'directional_bias') : undefined,
-      volatility_label: normalizedVol !== undefined ? getStateLabel(normalizedVol, 'volatility') : undefined,
+        normalizedBias !== undefined ? safeLabel(getStateLabel(normalizedBias, 'directional_bias')) : undefined,
+      volatility_label: normalizedVol !== undefined ? safeLabel(getStateLabel(normalizedVol, 'volatility')) : undefined,
       _scale_note: 'magnitude: 0-5, directional_bias: -5 to +5, volatility: 0-5',
     };
 
@@ -1193,9 +1208,9 @@ function createFrontStageResult(rawResult: any) {
       valence: frontStageResult.balance_meter.valence,
       bias_signed: frontStageResult.balance_meter.directional_bias,
       volatility: frontStageResult.balance_meter.volatility,
-      magnitude_label: frontStageResult.balance_meter.magnitude_label,
-      valence_label: frontStageResult.balance_meter.valence_label,
-      volatility_label: frontStageResult.balance_meter.volatility_label,
+      magnitude_label: safeLabel(frontStageResult.balance_meter.magnitude_label),
+      valence_label: safeLabel(frontStageResult.balance_meter.valence_label),
+      volatility_label: safeLabel(frontStageResult.balance_meter.volatility_label),
     };
   }
 

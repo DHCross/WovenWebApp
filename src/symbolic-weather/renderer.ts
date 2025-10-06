@@ -1,13 +1,15 @@
 import { DateTime } from 'luxon';
 import { createHash } from 'crypto';
+import { scaleUnipolar, scaleBipolar, scaleCoherenceFromVol, roundHalfUp, clamp, SCALE_FACTOR } from '@/lib/balance/scale';
+import { NormalizedDay } from '@/lib/schemas/day';
 
 export type CoherenceSource = 'volatility' | 'coherence';
 
 const DEFAULT_TIMEZONE = 'America/Chicago';
 export const SCALE_FACTORS = Object.freeze({
-  magnitude: 50,
-  directional_bias: 50,
-  coherence: 50,
+  magnitude: SCALE_FACTOR,
+  directional_bias: SCALE_FACTOR,
+  coherence: SCALE_FACTOR,
   sfd: 10
 });
 
@@ -45,21 +47,6 @@ const ANGLE_NAMES = new Set([
   'ASC',
   'DSC'
 ]);
-
-function clamp(value: number, min: number, max: number): number {
-  if (!Number.isFinite(value)) return min;
-  if (value < min) return min;
-  if (value > max) return max;
-  return value;
-}
-
-function roundHalfUp(value: number, decimals: number): number {
-  if (!Number.isFinite(value)) return 0;
-  const factor = 10 ** decimals;
-  const scaled = Math.abs(value) * factor;
-  const rounded = Math.round(scaled + Number.EPSILON);
-  return Math.sign(value) * (rounded / factor);
-}
 
 function formatWithMinus(value: number, decimals: number, opts: { showPlus?: boolean } = {}): string {
   const { showPlus = false } = opts;
@@ -151,6 +138,7 @@ export interface AxisDisplay {
   unit: string;
   source: 'engine' | 'computed';
   clampHit: boolean;
+  precision: number;
 }
 
 export interface SfdDisplay {
@@ -160,6 +148,7 @@ export interface SfdDisplay {
   source: 'engine' | 'computed' | 'absent';
   supportive: number | null;
   frictional: number | null;
+  precision: number;
 }
 
 interface ComputedSfdResult {
@@ -293,7 +282,7 @@ function canonicalizeDate(date: string, timezone: string): string {
     // Attempt to parse without timezone and then set zone
     const fallback = DateTime.fromISO(date);
     if (!fallback.isValid) {
-      throw new Error(`Invalid date provided for symbolic weather renderer: ${date}`);
+      throw new Error(`Invalid date or timezone for renderer: date="${date}", tz="${timezone}"`);
     }
     const iso = fallback.setZone(timezone).toISODate();
     if (!iso) {
@@ -339,10 +328,9 @@ function resolveSfdDisplay(
 
   if (hasInput) {
     source = 'engine';
-  const preScaled = dayInput.sfd_pre_scaled === true || Math.abs(parsedInput) > 0.15;
-  scoreRaw = preScaled ? parsedInput : parsedInput * SCALE_FACTORS.sfd;
-    scaled = scoreRaw;
-    const bounded = clamp(scoreRaw, -1, 1);
+    const preScaled = dayInput.sfd_pre_scaled === true;
+    scoreRaw = preScaled ? parsedInput : parsedInput * SCALE_FACTORS.sfd;
+    const [bounded, clampFlags] = clamp(scoreRaw, -1, 1);
     clamped = bounded;
     rounded = roundHalfUp(bounded, 2);
     value = rounded;
@@ -352,8 +340,9 @@ function resolveSfdDisplay(
     frictional = computed.frictional;
     scoreRaw = computed.raw ?? computed.value;
     scaled = scoreRaw;
-    clamped = clamp(scoreRaw ?? 0, -1, 1);
-    rounded = roundHalfUp(clamped, 2);
+    const [bounded, clampFlags] = clamp(scoreRaw ?? 0, -1, 1);
+    clamped = bounded;
+    rounded = roundHalfUp(bounded, 2);
     value = rounded;
   }
 
@@ -366,7 +355,7 @@ function resolveSfdDisplay(
       supportive,
       frictional,
       trace: {
-        date: '',
+        date: dayInput.date || '',
         axis: 'sfd',
         supportive_sum: supportive,
         frictional_sum: frictional,
@@ -381,7 +370,7 @@ function resolveSfdDisplay(
   }
 
   if (!hasInput && (supportive == null || frictional == null || supportive + frictional === 0)) {
-    throw new Error('Fabrication sentinel triggered: attempted to display SFD without drivers.');
+    throw new Error(`Fabrication sentinel: tried to display SFD without aspect drivers on ${dayInput.date || 'unknown date'}.`);
   }
 
   const display = formatWithMinus(value, 2, { showPlus: value > 0 });
@@ -447,6 +436,20 @@ export function renderSymbolicWeather(
     };
   }
 
+  // Input validation (cheap guardrail)
+  for (const input of inputs) {
+    try {
+      NormalizedDay.parse({
+        magnitude: Number(input.magnitude ?? 0),
+        directional_bias: Number(input.directional_bias ?? 0),
+        volatility: Number(input.volatility ?? 0),
+        sfd: (typeof input.sfd === 'number' ? input.sfd : null)
+      });
+    } catch (error) {
+      throw new Error(`Invalid normalized inputs for renderer: ${error instanceof Error ? error.message : 'validation failed'}`);
+    }
+  }
+
   const axisTraces: AxisTrace[] = [];
   const sfdTraces: SfdTrace[] = [];
   const clampHits = {
@@ -462,15 +465,17 @@ export function renderSymbolicWeather(
     const dayTimezone = input.timezone ?? timezone;
     const canonicalDate = canonicalizeDate(input.date, dayTimezone);
 
+    // magnitude
+    const mag = scaleUnipolar(Number(input.magnitude ?? 0)); // norm → ×50 → clamp [0,5] → round(1dp)
     const magnitudeNormalized = Number(input.magnitude ?? 0);
-    const magnitudeScaled = magnitudeNormalized * SCALE_FACTORS.magnitude;
-    const magnitudeClamped = clamp(magnitudeScaled, 0, 5);
-    const magnitudeRounded = roundHalfUp(magnitudeClamped, 1);
-    const magnitudeClampHit = magnitudeScaled !== magnitudeClamped;
+    const magnitudeScaled = mag.raw;
+    const magnitudeClamped = mag.raw; // raw is already clamped in the scaler
+    const magnitudeRounded = mag.value;
+    const magnitudeClampHit = mag.flags.hitMin || mag.flags.hitMax;
     if (magnitudeClampHit) {
-      if (magnitudeScaled < 0 && magnitudeClamped === 0) {
+      if (mag.flags.hitMin) {
         clampHits.magnitude.min += 1;
-      } else if (magnitudeScaled > 5 && magnitudeClamped === 5) {
+      } else if (mag.flags.hitMax) {
         clampHits.magnitude.max += 1;
       }
     }
@@ -484,15 +489,17 @@ export function renderSymbolicWeather(
       transform: '×50, clamp [0,5], round 1dp'
     });
 
+    // directional
+    const bias = scaleBipolar(Number(input.directional_bias ?? 0)); // norm → ×50 → clamp [−5,5] → round(1dp)
     const directionalNormalized = Number(input.directional_bias ?? 0);
-    const directionalScaled = directionalNormalized * SCALE_FACTORS.directional_bias;
-    const directionalClamped = clamp(directionalScaled, -5, 5);
-    const directionalRounded = roundHalfUp(directionalClamped, 1);
-    const directionalClampHit = directionalScaled !== directionalClamped;
+    const directionalScaled = bias.raw;
+    const directionalClamped = bias.raw; // raw is already clamped in the scaler
+    const directionalRounded = bias.value;
+    const directionalClampHit = bias.flags.hitMin || bias.flags.hitMax;
     if (directionalClampHit) {
-      if (directionalScaled < -5 && directionalClamped === -5) {
+      if (bias.flags.hitMin) {
         clampHits.directional_bias.min += 1;
-      } else if (directionalScaled > 5 && directionalClamped === 5) {
+      } else if (bias.flags.hitMax) {
         clampHits.directional_bias.max += 1;
       }
     }
@@ -506,25 +513,21 @@ export function renderSymbolicWeather(
       transform: '×50, clamp [−5,5], round 1dp'
     });
 
+    // coherence (from volatility)
+    const coh = (coherenceFrom === 'volatility')
+      ? scaleCoherenceFromVol(Number(input.volatility ?? 0))        // 5 − (vol×50) → clamp [0,5] → round(1dp)
+      : scaleUnipolar(Number(input.coherence ?? 0));
     const coherenceSourceValue = coherenceFrom === 'volatility'
       ? Number(input.volatility ?? 0)
       : Number(input.coherence ?? 0);
-
-    let coherenceScaled = coherenceFrom === 'volatility'
-      ? 5 - (SCALE_FACTORS.coherence * coherenceSourceValue)
-      : SCALE_FACTORS.coherence * coherenceSourceValue;
-
-    let coherenceTransform = coherenceFrom === 'volatility'
-      ? '5 − (volatility × 50), clamp [0,5], round 1dp'
-      : '×50, clamp [0,5], round 1dp';
-
-    const coherenceClamped = clamp(coherenceScaled, 0, 5);
-    const coherenceRounded = roundHalfUp(coherenceClamped, 1);
-    const coherenceClampHit = coherenceScaled !== coherenceClamped;
+    const coherenceScaled = coh.raw;
+    const coherenceClamped = coh.raw; // raw is already clamped in the scaler
+    const coherenceRounded = coh.value;
+    const coherenceClampHit = coh.flags.hitMin || coh.flags.hitMax;
     if (coherenceClampHit) {
-      if (coherenceScaled < 0 && coherenceClamped === 0) {
+      if (coh.flags.hitMin) {
         clampHits.coherence.min += 1;
-      } else if (coherenceScaled > 5 && coherenceClamped === 5) {
+      } else if (coh.flags.hitMax) {
         clampHits.coherence.max += 1;
       }
     }
@@ -535,13 +538,21 @@ export function renderSymbolicWeather(
       scaled: coherenceScaled,
       clamped: coherenceClamped,
       rounded: coherenceRounded,
-      transform: coherenceTransform
+      transform: coherenceFrom === 'volatility'
+        ? '5 − (volatility × 50), clamp [0,5], round 1dp'
+        : '×50, clamp [0,5], round 1dp'
     });
 
     const computedSfd = computeSfdFromAspects(input.aspects);
-    const sfdDisplay = resolveSfdDisplay(input, computedSfd);
-    sfdDisplay.trace.date = canonicalDate;
+    const sfdDisplay = resolveSfdDisplay({ ...input, date: canonicalDate }, computedSfd);
     sfdTraces.push(sfdDisplay.trace);
+
+    // SFD pre-scaled detection: remove the heuristic
+    const preScaled = input.sfd_pre_scaled === true;
+    if (!preScaled && Math.abs(Number(input.sfd ?? 0)) > 0.2) {
+      alerts.push(`SFD suspicious magnitude without pre_scaled flag on ${canonicalDate}`);
+    }
+
     if (
       sfdDisplay.status === 'ok' &&
       sfdDisplay.trace.scaled != null &&
@@ -579,7 +590,8 @@ export function renderSymbolicWeather(
       directional_bias: roundHalfUp(directionalNormalized, 6),
       volatility: roundHalfUp(Number(input.volatility ?? 0), 6),
       coherence: roundHalfUp(Number(input.coherence ?? 0), 6),
-      sfd: hashedSfd
+      sfd: hashedSfd,
+      coherence_from: coherenceFrom
     });
 
     return {
@@ -591,21 +603,24 @@ export function renderSymbolicWeather(
           display: magnitudeDisplay,
           unit: '0–5',
           source: 'engine',
-          clampHit: magnitudeClampHit
+          clampHit: magnitudeClampHit,
+          precision: 1
         },
         directionalBias: {
           value: directionalRounded,
           display: directionalDisplay,
           unit: '−5…+5',
           source: 'engine',
-          clampHit: directionalClampHit
+          clampHit: directionalClampHit,
+          precision: 1
         },
         narrativeCoherence: {
           value: coherenceRounded,
           display: coherenceDisplay,
           unit: '0–5',
           source: coherenceFrom === 'volatility' ? 'computed' : 'engine',
-          clampHit: coherenceClampHit
+          clampHit: coherenceClampHit,
+          precision: 1
         },
         integrationBias: {
           value: sfdDisplay.value,
@@ -613,22 +628,24 @@ export function renderSymbolicWeather(
           status: sfdDisplay.status,
           source: sfdDisplay.source,
           supportive: sfdDisplay.supportive,
-          frictional: sfdDisplay.frictional
+          frictional: sfdDisplay.frictional,
+          precision: 2
         }
       }
     };
   });
 
   const totalDays = days.length;
+  const totalSamples = totalDays; // future: axisSamples.magnitude, etc.
   const clampSummary: ClampCounter[] = [
-    calculateClampCounter('magnitude', 'min', clampHits.magnitude.min, totalDays),
-    calculateClampCounter('magnitude', 'max', clampHits.magnitude.max, totalDays),
-    calculateClampCounter('directional_bias', 'min', clampHits.directional_bias.min, totalDays),
-    calculateClampCounter('directional_bias', 'max', clampHits.directional_bias.max, totalDays),
-    calculateClampCounter('coherence', 'min', clampHits.coherence.min, totalDays),
-    calculateClampCounter('coherence', 'max', clampHits.coherence.max, totalDays),
-    calculateClampCounter('sfd', 'min', clampHits.sfd.min, totalDays),
-    calculateClampCounter('sfd', 'max', clampHits.sfd.max, totalDays)
+    calculateClampCounter('magnitude', 'min', clampHits.magnitude.min, totalSamples),
+    calculateClampCounter('magnitude', 'max', clampHits.magnitude.max, totalSamples),
+    calculateClampCounter('directional_bias', 'min', clampHits.directional_bias.min, totalSamples),
+    calculateClampCounter('directional_bias', 'max', clampHits.directional_bias.max, totalSamples),
+    calculateClampCounter('coherence', 'min', clampHits.coherence.min, totalSamples),
+    calculateClampCounter('coherence', 'max', clampHits.coherence.max, totalSamples),
+    calculateClampCounter('sfd', 'min', clampHits.sfd.min, totalSamples),
+    calculateClampCounter('sfd', 'max', clampHits.sfd.max, totalSamples)
   ];
 
   const alerts: string[] = [];
@@ -636,6 +653,14 @@ export function renderSymbolicWeather(
     const directionalClampRate = (clampHits.directional_bias.min + clampHits.directional_bias.max) / totalDays;
     if (directionalClampRate > 0.1) {
       alerts.push('Directional bias clamp rate exceeded 10% in absolute scaling mode.');
+    }
+    const magnitudeClampRate = (clampHits.magnitude.min + clampHits.magnitude.max) / totalDays;
+    if (magnitudeClampRate > 0.2) {
+      alerts.push('Magnitude clamp rate exceeded 20% in absolute scaling mode.');
+    }
+    const coherenceClampRate = (clampHits.coherence.min + clampHits.coherence.max) / totalDays;
+    if (coherenceClampRate > 0.2) {
+      alerts.push('Coherence clamp rate exceeded 20% in absolute scaling mode.');
     }
   }
 

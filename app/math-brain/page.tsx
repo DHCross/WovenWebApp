@@ -3127,7 +3127,20 @@ export default function MathBrainPage() {
       const json = JSON.stringify(inputs, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
       const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+$/, '');
-      const filename = which === 'A_ONLY' ? `math_brain_setup_A_${stamp}.json` : `math_brain_setup_${stamp}.json`;
+      // Sanitize names for filename safety
+      function sanitizeName(name: string) {
+        return (name || 'Unknown').replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '');
+      }
+      let filename = '';
+      if (which === 'A_ONLY') {
+        filename = `math_brain_setup_A_${stamp}.json`;
+      } else if (which === 'A_B') {
+        const nameA = sanitizeName(personA?.name);
+        const nameB = sanitizeName(personB?.name);
+        filename = `math_brain_setup_${nameA}_${nameB}_${stamp}.json`;
+      } else {
+        filename = `math_brain_setup_${stamp}.json`;
+      }
 
       // Prefer File System Access API when available (Chrome/Edge)
       const w: any = window as any;

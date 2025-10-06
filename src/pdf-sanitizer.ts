@@ -191,6 +191,8 @@ const GLYPH_MAP: Record<string, string> = {
   '💪': '*strong*',
   '🎉': '*celebration*',
   '🎯': '*target*',
+  '✅': '[OK]',
+  '❌': '[X]',
   '📊': '*chart*',
   '📈': '*trending_up*',
   '📉': '*trending_down*',
@@ -203,6 +205,8 @@ const GLYPH_MAP: Record<string, string> = {
   '🌞': 'Sun',
   '🌍': 'Earth',
   '🚀': 'rocket',
+  '🚨': '[ALERT]',
+  '⚠': '[WARN]',
 
   // Common Balance Meter symbols with variation selectors
   '💎': '*diamond*',
@@ -237,7 +241,8 @@ const GLYPH_MAP: Record<string, string> = {
   '†': '+',
   '‡': '++',
   '‰': 'per mille',
-  '‱': 'per ten thousand'
+  '‱': 'per ten thousand',
+  '─': '-'
 };
 
 // Additional character ranges that are problematic for WinAnsi encoding
@@ -269,10 +274,15 @@ const PROBLEMATIC_RANGES: Array<[number, number]> = [
  * Sanitizes text for PDF generation by replacing problematic characters
  * with ASCII-safe equivalents that work with WinAnsi encoding.
  */
-export function sanitizeForPDF(text: string): string {
+export function sanitizeForPDF(
+  text: string,
+  options: { preserveWhitespace?: boolean } = {},
+): string {
   if (!text || typeof text !== 'string') {
     return '';
   }
+
+  const { preserveWhitespace = false } = options;
 
   // First, strip all variation selectors and combining characters
   let sanitized = stripVariationSelectors(text);
@@ -333,10 +343,24 @@ export function sanitizeForPDF(text: string): string {
 
   // Final cleanup
   sanitized = sanitized
-    .replace(/\s+/g, ' ') // Normalize whitespace
-    .replace(/\?+/g, '?') // Collapse multiple question marks
-    .replace(/\*symbol\*\*symbol\*/g, '*symbols*') // Collapse symbol markers
-    .trim();
+    .replace(/\u00a0/g, ' ')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n');
+
+  if (preserveWhitespace) {
+    sanitized = sanitized
+      .replace(/\t/g, '  ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  } else {
+    sanitized = sanitized
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  sanitized = sanitized
+    .replace(/\?+/g, '?')
+    .replace(/\*symbol\*\*symbol\*/g, '*symbols*');
 
   return sanitized;
 }

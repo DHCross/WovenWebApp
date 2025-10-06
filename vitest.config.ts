@@ -6,7 +6,7 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     testTimeout: 5000,
-    include: ['test/**/*.test.ts', 'poetic-brain/test/**/*.test.ts'],
+    include: ['test/**/*.test.ts', 'poetic-brain/test/**/*.test.ts', '__tests__/**/*.test.ts'],
     setupFiles: ['test/setup.ts'],
   },
   resolve: {

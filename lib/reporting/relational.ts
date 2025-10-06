@@ -7,12 +7,20 @@ import {
 } from '@/lib/balance/scale';
 import { assertBalanceMeterInvariants } from '@/lib/balance/assertions';
 import { DayExport } from '@/lib/schemas/day';
-import { DEFAULT_RELATIONAL_ORBS, OrbsProfile, assertRelationalOrbs } from '@/lib/aspects/orbs';
+import {
+  DEFAULT_RELATIONAL_ORBS,
+  OrbsProfile,
+  assertRelationalOrbs
+} from '@/lib/aspects/orbs';
 
 export type RelationalNormalizedDay = {
+  /** 0..0.1 → ×50 → 0..5 */
   magnitude: number;
+  /** ~−0.1..+0.1 → ×50 → −5..+5 */
   directional_bias: number;
+  /** 0..0.1 (volatility) → inverted → 0..5 coherence */
   volatility: number;
+  /** null or −1..+1 (ratio-diff); never fabricated */
   sfd: number | null;
 };
 
@@ -20,12 +28,18 @@ export type AxisDisplay = {
   raw: number;
   value: number;
   flags: ClampInfo;
+  trace?: {
+    normalized: number;
+    scaled: number;
+    clamped: number;
+    rounded: number;
+  };
 };
 
 export type SfdDisplay = {
   raw: number | null;
   value: number | null;
-  display: string;
+  display: string; // 'n/a' when null
   flags: ClampInfo;
 };
 
@@ -42,51 +56,103 @@ export type RelationalDayExport = {
     factor: 50;
     pipeline: 'normalize→scale→clamp→round';
     coherence_inversion: true;
+    coherence_from: 'volatility' | 'coherence';
   };
   meta: {
     mode: 'relational';
+    spec_version: '3.1';
     scaling_mode: 'absolute';
     scale_factor: 50;
-    coherence_inversion: true;
+    scale_factors: {
+      magnitude: 50;
+      directional_bias: 50;
+      coherence: 50;
+      sfd: 10;
+    };
     pipeline: 'normalize→scale→clamp→round';
-    spec_version: '3.1';
+    coherence_inversion: true;
+    coherence_from: 'volatility' | 'coherence';
     orbs: OrbsProfile;
+    timezone?: string;
+    provenance?: {
+      run_id: string;
+      engine_build?: string;
+      rendered_at_utc?: string;
+    };
+    normalized_input_hash?: string;
   };
 };
 
+type BuildRelationalOptions = {
+  timezone?: string;
+  provenance?: {
+    run_id: string;
+    engine_build?: string;
+    rendered_at_utc?: string;
+  };
+  normalized_input_hash?: string;
+  coherence_from?: 'volatility' | 'coherence'; // default 'volatility'
+  includeTrace?: boolean;
+};
+
+/** Build a spec-stamped, relational day export (v3.1) */
 export function buildRelationalDayExport(
   relN: RelationalNormalizedDay,
   profile: OrbsProfile = DEFAULT_RELATIONAL_ORBS,
+  opts: BuildRelationalOptions = {},
 ): RelationalDayExport {
   assertRelationalOrbs(profile);
 
+  const coherenceFrom = opts.coherence_from ?? 'volatility';
+  // v3.1 expects inversion-from-volatility; stamp explicitly to prevent double inversion downstream.
+  // If you later support pre-inverted coherence input, update scalers accordingly.
+
+  // Canonical scaling
   const magnitude = scaleUnipolar(relN.magnitude);
   const bias = scaleBipolar(relN.directional_bias);
   const coherence = scaleCoherenceFromVol(relN.volatility);
   const sfd = scaleSFD(relN.sfd, relN.sfd != null && Math.abs(relN.sfd) > 0.15);
 
+  // Optional lightweight trace for observability (values still come from canonical scalers)
+  const withTrace = <T extends AxisDisplay>(
+    axis: T,
+    normalized: number,
+    clampMin: number,
+    clampMax: number
+  ): T => {
+    if (!opts.includeTrace) return axis;
+    const scaled = normalized * 50;
+    const clamped = Math.max(clampMin, Math.min(clampMax, scaled));
+    const rounded = Number(axis.value.toFixed(1));
+    return {
+      ...axis,
+      trace: { normalized, scaled, clamped, rounded },
+    };
+  };
+
   const payload = {
     normalized: relN,
     display: {
-      magnitude: {
-        raw: magnitude.raw,
-        value: magnitude.value,
-        flags: magnitude.flags,
-      },
-      directional_bias: {
-        raw: bias.raw,
-        value: bias.value,
-        flags: bias.flags,
-      },
-      coherence: {
-        raw: coherence.raw,
-        value: coherence.value,
-        flags: coherence.flags,
-      },
+      magnitude: withTrace(
+        { raw: magnitude.raw, value: magnitude.value, flags: magnitude.flags },
+        relN.magnitude,
+        0, 5
+      ),
+      directional_bias: withTrace(
+        { raw: bias.raw, value: bias.value, flags: bias.flags },
+        relN.directional_bias,
+        -5, 5
+      ),
+      // trace shows volatility input used for inversion
+      coherence: withTrace(
+        { raw: coherence.raw, value: coherence.value, flags: coherence.flags },
+        relN.volatility,
+        0, 5
+      ),
       sfd: {
         raw: sfd.raw,
         value: sfd.value,
-        display: sfd.display,
+        display: sfd.display, // 'n/a' when null — no fabrication
         flags: sfd.flags,
       },
     },
@@ -95,20 +161,30 @@ export function buildRelationalDayExport(
       factor: 50 as const,
       pipeline: 'normalize→scale→clamp→round' as const,
       coherence_inversion: true as const,
+      coherence_from: coherenceFrom,
     },
     meta: {
       mode: 'relational' as const,
+      spec_version: '3.1' as const,
       scaling_mode: 'absolute' as const,
       scale_factor: 50 as const,
-      coherence_inversion: true as const,
+      scale_factors: {
+        magnitude: 50 as const,
+        directional_bias: 50 as const,
+        coherence: 50 as const,
+        sfd: 10 as const,
+      },
       pipeline: 'normalize→scale→clamp→round' as const,
-      spec_version: '3.1' as const,
+      coherence_inversion: true as const,
+      coherence_from: coherenceFrom,
       orbs: profile,
+      timezone: opts.timezone,
+      provenance: opts.provenance,
+      normalized_input_hash: opts.normalized_input_hash,
     },
   } satisfies RelationalDayExport;
 
   // Runtime validation: enforce spec v3.1 compliance
-  // Transform to expected format for assertion
   const validatePayload = {
     axes: {
       magnitude: { normalized: relN.magnitude, ...payload.display.magnitude },
@@ -116,14 +192,12 @@ export function buildRelationalDayExport(
       coherence: { normalized: relN.volatility, ...payload.display.coherence },
       sfd: { normalized: relN.sfd, ...payload.display.sfd },
     },
-    labels: {
-      magnitude: '', directional_bias: '', coherence: '', sfd: '' // Not validated
-    },
+    labels: { magnitude: '', directional_bias: '', coherence: '', sfd: '' },
     scaling: payload.scaling,
     _raw: {}
   };
   assertBalanceMeterInvariants(validatePayload as any);
 
-  DayExport.parse(payload);
+  DayExport.parse(payload); // Zod guard
   return payload;
 }
