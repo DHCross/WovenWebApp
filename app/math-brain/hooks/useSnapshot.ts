@@ -66,7 +66,7 @@ export function useSnapshot() {
 
       // Build payload matching the format page.tsx uses
       const payload: any = {
-        mode,
+        mode: 'balance_meter', // Always use balance_meter for snapshots
         personA: {
           ...personA,
           nation: "US", // Required for API compatibility

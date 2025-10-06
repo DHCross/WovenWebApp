@@ -19,7 +19,7 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
   const isRelational = hasPersonB && result?.person_b;
 
   // Extract Balance Meter metrics from the result
-  const balanceMeter = result?.person_a?.summary || result?.balance_meter || {};
+  const balanceMeter = result?.person_a?.summary || result?.summary || result?.balance_meter || {};
   const magnitude = balanceMeter.magnitude ?? null;
   const directionalBias = balanceMeter.bias_signed ?? balanceMeter.valence ?? null;
   const volatility = balanceMeter.volatility ?? null;
