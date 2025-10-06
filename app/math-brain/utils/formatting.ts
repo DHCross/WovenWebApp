@@ -1,4 +1,5 @@
 import type { ReportContractType } from '../types';
+import { fmtAxis, fmtAxisLabel } from '../../../lib/ui/format';
 
 export const formatReportKind = (contractType: ReportContractType): string => {
   switch (contractType) {
@@ -184,10 +185,10 @@ export function formatDailyReadingsTable(dailyReadings: any[]): string {
 
   dailyReadings.forEach((day) => {
     const date = (day.date || '').padEnd(12);
-    const mag = String(day.magnitude || 0).padEnd(10);
-    const val = String(day.valence || 0).padEnd(10);
-    const vol = String(day.volatility || 0).padEnd(11);
-    const sfd = String(day.sfd || 0).padEnd(8);
+    const mag = fmtAxis(day.magnitude).padEnd(10);
+    const val = fmtAxis(day.valence ?? day.directional_bias).padEnd(10);
+    const vol = fmtAxis(day.volatility).padEnd(11);
+    const sfd = fmtAxis(day.sfd, 2).padEnd(8);
     const notes = day.notes || day.label || '';
 
     lines.push(`${date} ${mag} ${val} ${vol} ${sfd} ${notes}`);
@@ -205,22 +206,36 @@ export function formatSymbolicWeatherSummary(symbolicWeather: any): string {
     const bm = symbolicWeather.balance_meter;
     lines.push('BALANCE METER SUMMARY');
     lines.push('─'.repeat(40));
-    if (bm.magnitude !== undefined) {
-      lines.push(`Numinosity (Magnitude): ${bm.magnitude_label || bm.magnitude} (${bm.magnitude}/5)`);
+    if (bm.magnitude !== undefined || bm.magnitude_label !== undefined) {
+      lines.push(
+        `Numinosity (Magnitude): ${fmtAxisLabel(bm.magnitude_label, bm.magnitude)} (${fmtAxis(bm.magnitude)}/5)`,
+      );
     }
-    if (bm.bias_signed !== undefined) {
-      lines.push(`Directional Bias: ${bm.bias_label || bm.bias_signed} (${bm.bias_signed})`);
-    } else if (bm.valence !== undefined) {
-      lines.push(`Directional Bias: ${bm.valence_label || bm.valence} (${bm.valence})`);
+    if (
+      bm.bias_signed !== undefined ||
+      bm.valence !== undefined ||
+      bm.bias_label !== undefined ||
+      bm.valence_label !== undefined
+    ) {
+      const biasNum = bm.bias_signed ?? bm.valence;
+      const biasLabel = bm.bias_label ?? bm.valence_label;
+      const biasDisp = fmtAxisLabel(biasLabel, biasNum);
+      const biasNumDisp = fmtAxis(biasNum);
+      lines.push(`Directional Bias: ${biasDisp} (${biasNumDisp})`);
     }
-    if (bm.volatility !== undefined) {
-      lines.push(`Narrative Coherence (Volatility): ${bm.volatility_label || bm.volatility} (${bm.volatility}/5)`);
+    if (bm.volatility !== undefined || bm.volatility_label !== undefined) {
+      lines.push(
+        `Narrative Coherence (Volatility): ${fmtAxisLabel(bm.volatility_label, bm.volatility)} (${fmtAxis(
+          bm.volatility,
+        )}/5)`,
+      );
     }
     if (bm.support_friction) {
       const sfd = bm.support_friction;
-      lines.push(`Integration Bias (SFD): ${sfd.sfd_label || (sfd.sfd_cont ?? sfd.value)}`);
+      const sfdDisp = sfd?.sfd_label ?? (sfd?.sfd_cont ?? sfd?.value);
+      lines.push(`Integration Bias (SFD): ${fmtAxis(sfdDisp, 2)}`);
     } else if (bm.sfd !== undefined) {
-      lines.push(`Integration Bias (SFD): ${bm.sfd}`);
+      lines.push(`Integration Bias (SFD): ${fmtAxis(bm.sfd, 2)}`);
     }
     lines.push('');
   }
