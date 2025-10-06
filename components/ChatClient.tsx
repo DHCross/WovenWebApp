@@ -1287,9 +1287,7 @@ export default function ChatClient() {
 
     if (!target) return;
 
-    const handleScroll = () => {
-      if (!typing) return;
-
+    const evaluateScrollPosition = () => {
       const { scrollTop, clientHeight, scrollHeight } = useWindowScroll
         ? (() => {
             const doc = document.documentElement;
@@ -1306,22 +1304,18 @@ export default function ChatClient() {
             scrollHeight: container!.scrollHeight,
           };
 
-      // More lenient check - only show hint if user scrolls significantly up from current content
-      const isSignificantlyScrolledUp =
+      const isAwayFromLatest =
         scrollTop + clientHeight < scrollHeight - 200;
-      setShowScrollHint(isSignificantlyScrolledUp);
+      setShowScrollHint(isAwayFromLatest);
     };
 
-    target.addEventListener("scroll", handleScroll);
+    evaluateScrollPosition();
+    target.addEventListener("scroll", evaluateScrollPosition, { passive: true });
 
-    // Don't show hint initially when typing starts - let Raven position naturally
-    if (!typing) {
-      setShowScrollHint(false);
-      setUserScrolledAway(false); // Reset scroll-away state when typing stops
-    }
-
-    return () => target.removeEventListener("scroll", handleScroll);
-  }, [typing, shouldUseWindowScroll]);
+    return () => {
+      target.removeEventListener("scroll", evaluateScrollPosition);
+    };
+  }, [shouldUseWindowScroll]);
 
   function toggleReportCollapse(messageId: string) {
     setMessages((m) =>
@@ -2417,10 +2411,14 @@ export default function ChatClient() {
 
   return (
     <div
+
+      className="app relative mx-auto flex min-h-[100dvh] w-full max-w-[980px] flex-col overflow-x-hidden"
+
       className="app flex min-h-screen min-h-[100dvh] h-full w-full max-w-[980px] flex-col"
       style={{
         margin: "0 auto",
       }}
+
     >
       <input
         type="file"
@@ -2430,7 +2428,8 @@ export default function ChatClient() {
         style={{ display: "none" }}
         accept=".txt, .md, .json, .pdf"
       />
-      <Header
+      <div className="flex flex-1 min-h-0 flex-col">
+        <Header
         onFileSelect={handleFileSelect}
         hasMirrorData={hasMirrorData}
         onPoeticInsert={requestPoeticInsert}
@@ -2775,6 +2774,8 @@ export default function ChatClient() {
           </button>
         )}
       </main>
+
+      </div>
 
       {!isDesktop && isSidebarOpen && (
         <>
@@ -4354,7 +4355,7 @@ function NavigationPanel({
   return (
     <div
       data-chat-nav
-      className="flex items-center justify-center gap-2 px-[18px] py-2 bg-[var(--panel)] border-t border-b border-[var(--line)] text-[12px]"
+      className="flex flex-shrink-0 items-center justify-center gap-2 border-y border-[var(--line)] bg-[var(--panel)] px-[18px] py-2 text-[12px]"
     >
       <button
         onClick={scrollToTop}
