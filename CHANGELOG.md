@@ -50,6 +50,87 @@ Comprehensive analysis of systemic issues causing repeated problems in the Woven
 - Documentation of AI-assisted changes
 - Training on project architecture and philosophy
 
+---
+
+## [2025-10-06] FEATURE: Clear Mirror Voice Documentation
+
+**Summary**
+Added comprehensive documentation for the Raven Calder "Clear Mirror Voice" - the public-facing lexicon and delivery framework for translating Math Brain precision into emotionally accessible language.
+
+**What Was Added**
+- `docs/CLEAR_MIRROR_VOICE.md`: Complete voice guide with lexicon conversion table
+- Lexicon translates 20+ technical terms (FIELD, MAP, VOICE, SFD, etc.) into emotional tone
+- Five-step delivery framework for converting technical diagnostics into public mirrors
+- Tone anchors and example conversions
+- Updated `docs/PROJECT_OVERVIEW.md` to reference Clear Mirror Voice
+- Created `docs/README.md` as documentation index
+
+**Key Components**
+- **How It Works section**: User-facing explanation of the Woven Map system
+- **Lexicon Conversion Table**: Technical term → public translation → mirror voice example
+- **Clear Mirror Delivery Framework**: Five-step process (Recognition Hook → Pattern Naming → Perspective Framing → Conditional Leverage → Tiny Next Step)
+- **Example Conversion**: Shows SFD/Magnitude/Directional Bias translated into plain language
+- **Tone Anchors**: Guidelines for maintaining Raven Calder voice consistency
+
+**Core Marketing Sentence**
+> "We turn chaos into coordinates. The Woven Map translates pressure into pattern, so you can see your life clearly enough to choose your next move."
+
+**Implementation Notes**
+- For Poetic Brain: Use this guide when translating Math Brain outputs into conversational reflections
+- For Marketing: Reference lexicon when writing public-facing copy
+- For Developers: Consult when implementing user-facing features that bridge Math/Poetic brains
+
+**Files Changed**
+- `docs/CLEAR_MIRROR_VOICE.md`: Created (complete voice guide)
+- `docs/PROJECT_OVERVIEW.md`: Updated Poetic Codex section with Clear Mirror reference
+- `docs/README.md`: Created (documentation index and navigation)
+
+**Impact**
+- Establishes consistent voice for all user-facing Poetic Brain outputs
+- Provides translation framework between technical precision and emotional clarity
+- Supports future marketing/content development with clear lexicon
+- Ensures "falsifiable empathy" and "agency-first" principles in all reflections
+
+---
+
+## [2025-10-06] FIX: Balance Meter Fragmentation - Centralized Value Extraction
+
+**Summary**
+Resolved recurring Balance Meter fragmentation where calibrated values (3.9/-2.3) reverted to raw values (5.0/-5.0) in exports despite multiple previous fixes. Root cause: Multiple inconsistent value extraction functions across codebase with different priority logic.
+
+**Root Cause**
+- Multiple `toNumber`/`extractAxisValue` functions with inconsistent priority order
+- Some functions prioritized raw fields over calibrated `axes.*.value` fields
+- Maintenance burden from similar but different extraction logic
+- No centralized extraction helper leading to drift opportunities
+
+**Solution Implemented**
+- Created centralized `extractAxisNumber()` in `app/math-brain/utils/formatting.ts`
+- Priority order: `axes.*.value` → calibrated fields → raw fields → fallbacks
+- Updated all export functions in `useChartExport.ts` to use centralized logic
+- Fixed dashboard binding in `app/math-brain/page.tsx` to prioritize calibrated values
+- Added comprehensive regression tests in `__tests__/balance-export-regression.test.ts`
+
+**Files Changed**
+- `app/math-brain/utils/formatting.ts`: Added `extractAxisNumber()` export
+- `app/math-brain/hooks/useChartExport.ts`: Updated all extraction functions to use centralized helper
+- `app/math-brain/page.tsx`: Fixed dashboard magnitude binding priority
+- `__tests__/balance-export-regression.test.ts`: Added priority order and edge case tests
+
+**Validation**
+- Backend confirmed correct: summary averages use calibrated daily values
+- All export functions now use consistent calibrated value extraction
+- Regression tests validate priority order and prevent future drift
+- Dashboard and exports now show matching calibrated values (3.9/-2.3)
+
+**Impact**
+- Eliminates Balance Meter fragmentation between dashboard and exports
+- Prevents future drift from inconsistent extraction functions
+- Reduces maintenance burden with single source of truth
+- Ensures calibrated values (0-5 range) always take precedence over raw values
+
+---
+
 **4. Process Improvements**
 - Mandatory changelog updates for all changes
 - Pre-deployment checklists

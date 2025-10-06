@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createFrontStageResult, augmentPayloadWithMirrorContract } from '../app/math-brain/hooks/useChartExport';
+import { extractAxisNumber } from '../app/math-brain/utils/formatting';
 
 const BASE_SERVER_RESULT = {
   id: 'balance-meter-e2e-fixture',
@@ -159,32 +160,126 @@ describe('Balance Meter export regression', () => {
     expect(day.seismograph.magnitude).toBe(5.0); // raw
     expect(day.seismograph.axes.magnitude.value).toBe(3.9); // calibrated
     
-    // Simulate the symbolic weather export logic (matches downloadSymbolicWeatherJSON)
-    const extractAxisValue = (source: any, axis: 'magnitude' | 'directional_bias' | 'volatility') => {
-      const axesBlock = source?.axes;
-      if (!axesBlock) return undefined;
-      
-      const axisMap: Record<string, string> = {
-        magnitude: 'magnitude',
-        directional_bias: 'directional_bias',
-        volatility: 'coherence',
-      };
-      
-      const axisData = axesBlock[axisMap[axis]];
-      if (typeof axisData === 'number') return axisData;
-      if (axisData && typeof axisData === 'object' && typeof axisData.value === 'number') {
-        return axisData.value;
-      }
-      return undefined;
-    };
+    // Use the centralized extractAxisNumber function (same logic as downloadSymbolicWeatherJSON)
+    const extractedMag = extractAxisNumber(day.seismograph, 'magnitude');
+    const extractedBias = extractAxisNumber(day.seismograph, 'directional_bias');
+    const extractedVol = extractAxisNumber(day.seismograph, 'volatility');
     
-    // The toNumber function MUST read from axes when axis param is provided
-    const extractedMag = extractAxisValue(day.seismograph, 'magnitude');
-    const extractedBias = extractAxisValue(day.seismograph, 'directional_bias');
-    
-    expect(extractedMag).toBe(3.9); // MUST read calibrated
-    expect(extractedMag).not.toBe(5.0); // MUST NOT read raw
+    expect(extractedMag).toBe(3.9); // MUST read calibrated from axes block
+    expect(extractedMag).not.toBe(5.0); // MUST NOT read raw magnitude field
     expect(extractedBias).toBe(-2.3);
     expect(extractedBias).not.toBe(-5.0);
+    expect(extractedVol).toBe(1.1);
+  });
+
+  describe('extractAxisNumber priority order and fallbacks', () => {
+    it('prioritizes axes block value over calibrated fields over raw fields', () => {
+      const testData = {
+        magnitude: 5.0, // raw
+        magnitude_calibrated: 4.5, // calibrated field
+        axes: {
+          magnitude: { value: 3.9 }, // axes block (highest priority)
+        },
+      };
+
+      expect(extractAxisNumber(testData, 'magnitude')).toBe(3.9);
+    });
+
+    it('falls back to calibrated fields when axes block missing', () => {
+      const testData = {
+        magnitude: 5.0, // raw
+        magnitude_calibrated: 4.5, // calibrated field (fallback)
+        // no axes block
+      };
+
+      expect(extractAxisNumber(testData, 'magnitude')).toBe(4.5);
+    });
+
+    it('falls back to raw fields when axes and calibrated missing', () => {
+      const testData = {
+        magnitude: 5.0, // raw (final fallback)
+        // no calibrated, no axes
+      };
+
+      expect(extractAxisNumber(testData, 'magnitude')).toBe(5.0);
+    });
+
+    it('handles directional_bias priority chain correctly', () => {
+      const testData = {
+        valence: -5.0, // raw
+        valence_bounded: -3.5, // calibrated
+        bias_signed: -2.3, // another calibrated
+        axes: {
+          directional_bias: { value: -1.8 }, // highest priority
+        },
+      };
+
+      expect(extractAxisNumber(testData, 'directional_bias')).toBe(-1.8);
+    });
+
+    it('handles directional_bias fallback to balance_channel', () => {
+      const testData = {
+        balance_channel: -2.7, // special fallback for directional_bias
+        // no axes, no other fields
+      };
+
+      expect(extractAxisNumber(testData, 'directional_bias')).toBe(-2.7);
+    });
+
+    it('handles volatility/coherence mapping correctly', () => {
+      const testData = {
+        volatility: 2.0, // raw volatility
+        coherence: 1.5, // calibrated coherence
+        axes: {
+          coherence: { value: 1.1 }, // axes block (highest priority)
+        },
+      };
+
+      expect(extractAxisNumber(testData, 'volatility')).toBe(1.1);
+    });
+
+    it('handles nested object values in axes block', () => {
+      const testData = {
+        axes: {
+          magnitude: {
+            value: 3.9, // direct value
+            scaled: 4.2,
+            display: '3.9',
+          },
+        },
+      };
+
+      expect(extractAxisNumber(testData, 'magnitude')).toBe(3.9);
+    });
+
+    it('handles string values that parse to numbers', () => {
+      const testData = {
+        axes: {
+          magnitude: { value: '3.9' }, // string that parses
+        },
+      };
+
+      expect(extractAxisNumber(testData, 'magnitude')).toBe(3.9);
+    });
+
+    it('returns undefined for invalid data', () => {
+      expect(extractAxisNumber(null, 'magnitude')).toBeUndefined();
+      expect(extractAxisNumber({}, 'magnitude')).toBeUndefined();
+      expect(extractAxisNumber({ axes: {} }, 'magnitude')).toBeUndefined();
+      expect(extractAxisNumber({ magnitude: 'not-a-number' }, 'magnitude')).toBeUndefined();
+    });
+
+    it('handles balance_meter.axes alternative structure', () => {
+      const testData = {
+        balance_meter: {
+          axes: {
+            magnitude: { value: 4.1 },
+          },
+        },
+        magnitude: 5.0, // should not be used
+      };
+
+      expect(extractAxisNumber(testData, 'magnitude')).toBe(4.1);
+    });
   });
 });

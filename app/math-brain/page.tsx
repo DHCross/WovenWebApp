@@ -4590,8 +4590,18 @@ export default function MathBrainPage() {
               ?? result?.person_a?.derived?.seismograph_summary;
             if (!summary) return null;
 
-            const mag = Number(summary.magnitude ?? 0);
-            const val = Number(summary.valence_bounded ?? summary.valence ?? 0);
+            const mag = Number(
+              summary.axes?.magnitude?.value ??
+              summary.magnitude_calibrated ??
+              summary.magnitude ??
+              0
+            );
+            const val = Number(
+              summary.axes?.directional_bias?.value ??
+              summary.valence_bounded ??
+              summary.valence ??
+              0
+            );
             const vol = Number(summary.volatility ?? 0);
 
             // Calculate daily ranges from transitsByDate

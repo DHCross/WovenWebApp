@@ -20,37 +20,9 @@ const safeLabel = (s?: string | null) => (s && ALLOWED_STATE_LABELS.has(s) ? s :
 
 type AxisKey = 'magnitude' | 'directional_bias' | 'volatility';
 
-const AXIS_FIELD_MAP: Record<AxisKey, 'magnitude' | 'directional_bias' | 'coherence'> = {
-  magnitude: 'magnitude',
-  directional_bias: 'directional_bias',
-  volatility: 'coherence',
-};
-
 const extractAxisValue = (source: any, axis: AxisKey): number | undefined => {
-  if (!source || typeof source !== 'object') return undefined;
-  const axesBlock = source.axes || source.balance_meter?.axes;
-  if (!axesBlock || typeof axesBlock !== 'object') return undefined;
-  const axisField = AXIS_FIELD_MAP[axis];
-  const axisData = axesBlock?.[axisField];
-  if (typeof axisData === 'number' && Number.isFinite(axisData)) {
-    return axisData;
-  }
-  if (typeof axisData === 'string') {
-    const parsed = Number(axisData);
-    if (!Number.isNaN(parsed)) return parsed;
-  }
-  if (!axisData || typeof axisData !== 'object') return undefined;
-  const candidates = [axisData.value, axisData.display, axisData.final, axisData.scaled, axisData.score];
-  for (const candidate of candidates) {
-    if (typeof candidate === 'number' && Number.isFinite(candidate)) {
-      return candidate;
-    }
-    if (typeof candidate === 'string') {
-      const parsed = Number(candidate);
-      if (!Number.isNaN(parsed)) return parsed;
-    }
-  }
-  return undefined;
+  // Use centralized extraction function for consistency
+  return extractAxisNumber(source, axis as any);
 };
 // ============================================================
 
@@ -92,6 +64,7 @@ import {
   formatAspectsTable,
   formatSymbolicWeatherSummary,
   formatChartTables,
+  extractAxisNumber,
 } from '../utils/formatting';
 
 type FriendlyFilenameType = 'directive' | 'dashboard' | 'symbolic-weather' | 'weather-log' | 'engine-config';
@@ -1074,15 +1047,11 @@ Start with the Solo Mirror(s), then ${
         axis?: AxisKey,
         context?: any
       ): number | undefined => {
-        // CRITICAL: When axis is specified, ALWAYS prefer extractAxisValue from context
-        // This ensures we read calibrated values from axes.magnitude.value, not raw magnitude
+        // Use centralized extraction for axis-aware calls
         if (axis && context) {
-          const axisCandidate = extractAxisValue(context, axis);
-          if (axisCandidate !== undefined) {
-            return axisCandidate;
-          }
+          return extractAxisNumber(context, axis);
         }
-        // Only fall back to direct value extraction if no axis specified
+        // Fallback for non-axis calls
         if (typeof value === 'number' && Number.isFinite(value)) return value;
         if (typeof value === 'string') {
           const parsed = Number(value);
@@ -1225,12 +1194,11 @@ export function createFrontStageResult(rawResult: any) {
     axis?: AxisKey,
     context?: any
   ): number | undefined => {
+    // Use centralized extraction for axis-aware calls
     if (axis) {
-      const axisCandidate = extractAxisValue(context ?? value, axis);
-      if (axisCandidate !== undefined) {
-        return axisCandidate;
-      }
+      return extractAxisNumber(context ?? value, axis);
     }
+    // Fallback for non-axis calls
     if (typeof value === 'number' && Number.isFinite(value)) return value;
     if (typeof value === 'string') {
       const parsed = Number(value);

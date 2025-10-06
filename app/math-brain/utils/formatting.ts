@@ -64,6 +64,8 @@ const extractAxisNumber = (source: any, axis: AxisName): number | undefined => {
   return undefined;
 };
 
+export { extractAxisNumber };
+
 export const formatReportKind = (contractType: ReportContractType): string => {
   switch (contractType) {
     case 'relational_balance_meter':

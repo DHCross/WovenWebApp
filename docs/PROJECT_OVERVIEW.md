@@ -40,10 +40,11 @@ A sophisticated diagnostic tool for measuring the symbolic "weather" of a given 
 A system for translating raw astrological data into emotionally resonant, diagnostic "cards" or mirrors. It follows a strict protocol:
 
 *   **FIELD -> MAP -> VOICE:** This is the core translation process.
-    *   **FIELD:** The raw energetic climate (symbolic data).
-    *   **MAP:** The archetypal patterns and geometric interpretations.
-    *   **VOICE:** The final, plain-language output presented to the user.
+    *   **FIELD:** The raw energetic climate (symbolic data). What's happening right now—the feeling in the air.
+    *   **MAP:** The archetypal patterns and geometric interpretations. Where it's landing—the shape of the pattern.
+    *   **VOICE:** The final, plain-language output presented to the user. Your mirror—how it sounds when life speaks back.
 *   **Symbol-to-Poem:** A specific protocol for translating natal geometry into a resonant poem, followed by a clear explanation table that maps each line back to its astrological source.
+*   **Clear Mirror Voice:** The Raven Calder public-facing tone that translates technical precision into emotional clarity. See `docs/CLEAR_MIRROR_VOICE.md` for the complete lexicon conversion table and delivery framework.
 
 ### The Dream Protocol
 
