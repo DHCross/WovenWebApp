@@ -2810,6 +2810,14 @@ export default function ChatClient() {
                   hasMirrorData={hasMirrorData}
                 />
               </div>
+              <div className="border-t border-[var(--line)] bg-[var(--panel)] px-3 py-2">
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="w-full rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-3 py-2 text-[12px] text-[var(--text)]"
+                >
+                  ← Back to chat
+                </button>
+              </div>
             </div>
           </div>
         </>
@@ -3870,7 +3878,7 @@ function Stream({
         overscrollBehavior: "contain",
         scrollPaddingTop: scrollPadding,
         scrollPaddingBottom: scrollPadding,
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+        paddingBottom: `calc(${scrollPadding}px + env(safe-area-inset-bottom, 0px))`,
       }}
     >
       {messages.map((m) => (
