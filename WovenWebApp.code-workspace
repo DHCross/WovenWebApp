@@ -5,6 +5,8 @@
 		}
 	],
 	"settings": {
-		"sortable-explorer.sortBy": "name"
+		"sortable-explorer.sortBy": "created",
+		"sortable-explorer.sortDirection": "asc",
+		"sortable-explorer.viewMode": "tree"
 	}
 }
