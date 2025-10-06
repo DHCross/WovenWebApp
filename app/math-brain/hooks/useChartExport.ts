@@ -54,6 +54,31 @@ const extractAxisValue = (source: any, axis: AxisKey): number | undefined => {
 };
 // ============================================================
 
+// Relationship context definitions, to be injected into PDF exports for AI context.
+const relationshipDefinitions = `# Relationship Context Definitions (Math Brain)
+
+## Relationship Types
+
+### PARTNER
+Romantic, sexual, or intimate partnership (requires intimacy tier)
+
+**Intimacy Tiers:**
+- **P1** — Platonic partners (no romantic/sexual component)
+- **P2** — Friends-with-benefits (sexual but not romantic)
+- **P3** — Situationship (unclear/unstable, undefined boundaries)
+- **P4** — Low-commitment romantic or sexual (casual dating, open relationships)
+- **P5a** — Committed romantic + sexual (exclusive committed relationship)
+- **P5b** — Committed romantic, non-sexual (committed partnership without sexual component)
+
+### OTHER TYPES (Placeholder)
+Definitions for FAMILY and FRIEND/PROFESSIONAL types should be added here when available.
+
+**Raven's Rule:**
+- Always use the EXACT intimacy tier labels as defined above.
+- Never substitute with outdated labels like "established regular rhythm".
+- The intimacy tier appears in the relationship context and must be interpreted correctly.
+`;
+
 import { sanitizeForPDF, sanitizeReportForPDF } from '../../../src/pdf-sanitizer';
 import { renderShareableMirror } from '../../../lib/raven/render';
 import type { ReportContractType } from '../types';
