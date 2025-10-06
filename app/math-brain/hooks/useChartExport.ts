@@ -1708,7 +1708,7 @@ function buildMirrorMarkdown(result: any, reportKind: string): string {
   return markdown.replace(/\n{3,}/g, '\n\n').trimEnd();
 }
 
-function augmentPayloadWithMirrorContract(payload: any, reportKind: string) {
+export function augmentPayloadWithMirrorContract(payload: any, reportKind: string) {
   if (!payload || typeof payload !== 'object') {
     return payload;
   }

@@ -450,7 +450,62 @@ function extractWeather(startDate: string, endDate: string, result: any): Weathe
 
   // Extract balance meter data if available
   let balanceMeter: Weather['balanceMeter'] | undefined;
-  const summary = result?.person_a?.derived?.seismograph_summary;
+  const AXIS_VALUE_KEYS = ['value', 'display', 'final', 'scaled', 'score', 'mean'];
+  const pickFinite = (...candidates: any[]): number | undefined => {
+    for (const candidate of candidates) {
+      const numeric = toFiniteNumber(candidate);
+      if (Number.isFinite(numeric)) return numeric;
+      if (candidate && typeof candidate === 'object') {
+        for (const key of AXIS_VALUE_KEYS) {
+          const nestedCandidate = (candidate as any)[key];
+          const nested = toFiniteNumber(nestedCandidate);
+          if (Number.isFinite(nested)) return nested;
+        }
+      }
+    }
+    return undefined;
+  };
+
+  const resolveAxis = (
+    source: any,
+    axis: 'magnitude' | 'directional_bias' | 'volatility'
+  ): number | undefined => {
+    if (!source || typeof source !== 'object') return pickFinite(source);
+    const typed = source as any;
+    if (axis === 'magnitude') {
+      return pickFinite(
+        typed.magnitude,
+        typed.axes?.magnitude,
+        typed.balance?.magnitude,
+        typed.balance_meter?.magnitude
+      );
+    }
+    if (axis === 'directional_bias') {
+      return pickFinite(
+        typed.directional_bias,
+        typed.bias_signed,
+        typed.valence,
+        typed.valence_bounded,
+        typed.balance?.directional_bias,
+        typed.balance_meter?.directional_bias,
+        typed.balance_meter?.bias_signed
+      );
+    }
+    return pickFinite(
+      typed.volatility,
+      typed.coherence,
+      typed.axes?.volatility,
+      typed.balance?.volatility,
+      typed.balance_meter?.volatility
+    );
+  };
+
+  const summary =
+    result?.balance_meter ??
+    result?.person_a?.summary ??
+    result?.person_a?.balance_meter ??
+    result?.person_a?.derived?.balance_meter ??
+    result?.person_a?.derived?.seismograph_summary;
 
   // Calculate daily ranges to show texture (not just averages)
   const transitsByDate = result?.person_a?.chart?.transitsByDate || {};
@@ -461,20 +516,39 @@ function extractWeather(startDate: string, endDate: string, result: any): Weathe
   Object.values(transitsByDate).forEach((dayData: any) => {
     const seismo = dayData?.seismograph || {};
     const balance = dayData?.balance || {};
+    const frontStage = dayData?.balance_meter || {};
 
-    const bias = Number(seismo.bias_signed ?? balance.bias_signed ?? 0);
-    const mag = Number(seismo.magnitude ?? balance.magnitude ?? 0);
-    const vol = Number(seismo.volatility ?? 0);
+    const bias = pickFinite(
+      frontStage.directional_bias,
+      frontStage.bias_signed,
+      frontStage.valence,
+      seismo.bias_signed,
+      seismo.valence,
+      balance.bias_signed
+    );
+    const mag = pickFinite(
+      frontStage.magnitude,
+      seismo.magnitude,
+      balance.magnitude
+    );
+    const vol = pickFinite(
+      frontStage.volatility,
+      seismo.volatility
+    );
 
-    if (Number.isFinite(bias)) dailyBiasValues.push(bias);
-    if (Number.isFinite(mag)) dailyMagnitudeValues.push(mag);
-    if (Number.isFinite(vol)) dailyVolatilityValues.push(vol);
+    if (bias !== undefined) dailyBiasValues.push(bias);
+    if (mag !== undefined) dailyMagnitudeValues.push(mag);
+    if (vol !== undefined) dailyVolatilityValues.push(vol);
   });
 
   if (summary) {
-    const mag = Number(summary.magnitude ?? 0);
-    const val = Number(summary.valence_bounded ?? summary.valence ?? 0);
-    const vol = Number(summary.volatility ?? 0);
+    const magValue = resolveAxis(summary, 'magnitude');
+    const biasValue = resolveAxis(summary, 'directional_bias');
+    const volValue = resolveAxis(summary, 'volatility');
+
+    const mag = Number.isFinite(magValue) ? (magValue as number) : 0;
+    const val = Number.isFinite(biasValue) ? (biasValue as number) : 0;
+    const vol = Number.isFinite(volValue) ? (volValue as number) : 0;
 
     // Calculate ranges
     const biasMin = dailyBiasValues.length > 0 ? Math.min(...dailyBiasValues) : val;

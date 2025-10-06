@@ -9,16 +9,7 @@ const AXIS_FIELD_MAP: Record<AxisName, string[]> = {
   volatility: ['coherence', 'volatility'],
 };
 
-const AXIS_NUMBER_KEYS = [
-  'value',
-  'display',
-  'final',
-  'scaled',
-  'score',
-  'mean',
-  'raw',
-  'normalized',
-];
+const AXIS_NUMBER_KEYS = ['value', 'display', 'final', 'scaled', 'score', 'mean'];
 
 const toAxisNumber = (candidate: any): number | undefined => {
   if (typeof candidate === 'number' && Number.isFinite(candidate)) return candidate;
