@@ -2417,13 +2417,8 @@ export default function ChatClient() {
 
   return (
     <div
-      className="app"
+      className="app flex min-h-screen min-h-[100dvh] h-full w-full max-w-[980px] flex-col"
       style={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-        height: "100%",
-        maxWidth: 980,
         margin: "0 auto",
       }}
     >
@@ -3876,6 +3871,8 @@ function Stream({
         WebkitOverflowScrolling: "touch",
         overscrollBehavior: "contain",
         scrollPaddingTop: scrollPadding,
+        scrollPaddingBottom: scrollPadding,
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
       }}
     >
       {messages.map((m) => (
@@ -4260,7 +4257,12 @@ function Composer({
   };
 
   return (
-    <div className="px-[18px] py-3 bg-[rgba(20,24,33,.9)] backdrop-blur border-t border-[var(--line)]">
+    <div
+      className="sticky bottom-0 left-0 right-0 z-[900] px-[18px] py-3 bg-[rgba(20,24,33,.9)] backdrop-blur border-t border-[var(--line)]"
+      style={{
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+      }}
+    >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-[10px]">
         <div className="order-1 flex items-center gap-2 sm:order-none">
           <button
