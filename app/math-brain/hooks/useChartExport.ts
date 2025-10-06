@@ -17,11 +17,36 @@ const ALLOWED_STATE_LABELS = new Set<string>([
   'Very High', 'Moderate', 'Low',
 ]);
 const safeLabel = (s?: string | null) => (s && ALLOWED_STATE_LABELS.has(s) ? s : undefined);
+
+type AxisKey = 'magnitude' | 'directional_bias' | 'volatility';
+
+const AXIS_FIELD_MAP: Record<AxisKey, 'magnitude' | 'directional_bias' | 'coherence'> = {
+  magnitude: 'magnitude',
+  directional_bias: 'directional_bias',
+  volatility: 'coherence',
+};
+
+const extractAxisValue = (source: any, axis: AxisKey): number | undefined => {
+  if (!source || typeof source !== 'object') return undefined;
+  const axesBlock = source.axes || source.balance_meter?.axes;
+  if (!axesBlock || typeof axesBlock !== 'object') return undefined;
+  const axisField = AXIS_FIELD_MAP[axis];
+  const axisData = axesBlock?.[axisField];
+  if (!axisData || typeof axisData !== 'object') return undefined;
+  const candidates = [axisData.value, axisData.display, axisData.final, axisData.scaled, axisData.score];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+      return candidate;
+    }
+  }
+  return undefined;
+};
 // ============================================================
 
 import { sanitizeForPDF, sanitizeReportForPDF } from '../../../src/pdf-sanitizer';
 import { renderShareableMirror } from '../../../lib/raven/render';
 import type { ReportContractType } from '../types';
+import { fmtAxis } from '../../../lib/ui/format';
 import {
   formatReportKind,
   formatNatalSummaryForPDF,
@@ -321,31 +346,40 @@ IMPORTANT: This comprehensive astrological data should be synthesized into the c
       }
 
       if (wovenMap?.data_tables) {
+        const hasPrintableTable = (text: string) =>
+          text && !/^No\s.+\savailable\.?$/i.test(text.trim());
+
         if (wovenMap.data_tables.natal_positions && Array.isArray(wovenMap.data_tables.natal_positions)) {
           const positionsText = formatPlanetaryPositionsTable(wovenMap.data_tables.natal_positions);
-          sections.push({
-            title: 'Planetary Positions (Person A)',
-            body: positionsText,
-            mode: 'mono',
-          });
+          if (hasPrintableTable(positionsText)) {
+            sections.push({
+              title: 'Planetary Positions (Person A)',
+              body: positionsText,
+              mode: 'mono',
+            });
+          }
         }
 
         if (wovenMap.data_tables.house_cusps && Array.isArray(wovenMap.data_tables.house_cusps)) {
           const cuspsText = formatHouseCuspsTable(wovenMap.data_tables.house_cusps);
-          sections.push({
-            title: 'House Cusps (Person A)',
-            body: cuspsText,
-            mode: 'mono',
-          });
+          if (hasPrintableTable(cuspsText)) {
+            sections.push({
+              title: 'House Cusps (Person A)',
+              body: cuspsText,
+              mode: 'mono',
+            });
+          }
         }
 
         if (wovenMap.data_tables.natal_aspects && Array.isArray(wovenMap.data_tables.natal_aspects)) {
           const aspectsText = formatAspectsTable(wovenMap.data_tables.natal_aspects);
-          sections.push({
-            title: 'Major Aspects (Person A)',
-            body: aspectsText,
-            mode: 'mono',
-          });
+          if (hasPrintableTable(aspectsText)) {
+            sections.push({
+              title: 'Major Aspects (Person A)',
+              body: aspectsText,
+              mode: 'mono',
+            });
+          }
         }
 
         if (
@@ -355,11 +389,13 @@ IMPORTANT: This comprehensive astrological data should be synthesized into the c
           const positionsBText = formatPlanetaryPositionsTable(
             wovenMap.data_tables.person_b_positions,
           );
-          sections.push({
-            title: 'Planetary Positions (Person B)',
-            body: positionsBText,
-            mode: 'mono',
-          });
+          if (hasPrintableTable(positionsBText)) {
+            sections.push({
+              title: 'Planetary Positions (Person B)',
+              body: positionsBText,
+              mode: 'mono',
+            });
+          }
         }
 
         if (
@@ -367,20 +403,24 @@ IMPORTANT: This comprehensive astrological data should be synthesized into the c
           Array.isArray(wovenMap.data_tables.person_b_house_cusps)
         ) {
           const cuspsBText = formatHouseCuspsTable(wovenMap.data_tables.person_b_house_cusps);
-          sections.push({
-            title: 'House Cusps (Person B)',
-            body: cuspsBText,
-            mode: 'mono',
-          });
+          if (hasPrintableTable(cuspsBText)) {
+            sections.push({
+              title: 'House Cusps (Person B)',
+              body: cuspsBText,
+              mode: 'mono',
+            });
+          }
         }
 
         if (wovenMap.data_tables.synastry_aspects) {
           const synAspectsText = formatAspectsTable(wovenMap.data_tables.synastry_aspects);
-          sections.push({
-            title: 'Synastry Aspects',
-            body: synAspectsText,
-            mode: 'mono',
-          });
+          if (hasPrintableTable(synAspectsText)) {
+            sections.push({
+              title: 'Synastry Aspects',
+              body: synAspectsText,
+              mode: 'mono',
+            });
+          }
         }
 
         if (wovenMap.data_tables.daily_readings && Array.isArray(wovenMap.data_tables.daily_readings)) {
@@ -564,17 +604,18 @@ Start with the Solo Mirror(s), then ${
 
 ---`;
 
-      sections.unshift({
-        title: 'ANALYSIS DIRECTIVE (READ FIRST)',
-        body: analysisDirective,
-        mode: 'regular',
-      });
+      // Do NOT include internal analysis directive in end-user PDF
+      // Keep it only for internal artifacts, not frontstage exports
+      // sections.unshift({ title: 'ANALYSIS DIRECTIVE (READ FIRST)', body: analysisDirective, mode: 'regular' });
 
-      const printableSections = sections.map((section) => ({
-        ...section,
-        title: sanitizeForPDF(section.title, { preserveWhitespace: true }),
-        body: sanitizeForPDF(section.body, { preserveWhitespace: true }),
-      }));
+      const { scrubInternalDirectives, containsBannedTokens } = await import('../../../lib/ui/sanitize');
+      const printableSections = sections
+        .map((section) => ({
+          ...section,
+          title: sanitizeForPDF(section.title, { preserveWhitespace: true }),
+          body: sanitizeForPDF(scrubInternalDirectives(section.body), { preserveWhitespace: true }),
+        }))
+        .filter((s) => !containsBannedTokens(`${s.title}\n${s.body}`));
 
       const pdfDoc = await PDFDocument.create();
       const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -754,22 +795,22 @@ Start with the Solo Mirror(s), then ${
       if (summary) {
         markdown += `### Balance Meter Summary\n\n`;
         if (summary.magnitude != null) {
-          markdown += `- Magnitude: ${summary.magnitude}${
+          markdown += `- Magnitude: ${fmtAxis(summary.magnitude)}${
             summary.magnitude_label ? ` (${summary.magnitude_label})` : ''
           }\n`;
         }
         if (summary.valence != null) {
-          markdown += `- Valence: ${summary.valence}${
+          markdown += `- Valence: ${fmtAxis(summary.valence)}${
             summary.valence_label ? ` (${summary.valence_label})` : ''
           }\n`;
         }
         if (summary.bias_signed != null && summary.bias_signed !== summary.valence) {
-          markdown += `- Directional Bias: ${summary.bias_signed}${
+          markdown += `- Directional Bias: ${fmtAxis(summary.bias_signed)}${
             summary.directional_bias_label ? ` (${summary.directional_bias_label})` : ''
           }\n`;
         }
         if (summary.volatility != null) {
-          markdown += `- Volatility: ${summary.volatility}${
+          markdown += `- Volatility: ${fmtAxis(summary.volatility)}${
             summary.volatility_label ? ` (${summary.volatility_label})` : ''
           }\n`;
         }
@@ -916,7 +957,11 @@ Start with the Solo Mirror(s), then ${
       markdown += `• Use "Raw JSON (Full)" in Advanced exports for debugging\n\n`;
       markdown += `This Markdown contains all essential natal data in table format above.\n`;
 
-      const blob = new Blob([markdown], { type: 'text/markdown; charset=utf-8' });
+  // Final sanitization: strip internal directives and banned tokens
+  const { scrubInternalDirectives } = await import('../../../lib/ui/sanitize');
+  const sanitizedMarkdown = scrubInternalDirectives(markdown);
+
+  const blob = new Blob([sanitizedMarkdown], { type: 'text/markdown; charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -988,16 +1033,25 @@ Start with the Solo Mirror(s), then ${
     setWeatherJsonGenerating(true);
 
     try {
-      const toNumber = (value: any): number | undefined => {
+      const toNumber = (
+        value: any,
+        axis?: AxisKey,
+        context?: any
+      ): number | undefined => {
+        if (axis) {
+          const axisCandidate = extractAxisValue(context ?? value, axis);
+          if (axisCandidate !== undefined) {
+            return axisCandidate;
+          }
+        }
         if (typeof value === 'number' && Number.isFinite(value)) return value;
-        // IMPORTANT: Prefer .value (frontstage) over any derived .mean/.score to avoid accidental re-normalization
-        // (Order below preserves that priority.)
         if (typeof value === 'string') {
           const parsed = Number(value);
           if (!Number.isNaN(parsed)) return parsed;
         }
         if (value && typeof value === 'object') {
           if (typeof value.value === 'number' && Number.isFinite(value.value)) return value.value;
+          if (typeof value.display === 'number' && Number.isFinite(value.display)) return value.display;
           if (typeof value.mean === 'number' && Number.isFinite(value.mean)) return value.mean;
           if (typeof value.score === 'number' && Number.isFinite(value.score)) return value.score;
         }
@@ -1030,9 +1084,13 @@ Start with the Solo Mirror(s), then ${
 
       const balanceSummary = result?.person_a?.summary;
       if (balanceSummary) {
-        const rawMag = toNumber(balanceSummary.magnitude);
-        const rawBias = toNumber(balanceSummary.bias_signed ?? balanceSummary.valence);
-        const rawVol = toNumber(balanceSummary.volatility);
+        const rawMag = toNumber(balanceSummary.magnitude, 'magnitude', balanceSummary);
+        const rawBias = toNumber(
+          balanceSummary.bias_signed ?? balanceSummary.valence,
+          'directional_bias',
+          balanceSummary
+        );
+        const rawVol = toNumber(balanceSummary.volatility, 'volatility', balanceSummary);
 
         weatherData.balance_meter_frontstage = {
           magnitude: typeof rawMag === 'number' ? normalizeToFrontStage(rawMag, 'magnitude') : null,
@@ -1055,9 +1113,13 @@ Start with the Solo Mirror(s), then ${
             if (!dayData) return;
 
             const seismo = dayData.seismograph || dayData;
-            const rawMag = toNumber(seismo.magnitude);
-            const rawBias = toNumber(seismo.bias_signed ?? seismo.valence_bounded ?? seismo.valence);
-            const rawVol = toNumber(seismo.volatility);
+            const rawMag = toNumber(seismo.magnitude, 'magnitude', seismo);
+            const rawBias = toNumber(
+              seismo.bias_signed ?? seismo.valence_bounded ?? seismo.valence,
+              'directional_bias',
+              seismo
+            );
+            const rawVol = toNumber(seismo.volatility, 'volatility', seismo);
 
             dailyReadings.push({
               date,
@@ -1119,7 +1181,17 @@ Start with the Solo Mirror(s), then ${
 }
 
 function createFrontStageResult(rawResult: any) {
-  const toNumber = (value: any): number | undefined => {
+  const toNumber = (
+    value: any,
+    axis?: AxisKey,
+    context?: any
+  ): number | undefined => {
+    if (axis) {
+      const axisCandidate = extractAxisValue(context ?? value, axis);
+      if (axisCandidate !== undefined) {
+        return axisCandidate;
+      }
+    }
     if (typeof value === 'number' && Number.isFinite(value)) return value;
     if (typeof value === 'string') {
       const parsed = Number(value);
@@ -1127,6 +1199,7 @@ function createFrontStageResult(rawResult: any) {
     }
     if (value && typeof value === 'object') {
       if (typeof value.value === 'number' && Number.isFinite(value.value)) return value.value;
+      if (typeof value.display === 'number' && Number.isFinite(value.display)) return value.display;
       if (typeof value.mean === 'number' && Number.isFinite(value.mean)) return value.mean;
       if (typeof value.score === 'number' && Number.isFinite(value.score)) return value.score;
     }
@@ -1180,13 +1253,20 @@ function createFrontStageResult(rawResult: any) {
 
   if (rawResult?.person_a?.summary) {
     const summary = rawResult.person_a.summary;
-    const rawMag = toNumber(summary.magnitude);
-    const rawVal = toNumber(summary.bias_signed ?? summary.valence_bounded ?? summary.valence);
-    const rawVol = toNumber(summary.volatility);
+    const rawMag = toNumber(summary.magnitude, 'magnitude', summary);
+    const rawVal = toNumber(
+      summary.bias_signed ?? summary.valence_bounded ?? summary.valence,
+      'directional_bias',
+      summary
+    );
+    const rawVol = toNumber(summary.volatility, 'volatility', summary);
 
-    const normalizedMag = rawMag ? normalizeToFrontStage(rawMag, 'magnitude') : undefined;
-    const normalizedBias = rawVal ? normalizeToFrontStage(rawVal, 'directional_bias') : undefined;
-    const normalizedVol = rawVol ? normalizeToFrontStage(rawVol, 'volatility') : undefined;
+    const normalizedMag =
+      rawMag !== undefined ? normalizeToFrontStage(rawMag, 'magnitude') : undefined;
+    const normalizedBias =
+      rawVal !== undefined ? normalizeToFrontStage(rawVal, 'directional_bias') : undefined;
+    const normalizedVol =
+      rawVol !== undefined ? normalizeToFrontStage(rawVol, 'volatility') : undefined;
 
     frontStageResult.balance_meter = {
       magnitude: normalizedMag,
@@ -1221,20 +1301,36 @@ function createFrontStageResult(rawResult: any) {
     Object.keys(daily).forEach((date) => {
       const dayData = daily[date];
       if (dayData?.seismograph) {
-        const rawMag = toNumber(dayData.seismograph.magnitude);
+        const rawMag = toNumber(dayData.seismograph.magnitude, 'magnitude', dayData.seismograph);
         const rawVal = toNumber(
-          dayData.seismograph.bias_signed ?? dayData.seismograph.valence_bounded ?? dayData.seismograph.valence,
+          dayData.seismograph.bias_signed ??
+            dayData.seismograph.valence_bounded ??
+            dayData.seismograph.valence,
+          'directional_bias',
+          dayData.seismograph,
         );
-        const rawVol = toNumber(dayData.seismograph.volatility);
+        const rawVol = toNumber(dayData.seismograph.volatility, 'volatility', dayData.seismograph);
 
         normalizedDaily[date] = {
           ...dayData,
           seismograph: {
             ...dayData.seismograph,
-            magnitude: rawMag ? normalizeToFrontStage(rawMag, 'magnitude') : dayData.seismograph.magnitude,
-            valence: rawVal ? normalizeToFrontStage(rawVal, 'directional_bias') : dayData.seismograph.valence,
-            bias_signed: rawVal ? normalizeToFrontStage(rawVal, 'directional_bias') : dayData.seismograph.bias_signed,
-            volatility: rawVol ? normalizeToFrontStage(rawVol, 'volatility') : dayData.seismograph.volatility,
+            magnitude:
+              rawMag !== undefined
+                ? normalizeToFrontStage(rawMag, 'magnitude')
+                : dayData.seismograph.magnitude,
+            valence:
+              rawVal !== undefined
+                ? normalizeToFrontStage(rawVal, 'directional_bias')
+                : dayData.seismograph.valence,
+            bias_signed:
+              rawVal !== undefined
+                ? normalizeToFrontStage(rawVal, 'directional_bias')
+                : dayData.seismograph.bias_signed,
+            volatility:
+              rawVol !== undefined
+                ? normalizeToFrontStage(rawVol, 'volatility')
+                : dayData.seismograph.volatility,
           },
         };
       } else {
@@ -1293,28 +1389,28 @@ function buildBalanceSummarySection(personSummary: any | null | undefined): Char
 
   if (personSummary.magnitude != null) {
     lines.push(
-      `Magnitude: ${personSummary.magnitude}${
+      `Magnitude: ${fmtAxis(personSummary.magnitude)}${
         personSummary.magnitude_label ? ` (${personSummary.magnitude_label})` : ''
       }`,
     );
   }
   if (personSummary.valence != null) {
     lines.push(
-      `Valence: ${personSummary.valence}${
+      `Valence: ${fmtAxis(personSummary.valence)}${
         personSummary.valence_label ? ` (${personSummary.valence_label})` : ''
       }`,
     );
   }
   if (personSummary.bias_signed != null && personSummary.bias_signed !== personSummary.valence) {
     lines.push(
-      `Directional Bias: ${personSummary.bias_signed}${
+      `Directional Bias: ${fmtAxis(personSummary.bias_signed)}${
         personSummary.directional_bias_label ? ` (${personSummary.directional_bias_label})` : ''
       }`,
     );
   }
   if (personSummary.volatility != null) {
     lines.push(
-      `Volatility: ${personSummary.volatility}${
+      `Volatility: ${fmtAxis(personSummary.volatility)}${
         personSummary.volatility_label ? ` (${personSummary.volatility_label})` : ''
       }`,
     );
@@ -1413,31 +1509,40 @@ function buildChartPackageSections(result: any, reportKind: string): ChartSectio
   }
 
   if (wovenMap?.data_tables) {
+    const hasPrintableTable = (text: string) =>
+      text && !/^No\s.+\savailable\.?$/i.test(text.trim());
+
     if (wovenMap.data_tables.natal_positions && Array.isArray(wovenMap.data_tables.natal_positions)) {
       const positionsText = formatPlanetaryPositionsTable(wovenMap.data_tables.natal_positions);
-      bodySections.push({
-        title: 'Planetary Positions (Person A)',
-        body: positionsText,
-        mode: 'mono',
-      });
+      if (hasPrintableTable(positionsText)) {
+        bodySections.push({
+          title: 'Planetary Positions (Person A)',
+          body: positionsText,
+          mode: 'mono',
+        });
+      }
     }
 
     if (wovenMap.data_tables.house_cusps && Array.isArray(wovenMap.data_tables.house_cusps)) {
       const cuspsText = formatHouseCuspsTable(wovenMap.data_tables.house_cusps);
-      bodySections.push({
-        title: 'House Cusps (Person A)',
-        body: cuspsText,
-        mode: 'mono',
-      });
+      if (hasPrintableTable(cuspsText)) {
+        bodySections.push({
+          title: 'House Cusps (Person A)',
+          body: cuspsText,
+          mode: 'mono',
+        });
+      }
     }
 
     if (wovenMap.data_tables.natal_aspects && Array.isArray(wovenMap.data_tables.natal_aspects)) {
       const aspectsText = formatAspectsTable(wovenMap.data_tables.natal_aspects);
-      bodySections.push({
-        title: 'Major Aspects (Person A)',
-        body: aspectsText,
-        mode: 'mono',
-      });
+      if (hasPrintableTable(aspectsText)) {
+        bodySections.push({
+          title: 'Major Aspects (Person A)',
+          body: aspectsText,
+          mode: 'mono',
+        });
+      }
     }
 
     if (
@@ -1447,11 +1552,13 @@ function buildChartPackageSections(result: any, reportKind: string): ChartSectio
       const positionsBText = formatPlanetaryPositionsTable(
         wovenMap.data_tables.person_b_positions,
       );
-      bodySections.push({
-        title: 'Planetary Positions (Person B)',
-        body: positionsBText,
-        mode: 'mono',
-      });
+      if (hasPrintableTable(positionsBText)) {
+        bodySections.push({
+          title: 'Planetary Positions (Person B)',
+          body: positionsBText,
+          mode: 'mono',
+        });
+      }
     }
 
     if (
@@ -1459,20 +1566,24 @@ function buildChartPackageSections(result: any, reportKind: string): ChartSectio
       Array.isArray(wovenMap.data_tables.person_b_house_cusps)
     ) {
       const cuspsBText = formatHouseCuspsTable(wovenMap.data_tables.person_b_house_cusps);
-      bodySections.push({
-        title: 'House Cusps (Person B)',
-        body: cuspsBText,
-        mode: 'mono',
-      });
+      if (hasPrintableTable(cuspsBText)) {
+        bodySections.push({
+          title: 'House Cusps (Person B)',
+          body: cuspsBText,
+          mode: 'mono',
+        });
+      }
     }
 
     if (wovenMap.data_tables.synastry_aspects) {
       const synAspectsText = formatAspectsTable(wovenMap.data_tables.synastry_aspects);
-      bodySections.push({
-        title: 'Synastry Aspects',
-        body: synAspectsText,
-        mode: 'mono',
-      });
+      if (hasPrintableTable(synAspectsText)) {
+        bodySections.push({
+          title: 'Synastry Aspects',
+          body: synAspectsText,
+          mode: 'mono',
+        });
+      }
     }
 
     if (wovenMap.data_tables.daily_readings && Array.isArray(wovenMap.data_tables.daily_readings)) {

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { getCurrentTimezone } from './useGeolocation';
+import { formatCoordinates } from '../utils/snapshot';
 
 export interface SnapshotLocation {
   latitude: number;
@@ -59,26 +60,53 @@ export function useSnapshot() {
       const now = new Date();
       const todayStr = now.toISOString().slice(0, 10);
       const timezone = getCurrentTimezone();
-      console.log('[Snapshot] Building payload...', { todayStr, timezone });
+      const locationLabel = formatCoordinates(location.latitude, location.longitude);
+      console.log('[Snapshot] Building payload...', { todayStr, timezone, locationLabel });
 
       // Determine if this is relational (has Person B)
       const isRelational = personB && Object.keys(personB).length > 0;
 
-      // Build payload matching the format page.tsx uses
-      const payload: any = {
-        mode: 'balance_meter', // Always use balance_meter for snapshots
-        personA: {
-          ...personA,
-          nation: "US", // Required for API compatibility
-          year: Number(personA.year),
-          month: Number(personA.month),
-          day: Number(personA.day),
-          hour: Number(personA.hour),
-          minute: Number(personA.minute),
+      const ensureSubject = (subject: any, label: string) => {
+        if (!subject) return subject;
+        const fallbackCity = subject.city?.trim()
+          || subject.birth_city?.trim()
+          || 'Snapshot Location';
+        const fallbackNation = subject.nation
+          || subject.country
+          || subject.country_code
+          || subject.nation_code
+          || 'US';
+        const fallbackState = subject.state
+          || subject.region
+          || subject.province
+          || subject.state_code
+          || undefined;
+
+        return {
+          ...subject,
+          name: subject.name || label,
+          city: fallbackCity,
+          state: fallbackState,
+          nation: fallbackNation,
+          year: Number(subject.year),
+          month: Number(subject.month),
+          day: Number(subject.day),
+          hour: Number(subject.hour),
+          minute: Number(subject.minute),
           latitude: location.latitude,
           longitude: location.longitude,
           timezone,
-        },
+          zodiac_type: subject.zodiac_type || subject.zodiac || 'Tropic',
+        };
+      };
+
+      const personALabel = personA?.name || 'Person A';
+      const normalizedPersonA = ensureSubject(personA, personALabel);
+
+      // Build payload matching the format page.tsx uses
+      const payload: any = {
+        mode: 'balance_meter', // Always use balance_meter for snapshots
+        personA: normalizedPersonA,
         // Transit window
         window: { start: todayStr, end: todayStr, step: 'daily' },
         transits: { from: todayStr, to: todayStr, step: 'daily' },
@@ -100,6 +128,7 @@ export function useSnapshot() {
             latitude: location.latitude,
             longitude: location.longitude,
             timezone,
+            label: locationLabel,
           },
         },
         // Balance Meter specific fields
@@ -119,18 +148,8 @@ export function useSnapshot() {
 
       // Add Person B if provided
       if (isRelational) {
-        payload.personB = {
-          ...personB,
-          nation: "US",
-          year: Number(personB.year),
-          month: Number(personB.month),
-          day: Number(personB.day),
-          hour: Number(personB.hour),
-          minute: Number(personB.minute),
-          latitude: location.latitude,
-          longitude: location.longitude,
-          timezone,
-        };
+        const personBLabel = personB?.name || 'Person B';
+        payload.personB = ensureSubject(personB, personBLabel);
 
         // Required: relationship_context for synastry/relational modes
         payload.relationship_context = {
@@ -153,7 +172,20 @@ export function useSnapshot() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[Snapshot] API error:', response.status, errorText);
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
+        let message = `API error: ${response.status} ${response.statusText}`;
+        try {
+          const parsed = JSON.parse(errorText);
+          if (parsed?.error) {
+            message = parsed.error;
+          } else if (parsed?.message) {
+            message = parsed.message;
+          }
+        } catch {
+          if (errorText?.trim()) {
+            message = errorText;
+          }
+        }
+        throw new Error(message);
       }
 
       const result = await response.json();
@@ -174,9 +206,14 @@ export function useSnapshot() {
       }
 
       console.log('[Snapshot] Setting state with result');
+      const locationWithLabel = {
+        ...location,
+        label: location.label || locationLabel,
+      };
+
       setState({
         result,
-        location,
+        location: locationWithLabel,
         timestamp: now,
         loading: false,
         error: null,
@@ -186,7 +223,7 @@ export function useSnapshot() {
       return {
         result,
         timestamp: now,
-        location,
+        location: locationWithLabel,
       };
     } catch (err) {
       console.error('[Snapshot] Capture failed:', err);

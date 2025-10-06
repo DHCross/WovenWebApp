@@ -2411,7 +2411,14 @@ export default function ChatClient() {
 
   return (
     <div
+
       className="app relative mx-auto flex min-h-[100dvh] w-full max-w-[980px] flex-col overflow-x-hidden"
+
+      className="app flex min-h-screen min-h-[100dvh] h-full w-full max-w-[980px] flex-col"
+      style={{
+        margin: "0 auto",
+      }}
+
     >
       <input
         type="file"

@@ -4282,6 +4282,15 @@ export default function MathBrainPage() {
                   setEndDate(date);
                 }}
               />
+              {snapshotResult && snapshotLocation && snapshotTimestamp && (
+                <div className="mt-4">
+                  <SnapshotDisplay
+                    result={snapshotResult}
+                    location={snapshotLocation}
+                    timestamp={snapshotTimestamp}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-between">
@@ -5350,14 +5359,6 @@ export default function MathBrainPage() {
             </>
           )}
 
-          {/* Snapshot Display */}
-          {snapshotResult && snapshotLocation && snapshotTimestamp && (
-            <SnapshotDisplay
-              result={snapshotResult}
-              location={snapshotLocation}
-              timestamp={snapshotTimestamp}
-            />
-          )}
         </div>
       )}
       </div>
