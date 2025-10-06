@@ -36,6 +36,7 @@
     "test:vitest:run": "vitest run",
     "test:vitest:watch": "vitest --watch",
     "smoke-test": "npm run test:all",
+    "smoke:golden": "node scripts/smoke-golden-case.js",
     "fix:auth0": "node scripts/fix-auth0.js",
     "smoke:auth0": "node scripts/smoke-auth0.js",
     "build:specs": "node specs/symbolic-weather-directive/build.js",

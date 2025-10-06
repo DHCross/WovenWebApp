@@ -27,15 +27,19 @@
  * @property {number} S
  */
 
-const { scaleMagnitude } = require('../lib/reporting/canonical-scaling');
-const { 
-  scaleBipolar, 
-  scaleCoherenceFromVol, 
+const {
+  scaleUnipolar,
+  scaleBipolar,
+  scaleCoherenceFromVol,
   scaleSFD,
   amplifyByMagnitude,
   normalizeAmplifiedBias,
-  normalizeVolatilityForCoherence
+  normalizeVolatilityForCoherence,
+  SPEC_VERSION,
+  SCALE_FACTOR,
 } = require('../lib/balance/scale-bridge');
+const { assertSeismographInvariants } = require('../lib/balance/assertions');
+const { applyGeometryAmplification } = require('../lib/balance/amplifiers');
 
 const OUTER = new Set(["Saturn","Uranus","Neptune","Pluto"]);
 const PERSONAL = new Set(["Sun","Moon","Mercury","Venus","Mars","ASC","MC","IC","DSC"]);
@@ -78,21 +82,29 @@ function normalizeAspect(a){
   const nName = nameOf(a?.natal)   || nameOf(a?.b);
   const type  = String(a?.type || a?.aspect || "").toLowerCase();
   const orbDeg = asNum(a?.orb ?? a?.orbit, 6.01);
-  return { transit:{body:tName||"?"}, natal:{body:nName||"?"}, type, orbDeg };
+  const retrograde = !!(a?.transit?.retrograde);
+  return { transit:{body:tName||"?", retrograde}, natal:{body:nName||"?"}, type, orbDeg };
 }
 
 // ---------- per-aspect S = v × p × o × s ----------
-function baseValence(type, aBody, bBody){
+function baseValence(type, tBody, nBody){
+  const isHard = type === "square" || type === "opposition";
+  const isAngle = ANGLES.has(nBody);
+  const isLuminary = nBody === "Sun" || nBody === "Moon";
+
   switch (type){
-    case "trine": return +1.0;
-    case "sextile": return +0.7;
-    case "square":
-    case "opposition": return -1.2;
+    case "opposition": return -1.6;
+    case "square": return -1.4;
+    case "trine": return +0.8;
+    case "sextile": return +0.5;
     case "conjunction":{
-      const set = new Set([aBody,bBody]);
+      const set = new Set([tBody, nBody]);
+      if (OUTER.has(tBody) || OUTER.has(nBody) || isAngle || isLuminary) {
+        return -1.2; // Hard conjunction
+      }
       if (set.has("Venus") || set.has("Jupiter")) return +0.6;
       if (set.has("Saturn") || set.has("Pluto") || set.has("Chiron")) return -0.8;
-      return 0.0;
+      return 0.2; // Default neutral-ish
     }
     default: return 0.0;
   }
@@ -105,13 +117,23 @@ function planetTier(body){
   return 1.0;
 } 
 
-function orbMultiplier(orbDeg){
+function orbMultiplier(orbDeg, type) {
   const o = Math.abs(orbDeg);
-  if (o <= 0.5) return 1.5;
-  if (o <= 1.5) return 1.3;
-  if (o <= 3.0) return 1.2;
-  if (o <= 6.0) return 1.0;
-  return 0.6;
+  const isHard = type === 'square' || type === 'opposition' || type === 'conjunction';
+
+  if (isHard) {
+    // Hard aspects: full weight 0-1°, taper to 0 at 3°
+    if (o <= 1.0) return 1.5; // Strongest impact
+    if (o <= 2.0) return 1.3;
+    if (o <= 3.0) return 1.1;
+    return 0.6;
+  } else {
+    // Soft aspects: full weight 0-0.6°, taper to 0 at 2°
+    if (o <= 0.6) return 1.5;
+    if (o <= 1.2) return 1.3;
+    if (o <= 2.0) return 1.1;
+    return 0.6;
+  }
 } 
 
 function sensitivityMultiplier(natalBody, isAngle=false, isLum=false, critical=false){
@@ -138,9 +160,35 @@ function scoreAspect(inA, flags={}){
   const tBody = a.transit.body, nBody = a.natal.body;
   const v = baseValence(a.type, tBody, nBody);
   const p = Math.max(planetTier(tBody), planetTier(nBody));
-  const o = orbMultiplier(a.orbDeg);
+  const o = orbMultiplier(a.orbDeg, a.type);
   const s = sensitivityMultiplier(nBody, !!flags.isAngleProx, (nBody==="Sun"||nBody==="Moon"), !!flags.critical);
-  const S = v * p * o * s;
+  let S = v * p * o * s;
+
+  // Outer-planet/angle multipliers
+  const isHard = a.type === 'square' || a.type === 'opposition' || (a.type === 'conjunction' && v < 0);
+  if (isHard) {
+    const tIsOuter = OUTER.has(tBody);
+    const nIsOuter = OUTER.has(nBody);
+    const isOuterInteraction = (tIsOuter && !nIsOuter) || (!tIsOuter && nIsOuter);
+
+    if (isOuterInteraction) {
+      const nIsAngle = ANGLES.has(nBody);
+      const nIsLuminary = nBody === 'Sun' || nBody === 'Moon';
+      const nIsPersonal = PERSONAL.has(nBody) && !nIsAngle && !nIsLuminary;
+
+      if (nIsAngle || nIsLuminary) {
+        S *= 1.40; // +40%
+      } else if (nIsPersonal) {
+        S *= 1.25; // +25%
+      }
+    }
+  }
+
+  // Retrograde moderation: -10% to soft aspects if transit is retrograde
+  if (a.transit.retrograde && (a.type === 'trine' || a.type === 'sextile')) {
+    S *= 0.90;
+  }
+
   return { ...a, S };
 }
 
@@ -299,8 +347,17 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
       scored: [],
       transform_trace: {
         pipeline: 'empty_aspect_array',
+        spec_version: SPEC_VERSION,
+        canonical_scalers_used: true,
         clamp_events: []
-      }
+      },
+      magnitude_normalized: 0,
+      bias_normalized: 0,
+      bias_amplified: 0,
+      coherence_normalized: 0,
+      rawMagnitude: 0,
+      rawValence: 0,
+      originalMagnitude: 0,
     };
   }
   const opts = { ...DEFAULTS, ...options };
@@ -310,131 +367,118 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     critical: false
   }));
 
-  const X_raw = scored.reduce((acc,x)=>acc + Math.abs(x.S), 0);
-  const Y_raw = scored.reduce((acc,x)=>acc + x.S, 0);
-
-  // Adjusted divisor to be more sensitive to extreme configurations
-  // Original was 4, but that was too conservative for tight outer planet aspects
-  let X = Math.min(5, X_raw / 3.0); // Reduced divisor for more sensitivity
-  X = Math.min(5, X + multiplicityBonus(scored, opts));
-
-  // Store the original magnitude before normalization
-  const X_original = X;
-
-  // Calculate confidence based on available data
-  let scale_confidence = 1.0;
-  const rollingMagnitudes = options.rollingContext && Array.isArray(options.rollingContext.magnitudes)
-    ? options.rollingContext.magnitudes
-    : null;
-  if (rollingMagnitudes) {
-    const n = rollingMagnitudes.length;
-    scale_confidence = round(n / 14, 2);
-  }
-
-  let legacyNormalized = null;
-  if (rollingMagnitudes && rollingMagnitudes.length) {
-    legacyNormalized = normalizeWithRollingWindow(X, options.rollingContext, opts);
-  }
-
-  const scalingContext = rollingMagnitudes && rollingMagnitudes.length
-    ? {
-        median: median(rollingMagnitudes),
-        prior: 4.0,
-        windowSize: rollingMagnitudes.length
-      }
-    : {
-        prior: 4.0,
-        windowSize: rollingMagnitudes ? rollingMagnitudes.length : 0
-      };
-
-  const magnitudeScaling = scaleMagnitude(X_original, {
-    normalisedMagnitude: legacyNormalized,
-    context: scalingContext,
-    cap: 5,
-    precision: 2,
-    method: rollingMagnitudes && rollingMagnitudes.length ? 'rolling_window_v3' : 'raw_direct_v3',
-    confidence: scale_confidence
+  // Apply geometry amplification before normalization
+  scored.forEach(a => {
+    a.S = applyGeometryAmplification(a.S, {
+      type: a.type,
+      orbDeg: a.orbDeg,
+      p1: a.transit.body,
+      p2: a.natal.body
+    });
   });
 
-  const magnitudeValue = magnitudeScaling.value;
+  // Supportive cap in crisis - v2, more specific trigger
+  const hardOuterHits = scored.filter(a => {
+    const isHard = a.type === 'square' || a.type === 'opposition' || (a.type === 'conjunction' && a.S < 0);
+    const isOuterTransit = OUTER.has(a.transit.body);
+    return isHard && isOuterTransit && a.orbDeg <= 2.0;
+  });
 
-  // Pipeline Treaty: Normalize → Scale (×50) → Clamp → Round
-  // Per v3.1 spec: All scaling now uses canonical functions from lib/balance/scale.ts
-  
+  const hardAngleHits = scored.filter(a => {
+    const isHard = a.type === 'square' || a.type === 'opposition' || (a.type === 'conjunction' && a.S < 0);
+    const isToAngle = a.natal.body === 'ASC' || a.natal.body === 'MC';
+    return isHard && isToAngle && a.orbDeg <= 2.0;
+  });
+
+  const crisisConditionsMet = hardOuterHits.length >= 2 || hardAngleHits.length > 0;
+
+  let totalPositiveS = 0;
+  let totalNegativeS = 0;
+  scored.forEach(a => {
+    if (a.S > 0) totalPositiveS += a.S;
+    else totalNegativeS += a.S;
+  });
+
+  if (crisisConditionsMet) {
+    const cap = Math.abs(totalNegativeS) * 0.6;
+    if (totalPositiveS > cap) {
+      const reductionFactor = cap / totalPositiveS;
+      scored.forEach(a => {
+        if (a.S > 0) a.S *= reductionFactor;
+      });
+    }
+  }
+
+  const X_raw = scored.reduce((acc, x) => acc + Math.abs(x.S), 0);
+  const Y_raw = scored.reduce((acc, x) => acc + x.S, 0);
+
+  // === MAGNITUDE ===
+  const magnitudeNormalized = Math.min(0.1, (X_raw / opts.magnitudeDivisor) / SCALE_FACTOR);
+  const magnitudeScaled = scaleUnipolar(magnitudeNormalized);
+  const magnitudeValue = magnitudeScaled.value;
+
   // === DIRECTIONAL BIAS ===
-  // Step 1: Apply domain amplification (magnitude-dependent)
   const Y_amplified = amplifyByMagnitude(Y_raw, magnitudeValue);
-  
-  // Step 2: Normalize to [-0.1, +0.1] typical range
-  const Y_normalized = normalizeAmplifiedBias(Y_amplified);
-  
-  // Step 3: Apply canonical bipolar scaling (×50, clamp [-5, +5], round 1dp)
+  const Y_normalized = Y_amplified / 10; // Use a conservative normalizer to allow 5.0
   const biasScaled = scaleBipolar(Y_normalized);
   const directional_bias = biasScaled.value;
 
   // === VOLATILITY & COHERENCE ===
   const VI = volatility(scored, prevCtx, opts);
-  
-  // Normalize volatility for coherence inversion
   const VI_normalized = normalizeVolatilityForCoherence(VI);
-  
-  // Apply canonical coherence scaling (inversion: 5 - vol×50, clamp [0, 5])
   const coherenceScaled = scaleCoherenceFromVol(VI_normalized);
   const coherence = coherenceScaled.value;
   
   // === SFD (Integration Bias) ===
-  // Calculate raw SFD (already in [-1, +1] range), then apply canonical formatting
   const sfd_raw = calculateSFD(scored);
-  const sfdScaled = scaleSFD(sfd_raw, true); // preScaled=true since calculateSFD returns [-1, +1]
+  const sfdScaled = scaleSFD(sfd_raw, true);
   const sfd = sfdScaled.value;
 
   // Transform trace for observability
   const transform_trace = {
-    pipeline: 'normalize_scale_clamp_round',
-    spec_version: '3.1',
+    pipeline: 'amplify-geometry → sum → amplify-magnitude → normalize → ×50 → clamp → round',
+    spec_version: SPEC_VERSION,
     canonical_scalers_used: true,
     steps: [
-      { stage: 'raw', Y_raw, X_raw, VI },
-      { stage: 'amplified', Y_amplified },
-      { stage: 'normalized', Y_normalized, VI_normalized },
-      { stage: 'scaled', directional_bias: biasScaled.raw, coherence: coherenceScaled.raw },
-      { stage: 'final', directional_bias, coherence, magnitude: magnitudeValue, sfd }
+      { stage: 'raw', magnitude_energy: X_raw, directional_bias_sum: Y_raw, volatility_index: VI },
+      { stage: 'amplified', magnitude_energy: X_raw, directional_bias_sum: Y_amplified, volatility_index: VI },
+      { stage: 'normalized', magnitude: magnitudeNormalized, bias: Y_normalized, volatility: VI_normalized, sfd: sfd_raw },
+      { stage: 'scaled', magnitude: magnitudeScaled.raw, directional_bias: biasScaled.raw, coherence: coherenceScaled.raw, sfd: sfdScaled.raw },
+      { stage: 'final', magnitude: magnitudeValue, directional_bias, coherence, sfd }
     ],
     clamp_events: [
-      ...(biasScaled.flags.hitMin || biasScaled.flags.hitMax ? [{ 
-        axis: 'directional_bias', 
-        raw: biasScaled.raw, 
-        clamped: directional_bias,
-        hitMin: biasScaled.flags.hitMin,
-        hitMax: biasScaled.flags.hitMax
-      }] : []),
-      ...(coherenceScaled.flags.hitMin || coherenceScaled.flags.hitMax ? [{ 
-        axis: 'coherence', 
-        raw: coherenceScaled.raw, 
-        clamped: coherence,
-        hitMin: coherenceScaled.flags.hitMin,
-        hitMax: coherenceScaled.flags.hitMax
-      }] : [])
+      ...(biasScaled.flags.hitMin || biasScaled.flags.hitMax ? [{ axis: 'directional_bias', raw: biasScaled.raw, clamped: directional_bias }] : []),
+      ...(coherenceScaled.flags.hitMin || coherenceScaled.flags.hitMax ? [{ axis: 'coherence', raw: coherenceScaled.raw, clamped: coherence }] : []),
+      ...(magnitudeScaled.flags.hitMin || magnitudeScaled.flags.hitMax ? [{ axis: 'magnitude', raw: magnitudeScaled.raw, clamped: magnitudeValue }] : []),
+      ...(sfdScaled.flags.hitMin || sfdScaled.flags.hitMax ? [{ axis: 'sfd', raw: sfdScaled.raw, clamped: sfd }] : []),
     ]
   };
 
-  return {
+  const result = {
     magnitude: magnitudeValue,
-    directional_bias, // Renamed from valence for lexicon clarity
+    directional_bias,
     volatility: round(VI, 2),
-    coherence, // NEW: Inverted from volatility
-    sfd, // NEW: Integration Bias (Support-Friction Differential)
+    coherence,
+    sfd,
     scored,
-    rawMagnitude: round(X_raw / opts.magnitudeDivisor, 2), // For debugging/tracking
-    originalMagnitude: round(X_original, 2), // Before rolling normalization
-    scaleConfidence: scale_confidence,
-    magnitude_meta: magnitudeScaling.meta,
-    magnitude_range: magnitudeScaling.range,
-    magnitude_clamped: magnitudeScaling.clamped,
-    magnitude_legacy: legacyNormalized,
-    transform_trace, // NEW: Full pipeline observability
-    coherence_from: 'volatility_inversion' // Sentinel to prevent double inversion
+    transform_trace,
+    magnitude_normalized: magnitudeNormalized,
+    bias_normalized: Y_normalized,
+    bias_amplified: Y_amplified,
+    coherence_normalized: VI_normalized,
+    rawMagnitude: magnitudeScaled.raw,
+    rawValence: Y_raw,
+    originalMagnitude: magnitudeValue,
   };
+
+  assertSeismographInvariants({
+    magnitude: result.magnitude,
+    directional_bias: result.directional_bias,
+    coherence: result.coherence,
+    sfd: result.sfd,
+  });
+
+  return result;
 }
 
 module.exports = {
