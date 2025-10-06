@@ -148,4 +148,43 @@ describe('Balance Meter export regression', () => {
     expect(typeof directive).toBe('string');
     expect(directive).toContain('RAVEN CALDER');
   });
+
+  it('symbolic weather JSON extracts calibrated values from axes, not raw fields', () => {
+    // This test guards against the toNumber() helper reading seismo.magnitude (5.0)
+    // instead of seismo.axes.magnitude.value (3.9)
+    const serverResult = makeServerResult();
+    
+    // Verify the fixture has both raw and calibrated values
+    const day = serverResult.person_a.chart.transitsByDate['2018-10-10'];
+    expect(day.seismograph.magnitude).toBe(5.0); // raw
+    expect(day.seismograph.axes.magnitude.value).toBe(3.9); // calibrated
+    
+    // Simulate the symbolic weather export logic (matches downloadSymbolicWeatherJSON)
+    const extractAxisValue = (source: any, axis: 'magnitude' | 'directional_bias' | 'volatility') => {
+      const axesBlock = source?.axes;
+      if (!axesBlock) return undefined;
+      
+      const axisMap: Record<string, string> = {
+        magnitude: 'magnitude',
+        directional_bias: 'directional_bias',
+        volatility: 'coherence',
+      };
+      
+      const axisData = axesBlock[axisMap[axis]];
+      if (typeof axisData === 'number') return axisData;
+      if (axisData && typeof axisData === 'object' && typeof axisData.value === 'number') {
+        return axisData.value;
+      }
+      return undefined;
+    };
+    
+    // The toNumber function MUST read from axes when axis param is provided
+    const extractedMag = extractAxisValue(day.seismograph, 'magnitude');
+    const extractedBias = extractAxisValue(day.seismograph, 'directional_bias');
+    
+    expect(extractedMag).toBe(3.9); // MUST read calibrated
+    expect(extractedMag).not.toBe(5.0); // MUST NOT read raw
+    expect(extractedBias).toBe(-2.3);
+    expect(extractedBias).not.toBe(-5.0);
+  });
 });

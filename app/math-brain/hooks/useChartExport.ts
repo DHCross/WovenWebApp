@@ -1074,12 +1074,15 @@ Start with the Solo Mirror(s), then ${
         axis?: AxisKey,
         context?: any
       ): number | undefined => {
-        if (axis) {
-          const axisCandidate = extractAxisValue(context ?? value, axis);
+        // CRITICAL: When axis is specified, ALWAYS prefer extractAxisValue from context
+        // This ensures we read calibrated values from axes.magnitude.value, not raw magnitude
+        if (axis && context) {
+          const axisCandidate = extractAxisValue(context, axis);
           if (axisCandidate !== undefined) {
             return axisCandidate;
           }
         }
+        // Only fall back to direct value extraction if no axis specified
         if (typeof value === 'number' && Number.isFinite(value)) return value;
         if (typeof value === 'string') {
           const parsed = Number(value);
@@ -1094,18 +1097,18 @@ Start with the Solo Mirror(s), then ${
         return undefined;
       };
 
-      // IMPORTANT: Raw values from API are ALREADY frontstage (0-5 scale)
-      // DO NOT transform them - use them directly
-      // The old code was dividing by 100, creating double-normalization bug
+      // IMPORTANT: Values extracted via extractAxisValue are ALREADY calibrated (0-5 scale)
+      // from axes.magnitude.value, axes.directional_bias.value, etc.
+      // This function only performs final safety clamping and rounding
       const normalizeToFrontStage = (
-        rawValue: number,
+        calibratedValue: number,
         metric: 'magnitude' | 'directional_bias' | 'volatility',
       ): number => {
-        // Raw values are already frontstage; clamp + half-up rounding only
-        if (metric === 'directional_bias') return roundHalfUp(clamp(rawValue, -5, 5), 1);
-        if (metric === 'volatility') return roundHalfUp(clamp(rawValue, 0, 5), 1);
+        // Calibrated values should already be in range; clamp + round for safety
+        if (metric === 'directional_bias') return roundHalfUp(clamp(calibratedValue, -5, 5), 1);
+        if (metric === 'volatility') return roundHalfUp(clamp(calibratedValue, 0, 5), 1);
         // magnitude
-        return roundHalfUp(clamp(rawValue, 0, 5), 2);
+        return roundHalfUp(clamp(calibratedValue, 0, 5), 2);
       };
 
       const weatherData: any = {
