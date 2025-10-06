@@ -23,6 +23,9 @@ export const roundHalfUp = (value: number, decimals = 1): number => {
 const ROUND_1DP = 1;
 const ROUND_2DP = 2;
 
+// Scale factor used by the rendering system
+export const SCALE_FACTOR = 50;
+
 export const scaleUnipolar = (normalized: number) => {
   const safe = Number.isFinite(normalized) ? normalized : 0;
   const raw = safe * 50;

@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon';
 import { createHash } from 'crypto';
-import { scaleUnipolar, scaleBipolar, scaleCoherenceFromVol, roundHalfUp, clamp, SCALE_FACTOR } from '@/lib/balance/scale';
+import { scaleUnipolar, scaleBipolar, scaleCoherenceFromVol, roundHalfUp, clamp, clampValue, SCALE_FACTOR } from '@/lib/balance/scale';
 import { NormalizedDay } from '@/lib/schemas/day';
 
 export type CoherenceSource = 'volatility' | 'coherence';
@@ -217,9 +217,9 @@ function computeAspectWeight(aspect: string, orb: number, transitName: string, t
   const base = ASPECT_WEIGHTS[aspect] ?? 0;
   if (base <= 0) return 0;
   const orbCap = orbMaxForAspect(aspect);
-  const orbWeight = clamp(1 - Math.abs(orb) / orbCap, 0, 1);
+  const orbWeight = clampValue(1 - Math.abs(orb) / orbCap, 0, 1);
   if (orbWeight <= 0) return 0;
-  const potency = clamp((transitPotency ?? 1) * (targetPotency ?? 1), 0, Number.POSITIVE_INFINITY);
+  const potency = clampValue((transitPotency ?? 1) * (targetPotency ?? 1), 0, Number.POSITIVE_INFINITY);
   let modifier = 1;
   if (ANGLE_NAMES.has(transitName) || ANGLE_NAMES.has(targetName)) {
     modifier *= 1.2;
@@ -265,7 +265,7 @@ function computeSfdFromAspects(aspects: AspectInput[] | undefined): ComputedSfdR
   }
 
   const raw = (supportiveSum - frictionalSum) / (supportiveSum + frictionalSum);
-  const clamped = clamp(raw, -1, 1);
+  const [clamped] = clamp(raw, -1, 1);
   const rounded = roundHalfUp(clamped, 2);
   return { value: rounded, raw, supportive: supportiveSum, frictional: frictionalSum, source: 'computed' };
 }
