@@ -2,11 +2,11 @@
 
 **Implementation Status (as of October 7, 2025):**
 - ✅ **Mirror Flow v4.1:** Fully implemented in `useChartExport.ts` with source annotations
-- ✅ **Balance Meter v3.1:** Complete with coherence inversion and conditional SFD emission
+- 🚧 **Balance Meter v4:** Spec updated — SFD deprecated; axes = Magnitude, Directional Bias, Narrative Coherence. Implementation pending.
 - ✅ **Markdown Exports:** Both natal mirrors and balance meter reports fully functional
 - 📄 **PDF Exports:** Removed (Markdown is primary export format)
 
-Here is the System-Wide Lexicon Checklist, updated to full integration with A Strange Cosmic Symbolism v3 and the corrected Balance Meter v3 specification.
+Here is the System-Wide Lexicon Checklist, updated to full integration with A Strange Cosmic Symbolism v3 and the Balance Meter v4 specification (SFD deprecated).
 This version fuses your mathematical, linguistic, and procedural layers—every term reconciled with its exact role in the system pipeline.
 It is meant to be read as both semantic contract and functional specification.
 
@@ -26,7 +26,7 @@ Component	Definition	Function	Data Source / Backend
 Math Brain	Deterministic computational kernel performing all geometry and orbs math. Contains no interpretive logic.	Generates raw geometric payloads (positions, aspects, house cusps).	AstrologerAPI (/api/v4/birth-chart, /api/v4/natal-aspects-data)
 Poetic Brain	Interpretive renderer that converts geometric payloads into linguistic or symbolic form.	Produces Mirror and Weather reports.	Internal renderer (mirror_renderer)
 AstrologerAPI	Canonical data interface wrapping Swiss-Ephemeris; returns planetary coordinates, house cusps, and motion states.	Feeds all modules.	Primary external dependency
-Seismograph	Diagnostic engine translating geometry into numeric field values along four axes.	Feeds Balance Meter and Weather logs.	renderer.ts, scale.ts
+Seismograph	Diagnostic engine translating geometry into numeric field values along three axes.	Feeds Balance Meter and Weather logs.	renderer.ts, scale.ts
 Balance Meter	Visualization layer rendering Seismograph axes (0–5 or −5…+5).	User-facing diagnostic dashboard.	weatherLog.ts, UI
 Mirror Report	Static description of the natal structure (no scaling).	Natal mode output.	mirror_directive.md
 Symbolic Weather	Dynamic account of transits interacting with the natal map.	Transit mode output.	weatherDataTransforms.ts
@@ -54,7 +54,7 @@ Mathematically identical; linguistically richer.
 
 Directional Bias (🌑🌞)	Valence / Tonal Vector / Field Polarity	−5…+5	Orientation of energy as harmonic (supportive) or tensile (restrictive).	Sign direction is immutable.
 Narrative Coherence (🔀)	Structural Stability / Integrative Order / Rhythmic Continuity	0–5	Semantic re-label of Volatility: same math, reoriented so higher = stable.	No formula change; semantic only.
-Support–Friction Differential (SFD)	Integration Index / Force Differential / Alignment Quotient	float	Net alignment of all active forces (cooperation vs opposition).	Continuous unclamped value.
+[Deprecated] Support–Friction Differential (SFD)	Integration Index / Force Differential / Alignment Quotient	—	Removed from Balance Meter v4. Cooperation/opposition is inferred via Coherence × Directional Bias and driver analysis.	—
 
 
 ⸻
@@ -90,7 +90,7 @@ AstrologerAPI → Math Brain → Seismograph → Balance Meter / Weather Log →
 
 	1.	Geometry acquisition: AstrologerAPI returns raw coordinates and aspects.
 	2.	Normalization: Math Brain filters by orbs profile and sign.
-	3.	Scaling: Seismograph applies canonical functions (scaleUnipolar, scaleBipolar, scaleCoherenceFromVol, scaleSFD).
+  3.	Scaling: Seismograph applies canonical functions (scaleUnipolar, scaleBipolar, scaleCoherenceFromVol).
 	4.	Classification: Outputs labeled WB / ABE / OSR.
 	5.	Narrative render: Poetic Brain translates geometry to symbolic text.
 	6.	Aggregation: Woven Map compiles temporal or relational sets.
@@ -194,7 +194,7 @@ Always framed as possible patterns, not facts.
 **Step 2 — Parallel Weather:** each person receives their own diagnostic.
 **Step 3 — Conditional Layer (live only):** describe directional interactions using specific names: "When [PersonA] does X, [PersonB] may respond with Y." Always conditional. Never use "they" or "one partner."
 **Step 4 — Integration:** live = blending climates, latent = side-by-side.
-**Step 5 — Seismograph:** Magnitude/Valence/Volatility appear at end, not first.
+**Step 5 — Seismograph:** Magnitude / Directional Bias / Narrative Coherence appear at end, not first.
 
 **Attribution Mandate**: Always name which person experiences what pressure. Use individual attribution before any mutual language. No generic pronouns in relational contexts.
 
@@ -507,9 +507,9 @@ After P2/P3, shift to **Post-Diagnostic Resonant Excavation**: extract individua
 
 ## Symbolic Tools
 
-* **Seismograph** = Magnitude (0-5), Valence (-5 to +5), Volatility (rate of change)
-* **Heat Map** = Daily/weekly pressure levels (0-3 scale)
-* **SST** = Symbolic Spectrum Table for resonance boundaries
+* Seismograph = Magnitude (0–5), Directional Bias (−5…+5), Narrative Coherence (0–5; defined as 5 − normalized_volatility × 5)
+* Heat Map = Daily/weekly pressure levels (0–3 scale)
+* SST = Symbolic Spectrum Table for resonance boundaries
 
 Both open with narrative climate assessment before quantification.
 
@@ -599,37 +599,37 @@ There are two categories of atmospheric intelligence:
 
 ## Balance Meter Reports (Quantitative, Transit-Sensitive)
 
-* **Purpose:** A symbolic seismograph, indicating magnitude (0–5), directional bias (−5..+5), volatility (0–5), and coherence (0–5) over a time window.  
-* **Current Specification:** v3.1 — fully implemented with coherence inversion and SFD conditional emission
-* **Required Inputs:**  
+* Purpose: A symbolic seismograph over a time window using three axes — Magnitude (0–5), Directional Bias (−5…+5), and Narrative Coherence (0–5).  
+* Current Specification: v4 — SFD removed from the core model; coherence is the inverted volatility metric (higher = more stable). Implementation pending; UI and exports unchanged.  
+* Required Inputs:  
   * Natal birth data (date/time/place)  
   * Transit window (from / to / step)  
-  * Relocation mode: None | A_local | B_local (midpoint is optional but discouraged by default)  
+  * Relocation mode: None | A_local | B_local (midpoint optional but discouraged)  
   * House system (default: Placidus for diagnostic work)  
   * Orbs profile (e.g., wm-spec-2025-09)
-* **Key Features (v3.1):**
-  * **Scaling:** Absolute ×5 (norm→scale→clamp→round pipeline)
-  * **Coherence:** Computed as `5 - (vol_norm × 5)` from normalized volatility
-  * **SFD (Support-Friction Differential):** Only emitted when drivers.length > 0
-  * **balance_meter_frontstage:** Complete with magnitude, directional_bias, volatility, coherence, and SFD
-  * **Export formats:** JSON (frontstage & backstage), Markdown with full seismograph data  
-* **New Rules & Operational Notes:**  
-  * **Relocation Default:** For dyads/Balances, default to A_local unless flagged. Midpoint is only supported when explicitly chosen and is generally not recommended.  
-  * **Orbs (Pre-weight Filter):** Conjunction/Opposition 8°, Square/Trine 7°, Sextile 5°. Moon gets +1°, outer planets (Jupiter, Saturn, Uranus, Neptune, Pluto) to personal planets (Sun, Moon, Mercury, Venus, Mars) get −1°. These are applied before weighting.  
-  * **Provenance Stamping:** Includes house_system, house_system_name, orbs_profile, timezone_db_version, relocation_mode, relocation_coords, math_brain_version, ephemeris_source, and engine versions (seismograph/balance/sfd).  
-  * **Missing Aspects:** The report structure and voice are still delivered, with explicit placeholders like "no aspects received for this day — drivers[] empty." Simulated examples are only shown if explicitly labeled.  
-  * **SFD & Balance Channel:** Present and compute only when drivers[] exist. Reports indicate whether these channels are live or pending.
+* Key Features (v4):
+  * Scaling: Absolute ×5 pipeline (normalize → scale → clamp → round) for Magnitude and Coherence; bipolar scaling for Directional Bias.  
+  * Coherence: Computed as `5 − (vol_norm × 5)` from normalized volatility; no change to upstream volatility math.  
+  * Frontstage fields: magnitude, directional_bias, volatility, coherence.  
+  * Export formats: JSON (frontstage & backstage), Markdown with full seismograph data.  
+* Operational Notes:  
+  * Relocation Default: For dyads/Balances, default to A_local unless flagged. Midpoint only when explicitly chosen; generally not recommended.  
+  * Orbs (Pre-weight Filter): Conjunction/Opposition 8°, Square/Trine 7°, Sextile 5°. Moon +1°, outer→personal −1°. Apply before weighting.  
+  * Provenance Stamping: house_system, house_system_name, orbs_profile, timezone_db_version, relocation_mode, relocation_coords, math_brain_version, ephemeris_source, and engine versions (seismograph/balance).  
+  * Missing Aspects: Deliver full report structure with explicit placeholders (e.g., `drivers: []`, `seismograph.pending: true`). Simulated examples only if explicitly labeled.  
+  * Balance Channel: May be applied as a post-process valence rebalance; document version separately. SFD is deprecated and not emitted.
 
 ---
 
-## Scoring and Math (Weight Belt, SFD, Balance Channel)
+## Scoring and Math (Weight Belt, Balance Channel)
 
-* **Core Computation (Unchanged but Explicit):**  
-  * **Aspect Base Weights:** Trine +0.40, Sextile +0.25, Conjunction ±0 (contextual), Square −0.50, Opposition −0.45.  
-  * **Modifiers:** Angularity (ASC/MC) ±0.10–0.20, Applying +0.10 / Separating −0.05, Multi-hit stack volatility kick −0.10.  
-  * **SFD (Support–Friction Differential):** SupportSum − CounterSum, scaled to bipolar −5..+5.  
-  * **Balance Channel (v1.1):** Rebalances valence to highlight stabilizers (boosts Jupiter/Venus contributions while preserving magnitude).  
-* **SST Guardrail:** Lived pings (WB / ABE / OSR) can override theoretical valences. Systems log ping history and adapt.
+* Core Computation (explicit):  
+  * Aspect Base Weights: Trine +0.40, Sextile +0.25, Conjunction ±0 (contextual), Square −0.50, Opposition −0.45.  
+  * Modifiers: Angularity (ASC/MC) ±0.10–0.20, Applying +0.10 / Separating −0.05, Multi-hit stack volatility kick −0.10.  
+  * Directional Bias: Aggregated harmonic vs tensile contributions on a bipolar scale (−5…+5) after weighting.  
+  * Balance Channel (v1.1): Rebalances valence to highlight stabilizers (boosts Jupiter/Venus contributions while preserving magnitude).  
+* Deprecation Note: SFD (Support–Friction Differential) was retired in Balance Meter v4. Cooperation/opposition is now inferred via Coherence × Directional Bias and driver inspection; no standalone SFD channel is emitted.  
+* SST Guardrail: Lived pings (WB / ABE / OSR) can override theoretical valences. Systems log ping history and adapt.
 
 ---
 
