@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
 export const NormalizedDay = z.object({
-  magnitude: z.number().min(-0.2).max(0.2),
-  directional_bias: z.number().min(-0.2).max(0.2),
-  volatility: z.number().min(-0.2).max(0.2),
+  magnitude: z.number().min(0).max(1),
+  directional_bias: z.number().min(-1).max(1),
+  volatility: z.number().min(0).max(1),
   sfd: z.number().min(-1).max(1).nullable(),
 });
 
@@ -27,7 +27,7 @@ const SfdDisplay = z.object({
 
 const ScalingMeta = z.object({
   mode: z.literal('absolute'),
-  factor: z.literal(50),
+  factor: z.literal(5),
   pipeline: z.literal('normalize→scale→clamp→round'),
   coherence_inversion: z.boolean(),
 });
@@ -45,7 +45,7 @@ export const DayExport = z.object({
   scaling: ScalingMeta,
   meta: z.object({
     scaling_mode: z.literal('absolute'),
-    scale_factor: z.literal(50),
+    scale_factor: z.literal(5),
     coherence_inversion: z.boolean(),
     pipeline: z.literal('normalize→scale→clamp→round'),
     spec_version: z.literal('3.1'),

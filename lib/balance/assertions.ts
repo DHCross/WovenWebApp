@@ -180,3 +180,61 @@ export function assertSeismographInvariants(seismo: {
     );
   }
 }
+
+export function assertNotDoubleInverted(volDisplay: number, cohDisplay: number): void {
+  if (!Number.isFinite(volDisplay) || !Number.isFinite(cohDisplay)) {
+    return;
+  }
+
+  if (Math.abs(volDisplay) <= 1) {
+    return;
+  }
+
+  const sum = volDisplay + cohDisplay;
+  if (Math.abs(sum - 5) < 0.05) {
+    throw new BalanceMeterInvariantViolation(
+      `Coherence double-inversion detected (vol=${volDisplay}, coh=${cohDisplay})`,
+      { volatility_display: volDisplay, coherence_display: cohDisplay }
+    );
+  }
+}
+
+export function assertDisplayRanges(params: {
+  mag: number;
+  bias: number;
+  coh: number;
+  sfd: number | 'n/a' | null;
+}): void {
+  const { mag, bias, coh, sfd } = params;
+
+  if (mag < 0 || mag > 5) {
+    throw new BalanceMeterInvariantViolation(`Magnitude out of range: ${mag}`, { value: mag });
+  }
+
+  if (bias < -5 || bias > 5) {
+    throw new BalanceMeterInvariantViolation(`Directional bias out of range: ${bias}`, { value: bias });
+  }
+
+  if (coh < 0 || coh > 5) {
+    throw new BalanceMeterInvariantViolation(`Coherence out of range: ${coh}`, { value: coh });
+  }
+
+  if (sfd !== null && sfd !== 'n/a') {
+    if (sfd < -1 || sfd > 1) {
+      throw new BalanceMeterInvariantViolation(`SFD out of range: ${sfd}`, { value: sfd });
+    }
+  }
+}
+
+export function assertSfdDrivers(driversCount: number, sfd: number | 'n/a' | null): void {
+  if (!Number.isFinite(driversCount)) {
+    return;
+  }
+
+  if (driversCount <= 0 && sfd !== null && sfd !== 'n/a') {
+    throw new BalanceMeterInvariantViolation(
+      `SFD rendered without drivers (count=${driversCount}, sfd=${sfd})`,
+      { driversCount, sfd }
+    );
+  }
+}

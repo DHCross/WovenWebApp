@@ -126,10 +126,10 @@ describe('CI Gate: Runtime Assertions Active', () => {
 
 describe('CI Gate: Backward Compatibility', () => {
   
-  test('SCALE_FACTOR remains 50', async () => {
+  test('SCALE_FACTOR remains 5', async () => {
     const constants = await import('../lib/balance/constants.js');
     const { SCALE_FACTOR } = constants;
-    expect(SCALE_FACTOR).toBe(50);
+    expect(SCALE_FACTOR).toBe(5);
   });
 
   test('SPEC_VERSION is 3.1', async () => {

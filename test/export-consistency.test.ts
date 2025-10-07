@@ -4,9 +4,9 @@ import { buildRelationalDayExport } from '@/lib/reporting/relational';
 
 it('solo vs relational use the same scaler output', () => {
   const normalized = {
-    magnitude: 0.05,
-    directional_bias: -0.05,
-    volatility: 0.04,
+    magnitude: 0.6,
+    directional_bias: -0.4,
+    volatility: 0.3,
     sfd: null,
   };
 

@@ -306,7 +306,7 @@ function generateManifest(generatedFiles) {
 version: ${version}
 contract: clear-mirror/1.3
 generated: ${new Date().toISOString()}
-render_mode: absolute_x50
+render_mode: absolute_x5
 pipeline: [normalize, scale, clamp, round]
 coherence_formula: "5 - (volatility * 50)"
 

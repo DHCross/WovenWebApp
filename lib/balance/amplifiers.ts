@@ -37,11 +37,11 @@ export const amplifyByMagnitude = (rawBias: number, magnitude0to5: number): numb
 };
 
 /**
- * Normalize amplified bias to [-0.1, +0.1] typical range.
- * 
+ * Normalize amplified bias to [-1, +1] typical range.
+ *
  * After magnitude amplification, Y_amplified typically ranges from -10 to +10
  * for extreme days. This normalization prepares the value for canonical
- * ×50 scaling to the display range [-5, +5].
+ * ×5 scaling to the display range [-5, +5].
  * 
  * @param amplifiedBias - Output from amplifyByMagnitude()
  * @returns Normalized bias in [-0.1, +0.1] range
@@ -50,17 +50,18 @@ export const normalizeAmplifiedBias = (amplifiedBias: number): number => {
   if (!Number.isFinite(amplifiedBias)) {
     return 0;
   }
-  
-  // Y_amplified / 100 → typical range [-0.1, +0.1]
-  // Then ×50 in canonical scaler → [-5, +5]
-  return amplifiedBias / 100;
+
+  const normalized = amplifiedBias / 10;
+  if (normalized > 1) return 1;
+  if (normalized < -1) return -1;
+  return normalized;
 };
 
 /**
  * Normalize volatility index for coherence calculation.
- * 
- * VI typically ranges 0-10+. This normalizes to [0, 0.1] so that
- * the canonical coherence formula (5 - vol_norm × 50) produces
+ *
+ * VI typically ranges 0-10+. This normalizes to [0, 1] so that
+ * the canonical coherence formula (5 - vol_norm × 5) produces
  * values in the expected [0, 5] range.
  * 
  * @param volatilityIndex - Raw volatility index from seismograph
@@ -70,8 +71,7 @@ export const normalizeVolatilityForCoherence = (volatilityIndex: number): number
   if (!Number.isFinite(volatilityIndex) || volatilityIndex < 0) {
     return 0;
   }
-  
-  // VI / 100 → [0, 0.1] typical range
-  // Min caps at 0.1 to prevent negative coherence after inversion
-  return Math.min(0.1, volatilityIndex / 100);
+
+  const normalized = volatilityIndex / 10;
+  return Math.min(1, Math.max(0, normalized));
 };

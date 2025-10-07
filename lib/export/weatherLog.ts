@@ -5,6 +5,7 @@ import {
   scaleSFD,
   ClampInfo,
 } from '@/lib/balance/scale';
+import { assertDisplayRanges, assertNotDoubleInverted, assertSfdDrivers } from '@/lib/balance/assertions';
 import { DayExport } from '@/lib/schemas/day';
 
 export type NormalizedDay = {
@@ -33,6 +34,7 @@ export type BuildDayOptions = {
   timezone?: string;
   provenance?: string;
   normalized_input_hash?: string;
+  driversCount?: number;
 };
 
 export type WeatherLogDay = {
@@ -45,15 +47,15 @@ export type WeatherLogDay = {
   };
   scaling: {
     mode: 'absolute';
-    factor: 50;
+    factor: 5;
     pipeline: 'normalize→scale→clamp→round';
     coherence_inversion: true;
     coherence_from: 'volatility'; // Explicit label
   };
   meta: {
     scaling_mode: 'absolute';
-    scale_factor: 50; // Keep for backward compatibility
-    scale_factors: { magnitude: 50; directional_bias: 50; coherence: 50 }; // All axes
+    scale_factor: 5; // Keep for backward compatibility
+    scale_factors: { magnitude: 5; directional_bias: 5; coherence: 5 }; // All axes
     coherence_inversion: true;
     coherence_from: 'volatility';
     pipeline: 'normalize→scale→clamp→round';
@@ -77,7 +79,7 @@ export function buildDayExport(
   const magnitude = scaleUnipolar(n.magnitude);
   const bias = scaleBipolar(n.directional_bias);
   const coherence = scaleCoherenceFromVol(n.volatility);
-  const sfd = scaleSFD(n.sfd, n.sfd != null && Math.abs(n.sfd) > 0.15);
+  const sfd = scaleSFD(n.sfd, true);
 
   // Trace: accumulate clamp hits for deep debugging
   const clamp_hits: string[] = [];
@@ -115,15 +117,15 @@ export function buildDayExport(
     },
     scaling: {
       mode: 'absolute' as const,
-      factor: 50 as const,
+      factor: 5 as const,
       pipeline: 'normalize→scale→clamp→round' as const,
       coherence_inversion: true as const,
       coherence_from: 'volatility' as const,
     },
     meta: {
       scaling_mode: 'absolute' as const,
-      scale_factor: 50 as const, // Keep for backward compatibility
-      scale_factors: { magnitude: 50, directional_bias: 50, coherence: 50 },
+      scale_factor: 5 as const, // Keep for backward compatibility
+      scale_factors: { magnitude: 5, directional_bias: 5, coherence: 5 },
       coherence_inversion: true as const,
       coherence_from: 'volatility' as const,
       pipeline: 'normalize→scale→clamp→round' as const,
@@ -139,6 +141,16 @@ export function buildDayExport(
   if (clamp_hits.length > 0) {
     payload.trace = { clamp_hits };
   }
+
+  const sfdDisplayValue = sfd.value ?? 'n/a';
+  assertDisplayRanges({
+    mag: magnitude.value,
+    bias: bias.value,
+    coh: coherence.value,
+    sfd: sfdDisplayValue,
+  });
+  assertNotDoubleInverted(n.volatility, coherence.value);
+  assertSfdDrivers(opts?.driversCount ?? Number.NaN, sfdDisplayValue);
 
   DayExport.parse(payload);
   return payload;

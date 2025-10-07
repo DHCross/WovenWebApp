@@ -715,9 +715,9 @@ Start with the Solo Mirror(s), then ${
 
       addTextBlock(`Generated: ${generatedAt.toLocaleString()}`, { fontSize: 10 });
       addTextBlock(`Specification Version: 3.1`, { fontSize: 10 });
-      addTextBlock(`Scaling Mode: Absolute ×50`, { fontSize: 10 });
+      addTextBlock(`Scaling Mode: Absolute ×5`, { fontSize: 10 });
       addTextBlock(`Pipeline: normalize -> scale -> clamp -> round`, { fontSize: 10 });
-      addTextBlock(`Coherence Inversion: ON (Coherence = 5 - vol_norm × 50)`, { fontSize: 10 });
+      addTextBlock(`Coherence Inversion: ON (Coherence = 5 - vol_norm × 5)`, { fontSize: 10 });
       addTextBlock('', { fontSize: 8 });
 
       printableSections.forEach((section) => {
@@ -795,9 +795,9 @@ Start with the Solo Mirror(s), then ${
       let markdown = `# Woven Web App — ${reportKind} Report\n\n`;
       markdown += `**Generated:** ${generatedAt.toLocaleString()}\n\n`;
       markdown += `**Specification Version:** 3.1\n`;
-      markdown += `**Scaling Mode:** Absolute ×50\n`;
+      markdown += `**Scaling Mode:** Absolute ×5\n`;
       markdown += `**Pipeline:** normalize -> scale -> clamp -> round\n`;
-      markdown += `**Coherence Inversion:** ON (Coherence = 5 - vol_norm × 50)\n\n`;
+      markdown += `**Coherence Inversion:** ON (Coherence = 5 - vol_norm × 5)\n\n`;
       markdown += `---\n\n`;
 
       const summary = sanitizedReport?.person_a?.summary;
@@ -1231,6 +1231,18 @@ export function createFrontStageResult(rawResult: any) {
   ): string => {
     if (type === 'magnitude') {
       if (value >= 4) return 'High';
+  const assertNoDivideByHundred = (
+    value: number | undefined,
+    axis: 'magnitude' | 'directional_bias',
+    context: string,
+  ) => {
+    if (value == null || value === 0) return;
+    const threshold = axis === 'magnitude' ? 0.1 : 0.1;
+    if (Math.abs(value) <= threshold) {
+      throw new Error(`Looks like pre-v3 divide-by-100 scaling snuck back in (${axis}, context)`);
+    }
+  };
+
       if (value >= 2) return 'Active';
       if (value >= 1) return 'Murmur';
       return 'Latent';
@@ -1321,6 +1333,9 @@ export function createFrontStageResult(rawResult: any) {
         normalizedDaily[date] = {
           ...dayData,
           seismograph: {
+    assertNoDivideByHundred(normalizedMag, 'magnitude', 'summary');
+    assertNoDivideByHundred(normalizedBias, 'directional_bias', 'summary');
+
             ...dayData.seismograph,
             magnitude:
               rawMag !== undefined
@@ -1387,6 +1402,17 @@ function buildAnalysisDirective(reportKind: string): string {
 
 function buildConversationalInstructions(): string {
   return `AI SYNTHESIS INSTRUCTIONS - RAVEN CALDER CONVERSATIONAL VOICE\n\nWhen presenting this astrological analysis, follow the Raven Calder corpus/persona:\n\nSTRUCTURE: Present in this exact order:\n1. Solo Mirrors: Short, plain-language snapshots for each person (if relational) or individual (if solo)\n2. Relational Engines: Named, recognizable patterns (Spark Engine, Sweet Glue, Growth Pressure Cooker, etc.)\n3. Symbolic Weather Overlay: Continuous narrative paragraphs describing current symbolic weather\n\nTONE & LANGUAGE (Per Raven Calder Persona):\n• Use conversational, accessible language - no heavy astrological jargon\n• Frame patterns as tendencies and probabilities, NOT prescriptions or fixed fate\n• Make it shareable - suitable for discussing with partners, friends, or family\n• Focus on "here's how your system tends to move" rather than technical analysis\n• Falsifiable, agency-first, plain language\n\nSOLO MIRRORS FORMAT:\n"[Name]'s system tends to [movement pattern] with a [style] approach. [Current influence]. This creates a [climate] kind of energy that [expression pattern]."\n\nRELATIONAL ENGINES FORMAT:\n**[Engine Name]**\n[Mechanism description]. [Tendency description].\n\nSYMBOLIC WEATHER OVERLAY FORMAT:\nContinuous paragraphs without bullet points, lists, or percentages. Describe the overall climate, undercurrents, visibility, pressure, and temperature as symbolic weather patterns.\n\nCRITICAL DATA REQUIREMENTS:\n• Use the complete natal chart data included in this export (planetary positions, aspects, house system, birth details)\n• For synastry readings, ensure both Person A AND Person B natal data are present and used\n• DO NOT rely on prior uploads or defaults - use only the comprehensive astrological data provided in this document\n• Synthesize ALL the technical analysis into conversational format while preserving analytical accuracy\n\nIMPORTANT: This comprehensive astrological data should be synthesized into the conversational format above, but retain all the analytical depth. Present insights as conversation starters about energy patterns rather than definitive statements.`;
+        assertNoDivideByHundred(
+          normalizedDaily[date].seismograph?.magnitude,
+          'magnitude',
+          `daily:${date}`,
+        );
+        assertNoDivideByHundred(
+          normalizedDaily[date].seismograph?.bias_signed,
+          'directional_bias',
+          `daily:${date}`,
+        );
+
 }
 
 function buildBalanceSummarySection(personSummary: any | null | undefined): ChartSection | null {

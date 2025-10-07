@@ -48,12 +48,12 @@ describe('Balance Meter Property Tests', () => {
       });
     });
 
-    test('small normalized inputs (±0.05) produce display ≈ ±2.5', () => {
+    test('small normalized inputs (±0.05) produce display ≈ ±0.3', () => {
       const testCases = [
-        { input: -0.05, expected: -2.5, tolerance: 0.1 },
-        { input: 0.05, expected: 2.5, tolerance: 0.1 },
-        { input: -0.04, expected: -2.0, tolerance: 0.1 },
-        { input: 0.04, expected: 2.0, tolerance: 0.1 },
+        { input: -0.05, expected: -0.3, tolerance: 0.1 },
+        { input: 0.05, expected: 0.3, tolerance: 0.1 },
+        { input: -0.04, expected: -0.2, tolerance: 0.1 },
+        { input: 0.04, expected: 0.2, tolerance: 0.1 },
       ];
 
       testCases.forEach(({ input, expected, tolerance }) => {
@@ -79,11 +79,11 @@ describe('Balance Meter Property Tests', () => {
       expect(small.flags.hitMax).toBe(false);
 
       // SHOULD clamp for extreme values
-      const large = scaleBipolar(1.0); // normalized 1.0 → raw 50 → clamped to 5
+      const large = scaleBipolar(1.2); // normalized 1.2 → raw 6 → clamped to 5
       expect(large.value).toBe(5);
       expect(large.flags.hitMax).toBe(true);
 
-      const veryNegative = scaleBipolar(-1.0);
+      const veryNegative = scaleBipolar(-1.2);
       expect(veryNegative.value).toBe(-5);
       expect(veryNegative.flags.hitMin).toBe(true);
     });
@@ -156,11 +156,11 @@ describe('Balance Meter Property Tests', () => {
       expect(result.value).toBe(5.0);
     });
 
-    test('volatility = 0.1 → coherence = 0.0', () => {
-      // vol_norm × 50 = 0.1 × 50 = 5
-      // coherence = 5 - 5 = 0
+    test('volatility = 0.1 → coherence = 4.5', () => {
+      // vol_norm × 5 = 0.1 × 5 = 0.5
+      // coherence = 5 - 0.5 = 4.5
       const result = scaleCoherenceFromVol(0.1);
-      expect(result.value).toBe(0.0);
+      expect(result.value).toBe(4.5);
     });
   });
 

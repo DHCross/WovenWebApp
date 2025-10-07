@@ -1,7 +1,7 @@
 # Symbolic Weather Fix Directive v3.1.0 {#spec}
 
 **Provenance:** `[L5]`
-- **Render Mode:** Absolute ×50
+- **Render Mode:** Absolute ×5
 - **Pipeline Order:** normalize → scale → clamp → round
 - **Coherence Formula:** 5 − (volatility × 50)
 - **Contract:** clear-mirror/1.3
@@ -282,7 +282,7 @@ name: symbolic-weather-fix-directive
 version: 3.1.0
 contract: clear-mirror/1.3
 generated: 2025-01-21T12:00:00Z
-render_mode: absolute_x50
+render_mode: absolute_x50  # legacy label for ×5 scaling
 pipeline: [normalize, scale, clamp, round]
 coherence_formula: 5 - (volatility * 50)
 

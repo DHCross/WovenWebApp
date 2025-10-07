@@ -37,7 +37,6 @@
 import { NextResponse } from 'next/server';
 import {
   renderSymbolicWeather,
-  SCALE_FACTORS,
   type EngineDayInput,
   type AspectInput,
   type RendererResult
@@ -58,6 +57,115 @@ const logger = {
     // eslint-disable-next-line no-console
     console.error(`[SymbolicWeather] ${message}`, context);
   }
+};
+
+const NORMALIZATION_PIPELINE = 'normalize→scale→clamp→round';
+
+type FrontstageInput = {
+  magnitude?: number | null;
+  directional_bias?: number | null;
+  volatility?: number | null;
+  coherence?: number | null;
+  sfd?: number | 'n/a' | null;
+};
+
+type NormalizedInputResult = {
+  magnitude: number | null;
+  directional_bias: number | null;
+  volatility: number | null;
+  coherence: number | null;
+  sfd: number | null;
+  sfdPreScaled: boolean;
+  meta: {
+    pipeline: typeof NORMALIZATION_PIPELINE;
+    coercions: string[];
+  };
+};
+
+const hasTenthPrecision = (value: number) => Math.abs(Math.round(value * 10) / 10 - value) <= 1e-6;
+
+const looksDisplayScaleMag = (value: number) => Number.isFinite(value) && value >= 0 && value <= 5 && hasTenthPrecision(value);
+const looksDisplayScaleBias = (value: number) => Number.isFinite(value) && value >= -5 && value <= 5 && hasTenthPrecision(value);
+const looksDisplayScaleVol = (value: number) => Number.isFinite(value) && value >= 0 && value <= 5;
+const looksDisplayScaleCoh = (value: number) => Number.isFinite(value) && value >= 0 && value <= 5;
+
+const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
+const clamp11 = (value: number) => Math.max(-1, Math.min(1, value));
+
+function toNormalizedInputs(source: FrontstageInput): NormalizedInputResult {
+  const meta: NormalizedInputResult['meta'] = {
+    pipeline: NORMALIZATION_PIPELINE,
+    coercions: []
+  };
+
+  const result: NormalizedInputResult = {
+    magnitude: null,
+    directional_bias: null,
+    volatility: null,
+    coherence: null,
+    sfd: null,
+    sfdPreScaled: false,
+    meta
+  };
+
+  if (typeof source.magnitude === 'number' && Number.isFinite(source.magnitude)) {
+    const raw = source.magnitude;
+    const normalized = looksDisplayScaleMag(raw) ? raw / 5 : raw;
+    if (looksDisplayScaleMag(raw)) {
+      meta.coercions.push('magnitude:display→normalized');
+    }
+    result.magnitude = clamp01(normalized);
+  }
+
+  if (typeof source.directional_bias === 'number' && Number.isFinite(source.directional_bias)) {
+    const raw = source.directional_bias;
+    const normalized = looksDisplayScaleBias(raw) ? raw / 5 : raw;
+    if (looksDisplayScaleBias(raw)) {
+      meta.coercions.push('bias:display→normalized');
+    }
+    result.directional_bias = clamp11(normalized);
+  }
+
+  if (typeof source.volatility === 'number' && Number.isFinite(source.volatility)) {
+    const raw = source.volatility;
+    const normalized = looksDisplayScaleVol(raw) ? raw / 5 : raw;
+    if (looksDisplayScaleVol(raw)) {
+      meta.coercions.push('volatility:display→normalized');
+    }
+    result.volatility = clamp01(normalized);
+  }
+
+  if (typeof source.coherence === 'number' && Number.isFinite(source.coherence)) {
+    const raw = source.coherence;
+    const normalized = looksDisplayScaleCoh(raw) ? raw / 5 : raw;
+    if (looksDisplayScaleCoh(raw)) {
+      meta.coercions.push('coherence:display→normalized');
+    }
+    result.coherence = clamp01(normalized);
+  }
+
+  if (source.sfd === 'n/a') {
+    result.sfd = null;
+    result.sfdPreScaled = true;
+  } else if (typeof source.sfd === 'number' && Number.isFinite(source.sfd)) {
+    const raw = source.sfd;
+    if (Math.abs(raw) <= 1) {
+      result.sfd = clamp11(raw);
+      result.sfdPreScaled = true;
+    } else if (Math.abs(raw) <= 5) {
+      result.sfd = clamp11(raw / 5);
+      meta.coercions.push('sfd:display→normalized');
+    } else {
+      result.sfd = clamp11(raw);
+    }
+  }
+
+  return result;
+}
+
+const asFiniteNumber = (value: unknown): number | null => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
 };
 
 function mapAspects(rawAspects: any[] | undefined): AspectInput[] {
@@ -111,6 +219,11 @@ function buildRendererResult(mathBrainResult: any, options: {
   const provenance = mathBrainResult?.provenance || {};
   const timezone = provenance.tz || provenance.timezone || DEFAULT_TIMEZONE;
 
+  const upstreamScale = (provenance.scale || provenance.scaling || mathBrainResult?._provenance?.scale) as string | undefined;
+  if (typeof upstreamScale === 'string' && upstreamScale.length > 0 && upstreamScale !== 'normalized') {
+    throw new Error(`Upstream must emit normalized scale; got ${upstreamScale}.`);
+  }
+
   const dates = Object.keys(transitsByDate)
     .filter((date) => date >= options.startDate && date <= options.endDate)
     .sort();
@@ -121,39 +234,66 @@ function buildRendererResult(mathBrainResult: any, options: {
     const balance = dayData.balance || {};
     const sfdBlock = dayData.sfd || {};
 
-    const magnitudeRaw = Number(seismo.magnitude ?? balance.magnitude ?? 0);
-    const directionalRaw = Number(seismo.bias_signed ?? balance.bias_signed ?? 0);
-    const volatilityRaw = Number(seismo.volatility ?? 0);
-    const coherenceRaw = Number(seismo.coherence ?? 0);
+    const magnitudeRaw = asFiniteNumber(seismo.magnitude ?? balance.magnitude);
+    const directionalRaw = asFiniteNumber(seismo.bias_signed ?? balance.bias_signed);
+    const volatilityRaw = asFiniteNumber(seismo.volatility);
+    const coherenceRaw = asFiniteNumber(seismo.coherence);
+
+    const rawSfd = (() => {
+      const candidates = [sfdBlock.sfd_cont, sfdBlock.value, sfdBlock.sfd];
+      for (const candidate of candidates) {
+        const numeric = asFiniteNumber(candidate);
+        if (numeric != null) {
+          return numeric;
+        }
+      }
+      return null;
+    })();
+
+    const sfdStatus = typeof sfdBlock.status === 'string' ? sfdBlock.status.toLowerCase() : '';
+    const driversCount = Array.isArray(sfdBlock.drivers)
+      ? sfdBlock.drivers.length
+      : asFiniteNumber(sfdBlock.drivers_count ?? sfdBlock.driversCount);
+
+    const normalized = toNormalizedInputs({
+      magnitude: magnitudeRaw,
+      directional_bias: directionalRaw,
+      volatility: volatilityRaw,
+      coherence: coherenceRaw,
+      sfd: sfdStatus === 'n/a' ? 'n/a' : rawSfd
+    });
+
+    if (normalized.meta.coercions.length > 0) {
+      logger.info('Coerced display-scale inputs', { date, coercions: normalized.meta.coercions });
+    }
 
     const input: EngineDayInput = {
       date,
-      magnitude: Number.isFinite(magnitudeRaw) ? magnitudeRaw / SCALE_FACTORS.magnitude : 0,
-      directional_bias: Number.isFinite(directionalRaw) ? directionalRaw / SCALE_FACTORS.directional_bias : 0,
-      volatility: Number.isFinite(volatilityRaw) ? volatilityRaw / SCALE_FACTORS.coherence : 0,
+      magnitude: normalized.magnitude ?? 0,
+      directional_bias: normalized.directional_bias ?? 0,
+      volatility: normalized.volatility ?? 0,
       timezone,
       aspects: mapAspects(dayData.filtered_aspects || dayData.aspects)
     };
 
-    if (Number.isFinite(coherenceRaw)) {
-      input.coherence = coherenceRaw / SCALE_FACTORS.coherence;
+    if (normalized.coherence != null) {
+      input.coherence = normalized.coherence;
     }
 
-    const rawSfd = typeof sfdBlock.sfd_cont === 'number'
-      ? sfdBlock.sfd_cont
-      : typeof sfdBlock.value === 'number'
-      ? sfdBlock.value
-      : typeof sfdBlock.sfd === 'number'
-      ? sfdBlock.sfd
-      : null;
+    if (normalized.sfd != null) {
+      input.sfd = normalized.sfd;
+    }
 
-    if (typeof rawSfd === 'number' && Number.isFinite(rawSfd)) {
-      if (Math.abs(rawSfd) <= 1) {
-        input.sfd = rawSfd;
-        input.sfd_pre_scaled = true;
-      } else {
-        input.sfd = rawSfd / SCALE_FACTORS.sfd;
+    if (normalized.sfdPreScaled) {
+      input.sfd_pre_scaled = true;
+    }
+
+    if (driversCount != null && driversCount <= 0) {
+      if (input.sfd != null) {
+        logger.warn('SFD provided without drivers; coercing to n/a', { date, driversCount });
       }
+      input.sfd = null;
+      input.sfd_pre_scaled = true;
     }
 
     return input;
