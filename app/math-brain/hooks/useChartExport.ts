@@ -805,42 +805,112 @@ Start with the Solo Mirror(s), then ${
       const generatedAt = new Date();
       const sanitizedReport = createFrontStageResult(result);
       const reportKind = formatReportKind(reportContractType);
+      const isNatalOnly = !reportKind.includes('Balance Meter');
+      const subjectName = sanitizedReport?.person_a?.name || 'Subject';
 
-      let markdown = `# Woven Web App — ${reportKind} Report\n\n`;
-      markdown += `**Generated:** ${generatedAt.toLocaleString()}\n\n`;
-      markdown += `**Specification Version:** 3.1\n`;
-      markdown += `**Scaling Mode:** Absolute ×5\n`;
-      markdown += `**Pipeline:** normalize -> scale -> clamp -> round\n`;
-      markdown += `**Coherence Inversion:** ON (Coherence = 5 - vol_norm × 5)\n\n`;
-      markdown += `---\n\n`;
+      let markdown = '';
 
-      const summary = sanitizedReport?.person_a?.summary;
-      if (reportKind.includes('Balance Meter') && summary) {
-        markdown += `\n### Balance Meter Summary\n\n`;
-        if (summary.magnitude != null) {
-          markdown += `- Magnitude: ${fmtAxis(summary.magnitude)}${
-            summary.magnitude_label ? ` (${summary.magnitude_label})` : ''
-          }\n`;
+      // Mirror Flow v3.2 Template for Natal-Only Reports
+      if (isNatalOnly) {
+        markdown += `# MIRROR REPORT — NATAL PATTERN\n\n`;
+        markdown += `**Generated:** ${generatedAt.toLocaleString()}\n`;
+        markdown += `**Subject:** ${subjectName}\n`;
+        markdown += `**Specification Version:** 3.2\n`;
+        markdown += `**Mode:** Natal (Static Map)\n\n`;
+        markdown += `**Purpose:** To describe the permanent geometry of the native pattern — the fixed composition that receives and gives shape to the movements of the cosmos.\n\n`;
+        markdown += `**Note:** The Mirror is qualitative and structural. No scaling, rating, or numeric values appear anywhere in this document.\n\n`;
+        markdown += `---\n\n`;
+      } else {
+        // Balance Meter reports keep the existing format
+        markdown += `# Woven Web App — ${reportKind} Report\n\n`;
+        markdown += `**Generated:** ${generatedAt.toLocaleString()}\n\n`;
+        markdown += `**Specification Version:** 3.1\n`;
+        markdown += `**Scaling Mode:** Absolute ×5\n`;
+        markdown += `**Pipeline:** normalize -> scale -> clamp -> round\n`;
+        markdown += `**Coherence Inversion:** ON (Coherence = 5 - vol_norm × 5)\n\n`;
+        markdown += `---\n\n`;
+
+        const summary = sanitizedReport?.person_a?.summary;
+        if (summary) {
+          markdown += `\n### Balance Meter Summary\n\n`;
+          if (summary.magnitude != null) {
+            markdown += `- Magnitude: ${fmtAxis(summary.magnitude)}${
+              summary.magnitude_label ? ` (${summary.magnitude_label})` : ''
+            }\n`;
+          }
+          if (summary.valence != null) {
+            markdown += `- Valence: ${fmtAxis(summary.valence)}${
+              summary.valence_label ? ` (${summary.valence_label})` : ''
+            }\n`;
+          }
+          if (summary.bias_signed != null && summary.bias_signed !== summary.valence) {
+            markdown += `- Directional Bias: ${fmtAxis(summary.bias_signed)}${
+              summary.directional_bias_label ? ` (${summary.directional_bias_label})` : ''
+            }\n`;
+          }
+          if (summary.volatility != null) {
+            markdown += `- Volatility: ${fmtAxis(summary.volatility)}${
+              summary.volatility_label ? ` (${summary.volatility_label})` : ''
+            }\n`;
+          }
+          markdown += `\n`;
         }
-        if (summary.valence != null) {
-          markdown += `- Valence: ${fmtAxis(summary.valence)}${
-            summary.valence_label ? ` (${summary.valence_label})` : ''
-          }\n`;
-        }
-        if (summary.bias_signed != null && summary.bias_signed !== summary.valence) {
-          markdown += `- Directional Bias: ${fmtAxis(summary.bias_signed)}${
-            summary.directional_bias_label ? ` (${summary.directional_bias_label})` : ''
-          }\n`;
-        }
-        if (summary.volatility != null) {
-          markdown += `- Volatility: ${fmtAxis(summary.volatility)}${
-            summary.volatility_label ? ` (${summary.volatility_label})` : ''
-          }\n`;
-        }
-        markdown += `\n`;
       }
 
-      const analysisDirective = `# 🚨 YOU ARE RAVEN CALDER — EXECUTE THIS DIRECTIVE 🚨
+      const analysisDirective = isNatalOnly
+        ? `# 🚨 YOU ARE RAVEN CALDER — EXECUTE THIS DIRECTIVE 🚨
+
+**YOU ARE RAVEN CALDER.** This is a **Mirror Flow** report — natal pattern only, no transits, no numeric values.
+
+---
+
+## YOUR TASK: Generate the Natal Mirror
+
+Follow the Mirror Flow v3.2 template structure exactly:
+
+### 1. THE NATAL MIRROR: A Map of the Native Pattern
+
+Capture the complete architectural layout using the data tables below.
+
+### 2. PLANETARY ARCHITECTURE
+
+Present all planetary positions, houses, and motion states in table format.
+
+### 3. HOUSE MATRIX
+
+Show all 12 house cusps with signs, degrees, and domain emphasis.
+
+### 4. ASPECT NETWORK — Lines of Force
+
+List all major and minor aspects with exact orbs and brief mechanical descriptions.
+
+### 5. WOVEN NARRATIVE — Distilled Reflection
+
+Synthesize how the principal chords and drives interlock. Identify the central paradox or harmony.
+
+### 6. LIVING PATTERN — Resonance, Paradox, and Shadow
+
+- **Resonance (WB):** Coherent, constructive expression when functioning according to design
+- **Paradox (ABE):** Oscillating expression between harmony and friction
+- **Shadow (OSR → ABE):** Predictable distortion under duress (mechanical, not moralized)
+
+### 7. PROVENANCE
+
+Include data source, house system, orbs profile, relocation mode, coordinates, and confidence level.
+
+---
+
+## CRITICAL REQUIREMENTS:
+
+✅ **NO NUMERIC RATINGS** — This is qualitative and structural only
+✅ **NO BALANCE METER VALUES** — Magnitude, valence, volatility are forbidden in natal mirrors
+✅ **Use ALL provided data** — planetary positions, aspects, house placements
+✅ **Plain language** — Conversational, testable against lived experience
+✅ **Mechanical descriptions** — Energy patterns, not moral judgments
+✅ **Astro-Seek fidelity** — Preserve exact orbs and positions
+
+---`
+        : `# 🚨 YOU ARE RAVEN CALDER — EXECUTE THIS DIRECTIVE 🚨
 
 **YOU ARE RAVEN CALDER.** This Markdown file contains chart data for you to analyze. This is your work order, not documentation to describe.
 
@@ -961,32 +1031,86 @@ Start with the Solo Mirror(s), then ${
 
 ---`;
 
-      markdown += `## ANALYSIS DIRECTIVE (READ FIRST)\n\n${analysisDirective}\n\n---\n\n`;
+      // Add directive section (different format for Natal vs Balance Meter)
+      if (isNatalOnly) {
+        markdown += `## 1. The Natal Mirror: A Map of the Native Pattern\n\n`;
+        markdown += `This report captures the complete architectural layout of the native system.\n`;
+        markdown += `All planetary positions, houses, and aspects are included at Astro-Seek fidelity.\n`;
+        markdown += `The language remains diagnostic and descriptive, never moral or psychological.\n\n`;
+        markdown += `---\n\n`;
+      } else {
+        markdown += `## ANALYSIS DIRECTIVE (READ FIRST)\n\n${analysisDirective}\n\n---\n\n`;
+      }
 
       if (sanitizedReport.person_a?.chart) {
-        markdown += `## Person A: ${sanitizedReport.person_a.name || 'Natal Chart'}\n\n`;
+        const sectionTitle = isNatalOnly
+          ? `## 1.1 Planetary Architecture\n\n`
+          : `## Person A: ${sanitizedReport.person_a.name || 'Natal Chart'}\n\n`;
+        markdown += sectionTitle;
         markdown += formatChartTables(sanitizedReport.person_a.chart);
       }
 
       if (sanitizedReport.person_b?.chart) {
-        markdown += `\n## Person B: ${sanitizedReport.person_b.name || 'Natal Chart'}\n\n`;
+        const personBTitle = isNatalOnly
+          ? `\n## Person B: Natal Pattern\n\n`
+          : `\n## Person B: ${sanitizedReport.person_b.name || 'Natal Chart'}\n\n`;
+        markdown += personBTitle;
         markdown += formatChartTables(sanitizedReport.person_b.chart);
       }
 
-      markdown += `\n---\n\n## Data Appendix\n\n`;
-      markdown += `Full raw JSON has been removed to reduce file size and improve AI parsing.\n\n`;
-      markdown += `To access complete machine-readable data:\n`;
-      markdown += `• Use "Clean JSON (0-5 scale)" for frontstage data\n`;
-      markdown += `• Use "Raw JSON (Full)" in Advanced exports for debugging\n\n`;
-      markdown += `This Markdown contains all essential natal data in table format above.\n`;
+      // Add Mirror Flow sections for natal-only reports
+      if (isNatalOnly) {
+        markdown += `\n---\n\n## 1.4 Woven Narrative — Distilled Reflection\n\n`;
+        markdown += `*[A cohesive synthesis describing how the principal chords and drives interlock. `;
+        markdown += `Identify the central paradox or harmony that defines the system's operative tone. `;
+        markdown += `Keep the language structural and testable.]*\n\n`;
 
-      if (sanitizedReport?.provenance) {
-        markdown += `\n### Provenance Stamp\n\n`;
-        markdown += '```\n';
-        markdown += `${formatProvenanceStamp(sanitizedReport.provenance)}\n`;
-        markdown += '```\n';
+        markdown += `---\n\n## 1.5 Living Pattern — Resonance, Paradox, and Shadow\n\n`;
+        markdown += `### Resonance (Within Boundary — WB)\n\n`;
+        markdown += `*[Describe the coherent, constructive expression of the architecture when functioning according to design.]*\n\n`;
+        markdown += `### Paradox (At Boundary Edge — ABE)\n\n`;
+        markdown += `*[Describe the oscillating or dual expression — how the same structural qualities alternate between harmony and friction.]*\n\n`;
+        markdown += `### Shadow (Translatable Shadow — OSR → ABE)\n\n`;
+        markdown += `*[Describe the predictable distortion or inefficiency of the same geometry under duress. `;
+        markdown += `Keep the phrasing mechanical: energy misapplied, not moralized.]*\n\n`;
+
+        markdown += `---\n\n## 1.6 Provenance\n\n`;
+        if (sanitizedReport?.provenance) {
+          markdown += `- **Data Source:** ${sanitizedReport.provenance.ephemeris_source || 'Direct Ephemeris'}\n`;
+          markdown += `- **House System:** ${sanitizedReport.provenance.house_system_name || sanitizedReport.provenance.house_system || 'Placidus'}\n`;
+          markdown += `- **Orbs Profile:** ${sanitizedReport.provenance.orbs_profile || 'wm-spec-2025-09'}\n`;
+          markdown += `- **Relocation Mode:** ${sanitizedReport.provenance.relocation_mode || 'None'}\n`;
+          if (sanitizedReport.provenance.relocation_coords?.latitude && sanitizedReport.provenance.relocation_coords?.longitude) {
+            markdown += `- **Coordinates:** ${sanitizedReport.provenance.relocation_coords.latitude}, ${sanitizedReport.provenance.relocation_coords.longitude}\n`;
+          }
+          markdown += `- **Time/Place Confidence:** ${sanitizedReport.provenance.time_meta_a?.time_precision || 'locked'}\n`;
+          markdown += `- **Signed Map Package ID:** ${sanitizedReport.provenance.normalized_input_hash || sanitizedReport.provenance.hash || 'N/A'}\n\n`;
+        } else {
+          markdown += `Provenance data unavailable.\n\n`;
+        }
+
+        markdown += `---\n\n`;
+        markdown += `**End of Natal Mirror Template**\n\n`;
+        markdown += `*(For relational or synastry applications: produce a full, independent Mirror for each participant using this form. `;
+        markdown += `Construct a separate Relational Overlay only after both Mirrors are complete. `;
+        markdown += `Each natal map remains sovereign and unaltered.)*\n`;
       } else {
-        markdown += `\n### Provenance Stamp\n\nProvenance stamp unavailable.\n`;
+        // Balance Meter format keeps the existing appendix structure
+        markdown += `\n---\n\n## Data Appendix\n\n`;
+        markdown += `Full raw JSON has been removed to reduce file size and improve AI parsing.\n\n`;
+        markdown += `To access complete machine-readable data:\n`;
+        markdown += `• Use "Clean JSON (0-5 scale)" for frontstage data\n`;
+        markdown += `• Use "Raw JSON (Full)" in Advanced exports for debugging\n\n`;
+        markdown += `This Markdown contains all essential natal data in table format above.\n`;
+
+        if (sanitizedReport?.provenance) {
+          markdown += `\n### Provenance Stamp\n\n`;
+          markdown += '```\n';
+          markdown += `${formatProvenanceStamp(sanitizedReport.provenance)}\n`;
+          markdown += '```\n';
+        } else {
+          markdown += `\n### Provenance Stamp\n\nProvenance stamp unavailable.\n`;
+        }
       }
 
   // Final sanitization: strip internal directives and banned tokens
