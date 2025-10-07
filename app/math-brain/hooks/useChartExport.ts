@@ -480,12 +480,26 @@ IMPORTANT: This comprehensive astrological data should be synthesized into the c
       if (wovenMap?.symbolic_weather) {
         const weatherSummary = formatSymbolicWeatherSummary(wovenMap.symbolic_weather);
         if (weatherSummary) {
-          sections.push({
-            title: 'Symbolic Weather Overview',
-            body: weatherSummary,
-            mode: 'regular',
-          });
-        }
+      sections.push({
+        title: 'Symbolic Weather Overview',
+        body: weatherSummary,
+        mode: 'regular',
+      });
+    }
+  }
+
+      if (processedResult?.provenance) {
+        sections.push({
+          title: 'Provenance Stamp',
+          body: formatProvenanceStamp(processedResult.provenance),
+          mode: 'mono',
+        });
+      } else {
+        sections.push({
+          title: 'Provenance Stamp',
+          body: 'Provenance stamp unavailable.',
+          mode: 'regular',
+        });
       }
 
       const analysisDirective = `# 🚨 YOU ARE RAVEN CALDER — EXECUTE THIS DIRECTIVE 🚨
@@ -801,7 +815,7 @@ Start with the Solo Mirror(s), then ${
       markdown += `---\n\n`;
 
       const summary = sanitizedReport?.person_a?.summary;
-      if (reportKind.includes('Balance Meter')) {
+      if (reportKind.includes('Balance Meter') && summary) {
         markdown += `\n### Balance Meter Summary\n\n`;
         if (summary.magnitude != null) {
           markdown += `- Magnitude: ${fmtAxis(summary.magnitude)}${
@@ -966,6 +980,15 @@ Start with the Solo Mirror(s), then ${
       markdown += `• Use "Raw JSON (Full)" in Advanced exports for debugging\n\n`;
       markdown += `This Markdown contains all essential natal data in table format above.\n`;
 
+      if (sanitizedReport?.provenance) {
+        markdown += `\n### Provenance Stamp\n\n`;
+        markdown += '```\n';
+        markdown += `${formatProvenanceStamp(sanitizedReport.provenance)}\n`;
+        markdown += '```\n';
+      } else {
+        markdown += `\n### Provenance Stamp\n\nProvenance stamp unavailable.\n`;
+      }
+
   // Final sanitization: strip internal directives and banned tokens
   const { scrubInternalDirectives } = await import('../../../lib/ui/sanitize');
   const sanitizedMarkdown = scrubInternalDirectives(markdown);
@@ -1087,8 +1110,16 @@ Start with the Solo Mirror(s), then ${
         person_a: result?.person_a?.name || null,
         report_kind: formatReportKind(reportContractType),
         balance_meter_frontstage: null,
-        daily_readings: [],
-      };
+      daily_readings: [],
+    };
+
+      if (result?.provenance) {
+        weatherData.provenance = result.provenance;
+        const smpId = result.provenance.normalized_input_hash || result.provenance.hash;
+        if (smpId) {
+          weatherData.signed_map_package = smpId;
+        }
+      }
 
       const balanceSummary = result?.person_a?.summary;
       if (balanceSummary) {
@@ -1263,14 +1294,54 @@ export function createFrontStageResult(rawResult: any) {
     return 'Unknown';
   };
 
+  const transitEntries =
+    rawResult?.person_a?.chart?.transitsByDate &&
+    typeof rawResult.person_a.chart.transitsByDate === 'object'
+      ? rawResult.person_a.chart.transitsByDate
+      : {};
+  const transitDates = Object.keys(transitEntries || {});
+  const hasTransitWindow = transitDates.length > 0;
+  const hasSeismographData =
+    hasTransitWindow &&
+    transitDates.some((date) => {
+      const frame = transitEntries?.[date];
+      if (!frame?.seismograph) return false;
+      return toNumber(frame.seismograph.magnitude, 'magnitude', frame.seismograph) !== undefined;
+    });
+  const provenance = rawResult?.provenance;
+  const hasProvenanceStamp = Boolean(
+    provenance &&
+      (provenance.math_brain_version ||
+        provenance.engine_versions ||
+        provenance.build_ts ||
+        provenance.normalized_input_hash ||
+        provenance.hash),
+  );
+  const allowBalancePipeline = hasSeismographData && hasProvenanceStamp;
+  const hasSfdDrivers =
+    hasSeismographData &&
+    transitDates.some(
+      (date) => Array.isArray(transitEntries?.[date]?.drivers) && transitEntries[date].drivers.length > 0,
+    );
+  const frontStageWarnings: string[] = [];
+
+  if (!hasTransitWindow) {
+    frontStageWarnings.push('Balance Meter disabled: no transit window detected.');
+  } else if (!hasSeismographData) {
+    frontStageWarnings.push('Balance Meter disabled: transit window returned no seismograph frames.');
+  }
+  if (hasTransitWindow && !hasProvenanceStamp) {
+    frontStageWarnings.push('Balance Meter degraded: provenance stamp missing, reverting to baseline mirror.');
+  }
+
   const frontStageResult: any = {
     ...rawResult,
     _frontstage_notice:
       'This export shows normalized Balance Meter values in the user-facing 0-5 scale range. Raw backstage calculations have been converted to frontstage presentation format.',
-    balance_meter: {},
+    balance_meter: allowBalancePipeline ? {} : null,
   };
 
-  if (rawResult?.person_a?.summary) {
+  if (allowBalancePipeline && rawResult?.person_a?.summary) {
     const summary = rawResult.person_a.summary;
     const rawMag = toNumber(summary.magnitude, 'magnitude', summary);
     const rawVal = toNumber(
@@ -1313,7 +1384,7 @@ export function createFrontStageResult(rawResult: any) {
     };
   }
 
-  if (rawResult?.person_a?.chart?.transitsByDate) {
+  if (allowBalancePipeline && rawResult?.person_a?.chart?.transitsByDate) {
     const daily = rawResult.person_a.chart.transitsByDate;
     const normalizedDaily: any = {};
 
@@ -1355,6 +1426,20 @@ export function createFrontStageResult(rawResult: any) {
                 : dayData.seismograph.volatility,
           },
         };
+
+        const drivers = Array.isArray(dayData.drivers) ? dayData.drivers : null;
+        if ((!drivers || drivers.length === 0) && normalizedDaily[date].sfd) {
+          normalizedDaily[date].sfd = {
+            ...normalizedDaily[date].sfd,
+            sfd_cont: null,
+            sfd_disc: null,
+            sfd_label: 'n/a',
+            verdict: 'n/a',
+            s_plus: null,
+            s_minus: null,
+            _status: 'no_drivers',
+          };
+        }
       } else {
         normalizedDaily[date] = dayData;
       }
@@ -1364,8 +1449,26 @@ export function createFrontStageResult(rawResult: any) {
   }
 
   if (frontStageResult.person_a?.sfd) {
-    frontStageResult.person_a.sfd._note =
-      'SFD (Support-Friction Differential) values are preserved as calculated';
+    if (!hasSfdDrivers) {
+      frontStageResult.person_a.sfd = {
+        ...frontStageResult.person_a.sfd,
+        value: null,
+        display: 'n/a',
+        verdict: 'n/a',
+        _status: 'no_drivers',
+      };
+    } else {
+      frontStageResult.person_a.sfd._note =
+        'SFD (Support-Friction Differential) values are preserved as calculated';
+    }
+  }
+
+  if (allowBalancePipeline && frontStageResult.balance_meter) {
+    frontStageResult.balance_meter.sfd_available = hasSfdDrivers;
+  }
+
+  if (frontStageWarnings.length) {
+    frontStageResult._frontstage_warnings = frontStageWarnings;
   }
 
   return frontStageResult;
@@ -1705,6 +1808,62 @@ function buildMirrorMarkdown(result: any, reportKind: string): string {
   return markdown.replace(/\n{3,}/g, '\n\n').trimEnd();
 }
 
+function formatProvenanceStamp(provenance: any): string {
+  if (!provenance || typeof provenance !== 'object') {
+    return 'Provenance stamp unavailable.';
+  }
+
+  const lines: string[] = [];
+  const pushLine = (label: string, value: unknown) => {
+    if (value === undefined || value === null) return;
+    if (typeof value === 'string' && value.trim().length === 0) return;
+    lines.push(`${label}: ${value}`);
+  };
+
+  const formatEngineVersions = (engines: any) => {
+    if (!engines || typeof engines !== 'object') return null;
+    const parts = Object.entries(engines)
+      .filter(([_, version]) => version !== undefined && version !== null)
+      .map(([key, version]) => `${key}: ${version}`);
+    return parts.length ? parts.join(' · ') : null;
+  };
+
+  const formatCoords = (coords: any) => {
+    if (!coords || typeof coords !== 'object') return null;
+    const lat = typeof coords.lat === 'number' ? coords.lat : coords.latitude;
+    const lon = typeof coords.lon === 'number' ? coords.lon : coords.longitude;
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      return `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
+    }
+    return null;
+  };
+
+  pushLine('Math Brain Version', provenance.math_brain_version);
+  pushLine('Build Timestamp', provenance.build_ts);
+  pushLine('Ephemeris Source', provenance.ephemeris_source);
+  pushLine('House System', provenance.house_system_name || provenance.house_system);
+  pushLine('Orbs Profile', provenance.orbs_profile);
+  pushLine('Timezone Database', provenance.timezone_db_version || provenance.timezone);
+  pushLine('Relocation Mode', provenance.relocation_mode);
+  pushLine('Translocation Mode', provenance.translocation_mode);
+
+  const engineVersions = formatEngineVersions(provenance.engine_versions);
+  if (engineVersions) pushLine('Engine Versions', engineVersions);
+
+  const coords = formatCoords(provenance.relocation_coords);
+  if (coords) pushLine('Relocation Coordinates', coords);
+
+  const normalizedHash = provenance.normalized_input_hash || provenance.hash;
+  pushLine('Normalized Input Hash', normalizedHash);
+  pushLine('Signed Map Package ID', normalizedHash || 'unavailable');
+
+  if (lines.length === 0) {
+    return 'Provenance stamp unavailable.';
+  }
+
+  return lines.join('\n');
+}
+
 export function augmentPayloadWithMirrorContract(payload: any, reportKind: string) {
   if (!payload || typeof payload !== 'object') {
     return payload;
@@ -1725,6 +1884,8 @@ export function augmentPayloadWithMirrorContract(payload: any, reportKind: strin
         directive,
         sections,
         markdown: mirrorMarkdown,
+        provenance: sanitized.provenance ?? null,
+        smp_id: sanitized.provenance?.normalized_input_hash || sanitized.provenance?.hash || null,
       },
     },
   };

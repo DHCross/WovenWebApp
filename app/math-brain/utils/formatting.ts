@@ -4,9 +4,9 @@ import { fmtAxis, fmtAxisLabel } from '../../../lib/ui/format';
 type AxisName = 'magnitude' | 'directional_bias' | 'volatility';
 
 const AXIS_FIELD_MAP: Record<AxisName, string[]> = {
-  magnitude: ['magnitude'],
-  directional_bias: ['directional_bias', 'bias_signed', 'valence', 'valence_bounded'],
-  volatility: ['coherence', 'volatility'],
+  magnitude: ['magnitude_calibrated', 'magnitude'],
+  directional_bias: ['directional_bias_calibrated', 'directional_bias', 'bias_signed', 'valence', 'valence_bounded'],
+  volatility: ['coherence', 'volatility', 'volatility_calibrated'],
 };
 
 const AXIS_NUMBER_KEYS = ['value', 'display', 'final', 'scaled', 'score', 'mean'];
@@ -30,6 +30,22 @@ const toAxisNumber = (candidate: any): number | undefined => {
   return undefined;
 };
 
+const convertAxisValue = (axis: AxisName, value: number | undefined, sourceKey?: string): number | undefined => {
+  if (value === undefined) return undefined;
+
+  if (axis === 'volatility') {
+    const key = sourceKey?.toLowerCase() ?? '';
+    if (key.includes('coherence')) {
+      if (!Number.isFinite(value)) return undefined;
+      const converted = 5 - value;
+      const clamped = Math.max(0, Math.min(5, converted));
+      return clamped;
+    }
+  }
+
+  return value;
+};
+
 const extractAxisNumber = (source: any, axis: AxisName): number | undefined => {
   if (!source || typeof source !== 'object') return toAxisNumber(source);
 
@@ -37,12 +53,12 @@ const extractAxisNumber = (source: any, axis: AxisName): number | undefined => {
   if (axesBlock && typeof axesBlock === 'object') {
     for (const key of AXIS_FIELD_MAP[axis]) {
       const axisCandidate = (axesBlock as Record<string, unknown>)[key];
-      const value = toAxisNumber(axisCandidate);
+      const value = convertAxisValue(axis, toAxisNumber(axisCandidate), key);
       if (value !== undefined) return value;
       if (axisCandidate && typeof axisCandidate === 'object') {
         for (const innerKey of AXIS_NUMBER_KEYS) {
           const nested = (axisCandidate as Record<string, unknown>)[innerKey];
-          const nestedValue = toAxisNumber(nested);
+          const nestedValue = convertAxisValue(axis, toAxisNumber(nested), key);
           if (nestedValue !== undefined) return nestedValue;
         }
       }
@@ -51,7 +67,7 @@ const extractAxisNumber = (source: any, axis: AxisName): number | undefined => {
 
   for (const key of AXIS_FIELD_MAP[axis]) {
     const direct = (source as Record<string, unknown>)[key];
-    const directValue = toAxisNumber(direct);
+    const directValue = convertAxisValue(axis, toAxisNumber(direct), key);
     if (directValue !== undefined) return directValue;
   }
 

@@ -4,6 +4,11 @@ import { extractAxisNumber } from '../app/math-brain/utils/formatting';
 
 const BASE_SERVER_RESULT = {
   id: 'balance-meter-e2e-fixture',
+  provenance: {
+    math_brain_version: '0.0.0-test',
+    build_ts: '2025-01-01T00:00:00.000Z',
+    normalized_input_hash: 'sha256:test-hash',
+  },
   person_a: {
     name: 'Dan',
     summary: {
@@ -107,7 +112,7 @@ describe('Balance Meter export regression', () => {
 
     expect(frontStage.balance_meter.magnitude).toBeCloseTo(3.9, 1);
     expect(frontStage.balance_meter.directional_bias).toBeCloseTo(-2.3, 1);
-    expect(frontStage.balance_meter.volatility).toBeCloseTo(1.1, 1);
+    expect(frontStage.balance_meter.volatility).toBeCloseTo(3.9, 1);
 
     expect(frontStage.balance_meter.magnitude).not.toBeCloseTo(5.0, 1);
     expect(frontStage.balance_meter.directional_bias).not.toBeCloseTo(-5.0, 1);
@@ -115,7 +120,7 @@ describe('Balance Meter export regression', () => {
     expect(frontStage.person_a.summary.magnitude).toBeCloseTo(3.9, 1);
     expect(frontStage.person_a.summary.valence).toBeCloseTo(-2.3, 1);
     expect(frontStage.person_a.summary.bias_signed).toBeCloseTo(-2.3, 1);
-    expect(frontStage.person_a.summary.volatility).toBeCloseTo(1.1, 1);
+    expect(frontStage.person_a.summary.volatility).toBeCloseTo(3.9, 1);
 
     expect(frontStage.person_a.summary.magnitude).not.toBeCloseTo(5.0, 1);
     expect(frontStage.person_a.summary.valence).not.toBeCloseTo(-5.0, 1);
@@ -126,7 +131,7 @@ describe('Balance Meter export regression', () => {
   const day = transitDay?.seismograph as any;
   expect(day.magnitude).toBeCloseTo(3.9, 1);
   expect(day.bias_signed).toBeCloseTo(-2.3, 1);
-  expect(day.volatility).toBeCloseTo(1.1, 1);
+  expect(day.volatility).toBeCloseTo(3.9, 1);
 
     expect(frontStage.balance_meter._scale_note).toContain('magnitude: 0-5');
   });
@@ -169,7 +174,7 @@ describe('Balance Meter export regression', () => {
     expect(extractedMag).not.toBe(5.0); // MUST NOT read raw magnitude field
     expect(extractedBias).toBe(-2.3);
     expect(extractedBias).not.toBe(-5.0);
-    expect(extractedVol).toBe(1.1);
+    expect(extractedVol).toBeCloseTo(3.9, 1);
   });
 
   describe('extractAxisNumber priority order and fallbacks', () => {
@@ -235,7 +240,7 @@ describe('Balance Meter export regression', () => {
         },
       };
 
-      expect(extractAxisNumber(testData, 'volatility')).toBe(1.1);
+      expect(extractAxisNumber(testData, 'volatility')).toBeCloseTo(3.9, 1);
     });
 
     it('handles nested object values in axes block', () => {

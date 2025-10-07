@@ -62,7 +62,7 @@ export default function DownloadControls({
           onClick={onDownloadMarkdown}
           disabled={markdownGenerating}
           className="w-full rounded-md border border-purple-600 bg-purple-700/30 px-4 py-3 text-left hover:bg-purple-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          aria-label="Download Markdown Directive (lightweight, AI-friendly)"
+          aria-label="Download Mirror Report (lightweight, AI-friendly)"
         >
           <div className="flex items-center gap-3">
             {markdownGenerating ? (
@@ -75,7 +75,7 @@ export default function DownloadControls({
             )}
             <div className="flex-1">
               <div className="text-sm font-medium text-slate-100">
-                {markdownGenerating ? "Generating Markdown..." : "Markdown Directive (for AI)"}
+                {markdownGenerating ? "Generating Markdown..." : "Mirror Report (whether solo or relational)"}
               </div>
               <div className="text-xs text-slate-400 mt-0.5">
                 Lightweight plain text, &lt;50KB (better for AI parsing)

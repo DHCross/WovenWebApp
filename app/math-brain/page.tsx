@@ -9,6 +9,7 @@ import { getRedirectUri } from "../../lib/auth";
 import { needsLocation, isTimeUnknown } from "../../lib/relocation";
 import { sanitizeForPDF } from "../../src/pdf-sanitizer";
 import { useChartExport, createFrontStageResult } from "./hooks/useChartExport";
+import { extractAxisNumber } from "./utils/formatting";
 import PersonForm from "./components/PersonForm";
 import TransitControls from "./components/TransitControls";
 import DownloadControls from "./components/DownloadControls";
@@ -470,6 +471,10 @@ function extractWeather(startDate: string, endDate: string, result: any): Weathe
     source: any,
     axis: 'magnitude' | 'directional_bias' | 'volatility'
   ): number | undefined => {
+    const extracted = extractAxisNumber(source, axis);
+    if (typeof extracted === 'number' && Number.isFinite(extracted)) {
+      return extracted;
+    }
     if (!source || typeof source !== 'object') return pickFinite(source);
     const typed = source as any;
     if (axis === 'magnitude') {
@@ -491,9 +496,13 @@ function extractWeather(startDate: string, endDate: string, result: any): Weathe
         typed.balance_meter?.bias_signed
       );
     }
+    const coherenceFallback =
+      typeof typed.coherence === 'number' && Number.isFinite(typed.coherence)
+        ? Math.max(0, Math.min(5, 5 - typed.coherence))
+        : undefined;
     return pickFinite(
       typed.volatility,
-      typed.coherence,
+      coherenceFallback,
       typed.axes?.volatility,
       typed.balance?.volatility,
       typed.balance_meter?.volatility
