@@ -1131,11 +1131,34 @@ Start with the Solo Mirror(s), then ${
         );
         const rawVol = toNumber(balanceSummary.volatility, 'volatility', balanceSummary);
 
+        // Compute coherence from volatility for summary
+        let summaryCoherence = null;
+        if (typeof rawVol === 'number') {
+          const volNorm = rawVol > 1.01 ? rawVol / 5 : rawVol;
+          summaryCoherence = 5 - volNorm * 5;
+          summaryCoherence = Math.max(0, Math.min(5, Math.round(summaryCoherence * 10) / 10));
+        }
+
+        // Extract SFD from summary if drivers exist
+        let summarySfd = null;
+        if (balanceSummary.sfd?.value != null && typeof balanceSummary.sfd.value === 'number') {
+          // Check if we have drivers data to validate SFD emission
+          const transits = result?.person_a?.chart?.transitsByDate;
+          const hasDrivers = transits && Object.values(transits).some(
+            (day: any) => Array.isArray(day?.drivers) && day.drivers.length > 0
+          );
+          if (hasDrivers) {
+            summarySfd = balanceSummary.sfd.value;
+          }
+        }
+
         weatherData.balance_meter_frontstage = {
           magnitude: typeof rawMag === 'number' ? normalizeToFrontStage(rawMag, 'magnitude') : null,
           directional_bias:
             typeof rawBias === 'number' ? normalizeToFrontStage(rawBias, 'directional_bias') : null,
           volatility: typeof rawVol === 'number' ? normalizeToFrontStage(rawVol, 'volatility') : null,
+          coherence: summaryCoherence,
+          sfd: summarySfd,
           magnitude_label: balanceSummary.magnitude_label || null,
           directional_bias_label: balanceSummary.directional_bias_label || balanceSummary.valence_label || null,
           volatility_label: balanceSummary.volatility_label || null,
@@ -1158,8 +1181,24 @@ Start with the Solo Mirror(s), then ${
               'directional_bias',
               seismo
             );
-            const rawVol = toNumber(seismo.volatility, 'volatility', seismo);
-
+            let rawVol = toNumber(seismo.volatility, 'volatility', seismo);
+            // If volatility is in display scale (0-5), convert to normalized (0-1)
+            let volNorm = null;
+            if (typeof rawVol === 'number') {
+              volNorm = rawVol > 1.01 ? rawVol / 5 : rawVol;
+            }
+            // Compute coherence from normalized volatility
+            let coherence = null;
+            if (typeof volNorm === 'number') {
+              coherence = 5 - volNorm * 5;
+              // Clamp and round as in canonical pipeline
+              coherence = Math.max(0, Math.min(5, Math.round(coherence * 10) / 10));
+            }
+            // Only emit SFD if drivers.length > 0
+            let sfd = null;
+            if (Array.isArray(dayData.drivers) && dayData.drivers.length > 0 && dayData.sfd && typeof dayData.sfd.value === 'number') {
+              sfd = dayData.sfd.value;
+            }
             dailyReadings.push({
               date,
               magnitude:
@@ -1168,6 +1207,8 @@ Start with the Solo Mirror(s), then ${
                 typeof rawBias === 'number' ? normalizeToFrontStage(rawBias, 'directional_bias') : null,
               volatility:
                 typeof rawVol === 'number' ? normalizeToFrontStage(rawVol, 'volatility') : null,
+              coherence,
+              sfd,
               raw_magnitude: rawMag ?? null,
               raw_bias_signed: rawBias ?? null,
               raw_volatility: rawVol ?? null,
