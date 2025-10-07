@@ -47,6 +47,8 @@ export interface InputPayload {
     valence_bounded?: Metric;
     valence?: Metric; // expected roughly on a signed scale (negative=restrictive, positive=supportive)
     volatility?: Metric; // 0..1 preferred, but treated generically
+    coherence?: Metric; // Added: Narrative Coherence (0-5, higher = stable)
+    sfd?: Metric; // Added: Support-Friction Differential (continuous, bipolar)
     scaling_strategy?: string;
     valence_label?: string;
   };
@@ -58,6 +60,17 @@ export interface InputPayload {
   enhancedMatrix?: EnhancedMatrix;
   toolDescription?: string;
   expressionContext?: string;
+  // Provenance for output
+  provenance?: {
+    data_source?: string;
+    ephemeris_backend?: string;
+    orbs_profile?: string;
+    relocation_mode?: string;
+    map_id?: string;
+    math_brain_version?: string;
+    renderer_version?: string;
+    semantic_profile?: string;
+  };
   // passthrough allowed
   [key: string]: any;
 }
@@ -90,7 +103,7 @@ function classifyNarrativeCoherence(vol?: number): { label: string } {
   return { label: 'mixed coherence' };
 }
 
-function classifyNuminosity(mag?: number): { band: 0 | 1 | 2 | 3 | 4 | 5; label: string } {
+function classifyMagnitude(mag?: number): { band: 0 | 1 | 2 | 3 | 4 | 5; label: string } {
   if (mag === undefined || mag < 0.5) return { band: 0, label: 'Dormant / Baseline' };
   if (mag < 1.5) return { band: 1, label: 'Murmur / Whisper' };
   if (mag < 2.5) return { band: 2, label: 'Pulse / Stirring' };
@@ -127,14 +140,23 @@ function seismographSummary(payload: InputPayload): { headline: string; details:
   const mag = num(payload.seismograph?.magnitude);
   const val = num(payload.seismograph?.valence_bounded ?? payload.seismograph?.valence);
   const vol = num(payload.seismograph?.volatility);
-  const { band, label } = classifyNuminosity(mag);
+  const coh = num(payload.seismograph?.coherence);
+  const sfd = num(payload.seismograph?.sfd);
+  const { band, label } = classifyMagnitude(mag);
   const vt = classifyDirectionalBias(val);
   const vv = classifyNarrativeCoherence(vol);
   const parts: string[] = [];
-  parts.push(`Numinosity ${mag !== undefined ? mag.toFixed(2) : '—'} (⚡ ${label} at ${band})`);
+  parts.push(`Magnitude ${mag !== undefined ? mag.toFixed(2) : '—'} (⚡ ${label} at ${band})`);
   const valLabel = payload.seismograph?.valence_label || vt.descriptor;
   parts.push(`Directional Bias ${val !== undefined ? val.toFixed(2) : '—'} (${valLabel})`);
-  parts.push(`Narrative Coherence ${vol !== undefined ? vol.toFixed(2) : '—'} (${vv.label})`);
+  if (coh !== undefined) {
+    parts.push(`Narrative Coherence ${coh.toFixed(2)} (${coh >= 2.5 ? 'stable' : 'unstable'})`);
+  } else if (vol !== undefined) {
+    parts.push(`Narrative Coherence ${vol !== undefined ? vol.toFixed(2) : '—'} (${vv.label})`);
+  }
+  if (sfd !== undefined) {
+    parts.push(`Support-Friction Differential ${sfd.toFixed(2)}`);
+  }
   return {
     headline: `${label} with ${valLabel}`,
     details: parts.join(' · '),
@@ -229,6 +251,46 @@ function buildEnhancedMatrixSummary(matrix?: EnhancedMatrix): string | null {
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 
+function buildProvenanceLine(provenance?: InputPayload['provenance']): string | null {
+  if (!provenance) return null;
+
+  const parts: string[] = [];
+
+  if (provenance.data_source) {
+    parts.push(`Data: ${provenance.data_source}`);
+  }
+
+  if (provenance.ephemeris_backend) {
+    parts.push(`Ephemeris: ${provenance.ephemeris_backend}`);
+  }
+
+  if (provenance.orbs_profile) {
+    parts.push(`Orbs: ${provenance.orbs_profile}`);
+  }
+
+  if (provenance.relocation_mode) {
+    parts.push(`Relocation: ${provenance.relocation_mode}`);
+  }
+
+  if (provenance.map_id) {
+    parts.push(`Map ID: ${provenance.map_id}`);
+  }
+
+  if (provenance.math_brain_version) {
+    parts.push(`Math Brain: ${provenance.math_brain_version}`);
+  }
+
+  if (provenance.renderer_version) {
+    parts.push(`Renderer: ${provenance.renderer_version}`);
+  }
+
+  if (provenance.semantic_profile) {
+    parts.push(`Semantic Profile: ${provenance.semantic_profile}`);
+  }
+
+  return parts.length > 0 ? `Provenance — ${parts.join(' · ')}` : null;
+}
+
 function hasActivationData(payload: InputPayload): boolean {
   const hasTransits = Array.isArray(payload.transits) && payload.transits.length > 0;
   const seismo = payload.seismograph;
@@ -254,6 +316,7 @@ function buildMirrorVoice(payload: InputPayload): string {
   const matrixSummary = buildEnhancedMatrixSummary(payload.enhancedMatrix);
   const shadowSummary = buildShadowLayerSummary(payload.shadowLayer);
   const toolFraming = buildToolFirstFraming(payload.toolDescription, payload.expressionContext);
+  const provenanceLine = buildProvenanceLine(payload.provenance);
 
   if (!hasActivationData(payload)) {
     const lines: string[] = [blueprintLine];
@@ -267,6 +330,8 @@ function buildMirrorVoice(payload: InputPayload): string {
     if (shadowSummary) lines.push(shadowSummary);
 
     lines.push('Reflection — Map, not mandate: integrate what resonates and release the rest.');
+
+    if (provenanceLine) lines.push(provenanceLine);
 
     return lines.join('\n');
   }
@@ -291,6 +356,8 @@ function buildMirrorVoice(payload: InputPayload): string {
 
   lines.push('Reflection — Map, not mandate: treat this as symbolic weather. If it lands, log it; if not, discard and proceed.');
 
+  if (provenanceLine) lines.push(provenanceLine);
+
   return lines.join('\n');
 }
 
@@ -298,7 +365,7 @@ function buildPolarityCard(payload: InputPayload): string {
   const mag = num(payload.seismograph?.magnitude);
   const val = num(payload.seismograph?.valence_bounded ?? payload.seismograph?.valence);
   const vol = num(payload.seismograph?.volatility);
-  const { band, label } = classifyNuminosity(mag);
+  const { band, label } = classifyMagnitude(mag);
   const vt = classifyDirectionalBias(val);
   const vv = classifyNarrativeCoherence(vol);
   const hooks = normalizeHooks(payload.hooks);

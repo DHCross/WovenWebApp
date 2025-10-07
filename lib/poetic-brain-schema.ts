@@ -11,6 +11,8 @@ export const seismographSchema = z.object({
   magnitude: metric.optional(),
   valence: metric.optional(),
   volatility: metric.optional(),
+  coherence: metric.optional(), // Added: Narrative Coherence (0-5, higher = stable)
+  sfd: metric.optional(), // Added: Support-Friction Differential (continuous, bipolar)
   scaling_strategy: z.string().optional(),
 });
 

@@ -6,6 +6,135 @@
 - ✅ **Markdown Exports:** Both natal mirrors and balance meter reports fully functional
 - 📄 **PDF Exports:** Removed (Markdown is primary export format)
 
+Here is the System-Wide Lexicon Checklist, updated to full integration with A Strange Cosmic Symbolism v3 and the corrected Balance Meter v3 specification.
+This version fuses your mathematical, linguistic, and procedural layers—every term reconciled with its exact role in the system pipeline.
+It is meant to be read as both semantic contract and functional specification.
+
+⸻
+
+SYSTEM-WIDE LEXICON CHECKLIST
+
+Version: 2025-10-07
+System: Raven Calder Architecture (Mirror ↔ Seismograph ↔ Weather ↔ Woven Map)
+Maintainer: Raven Calder Core Integration Unit
+
+⸻
+
+I · Foundational Architecture
+
+Component	Definition	Function	Data Source / Backend
+Math Brain	Deterministic computational kernel performing all geometry and orbs math. Contains no interpretive logic.	Generates raw geometric payloads (positions, aspects, house cusps).	AstrologerAPI (/api/v4/birth-chart, /api/v4/natal-aspects-data)
+Poetic Brain	Interpretive renderer that converts geometric payloads into linguistic or symbolic form.	Produces Mirror and Weather reports.	Internal renderer (mirror_renderer)
+AstrologerAPI	Canonical data interface wrapping Swiss-Ephemeris; returns planetary coordinates, house cusps, and motion states.	Feeds all modules.	Primary external dependency
+Seismograph	Diagnostic engine translating geometry into numeric field values along four axes.	Feeds Balance Meter and Weather logs.	renderer.ts, scale.ts
+Balance Meter	Visualization layer rendering Seismograph axes (0–5 or −5…+5).	User-facing diagnostic dashboard.	weatherLog.ts, UI
+Mirror Report	Static description of the natal structure (no scaling).	Natal mode output.	mirror_directive.md
+Symbolic Weather	Dynamic account of transits interacting with the natal map.	Transit mode output.	weatherDataTransforms.ts
+Woven Map	Aggregated macro-field linking Mirrors + Weather sequences across time or subjects.	Meta integration layer.	woven_map_compiler
+
+
+⸻
+
+II · Quantified Axes (Stable Mathematics)
+
+Core Axis	Semantic Equivalents	Range	Meaning	Invariance
+Magnitude (⚡)	Amplitude / Pressure / Symbolic Load	0–5	Total energy present in the geometry (irrespective of polarity).	Exact math shared system-wide.
+
+The alias term "numiosity" doesn’t alter the math of Magnitude; it is the phenomenological correlate — the way Magnitude feels or registers symbolically to the perceiver. Just use Magnitude. 
+
+Note on Magnitude (⚡)
+	•	Mathematical Definition: Total symbolic intensity or energy concentration derived from geometric stacking, planetary weight, and orb exactness.
+	•	Numeric Domain: 0–5 (unipolar, linear).
+	•	Semantic Equivalents: Amplitude, Pressure, Symbolic Load, Numiosity.
+
+Clarification:
+Numiosity (from numinous + intensity) refers to the subjective saturation of an event’s symbolic presence — how vividly the pattern “lights up.”
+It’s the experiential or poetic rendering of Magnitude, not an additional variable.
+Mathematically identical; linguistically richer.
+
+Directional Bias (🌑🌞)	Valence / Tonal Vector / Field Polarity	−5…+5	Orientation of energy as harmonic (supportive) or tensile (restrictive).	Sign direction is immutable.
+Narrative Coherence (🔀)	Structural Stability / Integrative Order / Rhythmic Continuity	0–5	Semantic re-label of Volatility: same math, reoriented so higher = stable.	No formula change; semantic only.
+Support–Friction Differential (SFD)	Integration Index / Force Differential / Alignment Quotient	float	Net alignment of all active forces (cooperation vs opposition).	Continuous unclamped value.
+
+
+⸻
+
+III · Diagnostic Classifications
+
+Label	Description	System Behavior
+Within Boundary (WB)	Energy operates inside structural tolerance.	Normal / coherent.
+At Boundary Edge (ABE)	Transitional state between stability and tension.	Oscillating / adaptive.
+Outside Symbolic Range (OSR)	No resonance between geometry and pattern.	Null signal / ignored.
+
+
+⸻
+
+IV · Provenance and Metadata
+
+Field	Purpose	Example Value
+data_source	Confirms geometric origin.	"AstrologerAPI v4"
+ephemeris_backend	Identifies underlying astronomical engine.	"Swiss-Ephemeris v2.10"
+orbs_profile	Aspect tolerance set.	"wm-spec-2025-09"
+relocation_mode	Local vs birth coordinates.	"A_local"
+map_id	UUID for each report.	"wm-mirror-d-20251007-001"
+math_brain_version	Build identifier for numeric kernel.	"3.2.7"
+renderer_version	Build identifier for narrative layer.	"mirror_renderer 4.1"
+semantic_profile	Active vocabulary set (technical / poetic).	"poetic"
+
+
+⸻
+
+V · Processing Pipeline (Order of Operations)
+
+AstrologerAPI → Math Brain → Seismograph → Balance Meter / Weather Log → Poetic Brain → Mirror / Woven Map
+
+	1.	Geometry acquisition: AstrologerAPI returns raw coordinates and aspects.
+	2.	Normalization: Math Brain filters by orbs profile and sign.
+	3.	Scaling: Seismograph applies canonical functions (scaleUnipolar, scaleBipolar, scaleCoherenceFromVol, scaleSFD).
+	4.	Classification: Outputs labeled WB / ABE / OSR.
+	5.	Narrative render: Poetic Brain translates geometry to symbolic text.
+	6.	Aggregation: Woven Map compiles temporal or relational sets.
+
+⸻
+
+VI · Controlled Vocabulary
+
+Concept	Approved Term	Prohibited Alternatives
+Stable pattern	Coherence	Calm / Peace / Harmony
+Unstable pattern	Disjunction	Chaos / Crisis / Disaster
+Supportive force	Harmonic	Positive / Good
+Restrictive force	Tensile	Negative / Bad
+Diagnostic output	Seismograph Event	Reading / Forecast
+Natal report	Mirror	Personality chart
+Transit report	Symbolic Weather	Forecast / Horoscope
+No signal	Outside Symbolic Range	Void / Empty
+
+
+⸻
+
+VII · Validation Checklist
+	1.	Geometry Integrity: Degrees and signs match AstrologerAPI payload.
+	2.	Orb Compliance: Within declared tolerances.
+	3.	Source Annotation: Every datum tagged with data_source.
+	4.	Semantic Audit: Language matches approved lexicon.
+	5.	Directional Consistency: “Higher” always = greater integration.
+	6.	Version Traceability: math_brain_version + renderer_version logged.
+	7.	Boundary State Validation: WB / ABE / OSR logic returns true per threshold tests.
+	8.	Golden Standard Reproduction: System recreates Magnitude 5.0 crisis benchmark (Hurricane Michael 2018).
+
+⸻
+
+VIII · Governance
+	•	Repository of Record: /specifications/system-lexicon.json
+	•	Review Cycle: Every 45 days or upon major kernel update.
+	•	Sign-Off Chain: Math Brain Maintainer → Poetic Brain Custodian → Systems Integrator.
+
+⸻
+
+Operational Principle
+
+One math, many languages. The geometry never lies; the language must never contradict it.
+
 **Structural Mandate: Symbolic Weather Constraint**
 
 The metaphor of "symbolic weather" is strictly reserved for symbolic activations (transits) and must not be applied to the underlying constitutional (natal) layer of the self.
@@ -568,6 +697,8 @@ There are two categories of atmospheric intelligence:
 ---
 
 ## Developer Quick Reference (Payload Examples)
+
+
 
 # **Conversational Mirror + Weather Template (with Summary)**
 

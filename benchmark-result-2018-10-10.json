@@ -3,7 +3,7 @@
   "provenance": {
     "math_brain_version": "0.2.1",
     "ephemeris_source": "AstrologerAPI-v4",
-    "build_ts": "2025-10-06T06:53:09.601Z",
+    "build_ts": "2025-10-07T06:10:04.153Z",
     "timezone": "America/New_York",
     "tz_authority": "natal_record",
     "relocation_applied": false,
@@ -833,7 +833,7 @@
             "valence": -5,
             "valence_label": "Maximum Inward",
             "valence_code": "max_inward",
-            "valence_raw_unbounded": 0,
+            "valence_raw_unbounded": -10.84,
             "valence_calibrated": -5,
             "valence_range": [
               -5,
@@ -875,7 +875,7 @@
                 "method": "balance_signed_v3",
                 "epsilon": 0.05,
                 "sources": {
-                  "raw": 0,
+                  "raw": -10.844099999999997,
                   "calibrated": -5,
                   "fallback": null
                 },
@@ -890,7 +890,7 @@
                   "no_clamp",
                   "round"
                 ],
-                "timestamp": "2025-10-06T06:53:10.909Z"
+                "timestamp": "2025-10-07T06:10:05.883Z"
               },
               "sign": -1
             },
@@ -11252,7 +11252,7 @@
         "valence_code": "max_inward",
         "valence_emoji": "🔻",
         "valence_polarity": "negative",
-        "valence_raw_unbounded": 0,
+        "valence_raw_unbounded": -10.84,
         "valence_version": "v1.1",
         "valence_range": [
           -5,
@@ -11290,13 +11290,13 @@
             "method": "balance_signed_v3_summary",
             "epsilon": 0.05,
             "sources": {
-              "raw": 0,
+              "raw": -10.844099999999997,
               "calibrated": -5,
               "fallback": -5
             },
             "magnitude_before_clamp": -5,
             "used_calibrated": true,
-            "used_fallback": true,
+            "used_fallback": false,
             "confidence": 0.07142857142857142,
             "used_fallback_magnitude": false,
             "transform_pipeline": [
@@ -11305,7 +11305,7 @@
               "no_clamp",
               "round"
             ],
-            "timestamp": "2025-10-06T06:53:10.911Z"
+            "timestamp": "2025-10-07T06:10:05.890Z"
           },
           "sign": -1
         },
@@ -11313,6 +11313,201 @@
           "seismograph": "v1.0",
           "balance": "v1.1",
           "sfd": "v1.2",
+          "calibration_mode": "v1.1"
+        },
+        "axes": {
+          "magnitude": {
+            "value": 5,
+            "label": "Threshold",
+            "range": [
+              0,
+              5
+            ],
+            "method": "mean_daily_magnitude",
+            "clamped": true,
+            "meta": {
+              "sample_size": 1,
+              "aggregation": "mean_daily_magnitude",
+              "canonical_scalers_used": true,
+              "transform_pipeline": [
+                "daily_seismograph.magnitude",
+                "mean"
+              ]
+            }
+          },
+          "directional_bias": {
+            "value": -5,
+            "label": "Maximum Inward",
+            "code": "max_inward",
+            "polarity": "negative",
+            "direction": "inward",
+            "range": [
+              -5,
+              5
+            ],
+            "method": "balance_signed_v3_summary",
+            "clamped": false,
+            "meta": {
+              "sample_size": 1,
+              "aggregation": "mean_daily_directional_bias",
+              "canonical_scalers_used": true,
+              "raw_average": -10.84,
+              "transform_pipeline": [
+                "daily_seismograph.bias_signed",
+                "mean",
+                "scaleDirectionalBias"
+              ],
+              "scaling_meta": {
+                "method": "balance_signed_v3_summary",
+                "epsilon": 0.05,
+                "sources": {
+                  "raw": -10.844099999999997,
+                  "calibrated": -5,
+                  "fallback": -5
+                },
+                "magnitude_before_clamp": -5,
+                "used_calibrated": true,
+                "used_fallback": false,
+                "confidence": 0.07142857142857142,
+                "used_fallback_magnitude": false,
+                "transform_pipeline": [
+                  "sign_resolution",
+                  "magnitude_selection",
+                  "no_clamp",
+                  "round"
+                ],
+                "timestamp": "2025-10-07T06:10:05.890Z"
+              }
+            }
+          },
+          "coherence": {
+            "value": 2.41,
+            "label": "Mixed Paths",
+            "range": [
+              0,
+              5
+            ],
+            "method": "mean_daily_volatility",
+            "clamped": false,
+            "meta": {
+              "sample_size": 1,
+              "aggregation": "mean_daily_volatility",
+              "canonical_scalers_used": true,
+              "transform_pipeline": [
+                "daily_seismograph.volatility",
+                "mean"
+              ]
+            }
+          }
+        },
+        "balance_meter": {
+          "magnitude": 5,
+          "directional_bias": -5,
+          "valence": -5,
+          "volatility": 2.41,
+          "magnitude_label": "Threshold",
+          "valence_label": "Maximum Inward",
+          "directional_bias_label": "Maximum Inward",
+          "volatility_label": "Mixed Paths",
+          "axes": {
+            "magnitude": {
+              "value": 5,
+              "label": "Threshold",
+              "range": [
+                0,
+                5
+              ],
+              "method": "mean_daily_magnitude",
+              "clamped": true,
+              "meta": {
+                "sample_size": 1,
+                "aggregation": "mean_daily_magnitude",
+                "canonical_scalers_used": true,
+                "transform_pipeline": [
+                  "daily_seismograph.magnitude",
+                  "mean"
+                ]
+              }
+            },
+            "directional_bias": {
+              "value": -5,
+              "label": "Maximum Inward",
+              "code": "max_inward",
+              "polarity": "negative",
+              "direction": "inward",
+              "range": [
+                -5,
+                5
+              ],
+              "method": "balance_signed_v3_summary",
+              "clamped": false,
+              "meta": {
+                "sample_size": 1,
+                "aggregation": "mean_daily_directional_bias",
+                "canonical_scalers_used": true,
+                "raw_average": -10.84,
+                "transform_pipeline": [
+                  "daily_seismograph.bias_signed",
+                  "mean",
+                  "scaleDirectionalBias"
+                ],
+                "scaling_meta": {
+                  "method": "balance_signed_v3_summary",
+                  "epsilon": 0.05,
+                  "sources": {
+                    "raw": -10.844099999999997,
+                    "calibrated": -5,
+                    "fallback": -5
+                  },
+                  "magnitude_before_clamp": -5,
+                  "used_calibrated": true,
+                  "used_fallback": false,
+                  "confidence": 0.07142857142857142,
+                  "used_fallback_magnitude": false,
+                  "transform_pipeline": [
+                    "sign_resolution",
+                    "magnitude_selection",
+                    "no_clamp",
+                    "round"
+                  ],
+                  "timestamp": "2025-10-07T06:10:05.890Z"
+                }
+              }
+            },
+            "coherence": {
+              "value": 2.41,
+              "label": "Mixed Paths",
+              "range": [
+                0,
+                5
+              ],
+              "method": "mean_daily_volatility",
+              "clamped": false,
+              "meta": {
+                "sample_size": 1,
+                "aggregation": "mean_daily_volatility",
+                "canonical_scalers_used": true,
+                "transform_pipeline": [
+                  "daily_seismograph.volatility",
+                  "mean"
+                ]
+              }
+            }
+          },
+          "range": {
+            "magnitude": [
+              0,
+              5
+            ],
+            "directional_bias": [
+              -5,
+              5
+            ],
+            "volatility": [
+              0,
+              5
+            ]
+          },
           "calibration_mode": "v1.1"
         },
         "valence_sample_size": 1
@@ -11383,7 +11578,7 @@
                   "valence": -5,
                   "valence_label": "Maximum Inward",
                   "valence_code": "max_inward",
-                  "valence_raw_unbounded": 0,
+                  "valence_raw_unbounded": -10.84,
                   "valence_calibrated": -5,
                   "valence_range": [
                     -5,
@@ -11425,7 +11620,7 @@
                       "method": "balance_signed_v3",
                       "epsilon": 0.05,
                       "sources": {
-                        "raw": 0,
+                        "raw": -10.844099999999997,
                         "calibrated": -5,
                         "fallback": null
                       },
@@ -11440,7 +11635,7 @@
                         "no_clamp",
                         "round"
                       ],
-                      "timestamp": "2025-10-06T06:53:10.909Z"
+                      "timestamp": "2025-10-07T06:10:05.883Z"
                     },
                     "sign": -1
                   },
@@ -19878,7 +20073,7 @@
         "provenance": {
           "math_brain_version": "0.2.1",
           "ephemeris_source": "AstrologerAPI-v4",
-          "build_ts": "2025-10-06T06:53:09.601Z",
+          "build_ts": "2025-10-07T06:10:04.153Z",
           "timezone": "America/New_York",
           "tz_authority": "natal_record",
           "relocation_applied": false,
@@ -20456,7 +20651,7 @@
             "magnitude_label": "Threshold",
             "valence": {
               "value": -5,
-              "raw_value": 0,
+              "raw_value": -10.84,
               "normalized": -5,
               "label": "Maximum Inward",
               "emoji": "🔻",
@@ -20481,7 +20676,7 @@
               5
             ],
             "valence_version": "v1.1",
-            "valence_raw_unbounded": 0,
+            "valence_raw_unbounded": -10.84,
             "bias_signed": -5,
             "bias_abs": 5,
             "bias_direction": "inward",
@@ -20555,7 +20750,7 @@
               "valence_bounded": -5,
               "valence_label": "Maximum Inward",
               "valence_code": "max_inward",
-              "valence_raw_unbounded": 0,
+              "valence_raw_unbounded": -10.84,
               "valence_calibrated": -5,
               "valence_range": [
                 -5,
@@ -21662,7 +21857,7 @@
           "total_intensity": 421.5,
           "coverage": "adequate",
           "schema": "HookStack-1.0",
-          "timestamp": "2025-10-06T06:53:10.914Z",
+          "timestamp": "2025-10-07T06:10:05.973Z",
           "source_aspects_count": 12,
           "provenance": {
             "composer": "hook-stack-composer",
@@ -23386,7 +23581,7 @@
       "valence_code": "max_inward",
       "valence_emoji": "🔻",
       "valence_polarity": "negative",
-      "valence_raw_unbounded": 0,
+      "valence_raw_unbounded": -10.84,
       "valence_version": "v1.1",
       "valence_range": [
         -5,
@@ -23424,13 +23619,13 @@
           "method": "balance_signed_v3_summary",
           "epsilon": 0.05,
           "sources": {
-            "raw": 0,
+            "raw": -10.844099999999997,
             "calibrated": -5,
             "fallback": -5
           },
           "magnitude_before_clamp": -5,
           "used_calibrated": true,
-          "used_fallback": true,
+          "used_fallback": false,
           "confidence": 0.07142857142857142,
           "used_fallback_magnitude": false,
           "transform_pipeline": [
@@ -23439,7 +23634,7 @@
             "no_clamp",
             "round"
           ],
-          "timestamp": "2025-10-06T06:53:10.911Z"
+          "timestamp": "2025-10-07T06:10:05.890Z"
         },
         "sign": -1
       },
@@ -23447,6 +23642,201 @@
         "seismograph": "v1.0",
         "balance": "v1.1",
         "sfd": "v1.2",
+        "calibration_mode": "v1.1"
+      },
+      "axes": {
+        "magnitude": {
+          "value": 5,
+          "label": "Threshold",
+          "range": [
+            0,
+            5
+          ],
+          "method": "mean_daily_magnitude",
+          "clamped": true,
+          "meta": {
+            "sample_size": 1,
+            "aggregation": "mean_daily_magnitude",
+            "canonical_scalers_used": true,
+            "transform_pipeline": [
+              "daily_seismograph.magnitude",
+              "mean"
+            ]
+          }
+        },
+        "directional_bias": {
+          "value": -5,
+          "label": "Maximum Inward",
+          "code": "max_inward",
+          "polarity": "negative",
+          "direction": "inward",
+          "range": [
+            -5,
+            5
+          ],
+          "method": "balance_signed_v3_summary",
+          "clamped": false,
+          "meta": {
+            "sample_size": 1,
+            "aggregation": "mean_daily_directional_bias",
+            "canonical_scalers_used": true,
+            "raw_average": -10.84,
+            "transform_pipeline": [
+              "daily_seismograph.bias_signed",
+              "mean",
+              "scaleDirectionalBias"
+            ],
+            "scaling_meta": {
+              "method": "balance_signed_v3_summary",
+              "epsilon": 0.05,
+              "sources": {
+                "raw": -10.844099999999997,
+                "calibrated": -5,
+                "fallback": -5
+              },
+              "magnitude_before_clamp": -5,
+              "used_calibrated": true,
+              "used_fallback": false,
+              "confidence": 0.07142857142857142,
+              "used_fallback_magnitude": false,
+              "transform_pipeline": [
+                "sign_resolution",
+                "magnitude_selection",
+                "no_clamp",
+                "round"
+              ],
+              "timestamp": "2025-10-07T06:10:05.890Z"
+            }
+          }
+        },
+        "coherence": {
+          "value": 2.41,
+          "label": "Mixed Paths",
+          "range": [
+            0,
+            5
+          ],
+          "method": "mean_daily_volatility",
+          "clamped": false,
+          "meta": {
+            "sample_size": 1,
+            "aggregation": "mean_daily_volatility",
+            "canonical_scalers_used": true,
+            "transform_pipeline": [
+              "daily_seismograph.volatility",
+              "mean"
+            ]
+          }
+        }
+      },
+      "balance_meter": {
+        "magnitude": 5,
+        "directional_bias": -5,
+        "valence": -5,
+        "volatility": 2.41,
+        "magnitude_label": "Threshold",
+        "valence_label": "Maximum Inward",
+        "directional_bias_label": "Maximum Inward",
+        "volatility_label": "Mixed Paths",
+        "axes": {
+          "magnitude": {
+            "value": 5,
+            "label": "Threshold",
+            "range": [
+              0,
+              5
+            ],
+            "method": "mean_daily_magnitude",
+            "clamped": true,
+            "meta": {
+              "sample_size": 1,
+              "aggregation": "mean_daily_magnitude",
+              "canonical_scalers_used": true,
+              "transform_pipeline": [
+                "daily_seismograph.magnitude",
+                "mean"
+              ]
+            }
+          },
+          "directional_bias": {
+            "value": -5,
+            "label": "Maximum Inward",
+            "code": "max_inward",
+            "polarity": "negative",
+            "direction": "inward",
+            "range": [
+              -5,
+              5
+            ],
+            "method": "balance_signed_v3_summary",
+            "clamped": false,
+            "meta": {
+              "sample_size": 1,
+              "aggregation": "mean_daily_directional_bias",
+              "canonical_scalers_used": true,
+              "raw_average": -10.84,
+              "transform_pipeline": [
+                "daily_seismograph.bias_signed",
+                "mean",
+                "scaleDirectionalBias"
+              ],
+              "scaling_meta": {
+                "method": "balance_signed_v3_summary",
+                "epsilon": 0.05,
+                "sources": {
+                  "raw": -10.844099999999997,
+                  "calibrated": -5,
+                  "fallback": -5
+                },
+                "magnitude_before_clamp": -5,
+                "used_calibrated": true,
+                "used_fallback": false,
+                "confidence": 0.07142857142857142,
+                "used_fallback_magnitude": false,
+                "transform_pipeline": [
+                  "sign_resolution",
+                  "magnitude_selection",
+                  "no_clamp",
+                  "round"
+                ],
+                "timestamp": "2025-10-07T06:10:05.890Z"
+              }
+            }
+          },
+          "coherence": {
+            "value": 2.41,
+            "label": "Mixed Paths",
+            "range": [
+              0,
+              5
+            ],
+            "method": "mean_daily_volatility",
+            "clamped": false,
+            "meta": {
+              "sample_size": 1,
+              "aggregation": "mean_daily_volatility",
+              "canonical_scalers_used": true,
+              "transform_pipeline": [
+                "daily_seismograph.volatility",
+                "mean"
+              ]
+            }
+          }
+        },
+        "range": {
+          "magnitude": [
+            0,
+            5
+          ],
+          "directional_bias": [
+            -5,
+            5
+          ],
+          "volatility": [
+            0,
+            5
+          ]
+        },
         "calibration_mode": "v1.1"
       },
       "valence_sample_size": 1
@@ -23468,7 +23858,7 @@
           "valence": -5,
           "valence_label": "Maximum Inward",
           "valence_code": "max_inward",
-          "valence_raw_unbounded": 0,
+          "valence_raw_unbounded": -10.84,
           "valence_calibrated": -5,
           "valence_range": [
             -5,
@@ -23510,7 +23900,7 @@
               "method": "balance_signed_v3",
               "epsilon": 0.05,
               "sources": {
-                "raw": 0,
+                "raw": -10.844099999999997,
                 "calibrated": -5,
                 "fallback": null
               },
@@ -23525,7 +23915,7 @@
                 "no_clamp",
                 "round"
               ],
-              "timestamp": "2025-10-06T06:53:10.909Z"
+              "timestamp": "2025-10-07T06:10:05.883Z"
             },
             "sign": -1
           },
@@ -31974,7 +32364,7 @@
           "valence": -5,
           "valence_label": "Maximum Inward",
           "valence_code": "max_inward",
-          "valence_raw_unbounded": 0,
+          "valence_raw_unbounded": -10.84,
           "valence_calibrated": -5,
           "valence_range": [
             -5,
@@ -32016,7 +32406,7 @@
               "method": "balance_signed_v3",
               "epsilon": 0.05,
               "sources": {
-                "raw": 0,
+                "raw": -10.844099999999997,
                 "calibrated": -5,
                 "fallback": null
               },
@@ -32031,7 +32421,7 @@
                 "no_clamp",
                 "round"
               ],
-              "timestamp": "2025-10-06T06:53:10.909Z"
+              "timestamp": "2025-10-07T06:10:05.883Z"
             },
             "sign": -1
           },
@@ -40535,7 +40925,7 @@
               "valence": -5,
               "valence_label": "Maximum Inward",
               "valence_code": "max_inward",
-              "valence_raw_unbounded": 0,
+              "valence_raw_unbounded": -10.84,
               "valence_calibrated": -5,
               "valence_range": [
                 -5,
@@ -40577,7 +40967,7 @@
                   "method": "balance_signed_v3",
                   "epsilon": 0.05,
                   "sources": {
-                    "raw": 0,
+                    "raw": -10.844099999999997,
                     "calibrated": -5,
                     "fallback": null
                   },
@@ -40592,7 +40982,7 @@
                     "no_clamp",
                     "round"
                   ],
-                  "timestamp": "2025-10-06T06:53:10.909Z"
+                  "timestamp": "2025-10-07T06:10:05.883Z"
                 },
                 "sign": -1
               },
@@ -49030,7 +49420,7 @@
     "provenance": {
       "math_brain_version": "0.2.1",
       "ephemeris_source": "AstrologerAPI-v4",
-      "build_ts": "2025-10-06T06:53:09.601Z",
+      "build_ts": "2025-10-07T06:10:04.153Z",
       "timezone": "America/New_York",
       "tz_authority": "natal_record",
       "relocation_applied": false,
@@ -49608,7 +49998,7 @@
         "magnitude_label": "Threshold",
         "valence": {
           "value": -5,
-          "raw_value": 0,
+          "raw_value": -10.84,
           "normalized": -5,
           "label": "Maximum Inward",
           "emoji": "🔻",
@@ -49633,7 +50023,7 @@
           5
         ],
         "valence_version": "v1.1",
-        "valence_raw_unbounded": 0,
+        "valence_raw_unbounded": -10.84,
         "bias_signed": -5,
         "bias_abs": 5,
         "bias_direction": "inward",
@@ -49707,7 +50097,7 @@
           "valence_bounded": -5,
           "valence_label": "Maximum Inward",
           "valence_code": "max_inward",
-          "valence_raw_unbounded": 0,
+          "valence_raw_unbounded": -10.84,
           "valence_calibrated": -5,
           "valence_range": [
             -5,
@@ -50814,7 +51204,7 @@
       "total_intensity": 421.5,
       "coverage": "adequate",
       "schema": "HookStack-1.0",
-      "timestamp": "2025-10-06T06:53:10.914Z",
+      "timestamp": "2025-10-07T06:10:05.973Z",
       "source_aspects_count": 12,
       "provenance": {
         "composer": "hook-stack-composer",
