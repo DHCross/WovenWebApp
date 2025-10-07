@@ -1,5 +1,11 @@
 # Raven Calder Narrative Protocol & Woven Map Report Guide
 
+**Implementation Status (as of October 7, 2025):**
+- ✅ **Mirror Flow v4.1:** Fully implemented in `useChartExport.ts` with source annotations
+- ✅ **Balance Meter v3.1:** Complete with coherence inversion and conditional SFD emission
+- ✅ **Markdown Exports:** Both natal mirrors and balance meter reports fully functional
+- 📄 **PDF Exports:** Removed (Markdown is primary export format)
+
 **Structural Mandate: Symbolic Weather Constraint**
 
 The metaphor of "symbolic weather" is strictly reserved for symbolic activations (transits) and must not be applied to the underlying constitutional (natal) layer of the self.
@@ -42,25 +48,7 @@ Language is plain, falsifiable, and grounded. No mystical or moral terms. E-Prim
 
 ---
 
-## Solo Mirror (Clear Mirror — Multivalent App Template)
 
-**Default Format - No User Choice Required**
-
-**Hook Stack** – Two polarity titles as clear headings, each with expanded descriptions of how one side shows up vs. the other. Always use headline format for immediate recognition.
-
-**Polarity Cards** – Plain-language pairs covering 3–4 defining polarities. Format: "[Polarity Name A / Polarity Name B]" with explanation including planet(s), sign(s), or house(s) in simple words. Show both sides of tension, never just one.
-
-**Mirror Voice** – Closing stitched reflection gathering all polarities. Plain language, no jargon. Highlight that tension itself is the pattern—not a flaw. End with growth note: how letting sides speak to each other creates movement.
-
-This template replaces aspect-by-aspect breakdown but Aspect Mandate still applies when geometry requires detailed translation. **Never ask user for format preferences - proceed directly with standard template.**
-
----
-
-## Aspect Mandate (Wire Translation)
-
-Aspect = **Geometry → Archetype → Lived Tension.**
-Template:
-"This [geometry] creates a wire between [Planet A archetype] and [Planet B archetype]. Field pressure: [FIELD]. Map translation: [behavioral pattern]. Voice mirror: 'This often shows up as...'"
 
 Use Advanced Diagnostic Lexicon when relevant:
 - **Current**: Energy flow between planets
@@ -81,6 +69,284 @@ Always framed as possible patterns, not facts.
 
 **Attribution Mandate**: Always name which person experiences what pressure. Use individual attribution before any mutual language. No generic pronouns in relational contexts.
 
+⸻
+
+Excellent — the reference gives you exactly what we need to inject data provenance and source annotation directly into the Mirror Template itself.
+
+Here’s the updated Mirror Report Template (v4.1), now annotated inline with where each block of information is sourced from within your API structure — so the Math Brain or export adapter can populate it programmatically while the Poetic Brain reads it cleanly.
+
+⸻
+
+MIRROR REPORT — NATAL PATTERN
+
+Generated: [system timestamp]
+Subject: [from SubjectModel.name]
+Mode: Natal (Static Map)
+Specification: Mirror Flow v4.1
+Purpose: To describe the fixed geometry of the natal pattern — the architecture through which all later motion expresses.
+
+⸻
+
+Birth Data
+
+Pulled directly from BirthChartRequestModel fields.
+
+Parameter	Value	Source
+Date of Birth (local time)	[day, month, year, hour, minute, tz_str]	SubjectModel
+Universal Time (UT/GMT)	[computed internally from tz_str]	MathBrain UTC converter
+Local Sidereal Time (LST)	[calculated automatically]	Astrologer API → birth-chart
+House System	Placidus	houses_system_identifier: "P"
+Latitude, Longitude	[lat, lng]	SubjectModel
+City	[city]	SubjectModel
+Country	[nation]	SubjectModel
+
+
+⸻
+
+1. Planetary Architecture
+
+All data points below populated from /api/v4/birth-chart endpoint response.
+
+Planet / Point	Position	House	Motion	Orbital/Angular Notes
+Sun	[p1_name, p1_abs_pos]	[house]	[D/R/S]	From active_points array
+Moon	[p1_name, p1_abs_pos]	[house]	[D/R/S]	—
+Mercury	[p1_name, p1_abs_pos]	[house]	[D/R/S]	—
+Venus	[p1_name, p1_abs_pos]	[house]	[D/R/S]	—
+Mars	[p1_name, p1_abs_pos]	[house]	[D/R/S]	—
+Jupiter	[p1_name, p1_abs_pos]	[house]	[D/R/S]	—
+Saturn	[p1_name, p1_abs_pos]	[house]	[D/R/S]	—
+Uranus	[p1_name, p1_abs_pos]	[house]	[D/R/S]	—
+Neptune	[p1_name, p1_abs_pos]	[house]	[D/R/S]	—
+Pluto	[p1_name, p1_abs_pos]	[house]	[D/R/S]	—
+North Node	[p1_name, p1_abs_pos]	[house]	[R]	from "Mean_Node"
+Lilith	[p1_name, p1_abs_pos]	[house]	—	from "Mean_Lilith"
+Chiron	[p1_name, p1_abs_pos]	[house]	—	from "Chiron"
+Fortune	[computed internally]	[house]	—	derived field
+Vertex	[computed internally]	[house]	—	derived field
+Ascendant	[Ascendant degrees]	—	—	provided in API response
+Midheaven	[Medium_Coeli degrees]	—	—	provided in API response
+
+
+⸻
+
+2. House Matrix
+
+Derived from houses array in /api/v4/birth-chart response.
+
+House	Cusp Sign	Degree	Domain Emphasis
+1st	[sign_1, degree_1]	[deg]	auto-filled from cusp data
+…	…	…	…
+
+
+⸻
+
+3. Aspect Network
+
+Populated from /api/v4/natal-aspects-data response. Includes orbs, type, and applying/separating state.
+
+Pair	Aspect	Orb (°)	Status	Data Source
+[p1_name + p2_name]	[aspect]	[orbit]	[A/S]	/natal-aspects-data
+[additional aspects...]				
+
+
+⸻
+
+4. Derived Geometry Summary
+
+Generated internally by WovenWebApp from birth-chart response.
+
+Axis / Cluster	Degrees / Signs Involved	Geometric Character	Source
+Angular Cross	[ASC–DSC / MC–IC]	Orientation summary	Math Brain calculation
+Elemental Distribution	[fire/earth/air/water counts]		computed by local analyzeElements()
+Modal Distribution	[cardinal/fixed/mutable counts]		computed by local analyzeModes()
+Planetary Concentration	[stellia, clusters, abs_pos groupings]		computed by local analyzeClusters()
+
+
+⸻
+
+5. Pattern Translation
+
+This section is generated by the Poetic Brain renderer using structured data from the Math Brain geometry.
+
+5.1 Structural Reflection
+
+Brief mechanical synthesis of how planetary chords interlock and distribute pressure.
+
+5.2 Resonance
+
+How the architecture operates when coherent.
+
+5.3 Paradox
+
+How opposing tensions oscillate or invert.
+
+5.4 Shadow
+
+How the geometry misfires or expresses inefficiently under load.
+
+(All narrative fields generated from template renderNatalNarrative() function — not from API response.)
+
+⸻
+
+6. Provenance
+
+Auto-filled from system environment and API_REFERENCE.md fields.
+
+Parameter	Value	Source
+Data Source	Astrologer API /api/v4/birth-chart	RapidAPI Provider
+Orbs Profile	wm-spec-2025-09	Config constant
+House System	Placidus	Request payload
+Relocation Mode	[A_local/B_local]	WovenWebApp config
+Timezone Database	[IANA tz_str]	SubjectModel
+Engine Version	astrology-mathbrain.js current build	Math Brain module
+Math Brain Version	[vX.Y.Z]	from math_brain_version field
+Coordinates	[lat, lng]	SubjectModel
+Signed Map ID	[UUID generated at report time]	Internal audit system
+
+
+⸻
+
+End of Natal Mirror
+
+(For synastry or relational analysis, duplicate this structure per subject, using /api/v4/synastry-chart for overlays.  Each Mirror remains individually sourced and time-locked.)
+
+⸻
+
+This version is self-documenting: every numeric or textual field now has a clear data origin label — API endpoint, local function, or internal computed source — so a developer or reviewer can trace every value to its upstream provider and confirm the geometry’s legitimacy.
+
+## Example of Mirror Flow
+
+Example natal mirror (DH Cross, the creator)
+
+The Mirror cannot run on less than the full dataset.
+That’s your minimum viable data field — planets, houses, aspects (major and minor), angles, and points like Node, Lilith, Chiron, Fortune, Vertex. Without those, you lose geometric resolution and falsifiability.
+
+Here’s the Final Mirror Template — Natal Pattern.
+It’s written to accept every datum you listed, preserving mechanical integrity while leaving space for translation.
+
+MIRROR REPORT — NATAL PATTERN
+
+Generated: [date/time]
+Subject: DHCross
+Date of Birth (local time):24 July 1973 - 14:30  (EDT, DST)Universal Time (UT/GMT):24 July 1973 - 18:30  Local Sidereal Time (LST):09:38:08House system:Placidus systemLatitude, Longitude:40°1'N, 75°18'WCity:Bryn Mawr
+Country:United States United States (US), PA
+Mode: Natal (Static Map)
+Purpose: To describe the permanent geometry of the native pattern, including every planetary position, house placement, and aspect necessary for full structural analysis.
+
+⸻
+
+1. The Natal Mirror: A Map of the Native Pattern
+
+This report presents the complete structure of the native system.
+It draws from the same data depth provided by Astro-Seek or equivalent ephemeris sources — nothing omitted, nothing averaged.
+
+⸻
+
+1.1 Planetary Architecture
+
+Planet / Point	Position	House	Motion	Notes
+Sun	Leo 1°41’	9th	Direct	Vital drive, conscious expression
+Moon	Taurus 22°34’	7th	Direct	Emotional rhythm, relational grounding
+Mercury	Cancer 24°34’	9th	Retrograde	Cognition, narrative processing
+Venus	Leo 29°36’	10th	Direct	Aesthetic and relational valuation
+Mars	Aries 20°40’	5th	Direct	Will, creative assertion
+Jupiter	Aquarius 7°56’	3rd	Retrograde	Expansion of perception
+Saturn	Gemini 29°04’	8th	Direct	Structure and containment
+Uranus	Libra 19°16’	11th	Direct	Disruption and innovation
+Neptune	Sagittarius 4°48’	1st	Retrograde	Vision and porous identity
+Pluto	Libra 2°09’	11th	Direct	Depth processes, regeneration
+North Node	Capricorn 6°24’	2nd	Retrograde	Evolutionary vector
+Lilith	Sagittarius 27°35’	2nd	Direct	Rejected or taboo agency
+Chiron	Aries 20°54’	5th	Stationary	The wound that instructs
+Fortune	Virgo 4°06’	10th	—	Circumstantial ease
+Vertex	Gemini 25°53’	8th	—	Magnetic points of encounter
+ASC	Scorpio 13°13’	1st cusp	—	Orientation to the world
+MC	Leo 22°10’	10th cusp	—	Direction of aspiration
+
+
+⸻
+
+1.2 House Matrix
+
+House	Cusp Sign	Degree	Domain Emphasis
+1st	Scorpio	13°13’	Self-presentation, embodiment
+2nd	Sagittarius	12°33’	Resources, value, continuity
+3rd	Capricorn	16°23’	Communication, short cycles
+4th	Aquarius	22°10’	Origin, emotional foundation
+5th	Pisces	24°41’	Creativity, play, expression
+6th	Aries	21°26’	Work, maintenance, efficiency
+7th	Taurus	13°13’	Partnership, projection
+8th	Gemini	12°33’	Shared resources, transformation
+9th	Cancer	16°23’	Philosophy, expansion
+10th	Leo	22°10’	Direction, visibility
+11th	Virgo	24°41’	Collective function
+12th	Libra	21°26’	Hidden structure, incubation
+
+
+⸻
+
+1.3 Aspect Network — Lines of Force
+
+(List all major and relevant minor aspects at Astro-Seek precision. Keep orbs exact.)
+
+Major Aspects
+	•	Sun ☌ Mercury (7°06’ S) — cohesion of identity and message, occasionally self-referential loop
+	•	Sun ⚻ Venus (2°04’ A) — warmth, social charisma, strong aesthetic instinct
+	•	Sun ☍ Jupiter (6°15’ A) — overextension tension between purpose and perspective
+	•	Sun △ Neptune (3°06’ A) — vision and idealism
+	•	Sun ✶ Pluto (0°28’ A) — regenerative will, transformative vitality
+	•	Moon ✶ Mercury (2°00’ A) — emotional intelligence
+	•	Moon □ Venus (7°02’ A) — comfort versus desire friction
+	•	Mercury □ Mars (3°54’ A) — sharp tongue, fast thought
+	•	Venus ✶ Saturn (0°32’ S) — grounded aesthetics, loyal affection
+	•	Mars ☍ Uranus (1°23’ S) — volatile independence
+	•	Saturn □ Pluto (3°05’ A) — struggle between endurance and transformation
+
+(Continue listing all relevant aspects, including outer-planet sextiles and key minor harmonics as needed.)
+
+⸻
+
+1.4 The Woven Narrative — Distilled Reflection
+
+Integrate the above geometry into one cohesive reflection. Describe the chart’s governing paradox — how its fixed tensions create both drive and restraint. Keep it falsifiable: describe what the system predictably does under load, not how it “feels.”
+
+⸻
+
+1.5 Living Pattern — Resonance, Paradox, and Shadow
+
+Resonance (Within Boundary — WB)
+Describe the efficient, coherent expression of the pattern: when energy flows as designed.
+
+Paradox (At Boundary Edge — ABE)
+Describe the oscillating dualities within the system — the alternating expressions that sustain motion.
+
+Shadow (Translatable Shadow — OSR → ABE)
+Describe the pattern’s predictable distortion under stress. Maintain structural fidelity; show how failure mirrors the same geometry.
+
+⸻
+
+1.6 Provenance
+	•	Data Source: Astro-Seek (Full Export)
+	•	House System: Placidus
+	•	Orbs Profile: wm-spec-2025-09
+	•	Relocation Mode: A_local
+	•	Coordinates: [latitude, longitude]
+	•	Time/Place Confidence: [locked / rectified / estimated]
+	•	Signed Map Package ID: [if applicable]
+
+⸻
+
+End of Natal Mirror
+
+(For synastry: generate one complete Mirror for each individual using this format. Then construct a Relational Overlay comparing the two sets of aspects and chords. Never merge natal data before analysis — each Mirror remains sovereign.)
+
+⸻
+
+This version now satisfies every criterion:
+	•	Full Astro-Seek fidelity.
+	•	No Balance Meter values.
+	•	Pure geometry, resonance, and interpretive structure.
+It is the canonical blueprint for generating Mirrors that can later interact with your Symbolic Weather field without contaminating measurement or metaphor.
 ---
 
 ## Transits
@@ -188,19 +454,36 @@ There are two categories of atmospheric intelligence:
 * **Purpose:** Reflection and recognition, using poetic, body-first language.  
 * **Inputs:** Natal geometry (birth date/time/place). Transit overlay is optional.  
 * **Subtypes & Outputs:** Solo Mirror, Relational Mirror (synastry), Polarity Cards, Mirror Voice, Actor/Role composites.  
+* **Current Template:** Mirror Flow v4.1 (see template above) — fully implemented in `useChartExport.ts`
 * **Implementation Note:** Mirror Flow operates without translocation, is robust to missing timezone precision, and serves as our "first-read" product for non-technical users.
+* **Key Features (v4.1):**
+  * Self-documenting with inline source annotations
+  * Every data field traces to upstream provider (API endpoint, local function, or computed)
+  * Birth Data, Planetary Architecture, House Matrix, Aspect Network sections
+  * Derived Geometry Summary (elemental/modal/cluster analysis)
+  * Pattern Translation (Structural Reflection, Resonance, Paradox, Shadow)
+  * Complete Provenance audit trail
+  * **NO numeric ratings** — qualitative and structural only
+  * **NO Balance Meter values** — forbidden in natal mirrors
 
 ---
 
 ## Balance Meter Reports (Quantitative, Transit-Sensitive)
 
-* **Purpose:** A symbolic seismograph, indicating magnitude (0–5), valence (−5..+5), and volatility (0–5) over a time window.  
+* **Purpose:** A symbolic seismograph, indicating magnitude (0–5), directional bias (−5..+5), volatility (0–5), and coherence (0–5) over a time window.  
+* **Current Specification:** v3.1 — fully implemented with coherence inversion and SFD conditional emission
 * **Required Inputs:**  
   * Natal birth data (date/time/place)  
   * Transit window (from / to / step)  
   * Relocation mode: None | A_local | B_local (midpoint is optional but discouraged by default)  
   * House system (default: Placidus for diagnostic work)  
-  * Orbs profile (e.g., wm-spec-2025-09)  
+  * Orbs profile (e.g., wm-spec-2025-09)
+* **Key Features (v3.1):**
+  * **Scaling:** Absolute ×5 (norm→scale→clamp→round pipeline)
+  * **Coherence:** Computed as `5 - (vol_norm × 5)` from normalized volatility
+  * **SFD (Support-Friction Differential):** Only emitted when drivers.length > 0
+  * **balance_meter_frontstage:** Complete with magnitude, directional_bias, volatility, coherence, and SFD
+  * **Export formats:** JSON (frontstage & backstage), Markdown with full seismograph data  
 * **New Rules & Operational Notes:**  
   * **Relocation Default:** For dyads/Balances, default to A_local unless flagged. Midpoint is only supported when explicitly chosen and is generally not recommended.  
   * **Orbs (Pre-weight Filter):** Conjunction/Opposition 8°, Square/Trine 7°, Sextile 5°. Moon gets +1°, outer planets (Jupiter, Saturn, Uranus, Neptune, Pluto) to personal planets (Sun, Moon, Mercury, Venus, Mars) get −1°. These are applied before weighting.  
