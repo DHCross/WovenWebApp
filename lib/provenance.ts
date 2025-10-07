@@ -7,7 +7,7 @@ export type Provenance = {
   relocation_mode: string;   // "None" | "A_local" | "B_local" | "Both_local"
   tz: string;                // e.g., "America/Chicago"
   orbs_profile?: string;     // optional
-  scale_mode: "absolute_x50";
+  scale_mode: "absolute_x5";
   coherence_inversion: true;
   has_transits: boolean;     // drivers[] exists?
   drivers_count: number;
@@ -21,7 +21,7 @@ export function buildProvenance(p: Partial<Provenance>): Provenance {
     relocation_mode: p.relocation_mode ?? "None",
     tz: p.tz ?? "UTC",
     orbs_profile: p.orbs_profile ?? "wm-spec-2025-09",
-    scale_mode: "absolute_x50",
+    scale_mode: "absolute_x5",
     coherence_inversion: true,
     has_transits: Boolean(p.has_transits),
     drivers_count: p.drivers_count ?? 0,

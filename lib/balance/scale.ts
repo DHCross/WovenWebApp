@@ -24,11 +24,11 @@ const ROUND_1DP = 1;
 const ROUND_2DP = 2;
 
 // Scale factor used by the rendering system
-export const SCALE_FACTOR = 50;
+export const SCALE_FACTOR = 5;
 
 export const scaleUnipolar = (normalized: number) => {
   const safe = Number.isFinite(normalized) ? normalized : 0;
-  const raw = safe * 50;
+  const raw = safe * SCALE_FACTOR;
   const [clamped, flags] = clamp(raw, 0, 5);
   return {
     raw,
@@ -39,7 +39,7 @@ export const scaleUnipolar = (normalized: number) => {
 
 export const scaleBipolar = (normalized: number) => {
   const safe = Number.isFinite(normalized) ? normalized : 0;
-  const raw = safe * 50;
+  const raw = safe * SCALE_FACTOR;
   const [clamped, flags] = clamp(raw, -5, 5);
   return {
     raw,
@@ -50,7 +50,7 @@ export const scaleBipolar = (normalized: number) => {
 
 export const scaleCoherenceFromVol = (volatilityNorm: number) => {
   const safe = Number.isFinite(volatilityNorm) ? volatilityNorm : 0;
-  const raw = 5 - safe * 50;
+  const raw = 5 - safe * SCALE_FACTOR;
   const [clamped, flags] = clamp(raw, 0, 5);
   return {
     raw,

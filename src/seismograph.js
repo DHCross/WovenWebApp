@@ -413,13 +413,13 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   const Y_raw = scored.reduce((acc, x) => acc + x.S, 0);
 
   // === MAGNITUDE ===
-  const magnitudeNormalized = Math.min(0.1, (X_raw / opts.magnitudeDivisor) / SCALE_FACTOR);
+  const magnitudeNormalized = Math.min(1, (X_raw / opts.magnitudeDivisor) / SCALE_FACTOR);
   const magnitudeScaled = scaleUnipolar(magnitudeNormalized);
   const magnitudeValue = magnitudeScaled.value;
 
   // === DIRECTIONAL BIAS ===
   const Y_amplified = amplifyByMagnitude(Y_raw, magnitudeValue);
-  const Y_normalized = Y_amplified / 10; // Use a conservative normalizer to allow 5.0
+  const Y_normalized = normalizeAmplifiedBias(Y_amplified);
   const biasScaled = scaleBipolar(Y_normalized);
   const directional_bias = biasScaled.value;
 
@@ -436,7 +436,7 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
 
   // Transform trace for observability
   const transform_trace = {
-    pipeline: 'amplify-geometry → sum → amplify-magnitude → normalize → ×50 → clamp → round',
+    pipeline: 'amplify-geometry → sum → amplify-magnitude → normalize → ×5 → clamp → round',
     spec_version: SPEC_VERSION,
     canonical_scalers_used: true,
     steps: [

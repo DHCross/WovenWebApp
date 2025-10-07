@@ -14,8 +14,8 @@
     "render_mode": {
       "type": "string",
       "description": "Rendering mode for values",
-      "enum": ["absolute_x50", "relative", "normalized"],
-      "default": "absolute_x50"
+      "enum": ["absolute_x5", "relative", "normalized"],
+      "default": "absolute_x5"
     },
     "pipeline": {
       "type": "array",
@@ -196,7 +196,7 @@
   "examples": [
     {
       "version": "3.1.0",
-      "render_mode": "absolute_x50",
+      "render_mode": "absolute_x5",
       "pipeline": ["normalize", "scale", "clamp", "round"],
       "magnitude": {
         "raw_range": {"min": 0, "max": 0.1},

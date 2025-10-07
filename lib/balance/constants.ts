@@ -1,5 +1,5 @@
 export const SPEC_VERSION = '3.1';
-export const SCALE_FACTOR = 50;                 // do not change without spec bump
+export const SCALE_FACTOR = 5;                  // do not change without spec bump
 export const ROUND_1DP = 1;
 export const RANGE_MAG = [0, 5] as const;
 export const RANGE_BIAS = [-5, 5] as const;

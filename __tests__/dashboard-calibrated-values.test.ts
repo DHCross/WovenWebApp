@@ -217,7 +217,7 @@ describe('extractAxisNumber priority safety', () => {
       value: 3.9,           // ✅ Calibrated (should use this)
       raw: 5.0,             // ❌ Uncalibrated (should NOT use this)
       rawMagnitude: 5.2,    // ❌ Pre-clamping (should NOT use this)
-      normalized: 0.08      // ⚠️  Pre-×50 scaling (should NOT use this)
+      normalized: 0.8       // ⚠️  Pre-scaling (should NOT use this)
     };
 
     // extractAxisNumber should prioritize 'value' over 'raw'

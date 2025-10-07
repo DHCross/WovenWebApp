@@ -1,6 +1,7 @@
 import { DateTime } from 'luxon';
 import { createHash } from 'crypto';
-import { scaleUnipolar, scaleBipolar, scaleCoherenceFromVol, roundHalfUp, clamp, clampValue, SCALE_FACTOR } from '@/lib/balance/scale';
+import { roundHalfUp, clamp, clampValue, SCALE_FACTOR } from '@/lib/balance/scale';
+import type { ClampInfo } from '@/lib/balance/scale';
 import { NormalizedDay } from '@/lib/schemas/day';
 
 export type CoherenceSource = 'volatility' | 'coherence';
@@ -47,6 +48,77 @@ const ANGLE_NAMES = new Set([
   'ASC',
   'DSC'
 ]);
+
+type AxisKind = 'unipolar' | 'bipolar' | 'coherence';
+
+interface AxisTransform {
+  normalized: number | null;
+  scaled: number | null;
+  clamped: number | null;
+  rounded: number | null;
+  flags: ClampInfo | null;
+}
+
+const AXIS_RANGES: Record<AxisKind, { min: number; max: number; clampMin: number; clampMax: number }> = {
+  unipolar: { min: 0, max: 1, clampMin: 0, clampMax: 5 },
+  bipolar: { min: -1, max: 1, clampMin: -5, clampMax: 5 },
+  coherence: { min: 0, max: 1, clampMin: 0, clampMax: 5 }
+};
+
+function transformAxis(kind: AxisKind, normalized: number | null): AxisTransform {
+  if (normalized == null) {
+    return { normalized: null, scaled: null, clamped: null, rounded: null, flags: null };
+  }
+
+  const numeric = Number(normalized);
+  if (!Number.isFinite(numeric)) {
+    return { normalized: null, scaled: null, clamped: null, rounded: null, flags: null };
+  }
+
+  const { min, max, clampMin, clampMax } = AXIS_RANGES[kind];
+  if (numeric < min - 1e-6 || numeric > max + 1e-6) {
+    throw new Error(`[${kind}] normalized value ${numeric} outside expected range ${min}..${max}`);
+  }
+
+  const normalizedClamped = Math.min(max, Math.max(min, numeric));
+
+  let scaled: number;
+  if (kind === 'coherence') {
+    scaled = clampMax - normalizedClamped * SCALE_FACTOR;
+  } else {
+    scaled = normalizedClamped * SCALE_FACTOR;
+  }
+
+  const [clamped, flags] = clamp(scaled, clampMin, clampMax);
+  const rounded = roundHalfUp(clamped, 1);
+
+  return { normalized: normalizedClamped, scaled, clamped, rounded, flags };
+}
+
+function assertNSCR(tag: string, kind: AxisKind, trace: AxisTransform) {
+  if (trace.scaled == null || trace.clamped == null) {
+    return;
+  }
+
+  const delta = Math.abs(trace.scaled - trace.clamped);
+  if (delta <= 1e-6) {
+    return;
+  }
+
+  const { clampMin, clampMax } = AXIS_RANGES[kind];
+  const tolerance = 1e-6;
+  const allowedStops = new Set<number>([clampMin, clampMax]);
+  if (kind === 'bipolar') {
+    allowedStops.add(0);
+  }
+
+  const clampedValue = trace.clamped;
+  const nearBoundary = Array.from(allowedStops).some((limit) => Math.abs((clampedValue ?? 0) - limit) <= tolerance);
+
+  if (!nearBoundary) {
+    throw new Error(`[${tag}] clamp changed a mid-range value → double scaling suspected`);
+  }
+}
 
 function formatWithMinus(value: number, decimals: number, opts: { showPlus?: boolean } = {}): string {
   const { showPlus = false } = opts;
@@ -460,24 +532,24 @@ export function renderSymbolicWeather(
   };
 
   const normalizedRecordsForHash: Array<Record<string, unknown>> = [];
+  const alerts: string[] = [];
 
   const days: DayDisplay[] = inputs.map((input) => {
     const dayTimezone = input.timezone ?? timezone;
     const canonicalDate = canonicalizeDate(input.date, dayTimezone);
 
     // magnitude
-    const mag = scaleUnipolar(Number(input.magnitude ?? 0)); // norm → ×50 → clamp [0,5] → round(1dp)
-    const magnitudeNormalized = Number(input.magnitude ?? 0);
-    const magnitudeScaled = mag.raw;
-    const magnitudeClamped = mag.raw; // raw is already clamped in the scaler
-    const magnitudeRounded = mag.value;
-    const magnitudeClampHit = mag.flags.hitMin || mag.flags.hitMax;
-    if (magnitudeClampHit) {
-      if (mag.flags.hitMin) {
-        clampHits.magnitude.min += 1;
-      } else if (mag.flags.hitMax) {
-        clampHits.magnitude.max += 1;
-      }
+    const magTrace = transformAxis('unipolar', typeof input.magnitude === 'number' ? input.magnitude : null);
+    assertNSCR('magnitude', 'unipolar', magTrace);
+    const magnitudeNormalized = magTrace.normalized ?? 0;
+    const magnitudeScaled = magTrace.scaled ?? 0;
+    const magnitudeClamped = magTrace.clamped ?? 0;
+    const magnitudeRounded = magTrace.rounded ?? 0;
+    const magnitudeClampHit = Boolean(magTrace.flags?.hitMin || magTrace.flags?.hitMax);
+    if (magTrace.flags?.hitMin) {
+      clampHits.magnitude.min += 1;
+    } else if (magTrace.flags?.hitMax) {
+      clampHits.magnitude.max += 1;
     }
     axisTraces.push({
       date: canonicalDate,
@@ -486,22 +558,21 @@ export function renderSymbolicWeather(
       scaled: magnitudeScaled,
       clamped: magnitudeClamped,
       rounded: magnitudeRounded,
-      transform: '×50, clamp [0,5], round 1dp'
+      transform: '×5, clamp [0,5], round 1dp'
     });
 
     // directional
-    const bias = scaleBipolar(Number(input.directional_bias ?? 0)); // norm → ×50 → clamp [−5,5] → round(1dp)
-    const directionalNormalized = Number(input.directional_bias ?? 0);
-    const directionalScaled = bias.raw;
-    const directionalClamped = bias.raw; // raw is already clamped in the scaler
-    const directionalRounded = bias.value;
-    const directionalClampHit = bias.flags.hitMin || bias.flags.hitMax;
-    if (directionalClampHit) {
-      if (bias.flags.hitMin) {
-        clampHits.directional_bias.min += 1;
-      } else if (bias.flags.hitMax) {
-        clampHits.directional_bias.max += 1;
-      }
+    const biasTrace = transformAxis('bipolar', typeof input.directional_bias === 'number' ? input.directional_bias : null);
+    assertNSCR('directional_bias', 'bipolar', biasTrace);
+    const directionalNormalized = biasTrace.normalized ?? 0;
+    const directionalScaled = biasTrace.scaled ?? 0;
+    const directionalClamped = biasTrace.clamped ?? 0;
+    const directionalRounded = biasTrace.rounded ?? 0;
+    const directionalClampHit = Boolean(biasTrace.flags?.hitMin || biasTrace.flags?.hitMax);
+    if (biasTrace.flags?.hitMin) {
+      clampHits.directional_bias.min += 1;
+    } else if (biasTrace.flags?.hitMax) {
+      clampHits.directional_bias.max += 1;
     }
     axisTraces.push({
       date: canonicalDate,
@@ -510,37 +581,36 @@ export function renderSymbolicWeather(
       scaled: directionalScaled,
       clamped: directionalClamped,
       rounded: directionalRounded,
-      transform: '×50, clamp [−5,5], round 1dp'
+      transform: '×5, clamp [−5,5], round 1dp'
     });
 
     // coherence (from volatility)
-    const coh = (coherenceFrom === 'volatility')
-      ? scaleCoherenceFromVol(Number(input.volatility ?? 0))        // 5 − (vol×50) → clamp [0,5] → round(1dp)
-      : scaleUnipolar(Number(input.coherence ?? 0));
-    const coherenceSourceValue = coherenceFrom === 'volatility'
-      ? Number(input.volatility ?? 0)
-      : Number(input.coherence ?? 0);
-    const coherenceScaled = coh.raw;
-    const coherenceClamped = coh.raw; // raw is already clamped in the scaler
-    const coherenceRounded = coh.value;
-    const coherenceClampHit = coh.flags.hitMin || coh.flags.hitMax;
-    if (coherenceClampHit) {
-      if (coh.flags.hitMin) {
-        clampHits.coherence.min += 1;
-      } else if (coh.flags.hitMax) {
-        clampHits.coherence.max += 1;
-      }
+    const coherenceKind: AxisKind = coherenceFrom === 'volatility' ? 'coherence' : 'unipolar';
+    const coherenceInput = coherenceFrom === 'volatility'
+      ? (typeof input.volatility === 'number' ? input.volatility : null)
+      : (typeof input.coherence === 'number' ? input.coherence : null);
+    const coherenceTrace = transformAxis(coherenceKind, coherenceInput);
+    assertNSCR('coherence', coherenceKind, coherenceTrace);
+    const coherenceNormalized = coherenceTrace.normalized ?? 0;
+    const coherenceScaled = coherenceTrace.scaled ?? 0;
+    const coherenceClamped = coherenceTrace.clamped ?? 0;
+    const coherenceRounded = coherenceTrace.rounded ?? 0;
+    const coherenceClampHit = Boolean(coherenceTrace.flags?.hitMin || coherenceTrace.flags?.hitMax);
+    if (coherenceTrace.flags?.hitMin) {
+      clampHits.coherence.min += 1;
+    } else if (coherenceTrace.flags?.hitMax) {
+      clampHits.coherence.max += 1;
     }
     axisTraces.push({
       date: canonicalDate,
       axis: 'coherence',
-      normalized: coherenceSourceValue,
+      normalized: coherenceNormalized,
       scaled: coherenceScaled,
       clamped: coherenceClamped,
       rounded: coherenceRounded,
       transform: coherenceFrom === 'volatility'
-        ? '5 − (volatility × 50), clamp [0,5], round 1dp'
-        : '×50, clamp [0,5], round 1dp'
+        ? '5 − (volatility × 5), clamp [0,5], round 1dp'
+        : '×5, clamp [0,5], round 1dp'
     });
 
     const computedSfd = computeSfdFromAspects(input.aspects);
@@ -589,7 +659,12 @@ export function renderSymbolicWeather(
       magnitude: roundHalfUp(magnitudeNormalized, 6),
       directional_bias: roundHalfUp(directionalNormalized, 6),
       volatility: roundHalfUp(Number(input.volatility ?? 0), 6),
-      coherence: roundHalfUp(Number(input.coherence ?? 0), 6),
+      coherence: roundHalfUp(
+        coherenceFrom === 'volatility'
+          ? coherenceNormalized
+          : Number(input.coherence ?? 0),
+        6
+      ),
       sfd: hashedSfd,
       coherence_from: coherenceFrom
     });
@@ -648,7 +723,6 @@ export function renderSymbolicWeather(
     calculateClampCounter('sfd', 'max', clampHits.sfd.max, totalSamples)
   ];
 
-  const alerts: string[] = [];
   if (totalDays > 0) {
     const directionalClampRate = (clampHits.directional_bias.min + clampHits.directional_bias.max) / totalDays;
     if (directionalClampRate > 0.1) {

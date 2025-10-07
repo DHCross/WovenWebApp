@@ -1,7 +1,7 @@
 import { amplifyByMagnitude, normalizeAmplifiedBias, normalizeVolatilityForCoherence } from './amplifiers';
 
 export declare const SPEC_VERSION = "3.1";
-export declare const SCALE_FACTOR = 50;
+export declare const SCALE_FACTOR = 5;
 export declare const RANGES: {
   readonly magnitude: { readonly min: number; readonly max: number };
   readonly bias: { readonly min: number; readonly max: number };
