@@ -1,3 +1,65 @@
+## [2025-10-07] FEATURE: Playwright E2E Test Suite Integration
+
+**Summary**
+Integrated Playwright for comprehensive end-to-end testing of Math Brain, Poetic Brain (auth gates), API endpoints, export flows, and regression validation. Created 66 tests across 5 test suites with multi-browser support (Chromium, Firefox, WebKit) and CI/CD integration.
+
+**Files Created**
+- `playwright.config.ts` - Playwright configuration with multi-browser setup
+- `e2e/math-brain.spec.ts` - Math Brain UI and form submission tests
+- `e2e/chat-auth.spec.ts` - Poetic Brain authentication gate tests
+- `e2e/api.spec.ts` - Direct API endpoint tests for Netlify functions
+- `e2e/export-flows.spec.ts` - Export functionality tests (Markdown, JSON)
+- `e2e/regression.spec.ts` - Regression and benchmark tests (Hurricane Michael)
+- `e2e/README.md` - Comprehensive E2E test documentation
+- `.github/workflows/playwright.yml` - CI/CD workflow for automated testing
+- `PLAYWRIGHT_INTEGRATION.md` - Complete integration summary and guide
+
+**Package.json Scripts Added**
+```json
+"test:e2e": "playwright test"
+"test:e2e:ui": "playwright test --ui"
+"test:e2e:headed": "playwright test --headed"
+"test:e2e:debug": "playwright test --debug"
+"test:e2e:report": "playwright show-report"
+```
+
+**Test Coverage**
+- ✅ Math Brain: Page load, form validation, solo/relational chart submission, export
+- ✅ Chat Auth: Redirect behavior, RequireAuth component, authentication gates
+- ✅ API: Natal/relational chart computation, validation, error handling, orb enforcement
+- ✅ Exports: Markdown (natal mirror), Balance Meter with provenance, JSON with frontstage/backstage
+- ✅ Regression: Geometry integrity, Hurricane Michael benchmark (Magnitude 5.0), orbs validation
+- Total: 66 tests across 5 files in 3 browsers
+
+**Implementation Details**
+- Multi-browser support (Chromium, Firefox, WebKit)
+- Auto-start dev server for tests
+- HTML and list reporters with GitHub Actions integration
+- Screenshot capture on failures
+- Trace recording on first retry
+- 30-day artifact retention in CI
+
+**Alignment with Raven Calder Principles**
+- Falsifiability: Tests validate expected behavior and can prove failures
+- Traceability: Tests document flows and validate provenance fields
+- Geometry → Archetype → VOICE: Tests verify full pipeline from API to UI
+- Graceful Degradation: Tests verify fallback behavior for missing data
+
+**AI Collaboration Notes**
+- GitHub Copilot suggested Playwright as complementary to Vitest for E2E testing
+- Test structure follows WovenWebApp conventions and accessibility requirements
+- Tests designed to catch regressions before merging to main
+- Skipped tests (Auth0) documented with clear reasons and future enhancement path
+
+**Next Steps**
+1. Run `npm run test:e2e` to validate local setup
+2. Add data-testid attributes to UI components for more reliable selectors
+3. Add Auth0 test credentials to GitHub Secrets for authenticated tests
+4. Consider visual regression testing with screenshots
+5. Add accessibility testing with @axe-core/playwright
+
+---
+
 ## [2025-10-06] ANALYSIS: Recurring Problems Analysis
 
 **Summary**
