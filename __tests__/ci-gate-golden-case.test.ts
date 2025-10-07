@@ -140,11 +140,10 @@ describe('CI Gate: Backward Compatibility', () => {
 
   test('Ranges remain canonical', async () => {
     const constants = await import('../lib/balance/constants.js');
-    const { RANGE_MAG, RANGE_BIAS, RANGE_COH, RANGE_SFD } = constants;
+    const { RANGE_MAG, RANGE_BIAS, RANGE_COH } = constants;
     
     expect(RANGE_MAG).toEqual([0, 5]);
     expect(RANGE_BIAS).toEqual([-5, 5]);
     expect(RANGE_COH).toEqual([0, 5]);
-    expect(RANGE_SFD).toEqual([-1, 1]);
   });
 });

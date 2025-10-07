@@ -55,7 +55,7 @@ export function assertBalanceMeterInvariants(result: TransformedWeatherData): vo
   }
 
   // 2. Range checks
-  const { magnitude, directional_bias, coherence, sfd } = axes;
+  const { magnitude, directional_bias, coherence } = axes;
 
   // Magnitude: [0, 5]
   if (magnitude.value < spec.ranges.magnitude.min || magnitude.value > spec.ranges.magnitude.max) {
@@ -82,36 +82,16 @@ export function assertBalanceMeterInvariants(result: TransformedWeatherData): vo
     );
   }
 
-  // SFD: [-1, +1] or null
-  if (sfd.value !== null) {
-    if (sfd.value < spec.ranges.sfd.min || sfd.value > spec.ranges.sfd.max) {
-      throw new BalanceMeterInvariantViolation(
-        `SFD out of range: ${sfd.value} not in [${spec.ranges.sfd.min}, ${spec.ranges.sfd.max}]`,
-        { value: sfd.value, range: spec.ranges.sfd, normalized: sfd.normalized }
-      );
-    }
-  }
-
-  // 3. Null integrity check
-  if (sfd.value === null && sfd.display !== spec.ranges.sfd.null_display) {
-    throw new BalanceMeterInvariantViolation(
-      `SFD fabrication detected: null value but display="${sfd.display}" (expected "${spec.ranges.sfd.null_display}")`,
-      { value: sfd.value, display: sfd.display, expected: spec.ranges.sfd.null_display }
-    );
-  }
-
   // 4. Finite value check
   if (!Number.isFinite(magnitude.value) || 
       !Number.isFinite(directional_bias.value) || 
-      !Number.isFinite(coherence.value) ||
-      (sfd.value !== null && !Number.isFinite(sfd.value))) {
+      !Number.isFinite(coherence.value)) {
     throw new BalanceMeterInvariantViolation(
       'Non-finite value detected',
       { 
         magnitude: magnitude.value, 
         directional_bias: directional_bias.value, 
-        coherence: coherence.value, 
-        sfd: sfd.value 
+        coherence: coherence.value
       }
     );
   }
@@ -137,7 +117,6 @@ export function assertSeismographInvariants(seismo: {
   magnitude: number;
   directional_bias: number;
   coherence: number;
-  sfd: number | null;
   [key: string]: unknown;
 }): void {
   // Range checks
@@ -162,18 +141,10 @@ export function assertSeismographInvariants(seismo: {
     );
   }
 
-  if (seismo.sfd !== null && (seismo.sfd < -1 || seismo.sfd > 1)) {
-    throw new BalanceMeterInvariantViolation(
-      `SFD out of range: ${seismo.sfd}`,
-      { value: seismo.sfd }
-    );
-  }
-
   // Finite check
   if (!Number.isFinite(seismo.magnitude) || 
       !Number.isFinite(seismo.directional_bias) || 
-      !Number.isFinite(seismo.coherence) ||
-      (seismo.sfd !== null && !Number.isFinite(seismo.sfd))) {
+      !Number.isFinite(seismo.coherence)) {
     throw new BalanceMeterInvariantViolation(
       'Non-finite value in seismograph output',
       seismo
@@ -203,9 +174,8 @@ export function assertDisplayRanges(params: {
   mag: number;
   bias: number;
   coh: number;
-  sfd: number | 'n/a' | null;
 }): void {
-  const { mag, bias, coh, sfd } = params;
+  const { mag, bias, coh } = params;
 
   if (mag < 0 || mag > 5) {
     throw new BalanceMeterInvariantViolation(`Magnitude out of range: ${mag}`, { value: mag });
@@ -218,23 +188,5 @@ export function assertDisplayRanges(params: {
   if (coh < 0 || coh > 5) {
     throw new BalanceMeterInvariantViolation(`Coherence out of range: ${coh}`, { value: coh });
   }
-
-  if (sfd !== null && sfd !== 'n/a') {
-    if (sfd < -1 || sfd > 1) {
-      throw new BalanceMeterInvariantViolation(`SFD out of range: ${sfd}`, { value: sfd });
-    }
-  }
 }
 
-export function assertSfdDrivers(driversCount: number, sfd: number | 'n/a' | null): void {
-  if (!Number.isFinite(driversCount)) {
-    return;
-  }
-
-  if (driversCount <= 0 && sfd !== null && sfd !== 'n/a') {
-    throw new BalanceMeterInvariantViolation(
-      `SFD rendered without drivers (count=${driversCount}, sfd=${sfd})`,
-      { driversCount, sfd }
-    );
-  }
-}

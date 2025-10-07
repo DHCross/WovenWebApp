@@ -7,7 +7,6 @@ const {
   classifyDirectionalBias,
   classifyMagnitude,
   classifyVolatility,
-  classifySfd,
   classifyNarrativeCoherence,
   classifyIntegrationBias,
   clamp,
@@ -15,7 +14,6 @@ const {
 
 const SEISMOGRAPH_VERSION = 'v1.0';
 const BALANCE_CALIBRATION_VERSION = 'v1.1';
-const SFD_VERSION = 'v1.2';
 
 function safeNum(x, def = null) {
   const n = Number(x);
@@ -32,13 +30,6 @@ const SECONDARY_POINTS = new Set([
 
 const ANGLE_POINTS = new Set(['Ascendant','Medium_Coeli','Descendant','Imum_Coeli']);
 
-function verdictFromSfd(value) {
-  const sfd = safeNum(value, null);
-  if (sfd == null) return null;
-  if (sfd >= 1) return 'stabilizers prevail';
-  if (sfd <= -1) return 'stabilizers cut';
-  return 'stabilizers mixed';
-}
 
 function normalizeHouseNumber(house) {
   if (house == null) return null;
@@ -167,13 +158,6 @@ function extractTimeSeries(transitsByDate) {
     const biasDirection = seismo?.bias_direction || balanceInfo?.direction || (valenceBounded > 0 ? 'outward' : valenceBounded < 0 ? 'inward' : 'neutral');
     const biasMethod = seismo?.bias_method || v?.balance?.bias_method || (valenceVersion === BALANCE_CALIBRATION_VERSION ? 'balance_signed_v1' : 'raw_clamp_v1');
     const biasAbs = safeNum(seismo?.bias_abs ?? Math.abs(valenceBounded));
-    const sfdBlock = v?.sfd || {};
-    const sfdCont = safeNum(sfdBlock.sfd_cont ?? sfdBlock.value ?? sfdBlock.sfd);
-    const sfdInfo = sfdCont != null ? classifySfd(sfdCont) : null;
-    const sfdDisc = safeNum(sfdBlock.sfd_disc ?? sfdInfo?.disc);
-    const sfdLabel = sfdBlock.sfd_label || sfdInfo?.label || verdictFromSfd(sfdCont ?? sfdInfo?.value ?? 0);
-    const sPlus = safeNum(sfdBlock.s_plus ?? sfdBlock.sPlus);
-    const sMinus = safeNum(sfdBlock.s_minus ?? sfdBlock.sMinus);
 
     const row = {
       date,
@@ -206,12 +190,6 @@ function extractTimeSeries(transitsByDate) {
       balance_bias_method: v?.balance?.bias_method || (balanceVal != null ? biasMethod : null),
       balance_version: v?.balance?.version || seismo?.valence_version || BALANCE_CALIBRATION_VERSION,
       balance_range: v?.balance?.range || valenceRange,
-      sfd_cont: sfdCont,
-      sfd_disc: sfdDisc,
-      sfd_label: sfdLabel,
-      s_plus: sPlus,
-      s_minus: sMinus,
-      sfd_verdict: sfdLabel,
       drivers: Array.isArray(v?.drivers) ? v.drivers : undefined
     };
     entries.push(row);
@@ -284,9 +262,6 @@ function summarizeMeterChannels(transitsByDate) {
   let confidenceCount = 0;
   const balanceValues = [];
   const balanceMethods = new Set();
-  const sfdValues = [];
-  const sPlusValues = [];
-  const sMinusValues = [];
 
   for (const entry of entries) {
     const seismo = entry?.seismograph || entry;
@@ -303,15 +278,6 @@ function summarizeMeterChannels(transitsByDate) {
     if (balVal != null) balanceValues.push(balVal);
     const balMethod = entry?.balance?.bias_method;
     if (balMethod) balanceMethods.add(balMethod);
-
-    const sfd = safeNum(entry?.sfd?.sfd_cont ?? entry?.sfd?.value ?? entry?.sfd?.sfd);
-    if (sfd != null) {
-      sfdValues.push(sfd);
-      const sPlus = safeNum(entry?.sfd?.s_plus ?? entry?.sfd?.sPlus);
-      if (sPlus != null) sPlusValues.push(sPlus);
-      const sMinus = safeNum(entry?.sfd?.s_minus ?? entry?.sfd?.sMinus);
-      if (sMinus != null) sMinusValues.push(sMinus);
-    }
   }
 
   const avg = (arr) => arr.length ? arr.reduce((sum, val) => sum + val, 0) / arr.length : null;
@@ -320,14 +286,6 @@ function summarizeMeterChannels(transitsByDate) {
   const balanceAvgRaw = avg(balanceValues);
   const balanceAvg = balanceAvgRaw != null ? +balanceAvgRaw.toFixed(2) : null;
   const balanceMeta = balanceAvg != null ? classifyDirectionalBias(balanceAvg) : null;
-  const sfdAvgRaw = avg(sfdValues);
-  const sfdAvg = sfdAvgRaw != null ? +sfdAvgRaw.toFixed(2) : null;
-  const sfdMeta = sfdAvg != null ? classifySfd(sfdAvg) : null;
-  const sPlusAvgRaw = avg(sPlusValues);
-  const sMinusAvgRaw = avg(sMinusValues);
-  const sPlusAvg = sPlusAvgRaw != null ? +sPlusAvgRaw.toFixed(2) : null;
-  const sMinusAvg = sMinusAvgRaw != null ? +sMinusAvgRaw.toFixed(2) : null;
-
   return {
     seismograph: {
       confidence,
@@ -351,22 +309,11 @@ function summarizeMeterChannels(transitsByDate) {
       calibration_mode: BALANCE_CALIBRATION_VERSION,
       range: [-5, 5]
     } : null,
-    sfd: sfdAvg != null ? {
-      value: sfdMeta?.value ?? sfdAvg,
-      sfd_cont: sfdMeta?.value ?? sfdAvg,
-      sfd_disc: sfdMeta?.disc ?? null,
-      sfd_label: sfdMeta?.label || verdictFromSfd(sfdAvg),
-      s_plus: sPlusAvg,
-      s_minus: sMinusAvg,
-      verdict: verdictFromSfd(sfdAvg),
-      sample_size: sfdValues.length,
-      version: SFD_VERSION,
-      range: [-5, 5]
-    } : null
+    sfd: null
   };
 }
 
-function computeFieldSignature(summary, meterChannels, fallbackSfd = null) {
+function computeFieldSignature(summary, meterChannels) {
   const directionSource = safeNum(
     summary?.bias_signed ??
     summary?.valence_bounded ??
@@ -376,19 +323,11 @@ function computeFieldSignature(summary, meterChannels, fallbackSfd = null) {
   );
   const magnitudeSource = safeNum(summary?.magnitude);
   const volatilitySource = safeNum(summary?.volatility);
-  const sfdSource = safeNum(
-    meterChannels?.sfd?.value ??
-    meterChannels?.sfd?.sfd_cont ??
-    summary?.support_friction?.value ??
-    summary?.support_friction ??
-    fallbackSfd
-  );
 
   if (
     directionSource == null &&
     magnitudeSource == null &&
-    volatilitySource == null &&
-    sfdSource == null
+    volatilitySource == null
   ) {
     return null;
   }
@@ -396,25 +335,21 @@ function computeFieldSignature(summary, meterChannels, fallbackSfd = null) {
   const directionMeta = directionSource != null ? classifyDirectionalBias(directionSource) : null;
   const magnitudeMeta = magnitudeSource != null ? classifyMagnitude(magnitudeSource) : null;
   const coherenceMeta = volatilitySource != null ? classifyNarrativeCoherence(volatilitySource) : null;
-  const integrationMeta = sfdSource != null ? classifyIntegrationBias(sfdSource) : null;
 
   const directionValue = directionMeta?.value ?? (directionSource != null ? +clamp(directionSource, -5, 5).toFixed(2) : null);
   const chargeValue = magnitudeMeta?.value ?? (magnitudeSource != null ? +clamp(magnitudeSource, 0, 5).toFixed(2) : null);
   const coherenceValue = volatilitySource != null ? +(5 - clamp(volatilitySource, 0, 5)).toFixed(2) : null;
   const coherenceRatio = coherenceValue != null ? +(coherenceValue / 5).toFixed(4) : null;
-  const integrationValue = integrationMeta?.value ?? (sfdSource != null ? +clamp(sfdSource, -5, 5).toFixed(2) : null);
 
   let product = null;
   if (
     typeof directionValue === 'number' &&
     typeof chargeValue === 'number' &&
-    typeof coherenceValue === 'number' &&
-    typeof integrationValue === 'number'
+    typeof coherenceValue === 'number'
   ) {
     const normalizedDirection = directionValue / 5;
     const normalizedCharge = chargeValue / 5;
-    const normalizedIntegration = integrationValue / 5;
-    product = +(normalizedDirection * normalizedCharge * (coherenceValue / 5) * normalizedIntegration).toFixed(4);
+    product = +(normalizedDirection * normalizedCharge * (coherenceValue / 5)).toFixed(4);
   }
 
   return {
@@ -423,8 +358,7 @@ function computeFieldSignature(summary, meterChannels, fallbackSfd = null) {
       direction: directionValue,
       charge: chargeValue,
       coherence: coherenceValue,
-      coherence_raw: volatilitySource != null ? +volatilitySource.toFixed(2) : null,
-      integration: integrationValue
+      coherence_raw: volatilitySource != null ? +volatilitySource.toFixed(2) : null
     },
     descriptors: {
       direction: directionMeta ? {
@@ -440,23 +374,17 @@ function computeFieldSignature(summary, meterChannels, fallbackSfd = null) {
         label: coherenceMeta.label,
         emoji: coherenceMeta.emoji,
         description: coherenceMeta.description
-      } : null,
-      integration: integrationMeta ? {
-        label: integrationMeta.label,
-        cooperation: integrationMeta.cooperation,
-        description: integrationMeta.description
       } : null
     },
     product,
     notes: {
-      formula: 'Direction × Charge × Coherence × SFD',
-      tooltip: 'Directional lean only lands when charge, storyline coherence, and support-friction alignment agree. Values normalized to front-stage scales (direction −5…+5, charge 0…5, coherence 0…5, SFD −5…+5).'
+      formula: 'Direction × Charge × Coherence',
+      tooltip: 'Directional lean only lands when charge and storyline coherence agree. Values normalized to front-stage scales (direction −5…+5, charge 0…5, coherence 0…5).'
     },
     ratios: {
       direction: directionValue != null ? +(directionValue / 5).toFixed(4) : null,
       charge: chargeValue != null ? +(chargeValue / 5).toFixed(4) : null,
-      coherence: coherenceRatio,
-      integration: integrationValue != null ? +(integrationValue / 5).toFixed(4) : null
+      coherence: coherenceRatio
     }
   };
 }
@@ -1025,10 +953,10 @@ function buildBalanceMeter(summary, meterChannels, provenanceVersions) {
     confidence: meterChannels?.seismograph?.confidence ?? null,
     confidence_sample_size: meterChannels?.seismograph?.sample_size ?? 0,
     balance_channel: meterChannels?.balance ? { ...meterChannels.balance } : null,
-    support_friction: meterChannels?.sfd ? { ...meterChannels.sfd } : null,
+    support_friction: null,
     version: provenanceVersions
       ? { ...provenanceVersions }
-      : { seismograph: SEISMOGRAPH_VERSION, balance: BALANCE_CALIBRATION_VERSION, sfd: SFD_VERSION },
+      : { seismograph: SEISMOGRAPH_VERSION, balance: BALANCE_CALIBRATION_VERSION },
     calibration_mode: meterChannels?.balance?.calibration_mode || BALANCE_CALIBRATION_VERSION
   };
 }
@@ -1048,7 +976,7 @@ function composeWovenMapReport({ result, mode, period, options = {} }) {
   const vectorIntegrity = computeVectorIntegrity(transits, vectorInputs);
   const hookStack = composeHookStack(result, { maxHooks: 4, minIntensity: 8 });
 
-  const fieldSignature = computeFieldSignature(summary, meterChannels, a?.sfd?.sfd ?? a?.summary?.sfd);
+  const fieldSignature = computeFieldSignature(summary, meterChannels);
 
   const report = {
     schema: 'WM-WovenMap-1.1',

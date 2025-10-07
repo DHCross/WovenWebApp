@@ -233,18 +233,17 @@ There are two categories of atmospheric intelligence:
 * **New Rules & Operational Notes:**  
   * **Relocation Default:** For dyads/Balances, default to A_local unless flagged. Midpoint is only supported when explicitly chosen and is generally not recommended.  
   * **Orbs (Pre-weight Filter):** Conjunction/Opposition 8°, Square/Trine 7°, Sextile 5°. Moon gets +1°, outer planets (Jupiter, Saturn, Uranus, Neptune, Pluto) to personal planets (Sun, Moon, Mercury, Venus, Mars) get −1°. These are applied before weighting.  
-  * **Provenance Stamping:** Includes house_system, house_system_name, orbs_profile, timezone_db_version, relocation_mode, relocation_coords, math_brain_version, ephemeris_source, and engine versions (seismograph/balance/sfd).  
+  * **Provenance Stamping:** Includes house_system, house_system_name, orbs_profile, timezone_db_version, relocation_mode, relocation_coords, math_brain_version, ephemeris_source, and engine versions (seismograph/balance).
   * **Missing Aspects:** The report structure and voice are still delivered, with explicit placeholders like "no aspects received for this day — drivers[] empty." Simulated examples are only shown if explicitly labeled.  
-  * **SFD & Balance Channel:** Present and compute only when drivers[] exist. Reports indicate whether these channels are live or pending.
+  * **Balance Channel:** Present and compute only when drivers[] exist. Reports indicate whether these channels are live or pending.
 
 ---
 
-## Scoring and Math (Weight Belt, SFD, Balance Channel)
+## Scoring and Math (Weight Belt, Balance Channel)
 
 * **Core Computation (Unchanged but Explicit):**  
   * **Aspect Base Weights:** Trine +0.40, Sextile +0.25, Conjunction ±0 (contextual), Square −0.50, Opposition −0.45.  
-  * **Modifiers:** Angularity (ASC/MC) ±0.10–0.20, Applying +0.10 / Separating −0.05, Multi-hit stack volatility kick −0.10.  
-  * **SFD (Support–Friction Differential):** SupportSum − CounterSum, scaled to bipolar −5..+5.  
+  * **Modifiers:** Angularity (ASC/MC) ±0.10–0.20, Applying +0.10 / Separating −0.05, Multi-hit stack volatility kick −0.10.
   * **Balance Channel (v1.1):** Rebalances valence to highlight stabilizers (boosts Jupiter/Venus contributions while preserving magnitude).  
 * **SST Guardrail:** Lived pings (WB / ABE / OSR) can override theoretical valences. Systems log ping history and adapt.
 

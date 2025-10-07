@@ -31,7 +31,6 @@ const {
   scaleUnipolar,
   scaleBipolar,
   scaleCoherenceFromVol,
-  scaleSFD,
   amplifyByMagnitude,
   normalizeAmplifiedBias,
   normalizeVolatilityForCoherence,
@@ -312,29 +311,6 @@ function normalizeWithRollingWindow(magnitude, rollingContext = null, opts = DEF
   return normalized;
 }
 
-// ---------- SFD (Support-Friction Differential) calculation ----------
-function calculateSFD(scored){
-  if (!scored || scored.length === 0) return null;
-  
-  let sumSupport = 0;
-  let sumFriction = 0;
-  
-  for (const aspect of scored) {
-    const S = aspect.S;
-    if (S > 0) {
-      sumSupport += S;
-    } else if (S < 0) {
-      sumFriction += Math.abs(S);
-    }
-  }
-  
-  const total = sumSupport + sumFriction;
-  if (total === 0) return null; // No drivers, return null (not fabricated zero)
-  
-  const sfd = (sumSupport - sumFriction) / total;
-  return round(sfd, 2); // Always two decimals
-}
-
 // ---------- main aggregate ----------
 function aggregate(aspects = [], prevCtx = null, options = {}){
   if (!Array.isArray(aspects) || aspects.length === 0){
@@ -343,7 +319,6 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
       directional_bias: prevCtx?.Y_effective ? round(prevCtx.Y_effective,2) : 0, 
       volatility: 0, 
       coherence: 5.0,
-      sfd: null, // No aspects = no SFD
       scored: [],
       transform_trace: {
         pipeline: 'empty_aspect_array',
@@ -429,11 +404,6 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   const coherenceScaled = scaleCoherenceFromVol(VI_normalized);
   const coherence = coherenceScaled.value;
   
-  // === SFD (Integration Bias) ===
-  const sfd_raw = calculateSFD(scored);
-  const sfdScaled = scaleSFD(sfd_raw, true);
-  const sfd = sfdScaled.value;
-
   // Transform trace for observability
   const transform_trace = {
     pipeline: 'amplify-geometry → sum → amplify-magnitude → normalize → ×5 → clamp → round',
@@ -442,15 +412,14 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     steps: [
       { stage: 'raw', magnitude_energy: X_raw, directional_bias_sum: Y_raw, volatility_index: VI },
       { stage: 'amplified', magnitude_energy: X_raw, directional_bias_sum: Y_amplified, volatility_index: VI },
-      { stage: 'normalized', magnitude: magnitudeNormalized, bias: Y_normalized, volatility: VI_normalized, sfd: sfd_raw },
-      { stage: 'scaled', magnitude: magnitudeScaled.raw, directional_bias: biasScaled.raw, coherence: coherenceScaled.raw, sfd: sfdScaled.raw },
-      { stage: 'final', magnitude: magnitudeValue, directional_bias, coherence, sfd }
+      { stage: 'normalized', magnitude: magnitudeNormalized, bias: Y_normalized, volatility: VI_normalized },
+      { stage: 'scaled', magnitude: magnitudeScaled.raw, directional_bias: biasScaled.raw, coherence: coherenceScaled.raw },
+      { stage: 'final', magnitude: magnitudeValue, directional_bias, coherence }
     ],
     clamp_events: [
       ...(biasScaled.flags.hitMin || biasScaled.flags.hitMax ? [{ axis: 'directional_bias', raw: biasScaled.raw, clamped: directional_bias }] : []),
       ...(coherenceScaled.flags.hitMin || coherenceScaled.flags.hitMax ? [{ axis: 'coherence', raw: coherenceScaled.raw, clamped: coherence }] : []),
       ...(magnitudeScaled.flags.hitMin || magnitudeScaled.flags.hitMax ? [{ axis: 'magnitude', raw: magnitudeScaled.raw, clamped: magnitudeValue }] : []),
-      ...(sfdScaled.flags.hitMin || sfdScaled.flags.hitMax ? [{ axis: 'sfd', raw: sfdScaled.raw, clamped: sfd }] : []),
     ]
   };
 
@@ -459,7 +428,6 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     directional_bias,
     volatility: round(VI, 2),
     coherence,
-    sfd,
     scored,
     transform_trace,
     magnitude_normalized: magnitudeNormalized,
@@ -475,7 +443,6 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     magnitude: result.magnitude,
     directional_bias: result.directional_bias,
     coherence: result.coherence,
-    sfd: result.sfd,
   });
 
   return result;
@@ -486,7 +453,6 @@ module.exports = {
   calculateSeismograph: aggregate, // Alias for test compatibility
   _internals: {
     normalizeAspect, baseValence, planetTier, orbMultiplier, sensitivityMultiplier,
-    scoreAspect, multiplicityBonus, volatility, normalizeWithRollingWindow, median,
-    calculateSFD // Export for testing
+    scoreAspect, multiplicityBonus, volatility, normalizeWithRollingWindow, median
   }
 };

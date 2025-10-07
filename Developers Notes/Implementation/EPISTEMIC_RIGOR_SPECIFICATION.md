@@ -122,9 +122,6 @@ normalize → scale → clamp → (round) → display
 **Directional Terms** (Bias only):
 - expansion, contraction, outward, inward, opening, closing, etc.
 
-**Cohesion Terms** (SFD only):
-- harmony, friction, support, tension, alignment, resistance, etc.
-
 **Functions:**
 - `lintText(text, expectedContext, fieldName)` - Check single text string
 - `lintReading(reading)` - Check complete reading object
@@ -250,8 +247,7 @@ import { lintPayload, generateLexicalReport } from './src/validation/lexical-gua
 
 const payload = {
   balance_meter: {
-    bias_label: 'Strong outward expansion',      // ✅ Correct
-    sfd_label: 'High integration with harmony'   // ✅ Correct
+    bias_label: 'Strong outward expansion'      // ✅ Correct
   }
 };
 

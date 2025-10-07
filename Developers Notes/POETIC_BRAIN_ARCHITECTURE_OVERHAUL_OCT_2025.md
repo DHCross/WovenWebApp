@@ -17,7 +17,7 @@ Created the canonical `WovenMapBlueprint` type that serves as the **single sourc
 - `ProvenanceBlock` - Data source and calculation metadata
 - `ContextBlock` - Report type, translocation state, time windows
 - `ChartData` - Positions, aspects, houses, transits
-- `RelationalData` - Synastry, composite, SFD analysis
+- `RelationalData` - Synastry, composite analysis
 - `WovenMapBlueprint` - The complete contract
 
 **Benefits:**

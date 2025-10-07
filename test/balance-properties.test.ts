@@ -12,8 +12,7 @@ import { describe, test, expect } from 'vitest';
 import { 
   scaleBipolar, 
   scaleUnipolar, 
-  scaleCoherenceFromVol, 
-  scaleSFD 
+  scaleCoherenceFromVol
 } from '../lib/balance/scale';
 import spec from '../config/spec.json';
 
@@ -164,46 +163,6 @@ describe('Balance Meter Property Tests', () => {
     });
   });
 
-  describe('scaleSFD (Integration Bias)', () => {
-    test('stays in range [-1, +1] for all valid inputs', () => {
-      const testInputs = [-1.0, -0.5, -0.1, 0, 0.1, 0.5, 1.0];
-
-      testInputs.forEach(input => {
-        const result = scaleSFD(input);
-        expect(result.value).toBeGreaterThanOrEqual(spec.ranges.sfd.min);
-        expect(result.value).toBeLessThanOrEqual(spec.ranges.sfd.max);
-      });
-    });
-
-    test('null input → null output with "n/a" display', () => {
-      const result = scaleSFD(null);
-      expect(result.value).toBe(null);
-      expect(result.display).toBe(spec.ranges.sfd.null_display);
-    });
-
-    test('formats with 2 decimal places', () => {
-      const testCases = [
-        { input: 0.12345, preScaled: true, expected: '0.12' },
-        { input: -0.12345, preScaled: true, expected: '−0.12' }, // Unicode minus
-        { input: 0, preScaled: true, expected: '0.00' },
-      ];
-
-      testCases.forEach(({ input, preScaled, expected }) => {
-        const result = scaleSFD(input, preScaled);
-        expect(result.display).toBe(expected);
-      });
-    });
-
-    test('is monotonic: larger input → larger output', () => {
-      const testInputs = [-1.0, -0.5, 0, 0.5, 1.0];
-
-      for (let i = 0; i < testInputs.length - 1; i++) {
-        const result1 = scaleSFD(testInputs[i]);
-        const result2 = scaleSFD(testInputs[i + 1]);
-        expect(result2.value!).toBeGreaterThanOrEqual(result1.value!);
-      }
-    });
-  });
 
   describe('Cross-Function Properties', () => {
     test('scaleBipolar and scaleUnipolar agree on positive inputs', () => {

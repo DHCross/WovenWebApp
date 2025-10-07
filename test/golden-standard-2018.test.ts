@@ -33,16 +33,12 @@ describe('Golden Standard: Hurricane Michael (2018-10-10)', () => {
     // III. Volatility: Should be moderate to high
     expect(result.volatility).toBeGreaterThan(0);
     
-    // IV. SFD: Should be negative (more friction than support)
-    expect(result.sfd).toBeLessThan(0);
-    expect(result.sfd).toBeGreaterThanOrEqual(-1.0);
-    
-    // V. Coherence: Should be moderate to low
+    // IV. Coherence: Should be moderate to low
     expect(result.coherence).toBeLessThan(5.0);
     expect(result.coherence).toBeGreaterThan(0);
     
-    // VI. Transform trace should be present (observability)
+    // V. Transform trace should be present (observability)
     expect(result.transform_trace).toBeDefined();
-    expect(result.transform_trace.pipeline).toBe('normalize_scale_clamp_round');
+    expect(result.transform_trace.pipeline).toBe('amplify-geometry → sum → amplify-magnitude → normalize → ×5 → clamp → round');
   });
 });

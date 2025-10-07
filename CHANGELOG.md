@@ -59,7 +59,7 @@ Added comprehensive documentation for the Raven Calder "Clear Mirror Voice" - th
 
 **What Was Added**
 - `docs/CLEAR_MIRROR_VOICE.md`: Complete voice guide with lexicon conversion table
-- Lexicon translates 20+ technical terms (FIELD, MAP, VOICE, SFD, etc.) into emotional tone
+- Lexicon translates 20+ technical terms (FIELD, MAP, VOICE, etc.) into emotional tone
 - Five-step delivery framework for converting technical diagnostics into public mirrors
 - Tone anchors and example conversions
 - Updated `docs/PROJECT_OVERVIEW.md` to reference Clear Mirror Voice
@@ -69,7 +69,7 @@ Added comprehensive documentation for the Raven Calder "Clear Mirror Voice" - th
 - **How It Works section**: User-facing explanation of the Woven Map system
 - **Lexicon Conversion Table**: Technical term → public translation → mirror voice example
 - **Clear Mirror Delivery Framework**: Five-step process (Recognition Hook → Pattern Naming → Perspective Framing → Conditional Leverage → Tiny Next Step)
-- **Example Conversion**: Shows SFD/Magnitude/Directional Bias translated into plain language
+- **Example Conversion**: Shows Magnitude/Directional Bias translated into plain language
 - **Tone Anchors**: Guidelines for maintaining Raven Calder voice consistency
 
 **Core Marketing Sentence**
@@ -224,12 +224,12 @@ Eliminated architectural violation where `src/seismograph.js` reimplemented Bala
 2. **Spec Guard Creation** (`config/spec.json` - NEW)
    - Canonical v3.1 specification with scale_factor: 50
    - Pipeline definition: "normalize→scale→clamp→round"
-   - Range definitions for all axes (mag [0,5], bias [-5,+5], coh [0,5], sfd [-1,+1])
+   - Range definitions for all axes (mag [0,5], bias [-5,+5], coh [0,5])
 
 3. **Runtime Assertions** (`lib/balance/assertions.ts` - NEW)
    - `assertBalanceMeterInvariants()` validates:
      * Range compliance (no out-of-bounds values)
-     * Null integrity (sfd null → "n/a", never fabricated zero)
+     * Null integrity (no fabricated zeros)
      * Finite values (no NaN/Infinity leakage)
      * Spec version match (v3.1)
    - Wired into `lib/server/astrology-mathbrain.js` and `lib/reporting/relational.ts`
@@ -239,7 +239,6 @@ Eliminated architectural violation where `src/seismograph.js` reimplemented Bala
      * scaleBipolar: monotonicity, range compliance, symmetry, clamp flags
      * scaleUnipolar: monotonicity, range compliance, zero handling, negative input
      * scaleCoherenceFromVol: anti-monotonicity, range compliance, inversion formula
-     * scaleSFD: range compliance, null handling, display formatting, monotonicity
 
 5. **Canonical Scaler Adoption** (`src/seismograph.js` - REFACTORED)
    - Lines 353-395: Replaced manual math with canonical function calls
@@ -269,7 +268,7 @@ Eliminated architectural violation where `src/seismograph.js` reimplemented Bala
 ✅ 14/14 test files passing
 ✅ 69/69 tests passing
 ✅ Lexicon lint clean
-✅ Golden Standard (Hurricane Michael): mag 4.86, bias -3.3, coh 4.0, sfd -0.21
+✅ Golden Standard (Hurricane Michael): mag 4.86, bias -3.3, coh 4.0
 ✅ Bias sanity: -0.05 → -2.5 (not -5.0)
 ✅ Export consistency: Schema validation passing
 ```
@@ -278,7 +277,6 @@ Eliminated architectural violation where `src/seismograph.js` reimplemented Bala
 1. **CommonJS Bridge**: Created inline implementations to allow seismograph.js to import TypeScript scalers
 2. **Return Structure**: Updated bridge to match TypeScript signatures exactly
 3. **Pipeline Strings**: Unified all schemas/exports to "normalize→scale→clamp→round"
-4. **SFD Scaling**: Fixed preScaled flag handling (calculateSFD returns [-1, +1], not raw sums)
 
 **Files Created (7)**
 - `lib/balance/amplifiers.ts` (75 lines)
@@ -435,12 +433,12 @@ Eliminated architectural violation where `src/seismograph.js` reimplemented Bala
 2. **Spec Guard Creation** (`config/spec.json` - NEW)
    - Canonical v3.1 specification with scale_factor: 50
    - Pipeline definition: "normalize→scale→clamp→round"
-   - Range definitions for all axes (mag [0,5], bias [-5,+5], coh [0,5], sfd [-1,+1])
+   - Range definitions for all axes (mag [0,5], bias [-5,+5], coh [0,5])
 
 3. **Runtime Assertions** (`lib/balance/assertions.ts` - NEW)
    - `assertBalanceMeterInvariants()` validates:
      * Range compliance (no out-of-bounds values)
-     * Null integrity (sfd null → "n/a", never fabricated zero)
+     * Null integrity (no fabricated zeros)
      * Finite values (no NaN/Infinity leakage)
      * Spec version match (v3.1)
    - Wired into `lib/weatherDataTransforms.ts` and `lib/reporting/relational.ts`
@@ -450,7 +448,6 @@ Eliminated architectural violation where `src/seismograph.js` reimplemented Bala
      * scaleBipolar: monotonicity, range compliance, symmetry, clamp flags
      * scaleUnipolar: monotonicity, range compliance, zero handling, negative input
      * scaleCoherenceFromVol: anti-monotonicity, range compliance, inversion formula
-     * scaleSFD: range compliance, null handling, display formatting, monotonicity
 
 5. **Canonical Scaler Adoption** (`src/seismograph.js` - REFACTORED)
    - Lines 353-395: Replaced manual math with canonical function calls
@@ -480,7 +477,7 @@ Eliminated architectural violation where `src/seismograph.js` reimplemented Bala
 ✅ 14/14 test files passing
 ✅ 69/69 tests passing
 ✅ Lexicon lint clean
-✅ Golden Standard (Hurricane Michael): mag 4.86, bias -3.3, coh 4.0, sfd -0.21
+✅ Golden Standard (Hurricane Michael): mag 4.86, bias -3.3, coh 4.0
 ✅ Bias sanity: -0.05 → -2.5 (not -5.0)
 ✅ Export consistency: Schema validation passing
 ```
@@ -489,7 +486,6 @@ Eliminated architectural violation where `src/seismograph.js` reimplemented Bala
 1. **CommonJS Bridge**: Created inline implementations to allow seismograph.js to import TypeScript scalers
 2. **Return Structure**: Updated bridge to match TypeScript `{raw, value, flags}` signature
 3. **Pipeline Strings**: Unified all schemas/exports to "normalize→scale→clamp→round"
-4. **SFD Scaling**: Fixed preScaled flag handling (calculateSFD returns [-1, +1], not raw sums)
 
 **Files Created (7)**
 - `lib/balance/amplifiers.ts` (75 lines)
@@ -586,7 +582,7 @@ Implemented formal epistemic rigor framework transforming the Woven Map from int
 3. **Lexical Guard Module** (`src/validation/lexical-guard.ts`)
    - Prevents cross-contamination between axes (lexical bleed)
    - Enforces directional vocabulary (expansion/contraction) for Bias only
-   - Enforces cohesion vocabulary (harmony/friction) for SFD only
+   - Enforces cohesion vocabulary (harmony/friction).
    - Provides build-time assertions and suggested replacements
    - Generates violation reports with actionable guidance
 
@@ -1019,7 +1015,7 @@ All reports MUST follow this sequence, which builds, deepens, and lands with int
    └─ For relational: synastry structure, echo loops, shared SST tags
 
 2. SYMBOLIC WEATHER (The Climate)
-   └─ Balance Meter metrics (Magnitude, Valence, Volatility, SFD)
+   └─ Balance Meter metrics (Magnitude, Valence, Volatility)
    └─ Daily transit activation against the blueprint
    └─ For relational: bidirectional overlays (A←B, B←A)
 
@@ -1033,7 +1029,7 @@ All reports MUST follow this sequence, which builds, deepens, and lands with int
 
 1. **Blueprint Before Weather**: Never compute transits or Balance Meter indices without first establishing the natal foundation
 2. **Context Before Interpretation**: The Mirror Voice (FIELD → MAP → VOICE) must reference the blueprint's functional modes
-3. **Person Before Pattern**: SFD values are meaningless without knowing the person's baseline climate
+3. **Person Before Pattern**: Metric values are meaningless without knowing the person's baseline climate
 4. **Relational Asymmetry**: In relational reports, preserve the different lived experiences (A←B ≠ B←A)
 
 ### Rationale
@@ -1058,7 +1054,7 @@ This protocol ensures that:
    - Implemented proper relational Balance Meter using:
      - Base synastry aspects (structural relational field)
      - Both people's daily transits (temporal activation)
-     - Daily combined metrics (magnitude, valence, volatility, SFD)
+     - Daily combined metrics (magnitude, valence, volatility)
    - Computation note: "Relational Balance Meter v1.0: Combines Person A + Person B daily transits with synastry baseline"
 
 3. **Person B Transit Computation** ([astrology-mathbrain.js:4261-4280](lib/server/astrology-mathbrain.js#L4261-L4280))
@@ -1105,8 +1101,8 @@ This protocol ensures that:
 
    **Balance Meter Layer** (Lines 61-248):
    - `orbMultiplier()` now uses `getEffectiveOrb()` with profile parameter
-   - `computeSFD()` and `computeBalanceValence()` accept `orbsProfile` parameter
-   - All SFD scoring respects profile-specific orb tolerances
+   - `computeBalanceValence()` accepts `orbsProfile` parameter
+   - All scoring respects profile-specific orb tolerances
 
    **Core Filtering & Weighting Pipeline** (Lines 1421-1528):
    - `enrichDailyAspects()` now accepts `orbsProfile` parameter (default: 'wm-spec-2025-09')
@@ -1134,11 +1130,11 @@ This protocol ensures that:
    - `BODY_CLASS_CAPS` → `BODY_CLASS_CAPS_LEGACY` (reference only)
    - `adjustOrbCapForSpecials()` → `adjustOrbCapForSpecials_DEPRECATED()` (reference only)
 
-   **Result**: Orb profile selection now governs **all** gating, weighting, and filtering. Switching from "Balance Default" to "Astro-Seek Strict" will tighten hooks, drivers, transit tables, SFD scores, and relational overlays system-wide.
+   **Result**: Orb profile selection now governs **all** gating, weighting, and filtering. Switching from "Balance Default" to "Astro-Seek Strict" will tighten hooks, drivers, transit tables, and relational overlays system-wide.
 
 9. **Bidirectional Overlays Enhancement** ([lib/server/astrology-mathbrain.js:2543-2615](lib/server/astrology-mathbrain.js#L2543-L2615))
    - `computeBidirectionalOverlays()` now accepts `orbsProfile` parameter
-   - Separate SFD computation for A←B and B←A using profile-specific orbs
+   - Separate computation for A←B and B←A using profile-specific orbs
    - `generateRelationalMirror()` threads `orbsProfile` to bidirectional computation
    - All 4 call sites updated to pass orb profile
 
@@ -1189,7 +1185,7 @@ This protocol ensures that:
 - [x] Implemented `computeBidirectionalOverlays()` function ([astrology-mathbrain.js:2541-2613](lib/server/astrology-mathbrain.js#L2541-L2613))
   - Partitions synastry aspects by direction (A←B vs B←A)
   - Classifies each aspect as support/compression/friction/neutral
-  - Computes separate Balance Meter (SFD) for each direction
+  - Computes separate Balance Meter for each direction
   - Preserves asymmetry - no averaging
 - [x] Added aspect role classification ([astrology-mathbrain.js:2618-2644](lib/server/astrology-mathbrain.js#L2618-L2644))
 - [x] Added experience descriptions for each direction ([astrology-mathbrain.js:2649-2673](lib/server/astrology-mathbrain.js#L2649-L2673))
@@ -1624,31 +1620,28 @@ Added comprehensive dual report generation system allowing users to create both 
 
 ---
 
-## [2025-09-11] FEATURE: Enhanced Balance Meter Visual Displays with Triple-Channel Support
+## [2025-09-11] FEATURE: Enhanced Balance Meter Visual Displays with Dual-Channel Support
 
 **Summary**
-Updated the existing graphic meters (barometer/arc charts) to fully support the Balance Meter triple-channel system, displaying Seismograph (v1.0), Balance Channel (v1.1), and SFD (v1.2) data in visual format.
+Updated the existing graphic meters (barometer/arc charts) to fully support the Balance Meter dual-channel system, displaying Seismograph (v1.0) and Balance Channel (v1.1) data in visual format.
 
 **Visual Enhancements**
-- **Single-day barometer view** now shows all three channels in a 6-column grid:
+- **Single-day barometer view** now shows both channels:
   - Magnitude (crisis activation 0-5)
   - Seismo Valence (v1.0 crisis-weighted)
   - Balance Valence (v1.1 rebalanced)
-  - SFD (Support-Friction Differential -5 to +5)
   - Volatility (stability indicator)
-  - S+/S- components (support/friction breakdown)
-- **SFD verdict** displayed (stabilizers prevail/cut/mixed)
 - **Multi-day view** updated with Balance Meter terminology and legend
 - **Button labels** updated: "Balance Meter" instead of "Barometer"
 
 **UI Updates**
-- Chart titles now indicate "Balance Meter (Triple Channel)"
+- Chart titles now indicate "Balance Meter (Dual Channel)"
 - Updated descriptions and legends to reflect new measurement system
 - Tooltip updated: "Cycle: Table → Arc → Balance Meter → Mobile"
-- Footer text shows version info: "Seismograph (v1.0) · Balance Channel (v1.1) · SFD (v1.2)"
+- Footer text shows version info: "Seismograph (v1.0) · Balance Channel (v1.1)"
 
 **Technical Details**
-- Graphic meters access triple-channel data structure: `day.seismograph`, `day.balance`, `day.sfd`
+- Graphic meters access dual-channel data structure: `day.seismograph`, `day.balance`
 - Maintains backward compatibility with existing seismograph-only data
 - Visual gradients still based on primary seismograph valence for consistency
 - Color coding differentiates positive/negative values across all channels
@@ -1659,19 +1652,19 @@ Updated the existing graphic meters (barometer/arc charts) to fully support the 
 
 ---
 
-## [2025-09-11] FIX: Updated Frontend Language to Reflect Balance Meter Triple-Channel System
+## [2025-09-11] FIX: Updated Frontend Language to Reflect Balance Meter Dual-Channel System
 
 **Summary**
-Updated frontend report generation text to properly reflect the implemented Balance Meter triple-channel architecture (Seismograph v1.0, Balance v1.1, SFD v1.2) instead of referencing only the original single-channel seismograph language.
+Updated frontend report generation text to properly reflect the implemented Balance Meter architecture (Seismograph v1.0, Balance v1.1) instead of referencing only the original single-channel seismograph language.
 
 **Changes Made**
-- Updated abstract generation to mention "Balance Meter triple-channel readouts" instead of "Seismograph readouts indicate fluctuations in magnitude, valence, and volatility"
-- Modified Key Points section to reference "Triple-channel snapshot" with proper version labeling
-- Updated Q&A section to explain the Balance Meter's three channels instead of just the seismograph
-- Enhanced keywords to include Balance Meter terminology: 'balance meter', 'triple-channel', 'seismograph v1.0', 'balance channel v1.1', 'SFD v1.2', 'support-friction differential'
+- Updated abstract generation to mention "Balance Meter dual-channel readouts" instead of "Seismograph readouts indicate fluctuations in magnitude, valence, and volatility"
+- Modified Key Points section to reference "Dual-channel snapshot" with proper version labeling
+- Updated Q&A section to explain the Balance Meter's two channels instead of just the seismograph
+- Enhanced keywords to include Balance Meter terminology: 'balance meter', 'seismograph v1.0', 'balance channel v1.1'
 
 **Context**
-The backend Balance Meter system was already implemented and working correctly (as evidenced by daily readings showing all three channels), but frontend template text still referenced the pre-September 2025 single-channel language. This update aligns the user-facing documentation with the implemented triple-channel architecture per the Balance Meter specification.
+The backend Balance Meter system was already implemented and working correctly (as evidenced by daily readings showing both channels), but frontend template text still referenced the pre-September 2025 single-channel language. This update aligns the user-facing documentation with the implemented dual-channel architecture per the Balance Meter specification.
 
 **Files Modified**
 - `index.html` (lines ~3720-3750): Updated report abstract, key points, keywords, and Q&A sections
@@ -1813,72 +1806,6 @@ Complete overhaul of Clear Mirror report structure implementing inverted pyramid
 - **Temporal Context:** Retrograde patterns, applying/separating phases for timing language
 - **Constitutional Foundation:** Jung function mapping for personality-aware narrative generation
 - **Translation Protocol:** Clear directives for transforming math into felt-sense poetry
-
-## [2025-09-05] Balance Meter Standalone Mode Added
-
-**Description:**
-Added dedicated Balance Meter mode enabling standalone health-focused reports independent of Mirror auto-append functionality. Users can now generate Balance Meter reports specifically designed for correlation with health metrics.
-
-**New Features:**
-- **Balance Meter contextMode:** New radio button option for standalone mode selection
-- **Backend Processing:** `wantBalanceMeter` mode detection in `astrology-mathbrain.js`
-- **Specialized Report Format:** Dedicated `buildBalanceMeterReport()` function with health-oriented structure
-- **Frontend Integration:** Balance Meter mode detection and report rendering in main UI flow
-
-**Report Structure:**
-- Executive Summary with triple-channel averages and dominant channel analysis
-- Daily entries table with SFD verdicts for health tracking
-- Methodology section explaining triple-channel architecture for health correlation
-- WM-Chart-1.2 schema compliance with focus on SFD patterns
-
-**UI Updates:**
-- Updated mode description: "Balance Meter (Health Data Comparison)"
-- Updated upload button text: "Upload Balance Meter Data"
-- Standalone mode processing separate from Mirror auto-append logic
-
-## [2025-09-05] MAJOR INTEGRATION: Balance Meter v1.2 Triple-Channel Architecture Complete
-
-**Description:**
-Successfully integrated the complete Balance Meter v1.2 system with full narrative rendering across all user touchpoints. The sophisticated triple-channel architecture (Seismograph v1.0 / Balance v1.1 / SFD v1.2) is now fully operational with comprehensive UI display.
-
-**Core Implementation:**
-1. **Triple Channel Helper Functions:**
-   - `sfdVerdict()`: Interprets SFD values as "stabilizers prevail/cut/mixed"
-   - `tripleChannelLine()`: Unified display format for all three channels
-   - `normalizeEntry()`: Backward compatibility with flat legacy data
-   - `fmtSigned()`: Consistent signed number formatting
-
-2. **Enhanced Report Generation:**
-   - Executive Summary: Added triple channel summary line
-   - Seismograph Tables: Consolidated view with verdict interpretation
-   - Auto-Append Reports: Balance/SFD data integrated into Mirror reports
-   - Scaling Notes: Updated to explain triple-channel architecture
-
-3. **Complete UI Integration:**
-   - **Desktop Reports:** `Quake X.X · val ±Y.Y · bal ±Z.Z · [verdict] (SFD ±A.A; S+ B.B/S− C.C)`
-   - **Mobile Cards:** Condensed triple channel summaries with tooltips
-   - **CSV Export:** Stable columns (`bal_val_v1_1`, `sfd_v1_2`, `splus_v1_2`, `sminus_v1_2`)
-   - **Demo Page:** Updated sample data to showcase Balance/SFD functionality
-
-4. **JSON Schema (WM-Chart-1.2):**
-   - Nested object structure with explicit version tracking
-   - Metadata fields: `calibration_boundary`, `engine_versions`, `reconstructed`
-   - Backward compatibility with flat legacy keys
-   - Complete payload contract documentation
-
-**Technical Features:**
-- **Support-Friction Differential (SFD):** Measures net stabilizer survival after targeted friction
-- **Balance Channel:** Rebalanced valence scoring reveals scaffolding without diluting magnitude
-- **Version Tracking:** All three engines properly versioned and documented
-- **Data Normalization:** Seamless handling of nested vs flat data structures
-
-**Documentation Updates:**
-- README: Added comprehensive WM-Chart-1.2 payload contract appendix
-- Balance Meter.txt: Updated status to "IMPLEMENTED & DEPLOYED"
-- JSON Schema validation with comprehensive test coverage
-
-**AI Collaboration Notes:**
-*Balance Meter integration completed successfully following Raven Calder GPT's precise implementation roadmap. The "big gap" between sophisticated computational engine and user-facing narrative is now completely closed. All three channels (v1.0/v1.1/v1.2) render consistently across desktop, mobile, and export formats with full backward compatibility.*
 
 ## [2025-09-06] FIX: Balance Meter Generation + Auto-Fill Logic
 

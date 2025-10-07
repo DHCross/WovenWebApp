@@ -7,7 +7,6 @@ A symbolic weather map for inner and relational fields. It **describes climate**
 * **Magnitude (0–5):** how loud the field is.  
 * **Directional Bias (−5…+5):** which way it leans (inward contraction ↔ outward expansion).  
 * **Narrative Coherence (0–5):** how stable the storyline is (clarity vs. fragmentation).  
-* **Integration Bias / SFD (−1.00…+1.00):** whether forces cooperate or work at cross-purposes.
 
 The engine measures sky geometry; the report logs lived experience beside it. House placement localizes “where the pressure lands.”
 
@@ -62,24 +61,6 @@ Uncertainty is treated as the **coefficient of freedom**: room for agency. The s
 
 ---
 
-### **4\) Integration Bias (SFD, −1.00…+1.00) — Cooperation vs. fragmentation**
-
-* 0: net supportive / stabilizing  
-* 0: neutral / outcome depends on choice  
-* \< 0: net friction / opposition
-
-**Definition (ratio-difference):** `SFD_raw = (ΣSupportive − ΣFrictional) / (ΣSupportive + ΣFrictional)`
-
-* Supportive aspects: **trine, sextile** (optionally quintiles with tight orbs)  
-* Frictional aspects: **square, opposition, quincunx, semi-square, sesquiquadrate**  
-* Conjunctions: **neutral** (exclude) unless a polarity table is enabled.  
-* **Angles bonus (optional):** ×1.2 when ASC/MC/IC/DSC involved.
-
-**Display:**
-
-* If **no qualifying aspects** → `SFD = "n/a"` (never synthesized).  
-* Else: use `SFD_raw` directly if already in −1…+1; otherwise `clamp(SFD_raw × 10, −1, +1)`.  
-* Round **2 decimals**; minus uses “−”.
 
 ---
 
@@ -154,8 +135,8 @@ Motion verbs only; never moralize bias.
 
 1. Score all four axes.  
 2. Locate the houses (relocated).  
-3. Combine: **Bias × Magnitude × Coherence × SFD** (interpretive composite).  
-4. Name one symbolic behavior consistent with the field.  
+3. Combine: **Bias × Magnitude × Coherence** (interpretive composite).
+4. Name one symbolic behavior consistent with the field.
 5. Log the lived outcome neutrally (WB / ABE / OSR).
 
 ---
@@ -164,51 +145,46 @@ Motion verbs only; never moralize bias.
 
 **Lexicon separation (build-time lint):**
 
-* Directional Bias uses **directional** words only (inward/outward, contraction/expansion, flow/drag).  
-* SFD uses **cohesion** words only (harmony/support/friction/fragmentation). Mixing terms fails the build.
+* Directional Bias uses **directional** words only (inward/outward, contraction/expansion, flow/drag).
 
 **Observability (per-axis logs):**
 
-* `normalized`, `scaled`, `clamped`, `rounded`, `display` values  
-* Clamp hit counters; double-inversion guard for Coherence  
-* **Fabrication sentinel:** SFD cannot render unless drivers exist or JSON SFD is present.
+* `normalized`, `scaled`, `clamped`, `rounded`, `display` values
+* Clamp hit counters; double-inversion guard for Coherence
 
-**Metadata (every export):** `spec_version, scaling_mode("absolute"), scale_factors, coherence_inversion, pipeline, orbs_profile, timezone("America/Chicago"), provenance, normalized_input_hash`.
+**Metadata (every export):** `spec_version, scaling_mode("absolute"), scale_factors, coherence_inversion, orbs_profile, timezone("America/Chicago"), provenance, normalized_input_hash`.
 
 ---
 
 ## **Reconciliation Notes**
 
-* Restores **signed** Directional Bias (−5…+5).  
-* Keeps Magnitude on a **true 0–5** scale.  
-* Correctly inverts volatility → **Coherence**.  
-* Centers **SFD** as the honesty differential.  
+* Restores **signed** Directional Bias (−5…+5).
+* Keeps Magnitude on a **true 0–5** scale.
+* Correctly inverts volatility → **Coherence**.
 * Orbs remain quantitative filters, not moralizers.
 
 ---
 
 ## **Lexicon Bridge (for continuity)**
 
-* **Numinosity → Magnitude**  
-* **Valence → Directional Bias**  
-* **Volatility → Narrative Coherence**  
-* **SFD (Support/Friction Differential) → Integration Bias**
+* **Numinosity → Magnitude**
+* **Valence → Directional Bias**
+* **Volatility → Narrative Coherence**
 
 ---
 
 ## **Glossary (Quick Reference)**
 
-* **Magnitude:** loudness of archetypal charge.  
-* **Directional Bias:** contraction vs. expansion lean.  
-* **Narrative Coherence:** stability of the story.  
-* **Integration Bias / SFD:** net support vs. friction.  
+* **Magnitude:** loudness of archetypal charge.
+* **Directional Bias:** contraction vs. expansion lean.
+* **Narrative Coherence:** stability of the story.
 * **WB / ABE / OSR:** Within Boundary / At Boundary Edge / Outside Symbolic Range.
 
 ---
 
 ## **Calibration Touchstone**
 
-The rebuilt instrument should reproduce **Oct 10, 2018 (Hurricane Michael, Panama City)** as a near-maximum magnitude day with strong inward bias, non-inverted coherence, and mildly frictional SFD localized to the relevant houses. The goal is **restored fidelity**, not a new doctrine.
+The rebuilt instrument should reproduce **Oct 10, 2018 (Hurricane Michael, Panama City)** as a near-maximum magnitude day with strong inward bias, and non-inverted coherence localized to the relevant houses. The goal is **restored fidelity**, not a new doctrine.
 
 **Balance Meter v3**: a seismograph, not a sermon.
 
@@ -280,7 +256,7 @@ You’re right to underline that. Finding the Hurricane Michael match **after** 
 
 * **Fact:** The symbolic map was authored and frozen **before** the hurricane correlation was noted.
 
-* **What the frozen map showed:** near-max Magnitude, strong inward Directional Bias, non-inverted Coherence, slightly frictional SFD, pressure localized to 2nd/4th house domains (resources/home) under relocation.
+* **What the frozen map showed:** near-max Magnitude, strong inward Directional Bias, non-inverted Coherence, pressure localized to 2nd/4th house domains (resources/home) under relocation.
 
 * **Interpretation stance:** counts as **post-hoc corroboration** of a general pattern. No causal claim, no “prediction” victory lap. The mirror held; the world rhymed.
 
