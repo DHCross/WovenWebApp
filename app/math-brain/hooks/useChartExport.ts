@@ -807,19 +807,36 @@ Start with the Solo Mirror(s), then ${
       const reportKind = formatReportKind(reportContractType);
       const isNatalOnly = !reportKind.includes('Balance Meter');
       const subjectName = sanitizedReport?.person_a?.name || 'Subject';
+      const birthData = sanitizedReport?.person_a?.birth_data || sanitizedReport?.context?.person_a;
 
       let markdown = '';
 
-      // Mirror Flow v3.2 Template for Natal-Only Reports
+      // Mirror Flow v4.1 Template for Natal-Only Reports (with source annotations)
       if (isNatalOnly) {
         markdown += `# MIRROR REPORT — NATAL PATTERN\n\n`;
         markdown += `**Generated:** ${generatedAt.toLocaleString()}\n`;
         markdown += `**Subject:** ${subjectName}\n`;
-        markdown += `**Specification Version:** 3.2\n`;
-        markdown += `**Mode:** Natal (Static Map)\n\n`;
-        markdown += `**Purpose:** To describe the permanent geometry of the native pattern — the fixed composition that receives and gives shape to the movements of the cosmos.\n\n`;
-        markdown += `**Note:** The Mirror is qualitative and structural. No scaling, rating, or numeric values appear anywhere in this document.\n\n`;
+        markdown += `**Mode:** Natal (Static Map)\n`;
+        markdown += `**Specification:** Mirror Flow v4.1\n\n`;
+        markdown += `**Purpose:** To describe the fixed geometry of the natal pattern — the architecture through which all later motion expresses.\n\n`;
         markdown += `---\n\n`;
+
+        // Birth Data section with source annotations
+        if (birthData) {
+          markdown += `## Birth Data\n\n`;
+          markdown += `*Pulled directly from BirthChartRequestModel fields.*\n\n`;
+          markdown += `| Parameter | Value | Source |\n`;
+          markdown += `|-----------|-------|--------|\n`;
+          markdown += `| Date of Birth (local time) | ${birthData.year || 'N/A'}-${String(birthData.month || 'N/A').padStart(2, '0')}-${String(birthData.day || 'N/A').padStart(2, '0')} ${String(birthData.hour || 'N/A').padStart(2, '0')}:${String(birthData.minute || 'N/A').padStart(2, '0')} | SubjectModel |\n`;
+          markdown += `| House System | ${sanitizedReport.provenance?.house_system_name || sanitizedReport.provenance?.house_system || 'Placidus'} | houses_system_identifier |\n`;
+          markdown += `| Latitude, Longitude | ${birthData.latitude || 'N/A'}, ${birthData.longitude || 'N/A'} | SubjectModel |\n`;
+          markdown += `| City | ${birthData.city || 'N/A'} | SubjectModel |\n`;
+          markdown += `| Country | ${birthData.nation || 'N/A'} | SubjectModel |\n`;
+          if (birthData.timezone) {
+            markdown += `| Timezone | ${birthData.timezone} | SubjectModel tz_str |\n`;
+          }
+          markdown += `\n---\n\n`;
+        }
       } else {
         // Balance Meter reports keep the existing format
         markdown += `# Woven Web App — ${reportKind} Report\n\n`;
@@ -860,54 +877,53 @@ Start with the Solo Mirror(s), then ${
       const analysisDirective = isNatalOnly
         ? `# 🚨 YOU ARE RAVEN CALDER — EXECUTE THIS DIRECTIVE 🚨
 
-**YOU ARE RAVEN CALDER.** This is a **Mirror Flow** report — natal pattern only, no transits, no numeric values.
+**YOU ARE RAVEN CALDER.** This is a **Mirror Flow v4.1** report — natal pattern only, no transits, no numeric values.
 
 ---
 
 ## YOUR TASK: Generate the Natal Mirror
 
-Follow the Mirror Flow v3.2 template structure exactly:
+Follow the Mirror Flow v4.1 template structure exactly:
 
-### 1. THE NATAL MIRROR: A Map of the Native Pattern
+### 1. PLANETARY ARCHITECTURE
 
-Capture the complete architectural layout using the data tables below.
+Present all planetary positions, houses, and motion states from birth-chart API response.
+*All data points populated from /api/v4/birth-chart endpoint response.*
 
-### 2. PLANETARY ARCHITECTURE
+### 2. HOUSE MATRIX
 
-Present all planetary positions, houses, and motion states in table format.
+Show all 12 house cusps derived from houses array in API response.
 
-### 3. HOUSE MATRIX
+### 3. ASPECT NETWORK
 
-Show all 12 house cusps with signs, degrees, and domain emphasis.
+List all aspects from /api/v4/natal-aspects-data response with exact orbs and applying/separating state.
 
-### 4. ASPECT NETWORK — Lines of Force
+### 4. DERIVED GEOMETRY SUMMARY
 
-List all major and minor aspects with exact orbs and brief mechanical descriptions.
+Present elemental distribution, modal distribution, planetary concentrations computed from birth-chart response.
 
-### 5. WOVEN NARRATIVE — Distilled Reflection
+### 5. PATTERN TRANSLATION
 
-Synthesize how the principal chords and drives interlock. Identify the central paradox or harmony.
+Generate narrative synthesis:
+- **Structural Reflection:** How planetary chords interlock
+- **Resonance:** Architecture operating coherently
+- **Paradox:** Opposing tensions oscillating
+- **Shadow:** Geometry misfiring under load
 
-### 6. LIVING PATTERN — Resonance, Paradox, and Shadow
+### 6. PROVENANCE
 
-- **Resonance (WB):** Coherent, constructive expression when functioning according to design
-- **Paradox (ABE):** Oscillating expression between harmony and friction
-- **Shadow (OSR → ABE):** Predictable distortion under duress (mechanical, not moralized)
-
-### 7. PROVENANCE
-
-Include data source, house system, orbs profile, relocation mode, coordinates, and confidence level.
+Include complete audit trail: data source, API endpoints, orbs profile, house system, engine versions, coordinates.
 
 ---
 
 ## CRITICAL REQUIREMENTS:
 
-✅ **NO NUMERIC RATINGS** — This is qualitative and structural only
-✅ **NO BALANCE METER VALUES** — Magnitude, valence, volatility are forbidden in natal mirrors
-✅ **Use ALL provided data** — planetary positions, aspects, house placements
+✅ **Self-documenting** — Every field annotated with its data source (API endpoint, local function, or computed)
+✅ **NO NUMERIC RATINGS** — Qualitative and structural only
+✅ **NO BALANCE METER VALUES** — Forbidden in natal mirrors
+✅ **Traceable geometry** — Every value maps to upstream provider
 ✅ **Plain language** — Conversational, testable against lived experience
 ✅ **Mechanical descriptions** — Energy patterns, not moral judgments
-✅ **Astro-Seek fidelity** — Preserve exact orbs and positions
 
 ---`
         : `# 🚨 YOU ARE RAVEN CALDER — EXECUTE THIS DIRECTIVE 🚨
@@ -1033,18 +1049,14 @@ Start with the Solo Mirror(s), then ${
 
       // Add directive section (different format for Natal vs Balance Meter)
       if (isNatalOnly) {
-        markdown += `## 1. The Natal Mirror: A Map of the Native Pattern\n\n`;
-        markdown += `This report captures the complete architectural layout of the native system.\n`;
-        markdown += `All planetary positions, houses, and aspects are included at Astro-Seek fidelity.\n`;
-        markdown += `The language remains diagnostic and descriptive, never moral or psychological.\n\n`;
-        markdown += `---\n\n`;
+        // No separate directive section - it's embedded in provenance
       } else {
         markdown += `## ANALYSIS DIRECTIVE (READ FIRST)\n\n${analysisDirective}\n\n---\n\n`;
       }
 
       if (sanitizedReport.person_a?.chart) {
         const sectionTitle = isNatalOnly
-          ? `## 1.1 Planetary Architecture\n\n`
+          ? `## 1. Planetary Architecture\n\n*All data points below populated from /api/v4/birth-chart endpoint response.*\n\n`
           : `## Person A: ${sanitizedReport.person_a.name || 'Natal Chart'}\n\n`;
         markdown += sectionTitle;
         markdown += formatChartTables(sanitizedReport.person_a.chart);
@@ -1060,40 +1072,55 @@ Start with the Solo Mirror(s), then ${
 
       // Add Mirror Flow sections for natal-only reports
       if (isNatalOnly) {
-        markdown += `\n---\n\n## 1.4 Woven Narrative — Distilled Reflection\n\n`;
-        markdown += `*[A cohesive synthesis describing how the principal chords and drives interlock. `;
-        markdown += `Identify the central paradox or harmony that defines the system's operative tone. `;
-        markdown += `Keep the language structural and testable.]*\n\n`;
+        markdown += `\n---\n\n## 4. Derived Geometry Summary\n\n`;
+        markdown += `*Generated internally by WovenWebApp from birth-chart response.*\n\n`;
+        markdown += `| Axis / Cluster | Degrees / Signs Involved | Geometric Character | Source |\n`;
+        markdown += `|----------------|--------------------------|---------------------|--------|\n`;
+        markdown += `| Angular Cross | ASC–DSC / MC–IC | Orientation summary | Math Brain calculation |\n`;
+        markdown += `| Elemental Distribution | [computed from chart] | Fire/Earth/Air/Water counts | local analyzeElements() |\n`;
+        markdown += `| Modal Distribution | [computed from chart] | Cardinal/Fixed/Mutable counts | local analyzeModes() |\n`;
+        markdown += `| Planetary Concentration | [computed from chart] | Stellia, clusters, groupings | local analyzeClusters() |\n\n`;
 
-        markdown += `---\n\n## 1.5 Living Pattern — Resonance, Paradox, and Shadow\n\n`;
-        markdown += `### Resonance (Within Boundary — WB)\n\n`;
-        markdown += `*[Describe the coherent, constructive expression of the architecture when functioning according to design.]*\n\n`;
-        markdown += `### Paradox (At Boundary Edge — ABE)\n\n`;
-        markdown += `*[Describe the oscillating or dual expression — how the same structural qualities alternate between harmony and friction.]*\n\n`;
-        markdown += `### Shadow (Translatable Shadow — OSR → ABE)\n\n`;
-        markdown += `*[Describe the predictable distortion or inefficiency of the same geometry under duress. `;
-        markdown += `Keep the phrasing mechanical: energy misapplied, not moralized.]*\n\n`;
+        markdown += `---\n\n## 5. Pattern Translation\n\n`;
+        markdown += `*This section is generated by the Poetic Brain renderer using structured data from the Math Brain geometry.*\n\n`;
+        
+        markdown += `### 5.1 Structural Reflection\n\n`;
+        markdown += `*[Brief mechanical synthesis of how planetary chords interlock and distribute pressure.]*\n\n`;
 
-        markdown += `---\n\n## 1.6 Provenance\n\n`;
+        markdown += `### 5.2 Resonance\n\n`;
+        markdown += `*[How the architecture operates when coherent.]*\n\n`;
+
+        markdown += `### 5.3 Paradox\n\n`;
+        markdown += `*[How opposing tensions oscillate or invert.]*\n\n`;
+
+        markdown += `### 5.4 Shadow\n\n`;
+        markdown += `*[How the geometry misfires or expresses inefficiently under load.]*\n\n`;
+        markdown += `*(All narrative fields generated from template renderNatalNarrative() function — not from API response.)*\n\n`;
+
+        markdown += `---\n\n## 6. Provenance\n\n`;
+        markdown += `*Auto-filled from system environment and API_REFERENCE.md fields.*\n\n`;
+        markdown += `| Parameter | Value | Source |\n`;
+        markdown += `|-----------|-------|--------|\n`;
         if (sanitizedReport?.provenance) {
-          markdown += `- **Data Source:** ${sanitizedReport.provenance.ephemeris_source || 'Direct Ephemeris'}\n`;
-          markdown += `- **House System:** ${sanitizedReport.provenance.house_system_name || sanitizedReport.provenance.house_system || 'Placidus'}\n`;
-          markdown += `- **Orbs Profile:** ${sanitizedReport.provenance.orbs_profile || 'wm-spec-2025-09'}\n`;
-          markdown += `- **Relocation Mode:** ${sanitizedReport.provenance.relocation_mode || 'None'}\n`;
-          if (sanitizedReport.provenance.relocation_coords?.latitude && sanitizedReport.provenance.relocation_coords?.longitude) {
-            markdown += `- **Coordinates:** ${sanitizedReport.provenance.relocation_coords.latitude}, ${sanitizedReport.provenance.relocation_coords.longitude}\n`;
+          markdown += `| Data Source | ${sanitizedReport.provenance.ephemeris_source || 'Astrologer API /api/v4/birth-chart'} | RapidAPI Provider |\n`;
+          markdown += `| Orbs Profile | ${sanitizedReport.provenance.orbs_profile || 'wm-spec-2025-09'} | Config constant |\n`;
+          markdown += `| House System | ${sanitizedReport.provenance.house_system_name || sanitizedReport.provenance.house_system || 'Placidus'} | Request payload |\n`;
+          markdown += `| Relocation Mode | ${sanitizedReport.provenance.relocation_mode || 'None'} | WovenWebApp config |\n`;
+          if (birthData?.timezone) {
+            markdown += `| Timezone Database | ${birthData.timezone} | SubjectModel tz_str |\n`;
           }
-          markdown += `- **Time/Place Confidence:** ${sanitizedReport.provenance.time_meta_a?.time_precision || 'locked'}\n`;
-          markdown += `- **Signed Map Package ID:** ${sanitizedReport.provenance.normalized_input_hash || sanitizedReport.provenance.hash || 'N/A'}\n\n`;
+          markdown += `| Engine Version | astrology-mathbrain.js ${sanitizedReport.provenance.build_ts ? new Date(sanitizedReport.provenance.build_ts).toISOString().split('T')[0] : 'current'} | Math Brain module |\n`;
+          markdown += `| Math Brain Version | ${sanitizedReport.provenance.math_brain_version || 'N/A'} | math_brain_version field |\n`;
+          if (birthData?.latitude && birthData?.longitude) {
+            markdown += `| Coordinates | ${birthData.latitude}, ${birthData.longitude} | SubjectModel |\n`;
+          }
+          markdown += `| Signed Map ID | ${sanitizedReport.provenance.normalized_input_hash || sanitizedReport.provenance.hash || 'Generated at report time'} | Internal audit system |\n`;
         } else {
-          markdown += `Provenance data unavailable.\n\n`;
+          markdown += `| Status | Provenance data unavailable | — |\n`;
         }
-
-        markdown += `---\n\n`;
-        markdown += `**End of Natal Mirror Template**\n\n`;
-        markdown += `*(For relational or synastry applications: produce a full, independent Mirror for each participant using this form. `;
-        markdown += `Construct a separate Relational Overlay only after both Mirrors are complete. `;
-        markdown += `Each natal map remains sovereign and unaltered.)*\n`;
+        markdown += `\n---\n\n`;
+        markdown += `**End of Natal Mirror**\n\n`;
+        markdown += `*(For synastry or relational analysis, duplicate this structure per subject, using /api/v4/synastry-chart for overlays. Each Mirror remains individually sourced and time-locked.)*\n`;
       } else {
         // Balance Meter format keeps the existing appendix structure
         markdown += `\n---\n\n## Data Appendix\n\n`;
