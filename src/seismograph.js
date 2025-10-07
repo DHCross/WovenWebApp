@@ -436,7 +436,7 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
 
   // Transform trace for observability
   const transform_trace = {
-    pipeline: 'amplify-geometry → sum → amplify-magnitude → normalize → ×5 → clamp → round',
+    pipeline: 'normalize_scale_clamp_round',
     spec_version: SPEC_VERSION,
     canonical_scalers_used: true,
     steps: [

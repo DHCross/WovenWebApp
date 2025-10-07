@@ -1,4 +1,9 @@
-import type { ClampInfo } from './balance/scale';
+import type { ClampInfo } from './balance/s  scaling: {
+    mode: 'absolute';
+    factor: 5;
+    pipeline: 'normalize_scale_clamp_round';
+    coherence_inversion: true;
+  };
 
 export type RawSeismograph = {
   magnitude?: number;
@@ -43,7 +48,7 @@ export type TransformedWeatherData = {
   };
   scaling: {
     mode: 'absolute';
-    factor: 50;
+    factor: 5;
     pipeline: 'normalize→scale→clamp→round';
     coherence_inversion: true;
   };

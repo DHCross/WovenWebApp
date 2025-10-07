@@ -165,14 +165,17 @@ test.describe('Regression Tests', () => {
 
 // Helper function
 async function submitTestChart(page) {
-  await page.locator('input[name*="name"], input[id*="name"]').first().fill('Test Subject');
-  await page.locator('input[type="date"]').first().fill('1973-07-24');
-  await page.locator('input[type="time"]').first().fill('14:30');
-  await page.locator('input[name*="city"]').first().fill('Bryn Mawr');
+  await page.locator('#a-name').fill('Test Subject');
+  await page.locator('#a-year').fill('1973');
+  await page.locator('#a-month').fill('07');
+  await page.locator('#a-day').fill('24');
+  await page.locator('#a-hour').fill('14');
+  await page.locator('#a-minute').fill('30');
+  await page.locator('#a-city').fill('Bryn Mawr');
   
-  const stateInput = page.locator('input[name*="state"]');
+  const stateInput = page.locator('#a-state');
   if (await stateInput.count() > 0) {
-    await stateInput.first().fill('PA');
+    await stateInput.fill('PA');
   }
   
   await page.locator('button[type="submit"]').click();

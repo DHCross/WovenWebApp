@@ -101,8 +101,11 @@ describe('CI Gate: Golden Case & Pipeline Order', () => {
     const seismoPath = path.join(__dirname, '../src/seismograph.js');
     const content = fs.readFileSync(seismoPath, 'utf8');
     
-    // Verify the transform_trace has the new, simplified pipeline string
-    const pipelineMatch = content.match(/pipeline:\s*'([^']*)'/);
+    // Find the pipeline string within the main aggregate function's return block.
+    // This avoids accidentally matching the 'empty_aspect_array' case.
+    const mainLogicBlock = content.substring(content.indexOf('const transform_trace = {'));
+    const pipelineMatch = mainLogicBlock.match(/pipeline:\s*'([^']*)'/);
+    
     expect(pipelineMatch).toBeTruthy();
     if (pipelineMatch) {
       const pipeline = pipelineMatch[1];
