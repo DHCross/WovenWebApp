@@ -5,7 +5,7 @@ import {
   scaleSFD,
   ClampInfo,
 } from '@/lib/balance/scale';
-import { assertDisplayRanges, assertNotDoubleInverted, assertSfdDrivers } from '@/lib/balance/assertions';
+import { assertDisplayRanges, assertNotDoubleInverted } from '@/lib/balance/assertions';
 import { DayExport } from '@/lib/schemas/day';
 
 export type NormalizedDay = {
@@ -142,15 +142,12 @@ export function buildDayExport(
     payload.trace = { clamp_hits };
   }
 
-  const sfdDisplayValue = sfd.value ?? 'n/a';
   assertDisplayRanges({
     mag: magnitude.value,
     bias: bias.value,
-    coh: coherence.value,
-    sfd: sfdDisplayValue,
+    coh: coherence.value
   });
   assertNotDoubleInverted(n.volatility, coherence.value);
-  assertSfdDrivers(opts?.driversCount ?? Number.NaN, sfdDisplayValue);
 
   DayExport.parse(payload);
   return payload;
