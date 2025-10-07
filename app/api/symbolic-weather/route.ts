@@ -86,8 +86,10 @@ const hasTenthPrecision = (value: number) => Math.abs(Math.round(value * 10) / 1
 
 const looksDisplayScaleMag = (value: number) => Number.isFinite(value) && value >= 0 && value <= 5 && hasTenthPrecision(value);
 const looksDisplayScaleBias = (value: number) => Number.isFinite(value) && value >= -5 && value <= 5 && hasTenthPrecision(value);
-const looksDisplayScaleVol = (value: number) => Number.isFinite(value) && value >= 0 && value <= 5;
-const looksDisplayScaleCoh = (value: number) => Number.isFinite(value) && value >= 0 && value <= 5;
+const looksDisplayScaleVol = (value: number) =>
+  Number.isFinite(value) && value > 1 && value <= 5;
+const looksDisplayScaleCoh = (value: number) =>
+  Number.isFinite(value) && value > 1 && value <= 5;
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 const clamp11 = (value: number) => Math.max(-1, Math.min(1, value));
