@@ -131,6 +131,42 @@ const TRANSIT_MODES = new Set<ReportMode>([
   'COMPOSITE_TRANSITS',
 ]);
 
+type ParsedJsonResult<T> = {
+  data: T | null;
+  raw: string;
+  parseError: Error | null;
+};
+
+const isRecord = (value: unknown): value is Record<string, any> =>
+  typeof value === 'object' && value !== null;
+
+const parseJsonSafely = async <T = Record<string, unknown>>(
+  response: Response
+): Promise<ParsedJsonResult<T>> => {
+  try {
+    const text = await response.text();
+    if (!text) {
+      return { data: null, raw: '', parseError: null };
+    }
+
+    try {
+      return { data: JSON.parse(text) as T, raw: text, parseError: null };
+    } catch (error) {
+      return {
+        data: null,
+        raw: text,
+        parseError: error instanceof Error ? error : new Error(String(error)),
+      };
+    }
+  } catch (error) {
+    return {
+      data: null,
+      raw: '',
+      parseError: error instanceof Error ? error : new Error(String(error)),
+    };
+  }
+};
+
 const modeFromStructure = (structure: ReportStructure, includeTransits: boolean): ReportMode => {
   switch (structure) {
     case 'synastry':
@@ -3681,9 +3717,41 @@ export default function MathBrainPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(foundationPayload),
       });
-      const foundationData = await foundationRes.json();
-      if (!foundationRes.ok || foundationData?.success === false) {
-        const msg = foundationData?.error || `Foundation generation failed (${foundationRes.status})`;
+      const foundationParsed = await parseJsonSafely<Record<string, any>>(foundationRes);
+      const foundationData = foundationParsed.data;
+
+      if (!foundationRes.ok) {
+        const msg =
+          (isRecord(foundationData) && typeof foundationData.error === 'string' && foundationData.error.trim().length)
+            ? foundationData.error
+            : `Foundation generation failed (${foundationRes.status})`;
+        setToast('Foundation generation failed.');
+        setTimeout(()=>setToast(null), 2500);
+        throw new Error(msg);
+      }
+
+      if (foundationParsed.parseError) {
+        console.error('[MB] Foundation response parse error', {
+          status: foundationRes.status,
+          bodyPreview: foundationParsed.raw.slice(0, 200),
+          error: foundationParsed.parseError?.message,
+        });
+        setToast('Foundation generation failed.');
+        setTimeout(()=>setToast(null), 2500);
+        throw new Error('Foundation response was not valid JSON.');
+      }
+
+      if (!isRecord(foundationData)) {
+        setToast('Foundation generation failed.');
+        setTimeout(()=>setToast(null), 2500);
+        throw new Error('Foundation response was empty.');
+      }
+
+      if (foundationData.success === false) {
+        const msg =
+          typeof foundationData.error === 'string' && foundationData.error.trim().length
+            ? foundationData.error
+            : `Foundation generation failed (${foundationRes.status})`;
         setToast('Foundation generation failed.');
         setTimeout(()=>setToast(null), 2500);
         throw new Error(msg);
@@ -3773,9 +3841,41 @@ export default function MathBrainPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(weatherPayload),
         });
-        const weatherData = await weatherRes.json();
-        if (!weatherRes.ok || weatherData?.success === false) {
-          const msg = weatherData?.error || `Symbolic weather layer failed (${weatherRes.status})`;
+        const weatherParsed = await parseJsonSafely<Record<string, any>>(weatherRes);
+        const weatherData = weatherParsed.data;
+
+        if (!weatherRes.ok) {
+          const msg =
+            (isRecord(weatherData) && typeof weatherData.error === 'string' && weatherData.error.trim().length)
+              ? weatherData.error
+              : `Symbolic weather layer failed (${weatherRes.status})`;
+          setToast('Symbolic weather layer failed.');
+          setTimeout(()=>setToast(null), 2500);
+          throw new Error(msg);
+        }
+
+        if (weatherParsed.parseError) {
+          console.error('[MB] Symbolic weather response parse error', {
+            status: weatherRes.status,
+            bodyPreview: weatherParsed.raw.slice(0, 200),
+            error: weatherParsed.parseError?.message,
+          });
+          setToast('Symbolic weather layer failed.');
+          setTimeout(()=>setToast(null), 2500);
+          throw new Error('Symbolic weather response was not valid JSON.');
+        }
+
+        if (!isRecord(weatherData)) {
+          setToast('Symbolic weather layer failed.');
+          setTimeout(()=>setToast(null), 2500);
+          throw new Error('Symbolic weather response was empty.');
+        }
+
+        if (weatherData.success === false) {
+          const msg =
+            typeof weatherData.error === 'string' && weatherData.error.trim().length
+              ? weatherData.error
+              : `Symbolic weather layer failed (${weatherRes.status})`;
           setToast('Symbolic weather layer failed.');
           setTimeout(()=>setToast(null), 2500);
           throw new Error(msg);
