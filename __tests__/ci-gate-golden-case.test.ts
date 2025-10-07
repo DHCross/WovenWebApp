@@ -97,16 +97,18 @@ describe('CI Gate: Golden Case & Pipeline Order', () => {
     expect(content).toMatch(/SCALE_FACTOR[^}]*}\s*=\s*require\(['"]\.\.\/lib\/balance\/scale-bridge['"]\)/s);
   });
 
-  test('Transform trace includes correct pipeline order', () => {
+  test('Transform trace uses correct simplified pipeline', () => {
     const seismoPath = path.join(__dirname, '../src/seismograph.js');
     const content = fs.readFileSync(seismoPath, 'utf8');
     
-    // Verify the transform_trace has the right pipeline
-    expect(content).toContain('amplify-geometry');
-    
-    // Pipeline must have amplify-geometry BEFORE normalize
-    const pipelineMatch = content.match(/pipeline.*amplify-geometry.*normalize/s);
+    // Verify the transform_trace has the new, simplified pipeline string
+    const pipelineMatch = content.match(/pipeline:\s*'([^']*)'/);
     expect(pipelineMatch).toBeTruthy();
+    if (pipelineMatch) {
+      const pipeline = pipelineMatch[1];
+      // This must match the simplified descriptor introduced in the refactor
+      expect(pipeline).toBe('normalize_scale_clamp_round');
+    }
   });
 });
 
