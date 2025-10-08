@@ -1,3 +1,26 @@
+## [2025-10-08] FIX: Clarify synastry upload coverage framing
+
+**Summary**
+Improved Raven's uploaded report summariser to track cadence, continuity, and coverage windows so conversational mirrors explicitly state when daily datasets form a continuous range (e.g., Sept 15 – Oct 31). Highlight strings now combine climate stats with window framing, and gap detection warns when days are missing.
+
+**Files Added**
+- `lib/raven/reportSummary.ts` – Shared helper exporting `summariseUploadedReportJson` for both API routing and tests.
+- `__tests__/raven-upload-summary.test.ts` – Focused Jest coverage for symbolic weather exports (continuous vs. gapped datasets).
+
+**Files Updated**
+- `app/api/raven/route.ts` – Consumes the shared summariser module.
+- `lib/raven/reportSummary.ts` – Detects cadence, continuity, and augments highlights/appendices with coverage data.
+
+**Highlights**
+- Daily uploads now respond with “Daily coverage is continuous…” phrasing, matching the user's expectation that Oct 8–10 lives inside the combined window.
+- Gap detection surfaces when uploaded datasets skip days so Raven can caveat interpretations immediately.
+- Appendices capture cadence metadata (`cadence`, `is_continuous`, `sample_count`) for downstream conversational use.
+
+**Verification**
+- `npx jest __tests__/raven-upload-summary.test.ts`
+
+---
+
 ## [2025-10-08] FEATURE: Privacy Policy Publication
 
 **Summary**

@@ -92,8 +92,7 @@ function analyseCadence(parsed: Record<string, any>, periodStart?: string, perio
     ? deltas.reduce((acc, value) => acc + value, 0) / deltas.length
     : undefined;
 
-  const resolvedCadenceDays = (() => {
-    if (typeof avgDelta === 'number') return avgDelta;
+  const stepHint = (() => {
     if (!stepRaw) return undefined;
     if (/day/i.test(stepRaw)) return 1;
     if (/week/i.test(stepRaw)) return 7;
@@ -116,9 +115,7 @@ function analyseCadence(parsed: Record<string, any>, periodStart?: string, perio
   })();
 
   const expectedDelta = (() => {
-    if (typeof resolvedCadenceDays === 'number' && resolvedCadenceDays > 0) {
-      return resolvedCadenceDays;
-    }
+    if (typeof stepHint === 'number' && stepHint > 0) return stepHint;
     if (cadenceLabel === 'Daily') return 1;
     if (cadenceLabel === 'Weekly') return 7;
     if (cadenceLabel === 'Hourly') return 1 / 24;
@@ -135,15 +132,19 @@ function analyseCadence(parsed: Record<string, any>, periodStart?: string, perio
   const coverageEnd = dayKeys[dayKeys.length - 1] ?? periodEnd;
 
   const cadenceSummary = (() => {
-    if (!cadenceLabel) return undefined;
-    if (coverageStart && coverageEnd && coverageStart !== coverageEnd) {
-      if (isContinuous) {
-        return `${cadenceLabel} coverage is continuous from ${coverageStart} to ${coverageEnd}.`;
+    if (cadenceLabel) {
+      if (coverageStart && coverageEnd && coverageStart !== coverageEnd) {
+        if (isContinuous) {
+          return `${cadenceLabel} coverage is continuous from ${coverageStart} to ${coverageEnd}.`;
+        }
+        return `${cadenceLabel} data from ${coverageStart} to ${coverageEnd} has gaps—double-check any missing days.`;
       }
-      return `${cadenceLabel} data from ${coverageStart} to ${coverageEnd} has gaps—double-check any missing days.`;
+      if (coverageStart) {
+        return `${cadenceLabel} snapshot logged for ${coverageStart}.`;
+      }
     }
-    if (coverageStart) {
-      return `${cadenceLabel} snapshot logged for ${coverageStart}.`;
+    if (!isContinuous && coverageStart && coverageEnd && coverageStart !== coverageEnd) {
+      return `Data from ${coverageStart} to ${coverageEnd} has gaps—double-check any missing days.`;
     }
     return undefined;
   })();
