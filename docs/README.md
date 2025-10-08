@@ -14,6 +14,7 @@
 ### Technical Compliance
 - **[../MATH_BRAIN_COMPLIANCE.md](../MATH_BRAIN_COMPLIANCE.md)** - Math Brain technical requirements
 - **[../API_INTEGRATION_GUIDE.md](../API_INTEGRATION_GUIDE.md)** - External API integration patterns
+- **[PRIVACY_POLICY.md](./PRIVACY_POLICY.md)** - Data handling commitments for Raven Calder experiences
 
 ### Recovery & Troubleshooting
 - **[../copilot_fix_recovery.md](../copilot_fix_recovery.md)** - Emergency recovery procedures
@@ -24,7 +25,7 @@
 ## Quick Reference
 
 ### For Developers
-Start with PROJECT_OVERVIEW.md → README.md → MAINTENANCE_GUIDE.md
+Start with PROJECT_OVERVIEW.md → README.md → MAINTENANCE_GUIDE.md → PRIVACY_POLICY.md (for data-handling context)
 
 ### For Content/Marketing
 Start with CLEAR_MIRROR_VOICE.md for the public-facing lexicon and tone

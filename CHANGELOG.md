@@ -1,3 +1,28 @@
+## [2025-10-08] FEATURE: Privacy Policy Publication
+
+**Summary**
+Published the Raven Calder privacy policy within the repository and exposed it via the App Router so GPT Actions and public users can reference a stable HTTPS URL.
+
+**Files Added**
+- `docs/PRIVACY_POLICY.md` – Canonical Markdown policy outlining data handling, retention, legal basis, third-party services, and user rights.
+- `app/privacy-policy/page.tsx` – Next.js page rendering the policy at `/privacy-policy` with accessible formatting and outbound references.
+
+**Files Updated**
+- `docs/README.md` – Linked the privacy policy in the documentation index and developer onboarding flow.
+
+**Highlights**
+- Clarifies that astrology inputs are processed in-memory, never sold, and routed only to the Astrologer API.
+- Documents GDPR/CCPA rights, security safeguards, and contact address `privacy@ravencalder.com`.
+- Lists subprocessors (RapidAPI, Netlify, GitHub, OpenAI) with direct policy links.
+- Provides consistent policy text for reuse across Netlify deployment and OpenAI GPT configuration.
+
+**Next Steps**
+1. Publish the `/privacy-policy` route to ravencalder.com via Netlify deployment.
+2. Update OpenAI GPT Actions configuration with the new HTTPS policy URL.
+3. Audit existing exporters and docs to reference the new policy where applicable.
+
+---
+
 ## [2025-10-07] FEATURE: Playwright E2E Test Suite Integration
 
 **Summary**
