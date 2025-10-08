@@ -48,7 +48,6 @@ export interface InputPayload {
     valence?: Metric; // expected roughly on a signed scale (negative=restrictive, positive=supportive)
     volatility?: Metric; // 0..1 preferred, but treated generically
     coherence?: Metric; // Added: Narrative Coherence (0-5, higher = stable)
-    sfd?: Metric; // Added: Support-Friction Differential (continuous, bipolar)
     scaling_strategy?: string;
     valence_label?: string;
   };
@@ -141,7 +140,6 @@ function seismographSummary(payload: InputPayload): { headline: string; details:
   const val = num(payload.seismograph?.valence_bounded ?? payload.seismograph?.valence);
   const vol = num(payload.seismograph?.volatility);
   const coh = num(payload.seismograph?.coherence);
-  const sfd = num(payload.seismograph?.sfd);
   const { band, label } = classifyMagnitude(mag);
   const vt = classifyDirectionalBias(val);
   const vv = classifyNarrativeCoherence(vol);
@@ -153,9 +151,6 @@ function seismographSummary(payload: InputPayload): { headline: string; details:
     parts.push(`Narrative Coherence ${coh.toFixed(2)} (${coh >= 2.5 ? 'stable' : 'unstable'})`);
   } else if (vol !== undefined) {
     parts.push(`Narrative Coherence ${vol !== undefined ? vol.toFixed(2) : '—'} (${vv.label})`);
-  }
-  if (sfd !== undefined) {
-    parts.push(`Support-Friction Differential ${sfd.toFixed(2)}`);
   }
   return {
     headline: `${label} with ${valLabel}`,

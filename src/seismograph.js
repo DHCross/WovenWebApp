@@ -393,8 +393,37 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   if (SCALE_FACTOR !== 5) {
     console.warn(`[seismograph.js] SCALE_FACTOR=${SCALE_FACTOR}, expected 5 for v4.0 spec`);
   }
-  // Normalize to [0,1] then scale to [0,5] via scaleUnipolar
-  const magnitudeNormalized = Math.min(1, (X_raw / opts.magnitudeDivisor) / SCALE_FACTOR);
+  
+  // FIX [2025-10-08]: Dynamic normalization using rolling context or aspect count
+  // Prevents saturation in high-aspect-count scenarios (relational charts, transiting aspects)
+  
+  const aspectCount = scored.length;
+  const rollingContext = options.rollingContext || null;
+  
+  let effectiveDivisor = opts.magnitudeDivisor; // default 4
+  let scalingMethod = 'static_divisor';
+  let magnitudeNormalized;
+  
+  // Strategy 1: Use rolling window if available (preferred)
+  if (rollingContext && rollingContext.magnitudes && rollingContext.magnitudes.length >= 2) {
+    // Dynamic normalization based on recent magnitude history
+    const normalizedViaDynamic = normalizeWithRollingWindow(X_raw, rollingContext, opts);
+    // normalizeWithRollingWindow returns a 0-10 scaled value, convert to 0-1 for scaleUnipolar
+    magnitudeNormalized = normalizedViaDynamic / 10;
+    scalingMethod = `rolling_window_n${rollingContext.magnitudes.length}`;
+  } else if (aspectCount > 60) {
+    // Strategy 2: Aspect-count adaptive divisor for relational charts
+    // Solo charts (~30 aspects): divisor = 4
+    // Relational charts (130+ aspects): divisor = 16
+    const relationalFactor = Math.min(4, 1 + (aspectCount - 60) / 23);
+    effectiveDivisor = opts.magnitudeDivisor * relationalFactor;
+    scalingMethod = `aspect_adaptive_d${effectiveDivisor.toFixed(1)}`;
+    magnitudeNormalized = Math.min(1, X_raw / effectiveDivisor);
+  } else {
+    // Strategy 3: Static divisor (original spec behavior for solo charts)
+    magnitudeNormalized = Math.min(1, X_raw / effectiveDivisor);
+  }
+  
   const magnitudeScaled = scaleUnipolar(magnitudeNormalized);
   const magnitudeValue = magnitudeScaled.value;
 

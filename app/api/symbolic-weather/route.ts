@@ -66,7 +66,6 @@ type FrontstageInput = {
   directional_bias?: number | null;
   volatility?: number | null;
   coherence?: number | null;
-  sfd?: number | 'n/a' | null;
 };
 
 type NormalizedInputResult = {
@@ -74,8 +73,6 @@ type NormalizedInputResult = {
   directional_bias: number | null;
   volatility: number | null;
   coherence: number | null;
-  sfd: number | null;
-  sfdPreScaled: boolean;
   meta: {
     pipeline: typeof NORMALIZATION_PIPELINE;
     coercions: string[];
@@ -105,8 +102,6 @@ function toNormalizedInputs(source: FrontstageInput): NormalizedInputResult {
     directional_bias: null,
     volatility: null,
     coherence: null,
-    sfd: null,
-    sfdPreScaled: false,
     meta
   };
 
@@ -144,22 +139,6 @@ function toNormalizedInputs(source: FrontstageInput): NormalizedInputResult {
       meta.coercions.push('coherence:display→normalized');
     }
     result.coherence = clamp01(normalized);
-  }
-
-  if (source.sfd === 'n/a') {
-    result.sfd = null;
-    result.sfdPreScaled = true;
-  } else if (typeof source.sfd === 'number' && Number.isFinite(source.sfd)) {
-    const raw = source.sfd;
-    if (Math.abs(raw) <= 1) {
-      result.sfd = clamp11(raw);
-      result.sfdPreScaled = true;
-    } else if (Math.abs(raw) <= 5) {
-      result.sfd = clamp11(raw / 5);
-      meta.coercions.push('sfd:display→normalized');
-    } else {
-      result.sfd = clamp11(raw);
-    }
   }
 
   return result;
@@ -234,35 +213,17 @@ function buildRendererResult(mathBrainResult: any, options: {
     const dayData = transitsByDate[date] || {};
     const seismo = dayData.seismograph || {};
     const balance = dayData.balance || {};
-    const sfdBlock = dayData.sfd || {};
 
     const magnitudeRaw = asFiniteNumber(seismo.magnitude ?? balance.magnitude);
     const directionalRaw = asFiniteNumber(seismo.bias_signed ?? balance.bias_signed);
     const volatilityRaw = asFiniteNumber(seismo.volatility);
     const coherenceRaw = asFiniteNumber(seismo.coherence);
 
-    const rawSfd = (() => {
-      const candidates = [sfdBlock.sfd_cont, sfdBlock.value, sfdBlock.sfd];
-      for (const candidate of candidates) {
-        const numeric = asFiniteNumber(candidate);
-        if (numeric != null) {
-          return numeric;
-        }
-      }
-      return null;
-    })();
-
-    const sfdStatus = typeof sfdBlock.status === 'string' ? sfdBlock.status.toLowerCase() : '';
-    const driversCount = Array.isArray(sfdBlock.drivers)
-      ? sfdBlock.drivers.length
-      : asFiniteNumber(sfdBlock.drivers_count ?? sfdBlock.driversCount);
-
     const normalized = toNormalizedInputs({
       magnitude: magnitudeRaw,
       directional_bias: directionalRaw,
       volatility: volatilityRaw,
-      coherence: coherenceRaw,
-      sfd: sfdStatus === 'n/a' ? 'n/a' : rawSfd
+      coherence: coherenceRaw
     });
 
     if (normalized.meta.coercions.length > 0) {
@@ -280,22 +241,6 @@ function buildRendererResult(mathBrainResult: any, options: {
 
     if (normalized.coherence != null) {
       input.coherence = normalized.coherence;
-    }
-
-    if (normalized.sfd != null) {
-      input.sfd = normalized.sfd;
-    }
-
-    if (normalized.sfdPreScaled) {
-      input.sfd_pre_scaled = true;
-    }
-
-    if (driversCount != null && driversCount <= 0) {
-      if (input.sfd != null) {
-        logger.warn('SFD provided without drivers; coercing to n/a', { date, driversCount });
-      }
-      input.sfd = null;
-      input.sfd_pre_scaled = true;
     }
 
     return input;

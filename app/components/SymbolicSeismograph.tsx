@@ -27,7 +27,6 @@ export interface BalanceMeterDataPoint {
   magnitude_0to5: number;
   bias_signed_minus5to5: number;
   coherence_0to5?: number;
-  sfd_cont_minus1to1?: number;
   schema_version?: string;
   orbs_profile?: string;
   house_frame?: string;
