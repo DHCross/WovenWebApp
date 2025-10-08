@@ -31,7 +31,6 @@ const {
   scaleUnipolar,
   scaleBipolar,
   scaleCoherenceFromVol,
-  // scaleSFD, // v4: SFD retired
   amplifyByMagnitude,
   normalizeAmplifiedBias,
   normalizeVolatilityForCoherence,
@@ -312,13 +311,6 @@ function normalizeWithRollingWindow(magnitude, rollingContext = null, opts = DEF
   return normalized;
 }
 
-// ---------- SFD (Support-Friction Differential) - RETIRED in v4 ----------
-// SFD was replaced by directional_bias in Balance Meter v4.0
-// This function is kept for legacy compatibility but returns null
-function calculateSFD(scored){
-  return null; // v4: SFD retired - all calls return null
-}
-
 // ---------- main aggregate ----------
 function aggregate(aspects = [], prevCtx = null, options = {}){
   if (!Array.isArray(aspects) || aspects.length === 0){
@@ -327,7 +319,6 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
       directional_bias: prevCtx?.Y_effective ? round(prevCtx.Y_effective,2) : 0, 
       volatility: 0, 
       coherence: 5.0,
-      sfd: null, // No aspects = no SFD
       scored: [],
       transform_trace: {
         pipeline: 'empty_aspect_array',
@@ -418,11 +409,6 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   const VI_normalized = normalizeVolatilityForCoherence(VI);
   const coherenceScaled = scaleCoherenceFromVol(VI_normalized);
   const coherence = coherenceScaled.value;
-  
-  // === SFD RETIRED IN V4 ===
-  // v4.0: SFD replaced by directional_bias (derived from Y_amplified → Y_normalized → biasScaled)
-  // All SFD fields now return null
-  const sfd = null;
 
   // Transform trace for observability
   const transform_trace = {
@@ -448,7 +434,6 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     directional_bias,
     volatility: round(VI, 2),
     coherence,
-    sfd,
     scored,
     transform_trace,
     magnitude_normalized: magnitudeNormalized,
@@ -463,8 +448,7 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   assertSeismographInvariants({
     magnitude: result.magnitude,
     directional_bias: result.directional_bias,
-    coherence: result.coherence,
-    // sfd removed in v4
+    coherence: result.coherence
   });
 
   return result;
@@ -475,7 +459,6 @@ module.exports = {
   calculateSeismograph: aggregate, // Alias for test compatibility
   _internals: {
     normalizeAspect, baseValence, planetTier, orbMultiplier, sensitivityMultiplier,
-    scoreAspect, multiplicityBonus, volatility, normalizeWithRollingWindow, median,
-    calculateSFD // Export for testing
+    scoreAspect, multiplicityBonus, volatility, normalizeWithRollingWindow, median
   }
 };

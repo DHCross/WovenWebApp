@@ -6,7 +6,6 @@ export type RawSeismograph = {
   valence_bounded?: number;
   bias_signed?: number;
   volatility?: number;
-  sfd?: number;
   raw_magnitude?: number;
   raw_bias_signed?: number;
   raw_volatility?: number;
@@ -20,26 +19,16 @@ export type AxisDisplay = {
   source?: 'primary' | 'raw_fallback' | 'div_50' | 'div_100' | 'zero_default';
 };
 
-export type SfdDisplay = {
-  normalized: number | null;
-  raw: number | null;
-  value: number | null;
-  display: string;
-  flags: ClampInfo;
-};
-
 export type TransformedWeatherData = {
   axes: {
     magnitude: AxisDisplay;
     directional_bias: AxisDisplay;
     coherence: AxisDisplay;
-    sfd: SfdDisplay;
   };
   labels: {
     magnitude: string;
     directional_bias: string;
     coherence: string;
-    sfd: string;
   };
   scaling: {
     mode: 'absolute';

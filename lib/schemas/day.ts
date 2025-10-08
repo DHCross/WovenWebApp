@@ -4,7 +4,6 @@ export const NormalizedDay = z.object({
   magnitude: z.number().min(0).max(1),
   directional_bias: z.number().min(-1).max(1),
   volatility: z.number().min(0).max(1),
-  sfd: z.number().min(-1).max(1).nullable(),
 });
 
 const ClampInfo = z.object({
@@ -15,13 +14,6 @@ const ClampInfo = z.object({
 const AxisDisplay = z.object({
   raw: z.number(),
   value: z.number(),
-  flags: ClampInfo,
-});
-
-const SfdDisplay = z.object({
-  raw: z.number().nullable(),
-  value: z.number().nullable(),
-  display: z.string(),
   flags: ClampInfo,
 });
 
@@ -36,7 +28,6 @@ export const DisplayDay = z.object({
   magnitude: AxisDisplay,
   directional_bias: AxisDisplay,
   coherence: AxisDisplay,
-  sfd: SfdDisplay,
 });
 
 export const DayExport = z.object({

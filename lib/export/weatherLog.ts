@@ -2,29 +2,20 @@ import {
   scaleUnipolar,
   scaleBipolar,
   scaleCoherenceFromVol,
-  scaleSFD,
   ClampInfo,
 } from '@/lib/balance/scale';
-import { assertDisplayRanges, assertNotDoubleInverted, assertSfdDrivers } from '@/lib/balance/assertions';
+import { assertDisplayRanges, assertNotDoubleInverted } from '@/lib/balance/assertions';
 import { DayExport } from '@/lib/schemas/day';
 
 export type NormalizedDay = {
   magnitude: number;
   directional_bias: number;
   volatility: number;
-  sfd: number | null;
 };
 
 export type AxisDisplay = {
   raw: number;
   value: number;
-  flags: ClampInfo;
-};
-
-export type SfdDisplay = {
-  raw: number | null;
-  value: number | null;
-  display: string;
   flags: ClampInfo;
 };
 
@@ -34,7 +25,6 @@ export type BuildDayOptions = {
   timezone?: string;
   provenance?: string;
   normalized_input_hash?: string;
-  driversCount?: number;
 };
 
 export type WeatherLogDay = {
@@ -43,7 +33,6 @@ export type WeatherLogDay = {
     magnitude: AxisDisplay;
     directional_bias: AxisDisplay;
     coherence: AxisDisplay;
-    sfd: SfdDisplay;
   };
   scaling: {
     mode: 'absolute';
@@ -79,7 +68,6 @@ export function buildDayExport(
   const magnitude = scaleUnipolar(n.magnitude);
   const bias = scaleBipolar(n.directional_bias);
   const coherence = scaleCoherenceFromVol(n.volatility);
-  const sfd = scaleSFD(n.sfd, true);
 
   // Trace: accumulate clamp hits for deep debugging
   const clamp_hits: string[] = [];
@@ -107,12 +95,6 @@ export function buildDayExport(
         raw: coherence.raw,
         value: coherence.value,
         flags: coherence.flags,
-      },
-      sfd: {
-        raw: sfd.raw,
-        value: sfd.value,
-        display: sfd.display,
-        flags: sfd.flags,
       },
     },
     scaling: {
@@ -142,15 +124,12 @@ export function buildDayExport(
     payload.trace = { clamp_hits };
   }
 
-  const sfdDisplayValue = sfd.value ?? 'n/a';
   assertDisplayRanges({
     mag: magnitude.value,
     bias: bias.value,
     coh: coherence.value,
-    sfd: sfdDisplayValue,
   });
   assertNotDoubleInverted(n.volatility, coherence.value);
-  assertSfdDrivers(opts?.driversCount ?? Number.NaN, sfdDisplayValue);
 
   DayExport.parse(payload);
   return payload;

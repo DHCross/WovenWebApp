@@ -2,7 +2,6 @@ import {
   scaleUnipolar,
   scaleBipolar,
   scaleCoherenceFromVol,
-  scaleSFD,
   ClampInfo,
   SCALE_FACTOR,
 } from '@/lib/balance/scale';
@@ -10,7 +9,6 @@ import {
   assertBalanceMeterInvariants,
   assertDisplayRanges,
   assertNotDoubleInverted,
-  assertSfdDrivers,
 } from '@/lib/balance/assertions';
 import { DayExport } from '@/lib/schemas/day';
 import {
@@ -26,10 +24,6 @@ export type RelationalNormalizedDay = {
   directional_bias: number;
   /** 0..1 (volatility) → inverted → 0..5 coherence */
   volatility: number;
-  /** null or −1..+1 (ratio-diff); never fabricated */
-  sfd: number | null;
-  /** Optional driver count for SFD assertions */
-  sfd_drivers?: number;
 };
 
 export type AxisDisplay = {
@@ -44,20 +38,12 @@ export type AxisDisplay = {
   };
 };
 
-export type SfdDisplay = {
-  raw: number | null;
-  value: number | null;
-  display: string; // 'n/a' when null
-  flags: ClampInfo;
-};
-
 export type RelationalDayExport = {
   normalized: RelationalNormalizedDay;
   display: {
     magnitude: AxisDisplay;
     directional_bias: AxisDisplay;
     coherence: AxisDisplay;
-    sfd: SfdDisplay;
   };
   scaling: {
     mode: 'absolute';
@@ -75,7 +61,6 @@ export type RelationalDayExport = {
       magnitude: 5;
       directional_bias: 5;
       coherence: 5;
-      sfd: 10;
     };
     pipeline: 'normalize→scale→clamp→round';
     coherence_inversion: true;
@@ -119,7 +104,6 @@ export function buildRelationalDayExport(
   const magnitude = scaleUnipolar(relN.magnitude);
   const bias = scaleBipolar(relN.directional_bias);
   const coherence = scaleCoherenceFromVol(relN.volatility);
-  const sfd = scaleSFD(relN.sfd, true);
 
   // Optional lightweight trace for observability (values still come from canonical scalers)
   const withTrace = <T extends AxisDisplay>(
@@ -157,12 +141,6 @@ export function buildRelationalDayExport(
         relN.volatility,
         0, 5
       ),
-      sfd: {
-        raw: sfd.raw,
-        value: sfd.value,
-        display: sfd.display, // 'n/a' when null — no fabrication
-        flags: sfd.flags,
-      },
     },
     scaling: {
       mode: 'absolute' as const,
@@ -179,8 +157,7 @@ export function buildRelationalDayExport(
       scale_factors: {
         magnitude: 5 as const,
         directional_bias: 5 as const,
-        coherence: 5 as const,
-        sfd: 10 as const,
+        coherence: 5 as const
       },
       pipeline: 'normalize→scale→clamp→round' as const,
       coherence_inversion: true as const,
@@ -198,25 +175,21 @@ export function buildRelationalDayExport(
       magnitude: { normalized: relN.magnitude, ...payload.display.magnitude },
       directional_bias: { normalized: relN.directional_bias, ...payload.display.directional_bias },
       coherence: { normalized: relN.volatility, ...payload.display.coherence },
-      sfd: { normalized: relN.sfd, ...payload.display.sfd },
     },
-    labels: { magnitude: '', directional_bias: '', coherence: '', sfd: '' },
+    labels: { magnitude: '', directional_bias: '', coherence: '' },
     scaling: payload.scaling,
     _raw: {}
   };
   assertBalanceMeterInvariants(validatePayload as any);
 
-  const sfdDisplayValue = sfd.value ?? 'n/a';
   assertDisplayRanges({
     mag: magnitude.value,
     bias: bias.value,
     coh: coherence.value,
-    sfd: sfdDisplayValue,
   });
   if (coherenceFrom === 'volatility') {
     assertNotDoubleInverted(relN.volatility, coherence.value);
   }
-  assertSfdDrivers(relN.sfd_drivers ?? Number.NaN, sfdDisplayValue);
 
   DayExport.parse(payload); // Zod guard
   return payload;
