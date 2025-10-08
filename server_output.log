@@ -1,9 +1,106 @@
 
 > woven-web-app@1.0.0 dev
-> npm run check-env && netlify dev
+> next dev
 
+  ▲ Next.js 14.2.32
+  - Local:        http://localhost:3000
+  - Environments: .env.local
 
-> woven-web-app@1.0.0 check-env
-> node -e "if (!require('fs').existsSync('.env')) { console.error('Error: .env file not found. Copy .env.example to .env and configure your API keys.'); process.exit(1); } else { console.log('Environment file found.'); }"
-
-Environment file found.
+ ✓ Starting...
+ ✓ Ready in 1462ms
+ ○ Compiling /api/astrology-mathbrain ...
+ ✓ Compiled /api/astrology-mathbrain in 746ms (83 modules)
+[INFO] ✓ Success for 2018-10-10: 119 aspects via transit-aspects-data (attempts: 1)
+[ERROR] Handler error: BalanceMeterInvariantViolation: Non-finite value in seismograph output
+    at assertSeismographInvariants (webpack-internal:///(rsc)/./lib/balance/assertions.ts:150:15)
+    at aggregate (webpack-internal:///(rsc)/./src/seismograph.js:513:5)
+    at calculateSeismograph (webpack-internal:///(rsc)/./lib/server/astrology-mathbrain.js:2736:21)
+    at processMathbrain (webpack-internal:///(rsc)/./lib/server/astrology-mathbrain.js:5280:33)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async exports.handler (webpack-internal:///(rsc)/./lib/server/astrology-mathbrain.js:6370:16)
+    at async POST (webpack-internal:///(rsc)/./app/api/astrology-mathbrain/route.ts:252:24)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  context: { magnitude: 5, directional_bias: -5, coherence: 5 }
+}
+ POST /api/astrology-mathbrain 500 in 2788ms
+ ✓ Compiled in 162ms (83 modules)
+[INFO] ✓ Success for 2018-10-10: 119 aspects via transit-aspects-data (attempts: 1)
+[ERROR] Handler error: BalanceMeterInvariantViolation: Non-finite value in seismograph output
+    at assertSeismographInvariants (webpack-internal:///(rsc)/./lib/balance/assertions.ts:150:15)
+    at aggregate (webpack-internal:///(rsc)/./src/seismograph.js:513:5)
+    at calculateSeismograph (webpack-internal:///(rsc)/./lib/server/astrology-mathbrain.js:2736:21)
+    at processMathbrain (webpack-internal:///(rsc)/./lib/server/astrology-mathbrain.js:5280:33)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async exports.handler (webpack-internal:///(rsc)/./lib/server/astrology-mathbrain.js:6370:16)
+    at async POST (webpack-internal:///(rsc)/./app/api/astrology-mathbrain/route.ts:252:24)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  context: { magnitude: 5, directional_bias: -5, coherence: 5 }
+}
+ POST /api/astrology-mathbrain 500 in 914ms
+ ✓ Compiled in 197ms (83 modules)
+ ✓ Compiled in 22ms
+ ✓ Compiled /api/astrology-mathbrain in 114ms (83 modules)
+[INFO] ✓ Success for 2018-10-10: 119 aspects via transit-aspects-data (attempts: 1)
+[ERROR] Handler error: BalanceMeterInvariantViolation: Non-finite value in seismograph output
+    at assertSeismographInvariants (webpack-internal:///(rsc)/./lib/balance/assertions.ts:150:15)
+    at aggregate (webpack-internal:///(rsc)/./src/seismograph.js:513:5)
+    at calculateSeismograph (webpack-internal:///(rsc)/./lib/server/astrology-mathbrain.js:2736:21)
+    at processMathbrain (webpack-internal:///(rsc)/./lib/server/astrology-mathbrain.js:5280:33)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async exports.handler (webpack-internal:///(rsc)/./lib/server/astrology-mathbrain.js:6370:16)
+    at async POST (webpack-internal:///(rsc)/./app/api/astrology-mathbrain/route.ts:252:24)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/dancross/Documents/GitHub/WovenWebApp/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  context: { magnitude: 5, directional_bias: -5, coherence: 5 }
+}
+ POST /api/astrology-mathbrain 500 in 1368ms

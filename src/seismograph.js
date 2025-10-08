@@ -31,14 +31,14 @@ const {
   scaleUnipolar,
   scaleBipolar,
   scaleCoherenceFromVol,
-  scaleSFD,
+  // scaleSFD, // v4: SFD retired
   amplifyByMagnitude,
   normalizeAmplifiedBias,
   normalizeVolatilityForCoherence,
   SPEC_VERSION,
   SCALE_FACTOR,
 } = require('../lib/balance/scale-bridge');
-const { assertSeismographInvariants } = require('../lib/balance/assertions');
+const { assertSeismographInvariants } = require('../lib/balance/assertions.ts');
 const { applyGeometryAmplification } = require('../lib/balance/amplifiers');
 
 const OUTER = new Set(["Saturn","Uranus","Neptune","Pluto"]);
@@ -312,27 +312,11 @@ function normalizeWithRollingWindow(magnitude, rollingContext = null, opts = DEF
   return normalized;
 }
 
-// ---------- SFD (Support-Friction Differential) calculation ----------
+// ---------- SFD (Support-Friction Differential) - RETIRED in v4 ----------
+// SFD was replaced by directional_bias in Balance Meter v4.0
+// This function is kept for legacy compatibility but returns null
 function calculateSFD(scored){
-  if (!scored || scored.length === 0) return null;
-  
-  let sumSupport = 0;
-  let sumFriction = 0;
-  
-  for (const aspect of scored) {
-    const S = aspect.S;
-    if (S > 0) {
-      sumSupport += S;
-    } else if (S < 0) {
-      sumFriction += Math.abs(S);
-    }
-  }
-  
-  const total = sumSupport + sumFriction;
-  if (total === 0) return null; // No drivers, return null (not fabricated zero)
-  
-  const sfd = (sumSupport - sumFriction) / total;
-  return round(sfd, 2); // Always two decimals
+  return null; // v4: SFD retired - all calls return null
 }
 
 // ---------- main aggregate ----------
@@ -413,6 +397,12 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   const Y_raw = scored.reduce((acc, x) => acc + x.S, 0);
 
   // === MAGNITUDE ===
+  // v4.0: Absolute 0-5 scale with SCALE_FACTOR = 5
+  // Guard: ensure SCALE_FACTOR is correct for v4 spec
+  if (SCALE_FACTOR !== 5) {
+    console.warn(`[seismograph.js] SCALE_FACTOR=${SCALE_FACTOR}, expected 5 for v4.0 spec`);
+  }
+  // Normalize to [0,1] then scale to [0,5] via scaleUnipolar
   const magnitudeNormalized = Math.min(1, (X_raw / opts.magnitudeDivisor) / SCALE_FACTOR);
   const magnitudeScaled = scaleUnipolar(magnitudeNormalized);
   const magnitudeValue = magnitudeScaled.value;
@@ -429,10 +419,10 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   const coherenceScaled = scaleCoherenceFromVol(VI_normalized);
   const coherence = coherenceScaled.value;
   
-  // === SFD (Integration Bias) ===
-  const sfd_raw = calculateSFD(scored);
-  const sfdScaled = scaleSFD(sfd_raw, true);
-  const sfd = sfdScaled.value;
+  // === SFD RETIRED IN V4 ===
+  // v4.0: SFD replaced by directional_bias (derived from Y_amplified → Y_normalized → biasScaled)
+  // All SFD fields now return null
+  const sfd = null;
 
   // Transform trace for observability
   const transform_trace = {
@@ -442,15 +432,14 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     steps: [
       { stage: 'raw', magnitude_energy: X_raw, directional_bias_sum: Y_raw, volatility_index: VI },
       { stage: 'amplified', magnitude_energy: X_raw, directional_bias_sum: Y_amplified, volatility_index: VI },
-      { stage: 'normalized', magnitude: magnitudeNormalized, bias: Y_normalized, volatility: VI_normalized, sfd: sfd_raw },
-      { stage: 'scaled', magnitude: magnitudeScaled.raw, directional_bias: biasScaled.raw, coherence: coherenceScaled.raw, sfd: sfdScaled.raw },
-      { stage: 'final', magnitude: magnitudeValue, directional_bias, coherence, sfd }
+      { stage: 'normalized', magnitude: magnitudeNormalized, bias: Y_normalized, volatility: VI_normalized },
+      { stage: 'scaled', magnitude: magnitudeScaled.raw, directional_bias: biasScaled.raw, coherence: coherenceScaled.raw },
+      { stage: 'final', magnitude: magnitudeValue, directional_bias, coherence }
     ],
     clamp_events: [
       ...(biasScaled.flags.hitMin || biasScaled.flags.hitMax ? [{ axis: 'directional_bias', raw: biasScaled.raw, clamped: directional_bias }] : []),
       ...(coherenceScaled.flags.hitMin || coherenceScaled.flags.hitMax ? [{ axis: 'coherence', raw: coherenceScaled.raw, clamped: coherence }] : []),
       ...(magnitudeScaled.flags.hitMin || magnitudeScaled.flags.hitMax ? [{ axis: 'magnitude', raw: magnitudeScaled.raw, clamped: magnitudeValue }] : []),
-      ...(sfdScaled.flags.hitMin || sfdScaled.flags.hitMax ? [{ axis: 'sfd', raw: sfdScaled.raw, clamped: sfd }] : []),
     ]
   };
 
@@ -475,7 +464,7 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     magnitude: result.magnitude,
     directional_bias: result.directional_bias,
     coherence: result.coherence,
-    sfd: result.sfd,
+    // sfd removed in v4
   });
 
   return result;
