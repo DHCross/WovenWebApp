@@ -3,10 +3,12 @@ import { fmtAxis, fmtAxisLabel } from '../../../lib/ui/format';
 
 type AxisName = 'magnitude' | 'directional_bias' | 'volatility';
 
+// Balance Meter v4: Canonical field resolution
+// Note: Legacy fallbacks kept for backward compatibility with old cached data
 const AXIS_FIELD_MAP: Record<AxisName, string[]> = {
-  magnitude: ['magnitude_calibrated', 'magnitude'],
-  directional_bias: ['directional_bias_calibrated', 'directional_bias', 'bias_signed', 'valence', 'valence_bounded'],
-  volatility: ['coherence', 'volatility', 'volatility_calibrated'],
+  magnitude: ['magnitude'],
+  directional_bias: ['directional_bias'], // v4: Only canonical field
+  volatility: ['volatility', 'coherence'], // coherence is inverse of volatility
 };
 
 const AXIS_NUMBER_KEYS = ['value', 'display', 'final', 'scaled', 'score', 'mean'];

@@ -18,12 +18,11 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
   const hasPersonB = result?.person_b?.chart?.positions;
   const isRelational = hasPersonB && result?.person_b;
 
-  // Extract Balance Meter metrics from the result
+  // Extract Balance Meter v4 metrics from the result
   const balanceMeter = result?.person_a?.summary || result?.summary || result?.balance_meter || {};
   const magnitude = balanceMeter.magnitude ?? null;
-  const directionalBias = balanceMeter.bias_signed ?? balanceMeter.valence ?? null;
+  const directionalBias = balanceMeter.directional_bias?.value ?? null;
   const volatility = balanceMeter.volatility ?? null;
-  const sfd = balanceMeter.sfd?.sfd_cont ?? balanceMeter.sfd ?? null;
 
   // Extract chart assets for visualization
   const chartAssets = result?.person_a?.chart_assets || [];
@@ -36,7 +35,7 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
   const zodiacType = result?.person_a?.zodiac_type || 'Tropical';
   const schemaVersion = '3.1'; // From your system
   
-  console.log('[SnapshotDisplay] Balance Meter:', { magnitude, directionalBias, volatility, sfd });
+  console.log('[SnapshotDisplay] Balance Meter v4:', { magnitude, directionalBias, volatility });
 
   return (
     <div className="mt-6 rounded-lg border border-purple-700 bg-purple-900/20 p-6 backdrop-blur-sm">
@@ -160,16 +159,6 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
                   {volatility >= 4 ? 'Very high variability' :
                    volatility >= 2 ? 'Moderate stability' :
                    volatility >= 1 ? 'High stability' : 'Very stable pattern'}
-                </td>
-              </tr>
-              <tr>
-                <td className="px-3 py-2 text-slate-300">SFD</td>
-                <td className="px-3 py-2 text-right font-mono text-indigo-300">
-                  {sfd !== null ? (sfd > 0 ? '+' : '') + sfd.toFixed(2) : '—'}
-                </td>
-                <td className="px-3 py-2 text-xs text-slate-400">
-                  {sfd > 0 ? 'Cooperative alignment' : 
-                   sfd < 0 ? 'Friction dominant' : 'Balanced tension'}
                 </td>
               </tr>
             </tbody>

@@ -441,7 +441,7 @@ IMPORTANT: This comprehensive astrological data should be synthesized into the c
               readings.reduce((sum: number, r: any) => sum + (r.magnitude || 0), 0) /
               readings.length;
             const avgVal =
-              readings.reduce((sum: number, r: any) => sum + (r.valence || 0), 0) /
+              readings.reduce((sum: number, r: any) => sum + (r.directional_bias?.value ?? r.directional_bias ?? 0), 0) /
               readings.length;
             const avgVol =
               readings.reduce((sum: number, r: any) => sum + (r.volatility || 0), 0) /
@@ -855,13 +855,9 @@ Start with the Solo Mirror(s), then ${
               summary.magnitude_label ? ` (${summary.magnitude_label})` : ''
             }\n`;
           }
-          if (summary.valence != null) {
-            markdown += `- Valence: ${fmtAxis(summary.valence)}${
-              summary.valence_label ? ` (${summary.valence_label})` : ''
-            }\n`;
-          }
-          if (summary.bias_signed != null && summary.bias_signed !== summary.valence) {
-            markdown += `- Directional Bias: ${fmtAxis(summary.bias_signed)}${
+          if (summary.directional_bias?.value != null || summary.directional_bias != null) {
+            const biasValue = summary.directional_bias?.value ?? summary.directional_bias;
+            markdown += `- Directional Bias: ${fmtAxis(biasValue)}${
               summary.directional_bias_label ? ` (${summary.directional_bias_label})` : ''
             }\n`;
           }
@@ -1276,7 +1272,7 @@ Start with the Solo Mirror(s), then ${
       if (balanceSummary) {
         const rawMag = toNumber(balanceSummary.magnitude, 'magnitude', balanceSummary);
         const rawBias = toNumber(
-          balanceSummary.bias_signed ?? balanceSummary.valence,
+          balanceSummary.directional_bias?.value,
           'directional_bias',
           balanceSummary
         );
@@ -1328,7 +1324,7 @@ Start with the Solo Mirror(s), then ${
             const seismo = dayData.seismograph || dayData;
             const rawMag = toNumber(seismo.magnitude, 'magnitude', seismo);
             const rawBias = toNumber(
-              seismo.bias_signed ?? seismo.valence_bounded ?? seismo.valence,
+              seismo.directional_bias?.value,
               'directional_bias',
               seismo
             );
@@ -1537,7 +1533,7 @@ export function createFrontStageResult(rawResult: any) {
     const summary = rawResult.person_a.summary;
     const rawMag = toNumber(summary.magnitude, 'magnitude', summary);
     const rawVal = toNumber(
-      summary.bias_signed ?? summary.valence_bounded ?? summary.valence,
+      summary.directional_bias?.value,
       'directional_bias',
       summary
     );
@@ -1553,25 +1549,21 @@ export function createFrontStageResult(rawResult: any) {
     frontStageResult.balance_meter = {
       magnitude: normalizedMag,
       directional_bias: normalizedBias,
-      valence: normalizedBias,
       volatility: normalizedVol,
       magnitude_label: normalizedMag !== undefined ? safeLabel(getStateLabel(normalizedMag, 'magnitude')) : undefined,
       directional_bias_label:
         normalizedBias !== undefined ? safeLabel(getStateLabel(normalizedBias, 'directional_bias')) : undefined,
-      valence_label:
-        normalizedBias !== undefined ? safeLabel(getStateLabel(normalizedBias, 'directional_bias')) : undefined,
       volatility_label: normalizedVol !== undefined ? safeLabel(getStateLabel(normalizedVol, 'volatility')) : undefined,
-      _scale_note: 'magnitude: 0-5, directional_bias: -5 to +5, volatility: 0-5',
+      _scale_note: 'Balance Meter v4.0: magnitude: 0-5, directional_bias: -5 to +5, volatility: 0-5',
     };
 
     frontStageResult.person_a.summary = {
       ...summary,
       magnitude: frontStageResult.balance_meter.magnitude,
-      valence: frontStageResult.balance_meter.valence,
-      bias_signed: frontStageResult.balance_meter.directional_bias,
+      directional_bias: frontStageResult.balance_meter.directional_bias,
       volatility: frontStageResult.balance_meter.volatility,
       magnitude_label: safeLabel(frontStageResult.balance_meter.magnitude_label),
-      valence_label: safeLabel(frontStageResult.balance_meter.valence_label),
+      directional_bias_label: safeLabel(frontStageResult.balance_meter.directional_bias_label),
       volatility_label: safeLabel(frontStageResult.balance_meter.volatility_label),
     };
   }
@@ -1585,9 +1577,7 @@ export function createFrontStageResult(rawResult: any) {
       if (dayData?.seismograph) {
         const rawMag = toNumber(dayData.seismograph.magnitude, 'magnitude', dayData.seismograph);
         const rawVal = toNumber(
-          dayData.seismograph.bias_signed ??
-            dayData.seismograph.valence_bounded ??
-            dayData.seismograph.valence,
+          dayData.seismograph.directional_bias?.value,
           'directional_bias',
           dayData.seismograph,
         );
@@ -1601,14 +1591,10 @@ export function createFrontStageResult(rawResult: any) {
               rawMag !== undefined
                 ? normalizeToFrontStage(rawMag, 'magnitude')
                 : dayData.seismograph.magnitude,
-            valence:
+            directional_bias:
               rawVal !== undefined
                 ? normalizeToFrontStage(rawVal, 'directional_bias')
-                : dayData.seismograph.valence,
-            bias_signed:
-              rawVal !== undefined
-                ? normalizeToFrontStage(rawVal, 'directional_bias')
-                : dayData.seismograph.bias_signed,
+                : dayData.seismograph.directional_bias?.value,
             volatility:
               rawVol !== undefined
                 ? normalizeToFrontStage(rawVol, 'volatility')
@@ -1708,16 +1694,10 @@ function buildBalanceSummarySection(personSummary: any | null | undefined): Char
       }`,
     );
   }
-  if (personSummary.valence != null) {
+  if (personSummary.directional_bias?.value != null || personSummary.directional_bias != null) {
+    const biasValue = personSummary.directional_bias?.value ?? personSummary.directional_bias;
     lines.push(
-      `Valence: ${fmtAxis(personSummary.valence)}${
-        personSummary.valence_label ? ` (${personSummary.valence_label})` : ''
-      }`,
-    );
-  }
-  if (personSummary.bias_signed != null && personSummary.bias_signed !== personSummary.valence) {
-    lines.push(
-      `Directional Bias: ${fmtAxis(personSummary.bias_signed)}${
+      `Directional Bias: ${fmtAxis(biasValue)}${
         personSummary.directional_bias_label ? ` (${personSummary.directional_bias_label})` : ''
       }`,
     );
@@ -1909,7 +1889,7 @@ function buildChartPackageSections(result: any, reportKind: string): ChartSectio
           readings.reduce((sum: number, r: any) => sum + (r.magnitude || 0), 0) /
           readings.length;
         const avgVal =
-          readings.reduce((sum: number, r: any) => sum + (r.valence || 0), 0) /
+          readings.reduce((sum: number, r: any) => sum + (r.directional_bias?.value ?? r.directional_bias ?? 0), 0) /
           readings.length;
         const avgVol =
           readings.reduce((sum: number, r: any) => sum + (r.volatility || 0), 0) /

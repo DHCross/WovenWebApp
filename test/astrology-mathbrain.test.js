@@ -162,13 +162,12 @@ async function runTests() {
     const body = JSON.parse(result.body);
     const daily = body.person_a.chart.transitsByDate['2024-01-01'];
     runner.assert(daily?.seismograph, 'Expected seismograph data on the contraction day');
-    const bias = daily.seismograph.bias_signed ?? daily.seismograph.valence;
-    runner.assert(typeof bias === 'number', 'bias_signed should be numeric');
-    const rawValence = daily.seismograph.valence_raw_unbounded;
-    runner.assert(rawValence <= 0, `Expected raw valence to reflect contraction, received ${rawValence}`);
+    // v4: Use canonical directional_bias.value
+    const bias = daily.seismograph.directional_bias?.value;
+    runner.assert(typeof bias === 'number', 'directional_bias.value should be numeric');
     runner.assert(bias <= 0, `Expected inward or neutral bias, received ${bias}`);
-    const summaryBias = body.person_a.derived.seismograph_summary?.bias_signed ?? body.person_a.derived.seismograph_summary?.valence;
-    runner.assert(typeof summaryBias === 'number', 'Summary should carry bias_signed');
+    const summaryBias = body.person_a.derived.seismograph_summary?.directional_bias?.value;
+    runner.assert(typeof summaryBias === 'number', 'Summary should carry directional_bias.value');
     runner.assert(summaryBias <= 0, `Summary bias should mirror contraction, received ${summaryBias}`);
   });
 

@@ -168,12 +168,12 @@ function pickHook(t:string){
       if (jsonMatch) {
         const data = JSON.parse(jsonMatch[0]);
         const magnitude = data.balance_meter?.magnitude?.value;
-        const valence = data.balance_meter?.valence?.value ?? data.balance_meter?.valence_bounded;
+        const directionalBias = data.balance_meter?.directional_bias?.value ?? data.balance_meter?.directional_bias;
 
-        if (typeof magnitude === 'number' && typeof valence === 'number') {
-          if (magnitude >= 4 && valence <= -4) {
+        if (typeof magnitude === 'number' && typeof directionalBias === 'number') {
+          if (magnitude >= 4 && directionalBias <= -4) {
             return 'Crisis & Structural Overload · Maximum Threshold';
-          } else if (magnitude >= 3 && valence <= -3) {
+          } else if (magnitude >= 3 && directionalBias <= -3) {
             return 'Pressure & Restriction · Compression Field';
           }
         }

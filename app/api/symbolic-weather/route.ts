@@ -12,15 +12,14 @@
  *   - userId: (optional) User ID for stored chart lookup
  *   - chartId: (optional) Chart ID for specific report
  *
- * Returns array of daily readings with BM-v3 schema including house framing:
+ * Returns array of daily readings with BM-v4 schema including house framing:
  * [
  *   {
  *     date: "2025-11-01",
  *     magnitude_0to5: 3.8,
  *     bias_signed_minus5to5: -2.7,
  *     coherence_0to5: 2.3,
- *     sfd_cont_minus1to1: -0.12,
- *     schema_version: "BM-v3",
+ *     schema_version: "BM-v4",
  *     orbs_profile: "tight",
  *     house_frame: "natal",                   // ALWAYS natal
  *     relocation_supported: false,            // API cannot recalc houses
@@ -212,10 +211,10 @@ function buildRendererResult(mathBrainResult: any, options: {
   const engineInputs: EngineDayInput[] = dates.map((date) => {
     const dayData = transitsByDate[date] || {};
     const seismo = dayData.seismograph || {};
-    const balance = dayData.balance || {};
 
-    const magnitudeRaw = asFiniteNumber(seismo.magnitude ?? balance.magnitude);
-    const directionalRaw = asFiniteNumber(seismo.bias_signed ?? balance.bias_signed);
+    // v4: Use canonical directional_bias.value
+    const magnitudeRaw = asFiniteNumber(seismo.magnitude);
+    const directionalRaw = asFiniteNumber(seismo.directional_bias?.value);
     const volatilityRaw = asFiniteNumber(seismo.volatility);
     const coherenceRaw = asFiniteNumber(seismo.coherence);
 
@@ -296,15 +295,13 @@ export async function GET(request: Request) {
                 magnitude: 3.8,
                 bias_signed: -2.7,
                 volatility: 2.3,
-                bias_method: 'balance_signed_v3',
-                magnitude_method: 'rolling_window_v3'
+                coherence: 4.1,
+                bias_method: 'seismograph_v4',
+                magnitude_method: 'adaptive_normalization_v4'
               },
               balance: {
                 magnitude: 3.8,
                 bias_signed: -2.7
-              },
-              sfd: {
-                sfd_cont: -0.12
               }
             }
           }

@@ -45,12 +45,13 @@ const PERSONAL = new Set(["Sun","Moon","Mercury","Venus","Mars","ASC","MC","IC",
 const ANGLES = new Set(["ASC","MC","IC","DSC"]);
 
 const DEFAULTS = {
-  magnitudeDivisor: 4,               
-  hubBonusCap: 0.6,                  
-  sameTargetBonusCap: 0.3,           
-  tightBandDeg: 1.5,                 
-  outerTightenStep: 0.2,             
+  magnitudeDivisor: 4,
+  hubBonusCap: 0.6,
+  sameTargetBonusCap: 0.3,
+  tightBandDeg: 1.5,
+  outerTightenStep: 0.2,
   uranusTightFlagDeg: 3.0,
+  crisisSupportiveCap: 0.6,          // cap supportive aspects to 60% of friction during crisis
   // Enhanced volatility settings
   fastComponentThreshold: 1.0,       // orb threshold for fast-moving aspects (Moon-Mercury/Mars)
   rollingWindowDays: 14,             // magnitude normalization window
@@ -264,8 +265,8 @@ function volatility(scoredToday, prevCtx=null, opts=DEFAULTS){
 
 // ---------- Rolling magnitude normalization with fallback scaling ----------
 function normalizeWithRollingWindow(magnitude, rollingContext = null, opts = DEFAULTS) {
-  // System prior from original spec (X = min(5, X_raw/4)), i.e., a "typical" day
-  const X_prior = 4.0;
+  // System prior from original spec (X = min(5, X_raw/divisor)), i.e., a "typical" day
+  const X_prior = opts.magnitudeDivisor;
   const epsilon = 1e-6;
   
   if (!rollingContext || !rollingContext.magnitudes || rollingContext.magnitudes.length < 1) {
@@ -375,7 +376,7 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   });
 
   if (crisisConditionsMet) {
-    const cap = Math.abs(totalNegativeS) * 0.6;
+    const cap = Math.abs(totalNegativeS) * opts.crisisSupportiveCap;
     if (totalPositiveS > cap) {
       const reductionFactor = cap / totalPositiveS;
       scored.forEach(a => {
