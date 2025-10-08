@@ -38,7 +38,7 @@ const {
   SPEC_VERSION,
   SCALE_FACTOR,
 } = require('../lib/balance/scale-bridge');
-const { assertSeismographInvariants } = require('../lib/balance/assertions.ts');
+const { assertSeismographInvariants } = require('../lib/balance/assertions');
 const { applyGeometryAmplification } = require('../lib/balance/amplifiers');
 
 const OUTER = new Set(["Saturn","Uranus","Neptune","Pluto"]);
