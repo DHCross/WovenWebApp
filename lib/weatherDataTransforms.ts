@@ -24,6 +24,7 @@ export type TransformedWeatherData = {
     magnitude: AxisDisplay;
     directional_bias: AxisDisplay;
     coherence: AxisDisplay;
+    sfd: AxisDisplay;
   };
   labels: {
     magnitude: string;
