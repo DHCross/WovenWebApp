@@ -5,6 +5,7 @@ import { parseAstroSeekBlob } from '@/lib/raven/parser';
 import { normalizeGeometry } from '@/lib/raven/normalize';
 import { renderShareableMirror } from '@/lib/raven/render';
 import { stampProvenance } from '@/lib/raven/provenance';
+import { summariseUploadedReportJson } from '@/lib/raven/reportSummary';
 import { runMathBrain } from '@/lib/mathbrain/adapter';
 import { createProbe, commitProbe, scoreSession, type SessionSSTLog, type SSTTag } from '@/lib/raven/sst';
 import {
@@ -30,345 +31,6 @@ function requestsPersonalReading(text: string): boolean {
 
 // Minimal in-memory session store (dev only). For prod, persist per-user.
 const sessions = new Map<string, SessionSSTLog>();
-
-function isObject(value: unknown): value is Record<string, any> {
-  return typeof value === 'object' && value !== null;
-}
-
-function getNested(source: any, path: string[]): any {
-  let current: any = source;
-  for (const segment of path) {
-    if (!isObject(current) && typeof current !== 'object') return undefined;
-    current = current?.[segment];
-    if (current === undefined || current === null) return current;
-  }
-  return current;
-}
-
-function asString(value: any): string | undefined {
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    return trimmed.length ? trimmed : undefined;
-  }
-  return undefined;
-}
-
-function asNumber(value: any): number | undefined {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-  if (isObject(value)) {
-    if (typeof value.value === 'number' && Number.isFinite(value.value)) {
-      return value.value;
-    }
-    if (typeof value.score === 'number' && Number.isFinite(value.score)) {
-      return value.score;
-    }
-    if (typeof value.mean === 'number' && Number.isFinite(value.mean)) {
-      return value.mean;
-    }
-  }
-  return undefined;
-}
-
-function pickString(data: any, paths: string[][]): string | undefined {
-  for (const path of paths) {
-    const candidate = getNested(data, path);
-    const str = asString(candidate);
-    if (str) return str;
-  }
-  return undefined;
-}
-
-function pickNumber(data: any, paths: string[][]): number | undefined {
-  for (const path of paths) {
-    const candidate = getNested(data, path);
-    const num = asNumber(candidate);
-    if (num !== undefined) return num;
-  }
-  return undefined;
-}
-
-function summariseUploadedReportJson(raw: string): {
-  draft: Record<string, any>;
-  prov: Record<string, any>;
-  climateText?: string;
-  highlight?: string;
-} | null {
-  const trimmed = typeof raw === 'string' ? raw.trim() : '';
-  if (!trimmed.startsWith('{') || trimmed.length < 20) {
-    return null;
-  }
-  if (!/"balance_meter"|"solo_mirror"|"mirror_voice"|"symbolic_weather"|"balance_meter_summary"/i.test(trimmed)) {
-    return null;
-  }
-
-  let parsed: any;
-  try {
-    parsed = JSON.parse(trimmed);
-  } catch {
-    return null;
-  }
-  if (!isObject(parsed)) {
-    return null;
-  }
-
-  const reportType =
-    pickString(parsed, [
-      ['report_type'],
-      ['mode'],
-      ['context', 'mode'],
-      ['metadata', 'report_type'],
-      ['reports', 'report_type'],
-      ['reports', 'type'],
-      ['contract'],
-    ]) || 'report';
-
-  const subject = pickString(parsed, [
-    ['balance_meter', 'person', 'name'],
-    ['person', 'name'],
-    ['person_a', 'details', 'name'],
-    ['person_a', 'name'],
-    ['context', 'person', 'name'],
-    ['context', 'person_a', 'name'],
-    ['provenance', 'person_name'],
-    ['export_info', 'person_a'],
-  ]);
-
-  const climateLine = pickString(parsed, [
-    ['balance_meter', 'climate_line'],
-    ['balance_meter', 'climate', 'line'],
-    ['summary', 'climate_line'],
-    ['context', 'climate_line'],
-    ['reports', 'balance_meter', 'climate', 'line'],
-  ]);
-
-  // BM-v3: magnitude_0to5 is the primary field
-  const magnitude = pickNumber(parsed, [
-    ['balance_meter', 'magnitude_0to5'],
-    ['balance_meter', 'magnitude'],
-    ['balance_meter', 'magnitude', 'value'],
-    ['balance_meter', 'summary', 'magnitude'],
-    ['balance_meter', 'summary', 'magnitude', 'value'],
-    ['balance_meter', 'seismograph', 'magnitude_0to5'],
-    ['balance_meter', 'seismograph', 'magnitude'],
-    ['balance_meter', 'climate', 'magnitude'],
-    ['seismograph', 'magnitude_0to5'],
-    ['seismograph', 'magnitude'],
-    ['summary', 'balance_meter', 'magnitude'],
-    ['summary', 'balance_meter', 'magnitude', 'value'],
-    ['reports', 'balance_meter', 'magnitude'],
-    ['reports', 'balance_meter', 'magnitude', 'value'],
-    ['balance_meter_summary', 'magnitude'],
-    ['dailyRanges', 'magnitudeMin'], // Fallback to min if single value not found
-  ]);
-  const magnitudeLabel = pickString(parsed, [
-    ['balance_meter', 'magnitude', 'label'],
-    ['balance_meter', 'magnitude', 'term'],
-    ['balance_meter', 'magnitude_label'],
-    ['balance_meter', 'climate', 'magnitude_label'],
-    ['summary', 'balance_meter', 'magnitude_label'],
-  ]);
-
-  // BM-v3: bias_signed replaced valence (with -5 to +5 range)
-  const valence = pickNumber(parsed, [
-    ['balance_meter', 'bias_signed'],
-    ['balance_meter', 'directional_bias'],
-    ['balance_meter', 'valence'],
-    ['balance_meter', 'valence', 'value'],
-    ['balance_meter', 'valence_bounded'],
-    ['balance_meter', 'climate', 'bias_signed'],
-    ['balance_meter', 'climate', 'valence'],
-    ['balance_meter', 'climate', 'valence_bounded'],
-    ['balance_meter', 'seismograph', 'bias_signed'],
-    ['seismograph', 'bias_signed'],
-    ['seismograph', 'valence'],
-    ['summary', 'balance_meter', 'bias_signed'],
-    ['summary', 'balance_meter', 'valence'],
-    ['summary', 'balance_meter', 'valence', 'value'],
-    ['reports', 'balance_meter', 'bias_signed'],
-    ['reports', 'balance_meter', 'valence'],
-    ['reports', 'balance_meter', 'valence', 'value'],
-    ['balance_meter_summary', 'bias_signed'],
-    ['balance_meter_summary', 'valence'],
-    ['dailyRanges', 'biasMin'], // Fallback to min if single value not found
-  ]);
-  const valenceLabel = pickString(parsed, [
-    ['balance_meter', 'bias_signed', 'label'],
-    ['balance_meter', 'directional_bias', 'label'],
-    ['balance_meter', 'valence', 'label'],
-    ['balance_meter', 'valence', 'term'],
-    ['balance_meter', 'valence_label'],
-    ['balance_meter', 'climate', 'bias_label'],
-    ['balance_meter', 'climate', 'valence_label'],
-    ['summary', 'balance_meter', 'bias_label'],
-    ['summary', 'balance_meter', 'valence_label'],
-  ]);
-
-  // BM-v3: coherence_0to5 replaced volatility
-  const volatility = pickNumber(parsed, [
-    ['balance_meter', 'coherence_0to5'],
-    ['balance_meter', 'coherence'],
-    ['balance_meter', 'narrative_coherence'],
-    ['balance_meter', 'volatility'],
-    ['balance_meter', 'volatility', 'value'],
-    ['balance_meter', 'climate', 'coherence'],
-    ['balance_meter', 'climate', 'volatility'],
-    ['balance_meter', 'seismograph', 'coherence_0to5'],
-    ['balance_meter', 'seismograph', 'volatility'],
-    ['seismograph', 'coherence_0to5'],
-    ['seismograph', 'volatility'],
-    ['summary', 'balance_meter', 'coherence'],
-    ['summary', 'balance_meter', 'volatility'],
-    ['reports', 'balance_meter', 'coherence'],
-    ['reports', 'balance_meter', 'volatility'],
-    ['reports', 'balance_meter', 'volatility', 'value'],
-    ['balance_meter_summary', 'coherence'],
-    ['balance_meter_summary', 'volatility'],
-  ]);
-  const volatilityLabel = pickString(parsed, [
-    ['balance_meter', 'coherence', 'label'],
-    ['balance_meter', 'coherence_label'],
-    ['balance_meter', 'volatility', 'label'],
-    ['balance_meter', 'volatility', 'term'],
-    ['balance_meter', 'volatility_label'],
-  ]);
-
-  // BM-v3: sfd_cont_minus1to1 (Integration Bias / Support-Friction Differential)
-  const sfd = pickNumber(parsed, [
-    ['balance_meter', 'sfd_cont_minus1to1'],
-    ['balance_meter', 'sfd_cont'],
-    ['balance_meter', 'sfd'],
-    ['balance_meter', 'integration_bias'],
-    ['balance_meter', 'seismograph', 'sfd_cont_minus1to1'],
-    ['balance_meter', 'seismograph', 'sfd_cont'],
-    ['seismograph', 'sfd_cont_minus1to1'],
-    ['seismograph', 'sfd_cont'],
-    ['summary', 'balance_meter', 'sfd'],
-    ['reports', 'balance_meter', 'sfd'],
-  ]);
-  const sfdLabel = pickString(parsed, [
-    ['balance_meter', 'sfd', 'label'],
-    ['balance_meter', 'sfd_label'],
-    ['balance_meter', 'integration_bias_label'],
-  ]);
-
-  const periodStart = pickString(parsed, [
-    ['balance_meter', 'period', 'start'],
-    ['context', 'period', 'start'],
-    ['context', 'window', 'start'],
-    ['window', 'start'],
-    ['reports', 'balance_meter', 'period', 'start'],
-    ['export_info', 'date_range', 'start'],
-  ]);
-  const periodEnd = pickString(parsed, [
-    ['balance_meter', 'period', 'end'],
-    ['context', 'period', 'end'],
-    ['context', 'window', 'end'],
-    ['window', 'end'],
-    ['reports', 'balance_meter', 'period', 'end'],
-    ['export_info', 'date_range', 'end'],
-  ]);
-
-  const hooksRoot =
-    getNested(parsed, ['balance_meter', 'hook_stack', 'hooks']) ??
-    getNested(parsed, ['reports', 'balance_meter', 'hook_stack', 'hooks']);
-  const hooks = Array.isArray(hooksRoot)
-    ? hooksRoot
-        .map((entry: any) => {
-          if (typeof entry === 'string') {
-            return entry.trim();
-          }
-          if (isObject(entry)) {
-            const label = asString(entry.label);
-            if (!label) return undefined;
-            const orb = asNumber(entry.orb);
-            const tags: string[] = [];
-            if (entry.exact === true) tags.push('exact');
-            if (typeof orb === 'number') tags.push(`${orb.toFixed(1)}°`);
-            return tags.length ? `${label} (${tags.join(', ')})` : label;
-          }
-          return undefined;
-        })
-        .filter(Boolean)
-    : [];
-
-  const summaryPieces: string[] = [];
-  if (typeof magnitude === 'number') {
-    summaryPieces.push(
-      `Magnitude ${magnitude.toFixed(2)}${magnitudeLabel ? ` (${magnitudeLabel})` : ''}`
-    );
-  }
-  if (typeof valence === 'number') {
-    summaryPieces.push(
-      `Directional Bias ${valence.toFixed(2)}${valenceLabel ? ` (${valenceLabel})` : ''}`
-    );
-  }
-  if (typeof volatility === 'number') {
-    summaryPieces.push(
-      `Coherence ${volatility.toFixed(2)}${volatilityLabel ? ` (${volatilityLabel})` : ''}`
-    );
-  }
-  if (typeof sfd === 'number') {
-    summaryPieces.push(
-      `Integration ${sfd.toFixed(2)}${sfdLabel ? ` (${sfdLabel})` : ''}`
-    );
-  }
-
-  const containerParts: string[] = [];
-  if (periodStart && periodEnd) {
-    containerParts.push(`Window ${periodStart} → ${periodEnd}`);
-  } else if (periodStart) {
-    containerParts.push(`Window begins ${periodStart}`);
-  }
-  if (hooks.length) {
-    containerParts.push(`Hooks ${hooks.slice(0, 2).join(' · ')}`);
-  }
-
-  const picture = climateLine || `Report logged for ${subject || 'this chart'}.`;
-  const feeling = summaryPieces.length
-    ? summaryPieces.join(' · ')
-    : 'Stored for interpretation when you are ready.';
-  const container = containerParts.length
-    ? containerParts.join(' · ')
-    : 'Context added to the session library.';
-  const option = 'Ask for a Poetic translation of any section or upload another layer.';
-  const next_step = 'When you are ready, tell me which pattern you want mirrored.';
-
-  const appendix: Record<string, any> = {};
-  if (reportType) appendix.report_type = reportType;
-  if (subject) appendix.subject = subject;
-  if (periodStart) appendix.period_start = periodStart;
-  if (periodEnd) appendix.period_end = periodEnd;
-  if (typeof magnitude === 'number') appendix.magnitude = magnitude;
-  if (magnitudeLabel) appendix.magnitude_label = magnitudeLabel;
-  if (typeof valence === 'number') appendix.directional_bias = valence;
-  if (valenceLabel) appendix.directional_bias_label = valenceLabel;
-  if (typeof volatility === 'number') appendix.coherence = volatility;
-  if (volatilityLabel) appendix.coherence_label = volatilityLabel;
-  if (typeof sfd === 'number') appendix.integration_bias = sfd;
-  if (sfdLabel) appendix.integration_bias_label = sfdLabel;
-  if (hooks.length) appendix.hooks = hooks.slice(0, 3);
-
-  const draft: Record<string, any> = { picture, feeling, container, option, next_step };
-  if (Object.keys(appendix).length > 0) {
-    draft.appendix = appendix;
-  }
-
-  const prov = stampProvenance({
-    source: 'Uploaded JSON Report',
-    report_type: reportType,
-    ...(subject ? { subject } : {}),
-  });
-
-  const climateText = summaryPieces.length ? summaryPieces.join(' · ') : undefined;
-  const highlight = climateText ||
-    (periodStart
-      ? `Report stored for ${periodStart}${periodEnd ? ` → ${periodEnd}` : ''}`
-      : undefined);
-
-  return { draft, prov, climateText, highlight };
-}
 
 export async function POST(req: Request) {
   try {
@@ -526,21 +188,28 @@ export async function POST(req: Request) {
 
 
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Raven API Error:', error);
 
     // Enhanced error logging
     if (error instanceof Error) {
+      // eslint-disable-next-line no-console
       console.error('Error name:', error.name);
+      // eslint-disable-next-line no-console
       console.error('Error message:', error.message);
+      // eslint-disable-next-line no-console
       console.error('Error stack:', error.stack);
     }
 
     // Log request details for debugging
     try {
       const url = new URL(req.url);
+      // eslint-disable-next-line no-console
       console.error('Request URL:', url.pathname);
+      // eslint-disable-next-line no-console
       console.error('Request method:', req.method);
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.error('Could not log request details:', e);
     }
 
