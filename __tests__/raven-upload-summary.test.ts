@@ -89,4 +89,53 @@ describe('summariseUploadedReportJson', () => {
     expect(summary?.draft.container).toContain('has gaps');
     expect(summary?.draft.appendix?.is_continuous).toBe(false);
   });
+
+  it('threads relationship fields into container, highlight, and appendix', () => {
+    const relationalSample = {
+      _format: 'symbolic_weather_json',
+      report_kind: 'Relational Balance Meter',
+      daily_readings: [
+        { date: '2025-10-08', magnitude: 4.2, directional_bias: -1.4, coherence: 3.1 },
+        { date: '2025-10-09', magnitude: 4.4, directional_bias: -1.6, coherence: 3.0 },
+      ],
+      relationship_context: {
+        scope: 'partner',
+        type: 'partner',
+        contact_state: 'On Hold',
+        role: 'Navigator',
+        intimacy_tier: 'P5a',
+        notes: 'Currently recalibrating shared cadence.',
+      },
+      symbolic_weather_context: {
+        balance_meter: {
+          magnitude: 4.4,
+          magnitude_label: 'Strong',
+          bias_signed: -1.6,
+          valence_label: 'Pulling Inward',
+          coherence: 3.0,
+          volatility_label: 'Variable',
+        },
+        transit_context: {
+          period: {
+            start: '2025-10-08',
+            end: '2025-10-09',
+          },
+        },
+        field_triggers: ['Venus', 'trine', 'Mars'],
+      },
+    };
+
+    const summary = summariseUploadedReportJson(JSON.stringify(relationalSample));
+    expect(summary).not.toBeNull();
+    expect(summary?.draft.container).toContain('Relational scope');
+    expect(summary?.draft.container).toContain('Partner');
+    expect(summary?.draft.container).toContain('Intimacy · P5a — Committed romantic + sexual');
+    expect(summary?.highlight).toContain('Partner');
+    expect(summary?.highlight).toContain('Contact On Hold');
+    expect(summary?.draft.appendix?.relationship_scope).toBe('partner');
+    expect(summary?.draft.appendix?.relationship_scope_label).toBe('Partner');
+    expect(summary?.draft.appendix?.intimacy_tier).toBe('P5a');
+    expect(summary?.draft.appendix?.intimacy_tier_label).toBe('P5a — Committed romantic + sexual');
+    expect(summary?.draft.appendix?.relationship_notes).toBe('Currently recalibrating shared cadence.');
+  });
 });

@@ -1,5 +1,66 @@
 import { stampProvenance } from '@/lib/raven/provenance';
 
+type RelationshipScopeDetail = {
+  label: string;
+  description?: string;
+};
+
+const RELATIONSHIP_SCOPE_MAP: Record<string, RelationshipScopeDetail> = {
+  PARTNER: {
+    label: 'Partner',
+    description: 'Full map access, including intimacy arcs & legacy patterns.',
+  },
+  FRIEND: {
+    label: 'Friend / Acquaintance',
+    description: 'Emotional, behavioral, and social dynamics; intimacy overlays de-emphasized.',
+  },
+  FAMILY: {
+    label: 'Family Member',
+    description: 'Legacy patterns and behavioral overlays anchored to family systems.',
+  },
+  COLLEAGUE: {
+    label: 'Colleague',
+    description: 'Professional overlays with emphasis on logistics and shared projects.',
+  },
+  CLIENT: {
+    label: 'Client',
+    description: 'Service-based overlays; focus on deliverables and agreed scope.',
+  },
+};
+
+const INTIMACY_TIER_LABELS: Record<string, string> = {
+  P1: 'P1 — Platonic partners',
+  P2: 'P2 — Friends-with-benefits',
+  P3: 'P3 — Situationship (unclear/unstable)',
+  P4: 'P4 — Low-commitment romantic or sexual',
+  P5A: 'P5a — Committed romantic + sexual',
+  P5B: 'P5b — Committed romantic, non-sexual',
+};
+
+function resolveRelationshipScope(raw?: string): (RelationshipScopeDetail & { key: string }) | undefined {
+  if (!raw) return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  const key = trimmed.toUpperCase();
+  const match = RELATIONSHIP_SCOPE_MAP[key];
+  if (match) {
+    return { key, ...match };
+  }
+  return { key, label: trimmed };
+}
+
+function resolveIntimacyTier(raw?: string): { key: string; label: string } | undefined {
+  if (!raw) return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  const key = trimmed.toUpperCase();
+  const label = INTIMACY_TIER_LABELS[key];
+  if (label) {
+    return { key, label };
+  }
+  return { key, label: trimmed };
+}
+
 function isObject(value: unknown): value is Record<string, any> {
   return typeof value === 'object' && value !== null;
 }
@@ -444,6 +505,52 @@ export function summariseUploadedReportJson(raw: string): {
 
   const cadence = analyseCadence(parsed, periodStart, periodEnd);
 
+  const relationshipScopeRaw =
+    pickString(parsed, [
+      ['relationship_context', 'scope'],
+      ['context', 'relationship_context', 'scope'],
+      ['relationship_scope'],
+      ['context', 'relationship_scope'],
+    ]) || undefined;
+
+  const relationshipTypeRaw =
+    pickString(parsed, [
+      ['relationship_context', 'type'],
+      ['context', 'relationship_context', 'type'],
+      ['context', 'relationship', 'type'],
+      ['relationship_type'],
+      ['context', 'relationship_type'],
+    ]) || undefined;
+
+  const resolvedScope = resolveRelationshipScope(relationshipScopeRaw ?? relationshipTypeRaw);
+
+  const relationshipContact =
+    pickString(parsed, [
+      ['relationship_context', 'contact_state'],
+      ['context', 'relationship_context', 'contact_state'],
+      ['relationship_contact_state'],
+    ]) || undefined;
+
+  const relationshipRole =
+    pickString(parsed, [
+      ['relationship_context', 'role'],
+      ['context', 'relationship_context', 'role'],
+    ]) || undefined;
+
+  const intimacyTierRaw =
+    pickString(parsed, [
+      ['relationship_context', 'intimacy_tier'],
+      ['context', 'relationship_context', 'intimacy_tier'],
+    ]) || undefined;
+
+  const resolvedIntimacy = resolveIntimacyTier(intimacyTierRaw);
+
+  const relationshipNotes =
+    pickString(parsed, [
+      ['relationship_context', 'notes'],
+      ['context', 'relationship_context', 'notes'],
+    ]) || undefined;
+
   const summaryPieces: string[] = [];
   if (typeof magnitude === 'number') {
     summaryPieces.push(
@@ -477,6 +584,30 @@ export function summariseUploadedReportJson(raw: string): {
   }
   if (hooks.length) {
     containerParts.push(`Hooks ${hooks.slice(0, 2).join(' · ')}`);
+  }
+
+  const relationshipLines: string[] = [];
+  if (resolvedScope) {
+    const base = resolvedScope.description
+      ? `${resolvedScope.label} — ${resolvedScope.description}`
+      : resolvedScope.label;
+    relationshipLines.push(base);
+  }
+  if (relationshipContact) {
+    relationshipLines.push(`Contact · ${relationshipContact}`);
+  }
+  if (relationshipRole) {
+    relationshipLines.push(`Role · ${relationshipRole}`);
+  }
+  if (resolvedIntimacy) {
+    relationshipLines.push(`Intimacy · ${resolvedIntimacy.label}`);
+  }
+  if (relationshipNotes) {
+    relationshipLines.push(`Notes · ${relationshipNotes}`);
+  }
+
+  if (relationshipLines.length) {
+    containerParts.push(`Relational scope — ${relationshipLines.join(' · ')}`);
   }
 
   const picture = climateLine || `Report logged for ${subject || 'this chart'}.`;
@@ -516,6 +647,33 @@ export function summariseUploadedReportJson(raw: string): {
   if (cadence.coverageEnd && !appendix.period_end) {
     appendix.period_end = cadence.coverageEnd;
   }
+  if (relationshipTypeRaw) {
+    appendix.relationship_type = relationshipTypeRaw;
+  }
+  if (relationshipScopeRaw) {
+    appendix.relationship_scope = relationshipScopeRaw;
+  }
+  if (resolvedScope) {
+    appendix.relationship_scope_label = resolvedScope.label;
+    if (resolvedScope.description) {
+      appendix.relationship_scope_description = resolvedScope.description;
+    }
+  }
+  if (relationshipContact) {
+    appendix.contact_state = relationshipContact;
+  }
+  if (relationshipRole) {
+    appendix.relationship_role = relationshipRole;
+  }
+  if (intimacyTierRaw) {
+    appendix.intimacy_tier = intimacyTierRaw;
+  }
+  if (resolvedIntimacy && resolvedIntimacy.label !== intimacyTierRaw) {
+    appendix.intimacy_tier_label = resolvedIntimacy.label;
+  }
+  if (relationshipNotes) {
+    appendix.relationship_notes = relationshipNotes;
+  }
 
   const draft: Record<string, any> = { picture, feeling, container, option, next_step };
   if (Object.keys(appendix).length > 0) {
@@ -533,9 +691,27 @@ export function summariseUploadedReportJson(raw: string): {
     ? `Report stored for ${periodStart}${periodEnd ? ` → ${periodEnd}` : ''}`
     : undefined;
   const cadenceHighlight = cadence.cadenceSummary?.replace(/\.$/, '');
+
+  const relationshipHighlightParts: string[] = [];
+  if (resolvedScope) {
+    relationshipHighlightParts.push(resolvedScope.label);
+  }
+  if (relationshipContact) {
+    relationshipHighlightParts.push(`Contact ${relationshipContact}`);
+  }
+  if (relationshipRole) {
+    relationshipHighlightParts.push(`Role ${relationshipRole}`);
+  }
+  if (resolvedIntimacy) {
+    relationshipHighlightParts.push(resolvedIntimacy.label);
+  }
+
   const highlightParts = [climateText, windowSummary, cadenceHighlight]
+    .concat(relationshipHighlightParts.length ? relationshipHighlightParts.join(' · ') : [])
     .filter(Boolean) as string[];
-  const highlight = highlightParts.length ? highlightParts.join(' · ') : undefined;
+  const highlight = highlightParts.length
+    ? Array.from(new Set(highlightParts)).join(' · ')
+    : undefined;
 
   return { draft, prov, climateText, highlight };
 }

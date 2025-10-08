@@ -1,3 +1,17 @@
+## [2025-10-08] FIX: Align Raven summaries with Math Brain relationship fields
+
+**Summary**
+Extended the uploaded report summariser so relational imports now respect the same scope, contact state, role, and intimacy tier options surfaced in Math Brain. Container and highlight strings surface the selected relationship context, while appendices preserve both the raw keys and the normalized labels for downstream conversations.
+
+**Files Updated**
+- `lib/raven/reportSummary.ts` – Added relationship scope/tier vocab, container wiring, highlight synthesis, and appendix metadata.
+- `__tests__/raven-upload-summary.test.ts` – New regression covering relational scope, contact state, tier labelling, and appendix persistence.
+
+**Verification**
+- `npx jest __tests__/raven-upload-summary.test.ts`
+
+---
+
 ## [2025-10-08] FIX: Clarify synastry upload coverage framing
 
 **Summary**
