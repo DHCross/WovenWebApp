@@ -1,14 +1,24 @@
 # Technical Computation of Uncanny Scoring
 
-For those interested in the quantitative backbone, here is how Uncanny Scoring is computed in its research-grade form.
+**⚠️ DEPRECATED - Balance Meter v4.0 Update Required**
 
-## Inputs
+This specification references the deprecated SFD (Support-Friction Differential) system. 
+Balance Meter v4.0 uses three core axes only:
+- **Directional Bias** [-5, +5] — expansion vs. contraction
+- **Magnitude** [0, 5] — intensity of symbolic charge
+- **Coherence** [0, 5] — narrative stability (inverted volatility)
 
-### Symbolic Fields (from Balance Meter)
+**This document needs updating to reflect v4.0 architecture.**
 
-- **SFD (Support–Friction Differential)** — signed directional bias, ranging −5…+5
+---
+
+## Original Inputs (v3.x - DEPRECATED)
+
+### Symbolic Fields (from Balance Meter v3.x)
+
+- **SFD (Support–Friction Differential)** — DEPRECATED in v4.0
 - **Magnitude** — intensity of symbolic charge, scaled 0–5
-- **Volatility** — narrative stability, scaled 0–5
+- **Volatility** — narrative instability (inverted to Coherence in v4.0), scaled 0–5
 
 ### Event Markers / Lived Data
 

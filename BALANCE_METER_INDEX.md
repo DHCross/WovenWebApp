@@ -1,4 +1,4 @@
-# 📚 Balance Meter v3.1 Documentation Index
+# 📚 Balance Meter v4.0 Documentation Index
 
 **Quick Links:**
 - [📘 Complete Refactor Details](BALANCE_METER_REFACTOR_COMPLETE.md) - Full implementation documentation
@@ -9,6 +9,7 @@
 **Archived Materials:**
 - [📦 Historical Audit](docs/archive/BALANCE_METER_AUDIT_2025-10-05.md) - Original problem diagnosis (now resolved)
 - [🗄️ Legacy Scripts](scripts/archive/README.md) - 16 ad-hoc test scripts (replaced by formal suite)
+- [🗄️ SFD System](docs/archive/) - Support/Friction/Drift experimental system (deprecated in v4.0)
 
 ---
 
@@ -40,6 +41,7 @@ Read in this order:
 - **Architecture:** Single source of truth enforced
 - **Documentation:** Consolidated
 - **Legacy Files:** Archived
+- **Core Axes:** 3 (Magnitude, Directional Bias, Coherence)
 
-**Date:** January 21, 2025  
-**Spec Version:** 3.1
+**Date:** October 9, 2025  
+**Spec Version:** 4.0 (3-axis simplification)

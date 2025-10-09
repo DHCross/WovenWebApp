@@ -1,4 +1,15 @@
-Perfect — here’s your **final, cleaned, version-controlled specification** for Balance Meter **v4.0**, with everything aligned to current logic, binning, and terminology.
+Perfe# **Balance Meter v4.0 — Authoritative Label Map and Scaling Specification**
+
+### **Principle**
+
+The Balance Meter reports symbolic field conditions — *it measures, it doesn't moralize.*
+Three core axes quantify the sky's energetic geometry in neutral language:
+1. **Magnitude** (intensity)
+2. **Directional Bias** (expansion vs. contraction)
+3. **Coherence** (narrative stability)
+
+This document defines the **canonical labels and numeric bins** for Magnitude and Directional Bias (Valence).
+It supersedes all prior label sets (v3.2 and below), including deprecated SFD/Integration Bias systems.e’s your **final, cleaned, version-controlled specification** for Balance Meter **v4.0**, with everything aligned to current logic, binning, and terminology.
 This is what should go in both your repo’s `/specs/Balance_Meter_v4.md` and the internal markdown exports used by the reporting layer.
 
 ---

@@ -4765,13 +4765,11 @@ export default function MathBrainPage() {
                     magnitudeMin: magMin,
                     magnitudeMax: magMax
                   }}
-                  overallSfd={displayResult?.person_a?.sfd?.sfd ?? 0}
                   totalDays={(() => {
                     const daily = frontStageTransitsByDate;
                     return Object.keys(daily).filter(d => d && d.match(/^\d{4}-\d{2}-\d{2}$/)).length;
                   })()}
                   isLatentField={exEstranged}
-                  fieldSignature={(displayResult as any)?.woven_map?.field_signature ?? null}
                 />
 
                 {/* LAYER 2: SYMBOLIC SEISMOGRAPH (Plot Charts) */}

@@ -1,36 +1,36 @@
 # Balance Meter Documentation Hub
 
-**Spec Version:** 3.1  
-**Last Updated:** January 21, 2025  
+**Spec Version:** 4.0  
+**Last Updated:** October 9, 2025  
 **Status:** ✅ Production Ready
 
 ---
 
 ## Overview
 
-The **Balance Meter** (also called "Symbolic Weather Seismograph") is the mathematical core of the Raven Calder system. It transforms raw astrological aspect geometry into four quantified axes that represent the energetic climate of a day.
+The **Balance Meter** (also called "Symbolic Weather Seismograph") is the mathematical core of the Raven Calder system. It transforms raw astrological aspect geometry into three quantified axes that represent the energetic climate of a day.
 
-### Four Axes
+### Three Core Axes (v4.0)
 
 | Axis | Range | Formula | Interpretation |
 |:-----|:------|:--------|:---------------|
-| **Magnitude** | [0, 5] | `norm × 50 → clamp([0, 5])` | Peak activity level |
-| **Directional Bias** | [-5, +5] | `norm × 50 → clamp([-5, +5])` | Inward/outward energetic tendency |
-| **Coherence** | [0, 5] | `(5 - vol_norm × 50) → clamp([0, 5])` | Stability (inverted from volatility) |
-| **SFD** | [-1, +1] or null | `(support - friction) / total` | Integration bias (supportive vs. frictional) |
+| **Magnitude** | [0, 5] | `norm × 50 → clamp([0, 5])` | Peak activity level (intensity) |
+| **Directional Bias** | [-5, +5] | `norm × 50 → clamp([-5, +5])` | Expansion (+) vs contraction (−) |
+| **Coherence** | [0, 5] | `(5 - vol_norm × 50) → clamp([0, 5])` | Narrative stability (inverted volatility) |
+
+**Note:** SFD (Support/Friction/Drift) and Integration Bias were experimental 4th axis concepts deprecated in v4.0. Balance Meter now focuses on the three essential geometric axes only.
 
 ---
 
 ## Architecture (Single Source of Truth)
 
 ```
-config/spec.json (v3.1 constants)
+config/spec.json (v4.0 constants)
     ↓
 lib/balance/scale.ts (canonical scalers)
-    ├─→ scaleBipolar(normalized)
-    ├─→ scaleUnipolar(normalized)
-    ├─→ scaleCoherenceFromVol(volatility_norm)
-    └─→ scaleSFD(raw, preScaled)
+    ├─→ scaleBipolar(normalized)      [Directional Bias]
+    ├─→ scaleUnipolar(normalized)     [Magnitude]
+    └─→ scaleCoherenceFromVol(volatility_norm) [Coherence]
     ↓
 lib/balance/scale-bridge.js (CommonJS wrapper)
     ↓
@@ -39,7 +39,7 @@ src/seismograph.js (uses canonical scalers)
 lib/balance/assertions.ts (runtime validation)
 ```
 
-**Key Principle:** All scaling math lives in `lib/balance/scale.ts`. No duplicate implementations allowed.
+**Key Principle:** All scaling math lives in `lib/balance/scale.ts`. No duplicate implementations allowed. Balance Meter v4.0 uses three core axes only.
 
 ---
 
@@ -122,8 +122,8 @@ npm run test:vitest:run
 | All tests pass | 69/69 | `npm run test:vitest:run` |
 | Lexicon lint | Clean | `npm run lexicon:lint` |
 | Bias sanity | -0.05 → -2.5 | See test output |
-| Hurricane Michael | mag 4.86, bias -3.3 | See test output |
-| SFD null handling | No fabrication | See test output |
+| Hurricane Michael | mag 4.86, bias -3.3, coh 4.0 | See test output |
+| 3-axis compliance | No SFD/Integration in output | Verify exports |
 
 ---
 
@@ -169,9 +169,9 @@ npm run test:vitest:run
 
 ---
 
-## Key Formulas (Spec v3.1)
+## Key Formulas (Spec v4.0)
 
-### Directional Bias
+### Directional Bias (Expansion/Contraction)
 ```javascript
 // Step 1: Magnitude-based amplification
 Y_amplified = Y_raw × (0.8 + 0.4 × magnitude)
@@ -184,14 +184,14 @@ biasScaled = scaleBipolar(Y_normalized)
 directional_bias = biasScaled.value  // Clamped & rounded
 ```
 
-### Magnitude
+### Magnitude (Intensity)
 ```javascript
 // Already normalized in [0, 1] range
 magnitudeScaled = scaleUnipolar(X_normalized)
 magnitude = magnitudeScaled.value  // Scaled to [0, 5]
 ```
 
-### Coherence (Inverted from Volatility)
+### Coherence (Narrative Stability)
 ```javascript
 // Volatility normalized to [0, 0.1] range
 VI_normalized = min(0.1, VI / 100)
@@ -201,14 +201,11 @@ coherenceScaled = scaleCoherenceFromVol(VI_normalized)
 coherence = coherenceScaled.value  // (5 - vol×50) → [0, 5]
 ```
 
-### SFD (Support-Friction Differential)
+### Field Signature (v4.0)
 ```javascript
-// Calculate raw SFD (already in [-1, +1])
-sfd_raw = (sumSupport - sumFriction) / (sumSupport + sumFriction)
-
-// Format with proper display
-sfdScaled = scaleSFD(sfd_raw, true)  // preScaled=true
-sfd = sfdScaled.value  // null if no drivers
+// Product of three normalized axes
+fieldSignature = (direction/5) × (magnitude/5) × (coherence/5)
+// Range: [-1, +1] representing directional lean × intensity × stability
 ```
 
 ---
@@ -227,11 +224,11 @@ sfd = sfdScaled.value  // null if no drivers
 **Fix:** Verify `meta.pipeline` matches spec, check transform trace  
 **Prevention:** Schema validation enforces pipeline consistency
 
-### "SFD shows 0.00 instead of n/a"
-**Symptom:** Zero fabrication when no drivers present  
-**Diagnosis:** Null handling bypassed  
-**Fix:** Ensure `scaleSFD` returns `{value: null, display: 'n/a'}`  
-**Prevention:** Runtime assertions catch fabrication
+### "SFD/Integration still appearing in output"
+**Symptom:** Deprecated 4th axis showing in exports or UI  
+**Diagnosis:** Legacy code path still emitting SFD/Integration  
+**Fix:** Remove SFD references from reporters, composers, and frontend displays  
+**Prevention:** Grep codebase for `sfd|SFD|integration|Integration` and clean up
 
 ### "Clamp events missing from trace"
 **Symptom:** Transform trace shows no clamps but values clamped  
@@ -254,8 +251,9 @@ sfd = sfdScaled.value  // null if no drivers
 
 | Version | Date | Changes |
 |:--------|:-----|:--------|
+| 4.0 | 2025-10-09 | **3-axis simplification:** Removed SFD/Integration Bias; Balance Meter now Magnitude + Directional Bias + Coherence only |
 | 3.1 | 2025-01-21 | Dual-pipeline elimination, canonical scalers enforced |
-| 3.0 | 2025 | Initial v3 specification with SFD + Coherence |
+| 3.0 | 2025 | Initial v3 specification with SFD + Coherence (deprecated in v4.0) |
 
 ---
 

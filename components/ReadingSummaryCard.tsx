@@ -32,8 +32,6 @@ interface ResonanceFidelity {
 interface BalanceMeterClimate {
   magnitude: number; // 1-5 ⚡ (v2: Numinosity - archetypal charge)
   valence: 'bright' | 'neutral' | 'drag'; // 🌞/🌑 (v2: Directional Bias - inward/outward energy lean)
-  volatility: 'aligned' | 'mixed' | 'chaotic'; // 🔀 (v2: Narrative Coherence - story stability)
-  sfdVerdict: string; // (v2: Integration Bias - forces cooperation assessment)
   housePlacement?: string;
   narrative: string;
 }
@@ -154,13 +152,7 @@ Primary Patterns: ${journalEntry.metadata.primaryPatterns.join(', ')}`;
     }
   };
 
-  const getNarrativeCoherenceEmoji = (volatility: string) => {
-    switch (volatility) {
-      case 'chaotic': return '🌀';
-      case 'mixed': return '🔀';
-      default: return '➡️';
-    }
-  };
+  // Removed: Narrative Coherence (Balance Meter v5 - keeping only Magnitude and Directional Bias)
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -300,9 +292,6 @@ Primary Patterns: ${journalEntry.metadata.primaryPatterns.join(', ')}`;
                 </span>
                 <span title={`Directional Bias: ${data.balanceMeterClimate.valence}`}>
                   {getDirectionalBiasEmoji(data.balanceMeterClimate.valence)}
-                </span>
-                <span title={`Narrative Coherence: ${data.balanceMeterClimate.volatility}`}>
-                  {getNarrativeCoherenceEmoji(data.balanceMeterClimate.volatility)}
                 </span>
               </div>
               <p className="text-slate-700 text-center text-[13px] leading-relaxed">

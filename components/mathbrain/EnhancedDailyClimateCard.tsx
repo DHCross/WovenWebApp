@@ -11,7 +11,6 @@ interface EnhancedDailyClimateCardProps {
   mode: "single" | "relational";
   names?: [string, string];
   climate: ClimateData;
-  sfd?: number;
   activatedHouses?: string[];
   isRangeSummary?: boolean;
   dateRange?: { start: string; end: string };
@@ -23,12 +22,11 @@ export default function EnhancedDailyClimateCard({
   mode,
   names,
   climate,
-  sfd,
   activatedHouses,
   isRangeSummary = false,
   dateRange,
 }: EnhancedDailyClimateCardProps) {
-  const narrative = generateClimateNarrative(climate, sfd, activatedHouses, isRangeSummary);
+  const narrative = generateClimateNarrative(climate, 0, activatedHouses, isRangeSummary);
 
   const modeLabel =
     mode === "single"
@@ -90,10 +88,10 @@ export default function EnhancedDailyClimateCard({
         </div>
       </div>
 
-      {/* Core Metrics - v2.0 Neutral Field Assessment */}
+      {/* Core Metrics - v5.0 Two-Axis Field Assessment */}
       <div className="mb-6">
         <h4 className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">Field Conditions</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-slate-900/40 rounded-md p-3 border border-slate-700/50">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs text-slate-400">Magnitude ⚡</span>
@@ -105,12 +103,12 @@ export default function EnhancedDailyClimateCard({
 
           <div className="relative bg-slate-900/40 rounded-md p-3 border border-slate-700/50 overflow-hidden">
             {/* Conditional gradient overlay based on directional bias sign */}
-            <div 
+            <div
               className={`absolute inset-0 opacity-10 ${
-                narrative.dimensions.valence.value > 0 
-                  ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' 
-                  : narrative.dimensions.valence.value < 0 
-                  ? 'bg-gradient-to-br from-rose-500 to-rose-600' 
+                narrative.dimensions.valence.value > 0
+                  ? 'bg-gradient-to-br from-emerald-500 to-emerald-600'
+                  : narrative.dimensions.valence.value < 0
+                  ? 'bg-gradient-to-br from-rose-500 to-rose-600'
                   : 'bg-slate-800'
               }`}
               aria-hidden="true"
@@ -121,10 +119,10 @@ export default function EnhancedDailyClimateCard({
                   Directional Bias {narrative.dimensions.valence.value > 0 ? '↗️' : narrative.dimensions.valence.value < 0 ? '↘️' : '↔️'}
                 </span>
                 <span className={`text-lg font-semibold ${
-                  narrative.dimensions.valence.value > 0 
-                    ? 'text-emerald-400' 
-                    : narrative.dimensions.valence.value < 0 
-                    ? 'text-rose-400' 
+                  narrative.dimensions.valence.value > 0
+                    ? 'text-emerald-400'
+                    : narrative.dimensions.valence.value < 0
+                    ? 'text-rose-400'
                     : climateClasses.text
                 }`}>
                   {formatValue(narrative.dimensions.valence.value, true)}
@@ -134,28 +132,7 @@ export default function EnhancedDailyClimateCard({
               <div className="text-xs text-slate-400">Which way energy leans (inward/outward)</div>
             </div>
           </div>
-
-          <div className="bg-slate-900/40 rounded-md p-3 border border-slate-700/50">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-slate-400">Narrative Coherence 📖</span>
-              <span className={`text-lg ${climateClasses.weight} ${climateClasses.text} ${climateClasses.animation}`}>{formatValue(narrative.dimensions.volatility.value)}</span>
-            </div>
-            <div className="text-xs text-slate-300 mb-1">{narrative.dimensions.volatility.label}</div>
-            <div className="text-xs text-slate-400">How stable is the storyline</div>
-          </div>
         </div>
-
-        {/* Integration Bias if available */}
-        {narrative.dimensions.sfd && (
-          <div className="mt-4 bg-slate-900/40 rounded-md p-3 border border-slate-700/50">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-slate-400">Integration Bias 🤝</span>
-              <span className={`text-lg ${climateClasses.weight} ${climateClasses.text}`}>{formatValue(narrative.dimensions.sfd.value, true)}</span>
-            </div>
-            <div className="text-xs text-slate-300 mb-1">{narrative.dimensions.sfd.label}</div>
-            <div className="text-xs text-slate-400">Do forces cooperate or fragment</div>
-          </div>
-        )}
       </div>
 
       {/* WB / ABE Paradox Poles */}

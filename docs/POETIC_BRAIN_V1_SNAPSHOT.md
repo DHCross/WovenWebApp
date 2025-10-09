@@ -1,8 +1,12 @@
 # Poetic Brain v1.0 – Mirror Native
 
+**⚠️ PARTIALLY OUTDATED - Balance Meter v4.0 Update Required**
+
 **Date:** 2025-10-06
 **Version:** 1.0
 **Codename:** Mirror Native
+
+**Note:** This snapshot references the deprecated SFD (Support-Friction Differential) system. Balance Meter v4.0 uses three core axes only: Magnitude, Directional Bias, and Coherence. SFD-related sections below are marked as deprecated but preserved for historical context.
 
 ## Overview
 

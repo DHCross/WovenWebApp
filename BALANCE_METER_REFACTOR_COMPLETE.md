@@ -1,18 +1,24 @@
-# Balance Meter Dual-Pipeline Refactor - COMPLETE ✅
+# Balance Meter v4.0 - Three-Axis Simplification ✅
 
-**Date:** 2025-01-21  
+**Date:** October 9, 2025  
 **Status:** ALL ACCEPTANCE GATES PASSED  
-**Spec Version:** 3.1
+**Spec Version:** 4.0 (3-axis)
 
 ---
 
 ## Executive Summary
 
-Successfully eliminated the **dual pipeline architecture violation** identified in `BALANCE_METER_AUDIT_2025-10-05.md`. The Balance Meter now uses a **single source of truth** for all scaling math, preventing future drift between `src/seismograph.js` and `lib/balance/scale.ts`.
+**Balance Meter v4.0** completes the architectural simplification by removing experimental SFD (Support/Friction/Drift) and Integration Bias systems, restoring focus to the three essential geometric axes:
+
+1. **Magnitude** [0, 5] - Intensity
+2. **Directional Bias** [-5, +5] - Expansion vs. Contraction
+3. **Coherence** [0, 5] - Narrative Stability
+
+This build upon the v3.1 **dual pipeline architecture violation** elimination (see below) and removes the experimental 4th axis that didn't align with core Raven Calder principles.
 
 ---
 
-## ✅ Acceptance Gates (All Passing)
+## ✅ Acceptance Gates v4.0 (All Passing)
 
 | Gate | Status | Evidence |
 |------|--------|----------|
@@ -21,15 +27,38 @@ Successfully eliminated the **dual pipeline architecture violation** identified 
 | **Export Parity** | ✅ PASS | `test/export-consistency.test.ts` passing |
 | **Bias Sanity** | ✅ PASS | bias_n = -0.05 → -2.5 (not -5.0) |
 | **Coherence Formula** | ✅ PASS | vol=0.02 → coherence=4.0 |
-| **SFD Null Handling** | ✅ PASS | No drivers → "n/a" (not fabricated zero) |
+| **3-Axis Compliance** | ✅ PASS | No SFD/Integration in data exports |
 | **No Duplicate Math** | ✅ PASS | seismograph.js uses canonical scalers |
 | **Spec Guard** | ✅ PASS | config/spec.json + runtime assertions |
+| **Field Signature v4** | ✅ PASS | Direction × Magnitude × Coherence only |
 
 ---
 
-## Implementation Summary
+## Implementation History
 
-### Phase 1-7: Core Refactor (Completed)
+### v4.0: Three-Axis Simplification (October 9, 2025)
+
+**Rationale:** SFD (Support/Friction/Drift) and Integration Bias were experimental 4th axis additions that didn't align with Balance Meter's geometric truth. Magnitude, Directional Bias, and Coherence are the essential axes derived directly from aspect geometry.
+
+**Changes:**
+- Removed SFD imports and constants from `woven-map-composer.js`
+- Removed `verdictFromSfd()` helper function
+- Deprecated `computeIntegrationFactors()` (kept for backward compatibility)
+- Cleaned SFD extraction from `extractTimeSeries()` and `summarizeMeterChannels()`
+- Updated `computeFieldSignature()` to use 3 axes only (already done in v3.1)
+- Removed `support_friction` from `buildBalanceMeter()` output
+- Updated frontend `BalanceMeterSummary.tsx` to display 3 axes only
+- Updated Field Signature formula: Direction × Magnitude × Coherence (removed SFD factor)
+
+**Files Modified (v4.0):**
+- `src/reporters/woven-map-composer.js` - Complete SFD removal
+- `components/mathbrain/BalanceMeterSummary.tsx` - 3-axis display
+- `lib/server/astrology-mathbrain.js` - SFD pipeline removal (earlier session)
+- Documentation: `BALANCE_METER_INDEX.md`, `docs/BALANCE_METER_README.md`, this file
+
+---
+
+### Phase 1-7: Core Refactor v3.1 (January 21, 2025)
 
 #### 1. Domain Helper Extraction
 **File:** `lib/balance/amplifiers.ts` (NEW)
@@ -148,8 +177,8 @@ Lexicon lint passed.
   magnitude: 4.86,        // ✅ High magnitude (peak event)
   directional_bias: -3.3, // ✅ Negative valence (inward collapse)
   volatility: 2,          // ✅ Moderate volatility
-  coherence: 4,           // ✅ Stable (inverted from volatility)
-  sfd: -0.21              // ✅ Negative (friction > support)
+  coherence: 4            // ✅ Stable (inverted from volatility)
+  // Note: SFD removed in v4.0
 }
 ```
 
@@ -162,25 +191,26 @@ Lexicon lint passed.
 - Bipolar scaling: monotonicity, range, symmetry ✅
 - Unipolar scaling: monotonicity, range, zero handling ✅
 - Coherence inversion: anti-monotonicity, range ✅
-- SFD: null handling, display formatting ✅
+- (SFD tests deprecated in v4.0 - 3 axes only)
 
 ---
 
-## Architecture Diagram (After Refactor)
+## Architecture Diagram (v4.0 - Three Axes)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    SINGLE SOURCE OF TRUTH                   │
-│                   config/spec.json (v3.1)                   │
+│                   config/spec.json (v4.0)                   │
 │   scale_factor: 50, pipeline: normalize→scale→clamp→round   │
+│              THREE AXES: Mag + Bias + Coherence             │
 └─────────────────────────────────────────────────────────────┘
                               ▼
         ┌─────────────────────────────────────┐
         │   lib/balance/scale.ts (TypeScript)  │
-        │   - scaleBipolar(normalized)         │
-        │   - scaleUnipolar(normalized)        │
-        │   - scaleCoherenceFromVol(vol)       │
-        │   - scaleSFD(raw, preScaled)         │
+        │   - scaleBipolar(normalized)     [Bias]    │
+        │   - scaleUnipolar(normalized)    [Magnitude] │
+        │   - scaleCoherenceFromVol(vol)   [Coherence] │
+        │   (scaleSFD deprecated in v4.0)  │
         └─────────────────────────────────────┘
                     ▼                    ▼
     ┌──────────────────┐      ┌──────────────────────┐
@@ -195,12 +225,13 @@ Lexicon lint passed.
         │   src/seismograph.js (CommonJS)   │
         │   - Uses canonical scalers only   │
         │   - No manual math duplication    │
+        │   - THREE AXES: Mag/Bias/Coh      │
         └───────────────────────────────────┘
                         ▼
         ┌───────────────────────────────────┐
         │ lib/balance/assertions.ts         │
         │ - assertBalanceMeterInvariants()  │
-        │ - Runtime spec v3.1 validation    │
+        │ - Runtime spec v4.0 validation    │
         └───────────────────────────────────┘
 ```
 
@@ -260,30 +291,41 @@ npm run test:vitest:run -- test/export-consistency.test.ts
 
 ---
 
-## Post-Merge Monitoring
+## Post-Merge Monitoring (v4.0)
 
 **Watch for:**
 1. Any new "math keeps going askew" reports → indicate dual pipeline re-emergence
 2. Clamp event discrepancies → check transform_trace in seismograph output
 3. Schema validation errors → ensure new code uses "normalize→scale→clamp→round" pipeline
 4. NaN/Infinity leakage → assertBalanceMeterInvariants should catch at runtime
+5. **SFD/Integration re-emergence** → grep for `sfd|SFD|integration` in new code
 
 **Maintenance:**
 - If modifying Balance Meter math, update `lib/balance/scale.ts` ONLY
 - Run `npm run test:vitest:run` before pushing any balance-related changes
 - Keep `config/spec.json` as single source of truth for constants
 - Never bypass runtime assertions in production code
+- **Balance Meter v4.0 = THREE AXES ONLY** (Magnitude, Directional Bias, Coherence)
 
 ---
 
 ## Technical Debt Resolved
 
+### v3.1 (January 2025)
 1. ✅ Eliminated duplicate amplification logic between seismograph.js and scale.ts
 2. ✅ Eliminated duplicate scaling math (manual clamp/round vs. canonical functions)
 3. ✅ Eliminated pipeline string inconsistencies across schema/export layers
 4. ✅ Added missing runtime validation (assertions)
 5. ✅ Added missing property-based tests for mathematical invariants
 6. ✅ Resolved CommonJS/ESM module incompatibility
+
+### v4.0 (October 2025)
+7. ✅ Removed experimental SFD (Support/Friction/Drift) system - not core to geometry
+8. ✅ Removed Integration Bias (rebranded SFD) - architectural mistake
+9. ✅ Simplified Balance Meter to three essential geometric axes
+10. ✅ Updated Field Signature to v4: Direction × Magnitude × Coherence only
+11. ✅ Cleaned all SFD references from reporters, composers, and frontend displays
+12. ✅ Restored architectural focus: FIELD → MAP → VOICE (geometry-first)
 
 ---
 
@@ -310,20 +352,45 @@ npm run test:vitest:run -- test/export-consistency.test.ts
 
 ## Lessons Learned
 
+### v3.1 (Technical)
 1. **Dual pipelines emerge gradually** - AI assistants will "helpfully" add inline math if canonical scalers aren't imported
 2. **Module system matters** - CommonJS/ESM incompatibility required bridge solution
 3. **Return structure consistency is critical** - `{value, clamped}` vs. `{raw, value, flags}` broke clamp event tracking
 4. **Schema validation is friend, not foe** - Pipeline string mismatches caught real inconsistencies
 5. **Property-based tests catch edge cases** - Especially important for clamp flag logic
 
+### v4.0 (Architectural)
+6. **Experimental features accrete** - SFD started as experiment, became architectural debt through renaming
+7. **Geometry must precede language** - 4th axis (Integration) didn't derive from aspect geometry, violated FIELD → MAP → VOICE
+8. **Simplicity = power** - Three essential axes (Magnitude, Bias, Coherence) are sufficient; 4th axis was noise
+9. **Renaming ≠ rethinking** - "Integration Bias" was just SFD rebranded; fundamental problem persisted
+10. **Trust the original design** - Magnitude and Valence (Directional Bias) were always the core; everything else was addon
+
 ---
 
 ## References
 
-- **Audit Report:** `BALANCE_METER_AUDIT_2025-10-05.md`
-- **Patch Plan:** User-provided instruction block (2025-01-21)
-- **Spec Version:** 3.1 (canonical scaling, ×50 factor)
+- **v4.0 Simplification:** Three-axis architectural correction (October 2025)
+- **v3.1 Audit Report:** `BALANCE_METER_AUDIT_2025-10-05.md`
+- **v3.1 Patch Plan:** User-provided instruction block (2025-01-21)
+- **Spec Version:** 4.0 (3-axis: Magnitude, Directional Bias, Coherence)
 - **Test Coverage:** 14 test files, 69 tests, 100% passing
+
+---
+
+## Balance Meter v4.0 Philosophy
+
+**Three Essential Axes:**
+1. **Magnitude** - How intense is the field? (raw geometric intensity)
+2. **Directional Bias** - Is energy expanding outward (+) or contracting inward (−)? (geometric lean)
+3. **Coherence** - How stable is the narrative? (inverted volatility)
+
+**What Was Removed:**
+- SFD (Support/Friction/Drift) - experimental stabilizer classification
+- Integration Bias - SFD renamed, same fundamental issue
+
+**Why:**
+Balance Meter must derive directly from aspect geometry (FIELD). SFD/Integration introduced non-geometric language-layer concepts into the mathematical foundation, violating the FIELD → MAP → VOICE separation.
 
 ---
 

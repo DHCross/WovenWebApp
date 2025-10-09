@@ -23,19 +23,15 @@ export type TransformedWeatherData = {
   axes: {
     magnitude: AxisDisplay;
     directional_bias: AxisDisplay;
-    coherence: AxisDisplay;
-    sfd: AxisDisplay;
   };
   labels: {
     magnitude: string;
     directional_bias: string;
-    coherence: string;
   };
   scaling: {
     mode: 'absolute';
     factor: 5;
     pipeline: 'normalize→scale→clamp→round';
-    coherence_inversion: true;
   };
   _raw: RawSeismograph;
 };
