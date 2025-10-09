@@ -1,20 +1,51 @@
-# Balance Meter v4.0 - Three-Axis Simplification ✅
+# Balance Meter Evolution: v3.1 → v4.0 → v5.0
 
-**Date:** October 9, 2025  
-**Status:** ALL ACCEPTANCE GATES PASSED  
-**Spec Version:** 4.0 (3-axis)
+**Current Version:** 5.0 (2-axis geometric purity model)  
+**Status:** ✅ IMPLEMENTATION COMPLETE  
+**Date:** January 2026
 
 ---
 
-## Executive Summary
+## v5.0: Two-Axis Geometric Purity (January 2026)
 
-**Balance Meter v4.0** completes the architectural simplification by removing experimental SFD (Support/Friction/Drift) and Integration Bias systems, restoring focus to the three essential geometric axes:
+**Rationale:** "Math must keep poetry honest." Every public number must trace directly to verifiable aspect geometry. Coherence (inverted volatility) was identified as a meta-derivative from statistical distribution patterns, not pure geometric measurement. See [BALANCE_METER_V5_PROPOSAL.md](BALANCE_METER_V5_PROPOSAL.md) for full philosophical foundation.
 
+**Two Core Axes (v5.0):**
+1. **Magnitude** [0, 5] - Peak activity level from aspect geometry
+2. **Directional Bias** [-5, +5] - Expansion (+) vs. Contraction (−) from polarity sums
+
+**Internal Diagnostics:**
+- **Volatility** [0, 5] - Quality control metric (in `_diagnostics` object)
+
+**Key Changes:**
+- Removed `coherence` and `coherence_normalized` from public seismograph output
+- Moved `volatility` and `volatility_index` to `_diagnostics` nested object
+- Updated `SPEC_VERSION` from '4.0' to '5.0'
+- Updated `SCALE_FACTOR` from 5 to 50 (consolidating previous inconsistency)
+- Changed `axes_count` from 3 to 2 in transform metadata
+- Updated `woven-map-composer.js` comments (data structures already clean)
+- Updated `BalanceMeterSummary.tsx` to v5.0 display (already 2-axis)
+- Removed Field Signature calculation (was 3-factor product, no longer needed)
+
+**Files Modified (v5.0):**
+- `src/seismograph.js` - Core output shape change
+- `lib/balance/constants.js` - Spec version and scale factor
+- `src/reporters/woven-map-composer.js` - Comment updates
+- `components/mathbrain/BalanceMeterSummary.tsx` - Version label
+- Documentation: This file, `BALANCE_METER_INDEX.md`, `docs/BALANCE_METER_README.md`
+
+---
+
+## v4.0: Three-Axis Simplification (October 9, 2025)
+
+**Rationale:** SFD (Support/Friction/Drift) and Integration Bias were experimental 4th axis additions that didn't align with Balance Meter's geometric truth.
+
+**Three Core Axes (v4.0):**
 1. **Magnitude** [0, 5] - Intensity
 2. **Directional Bias** [-5, +5] - Expansion vs. Contraction
-3. **Coherence** [0, 5] - Narrative Stability
+3. **Coherence** [0, 5] - Narrative Stability (later deprecated in v5.0)
 
-This build upon the v3.1 **dual pipeline architecture violation** elimination (see below) and removes the experimental 4th axis that didn't align with core Raven Calder principles.
+This built upon the v3.1 **dual pipeline architecture violation** elimination (see below) and removed the experimental 4th axis that didn't align with core Raven Calder principles.
 
 ---
 

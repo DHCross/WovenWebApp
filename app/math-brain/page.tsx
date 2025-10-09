@@ -5095,7 +5095,6 @@ export default function MathBrainPage() {
                             valence: val,
                             volatility: vol
                           }}
-                          sfd={Number.isNaN(sfd) ? undefined : sfd}
                         />
                       );
                     });

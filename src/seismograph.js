@@ -5,7 +5,9 @@
  * @property {{name?:string, body?:string} | string} [a]      // transit (alt)
  * @property {{name?:string, body?:string} | string} [b]      // natal (alt)
  * @property {{name?:string, body?:string, retrograde?:boolean, deg?:number, sign?:string}} [transit]
- * @property {{name?:string, body?:string, retrograde?:boolean, deg?:number, sign?:string}} [natal]
+ * @property {{name?:string, body?:string, retrograde?:boolean, deg?:number, sign  if (SCALE_FACTOR !== 50){
+    console.warn(`[seismograph.js] SCALE_FACTOR=${SCALE_FACTOR}, expected 50 for v5.0 spec`);
+  }tring}} [natal]
  * @property {string} [type]     // conjunction|square|opposition|trine|sextile
  * @property {string|number} [aspect] // alt for type
  * @property {number|string} [orb]    // degrees or "1°23'"
@@ -317,20 +319,23 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   if (!Array.isArray(aspects) || aspects.length === 0){
     return { 
       magnitude: 0, 
-      directional_bias: prevCtx?.Y_effective ? round(prevCtx.Y_effective,2) : 0, 
-      volatility: 0, 
-      coherence: 5.0,
+      directional_bias: prevCtx?.Y_effective ? round(prevCtx.Y_effective,2) : 0,
+      _diagnostics: {
+        volatility: 0,
+        volatility_normalized: 0,
+        aspect_count: 0
+      },
       scored: [],
       transform_trace: {
         pipeline: 'empty_aspect_array',
-        spec_version: SPEC_VERSION,
+        spec_version: '5.0',
         canonical_scalers_used: true,
+        axes_count: 2,
         clamp_events: []
       },
       magnitude_normalized: 0,
       bias_normalized: 0,
       bias_amplified: 0,
-      coherence_normalized: 0,
       rawMagnitude: 0,
       rawValence: 0,
       originalMagnitude: 0,
@@ -389,10 +394,10 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   const Y_raw = scored.reduce((acc, x) => acc + x.S, 0);
 
   // === MAGNITUDE ===
-  // v4.0: Absolute 0-5 scale with SCALE_FACTOR = 5
-  // Guard: ensure SCALE_FACTOR is correct for v4 spec
-  if (SCALE_FACTOR !== 5) {
-    console.warn(`[seismograph.js] SCALE_FACTOR=${SCALE_FACTOR}, expected 5 for v4.0 spec`);
+  // v5.0: Absolute 0-5 scale with SCALE_FACTOR = 50
+  // Guard: ensure SCALE_FACTOR is correct for v5 spec
+  if (SCALE_FACTOR !== 50) {
+    console.warn(`[seismograph.js] SCALE_FACTOR=${SCALE_FACTOR}, expected 50 for v5.0 spec`);
   }
   
   // FIX [2025-10-08]: Dynamic normalization using rolling context or aspect count
@@ -434,42 +439,48 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   const biasScaled = scaleBipolar(Y_normalized);
   const directional_bias = biasScaled.value;
 
-  // === VOLATILITY & COHERENCE ===
+  // === VOLATILITY (DIAGNOSTIC ONLY - not a public axis in v5.0) ===
   const VI = volatility(scored, prevCtx, opts);
+  // Keep VI_normalized for internal diagnostics, but don't expose coherence as public axis
   const VI_normalized = normalizeVolatilityForCoherence(VI);
-  const coherenceScaled = scaleCoherenceFromVol(VI_normalized);
-  const coherence = coherenceScaled.value;
 
-  // Transform trace for observability
+  // Transform trace for observability (v5.0 - two axes only)
   const transform_trace = {
     pipeline: 'normalize_scale_clamp_round',
-    spec_version: SPEC_VERSION,
+    spec_version: '5.0',
     canonical_scalers_used: true,
+    axes_count: 2, // v5.0: Magnitude + Directional Bias only
     steps: [
       { stage: 'raw', magnitude_energy: X_raw, directional_bias_sum: Y_raw, volatility_index: VI },
       { stage: 'amplified', magnitude_energy: X_raw, directional_bias_sum: Y_amplified, volatility_index: VI },
       { stage: 'normalized', magnitude: magnitudeNormalized, bias: Y_normalized, volatility: VI_normalized },
-      { stage: 'scaled', magnitude: magnitudeScaled.raw, directional_bias: biasScaled.raw, coherence: coherenceScaled.raw },
-      { stage: 'final', magnitude: magnitudeValue, directional_bias, coherence }
+      { stage: 'scaled', magnitude: magnitudeScaled.raw, directional_bias: biasScaled.raw },
+      { stage: 'final', magnitude: magnitudeValue, directional_bias }
     ],
     clamp_events: [
       ...(biasScaled.flags.hitMin || biasScaled.flags.hitMax ? [{ axis: 'directional_bias', raw: biasScaled.raw, clamped: directional_bias }] : []),
-      ...(coherenceScaled.flags.hitMin || coherenceScaled.flags.hitMax ? [{ axis: 'coherence', raw: coherenceScaled.raw, clamped: coherence }] : []),
       ...(magnitudeScaled.flags.hitMin || magnitudeScaled.flags.hitMax ? [{ axis: 'magnitude', raw: magnitudeScaled.raw, clamped: magnitudeValue }] : []),
     ]
   };
 
   const result = {
+    // === PUBLIC AXES (v5.0 - Two Only) ===
     magnitude: magnitudeValue,
     directional_bias,
-    volatility: round(VI, 2),
-    coherence,
+    
+    // === DIAGNOSTIC/INTERNAL (not public axes) ===
+    _diagnostics: {
+      volatility: round(VI, 2),
+      volatility_normalized: VI_normalized,
+      aspect_count: scored.length
+    },
+    
+    // === INTERNAL USE ===
     scored,
     transform_trace,
     magnitude_normalized: magnitudeNormalized,
     bias_normalized: Y_normalized,
     bias_amplified: Y_amplified,
-    coherence_normalized: VI_normalized,
     rawMagnitude: magnitudeScaled.raw,
     rawValence: Y_raw,
     originalMagnitude: magnitudeValue,
@@ -477,8 +488,8 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
 
   assertSeismographInvariants({
     magnitude: result.magnitude,
-    directional_bias: result.directional_bias,
-    coherence: result.coherence
+    directional_bias: result.directional_bias
+    // coherence removed in v5.0
   });
 
   return result;

@@ -100,9 +100,10 @@ function splitPlacements(list) {
 }
 
 /**
- * DEPRECATED: Integration factors are experimental and not part of Balance Meter v4
+ * DEPRECATED: Integration factors are experimental and not part of Balance Meter v5
  * Kept for backward compatibility only - will be removed in future versions
- * Balance Meter v4 = Magnitude + Directional Bias + Coherence (3 axes)
+ * Balance Meter v5 = Magnitude + Directional Bias (2 axes)
+ * Volatility available in _diagnostics for internal use only
  */
 function computeIntegrationFactors(summary, valenceOverride = null) {
   if (!summary) return null;

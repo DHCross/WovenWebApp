@@ -1,6 +1,7 @@
-# 📚 Balance Meter v4.0 Documentation Index
+# 📚 Balance Meter v5.0 Documentation Index
 
 **Quick Links:**
+- [📘 v5.0 Proposal](BALANCE_METER_V5_PROPOSAL.md) - Two-axis simplification rationale
 - [📘 Complete Refactor Details](BALANCE_METER_REFACTOR_COMPLETE.md) - Full implementation documentation
 - [📖 Developer Quick Reference](docs/BALANCE_METER_README.md) - Daily development guide
 - [📝 Changelog Entry](CHANGELOG.md#2025-01-21-critical-fix-balance-meter-dual-pipeline-elimination-v31) - Executive summary
@@ -10,6 +11,7 @@
 - [📦 Historical Audit](docs/archive/BALANCE_METER_AUDIT_2025-10-05.md) - Original problem diagnosis (now resolved)
 - [🗄️ Legacy Scripts](scripts/archive/README.md) - 16 ad-hoc test scripts (replaced by formal suite)
 - [🗄️ SFD System](docs/archive/) - Support/Friction/Drift experimental system (deprecated in v4.0)
+- [🗄️ Coherence](docs/archive/) - Statistical volatility inverse (deprecated in v5.0 - moved to _diagnostics)
 
 ---
 
@@ -34,14 +36,15 @@ Read in this order:
 
 ---
 
-## Status: ✅ Complete
+## Status: ✅ v5.0 Complete
 
-- **Tests:** 69/69 passing
+- **Tests:** Pending update for v5.0
 - **Lexicon:** Clean
 - **Architecture:** Single source of truth enforced
-- **Documentation:** Consolidated
+- **Documentation:** Updated to v5.0
 - **Legacy Files:** Archived
-- **Core Axes:** 3 (Magnitude, Directional Bias, Coherence)
+- **Core Axes:** 2 (Magnitude, Directional Bias)
+- **Internal Diagnostics:** Volatility (in _diagnostics object)
 
-**Date:** October 9, 2025  
-**Spec Version:** 4.0 (3-axis simplification)
+**Date:** January 2026  
+**Spec Version:** 5.0 (2-axis geometric purity model)

@@ -61,7 +61,8 @@ export default function BalanceMeterSummary({
     }
   };
 
-  // Field Signature removed per Balance Meter v5 - keeping only Magnitude and Directional Bias
+  // Balance Meter v5.0: Two axes only (Magnitude + Directional Bias)
+  // Volatility moved to _diagnostics for internal use only
 
   return (
     <section
@@ -252,7 +253,7 @@ export default function BalanceMeterSummary({
       <div className="mt-6 border-t border-slate-600 pt-4 text-xs text-slate-400">
         <div className="flex items-center justify-between">
           <span>This summary reflects the overall pattern across {totalDays} days of symbolic weather tracking.</span>
-          <span className="text-slate-500">Balance Meter v1.3</span>
+          <span className="text-slate-500">Balance Meter v5.0</span>
         </div>
       </div>
     </section>

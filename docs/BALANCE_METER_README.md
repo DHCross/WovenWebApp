@@ -1,45 +1,53 @@
 # Balance Meter Documentation Hub
 
-**Spec Version:** 4.0  
-**Last Updated:** October 9, 2025  
+**Spec Version:** 5.0  
+**Last Updated:** January 2026  
 **Status:** ✅ Production Ready
 
 ---
 
 ## Overview
 
-The **Balance Meter** (also called "Symbolic Weather Seismograph") is the mathematical core of the Raven Calder system. It transforms raw astrological aspect geometry into three quantified axes that represent the energetic climate of a day.
+The **Balance Meter** (also called "Symbolic Weather Seismograph") is the mathematical core of the Raven Calder system. It transforms raw astrological aspect geometry into two quantified axes that represent the energetic climate of a day.
 
-### Three Core Axes (v4.0)
+### Two Core Axes (v5.0)
 
 | Axis | Range | Formula | Interpretation |
 |:-----|:------|:--------|:---------------|
 | **Magnitude** | [0, 5] | `norm × 50 → clamp([0, 5])` | Peak activity level (intensity) |
 | **Directional Bias** | [-5, +5] | `norm × 50 → clamp([-5, +5])` | Expansion (+) vs contraction (−) |
-| **Coherence** | [0, 5] | `(5 - vol_norm × 50) → clamp([0, 5])` | Narrative stability (inverted volatility) |
 
-**Note:** SFD (Support/Friction/Drift) and Integration Bias were experimental 4th axis concepts deprecated in v4.0. Balance Meter now focuses on the three essential geometric axes only.
+### Internal Diagnostics Only
+
+| Metric | Range | Purpose |
+|:-------|:------|:--------|
+| **Volatility** | [0, 5] | Quality control metric (in `_diagnostics` object) |
+
+**v5.0 Philosophy:** Every public number must trace directly to verifiable aspect geometry. Coherence (inverted volatility) was a meta-derivative from statistical distribution, not pure geometry, so it was moved to internal diagnostics.
+
+**Deprecated Systems:**
+- **v4.0:** Coherence axis (statistical meta-derivative, now in `_diagnostics`)
+- **v3.x:** SFD (Support/Friction/Drift) and Integration Bias (experimental 4th axis)
 
 ---
 
 ## Architecture (Single Source of Truth)
 
 ```
-config/spec.json (v4.0 constants)
+lib/balance/constants.js (v5.0 spec: SCALE_FACTOR=50, SPEC_VERSION='5.0')
     ↓
 lib/balance/scale.ts (canonical scalers)
     ├─→ scaleBipolar(normalized)      [Directional Bias]
-    ├─→ scaleUnipolar(normalized)     [Magnitude]
-    └─→ scaleCoherenceFromVol(volatility_norm) [Coherence]
+    └─→ scaleUnipolar(normalized)     [Magnitude]
     ↓
 lib/balance/scale-bridge.js (CommonJS wrapper)
     ↓
-src/seismograph.js (uses canonical scalers)
+src/seismograph.js (core calculation + volatility diagnostics)
     ↓
 lib/balance/assertions.ts (runtime validation)
 ```
 
-**Key Principle:** All scaling math lives in `lib/balance/scale.ts`. No duplicate implementations allowed. Balance Meter v4.0 uses three core axes only.
+**Key Principle:** All scaling math lives in `lib/balance/scale.ts`. No duplicate implementations allowed. Balance Meter v5.0 uses two core axes only. Volatility is calculated but stored in `_diagnostics` for internal quality control.
 
 ---
 
