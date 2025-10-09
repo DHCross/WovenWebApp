@@ -68,10 +68,10 @@ describe('Seismograph magnitude saturation fix', () => {
     const r3 = aggregate(day3);
     const r4 = aggregate(day4);
 
-    console.log('Day 1:', { mag: r1.magnitude, bias: r1.directional_bias, coh: r1.coherence });
-    console.log('Day 2:', { mag: r2.magnitude, bias: r2.directional_bias, coh: r2.coherence });
-    console.log('Day 3:', { mag: r3.magnitude, bias: r3.directional_bias, coh: r3.coherence });
-    console.log('Day 4:', { mag: r4.magnitude, bias: r4.directional_bias, coh: r4.coherence });
+      console.log('Day 1:', { mag: r1.magnitude, bias: r1.directional_bias });
+      console.log('Day 2:', { mag: r2.magnitude, bias: r2.directional_bias });
+      console.log('Day 3:', { mag: r3.magnitude, bias: r3.directional_bias });
+      console.log('Day 4:', { mag: r4.magnitude, bias: r4.directional_bias });
 
     // After fix, not all days should be exactly 5.0
     const magnitudes = [r1.magnitude, r2.magnitude, r3.magnitude, r4.magnitude];

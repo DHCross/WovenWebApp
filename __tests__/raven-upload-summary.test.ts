@@ -7,23 +7,23 @@ describe('summariseUploadedReportJson', () => {
       report_kind: 'Relational Balance Meter',
       generated_at: '2025-10-08T20:43:48.754Z',
       daily_readings: [
-        {
-          date: '2025-10-08',
-          magnitude: 5,
-          directional_bias: -5,
-          coherence: 3.3,
+          {
+            date: '2025-10-08',
+            magnitude: 5,
+            directional_bias: -5,
+            // coherence: 3.3, // v5.0: removed
         },
         {
           date: '2025-10-09',
           magnitude: 5,
           directional_bias: -5,
-          coherence: 3.2,
+            // coherence: 3.2, // v5.0: removed
         },
         {
           date: '2025-10-10',
           magnitude: 5,
           directional_bias: -5,
-          coherence: 2.3,
+            // coherence: 2.3, // v5.0: removed
         }
       ],
       symbolic_weather_context: {
@@ -32,7 +32,7 @@ describe('summariseUploadedReportJson', () => {
           magnitude_label: 'Threshold',
           bias_signed: -5,
           valence_label: 'Maximum Inward',
-          coherence: 3.3,
+            // coherence: 3.3, // v5.0: removed
           volatility_label: 'Mixed Paths',
           bias_motion: 'Peak contraction; boundaries enforced strongly',
         },
@@ -53,7 +53,7 @@ describe('summariseUploadedReportJson', () => {
     expect(summary?.draft.appendix?.period_end).toBe('2025-10-10');
     expect(summary?.draft.appendix?.magnitude).toBe(5);
     expect(summary?.draft.appendix?.directional_bias).toBe(-5);
-    expect(summary?.draft.appendix?.coherence).toBeCloseTo(3.3);
+      // expect(summary?.draft.appendix?.coherence).toBeCloseTo(3.3); // v5.0: removed
     expect(summary?.draft.container).toContain('Daily coverage is continuous');
     expect(summary?.highlight).toContain('Daily coverage is continuous from 2025-10-08 to 2025-10-10');
   });
@@ -72,7 +72,7 @@ describe('summariseUploadedReportJson', () => {
           magnitude_label: 'Strong',
           bias_signed: -2,
           valence_label: 'Pulling Inward',
-          coherence: 2.5,
+              // coherence: 2.5, // v5.0: removed
           volatility_label: 'Variable',
         },
         transit_context: {
@@ -112,7 +112,7 @@ describe('summariseUploadedReportJson', () => {
           magnitude_label: 'Strong',
           bias_signed: -1.6,
           valence_label: 'Pulling Inward',
-          coherence: 3.0,
+              // coherence: 3.0, // v5.0: removed
           volatility_label: 'Variable',
         },
         transit_context: {
