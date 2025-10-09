@@ -128,13 +128,14 @@ export function assertSeismographInvariants(seismo: {
 }
 
 /**
- * Assert display ranges for v5.0 two-axis model
+ * Assert display ranges for v5.0 two-axis model (with optional coherence for backward compatibility)
  */
 export function assertDisplayRanges(params: {
   mag: number;
   bias: number;
+  coh?: number;
 }): void {
-  const { mag, bias } = params;
+  const { mag, bias, coh } = params;
 
   if (mag < 0 || mag > 5) {
     throw new BalanceMeterInvariantViolation(`Magnitude out of range: ${mag}`, { value: mag });
@@ -142,5 +143,44 @@ export function assertDisplayRanges(params: {
 
   if (bias < -5 || bias > 5) {
     throw new BalanceMeterInvariantViolation(`Directional bias out of range: ${bias}`, { value: bias });
+  }
+
+  // Optional coherence check for backward compatibility with v3.1 code
+  if (coh !== undefined && (coh < 0 || coh > 5)) {
+    throw new BalanceMeterInvariantViolation(`Coherence out of range: ${coh}`, { value: coh });
+  }
+}
+
+/**
+ * Assert that coherence hasn't been double-inverted from volatility.
+ * 
+ * This function checks for a common error where volatility is inverted twice,
+ * resulting in coherence and volatility summing to approximately 5.
+ * 
+ * Used for backward compatibility with v3.1 three-axis model.
+ * 
+ * @param volDisplay - Volatility display value
+ * @param cohDisplay - Coherence display value
+ * @throws {BalanceMeterInvariantViolation} If double inversion is detected
+ */
+export function assertNotDoubleInverted(volDisplay: number, cohDisplay: number): void {
+  // Skip check if either value is non-finite
+  if (!Number.isFinite(volDisplay) || !Number.isFinite(cohDisplay)) {
+    return;
+  }
+
+  // Skip check if volatility is very small (normalization worked correctly)
+  if (Math.abs(volDisplay) <= 1) {
+    return;
+  }
+
+  // Check if coherence is suspiciously close to (5 - volatility)
+  // This would indicate double inversion
+  const sum = volDisplay + cohDisplay;
+  if (Math.abs(sum - 5) < 0.05) {
+    throw new BalanceMeterInvariantViolation(
+      `Coherence double-inversion detected (vol=${volDisplay}, coh=${cohDisplay})`,
+      { volatility_display: volDisplay, coherence_display: cohDisplay }
+    );
   }
 }
