@@ -443,6 +443,10 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   const VI = volatility(scored, prevCtx, opts);
   // Keep VI_normalized for internal diagnostics, but don't expose coherence as public axis
   const VI_normalized = normalizeVolatilityForCoherence(VI);
+  const volatility_scaled = Math.max(
+    0,
+    Math.min(SCALE_FACTOR, normalizeVolatilityForCoherence(VI) * SCALE_FACTOR)
+  );
 
   // Transform trace for observability (v5.0 - two axes only)
   const transform_trace = {
@@ -482,6 +486,8 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     bias_normalized: Y_normalized,
     bias_amplified: Y_amplified,
     rawMagnitude: magnitudeScaled.raw,
+    rawDirectionalBias: biasScaled.raw,
+    volatility_scaled,
     rawValence: Y_raw,
     originalMagnitude: magnitudeValue,
   };
