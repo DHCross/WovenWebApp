@@ -653,6 +653,11 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     // === PUBLIC AXES (v5.0 - Two Only) ===
     magnitude: magnitudeValue,
     directional_bias,
+    axes: {
+      magnitude: { value: magnitudeValue, normalized: magnitudeNormalized, scaled: magnitudeScaled.raw, raw: X_raw },
+      directional_bias: { value: directional_bias, normalized: Y_normalized, scaled: biasScaled.raw, raw: Y_raw },
+      volatility: { value: volatility_scaled, normalized: VI_normalized, scaled: volatility_scaled, raw: VI }
+    },
 
     // === DIAGNOSTIC/INTERNAL (not public axes) ===
     _diagnostics: {

@@ -1531,20 +1531,15 @@ export function createFrontStageResult(rawResult: any) {
 
   if (allowBalancePipeline && rawResult?.person_a?.summary) {
     const summary = rawResult.person_a.summary;
-    const rawMag = toNumber(summary.magnitude, 'magnitude', summary);
-    const rawVal = toNumber(
-      summary.directional_bias?.value,
-      'directional_bias',
-      summary
-    );
-    const rawVol = toNumber(summary.volatility, 'volatility', summary);
+    // Always extract from axes block if present (canonical calibrated values)
+    const axes = summary.axes || {};
+    const mag = toNumber(axes.magnitude, 'magnitude', axes) ?? toNumber(summary.magnitude, 'magnitude', summary);
+    const bias = toNumber(axes.directional_bias, 'directional_bias', axes) ?? toNumber(summary.directional_bias?.value, 'directional_bias', summary);
+    const vol = toNumber(axes.volatility, 'volatility', axes) ?? toNumber(summary.volatility, 'volatility', summary);
 
-    const normalizedMag =
-      rawMag !== undefined ? normalizeToFrontStage(rawMag, 'magnitude') : undefined;
-    const normalizedBias =
-      rawVal !== undefined ? normalizeToFrontStage(rawVal, 'directional_bias') : undefined;
-    const normalizedVol =
-      rawVol !== undefined ? normalizeToFrontStage(rawVol, 'volatility') : undefined;
+    const normalizedMag = mag !== undefined ? normalizeToFrontStage(mag, 'magnitude') : undefined;
+    const normalizedBias = bias !== undefined ? normalizeToFrontStage(bias, 'directional_bias') : undefined;
+    const normalizedVol = vol !== undefined ? normalizeToFrontStage(vol, 'volatility') : undefined;
 
     frontStageResult.balance_meter = {
       magnitude: normalizedMag,
