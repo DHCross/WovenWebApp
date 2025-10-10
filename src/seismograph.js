@@ -266,64 +266,142 @@ function volatility(scoredToday, prevCtx=null, opts=DEFAULTS){
 } 
 
 // ---------- Rolling magnitude normalization with fallback scaling ----------
-function normalizeWithRollingWindow(magnitude, rollingContext = null, opts = DEFAULTS) {
+function normalizeWithRollingWindow(magnitude, rollingContext = null, opts = DEFAULTS, diagnosticMode = false) {
   // System prior from original spec (X = min(5, X_raw/divisor)), i.e., a "typical" day
   const X_prior = opts.magnitudeDivisor;
   const epsilon = 1e-6;
-  
+
   if (!rollingContext || !rollingContext.magnitudes || rollingContext.magnitudes.length < 1) {
     // No context at all, use original magnitude
+    if (diagnosticMode) {
+      logDiagnostics({
+        step: 'ROLLING_WINDOW_MISSING',
+        warning: 'No rolling context provided - using raw magnitude',
+        magnitude_raw: magnitude,
+        magnitude_returned: magnitude,
+        fallback_divisor: X_prior
+      }, { label: 'ROLLING_WINDOW', enableDiagnostics: true });
+    }
     return magnitude;
   }
-  
+
   const { magnitudes } = rollingContext;
   const n = magnitudes.length;
-  
+
   // Calculate blend weight: λ = n/14 (cap to [0,1])
   const lambda = Math.min(1, n / 14);
-  
+
   let X_ref;
-  
+  let windowMethod;
+
   if (n >= 14) {
     // Full window: use median of last 14 days
     const sorted = [...magnitudes].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
-    X_ref = sorted.length % 2 === 0 ? 
-      (sorted[mid - 1] + sorted[mid]) / 2 : 
+    X_ref = sorted.length % 2 === 0 ?
+      (sorted[mid - 1] + sorted[mid]) / 2 :
       sorted[mid];
+    windowMethod = 'full_window_median';
   } else if (n >= 2) {
     // Thin slice: blend available median with system prior
     const sorted = [...magnitudes].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
-    const median_available = sorted.length % 2 === 0 ? 
-      (sorted[mid - 1] + sorted[mid]) / 2 : 
+    const median_available = sorted.length % 2 === 0 ?
+      (sorted[mid - 1] + sorted[mid]) / 2 :
       sorted[mid];
-    
+
     X_ref = lambda * median_available + (1 - lambda) * X_prior;
+    windowMethod = 'partial_window_blend';
   } else {
     // n = 1: use system prior
     X_ref = X_prior;
+    windowMethod = 'single_day_prior';
   }
-  
+
   // Ensure X_ref is not too small to avoid division issues
   if (X_ref < epsilon) X_ref = X_prior;
-  
+
   // Apply magnitude formula: magnitude = clip(5 * X_raw / (X_ref * 1.6), 0, 10)
   const normalized = Math.max(0, Math.min(10, 5 * magnitude / (X_ref * 1.6)));
-  
+
+  // === DIAGNOSTIC LOGGING ===
+  if (diagnosticMode) {
+    logDiagnostics({
+      step: 'ROLLING_WINDOW_NORMALIZATION',
+      method: windowMethod,
+      window_size: n,
+      window_contents: magnitudes,
+      window_stats: {
+        min: Math.min(...magnitudes),
+        max: Math.max(...magnitudes),
+        avg: magnitudes.reduce((a, b) => a + b, 0) / n
+      },
+      calculation: {
+        magnitude_raw: magnitude,
+        X_prior: X_prior,
+        X_ref: X_ref,
+        lambda: lambda,
+        normalized: normalized,
+        formula: `clip(5 * ${magnitude} / (${X_ref} * 1.6), 0, 10) = ${normalized}`
+      },
+      warning: X_ref === X_prior ? 'Using fallback divisor (X_ref too small or n=1)' : null
+    }, { label: 'ROLLING_WINDOW', enableDiagnostics: true });
+  }
+
   return normalized;
+}
+
+// ---------- Diagnostic Logger ----------
+function logDiagnostics(data, options = {}) {
+  if (!options.enableDiagnostics) return;
+
+  const label = options.label || 'DIAGNOSTIC';
+  const prefix = `[${label}]`;
+
+  if (options.table) {
+    /* eslint-disable-next-line no-console */
+    console.table(data);
+  } else {
+    /* eslint-disable-next-line no-console */
+    console.log(prefix, JSON.stringify(data, null, 2));
+  }
 }
 
 // ---------- main aggregate ----------
 function aggregate(aspects = [], prevCtx = null, options = {}){
+  const diagnosticMode = options.enableDiagnostics || false;
+
+  // === STEP 1: Aspect Input Validation ===
+  if (diagnosticMode) {
+    logDiagnostics({
+      step: 'ASPECT_INPUT_VALIDATION',
+      received_count: aspects.length,
+      is_array: Array.isArray(aspects),
+      has_prev_context: !!prevCtx,
+      sample_aspects: aspects.slice(0, 3).map(a => ({
+        transit: nameOf(a?.transit) || nameOf(a?.a),
+        natal: nameOf(a?.natal) || nameOf(a?.b),
+        type: a?.type || a?.aspect,
+        orb: a?.orb ?? a?.orbit
+      }))
+    }, { label: 'INPUT', enableDiagnostics: true });
+  }
+
   if (!Array.isArray(aspects) || aspects.length === 0){
-    return { 
-      magnitude: 0, 
+    if (diagnosticMode) {
+      logDiagnostics({
+        step: 'EMPTY_ASPECT_ARRAY',
+        warning: 'No aspects provided - returning zero values'
+      }, { label: 'WARNING', enableDiagnostics: true });
+    }
+    return {
+      magnitude: 0,
       directional_bias: prevCtx?.Y_effective ? round(prevCtx.Y_effective,2) : 0,
       _diagnostics: {
         volatility: 0,
         volatility_normalized: 0,
-        aspect_count: 0
+        aspect_count: 0,
+        warnings: ['empty_aspect_array']
       },
       scored: [],
       transform_trace: {
@@ -339,6 +417,8 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
       rawMagnitude: 0,
       rawValence: 0,
       originalMagnitude: 0,
+      energyMagnitude: 0,
+      biasEnergy: 0,
     };
   }
   const opts = { ...DEFAULTS, ...options };
@@ -348,15 +428,69 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     critical: false
   }));
 
+  // === STEP 2: Aspect Scoring & Filtering Diagnostics ===
+  if (diagnosticMode) {
+    const scoredSample = scored.slice(0, 5).map(a => ({
+      transit: a.transit.body,
+      natal: a.natal.body,
+      type: a.type,
+      orbDeg: round(a.orbDeg, 2),
+      S_initial: round(a.S, 3)
+    }));
+
+    logDiagnostics({
+      step: 'ASPECT_SCORING',
+      total_aspects: scored.length,
+      score_distribution: {
+        positive: scored.filter(a => a.S > 0).length,
+        negative: scored.filter(a => a.S < 0).length,
+        near_zero: scored.filter(a => Math.abs(a.S) < 0.1).length
+      },
+      score_range: {
+        min: Math.min(...scored.map(a => a.S)),
+        max: Math.max(...scored.map(a => a.S)),
+        avg: scored.reduce((sum, a) => sum + a.S, 0) / scored.length
+      },
+      sample_scored_aspects: scoredSample
+    }, { label: 'SCORING', enableDiagnostics: true });
+  }
+
   // Apply geometry amplification before normalization
   scored.forEach(a => {
+    const S_before = a.S;
     a.S = applyGeometryAmplification(a.S, {
       type: a.type,
       orbDeg: a.orbDeg,
       p1: a.transit.body,
       p2: a.natal.body
     });
+
+    // Log amplification for diagnostic mode
+    if (diagnosticMode && Math.abs(a.S - S_before) > 0.01) {
+      a._amplification = {
+        before: round(S_before, 3),
+        after: round(a.S, 3),
+        factor: round(a.S / S_before, 3)
+      };
+    }
   });
+
+  // === STEP 3: Geometry Amplification Diagnostics ===
+  if (diagnosticMode) {
+    const amplified = scored.filter(a => a._amplification);
+    if (amplified.length > 0) {
+      logDiagnostics({
+        step: 'GEOMETRY_AMPLIFICATION',
+        amplified_count: amplified.length,
+        total_count: scored.length,
+        samples: amplified.slice(0, 5).map(a => ({
+          aspect: `${a.transit.body} ${a.type} ${a.natal.body}`,
+          orb: round(a.orbDeg, 2),
+          ...a._amplification
+        }))
+      }, { label: 'AMPLIFICATION', enableDiagnostics: true });
+    }
+  }
 
   // Supportive cap in crisis - v2, more specific trigger
   const hardOuterHits = scored.filter(a => {
@@ -397,6 +531,7 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   // v5.0: Absolute 0-5 scale with SCALE_FACTOR = 50
   // Guard: ensure SCALE_FACTOR is correct for v5 spec
   if (SCALE_FACTOR !== 50) {
+    /* eslint-disable-next-line no-console */
     console.warn(`[seismograph.js] SCALE_FACTOR=${SCALE_FACTOR}, expected 50 for v5.0 spec`);
   }
   
@@ -413,7 +548,7 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   // Strategy 1: Use rolling window if available (preferred)
   if (rollingContext && rollingContext.magnitudes && rollingContext.magnitudes.length >= 2) {
     // Dynamic normalization based on recent magnitude history
-    const normalizedViaDynamic = normalizeWithRollingWindow(X_raw, rollingContext, opts);
+    const normalizedViaDynamic = normalizeWithRollingWindow(X_raw, rollingContext, opts, diagnosticMode);
     // normalizeWithRollingWindow returns a 0-10 scaled value, convert to 0-1 for scaleUnipolar
     magnitudeNormalized = normalizedViaDynamic / 10;
     scalingMethod = `rolling_window_n${rollingContext.magnitudes.length}`;
@@ -429,15 +564,62 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     // Strategy 3: Static divisor (original spec behavior for solo charts)
     magnitudeNormalized = Math.min(1, X_raw / effectiveDivisor);
   }
-  
+
+  // === STEP 4: Magnitude Normalization Diagnostics ===
+  if (diagnosticMode) {
+    logDiagnostics({
+      step: 'MAGNITUDE_NORMALIZATION',
+      scaling_method: scalingMethod,
+      aspect_count: aspectCount,
+      raw_values: {
+        X_raw: round(X_raw, 3),
+        Y_raw: round(Y_raw, 3)
+      },
+      normalization: {
+        effective_divisor: round(effectiveDivisor, 2),
+        magnitude_normalized: round(magnitudeNormalized, 4),
+        formula: `min(1, ${round(X_raw, 2)} / ${round(effectiveDivisor, 2)}) = ${round(magnitudeNormalized, 4)}`
+      }
+    }, { label: 'MAGNITUDE_NORM', enableDiagnostics: true });
+  }
+
   const magnitudeScaled = scaleUnipolar(magnitudeNormalized);
   const magnitudeValue = magnitudeScaled.value;
 
   // === DIRECTIONAL BIAS ===
   const Y_amplified = amplifyByMagnitude(Y_raw, magnitudeValue);
-  const Y_normalized = normalizeAmplifiedBias(Y_amplified);
+  const Y_normalized = normalizeAmplifiedBias(Y_amplified, {
+    energy: X_raw,
+    aspectCount
+  });
   const biasScaled = scaleBipolar(Y_normalized);
   const directional_bias = biasScaled.value;
+
+  // === STEP 5: Bias Normalization & Clamping Diagnostics ===
+  if (diagnosticMode) {
+    logDiagnostics({
+      step: 'BIAS_NORMALIZATION',
+      pipeline: 'raw → amplified → normalized → scaled → clamped',
+      values: {
+        Y_raw: round(Y_raw, 3),
+        Y_amplified: round(Y_amplified, 3),
+        Y_normalized: round(Y_normalized, 4),
+        bias_scaled_raw: round(biasScaled.raw, 3),
+        directional_bias_final: round(directional_bias, 2)
+      },
+      amplification: {
+        magnitude_value: round(magnitudeValue, 2),
+        amplification_factor: round(Y_amplified / (Y_raw || 1), 3)
+      },
+      clamping: {
+        hit_min: biasScaled.flags.hitMin,
+        hit_max: biasScaled.flags.hitMax,
+        was_clamped: biasScaled.flags.hitMin || biasScaled.flags.hitMax,
+        clamped_amount: biasScaled.flags.hitMin || biasScaled.flags.hitMax ?
+          round(Math.abs(biasScaled.raw - directional_bias), 3) : 0
+      }
+    }, { label: 'BIAS_NORM', enableDiagnostics: true });
+  }
 
   // === VOLATILITY (DIAGNOSTIC ONLY - not a public axis in v5.0) ===
   const VI = volatility(scored, prevCtx, opts);
@@ -471,14 +653,16 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     // === PUBLIC AXES (v5.0 - Two Only) ===
     magnitude: magnitudeValue,
     directional_bias,
-    
+
     // === DIAGNOSTIC/INTERNAL (not public axes) ===
     _diagnostics: {
       volatility: round(VI, 2),
       volatility_normalized: VI_normalized,
-      aspect_count: scored.length
+      aspect_count: scored.length,
+      scaling_method: scalingMethod,
+      effective_divisor: effectiveDivisor
     },
-    
+
     // === INTERNAL USE ===
     scored,
     transform_trace,
@@ -490,7 +674,43 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     volatility_scaled,
     rawValence: Y_raw,
     originalMagnitude: magnitudeValue,
+    energyMagnitude: X_raw,
+    biasEnergy: Y_raw,
   };
+
+  // === STEP 6: Final Summary Diagnostics ===
+  if (diagnosticMode) {
+    const clampWarnings = [];
+    if (magnitudeScaled.flags.hitMin || magnitudeScaled.flags.hitMax) {
+      clampWarnings.push(`MAGNITUDE clamped: raw=${round(magnitudeScaled.raw, 2)} → final=${round(magnitudeValue, 2)}`);
+    }
+    if (biasScaled.flags.hitMin || biasScaled.flags.hitMax) {
+      clampWarnings.push(`BIAS clamped: raw=${round(biasScaled.raw, 2)} → final=${round(directional_bias, 2)}`);
+    }
+
+    const variabilityCheck = {
+      magnitude_at_boundary: magnitudeValue === 0 || magnitudeValue === 5,
+      bias_at_boundary: directional_bias === -5 || directional_bias === 5,
+      potential_stuck_values: (magnitudeValue === 0 || magnitudeValue === 5) &&
+                               (directional_bias === -5 || directional_bias === 5)
+    };
+
+    logDiagnostics({
+      step: 'FINAL_SUMMARY',
+      public_axes: {
+        magnitude: round(magnitudeValue, 2),
+        directional_bias: round(directional_bias, 2)
+      },
+      raw_to_final_comparison: {
+        magnitude: `${round(X_raw, 2)} → norm:${round(magnitudeNormalized, 3)} → scaled:${round(magnitudeScaled.raw, 2)} → final:${round(magnitudeValue, 2)}`,
+        bias: `${round(Y_raw, 2)} → amp:${round(Y_amplified, 2)} → norm:${round(Y_normalized, 3)} → scaled:${round(biasScaled.raw, 2)} → final:${round(directional_bias, 2)}`
+      },
+      clamp_warnings: clampWarnings.length > 0 ? clampWarnings : ['No clamping detected'],
+      variability_check: variabilityCheck,
+      warnings: variabilityCheck.potential_stuck_values ?
+        ['⚠️ VALUES AT BOUNDARIES - Check if stuck at extremes across multiple days'] : []
+    }, { label: 'SUMMARY', enableDiagnostics: true });
+  }
 
   assertSeismographInvariants({
     magnitude: result.magnitude,
