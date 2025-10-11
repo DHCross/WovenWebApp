@@ -1,20 +1,20 @@
 {
   "_format": "symbolic_weather_json",
   "_version": "1.0",
-  "generated_at": "2025-10-11T21:36:00.256Z",
+  "generated_at": "2025-10-11T23:18:13.239Z",
   "person_a": null,
-  "report_kind": "Relational Balance Meter",
+  "report_kind": "Balance Meter",
   "balance_meter_frontstage": null,
   "daily_readings": [
     {
       "date": "2025-10-11",
       "magnitude": 2.9,
-      "directional_bias": -5,
+      "directional_bias": -3.9,
       "volatility": 0,
       "coherence": 5,
       "sfd": null,
       "raw_magnitude": 2.9,
-      "raw_bias_signed": -5,
+      "raw_bias_signed": -3.9,
       "raw_volatility": 0,
       "label": null,
       "notes": null,
@@ -1845,12 +1845,12 @@
     {
       "date": "2025-10-12",
       "magnitude": 2.7,
-      "directional_bias": -5,
+      "directional_bias": -4.2,
       "volatility": 0,
       "coherence": 5,
       "sfd": null,
       "raw_magnitude": 2.7,
-      "raw_bias_signed": -5,
+      "raw_bias_signed": -4.2,
       "raw_volatility": 0,
       "label": null,
       "notes": null,
@@ -10885,12 +10885,12 @@
     {
       "date": "2025-10-17",
       "magnitude": 2.8,
-      "directional_bias": -5,
+      "directional_bias": -4.5,
       "volatility": 0,
       "coherence": 5,
       "sfd": null,
       "raw_magnitude": 2.8,
-      "raw_bias_signed": -5,
+      "raw_bias_signed": -4.5,
       "raw_volatility": 0,
       "label": null,
       "notes": null,
@@ -12539,12 +12539,12 @@
     {
       "date": "2025-10-18",
       "magnitude": 2.4,
-      "directional_bias": -5,
+      "directional_bias": -3.7,
       "volatility": 0,
       "coherence": 5,
       "sfd": null,
       "raw_magnitude": 2.4,
-      "raw_bias_signed": -5,
+      "raw_bias_signed": -3.7,
       "raw_volatility": 0,
       "label": null,
       "notes": null,
@@ -14418,10 +14418,10 @@
   "provenance": {
     "math_brain_version": "0.2.1",
     "ephemeris_source": "AstrologerAPI-v4",
-    "build_ts": "2025-10-11T21:35:51.360Z",
-    "timezone": "America/Chicago",
-    "tz_authority": "relocation_block",
-    "relocation_applied": true,
+    "build_ts": "2025-10-11T23:18:08.197Z",
+    "timezone": "America/New_York",
+    "tz_authority": "natal_record",
+    "relocation_applied": false,
     "tz_conflict": false,
     "geometry_ready": true,
     "calibration_boundary": "2025-09-05",
@@ -14437,16 +14437,10 @@
     "house_system": "Placidus",
     "orbs_profile": "wm-spec-2025-09",
     "timezone_db_version": "IANA (system)",
-    "relocation_mode": "Both_local",
+    "relocation_mode": "none",
     "identity": {
       "person_a": {
         "name": "Dan",
-        "source": "user_provided",
-        "provenance": "user_provided",
-        "confidence": "high"
-      },
-      "person_b": {
-        "name": "Stephie",
         "source": "user_provided",
         "provenance": "user_provided",
         "confidence": "high"
@@ -14454,23 +14448,15 @@
     },
     "relocation_detail": {
       "person_a": {
-        "relocation_mode": "A_local",
-        "relocation_applied": true
-      },
-      "person_b": {
-        "relocation_mode": "B_local",
-        "relocation_applied": true
+        "relocation_mode": "A_natal",
+        "relocation_applied": false
       }
     },
     "relocation_summary": {
-      "relocation_mode": "both_local",
-      "relocation_label": "Panama City, FL",
-      "coords": {
-        "latitude": 30.166666666666668,
-        "longitude": -85.66666666666667,
-        "timezone": "US/Central"
-      },
-      "tz": "US/Central",
+      "relocation_mode": "birthplace",
+      "relocation_label": null,
+      "coords": null,
+      "tz": null,
       "natal_tz": "America/New_York",
       "house_system": null,
       "zodiac_type": null,
@@ -14480,22 +14466,12 @@
       },
       "confidence": "normal"
     },
-    "time_meta_b": {
-      "birth_time_known": true,
-      "time_precision": "exact",
-      "effective_time_used": "18:37"
-    },
     "tz_conflict_reason": null,
     "relocation_frames": {
-      "a": "Both_local",
-      "b": "Both_local"
+      "a": "A_natal",
+      "b": null
     },
-    "houses_disclosure": "Houses recalculated: Both_local",
-    "relocation_coords": {
-      "lat": 30.166666666666668,
-      "lon": -85.66666666666667,
-      "tz": "America/Chicago"
-    }
+    "houses_disclosure": "Houses not recalculated: A_natal"
   },
   "reading_count": 8,
   "symbolic_weather_context": {
@@ -16337,63 +16313,6 @@
       "opposition",
       "Mean_Node",
       "sesquiquadrate"
-    ],
-    "person_b_balance_meter": {
-      "magnitude": {
-        "value": 3.56,
-        "label": "Peak"
-      },
-      "magnitude_label": "Peak",
-      "valence": {
-        "value": null,
-        "raw_value": null,
-        "normalized": null,
-        "label": null,
-        "emoji": null,
-        "polarity": "neutral",
-        "band": null,
-        "code": null,
-        "range": [
-          -5,
-          5
-        ],
-        "version": "v1.1",
-        "sample_size": 8
-      },
-      "valence_bounded": null,
-      "valence_label": null,
-      "valence_code": null,
-      "valence_range": [
-        -5,
-        5
-      ],
-      "valence_version": "v1.1",
-      "valence_raw_unbounded": null,
-      "bias_signed": null,
-      "bias_abs": 0,
-      "bias_direction": "neutral",
-      "bias_label": null,
-      "bias_code": null,
-      "bias_motion": null,
-      "bias_method": "balance_signed_v1",
-      "bias_range": [
-        -5,
-        5
-      ],
-      "volatility": {
-        "value": 2.05,
-        "label": "Mixed Paths",
-        "emoji": "🔀"
-      },
-      "volatility_label": "Mixed Paths",
-      "confidence": 0.25,
-      "confidence_sample_size": 8,
-      "balance_channel": null,
-      "version": {
-        "seismograph": "v4.0",
-        "balance": "v4.0"
-      },
-      "calibration_mode": "v1.1"
-    }
+    ]
   }
 }
