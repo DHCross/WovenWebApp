@@ -207,6 +207,46 @@ Toggle `showScatter={false}` to revert to legacy line plots for comparison.
 
 ---
 
+## Update 3: Missing Import Fix (Synastry Report Error)
+
+### Problem
+
+Synastry reports were failing with error: **"scaleUnipolar is not defined"**
+
+This occurred because `astrology-mathbrain.js` was calling `scaleUnipolar()` and `scaleBipolar()` functions (lines 2627-2629) without importing them.
+
+### Root Cause
+
+When the v5.0 canonical axes block was added to the seismograph output:
+```javascript
+axes: {
+  magnitude: { value: scaleUnipolar(agg.magnitude_normalized).value },
+  directional_bias: { value: scaleBipolar(agg.bias_normalized).value },
+  volatility: { value: scaleUnipolar(agg.volatility_normalized).value }
+}
+```
+
+The import statement was not added to the top of the file.
+
+### Solution
+
+Added missing import to `lib/server/astrology-mathbrain.js`:
+```javascript
+const { scaleUnipolar, scaleBipolar } = require('../balance/scale');
+```
+
+### Impact
+
+- ✅ Synastry reports now generate successfully
+- ✅ Composite reports fixed
+- ✅ All report types can now access canonical scaling functions
+
+### Files Changed
+
+- **`lib/server/astrology-mathbrain.js`** - Added import for `scaleUnipolar` and `scaleBipolar`
+
+---
+
 **Date:** October 11, 2025  
 **Author:** AI Assistant (Cascade)  
 **Reported By:** User (website math issues)
