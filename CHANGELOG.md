@@ -1,3 +1,37 @@
+## [2025-10-11] CRITICAL FIX: Fixed magnitudeAvg undefined error preventing solo mirror reports
+
+**Summary**
+Resolved a critical bug where `resolveChartPreferences` function was referencing undefined variables (`magnitudeAvg`, `magnitudeLabel`, `volatilityAvg`, etc.), causing "magnitudeAvg is not defined" errors when attempting to generate solo mirror reports or any chart requiring the function.
+
+**Root Cause**
+The `resolveChartPreferences` function (line 56) was incorrectly implemented:
+- Referenced variables that exist only in the `calculateSeismograph` function scope
+- Attempted to return undefined `out` variable
+- Function was supposed to extract chart preferences from options, not create a summary
+
+**Files Updated**
+- `lib/server/astrology-mathbrain.js`:
+  - Fixed `resolveChartPreferences` to properly extract chart-specific API parameters (house_system, perspective_type, wheel_only, etc.) from options
+  - Added missing `stripGraphicsDeep` function to recursively remove graphic data from API responses
+
+**Impact**
+- Solo mirror reports now generate successfully
+- Natal chart calls work properly with chart preferences
+- Transit and synastry calculations no longer fail with undefined variable errors
+
+**Verification**
+- `npm test` - Core tests passing (natal, transits, seismograph)
+- Manual test: Solo mirror report generation confirmed working
+- No more "magnitudeAvg is not defined" errors in any code path
+
+**Technical Notes**
+The function now correctly:
+1. Accepts an `options` object parameter
+2. Extracts only chart-related preferences (houses_system_identifier, sidereal_mode, perspective_type, wheel_only, wheel_format, theme, language, active_points, active_aspects)
+3. Returns a clean preferences object for spreading into API payloads
+
+---
+
 ## [2025-10-08] FIX: Align Raven summaries with Math Brain relationship fields
 
 **Summary**
