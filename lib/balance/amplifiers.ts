@@ -39,19 +39,20 @@ export const amplifyByMagnitude = (rawBias: number, magnitude0to5: number): numb
 /**
  * Normalize amplified bias to [-1, +1] typical range.
  *
- * After magnitude amplification, Y_amplified typically ranges from -10 to +10
- * for extreme days. This normalization prepares the value for canonical
- * ×5 scaling to the display range [-5, +5].
+ * After magnitude amplification (0.8-2.8x), Y_amplified typically ranges from
+ * -28 to +28 for extreme days. Dividing by 50 maps this to [-0.56, +0.56],
+ * which scales to [-2.8, +2.8] display range, reserving ±5 for rare peaks.
  * 
  * @param amplifiedBias - Output from amplifyByMagnitude()
- * @returns Normalized bias in [-0.1, +0.1] range
+ * @returns Normalized bias in [-1, +1] range
  */
 export const normalizeAmplifiedBias = (amplifiedBias: number): number => {
   if (!Number.isFinite(amplifiedBias)) {
     return 0;
   }
 
-  const normalized = amplifiedBias / 10;
+  const BIAS_DIVISOR = 50;  // v5.0: Calibrated for post-amplification range
+  const normalized = amplifiedBias / BIAS_DIVISOR;
   if (normalized > 1) return 1;
   if (normalized < -1) return -1;
   return normalized;
@@ -72,6 +73,7 @@ export const normalizeVolatilityForCoherence = (volatilityIndex: number): number
     return 0;
   }
 
-  const normalized = volatilityIndex / 10;
+  const VOLATILITY_DIVISOR = 50;  // v5.0: Match bias divisor for consistency
+  const normalized = volatilityIndex / VOLATILITY_DIVISOR;
   return Math.min(1, Math.max(0, normalized));
 };

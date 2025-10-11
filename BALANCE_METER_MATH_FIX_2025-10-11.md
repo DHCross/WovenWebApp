@@ -247,6 +247,85 @@ const { scaleUnipolar, scaleBipolar } = require('../balance/scale');
 
 ---
 
+## Update 4: Directional Bias Saturation Fix (Critical)
+
+### Problem
+
+**Synastry reports showing all days with `directional_bias: -5`** (maximum saturation)
+
+Example from generated output:
+```json
+"date": "2025-10-11", "directional_bias": -5
+"date": "2025-10-12", "directional_bias": -5
+"date": "2025-10-13", "directional_bias": -5
+```
+
+**All 8 days saturated at -5**, which is statistically impossible for a real field.
+
+### Root Cause
+
+`BIAS_DIVISOR` was **10x too small** after magnitude amplification was introduced:
+
+**JavaScript (`amplifiers.js`):**
+```javascript
+const BIAS_DIVISOR = 10;  // ❌ WAY TOO SMALL!
+```
+
+**TypeScript (`amplifiers.ts`):**
+```typescript
+const normalized = amplifiedBias / 10;  // ❌ Same issue!
+```
+
+### The Math Breakdown
+
+**With BIAS_DIVISOR = 10 (wrong):**
+```
+rawBias = -10
+magnitude = 5.0
+amplified = -10 × (0.8 + 0.4×5) = -28
+normalized = -28 / 10 = -2.8  → clamped to -1.0
+display = -1.0 × 5 = -5  ❌ SATURATED!
+```
+
+**With BIAS_DIVISOR = 50 (correct):**
+```
+amplified = -28
+normalized = -28 / 50 = -0.56
+display = -0.56 × 5 = -2.8  ✅ REASONABLE!
+```
+
+### Solution
+
+Increased `BIAS_DIVISOR` from **10 → 50** in both TypeScript and JavaScript files.
+
+This calibrates the normalization for the post-amplification range:
+- **Typical range:** [-28, +28] after 2.8x amplification
+- **Normalized:** [-0.56, +0.56]
+- **Display:** [-2.8, +2.8] typical, reserving ±5 for extreme peaks
+
+### Verification Results
+
+```
+Low magnitude contractive:   display: -1.20 ✅
+High magnitude contractive:  display: -2.80 ✅ (was -5.00)
+High magnitude expansive:    display: +2.80 ✅ (was +5.00)
+Medium magnitude:            display: -0.90 ✅
+```
+
+### Impact
+
+- ✅ Directional bias now varies realistically across days
+- ✅ Extreme values (±5) reserved for rare peak events
+- ✅ Mid-range values (-3 to +3) accurately represented
+- ✅ Synastry, composite, and solo reports all fixed
+
+### Files Changed
+
+- **`lib/balance/amplifiers.js`** - BIAS_DIVISOR: 10 → 50, VOLATILITY_DIVISOR: 10 → 50
+- **`lib/balance/amplifiers.ts`** - Same changes with inline constant
+
+---
+
 **Date:** October 11, 2025  
 **Author:** AI Assistant (Cascade)  
 **Reported By:** User (website math issues)

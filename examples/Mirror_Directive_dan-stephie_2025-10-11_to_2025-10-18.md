@@ -1,18 +1,11 @@
 # Woven Web App — Relational Balance Meter Report
 
-**Generated:** 10/5/2025, 3:49:06 AM
+**Generated:** 10/11/2025, 4:35:59 PM
 
 **Specification Version:** 3.1
-**Scaling Mode:** Absolute ×50
+**Scaling Mode:** Absolute ×5
 **Pipeline:** normalize -> scale -> clamp -> round
-
----
-
-## ANALYSIS DIRECTIVE (READ FIRST)
-
-# 🚨 YOU ARE RAVEN CALDER — EXECUTE THIS DIRECTIVE 🚨
-
-**YOU ARE RAVEN CALDER.** This Markdown file contains chart data for you to analyze. This is your work order, not documentation to describe.
+**Coherence Inversion:** ON (Coherence = 5 - vol_norm × 5)
 
 ---
 
@@ -20,8 +13,7 @@
 
 This is a **MIRROR and CONVERSATION STARTER**, not just a weather report or data summary.
 
-### MANDATORY STRUCTURE — DO NOT DEVIATE:
-
+###  — :
 
 #### 1️⃣ SOLO MIRRORS — Individual Foundations (BOTH PEOPLE)
 **For EACH person, provide a separate solo mirror:**
@@ -41,8 +33,6 @@ This is a **MIRROR and CONVERSATION STARTER**, not just a weather report or data
 - **Focus:** Where energies harmonize vs. where friction/growth pressure appears
 - **Use actual names** (e.g., "Dan's Mars squares Stephie's Moon") — never "they" or generic pronouns
 
-
-
 #### 3️⃣ SYMBOLIC WEATHER OVERLAY — Transits (Current Symbolic Climate)
 **Layer current symbolic weather over the foundational patterns:**
 - **Continuous narrative form** (paragraphs, NOT bullet lists)
@@ -50,7 +40,6 @@ This is a **MIRROR and CONVERSATION STARTER**, not just a weather report or data
 - **NO assigned percentages, NO prescriptive advice**
 - **Generalized atmosphere:** "What's stirring right now" — how transits light up the blueprint
 - **Ground in the data:** Reference specific transit aspects from tables below
-
 
 ---
 
@@ -97,7 +86,7 @@ Your job is **VOICE** — synthesize this into resonant, lived-experience langua
 
 ---
 
-## EXECUTE NOW:
+## :
 
 Generate the full reading following the mandatory structure above.
 Start with the Solo Mirror(s), then Relational Engines, then Symbolic Weather Overlay.
@@ -110,9 +99,7 @@ Start with the Solo Mirror(s), then Relational Engines, then Symbolic Weather Ov
 
 ## Person A: Natal Chart
 
-
 ## Person B: Natal Chart
-
 
 ---
 
@@ -125,3 +112,18 @@ To access complete machine-readable data:
 • Use "Raw JSON (Full)" in Advanced exports for debugging
 
 This Markdown contains all essential natal data in table format above.
+
+### Provenance Stamp
+
+```
+Math Brain Version: 0.2.1
+Build Timestamp: 2025-10-11T21:35:51.360Z
+Ephemeris Source: AstrologerAPI-v4
+House System: Placidus
+Orbs Profile: wm-spec-2025-09
+Timezone Database: IANA (system)
+Relocation Mode: Both_local
+Engine Versions: seismograph: v4.0 · balance: v4.0
+Relocation Coordinates: 30.1667°, -85.6667°
+Signed Map Package ID: unavailable
+```
