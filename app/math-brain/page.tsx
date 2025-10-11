@@ -563,12 +563,15 @@ function extractWeather(startDate: string, endDate: string, result: any): Weathe
     const balance = dayData?.balance || {};
     const frontStage = dayData?.balance_meter || {};
 
+    // v5.0: directional_bias.value is canonical structure
     const bias = pickFinite(
       frontStage.directional_bias,
+      seismo.directional_bias?.value,
       frontStage.bias_signed,
       frontStage.valence,
       seismo.bias_signed,
       seismo.valence,
+      balance.directional_bias?.value,
       balance.bias_signed
     );
     const mag = pickFinite(
@@ -4721,7 +4724,8 @@ export default function MathBrainPage() {
             Object.values(transitsByDate).forEach((dayData: any) => {
               const seismo = dayData?.seismograph || {};
               const balance = dayData?.balance || {};
-              const bias = Number(seismo.bias_signed ?? balance.bias_signed ?? 0);
+              // v5.0: Use canonical directional_bias structure
+              const bias = Number(seismo.directional_bias?.value ?? seismo.bias_signed ?? balance.directional_bias?.value ?? balance.bias_signed ?? 0);
               const dayMag = Number(seismo.magnitude ?? balance.magnitude ?? 0);
               if (Number.isFinite(bias)) dailyBiasValues.push(bias);
               if (Number.isFinite(dayMag)) dailyMagValues.push(dayMag);
@@ -4801,10 +4805,13 @@ export default function MathBrainPage() {
                     const balance = dayData?.balance || {};
                     const sfd = dayData?.sfd || {};
 
+                    // v5.0: Use canonical directional_bias structure
+                    const biasValue = seismo.directional_bias?.value ?? seismo.bias_signed ?? balance.bias_signed ?? 0;
+
                     return {
                       date,
                       magnitude_0to5: seismo.magnitude ?? balance.magnitude ?? 0,
-                      bias_signed_minus5to5: seismo.bias_signed ?? balance.bias_signed ?? 0,
+                      bias_signed_minus5to5: biasValue,
                       coherence_0to5: seismo.volatility ?? 0,
                       sfd_cont_minus1to1: sfd.sfd_cont ?? 0,
                       schema_version: 'BM-v3',
