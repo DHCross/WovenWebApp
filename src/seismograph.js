@@ -5,9 +5,7 @@
  * @property {{name?:string, body?:string} | string} [a]      // transit (alt)
  * @property {{name?:string, body?:string} | string} [b]      // natal (alt)
  * @property {{name?:string, body?:string, retrograde?:boolean, deg?:number, sign?:string}} [transit]
- * @property {{name?:string, body?:string, retrograde?:boolean, deg?:number, sign  if (SCALE_FACTOR !== 50){
-    console.warn(`[seismograph.js] SCALE_FACTOR=${SCALE_FACTOR}, expected 50 for v5.0 spec`);
-  }tring}} [natal]
+ * @property {{name?:string, body?:string, retrograde?:boolean, deg?:number, sign?:string}} [natal]
  * @property {string} [type]     // conjunction|square|opposition|trine|sextile
  * @property {string|number} [aspect] // alt for type
  * @property {number|string} [orb]    // degrees or "1°23'"
@@ -47,7 +45,7 @@ const PERSONAL = new Set(["Sun","Moon","Mercury","Venus","Mars","ASC","MC","IC",
 const ANGLES = new Set(["ASC","MC","IC","DSC"]);
 
 const DEFAULTS = {
-  magnitudeDivisor: 4,
+  magnitudeDivisor: 8,  // Increased from 4 to account for geometry amplification (1.5-2x boost on tight/outer aspects)
   hubBonusCap: 0.6,
   sameTargetBonusCap: 0.3,
   tightBandDeg: 1.5,
@@ -528,12 +526,9 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   const Y_raw = scored.reduce((acc, x) => acc + x.S, 0);
 
   // === MAGNITUDE ===
-  // v5.0: Absolute 0-5 scale with SCALE_FACTOR = 50
-  // Guard: ensure SCALE_FACTOR is correct for v5 spec
-  if (SCALE_FACTOR !== 50) {
-    /* eslint-disable-next-line no-console */
-    console.warn(`[seismograph.js] SCALE_FACTOR=${SCALE_FACTOR}, expected 50 for v5.0 spec`);
-  }
+  // v5.0: Absolute 0-5 scale with SCALE_FACTOR = 5
+  // Pipeline: normalize → scale (×5) → clamp → round
+  // This puts the full range [0,5] directly in float precision without intermediate factor-10 multiplier
   
   // FIX [2025-10-08]: Dynamic normalization using rolling context or aspect count
   // Prevents saturation in high-aspect-count scenarios (relational charts, transiting aspects)
@@ -552,16 +547,19 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     // normalizeWithRollingWindow returns a 0-10 scaled value, convert to 0-1 for scaleUnipolar
     magnitudeNormalized = normalizedViaDynamic / 10;
     scalingMethod = `rolling_window_n${rollingContext.magnitudes.length}`;
-  } else if (aspectCount > 60) {
-    // Strategy 2: Aspect-count adaptive divisor for relational charts
-    // Solo charts (~30 aspects): divisor = 4
-    // Relational charts (130+ aspects): divisor = 16
-    const relationalFactor = Math.min(4, 1 + (aspectCount - 60) / 23);
-    effectiveDivisor = opts.magnitudeDivisor * relationalFactor;
+  } else if (aspectCount >= 3) {
+    // Strategy 2: Aspect-count adaptive divisor (prevents saturation post-geometry-amplification)
+    // v5.0 Accelerometer: Geometry amplification (up to 2x per aspect) requires aggressive scaling
+    // Formula accounts for compounding geometry boosts on outer-planet/tight aspects
+    // 3-4 aspects: scaleFactor ≈ 2.5-4x (divisor 20-32)
+    // 5-10 aspects: scaleFactor ≈ 4-6x (divisor 32-48)  
+    // 20+ aspects: scaleFactor ≈ 8x+ (divisor 64+)
+    const scaleFactor = Math.min(10, 2 + Math.pow(aspectCount / 5, 1.3));
+    effectiveDivisor = opts.magnitudeDivisor * scaleFactor;
     scalingMethod = `aspect_adaptive_d${effectiveDivisor.toFixed(1)}`;
     magnitudeNormalized = Math.min(1, X_raw / effectiveDivisor);
   } else {
-    // Strategy 3: Static divisor (original spec behavior for solo charts)
+    // Strategy 3: Static divisor (1-2 aspects, very rare)
     magnitudeNormalized = Math.min(1, X_raw / effectiveDivisor);
   }
 
@@ -588,10 +586,7 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
 
   // === DIRECTIONAL BIAS ===
   const Y_amplified = amplifyByMagnitude(Y_raw, magnitudeValue);
-  const Y_normalized = normalizeAmplifiedBias(Y_amplified, {
-    energy: X_raw,
-    aspectCount
-  });
+  const Y_normalized = normalizeAmplifiedBias(Y_amplified);
   const biasScaled = scaleBipolar(Y_normalized);
   const directional_bias = biasScaled.value;
 

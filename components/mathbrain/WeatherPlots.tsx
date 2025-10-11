@@ -2,12 +2,14 @@
 
 import React from 'react';
 import { TransformedWeatherData } from '@/lib/weatherDataTransforms';
+import { AccelerometerScatter } from './AccelerometerScatter';
 
 type WeatherPlotsProps = {
   data: Array<{ date: string; weather: TransformedWeatherData }>;
+  showScatter?: boolean; // Toggle between scatter and line plots
 };
 
-export function WeatherPlots({ data }: WeatherPlotsProps) {
+export function WeatherPlots({ data, showScatter = true }: WeatherPlotsProps) {
   if (!data || data.length === 0) {
     return (
       <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-400">
@@ -16,6 +18,27 @@ export function WeatherPlots({ data }: WeatherPlotsProps) {
     );
   }
 
+  if (showScatter) {
+    // True Accelerometer v5.0: Scatter Plot
+    return (
+      <div className="space-y-4">
+        <AccelerometerScatter data={data} title="Astrological Field Map" />
+        
+        {/* Optional: Add helper text */}
+        <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-3 text-xs text-slate-400">
+          <span className="font-medium">Interpretation Guide:</span>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <div>• <span className="text-slate-300">High Mag / +Bias:</span> Constructive force, breakthroughs</div>
+            <div>• <span className="text-slate-300">High Mag / −Bias:</span> Structural stress, conflict</div>
+            <div>• <span className="text-slate-300">Low Mag / ±Bias:</span> Ambient noise, minor oscillations</div>
+            <div>• <span className="text-slate-300">Clusters:</span> Symbolic weather fronts building/dissipating</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Legacy line plots (fallback)
   const dates = data.map(d => d.date);
   const biases = data.map(d => d.weather.axes.directional_bias.value);
   const magnitudes = data.map(d => d.weather.axes.magnitude.value);
