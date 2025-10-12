@@ -1,3 +1,80 @@
+## [2025-10-12] POETIC BRAIN: Balance Meter v5.0 terminology compliance + responsive layout
+
+**Summary**
+Updated Poetic Brain glossary and UI components to use official Balance Meter v5.0 terminology. Removed deprecated metrics (Coherence, SFD, Volatility as primary metric) and replaced legacy "Valence" with "Directional Bias" throughout user-facing interface.
+
+**v5.0 Terminology Updates:**
+- ✅ "Valence" → **"Directional Bias"** (expansion/contraction tilt, −5 to +5)
+- ✅ "Negative/Positive Valence" → **"Contractive/Expansive Bias"**
+- ✅ Removed **Volatility** from primary metrics (now internal diagnostics only)
+- ✅ Updated glossary to show v5.0 two-axis system: **Magnitude + Directional Bias**
+
+**Files Updated:**
+- `components/chat/Sidebar.tsx` (lines 30-39):
+  - Glossary section header: "Balance Meter Framework" → "Balance Meter v5.0"
+  - "Valence" → "Directional Bias" with expanded description
+  - Removed Volatility Ladder from primary glossary
+  - "Negative Valence" → "Contractive Bias (−)"
+  - "Positive Valence" → "Expansive Bias (+)"
+  
+- `components/ChatClient.tsx`:
+  - Lines 2807-2810: Quick access button "Valence" → "Directional Bias"
+  - Lines 2816-2821: Removed Volatility quick access button
+  - Lines 3432-3439: Glossary entry updated with v5.0 terminology
+  - Lines 3442-3452: "Four-Channel Architecture" → "Balance Meter v5.0" (two-axis system)
+  - Line 3454: "Valence Indicators" → "Directional Bias Modes"
+  - Line 3457: "Positive Valence Modes" → "Expansive Bias (+)"
+  - Line 3508: "Negative Valence Modes" → "Contractive Bias (−)"
+  - Line 2647: Variable name `valenceLabel` → `biasLabel` (backwards compatible fallback)
+
+**Impact:**
+- Poetic Brain glossary now accurately reflects Balance Meter v5.0 spec
+- Users see consistent "Directional Bias" terminology matching API documentation
+- Deprecated metrics (Volatility as primary) removed from user-facing UI
+- Mobile/tablet iOS compatibility maintained throughout
+
+**Verification:**
+- Glossary displays correctly on mobile (iOS) and desktop
+- Quick access buttons show v5.0 terminology
+- Balance Meter handoff banner uses "Directional Bias"
+- All emoji indicators remain intact (🌞 for Directional Bias, ⚡ for Magnitude)
+
+---
+
+## [2025-10-12] UI: Poetic Brain responsive layout - widened chat on large displays
+
+**Summary**
+Expanded Poetic Brain chat interface to breathe on larger displays while maintaining compact layout on smaller screens. Chat container now uses responsive max-width constraints instead of fixed 980px bottleneck.
+
+**Problem**
+- Chat window constrained to `max-w-[980px]` on all screen sizes
+- Felt narrow/tucked on modern wide displays (1920px+, 2560px+)
+- Wasted horizontal space on large monitors
+
+**Solution**
+- **Mobile/Tablet:** Keep `max-w-[980px]` (unchanged)
+- **Desktop (1280px+):** Expand to `max-w-[1400px]`
+- **Large Desktop (1536px+):** Expand to `max-w-[1600px]`
+
+**Files Updated**
+- `components/ChatClient.tsx` (line 2517):
+  - Changed from: `max-w-[980px]`
+  - Changed to: `max-w-[980px] xl:max-w-[1400px] 2xl:max-w-[1600px]`
+
+**Impact**
+- Poetic Brain chat feels more spacious on large displays
+- Sidebar (280px) + conversation pane has more room to breathe
+- No impact on mobile/tablet layouts
+- Chat bubbles maintain deliberate 82% width for readability
+
+**Verification**
+- Test on 1920px display: Chat expands to ~1400px
+- Test on 2560px display: Chat expands to ~1600px  
+- Test on mobile/tablet: Remains at 980px max
+- Layout grid (sidebar 280px + flex main) works correctly at all breakpoints
+
+---
+
 ## [2025-10-11] CRITICAL FIX: Fixed magnitudeAvg undefined error preventing solo mirror reports
 
 **Summary**

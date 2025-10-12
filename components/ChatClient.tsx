@@ -2514,7 +2514,7 @@ export default function ChatClient() {
 
   return (
     <div
-      className="app relative mx-auto flex min-h-screen min-h-[100dvh] h-full w-full max-w-[980px] flex-col overflow-x-hidden"
+      className="app relative mx-auto flex min-h-screen min-h-[100dvh] h-full w-full max-w-[980px] xl:max-w-[1400px] 2xl:max-w-[1600px] flex-col overflow-x-hidden"
       style={{
         margin: "0 auto",
       }}
@@ -2644,7 +2644,7 @@ export default function ChatClient() {
             const magLabel =
               (s as any).magnitudeLabel ||
               (mag !== undefined ? `M${mag}` : "M·");
-            const valLabel = (s as any).valenceLabel || "Valence";
+            const biasLabel = (s as any).directionalBiasLabel || (s as any).valenceLabel || "Directional Bias";
             const volLabel = (s as any).volatilityLabel || "Volatility";
             return (
               <div className="flex items-center gap-2 text-[var(--muted)]">
@@ -2654,7 +2654,7 @@ export default function ChatClient() {
                 <span>•</span>
                 <span className="text-[var(--text)]">{magLabel}</span>
                 <span>·</span>
-                <span>{valLabel}</span>
+                <span>{biasLabel}</span>
                 <span>·</span>
                 <span>{volLabel}</span>
                 <span>•</span>
@@ -2804,20 +2804,10 @@ export default function ChatClient() {
                   setIsSidebarOpen(true);
                 }}
                 className="btn rounded-md border border-[var(--line)] bg-[rgba(255,255,255,0.02)] px-2 py-2 text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--soft)] flex flex-col items-center gap-1"
-                title="View Valence energy direction"
+                title="View Directional Bias (expansion/contraction)"
               >
                 <span className="text-sm">🌞</span>
-                <span>Valence</span>
-              </button>
-              <button
-                onClick={() => {
-                  setIsSidebarOpen(true);
-                }}
-                className="btn rounded-md border border-[var(--line)] bg-[rgba(255,255,255,0.02)] px-2 py-2 text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--soft)] flex flex-col items-center gap-1"
-                title="View Volatility patterns"
-              >
-                <span className="text-sm">🌪</span>
-                <span>Volatility</span>
+                <span>Directional Bias</span>
               </button>
               <button
                 onClick={() => {
@@ -3439,43 +3429,32 @@ function Sidebar({
 
           <GlossaryItem
             symbol="🌞"
-            title="Valence"
-            description="Energy direction & quality"
+            title="Directional Bias"
+            description="Expansion/Contraction tilt (−5 to +5)"
             details={[
-              "🌞 supportive = helping/scaffolding",
-              "🌗 mixed = complex blend",
-              "🌑 restrictive = constraining",
-            ]}
-          />
-
-          <GlossaryItem
-            symbol="🌪"
-            title="Volatility"
-            description="Pressure distribution pattern"
-            details={[
-              "Low = steady, concentrated",
-              "Medium = variable flow",
-              "High = scattered turbulence",
-              "Storm-class = maximum dispersal",
+              "Expansive (+) = growth, ease, opening",
+              "Neutral (0) = balanced field",
+              "Contractive (−) = friction, constraint, compression",
+              "Replaces legacy 'Valence' term (v5.0)",
             ]}
           />
 
           <GlossaryItem
             symbol="🌡️"
-            title="Four-Channel Architecture"
-            description="Complete energetic snapshot"
+            title="Balance Meter v5.0"
+            description="Two-axis symbolic accelerometer"
             details={[
-              "Combines Magnitude + Valence + Volatility",
-              "Creates real-time symbolic weather",
-              "Tracks field conditions over time",
-              "Provides actionable guidance",
+              "Magnitude (0–5): Intensity scale",
+              "Directional Bias (−5 to +5): Expansion/contraction tilt",
+              "Tracks symbolic weather in real-time",
+              "Provides falsifiable pressure diagnostics",
             ]}
           />
 
-          <div style={sectionTitle}>Valence Indicators</div>
+          <div style={sectionTitle}>Directional Bias Modes</div>
 
           <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 8 }}>
-            Positive Valence Modes
+            Expansive Bias (+)
           </div>
           <GlossaryItem
             symbol="🌱"
@@ -3526,7 +3505,7 @@ function Sidebar({
               marginTop: 12,
             }}
           >
-            Negative Valence Modes
+            Contractive Bias (−)
           </div>
           <GlossaryItem
             symbol="🌪"

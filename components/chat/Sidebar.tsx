@@ -27,18 +27,15 @@ export function Sidebar({ onInsert, mobileHidden }: { onInsert:(m:Message)=>void
 function Glossary(){
   return (
     <div>
-  <div style={sectionTitle}>Balance Meter Framework</div>
-  <GlossaryItem symbol={MAGNITUDE_SYMBOL} title="Magnitude" description="Neutral pressure scale (0–5)" details={["0 Trace","1 Pulse","2 Wave","3 Surge","4 Peak","5 Threshold"]} />
-  <GlossaryItem symbol="��🌞" title="Valence" description="Directional tone (neg/pos)" details={["Negative & Positive modes separated","Not moral—just energetic orientation"]} />
-  <GlossaryItem symbol="�" title="Volatility" description="Distribution pattern (0→5)" details={["0 = aligned flow","5 = vortex dispersion","Shape not moral judgment"]} />
+  <div style={sectionTitle}>Balance Meter v5.0</div>
+  <GlossaryItem symbol={MAGNITUDE_SYMBOL} title="Magnitude" description="Intensity scale (0–5)" details={["0 Trace","1 Pulse","2 Wave","3 Surge","4 Peak","5 Threshold","Neutral measurement—not moral judgment"]} />
+  <GlossaryItem symbol="🌞" title="Directional Bias" description="Expansion/Contraction tilt (−5 to +5)" details={["Contractive (−) & Expansive (+) modes","Not moral—just energetic orientation","Replaces legacy 'Valence' term"]} />
   <GlossaryItem symbol="�∠🪐📡♾️" title="Sources of Force" description="Amplifiers & structural factors" details={["Orb · Aspect · Potency · Resonance · Recursion"]} />
-  {DUPLICATE_EMOJI.length>0 && <div style={{fontSize:10,color:'var(--warn)',margin:'4px 0 8px'}}>Overlap note: {DUPLICATE_EMOJI.join(', ')} appears in both valence polarities (spec provided).</div>}
-  <div style={sectionTitle}>Negative Valence</div>
+  {DUPLICATE_EMOJI.length>0 && <div style={{fontSize:10,color:'var(--warn)',margin:'4px 0 8px'}}>Overlap note: {DUPLICATE_EMOJI.join(', ')} appears in both directional modes (spec provided).</div>}
+  <div style={sectionTitle}>Contractive Bias (−)</div>
   {VALENCE_NEGATIVE.map(v => <GlossaryItem key={v.emoji+v.label} symbol={v.emoji} title={v.label} description={v.description||''} />)}
-  <div style={sectionTitle}>Positive Valence</div>
+  <div style={sectionTitle}>Expansive Bias (+)</div>
   {VALENCE_POSITIVE.map(v => <GlossaryItem key={v.emoji+v.label} symbol={v.emoji} title={v.label} description={v.description||''} />)}
-  <div style={sectionTitle}>Volatility Ladder</div>
-  {VOLATILITY_LADDER.map(b => <GlossaryItem key={b.range} symbol={b.emoji} title={`${b.range} ${b.label}`} description={b.felt} />)}
   <div style={sectionTitle}>Sources of Force</div>
   {SOURCES_OF_FORCE.map(s => <GlossaryItem key={s.emoji+s.label} symbol={s.emoji} title={s.label} description={s.description} />)}
   
