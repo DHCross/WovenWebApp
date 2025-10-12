@@ -1,7 +1,7 @@
 {
   "_format": "symbolic_weather_json",
   "_version": "1.0",
-  "generated_at": "2025-10-12T06:56:06.895Z",
+  "generated_at": "2025-10-12T07:22:18.183Z",
   "person_a": {
     "name": "Dan",
     "chart": {
@@ -11720,12 +11720,12 @@
         }
       },
       "provenanceByDate": {
-        "2025-10-12": {
-          "timestamp_utc": "2025-10-12T16:00:00.000Z",
+        "2025-10-16": {
+          "timestamp_utc": "2025-10-16T16:00:00.000Z",
           "timezone": "America/New_York",
           "time_policy": "noon_default",
           "time_precision": "minute",
-          "timestamp_local": "2025-10-12T12:00:00.000-04:00",
+          "timestamp_local": "2025-10-16T12:00:00.000-04:00",
           "coordinates": {
             "lat": 40.0167,
             "lon": -75.3,
@@ -11736,26 +11736,7 @@
           "endpoint": "transit-aspects-data",
           "formation": "city",
           "attempts": 1,
-          "aspect_count": 141,
-          "has_transit_houses": false
-        },
-        "2025-10-13": {
-          "timestamp_utc": "2025-10-13T16:00:00.000Z",
-          "timezone": "America/New_York",
-          "time_policy": "noon_default",
-          "time_precision": "minute",
-          "timestamp_local": "2025-10-13T12:00:00.000-04:00",
-          "coordinates": {
-            "lat": 40.0167,
-            "lon": -75.3,
-            "label": "Panama City, FL"
-          },
-          "location_label": "Panama City, FL",
-          "relocation_mode": "Both_local",
-          "endpoint": "transit-aspects-data",
-          "formation": "city",
-          "attempts": 1,
-          "aspect_count": 130,
+          "aspect_count": 122,
           "has_transit_houses": false
         },
         "2025-10-15": {
@@ -11777,6 +11758,25 @@
           "aspect_count": 122,
           "has_transit_houses": false
         },
+        "2025-10-12": {
+          "timestamp_utc": "2025-10-12T16:00:00.000Z",
+          "timezone": "America/New_York",
+          "time_policy": "noon_default",
+          "time_precision": "minute",
+          "timestamp_local": "2025-10-12T12:00:00.000-04:00",
+          "coordinates": {
+            "lat": 40.0167,
+            "lon": -75.3,
+            "label": "Panama City, FL"
+          },
+          "location_label": "Panama City, FL",
+          "relocation_mode": "Both_local",
+          "endpoint": "transit-aspects-data",
+          "formation": "city",
+          "attempts": 1,
+          "aspect_count": 141,
+          "has_transit_houses": false
+        },
         "2025-10-14": {
           "timestamp_utc": "2025-10-14T16:00:00.000Z",
           "timezone": "America/New_York",
@@ -11796,12 +11796,12 @@
           "aspect_count": 125,
           "has_transit_houses": false
         },
-        "2025-10-16": {
-          "timestamp_utc": "2025-10-16T16:00:00.000Z",
+        "2025-10-13": {
+          "timestamp_utc": "2025-10-13T16:00:00.000Z",
           "timezone": "America/New_York",
           "time_policy": "noon_default",
           "time_precision": "minute",
-          "timestamp_local": "2025-10-16T12:00:00.000-04:00",
+          "timestamp_local": "2025-10-13T12:00:00.000-04:00",
           "coordinates": {
             "lat": 40.0167,
             "lon": -75.3,
@@ -11812,7 +11812,7 @@
           "endpoint": "transit-aspects-data",
           "formation": "city",
           "attempts": 1,
-          "aspect_count": 122,
+          "aspect_count": 130,
           "has_transit_houses": false
         },
         "2025-10-17": {
@@ -13432,7 +13432,7 @@
                   "no_clamp",
                   "round"
                 ],
-                "timestamp": "2025-10-12T06:56:03.860Z"
+                "timestamp": "2025-10-12T07:22:15.640Z"
               },
               "sign": 0,
               "method": "raw_directional_v4"
@@ -15461,7 +15461,7 @@
                   "no_clamp",
                   "round"
                 ],
-                "timestamp": "2025-10-12T06:56:03.860Z"
+                "timestamp": "2025-10-12T07:22:15.640Z"
               },
               "sign": 0,
               "method": "raw_directional_v4"
@@ -17616,7 +17616,7 @@
                   "no_clamp",
                   "round"
                 ],
-                "timestamp": "2025-10-12T06:56:03.861Z"
+                "timestamp": "2025-10-12T07:22:15.640Z"
               },
               "sign": 0,
               "method": "raw_directional_v4"
@@ -19827,7 +19827,7 @@
                   "no_clamp",
                   "round"
                 ],
-                "timestamp": "2025-10-12T06:56:03.861Z"
+                "timestamp": "2025-10-12T07:22:15.641Z"
               },
               "sign": 0,
               "method": "raw_directional_v4"
@@ -22220,7 +22220,7 @@
                   "no_clamp",
                   "round"
                 ],
-                "timestamp": "2025-10-12T06:56:03.861Z"
+                "timestamp": "2025-10-12T07:22:15.641Z"
               },
               "sign": 0,
               "method": "raw_directional_v4"
@@ -24585,7 +24585,7 @@
                   "no_clamp",
                   "round"
                 ],
-                "timestamp": "2025-10-12T06:56:03.861Z"
+                "timestamp": "2025-10-12T07:22:15.641Z"
               },
               "sign": 0,
               "method": "raw_directional_v4"
@@ -26993,12 +26993,12 @@
         }
       },
       "provenanceByDate": {
-        "2025-10-14": {
-          "timestamp_utc": "2025-10-14T17:00:00.000Z",
+        "2025-10-15": {
+          "timestamp_utc": "2025-10-15T17:00:00.000Z",
           "timezone": "America/New_York",
           "time_policy": "noon_default",
           "time_precision": "minute",
-          "timestamp_local": "2025-10-14T12:00:00.000-05:00",
+          "timestamp_local": "2025-10-15T12:00:00.000-05:00",
           "coordinates": {
             "lat": 31.583333333333332,
             "lon": -84.15,
@@ -27009,26 +27009,7 @@
           "endpoint": "transit-aspects-data",
           "formation": "city",
           "attempts": 1,
-          "aspect_count": 148,
-          "has_transit_houses": false
-        },
-        "2025-10-12": {
-          "timestamp_utc": "2025-10-12T17:00:00.000Z",
-          "timezone": "America/New_York",
-          "time_policy": "noon_default",
-          "time_precision": "minute",
-          "timestamp_local": "2025-10-12T12:00:00.000-05:00",
-          "coordinates": {
-            "lat": 31.583333333333332,
-            "lon": -84.15,
-            "label": "Panama City, FL"
-          },
-          "location_label": "Panama City, FL",
-          "relocation_mode": "Both_local",
-          "endpoint": "transit-aspects-data",
-          "formation": "city",
-          "attempts": 1,
-          "aspect_count": 135,
+          "aspect_count": 161,
           "has_transit_houses": false
         },
         "2025-10-13": {
@@ -27050,6 +27031,25 @@
           "aspect_count": 144,
           "has_transit_houses": false
         },
+        "2025-10-14": {
+          "timestamp_utc": "2025-10-14T17:00:00.000Z",
+          "timezone": "America/New_York",
+          "time_policy": "noon_default",
+          "time_precision": "minute",
+          "timestamp_local": "2025-10-14T12:00:00.000-05:00",
+          "coordinates": {
+            "lat": 31.583333333333332,
+            "lon": -84.15,
+            "label": "Panama City, FL"
+          },
+          "location_label": "Panama City, FL",
+          "relocation_mode": "Both_local",
+          "endpoint": "transit-aspects-data",
+          "formation": "city",
+          "attempts": 1,
+          "aspect_count": 148,
+          "has_transit_houses": false
+        },
         "2025-10-16": {
           "timestamp_utc": "2025-10-16T17:00:00.000Z",
           "timezone": "America/New_York",
@@ -27069,12 +27069,12 @@
           "aspect_count": 159,
           "has_transit_houses": false
         },
-        "2025-10-15": {
-          "timestamp_utc": "2025-10-15T17:00:00.000Z",
+        "2025-10-12": {
+          "timestamp_utc": "2025-10-12T17:00:00.000Z",
           "timezone": "America/New_York",
           "time_policy": "noon_default",
           "time_precision": "minute",
-          "timestamp_local": "2025-10-15T12:00:00.000-05:00",
+          "timestamp_local": "2025-10-12T12:00:00.000-05:00",
           "coordinates": {
             "lat": 31.583333333333332,
             "lon": -84.15,
@@ -27085,7 +27085,7 @@
           "endpoint": "transit-aspects-data",
           "formation": "city",
           "attempts": 1,
-          "aspect_count": 161,
+          "aspect_count": 135,
           "has_transit_houses": false
         },
         "2025-10-17": {
@@ -37824,7 +37824,7 @@
   "provenance": {
     "math_brain_version": "0.2.1",
     "ephemeris_source": "AstrologerAPI-v4",
-    "build_ts": "2025-10-12T06:56:01.159Z",
+    "build_ts": "2025-10-12T07:22:13.398Z",
     "timezone": "America/Chicago",
     "tz_authority": "relocation_block",
     "relocation_applied": true,
