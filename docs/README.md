@@ -19,6 +19,23 @@
 ### Recovery & Troubleshooting
 - **[../copilot_fix_recovery.md](../copilot_fix_recovery.md)** - Emergency recovery procedures
 - **[../Lessons Learned for Developer.md](../Lessons Learned for Developer.md)** - Context & IDE integration lessons
+- **[../DEPLOYMENT_TROUBLESHOOTING.md](../DEPLOYMENT_TROUBLESHOOTING.md)** ⚡ - Cache clearing and deployment verification
+
+---
+
+## Balance Meter v5.0 Documentation
+
+### Implementation & Architecture
+- **[../V5_IMPLEMENTATION_SUMMARY.md](../V5_IMPLEMENTATION_SUMMARY.md)** - Executive summary of v5.0 implementation
+- **[../CHANGELOG_v5.0_UNIFIED_DASHBOARD.md](../CHANGELOG_v5.0_UNIFIED_DASHBOARD.md)** - Complete v5.0 changelog with debugging session
+- **[REFACTOR_UNIFIED_NATAL_ARCHITECTURE.md](./REFACTOR_UNIFIED_NATAL_ARCHITECTURE.md)** - Architectural refactor documentation
+
+### Feature Documentation
+- **[UNIFIED_DASHBOARD_GUIDE.md](./UNIFIED_DASHBOARD_GUIDE.md)** - Complete implementation guide for Unified Dashboard
+- **[UNIFIED_DASHBOARD_IMPLEMENTATION_COMPARISON.md](./UNIFIED_DASHBOARD_IMPLEMENTATION_COMPARISON.md)** - Specification vs actual comparison
+
+### Performance & Optimization
+- **[PERFORMANCE_REMEDIATION_PLAN.md](./PERFORMANCE_REMEDIATION_PLAN.md)** ⚡ **NEW** - Lighthouse optimization plan (Score 49→85)
 
 ---
 
@@ -140,7 +157,19 @@ When making changes:
 1. [../CHANGELOG.md](../CHANGELOG.md) - Recent changes and context
 2. [../copilot_fix_recovery.md](../copilot_fix_recovery.md) - Recovery procedures
 3. [../MAINTENANCE_GUIDE.md](../MAINTENANCE_GUIDE.md#error-handling-best-practices) - Error patterns
+4. [../DEPLOYMENT_TROUBLESHOOTING.md](../DEPLOYMENT_TROUBLESHOOTING.md) ⚡ - Cache clearing for refactored code
+
+### I'm working on Balance Meter v5.0
+1. [../V5_IMPLEMENTATION_SUMMARY.md](../V5_IMPLEMENTATION_SUMMARY.md) - Overview of what was built
+2. [UNIFIED_DASHBOARD_GUIDE.md](./UNIFIED_DASHBOARD_GUIDE.md) - Feature implementation details
+3. [../CHANGELOG_v5.0_UNIFIED_DASHBOARD.md](../CHANGELOG_v5.0_UNIFIED_DASHBOARD.md) - Complete changelog
+4. [REFACTOR_UNIFIED_NATAL_ARCHITECTURE.md](./REFACTOR_UNIFIED_NATAL_ARCHITECTURE.md) - Architectural decisions
+
+### I'm optimizing performance
+1. [PERFORMANCE_REMEDIATION_PLAN.md](./PERFORMANCE_REMEDIATION_PLAN.md) ⚡ - Complete optimization strategy
+2. Check Lighthouse score baseline (49) and targets (85)
+3. Follow 4-week timeline for media, bundling, and API optimizations
 
 ---
 
-Last updated: 2025-10-06
+Last updated: 2025-10-12 (v5.0 Post-Refactor)

@@ -465,6 +465,41 @@ All documentation is complete and production-ready:
 
 ---
 
+## ⚡ **Performance Optimization (Future Work)**
+
+### **Current State (Lighthouse Score: 49)**
+- **Time to Interactive:** 16.3s (target: <5s)
+- **Largest Contentful Paint:** 7.6s (target: <2.5s)
+- **Cumulative Layout Shift:** 0.268 (target: <0.1)
+- **Total Payload:** ~6 MB (target: <2 MB)
+
+### **Root Causes**
+1. **5,586-line "use client" page** (`app/math-brain/page.tsx`) eagerly imports all visualizers
+2. **Dual sequential API calls** block interactivity before first paint
+3. **6 MB of PNG artwork** (raven-calder.png: 4.7 MB, woven-map-image.png: 1.2 MB, math-brain.png: 1.0 MB)
+4. **Images without dimensions** cause layout shifts
+5. **Auth0 SDK loads immediately** on homepage mount
+
+### **Remediation Plan**
+📋 **Full details:** `docs/PERFORMANCE_REMEDIATION_PLAN.md`
+
+**Week 1-2 (Critical):**
+- Convert PNG artwork to WebP/AVIF (4-5 MB savings)
+- Gate API calls behind "Generate" button
+- Add width/height to all images
+
+**Week 2-3 (High Priority):**
+- Split Math Brain into server/client components
+- Lazy-load visualizers (EnhancedDailyClimateCard, BalanceMeterSummary, SymbolicSeismograph)
+- Move Auth0 SDK to lazy strategy
+
+**Week 3-4 (Polish):**
+- Fix layout stability issues
+- Add bundle size monitoring
+- Validate final Lighthouse score ≥85
+
+---
+
 ## 📞 Support
 
 **Documentation:**
@@ -473,6 +508,7 @@ All documentation is complete and production-ready:
 - Changelog: `CHANGELOG_v5.0_UNIFIED_DASHBOARD.md`
 - Deployment: `DEPLOYMENT_TROUBLESHOOTING.md`
 - Refactor details: `docs/REFACTOR_UNIFIED_NATAL_ARCHITECTURE.md`
+- Performance plan: `docs/PERFORMANCE_REMEDIATION_PLAN.md` ⚡ **NEW**
 - Summary: `V5_IMPLEMENTATION_SUMMARY.md` (this file)
 
 **Status:** ✅ Production ready with all critical bugs fixed

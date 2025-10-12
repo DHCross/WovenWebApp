@@ -697,17 +697,28 @@ npm run dev
 2. ✅ Test relational balance meter (Person A + B)
 3. ✅ Test synastry report
 4. ✅ Verify Unified Dashboard displays correctly
+5. 🔄 Clear `.next` cache and verify refactored code loads
 
 ### **Short-Term (Next Session)**
 1. Update export transformers to v5.0 format (remove volatility/coherence, add mag_x10/bias_x10)
 2. Add transit_houses to Weather_Log JSON export
 3. Test resumed sessions with new data structure
 
+### **Performance Optimization (Weeks 1-4)**
+**📋 See:** `docs/PERFORMANCE_REMEDIATION_PLAN.md`
+1. Convert 6 MB of PNG artwork to WebP/AVIF (~4-5 MB savings)
+2. Split Math Brain page into server/client components (TTI: 16s → 5s)
+3. Gate dual API calls behind user action
+4. Fix layout stability issues (CLS: 0.268 → <0.1)
+5. Lazy-load Auth0 SDK
+**Target:** Lighthouse score 49 → 85
+
 ### **Long-Term (Future Enhancements)**
 1. Cache natal charts to avoid redundant API calls
 2. Parallel fetch Person A and B for relational reports
 3. Add unit tests for `fetchNatalChartComplete()`
 4. Monitor API success rate for aspect extraction
+5. Add Web Vitals production monitoring
 
 ---
 
