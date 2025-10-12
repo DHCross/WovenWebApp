@@ -72,12 +72,11 @@ export default function SnapshotButton({
       return; // Error message will be shown below
     }
 
-    // *** FIX: The following line was removed. ***
-    // It was causing a re-render that created a race condition,
-    // leading to stale data being sent to the snapshot function.
-    // The snapshot logic creates its own timestamp, so this is not needed.
-    //
-    // onDateChange(new Date().toISOString().slice(0, 10));
+    // FIX: Reset date range to TODAY immediately when button is clicked
+    // This gives visual feedback and ensures snapshot uses current moment
+    const today = new Date().toISOString().slice(0, 10);
+    console.log('[SnapshotButton] Setting date to TODAY:', today);
+    onDateChange(today);
 
     // Get location
     console.log('[SnapshotButton] Requesting location...');
@@ -103,8 +102,8 @@ export default function SnapshotButton({
       setShowLocationInfo(true);
       onSnapshot(snapshotResult.result, snapshotResult.location, snapshotResult.timestamp);
       
-      // We can update the UI date here, after the async operations are complete.
-      onDateChange(snapshotResult.timestamp.toISOString().slice(0, 10));
+      // Date already set to TODAY at the start of handleSnapshot
+      // No need to set it again here
 
     } else {
       console.error('[SnapshotButton] No result or timestamp after snapshot');
