@@ -1254,7 +1254,16 @@ Start with the Solo Mirror(s), then ${
         _format: 'symbolic_weather_json',
         _version: '1.0',
         generated_at: new Date().toISOString(),
-        person_a: result?.person_a?.name || null,
+        person_a: {
+          name: result?.person_a?.details?.name || result?.person_a?.name || null,
+          chart: result?.person_a?.chart || null,
+          aspects: result?.person_a?.aspects || [],
+        },
+        person_b: result?.person_b ? {
+          name: result?.person_b?.details?.name || result?.person_b?.name || null,
+          chart: result?.person_b?.chart || null,
+          aspects: result?.person_b?.aspects || [],
+        } : null,
         report_kind: formatReportKind(reportContractType),
         balance_meter_frontstage: null,
       daily_readings: [],

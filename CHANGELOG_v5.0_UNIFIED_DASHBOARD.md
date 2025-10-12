@@ -361,7 +361,37 @@ for (let i = 0; i < 12; i++) {
 **Fix:** Corrected variable references from `relocationSettings?.mode` to `relocationMode`  
 **Files:** `lib/server/astrology-mathbrain.js` line 4837-4838  
 **Impact:** Critical - broke all synastry/transit calculations  
-**Fixed:** October 12, 2025, 1:30am  
+**Fixed:** October 12, 2025, 1:30am
+
+### Issue #5: Natal Chart Data Not Exported ⚡ CRITICAL
+**Problem:** Weather_Log JSON had `"person_a": null`, causing all calculations to return zero  
+**Root Cause:** Export code only saved name field, not full chart data  
+**Fix:** Updated export transformer to include complete natal chart and aspects  
+**Files:** `app/math-brain/hooks/useChartExport.ts` lines 1257-1266  
+**Impact:** Critical - all Balance Meter readings were zero, no natal aspects available  
+**Fixed:** October 12, 2025, 1:38am
+
+### Issue #6: Missing Natal Aspects in Balance Meter Mode ⚡ CRITICAL
+**Problem:** Balance Meter mode wasn't extracting natal aspects from API response  
+**Root Cause:** Aspects assignment missing in `wantBalanceMeter` code path  
+**Fix:** Added `result.person_a.aspects` extraction at line 4627  
+**Files:** `lib/server/astrology-mathbrain.js` line 4627  
+**Impact:** Critical - no natal aspects = no transit-to-natal calculations = all zeros  
+**Fixed:** October 12, 2025, 1:38am
+
+### Issue #7: Client-Side Cache Preventing Fixes from Loading ⚠️ DEPLOYMENT
+**Problem:** Fixes in source code not appearing in exports after server restart  
+**Root Cause:** Next.js compiled cache (.next/) and browser cache not cleared  
+**Solution:** Nuclear cache clear required:
+```bash
+rm -rf .next
+rm -rf node_modules/.cache
+npm run dev
+# Then hard refresh browser: Cmd+Shift+R (Mac) or Ctrl+Shift+R (Windows)
+```
+**Impact:** All export fixes (#5, #6) won't work until cache cleared  
+**Note:** Client-side hooks (useChartExport.ts) require browser cache clear  
+**Documented:** October 12, 2025, 1:48am
 
 ---
 
