@@ -51,7 +51,7 @@
                 - generic [ref=e49]: Name
                 - textbox "Name" [ref=e50]:
                   - /placeholder: Your Name
-                  - text: Test Subject
+                  - text: Dan
               - generic [ref=e51]:
                 - generic [ref=e52]:
                   - generic [ref=e53]: Year
@@ -262,6 +262,6 @@
                 - generic [ref=e217]:
                   - generic [ref=e218]: "Report:"
                   - generic [ref=e219]: mirror
-              - button "Mapping geometry…" [disabled] [ref=e220]
-  - alert [ref=e231]
+              - button "Prepare Mirror" [ref=e220] [cursor=pointer]
+  - alert [ref=e221]
 ```

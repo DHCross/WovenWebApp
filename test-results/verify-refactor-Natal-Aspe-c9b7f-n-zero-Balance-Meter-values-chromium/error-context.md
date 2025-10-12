@@ -21,7 +21,7 @@
             - generic [ref=e18]: VOICE
             - generic [ref=e19]: Raven handles
       - generic [ref=e21]: "Lens: Natal houses (no relocation)."
-      - link "Back Home" [ref=e23]:
+      - link "Back Home" [ref=e23] [cursor=pointer]:
         - /url: /
       - generic [ref=e24]:
         - generic [ref=e25]:
@@ -51,7 +51,7 @@
                 - generic [ref=e49]: Name
                 - textbox "Name" [ref=e50]:
                   - /placeholder: Your Name
-                  - text: Test Subject
+                  - text: Dan
               - generic [ref=e51]:
                 - generic [ref=e52]:
                   - generic [ref=e53]: Year
@@ -242,8 +242,7 @@
                 - generic [ref=e195]:
                   - generic [ref=e196]: Mode
                   - combobox "Mode" [ref=e197]:
-                    - group:
-                      - option "Natal Only" [selected]
+                    - option "Natal Only" [selected]
                   - paragraph [ref=e198]: Enable “Include Person B” to unlock synastry or composite modes.
                 - paragraph [ref=e199]: Relocation options appear when transits are included.
             - generic [ref=e201]:
@@ -263,6 +262,6 @@
                 - generic [ref=e217]:
                   - generic [ref=e218]: "Report:"
                   - generic [ref=e219]: mirror
-              - button "Mapping geometry…" [disabled] [ref=e220]
-  - alert [ref=e231]
+              - button "Prepare Mirror" [ref=e220] [cursor=pointer]
+  - alert [ref=e221]
 ```
