@@ -9,6 +9,15 @@ function getInternalBaseUrl(): string {
   return `http://127.0.0.1:${port}`;
 }
 
+function coerceAxisValue(axis: any): number | undefined {
+  if (typeof axis === 'number' && Number.isFinite(axis)) return axis;
+  if (!axis || typeof axis !== 'object') return undefined;
+  if (typeof axis.value === 'number' && Number.isFinite(axis.value)) return axis.value;
+  if (typeof axis.raw === 'number' && Number.isFinite(axis.raw)) return axis.raw;
+  if (typeof axis.normalized === 'number' && Number.isFinite(axis.normalized)) return axis.normalized;
+  return undefined;
+}
+
 function extractClimate(payload: any): any {
   if (!payload || typeof payload !== 'object') return null;
   if (payload.climate) return payload.climate;
@@ -20,6 +29,36 @@ function extractClimate(payload: any): any {
       magnitude: balance.magnitude,
       valence: balance.valence_bounded ?? balance.valence,
       volatility: balance.volatility
+    };
+  }
+  const canonical = balance?.channel_summary_canonical || balance?.channel_summary;
+  if (canonical && typeof canonical === 'object') {
+    const axes = canonical.axes || {};
+    const labels = canonical.labels || {};
+    const magnitude = coerceAxisValue(axes.magnitude ?? balance?.magnitude);
+    const valence =
+      coerceAxisValue(axes.directional_bias ?? balance?.directional_bias) ??
+      coerceAxisValue(balance?.valence ?? balance?.bias_signed);
+    const volatility =
+      coerceAxisValue(axes.volatility ?? balance?.volatility) ?? balance?.volatility ?? null;
+
+    const magnitudePart =
+      typeof magnitude === 'number'
+        ? `⚡ ${magnitude.toFixed(1)}${labels?.magnitude ? ` ${labels.magnitude}` : ''}`
+        : labels?.magnitude ?? null;
+    const biasPart =
+      typeof valence === 'number'
+        ? `Bias ${valence > 0 ? '+' : ''}${valence.toFixed(1)}${
+            labels?.directional_bias ? ` ${labels.directional_bias}` : ''
+          }`
+        : labels?.directional_bias ?? null;
+    const lineParts = [magnitudePart, biasPart].filter(Boolean);
+
+    return {
+      line: canonical.line || (lineParts.length ? lineParts.join(' · ') : undefined),
+      magnitude,
+      valence,
+      volatility,
     };
   }
   return null;

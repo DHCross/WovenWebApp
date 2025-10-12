@@ -127,6 +127,20 @@ POST /api/v4/composite-chart
 
 ---
 
+### 🆕 Unified Natal Chart Architecture (v5.0 – Oct 2025)
+
+**Internal Helper**: [`fetchNatalChartComplete()`](../../lib/server/astrology-mathbrain.js#L1996)
+
+- Centralized natal fetch used for every mode (Mirror, Balance, Synastry, Composite)
+- Always returns **chart geometry**, **natal aspects**, **house cusps**, and **chart wheel assets**
+- Replaces 14 legacy fetch paths that diverged between Person A and Person B
+- Fixes Person B aspects missing in relational reports
+- Ensures provenance consistency (same schema for all subjects)
+
+Use this helper instead of calling `BIRTH_CHART` / `NATAL_ASPECTS_DATA` manually in new code.
+
+---
+
 ## 🗂️ **Key Data Models**
 
 ### Subject Model
@@ -252,6 +266,31 @@ const transitPayload = {
 
 ---
 
+### Balance Meter v5.0 Axes (Updated Oct 2025)
+
+| Axis | Range | Definition |
+|------|-------|------------|
+| **Magnitude** | 0 – 5 | Symbolic pressure / field intensity |
+| **Directional Bias** | −5 … +5 | Expansion (+) vs contraction (−) tilt |
+
+Legacy metrics **Coherence** and **SFD** were retired in v5.0; downstream consumers should treat them as deprecated.
+
+```jsonc
+{
+  "seismograph": {
+    "magnitude": 3.4,
+    "magnitude_label": "Surge",
+    "directional_bias": {
+      "value": -1.8,
+      "label": "Contractive",
+      "polarity": "inward"
+    }
+  }
+}
+```
+
+---
+
 ## 🔧 **Configuration in WovenWebApp**
 
 ### API Endpoints Mapping
@@ -335,6 +374,42 @@ const defaultActiveAspects = [
 - Full payload logging for troubleshooting
 - Response validation and error details
 - Performance metrics tracking
+
+---
+
+## 🧪 Automated Testing (Oct 2025)
+
+### API Regression Suite
+
+- **Location**: [`__tests__/api-natal-aspects-refactor.test.js`](../../__tests__/api-natal-aspects-refactor.test.js)
+- **Coverage**:
+  1. Person A natal aspects populated (≈ 76)
+  2. Person B natal aspects populated (≈ 67)
+  3. Both persons yield 12 house cusps via `fetchNatalChartComplete()`
+  4. Synastry payload includes complete relational geometry
+
+```bash
+npx jest __tests__/api-natal-aspects-refactor.test.js
+```
+
+Sample output:
+```
+✅ Person A has 76 natal aspects
+✅ Person B has 67 natal aspects
+✅ Person A has 12 house cusps
+✅ Person B has 12 house cusps
+PASS __tests__/api-natal-aspects-refactor.test.js
+```
+
+### Known Issues Tracker
+
+| Status | Issue | Notes |
+|--------|-------|-------|
+| ✅ Fixed Oct 12 2025 | Person B aspects missing in relational modes | Unified natal fetch |
+| ✅ Fixed Oct 12 2025 | Orb filtering ignored applying aspects | `Math.abs(orb)` enforcement |
+| ✅ Fixed Oct 12 2025 | Balance Meter zeroes (orb dropout) | Orb fix + unified fetch |
+| ⏳ Pending | Legacy Balance Meter exports may still show zeros | Additional QA underway |
+| ⏳ Pending | Composite transits temporarily disabled | Awaiting upstream API stability |
 
 ---
 

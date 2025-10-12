@@ -1,25 +1,17 @@
-# Documentation Index
+# User-Facing Documentation
+
+> **For Developers:** See [../Developers Notes/README.md](../Developers%20Notes/README.md) for complete developer documentation.
+
+---
 
 ## Core Documentation
 
-### Architecture & Philosophy
+### Understanding Raven Calder
 - **[PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md)** - High-level project vision, architecture, and key features
 - **[CLEAR_MIRROR_VOICE.md](./CLEAR_MIRROR_VOICE.md)** - Raven Calder's public-facing voice guide and lexicon conversion
 
-### Development Guides
-- **[../README.md](../README.md)** - Setup instructions and API details
-- **[../MAINTENANCE_GUIDE.md](../MAINTENANCE_GUIDE.md)** - Best practices and operational guidelines
-- **[../CHANGELOG.md](../CHANGELOG.md)** - Complete project history with AI collaboration notes
-
-### Technical Compliance
-- **[../MATH_BRAIN_COMPLIANCE.md](../MATH_BRAIN_COMPLIANCE.md)** - Math Brain technical requirements
-- **[../API_INTEGRATION_GUIDE.md](../API_INTEGRATION_GUIDE.md)** - External API integration patterns
+### User Privacy
 - **[PRIVACY_POLICY.md](./PRIVACY_POLICY.md)** - Data handling commitments for Raven Calder experiences
-
-### Recovery & Troubleshooting
-- **[../copilot_fix_recovery.md](../copilot_fix_recovery.md)** - Emergency recovery procedures
-- **[../Lessons Learned for Developer.md](../Lessons Learned for Developer.md)** - Context & IDE integration lessons
-- **[../DEPLOYMENT_TROUBLESHOOTING.md](../DEPLOYMENT_TROUBLESHOOTING.md)** ⚡ - Cache clearing and deployment verification
 
 ---
 
@@ -41,134 +33,30 @@
 
 ## Quick Reference
 
+### For Content Writers & Marketing
+Start with **[CLEAR_MIRROR_VOICE.md](./CLEAR_MIRROR_VOICE.md)** for the public-facing lexicon and tone.
+
+### For Understanding the System
+Read **[PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md)** for system architecture and philosophy.
+
 ### For Developers
-Start with PROJECT_OVERVIEW.md → README.md → MAINTENANCE_GUIDE.md → PRIVACY_POLICY.md (for data-handling context)
-
-### For Content/Marketing
-Start with CLEAR_MIRROR_VOICE.md for the public-facing lexicon and tone
-
-### For Poetic Brain Development
-Review CLEAR_MIRROR_VOICE.md for the translation framework between Math Brain precision and human-readable reflections
-
-### For AI Assistants
-- Review PROJECT_OVERVIEW.md for system architecture
-- Consult CLEAR_MIRROR_VOICE.md for voice and tone guidelines
-- Check MAINTENANCE_GUIDE.md for coding standards
-- Reference CHANGELOG.md for historical context
+See **[../Developers Notes/README.md](../Developers%20Notes/README.md)** for complete developer documentation.
 
 ---
 
-## Documentation Structure
+## Documentation Map
 
-```
-docs/
-├── PROJECT_OVERVIEW.md        # What the system is and why
-├── CLEAR_MIRROR_VOICE.md      # How to speak to users (Poetic Brain voice)
-└── README.md                  # This file
+### Core Concepts
+- **FIELD → MAP → VOICE**: All Raven Calder output follows this translation protocol
+  1. **FIELD** - Energetic climate (raw symbolic data)
+  2. **MAP** - Archetypal patterns (geometric interpretation)
+  3. **VOICE** - Lived mirror (plain language output)
 
-Root level:
-├── README.md                  # Setup & getting started
-├── MAINTENANCE_GUIDE.md       # Development best practices
-├── CHANGELOG.md               # Project history
-├── MATH_BRAIN_COMPLIANCE.md   # Technical requirements
-└── API_INTEGRATION_GUIDE.md   # API patterns
-```
+### Frontstage vs. Backstage
+- **Frontstage (user-facing)**: No technical jargon, plain conversational language
+- **Backstage (operator-only)**: All geometric calculations and technical terms
 
----
-
-## Document Roles
-
-### PROJECT_OVERVIEW.md
-**Purpose**: Architectural foundation and philosophical principles
-**Audience**: Developers, AI assistants, stakeholders
-**Updates**: When core architecture or philosophy changes
-
-### CLEAR_MIRROR_VOICE.md
-**Purpose**: Raven Calder public voice translation guide
-**Audience**: Content writers, Poetic Brain implementation, marketing
-**Updates**: When lexicon or tone guidelines evolve
-
-### README.md
-**Purpose**: Quick start and setup instructions
-**Audience**: New developers, deployment engineers
-**Updates**: When setup procedures or dependencies change
-
-### MAINTENANCE_GUIDE.md
-**Purpose**: Operational standards and best practices
-**Audience**: Active developers, code reviewers
-**Updates**: When patterns or procedures are established/revised
-
-### CHANGELOG.md
-**Purpose**: Complete historical record with context
-**Audience**: All contributors, especially for understanding "why"
-**Updates**: With every significant change or fix
-
----
-
-## Contributing to Documentation
-
-When making changes:
-
-1. **Update relevant docs** alongside code changes
-2. **Use clear attribution** in CHANGELOG.md for AI-assisted work
-3. **Cross-reference** between documents where appropriate
-4. **Test examples** provided in documentation
-5. **Maintain voice consistency** - technical in dev docs, Clear Mirror in public-facing content
-
----
-
-## Documentation Standards
-
-### Markdown Formatting
-- Use proper headers (# → ##→ ###)
-- Code blocks with language tags
-- Tables for structured data
-- Lists for sequential or grouped items
-
-### Voice & Tone
-- **Technical docs**: Precise, geometry-first, falsifiable
-- **Public-facing**: Clear Mirror voice (see CLEAR_MIRROR_VOICE.md)
-- **Internal notes**: Direct, context-rich, assumption-free
-
-### Code Examples
-- Include context (what file, what function)
-- Show both before/after for changes
-- Highlight gotchas and edge cases
-
----
-
-## Quick Links by Role
-
-### I'm a new developer
-1. [PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md) - Understand the vision
-2. [../README.md](../README.md) - Set up your environment
-3. [../MAINTENANCE_GUIDE.md](../MAINTENANCE_GUIDE.md) - Learn the patterns
-
-### I'm writing user-facing copy
-1. [CLEAR_MIRROR_VOICE.md](./CLEAR_MIRROR_VOICE.md) - Master the lexicon
-2. [PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md#the-poetic-codex) - Understand FIELD→MAP→VOICE
-
-### I'm working on the Poetic Brain
-1. [CLEAR_MIRROR_VOICE.md](./CLEAR_MIRROR_VOICE.md) - Translation framework
-2. [PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md#the-poetic-codex) - Core protocols
-3. [../MAINTENANCE_GUIDE.md](../MAINTENANCE_GUIDE.md) - Integration patterns
-
-### I'm debugging an issue
-1. [../CHANGELOG.md](../CHANGELOG.md) - Recent changes and context
-2. [../copilot_fix_recovery.md](../copilot_fix_recovery.md) - Recovery procedures
-3. [../MAINTENANCE_GUIDE.md](../MAINTENANCE_GUIDE.md#error-handling-best-practices) - Error patterns
-4. [../DEPLOYMENT_TROUBLESHOOTING.md](../DEPLOYMENT_TROUBLESHOOTING.md) ⚡ - Cache clearing for refactored code
-
-### I'm working on Balance Meter v5.0
-1. [../V5_IMPLEMENTATION_SUMMARY.md](../V5_IMPLEMENTATION_SUMMARY.md) - Overview of what was built
-2. [UNIFIED_DASHBOARD_GUIDE.md](./UNIFIED_DASHBOARD_GUIDE.md) - Feature implementation details
-3. [../CHANGELOG_v5.0_UNIFIED_DASHBOARD.md](../CHANGELOG_v5.0_UNIFIED_DASHBOARD.md) - Complete changelog
-4. [REFACTOR_UNIFIED_NATAL_ARCHITECTURE.md](./REFACTOR_UNIFIED_NATAL_ARCHITECTURE.md) - Architectural decisions
-
-### I'm optimizing performance
-1. [PERFORMANCE_REMEDIATION_PLAN.md](./PERFORMANCE_REMEDIATION_PLAN.md) ⚡ - Complete optimization strategy
-2. Check Lighthouse score baseline (49) and targets (85)
-3. Follow 4-week timeline for media, bundling, and API optimizations
+See **[CLEAR_MIRROR_VOICE.md](./CLEAR_MIRROR_VOICE.md)** for complete voice guidelines.
 
 ---
 

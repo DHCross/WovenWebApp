@@ -39,13 +39,11 @@ export const dynamic = "force-dynamic";
 
 type LayerVisibility = {
   balance: boolean;
-  geometries: boolean;
   diagnostics: boolean;
 };
 
 const DEFAULT_LAYER_VISIBILITY: LayerVisibility = Object.freeze({
   balance: false,
-  geometries: false,
   diagnostics: false,
 });
 
@@ -1052,7 +1050,6 @@ export default function MathBrainPage() {
       const parsed = JSON.parse(saved);
       return {
         balance: !!parsed?.balance,
-        geometries: !!parsed?.geometries,
         diagnostics: !!parsed?.diagnostics,
       } as LayerVisibility;
     } catch {
@@ -2962,18 +2959,33 @@ export default function MathBrainPage() {
     };
 
     const summarySource =
+      data?.balance_meter?.channel_summary_canonical ||
       data?.balance_meter?.channel_summary ||
+      data?.person_a?.derived?.seismograph_summary_canonical ||
       data?.person_a?.derived?.seismograph_summary ||
       data?.summary?.balance_meter ||
       null;
 
-    const magnitude = toNumber(summarySource?.magnitude ?? summarySource?.magnitude_value);
-    const valence = toNumber(
-      summarySource?.valence_bounded ?? summarySource?.valence ?? summarySource?.valence_mean,
+    const magnitude = toNumber(
+      (summarySource?.axes?.magnitude ?? summarySource?.magnitude) ??
+        summarySource?.magnitude_value,
     );
-    const volatility = toNumber(summarySource?.volatility);
+    const valence = toNumber(
+      (summarySource?.axes?.directional_bias ??
+        summarySource?.directional_bias ??
+        summarySource?.bias_signed) ??
+        summarySource?.valence_bounded ??
+        summarySource?.valence ??
+        summarySource?.valence_mean,
+    );
+    const volatility = toNumber(
+      (summarySource?.axes?.volatility ?? summarySource?.volatility) ??
+        summarySource?.coherence ??
+        summarySource?.coherence_value,
+    );
     const hasSummary =
-      summarySource && [magnitude, valence, volatility].some((value) => typeof value === 'number');
+      summarySource &&
+      [magnitude, valence, volatility].some((value) => typeof value === 'number');
 
     const hasDailySeries = Boolean(
       data?.person_a?.chart?.transitsByDate &&
@@ -2984,8 +2996,9 @@ export default function MathBrainPage() {
       ? {
           magnitude: typeof magnitude === 'number' ? magnitude : 0,
           valence: typeof valence === 'number' ? valence : 0,
-          volatility: typeof volatility === 'number' ? volatility : 0,
+          volatility: typeof volatility === 'number' ? volatility : undefined,
           magnitudeLabel:
+            summarySource?.labels?.magnitude ??
             summarySource?.magnitude_label ??
             (typeof magnitude === 'number'
               ? magnitude >= 3
@@ -2995,7 +3008,9 @@ export default function MathBrainPage() {
                   : 'Calm'
               : undefined),
           valenceLabel:
+            summarySource?.labels?.directional_bias ??
             summarySource?.valence_label ??
+            summarySource?.bias_label ??
             (typeof valence === 'number'
               ? valence > 0.5
                 ? 'Supportive'
@@ -3004,6 +3019,7 @@ export default function MathBrainPage() {
                   : 'Mixed'
               : undefined),
           volatilityLabel:
+            summarySource?.labels?.volatility ??
             summarySource?.volatility_label ??
             (typeof volatility === 'number'
               ? volatility >= 3
@@ -3194,9 +3210,23 @@ export default function MathBrainPage() {
           ...(typeof magnitude === 'number' ? { magnitude } : {}),
           ...(typeof valence === 'number' ? { valence } : {}),
           ...(typeof volatility === 'number' ? { volatility } : {}),
-          ...(summarySource?.magnitude_label ? { magnitudeLabel: summarySource.magnitude_label } : {}),
-          ...(summarySource?.valence_label ? { valenceLabel: summarySource.valence_label } : {}),
-          ...(summarySource?.volatility_label ? { volatilityLabel: summarySource.volatility_label } : {}),
+          ...(summarySource?.labels?.magnitude
+            ? { magnitudeLabel: summarySource.labels.magnitude }
+            : summarySource?.magnitude_label
+              ? { magnitudeLabel: summarySource.magnitude_label }
+              : {}),
+          ...(summarySource?.labels?.directional_bias
+            ? { valenceLabel: summarySource.labels.directional_bias }
+            : summarySource?.valence_label
+              ? { valenceLabel: summarySource.valence_label }
+              : summarySource?.bias_label
+                ? { valenceLabel: summarySource.bias_label }
+                : {}),
+          ...(summarySource?.labels?.volatility
+            ? { volatilityLabel: summarySource.labels.volatility }
+            : summarySource?.volatility_label
+              ? { volatilityLabel: summarySource.volatility_label }
+              : {}),
         };
       }
       if (includeTransits && startDate && endDate) {
@@ -4607,8 +4637,6 @@ export default function MathBrainPage() {
                 Balance Metrics
               </span>
               <span className="text-slate-600">→</span>
-              <span className={layerVisibility.geometries ? 'text-indigo-200' : 'text-slate-500'}>Key Geometries</span>
-              <span className="text-slate-600">→</span>
               <span className={layerVisibility.diagnostics ? 'text-indigo-200' : (includeTransits ? 'text-slate-500' : 'text-slate-700')}>
                 Full Diagnostics
               </span>
@@ -4642,13 +4670,6 @@ export default function MathBrainPage() {
                   </div>
                 </div>
               )}
-              <button
-                type="button"
-                onClick={() => toggleLayerVisibility('geometries')}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${layerVisibility.geometries ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'border border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800'}`}
-              >
-                {layerVisibility.geometries ? 'Hide Key Geometries' : 'Show Key Geometries'}
-              </button>
               <button
                 type="button"
                 onClick={() => includeTransits ? toggleLayerVisibility('diagnostics') : undefined}
@@ -5196,349 +5217,6 @@ export default function MathBrainPage() {
                 )}
                 </Section>
               </div>
-            );
-          })()}
-          </>)}
-
-          {layerVisibility.geometries && (
-            <>
-          {(() => {
-            const wm = (result as any)?.woven_map;
-            if (!wm?.hook_stack?.hooks?.length) return null;
-            const hooks = wm.hook_stack.hooks || [];
-            return (
-              <Section title="Core Natal Aspects — Key Patterns">
-                <div className="mb-3 text-sm text-slate-400">
-                  {hooks.length} significant patterns from tightest connections
-                  · Coverage: {wm.hook_stack.coverage}
-                </div>
-                {weather.tier1Hooks.length > 0 && (
-                  <div className="mb-4 rounded border border-amber-600/30 bg-amber-900/20 p-3">
-                    <div className="text-xs font-medium text-amber-200 mb-2">Top Activations:</div>
-                    <ul className="space-y-2">
-                      {weather.tier1Hooks.map((hook, i) => (
-                        <li key={i} className="text-sm">
-                          <div className="font-medium text-amber-100">{hook.label}</div>
-                          <div className="text-xs text-amber-200/80">{hook.why}</div>
-                          {hook.houseTag && (
-                            <div className="text-xs text-amber-300 mt-1">
-                              Primary area: {hook.houseTag}
-                            </div>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {weather.tier1Hooks.length === 0 && weather.hasWindow && (
-                  <div className="mb-4 rounded border border-slate-600 bg-slate-900/40 p-3">
-                    <div className="text-sm text-slate-300">No top activations in this window.</div>
-                  </div>
-                )}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {hooks.map((hook: any, i: number) => {
-                    // Helper functions for accessibility
-                    const getStrength = (intensity: number): string => {
-                      if (intensity >= 150) return 'High';
-                      if (intensity >= 80) return 'Medium';
-                      return 'Low';
-                    };
-
-                    const getExactness = (orb: number): string => {
-                      const absOrb = Math.abs(orb);
-                      if (absOrb <= 3) return `Tight (${absOrb.toFixed(1)}°)`;
-                      if (absOrb <= 6) return `Moderate (${absOrb.toFixed(1)}°)`;
-                      return `Wide (${absOrb.toFixed(1)}°)`;
-                    };
-
-                    const getStyleTag = (title: string): string => {
-                      if (title.includes('Challenge') || title.includes('Confrontational')) return 'Challenging';
-                      if (title.includes('Tension') || title.includes('Frustrated')) return 'Tense';
-                      if (title.includes('Opportunity') || title.includes('Flowing')) return 'Supportive';
-                      if (title.includes('Complacent')) return 'Supportive';
-                      return 'Neutral';
-                    };
-
-                    const getFeltSense = (title: string, planets: string[], aspect: string): string => {
-                      // Generate simple one-line descriptions based on aspect patterns
-                      if (title.includes('External Challenge') || title.includes('Polarized')) {
-                        return 'Conversations may bring hidden tensions to the surface, forcing you to face differences of perspective.';
-                      }
-                      if (title.includes('Dynamic Tension') || title.includes('Blocked')) {
-                        return 'Relational or creative needs feel blocked, leading to frustration that eventually sparks growth.';
-                      }
-                      if (title.includes('Flowing Opportunity') || title.includes('Complacent')) {
-                        return 'Ideas and communication flow easily—inspiration comes naturally, though details may slip.';
-                      }
-                      // Default
-                      return 'This pattern shows a recurring symbolic pressure that may feel familiar in daily life.';
-                    };
-
-                    const styleTag = getStyleTag(hook.title);
-                    const strength = getStrength(hook.intensity);
-                    const exactness = getExactness(hook.orb);
-                    const feltSense = getFeltSense(hook.title, hook.planets || [], hook.aspect_type);
-
-                    return (
-                      <div key={i} className="rounded-md border border-amber-600/30 bg-amber-900/20 p-4">
-                        {/* Title and Style Tag */}
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <div className="text-amber-100 font-medium leading-tight mb-1">
-                              {hook.title.split('/')[0].trim()}
-                            </div>
-                            <div className="text-xs text-amber-300/60">
-                              ({styleTag})
-                            </div>
-                          </div>
-                          {hook.is_tier_1 && (
-                            <span className="ml-2 inline-flex items-center rounded bg-amber-600 px-1.5 py-0.5 text-xs font-medium text-amber-100">
-                              T1
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Accessible Metrics */}
-                        <div className="text-xs text-amber-200/80 space-y-1 mb-3">
-                          <div>Strength: {strength} · Exactness: {exactness}</div>
-                          <div className="text-amber-300/60">
-                            Symbol: {hook.planets?.join(' ') || ''} {hook.aspect_type}
-                          </div>
-                        </div>
-
-                        {/* Felt Sense */}
-                        <div className="text-xs text-slate-300 italic pt-2 border-t border-amber-700/30">
-                          <span className="text-amber-300/60 not-italic font-medium">What it feels like: </span>
-                          {feltSense}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="mt-3 text-xs text-slate-400">
-                  These are patterns of symbolic pressure. They don't predict what will happen, but describe moods or themes you may notice.
-                </div>
-              </Section>
-            );
-          })()}
-          {(() => {
-            const wm = (result as any)?.woven_map;
-            if (!wm) return null;
-            const factors = wm.integration_factors || {};
-            const keys: Array<{key: keyof typeof factors, label: string}> = [
-              { key: 'fertile_field' as any, label: 'Fertile Field' },
-              { key: 'harmonic_resonance' as any, label: 'Harmonic Resonance' },
-              { key: 'expansion_lift' as any, label: 'Expansion Lift' },
-              { key: 'combustion_clarity' as any, label: 'Combustion Clarity' },
-              { key: 'liberation_release' as any, label: 'Liberation / Release' },
-              { key: 'integration' as any, label: 'Integration' },
-            ];
-            const ts = Array.isArray(wm.time_series) ? wm.time_series : [];
-            const first = ts[0]?.date; const last = ts[ts.length-1]?.date;
-            return (
-              <Section title="Woven Map (data-only)">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <div className="text-sm text-slate-300">Integration Factors</div>
-                    <div className="mt-2 space-y-2">
-                      {keys.map(({key,label}) => {
-                        const pct = Math.max(0, Math.min(100, Number((factors as any)[key] ?? 0)));
-                        return (
-                          <div key={String(key)}>
-                            <div className="flex items-center justify-between text-xs text-slate-400"><span>{label}</span><span>{pct}%</span></div>
-                            <svg viewBox="0 0 100 6" className="h-1.5 w-full">
-                              <rect x="0" y="0" width="100" height="6" className="fill-slate-700" />
-                              <rect x="0" y="0" width={pct} height="6" className="fill-emerald-500" />
-                            </svg>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-slate-300">Time Series</div>
-                    <div className="mt-2 text-xs text-slate-400">
-                      Entries: {ts.length || 0}{first && last ? ` · ${first} → ${last}` : ''}
-                      {/* Show note if actual range differs from requested */}
-                      {first && last && startDate && endDate && (first !== startDate || last !== endDate) && (
-                        <div className="mt-1 text-xs text-amber-400">
-                          ⚠️ Data range differs from requested {startDate} → {endDate}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Trend Sparklines */}
-                    {ts.length > 1 && (() => {
-                      const createSparkline = (values: number[], maxValue = 5) => {
-                        const chars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
-                        return values.slice(-20).map(val => {
-                          const normalized = Math.max(0, Math.min(1, val / maxValue));
-                          const index = Math.floor(normalized * (chars.length - 1));
-                          return chars[index] || chars[0];
-                        }).join('');
-                      };
-
-                      const createSFDSparkline = (values: number[]) => {
-                        return values.slice(-20).map(val => {
-                          if (val > 10) return '▇';
-                          if (val > 0) return '▅';
-                          if (val === 0) return '▃';
-                          if (val > -10) return '▂';
-                          return '▁';
-                        }).join('');
-                      };
-
-                      const calculateResonanceScore = (sfdA: number[], sfdB: number[]) => {
-                        if (!sfdA || !sfdB || sfdA.length !== sfdB.length) return [];
-                        return sfdA.map((a, i) => Math.abs(a - sfdB[i]) / 20);
-                      };
-
-                      const isRelational = result?.person_b?.chart?.transitsByDate || wm?.type?.includes('synastry') || wm?.type?.includes('composite');
-                      const tsB = wm?.time_series_b || [];
-
-                      const magnitudes = ts.map((r: any) => Number(r.magnitude ?? 0));
-                      const valences = ts.map((r: any) => Number(r.valence_bounded ?? r.valence ?? 0));
-                      const volatilities = ts.map((r: any) => Number(r.volatility ?? 0));
-                      const sfds = ts.map((r: any) => Number(r.sfd ?? 0));
-
-                      let magB: number[] = [], valB: number[] = [], volB: number[] = [], sfdB: number[] = [], resonanceScores: number[] = [];
-
-                      if (isRelational && tsB.length > 0) {
-                        magB = tsB.map((r: any) => Number(r.magnitude ?? 0));
-                        valB = tsB.map((r: any) => Number(r.valence_bounded ?? r.valence ?? 0));
-                        volB = tsB.map((r: any) => Number(r.volatility ?? 0));
-                        sfdB = tsB.map((r: any) => Number(r.sfd ?? 0));
-                        resonanceScores = calculateResonanceScore(sfds, sfdB);
-                      }
-
-                      return (
-                        <div className="mt-3 rounded border border-slate-700 bg-slate-900/40 p-3">
-                          <div className="text-xs font-medium text-slate-300 mb-2">
-                            {isRelational && tsB.length > 0 ? 'Relational Trend Analysis' : 'Trend Analysis'}
-                          </div>
-                          <div className="space-y-2 text-xs">
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-400 w-16">⚡ Mag:</span>
-                              {isRelational && magB.length > 0 ? (
-                                <div className="flex items-center gap-1 font-mono text-sm">
-                                  <span className="text-emerald-400">{createSparkline(magnitudes)}</span>
-                                  <span className="text-slate-600">|</span>
-                                  <span className="text-emerald-300">{createSparkline(magB)}</span>
-                                </div>
-                              ) : (
-                                <span className="font-mono text-emerald-400 text-sm">{createSparkline(magnitudes)}</span>
-                              )}
-                              <span className="text-slate-500 w-12 text-right">
-                                {magnitudes.length > 0 && magnitudes[magnitudes.length - 1] >= 4.5 && sfds[sfds.length - 1] < -50 ? '⚫️' : ''}
-                                {magnitudes.length > 0 && magnitudes[magnitudes.length - 1] >= 4.5 && volatilities[volatilities.length - 1] >= 4.5 ? '🌀' : ''}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-400 w-16">🌕 Val:</span>
-                              {isRelational && valB.length > 0 ? (
-                                <div className="flex items-center gap-1 font-mono text-sm">
-                                  <span className="text-blue-400">{createSparkline(valences.map((v: number) => Math.abs(v)), 5)}</span>
-                                  <span className="text-slate-600">|</span>
-                                  <span className="text-blue-300">{createSparkline(valB.map((v: number) => Math.abs(v)), 5)}</span>
-                                </div>
-                              ) : (
-                                <span className="font-mono text-blue-400 text-sm">{createSparkline(valences.map((v: number) => Math.abs(v)), 5)}</span>
-                              )}
-                              <span className="text-slate-500 w-12 text-right">
-                                {(() => {
-                                  const mag = magnitudes.length > 0 ? magnitudes[magnitudes.length - 1] : 0;
-                                  const vol = volatilities.length > 0 ? volatilities[volatilities.length - 1] : 0;
-                                  const sfd = sfds.length > 0 ? sfds[sfds.length - 1] : 0;
-
-                                  if (mag >= 2 && mag <= 4 && vol < 2 && sfd > 50) return '💧';
-                                  return '';
-                                })()}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-400 w-16">🔀 Vol:</span>
-                              {isRelational && volB.length > 0 ? (
-                                <div className="flex items-center gap-1 font-mono text-sm">
-                                  <span className="text-amber-400">{createSparkline(volatilities)}</span>
-                                  <span className="text-slate-600">|</span>
-                                  <span className="text-amber-300">{createSparkline(volB)}</span>
-                                </div>
-                              ) : (
-                                <span className="font-mono text-amber-400 text-sm">{createSparkline(volatilities)}</span>
-                              )}
-                              <span className="text-slate-500 w-12 text-right"></span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-400 w-16">SFD:</span>
-                              {isRelational && sfdB.length > 0 ? (
-                                <div className="flex items-center gap-1 font-mono text-sm">
-                                  <span className="text-purple-400">{createSFDSparkline(sfds)}</span>
-                                  <span className="text-slate-600">|</span>
-                                  <span className="text-purple-300">{createSFDSparkline(sfdB)}</span>
-                                </div>
-                              ) : (
-                                <span className="font-mono text-purple-400 text-sm">{createSFDSparkline(sfds)}</span>
-                              )}
-                              <span className="text-slate-500 w-12 text-right">
-                                {sfds.length > 1 && ((sfds[sfds.length - 2] < 0 && sfds[sfds.length - 1] > 0) || (sfds[sfds.length - 2] > 0 && sfds[sfds.length - 1] < 0)) ? '🌗' : ''}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="mt-2 text-xs text-slate-500">
-                            {isRelational && tsB.length > 0 ? (
-                              <>A | B overlay • Field states: ⚫️ Pressure Point, 🌀 Vortex, 💧 Coherent Flow, 🌗 Field Shift, ◊ High resonance</>
-                            ) : (
-                              <>Field State Markers: ⚫️ Pressure Point, 🌀 Vortex, 💧 Coherent Flow, 🌗 Field Shift</>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    <div className="mt-2 max-h-40 overflow-auto rounded border border-slate-700 bg-slate-900/40 p-2">
-                      <table className="w-full text-xs text-slate-300">
-                        <thead>
-                          <tr className="text-slate-400">
-                            <th className="text-left font-medium">Date</th>
-                            <th className="text-right font-medium">Mag</th>
-                            <th className="text-right font-medium">Val</th>
-                            <th className="text-right font-medium">Vol</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {ts.slice(-10).map((r:any, i:number) => (
-                            <tr key={i}>
-                              <td className="py-0.5 pr-2">{r.date}</td>
-                              <td className="py-0.5 text-right">{Number(r.magnitude ?? 0).toFixed(2)}</td>
-                              <td className="py-0.5 text-right">{Number(r.valence_bounded ?? r.valence ?? 0).toFixed(2)}</td>
-                              <td className="py-0.5 text-right">{Number(r.volatility ?? 0).toFixed(2)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
-                    <div className="text-xs text-slate-400">Natal aspects (A)</div>
-                    <div className="text-lg text-slate-100">{(wm.natal_summary?.major_aspects?.length ?? 0)}</div>
-                  </div>
-                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
-                    <div className="text-xs text-slate-400">Polarity cards (hooks)</div>
-                    <div className="text-lg text-slate-100">{(Array.isArray(wm.polarity_cards) ? wm.polarity_cards.length : 0)}</div>
-                  </div>
-                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
-                    <div className="text-xs text-slate-400">Report type</div>
-                    <div className="text-lg text-slate-100 capitalize">{wm.type || 'solo'}</div>
-                  </div>
-                  <div className="rounded-md border border-slate-700 bg-slate-900/40 p-3 text-center">
-                    <div className="text-xs text-slate-400">Schema</div>
-                    <div className="text-xs text-slate-100">{wm.schema}</div>
-                  </div>
-                </div>
-              </Section>
             );
           })()}
           {(() => {

@@ -125,7 +125,36 @@ Apply before weighting/scoring:
 - Moon rule: +1° when Moon is the pair member
 - Outer→personal: −1° when Jupiter/Saturn/Uranus/Neptune/Pluto aspects Sun/Moon/Mercury/Venus/Mars
 
-Log orbs_profile in provenance.
+⚠️ **Critical Fix · Oct 2025** — Upstream returns negative orbs for applying aspects. Always compare against the cap using the absolute value:
+
+```javascript
+// ❌ Buggy (filtered out every applying aspect)
+if (orb > effectiveCap) dropReason = 'OUT_OF_CAP';
+
+// ✅ Fixed
+if (Math.abs(orb) > effectiveCap) dropReason = 'OUT_OF_CAP';
+```
+
+Without the absolute check, applying aspects (e.g., `orb === -3.2`) were rejected even though the magnitude was well within the cap, causing empty driver lists and Balance Meter zeros.
+
+Log `orbs_profile` and drop reasons in provenance for auditing.
+
+---
+
+### Synastry / Relational Modes — Person B Natal Fix (Oct 2025)
+
+- All relational paths now call [`fetchNatalChartComplete()`](../../lib/server/astrology-mathbrain.js#L1996) for both subjects.
+- Person B receives **full natal aspects** and **house cusps** (previously missing in `SYNASTRY_TRANSITS`).
+- Synastry payload schema now mirrors Person A:
+
+```jsonc
+{
+  "person_a": { "aspects": [...76], "chart": { "house_cusps": [12] } },
+  "person_b": { "aspects": [...67], "chart": { "house_cusps": [12] } }
+}
+```
+
+If you spot empty Person B aspects in future logs, it indicates the unified helper was bypassed—refactor the code path instead of patching the response.
 
 ---
 

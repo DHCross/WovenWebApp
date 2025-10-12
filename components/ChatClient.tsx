@@ -448,6 +448,115 @@ interface StoredMathBrainPayload {
 const MB_LAST_PAYLOAD_KEY = "mb.lastPayload";
 const MB_LAST_PAYLOAD_ACK_KEY = "mb.lastPayloadAck";
 
+interface BalanceMeterSummary {
+  magnitude?: number;
+  magnitudeLabel?: string;
+  directionalBias?: number;
+  directionalBiasLabel?: string;
+  directionalBiasEmoji?: string;
+}
+
+const coerceNumericValue = (value: any): number | undefined => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (!value || typeof value !== "object") return undefined;
+  if (typeof value.value === "number" && Number.isFinite(value.value)) return value.value;
+  if (typeof value.mean === "number" && Number.isFinite(value.mean)) return value.mean;
+  if (typeof value.score === "number" && Number.isFinite(value.score)) return value.score;
+  if (typeof value.raw === "number" && Number.isFinite(value.raw)) return value.raw;
+  return undefined;
+};
+
+const extractBalanceMeterSummary = (balanceMeter: any): BalanceMeterSummary | null => {
+  if (!balanceMeter || typeof balanceMeter !== "object") return null;
+  const canonical = balanceMeter.channel_summary_canonical;
+  const axes =
+    canonical?.axes ??
+    balanceMeter.axes ??
+    null;
+  const labels =
+    canonical?.labels ??
+    balanceMeter.labels ??
+    null;
+
+  const magnitudeAxis =
+    axes?.magnitude ??
+    balanceMeter.magnitude ??
+    balanceMeter.magnitude_axis ??
+    balanceMeter.magnitude_summary;
+
+  const directionalAxis =
+    axes?.directional_bias ??
+    balanceMeter.directional_bias ??
+    balanceMeter.bias_signed ??
+    balanceMeter.valence ??
+    balanceMeter.valence_bounded;
+
+  const magnitude = coerceNumericValue(magnitudeAxis ?? balanceMeter.magnitude_value);
+  const directionalBias = coerceNumericValue(directionalAxis ?? balanceMeter.bias_signed);
+
+  const magnitudeLabel =
+    labels?.magnitude ??
+    balanceMeter.magnitude_label ??
+    balanceMeter.magnitude?.label ??
+    balanceMeter.magnitude?.term ??
+    undefined;
+
+  const directionalBiasLabel =
+    labels?.directional_bias ??
+    balanceMeter.directional_bias?.label ??
+    balanceMeter.valence?.label ??
+    balanceMeter.valence_label ??
+    balanceMeter.bias_label ??
+    undefined;
+
+  const directionalBiasEmoji =
+    balanceMeter.directional_bias?.emoji ??
+    balanceMeter.valence?.emoji ??
+    balanceMeter.bias_emoji ??
+    undefined;
+
+  if (
+    magnitude === undefined &&
+    directionalBias === undefined &&
+    !magnitudeLabel &&
+    !directionalBiasLabel
+  ) {
+    return null;
+  }
+
+  return {
+    magnitude,
+    magnitudeLabel,
+    directionalBias,
+    directionalBiasLabel,
+    directionalBiasEmoji,
+  };
+};
+
+const formatBalanceMeterSummaryLine = (summary: BalanceMeterSummary | null): string | null => {
+  if (!summary) return null;
+  const parts: string[] = [];
+  if (typeof summary.magnitude === "number") {
+    const magPart = summary.magnitudeLabel
+      ? `Magnitude ${summary.magnitude.toFixed(1)} (${summary.magnitudeLabel})`
+      : `Magnitude ${summary.magnitude.toFixed(1)}`;
+    parts.push(magPart);
+  }
+  if (typeof summary.directionalBias === "number") {
+    const biasValue =
+      summary.directionalBias > 0
+        ? `+${summary.directionalBias.toFixed(1)}`
+        : summary.directionalBias.toFixed(1);
+    const label = summary.directionalBiasLabel ? ` (${summary.directionalBiasLabel})` : "";
+    const emoji = summary.directionalBiasEmoji ? `${summary.directionalBiasEmoji} ` : "";
+    parts.push(`${emoji}Directional Bias ${biasValue}${label}`);
+  } else if (summary.directionalBiasLabel) {
+    const emoji = summary.directionalBiasEmoji ? `${summary.directionalBiasEmoji} ` : "";
+    parts.push(`${emoji}${summary.directionalBiasLabel}`);
+  }
+  return parts.length ? parts.join(" · ") : null;
+};
+
 const mapRelocationToPayload = (
   summary: RelocationSummary | null | undefined,
 ): Record<string, any> | undefined => {
@@ -1863,7 +1972,7 @@ export default function ChatClient() {
       }
 
       let relocationSummary: RelocationSummary | null = null;
-      let reportInfo = "";
+      let reportInfo = "Math Brain payload";
       let inferredType: ReportContext["type"] | null = null;
       const typeFromRecord = (() => {
         const contract = record.reportType?.toLowerCase() ?? "";
@@ -1929,26 +2038,13 @@ export default function ChatClient() {
             record.subjects?.personA?.name ||
             "Unknown";
 
+          reportInfo = `Math Brain report for ${subjectName}`;
           if (balanceMeter) {
-            const magnitude = balanceMeter.magnitude || balanceMeter.magnitude_value;
-            const valence = balanceMeter.valence || balanceMeter.valence_label;
-            const magValue =
-              typeof magnitude?.value !== "undefined"
-                ? `${magnitude.value}${magnitude.term ? ` (${magnitude.term})` : ""}`
-                : magnitude?.term || magnitude?.label || "";
-            const valText =
-              valence?.emoji && valence?.term
-                ? `${valence.emoji} ${valence.term}`
-                : valence?.term || "";
-            reportInfo = `Math Brain report for ${subjectName}`;
-            if (magValue) {
-              reportInfo += ` | Magnitude: ${magValue}`;
+            const summary = extractBalanceMeterSummary(balanceMeter);
+            const summaryLine = formatBalanceMeterSummaryLine(summary);
+            if (summaryLine) {
+              reportInfo += ` | ${summaryLine}`;
             }
-            if (valText) {
-              reportInfo += ` | Valence: ${valText}`;
-            }
-          } else {
-            reportInfo = `Math Brain report for ${subjectName}`;
           }
 
           if (
@@ -2059,7 +2155,7 @@ export default function ChatClient() {
 
     // Try to parse as JSON for better formatting
     let displayContent = content;
-    let reportInfo = "";
+    let reportInfo = "Uploaded report";
     let inferredType: "mirror" | "balance" | "journal" | null = null;
 
     try {
@@ -2115,7 +2211,14 @@ export default function ChatClient() {
         } catch {
           setRelocation(null);
         }
-        reportInfo = `JSON Report for ${context.natal?.name || "Unknown"} | Magnitude: ${balance_meter.magnitude?.value} (${balance_meter.magnitude?.term}) | Valence: ${balance_meter.valence?.emoji} ${balance_meter.valence?.term}`;
+        const summaryLine = formatBalanceMeterSummaryLine(
+          extractBalanceMeterSummary(balance_meter),
+        );
+        const subject = context.natal?.name || "Unknown";
+        reportInfo = `JSON Report for ${subject}`;
+        if (summaryLine) {
+          reportInfo += ` | ${summaryLine}`;
+        }
         displayContent = JSON.stringify(jsonData, null, 2);
         // Heuristic: presence of 'reports.templates.solo_mirror' or 'mirror' wording indicates mirror vs balance
         if (

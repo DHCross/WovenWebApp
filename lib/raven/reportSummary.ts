@@ -325,6 +325,7 @@ export function summariseUploadedReportJson(raw: string): {
   ]);
 
   const magnitude = pickNumber(parsed, [
+    ['balance_meter', 'channel_summary_canonical', 'axes', 'magnitude', 'value'],
     ['balance_meter', 'magnitude_0to5'],
     ['balance_meter', 'magnitude'],
     ['balance_meter', 'magnitude', 'value'],
@@ -347,6 +348,7 @@ export function summariseUploadedReportJson(raw: string): {
     ['daily_readings', 0, 'magnitude'],
   ]);
   const magnitudeLabel = pickString(parsed, [
+    ['balance_meter', 'channel_summary_canonical', 'labels', 'magnitude'],
     ['balance_meter', 'magnitude', 'label'],
     ['balance_meter', 'magnitude', 'term'],
     ['balance_meter', 'magnitude_label'],
@@ -356,6 +358,7 @@ export function summariseUploadedReportJson(raw: string): {
   ]);
 
   const valence = pickNumber(parsed, [
+    ['balance_meter', 'channel_summary_canonical', 'axes', 'directional_bias', 'value'],
     ['balance_meter', 'bias_signed'],
     ['balance_meter', 'directional_bias'],
     ['balance_meter', 'valence'],
@@ -382,6 +385,7 @@ export function summariseUploadedReportJson(raw: string): {
     ['dailyRanges', 'biasMin'],
   ]);
   const valenceLabel = pickString(parsed, [
+    ['balance_meter', 'channel_summary_canonical', 'labels', 'directional_bias'],
     ['balance_meter', 'bias_signed', 'label'],
     ['balance_meter', 'directional_bias', 'label'],
     ['balance_meter', 'valence', 'label'],
@@ -395,6 +399,7 @@ export function summariseUploadedReportJson(raw: string): {
   ]);
 
   const volatility = pickNumber(parsed, [
+    ['balance_meter', 'channel_summary_canonical', 'axes', 'volatility', 'value'],
     ['balance_meter', 'coherence_0to5'],
     ['balance_meter', 'coherence'],
     ['balance_meter', 'narrative_coherence'],
@@ -419,6 +424,7 @@ export function summariseUploadedReportJson(raw: string): {
     ['daily_readings', 0, 'coherence'],
   ]);
   const volatilityLabel = pickString(parsed, [
+    ['balance_meter', 'channel_summary_canonical', 'labels', 'volatility'],
     ['balance_meter', 'coherence', 'label'],
     ['balance_meter', 'coherence_label'],
     ['balance_meter', 'volatility', 'label'],
