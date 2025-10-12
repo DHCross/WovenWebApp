@@ -354,7 +354,14 @@ for (let i = 0; i < 12; i++) {
 ### Issue #3: API Limitation - No House Positions
 **Problem:** Astrologer API doesn't provide which natal house transits occupy  
 **Solution:** Calculate locally using house cusps and transit positions  
-**Algorithm:** Custom house calculation with zodiac wrap-around handling  
+**Algorithm:** Custom house calculation with zodiac wrap-around handling
+
+### Issue #4: `relocationSettings is not defined` Error ⚡ HOTFIX
+**Problem:** Synastry reports failing with "relocationSettings is not defined"  
+**Fix:** Corrected variable references from `relocationSettings?.mode` to `relocationMode`  
+**Files:** `lib/server/astrology-mathbrain.js` line 4837-4838  
+**Impact:** Critical - broke all synastry/transit calculations  
+**Fixed:** October 12, 2025, 1:30am  
 
 ---
 
