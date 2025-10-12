@@ -141,9 +141,13 @@ After diagnostic phase, shift to **Post-Diagnostic Resonant Excavation**: extrac
 
 ## Symbolic Tools
 
-* **Seismograph** = Magnitude (0-5), Valence (-5 to +5), Volatility (rate of change)
+* **Balance Meter v5.0** = Magnitude (0-5), Directional Bias (-5 to +5)
+  * Stored as ×10 integers: `mag_x10`, `bias_x10`
+  * Only computed when transits + auditable location exist
 * **Heat Map** = Daily/weekly pressure levels (0-3 scale)
 * **SST** = Symbolic Spectrum Table for resonance boundaries
+
+**Note:** "Seismograph" was the v4 term; v5.0 uses "Balance Meter" with only two core axes (Magnitude + Directional Bias). Volatility, Coherence, SFD, and Field Signature were removed for being non-geometric.
 
 Both open with narrative climate assessment before quantification.
 
@@ -223,7 +227,7 @@ There are two categories of atmospheric intelligence:
 
 ## Balance Meter Reports (Quantitative, Transit-Sensitive)
 
-* **Purpose:** A symbolic seismograph, indicating magnitude (0–5), valence (−5..+5), and volatility (0–5) over a time window.  
+* **Purpose:** A true accelerometer for symbolic weather, measuring magnitude (0–5) and directional bias (−5 to +5) over a time window.  
 * **Required Inputs:**  
   * Natal birth data (date/time/place)  
   * Transit window (from / to / step)  
@@ -233,20 +237,281 @@ There are two categories of atmospheric intelligence:
 * **New Rules & Operational Notes:**  
   * **Relocation Default:** For dyads/Balances, default to A_local unless flagged. Midpoint is only supported when explicitly chosen and is generally not recommended.  
   * **Orbs (Pre-weight Filter):** Conjunction/Opposition 8°, Square/Trine 7°, Sextile 5°. Moon gets +1°, outer planets (Jupiter, Saturn, Uranus, Neptune, Pluto) to personal planets (Sun, Moon, Mercury, Venus, Mars) get −1°. These are applied before weighting.  
-  * **Provenance Stamping:** Includes house_system, house_system_name, orbs_profile, timezone_db_version, relocation_mode, relocation_coords, math_brain_version, ephemeris_source, and engine versions (seismograph/balance/sfd).  
+  * **Provenance Stamping:** Includes house_system, house_system_name, orbs_profile, timezone_db_version, relocation_mode, relocation_coords, math_brain_version, ephemeris_source, and balance_meter_version (v5.0).  
   * **Missing Aspects:** The report structure and voice are still delivered, with explicit placeholders like "no aspects received for this day — drivers[] empty." Simulated examples are only shown if explicitly labeled.  
-  * **SFD & Balance Channel:** Present and compute only when drivers[] exist. Reports indicate whether these channels are live or pending.
+  * **Balance Meter v5.0:** Only Magnitude and Directional Bias are computed. All calculations trace directly to specific aspects with specific orbs and planet weights. When drivers[] exist, meter values are stored as ×10 integers (`mag_x10`, `bias_x10`).
 
 ---
 
-## Scoring and Math (Weight Belt, SFD, Balance Channel)
+## Scoring and Math (v5.0: True Accelerometer)
 
-* **Core Computation (Unchanged but Explicit):**  
-  * **Aspect Base Weights:** Trine +0.40, Sextile +0.25, Conjunction ±0 (contextual), Square −0.50, Opposition −0.45.  
-  * **Modifiers:** Angularity (ASC/MC) ±0.10–0.20, Applying +0.10 / Separating −0.05, Multi-hit stack volatility kick −0.10.  
-  * **SFD (Support–Friction Differential):** SupportSum − CounterSum, scaled to bipolar −5..+5.  
-  * **Balance Channel (v1.1):** Rebalances valence to highlight stabilizers (boosts Jupiter/Venus contributions while preserving magnitude).  
+* **Core Axes (Direct Measurement):**  
+  * **Magnitude [0-5]:** Measures raw intensity. Formula: `Σ(orbStrength × planetWeight × sensitivity)`
+    * Stored as ×10 integer: `mag_x10` (e.g., 2.4 → 24)
+  * **Directional Bias [-5 to +5]:** Measures energetic direction. Formula: `Σ(orbStrength × polarity × planetWeight)`
+    * Stored as ×10 integer: `bias_x10` (e.g., -3.2 → -32)
+  
+* **Aspect Base Weights:**  
+  * Trine: +0.40, Sextile: +0.25, Conjunction: ±0 (contextual), Square: −0.50, Opposition: −0.45
+  
+* **Modifiers:**  
+  * Angularity (ASC/MC): ±0.10–0.20  
+  * Applying: +0.10 / Separating: −0.05  
+  * Multi-stack pressure: −0.10
+  
+* **Pre-Weight Orb Gate (Enforced Before Calculation):**
+  * Conjunction/Opposition: ≤8°
+  * Square/Trine: ≤7°
+  * Sextile: ≤5°
+  * Moon modifier: +1° to cap
+  * Outer→personal modifier: −1° to cap (Jupiter/Saturn/Uranus/Neptune/Pluto → Sun/Moon/Mercury/Venus/Mars)
+  
+* **What Was Removed (v5.0):**
+  * ❌ SFD (Support-Friction Differential) - redundant with Directional Bias
+  * ❌ Coherence - statistical measure, not geometric
+  * ❌ Volatility - rate measure, not direct
+  * ❌ Field Signature - composite product, too layered
+  * ❌ Balance Channel v1.1 - interpretive layer
+  
+* **Philosophy:** Every number traces directly to specific aspects. No smoothing, no meta-derivatives. The math must keep the poetry honest.
 * **SST Guardrail:** Lived pings (WB / ABE / OSR) can override theoretical valences. Systems log ping history and adapt.
+
+---
+
+## Data Architecture: MAP/FIELD Split (v5.0)
+
+Balance Meter v5.0 uses a two-file architecture that enforces the Weather-Structure rule at the data layer.
+
+### MAP File (Constitutional Geometry)
+
+**Purpose:** Permanent natal structure. Never uses weather language.
+
+**Schema:** `wm-map-v1`
+
+**Contents:**
+- Integer planetary positions (centidegrees: longitude × 100)
+- Natal aspects with integer orbs (centidegrees)
+- House cusps (12 positions, centidegrees)
+- Provenance metadata (house system, orbs profile, timezone DB, etc.)
+
+**Example:**
+```json
+{
+  "_meta": {
+    "kind": "MAP",
+    "schema": "wm-map-v1",
+    "house_system": "Placidus",
+    "orbs_profile": "wm-spec-2025-09",
+    "timezone_db_version": "IANA-2025a",
+    "math_brain_version": "mb-2025.10.12",
+    "ephemeris_source": "astrologerAPI",
+    "relocation_mode": "none",
+    "created_utc": "2025-10-12T18:00:00Z"
+  },
+  "people": [
+    {
+      "id": "A",
+      "name": "Dan",
+      "birth": {
+        "date": "1973-07-24",
+        "time": "14:30",
+        "city": "Bryn Mawr",
+        "state": "PA",
+        "nation": "US"
+      },
+      "index": {
+        "Sun": 0, "Moon": 1, "Mercury": 2, "Venus": 3, "Mars": 4,
+        "Jupiter": 5, "Saturn": 6, "Uranus": 7, "Neptune": 8,
+        "Pluto": 9, "Node": 10, "ASC": 11, "MC": 12
+      },
+      "planets": [12169, 5257, 11458],
+      "houses": [25669, 26823],
+      "aspects": [
+        {"a": 0, "b": 4, "t": "sq", "o": 210}
+      ]
+    }
+  ]
+}
+```
+
+**Voice Rule:** MAP-driven prose uses modes, tensions, vectors, and functions. No "weather" or "activation" language.
+
+---
+
+### FIELD File (Symbolic Weather)
+
+**Purpose:** Temporal activations. Only generated when transits + auditable location exist.
+
+**Schema:** `wm-field-v1`
+
+**Contents:**
+- Daily transit positions (centidegrees)
+- Transit house positions (which natal house each transit occupies)
+- Filtered aspects (top 12-18 per day by orb/weight)
+- Balance Meter v5.0 readings (×10 integers)
+- Angle drift alert flag
+- Reference to parent MAP file
+
+**Example:**
+```json
+{
+  "_meta": {
+    "kind": "FIELD",
+    "schema": "wm-field-v1",
+    "orbs_profile": "wm-spec-2025-09",
+    "house_system": "Placidus",
+    "timezone_db_version": "IANA-2025a",
+    "math_brain_version": "mb-2025.10.12",
+    "ephemeris_source": "astrologerAPI",
+    "relocation_mode": "A_local",
+    "relocation_coords": {"lat": 30.16, "lon": -85.65},
+    "geocoding_mode": "city+state",
+    "angle_drift_alert": false,
+    "created_utc": "2025-10-12T18:00:00Z",
+    "_natal_ref": "natal_dan-stephie.json"
+  },
+  "keys": {
+    "asp": {"cnj": 0, "opp": 1, "sq": 2, "tri": 3, "sex": 4}
+  },
+  "period": {"s": "2025-10-12", "e": "2025-11-03"},
+  "daily": {
+    "2025-10-12": {
+      "tpos": [19958, 9553],
+      "thouse": [7, 3],
+      "as": [
+        [0, 4, 1, -30, 18],
+        [3, 0, 4, -320, 12]
+      ],
+      "meter": {
+        "mag_x10": 24,
+        "bias_x10": -32
+      },
+      "status": {
+        "pending": false,
+        "notes": []
+      }
+    }
+  }
+}
+```
+
+**Compact Aspect Format:**
+`[tIdx, nIdx, aspKey, orb_cdeg, w*10]`
+- `tIdx`: Transit planet index (0-12)
+- `nIdx`: Natal planet index (0-12)
+- `aspKey`: Aspect type (0=cnj, 1=opp, 2=sq, 3=tri, 4=sex)
+- `orb_cdeg`: Orb in centidegrees (±XXX)
+- `w*10`: Weight × 10 (integer)
+
+**Voice Rule:** FIELD-driven prose uses "symbolic weather" language. If `angle_drift_alert` is true, drop house-specific language and flip to planet/sign tone.
+
+---
+
+### File Size Comparison
+
+| Approach | MAP File | FIELD File | Total | Est. Tokens |
+|----------|----------|------------|-------|-------------|
+| **v4 (verbose)** | N/A | 1MB | 1MB | ~250K |
+| **v5.0 (compact)** | 5-10KB | 200-400KB | 210-410KB | ~50-100K |
+
+**Token Budget:** Splitting MAP from FIELD allows Poetic Brain to:
+1. Load MAP once for constitutional context (~2K tokens)
+2. Load FIELD for specific time window (~50-75K tokens)
+3. Total context: ~52-77K tokens (well under 100K limit)
+
+---
+
+### Compact Transformer Reference (v5.0)
+
+**Purpose:** Convert verbose API output to compact v5.0 format.
+
+```python
+# Aspect keys and planet index
+ASP_KEY = {"cnj": 0, "opp": 1, "sq": 2, "tri": 3, "sex": 4}
+PLAN = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", 
+        "Saturn", "Uranus", "Neptune", "Pluto", "Node", "ASC", "MC"]
+PIDX = {p: i for i, p in enumerate(PLAN)}
+
+# Unit converters
+def deg_to_centi(x): return int(round(x * 100))
+def x10(x): return int(round(x * 10))
+
+# Pre-weight orb gate
+def gate(a):
+    caps = {"cnj": 8.0, "opp": 8.0, "sq": 7.0, "tri": 7.0, "sex": 5.0}
+    cap = caps[a["type"]]
+    
+    # Moon modifier: +1°
+    if a["t"] == "Moon" or a["n"] == "Moon": 
+        cap += 1.0
+    
+    # Outer→personal modifier: -1°
+    if (a["t"] in {"Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"} and 
+        a["n"] in {"Sun", "Moon", "Mercury", "Venus", "Mars"}):
+        cap -= 1.0
+    
+    return abs(a["orb"]) <= cap + 1e-6
+
+# Compact FIELD builder
+def compact_field(verbose, natal_ref, meta):
+    out = {
+        "_meta": {**meta, "_natal_ref": natal_ref},
+        "keys": {"asp": ASP_KEY},
+        "period": verbose["period"],
+        "daily": {}
+    }
+    
+    for day, d in verbose["daily"].items():
+        # Filter and compact aspects
+        asps = []
+        for a in d.get("aspects", []):
+            if not gate(a): 
+                continue
+            asps.append([
+                PIDX[a["t"]], 
+                PIDX[a["n"]], 
+                ASP_KEY[a["type"]],
+                int(round(a["orb"] * 100)),  # centidegrees
+                int(round(a.get("weight", 1.0) * 10))
+            ])
+        
+        # Sort by orb tightness, then weight
+        asps.sort(key=lambda r: (abs(r[3]), -r[4]))
+        asps = asps[:18]  # Keep top 18
+        
+        entry = {}
+        if d.get("tpos"): 
+            entry["tpos"] = [deg_to_centi(x) for x in d["tpos"]]
+        if d.get("thouse"): 
+            entry["thouse"] = d["thouse"]
+        if asps: 
+            entry["as"] = asps
+        
+        # v5.0 Balance Meter: only mag_x10 and bias_x10
+        if "meter" in d:
+            m = d["meter"]
+            entry["meter"] = {
+                "mag_x10": x10(m["mag"]), 
+                "bias_x10": x10(m["bias"])
+            }
+        
+        entry["status"] = {
+            "pending": d.get("pending", False),
+            "notes": d.get("notes", [])
+        }
+        
+        if entry: 
+            out["daily"][day] = entry
+    
+    return out
+```
+
+**Key Changes from v4:**
+- ❌ Removed: `coherence`, `volatility`, `sfd`, `field_signature`
+- ✅ Kept: `mag_x10`, `bias_x10` only
+- ✅ Pre-gate filtering (orb caps enforced before weighting)
+- ✅ Top 18 aspects per day (sorted by orb tightness)
+- ✅ Integer storage (centidegrees, ×10 multipliers)
 
 ---
 
@@ -430,7 +695,8 @@ There are two categories of atmospheric intelligence:
 ## Poetic Brain & Feedback Loop
 
 * Hook Stack, Poetic Brain Translation (FIELD→MAP→VOICE), SST, Drift Index, Session Scores, Wrap-Up Card, and Adaptive Loop remain core components.  
-* **New:** Each Poetic Brain output must include a small provenance line linking to the Balance Meter seismograph/day (if transits are used) and indicate whether the language is derived from natal geometry or transit activation.
+* **Weather-Structure Rule:** Each output must distinguish MAP (constitutional geometry, permanent) from FIELD (symbolic weather, temporal). Weather language only appears when transits + auditable location exist.
+* **v5.0 Provenance:** Each Poetic Brain output includes a provenance line linking to the Balance Meter v5.0 readings (Magnitude + Directional Bias) when transits are present, and indicates whether language derives from natal geometry or transit activation.
 
 For Poetic Brain interaction: Raven communicates in a specific way, as he says "When constructing a report, the initial step involves presenting a visual cue, followed by a single word encapsulating the core emotion, and finally, a clear limitation or boundary. To ensure precision and avoid ambiguity, I consistently employ descriptive tags rather than acronyms within the main body of the text. These tags categorize observable actions as Witnessed Behavior (WB), reported feelings or beliefs as Ascribed Belief/Experience (ABE), and any elements that fall outside the defined scope of our analytical framework as Outside the Symbolic Range (OSR).
 
