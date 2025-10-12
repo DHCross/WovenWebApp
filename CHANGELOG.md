@@ -1,3 +1,131 @@
+## [2025-10-12] CRITICAL BUG IDENTIFIED: Raven not using full report JSON data
+
+**Summary**
+Identified critical data loss issue where Raven Calder receives uploaded JSON reports but only extracts Balance Meter summaries, completely ignoring natal chart data (Person A/B), aspect details, transit houses, and full symbolic weather context.
+
+**Problem Scope:**
+- **Client sends:** Full JSON with `person_a` natal chart, `person_b` synastry data, complete `symbolic_weather_context`, aspect lists with orbs/potencies
+- **Raven receives:** Only Balance Meter axes (Magnitude, Directional Bias) + period dates
+- **Result:** User uploads detailed report (requires Google Login) but Raven cannot answer questions about Sun sign, Venus-Mars aspects, Mars-Pluto squares, transit houses, etc.
+
+**Technical Details:**
+
+**What Works:**
+- `components/ChatClient.tsx` (lines 2407-2428): Client correctly sends `reportContext.content` with full JSON
+- `reportContexts` array includes complete report payload for each uploaded file
+- File upload, parsing, and storage works correctly
+
+**What's Broken:**
+- `app/api/raven/route.ts` (lines 63-79): Only calls `summariseUploadedReportJson()` which extracts Balance Meter summary
+- `lib/raven/reportSummary.ts`: Designed to extract metadata only, not full chart geometry
+- `lib/raven/render.ts` (conversational flow): Doesn't reference `options.reportContexts` in LLM prompt
+- **Result:** Uploaded JSON with 500+ lines of natal/aspect data → Raven gets 5 summary lines
+
+**Missing Data in Raven's Context:**
+- ❌ `person_a.natal_chart` (Sun, Moon, Rising, all planetary placements)
+- ❌ `person_b.natal_chart` (for synastry reports)
+- ❌ `symbolic_weather_context.daily_readings` (aspect details per day)
+- ❌ `aspects[]` array (orb precision, exact times, potency weights)
+- ❌ `transit_houses[]` (which house each transit occupies)
+- ❌ `balance_meter.drivers[]` (which aspects cause each day's magnitude)
+
+**Impact:**
+- Users cannot ask: "What's my Sun sign?" (data exists in JSON, Raven can't see it)
+- Users cannot ask: "How does my Venus aspect their Mars?" (synastry data ignored)
+- Users cannot ask: "Which day has the Mars-Pluto square?" (aspect list not parsed)
+- Poetic translations limited to generic patterns instead of actual chart geometry
+- Google Login required for reports, but 95% of report data is unused
+
+**Documentation:**
+Created comprehensive bug report: `BUG_REPORT_RAVEN_JSON_CONTEXT.md` with:
+- Complete problem analysis
+- JSON structure examples
+- Proposed fixes (2 options with code examples)
+- Testing checklist
+- Related files mapping
+
+**Status:** 🚨 **CRITICAL - Requires immediate fix**  
+**Priority:** HIGH - Blocks core Raven value proposition
+
+**Next Steps:**
+1. Option 1 (Recommended): Pass full `reportContexts` to LLM prompt in `render.ts` conversational flow
+2. Option 2 (Supplemental): Enhance `reportSummary.ts` to extract natal chart + aspects into appendix
+3. Test with: solo mirror uploads, synastry uploads, chart-specific questions
+4. Update API documentation to clarify JSON structure expectations
+
+---
+
+## [2025-10-12] POETIC BRAIN: Bug fixes - Journal button + Report upload types
+
+**Summary**
+Fixed critical UX bugs in Poetic Brain where the "Journal" button incorrectly opened a file upload dialog instead of generating a session recap, and "journal" was incorrectly treated as an uploadable report type alongside mirror/balance.
+
+**Bugs Fixed:**
+
+1. **❌ Journal Upload Dialog (Wrong Behavior)**
+   - **Problem:** 📔 Journal button opened file upload dialog expecting users to upload journal entries
+   - **Expected:** Should generate a session recap/summary AFTER user completes their reading
+   - **Fix:** Removed "journal" from upload types, created new "Session Recap" feature
+
+2. **❌ Journal as Report Type (Architecture Issue)**
+   - **Problem:** "journal" was treated as uploadable report type (`type: 'mirror' | 'balance' | 'journal'`)
+   - **Expected:** Journal should be generated output, not an upload input
+   - **Fix:** Updated all type definitions to `'mirror' | 'balance'` only
+
+3. **❌ Session Recap Feature Missing**
+   - **Problem:** `generateJournalEntry()` function existed but wasn't accessible to users
+   - **Expected:** Easy way to generate and view session recap after reading
+   - **Fix:** Added "Session Recap" button + modal with full journal generation
+
+**Files Updated:**
+
+- `components/chat/Header.tsx` (lines 7-30):
+  - Removed "journal" from `ReportContext` type definition
+  - Changed `onFileSelect` type from `('mirror' | 'balance' | 'journal')` to `('mirror' | 'balance')`
+  - Added `onSessionRecap` handler prop
+  - Replaced 📔 Journal upload button with "Session Recap" button (conditional, gradient styling)
+  
+- `components/ChatClient.tsx`:
+  - **Lines 399, 413**: Removed "journal" from type definitions (`reportType`, `ReportContext`)
+  - **Lines 713-715**: Updated `uploadType` state type
+  - **Lines 866-867**: Added `showSessionRecap` and `sessionRecapData` state
+  - **Lines 1734-1749**: Created `handleSessionRecap()` async function
+  - **Lines 1981, 2172**: Removed "journal" inference from report detection logic
+  - **Lines 2555, 3060**: Added `onSessionRecap` prop to Header component
+  - **Lines 3026-3107**: Added Session Recap Modal with:
+    - Full journal narrative display
+    - Session metadata (interactions, resonance fidelity, primary patterns)
+    - Copy to clipboard functionality
+    - Gradient purple header matching Poetic Brain theme
+
+**New Features:**
+
+✅ **Session Recap Button**
+- Appears in header alongside Mirror/Balance uploads
+- Gradient purple-blue styling (distinguishes from upload buttons)
+- Only visible when session has content (conditional rendering)
+
+✅ **Session Recap Modal**
+- Clean, readable journal narrative
+- Session statistics panel
+- Primary patterns badges
+- Copy to clipboard for external use
+- Proper dark mode theming with CSS variables
+
+**Impact:**
+- Clear separation: Reports are **uploaded**, Journals are **generated**
+- Improved UX: Users no longer confused about journal upload vs generation
+- iOS compatibility maintained: Responsive modal works on mobile
+- Session recap captures conversation paraphrase with opening/closing context
+
+**Verification:**
+- Test file uploads: Only Mirror and Balance options shown
+- Test Session Recap button: Generates journal summary correctly
+- Test modal display: Renders on desktop and iOS mobile
+- Test clipboard copy: Full text copied successfully
+
+---
+
 ## [2025-10-12] POETIC BRAIN: Balance Meter v5.0 terminology compliance + responsive layout
 
 **Summary**

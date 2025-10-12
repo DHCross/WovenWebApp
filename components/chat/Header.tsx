@@ -6,7 +6,7 @@ import { APP_NAME, STATUS_CONNECTED } from '../../lib/ui-strings';
 
 interface ReportContext {
   id: string;
-  type: 'mirror' | 'balance' | 'journal';
+  type: 'mirror' | 'balance';
   name: string;
   summary: string;
   content: string;
@@ -14,7 +14,7 @@ interface ReportContext {
 }
 
 interface HeaderProps {
-  onFileSelect: (type: 'mirror' | 'balance' | 'journal') => void;
+  onFileSelect: (type: 'mirror' | 'balance') => void;
   hasMirrorData: boolean;
   onPoeticInsert: () => void;
   onPoeticCard?: () => void;
@@ -27,16 +27,16 @@ interface HeaderProps {
   onShowWrapUp?: () => void;
   onShowPendingReview?: () => void;
   onShowHelp?: () => void;
+  onSessionRecap?: () => void;
 }
 
 const btnStyle:React.CSSProperties={background:'var(--soft)', color:'var(--text)', border:'1px solid var(--line)', padding:'8px 10px', borderRadius:10, fontSize:13, cursor:'pointer'};
 
-export function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onDemoCard, onAbout, onToggleSidebar, sidebarOpen, reportContexts, onRemoveReportContext, onShowWrapUp, onShowPendingReview, onShowHelp }: HeaderProps){
-  const getReportIcon = (type: 'mirror' | 'balance' | 'journal') => {
+export function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCard, onDemoCard, onAbout, onToggleSidebar, sidebarOpen, reportContexts, onRemoveReportContext, onShowWrapUp, onShowPendingReview, onShowHelp, onSessionRecap }: HeaderProps){
+  const getReportIcon = (type: 'mirror' | 'balance') => {
     switch(type) {
       case 'mirror': return '🪞';
       case 'balance': return '🌡️';
-      case 'journal': return '📔';
       default: return '📄';
     }
   };
@@ -85,7 +85,9 @@ export function Header({ onFileSelect, hasMirrorData, onPoeticInsert, onPoeticCa
       <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
         <button style={btnStyle} onClick={() => onFileSelect('mirror')}>🪞 Mirror</button>
         <button style={btnStyle} onClick={() => onFileSelect('balance')}>🌡️ Balance</button>
-        <button style={btnStyle} onClick={() => onFileSelect('journal')}>📔 Journal</button>
+        {onSessionRecap && (
+          <button style={{...btnStyle, background: 'linear-gradient(135deg, #7c5cff, #4a90e2)'}} onClick={onSessionRecap}>📔 Session Recap</button>
+        )}
         {hasMirrorData && (
           <button style={{...btnStyle, background: 'linear-gradient(135deg, #6a53ff, #9c27b0)'}} onClick={onPoeticInsert}>🎭 Poetic</button>
         )}

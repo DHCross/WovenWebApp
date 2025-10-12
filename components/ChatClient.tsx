@@ -396,7 +396,7 @@ interface Message {
   climate?: string;
   hook?: string;
   isReport?: boolean;
-  reportType?: "mirror" | "balance" | "journal";
+  reportType?: "mirror" | "balance";
   reportName?: string;
   reportSummary?: string;
   collapsed?: boolean;
@@ -410,7 +410,7 @@ interface Message {
 
 interface ReportContext {
   id: string;
-  type: "mirror" | "balance" | "journal";
+  type: "mirror" | "balance";
   name: string;
   summary: string;
   content: string;
@@ -711,7 +711,7 @@ export default function ChatClient() {
   const endRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadType, setUploadType] = useState<
-    "mirror" | "balance" | "journal" | null
+    "mirror" | "balance" | null
   >(null);
   const [hasMirrorData, setHasMirrorData] = useState(false);
   const [showScrollHint, setShowScrollHint] = useState(false);
@@ -863,6 +863,8 @@ export default function ChatClient() {
   );
   const [showMbResume, setShowMbResume] = useState(false);
   const [showMbBanner, setShowMbBanner] = useState(false);
+  const [showSessionRecap, setShowSessionRecap] = useState(false);
+  const [sessionRecapData, setSessionRecapData] = useState<any>(null);
 
   // Session tracking for journal generation
   const [sessionContext, setSessionContext] = useState(() => ({
@@ -1729,9 +1731,21 @@ export default function ChatClient() {
     }
   }
 
-  const handleFileSelect = (type: "mirror" | "balance" | "journal" | null) => {
+  const handleFileSelect = (type: "mirror" | "balance" | null) => {
     if (type) setUploadType(type);
     fileInputRef.current?.click();
+  };
+
+  const handleSessionRecap = async () => {
+    try {
+      const journalData = await generateJournalEntry();
+      setSessionRecapData(journalData);
+      setShowSessionRecap(true);
+    } catch (error) {
+      console.error('Failed to generate session recap:', error);
+      setToast('Failed to generate session recap');
+      window.setTimeout(() => setToast(null), 2000);
+    }
   };
 
   const requestPoeticInsert = () => {
@@ -1978,7 +1992,6 @@ export default function ChatClient() {
         const contract = record.reportType?.toLowerCase() ?? "";
         if (contract.includes("mirror")) return "mirror" as const;
         if (contract.includes("balance")) return "balance" as const;
-        if (contract.includes("journal")) return "journal" as const;
         return null;
       })();
 
@@ -2156,7 +2169,7 @@ export default function ChatClient() {
     // Try to parse as JSON for better formatting
     let displayContent = content;
     let reportInfo = "Uploaded report";
-    let inferredType: "mirror" | "balance" | "journal" | null = null;
+    let inferredType: "mirror" | "balance" | null = null;
 
     try {
       const jsonData = JSON.parse(content);
@@ -2539,6 +2552,7 @@ export default function ChatClient() {
         reportContexts={reportContexts}
         onRemoveReportContext={removeReportContext}
         onExportTranscript={exportSessionTranscript}
+        onSessionRecap={handleSessionRecap}
         onPoeticCard={() => {
           generateVisualCard();
         }}
@@ -3008,6 +3022,89 @@ export default function ChatClient() {
           }}
         />
       )}
+
+      {/* Session Recap Modal */}
+      {showSessionRecap && sessionRecapData && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-[var(--panel)] border border-[var(--line)] rounded-xl max-w-3xl max-h-[80vh] overflow-hidden flex flex-col shadow-2xl">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-xl font-bold">{sessionRecapData.title}</h2>
+                  <p className="text-purple-100 text-sm mt-1">{sessionRecapData.metadata.sessionDate}</p>
+                </div>
+                <button
+                  onClick={() => setShowSessionRecap(false)}
+                  className="text-white/80 hover:text-white text-2xl leading-none"
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6" style={{color: 'var(--text)'}}>
+              <div className="prose prose-slate max-w-none">
+                <div className="whitespace-pre-wrap leading-relaxed">
+                  {sessionRecapData.narrative}
+                </div>
+              </div>
+              
+              {/* Metadata */}
+              <div className="mt-6 p-4 bg-[var(--soft)] rounded-lg border border-[var(--line)]">
+                <h3 className="text-sm font-semibold mb-3" style={{color: 'var(--text)'}}>Session Details</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span style={{color: 'var(--muted)'}}>Total Interactions:</span>
+                    <span className="ml-2 font-medium" style={{color: 'var(--text)'}}>{sessionRecapData.metadata.totalInteractions}</span>
+                  </div>
+                  <div>
+                    <span style={{color: 'var(--muted)'}}>Resonance Fidelity:</span>
+                    <span className="ml-2 font-medium" style={{color: 'var(--text)'}}>{sessionRecapData.metadata.resonanceFidelity}%</span>
+                  </div>
+                </div>
+                {sessionRecapData.metadata.primaryPatterns && sessionRecapData.metadata.primaryPatterns.length > 0 && (
+                  <div className="mt-3">
+                    <span style={{color: 'var(--muted)'}} className="text-sm">Primary Patterns:</span>
+                    <div className="mt-1">
+                      {sessionRecapData.metadata.primaryPatterns.map((pattern: string, index: number) => (
+                        <span key={index} className="inline-block bg-[var(--panel)] px-2 py-1 rounded text-xs mr-2 mb-1 border border-[var(--line)]" style={{color: 'var(--text)'}}>
+                          {pattern}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="p-4 border-t border-[var(--line)] flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  const fullText = `${sessionRecapData.title}\n\n${sessionRecapData.narrative}\n\n---\nSession Details:\nDate: ${sessionRecapData.metadata.sessionDate}\nTotal Interactions: ${sessionRecapData.metadata.totalInteractions}\nResonance Fidelity: ${sessionRecapData.metadata.resonanceFidelity}%\nPrimary Patterns: ${sessionRecapData.metadata.primaryPatterns?.join(', ') || 'None'}`;
+                  navigator.clipboard.writeText(fullText).then(() => {
+                    setToast('Session recap copied to clipboard!');
+                    window.setTimeout(() => setToast(null), 2000);
+                  });
+                }}
+                className="btn rounded-[10px] border border-[var(--line)] bg-[var(--soft)] px-4 py-2 text-sm"
+                style={{color: 'var(--text)'}}
+              >
+                📋 Copy to Clipboard
+              </button>
+              <button
+                onClick={() => setShowSessionRecap(false)}
+                className="btn rounded-[10px] border border-purple-600 bg-purple-600 px-4 py-2 text-sm text-white hover:bg-purple-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -3032,7 +3129,7 @@ function Header({
   showPoeticMenu,
   setShowPoeticMenu,
 }: {
-  onFileSelect: (type: "mirror" | "balance" | "journal" | null) => void;
+  onFileSelect: (type: "mirror" | "balance" | null) => void;
   hasMirrorData: boolean;
   onPoeticInsert: () => void;
   onPoeticCard: () => void;
@@ -3043,6 +3140,7 @@ function Header({
   reportContexts: ReportContext[];
   onRemoveReportContext: (contextId: string) => void;
   onExportTranscript: () => void;
+  onSessionRecap: () => void;
   onShowWrapUp: () => void;
   onShowReadingSummary: () => void;
   onShowPendingReview: () => void;
