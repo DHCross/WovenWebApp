@@ -1,15 +1,25 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { TransformedWeatherData } from '@/lib/weatherDataTransforms';
 import { AccelerometerScatter } from './AccelerometerScatter';
+import { UnifiedSymbolicDashboard } from './UnifiedSymbolicDashboard';
+import { transformToUnifiedDashboard } from '@/lib/unifiedDashboardTransforms';
 
 type WeatherPlotsProps = {
   data: Array<{ date: string; weather: TransformedWeatherData }>;
+  result?: any; // Full Math Brain result for Unified Dashboard
   showScatter?: boolean; // Toggle between scatter and line plots
+  enableUnified?: boolean; // Enable Unified Dashboard option
 };
 
-export function WeatherPlots({ data, showScatter = true }: WeatherPlotsProps) {
+export function WeatherPlots({ 
+  data, 
+  result, 
+  showScatter = true,
+  enableUnified = true 
+}: WeatherPlotsProps) {
+  const [viewMode, setViewMode] = useState<'scatter' | 'unified' | 'legacy'>('unified');
   if (!data || data.length === 0) {
     return (
       <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-400">
@@ -18,38 +28,85 @@ export function WeatherPlots({ data, showScatter = true }: WeatherPlotsProps) {
     );
   }
 
-  if (showScatter) {
-    // True Accelerometer v5.0: Scatter Plot
-    return (
-      <div className="space-y-4">
-        <AccelerometerScatter data={data} title="Astrological Field Map" />
-        
-        {/* Optional: Add helper text */}
-        <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-3 text-xs text-slate-400">
-          <span className="font-medium">Interpretation Guide:</span>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <div>• <span className="text-slate-300">High Mag / +Bias:</span> Constructive force, breakthroughs</div>
-            <div>• <span className="text-slate-300">High Mag / −Bias:</span> Structural stress, conflict</div>
-            <div>• <span className="text-slate-300">Low Mag / ±Bias:</span> Ambient noise, minor oscillations</div>
-            <div>• <span className="text-slate-300">Clusters:</span> Symbolic weather fronts building/dissipating</div>
+  // Prepare data for Unified Dashboard
+  const unifiedData = result && enableUnified ? transformToUnifiedDashboard(result) : null;
+  
+  return (
+    <div className="space-y-4">
+      {/* View mode toggle */}
+      {enableUnified && result && (
+        <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/40 p-3">
+          <span className="text-xs font-medium text-slate-400">Visualization:</span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setViewMode('unified')}
+              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                viewMode === 'unified'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              }`}
+            >
+              Unified (MAP + FIELD)
+            </button>
+            <button
+              onClick={() => setViewMode('scatter')}
+              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                viewMode === 'scatter'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              }`}
+            >
+              Scatter (FIELD only)
+            </button>
+            <button
+              onClick={() => setViewMode('legacy')}
+              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                viewMode === 'legacy'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              }`}
+            >
+              Legacy (Line plots)
+            </button>
           </div>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  // Legacy line plots (fallback)
-  const dates = data.map(d => d.date);
-  const biases = data.map(d => d.weather.axes.directional_bias.value);
-  const magnitudes = data.map(d => d.weather.axes.magnitude.value);
+      {/* Unified Dashboard: MAP + FIELD */}
+      {viewMode === 'unified' && unifiedData && (
+        <UnifiedSymbolicDashboard
+          mapData={unifiedData.mapData}
+          fieldData={unifiedData.fieldData}
+          integration={unifiedData.integration}
+          title="Unified Symbolic Dashboard — MAP + FIELD"
+        />
+      )}
 
-  return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      {/* 1. Directional Bias (-5 to +5) */}
-      <BiasPlot dates={dates} values={biases} />
+      {/* Scatter Plot: FIELD only */}
+      {viewMode === 'scatter' && (
+        <>
+          <AccelerometerScatter data={data} title="Astrological Field Map (FIELD Layer)" />
+          
+          {/* Interpretation guide */}
+          <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-3 text-xs text-slate-400">
+            <span className="font-medium">Interpretation Guide:</span>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <div>• <span className="text-slate-300">High Mag / +Bias:</span> Constructive force, breakthroughs</div>
+              <div>• <span className="text-slate-300">High Mag / −Bias:</span> Structural stress, conflict</div>
+              <div>• <span className="text-slate-300">Low Mag / ±Bias:</span> Ambient noise, minor oscillations</div>
+              <div>• <span className="text-slate-300">Clusters:</span> Symbolic weather fronts building/dissipating</div>
+            </div>
+          </div>
+        </>
+      )}
 
-      {/* 2. Magnitude (0 to 5) */}
-      <MagnitudePlot dates={dates} values={magnitudes} />
+      {/* Legacy line plots */}
+      {viewMode === 'legacy' && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <BiasPlot dates={data.map(d => d.date)} values={data.map(d => d.weather.axes.directional_bias.value)} />
+          <MagnitudePlot dates={data.map(d => d.date)} values={data.map(d => d.weather.axes.magnitude.value)} />
+        </div>
+      )}
     </div>
   );
 }
