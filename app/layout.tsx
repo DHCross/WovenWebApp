@@ -9,6 +9,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* Fallback compiled Tailwind for legacy/quick restore */}
         <link rel="stylesheet" href="/dist/output.css" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
       <body suppressHydrationWarning className="app antialiased">{children}</body>
     </html>

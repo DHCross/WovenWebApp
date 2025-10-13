@@ -2647,8 +2647,7 @@ export default function MathBrainPage() {
           date: d,
           magnitude: Number(daily[d]?.seismograph?.magnitude ?? 0),
           valence: Number(daily[d]?.seismograph?.valence_bounded ?? daily[d]?.seismograph?.valence ?? 0),
-          volatility: Number(daily[d]?.seismograph?.volatility ?? 0),
-          sfd: Number(daily[d]?.sfd?.sfd_cont ?? daily[d]?.sfd ?? 0)
+          volatility: Number(daily[d]?.seismograph?.volatility ?? 0)
         }));
 
         page.drawText(sanitizeForPDF('Trend Analysis (Last 20 Days)'), {
@@ -2663,13 +2662,11 @@ export default function MathBrainPage() {
         const magnitudes = series.map(s => s.magnitude);
         const volatilities = series.map(s => s.volatility);
         const valences = series.map(s => s.valence + 5);
-        const sfds = series.map(s => Math.abs(s.sfd / 10));
 
         const charts = [
           createTextChart(magnitudes, 'Magnitude:', 5),
           createTextChart(volatilities, 'Coherence:', 5),
-          createTextChart(valences, 'Dir. Bias:', 10),
-          createTextChart(sfds, 'SFD:', 10)
+          createTextChart(valences, 'Dir. Bias:', 10)
         ];
 
         charts.forEach(chart => {
@@ -2686,7 +2683,7 @@ export default function MathBrainPage() {
 
         yPosition -= 20;
 
-        page.drawText(sanitizeForPDF('Recent Daily Diagnostics'), {
+        page.drawText(sanitizeForPDF('Symbolic Weather'), {
           x: MARGIN,
           y: yPosition,
           size: 14,
@@ -2700,7 +2697,6 @@ export default function MathBrainPage() {
           const mag = Number(dayData?.seismograph?.magnitude ?? 0);
           const val = Number(dayData?.seismograph?.valence_bounded ?? dayData?.seismograph?.valence ?? 0);
           const vol = Number(dayData?.seismograph?.volatility ?? 0);
-          const sfd = Number(dayData?.sfd?.sfd_cont ?? dayData?.sfd ?? 0);
 
           const dateStr = new Date(date).toLocaleDateString('en-US', {
             weekday: 'short', month: 'short', day: 'numeric'
@@ -2711,7 +2707,7 @@ export default function MathBrainPage() {
             yPosition = PAGE_HEIGHT - MARGIN;
           }
 
-          const dayLine = `${dateStr}: Mag ${mag.toFixed(1)} | Bias ${val >= 0 ? '+' : ''}${val.toFixed(1)} | Coh ${vol.toFixed(1)} | SFD ${sfd > 0 ? '+' : ''}${sfd.toFixed(2)}`;
+          const dayLine = `${dateStr}: Mag ${mag.toFixed(1)} | Bias ${val >= 0 ? '+' : ''}${val.toFixed(1)} | Coh ${vol.toFixed(1)}`;
           page.drawText(sanitizeForPDF(dayLine), {
             x: MARGIN,
             y: yPosition,
@@ -2734,8 +2730,7 @@ export default function MathBrainPage() {
             const peak = segment.reduce((max, current) => current.magnitude > max.magnitude ? current : max, segment[0]);
             const lowValence = segment.reduce((min, current) => current.valence < min.valence ? current : min, segment[0]);
             const highVol = segment.reduce((max, current) => current.volatility > max.volatility ? current : max, segment[0]);
-            const sfdShift = segment.reduce((prev, current) => Math.abs(current.sfd) > Math.abs(prev.sfd) ? current : prev, segment[0]);
-            chunks.push(`Segment ${Math.floor(i / chunkSize) + 1}: peak magnitude ${peak.magnitude.toFixed(1)}, sharpest bias ${lowValence.valence.toFixed(1)}, coherence divergence ${highVol.volatility.toFixed(1)}, SFD shift ${sfdShift.sfd.toFixed(2)}`);
+            chunks.push(`Segment ${Math.floor(i / chunkSize) + 1}: peak magnitude ${peak.magnitude.toFixed(1)}, sharpest bias ${lowValence.valence.toFixed(1)}, coherence divergence ${highVol.volatility.toFixed(1)}`);
           }
           return chunks;
         })();
