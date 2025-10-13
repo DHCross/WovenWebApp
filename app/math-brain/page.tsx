@@ -28,6 +28,8 @@ import { ReportHeader, Weather, Blueprint } from "../../lib/ui-types";
 import EnhancedDailyClimateCard from "../../components/mathbrain/EnhancedDailyClimateCard";
 import BalanceMeterSummary from "../../components/mathbrain/BalanceMeterSummary";
 import SymbolicSeismograph from "../components/SymbolicSeismograph";
+import WeatherPlots from "../../components/mathbrain/WeatherPlots";
+import { transformTransitsByDate } from "../../lib/weatherDataTransforms";
 import HealthDataUpload from "../../components/HealthDataUpload";
 import SnapshotButton from "./components/SnapshotButton";
 import SnapshotDisplay from "./components/SnapshotDisplay";
@@ -4879,11 +4881,37 @@ export default function MathBrainPage() {
                       </div>
 
                       {showSeismographCharts && (
-                        <SymbolicSeismograph
-                          data={seismographData}
-                          showProvenance={true}
-                          className="symbolic-seismograph-section"
-                        />
+                        <>
+                          <SymbolicSeismograph
+                            data={seismographData}
+                            showProvenance={true}
+                            className="symbolic-seismograph-section"
+                          />
+                          
+                          {/* Scatter Chart Visualization */}
+                          {(() => {
+                            try {
+                              const transformedData = transformTransitsByDate(transitsByDate);
+                              const weatherArray = Object.entries(transformedData).map(([date, weather]) => ({
+                                date,
+                                weather
+                              }));
+                              return (
+                                <div className="mt-6">
+                                  <WeatherPlots
+                                    data={weatherArray}
+                                    result={result}
+                                    showScatter={true}
+                                    enableUnified={true}
+                                  />
+                                </div>
+                              );
+                            } catch (error) {
+                              console.warn('[MathBrain] Failed to transform weather data for scatter plots', error);
+                              return null;
+                            }
+                          })()}
+                        </>
                       )}
                     </div>
                   );
@@ -5115,7 +5143,7 @@ export default function MathBrainPage() {
                           names={relationalNames}
                           climate={{
                             magnitude: mag,
-                            valence: val,
+                            valence_bounded: val,
                             volatility: vol
                           }}
                         />

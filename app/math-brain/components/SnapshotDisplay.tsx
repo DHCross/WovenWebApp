@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 'use client';
 
-import { createSnapshotDisplay, type SnapshotDisplayData } from '../utils/snapshot';
+import { buildDomainsFromChart, createSnapshotDisplay } from '../utils/snapshot';
 
 interface SnapshotDisplayProps {
   result: any;
@@ -15,14 +15,54 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
   const snapshot = createSnapshotDisplay(result, location, timestamp);
 
   // Check if this is a relational snapshot
-  const hasPersonB = result?.person_b?.chart?.positions;
-  const isRelational = hasPersonB && result?.person_b;
+  const hasPersonB = Boolean(result?.person_b);
+  const isRelational = hasPersonB && Boolean(result.person_b);
 
-  // Extract Balance Meter v4 metrics from the result
-  const balanceMeter = result?.person_a?.summary || result?.summary || result?.balance_meter || {};
-  const magnitude = balanceMeter.magnitude ?? null;
-  const directionalBias = balanceMeter.directional_bias?.value ?? null;
-  const volatility = balanceMeter.volatility ?? null;
+  const toNumber = (value: any): number | undefined => {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      if (!Number.isNaN(parsed)) return parsed;
+    }
+    if (value && typeof value === 'object') {
+      if (typeof value.value === 'number') return value.value;
+      if (typeof value.mean === 'number') return value.mean;
+      if (typeof value.score === 'number') return value.score;
+    }
+    return undefined;
+  };
+
+  const summarySource =
+    result?.balance_meter?.channel_summary_canonical ||
+    result?.balance_meter?.channel_summary ||
+    result?.person_a?.derived?.seismograph_summary_canonical ||
+    result?.person_a?.derived?.seismograph_summary ||
+    result?.summary?.balance_meter ||
+    result?.person_a?.summary ||
+    result?.summary ||
+    null;
+
+  const magnitudeCandidate =
+    toNumber(summarySource?.axes?.magnitude) ??
+    toNumber(summarySource?.magnitude) ??
+    toNumber(summarySource?.magnitude_value);
+
+  const biasCandidate =
+    toNumber(summarySource?.axes?.directional_bias) ??
+    toNumber(summarySource?.directional_bias) ??
+    toNumber(summarySource?.bias_signed) ??
+    toNumber(summarySource?.valence_bounded) ??
+    toNumber(summarySource?.valence);
+
+  const volatilityCandidate =
+    toNumber(summarySource?.axes?.coherence) ??
+    toNumber(summarySource?.axes?.volatility) ??
+    toNumber(summarySource?.volatility) ??
+    toNumber(summarySource?.coherence);
+
+  const magnitude = typeof magnitudeCandidate === 'number' ? magnitudeCandidate : null;
+  const directionalBias = typeof biasCandidate === 'number' ? biasCandidate : null;
+  const volatility = typeof volatilityCandidate === 'number' ? volatilityCandidate : null;
 
   // Extract chart assets for visualization
   const chartAssets = result?.person_a?.chart_assets || [];
@@ -31,11 +71,28 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
   );
 
   // Extract provenance
-  const houseSystem = result?.person_a?.house_system || result?.context?.house_system || 'Placidus';
-  const zodiacType = result?.person_a?.zodiac_type || 'Tropical';
+  const houseSystem =
+    result?.provenance?.house_system_name ||
+    result?.provenance?.house_system ||
+    result?.person_a?.chart?.houses_system_name ||
+    result?.person_a?.chart?.houses_system_identifier ||
+    'Placidus';
+  const zodiacType =
+    result?.provenance?.zodiac_type ||
+    result?.person_a?.chart?.zodiac_type ||
+    result?.person_a?.zodiac_type ||
+    'Tropical';
   const schemaVersion = '3.1'; // From your system
+
+  const personBDomains = isRelational ? buildDomainsFromChart(result?.person_b?.chart) : [];
+  const showPersonBDomains = isRelational && personBDomains.some((domain) => domain.planets.length > 0);
   
-  console.log('[SnapshotDisplay] Balance Meter v4:', { magnitude, directionalBias, volatility });
+  console.log('[SnapshotDisplay] Balance Meter metrics:', {
+    magnitude,
+    directionalBias,
+    volatility,
+    summarySourceKeys: summarySource ? Object.keys(summarySource) : [],
+  });
 
   return (
     <div className="mt-6 rounded-lg border border-purple-700 bg-purple-900/20 p-6 backdrop-blur-sm">
@@ -129,36 +186,50 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
               <tr>
                 <td className="px-3 py-2 text-slate-300">Magnitude</td>
                 <td className="px-3 py-2 text-right font-mono text-indigo-300">
-                  {magnitude !== null ? magnitude.toFixed(1) : '—'}
+                  {typeof magnitude === 'number' ? magnitude.toFixed(1) : '—'}
                 </td>
                 <td className="px-3 py-2 text-xs text-slate-400">
-                  {magnitude >= 4 ? 'Strong field activation' : 
-                   magnitude >= 2 ? 'Moderate activation' :
-                   magnitude >= 1 ? 'Light activation' : 'Latent field'}
+                  {typeof magnitude === 'number' && magnitude >= 4
+                    ? 'Strong field activation'
+                    : typeof magnitude === 'number' && magnitude >= 2
+                    ? 'Moderate activation'
+                    : typeof magnitude === 'number' && magnitude >= 1
+                    ? 'Light activation'
+                    : 'Latent field'}
                 </td>
               </tr>
               <tr>
                 <td className="px-3 py-2 text-slate-300">Directional Bias</td>
                 <td className="px-3 py-2 text-right font-mono text-indigo-300">
-                  {directionalBias !== null ? 
-                    (directionalBias > 0 ? '+' : '') + directionalBias.toFixed(1) : '—'}
+                  {typeof directionalBias === 'number'
+                    ? `${directionalBias > 0 ? '+' : ''}${directionalBias.toFixed(1)}`
+                    : '—'}
                 </td>
                 <td className="px-3 py-2 text-xs text-slate-400">
-                  {directionalBias >= 3 ? 'Strong expansion' :
-                   directionalBias >= 1 ? 'Moderate expansion' :
-                   directionalBias >= -1 ? 'Equilibrium' :
-                   directionalBias >= -3 ? 'Moderate contraction' : 'Strong contraction'}
+                  {typeof directionalBias === 'number' && directionalBias >= 3
+                    ? 'Strong expansion'
+                    : typeof directionalBias === 'number' && directionalBias >= 1
+                    ? 'Moderate expansion'
+                    : typeof directionalBias === 'number' && directionalBias >= -1
+                    ? 'Equilibrium'
+                    : typeof directionalBias === 'number' && directionalBias >= -3
+                    ? 'Moderate contraction'
+                    : 'Strong contraction'}
                 </td>
               </tr>
               <tr>
                 <td className="px-3 py-2 text-slate-300">Coherence (Volatility)</td>
                 <td className="px-3 py-2 text-right font-mono text-indigo-300">
-                  {volatility !== null ? volatility.toFixed(1) : '—'}
+                  {typeof volatility === 'number' ? volatility.toFixed(1) : '—'}
                 </td>
                 <td className="px-3 py-2 text-xs text-slate-400">
-                  {volatility >= 4 ? 'Very high variability' :
-                   volatility >= 2 ? 'Moderate stability' :
-                   volatility >= 1 ? 'High stability' : 'Very stable pattern'}
+                  {typeof volatility === 'number' && volatility >= 4
+                    ? 'Very high variability'
+                    : typeof volatility === 'number' && volatility >= 2
+                    ? 'Moderate stability'
+                    : typeof volatility === 'number' && volatility >= 1
+                    ? 'High stability'
+                    : 'Very stable pattern'}
                 </td>
               </tr>
             </tbody>
@@ -166,18 +237,29 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
         </div>
 
         {/* Symbolic Weather Summary */}
-        {(magnitude !== null || directionalBias !== null) && (
+        {(typeof magnitude === 'number' || typeof directionalBias === 'number') && (
           <div className="mt-3 rounded border border-slate-700 bg-slate-800/30 p-3">
             <p className="text-xs text-slate-400 mb-1">
               <span className="font-medium text-slate-300">Symbolic Weather:</span>
             </p>
             <p className="text-sm text-indigo-200">
-              {directionalBias < -1 ? 'Contracting' : 
-               directionalBias > 1 ? 'Expanding' : 'Balanced'}{' '}
-              {magnitude >= 3 ? 'with strong activation' :
-               magnitude >= 1 ? 'gently' : 'subtly'}; 
-              {volatility < 2 ? ' coherence steady' : 
-               volatility >= 4 ? ' high variability' : ' moderate shifts'}.
+              {typeof directionalBias === 'number' && directionalBias < -1
+                ? 'Contracting'
+                : typeof directionalBias === 'number' && directionalBias > 1
+                ? 'Expanding'
+                : 'Balanced'}{' '}
+              {typeof magnitude === 'number' && magnitude >= 3
+                ? 'with strong activation'
+                : typeof magnitude === 'number' && magnitude >= 1
+                ? 'gently'
+                : 'subtly'}
+              ;
+              {typeof volatility === 'number' && volatility < 2
+                ? ' coherence steady'
+                : typeof volatility === 'number' && volatility >= 4
+                ? ' high variability'
+                : ' moderate shifts'}
+              .
             </p>
           </div>
         )}
@@ -245,52 +327,40 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
           </div>
           
           {isRelational && (() => {
-            const personBPositions = result.person_b?.chart?.positions || [];
-            const personBDomains = [
-              { label: 'Self (H1)', houseNumber: 1 },
-              { label: 'Connection (H2)', houseNumber: 2 },
-              { label: 'Growth (H3)', houseNumber: 3 },
-              { label: 'Responsibility (H4)', houseNumber: 4 },
-            ].map(domain => ({
-              ...domain,
-              planets: personBPositions
-                .filter((p: any) => p.house === domain.houseNumber)
-                .map((p: any) => ({
-                  name: p.name,
-                  sign: p.sign,
-                  degree: p.degree,
-                })),
-            }));
+          if (!showPersonBDomains) return null;
 
-            return (
-              <div className="mt-4 pt-4 border-t border-slate-700/50">
-                <h5 className="mb-3 text-xs font-medium text-indigo-400">Person B</h5>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {personBDomains.map((domain) => (
-                    <div
-                      key={domain.label}
-                      className="rounded border border-slate-700 bg-slate-800/50 p-3"
-                    >
-                      <h6 className="mb-2 text-xs font-medium text-slate-400">{domain.label}</h6>
-                      {domain.planets.length > 0 ? (
-                        <ul className="space-y-1 text-xs text-slate-400">
-                          {domain.planets.map((planet: any) => (
-                            <li key={planet.name} className="flex items-baseline justify-between gap-2">
-                              <span className="text-indigo-300">{planet.name}</span>
-                              <span className="text-slate-500 font-mono text-[10px]">
-                                {planet.sign} {planet.degree.toFixed(1)}°
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-xs text-slate-500">—</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
+          return (
+            <div className="mt-4 pt-4 border-t border-slate-700/50">
+              <h5 className="mb-3 text-xs font-medium text-indigo-400">Person B</h5>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {personBDomains.map((domain) => (
+                  <div
+                    key={domain.label}
+                    className="rounded border border-slate-700 bg-slate-800/50 p-3"
+                  >
+                    <h6 className="mb-2 text-xs font-medium text-slate-400">{domain.label}</h6>
+                    {domain.planets.length > 0 ? (
+                      <ul className="space-y-1 text-xs text-slate-400">
+                        {domain.planets.map((planet) => (
+                          <li
+                            key={`${planet.name}-${planet.sign}`}
+                            className="flex items-baseline justify-between gap-2"
+                          >
+                            <span className="text-indigo-300">{planet.name}</span>
+                            <span className="text-slate-500 font-mono text-[10px]">
+                              {planet.sign} {planet.degree.toFixed(1)}°
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-slate-500">—</p>
+                    )}
+                  </div>
+                ))}
               </div>
-            );
+            </div>
+          );
           })()}
         </div>
       </details>
