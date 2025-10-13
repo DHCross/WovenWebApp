@@ -18,6 +18,69 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
   const hasPersonB = Boolean(result?.person_b);
   const isRelational = hasPersonB && Boolean(result.person_b);
 
+  const selectSummarySource = () =>
+    result?.balance_meter?.channel_summary_canonical ||
+    result?.balance_meter?.channel_summary ||
+    result?.person_a?.derived?.seismograph_summary_canonical ||
+    result?.person_a?.derived?.seismograph_summary ||
+    result?.summary?.balance_meter ||
+    result?.person_a?.summary ||
+    result?.summary ||
+    null;
+
+  const summarySource = selectSummarySource();
+
+  const getFirstTransitDay = () => {
+    const transits = result?.person_a?.chart?.transitsByDate;
+    if (!transits || typeof transits !== 'object') return null;
+    const keys = Object.keys(transits).sort();
+    if (!keys.length) return null;
+    const day = transits[keys[0]];
+    if (!day || typeof day !== 'object') return null;
+    return day;
+  };
+
+  const fallbackFromDay = (() => {
+    const day = getFirstTransitDay();
+    const seismograph = day?.seismograph || day?.raw || null;
+    if (!seismograph || typeof seismograph !== 'object') return null;
+
+    const magnitudeCandidate =
+      typeof seismograph.magnitude === 'number'
+        ? seismograph.magnitude
+        : typeof seismograph.rawMagnitude === 'number'
+        ? seismograph.rawMagnitude
+        : undefined;
+
+    const biasCandidate =
+      typeof seismograph.directional_bias?.value === 'number'
+        ? seismograph.directional_bias.value
+        : typeof seismograph.rawDirectionalBias === 'number'
+        ? seismograph.rawDirectionalBias
+        : undefined;
+
+    const volatilityCandidate =
+      typeof seismograph.volatility === 'number'
+        ? seismograph.volatility
+        : typeof seismograph.volatility_scaled === 'number'
+        ? seismograph.volatility_scaled
+        : undefined;
+
+    if (
+      magnitudeCandidate === undefined &&
+      biasCandidate === undefined &&
+      volatilityCandidate === undefined
+    ) {
+      return null;
+    }
+
+    return {
+      magnitude: magnitudeCandidate,
+      directionalBias: biasCandidate,
+      volatility: volatilityCandidate,
+    };
+  })();
+
   const toNumber = (value: any): number | undefined => {
     if (typeof value === 'number' && Number.isFinite(value)) return value;
     if (typeof value === 'string') {
@@ -32,37 +95,59 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
     return undefined;
   };
 
-  const summarySource =
-    result?.balance_meter?.channel_summary_canonical ||
-    result?.balance_meter?.channel_summary ||
-    result?.person_a?.derived?.seismograph_summary_canonical ||
-    result?.person_a?.derived?.seismograph_summary ||
-    result?.summary?.balance_meter ||
-    result?.person_a?.summary ||
-    result?.summary ||
-    null;
-
-  const magnitudeCandidate =
+  const magnitudePrimary =
     toNumber(summarySource?.axes?.magnitude) ??
     toNumber(summarySource?.magnitude) ??
     toNumber(summarySource?.magnitude_value);
 
-  const biasCandidate =
+  const biasPrimary =
     toNumber(summarySource?.axes?.directional_bias) ??
     toNumber(summarySource?.directional_bias) ??
     toNumber(summarySource?.bias_signed) ??
     toNumber(summarySource?.valence_bounded) ??
     toNumber(summarySource?.valence);
 
-  const volatilityCandidate =
+  const volatilityPrimary =
     toNumber(summarySource?.axes?.coherence) ??
     toNumber(summarySource?.axes?.volatility) ??
     toNumber(summarySource?.volatility) ??
     toNumber(summarySource?.coherence);
 
-  const magnitude = typeof magnitudeCandidate === 'number' ? magnitudeCandidate : null;
-  const directionalBias = typeof biasCandidate === 'number' ? biasCandidate : null;
-  const volatility = typeof volatilityCandidate === 'number' ? volatilityCandidate : null;
+  const shouldUseFallback = (primary: number | undefined, fallback: number | undefined) =>
+    (primary === undefined || primary === null || Math.abs(primary) < 0.01) &&
+    typeof fallback === 'number' &&
+    Math.abs(fallback) >= 0.05;
+
+  const magnitudeResolved =
+    (typeof magnitudePrimary === 'number' ? magnitudePrimary : undefined) ??
+    (typeof fallbackFromDay?.magnitude === 'number' ? fallbackFromDay.magnitude : undefined);
+
+  const directionalBiasResolved =
+    (typeof biasPrimary === 'number' ? biasPrimary : undefined) ??
+    (typeof fallbackFromDay?.directionalBias === 'number' ? fallbackFromDay.directionalBias : undefined);
+
+  const volatilityResolved =
+    (typeof volatilityPrimary === 'number' ? volatilityPrimary : undefined) ??
+    (typeof fallbackFromDay?.volatility === 'number' ? fallbackFromDay.volatility : undefined);
+
+  const magnitude =
+    shouldUseFallback(magnitudePrimary, fallbackFromDay?.magnitude) && fallbackFromDay
+      ? fallbackFromDay.magnitude ?? null
+      : typeof magnitudeResolved === 'number'
+      ? magnitudeResolved
+      : null;
+  const directionalBias =
+    shouldUseFallback(biasPrimary, fallbackFromDay?.directionalBias) && fallbackFromDay
+      ? fallbackFromDay.directionalBias ?? null
+      : typeof directionalBiasResolved === 'number'
+      ? directionalBiasResolved
+      : null;
+  const volatility =
+    shouldUseFallback(volatilityPrimary, fallbackFromDay?.volatility) && fallbackFromDay
+      ? fallbackFromDay.volatility ?? null
+      : typeof volatilityResolved === 'number'
+      ? volatilityResolved
+      : null;
 
   // Extract chart assets for visualization
   const chartAssets = result?.person_a?.chart_assets || [];
@@ -92,6 +177,7 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
     directionalBias,
     volatility,
     summarySourceKeys: summarySource ? Object.keys(summarySource) : [],
+    fallbackFromDay,
   });
 
   return (
