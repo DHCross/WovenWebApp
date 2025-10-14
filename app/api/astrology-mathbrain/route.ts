@@ -218,27 +218,8 @@ export async function POST(request: NextRequest) {
     // Always use Math Brain v2 (legacy system removed)
     logger.info('Using Math Brain v2');
       
-      // Parse the input - handle both v2 format and legacy format
+      // Parse the input
       const parsedBody = JSON.parse(body);
-      
-      // If the request is in v2 format (personA/personB), transform it for the legacy system
-      if (parsedBody.personA && !parsedBody.a) {
-        // Transform v2 format to legacy format for the legacy system call
-        const legacyBody = {
-          a: parsedBody.personA,
-          b: parsedBody.personB,
-          transits: parsedBody.window ? {
-            from: parsedBody.window.start,
-            to: parsedBody.window.end,
-            step: parsedBody.window.step || 'daily'
-          } : undefined,
-          context: parsedBody.context,
-          report_type: parsedBody.context?.mode || 'synastry_transits'
-        };
-        
-        // Update the event body for the legacy system call
-        event.body = JSON.stringify(legacyBody);
-      }
       
       // Create a temporary config file
       const tempDir = os.tmpdir();
@@ -262,18 +243,43 @@ export async function POST(request: NextRequest) {
         fs.writeFileSync(configPath, JSON.stringify(v2Config, null, 2));
         
         // First, fetch real transit data using the legacy system
-        logger.info('Fetching transit data for v2 Math Brain');
-        const legacyResult = await mathBrainFunction.handler(event, context);
+        logger.info('Fetching transit data for v2 Math Brain', { 
+          eventBody: event.body?.substring(0, 200) 
+        });
+        
+        let legacyResult;
+        try {
+          legacyResult = await mathBrainFunction.handler(event, context);
+        } catch (legacyError: any) {
+          logger.error('Legacy system threw exception', { 
+            error: legacyError.message,
+            stack: legacyError.stack 
+          });
+          throw new Error(`Legacy system exception: ${legacyError.message}`);
+        }
         
         // Check if legacy system returned an error
         if (legacyResult.statusCode !== 200) {
-          logger.error('Legacy system failed', { statusCode: legacyResult.statusCode, body: legacyResult.body });
-          throw new Error(`Legacy system failed: ${legacyResult.body}`);
+          logger.error('Legacy system failed', { 
+            statusCode: legacyResult.statusCode, 
+            body: typeof legacyResult.body === 'string' ? legacyResult.body.substring(0, 500) : legacyResult.body 
+          });
+          throw new Error(`Legacy system failed with status ${legacyResult.statusCode}`);
         }
         
-        const legacyData = JSON.parse(legacyResult.body);
+        let legacyData;
+        try {
+          legacyData = JSON.parse(legacyResult.body);
+        } catch (parseError: any) {
+          logger.error('Failed to parse legacy response', { 
+            error: parseError.message,
+            bodyPreview: legacyResult.body?.substring(0, 200)
+          });
+          throw new Error('Failed to parse legacy system response');
+        }
         
         // Run the v2 Math Brain with real transit data
+        logger.info('Running Math Brain v2 with transit data');
         const unifiedOutput = await runMathBrain(configPath, legacyData);
         
         // Build markdown content inline

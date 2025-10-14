@@ -95,11 +95,13 @@ Implemented a new, unified "Math Brain v2" architecture that provides cleaner, m
 - All downloads use the new AI-optimized format
 - Rationale: Single user (developer) preparing for first real user - no need for dual systems
 
-**BUG FIX (Oct 13, 2025 11:30pm):**
+**BUG FIX (Oct 14, 2025 12:12am):**
 - Fixed 500 error when downloading v2 reports
-- Issue: UI sends v2 format (`personA`/`personB`), but legacy data fetcher expects legacy format (`a`/`b`)
-- Solution: API route now transforms v2 request format to legacy format before fetching transit data
-- Status: ✅ Fixed and tested
+- Issue: Duplicate body transformation was corrupting the request format
+- Root cause: Body transformation already happens at lines 98-182, but we were transforming again at line 225
+- Solution: Removed duplicate transformation, use the already-transformed `body` variable
+- Added detailed error logging to catch future issues
+- Status: ✅ Fixed
 
 ---
 
