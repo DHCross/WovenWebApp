@@ -1,0 +1,27 @@
+name: JULES PR Reviewer
+
+# This action triggers whenever a pull request is opened
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  evaluate-pull-request:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call JULES API for PR Evaluation
+        run: |
+          curl -X POST 'https://jules.googleapis.com/v1alpha/sessions' \
+          -H "Content-Type: application/json" \
+          -H "X-Goog-Api-Key: ${{ secrets.JULES_API }}" \
+          -d '{
+            "prompt": "Please review the code changes in this pull request. Look for potential bugs, style issues, or areas for improvement. Provide a summary of your findings.",
+            "sourceContext": {
+              "source": "sources/github/${{ github.repository }}",
+              "githubRepoContext": {
+                "startingBranch": "${{ github.head_ref }}"
+              }
+            },
+            "automationMode": "AUTO_CREATE_PR",
+            "title": "JULES Review for PR #${{ github.event.number }}"
+          }'
