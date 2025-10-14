@@ -95,6 +95,12 @@ Implemented a new, unified "Math Brain v2" architecture that provides cleaner, m
 - All downloads use the new AI-optimized format
 - Rationale: Single user (developer) preparing for first real user - no need for dual systems
 
+**BUG FIX (Oct 13, 2025 11:30pm):**
+- Fixed 500 error when downloading v2 reports
+- Issue: UI sends v2 format (`personA`/`personB`), but legacy data fetcher expects legacy format (`a`/`b`)
+- Solution: API route now transforms v2 request format to legacy format before fetching transit data
+- Status: ✅ Fixed and tested
+
 ---
 
 ## [2025-10-12] CRITICAL BUG IDENTIFIED: Raven not using full report JSON data
