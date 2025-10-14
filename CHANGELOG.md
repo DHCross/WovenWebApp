@@ -95,13 +95,13 @@ Implemented a new, unified "Math Brain v2" architecture that provides cleaner, m
 - All downloads use the new AI-optimized format
 - Rationale: Single user (developer) preparing for first real user - no need for dual systems
 
-**BUG FIX (Oct 14, 2025 12:12am):**
-- Fixed 500 error when downloading v2 reports
-- Issue: Duplicate body transformation was corrupting the request format
-- Root cause: Body transformation already happens at lines 98-182, but we were transforming again at line 225
-- Solution: Removed duplicate transformation, use the already-transformed `body` variable
-- Added detailed error logging to catch future issues
-- Status: ✅ Fixed
+**BUG FIX (Oct 14, 2025 1:03am):**
+- Temporarily using mock data to fix 500 errors
+- Issue: Real data integration requires complex legacy system data structure mapping
+- Temporary solution: Use mock data (line 247) so UI downloads work
+- This allows testing the full UI flow while we fix the real data integration
+- Status: ⚠️ **UI WORKS WITH MOCK DATA** - Real data integration TODO
+- Next: Map legacy system response structure to Math Brain v2 expected format
 
 ---
 
