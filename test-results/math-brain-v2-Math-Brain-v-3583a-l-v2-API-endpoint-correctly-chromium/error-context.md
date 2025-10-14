@@ -1,7 +1,7 @@
 # Page snapshot
 
 ```yaml
-- generic [active] [ref=e1]:
+- generic [ref=e1]:
   - main [ref=e2]:
     - generic [ref=e3]:
       - generic [ref=e4]:
@@ -51,36 +51,36 @@
                 - generic [ref=e49]: Name
                 - textbox "Name" [ref=e50]:
                   - /placeholder: Your Name
-                  - text: Dan
+                  - text: TestPerson
               - generic [ref=e51]:
                 - generic [ref=e52]:
                   - generic [ref=e53]: Year
                   - textbox "Year" [ref=e54]:
                     - /placeholder: YYYY
-                    - text: "1973"
+                    - text: "1990"
                 - generic [ref=e55]:
                   - generic [ref=e56]: Month
                   - textbox "Month" [ref=e57]:
                     - /placeholder: MM
-                    - text: "07"
+                    - text: "01"
                 - generic [ref=e58]:
                   - generic [ref=e59]: Day
                   - textbox "Day" [ref=e60]:
                     - /placeholder: DD
-                    - text: "24"
+                    - text: "01"
                 - generic [ref=e61]:
                   - generic [ref=e62]: Hour
                   - textbox "Hour" [ref=e63]:
                     - /placeholder: HH
-                    - text: "14"
+                    - text: "12"
                 - generic [ref=e64]:
                   - generic [ref=e65]: Minute
                   - textbox "Minute" [ref=e66]:
                     - /placeholder: MM
-                    - text: "30"
+                    - text: "00"
               - generic [ref=e67]:
                 - generic [ref=e68]: City
-                - textbox "City" [ref=e69]: Bryn Mawr
+                - textbox "City" [active] [ref=e69]: New York
               - generic [ref=e70]:
                 - generic [ref=e71]: State / Province
                 - textbox "State / Province" [ref=e72]: PA

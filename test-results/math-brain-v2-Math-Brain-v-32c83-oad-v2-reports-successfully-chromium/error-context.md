@@ -1,7 +1,7 @@
 # Page snapshot
 
 ```yaml
-- generic [active] [ref=e1]:
+- generic [ref=e1]:
   - main [ref=e2]:
     - generic [ref=e3]:
       - generic [ref=e4]:
@@ -115,55 +115,61 @@
                 - paragraph [ref=e89]: Add a second person for synastry/composite modes.
                 - generic [ref=e90]:
                   - generic [ref=e91]:
-                    - button "Copy A→B" [disabled] [ref=e92]
-                    - button "Swap A/B" [disabled] [ref=e94]
-                    - button "Clear B" [disabled] [ref=e96]
-                    - button "Set B = Now (UTC)" [disabled] [ref=e98]
+                    - button "Copy A→B" [ref=e92] [cursor=pointer]
+                    - button "Swap A/B" [ref=e94] [cursor=pointer]
+                    - button "Clear B" [ref=e96] [cursor=pointer]
+                    - button "Set B = Now (UTC)" [ref=e98] [cursor=pointer]
                   - generic [ref=e99] [cursor=pointer]:
-                    - checkbox "Include Person B" [ref=e100]
+                    - checkbox "Include Person B" [checked] [ref=e100]
                     - text: Include Person B
               - generic [ref=e102]:
                 - generic [ref=e103]:
                   - generic [ref=e104]: Name
-                  - textbox "Name" [disabled] [ref=e105]:
+                  - textbox "Name" [ref=e105]:
                     - /placeholder: Their Name
+                    - text: Stephie
                 - generic [ref=e106]:
                   - generic [ref=e107]:
                     - generic [ref=e108]: Year
-                    - textbox "Year" [disabled] [ref=e109]:
+                    - textbox "Year" [ref=e109]:
                       - /placeholder: YYYY
+                      - text: "1968"
                   - generic [ref=e110]:
                     - generic [ref=e111]: Month
-                    - textbox "Month" [disabled] [ref=e112]:
+                    - textbox "Month" [ref=e112]:
                       - /placeholder: MM
+                      - text: "04"
                   - generic [ref=e113]:
                     - generic [ref=e114]: Day
-                    - textbox "Day" [disabled] [ref=e115]:
+                    - textbox "Day" [ref=e115]:
                       - /placeholder: DD
+                      - text: "16"
                   - generic [ref=e116]:
                     - generic [ref=e117]: Hour
-                    - textbox "Hour" [disabled] [ref=e118]:
+                    - textbox "Hour" [ref=e118]:
                       - /placeholder: HH
+                      - text: "18"
                   - generic [ref=e119]:
                     - generic [ref=e120]: Minute
-                    - textbox "Minute" [disabled] [ref=e121]:
+                    - textbox "Minute" [ref=e121]:
                       - /placeholder: MM
+                      - text: "37"
                 - generic [ref=e122]:
                   - generic [ref=e123]: City
-                  - textbox "City" [disabled] [ref=e124]
+                  - textbox "City" [active] [ref=e124]: Albany
                 - generic [ref=e125]:
                   - generic [ref=e126]: State / Province
-                  - textbox "State / Province" [disabled] [ref=e127]
+                  - textbox "State / Province" [ref=e127]
                   - paragraph [ref=e128]: Nation assumed “US” for API compatibility.
                 - generic [ref=e129]:
                   - generic [ref=e130]: Birth Coordinates (B)
-                  - textbox "Birth Coordinates (B)" [disabled] [ref=e131]:
+                  - textbox "Birth Coordinates (B)" [ref=e131]:
                     - /placeholder: e.g., 34°03′S, 18°25′E or -34.0500, 18.4167
                   - paragraph [ref=e132]: "Examples: 40°42′N, 74°0′W · 34°3′S, 18°25′E · 40.7128, -74.006"
                   - paragraph [ref=e133]: "Normalized: 0.000000, 0.000000"
                 - generic [ref=e134]:
                   - generic [ref=e135]: Timezone
-                  - combobox "Timezone" [disabled] [ref=e136]:
+                  - combobox "Timezone" [ref=e136]:
                     - option "GMT" [selected]
                     - option "UTC"
                     - option "US/Eastern"
@@ -174,7 +180,7 @@
                     - option "US/Hawaii"
                 - generic [ref=e137]:
                   - generic [ref=e138]: Zodiac Type
-                  - combobox "Zodiac Type" [disabled] [ref=e139]:
+                  - combobox "Zodiac Type" [ref=e139]:
                     - option "Tropic" [selected]
                     - option "Sidereal"
           - generic [ref=e140]:
@@ -184,7 +190,7 @@
               - generic [ref=e145]:
                 - generic [ref=e146]:
                   - generic [ref=e147]: Type
-                  - combobox "Type" [disabled] [ref=e148]:
+                  - combobox "Type" [ref=e148]:
                     - option "Partner" [selected]
                     - option "Friend / Acquaintance"
                     - option "Family Member"
@@ -194,8 +200,14 @@
                     - generic [ref=e152]: • Friend / Acquaintance — emotional, behavioral, social dynamics; intimacy overlays de-emphasized.
                     - generic [ref=e153]: • Family Member — legacy patterns and behavioral overlays. Select the role to clarify Person B's relationship to Person A.
                 - generic [ref=e154]:
-                  - generic [ref=e155]: Intimacy Tier
-                  - combobox "Intimacy Tier" [disabled] [ref=e156]:
+                  - generic [ref=e155]: Contact State
+                  - generic [ref=e156]:
+                    - button "Active" [ref=e157] [cursor=pointer]
+                    - button "Latent" [pressed] [ref=e159] [cursor=pointer]
+                  - paragraph [ref=e160]: Active treats overlays as live contact pressure; Latent logs the geometry but marks it dormant until reactivation.
+                - generic [ref=e161]:
+                  - generic [ref=e162]: Intimacy Tier
+                  - combobox "Intimacy Tier" [ref=e163]:
                     - option "Select…" [selected]
                     - option "P1 — Platonic partners"
                     - option "P2 — Friends-with-benefits"
@@ -203,65 +215,66 @@
                     - option "P4 — Low-commitment romantic or sexual"
                     - option "P5a — Committed romantic + sexual"
                     - option "P5b — Committed romantic, non-sexual"
-                - generic [ref=e157]:
-                  - checkbox "Ex / Estranged" [disabled] [ref=e158]
-                  - generic [ref=e159]: Ex / Estranged
-                - generic [ref=e160]:
-                  - generic [ref=e161]: Notes
-                  - textbox "Notes" [disabled] [ref=e162]:
+                - generic [ref=e164]:
+                  - checkbox "Ex / Estranged" [ref=e165]
+                  - generic [ref=e166]: Ex / Estranged
+                - generic [ref=e167]:
+                  - generic [ref=e168]: Notes
+                  - textbox "Notes" [ref=e169]:
                     - /placeholder: Optional context (max 500 chars)
-          - generic [ref=e163]:
-            - generic [ref=e164]:
-              - heading "Report Type" [level=2] [ref=e165]
-              - generic [ref=e167]:
-                - paragraph [ref=e168]: Choose the astrological report structure
-                - generic [ref=e169]:
-                  - generic [ref=e170] [cursor=pointer]:
-                    - radio "solo Individual natal chart analysis" [checked] [ref=e171]
-                    - generic [ref=e172]:
-                      - generic [ref=e173]: solo
-                      - generic [ref=e174]: Individual natal chart analysis
-                  - generic [ref=e175] [cursor=pointer]:
-                    - radio "synastry Relationship dynamics between two charts" [ref=e176]
-                    - generic [ref=e177]:
-                      - generic [ref=e178]: synastry
-                      - generic [ref=e179]: Relationship dynamics between two charts
-                  - generic [ref=e180] [cursor=pointer]:
-                    - radio "composite Blended chart representing the relationship itself" [ref=e181]
-                    - generic [ref=e182]:
-                      - generic [ref=e183]: composite
-                      - generic [ref=e184]: Blended chart representing the relationship itself
-            - generic [ref=e185]:
-              - heading "Symbolic Weather (Transits)" [level=2] [ref=e186]
-              - generic [ref=e188]:
-                - generic [ref=e189]:
-                  - checkbox "Include Transits" [ref=e190]
-                  - generic [ref=e191]:
-                    - generic [ref=e192]: Include Transits
-                    - paragraph [ref=e193]: Layer symbolic weather over your chosen report type (Mirror → Balance Meter).
-                - generic [ref=e195]:
-                  - generic [ref=e196]: Mode
-                  - combobox "Mode" [ref=e197]:
+          - generic [ref=e170]:
+            - generic [ref=e171]:
+              - heading "Report Type" [level=2] [ref=e172]
+              - generic [ref=e174]:
+                - paragraph [ref=e175]: Choose the astrological report structure
+                - generic [ref=e176]:
+                  - generic [ref=e177] [cursor=pointer]:
+                    - radio "solo Individual natal chart analysis" [checked] [ref=e178]
+                    - generic [ref=e179]:
+                      - generic [ref=e180]: solo
+                      - generic [ref=e181]: Individual natal chart analysis
+                  - generic [ref=e182] [cursor=pointer]:
+                    - radio "synastry Relationship dynamics between two charts" [ref=e183]
+                    - generic [ref=e184]:
+                      - generic [ref=e185]: synastry
+                      - generic [ref=e186]: Relationship dynamics between two charts
+                  - generic [ref=e187] [cursor=pointer]:
+                    - radio "composite Blended chart representing the relationship itself" [ref=e188]
+                    - generic [ref=e189]:
+                      - generic [ref=e190]: composite
+                      - generic [ref=e191]: Blended chart representing the relationship itself
+            - generic [ref=e192]:
+              - heading "Symbolic Weather (Transits)" [level=2] [ref=e193]
+              - generic [ref=e195]:
+                - generic [ref=e196]:
+                  - checkbox "Include Transits" [ref=e197]
+                  - generic [ref=e198]:
+                    - generic [ref=e199]: Include Transits
+                    - paragraph [ref=e200]: Layer symbolic weather over your chosen report type (Mirror → Balance Meter).
+                - generic [ref=e202]:
+                  - generic [ref=e203]: Mode
+                  - combobox "Mode" [ref=e204]:
                     - option "Natal Only" [selected]
-                  - paragraph [ref=e198]: Enable “Include Person B” to unlock synastry or composite modes.
-                - paragraph [ref=e199]: Relocation options appear when transits are included.
-            - generic [ref=e201]:
-              - generic [ref=e203]:
-                - generic [ref=e204]: ✨
-                - generic [ref=e205]: Solo Mirror Snapshot
-              - button "⭐ Snapshot this Symbolic Moment" [disabled] [ref=e207]:
-                - generic [ref=e208]: ⭐
-                - generic [ref=e209]: Snapshot this Symbolic Moment
-              - paragraph [ref=e210]: ⚠️ Transits must be enabled to capture a Symbolic Moment snapshot. Toggle "Include Transits" above.
-            - generic [ref=e211]:
-              - paragraph [ref=e212]: All processing is geometry-first and non-deterministic. Your data isn't stored.
-              - generic [ref=e213]:
-                - generic [ref=e214]:
-                  - generic [ref=e215]: "Mode:"
-                  - generic [ref=e216]: NATAL ONLY
-                - generic [ref=e217]:
-                  - generic [ref=e218]: "Report:"
-                  - generic [ref=e219]: mirror
-              - button "Prepare Mirror" [ref=e220] [cursor=pointer]
-  - alert [ref=e221]
+                    - option "Synastry"
+                    - option "Composite"
+                - paragraph [ref=e205]: Relocation options appear when transits are included.
+            - generic [ref=e207]:
+              - generic [ref=e209]:
+                - generic [ref=e210]: ✨
+                - generic [ref=e211]: Relational Mirror Snapshot
+              - button "⭐ Snapshot this Symbolic Moment" [disabled] [ref=e213]:
+                - generic [ref=e214]: ⭐
+                - generic [ref=e215]: Snapshot this Symbolic Moment
+              - paragraph [ref=e216]: ⚠️ Transits must be enabled to capture a Symbolic Moment snapshot. Toggle "Include Transits" above.
+            - generic [ref=e217]:
+              - paragraph [ref=e218]: All processing is geometry-first and non-deterministic. Your data isn't stored.
+              - generic [ref=e219]:
+                - generic [ref=e220]:
+                  - generic [ref=e221]: "Mode:"
+                  - generic [ref=e222]: NATAL ONLY
+                - generic [ref=e223]:
+                  - generic [ref=e224]: "Report:"
+                  - generic [ref=e225]: mirror
+              - button "Prepare Mirror" [ref=e226] [cursor=pointer]
+  - alert [ref=e227]
 ```

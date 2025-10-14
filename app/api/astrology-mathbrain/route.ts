@@ -99,12 +99,58 @@ export async function POST(request: NextRequest) {
       if (!input || typeof input !== 'object') {
         return JSON.stringify(input ?? {});
       }
-      const start = input?.window?.start || input?.transit_window?.start || input?.transitStartDate || input?.transit_start_date || input?.transitParams?.startDate || input?.startDate;
-      const end = input?.window?.end || input?.transit_window?.end || input?.transitEndDate || input?.transit_end_date || input?.transitParams?.endDate || input?.endDate;
-      const stepRaw = input?.window?.step || input?.transit_window?.step || input?.transitStep || input?.transit_step || input?.transitParams?.step || input?.step;
+
+      const normalized = { ...input };
+
+      const normalizePerson = (person: any, keyPrefix: 'A' | 'B') => {
+        if (!person || typeof person !== 'object') return undefined;
+        const birth = person.birth || {};
+        const normalizedBirth = {
+          date: person.date || birth.date || undefined,
+          year: person.year ?? birth.year ?? undefined,
+          month: person.month ?? birth.month ?? undefined,
+          day: person.day ?? birth.day ?? undefined,
+          hour: person.hour ?? birth.hour ?? undefined,
+          minute: person.minute ?? birth.minute ?? undefined,
+          lat: person.latitude ?? person.lat ?? birth.lat ?? undefined,
+          lng: person.longitude ?? person.lng ?? birth.lng ?? undefined,
+          timezone: person.timezone ?? birth.timezone ?? birth.tz ?? undefined,
+          city: person.city ?? birth.city ?? undefined,
+          state: person.state ?? birth.state ?? undefined,
+          nation: person.nation ?? birth.nation ?? undefined,
+        };
+
+        const localKey = keyPrefix === 'A' ? 'A_local' : 'B_local';
+
+        return {
+          name: person.name,
+          birth: normalizedBirth,
+          [localKey]: person[localKey] || person.local || undefined,
+        };
+      };
+
+      if (!normalized.subjectA && normalized.personA) {
+        const subjectA = normalizePerson(normalized.personA, 'A');
+        if (subjectA) {
+          normalized.subjectA = subjectA;
+        }
+      }
+
+      if (!normalized.subjectB && normalized.personB) {
+        const subjectB = normalizePerson(normalized.personB, 'B');
+        if (subjectB) {
+          normalized.subjectB = subjectB;
+        }
+      }
+
+      const effective = normalized;
+
+      const start = effective?.window?.start || effective?.transit_window?.start || effective?.transitStartDate || effective?.transit_start_date || effective?.transitParams?.startDate || effective?.startDate;
+      const end = effective?.window?.end || effective?.transit_window?.end || effective?.transitEndDate || effective?.transit_end_date || effective?.transitParams?.endDate || effective?.endDate;
+      const stepRaw = effective?.window?.step || effective?.transit_window?.step || effective?.transitStep || effective?.transit_step || effective?.transitParams?.step || effective?.step;
       const resolvedStep = typeof stepRaw === 'string' && stepRaw.trim().length ? stepRaw : 'daily';
-      if(!input.subjectA && !input.subjectB){
-        const out:any = { ...input };
+      if(!effective.subjectA && !effective.subjectB){
+        const out:any = { ...effective };
         if (start && end) {
           const normalizedWindow = { start, end, step: resolvedStep };
           out.window = out.window || normalizedWindow;
@@ -121,8 +167,8 @@ export async function POST(request: NextRequest) {
         }
         return JSON.stringify(out);
       }
-      const a = input.subjectA || {};
-      const b = input.subjectB || null;
+      const a = effective.subjectA || {};
+      const b = effective.subjectB || null;
       const birthA = a.birth || {};
       const birthB = b?.birth || {};
       const toPerson = (name:string, subject:any, birth:any, local:any)=>({
@@ -142,29 +188,29 @@ export async function POST(request: NextRequest) {
       });
       const personA = toPerson(a.name, a, birthA, a.A_local);
       const personB = b ? toPerson(b.name, b, birthB, b.B_local) : undefined;
-      const tx = input.transits || {};
+      const tx = effective.transits || {};
       const window = tx.from && tx.to ? { start: tx.from, end: tx.to, step: tx.step || 'daily' } : undefined;
-      const houses = mapHouseSystem(input.houses);
+      const houses = mapHouseSystem(effective.houses);
       const out:any = {
         personA,
         ...(personB ? { personB } : {}),
         ...(window ? { window } : {}),
         context: {
           mode: (()=>{
-            const rt = String(input.report_type||'').toLowerCase();
+            const rt = String(effective.report_type||'').toLowerCase();
             if (rt.includes('synastry_transits')) return 'synastry_transits';
             if (rt.includes('synastry')) return 'synastry';
             if (rt.includes('balance_meter')) return 'balance_meter';
-            return (input.context?.mode || 'mirror');
+            return (effective.context?.mode || 'mirror');
           })(),
-          ...(input.translocation ? { translocation: input.translocation } : {})
+          ...(effective.translocation ? { translocation: effective.translocation } : {})
         },
-        relocation_mode: input.relocation_mode,
-        orbs_profile: input.orbs_profile,
+        relocation_mode: effective.relocation_mode,
+        orbs_profile: effective.orbs_profile,
         ...(houses ? { houses_system_identifier: houses } : {})
       };
-      if (input.relationship_context || input.relationshipContext) {
-        out.relationship_context = input.relationship_context || input.relationshipContext;
+      if (effective.relationship_context || effective.relationshipContext) {
+        out.relationship_context = effective.relationship_context || effective.relationshipContext;
       }
       if (!out.window && start && end) {
         out.window = { start, end, step: resolvedStep };
@@ -174,8 +220,8 @@ export async function POST(request: NextRequest) {
       }
 
       ['wheel_only', 'wheel_format', 'theme', 'language'].forEach((key) => {
-        if (Object.prototype.hasOwnProperty.call(input, key)) {
-          out[key] = input[key];
+        if (Object.prototype.hasOwnProperty.call(effective, key)) {
+          out[key] = effective[key];
         }
       });
       return JSON.stringify(out);
@@ -241,56 +287,100 @@ export async function POST(request: NextRequest) {
       try {
         // Write config to temp file
         fs.writeFileSync(configPath, JSON.stringify(v2Config, null, 2));
-        
-        // TEMPORARY: Use null transit data to use mock data while we fix the real integration
-        logger.info('Running Math Brain v2 with mock data (temporary)');
-        const unifiedOutput = await runMathBrain(configPath, null);
-        
-        // Build markdown content inline
-        let markdownContent = '';
-        const { run_metadata, daily_entries } = unifiedOutput;
-        
-        for (const day of daily_entries) {
-          markdownContent += `## Woven Reading: ${run_metadata.person_a} & ${run_metadata.person_b}\n`;
-          markdownContent += `**Date:** ${day.date}\n\n---\n\n`;
-          markdownContent += '### Data for Interpretation\n\n';
-          markdownContent += '#### Symbolic Weather\n';
-          markdownContent += `- **Magnitude**: ${day.symbolic_weather.magnitude} (${day.symbolic_weather.labels.magnitude})\n`;
-          markdownContent += `- **Directional Bias**: ${day.symbolic_weather.directional_bias} (${day.symbolic_weather.labels.directional_bias})\n\n`;
-          markdownContent += '#### Mirror Data (Relational)\n';
-          markdownContent += `- **Relational Tension**: ${day.mirror_data.relational_tension}\n`;
-          markdownContent += `- **Relational Flow**: ${day.mirror_data.relational_flow}\n`;
-          markdownContent += `- **Dominant Theme**: ${day.mirror_data.dominant_theme}\n`;
-          markdownContent += `- **${run_metadata.person_a}'s Contribution**: Magnitude ${day.mirror_data.person_a_contribution.magnitude}, Bias ${day.mirror_data.person_a_contribution.bias}\n`;
-          markdownContent += `- **${run_metadata.person_b}'s Contribution**: Magnitude ${day.mirror_data.person_b_contribution.magnitude}, Bias ${day.mirror_data.person_b_contribution.bias}\n\n`;
-          markdownContent += '#### Poetic Hooks (Narrative Triggers)\n';
-          markdownContent += `- **Peak Aspect of the Day**: ${day.poetic_hooks.peak_aspect_of_the_day}\n`;
-          markdownContent += `- **Key Themes**: ${day.poetic_hooks.key_themes.join(', ')}\n`;
-          if(day.poetic_hooks.significant_events && day.poetic_hooks.significant_events.length > 0) {
-            markdownContent += `- **Significant Astrological Events**: ${day.poetic_hooks.significant_events.join(', ')}\n`;
-          }
-          markdownContent += '- **Top Contributing Aspects**:\n';
-          day.poetic_hooks.top_contributing_aspects.forEach((aspect: any, index: number) => {
-            markdownContent += `  - ${index + 1}. ${aspect.aspect} [${aspect.type}]\n`;
+
+        // Fetch real transit data using the existing legacy pipeline
+        logger.info('Fetching transit data for Math Brain v2', {
+          mode: v2Config.mode,
+          startDate: v2Config.startDate,
+          endDate: v2Config.endDate,
+        });
+
+        let legacyResult;
+        try {
+          legacyResult = await mathBrainFunction.handler(event, context);
+        } catch (legacyError: any) {
+          logger.error('Legacy Math Brain threw an exception', {
+            error: legacyError?.message,
+            stack: legacyError?.stack,
           });
-          markdownContent += '\n---\n\n';
+          throw new Error(`Legacy Math Brain exception: ${legacyError?.message || 'unknown error'}`);
         }
-        
-        markdownContent += '### Your Task (Instructions for Raven/Poetic Brain)\n\n';
-        markdownContent += 'You are Raven Calder, a poetic interpreter of symbolic data. Your task is to synthesize the data for each day presented above into a "Woven Reading." For each day:\n\n';
-        markdownContent += '1.  **Begin with the Symbolic Weather**: Describe the overall feeling of the day using the Magnitude, Bias, and Volatility.\n';
-        markdownContent += '2.  **Explain the Relational Dynamics**: Use the Mirror Data to describe the interplay between the two individuals. What is the shared experience? How are their individual contributions shaping it?\n';
-        markdownContent += '3.  **Weave in the Narrative**: Use the Poetic Hooks to give the "why" behind the numbers. The "Peak Aspect" is the headline story of the day.\n';
-        markdownContent += '4.  **Adhere to Your Voice**: Your language must be clear, agency-preserving, and non-predictive. Reflect the patterns; do not dictate the future.\n';
-        
-        // Clean up temp file
+
+        if (!legacyResult || typeof legacyResult.statusCode !== 'number') {
+          logger.error('Legacy Math Brain returned an invalid response', { legacyResult });
+          throw new Error('Legacy Math Brain returned an invalid response');
+        }
+
+        if (legacyResult.statusCode >= 400) {
+          logger.error('Legacy Math Brain failed', {
+            statusCode: legacyResult.statusCode,
+            bodyPreview: typeof legacyResult.body === 'string' ? legacyResult.body.slice(0, 4000) : legacyResult.body,
+          });
+          throw new Error(`Legacy Math Brain failed with status ${legacyResult.statusCode}`);
+        }
+
+        let legacyData: any;
+        try {
+          legacyData = typeof legacyResult.body === 'string' ? JSON.parse(legacyResult.body) : legacyResult.body;
+        } catch (parseError: any) {
+          logger.error('Failed to parse legacy Math Brain response', {
+            error: parseError?.message,
+            bodyPreview: typeof legacyResult.body === 'string' ? legacyResult.body.slice(0, 2000) : legacyResult.body,
+          });
+          throw new Error('Failed to parse legacy Math Brain response');
+        }
+
+        const transitData = {
+          person_a: legacyData?.person_a,
+          person_b: legacyData?.person_b,
+          synastry: legacyData?.synastry,
+          composite: legacyData?.composite,
+        };
+
+        logger.info('Running Math Brain v2 with real transit data', {
+          hasPersonB: Boolean(transitData.person_b),
+          hasSynastry: Boolean(transitData.synastry),
+        });
+
+        const unifiedOutput = await runMathBrain(configPath, transitData);
+
+        const unifiedOutputPath = path.join(tempDir, `math_brain_unified_${randomUUID()}.json`);
+        fs.writeFileSync(unifiedOutputPath, JSON.stringify(unifiedOutput, null, 2));
+
+        let markdownContent: string;
+        let markdownFilename = `Woven_Reading_${unifiedOutput.run_metadata.person_a}_${unifiedOutput.run_metadata.person_b}_${unifiedOutput.run_metadata.date_range[0]}_to_${unifiedOutput.run_metadata.date_range[1]}.md`;
+
+        try {
+          const markdownPath = createMarkdownReading(unifiedOutputPath);
+          markdownContent = fs.readFileSync(markdownPath, 'utf8');
+          markdownFilename = path.basename(markdownPath);
+          try {
+            fs.unlinkSync(markdownPath);
+          } catch (e) {
+            // ignore cleanup error
+          }
+        } catch (markdownError: any) {
+          logger.error('Failed to generate markdown via createMarkdownReading', {
+            error: markdownError?.message,
+            stack: markdownError?.stack,
+          });
+
+          markdownContent = '# Math Brain v2 Reading\n\nFailed to generate detailed markdown automatically. Please download the JSON output and regenerate later.';
+        }
+        const { run_metadata } = unifiedOutput;
+
         try {
           fs.unlinkSync(configPath);
         } catch (e) {
-          // Ignore cleanup errors
+          // ignore
         }
-        
-        // Return both formats
+
+        try {
+          fs.unlinkSync(unifiedOutputPath);
+        } catch (e) {
+          // ignore
+        }
+
         return NextResponse.json({
           success: true,
           version: 'v2',
@@ -300,7 +390,7 @@ export async function POST(request: NextRequest) {
             mirror_report: {
               format: 'markdown',
               content: markdownContent,
-              filename: `Woven_Reading_${run_metadata.person_a}_${run_metadata.person_b}_${run_metadata.date_range[0]}_to_${run_metadata.date_range[1]}.md`
+              filename: markdownFilename,
             },
             symbolic_weather: {
               format: 'json',

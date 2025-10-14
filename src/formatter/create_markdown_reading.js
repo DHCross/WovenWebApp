@@ -75,6 +75,8 @@ function createMarkdownReading(inputJsonPath) {
   const outputPath = path.join(path.dirname(inputJsonPath), outputFileName);
   fs.writeFileSync(outputPath, markdownContent);
   console.log(`[Formatter] Success! Formatted Markdown reading written to: ${outputPath}`);
+
+  return outputPath;
 }
 
 // --- Main Execution Block ---

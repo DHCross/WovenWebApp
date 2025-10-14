@@ -4384,9 +4384,10 @@ export default function MathBrainPage() {
                   <div className="mx-1 h-5 w-px bg-slate-700" />
                   <button type="button" onClick={setBNowUTC} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Set Person B date/time to now (UTC)">Set B = Now (UTC)</button>
                 </div>
-                <label htmlFor="toggle-include-b-a" className="inline-flex items-center gap-2 text-sm text-slate-200 cursor-pointer">
+                <label htmlFor="include-person-b" className="inline-flex items-center gap-2 text-sm text-slate-200 cursor-pointer">
                   <input
-                    id="toggle-include-b-a"
+                    id="include-person-b"
+                    data-testid="include-person-b"
                     type="checkbox"
                     className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
                     checked={includePersonB}

@@ -259,30 +259,51 @@ function getThemeForPlanet(planetName) {
  * @param {object} transitData - Pre-fetched transit data from the API
  * @returns {object} Object containing transitsA, transitsB, and synastryAspects arrays
  */
-function getRealAspectData(date, personA, personB, transitData) {
-    // Extract transit aspects from the pre-fetched data structure
-    // The transitData comes from the API route which has already called getTransits()
-    
-    const transitsA = [];
-    const transitsB = [];
-    const synastryAspects = [];
-    
-    // Extract Person A's transits for this date
-    if (transitData?.person_a?.chart?.transitsByDate?.[date]?.aspects) {
-        transitsA.push(...transitData.person_a.chart.transitsByDate[date].aspects);
+function extractAspectsForDay(day) {
+  if (!day) return [];
+  if (Array.isArray(day)) return day;
+  if (Array.isArray(day.filtered_aspects) && day.filtered_aspects.length) {
+    return day.filtered_aspects;
+  }
+  if (Array.isArray(day.aspects) && day.aspects.length) {
+    return day.aspects;
+  }
+  if (Array.isArray(day.transit_table) && day.transit_table.length) {
+    return day.transit_table;
+  }
+  return [];
+}
+
+function extractSynastryAspectsForDay(day) {
+  if (!day) return [];
+  if (Array.isArray(day)) return day;
+  if (Array.isArray(day.aspects)) return day.aspects;
+  return [];
+}
+
+function getRealAspectData(date, personA, personB, transitData = {}) {
+  const transitsA = [];
+  const transitsB = [];
+  const synastryAspects = [];
+
+  const dayA = transitData?.person_a?.chart?.transitsByDate?.[date];
+  if (dayA) {
+    transitsA.push(...extractAspectsForDay(dayA));
+  }
+
+  if (personB) {
+    const dayB = transitData?.person_b?.chart?.transitsByDate?.[date];
+    if (dayB) {
+      transitsB.push(...extractAspectsForDay(dayB));
     }
-    
-    // Extract Person B's transits for this date (if applicable)
-    if (personB && transitData?.person_b?.chart?.transitsByDate?.[date]?.aspects) {
-        transitsB.push(...transitData.person_b.chart.transitsByDate[date].aspects);
+
+    const synDay = transitData?.synastry?.aspectsByDate?.[date] || transitData?.composite?.transitsByDate?.[date];
+    if (synDay) {
+      synastryAspects.push(...extractSynastryAspectsForDay(synDay));
     }
-    
-    // Extract synastry aspects for this date (if applicable)
-    if (personB && transitData?.synastry?.aspectsByDate?.[date]) {
-        synastryAspects.push(...transitData.synastry.aspectsByDate[date]);
-    }
-    
-    return { transitsA, transitsB, synastryAspects };
+  }
+
+  return { transitsA, transitsB, synastryAspects };
 }
 
 /**
