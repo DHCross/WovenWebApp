@@ -75,10 +75,10 @@ export default function DownloadControls({
             )}
             <div className="flex-1">
               <div className="text-sm font-medium text-slate-100">
-                {markdownGenerating ? "Generating Markdown..." : "Mirror Report (whether solo or relational)"}
+                {markdownGenerating ? "Generating Markdown..." : "Mirror Report (AI Optimized)"}
               </div>
               <div className="text-xs text-slate-400 mt-0.5">
-                Lightweight plain text, &lt;50KB (better for AI parsing)
+                Clean Markdown with structured summaries (~100KB)
               </div>
             </div>
           </div>
@@ -103,10 +103,10 @@ export default function DownloadControls({
               )}
               <div className="flex-1">
                 <div className="text-sm font-medium text-slate-100">
-                  {weatherJsonGenerating ? "Generating..." : "Symbolic Weather"}
+                  {weatherJsonGenerating ? "Generating..." : "Symbolic Weather (Compact)"}
                 </div>
                 <div className="text-xs text-slate-400 mt-0.5">
-                  Day-by-day transit patterns + climate data (JSON)
+                  Unified data object with computed summaries (JSON)
                 </div>
               </div>
             </div>

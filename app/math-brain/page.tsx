@@ -1923,6 +1923,159 @@ export default function MathBrainPage() {
     try { window.print(); } catch {/* noop */}
   }
 
+  // Math Brain v2 Download Handlers
+  async function downloadV2Markdown() {
+    if (!result) {
+      setToast('No report available to export');
+      setTimeout(() => setToast(null), 2000);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/astrology-mathbrain', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Math-Brain-Version': 'v2'
+        },
+        body: JSON.stringify({
+          use_v2: true,
+          personA: {
+            name: personA.name,
+            year: personA.year,
+            month: personA.month,
+            day: personA.day,
+            hour: personA.hour,
+            minute: personA.minute,
+            city: personA.city,
+            state: personA.state,
+            nation: (personA as any).nation || 'US',
+            latitude: personA.latitude,
+            longitude: personA.longitude,
+            timezone: personA.timezone
+          },
+          personB: personB ? {
+            name: personB.name,
+            year: personB.year,
+            month: personB.month,
+            day: personB.day,
+            hour: personB.hour,
+            minute: personB.minute,
+            city: personB.city,
+            state: personB.state,
+            nation: (personB as any).nation || 'US',
+            latitude: personB.latitude,
+            longitude: personB.longitude,
+            timezone: personB.timezone
+          } : null,
+          window: {
+            start: startDate,
+            end: endDate,
+            step: step
+          },
+          context: {
+            mode: mode
+          }
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.version === 'v2' && data.download_formats?.mirror_report) {
+        const blob = new Blob([data.download_formats.mirror_report.content], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = data.download_formats.mirror_report.filename;
+        a.click();
+        URL.revokeObjectURL(url);
+        setToast('Math Brain v2 Markdown downloaded');
+        setTimeout(() => setToast(null), 2000);
+      } else {
+        throw new Error(data.error || 'Failed to generate v2 report');
+      }
+    } catch (error: any) {
+      setToast(`Error: ${error.message}`);
+      setTimeout(() => setToast(null), 3000);
+    }
+  }
+
+  async function downloadV2SymbolicWeather() {
+    if (!result) {
+      setToast('No report available to export');
+      setTimeout(() => setToast(null), 2000);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/astrology-mathbrain', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Math-Brain-Version': 'v2'
+        },
+        body: JSON.stringify({
+          use_v2: true,
+          personA: {
+            name: personA.name,
+            year: personA.year,
+            month: personA.month,
+            day: personA.day,
+            hour: personA.hour,
+            minute: personA.minute,
+            city: personA.city,
+            state: personA.state,
+            nation: (personA as any).nation || 'US',
+            latitude: personA.latitude,
+            longitude: personA.longitude,
+            timezone: personA.timezone
+          },
+          personB: personB ? {
+            name: personB.name,
+            year: personB.year,
+            month: personB.month,
+            day: personB.day,
+            hour: personB.hour,
+            minute: personB.minute,
+            city: personB.city,
+            state: personB.state,
+            nation: (personB as any).nation || 'US',
+            latitude: personB.latitude,
+            longitude: personB.longitude,
+            timezone: personB.timezone
+          } : null,
+          window: {
+            start: startDate,
+            end: endDate,
+            step: step
+          },
+          context: {
+            mode: mode
+          }
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.version === 'v2' && data.download_formats?.symbolic_weather) {
+        const blob = new Blob([JSON.stringify(data.download_formats.symbolic_weather.content, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = data.download_formats.symbolic_weather.filename;
+        a.click();
+        URL.revokeObjectURL(url);
+        setToast('Math Brain v2 JSON downloaded');
+        setTimeout(() => setToast(null), 2000);
+      } else {
+        throw new Error(data.error || 'Failed to generate v2 report');
+      }
+    } catch (error: any) {
+      setToast(`Error: ${error.message}`);
+      setTimeout(() => setToast(null), 3000);
+    }
+  }
+
   // Generate condensed Markdown summary export (limited to ~29,000 tokens for ChatGPT compatibility)
   async function downloadMarkdownSummary() {
     if (!result) {
@@ -4688,8 +4841,8 @@ export default function MathBrainPage() {
             engineConfigGenerating={engineConfigGenerating}
             cleanJsonGenerating={cleanJsonGenerating}
             onDownloadPDF={downloadResultPDF}
-            onDownloadMarkdown={downloadResultMarkdown}
-            onDownloadSymbolicWeather={downloadSymbolicWeatherJSON}
+            onDownloadMarkdown={downloadV2Markdown}
+            onDownloadSymbolicWeather={downloadV2SymbolicWeather}
             onDownloadGraphsPDF={downloadGraphsPDF}
             onDownloadEngineConfig={downloadBackstageJSON}
             onDownloadCleanJSON={downloadResultJSON}

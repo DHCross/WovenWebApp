@@ -141,6 +141,124 @@ Use this helper instead of calling `BIRTH_CHART` / `NATAL_ASPECTS_DATA` manually
 
 ---
 
+## 🆕 Math Brain v2.0 (Oct 2025)
+
+**Endpoint**: `POST /api/astrology-mathbrain` (Next.js App Router)
+
+**Purpose**: Generate reports using the new unified Math Brain v2 architecture.
+
+**Request Headers**:
+```http
+Content-Type: application/json
+# Optional: Enable v2 format
+X-Math-Brain-Version: v2
+```
+
+**Request Body** (v2 mode):
+```json
+{
+  "use_v2": true,  // Enable v2 format
+  "personA": {
+    "name": "Dan",
+    "year": 1973,
+    "month": 7,
+    "day": 24,
+    "hour": 14,
+    "minute": 30,
+    "city": "Bryn Mawr",
+    "nation": "US",
+    "latitude": 40.0167,
+    "longitude": -75.3,
+    "timezone": "America/New_York"
+  },
+  "personB": {
+    "name": "Stephie",
+    "year": 1968,
+    "month": 4,
+    "day": 16,
+    "hour": 18,
+    "minute": 37,
+    "city": "Albany",
+    "nation": "US"
+  },
+  "window": {
+    "start": "2025-10-11",
+    "end": "2025-10-17",
+    "step": "daily"
+  }
+}
+```
+
+**Response** (v2 mode):
+```json
+{
+  "success": true,
+  "version": "v2",
+  "unified_output": {
+    "run_metadata": {
+      "generated_at": "2025-10-14T02:00:00Z",
+      "math_brain_version": "1.0.0",
+      "mode": "SYNASTRY_TRANSITS",
+      "person_a": "Dan",
+      "person_b": "Stephie",
+      "date_range": ["2025-10-11", "2025-10-17"]
+    },
+    "daily_entries": [
+      {
+        "date": "2025-10-11",
+        "symbolic_weather": {
+          "magnitude": 4.2,
+          "directional_bias": -3.5,
+          "labels": {
+            "magnitude": "Peak",
+            "directional_bias": "Contractive"
+          }
+        },
+        "mirror_data": {
+          "relational_tension": 4.8,
+          "relational_flow": 1.2,
+          "dominant_theme": "Tension (Saturn)",
+          "person_a_contribution": { "magnitude": 2.8, "bias": -3.0 },
+          "person_b_contribution": { "magnitude": 2.2, "bias": -2.0 }
+        },
+        "poetic_hooks": {
+          "peak_aspect_of_the_day": "Transit Saturn square Natal Sun (Person A)",
+          "key_themes": ["Structure", "Limitation"],
+          "top_contributing_aspects": [
+            {
+              "aspect": "Transit Saturn square Natal Sun (Person A)",
+              "type": "Tension",
+              "strength": 0.95
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "markdown_reading": "## Woven Reading: Dan & Stephie\n**Date:** 2025-10-11\n...",
+  "download_formats": {
+    "mirror_report": {
+      "format": "markdown",
+      "content": "...",
+      "filename": "Woven_Reading_Dan_Stephie_2025-10-11_to_2025-10-17.md"
+    },
+    "symbolic_weather": {
+      "format": "json",
+      "content": { ... },
+      "filename": "unified_output_Dan_Stephie_2025-10-14.json"
+    }
+  }
+}
+```
+
+**Differences from v1**:
+- **Smaller payloads**: 100KB vs 3MB+ for legacy reports
+- **AI-optimized structure**: No nested complexity
+- **Self-contained**: Includes provenance and instructions
+- **Backward compatible**: Default behavior unchanged
+
+---
+
 ## 🗂️ **Key Data Models**
 
 ### Subject Model

@@ -39,6 +39,9 @@ Start with **[CLEAR_MIRROR_VOICE.md](./CLEAR_MIRROR_VOICE.md)** for the public-f
 ### For Understanding the System
 Read **[PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md)** for system architecture and philosophy.
 
+### For Using Math Brain v2 (New Format)
+- **[../MATH_BRAIN_V2_USAGE.md](../MATH_BRAIN_V2_USAGE.md)** - How to use the new AI-optimized report format
+
 ### For Developers
 See **[../Developers Notes/README.md](../Developers%20Notes/README.md)** for complete developer documentation.
 

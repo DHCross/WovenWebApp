@@ -215,13 +215,8 @@ export async function POST(request: NextRequest) {
       getRemainingTimeInMillis: () => 30000
     };
 
-    // Check if client requests v2 Math Brain
-    const useV2 = request.headers.get('X-Math-Brain-Version') === 'v2' || 
-                  raw?.use_v2 === true ||
-                  raw?.math_brain_version === 'v2';
-
-    if (useV2) {
-      logger.info('Using Math Brain v2');
+    // Always use Math Brain v2 (legacy system removed)
+    logger.info('Using Math Brain v2');
       
       // Parse the input into the v2 config format
       const parsedBody = JSON.parse(body);
@@ -247,8 +242,13 @@ export async function POST(request: NextRequest) {
         // Write config to temp file
         fs.writeFileSync(configPath, JSON.stringify(v2Config, null, 2));
         
-        // Run the v2 Math Brain
-        const unifiedOutput = await runMathBrain(configPath);
+        // First, fetch real transit data using the legacy system
+        logger.info('Fetching transit data for v2 Math Brain');
+        const legacyResult = await mathBrainFunction.handler(event, context);
+        const legacyData = JSON.parse(legacyResult.body);
+        
+        // Run the v2 Math Brain with real transit data
+        const unifiedOutput = await runMathBrain(configPath, legacyData);
         
         // Build markdown content inline
         let markdownContent = '';
@@ -334,16 +334,6 @@ export async function POST(request: NextRequest) {
           code: 'MATH_BRAIN_V2_ERROR'
         }, { status: 500 });
       }
-    }
-    
-    // Fall back to legacy system
-    logger.info('Using legacy Math Brain');
-    const result = await mathBrainFunction.handler(event, context);
-    
-    return new NextResponse(result.body, {
-      status: result.statusCode,
-      headers: new Headers(result.headers || {})
-    });
   } catch (error: any) {
     logger.error('Astrology MathBrain API error', {
       error: error instanceof Error ? error.message : String(error)

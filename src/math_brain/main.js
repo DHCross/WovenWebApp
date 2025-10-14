@@ -5,24 +5,22 @@ const path = require('path');
 const { aggregate } = require('../seismograph');
 
 // Import metric label classifiers
-const { classifyMagnitude, classifyDirectionalBias } = require('../lib/reporting/metric-labels');
+const { classifyMagnitude, classifyDirectionalBias } = require('../../lib/reporting/metric-labels');
 
 /**
- * Main orchestrator for the Math Brain pipeline.
- * Reads a setup configuration, calculates all required astrological geometry for a date range,
- * and outputs a single, unified JSON file (the "MAP").
- * 
- * @param {string} configPath - Absolute path to the setup JSON file (e.g., 'math_brain_setup_Dan_Stephie.json').
- * @returns {object} The final, unified data object.
+ * Main orchestrator for the Math Brain v2 pipeline.
+ * @param {string} configPath - Path to the JSON config file.
+ * @param {object} transitData - Optional pre-fetched transit data from API (for real data mode)
+ * @returns {object} The final unified output object.
  */
-async function runMathBrain(configPath) {
-  console.log(`[Math Brain] Starting run with config: ${configPath}`);
+async function runMathBrain(configPath, transitData = null) {
+  console.log('[Math Brain] Starting...');
 
-  // 1. Load and Validate Configuration
-  if (!fs.existsSync(configPath)) {
-    throw new Error(`Configuration file not found at: ${configPath}`);
-  }
-  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  // 1. Load Configuration
+  const configRaw = fs.readFileSync(configPath, 'utf-8');
+  const config = JSON.parse(configRaw);
+  config.sourcePath = configPath; // Store for provenance
+
   const { personA, personB, startDate, endDate, mode } = config;
 
   // --- Compliance Check ---
@@ -41,17 +39,10 @@ async function runMathBrain(configPath) {
     console.log(`- Processing date: ${currentDate}`);
 
     // 3. Generate Raw Astrological Data
-    // TODO: CRITICAL - Replace getMockAspectData with real data source
-    // The real implementation should:
-    //   1. Call lib/server/astrology-mathbrain.js to fetch natal charts for both persons
-    //   2. Call getTransits() for each person for the current date
-    //   3. Call getSynastry() if mode is SYNASTRY_TRANSITS
-    //   4. Extract and return the aspect arrays in this format:
-    //      - transitsA: Array of aspect objects for Person A
-    //      - transitsB: Array of aspect objects for Person B
-    //      - synastryAspects: Array of synastry aspect objects
-    // Expected aspect object format: { p1_name, p2_name, aspect, orbit, ... }
-    const { transitsA, transitsB, synastryAspects } = getMockAspectData(currentDate);
+    // Use real data if transitData is provided (from API), otherwise fall back to mock
+    const { transitsA, transitsB, synastryAspects } = transitData 
+      ? getRealAspectData(currentDate, personA, personB, transitData)
+      : getMockAspectData(currentDate);
 
     // 4. Compute Data for Each "Brain"
     const symbolicWeather = computeSymbolicWeather(transitsA, transitsB);
@@ -74,7 +65,7 @@ async function runMathBrain(configPath) {
   };
 
   // 7. Write to Disk
-  const outputFileName = `unified_output_${personA.name}_${personB.name}_${new Date().toISOString().split('T')[0]}.json`;
+  const outputFileName = `unified_output_${personA.name}_${personB ? personB.name : 'Solo'}_${new Date().toISOString().split('T')[0]}.json`;
   const outputPath = path.join(path.dirname(configPath), outputFileName);
   fs.writeFileSync(outputPath, JSON.stringify(finalOutput, null, 2));
   console.log(`[Math Brain] Success! Unified output written to: ${outputPath}`);
@@ -95,8 +86,8 @@ function createProvenanceBlock(config) {
     config_source: path.basename(config.sourcePath || 'N/A'),
     math_brain_version: '1.0.0', // This script's version
     mode: config.mode,
-    person_a: config.personA.name,
-    person_b: config.personB.name,
+    person_a: config.personA.name || 'Person A',
+    person_b: config.personB ? (config.personB.name || 'Person B') : 'N/A',
     date_range: [config.startDate, config.endDate],
     // --- Fields required by API_REFERENCE.md ---
     house_system: 'Placidus', // Example, should be from config
@@ -260,8 +251,43 @@ function getThemeForPlanet(planetName) {
 }
 
 /**
- * MOCK FUNCTION: Generates fake aspect data for testing purposes.
- * Replace with actual call to the astrology engine.
+ * Fetches real astrological aspect data for a given date.
+ * This function should be called with the astrology API client passed in.
+ * @param {string} date - The date in YYYY-MM-DD format
+ * @param {object} personA - Person A's birth data
+ * @param {object} personB - Person B's birth data (optional)
+ * @param {object} transitData - Pre-fetched transit data from the API
+ * @returns {object} Object containing transitsA, transitsB, and synastryAspects arrays
+ */
+function getRealAspectData(date, personA, personB, transitData) {
+    // Extract transit aspects from the pre-fetched data structure
+    // The transitData comes from the API route which has already called getTransits()
+    
+    const transitsA = [];
+    const transitsB = [];
+    const synastryAspects = [];
+    
+    // Extract Person A's transits for this date
+    if (transitData?.person_a?.chart?.transitsByDate?.[date]?.aspects) {
+        transitsA.push(...transitData.person_a.chart.transitsByDate[date].aspects);
+    }
+    
+    // Extract Person B's transits for this date (if applicable)
+    if (personB && transitData?.person_b?.chart?.transitsByDate?.[date]?.aspects) {
+        transitsB.push(...transitData.person_b.chart.transitsByDate[date].aspects);
+    }
+    
+    // Extract synastry aspects for this date (if applicable)
+    if (personB && transitData?.synastry?.aspectsByDate?.[date]) {
+        synastryAspects.push(...transitData.synastry.aspectsByDate[date]);
+    }
+    
+    return { transitsA, transitsB, synastryAspects };
+}
+
+/**
+ * DEPRECATED: Mock function kept for standalone CLI testing only.
+ * When called from API, use getRealAspectData() instead.
  */
 function getMockAspectData(date) {
     return {

@@ -152,6 +152,8 @@ This document ALWAYS wins in conflicts. It defines:
 - `/Developers Notes/Core/Four Report Types_Integrated 10.1.25.md`
 - `/Developers Notes/Implementation/MATH_BRAIN_COMPLIANCE.md`
 - `/Developers Notes/Poetic Brain/RAVEN_OUTPUT_PROTOCOL.md`
+- `/MATH_BRAIN_V2_CHANGELOG.md` - Math Brain v2 implementation status
+- `/MATH_BRAIN_V2_USAGE.md` - Math Brain v2 user/developer guide
 
 ---
 
