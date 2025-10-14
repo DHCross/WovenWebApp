@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 // Reuse the legacy math brain implementation directly
 const mathBrainFunction = require('../../../lib/server/astrology-mathbrain.js');
+
+// NEW: Import the v2 Math Brain orchestrator
+const { runMathBrain } = require('../../../src/math_brain/main.js');
+const { createMarkdownReading } = require('../../../src/formatter/create_markdown_reading.js');
 
 const logger = {
   info: (message: string, context: Record<string, unknown> = {}) => {
@@ -208,6 +215,129 @@ export async function POST(request: NextRequest) {
       getRemainingTimeInMillis: () => 30000
     };
 
+    // Check if client requests v2 Math Brain
+    const useV2 = request.headers.get('X-Math-Brain-Version') === 'v2' || 
+                  raw?.use_v2 === true ||
+                  raw?.math_brain_version === 'v2';
+
+    if (useV2) {
+      logger.info('Using Math Brain v2');
+      
+      // Parse the input into the v2 config format
+      const parsedBody = JSON.parse(body);
+      
+      // Create a temporary config file
+      const tempDir = os.tmpdir();
+      const configPath = path.join(tempDir, `math_brain_config_${randomUUID()}.json`);
+      
+      const v2Config = {
+        schema: 'mb-1',
+        mode: parsedBody.context?.mode?.toUpperCase() || 'SYNASTRY_TRANSITS',
+        step: parsedBody.window?.step || 'daily',
+        startDate: parsedBody.window?.start || parsedBody.transits?.from,
+        endDate: parsedBody.window?.end || parsedBody.transits?.to,
+        personA: parsedBody.personA,
+        personB: parsedBody.personB || null,
+        translocation: parsedBody.context?.translocation || 'BOTH_LOCAL',
+        reportStructure: parsedBody.personB ? 'synastry' : 'solo',
+        relationshipType: parsedBody.relationship_context?.type || 'PARTNER'
+      };
+      
+      try {
+        // Write config to temp file
+        fs.writeFileSync(configPath, JSON.stringify(v2Config, null, 2));
+        
+        // Run the v2 Math Brain
+        const unifiedOutput = await runMathBrain(configPath);
+        
+        // Build markdown content inline
+        let markdownContent = '';
+        const { run_metadata, daily_entries } = unifiedOutput;
+        
+        for (const day of daily_entries) {
+          markdownContent += `## Woven Reading: ${run_metadata.person_a} & ${run_metadata.person_b}\n`;
+          markdownContent += `**Date:** ${day.date}\n\n---\n\n`;
+          markdownContent += '### Data for Interpretation\n\n';
+          markdownContent += '#### Symbolic Weather\n';
+          markdownContent += `- **Magnitude**: ${day.symbolic_weather.magnitude} (${day.symbolic_weather.labels.magnitude})\n`;
+          markdownContent += `- **Directional Bias**: ${day.symbolic_weather.directional_bias} (${day.symbolic_weather.labels.directional_bias})\n\n`;
+          markdownContent += '#### Mirror Data (Relational)\n';
+          markdownContent += `- **Relational Tension**: ${day.mirror_data.relational_tension}\n`;
+          markdownContent += `- **Relational Flow**: ${day.mirror_data.relational_flow}\n`;
+          markdownContent += `- **Dominant Theme**: ${day.mirror_data.dominant_theme}\n`;
+          markdownContent += `- **${run_metadata.person_a}'s Contribution**: Magnitude ${day.mirror_data.person_a_contribution.magnitude}, Bias ${day.mirror_data.person_a_contribution.bias}\n`;
+          markdownContent += `- **${run_metadata.person_b}'s Contribution**: Magnitude ${day.mirror_data.person_b_contribution.magnitude}, Bias ${day.mirror_data.person_b_contribution.bias}\n\n`;
+          markdownContent += '#### Poetic Hooks (Narrative Triggers)\n';
+          markdownContent += `- **Peak Aspect of the Day**: ${day.poetic_hooks.peak_aspect_of_the_day}\n`;
+          markdownContent += `- **Key Themes**: ${day.poetic_hooks.key_themes.join(', ')}\n`;
+          if(day.poetic_hooks.significant_events && day.poetic_hooks.significant_events.length > 0) {
+            markdownContent += `- **Significant Astrological Events**: ${day.poetic_hooks.significant_events.join(', ')}\n`;
+          }
+          markdownContent += '- **Top Contributing Aspects**:\n';
+          day.poetic_hooks.top_contributing_aspects.forEach((aspect: any, index: number) => {
+            markdownContent += `  - ${index + 1}. ${aspect.aspect} [${aspect.type}]\n`;
+          });
+          markdownContent += '\n---\n\n';
+        }
+        
+        markdownContent += '### Your Task (Instructions for Raven/Poetic Brain)\n\n';
+        markdownContent += 'You are Raven Calder, a poetic interpreter of symbolic data. Your task is to synthesize the data for each day presented above into a "Woven Reading." For each day:\n\n';
+        markdownContent += '1.  **Begin with the Symbolic Weather**: Describe the overall feeling of the day using the Magnitude, Bias, and Volatility.\n';
+        markdownContent += '2.  **Explain the Relational Dynamics**: Use the Mirror Data to describe the interplay between the two individuals. What is the shared experience? How are their individual contributions shaping it?\n';
+        markdownContent += '3.  **Weave in the Narrative**: Use the Poetic Hooks to give the "why" behind the numbers. The "Peak Aspect" is the headline story of the day.\n';
+        markdownContent += '4.  **Adhere to Your Voice**: Your language must be clear, agency-preserving, and non-predictive. Reflect the patterns; do not dictate the future.\n';
+        
+        // Clean up temp file
+        try {
+          fs.unlinkSync(configPath);
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+        
+        // Return both formats
+        return NextResponse.json({
+          success: true,
+          version: 'v2',
+          unified_output: unifiedOutput,
+          markdown_reading: markdownContent,
+          download_formats: {
+            mirror_report: {
+              format: 'markdown',
+              content: markdownContent,
+              filename: `Woven_Reading_${run_metadata.person_a}_${run_metadata.person_b}_${run_metadata.date_range[0]}_to_${run_metadata.date_range[1]}.md`
+            },
+            symbolic_weather: {
+              format: 'json',
+              content: unifiedOutput,
+              filename: `unified_output_${run_metadata.person_a}_${run_metadata.person_b}_${new Date().toISOString().split('T')[0]}.json`
+            }
+          }
+        }, { status: 200 });
+        
+      } catch (v2Error: any) {
+        logger.error('Math Brain v2 error', {
+          error: v2Error instanceof Error ? v2Error.message : String(v2Error),
+          stack: v2Error instanceof Error ? v2Error.stack : undefined
+        });
+        
+        // Clean up temp file on error
+        try {
+          if (fs.existsSync(configPath)) fs.unlinkSync(configPath);
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+        
+        return NextResponse.json({
+          success: false,
+          error: 'Math Brain v2 processing failed',
+          detail: v2Error instanceof Error ? v2Error.message : String(v2Error),
+          code: 'MATH_BRAIN_V2_ERROR'
+        }, { status: 500 });
+      }
+    }
+    
+    // Fall back to legacy system
+    logger.info('Using legacy Math Brain');
     const result = await mathBrainFunction.handler(event, context);
     
     return new NextResponse(result.body, {
