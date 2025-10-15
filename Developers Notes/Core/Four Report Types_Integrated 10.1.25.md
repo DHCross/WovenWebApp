@@ -96,7 +96,7 @@ Always framed as possible patterns, not facts.
 **Step 2 — Parallel Weather:** each person receives their own diagnostic.
 **Step 3 — Conditional Layer (live only):** describe directional interactions using specific names: "When [PersonA] does X, [PersonB] may respond with Y." Always conditional. Never use "they" or "one partner."
 **Step 4 — Integration:** live = blending climates, latent = side-by-side.
-**Step 5 — Seismograph:** Magnitude/Valence/Volatility appear at end, not first.
+**Step 5 — Balance Meter:** Magnitude and Directional Bias appear at the end, not first.
 
 **Attribution Mandate**: Always name which person experiences what pressure. Use individual attribution before any mutual language. No generic pronouns in relational contexts.
 
@@ -147,7 +147,7 @@ After diagnostic phase, shift to **Post-Diagnostic Resonant Excavation**: extrac
 * **Heat Map** = Daily/weekly pressure levels (0-3 scale)
 * **SST** = Symbolic Spectrum Table for resonance boundaries
 
-**Note:** "Seismograph" was the v4 term; v5.0 uses "Balance Meter" with only two core axes (Magnitude + Directional Bias). Volatility, Coherence, SFD, and Field Signature were removed for being non-geometric.
+**Note:** "Seismograph" was the legacy v4 term; v5.0 uses **"Balance Meter"** with only two core axes (Magnitude + Directional Bias). Volatility, Coherence, SFD, and Field Signature were removed for being non-geometric and are no longer used in core calculations.
 
 Both open with narrative climate assessment before quantification.
 
@@ -269,7 +269,7 @@ There are two categories of atmospheric intelligence:
 * **What Was Removed (v5.0):**
   * ❌ SFD (Support-Friction Differential) - redundant with Directional Bias
   * ❌ Coherence - statistical measure, not geometric
-  * ❌ Volatility - rate measure, not direct
+  * ❌ Volatility - deprecated; rate measure, not direct geometry
   * ❌ Field Signature - composite product, too layered
   * ❌ Balance Channel v1.1 - interpretive layer
   
