@@ -12,8 +12,6 @@ import { describe, test, expect } from 'vitest';
 import { 
   scaleBipolar, 
   scaleUnipolar, 
-  scaleCoherenceFromVol, 
-  scaleSFD 
 } from '../lib/balance/scale';
 import spec from '../config/spec.json';
 
@@ -130,80 +128,6 @@ describe('Balance Meter Property Tests', () => {
     });
   });
 
-  describe('scaleCoherenceFromVol (Coherence Inversion)', () => {
-    test('is anti-monotonic: larger volatility → smaller coherence', () => {
-      const testInputs = [0, 0.02, 0.05, 0.1];
-
-      for (let i = 0; i < testInputs.length - 1; i++) {
-        const result1 = scaleCoherenceFromVol(testInputs[i]);
-        const result2 = scaleCoherenceFromVol(testInputs[i + 1]);
-        expect(result2.value).toBeLessThanOrEqual(result1.value); // Anti-monotonic
-      }
-    });
-
-    test('stays in range [0, 5] for all inputs', () => {
-      const testInputs = [0, 0.01, 0.05, 0.1, 0.5, 1.0];
-
-      testInputs.forEach(input => {
-        const result = scaleCoherenceFromVol(input);
-        expect(result.value).toBeGreaterThanOrEqual(spec.ranges.coherence.min);
-        expect(result.value).toBeLessThanOrEqual(spec.ranges.coherence.max);
-      });
-    });
-
-    test('zero volatility → maximum coherence (5.0)', () => {
-      const result = scaleCoherenceFromVol(0);
-      expect(result.value).toBe(5.0);
-    });
-
-    test('volatility = 0.1 → coherence = 4.5', () => {
-      // vol_norm × 5 = 0.1 × 5 = 0.5
-      // coherence = 5 - 0.5 = 4.5
-      const result = scaleCoherenceFromVol(0.1);
-      expect(result.value).toBe(4.5);
-    });
-  });
-
-  describe('scaleSFD (Integration Bias)', () => {
-    test('stays in range [-1, +1] for all valid inputs', () => {
-      const testInputs = [-1.0, -0.5, -0.1, 0, 0.1, 0.5, 1.0];
-
-      testInputs.forEach(input => {
-        const result = scaleSFD(input);
-        expect(result.value).toBeGreaterThanOrEqual(spec.ranges.sfd.min);
-        expect(result.value).toBeLessThanOrEqual(spec.ranges.sfd.max);
-      });
-    });
-
-    test('null input → null output with "n/a" display', () => {
-      const result = scaleSFD(null);
-      expect(result.value).toBe(null);
-      expect(result.display).toBe(spec.ranges.sfd.null_display);
-    });
-
-    test('formats with 2 decimal places', () => {
-      const testCases = [
-        { input: 0.12345, preScaled: true, expected: '0.12' },
-        { input: -0.12345, preScaled: true, expected: '−0.12' }, // Unicode minus
-        { input: 0, preScaled: true, expected: '0.00' },
-      ];
-
-      testCases.forEach(({ input, preScaled, expected }) => {
-        const result = scaleSFD(input, preScaled);
-        expect(result.display).toBe(expected);
-      });
-    });
-
-    test('is monotonic: larger input → larger output', () => {
-      const testInputs = [-1.0, -0.5, 0, 0.5, 1.0];
-
-      for (let i = 0; i < testInputs.length - 1; i++) {
-        const result1 = scaleSFD(testInputs[i]);
-        const result2 = scaleSFD(testInputs[i + 1]);
-        expect(result2.value!).toBeGreaterThanOrEqual(result1.value!);
-      }
-    });
-  });
 
   describe('Cross-Function Properties', () => {
     test('scaleBipolar and scaleUnipolar agree on positive inputs', () => {
@@ -222,12 +146,10 @@ describe('Balance Meter Property Tests', () => {
       invalidInputs.forEach(input => {
         const bipolar = scaleBipolar(input);
         const unipolar = scaleUnipolar(input);
-        const coherence = scaleCoherenceFromVol(input);
 
         // Should not crash and should return finite values
         expect(Number.isFinite(bipolar.value)).toBe(true);
         expect(Number.isFinite(unipolar.value)).toBe(true);
-        expect(Number.isFinite(coherence.value)).toBe(true);
       });
     });
   });

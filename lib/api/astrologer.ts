@@ -320,7 +320,7 @@ export class AstrologerClient {
 // Normalization Hooks (Balance Meter Pipeline Integration)
 // ============================================================================
 
-import { scaleUnipolar, scaleBipolar, scaleCoherenceFromVol } from '@/lib/balance/scale';
+import { scaleUnipolar, scaleBipolar } from '@/lib/balance/scale';
 
 /**
  * Normalized aspect data for Balance Meter processing
@@ -362,10 +362,6 @@ export interface BalanceMeterDayInput {
   date: string;
   magnitude: number;
   directional_bias: number;
-  volatility: number;
-  coherence?: number;
-  sfd?: number | null;
-  sfd_pre_scaled?: boolean;
   aspects?: NormalizedAspect[];
   timezone?: string;
 }
@@ -382,7 +378,6 @@ export function aspectsToBalanceMeterDay(
   baseSubject: SubjectModel,
   options: {
     timezone?: string;
-    coherenceFrom?: 'volatility' | 'coherence';
   } = {}
 ): BalanceMeterDayInput {
   const normalizedAspects = normalizeAspects(aspects);
@@ -391,48 +386,16 @@ export function aspectsToBalanceMeterDay(
   // These would typically come from your existing aspect processing logic
   const magnitude = Math.min(normalizedAspects.length / 10, 1.0); // Scale 0-1
   const directionalBias = 0.0; // Placeholder - compute from aspect directions
-  const volatility = Math.min(normalizedAspects.length / 20, 1.0); // Scale 0-1
 
   return {
     date,
     magnitude,
     directional_bias: directionalBias,
-    volatility,
-    coherence: options.coherenceFrom === 'coherence' ? volatility : undefined,
-    sfd: null, // Computed separately if needed
-    sfd_pre_scaled: false,
     aspects: normalizedAspects,
     timezone: options.timezone || baseSubject.timezone || 'America/Chicago',
   };
 }
 
-/**
- * Apply canonical scaling to normalized Balance Meter inputs
- */
-export function scaleBalanceMeterDay(
-  input: BalanceMeterDayInput,
-  coherenceFrom: 'volatility' | 'coherence' = 'volatility'
-): {
-  magnitude: ReturnType<typeof scaleUnipolar>;
-  directionalBias: ReturnType<typeof scaleBipolar>;
-  coherence: ReturnType<typeof scaleCoherenceFromVol>;
-} {
-  const magnitude = scaleUnipolar(input.magnitude);
-  const directionalBias = scaleBipolar(input.directional_bias);
-
-  let coherence;
-  if (coherenceFrom === 'volatility') {
-    coherence = scaleCoherenceFromVol(input.volatility);
-  } else {
-    coherence = scaleUnipolar(input.coherence ?? input.volatility);
-  }
-
-  return {
-    magnitude,
-    directionalBias,
-    coherence,
-  };
-}
 
 // ============================================================================
 // Factory & Convenience Functions
@@ -458,7 +421,6 @@ export async function fetchTransitDataForBalanceMeter(
   dates: Array<{ year: number; month: number; day: number; dateString: string }>,
   options: {
     timezone?: string;
-    coherenceFrom?: 'volatility' | 'coherence';
   } = {}
 ): Promise<BalanceMeterDayInput[]> {
   const client = createAstrologerClient();
@@ -484,7 +446,6 @@ export async function fetchSynastryDataForBalanceMeter(
   dates: Array<{ year: number; month: number; day: number; dateString: string }>,
   options: {
     timezone?: string;
-    coherenceFrom?: 'volatility' | 'coherence';
   } = {}
 ): Promise<{
   synastryAspects: NormalizedAspect[];

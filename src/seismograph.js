@@ -30,10 +30,8 @@
 const {
   scaleUnipolar,
   scaleBipolar,
-  scaleCoherenceFromVol,
   amplifyByMagnitude,
   normalizeAmplifiedBias,
-  normalizeVolatilityForCoherence,
   SPEC_VERSION,
   SCALE_FACTOR,
 } = require('../lib/balance/scale-bridge');
@@ -616,15 +614,6 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     }, { label: 'BIAS_NORM', enableDiagnostics: true });
   }
 
-  // === VOLATILITY (DIAGNOSTIC ONLY - not a public axis in v5.0) ===
-  const VI = volatility(scored, prevCtx, opts);
-  // Keep VI_normalized for internal diagnostics, but don't expose coherence as public axis
-  const VI_normalized = normalizeVolatilityForCoherence(VI);
-  const volatility_scaled = Math.max(
-    0,
-    Math.min(SCALE_FACTOR, normalizeVolatilityForCoherence(VI) * SCALE_FACTOR)
-  );
-
   // Transform trace for observability (v5.0 - two axes only)
   const transform_trace = {
     pipeline: 'normalize_scale_clamp_round',
@@ -632,9 +621,9 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     canonical_scalers_used: true,
     axes_count: 2, // v5.0: Magnitude + Directional Bias only
     steps: [
-      { stage: 'raw', magnitude_energy: X_raw, directional_bias_sum: Y_raw, volatility_index: VI },
-      { stage: 'amplified', magnitude_energy: X_raw, directional_bias_sum: Y_amplified, volatility_index: VI },
-      { stage: 'normalized', magnitude: magnitudeNormalized, bias: Y_normalized, volatility: VI_normalized },
+      { stage: 'raw', magnitude_energy: X_raw, directional_bias_sum: Y_raw },
+      { stage: 'amplified', magnitude_energy: X_raw, directional_bias_sum: Y_amplified },
+      { stage: 'normalized', magnitude: magnitudeNormalized, bias: Y_normalized },
       { stage: 'scaled', magnitude: magnitudeScaled.raw, directional_bias: biasScaled.raw },
       { stage: 'final', magnitude: magnitudeValue, directional_bias }
     ],
@@ -651,13 +640,10 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     axes: {
       magnitude: { value: magnitudeValue, normalized: magnitudeNormalized, scaled: magnitudeScaled.raw, raw: X_raw },
       directional_bias: { value: directional_bias, normalized: Y_normalized, scaled: biasScaled.raw, raw: Y_raw },
-      volatility: { value: volatility_scaled, normalized: VI_normalized, scaled: volatility_scaled, raw: VI }
     },
 
     // === DIAGNOSTIC/INTERNAL (not public axes) ===
     _diagnostics: {
-      volatility: round(VI, 2),
-      volatility_normalized: VI_normalized,
       aspect_count: scored.length,
       scaling_method: scalingMethod,
       effective_divisor: effectiveDivisor
@@ -671,7 +657,6 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     bias_amplified: Y_amplified,
     rawMagnitude: magnitudeScaled.raw,
     rawDirectionalBias: biasScaled.raw,
-    volatility_scaled,
     rawValence: Y_raw,
     originalMagnitude: magnitudeValue,
     energyMagnitude: X_raw,
@@ -715,7 +700,6 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   assertSeismographInvariants({
     magnitude: result.magnitude,
     directional_bias: result.directional_bias
-    // coherence removed in v5.0
   });
 
   return result;
