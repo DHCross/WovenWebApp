@@ -40,7 +40,7 @@ export default function BalanceMeterSummary({
   trends,
   dailyRanges,
 }: BalanceMeterSummaryProps) {
-  const narrative = generateClimateNarrative(overallClimate, 0, activatedHouses, true, isLatentField || false);
+  const narrative = generateClimateNarrative(overallClimate, activatedHouses, true, isLatentField || false);
 
   const modeLabel =
     mode === "single"

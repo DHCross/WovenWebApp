@@ -26,7 +26,7 @@ export default function EnhancedDailyClimateCard({
   isRangeSummary = false,
   dateRange,
 }: EnhancedDailyClimateCardProps) {
-  const narrative = generateClimateNarrative(climate, 0, activatedHouses, isRangeSummary);
+  const narrative = generateClimateNarrative(climate, activatedHouses, isRangeSummary);
 
   const modeLabel =
     mode === "single"
