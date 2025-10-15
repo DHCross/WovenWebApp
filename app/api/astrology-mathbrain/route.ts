@@ -297,12 +297,16 @@ export async function POST(request: NextRequest) {
         return 'SYNASTRY_TRANSITS';
       })();
 
+      const today = new Date().toISOString().split('T')[0];
+      const startDate = parsedBody.window?.start || parsedBody.transits?.from;
+      const endDate = parsedBody.window?.end || parsedBody.transits?.to;
+
       const v2Config = {
         schema: 'mb-1',
         mode: v2Mode,
         step: parsedBody.window?.step || 'daily',
-        startDate: parsedBody.window?.start || parsedBody.transits?.from,
-        endDate: parsedBody.window?.end || parsedBody.transits?.to,
+        startDate: startDate || today,
+        endDate: endDate || today,
         personA: parsedBody.personA,
         personB: parsedBody.personB || null,
         translocation: parsedBody.context?.translocation || 'BOTH_LOCAL',
