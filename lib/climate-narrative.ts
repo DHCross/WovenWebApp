@@ -5,7 +5,7 @@ import { ClimateData, VALENCE_LEVELS, ValenceLevel } from './climate-renderer';
 import { buildPeriodLabel } from './voice/periodLabel';
 import { synthesizeLabel } from './voice/labels';
 import { assertApprovedLabel } from './voice/guard';
-import { clampValue, sfdDisplay } from './balance/scale';
+import { clampValue } from './balance/scale';
 
 export interface ClimatePattern {
   name: string;
@@ -33,11 +33,6 @@ export interface ClimateNarrative {
       meaning: string;
     };
     volatility: {
-      value: number;
-      label: string;
-      meaning: string;
-    };
-    sfd?: {
       value: number;
       label: string;
       meaning: string;
@@ -307,7 +302,6 @@ function generateParadoxPoles(climate: ClimateData, isLatentField: boolean = fal
 
 export function generateClimateNarrative(
   climate: ClimateData,
-  sfd?: number,
   activatedHouses?: string[],
   isRangeSummary: boolean = false,
   isLatentField: boolean = false
@@ -323,7 +317,7 @@ export function generateClimateNarrative(
     magnitude: climate.magnitude,
     bias: valence,
     coherence: coherenceForLabel,
-    sfd: typeof sfd === 'number' ? sfd : null,
+    sfd: null,
   });
 
   const voiceLabel = assertApprovedLabel(
@@ -331,7 +325,7 @@ export function generateClimateNarrative(
       climate.magnitude,
       valence,
       coherenceForLabel,
-      typeof sfd === 'number' ? sfdDisplay(sfd) : 'n/a'
+      'n/a'
     )
   );
 
@@ -365,15 +359,6 @@ export function generateClimateNarrative(
                 climate.volatility >= 2 ? 'Some fluctuation but generally stable' :
                 'Coherent and steady energy flow'
       },
-      ...(typeof sfd === 'number' && {
-        sfd: {
-          value: sfd,
-          label: getSFDLabel(sfd),
-          meaning: sfd >= 1 ? 'Strong underlying support structure' :
-                  sfd >= 0 ? 'Balanced support and friction' :
-                  'More friction than support; extra care needed'
-        }
-      })
     },
     paradox,
     activatedHouses
