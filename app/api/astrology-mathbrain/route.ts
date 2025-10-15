@@ -271,9 +271,35 @@ export async function POST(request: NextRequest) {
       const tempDir = os.tmpdir();
       const configPath = path.join(tempDir, `math_brain_config_${randomUUID()}.json`);
       
+      const v2Mode = (()=>{
+        const modeHint = String(parsedBody.context?.mode || '').toUpperCase();
+
+        // If a compliant mode is already provided, use it.
+        if (['SYNASTRY_TRANSITS', 'COMPOSITE_TRANSITS', 'NATAL_TRANSITS'].includes(modeHint)) {
+          return modeHint;
+        }
+
+        // Logic based on report type and data shape
+        if (modeHint.includes('SYNASTRY')) {
+          return 'SYNASTRY_TRANSITS';
+        }
+        if (modeHint.includes('COMPOSITE')) {
+          return 'COMPOSITE_TRANSITS';
+        }
+
+        // If no Person B, it must be a solo natal chart with transits.
+        if (!parsedBody.personB) {
+          return 'NATAL_TRANSITS';
+        }
+
+        // Default for any two-person report is Synastry with Transits.
+        // This covers 'BALANCE_METER', 'MIRROR', etc.
+        return 'SYNASTRY_TRANSITS';
+      })();
+
       const v2Config = {
         schema: 'mb-1',
-        mode: parsedBody.context?.mode?.toUpperCase() || 'SYNASTRY_TRANSITS',
+        mode: v2Mode,
         step: parsedBody.window?.step || 'daily',
         startDate: parsedBody.window?.start || parsedBody.transits?.from,
         endDate: parsedBody.window?.end || parsedBody.transits?.to,

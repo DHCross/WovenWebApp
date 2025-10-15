@@ -27,8 +27,7 @@ This changelog documents the creation of a new, unified "Math Brain" architectur
 - ✅ Outputs a single `unified_output.json` file (the "MAP")
 
 **Current Limitation**:
-- ⚠️ **CRITICAL**: Still uses `getMockAspectData()` for raw aspect fetching
-- **Next Step**: Connect to `lib/server/astrology-mathbrain.js` for real API calls
+- ✅ **FIXED**: The Math Brain v2 is now fully integrated with the legacy `astrology-mathbrain.js` module for real transit data fetching. The `getMockAspectData()` function is deprecated and kept for standalone CLI testing only.
 
 ---
 
@@ -163,24 +162,7 @@ The integration is **non-breaking**:
 
 ## What Still Needs to Be Done
 
-### **Priority 1: Real Data Integration** ⚠️ **CRITICAL**
-**Current State**: The orchestrator uses `getMockAspectData()` which returns fake aspects.
-
-**Required Action**:
-1. Create a new helper function in `lib/server/astrology-mathbrain.js`:
-   ```javascript
-   async function getDailyGeometricData(personA, personB, date, mode, headers) {
-     // Fetch natal charts
-     // Fetch transits for the date
-     // Fetch synastry if needed
-     // Return { transitsA, transitsB, synastryAspects }
-   }
-   ```
-2. Update `src/math_brain/main.js` to call this function instead of `getMockAspectData`
-
-**Impact**: Until this is done, v2 will return computed summaries based on mock data
-
-### **Priority 2: UI Toggle**
+### **Priority 1: UI Toggle**
 Add a toggle in the UI to let users choose between legacy and v2 reports:
 ```html
 <label>
