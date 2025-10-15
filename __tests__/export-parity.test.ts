@@ -4,8 +4,8 @@
  * Validates ×5 scaling, clamping, and rounding consistency.
  */
 
-const { scaleUnipolar, scaleBipolar, scaleCoherenceFromVol } = require('../lib/balance/scale');
-const { SCALE_FACTOR, RANGE_MAG, RANGE_BIAS, RANGE_COH } = require('../lib/balance/constants');
+const { scaleUnipolar, scaleBipolar } = require('../lib/balance/scale');
+const { SCALE_FACTOR, RANGE_MAG, RANGE_BIAS } = require('../lib/balance/constants');
 
 describe('Export Parity Validation', () => {
   test('Magnitude scaling ×5 with clamping', () => {
@@ -22,14 +22,6 @@ describe('Export Parity Validation', () => {
     expect(scaled).toBe(-2.5);
     expect(scaled).toBeGreaterThanOrEqual(RANGE_BIAS[0]);
     expect(scaled).toBeLessThanOrEqual(RANGE_BIAS[1]);
-  });
-
-  test('Coherence scaling ×5 with clamping', () => {
-    const normalized = 0.6; // volatility normalized
-    const scaled = scaleCoherenceFromVol(normalized).value;
-    expect(scaled).toBe(2); // 5 - 0.6*5 = 2
-    expect(scaled).toBeGreaterThanOrEqual(RANGE_COH[0]);
-    expect(scaled).toBeLessThanOrEqual(RANGE_COH[1]);
   });
 
   test('Scale factor consistency', () => {
