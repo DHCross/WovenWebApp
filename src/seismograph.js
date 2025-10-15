@@ -36,9 +36,12 @@ const {
   normalizeVolatilityForCoherence,
   SPEC_VERSION,
   SCALE_FACTOR,
+  getMagnitudeLabel,
+  getDirectionalBiasLabel,
 } = require('../lib/balance/scale-bridge');
 const { assertSeismographInvariants } = require('../lib/balance/assertions');
 const { applyGeometryAmplification } = require('../lib/balance/amplifiers');
+const { classifyVolatility } = require('../lib/reporting/metric-labels');
 
 const OUTER = new Set(["Saturn","Uranus","Neptune","Pluto"]);
 const PERSONAL = new Set(["Sun","Moon","Mercury","Venus","Mars","ASC","MC","IC","DSC"]);
@@ -644,14 +647,31 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     ]
   };
 
+  const magnitudeRounded = round(magnitudeValue, 1);
+  const directionalBiasRounded = round(directional_bias, 1);
+  const volatilityRounded = round(volatility_scaled, 1);
+
+  const magnitudeLabel = getMagnitudeLabel(magnitudeValue) || null;
+  const directionalBiasLabel = getDirectionalBiasLabel(directional_bias) || null;
+  const volatilityInfo = Number.isFinite(volatilityRounded)
+    ? classifyVolatility(volatilityRounded)
+    : null;
+  const volatilityLabel = volatilityInfo?.label || null;
+
+  const magnitudeRange = [0, SCALE_FACTOR];
+  const magnitudeClamped = magnitudeScaled.flags.hitMin || magnitudeScaled.flags.hitMax;
+  const scalingConfidence = rollingContext?.magnitudes
+    ? Math.min(1, rollingContext.magnitudes.length / 14)
+    : 0;
+
   const result = {
     // === PUBLIC AXES (v5.0 - Two Only) ===
-    magnitude: magnitudeValue,
-    directional_bias,
+    magnitude: magnitudeRounded,
+    directional_bias: directionalBiasRounded,
     axes: {
-      magnitude: { value: magnitudeValue, normalized: magnitudeNormalized, scaled: magnitudeScaled.raw, raw: X_raw },
-      directional_bias: { value: directional_bias, normalized: Y_normalized, scaled: biasScaled.raw, raw: Y_raw },
-      volatility: { value: volatility_scaled, normalized: VI_normalized, scaled: volatility_scaled, raw: VI }
+      magnitude: { value: magnitudeRounded, normalized: magnitudeNormalized, scaled: magnitudeScaled.raw, raw: X_raw },
+      directional_bias: { value: directionalBiasRounded, normalized: Y_normalized, scaled: biasScaled.raw, raw: Y_raw },
+      volatility: { value: volatilityRounded, normalized: VI_normalized, scaled: volatility_scaled, raw: VI }
     },
 
     // === DIAGNOSTIC/INTERNAL (not public axes) ===
@@ -671,11 +691,38 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     bias_amplified: Y_amplified,
     rawMagnitude: magnitudeScaled.raw,
     rawDirectionalBias: biasScaled.raw,
+    volatility: volatilityRounded,
+    volatility_label: volatilityLabel,
     volatility_scaled,
     rawValence: Y_raw,
     originalMagnitude: magnitudeValue,
     energyMagnitude: X_raw,
     biasEnergy: Y_raw,
+
+    // === Legacy compatibility fields (v4 schema) ===
+    magnitude_label: magnitudeLabel,
+    magnitude_meta: null,
+    magnitude_range: magnitudeRange,
+    magnitude_method: scalingMethod,
+    magnitude_clamped: magnitudeClamped,
+    directional_bias_label: directionalBiasLabel,
+    raw_axes: {
+      magnitude: magnitudeScaled.raw,
+      bias_signed: biasScaled.raw,
+      volatility: volatility_scaled
+    },
+    saturation: magnitudeRounded >= (SCALE_FACTOR - 0.05),
+    scaling_strategy: scalingMethod,
+    scaling_confidence: scalingConfidence,
+    magnitude_state: {
+      value: magnitudeRounded,
+      label: magnitudeLabel,
+      range: magnitudeRange,
+      clamped: magnitudeClamped,
+      meta: null,
+      method: scalingMethod
+    },
+    version: 'v5.0'
   };
 
   // === STEP 6: Final Summary Diagnostics ===
