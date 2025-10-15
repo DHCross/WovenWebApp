@@ -6,6 +6,7 @@ const { aggregate } = require('../seismograph');
 
 // Import metric label classifiers
 const { classifyMagnitude, classifyDirectionalBias } = require('../../lib/reporting/metric-labels');
+const { sanitizeForFilename } = require('../utils/sanitizeFilename.js');
 
 /**
  * Main orchestrator for the Math Brain v2 pipeline.
@@ -65,7 +66,10 @@ async function runMathBrain(configPath, transitData = null) {
   };
 
   // 7. Write to Disk
-  const outputFileName = `unified_output_${personA.name}_${personB ? personB.name : 'Solo'}_${new Date().toISOString().split('T')[0]}.json`;
+  const safePersonA = sanitizeForFilename(personA?.name, 'PersonA');
+  const safePersonB = personB ? sanitizeForFilename(personB.name, 'PersonB') : 'Solo';
+  const runDate = new Date().toISOString().split('T')[0];
+  const outputFileName = `unified_output_${safePersonA}_${safePersonB}_${runDate}.json`;
   const outputPath = path.join(path.dirname(configPath), outputFileName);
   fs.writeFileSync(outputPath, JSON.stringify(finalOutput, null, 2));
   console.log(`[Math Brain] Success! Unified output written to: ${outputPath}`);

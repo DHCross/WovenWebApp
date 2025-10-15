@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { sanitizeForFilename } = require('../utils/sanitizeFilename.js');
 
 /**
  * Creates a self-contained Markdown reading file from a unified JSON data object.
@@ -71,7 +72,13 @@ function createMarkdownReading(inputJsonPath) {
   markdownContent += '4.  **Adhere to Your Voice**: Your language must be clear, agency-preserving, and non-predictive. Reflect the patterns; do not dictate the future.\n';
 
   // --- Write the final file ---
-  const outputFileName = `Woven_Reading_${run_metadata.person_a}_${run_metadata.person_b}_${run_metadata.date_range[0]}_to_${run_metadata.date_range[1]}.md`;
+  const safePersonA = sanitizeForFilename(run_metadata?.person_a, 'PersonA');
+  const safePersonB = sanitizeForFilename(run_metadata?.person_b, run_metadata?.person_b ? 'PersonB' : 'Solo');
+  const dateRange = Array.isArray(run_metadata?.date_range) ? run_metadata.date_range : [];
+  const safeStart = sanitizeForFilename(dateRange[0], 'start');
+  const safeEnd = sanitizeForFilename(dateRange[1], dateRange[0] ? 'end' : 'start');
+
+  const outputFileName = `Woven_Reading_${safePersonA}_${safePersonB}_${safeStart}_to_${safeEnd}.md`;
   const outputPath = path.join(path.dirname(inputJsonPath), outputFileName);
   fs.writeFileSync(outputPath, markdownContent);
   console.log(`[Formatter] Success! Formatted Markdown reading written to: ${outputPath}`);

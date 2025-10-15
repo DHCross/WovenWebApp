@@ -10,6 +10,7 @@ const mathBrainFunction = require('../../../lib/server/astrology-mathbrain.js');
 // NEW: Import the v2 Math Brain orchestrator
 const { runMathBrain } = require('../../../src/math_brain/main.js');
 const { createMarkdownReading } = require('../../../src/formatter/create_markdown_reading.js');
+const { sanitizeForFilename } = require('../../../src/utils/sanitizeFilename.js');
 
 const logger = {
   info: (message: string, context: Record<string, unknown> = {}) => {
@@ -378,7 +379,14 @@ export async function POST(request: NextRequest) {
         fs.writeFileSync(unifiedOutputPath, JSON.stringify(unifiedOutput, null, 2));
 
         let markdownContent: string;
-        let markdownFilename = `Woven_Reading_${unifiedOutput.run_metadata.person_a}_${unifiedOutput.run_metadata.person_b}_${unifiedOutput.run_metadata.date_range[0]}_to_${unifiedOutput.run_metadata.date_range[1]}.md`;
+        const runMetadata = unifiedOutput.run_metadata || {};
+        const safePersonA = sanitizeForFilename(runMetadata.person_a, 'PersonA');
+        const safePersonB = sanitizeForFilename(runMetadata.person_b, runMetadata.person_b ? 'PersonB' : 'Solo');
+        const dateRange = Array.isArray(runMetadata.date_range) ? runMetadata.date_range : [];
+        const safeStart = sanitizeForFilename(dateRange[0], 'start');
+        const safeEnd = sanitizeForFilename(dateRange[1], dateRange[0] ? 'end' : 'start');
+
+        let markdownFilename = `Woven_Reading_${safePersonA}_${safePersonB}_${safeStart}_to_${safeEnd}.md`;
 
         try {
           const markdownPath = createMarkdownReading(unifiedOutputPath);
@@ -425,7 +433,7 @@ export async function POST(request: NextRequest) {
             symbolic_weather: {
               format: 'json',
               content: unifiedOutput,
-              filename: `unified_output_${run_metadata.person_a}_${run_metadata.person_b}_${new Date().toISOString().split('T')[0]}.json`
+              filename: `unified_output_${safePersonA}_${safePersonB}_${new Date().toISOString().split('T')[0]}.json`
             }
           }
         }, { status: 200 });
