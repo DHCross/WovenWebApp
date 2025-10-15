@@ -58,22 +58,3 @@ export const normalizeAmplifiedBias = (amplifiedBias: number): number => {
   return normalized;
 };
 
-/**
- * Normalize volatility index for coherence calculation.
- *
- * VI typically ranges 0-10+. This normalizes to [0, 1] so that
- * the canonical coherence formula (5 - vol_norm × 5) produces
- * values in the expected [0, 5] range.
- * 
- * @param volatilityIndex - Raw volatility index from seismograph
- * @returns Normalized volatility ready for scaleCoherenceFromVol()
- */
-export const normalizeVolatilityForCoherence = (volatilityIndex: number): number => {
-  if (!Number.isFinite(volatilityIndex) || volatilityIndex < 0) {
-    return 0;
-  }
-
-  const VOLATILITY_DIVISOR = 50;  // v5.0: Match bias divisor for consistency
-  const normalized = volatilityIndex / VOLATILITY_DIVISOR;
-  return Math.min(1, Math.max(0, normalized));
-};

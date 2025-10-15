@@ -72,4 +72,4 @@ export function getDirectionalBiasLabel(value: number): string {
 export const clampValue = (value: number, min: number, max: number): number => clamp(value, min, max)[0];
 
 // Re-export domain amplifiers for single-import convenience
-export { amplifyByMagnitude, normalizeAmplifiedBias, normalizeVolatilityForCoherence } from './amplifiers';
+export { amplifyByMagnitude, normalizeAmplifiedBias } from './amplifiers';
