@@ -310,7 +310,7 @@ export function formatSymbolicWeatherSummary(symbolicWeather: any): string {
         bm.directional_bias_label ?? bm.bias_label ?? bm.valence_label ?? bm.bias_motion;
       const biasDisp = fmtAxisLabel(biasLabel, biasNum);
       const biasNumDisp = fmtAxis(biasNum);
-      lines.push(`Directional Bias: ${biasDisp} (${biasNumDisp})`);
+      lines.push(`Valence: ${biasDisp} (${biasNumDisp})`);
     }
     const volatilityValue = extractAxisNumber(bm, 'volatility');
     if (volatilityValue !== undefined || bm.volatility !== undefined || bm.volatility_label !== undefined) {

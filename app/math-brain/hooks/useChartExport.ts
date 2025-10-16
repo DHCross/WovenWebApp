@@ -1564,6 +1564,7 @@ export function createFrontStageResult(rawResult: any) {
     frontStageResult.person_a.summary = {
       ...summary,
       magnitude: frontStageResult.balance_meter.magnitude,
+      valence: frontStageResult.balance_meter.directional_bias,
       directional_bias: frontStageResult.balance_meter.directional_bias,
       volatility: frontStageResult.balance_meter.volatility,
       magnitude_label: safeLabel(frontStageResult.balance_meter.magnitude_label),
