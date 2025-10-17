@@ -508,31 +508,6 @@ export async function renderShareableMirror({ geo, prov, options, conversational
     }
   }
 
-  // DEPRECATED: Conversational mode has been removed from this module.
-  // All LLM interactions should be routed through designated, compliant API endpoints
-  // like `poetic-brain` or the `chat` API, which have robust error handling,
-  // compliant safety settings, and proper persona management.
-  if (conversational) {
-      const userMessage = options?.userMessage || '';
-      const fallbackText = isSimpleGreeting(userMessage)
-        ? "Hey. Good to see you here. Let me know what's on your mind."
-        : `I'm here and listening. You said: "${userMessage}". The primary conversational interface is currently being refined. Please use the main chat window for interactive queries.`;
-
-      return {
-        raw: fallbackText,
-        picture: 'Conversational mode is currently unavailable in this context.',
-        feeling: 'Awaiting interaction via the primary chat interface.',
-        container: 'Please use the main chat input.',
-        option: 'Switch to the main chat window to continue.',
-        next_step: 'Engage with the chat to proceed.',
-        mirror_suppressed: true,
-        appendix: {
-            provenance_source: prov?.source,
-            error: 'Conversational mode is deprecated in `lib/raven/render.ts` to ensure API compliance.'
-        },
-      };
-  }
-
   // Non-conversational (geometry-driven) rendering
   if (!geo) {
     return {

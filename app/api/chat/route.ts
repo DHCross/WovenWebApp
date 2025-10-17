@@ -664,33 +664,35 @@ Your response MUST begin with the warm recognition greeting AND include ALL Core
 
     const responseBody = new ReadableStream({
       async start(controller) {
-        // First, send the introductory context chunk
-        controller.enqueue(encode({ climate, hook, delta: shapedIntro }));
+        const encoder = new TextEncoder();
+        const send = (data: object) => {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+        };
 
-        for await (const chunk of stream) {
-          if (chunk.error) {
-            console.error(`[API_ERROR] Gemini stream error: ${chunk.error}`);
-            // Send a final chunk with the error message and close the stream
-            controller.enqueue(encode({
-              climate,
-              hook,
-              delta: `\n\n[SYSTEM: I've encountered a problem connecting to the core model. Please try again shortly.]`,
-              error: chunk.error
-            }));
-            controller.close();
-            return; // Stop processing the stream
-          }
+        // Send initial metadata
+        send({ climate, hook, delta: shapedIntro });
 
-          if (chunk.delta) {
-             controller.enqueue(encode({ climate, hook, delta: chunk.delta }));
+        try {
+          for await (const chunk of stream) {
+            if (chunk.delta) {
+              send({ delta: chunk.delta });
+            }
           }
+        } catch (error) {
+          console.error('[API] Error during stream processing:', error);
+          send({ error: 'Failed to process the stream.' });
+        } finally {
+          controller.close();
         }
-        controller.close();
       }
     });
 
     return new Response(responseBody, {
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
     });
 
   } catch (error: any) {
