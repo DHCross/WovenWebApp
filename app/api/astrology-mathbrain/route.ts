@@ -118,8 +118,23 @@ export async function POST(request: NextRequest) {
       // Get raw chart data by calling the legacy handler
       const legacyResult = await mathBrainFunction.handler(event, context);
       if (!legacyResult || legacyResult.statusCode >= 400) {
-        logger.error('Failed to fetch raw chart data from legacy handler', { statusCode: legacyResult?.statusCode, body: legacyResult?.body });
-        throw new Error('Could not retrieve foundational chart data.');
+        const errorBody = legacyResult?.body ? JSON.parse(legacyResult.body) : {};
+        logger.error('Failed to fetch raw chart data from legacy handler', {
+          statusCode: legacyResult?.statusCode,
+          errorCode: errorBody?.code,
+          errorMessage: errorBody?.error,
+          errorDetails: errorBody
+        });
+
+        // Return a more detailed error to help debugging
+        return NextResponse.json({
+          success: false,
+          error: 'Math Brain v2 processing failed',
+          detail: errorBody?.error || 'Could not retrieve foundational chart data.',
+          code: errorBody?.code || 'MATH_BRAIN_V2_ERROR',
+          legacyStatusCode: legacyResult?.statusCode,
+          hint: errorBody?.hint
+        }, { status: 500 });
       }
       const chartData = JSON.parse(legacyResult.body);
 
