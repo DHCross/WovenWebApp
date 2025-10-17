@@ -1931,6 +1931,9 @@ export default function MathBrainPage() {
       return;
     }
 
+    // eslint-disable-next-line no-console
+    console.log('[downloadV2Markdown] Starting download...');
+
     try {
       const response = await fetch('/api/astrology-mathbrain', {
         method: 'POST',
@@ -1979,7 +1982,19 @@ export default function MathBrainPage() {
         })
       });
 
+      // eslint-disable-next-line no-console
+      console.log('[downloadV2Markdown] Response status:', response.status);
+
       const data = await response.json();
+      // eslint-disable-next-line no-console
+      console.log('[downloadV2Markdown] Response data:', {
+        success: data.success,
+        version: data.version,
+        hasDownloadFormats: Boolean(data.download_formats),
+        hasMirrorReport: Boolean(data.download_formats?.mirror_report),
+        error: data.error,
+        detail: data.detail
+      });
 
       if (data.success && data.version === 'v2' && data.download_formats?.mirror_report) {
         const blob = new Blob([data.download_formats.mirror_report.content], { type: 'text/markdown' });
@@ -1991,10 +2006,17 @@ export default function MathBrainPage() {
         URL.revokeObjectURL(url);
         setToast('Math Brain v2 Markdown downloaded');
         setTimeout(() => setToast(null), 2000);
+        // eslint-disable-next-line no-console
+        console.log('[downloadV2Markdown] Download completed successfully');
       } else {
-        throw new Error(data.error || 'Failed to generate v2 report');
+        const errorMsg = data.error || data.detail || 'Failed to generate v2 report';
+        // eslint-disable-next-line no-console
+        console.error('[downloadV2Markdown] Download failed:', errorMsg, data);
+        throw new Error(errorMsg);
       }
     } catch (error: any) {
+      // eslint-disable-next-line no-console
+      console.error('[downloadV2Markdown] Error:', error);
       setToast(`Error: ${error.message}`);
       setTimeout(() => setToast(null), 3000);
     }
@@ -2007,6 +2029,9 @@ export default function MathBrainPage() {
       return;
     }
 
+    // eslint-disable-next-line no-console
+    console.log('[downloadV2SymbolicWeather] Starting download...');
+
     try {
       const response = await fetch('/api/astrology-mathbrain', {
         method: 'POST',
@@ -2055,7 +2080,19 @@ export default function MathBrainPage() {
         })
       });
 
+      // eslint-disable-next-line no-console
+      console.log('[downloadV2SymbolicWeather] Response status:', response.status);
+
       const data = await response.json();
+      // eslint-disable-next-line no-console
+      console.log('[downloadV2SymbolicWeather] Response data:', {
+        success: data.success,
+        version: data.version,
+        hasDownloadFormats: Boolean(data.download_formats),
+        hasSymbolicWeather: Boolean(data.download_formats?.symbolic_weather),
+        error: data.error,
+        detail: data.detail
+      });
 
       if (data.success && data.version === 'v2' && data.download_formats?.symbolic_weather) {
         const blob = new Blob([JSON.stringify(data.download_formats.symbolic_weather.content, null, 2)], { type: 'application/json' });
@@ -2067,10 +2104,17 @@ export default function MathBrainPage() {
         URL.revokeObjectURL(url);
         setToast('Math Brain v2 JSON downloaded');
         setTimeout(() => setToast(null), 2000);
+        // eslint-disable-next-line no-console
+        console.log('[downloadV2SymbolicWeather] Download completed successfully');
       } else {
-        throw new Error(data.error || 'Failed to generate v2 report');
+        const errorMsg = data.error || data.detail || 'Failed to generate v2 report';
+        // eslint-disable-next-line no-console
+        console.error('[downloadV2SymbolicWeather] Download failed:', errorMsg, data);
+        throw new Error(errorMsg);
       }
     } catch (error: any) {
+      // eslint-disable-next-line no-console
+      console.error('[downloadV2SymbolicWeather] Error:', error);
       setToast(`Error: ${error.message}`);
       setTimeout(() => setToast(null), 3000);
     }

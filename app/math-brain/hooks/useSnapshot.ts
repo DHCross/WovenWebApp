@@ -104,8 +104,11 @@ export function useSnapshot() {
       const normalizedPersonA = ensureSubject(personA, personALabel);
 
       // Build payload matching the format page.tsx uses
+      // Convert mode to proper API mode (snapshots always use transits)
+      const apiMode = isRelational ? 'SYNASTRY_TRANSITS' : 'NATAL_TRANSITS';
+
       const payload: any = {
-        mode: 'balance_meter', // Always use balance_meter for snapshots
+        mode: apiMode,
         personA: normalizedPersonA,
         // Transit window
         window: { start: todayStr, end: todayStr, step: 'daily' },
@@ -115,9 +118,9 @@ export function useSnapshot() {
         transitStep: 'daily',
         // Report type (Balance Meter for snapshots)
         report_type: isRelational ? 'relational_balance_meter' : 'solo_balance_meter',
-        // Context (use 'balance_meter' mode for snapshots)
+        // Context
         context: {
-          mode: 'balance_meter',
+          mode: apiMode,
         },
         // Relocation for current location
         relocation_mode: isRelational ? 'BOTH_LOCAL' : 'A_LOCAL',
