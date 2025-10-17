@@ -1,6 +1,7 @@
 "use client";
 /* eslint-disable no-console */
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import Script from "next/script";
 import { getRedirectUri } from "../lib/auth";
 
 type Auth0Client = {
@@ -86,6 +87,10 @@ export default function HomeHero() {
       persistAuthState(true, null);
       return;
     }
+    if (!sdkLoaded) {
+      // Defer initialization until the SDK is loaded by the <Script> component
+      return;
+    }
     let cancelled = false;
     // Safety timeout so UI doesn't appear stuck if functions or SDK never resolve
     const safety = setTimeout(() => {
@@ -97,20 +102,6 @@ export default function HomeHero() {
     async function init() {
       try {
         const startTime = Date.now();
-        // Load Auth0 SPA SDK (served from public/vendor)
-        const hasCreate = typeof window.auth0?.createAuth0Client === 'function' || typeof window.createAuth0Client === 'function';
-        if (!hasCreate) {
-          await new Promise<void>((resolve, reject) => {
-            const s = document.createElement("script");
-            s.src = "/vendor/auth0-spa-js.production.js";
-            s.async = true;
-            s.onload = () => resolve();
-            s.onerror = () => reject(new Error("Failed to load Auth0 SDK"));
-            document.head.appendChild(s);
-          });
-        }
-        console.log(`Auth0 SDK loaded in ${Date.now() - startTime}ms`);
-        setSdkLoaded(true);
 
         // Fetch public Auth0 config (proxied to Netlify function)
         let config: any;
@@ -200,7 +191,7 @@ export default function HomeHero() {
       cancelled = true;
       clearTimeout(safety);
     };
-  }, [authDisabled, persistAuthState]);
+  }, [authDisabled, persistAuthState, sdkLoaded]);
 
   const loginWithGoogle = async () => {
     // Guard against inert click if client hasn't initialized yet
@@ -255,6 +246,18 @@ export default function HomeHero() {
 
   return (
     <section className="mt-8">
+      <Script
+        src="/vendor/auth0-spa-js.production.js"
+        strategy="lazyOnload"
+        onLoad={() => {
+          console.log('Auth0 SDK loaded via next/script');
+          setSdkLoaded(true);
+        }}
+        onError={(e) => {
+          console.error('Auth0 SDK failed to load', e);
+          setError("Auth SDK failed to load. Please try refreshing.");
+        }}
+      />
       <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-6">
         <h2 className="text-2xl font-semibold tracking-tight">Start with Math Brain</h2>
         <p className="mt-2 text-slate-400">
