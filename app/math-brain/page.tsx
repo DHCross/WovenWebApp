@@ -3792,6 +3792,62 @@ export default function MathBrainPage() {
     personA_lon_type: typeof (personA as any).longitude,
   }), [reportType, includeTransits, canSubmit, submitDisabled, aCoordsValid, bCoordsValid, includePersonB, timeUnknown, timeUnknownB, timePolicy, contactState, personA]);
 
+  // Helper: Split date range into chunks to avoid API timeouts
+  function splitDateRangeIntoChunks(start: string, end: string, maxDaysPerChunk: number = 6): Array<{start: string, end: string}> {
+    const chunks: Array<{start: string, end: string}> = [];
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    let currentStart = new Date(startDate);
+    while (currentStart <= endDate) {
+      const currentEnd = new Date(currentStart);
+      currentEnd.setDate(currentEnd.getDate() + maxDaysPerChunk - 1);
+
+      if (currentEnd > endDate) {
+        chunks.push({
+          start: currentStart.toISOString().split('T')[0],
+          end: endDate.toISOString().split('T')[0]
+        });
+        break;
+      } else {
+        chunks.push({
+          start: currentStart.toISOString().split('T')[0],
+          end: currentEnd.toISOString().split('T')[0]
+        });
+        currentStart.setDate(currentEnd.getDate() + 1);
+      }
+    }
+
+    return chunks;
+  }
+
+  // Helper: Merge multiple Math Brain results into one
+  function mergeChunkedResults(results: Array<any>): any {
+    if (results.length === 0) return null;
+    if (results.length === 1) return results[0];
+
+    const merged = { ...results[0] };
+
+    // Merge unified_output.daily_entries
+    if (merged.unified_output?.daily_entries) {
+      const allEntries = results.flatMap(r => r.unified_output?.daily_entries || []);
+      merged.unified_output.daily_entries = allEntries;
+
+      // Update date_range in metadata
+      if (allEntries.length > 0) {
+        const dates = allEntries.map((e: any) => e.date).sort();
+        merged.unified_output.run_metadata.date_range = [dates[0], dates[dates.length - 1]];
+      }
+    }
+
+    // Merge markdown_reading (concatenate with separators)
+    if (merged.markdown_reading) {
+      merged.markdown_reading = results.map(r => r.markdown_reading).join('\n\n---\n\n');
+    }
+
+    return merged;
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     // Frontend relocation gate for Balance Meter
@@ -3816,6 +3872,14 @@ export default function MathBrainPage() {
     setError(null);
     setResult(null);
     try {
+      // Check if we need to chunk the request
+      const needsChunking = includeTransits && startDate && endDate;
+      const daysDiff = needsChunking ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1 : 0;
+      const chunks = (needsChunking && daysDiff > 6) ? splitDateRangeIntoChunks(startDate, endDate, 6) : null;
+
+      if (chunks && chunks.length > 1) {
+        setToast(`Processing ${daysDiff} days in ${chunks.length} chunks...`);
+      }
       // Build unified request payload
       const payload: Record<string, any> = {
         mode,
@@ -3893,22 +3957,65 @@ export default function MathBrainPage() {
         };
       }
 
-      // Send the single, unified request
-      setToast(includeTransits ? 'Generating report with transits...' : 'Generating report...');
-      const response = await fetch("/api/astrology-mathbrain", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      // Send request(s) - chunked if needed
+      let finalData: any;
 
-      const parsed = await parseJsonSafely<Record<string, any>>(response);
-      const finalData = parsed.data;
+      if (chunks && chunks.length > 1) {
+        // Chunked mode: process each chunk sequentially
+        const results: any[] = [];
 
-      if (!response.ok || parsed.parseError || !isRecord(finalData) || finalData.success === false) {
-        const errorDetail = finalData?.error || parsed.parseError?.message || `Request failed with status ${response.status}`;
-        setToast('Report generation failed.');
-        setTimeout(() => setToast(null), 2500);
-        throw new Error(errorDetail);
+        for (let i = 0; i < chunks.length; i++) {
+          const chunk = chunks[i];
+          setToast(`Processing chunk ${i + 1} of ${chunks.length} (${chunk.start} to ${chunk.end})...`);
+
+          const chunkPayload = {
+            ...payload,
+            window: { start: chunk.start, end: chunk.end, step },
+            transits: { from: chunk.start, to: chunk.end, step },
+            transitStartDate: chunk.start,
+            transitEndDate: chunk.end,
+          };
+
+          const response = await fetch("/api/astrology-mathbrain", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(chunkPayload),
+          });
+
+          const parsed = await parseJsonSafely<Record<string, any>>(response);
+          const chunkData = parsed.data;
+
+          if (!response.ok || parsed.parseError || !isRecord(chunkData) || chunkData.success === false) {
+            const errorDetail = chunkData?.error || parsed.parseError?.message || `Request failed with status ${response.status}`;
+            setToast(`Chunk ${i + 1} failed: ${errorDetail}`);
+            setTimeout(() => setToast(null), 2500);
+            throw new Error(errorDetail);
+          }
+
+          results.push(chunkData);
+        }
+
+        // Merge all chunks
+        setToast('Merging results...');
+        finalData = mergeChunkedResults(results);
+      } else {
+        // Single request mode (no chunking needed)
+        setToast(includeTransits ? 'Generating report with transits...' : 'Generating report...');
+        const response = await fetch("/api/astrology-mathbrain", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const parsed = await parseJsonSafely<Record<string, any>>(response);
+        finalData = parsed.data;
+
+        if (!response.ok || parsed.parseError || !isRecord(finalData) || finalData.success === false) {
+          const errorDetail = finalData?.error || parsed.parseError?.message || `Request failed with status ${response.status}`;
+          setToast('Report generation failed.');
+          setTimeout(() => setToast(null), 2500);
+          throw new Error(errorDetail);
+        }
       }
 
       // Persist last inputs for resume (conditional)
