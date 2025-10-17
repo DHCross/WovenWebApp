@@ -661,54 +661,45 @@ Your response MUST begin with the warm recognition greeting AND include ALL Core
   
   try {
     trackRequest(analysisPrompt.length);
-    let accumulatedContent = shapedIntro;
-    let finalClimate = climate;
-    let finalHook = hook;
-    let hasAnchored = false;
 
-    // Await the full stream and accumulate the content
-    for await (const chunk of stream) {
-      const delta = chunk.delta || '';
-      accumulatedContent += delta;
+    const responseBody = new ReadableStream({
+      async start(controller) {
+        // First, send the introductory context chunk
+        controller.enqueue(encode({ climate, hook, delta: shapedIntro }));
 
-      // Detect persona drift
-      const driftIndicators = [
-        /this file contains/i,
-        /the system shows/i,
-        /according to the data/i,
-        /based on the chart/i,
-        /the report indicates/i,
-        /analysis reveals/i
-      ];
-      const hasDrift = driftIndicators.some(pattern => pattern.test(accumulatedContent));
-      if (hasDrift && !hasAnchored && accumulatedContent.length > 100) {
-        hasAnchored = true;
-        // console.warn('[Persona] Drift detected in response, length:', accumulatedContent.length);
+        for await (const chunk of stream) {
+          if (chunk.error) {
+            console.error(`[API_ERROR] Gemini stream error: ${chunk.error}`);
+            // Send a final chunk with the error message and close the stream
+            controller.enqueue(encode({
+              climate,
+              hook,
+              delta: `\n\n[SYSTEM: I've encountered a problem connecting to the core model. Please try again shortly.]`,
+              error: chunk.error
+            }));
+            controller.close();
+            return; // Stop processing the stream
+          }
+
+          if (chunk.delta) {
+             controller.enqueue(encode({ climate, hook, delta: chunk.delta }));
+          }
+        }
+        controller.close();
       }
-    }
-
-    // Construct a single response object
-    const finalResponse = {
-      ok: true,
-      draft: {
-        raw: accumulatedContent,
-      },
-      climate: finalClimate,
-      hook: finalHook,
-      prov: { source: 'Woven Web App' },
-      intent: 'conversation' as const, // Default intent
-    };
-    
-    return new Response(JSON.stringify(finalResponse), {
-      headers: { 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
-    // console.error('[API] Error during stream processing:', error);
-    return new Response(JSON.stringify({
+    return new Response(responseBody, {
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    });
+
+  } catch (error: any) {
+    console.error('[API] Fatal error during stream setup:', error);
+    const errorResponse = {
       ok: false,
-      error: 'Failed to process the request due to a server error.',
-    }), {
+      error: `Failed to process the request due to a server error: ${error.message || 'Unknown error'}.`,
+    };
+    return new Response(JSON.stringify(errorResponse), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
