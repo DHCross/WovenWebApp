@@ -93,8 +93,8 @@ function createProvenanceBlock(config) {
     generated_at: new Date().toISOString(),
     config_source: path.basename(config.sourcePath || 'N/A'),
     math_brain_version: '1.0.0', // This script's version
-    mode: config.mode,
-    person_a: config.personA.name || 'Person A',
+    mode: config.mode || config.context?.mode || 'UNKNOWN',
+    person_a: config.personA?.name || 'Person A',
     person_b: config.personB ? (config.personB.name || 'Person B') : 'N/A',
     date_range: [config.startDate, config.endDate],
     // --- Fields required by API_REFERENCE.md ---

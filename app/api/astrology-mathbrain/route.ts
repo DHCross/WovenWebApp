@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       // Prepare the config for the v2 formatter/aggregator
       const v2Config = {
         schema: 'mb-1',
-        mode: rawPayload.mode,
+        mode: rawPayload.mode || rawPayload.context?.mode,
         step: rawPayload.window?.step || 'daily',
         startDate: rawPayload.window?.start,
         endDate: rawPayload.window?.end,
@@ -154,7 +154,8 @@ export async function POST(request: NextRequest) {
         personB: rawPayload.personB || null,
         translocation: rawPayload.translocation || 'BOTH_LOCAL',
         reportStructure: rawPayload.personB ? 'synastry' : 'solo',
-        relationshipType: rawPayload.relationship_context?.type || 'PARTNER'
+        relationshipType: rawPayload.relationship_context?.type || 'PARTNER',
+        context: rawPayload.context
       };
       fs.writeFileSync(configPath, JSON.stringify(v2Config, null, 2));
 
