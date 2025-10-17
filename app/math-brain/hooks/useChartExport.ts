@@ -1244,10 +1244,19 @@ Start with the Solo Mirror(s), then ${
         metric: 'magnitude' | 'directional_bias' | 'volatility',
       ): number => {
         // Calibrated values should already be in range; clamp + round for safety
-        if (metric === 'directional_bias') return roundHalfUp(clamp(calibratedValue, -5, 5), 1);
-        if (metric === 'volatility') return roundHalfUp(clamp(calibratedValue, 0, 5), 1);
+        if (metric === 'directional_bias') {
+          const value = clamp(calibratedValue, -5, 5);
+          // Preserve one decimal place for UI display
+          return Math.round(value * 10) / 10;
+        }
+        if (metric === 'volatility') {
+          const value = clamp(calibratedValue, 0, 5);
+          return Math.round(value * 10) / 10;
+        }
         // magnitude
-        return roundHalfUp(clamp(calibratedValue, 0, 5), 2);
+        const value = clamp(calibratedValue, 0, 5);
+        // Preserve two decimal places for UI display
+        return Math.round(value * 100) / 100;
       };
 
       const weatherData: any = {
