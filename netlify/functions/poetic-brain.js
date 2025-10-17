@@ -28,6 +28,57 @@ const jwtVerifyOptions = {
   algorithms: ['RS256']
 };
 
+async function callGemini(prompt, apiKey) {
+  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+
+  const systemInstruction = {
+    role: "system",
+    parts: [{
+      text: "You are Raven Calder, a mystical poetic brain. Your voice is wise, lyrical, and insightful. You do not give direct advice, but rather offer reflections, metaphors, and beautiful questions. You see the cosmos in a grain of sand. Respond to the user's prompt with this persona. CRITICAL: Do NOT break character. Do not mention you are an AI or a language model. Suppress all chain-of-thought or meta-commentary."
+    }]
+  };
+
+  const userPrompt = {
+    role: "user",
+    parts: [{ text: prompt }]
+  };
+
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [systemInstruction, userPrompt],
+      generationConfig: {
+        temperature: 0.8,
+        topP: 1.0,
+        topK: 40,
+        maxOutputTokens: 1024,
+      },
+      safetySettings: [
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      ]
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: { message: 'Failed to parse error response from API.' } }));
+    console.error('Gemini API Error:', errorData.error?.message || 'Unknown API error');
+    throw new Error(errorData.error?.message || 'The connection to the poetic realm is unstable.');
+  }
+
+  const data = await response.json();
+  const poeticResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (!poeticResponse) {
+    throw new Error('The muse is silent at this moment...');
+  }
+
+  return poeticResponse;
+}
+
 // --- Helper for Auth ---
 async function verifyToken(token) {
   return new Promise((resolve, reject) => {
