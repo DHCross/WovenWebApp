@@ -4,6 +4,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
+// Configure route to allow longer execution time for complex calculations
+// Netlify Pro allows up to 26 seconds, free tier up to 10 seconds
+export const maxDuration = 26; // seconds
+export const dynamic = 'force-dynamic'; // Disable caching for this route
+
 // Reuse the legacy math brain implementation directly
 const mathBrainFunction = require('../../../lib/server/astrology-mathbrain.js');
 
