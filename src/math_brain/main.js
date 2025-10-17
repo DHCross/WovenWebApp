@@ -127,9 +127,13 @@ function generateDateArray(start, end) {
 // --- Computational Functions ---
 
 function computeSymbolicWeather(transitsA, transitsB) {
+  // Ensure inputs are arrays
+  const safeTransitsA = Array.isArray(transitsA) ? transitsA : [];
+  const safeTransitsB = Array.isArray(transitsB) ? transitsB : [];
+
   // Combine all transits from both persons
-  const allTransits = [...transitsA, ...transitsB];
-  
+  const allTransits = [...safeTransitsA, ...safeTransitsB];
+
   // If no transits, return zero values
   if (!allTransits || allTransits.length === 0) {
     return {
@@ -138,14 +142,14 @@ function computeSymbolicWeather(transitsA, transitsB) {
       labels: { magnitude: 'Quiet', directional_bias: 'Neutral' }
     };
   }
-  
+
   // Use the seismograph aggregate function to calculate the weather metrics
   const weather = aggregate(allTransits, null, { enableDiagnostics: false });
-  
+
   // Extract and label the metrics
   const magnitude = weather.magnitude || 0;
   const directionalBias = weather.directional_bias || 0;
-  
+
   return {
     magnitude: Number(magnitude.toFixed(1)),
     directional_bias: Number(directionalBias.toFixed(1)),
@@ -157,13 +161,18 @@ function computeSymbolicWeather(transitsA, transitsB) {
 }
 
 function computeMirrorData(transitsA, transitsB, synastryAspects) {
+  // Ensure inputs are arrays
+  const safeTransitsA = Array.isArray(transitsA) ? transitsA : [];
+  const safeTransitsB = Array.isArray(transitsB) ? transitsB : [];
+  const safeSynastry = Array.isArray(synastryAspects) ? synastryAspects : [];
+
   // Calculate individual contributions for each person
-  const weatherA = transitsA && transitsA.length > 0 ? aggregate(transitsA, null, { enableDiagnostics: false }) : { magnitude: 0, directional_bias: 0 };
-  const weatherB = transitsB && transitsB.length > 0 ? aggregate(transitsB, null, { enableDiagnostics: false }) : { magnitude: 0, directional_bias: 0 };
-  
+  const weatherA = safeTransitsA.length > 0 ? aggregate(safeTransitsA, null, { enableDiagnostics: false }) : { magnitude: 0, directional_bias: 0 };
+  const weatherB = safeTransitsB.length > 0 ? aggregate(safeTransitsB, null, { enableDiagnostics: false }) : { magnitude: 0, directional_bias: 0 };
+
   // Determine relational dynamics from synastry aspects
-  const hardAspects = (synastryAspects || []).filter(a => ['square', 'opposition', 'conjunction'].includes(a.aspect));
-  const softAspects = (synastryAspects || []).filter(a => ['trine', 'sextile'].includes(a.aspect));
+  const hardAspects = safeSynastry.filter(a => ['square', 'opposition', 'conjunction'].includes(a.aspect));
+  const softAspects = safeSynastry.filter(a => ['trine', 'sextile'].includes(a.aspect));
   
   const relationalTension = hardAspects.length * 0.8 + (weatherA.magnitude + weatherB.magnitude) * 0.3;
   const relationalFlow = softAspects.length * 0.6 + Math.max(0, 5 - Math.abs(weatherA.directional_bias + weatherB.directional_bias)) * 0.2;
@@ -194,11 +203,16 @@ function computeMirrorData(transitsA, transitsB, synastryAspects) {
 }
 
 function computePoeticHooks(transitsA, transitsB, synastryAspects) {
+  // Ensure inputs are arrays
+  const safeTransitsA = Array.isArray(transitsA) ? transitsA : [];
+  const safeTransitsB = Array.isArray(transitsB) ? transitsB : [];
+  const safeSynastry = Array.isArray(synastryAspects) ? synastryAspects : [];
+
   // Combine all aspects for ranking
   const allAspects = [
-    ...(transitsA || []).map(a => ({ ...a, owner: 'Person A', type: categorizeAspect(a.aspect) })),
-    ...(transitsB || []).map(a => ({ ...a, owner: 'Person B', type: categorizeAspect(a.aspect) })),
-    ...(synastryAspects || []).map(a => ({ ...a, owner: 'Synastry', type: categorizeAspect(a.aspect) }))
+    ...safeTransitsA.map(a => ({ ...a, owner: 'Person A', type: categorizeAspect(a.aspect) })),
+    ...safeTransitsB.map(a => ({ ...a, owner: 'Person B', type: categorizeAspect(a.aspect) })),
+    ...safeSynastry.map(a => ({ ...a, owner: 'Synastry', type: categorizeAspect(a.aspect) }))
   ];
   
   // Sort aspects by significance (tighter orb = more significant)
@@ -296,18 +310,27 @@ function getRealAspectData(date, personA, personB, transitData = {}) {
 
   const dayA = transitData?.person_a?.chart?.transitsByDate?.[date];
   if (dayA) {
-    transitsA.push(...extractAspectsForDay(dayA));
+    const extracted = extractAspectsForDay(dayA);
+    if (Array.isArray(extracted)) {
+      transitsA.push(...extracted);
+    }
   }
 
   if (personB) {
     const dayB = transitData?.person_b?.chart?.transitsByDate?.[date];
     if (dayB) {
-      transitsB.push(...extractAspectsForDay(dayB));
+      const extracted = extractAspectsForDay(dayB);
+      if (Array.isArray(extracted)) {
+        transitsB.push(...extracted);
+      }
     }
 
     const synDay = transitData?.synastry?.aspectsByDate?.[date] || transitData?.composite?.transitsByDate?.[date];
     if (synDay) {
-      synastryAspects.push(...extractSynastryAspectsForDay(synDay));
+      const extracted = extractSynastryAspectsForDay(synDay);
+      if (Array.isArray(extracted)) {
+        synastryAspects.push(...extracted);
+      }
     }
   }
 
