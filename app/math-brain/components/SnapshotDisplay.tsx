@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 'use client';
 
+import Image from "next/image";
 import { buildDomainsFromChart, createSnapshotDisplay } from '../utils/snapshot';
 
 interface SnapshotDisplayProps {
@@ -209,9 +210,11 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
       {/* CHART WHEEL PLACEHOLDER (TOP HALF) */}
       {natalChart?.url ? (
         <div className="mb-6 flex justify-center rounded border border-slate-700 bg-slate-900/50 p-4">
-          <img 
-            src={natalChart.url} 
-            alt="Natal Chart" 
+          <Image
+            src={natalChart.url}
+            alt="Natal Chart"
+            width={512}
+            height={512}
             className="max-w-full h-auto"
             onError={(e) => {
               console.error('[SnapshotDisplay] Chart image failed to load');
