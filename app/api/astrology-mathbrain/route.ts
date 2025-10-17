@@ -83,223 +83,65 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const raw = await request.json().catch(() => null);
-    // Transform subjectA/subjectB/transits/houses shape → function input
-    function mapHouseSystem(h: string|undefined){
-      if(!h) return undefined;
-      const name = String(h).toLowerCase();
-      const map: Record<string,string> = {
-        placidus: 'P', whole_sign: 'W', wholesign: 'W', 'whole sign': 'W', regiomontanus: 'R', koch: 'K', campanus: 'C', equal: 'E'
-      } as any;
-      return map[name] || h;
+    const rawPayload = await request.json().catch(() => null);
+    if (!rawPayload) {
+      logger.error('Invalid or empty JSON body received');
+      return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
     }
-    const pickNation = (subject: any, birth: any) => {
-      return subject?.nation || birth?.nation || subject?.country || birth?.country || subject?.country_code || birth?.country_code || subject?.nation_code || undefined;
-    };
-    const body = (function transform(input:any){
-      if (!input || typeof input !== 'object') {
-        return JSON.stringify(input ?? {});
-      }
 
-      const normalized = { ...input };
+    const body = JSON.stringify(rawPayload);
 
-      const normalizePerson = (person: any, keyPrefix: 'A' | 'B') => {
-        if (!person || typeof person !== 'object') return undefined;
-        const birth = person.birth || {};
-        const normalizedBirth = {
-          date: person.date || birth.date || undefined,
-          year: person.year ?? birth.year ?? undefined,
-          month: person.month ?? birth.month ?? undefined,
-          day: person.day ?? birth.day ?? undefined,
-          hour: person.hour ?? birth.hour ?? undefined,
-          minute: person.minute ?? birth.minute ?? undefined,
-          lat: person.latitude ?? person.lat ?? birth.lat ?? undefined,
-          lng: person.longitude ?? person.lng ?? birth.lng ?? undefined,
-          timezone: person.timezone ?? birth.timezone ?? birth.tz ?? undefined,
-          city: person.city ?? birth.city ?? undefined,
-          state: person.state ?? birth.state ?? undefined,
-          nation: person.nation ?? birth.nation ?? undefined,
-        };
-
-        const localKey = keyPrefix === 'A' ? 'A_local' : 'B_local';
-
-        return {
-          name: person.name,
-          birth: normalizedBirth,
-          [localKey]: person[localKey] || person.local || undefined,
-        };
-      };
-
-      if (!normalized.subjectA && normalized.personA) {
-        const subjectA = normalizePerson(normalized.personA, 'A');
-        if (subjectA) {
-          normalized.subjectA = subjectA;
-        }
-      }
-
-      if (!normalized.subjectB && normalized.personB) {
-        const subjectB = normalizePerson(normalized.personB, 'B');
-        if (subjectB) {
-          normalized.subjectB = subjectB;
-        }
-      }
-
-      const effective = normalized;
-
-      const start = effective?.window?.start || effective?.transit_window?.start || effective?.transitStartDate || effective?.transit_start_date || effective?.transitParams?.startDate || effective?.startDate;
-      const end = effective?.window?.end || effective?.transit_window?.end || effective?.transitEndDate || effective?.transit_end_date || effective?.transitParams?.endDate || effective?.endDate;
-      const stepRaw = effective?.window?.step || effective?.transit_window?.step || effective?.transitStep || effective?.transit_step || effective?.transitParams?.step || effective?.step;
-      const resolvedStep = typeof stepRaw === 'string' && stepRaw.trim().length ? stepRaw : 'daily';
-      if(!effective.subjectA && !effective.subjectB){
-        const out:any = { ...effective };
-        if (start && end) {
-          const normalizedWindow = { start, end, step: resolvedStep };
-          out.window = out.window || normalizedWindow;
-          if (!out.transits || typeof out.transits !== 'object') {
-            out.transits = { from: start, to: end, step: resolvedStep };
-          } else {
-            out.transits = {
-              ...out.transits,
-              from: out.transits.from || start,
-              to: out.transits.to || end,
-              step: out.transits.step || resolvedStep,
-            };
-          }
-        }
-        return JSON.stringify(out);
-      }
-      const a = effective.subjectA || {};
-      const b = effective.subjectB || null;
-      const birthA = a.birth || {};
-      const birthB = b?.birth || {};
-      const toPerson = (name:string, subject:any, birth:any, local:any)=>({
-        name,
-        year: parseInt(birth.date?.split('-')[0]||birth.year,10),
-        month: parseInt(birth.date?.split('-')[1]||birth.month,10),
-        day: parseInt(birth.date?.split('-')[2]||birth.day,10),
-        hour: parseInt((birth.time||'').split(':')[0]||birth.hour,10),
-        minute: parseInt((birth.time||'').split(':')[1]||birth.minute,10),
-        latitude: birth.lat ?? birth.latitude ?? subject?.latitude,
-        longitude: birth.lon ?? birth.lng ?? birth.longitude ?? subject?.longitude,
-        timezone: birth.tz ?? birth.timezone ?? subject?.timezone,
-        city: birth.city || subject?.city,
-        state: birth.state || subject?.state,
-        nation: pickNation(subject, birth),
-        ...(local ? { A_local: local, B_local: local } : {})
-      });
-      const personA = toPerson(a.name, a, birthA, a.A_local);
-      const personB = b ? toPerson(b.name, b, birthB, b.B_local) : undefined;
-      const tx = effective.transits || {};
-      const window = tx.from && tx.to ? { start: tx.from, end: tx.to, step: tx.step || 'daily' } : undefined;
-      const houses = mapHouseSystem(effective.houses);
-      const out:any = {
-        personA,
-        ...(personB ? { personB } : {}),
-        ...(window ? { window } : {}),
-        context: {
-          mode: (()=>{
-            const rt = String(effective.report_type||'').toLowerCase();
-            if (rt.includes('synastry_transits')) return 'synastry_transits';
-            if (rt.includes('synastry')) return 'synastry';
-            if (rt.includes('balance_meter')) return 'balance_meter';
-            return (effective.context?.mode || 'mirror');
-          })(),
-          ...(effective.translocation ? { translocation: effective.translocation } : {})
-        },
-        relocation_mode: effective.relocation_mode,
-        orbs_profile: effective.orbs_profile,
-        ...(houses ? { houses_system_identifier: houses } : {})
-      };
-      if (effective.relationship_context || effective.relationshipContext) {
-        out.relationship_context = effective.relationship_context || effective.relationshipContext;
-      }
-      if (!out.window && start && end) {
-        out.window = { start, end, step: resolvedStep };
-      }
-      if (!out.transits && start && end) {
-        out.transits = { from: start, to: end, step: resolvedStep };
-      }
-
-      ['wheel_only', 'wheel_format', 'theme', 'language'].forEach((key) => {
-        if (Object.prototype.hasOwnProperty.call(effective, key)) {
-          out[key] = effective[key];
-        }
-      });
-      return JSON.stringify(out);
-    })(raw);
-    
-    // Convert Next.js request to Netlify event format
+    // Prepare event for legacy handler
     const url = new URL(request.url);
-    
-    // Convert headers
     const headers: Record<string, string> = {};
-    request.headers.forEach((value, key) => {
-      headers[key] = value;
-    });
-    
+    request.headers.forEach((value, key) => { headers[key] = value; });
+
     const event = {
       httpMethod: 'POST',
-      queryStringParameters: Object.fromEntries(url.searchParams),
       headers,
       body,
-      path: url.pathname,
-      pathParameters: null,
-      requestContext: {},
-      resource: '',
-      stageVariables: null,
-      isBase64Encoded: false
+      queryStringParameters: Object.fromEntries(url.searchParams),
+      path: url.pathname, pathParameters: null, requestContext: {}, resource: '', stageVariables: null, isBase64Encoded: false
     };
 
     const context = {
-      callbackWaitsForEmptyEventLoop: false,
-      functionName: 'astrology-mathbrain',
-      functionVersion: '$LATEST',
-      invokedFunctionArn: '',
-      memoryLimitInMB: '1024',
-  awsRequestId: randomUUID(),
-      logGroupName: '',
-      logStreamName: '',
-      getRemainingTimeInMillis: () => 30000
+      callbackWaitsForEmptyEventLoop: false, functionName: 'astrology-mathbrain', functionVersion: '$LATEST', invokedFunctionArn: '',
+      memoryLimitInMB: '1024', awsRequestId: randomUUID(), logGroupName: '', logStreamName: '', getRemainingTimeInMillis: () => 30000
     };
 
-    // Use the single, unified Math Brain v2 pipeline
+    // Execute the unified pipeline
     logger.info('Routing to unified Math Brain v2 pipeline');
     const tempDir = os.tmpdir();
     const configPath = path.join(tempDir, `math_brain_config_${randomUUID()}.json`);
 
     try {
-      const parsedBody = JSON.parse(body);
-
-      // 1. Get raw chart data by calling the legacy handler
+      // Get raw chart data by calling the legacy handler
       const legacyResult = await mathBrainFunction.handler(event, context);
       if (!legacyResult || legacyResult.statusCode >= 400) {
-        logger.error('Failed to fetch raw chart data from legacy handler', {
-          statusCode: legacyResult?.statusCode,
-          body: legacyResult?.body
-        });
+        logger.error('Failed to fetch raw chart data from legacy handler', { statusCode: legacyResult?.statusCode, body: legacyResult?.body });
         throw new Error('Could not retrieve foundational chart data.');
       }
       const chartData = JSON.parse(legacyResult.body);
 
-      // 2. Prepare the config for the v2 formatter/aggregator
+      // Prepare the config for the v2 formatter/aggregator
       const v2Config = {
         schema: 'mb-1',
-        mode: parsedBody.mode,
-        step: parsedBody.window?.step || 'daily',
-        startDate: parsedBody.window?.start,
-        endDate: parsedBody.window?.end,
-        personA: parsedBody.personA,
-        personB: parsedBody.personB || null,
-        translocation: parsedBody.context?.translocation || 'BOTH_LOCAL',
-        reportStructure: parsedBody.personB ? 'synastry' : 'solo',
-        relationshipType: parsedBody.relationship_context?.type || 'PARTNER'
+        mode: rawPayload.mode,
+        step: rawPayload.window?.step || 'daily',
+        startDate: rawPayload.window?.start,
+        endDate: rawPayload.window?.end,
+        personA: rawPayload.personA,
+        personB: rawPayload.personB || null,
+        translocation: rawPayload.translocation || 'BOTH_LOCAL',
+        reportStructure: rawPayload.personB ? 'synastry' : 'solo',
+        relationshipType: rawPayload.relationship_context?.type || 'PARTNER'
       };
       fs.writeFileSync(configPath, JSON.stringify(v2Config, null, 2));
 
-      // 3. Run the v2 engine to format the final report
+      // Run the v2 engine to format the final report
       const unifiedOutput = await runMathBrain(configPath, chartData);
 
-      // 4. Generate Markdown and prepare response
+      // Generate Markdown and prepare response
       const unifiedOutputPath = path.join(tempDir, `math_brain_unified_${randomUUID()}.json`);
       fs.writeFileSync(unifiedOutputPath, JSON.stringify(unifiedOutput, null, 2));
 
@@ -328,29 +170,13 @@ export async function POST(request: NextRequest) {
       }, { status: 200 });
 
     } catch (pipelineError: any) {
-      logger.error('Math Brain v2 pipeline error', {
-        error: pipelineError.message,
-        stack: pipelineError.stack
-      });
-      // Cleanup config file on error
+      logger.error('Math Brain v2 pipeline error', { error: pipelineError.message, stack: pipelineError.stack });
       try { if (fs.existsSync(configPath)) fs.unlinkSync(configPath); } catch (e) { /* ignore */ }
-      
-      return NextResponse.json({
-        success: false,
-        error: 'Math Brain v2 processing failed',
-        detail: pipelineError.message,
-        code: 'MATH_BRAIN_V2_ERROR'
-      }, { status: 500 });
+      return NextResponse.json({ success: false, error: 'Math Brain v2 processing failed', detail: pipelineError.message, code: 'MATH_BRAIN_V2_ERROR' }, { status: 500 });
     }
   } catch (error: any) {
-    logger.error('Astrology MathBrain API error', {
-      error: error instanceof Error ? error.message : String(error)
-    });
-    return NextResponse.json({
-      success: false,
-      error: 'Internal server error',
-      code: 'ASTROLOGY_API_ERROR'
-    }, { status: 500 });
+    logger.error('Astrology MathBrain API error', { error: error instanceof Error ? error.message : String(error) });
+    return NextResponse.json({ success: false, error: 'Internal server error', code: 'ASTROLOGY_API_ERROR' }, { status: 500 });
   }
 }
 
