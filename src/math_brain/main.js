@@ -20,52 +20,56 @@ async function runMathBrain(configPath, transitData = null) {
   // 1. Load Configuration
   const configRaw = fs.readFileSync(configPath, 'utf-8');
   const config = JSON.parse(configRaw);
-  config.sourcePath = configPath; // Store for provenance
+  config.sourcePath = configPath;
 
   const { personA, personB, startDate, endDate, mode } = config;
+  const isTransitReport = startDate && endDate;
 
-  // --- Compliance Check ---
-  // As per MATH_BRAIN_COMPLIANCE.md, ensure a valid transit-inclusive mode is used.
-  const compliantModes = ['SYNASTRY_TRANSITS', 'COMPOSITE_TRANSITS', 'NATAL_TRANSITS'];
-  if (!compliantModes.includes(mode)) {
-    throw new Error(`Mode "${mode}" is not compliant. Must include transits.`);
+  let finalOutput;
+
+  if (isTransitReport) {
+    // --- TRANSIT REPORT FLOW ---
+    console.log(`[Math Brain] Running TRANSIT report for mode: ${mode}`);
+    const dailyEntries = [];
+    const dateRange = generateDateArray(startDate, endDate);
+
+    console.log(`[Math Brain] Processing ${dateRange.length} days from ${startDate} to ${endDate}...`);
+    for (const currentDate of dateRange) {
+      const { transitsA, transitsB, synastryAspects } = transitData
+        ? getRealAspectData(currentDate, personA, personB, transitData)
+        : getMockAspectData(currentDate);
+
+      dailyEntries.push({
+        date: currentDate,
+        symbolic_weather: computeSymbolicWeather(transitsA, transitsB),
+        mirror_data: computeMirrorData(transitsA, transitsB, synastryAspects),
+        poetic_hooks: computePoeticHooks(transitsA, transitsB, synastryAspects),
+      });
+    }
+
+    finalOutput = {
+      run_metadata: createProvenanceBlock(config),
+      daily_entries: dailyEntries,
+    };
+
+  } else {
+    // --- FOUNDATION REPORT FLOW ---
+    console.log(`[Math Brain] Running FOUNDATION report for mode: ${mode}`);
+    
+    const blueprint = {
+      person_a: transitData?.person_a?.chart?.aspects || [],
+      person_b: transitData?.person_b?.chart?.aspects || [],
+      synastry: transitData?.synastry?.chart?.aspects || [],
+      composite: transitData?.composite?.chart?.aspects || [],
+    };
+
+    finalOutput = {
+      run_metadata: createProvenanceBlock(config),
+      foundation_blueprint: blueprint,
+    };
   }
 
-  const dailyEntries = [];
-  const dateRange = generateDateArray(startDate, endDate);
-
-  // 2. Iterate Through Each Day in the Range
-  console.log(`[Math Brain] Processing ${dateRange.length} days from ${startDate} to ${endDate}...`);
-  for (const currentDate of dateRange) {
-    console.log(`- Processing date: ${currentDate}`);
-
-    // 3. Generate Raw Astrological Data
-    // Use real data if transitData is provided (from API), otherwise fall back to mock
-    const { transitsA, transitsB, synastryAspects } = transitData 
-      ? getRealAspectData(currentDate, personA, personB, transitData)
-      : getMockAspectData(currentDate);
-
-    // 4. Compute Data for Each "Brain"
-    const symbolicWeather = computeSymbolicWeather(transitsA, transitsB);
-    const mirrorData = computeMirrorData(transitsA, transitsB, synastryAspects);
-    const poeticHooks = computePoeticHooks(transitsA, transitsB, synastryAspects);
-
-    // 5. Assemble the Daily Entry
-    dailyEntries.push({
-      date: currentDate,
-      symbolic_weather: symbolicWeather,
-      mirror_data: mirrorData,
-      poetic_hooks: poeticHooks
-    });
-  }
-
-  // 6. Assemble the Final Output File
-  const finalOutput = {
-    run_metadata: createProvenanceBlock(config),
-    daily_entries: dailyEntries
-  };
-
-  // 7. Write to Disk
+  // Write to Disk
   const safePersonA = sanitizeForFilename(personA?.name, 'PersonA');
   const safePersonB = personB ? sanitizeForFilename(personB.name, 'PersonB') : 'Solo';
   const runDate = new Date().toISOString().split('T')[0];
@@ -73,7 +77,7 @@ async function runMathBrain(configPath, transitData = null) {
   const outputPath = path.join(path.dirname(configPath), outputFileName);
   fs.writeFileSync(outputPath, JSON.stringify(finalOutput, null, 2));
   console.log(`[Math Brain] Success! Unified output written to: ${outputPath}`);
-  
+
   return finalOutput;
 }
 

@@ -3816,14 +3816,12 @@ export default function MathBrainPage() {
     setError(null);
     setResult(null);
     try {
-      const wantsTransits = includeTransits;
-      
-      // STEP 1: Always generate foundation first (natal/synastry/composite without transits)
-      const basePayload = {
+      // Build unified request payload
+      const payload: Record<string, any> = {
         mode,
         personA: {
           ...personA,
-          nation: "US", // Always send "US" as country for API compatibility
+          nation: "US",
           year: Number(personA.year),
           month: Number(personA.month),
           day: Number(personA.day),
@@ -3832,27 +3830,51 @@ export default function MathBrainPage() {
           latitude: Number(personA.latitude),
           longitude: Number(personA.longitude),
         },
-        time_policy: ((): TimePolicyChoice => {
-          if (!timeUnknown) return 'user_provided';
-          return timePolicy;
-        })(),
-        // Foundation phase: no transits, always mirror contract
-        report_type: RELATIONAL_MODES.includes(mode) ? 'relational_mirror' : 'solo_mirror',
-        // Raven Calder always uses conversational voice (per corpus/persona)
+        time_policy: timeUnknown ? timePolicy : 'user_provided',
+        report_type: reportContractType,
         presentation_style: 'conversational',
-        // Report mode drives backend routing semantics
         context: {
-          mode: determineContextMode(mode, RELATIONAL_MODES.includes(mode) ? 'relational_mirror' : 'solo_mirror'),
+          mode: determineContextMode(mode, reportContractType),
         },
-        // Foundation phase: no translocation
-        translocation: { applies: false, method: 'Natal' },
+        wheel_only: false,
+        wheel_format: 'png',
+        theme: 'classic',
       };
 
-      // Attach Person B and relationship context for relational modes
+      // Add transit window if requested
+      if (includeTransits && startDate && endDate) {
+        payload.window = { start: startDate, end: endDate, step };
+        payload.transits = { from: startDate, to: endDate, step };
+        payload.transitStartDate = startDate;
+        payload.transitEndDate = endDate;
+        payload.transitStep = step;
+        payload.translocation = ((): any => {
+          const relocationMode = relocationStatus.effectiveMode;
+          if (relocationMode === 'NONE' || relocationMode === 'A_NATAL' || relocationMode === 'B_NATAL') {
+            return { applies: false, method: 'Natal' };
+          }
+          const methodMap: Record<TranslocationOption, string> = {
+            NONE: 'Natal', A_NATAL: 'Natal', A_LOCAL: 'A_local',
+            B_NATAL: 'Natal', B_LOCAL: 'B_local', BOTH_LOCAL: 'Both_local',
+            MIDPOINT: 'Midpoint',
+          };
+          return {
+            applies: true,
+            method: methodMap[relocationMode] || 'Custom',
+            coords: relocCoords ? { latitude: relocCoords.lat, longitude: relocCoords.lon } : undefined,
+            label: relocLabel || undefined,
+            timezone: relocTz || undefined,
+          };
+        })();
+      } else {
+        payload.translocation = { applies: false, method: 'Natal' };
+      }
+
+      // Add Person B and relationship context for relational modes
       if (RELATIONAL_MODES.includes(mode) && includePersonB) {
-        (basePayload as any).personB = {
+        payload.personB = {
           ...personB,
-          nation: "US", // Always send "US" as country for API compatibility
+          nation: "US",
           year: Number(personB.year),
           month: Number(personB.month),
           day: Number(personB.day),
@@ -3861,7 +3883,7 @@ export default function MathBrainPage() {
           latitude: Number(personB.latitude),
           longitude: Number(personB.longitude),
         };
-        (basePayload as any).relationship_context = {
+        payload.relationship_context = {
           type: relationshipType,
           intimacy_tier: relationshipType === 'PARTNER' ? relationshipTier : undefined,
           role: relationshipType !== 'PARTNER' ? relationshipRole : undefined,
@@ -3871,210 +3893,22 @@ export default function MathBrainPage() {
         };
       }
 
-      // Derive foundation framing (mirror / synastry / composite without transits)
-      const foundationMode = modeFromStructure(reportStructure, false);
-      const foundationContract =
-        foundationMode === 'SYNASTRY' || foundationMode === 'COMPOSITE'
-          ? 'relational_mirror'
-          : 'solo_mirror';
-      const foundationContextMode = determineContextMode(foundationMode, foundationContract);
-
-      const foundationPayload = {
-        ...basePayload,
-        report_type: foundationContract,
-        // Override mode/context so backend treats this as mirror rather than balance
-        mode: foundationMode,
-        context: {
-          mode: foundationContextMode,
-        },
-        // Request chart wheels
-        wheel_only: false,
-        wheel_format: 'png',
-        theme: 'classic',
-      };
-
-      // Generate foundation first (always)
-      setToast('Generating foundational reading...');
-      const foundationRes = await fetch("/api/astrology-mathbrain", {
+      // Send the single, unified request
+      setToast(includeTransits ? 'Generating report with transits...' : 'Generating report...');
+      const response = await fetch("/api/astrology-mathbrain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(foundationPayload),
+        body: JSON.stringify(payload),
       });
-      const foundationParsed = await parseJsonSafely<Record<string, any>>(foundationRes);
-      const foundationData = foundationParsed.data;
 
-      if (!foundationRes.ok) {
-        const msg =
-          (isRecord(foundationData) && typeof foundationData.error === 'string' && foundationData.error.trim().length)
-            ? foundationData.error
-            : `Foundation generation failed (${foundationRes.status})`;
-        setToast('Foundation generation failed.');
-        setTimeout(()=>setToast(null), 2500);
-        throw new Error(msg);
-      }
+      const parsed = await parseJsonSafely<Record<string, any>>(response);
+      const finalData = parsed.data;
 
-      if (foundationParsed.parseError) {
-        console.error('[MB] Foundation response parse error', {
-          status: foundationRes.status,
-          bodyPreview: foundationParsed.raw.slice(0, 200),
-          error: foundationParsed.parseError?.message,
-        });
-        setToast('Foundation generation failed.');
-        setTimeout(()=>setToast(null), 2500);
-        throw new Error('Foundation response was not valid JSON.');
-      }
-
-      if (!isRecord(foundationData)) {
-        setToast('Foundation generation failed.');
-        setTimeout(()=>setToast(null), 2500);
-        throw new Error('Foundation response was empty.');
-      }
-
-      if (foundationData.success === false) {
-        const msg =
-          typeof foundationData.error === 'string' && foundationData.error.trim().length
-            ? foundationData.error
-            : `Foundation generation failed (${foundationRes.status})`;
-        setToast('Foundation generation failed.');
-        setTimeout(()=>setToast(null), 2500);
-        throw new Error(msg);
-      }
-
-      let finalData = foundationData;
-
-      // STEP 2: Layer symbolic weather if transits requested
-      if (wantsTransits) {
-        setToast('Foundation complete. Layering symbolic weather...');
-        
-        const weatherPayload = {
-          ...basePayload,
-          // Add transit-specific fields
-          window: { start: startDate, end: endDate, step },
-          transits: { from: startDate, to: endDate, step },
-          transitStartDate: startDate,
-          transitEndDate: endDate,
-          transitStep: step,
-          report_type: reportType === 'balance' ? reportContractType : (RELATIONAL_MODES.includes(mode) ? 'relational_balance_meter' : 'solo_balance_meter'),
-          // Balance Meter specific fields
-          ...(reportType === 'balance' ? {
-            indices: {
-              window: { start: startDate, end: endDate, step },
-              request_daily: true
-            },
-            frontstage_policy: {
-              autogenerate: true,
-              allow_symbolic_weather: true
-            }
-          } : {}),
-          // Add location context for transits
-          context: {
-            mode: determineContextMode(mode, reportContractType),
-            ...(reportType === 'balance' ? {
-              location: {
-                timezone: relocationStatus.effectiveMode !== 'NONE' && relocTz ? relocTz : personA.timezone,
-                coordinates: relocationStatus.effectiveMode !== 'NONE' && relocCoords ? {
-                  latitude: relocCoords.lat,
-                  longitude: relocCoords.lon
-                } : {
-                  latitude: Number(personA.latitude),
-                  longitude: Number(personA.longitude)
-                }
-              }
-            } : {})
-          },
-          // Pass translocation intent for transits
-          translocation: ((): any => {
-            const mode = relocationStatus.effectiveMode;
-            if (mode === 'NONE' || mode === 'A_NATAL' || mode === 'B_NATAL') {
-              return { applies: false, method: 'Natal' };
-            }
-            if (mode === 'MIDPOINT') {
-              return { applies: true, method: 'Midpoint' };
-            }
-            const methodMap: Record<TranslocationOption, string> = {
-              NONE: 'Natal',
-              A_NATAL: 'Natal',
-              A_LOCAL: 'A_local',
-              B_NATAL: 'Natal',
-              B_LOCAL: 'B_local',
-              BOTH_LOCAL: 'Both_local',
-              MIDPOINT: 'Midpoint',
-            };
-            return {
-              applies: true,
-              method: methodMap[mode] || 'Custom',
-              coords:
-                !relocCoords
-                  ? undefined
-                  : { latitude: relocCoords.lat, longitude: relocCoords.lon },
-              current_location: relocLabel || undefined,
-              tz: relocTz || undefined,
-            };
-          })(),
-          // Include foundation data for layering
-          foundationData: foundationData,
-          // Request chart wheels for transit charts
-          wheel_only: false,
-          wheel_format: 'png',
-          theme: 'classic',
-        };
-
-        const weatherRes = await fetch("/api/astrology-mathbrain", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(weatherPayload),
-        });
-        const weatherParsed = await parseJsonSafely<Record<string, any>>(weatherRes);
-        const weatherData = weatherParsed.data;
-
-        if (!weatherRes.ok) {
-          const msg =
-            (isRecord(weatherData) && typeof weatherData.error === 'string' && weatherData.error.trim().length)
-              ? weatherData.error
-              : `Symbolic weather layer failed (${weatherRes.status})`;
-          setToast('Symbolic weather layer failed.');
-          setTimeout(()=>setToast(null), 2500);
-          throw new Error(msg);
-        }
-
-        if (weatherParsed.parseError) {
-          console.error('[MB] Symbolic weather response parse error', {
-            status: weatherRes.status,
-            bodyPreview: weatherParsed.raw.slice(0, 200),
-            error: weatherParsed.parseError?.message,
-          });
-          setToast('Symbolic weather layer failed.');
-          setTimeout(()=>setToast(null), 2500);
-          throw new Error('Symbolic weather response was not valid JSON.');
-        }
-
-        if (!isRecord(weatherData)) {
-          setToast('Symbolic weather layer failed.');
-          setTimeout(()=>setToast(null), 2500);
-          throw new Error('Symbolic weather response was empty.');
-        }
-
-        if (weatherData.success === false) {
-          const msg =
-            typeof weatherData.error === 'string' && weatherData.error.trim().length
-              ? weatherData.error
-              : `Symbolic weather layer failed (${weatherRes.status})`;
-          setToast('Symbolic weather layer failed.');
-          setTimeout(()=>setToast(null), 2500);
-          throw new Error(msg);
-        }
-
-        // Merge foundation and symbolic weather data
-        finalData = {
-          ...weatherData,
-          // Preserve foundation data
-          foundational_reading: foundationData.narrative || foundationData.mirror_text,
-          constitutional_modes: foundationData.constitutional_modes || foundationData.woven_map?.blueprint?.modes,
-          behavioral_anchors: foundationData.behavioral_anchors,
-          core_tensions: foundationData.core_tensions,
-          opening_signals: foundationData.opening_signals || foundationData.hooks,
-          foundation_blueprint: foundationData.woven_map?.blueprint,
-        };
+      if (!response.ok || parsed.parseError || !isRecord(finalData) || finalData.success === false) {
+        const errorDetail = finalData?.error || parsed.parseError?.message || `Request failed with status ${response.status}`;
+        setToast('Report generation failed.');
+        setTimeout(() => setToast(null), 2500);
+        throw new Error(errorDetail);
       }
 
       // Persist last inputs for resume (conditional)
@@ -4101,21 +3935,12 @@ export default function MathBrainPage() {
         }
       } catch {/* ignore */}
 
-      // Always store result to enable downloads for both report types
+      // Store result
       setResult(finalData);
       setLayerVisibility({ ...DEFAULT_LAYER_VISIBILITY });
       persistSessionArtifacts(finalData);
-      setToast(wantsTransits ? 'Foundation + symbolic weather complete!' : 'Foundation complete!');
-      // Optional: store a quick meta view to guide banners
-      try {
-        const metaA = (finalData?.person_a?.meta) || (finalData?.provenance?.time_meta_a);
-        if (metaA) {
-          // Reflect server meta back into UI hints (no mutation of inputs)
-          // Could update a local banner state here if desired
-        }
-      } catch {/* noop */}
-      // No automatic handoff to Poetic Brain - maintaining separation principle
-      // Mirror no longer auto-redirects; provide separate chat action
+      setToast(includeTransits ? 'Report with transits complete!' : 'Report complete!');
+
       // Telemetry (dev only)
       if (process.env.NODE_ENV !== 'production') {
         const t1 = typeof performance !== 'undefined' ? performance.now() : 0;
@@ -4127,9 +3952,7 @@ export default function MathBrainPage() {
       setTimeout(()=>setToast(null), 2500);
       setError(err?.message || "Unexpected error");
       if (process.env.NODE_ENV !== 'production') {
-        const t1 = typeof performance !== 'undefined' ? performance.now() : 0;
-        // eslint-disable-next-line no-console
-        console.info('[MB] Failed in', Math.round(t1 - t0), 'ms', '-', err?.message);
+        console.error('[MB] Submit error:', err);
       }
     } finally {
       setLoading(false);

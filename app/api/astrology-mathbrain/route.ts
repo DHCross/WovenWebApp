@@ -262,202 +262,86 @@ export async function POST(request: NextRequest) {
       getRemainingTimeInMillis: () => 30000
     };
 
-    // Always use Math Brain v2 (legacy system removed)
-    logger.info('Using Math Brain v2');
-      
-      // Parse the input
+    // Use the single, unified Math Brain v2 pipeline
+    logger.info('Routing to unified Math Brain v2 pipeline');
+    const tempDir = os.tmpdir();
+    const configPath = path.join(tempDir, `math_brain_config_${randomUUID()}.json`);
+
+    try {
       const parsedBody = JSON.parse(body);
-      
-      // Create a temporary config file
-      const tempDir = os.tmpdir();
-      const configPath = path.join(tempDir, `math_brain_config_${randomUUID()}.json`);
-      
-      const v2Mode = (()=>{
-        const modeHint = String(parsedBody.context?.mode || '').toUpperCase();
 
-        // If a compliant mode is already provided, use it.
-        if (['SYNASTRY_TRANSITS', 'COMPOSITE_TRANSITS', 'NATAL_TRANSITS'].includes(modeHint)) {
-          return modeHint;
-        }
+      // 1. Get raw chart data by calling the legacy handler
+      const legacyResult = await mathBrainFunction.handler(event, context);
+      if (!legacyResult || legacyResult.statusCode >= 400) {
+        logger.error('Failed to fetch raw chart data from legacy handler', {
+          statusCode: legacyResult?.statusCode,
+          body: legacyResult?.body
+        });
+        throw new Error('Could not retrieve foundational chart data.');
+      }
+      const chartData = JSON.parse(legacyResult.body);
 
-        // Logic based on report type and data shape
-        if (modeHint.includes('SYNASTRY')) {
-          return 'SYNASTRY_TRANSITS';
-        }
-        if (modeHint.includes('COMPOSITE')) {
-          return 'COMPOSITE_TRANSITS';
-        }
-
-        // If no Person B, it must be a solo natal chart with transits.
-        if (!parsedBody.personB) {
-          return 'NATAL_TRANSITS';
-        }
-
-        // Default for any two-person report is Synastry with Transits.
-        // This covers 'BALANCE_METER', 'MIRROR', etc.
-        return 'SYNASTRY_TRANSITS';
-      })();
-
-      const today = new Date().toISOString().split('T')[0];
-      const startDate = parsedBody.window?.start || parsedBody.transits?.from;
-      const endDate = parsedBody.window?.end || parsedBody.transits?.to;
-
+      // 2. Prepare the config for the v2 formatter/aggregator
       const v2Config = {
         schema: 'mb-1',
-        mode: v2Mode,
+        mode: parsedBody.mode,
         step: parsedBody.window?.step || 'daily',
-        startDate: startDate || today,
-        endDate: endDate || today,
+        startDate: parsedBody.window?.start,
+        endDate: parsedBody.window?.end,
         personA: parsedBody.personA,
         personB: parsedBody.personB || null,
         translocation: parsedBody.context?.translocation || 'BOTH_LOCAL',
         reportStructure: parsedBody.personB ? 'synastry' : 'solo',
         relationshipType: parsedBody.relationship_context?.type || 'PARTNER'
       };
+      fs.writeFileSync(configPath, JSON.stringify(v2Config, null, 2));
+
+      // 3. Run the v2 engine to format the final report
+      const unifiedOutput = await runMathBrain(configPath, chartData);
+
+      // 4. Generate Markdown and prepare response
+      const unifiedOutputPath = path.join(tempDir, `math_brain_unified_${randomUUID()}.json`);
+      fs.writeFileSync(unifiedOutputPath, JSON.stringify(unifiedOutput, null, 2));
+
+      const markdownPath = createMarkdownReading(unifiedOutputPath);
+      const markdownContent = fs.readFileSync(markdownPath, 'utf8');
+      const markdownFilename = path.basename(markdownPath);
+
+      const { run_metadata } = unifiedOutput;
+      const safePersonA = sanitizeForFilename(run_metadata.person_a, 'PersonA');
+      const safePersonB = sanitizeForFilename(run_metadata.person_b, run_metadata.person_b ? 'PersonB' : 'Solo');
+
+      // Cleanup temp files
+      [configPath, unifiedOutputPath, markdownPath].forEach(p => {
+        try { fs.unlinkSync(p); } catch (e) { /* ignore */ }
+      });
+
+      return NextResponse.json({
+        success: true,
+        version: 'v2',
+        unified_output: unifiedOutput,
+        markdown_reading: markdownContent,
+        download_formats: {
+          mirror_report: { format: 'markdown', content: markdownContent, filename: markdownFilename },
+          symbolic_weather: { format: 'json', content: unifiedOutput, filename: `unified_output_${safePersonA}_${safePersonB}_${new Date().toISOString().split('T')[0]}.json` }
+        }
+      }, { status: 200 });
+
+    } catch (pipelineError: any) {
+      logger.error('Math Brain v2 pipeline error', {
+        error: pipelineError.message,
+        stack: pipelineError.stack
+      });
+      // Cleanup config file on error
+      try { if (fs.existsSync(configPath)) fs.unlinkSync(configPath); } catch (e) { /* ignore */ }
       
-      try {
-        // Write config to temp file
-        fs.writeFileSync(configPath, JSON.stringify(v2Config, null, 2));
-
-        // Fetch real transit data using the existing legacy pipeline
-        logger.info('Fetching transit data for Math Brain v2', {
-          mode: v2Config.mode,
-          startDate: v2Config.startDate,
-          endDate: v2Config.endDate,
-        });
-
-        let legacyResult;
-        try {
-          legacyResult = await mathBrainFunction.handler(event, context);
-        } catch (legacyError: any) {
-          logger.error('Legacy Math Brain threw an exception', {
-            error: legacyError?.message,
-            stack: legacyError?.stack,
-          });
-          throw new Error(`Legacy Math Brain exception: ${legacyError?.message || 'unknown error'}`);
-        }
-
-        if (!legacyResult || typeof legacyResult.statusCode !== 'number') {
-          logger.error('Legacy Math Brain returned an invalid response', { legacyResult });
-          throw new Error('Legacy Math Brain returned an invalid response');
-        }
-
-        if (legacyResult.statusCode >= 400) {
-          logger.error('Legacy Math Brain failed', {
-            statusCode: legacyResult.statusCode,
-            bodyPreview: typeof legacyResult.body === 'string' ? legacyResult.body.slice(0, 4000) : legacyResult.body,
-          });
-          throw new Error(`Legacy Math Brain failed with status ${legacyResult.statusCode}`);
-        }
-
-        let legacyData: any;
-        try {
-          legacyData = typeof legacyResult.body === 'string' ? JSON.parse(legacyResult.body) : legacyResult.body;
-        } catch (parseError: any) {
-          logger.error('Failed to parse legacy Math Brain response', {
-            error: parseError?.message,
-            bodyPreview: typeof legacyResult.body === 'string' ? legacyResult.body.slice(0, 2000) : legacyResult.body,
-          });
-          throw new Error('Failed to parse legacy Math Brain response');
-        }
-
-        const transitData = {
-          person_a: legacyData?.person_a,
-          person_b: legacyData?.person_b,
-          synastry: legacyData?.synastry,
-          composite: legacyData?.composite,
-        };
-
-        logger.info('Running Math Brain v2 with real transit data', {
-          hasPersonB: Boolean(transitData.person_b),
-          hasSynastry: Boolean(transitData.synastry),
-        });
-
-        const unifiedOutput = await runMathBrain(configPath, transitData);
-
-        const unifiedOutputPath = path.join(tempDir, `math_brain_unified_${randomUUID()}.json`);
-        fs.writeFileSync(unifiedOutputPath, JSON.stringify(unifiedOutput, null, 2));
-
-        let markdownContent: string;
-        const runMetadata = unifiedOutput.run_metadata || {};
-        const safePersonA = sanitizeForFilename(runMetadata.person_a, 'PersonA');
-        const safePersonB = sanitizeForFilename(runMetadata.person_b, runMetadata.person_b ? 'PersonB' : 'Solo');
-        const dateRange = Array.isArray(runMetadata.date_range) ? runMetadata.date_range : [];
-        const safeStart = sanitizeForFilename(dateRange[0], 'start');
-        const safeEnd = sanitizeForFilename(dateRange[1], dateRange[0] ? 'end' : 'start');
-
-        let markdownFilename = `Woven_Reading_${safePersonA}_${safePersonB}_${safeStart}_to_${safeEnd}.md`;
-
-        try {
-          const markdownPath = createMarkdownReading(unifiedOutputPath);
-          markdownContent = fs.readFileSync(markdownPath, 'utf8');
-          markdownFilename = path.basename(markdownPath);
-          try {
-            fs.unlinkSync(markdownPath);
-          } catch (e) {
-            // ignore cleanup error
-          }
-        } catch (markdownError: any) {
-          logger.error('Failed to generate markdown via createMarkdownReading', {
-            error: markdownError?.message,
-            stack: markdownError?.stack,
-          });
-
-          markdownContent = '# Math Brain v2 Reading\n\nFailed to generate detailed markdown automatically. Please download the JSON output and regenerate later.';
-        }
-        const { run_metadata } = unifiedOutput;
-
-        try {
-          fs.unlinkSync(configPath);
-        } catch (e) {
-          // ignore
-        }
-
-        try {
-          fs.unlinkSync(unifiedOutputPath);
-        } catch (e) {
-          // ignore
-        }
-
-        return NextResponse.json({
-          success: true,
-          version: 'v2',
-          unified_output: unifiedOutput,
-          markdown_reading: markdownContent,
-          download_formats: {
-            mirror_report: {
-              format: 'markdown',
-              content: markdownContent,
-              filename: markdownFilename,
-            },
-            symbolic_weather: {
-              format: 'json',
-              content: unifiedOutput,
-              filename: `unified_output_${safePersonA}_${safePersonB}_${new Date().toISOString().split('T')[0]}.json`
-            }
-          }
-        }, { status: 200 });
-        
-      } catch (v2Error: any) {
-        logger.error('Math Brain v2 error', {
-          error: v2Error instanceof Error ? v2Error.message : String(v2Error),
-          stack: v2Error instanceof Error ? v2Error.stack : undefined
-        });
-        
-        // Clean up temp file on error
-        try {
-          if (fs.existsSync(configPath)) fs.unlinkSync(configPath);
-        } catch (e) {
-          // Ignore cleanup errors
-        }
-        
-        return NextResponse.json({
-          success: false,
-          error: 'Math Brain v2 processing failed',
-          detail: v2Error instanceof Error ? v2Error.message : String(v2Error),
-          code: 'MATH_BRAIN_V2_ERROR'
-        }, { status: 500 });
-      }
+      return NextResponse.json({
+        success: false,
+        error: 'Math Brain v2 processing failed',
+        detail: pipelineError.message,
+        code: 'MATH_BRAIN_V2_ERROR'
+      }, { status: 500 });
+    }
   } catch (error: any) {
     logger.error('Astrology MathBrain API error', {
       error: error instanceof Error ? error.message : String(error)
