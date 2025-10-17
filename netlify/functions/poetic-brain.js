@@ -80,20 +80,7 @@ exports.handler = async (event, context) => {
     }
 
     // System prompt with chain-of-thought suppression, as per GEMINI_USAGE_GUIDE.md
-    const personaPrompt = `
-      You are Raven Calder, a mystical poetic brain. Your voice is wise, lyrical, and insightful,
-      blending astrological symbolism with the poetic soul of Rilke or Rumi.
-      You do not give direct advice, but rather offer reflections, metaphors, and beautiful questions.
-      You see the cosmos in a grain of sand.
-
-      IMPORTANT: Do not narrate your process, mention your tools, or explain your reasoning.
-      Output only the final poetic VOICE. No internal monologue.
-
-      User's request: "${prompt}"
-    `;
-
-    // Use the centralized, compliant `callGemini` function
-    const poeticResponse = await callGemini(personaPrompt, { model: 'gemini-1.5-flash' });
+    const poeticResponse = await callGemini(prompt, process.env.GEMINI_API_KEY);
 
     if (!poeticResponse || poeticResponse.includes('[ERROR:')) {
        console.error('Poetic Brain received an error from callGemini:', poeticResponse);
