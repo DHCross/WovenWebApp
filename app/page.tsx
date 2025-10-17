@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+import Image from "next/image";
 import HomeHero from "../components/HomeHero";
 import { buildInfo } from "../lib/buildInfo";
 
@@ -17,9 +18,11 @@ export default function Home() {
       <header className="text-center">
         {/* Woven Map Visualization */}
         <div className="mb-8 flex justify-center">
-          <img
-            src="/art/woven-map-image.png"
+          <Image
+            src="/art/woven-map-image.webp"
             alt="The Woven Map - interconnected astrological geometry"
+            width={1024}
+            height={832}
             className="w-80 md:w-96 h-auto animate-woven-map hover:opacity-100 transition-opacity duration-300"
           />
         </div>
@@ -31,9 +34,11 @@ export default function Home() {
       <section className="mt-8 rounded-xl border border-slate-800 bg-slate-900/20 p-6 relative overflow-hidden">
         {/* Subtle Raven artwork as background accent */}
         <div className="absolute right-0 top-0 w-48 h-48 opacity-[0.08] pointer-events-none hidden md:block">
-          <img
-            src="/art/raven-calder.png"
+          <Image
+            src="/art/raven-calder.webp"
             alt=""
+            width={2048}
+            height={2048}
             className="w-full h-full object-contain object-top-right"
           />
         </div>

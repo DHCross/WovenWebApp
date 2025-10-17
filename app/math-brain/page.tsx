@@ -1,6 +1,7 @@
 "use client";
 /* eslint-disable no-console */
 
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FocusEvent, TouchEvent } from "react";
 import { parseCoordinates, formatDecimal } from "../../src/coords";
@@ -25,16 +26,17 @@ import type {
 } from "./types";
 import { ContractLinter } from "../../src/contract-linter";
 import { ReportHeader, Weather, Blueprint } from "../../lib/ui-types";
-import EnhancedDailyClimateCard from "../../components/mathbrain/EnhancedDailyClimateCard";
-import BalanceMeterSummary from "../../components/mathbrain/BalanceMeterSummary";
-import SymbolicSeismograph from "../components/SymbolicSeismograph";
-import WeatherPlots from "../../components/mathbrain/WeatherPlots";
-import { transformTransitsByDate } from "../../lib/weatherDataTransforms";
-import HealthDataUpload from "../../components/HealthDataUpload";
-import SnapshotButton from "./components/SnapshotButton";
-import SnapshotDisplay from "./components/SnapshotDisplay";
+import dynamic from "next/dynamic";
 
-import { getSavedCharts, saveChart, deleteChart, type SavedChart } from "../../lib/saved-charts";
+const EnhancedDailyClimateCard = dynamic(() => import("../../components/mathbrain/EnhancedDailyClimateCard"));
+const BalanceMeterSummary = dynamic(() => import("../../components/mathbrain/BalanceMeterSummary"));
+const SymbolicSeismograph = dynamic(() => import("../components/SymbolicSeismograph"));
+const WeatherPlots = dynamic(() => import("../../components/mathbrain/WeatherPlots"));
+import { transformTransitsByDate } from "../../lib/weatherDataTransforms";
+const HealthDataUpload = dynamic(() => import("../../components/HealthDataUpload"));
+const SnapshotButton = dynamic(() => import("./components/SnapshotButton"));
+const SnapshotDisplay = dynamic(() => import("./components/SnapshotDisplay"));
+
 import type { SeismographMap } from "../../lib/health-data-types";
 
 export const dynamic = "force-dynamic";
@@ -220,15 +222,6 @@ const POETIC_BRAIN_ENABLED = (() => {
   return false;
 })();
 
-const AUTH_ENABLED = (() => {
-  const raw = process.env.NEXT_PUBLIC_ENABLE_AUTH;
-  if (typeof raw !== 'string') return true;
-  const normalized = raw.trim().toLowerCase();
-  if (normalized === '' || normalized === 'false' || normalized === '0' || normalized === 'off') {
-    return false;
-  }
-  return true;
-})();
 
 const AUTH_STATUS_STORAGE_KEY = 'auth.status';
 const AUTH_STATUS_EVENT = 'auth-status-change';
@@ -830,8 +823,8 @@ export default function MathBrainPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResult>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(() => !AUTH_ENABLED);
-  const [authReady, setAuthReady] = useState(() => !AUTH_ENABLED);
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [authReady, setAuthReady] = useState(true);
 
   const frontStageResult = useMemo(() => {
     if (!result) return null;
@@ -857,22 +850,6 @@ export default function MathBrainPage() {
   const [snapshotLocation, setSnapshotLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [snapshotTimestamp, setSnapshotTimestamp] = useState<Date | null>(null);
 
-  const broadcastAuthStatus = useCallback((authedValue: boolean) => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    try {
-      const payload = {
-        authed: authedValue,
-        updatedAt: Date.now(),
-      };
-      window.localStorage.setItem(AUTH_STATUS_STORAGE_KEY, JSON.stringify(payload));
-      window.dispatchEvent(new CustomEvent(AUTH_STATUS_EVENT, { detail: payload }));
-    } catch (err) {
-      console.warn('Failed to broadcast auth status from Math Brain', err);
-    }
-  }, []);
 
   // Snapshot handlers
   const handleSnapshotCapture = useCallback((result: any, location: any, timestamp: Date) => {
@@ -895,35 +872,6 @@ export default function MathBrainPage() {
     });
   };
 
-  const handleSnapshotAuthRequired = useCallback(async () => {
-    try {
-      await ensureSdk();
-      const res = await fetch('/api/auth-config', { cache: 'no-store' });
-      if (!res.ok) throw new Error('Auth config fetch failed');
-      const cfg = await res.json();
-      if (!cfg?.domain || !cfg?.clientId) throw new Error('Auth0 config missing');
-
-      const win = window as any;
-      const creator = win?.auth0?.createAuth0Client || win?.createAuth0Client;
-      if (typeof creator !== 'function') throw new Error('Auth0 SDK not available');
-
-      const client = await creator({
-        domain: String(cfg.domain).replace(/^https?:\/\//, ''),
-        clientId: cfg.clientId,
-        authorizationParams: { redirect_uri: getRedirectUri() },
-      });
-
-      await client.loginWithRedirect({
-        authorizationParams: {
-          redirect_uri: getRedirectUri(),
-          connection: 'google-oauth2',
-        },
-      });
-    } catch (err) {
-      console.error('Login failed', err);
-      setError('Login failed. Please try again.');
-    }
-  }, []);
 
   const [showChartAssets, setShowChartAssets] = useState(false);
   const [showSeismographCharts, setShowSeismographCharts] = useState(false);
@@ -1087,9 +1035,6 @@ export default function MathBrainPage() {
   const [relationshipNotes, setRelationshipNotes] = useState<string>("");
   const [savedSession, setSavedSession] = useState<any>(null);
   const [showSessionResumePrompt, setShowSessionResumePrompt] = useState<boolean>(false);
-  const [savedCharts, setSavedCharts] = useState<SavedChart[]>([]);
-  const [showSaveChartModal, setShowSaveChartModal] = useState<boolean>(false);
-  const [saveChartName, setSaveChartName] = useState<string>("");
 
   const personASlug = useMemo(() => {
     const sourceName =
@@ -1273,13 +1218,6 @@ export default function MathBrainPage() {
         // Silently fail - not critical
       }
 
-      // Load saved charts
-      try {
-        const charts = getSavedCharts(); // TODO: Pass userId when Auth0 is integrated
-        setSavedCharts(charts);
-      } catch (e) {
-        // Silently fail - not critical
-      }
     } catch {/* noop */}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1411,54 +1349,6 @@ export default function MathBrainPage() {
     }
   }, [includeTransits, layerVisibility.balance]);
 
-  useEffect(() => {
-    if (!AUTH_ENABLED || typeof window === 'undefined') {
-      return;
-    }
-
-    const applyAuthStatus = (payload: { authed?: boolean | null }) => {
-      if (typeof payload?.authed === 'boolean') {
-        setIsAuthenticated(payload.authed);
-        setAuthReady(true);
-      }
-    };
-
-    try {
-      const raw = window.localStorage.getItem(AUTH_STATUS_STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        applyAuthStatus(parsed);
-      }
-    } catch (err) {
-      console.warn('Failed to read stored auth status', err);
-    }
-
-    const handleCustom = (event: Event) => {
-      const custom = event as CustomEvent<{ authed?: boolean | null }>;
-      if (custom?.detail) {
-        applyAuthStatus(custom.detail);
-      }
-    };
-
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key !== AUTH_STATUS_STORAGE_KEY) return;
-      if (event.newValue) {
-        try {
-          applyAuthStatus(JSON.parse(event.newValue));
-        } catch (err) {
-          console.warn('Failed to parse auth status from storage event', err);
-        }
-      }
-    };
-
-    window.addEventListener(AUTH_STATUS_EVENT, handleCustom as EventListener);
-    window.addEventListener('storage', handleStorage);
-
-    return () => {
-      window.removeEventListener(AUTH_STATUS_EVENT, handleCustom as EventListener);
-      window.removeEventListener('storage', handleStorage);
-    };
-  }, []);
 
   // Check if user is admin and authentication status
   useEffect(() => {
@@ -1557,7 +1447,7 @@ export default function MathBrainPage() {
       }
     };
 
-    checkAdminStatus();
+    // checkAdminStatus(); // Auth is now handled by the global AuthProvider.
 
     return () => {
       cancelled = true;
@@ -4141,15 +4031,15 @@ export default function MathBrainPage() {
   return (
     <main className="relative mx-auto max-w-6xl px-6 py-12">
       {/* Subtle background image - The Silent Architect */}
-      <div
+      <Image
+        src="/art/math-brain.webp"
+        alt=""
+        layout="fill"
+        objectFit="contain"
+        objectPosition="center top"
         className="fixed inset-0 pointer-events-none z-0 opacity-[0.08]"
-        style={{
-          backgroundImage: 'url(/art/math-brain.png)',
-          backgroundSize: 'contain',
-          backgroundPosition: 'center top',
-          backgroundRepeat: 'no-repeat',
-          mixBlendMode: 'lighten'
-        }}
+        style={{ mixBlendMode: 'lighten' }}
+        unoptimized
       />
 
       {/* Content layer */}
