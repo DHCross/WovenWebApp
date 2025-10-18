@@ -92,6 +92,35 @@ interface UseChartExportResult {
   weatherJsonGenerating: boolean;
 }
 
+// Validation: Ensure all exports have chart geometry for Poetic Brain
+function validatePoeticBrainCompatibility(result: any): { compatible: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  // Check Person A chart
+  if (!result?.person_a?.chart || Object.keys(result.person_a.chart).length === 0) {
+    issues.push('Person A chart geometry missing');
+  }
+  
+  // Check Person B chart if relational
+  if (result?.person_b && (!result.person_b.chart || Object.keys(result.person_b.chart).length === 0)) {
+    issues.push('Person B chart geometry missing');
+  }
+  
+  // Check birth data
+  if (!result?.person_a?.birth_data && !result?.person_a?.details) {
+    issues.push('Person A birth data missing');
+  }
+  
+  if (result?.person_b && !result.person_b.birth_data && !result.person_b.details) {
+    issues.push('Person B birth data missing');
+  }
+  
+  return {
+    compatible: issues.length === 0,
+    issues
+  };
+}
+
 export function useChartExport(options: UseChartExportOptions): UseChartExportResult {
   const {
     result,
@@ -764,7 +793,15 @@ Start with the Solo Mirror(s), then ${
           // noop
         }
       }, 150);
-      pushToast('PDF ready!', 1600);
+      
+      // Validate Poetic Brain compatibility
+      const validation = validatePoeticBrainCompatibility(result);
+      if (!validation.compatible) {
+        console.warn('[PDF Export] Poetic Brain compatibility issues:', validation.issues);
+        pushToast(`⚠️ PDF export may not work with Poetic Brain: ${validation.issues.join(', ')}`, 3000);
+      } else {
+        pushToast('✅ PDF ready for Poetic Brain!', 1600);
+      }
     } catch (err) {
       console.error('PDF export failed', err);
       pushToast('Could not generate PDF', 2000);
@@ -1150,7 +1187,14 @@ Start with the Solo Mirror(s), then ${
       a.remove();
       URL.revokeObjectURL(url);
 
-      pushToast('Markdown export ready!', 1600);
+      // Validate Poetic Brain compatibility
+      const validation = validatePoeticBrainCompatibility(result);
+      if (!validation.compatible) {
+        console.warn('[Markdown Export] Poetic Brain compatibility issues:', validation.issues);
+        pushToast(`⚠️ Export may not work with Poetic Brain: ${validation.issues.join(', ')}`, 3000);
+      } else {
+        pushToast('✅ Markdown export ready for Poetic Brain!', 1600);
+      }
     } catch (err) {
       console.error('Markdown export failed', err);
       pushToast('Could not generate Markdown', 2000);
