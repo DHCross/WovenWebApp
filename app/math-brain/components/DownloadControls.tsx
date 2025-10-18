@@ -49,7 +49,7 @@ export default function DownloadControls({
 
   return (
     <>
-      {/* Overlay during export to prevent double-clicks */}
+      {/* Overlay during export to prevent double-clicks */
       {isAnyGenerating && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex items-center justify-center pointer-events-auto">
           <div className="bg-slate-900 border border-slate-700 rounded-lg p-8 text-center max-w-sm">
@@ -243,6 +243,7 @@ export default function DownloadControls({
             Poetic Brain offline
           </span>
         )}
+      </div>
       </div>
     </>
   );
