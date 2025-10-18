@@ -1,3 +1,45 @@
+## [2025-10-18] MIGRATION: Gemini → Perplexity API for Poetic Brain
+
+**Summary**
+Migrated Poetic Brain (Raven Calder) from Google's Gemini API to Perplexity API due to policy violations on Gemini. The transition maintains full feature parity while providing improved real-time web access and source citations.
+
+**Changes Made:**
+- ✅ Replaced `lib/llm.ts` Gemini client with Perplexity OpenAI-compatible client
+- ✅ Updated all narrator modules (`blueprint-narrator.ts`, `weather-narrator.ts`, `reflection-narrator.ts`) to use `callPerplexity()`
+- ✅ Migrated `netlify/functions/poetic-brain.js` to Perplexity endpoint
+- ✅ Renamed environment variable: `GEMINI_API_KEY` → `PERPLEXITY_API_KEY`
+- ✅ Updated `lib/usage-tracker.ts` with Perplexity rate limits
+- ✅ Removed `@google/generative-ai` dependency from `package.json`
+- ✅ Updated test mocks to use `callPerplexity` instead of `callGemini`
+- ✅ Updated UI copy in `app/api/chat/route.ts` to reference Perplexity
+- ✅ Updated documentation (`docs/PROJECT_OVERVIEW.md`, `docs/POETIC_BRAIN_INTEGRATION.md`)
+
+**API Endpoint:**
+- Old: `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent`
+- New: `https://api.perplexity.ai/chat/completions` (OpenAI-compatible)
+
+**Model Selection:**
+- Default: `sonar-pro` (Perplexity's recommended model)
+- Configurable via `PERPLEXITY_DEFAULT_MODEL` env var
+
+**Auth & Security:**
+- Auth0 gating unchanged (still required for `/chat` access)
+- Bearer token authentication with Perplexity API key
+- No breaking changes to session lifecycle or user experience
+
+**Benefits:**
+- Real-time web search capability for Poetic Brain responses
+- Source citations included in responses
+- No policy violations
+- OpenAI-compatible API format (easier future migrations)
+
+**Backward Compatibility:**
+- All existing Poetic Brain features work identically
+- Usage tracking and rate limits adapted for Perplexity
+- No changes to Math Brain or report generation
+
+---
+
 ## [2025-10-13] FEATURE: Math Brain v2 - Unified Architecture Integration
 
 **Summary**

@@ -68,16 +68,33 @@ export function getUsageStats() {
   };
 }
 
-export function canMakeRequest(): { allowed: boolean; reason?: string } {
+export function canMakeRequest(): { allowed: boolean; reason?: string; retryAfterMs?: number } {
   resetIfNeeded();
   
   if (usage.requestsThisMinute >= PERPLEXITY_LIMITS.requestsPerMinute) {
-    return { allowed: false, reason: 'Rate limit exceeded (requests per minute)' };
+    const timeUntilReset = 60000 - (Date.now() - usage.lastMinuteReset);
+    return { 
+      allowed: false, 
+      reason: `Rate limit exceeded (${usage.requestsThisMinute}/${PERPLEXITY_LIMITS.requestsPerMinute} requests/min)`,
+      retryAfterMs: Math.max(1000, timeUntilReset)
+    };
   }
   
   if (usage.requestsToday >= PERPLEXITY_LIMITS.requestsPerDay) {
-    return { allowed: false, reason: 'Daily quota exceeded' };
+    return { 
+      allowed: false, 
+      reason: `Daily quota exceeded (${usage.requestsToday}/${PERPLEXITY_LIMITS.requestsPerDay} requests/day)`,
+      retryAfterMs: 86400000 // retry tomorrow
+    };
   }
   
   return { allowed: true };
+}
+
+// Enforce rate limiting - throws if limit exceeded
+export function enforceRateLimit(): void {
+  const check = canMakeRequest();
+  if (!check.allowed) {
+    throw new Error(`[RateLimit] ${check.reason}`);
+  }
 }

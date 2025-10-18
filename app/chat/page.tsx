@@ -37,7 +37,7 @@ function OfflineNotice() {
     <div className="mx-auto mt-12 max-w-2xl rounded-xl border border-slate-800 bg-slate-900/40 p-8 text-center">
       <h1 className="text-2xl font-semibold text-slate-100">Poetic Brain Unavailable</h1>
       <p className="mt-3 text-sm text-slate-300">
-        Raven's chat interface is temporarily offline while we work through the Auth0/Gemini integration. Math Brain
+        Raven's chat interface is temporarily offline while we work through the Auth0/Perplexity integration. Math Brain
         reports and the rest of the site remain fully available. Check back soon for the full FIELD → MAP → VOICE handoff.
       </p>
       <a
