@@ -1785,6 +1785,8 @@ export default function MathBrainPage() {
       const saved = JSON.parse(raw);
       if (saved.personA) setPersonA(saved.personA);
       if (saved.personB) setPersonB(saved.personB);
+      if (typeof saved.aCoordsInput === 'string') setACoordsInput(saved.aCoordsInput);
+      if (typeof saved.bCoordsInput === 'string') setBCoordsInput(saved.bCoordsInput);
       if (typeof saved.includePersonB === 'boolean') setIncludePersonB(saved.includePersonB);
       if (saved.mode) applyMode(normalizeReportMode(saved.mode));
       if (saved.step) setStep(saved.step);
@@ -4126,6 +4128,8 @@ export default function MathBrainPage() {
             relationshipNotes,
             personA,
             personB,
+            aCoordsInput,
+            bCoordsInput,
           };
           window.localStorage.setItem('mb.lastInputs', JSON.stringify(inputs));
           setHasSavedInputs(true);
