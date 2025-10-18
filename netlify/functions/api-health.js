@@ -8,7 +8,7 @@ exports.handler = async function(event, context) {
   };
 
   try {
-    const gemini = Boolean(process.env.GEMINI_API_KEY && String(process.env.GEMINI_API_KEY).trim());
+    const perplexity = Boolean(process.env.PERPLEXITY_API_KEY && String(process.env.PERPLEXITY_API_KEY).trim());
     const rapid = Boolean(process.env.RAPIDAPI_KEY && String(process.env.RAPIDAPI_KEY).trim());
     const auth0Domain = Boolean(process.env.AUTH0_DOMAIN && String(process.env.AUTH0_DOMAIN).trim());
     const auth0Client = Boolean(process.env.AUTH0_CLIENT_ID && String(process.env.AUTH0_CLIENT_ID).trim());
@@ -17,7 +17,7 @@ exports.handler = async function(event, context) {
       success: true,
       timestamp: new Date().toISOString(),
       env: {
-        geminiConfigured: gemini,
+        perplexityConfigured: perplexity,
         rapidapiConfigured: rapid,
         auth0Configured: auth0Domain && auth0Client
       },

@@ -64,7 +64,7 @@ export default function UsageMeter({ compact = false, className = "" }: UsageMet
   return (
     <div className={`rounded-lg p-4 ${className}`} style={{ background: 'var(--panel)', border: '1px solid var(--line)' }}>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium" style={{ color: 'var(--text)' }}>Gemini API Usage</h3>
+        <h3 className="text-sm font-medium" style={{ color: 'var(--text)' }}>Perplexity API Usage</h3>
         {compact && (
           <button onClick={()=> setExpanded(false)} className="text-xs" style={{ color: 'var(--muted)' }}>✕</button>
         )}

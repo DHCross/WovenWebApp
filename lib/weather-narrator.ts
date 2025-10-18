@@ -6,7 +6,7 @@
  * active transits, and the individual's blueprint into original prose
  */
 
-import { callGemini } from './llm';
+import { callPerplexity } from './llm';
 
 interface DailyIndex {
   date: string;
@@ -103,7 +103,7 @@ Your task:
 Output only the paragraph, no title or preamble.`;
 
   try {
-    const narrative = await callGemini(prompt, { model: 'gemini-1.5-flash' });
+    const narrative = await callPerplexity(prompt, { model: 'sonar-pro' });
     return narrative.trim();
   } catch (error) {
     console.error('Weather narrative generation failed:', error);
@@ -197,7 +197,7 @@ Do NOT suggest: meditation, journaling, "being mindful", or other generic practi
 Output only the experiment suggestion, nothing else.`;
 
   try {
-    const experiment = await callGemini(prompt, { model: 'gemini-1.5-flash' });
+    const experiment = await callPerplexity(prompt, { model: 'sonar-pro' });
     return experiment.trim();
   } catch (error) {
     console.error('Weather experiment generation failed:', error);

@@ -5,7 +5,7 @@ import { renderFrontstage } from '../src/frontstage-renderer';
 import { enforceNatalOnlyMode, stripBalancePayload, ReportMode } from '../src/schema-rule-patch';
 
 vi.mock('../lib/llm', () => ({
-  callGemini: vi.fn(async (prompt: string) => {
+  callPerplexity: vi.fn(async (prompt: string) => {
     if (prompt.includes('narrateSymbolicWeather')) {
       return '3-day window of symbolic weather';
     }

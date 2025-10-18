@@ -254,7 +254,7 @@ export async function POST(req: NextRequest){
   const user = [...messages].reverse().find((m:any)=> m.role==='user');
   const text = user?.content || user?.html || 'Hello';
   
-  const isTechnicalQuestion = /\b(are you|what are you|how do you work|gemini|api|technical|test|version|system)\b/i.test(text);
+  const isTechnicalQuestion = /\b(are you|what are you|how do you work|perplexity|api|technical|test|version|system)\b/i.test(text);
   const isGreeting = /^(hello|hi|hey|good morning|good afternoon|good evening|greetings)\b/i.test(text.trim());
   
   const ravenMsgs = Array.isArray(messages) ? messages.filter((m:any)=> m.role==='raven') : [];
@@ -274,12 +274,12 @@ export async function POST(req: NextRequest){
     const climate = undefined;
     const shapedIntro = shapeVoice('Staying close to what you said…', {hook, climate, section:'mirror'}).split(/\n+/)[0];
     let response = '';
-    if (text.toLowerCase().includes('gemini')) {
-      response = 'Yes, I am currently using Google\'s Gemini API. It\'s a pleasure to connect.';
+    if (text.toLowerCase().includes('perplexity')) {
+      response = 'Yes, I am currently using the Perplexity API. It\'s a pleasure to connect.';
     } else if (isGreeting) {
       response = 'Hello! I\'m Raven Calder, and I\'m here to help you see yourself more clearly. I\'m ready when you are.';
     } else {
-      response = 'I\'m Raven Calder, a symbolic mirror that uses Google\'s Gemini API to provide reflective insights. How can I help you today?';
+      response = 'I\'m Raven Calder, a symbolic mirror that uses the Perplexity API to provide reflective insights. How can I help you today?';
     }
     const responseBody = new ReadableStream<{ }|Uint8Array>({
       async start(controller){

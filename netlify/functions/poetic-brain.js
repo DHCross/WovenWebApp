@@ -1,10 +1,7 @@
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
-// Note: 'node-fetch' is no longer needed as we are using the centralized `callGemini`
-// which handles its own requests via the Google AI SDK.
-
-// Import the centralized Gemini caller
-const { callGemini } = require('../../lib/llm.js');
+// Import the centralized Perplexity caller
+const { callPerplexity } = require('../../lib/llm.js');
 
 // Initialize the JWKS client for Auth0 token verification
 const client = jwksClient({
@@ -27,57 +24,6 @@ const jwtVerifyOptions = {
   issuer: `https://${process.env.AUTH0_DOMAIN}/`,
   algorithms: ['RS256']
 };
-
-async function callGemini(prompt, apiKey) {
-  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
-
-  const systemInstruction = {
-    role: "system",
-    parts: [{
-      text: "You are Raven Calder, a mystical poetic brain. Your voice is wise, lyrical, and insightful. You do not give direct advice, but rather offer reflections, metaphors, and beautiful questions. You see the cosmos in a grain of sand. Respond to the user's prompt with this persona. CRITICAL: Do NOT break character. Do not mention you are an AI or a language model. Suppress all chain-of-thought or meta-commentary."
-    }]
-  };
-
-  const userPrompt = {
-    role: "user",
-    parts: [{ text: prompt }]
-  };
-
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [systemInstruction, userPrompt],
-      generationConfig: {
-        temperature: 0.8,
-        topP: 1.0,
-        topK: 40,
-        maxOutputTokens: 1024,
-      },
-      safetySettings: [
-        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-      ]
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ error: { message: 'Failed to parse error response from API.' } }));
-    console.error('Gemini API Error:', errorData.error?.message || 'Unknown API error');
-    throw new Error(errorData.error?.message || 'The connection to the poetic realm is unstable.');
-  }
-
-  const data = await response.json();
-  const poeticResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!poeticResponse) {
-    throw new Error('The muse is silent at this moment...');
-  }
-
-  return poeticResponse;
-}
 
 // --- Helper for Auth ---
 async function verifyToken(token) {
@@ -123,18 +69,17 @@ exports.handler = async (event, context) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON in request body.' }) };
   }
 
-  // 3. Construct the Compliant Prompt and Call Gemini
+  // 3. Construct the Compliant Prompt and Call Perplexity
   try {
-    if (!process.env.GEMINI_API_KEY) {
-      console.error("FATAL: GEMINI_API_KEY is not configured on the server.");
-      throw new Error('API key for Gemini is not configured.');
-    }
+    const personaHook = "You are Raven Calder, a mystical poetic brain. Your voice is wise, lyrical, and insightful. You do not give direct advice, but rather offer reflections, metaphors, and beautiful questions. You see the cosmos in a grain of sand. Respond to the user's prompt with this persona. CRITICAL: Do NOT break character. Do not mention you are an AI or a language model. Suppress all chain-of-thought or meta-commentary.";
 
-    // System prompt with chain-of-thought suppression, as per GEMINI_USAGE_GUIDE.md
-    const poeticResponse = await callGemini(prompt, process.env.GEMINI_API_KEY);
+    const poeticResponse = await callPerplexity(prompt, {
+      model: process.env.POETIC_BRAIN_MODEL || 'sonar-pro',
+      personaHook
+    });
 
     if (!poeticResponse || poeticResponse.includes('[ERROR:')) {
-       console.error('Poetic Brain received an error from callGemini:', poeticResponse);
+       console.error('Poetic Brain received an error from callPerplexity:', poeticResponse);
        throw new Error('The muse is silent or the connection to the poetic realm is unstable.');
     }
 
