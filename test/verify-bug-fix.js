@@ -162,7 +162,11 @@ async function verifyBugFix() {
   console.log('  Relocation Mode:', originalFailingPayload.relocation_mode);
   console.log('  Report Type:', originalFailingPayload.report_type);
   console.log('  Shared Location:', originalFailingPayload.translocation.current_location.label);
-  console.log('  Coordinates:', originalFailingPayload.translocation.current_location.latitude.toFixed(2) + '°N, ' + Math.abs(originalFailingPayload.translocation.current_location.longitude).toFixed(2) + '°W');
+  const lat = originalFailingPayload.translocation.current_location.latitude;
+  const lon = originalFailingPayload.translocation.current_location.longitude;
+  const latDir = lat >= 0 ? 'N' : 'S';
+  const lonDir = lon >= 0 ? 'E' : 'W';
+  console.log('  Coordinates:', Math.abs(lat).toFixed(2) + '°' + latDir + ', ' + Math.abs(lon).toFixed(2) + '°' + lonDir);
   console.log('');
 
   try {

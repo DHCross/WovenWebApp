@@ -21,6 +21,7 @@ When using `Both_local` relocation mode with coordinates provided in `translocat
 ## Root Cause
 
 The coordinate extraction logic in `lib/server/astrology-mathbrain.js` was checking for coordinates in multiple locations:
+
 - `translocationBlock.coords.latitude/longitude`
 - `translocationBlock.latitude/longitude`
 - `body.custom_location.latitude/longitude`
