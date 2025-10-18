@@ -39,6 +39,44 @@ export interface EnhancedMatrix {
 }
 
 export interface InputPayload {
+  // NEW: Mirror Directive JSON support (Oct 18, 2025)
+  _format?: 'mirror_directive_json' | 'symbolic_weather_json' | string;
+  _version?: string;
+  _poetic_brain_compatible?: boolean;
+  generated_at?: string;
+  
+  // NEW: Natal geometry (person_a/person_b charts)
+  person_a?: {
+    name?: string;
+    birth_data?: any;
+    chart?: any;
+    aspects?: any[];
+  };
+  person_b?: {
+    name?: string;
+    birth_data?: any;
+    chart?: any;
+    aspects?: any[];
+  } | null;
+  
+  // NEW: Mirror contract (report scope + intimacy tier)
+  mirror_contract?: {
+    report_kind?: string;
+    intimacy_tier?: string;
+    relationship_type?: string;
+    is_relational?: boolean;
+    is_natal_only?: boolean;
+  };
+  
+  // NEW: Narrative sections (empty placeholders for Poetic Brain output)
+  narrative_sections?: {
+    solo_mirror_a?: string;
+    solo_mirror_b?: string;
+    relational_engine?: string;
+    weather_overlay?: string;
+  };
+  
+  // EXISTING: Legacy format support (backward compatibility)
   climateLine?: string;
   constitutionalClimate?: string;
   hooks?: Array<string | HookObject>;
