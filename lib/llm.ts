@@ -57,6 +57,7 @@ function buildMessages(prompt: string, personaHook?: string) {
   if (personaHook) {
     systemSections.push(`Persona Hook: ${personaHook}`);
   }
+  systemSections.push('No internal monologue. Output VOICE only.');
   return [
     { role: 'system', content: systemSections.join('\n\n') },
     { role: 'user', content: prompt }
