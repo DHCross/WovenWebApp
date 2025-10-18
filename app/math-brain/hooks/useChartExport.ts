@@ -1250,24 +1250,34 @@ Start with the Solo Mirror(s), then ${
         return roundHalfUp(clamp(calibratedValue, 0, 5), 2);
       };
 
+      // Check if chart geometry is available for Poetic Brain
+      const hasPersonAChart = result?.person_a?.chart && Object.keys(result.person_a.chart).length > 0;
+      const hasPersonBChart = !result?.person_b || (result.person_b?.chart && Object.keys(result.person_b.chart).length > 0);
+      const hasChartGeometry = hasPersonAChart && hasPersonBChart;
+
       const weatherData: any = {
         _format: 'symbolic_weather_json',
         _version: '1.0',
+        _poetic_brain_compatible: hasChartGeometry,
         generated_at: new Date().toISOString(),
         person_a: {
           name: result?.person_a?.details?.name || result?.person_a?.name || null,
+          birth_data: result?.person_a?.details || result?.person_a?.birth_data || null,
           chart: result?.person_a?.chart || null,
           aspects: result?.person_a?.aspects || [],
+          summary: result?.person_a?.summary || null,
         },
         person_b: result?.person_b ? {
           name: result?.person_b?.details?.name || result?.person_b?.name || null,
+          birth_data: result?.person_b?.details || result?.person_b?.birth_data || null,
           chart: result?.person_b?.chart || null,
           aspects: result?.person_b?.aspects || [],
+          summary: result?.person_b?.summary || null,
         } : null,
         report_kind: formatReportKind(reportContractType),
         balance_meter_frontstage: null,
-      daily_readings: [],
-    };
+        daily_readings: [],
+      };
 
       if (result?.provenance) {
         weatherData.provenance = result.provenance;
@@ -1393,7 +1403,11 @@ Start with the Solo Mirror(s), then ${
       a.remove();
       URL.revokeObjectURL(url);
 
-      pushToast('📊 Downloading symbolic weather JSON for AI analysis', 1800);
+      if (!hasChartGeometry) {
+        pushToast('⚠️ Chart geometry missing — export will not work with Poetic Brain. Try downloading the PDF or Markdown instead.', 3000);
+      } else {
+        pushToast('📊 Downloading symbolic weather JSON for Poetic Brain', 1800);
+      }
     } catch (error) {
       console.error('Symbolic weather JSON export failed:', error);
       pushToast('Failed to export symbolic weather JSON', 2000);
