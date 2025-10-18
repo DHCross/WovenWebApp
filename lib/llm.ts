@@ -1,5 +1,15 @@
 import { REPORT_STRUCTURES } from './prompts';
 
+// =============================================================================
+// LLM PROVIDER: PERPLEXITY AI ONLY
+// =============================================================================
+// CRITICAL: Poetic Brain uses PERPLEXITY AI exclusively.
+// DO NOT use Gemini, OpenAI, or any other provider.
+// Raven Calder's voice is calibrated specifically for Perplexity's models.
+// Provider: Perplexity AI (https://perplexity.ai)
+// API Documentation: https://docs.perplexity.ai/reference/post_chat_completions
+// =============================================================================
+
 // LLM provider abstraction.
 export interface LLMChunk { delta: string; error?: string; }
 export interface StreamOptions { model?: string; personaHook?: string; temperature?: number; topP?: number; }

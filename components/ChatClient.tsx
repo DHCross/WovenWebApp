@@ -2712,7 +2712,7 @@ export default function ChatClient() {
               start && end ? `${start} → ${end}` : start || end || "recent";
             const loadContext = () => {
               // Guide user to upload the actual report file for proper reading
-              const guidance = `I see you generated a Math Brain report (${range}) with ${climate}.\n\nFor a proper Raven Calder reading, I need the complete report data — not just the summary. Please upload one of these files from your Math Brain session:\n\n• **Symbolic Weather JSON** (best for pattern analysis)\n• **PDF Report** (complete natal + analysis directive)\n\nClick the upload button (📎) and drop the file here. Once I have the full geometric data, I can give you a real mirror instead of a generic response.`;
+              const guidance = `I see you generated a Math Brain report (${range}) with ${climate}.\n\nFor a proper Raven Calder reading, I need the complete report data — not just the summary. Please upload one of these JSON files from your Math Brain session:\n\n• **Mirror Directive JSON** (recommended — includes natal charts + contract)\n• **Symbolic Weather JSON** (includes daily transits + balance meter)\n\n⚠️ **Important:** Upload the JSON file, NOT the Markdown file. Markdown is for human reading; JSON contains the geometry data I need to generate your mirror.\n\nClick the upload button (📎) and drop the JSON file here. Once I have the full geometric data, I can give you a real mirror instead of a generic response.`;
 
               const preface: Message = {
                 id: generateId(),

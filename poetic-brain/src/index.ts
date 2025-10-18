@@ -417,6 +417,189 @@ function buildPolarityCard(payload: InputPayload): string {
   return `${title}\n${captionParts.join(' · ')}${topHook}`;
 }
 
+// ============================================================================
+// NEW: Mirror Directive JSON Support (Oct 18, 2025)
+// ============================================================================
+
+interface MirrorDirectiveParsed {
+  reportKind: string;
+  intimacyTier: string | null;
+  isRelational: boolean;
+  personA: any;
+  personB: any | null;
+  geometry: {
+    chartA: any;
+    chartB: any | null;
+    aspectsA: any[];
+    aspectsB: any[];
+  };
+}
+
+/**
+ * Parse Mirror Directive JSON structure
+ * Extracts natal geometry, mirror contract, and report configuration
+ */
+function parseMirrorDirective(payload: InputPayload): MirrorDirectiveParsed {
+  const contract = payload.mirror_contract || {};
+  return {
+    reportKind: contract.report_kind || 'mirror',
+    intimacyTier: contract.intimacy_tier || null,
+    isRelational: contract.is_relational || false,
+    personA: payload.person_a || {},
+    personB: payload.person_b || null,
+    geometry: {
+      chartA: payload.person_a?.chart || {},
+      chartB: payload.person_b?.chart || null,
+      aspectsA: payload.person_a?.aspects || [],
+      aspectsB: payload.person_b?.aspects || [],
+    }
+  };
+}
+
+interface IntimacyCalibration {
+  boundaryMode: string;
+  toneDescriptor: string;
+  disclosureLevel: 'minimal' | 'moderate' | 'full';
+}
+
+/**
+ * Calibrate narrative tone based on intimacy tier
+ * P1-P5b as defined in Woven Map Protocol
+ */
+function calibrateForIntimacyTier(tier: string | null): IntimacyCalibration {
+  const tierMap: Record<string, IntimacyCalibration> = {
+    'P1': { 
+      boundaryMode: 'formal', 
+      toneDescriptor: 'respectful distance', 
+      disclosureLevel: 'minimal' 
+    },
+    'P2': { 
+      boundaryMode: 'friendly', 
+      toneDescriptor: 'warm but bounded', 
+      disclosureLevel: 'moderate' 
+    },
+    'P3': { 
+      boundaryMode: 'exploratory', 
+      toneDescriptor: 'curious, undefined', 
+      disclosureLevel: 'moderate' 
+    },
+    'P4': { 
+      boundaryMode: 'casual', 
+      toneDescriptor: 'relaxed, low stakes', 
+      disclosureLevel: 'moderate' 
+    },
+    'P5a': { 
+      boundaryMode: 'intimate', 
+      toneDescriptor: 'deep, committed', 
+      disclosureLevel: 'full' 
+    },
+    'P5b': { 
+      boundaryMode: 'intimate-nonsexual', 
+      toneDescriptor: 'deep, non-romantic', 
+      disclosureLevel: 'full' 
+    },
+  };
+  return tierMap[tier || 'P1'] || tierMap['P1'];
+}
+
+/**
+ * Extract basic geometry summary from chart data
+ * Simple extraction for narrative generation
+ */
+function extractGeometrySummary(chart: any): string {
+  if (!chart || typeof chart !== 'object') {
+    return 'Chart geometry unavailable.';
+  }
+  
+  // Try to extract planets
+  const planets = chart.planets || chart.planetary_positions || {};
+  const planetCount = Object.keys(planets).length;
+  
+  // Try to extract aspects
+  const aspects = chart.aspects || [];
+  const aspectCount = Array.isArray(aspects) ? aspects.length : 0;
+  
+  if (planetCount === 0 && aspectCount === 0) {
+    return 'Chart geometry present but unparsed.';
+  }
+  
+  const parts: string[] = [];
+  if (planetCount > 0) parts.push(`${planetCount} planetary positions`);
+  if (aspectCount > 0) parts.push(`${aspectCount} aspects`);
+  
+  return parts.join(', ');
+}
+
+/**
+ * Generate solo mirror narrative
+ * Uses natal chart geometry for single person
+ */
+function generateSoloMirror(person: any, chart: any, calibration: IntimacyCalibration): string {
+  const name = person.name || 'Person';
+  const geometrySummary = extractGeometrySummary(chart);
+  
+  const lines: string[] = [];
+  lines.push(`# Solo Mirror: ${name}`);
+  lines.push('');
+  lines.push(`Geometry — ${geometrySummary}`);
+  lines.push('');
+  lines.push(`Boundary Mode — ${calibration.boundaryMode} (${calibration.toneDescriptor})`);
+  lines.push('');
+  lines.push('Blueprint — Natal pattern reflects constitutional climate. This is the baseline geometry before any transits or activations.');
+  lines.push('');
+  lines.push('Reflection — Map, not mandate: integrate what resonates and release the rest.');
+  
+  return lines.join('\n');
+}
+
+/**
+ * Generate relational engine narrative
+ * Uses both natal charts for relationship dynamics
+ */
+function generateRelationalEngine(personA: any, personB: any, geometry: any, calibration: IntimacyCalibration): string {
+  const nameA = personA.name || 'Person A';
+  const nameB = personB?.name || 'Person B';
+  const geoA = extractGeometrySummary(geometry.chartA);
+  const geoB = extractGeometrySummary(geometry.chartB);
+  
+  const lines: string[] = [];
+  lines.push(`# Relational Engine: ${nameA} & ${nameB}`);
+  lines.push('');
+  lines.push(`${nameA} Geometry — ${geoA}`);
+  lines.push(`${nameB} Geometry — ${geoB}`);
+  lines.push('');
+  lines.push(`Intimacy Tier — ${calibration.toneDescriptor}`);
+  lines.push(`Disclosure Level — ${calibration.disclosureLevel}`);
+  lines.push('');
+  lines.push('Relational Field — Two natal patterns in conversation. Each person brings their constitutional climate; the interaction creates emergent dynamics.');
+  lines.push('');
+  lines.push('Reflection — Relational mirrors show how individual geometries meet, blend, or clash. This is not prediction—it\'s pattern recognition.');
+  
+  return lines.join('\n');
+}
+
+/**
+ * Generate weather overlay narrative
+ * Adds transit/activation layer if present
+ */
+function generateWeatherOverlay(seismograph: any): string {
+  if (!seismograph) {
+    return 'Weather Overlay — No activation data provided. Holding to natal baseline.';
+  }
+  
+  const s = seismographSummary({ seismograph });
+  
+  const lines: string[] = [];
+  lines.push('# Weather Overlay');
+  lines.push('');
+  lines.push(`Current Atmosphere — ${s.headline}`);
+  lines.push(`Seismograph — ${s.details}`);
+  lines.push('');
+  lines.push('Reflection — This is symbolic weather over the natal baseline. Transits activate existing patterns; they don\'t create new ones.');
+  
+  return lines.join('\n');
+}
+
 export function generateSection(sectionType: SectionType, inputPayload: InputPayload): string {
   // Use only provided data, no global state, no hidden astrology math
   switch (sectionType) {
@@ -430,3 +613,88 @@ export function generateSection(sectionType: SectionType, inputPayload: InputPay
       return `${sectionType}\n${s.details}`;
   }
 }
+
+/**
+ * Process Mirror Directive JSON
+ * Returns populated narrative_sections for all report types
+ * 
+ * This is the main entry point for Mirror Directive JSON uploads
+ */
+export function processMirrorDirective(payload: InputPayload): {
+  success: boolean;
+  narrative_sections: {
+    solo_mirror_a?: string;
+    solo_mirror_b?: string;
+    relational_engine?: string;
+    weather_overlay?: string;
+  };
+  intimacy_tier?: string | null;
+  report_kind?: string;
+  error?: string;
+} {
+  // Validate format
+  if (payload._format !== 'mirror_directive_json') {
+    return {
+      success: false,
+      narrative_sections: {},
+      error: 'Invalid format: expected mirror_directive_json'
+    };
+  }
+
+  // Parse Mirror Directive
+  const directive = parseMirrorDirective(payload);
+  const calibration = calibrateForIntimacyTier(directive.intimacyTier);
+
+  // Generate narrative sections
+  const narratives: any = {};
+
+  // Always generate solo mirror for Person A
+  if (directive.personA) {
+    narratives.solo_mirror_a = generateSoloMirror(
+      directive.personA,
+      directive.geometry.chartA,
+      calibration
+    );
+  }
+
+  // Generate solo mirror for Person B if relational
+  if (directive.isRelational && directive.personB) {
+    narratives.solo_mirror_b = generateSoloMirror(
+      directive.personB,
+      directive.geometry.chartB,
+      calibration
+    );
+  }
+
+  // Generate relational engine if relational
+  if (directive.isRelational && directive.personB) {
+    narratives.relational_engine = generateRelationalEngine(
+      directive.personA,
+      directive.personB,
+      directive.geometry,
+      calibration
+    );
+  }
+
+  // Generate weather overlay if seismograph data present
+  if (payload.seismograph) {
+    narratives.weather_overlay = generateWeatherOverlay(payload.seismograph);
+  }
+
+  return {
+    success: true,
+    narrative_sections: narratives,
+    intimacy_tier: directive.intimacyTier,
+    report_kind: directive.reportKind,
+  };
+}
+
+// Export helper functions for external use
+export { 
+  parseMirrorDirective, 
+  calibrateForIntimacyTier,
+  extractGeometrySummary,
+  generateSoloMirror,
+  generateRelationalEngine,
+  generateWeatherOverlay,
+};

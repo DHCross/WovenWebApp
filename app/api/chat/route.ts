@@ -135,6 +135,13 @@ function isJSONReportUpload(text: string): boolean {
     .replace(/&gt;/g, '>')
     .replace(/&amp;/g, '&')
     .replace(/&quot;/g, '"');
+  
+  // Detect new Mirror Directive JSON format (Oct 18, 2025)
+  if (decoded.includes('"_format"') && decoded.includes('"mirror_directive_json"')) {
+    return true;
+  }
+  
+  // Detect legacy balance_meter format
   return decoded.includes('"balance_meter"') && decoded.includes('"context"');
 }
 
