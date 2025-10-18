@@ -85,6 +85,7 @@ interface UseChartExportResult {
   downloadResultJSON: () => void;
   downloadBackstageJSON: () => void;
   downloadSymbolicWeatherJSON: () => void;
+  downloadMirrorDirectiveJSON: () => void;
   pdfGenerating: boolean;
   markdownGenerating: boolean;
   cleanJsonGenerating: boolean;
@@ -1460,12 +1461,95 @@ Start with the Solo Mirror(s), then ${
     }
   }, [friendlyFilename, pushToast, reportContractType, result]);
 
+  const downloadMirrorDirectiveJSON = useCallback(() => {
+    if (!result) return;
+    setCleanJsonGenerating(true);
+
+    try {
+      const reportKind = formatReportKind(reportContractType);
+      
+      // Build Mirror Directive JSON per Raven Calder spec:
+      // 1. Natal charts first (primary)
+      // 2. Mirror contract (scope + intimacy tier)
+      // 3. Provenance (versioning + metadata)
+      // 4. Narrative sections (empty placeholders for Poetic Brain output)
+      const mirrorDirective = {
+        _format: 'mirror_directive_json',
+        _version: '1.0',
+        _poetic_brain_compatible: true,
+        generated_at: new Date().toISOString(),
+        
+        // SECTION 1: NATAL CHARTS (Primary - foundational geometry)
+        person_a: {
+          name: result?.person_a?.details?.name || result?.person_a?.name || 'Person A',
+          birth_data: result?.person_a?.details || result?.person_a?.birth_data || null,
+          chart: result?.person_a?.chart || {},
+          aspects: result?.person_a?.aspects || [],
+        },
+        person_b: result?.person_b ? {
+          name: result?.person_b?.details?.name || result?.person_b?.name || 'Person B',
+          birth_data: result?.person_b?.details || result?.person_b?.birth_data || null,
+          chart: result?.person_b?.chart || {},
+          aspects: result?.person_b?.aspects || [],
+        } : null,
+        
+        // SECTION 2: MIRROR CONTRACT (Report scope + intimacy tier)
+        mirror_contract: {
+          report_kind: reportKind,
+          intimacy_tier: result?.relationship_context?.intimacy_tier || null,
+          relationship_type: result?.relationship_context?.type || null,
+          is_relational: !!result?.person_b,
+          is_natal_only: !result?.person_b,
+        },
+        
+        // SECTION 3: PROVENANCE (Falsifiability - exact geometry used)
+        provenance: result?.provenance ? {
+          generated_at: result.provenance.generated_at || new Date().toISOString(),
+          math_brain_version: result.provenance.math_brain_version || 'N/A',
+          house_system: result.provenance.house_system || 'Placidus',
+          orbs_profile: result.provenance.orbs_profile || 'wm-spec-2025-09',
+          ephemeris_source: result.provenance.ephemeris_source || 'astrologer-api',
+          relocation_mode: result.provenance.relocation_mode || 'None',
+          timezone_db_version: result.provenance.timezone_db_version || 'IANA-2025a',
+          normalized_input_hash: result.provenance.normalized_input_hash || result.provenance.hash || null,
+          engine_versions: result.provenance.engine_versions || {},
+        } : null,
+        
+        // SECTION 4: NARRATIVE SECTIONS (Empty placeholders for Poetic Brain output)
+        narrative_sections: {
+          solo_mirror_a: '',
+          relational_engine: '',
+          weather_overlay: '',
+        },
+      };
+      
+      const blob = new Blob([JSON.stringify(mirrorDirective, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${filenameBase('mirror-directive')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      pushToast('✅ Mirror Directive JSON ready for Poetic Brain', 1600);
+    } catch (err) {
+      console.error('Mirror Directive JSON export failed', err);
+      pushToast('Could not generate Mirror Directive JSON', 2000);
+    } finally {
+      setTimeout(() => setCleanJsonGenerating(false), 300);
+    }
+  }, [filenameBase, pushToast, reportContractType, result]);
+
   return {
     downloadResultPDF,
     downloadResultMarkdown,
     downloadResultJSON,
     downloadBackstageJSON,
     downloadSymbolicWeatherJSON,
+    downloadMirrorDirectiveJSON,
     pdfGenerating,
     markdownGenerating,
     cleanJsonGenerating,

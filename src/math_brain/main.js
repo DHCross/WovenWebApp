@@ -34,14 +34,40 @@ async function runMathBrain(configPath, transitData = null) {
     const dateRange = generateDateArray(startDate, endDate);
 
     console.log(`[Math Brain] Processing ${dateRange.length} days from ${startDate} to ${endDate}...`);
+    
+    // Initialize rolling context for adaptive normalization
+    const rollingMagnitudes = [];
+    let prev = null;
+    
     for (const currentDate of dateRange) {
       const { transitsA, transitsB, synastryAspects } = transitData
         ? getRealAspectData(currentDate, personA, personB, transitData)
         : getMockAspectData(currentDate);
 
+      // Compute symbolic weather with rolling context
+      const symbolicWeather = computeSymbolicWeatherWithContext(
+        transitsA,
+        transitsB,
+        prev,
+        rollingMagnitudes
+      );
+      
+      // Update rolling context for next iteration
+      if (Number.isFinite(symbolicWeather._rawMagnitude)) {
+        rollingMagnitudes.push(symbolicWeather._rawMagnitude);
+        if (rollingMagnitudes.length > 14) {
+          rollingMagnitudes.shift();
+        }
+      }
+      prev = symbolicWeather._aggregateResult;
+
       dailyEntries.push({
         date: currentDate,
-        symbolic_weather: computeSymbolicWeather(transitsA, transitsB),
+        symbolic_weather: {
+          magnitude: symbolicWeather.magnitude,
+          directional_bias: symbolicWeather.directional_bias,
+          labels: symbolicWeather.labels
+        },
         mirror_data: computeMirrorData(transitsA, transitsB, synastryAspects),
         poetic_hooks: computePoeticHooks(transitsA, transitsB, synastryAspects),
       });
@@ -49,6 +75,18 @@ async function runMathBrain(configPath, transitData = null) {
 
     finalOutput = {
       run_metadata: createProvenanceBlock(config),
+      person_a: {
+        name: personA?.name || 'Person A',
+        details: personA,
+        chart: transitData?.person_a?.chart || {},
+        aspects: transitData?.person_a?.aspects || [],
+      },
+      person_b: personB ? {
+        name: personB?.name || 'Person B',
+        details: personB,
+        chart: transitData?.person_b?.chart || {},
+        aspects: transitData?.person_b?.aspects || [],
+      } : null,
       daily_entries: dailyEntries,
     };
 
@@ -126,7 +164,7 @@ function generateDateArray(start, end) {
 
 // --- Computational Functions ---
 
-function computeSymbolicWeather(transitsA, transitsB) {
+function computeSymbolicWeatherWithContext(transitsA, transitsB, prevContext, rollingMagnitudes) {
   // Ensure inputs are arrays
   const safeTransitsA = Array.isArray(transitsA) ? transitsA : [];
   const safeTransitsB = Array.isArray(transitsB) ? transitsB : [];
@@ -139,16 +177,22 @@ function computeSymbolicWeather(transitsA, transitsB) {
     return {
       magnitude: 0,
       directional_bias: 0,
-      labels: { magnitude: 'Quiet', directional_bias: 'Neutral' }
+      labels: { magnitude: 'Quiet', directional_bias: 'Neutral' },
+      _rawMagnitude: 0,
+      _aggregateResult: null
     };
   }
 
-  // Use the seismograph aggregate function to calculate the weather metrics
-  const weather = aggregate(allTransits, null, { enableDiagnostics: false });
+  // Prepare rolling context for adaptive normalization (14-day window)
+  const rollingContext = rollingMagnitudes.length >= 1 ? { magnitudes: [...rollingMagnitudes] } : null;
+
+  // Use the seismograph aggregate function with proper context
+  const weather = aggregate(allTransits, prevContext, { rollingContext, enableDiagnostics: false });
 
   // Extract and label the metrics
   const magnitude = weather.magnitude || 0;
   const directionalBias = weather.directional_bias || 0;
+  const rawMagnitude = weather.energyMagnitude || weather.rawMagnitude || magnitude;
 
   return {
     magnitude: Number(magnitude.toFixed(1)),
@@ -156,7 +200,9 @@ function computeSymbolicWeather(transitsA, transitsB) {
     labels: {
       magnitude: classifyMagnitude(magnitude),
       directional_bias: classifyDirectionalBias(directionalBias)
-    }
+    },
+    _rawMagnitude: rawMagnitude,
+    _aggregateResult: weather
   };
 }
 
