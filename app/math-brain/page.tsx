@@ -1935,51 +1935,64 @@ export default function MathBrainPage() {
     console.log('[downloadV2Markdown] Starting download...');
 
     try {
+      const payload: Record<string, any> = {
+        use_v2: true,
+        personA: {
+          name: personA.name,
+          year: personA.year,
+          month: personA.month,
+          day: personA.day,
+          hour: personA.hour,
+          minute: personA.minute,
+          city: personA.city,
+          state: personA.state,
+          nation: (personA as any).nation || 'US',
+          latitude: personA.latitude,
+          longitude: personA.longitude,
+          timezone: personA.timezone
+        },
+        personB: personB ? {
+          name: personB.name,
+          year: personB.year,
+          month: personB.month,
+          day: personB.day,
+          hour: personB.hour,
+          minute: personB.minute,
+          city: personB.city,
+          state: personB.state,
+          nation: (personB as any).nation || 'US',
+          latitude: personB.latitude,
+          longitude: personB.longitude,
+          timezone: personB.timezone
+        } : null,
+        window: {
+          start: startDate,
+          end: endDate,
+          step: step
+        },
+        context: {
+          mode: mode
+        }
+      };
+
+      if (RELATIONAL_MODES.includes(mode)) {
+        payload.relationship_context = {
+          type: relationshipType,
+          intimacy_tier: relationshipType === 'PARTNER' ? relationshipTier : undefined,
+          role: relationshipType !== 'PARTNER' ? relationshipRole : undefined,
+          contact_state: contactState,
+          ex_estranged: relationshipType === 'FRIEND' ? undefined : exEstranged,
+          notes: relationshipNotes || undefined,
+        };
+      }
+
       const response = await fetch('/api/astrology-mathbrain', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Math-Brain-Version': 'v2'
         },
-        body: JSON.stringify({
-          use_v2: true,
-          personA: {
-            name: personA.name,
-            year: personA.year,
-            month: personA.month,
-            day: personA.day,
-            hour: personA.hour,
-            minute: personA.minute,
-            city: personA.city,
-            state: personA.state,
-            nation: (personA as any).nation || 'US',
-            latitude: personA.latitude,
-            longitude: personA.longitude,
-            timezone: personA.timezone
-          },
-          personB: personB ? {
-            name: personB.name,
-            year: personB.year,
-            month: personB.month,
-            day: personB.day,
-            hour: personB.hour,
-            minute: personB.minute,
-            city: personB.city,
-            state: personB.state,
-            nation: (personB as any).nation || 'US',
-            latitude: personB.latitude,
-            longitude: personB.longitude,
-            timezone: personB.timezone
-          } : null,
-          window: {
-            start: startDate,
-            end: endDate,
-            step: step
-          },
-          context: {
-            mode: mode
-          }
-        })
+        body: JSON.stringify(payload)
       });
 
       // eslint-disable-next-line no-console
@@ -2043,51 +2056,64 @@ export default function MathBrainPage() {
     console.log('[downloadV2SymbolicWeather] Starting download...');
 
     try {
+      const payload: Record<string, any> = {
+        use_v2: true,
+        personA: {
+          name: personA.name,
+          year: personA.year,
+          month: personA.month,
+          day: personA.day,
+          hour: personA.hour,
+          minute: personA.minute,
+          city: personA.city,
+          state: personA.state,
+          nation: (personA as any).nation || 'US',
+          latitude: personA.latitude,
+          longitude: personA.longitude,
+          timezone: personA.timezone
+        },
+        personB: personB ? {
+          name: personB.name,
+          year: personB.year,
+          month: personB.month,
+          day: personB.day,
+          hour: personB.hour,
+          minute: personB.minute,
+          city: personB.city,
+          state: personB.state,
+          nation: (personB as any).nation || 'US',
+          latitude: personB.latitude,
+          longitude: personB.longitude,
+          timezone: personB.timezone
+        } : null,
+        window: {
+          start: startDate,
+          end: endDate,
+          step: step
+        },
+        context: {
+          mode: mode
+        }
+      };
+
+      if (RELATIONAL_MODES.includes(mode)) {
+        payload.relationship_context = {
+          type: relationshipType,
+          intimacy_tier: relationshipType === 'PARTNER' ? relationshipTier : undefined,
+          role: relationshipType !== 'PARTNER' ? relationshipRole : undefined,
+          contact_state: contactState,
+          ex_estranged: relationshipType === 'FRIEND' ? undefined : exEstranged,
+          notes: relationshipNotes || undefined,
+        };
+      }
+
       const response = await fetch('/api/astrology-mathbrain', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Math-Brain-Version': 'v2'
         },
-        body: JSON.stringify({
-          use_v2: true,
-          personA: {
-            name: personA.name,
-            year: personA.year,
-            month: personA.month,
-            day: personA.day,
-            hour: personA.hour,
-            minute: personA.minute,
-            city: personA.city,
-            state: personA.state,
-            nation: (personA as any).nation || 'US',
-            latitude: personA.latitude,
-            longitude: personA.longitude,
-            timezone: personA.timezone
-          },
-          personB: personB ? {
-            name: personB.name,
-            year: personB.year,
-            month: personB.month,
-            day: personB.day,
-            hour: personB.hour,
-            minute: personB.minute,
-            city: personB.city,
-            state: personB.state,
-            nation: (personB as any).nation || 'US',
-            latitude: personB.latitude,
-            longitude: personB.longitude,
-            timezone: personB.timezone
-          } : null,
-          window: {
-            start: startDate,
-            end: endDate,
-            step: step
-          },
-          context: {
-            mode: mode
-          }
-        })
+        body: JSON.stringify(payload)
       });
 
       // eslint-disable-next-line no-console
