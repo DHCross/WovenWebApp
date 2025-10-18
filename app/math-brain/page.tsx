@@ -1997,17 +1997,27 @@ export default function MathBrainPage() {
       });
 
       if (data.success && data.version === 'v2' && data.download_formats?.mirror_report) {
-        const blob = new Blob([data.download_formats.mirror_report.content], { type: 'text/markdown' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = data.download_formats.mirror_report.filename;
-        a.click();
-        URL.revokeObjectURL(url);
-        setToast('Math Brain v2 Markdown downloaded');
+        const { content, filename } = data.download_formats.mirror_report;
+        const encodedContent = encodeURIComponent(content);
+        const dataUri = `data:text/markdown;charset=utf-8,${encodedContent}`;
+
+        const newTab = window.open(dataUri, '_blank');
+        if (newTab) {
+          newTab.document.title = filename;
+          setToast('Your report is opening in a new tab');
+        } else {
+          // Fallback for browsers that block popups
+          const a = document.createElement('a');
+          a.href = dataUri;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setToast('Math Brain v2 Markdown downloaded');
+        }
         setTimeout(() => setToast(null), 2000);
         // eslint-disable-next-line no-console
-        console.log('[downloadV2Markdown] Download completed successfully');
+        console.log('[downloadV2Markdown] Report opened in new tab');
       } else {
         const errorMsg = data.error || data.detail || 'Failed to generate v2 report';
         // eslint-disable-next-line no-console
@@ -2095,17 +2105,28 @@ export default function MathBrainPage() {
       });
 
       if (data.success && data.version === 'v2' && data.download_formats?.symbolic_weather) {
-        const blob = new Blob([JSON.stringify(data.download_formats.symbolic_weather.content, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = data.download_formats.symbolic_weather.filename;
-        a.click();
-        URL.revokeObjectURL(url);
-        setToast('Math Brain v2 JSON downloaded');
+        const { content, filename } = data.download_formats.symbolic_weather;
+        const jsonContent = JSON.stringify(content, null, 2);
+        const encodedContent = encodeURIComponent(jsonContent);
+        const dataUri = `data:application/json;charset=utf-8,${encodedContent}`;
+
+        const newTab = window.open(dataUri, '_blank');
+        if (newTab) {
+          newTab.document.title = filename;
+          setToast('Your report is opening in a new tab');
+        } else {
+          // Fallback for browsers that block popups
+          const a = document.createElement('a');
+          a.href = dataUri;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setToast('Math Brain v2 JSON downloaded');
+        }
         setTimeout(() => setToast(null), 2000);
         // eslint-disable-next-line no-console
-        console.log('[downloadV2SymbolicWeather] Download completed successfully');
+        console.log('[downloadV2SymbolicWeather] Report opened in new tab');
       } else {
         const errorMsg = data.error || data.detail || 'Failed to generate v2 report';
         // eslint-disable-next-line no-console
@@ -2571,19 +2592,18 @@ export default function MathBrainPage() {
         setToast('Markdown summary copied to clipboard! Ready to paste into ChatGPT.');
         setTimeout(() => setToast(null), 3000);
       } catch (clipboardError) {
-        // Fallback: create temporary textarea for manual copy
-        const textarea = document.createElement('textarea');
-        textarea.value = markdown;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        setToast('Markdown summary selected for copy (Ctrl+C to copy)');
+        // Fallback for mobile or restricted environments: open in a new tab
+        const encodedContent = encodeURIComponent(markdown);
+        const dataUri = `data:text/markdown;charset=utf-8,${encodedContent}`;
+        const newTab = window.open(dataUri, '_blank');
+        if (newTab) {
+          newTab.document.title = `${friendlyFilename('directive')}.md`;
+          setToast('Report is opening in a new tab for you to copy.');
+        } else {
+          setToast('Could not copy to clipboard or open a new tab.');
+        }
         setTimeout(() => setToast(null), 3000);
       }
-
     } catch (error) {
       console.error('Markdown export failed:', error);
       setToast('Markdown export failed. Please try again.');
