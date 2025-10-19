@@ -86,6 +86,8 @@ interface UseChartExportResult {
   downloadBackstageJSON: () => void;
   downloadSymbolicWeatherJSON: () => void;
   downloadMirrorDirectiveJSON: () => void;
+  downloadMapFile: () => void;           // NEW: Export wm-map-v1 (constitutional geometry)
+  downloadFieldFile: () => void;         // NEW: Export wm-field-v1 (symbolic weather)
   pdfGenerating: boolean;
   markdownGenerating: boolean;
   cleanJsonGenerating: boolean;
@@ -1546,6 +1548,74 @@ Start with the Solo Mirror(s), then ${
     }
   }, [filenameBase, pushToast, reportContractType, result]);
 
+  // NEW: Export MAP file (wm-map-v1) - Constitutional Geometry
+  const downloadMapFile = useCallback(() => {
+    if (!result) return;
+    setCleanJsonGenerating(true);
+
+    try {
+      const unifiedOutput = result?.unified_output || result;
+      const mapFile = unifiedOutput?._map_file;
+      
+      if (!mapFile) {
+        pushToast('⚠️ MAP file not available (natal-only report required)', 2000);
+        return;
+      }
+
+      const blob = new Blob([JSON.stringify(mapFile, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${filenameBase('wm-map-v1')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      pushToast('✅ MAP file downloaded (constitutional geometry)', 1600);
+    } catch (err) {
+      console.error('MAP file export failed', err);
+      pushToast('Could not generate MAP file', 2000);
+    } finally {
+      setTimeout(() => setCleanJsonGenerating(false), 300);
+    }
+  }, [filenameBase, pushToast, result]);
+
+  // NEW: Export FIELD file (wm-field-v1) - Symbolic Weather
+  const downloadFieldFile = useCallback(() => {
+    if (!result) return;
+    setWeatherJsonGenerating(true);
+
+    try {
+      const unifiedOutput = result?.unified_output || result;
+      const fieldFile = unifiedOutput?._field_file;
+      
+      if (!fieldFile) {
+        pushToast('⚠️ FIELD file not available (requires transit report)', 2000);
+        return;
+      }
+
+      const blob = new Blob([JSON.stringify(fieldFile, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${filenameBase('wm-field-v1')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      pushToast('✅ FIELD file downloaded (symbolic weather)', 1600);
+    } catch (err) {
+      console.error('FIELD file export failed', err);
+      pushToast('Could not generate FIELD file', 2000);
+    } finally {
+      setTimeout(() => setWeatherJsonGenerating(false), 300);
+    }
+  }, [filenameBase, pushToast, result]);
+
   return {
     downloadResultPDF,
     downloadResultMarkdown,
@@ -1553,6 +1623,8 @@ Start with the Solo Mirror(s), then ${
     downloadBackstageJSON,
     downloadSymbolicWeatherJSON,
     downloadMirrorDirectiveJSON,
+    downloadMapFile,
+    downloadFieldFile,
     pdfGenerating,
     markdownGenerating,
     cleanJsonGenerating,

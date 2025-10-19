@@ -1,3 +1,143 @@
+## [2025-10-19] FEATURE: MAP/FIELD Export Architecture + UI Buttons + Cleanup
+
+**Summary**
+Implemented proper MAP/FIELD file export architecture per protocol specification, added UI buttons for downloads, fixed Poetic Brain conversational tone, and cleaned up outdated documentation.
+
+### **3. UI Buttons for MAP/FIELD Downloads (NEW)**
+
+**Added Export Buttons to Math Brain Interface:**
+- ✅ "Download MAP" button - Downloads constitutional geometry (`wm-map-v1-*.json`)
+- ✅ "Download FIELD" button - Downloads symbolic weather (`wm-field-v1-*.json`)
+- ✅ Buttons appear in export controls section
+- ✅ Proper error handling and user feedback
+- ✅ Graceful degradation when files unavailable
+
+**User Experience:**
+- Clear button labels with icons
+- Helpful tooltips explaining MAP vs FIELD
+- Toast notifications on success/error
+- Organized export section with primary (MAP/FIELD) and alternative (PDF/Markdown) options
+
+### **4. Documentation Cleanup (NEW)**
+
+**Deleted 35 Outdated .md Files:**
+- Removed v2 integration TODOs (completed)
+- Removed old bug hunt reports (resolved)
+- Removed balance meter math fix docs (integrated)
+- Removed diagnostic reports (archived)
+- Removed session summaries (historical)
+- Removed validation reports (superseded)
+- Removed refactor docs (completed)
+- Removed deployment troubleshooting (resolved)
+
+**Kept Current Documentation:**
+- ✅ `CHANGELOG.md` - Main changelog
+- ✅ `README.md` - Project overview
+- ✅ `MAP_FIELD_EXPORT_CLARIFICATION.md` - Protocol explanation
+- ✅ `MAP_FIELD_IMPLEMENTATION_COMPLETE.md` - Implementation details
+- ✅ `FILENAME_STRUCTURE_VERIFICATION.md` - Filename verification
+- ✅ `OCT_19_IMPLEMENTATION_SUMMARY.md` - Complete summary
+- ✅ `POETIC_BRAIN_TONE_FIX_OCT19.md` - Tone fixes
+- ✅ `POETIC_BRAIN_PERSONA_AUDIT.md` - Persona guidelines
+- ✅ `POETIC_BRAIN_SESSION_UPLOAD_FIXES.md` - Upload handling
+- ✅ `SCATTER_PLOT_ARCHITECTURE.md` - Visualization design
+- ✅ `SCATTER_PLOT_VERIFICATION.md` - Visualization verification
+- ✅ `API_LIMITATION_RELOCATION_HOUSES.md` - API limitations
+- ✅ `Lessons Learned for Developer.md` - Developer notes
+
+---
+
+## [2025-10-19] FEATURE: MAP/FIELD Export Architecture + Poetic Brain Tone Fix
+
+**Summary**
+Implemented proper MAP/FIELD file export architecture per protocol specification, and fixed Poetic Brain conversational tone issues.
+
+**1. MAP/FIELD Export Architecture (Raven Calder Protocol)**
+
+**The Issue:** File naming was inconsistent with MAP/FIELD protocol, creating confusion about which file serves which purpose.
+
+**Core Clarification:**
+- **MAP File** (`wm-map-v1`): Constitutional geometry (permanent natal chart) → Mirror Flow Reports
+- **FIELD File** (`wm-field-v1`): Symbolic weather (temporal transit activations) → Balance Meter Reports
+- **Mirror Directive**: Instruction template (may be deprecated)
+
+**Changes Made:**
+
+*Backend (Already Complete):*
+- ✅ `src/math_brain/main.js` generates proper MAP and FIELD files
+- ✅ `generateMapFile()` function (lines 441-501)
+- ✅ `generateFieldFile()` function (lines 507-562)
+- ✅ Includes `_map_file` and `_field_file` in unified output
+
+*Frontend Export Functions (NEW):*
+- ✅ Added `downloadMapFile()` in `app/math-brain/hooks/useChartExport.ts` (lines 1551-1583)
+- ✅ Added `downloadFieldFile()` in `app/math-brain/hooks/useChartExport.ts` (lines 1585-1617)
+- ✅ Updated `UseChartExportResult` interface (lines 82-96)
+- ✅ Proper error handling and user feedback toasts
+
+*Poetic Brain Integration:*
+- ✅ Added MAP file detection in `app/api/chat/route.ts` (lines 144-147)
+- ✅ Added FIELD file detection in `app/api/chat/route.ts` (lines 149-152)
+- ✅ Upload detection now recognizes `wm-map-v1` and `wm-field-v1` schemas
+- ✅ Maintains backward compatibility with legacy formats
+
+**File Naming Convention:**
+- MAP: `wm-map-v1-[report-type]-[person-a]-[person-b]-[timestamp].json`
+- FIELD: `wm-field-v1-[report-type]-[person-a]-[person-b]-[date-range].json`
+- Includes person names and date ranges automatically
+
+**User Impact:**
+- Users can now download proper MAP files (constitutional geometry)
+- Users can now download proper FIELD files (symbolic weather)
+- Poetic Brain recognizes and processes both file types
+- Clear distinction between permanent (MAP) and temporal (FIELD) data
+
+**2. Poetic Brain Conversational Tone Fix**
+
+**The Issue:** Poetic Brain was responding in short, choppy sentences with headers instead of warm, conversational paragraphs.
+
+**Root Causes:**
+1. Corrupted prompt introduction in `lib/prompts.ts` (lines 1-6)
+2. Technical upload prompts overriding conversational instructions
+
+**Fixes Applied:**
+
+*Prompt Corruption:*
+- ✅ Fixed garbled text in `lib/prompts.ts` introduction
+- ✅ Restored proper Raven Calder persona instructions
+- ✅ AI now understands conversational tone requirements
+
+*Upload Handler Improvements:*
+- ✅ Removed technical openings ("I've received...")
+- ✅ Updated JSON upload prompt to enforce conversational tone (lines 580-588)
+- ✅ Updated journal upload prompt to enforce conversational tone (lines 590-597)
+- ✅ Prompts now explicitly request warm, direct paragraphs
+
+**Expected Behavior:**
+- ✅ Warm, peer-like paragraphs (not headers/bullets)
+- ✅ Natural language flow
+- ✅ Five-Step Delivery Framework applied
+- ✅ Direct, not detached tone
+- ✅ Plain syntax, muscular verbs
+- ✅ Falsifiable empathy maintained
+
+**Documentation Created:**
+- `MAP_FIELD_EXPORT_CLARIFICATION.md` - Complete protocol explanation
+- `MAP_FIELD_IMPLEMENTATION_COMPLETE.md` - Implementation status
+- `POETIC_BRAIN_TONE_FIX_OCT19.md` - Tone fix documentation
+
+**Files Modified:**
+1. `app/math-brain/hooks/useChartExport.ts` - Added MAP/FIELD exports
+2. `app/api/chat/route.ts` - Added schema detection + fixed prompts
+3. `lib/prompts.ts` - Fixed corrupted introduction
+
+**Next Steps:**
+- [ ] Add UI buttons for MAP/FIELD downloads
+- [ ] Update user guidance for MAP vs FIELD usage
+- [ ] Consider deprecating "Mirror Directive" export
+
+---
+
 ## [2025-10-18] MIGRATION: Gemini → Perplexity API for Poetic Brain
 
 **Summary**

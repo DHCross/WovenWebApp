@@ -141,6 +141,16 @@ function isJSONReportUpload(text: string): boolean {
     return true;
   }
   
+  // Detect MAP file (wm-map-v1) - Oct 19, 2025
+  if (decoded.includes('"schema"') && decoded.includes('"wm-map-v1"')) {
+    return true;
+  }
+  
+  // Detect FIELD file (wm-field-v1) - Oct 19, 2025
+  if (decoded.includes('"schema"') && decoded.includes('"wm-field-v1"')) {
+    return true;
+  }
+  
   // Detect legacy balance_meter format
   return decoded.includes('"balance_meter"') && decoded.includes('"context"');
 }
@@ -580,19 +590,21 @@ User's input: "${text}"`;
   if (isJSONReportUpload(analysisPrompt)) {
     const reportData = extractJSONFromUpload(analysisPrompt);
     if (reportData) {
-      analysisPrompt = `I've received a WovenWebApp JSON report. Please provide a complete Solo Mirror analysis based on this data:
+      analysisPrompt = `CONTEXT: The following chart data has been provided. Use it to generate a complete, conversational mirror reflection following the Five-Step Delivery Framework.
 
+CHART DATA:
 ${reportData}
 
-Focus on completing any empty template sections with VOICE synthesis.`;
+INSTRUCTIONS: Begin with warm recognition of the person's stance/pattern. Use the chart geometry as context, but write in natural, conversational paragraphs. Follow the FIELD→MAP→VOICE protocol. No technical openings, no data summaries—just the warm, direct mirror.`;
     }
   } else if (isJournalUpload(analysisPrompt)) {
     const journalContent = extractTextFromUpload(analysisPrompt);
-    analysisPrompt = `I've received a journal entry for analysis. Please read this with your symbolic weather lens and provide insights into the patterns, emotional climate, and potential astrological correlates:
+    analysisPrompt = `CONTEXT: The user has shared a journal entry. Read it with your symbolic weather lens and provide warm, conversational reflections.
 
+JOURNAL ENTRY:
 ${journalContent}
 
-Apply Recognition Layer analysis and provide conditional reflections that can be tested (SST protocol).`;
+INSTRUCTIONS: Begin with recognition of the felt texture in their words. Surface patterns and emotional climate using conditional language. Apply Recognition Layer analysis (SST protocol) and offer reflections they can test against their lived experience. Write in natural paragraphs, not technical summaries.`;
   }
   
   const hook = pickHook(analysisPrompt);

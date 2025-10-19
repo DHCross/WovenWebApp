@@ -18,6 +18,8 @@ interface DownloadControlsProps {
   onDownloadGraphsPDF: () => void;
   onDownloadEngineConfig: () => void;
   onDownloadCleanJSON: () => void;
+  onDownloadMapFile: () => void;           // NEW: MAP file export
+  onDownloadFieldFile: () => void;         // NEW: FIELD file export
   seismographMap: SeismographMap;
   authReady: boolean;
   isAuthenticated: boolean;
@@ -40,6 +42,8 @@ export default function DownloadControls({
   onDownloadGraphsPDF,
   onDownloadEngineConfig,
   onDownloadCleanJSON,
+  onDownloadMapFile,
+  onDownloadFieldFile,
   seismographMap,
   authReady,
   isAuthenticated,
@@ -129,6 +133,64 @@ export default function DownloadControls({
             </div>
           </div>
         </button>
+
+        <button
+          type="button"
+          onClick={onDownloadMapFile}
+          disabled={cleanJsonGenerating}
+          className="w-full rounded-md border border-indigo-500 bg-indigo-600/20 px-4 py-3 text-left hover:bg-indigo-600/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          aria-label="Download MAP file (constitutional geometry)"
+          title="MAP = Your Chart: Permanent natal geometry for Mirror Flow Reports"
+        >
+          <div className="flex items-center gap-3">
+            {cleanJsonGenerating ? (
+              <svg className="animate-spin h-5 w-5 text-indigo-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            ) : (
+              <span className="text-2xl">🗺️</span>
+            )}
+            <div className="flex-1">
+              <div className="text-sm font-medium text-slate-100">
+                {cleanJsonGenerating ? "Preparing MAP..." : "MAP File (wm-map-v1)"}
+              </div>
+              <div className="text-xs text-slate-400 mt-0.5">
+                Constitutional geometry - your permanent chart
+              </div>
+            </div>
+          </div>
+        </button>
+
+        {includeTransits && (
+          <button
+            type="button"
+            onClick={onDownloadFieldFile}
+            disabled={weatherJsonGenerating}
+            className="w-full rounded-md border border-cyan-500 bg-cyan-600/20 px-4 py-3 text-left hover:bg-cyan-600/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            aria-label="Download FIELD file (symbolic weather)"
+            title="FIELD = The Weather: Temporal transit activations for Balance Meter Reports"
+          >
+            <div className="flex items-center gap-3">
+              {weatherJsonGenerating ? (
+                <svg className="animate-spin h-5 w-5 text-cyan-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              ) : (
+                <span className="text-2xl">⛅</span>
+              )}
+              <div className="flex-1">
+                <div className="text-sm font-medium text-slate-100">
+                  {weatherJsonGenerating ? "Preparing FIELD..." : "FIELD File (wm-field-v1)"}
+                </div>
+                <div className="text-xs text-slate-400 mt-0.5">
+                  Symbolic weather - transits activating your chart
+                </div>
+              </div>
+            </div>
+          </button>
+        )}
 
         {includeTransits && (
           <button

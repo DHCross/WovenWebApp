@@ -1355,6 +1355,8 @@ export default function MathBrainPage() {
     downloadBackstageJSON,
     downloadSymbolicWeatherJSON,
     downloadMirrorDirectiveJSON,
+    downloadMapFile,
+    downloadFieldFile,
     pdfGenerating,
     markdownGenerating,
     cleanJsonGenerating,
@@ -4676,6 +4678,8 @@ export default function MathBrainPage() {
             onDownloadGraphsPDF={downloadGraphsPDF}
             onDownloadEngineConfig={downloadBackstageJSON}
             onDownloadCleanJSON={downloadResultJSON}
+            onDownloadMapFile={downloadMapFile}
+            onDownloadFieldFile={downloadFieldFile}
             seismographMap={seismographMap}
             authReady={authReady}
             isAuthenticated={isAuthenticated}
