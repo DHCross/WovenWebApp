@@ -415,6 +415,7 @@ interface ReportContext {
   summary: string;
   content: string;
   relocation?: RelocationSummary;
+  mirrorDirective?: Record<string, any>;
 }
 
 interface StoredMathBrainPayload {
