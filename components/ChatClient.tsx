@@ -2170,10 +2170,17 @@ export default function ChatClient() {
     let displayContent = content;
     let reportInfo = "Uploaded report";
     let inferredType: "mirror" | "balance" | null = null;
+    let mirrorDirectivePayload: Record<string, any> | null = null;
 
     try {
       const jsonData = JSON.parse(content);
-      if (jsonData.context && jsonData.balance_meter) {
+      if (typeof jsonData === "object" && jsonData?._format === "mirror_directive_json") {
+        inferredType = "mirror";
+        mirrorDirectivePayload = jsonData;
+        const personName = jsonData?.person_a?.name || jsonData?.person_a?.details?.name;
+        reportInfo = personName ? `Mirror Directive for ${personName}` : "Mirror Directive";
+        displayContent = JSON.stringify(jsonData, null, 2);
+      } else if (jsonData.context && jsonData.balance_meter) {
         // This is a WovenWebApp JSON report
         const { context, balance_meter } = jsonData;
         // compute relocation summary if available
@@ -2273,6 +2280,7 @@ export default function ChatClient() {
         .join(" • "),
       content: content,
       relocation: relocationSummary || undefined,
+      mirrorDirective: mirrorDirectivePayload || undefined,
     };
 
     // Add to contexts (allow multiple reports) and include immediately for analysis

@@ -274,6 +274,10 @@ export function summariseUploadedReportJson(raw: string): {
   if (!trimmed.startsWith('{') || trimmed.length < 20) {
     return null;
   }
+  if (trimmed.includes('"_format"') && /"mirror_directive_json"/i.test(trimmed)) {
+    return null;
+  }
+
   if (!/"balance_meter"|"solo_mirror"|"mirror_voice"|"symbolic_weather"|"balance_meter_summary"/i.test(trimmed)) {
     return null;
   }
