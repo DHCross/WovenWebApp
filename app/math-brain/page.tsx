@@ -1844,6 +1844,9 @@ export default function MathBrainPage() {
           setTimePolicy(saved.timePolicy as TimePolicyChoice);
         }
       }
+      if (typeof saved.saveForNextSession === 'boolean') {
+        setSaveForNextSession(saved.saveForNextSession);
+      }
 
       // Hide the resume prompt after successful load
       setHasSavedInputs(false);
@@ -3930,6 +3933,7 @@ export default function MathBrainPage() {
             relocTz,
             relocCoords,
             timePolicy,
+            saveForNextSession,
           };
           window.localStorage.setItem('mb.lastInputs', JSON.stringify(inputs));
           setHasSavedInputs(true);
