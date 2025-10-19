@@ -1286,7 +1286,15 @@ export default function MathBrainPage() {
 
   // Session memory flags
   const [hasSavedInputs, setHasSavedInputs] = useState<boolean>(false);
-  const [saveForNextSession, setSaveForNextSession] = useState<boolean>(false);
+  const [saveForNextSession, setSaveForNextSession] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      const stored = window.localStorage.getItem('mb.saveInputsPreference');
+      if (stored === 'false') return false;
+      if (stored === 'true') return true;
+    } catch {/* ignore */}
+    return true;
+  });
   const [loadError, setLoadError] = useState<string | null>(null);
   // Shared file input ref for bottom Session Presets box
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1327,6 +1335,12 @@ export default function MathBrainPage() {
       setHasSavedInputs(false);
     }
   }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('mb.saveInputsPreference', String(saveForNextSession));
+    } catch {/* ignore */}
+  }, [saveForNextSession]);
 
   // Relational modes list used for UI guards
   const isRelationalStructure = reportStructure !== 'solo';
@@ -1807,6 +1821,27 @@ export default function MathBrainPage() {
       if (typeof saved.contactState === 'string') setContactState(saved.contactState.toUpperCase() === 'LATENT' ? 'LATENT' : 'ACTIVE');
       if (saved.translocation) {
         setTranslocation(normalizeTranslocationOption(saved.translocation));
+      }
+      if (typeof saved.includeTransits === 'boolean') {
+        setIncludeTransits(saved.includeTransits);
+      }
+      if (typeof saved.reportStructure === 'string' && ['solo', 'synastry', 'composite'].includes(saved.reportStructure)) {
+        setReportStructure(saved.reportStructure as ReportStructure);
+      }
+      if (typeof saved.relocInput === 'string') setRelocInput(saved.relocInput);
+      if (typeof saved.relocLabel === 'string') setRelocLabel(saved.relocLabel);
+      if (typeof saved.relocTz === 'string') setRelocTz(saved.relocTz);
+      if (saved.relocCoords && typeof saved.relocCoords === 'object') {
+        const { lat, lon } = saved.relocCoords as { lat?: unknown; lon?: unknown };
+        if (typeof lat === 'number' && typeof lon === 'number') {
+          setRelocCoords({ lat, lon });
+        }
+      }
+      if (typeof saved.timePolicy === 'string') {
+        const validPolicies: TimePolicyChoice[] = ['planetary_only', 'whole_sign', 'sensitivity_scan', 'user_provided'];
+        if ((validPolicies as string[]).includes(saved.timePolicy)) {
+          setTimePolicy(saved.timePolicy as TimePolicyChoice);
+        }
       }
 
       // Hide the resume prompt after successful load
@@ -3876,6 +3911,8 @@ export default function MathBrainPage() {
             startDate,
             endDate,
             includePersonB,
+            includeTransits,
+            reportStructure,
             translocation: relocationStatus.effectiveMode,
             relationshipType,
             relationshipTier,
@@ -3887,6 +3924,11 @@ export default function MathBrainPage() {
             personB,
             aCoordsInput,
             bCoordsInput,
+            relocInput,
+            relocLabel,
+            relocTz,
+            relocCoords,
+            timePolicy,
           };
           window.localStorage.setItem('mb.lastInputs', JSON.stringify(inputs));
           setHasSavedInputs(true);
