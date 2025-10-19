@@ -623,12 +623,20 @@ export async function renderShareableMirror({ geo, prov, options, conversational
     }
   });
 
-  return {
+  const combinedParagraph = [
     picture,
     feeling,
     container,
     option,
-    next_step: nextStep,
+    nextStep
+  ].map(s => s.trim()).filter(Boolean).join('\n\n');
+
+  return {
+    picture: combinedParagraph,
+    feeling: '',
+    container: '',
+    option: '',
+    next_step: '',
     appendix,
   };
 }
