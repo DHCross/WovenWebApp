@@ -1295,9 +1295,12 @@ Start with the Solo Mirror(s), then ${
         return roundHalfUp(clamp(calibratedValue, 0, 5), 2);
       };
 
+      // Access data from unified_output (API wraps Math Brain output in this field)
+      const unifiedOutput = result?.unified_output || result;
+      
       // Check if chart geometry is available for Poetic Brain
-      const hasPersonAChart = result?.person_a?.chart && Object.keys(result.person_a.chart).length > 0;
-      const hasPersonBChart = !result?.person_b || (result.person_b?.chart && Object.keys(result.person_b.chart).length > 0);
+      const hasPersonAChart = unifiedOutput?.person_a?.chart && Object.keys(unifiedOutput.person_a.chart).length > 0;
+      const hasPersonBChart = !unifiedOutput?.person_b || (unifiedOutput.person_b?.chart && Object.keys(unifiedOutput.person_b.chart).length > 0);
       const hasChartGeometry = hasPersonAChart && hasPersonBChart;
 
       const weatherData: any = {
@@ -1306,33 +1309,33 @@ Start with the Solo Mirror(s), then ${
         _poetic_brain_compatible: hasChartGeometry,
         generated_at: new Date().toISOString(),
         person_a: {
-          name: result?.person_a?.details?.name || result?.person_a?.name || null,
-          birth_data: result?.person_a?.details || result?.person_a?.birth_data || null,
-          chart: result?.person_a?.chart || null,
-          aspects: result?.person_a?.aspects || [],
-          summary: result?.person_a?.summary || null,
+          name: unifiedOutput?.person_a?.details?.name || unifiedOutput?.person_a?.name || null,
+          birth_data: unifiedOutput?.person_a?.details || unifiedOutput?.person_a?.birth_data || null,
+          chart: unifiedOutput?.person_a?.chart || null,
+          aspects: unifiedOutput?.person_a?.aspects || [],
+          summary: unifiedOutput?.person_a?.summary || null,
         },
-        person_b: result?.person_b ? {
-          name: result?.person_b?.details?.name || result?.person_b?.name || null,
-          birth_data: result?.person_b?.details || result?.person_b?.birth_data || null,
-          chart: result?.person_b?.chart || null,
-          aspects: result?.person_b?.aspects || [],
-          summary: result?.person_b?.summary || null,
+        person_b: unifiedOutput?.person_b ? {
+          name: unifiedOutput?.person_b?.details?.name || unifiedOutput?.person_b?.name || null,
+          birth_data: unifiedOutput?.person_b?.details || unifiedOutput?.person_b?.birth_data || null,
+          chart: unifiedOutput?.person_b?.chart || null,
+          aspects: unifiedOutput?.person_b?.aspects || [],
+          summary: unifiedOutput?.person_b?.summary || null,
         } : null,
         report_kind: formatReportKind(reportContractType),
         balance_meter_frontstage: null,
         daily_readings: [],
       };
 
-      if (result?.provenance) {
-        weatherData.provenance = result.provenance;
-        const smpId = result.provenance.normalized_input_hash || result.provenance.hash;
+      if (unifiedOutput?.provenance) {
+        weatherData.provenance = unifiedOutput.provenance;
+        const smpId = unifiedOutput.provenance.normalized_input_hash || unifiedOutput.provenance.hash;
         if (smpId) {
           weatherData.signed_map_package = smpId;
         }
       }
 
-      const balanceSummary = result?.person_a?.summary;
+      const balanceSummary = unifiedOutput?.person_a?.summary;
       if (balanceSummary) {
         const rawMag = toNumber(balanceSummary.magnitude, 'magnitude', balanceSummary);
         const rawBias = toNumber(
@@ -1354,7 +1357,7 @@ Start with the Solo Mirror(s), then ${
         let summarySfd = null;
         if (balanceSummary.sfd?.value != null && typeof balanceSummary.sfd.value === 'number') {
           // Check if we have drivers data to validate SFD emission
-          const transits = result?.person_a?.chart?.transitsByDate;
+          const transits = unifiedOutput?.person_a?.chart?.transitsByDate;
           const hasDrivers = transits && Object.values(transits).some(
             (day: any) => Array.isArray(day?.drivers) && day.drivers.length > 0
           );
@@ -1376,7 +1379,7 @@ Start with the Solo Mirror(s), then ${
         };
       }
 
-      const transits = result?.person_a?.chart?.transitsByDate;
+      const transits = unifiedOutput?.person_a?.chart?.transitsByDate;
       if (transits && typeof transits === 'object') {
         const dailyReadings: any[] = [];
         Object.keys(transits)
@@ -1434,8 +1437,8 @@ Start with the Solo Mirror(s), then ${
         weatherData.reading_count = dailyReadings.length;
       }
 
-      if (result?.woven_map?.symbolic_weather) {
-        weatherData.symbolic_weather_context = result.woven_map.symbolic_weather;
+      if (unifiedOutput?.woven_map?.symbolic_weather) {
+        weatherData.symbolic_weather_context = unifiedOutput.woven_map.symbolic_weather;
       }
 
       const blob = new Blob([JSON.stringify(weatherData, null, 2)], { type: 'application/json' });
