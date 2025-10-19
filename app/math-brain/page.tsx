@@ -1354,6 +1354,7 @@ export default function MathBrainPage() {
     downloadResultJSON,
     downloadBackstageJSON,
     downloadSymbolicWeatherJSON,
+    downloadMirrorDirectiveJSON,
     pdfGenerating,
     markdownGenerating,
     cleanJsonGenerating,
@@ -4666,6 +4667,7 @@ export default function MathBrainPage() {
             cleanJsonGenerating={cleanJsonGenerating}
             onDownloadPDF={downloadResultPDF}
             onDownloadMarkdown={downloadResultMarkdown}
+            onDownloadMirrorDirective={downloadMirrorDirectiveJSON}
             onDownloadSymbolicWeather={downloadSymbolicWeatherJSON}
             onDownloadGraphsPDF={downloadGraphsPDF}
             onDownloadEngineConfig={downloadBackstageJSON}
