@@ -84,10 +84,14 @@ interface UseChartExportResult {
   downloadResultMarkdown: () => Promise<void>;
   downloadResultJSON: () => void;
   downloadBackstageJSON: () => void;
-  downloadSymbolicWeatherJSON: () => void;
+  // Consolidated exports (v10.2)
+  downloadMirrorSymbolicWeatherJSON: () => void;  // NEW: Consolidated Mirror + Weather
   downloadMirrorDirectiveJSON: () => void;
-  downloadMapFile: () => void;           // NEW: Export wm-map-v1 (constitutional geometry)
-  downloadFieldFile: () => void;         // NEW: Export wm-field-v1 (symbolic weather)
+  downloadFieldMapFile: () => void;               // NEW: Unified FIELD + MAP
+  // Backward compatibility (deprecated)
+  downloadSymbolicWeatherJSON: () => void;
+  downloadMapFile: () => void;
+  downloadFieldFile: () => void;
   pdfGenerating: boolean;
   markdownGenerating: boolean;
   cleanJsonGenerating: boolean;
