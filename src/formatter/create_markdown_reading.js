@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { sanitizeForFilename } = require('../utils/sanitizeFilename.js');
+const { generateFrontstagePreface } = require('./frontstage-preface.js');
 
 /**
  * Creates a self-contained Markdown reading file from a unified JSON data object.
@@ -19,6 +20,15 @@ function createMarkdownReading(inputJsonPath) {
   const { run_metadata, daily_entries } = data;
 
   let markdownContent = '';
+
+  // --- Generate Frontstage Preface ---
+  const preface = generateFrontstagePreface(
+    run_metadata?.person_a,
+    run_metadata?.person_b,
+    data.person_a?.chart,
+    data.person_b?.chart
+  );
+  markdownContent += preface;
 
   // --- Generate Markdown for each day ---
   for (const day of daily_entries) {
