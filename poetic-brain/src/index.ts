@@ -39,11 +39,17 @@ export interface EnhancedMatrix {
 }
 
 export interface InputPayload {
-  // NEW: Mirror Directive JSON support (Oct 18, 2025)
-  _format?: 'mirror_directive_json' | 'symbolic_weather_json' | string;
+  // Consolidated schemas (Oct 20, 2025) - Per Raven Calder directive
+  _format?: 'mirror_directive_json' | 'symbolic_weather_json' | 'mirror-symbolic-weather-v1' | 'wm-fieldmap-v1' | string;
   _version?: string;
   _poetic_brain_compatible?: boolean;
   generated_at?: string;
+  
+  // Consolidated Mirror + Symbolic Weather specific fields
+  _natal_section?: {
+    mirror_source?: string;
+    note?: string;
+  };
   
   // NEW: Natal geometry (person_a/person_b charts)
   person_a?: {

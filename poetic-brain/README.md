@@ -23,6 +23,8 @@ console.log(result.narrative_sections);
 // }
 ```
 
+> **⚠️ CRITICAL PRIVACY NOTE:** "Dan" and "Stephie" are example names for documentation only. In production, the system must ONLY use names from authenticated user data or uploaded JSON. Never hardcode these names or use them as defaults. These are real people whose privacy must be protected.
+
 ### Mirror Directive JSON Format
 
 ```json
@@ -30,13 +32,13 @@ console.log(result.narrative_sections);
   "_format": "mirror_directive_json",
   "_version": "1.0",
   "person_a": {
-    "name": "Dan",
+    "name": "Dan",  // ⚠️ EXAMPLE ONLY - Use actual user name in production
     "birth_data": { ... },
     "chart": { ... },
     "aspects": [ ... ]
   },
   "person_b": {
-    "name": "Stephie",
+    "name": "Stephie",  // ⚠️ EXAMPLE ONLY - Use actual user name in production
     "birth_data": { ... },
     "chart": { ... },
     "aspects": [ ... ]

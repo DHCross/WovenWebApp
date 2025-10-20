@@ -175,12 +175,22 @@ function isJSONReportUpload(text: string): boolean {
     return true;
   }
   
-  // Detect MAP file (wm-map-v1) - Oct 19, 2025
+  // Detect consolidated Mirror + Symbolic Weather (Oct 20, 2025)
+  if (decoded.includes('"_format"') && decoded.includes('"mirror-symbolic-weather-v1"')) {
+    return true;
+  }
+  
+  // Detect unified FieldMap (wm-fieldmap-v1) - Oct 20, 2025
+  if (decoded.includes('"schema"') && decoded.includes('"wm-fieldmap-v1"')) {
+    return true;
+  }
+  
+  // Detect MAP file (wm-map-v1) - Oct 19, 2025 [DEPRECATED - use wm-fieldmap-v1]
   if (decoded.includes('"schema"') && decoded.includes('"wm-map-v1"')) {
     return true;
   }
   
-  // Detect FIELD file (wm-field-v1) - Oct 19, 2025
+  // Detect FIELD file (wm-field-v1) - Oct 19, 2025 [DEPRECATED - use wm-fieldmap-v1]
   if (decoded.includes('"schema"') && decoded.includes('"wm-field-v1"')) {
     return true;
   }

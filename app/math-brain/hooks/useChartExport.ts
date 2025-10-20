@@ -1254,7 +1254,7 @@ Start with the Solo Mirror(s), then ${
     }
   }, [friendlyFilename, pushToast, result]);
 
-  const downloadSymbolicWeatherJSON = useCallback(() => {
+  const downloadMirrorSymbolicWeatherJSON = useCallback(() => {
     if (!result) return;
     setWeatherJsonGenerating(true);
 
@@ -1306,10 +1306,14 @@ Start with the Solo Mirror(s), then ${
       const hasChartGeometry = hasPersonAChart && hasPersonBChart;
 
       const weatherData: any = {
-        _format: 'symbolic_weather_json',
+        _format: 'mirror-symbolic-weather-v1',
         _version: '1.0',
         _poetic_brain_compatible: hasChartGeometry,
         generated_at: new Date().toISOString(),
+        _natal_section: {
+          mirror_source: 'integrated',
+          note: 'Natal geometry integrated with symbolic weather in single file',
+        },
         person_a: {
           name: unifiedOutput?.person_a?.details?.name || unifiedOutput?.person_a?.name || null,
           birth_data: unifiedOutput?.person_a?.details || unifiedOutput?.person_a?.birth_data || null,
@@ -1447,7 +1451,7 @@ Start with the Solo Mirror(s), then ${
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${friendlyFilename('weather-log')}.json`;
+      a.download = `Mirror+SymbolicWeather_${friendlyFilename}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -1460,7 +1464,7 @@ Start with the Solo Mirror(s), then ${
       }
     } catch (error) {
       console.error('Symbolic weather JSON export failed:', error);
-      pushToast('Failed to export symbolic weather JSON', 2000);
+      pushToast('Failed to export Mirror+SymbolicWeather JSON', 2000);
     } finally {
       setTimeout(() => setWeatherJsonGenerating(false), 300);
     }
@@ -1539,7 +1543,7 @@ Start with the Solo Mirror(s), then ${
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      pushToast('✅ Mirror Directive JSON ready for Poetic Brain', 1600);
+      pushToast('✅ Mirror + Symbolic Weather JSON ready for Poetic Brain', 1600);
     } catch (err) {
       console.error('Mirror Directive JSON export failed', err);
       pushToast('Could not generate Mirror Directive JSON', 2000);
@@ -1548,83 +1552,73 @@ Start with the Solo Mirror(s), then ${
     }
   }, [filenameBase, pushToast, reportContractType, result]);
 
-  // NEW: Export MAP file (wm-map-v1) - Constitutional Geometry
-  const downloadMapFile = useCallback(() => {
+  // NEW: Export wm-fieldmap-v1 (Unified FIELD + MAP)
+  const downloadFieldMapFile = useCallback(() => {
     if (!result) return;
     setCleanJsonGenerating(true);
 
     try {
       const unifiedOutput = result?.unified_output || result;
       const mapFile = unifiedOutput?._map_file;
+      const fieldFile = unifiedOutput?._field_file;
       
-      if (!mapFile) {
-        pushToast('⚠️ MAP file not available (natal-only report required)', 2000);
+      if (!mapFile && !fieldFile) {
+        pushToast('⚠️ Field/Map data not available', 2000);
         return;
       }
 
-      const blob = new Blob([JSON.stringify(mapFile, null, 2)], {
+      // Merge FIELD and MAP into unified schema per Raven Calder spec
+      const fieldMapData = {
+        _meta: {
+          schema: 'wm-fieldmap-v1',
+          kind: ['FIELD', 'MAP'],
+          version: '10.2',
+          coords: mapFile?._meta?.coords || fieldFile?._meta?.coords || null,
+          timezone: mapFile?._meta?.timezone || fieldFile?._meta?.timezone || null,
+          created_utc: new Date().toISOString(),
+          math_brain_version: mapFile?._meta?.math_brain_version || fieldFile?._meta?.math_brain_version || 'N/A',
+        },
+        map: mapFile || {},
+        field: fieldFile || {},
+      };
+
+      const blob = new Blob([JSON.stringify(fieldMapData, null, 2)], {
         type: 'application/json',
       });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${filenameBase('wm-map-v1')}.json`;
+      a.download = `wm-fieldmap-v1_${friendlyFilename}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      pushToast('✅ MAP file downloaded (constitutional geometry)', 1600);
+      pushToast('✅ Unified FieldMap downloaded', 1600);
     } catch (err) {
-      console.error('MAP file export failed', err);
-      pushToast('Could not generate MAP file', 2000);
+      console.error('FieldMap export failed', err);
+      pushToast('Could not generate FieldMap file', 2000);
     } finally {
       setTimeout(() => setCleanJsonGenerating(false), 300);
     }
-  }, [filenameBase, pushToast, result]);
+  }, [friendlyFilename, pushToast, result]);
 
-  // NEW: Export FIELD file (wm-field-v1) - Symbolic Weather
-  const downloadFieldFile = useCallback(() => {
-    if (!result) return;
-    setWeatherJsonGenerating(true);
-
-    try {
-      const unifiedOutput = result?.unified_output || result;
-      const fieldFile = unifiedOutput?._field_file;
-      
-      if (!fieldFile) {
-        pushToast('⚠️ FIELD file not available (requires transit report)', 2000);
-        return;
-      }
-
-      const blob = new Blob([JSON.stringify(fieldFile, null, 2)], {
-        type: 'application/json',
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${filenameBase('wm-field-v1')}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      pushToast('✅ FIELD file downloaded (symbolic weather)', 1600);
-    } catch (err) {
-      console.error('FIELD file export failed', err);
-      pushToast('Could not generate FIELD file', 2000);
-    } finally {
-      setTimeout(() => setWeatherJsonGenerating(false), 300);
-    }
-  }, [filenameBase, pushToast, result]);
+  // DEPRECATED: Separate MAP/FIELD exports replaced by unified wm-fieldmap-v1
+  // Keeping for backward compatibility during transition
+  const downloadMapFile = downloadFieldMapFile;
+  const downloadFieldFile = downloadFieldMapFile;
 
   return {
     downloadResultPDF,
     downloadResultMarkdown,
     downloadResultJSON,
     downloadBackstageJSON,
-    downloadSymbolicWeatherJSON,
+    downloadMirrorSymbolicWeatherJSON,
     downloadMirrorDirectiveJSON,
-    downloadMapFile,
-    downloadFieldFile,
+    downloadFieldMapFile,
+    // Backward compatibility aliases (deprecated)
+    downloadSymbolicWeatherJSON: downloadMirrorSymbolicWeatherJSON,
+    downloadMapFile: downloadFieldMapFile,
+    downloadFieldFile: downloadFieldMapFile,
     pdfGenerating,
     markdownGenerating,
     cleanJsonGenerating,
