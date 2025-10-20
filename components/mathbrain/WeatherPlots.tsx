@@ -22,7 +22,7 @@ export function WeatherPlots({
   if (!data || data.length === 0) {
     return (
       <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-400">
-        No weather data available
+        No symbolic weather data available
       </div>
     );
   }
@@ -52,7 +52,7 @@ export function WeatherPlots({
   if (!canShowUnified && !shouldShowScatter) {
     return (
       <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-400">
-        Visualizations disabled. Enable either Unified or Scatter view to display symbolic weather.
+        Visualizations disabled. Enable either Unified or Scatter view to display symbolic weather data.
       </div>
     );
   }
@@ -93,14 +93,14 @@ export function WeatherPlots({
           mapData={unifiedData.mapData}
           fieldData={unifiedData.fieldData}
           integration={unifiedData.integration}
-          title="Unified Symbolic Dashboard — MAP + FIELD"
+          title="Symbolic Weather — MAP + FIELD"
         />
       )}
 
       {/* Scatter Plot */}
       {shouldShowScatter && (viewMode === 'scatter' || !canShowUnified) && (
         <>
-          <AccelerometerScatter data={data} title="True Accelerometer — FIELD Layer" />
+          <AccelerometerScatter data={data} title="Symbolic Weather — FIELD Layer" />
           <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-3 text-xs text-slate-400">
             <span className="font-medium">Interpretation Guide:</span>
             <div className="mt-2 grid grid-cols-2 gap-2">
@@ -114,7 +114,7 @@ export function WeatherPlots({
                 • <span className="text-slate-300">Low Mag / ±Bias:</span> Ambient noise, minor oscillations
               </div>
               <div>
-                • <span className="text-slate-300">Clusters:</span> Symbolic weather fronts building/dissipating
+                • <span className="text-slate-300">Clusters:</span> Symbolic weather patterns building/dissipating
               </div>
             </div>
           </div>
