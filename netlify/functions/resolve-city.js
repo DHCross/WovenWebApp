@@ -5,8 +5,6 @@
 
 const { health, resolveCity } = require('../../lib/server/astrology-mathbrain.js');
 
-const { health, resolveCity } = require('../lib/server/astrology-mathbrain.js');
-
 
 exports.handler = async (event, context) => {
   // Set CORS headers
