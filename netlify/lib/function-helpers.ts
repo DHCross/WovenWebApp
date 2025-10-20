@@ -1,5 +1,6 @@
-// netlify/functions/_shared.ts
-import type { HeadersInit } from "node-fetch"; // Node 18 poly; safe at type level only
+// Shared helpers for legacy Netlify Functions. These modules used to live
+// alongside the handlers which caused Netlify to treat them as standalone
+// functions. Keeping them in a separate folder prevents packaging errors.
 
 export const ALLOW_ORIGIN =
   process.env.CORS_ALLOW_ORIGIN ?? "http://localhost:8888";
@@ -10,7 +11,7 @@ export const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-export const json = (status: number, data: unknown, extraHeaders: HeadersInit = {}) => ({
+export const json = (status: number, data: unknown, extraHeaders: Record<string, string> = {}) => ({
   statusCode: status,
   headers: { "Content-Type": "application/json", ...CORS_HEADERS, ...extraHeaders },
   body: JSON.stringify(data),

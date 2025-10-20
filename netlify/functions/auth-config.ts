@@ -1,6 +1,6 @@
 // netlify/functions/auth-config.ts
 import type { Handler } from "@netlify/functions";
-import { CORS_HEADERS, json, noContent } from "./_shared";
+import { CORS_HEADERS, json, noContent } from "../lib/function-helpers";
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return noContent();

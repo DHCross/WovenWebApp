@@ -1,10 +1,10 @@
-// Secure logging utility with multiple levels and sensitive data protection
-// Automatically redacts sensitive information like API keys and personal data
+// Secure logging utility with multiple levels and sensitive data protection.
+// Relocated out of netlify/functions so Netlify stops packaging it as a Lambda.
 const logger = {
   sanitize(data) {
     if (!data) return data;
     const sensitiveFields = [
-      'rapidapi-key', 'x-rapidapi-key', 'RAPIDAPI_KEY', 'api_key', 
+      'rapidapi-key', 'x-rapidapi-key', 'RAPIDAPI_KEY', 'api_key',
       'password', 'secret', 'token', 'auth'
     ];
     if (typeof data === 'string') {
@@ -48,3 +48,5 @@ const logger = {
     console.error(prefix, sanitizedError);
   }
 };
+
+module.exports = logger;
