@@ -199,6 +199,27 @@ function formatShareableDraft(
   prov?: Record<string, any> | null,
 ): string {
   if (!draft) return "<i>No mirror draft returned.</i>";
+
+  const conversationText =
+    typeof draft.conversation === "string" ? draft.conversation.trim() : "";
+  if (conversationText) {
+    const paragraphs = conversationText
+      .split(/\n{2,}/)
+      .map((block) =>
+        `<p style="margin:0; line-height:1.6;">${escapeHtml(block).replace(/\n/g, "<br />")}</p>`,
+      )
+      .join('<div style="height:0.75rem;"></div>');
+    const provenance = prov?.source
+      ? `<div class="mirror-provenance" style="margin-top:12px; font-size:11px; color:#94a3b8;">Source · ${escapeHtml(String(prov.source))}</div>`
+      : "";
+    return `
+      <section class="mirror-draft conversation" style="display:flex; flex-direction:column; gap:12px;">
+        ${paragraphs || `<p style="margin:0; line-height:1.6;">${escapeHtml(conversationText)}</p>`}
+        ${provenance}
+      </section>
+    `;
+  }
+
   const rows = MIRROR_SECTION_ORDER.map(({ key, label }) => {
     const value = draft[key];
     if (!value) return null;

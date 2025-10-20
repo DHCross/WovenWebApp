@@ -96,6 +96,40 @@ function checkForPartialAffirmation(text: string): boolean {
   return partialPhrases.some(phrase => lower.includes(phrase));
 }
 
+const CHAT_CONTEXT_CHAR_LIMIT = 1800;
+
+function truncateContextSnippet(content: string, limit: number = CHAT_CONTEXT_CHAR_LIMIT): string {
+  if (content.length <= limit) return content;
+  return content.slice(0, limit).trimEnd() + ' …';
+}
+
+function formatReportContextsForPrompt(contexts: any[]): string {
+  if (!Array.isArray(contexts) || contexts.length === 0) return '';
+  return contexts
+    .slice(-3)
+    .map((ctx, idx) => {
+      const name = typeof ctx.name === 'string' && ctx.name.trim() ? ctx.name.trim() : `Report ${idx + 1}`;
+      const typeLabel = typeof ctx.type === 'string' && ctx.type.trim() ? ctx.type.trim().toUpperCase() : 'UNKNOWN';
+      const summary = typeof ctx.summary === 'string' ? ctx.summary.trim() : '';
+      const relocation = ctx.relocation?.label ? `Relocation: ${ctx.relocation.label}` : '';
+      const rawContent = typeof ctx.content === 'string' ? ctx.content.trim() : '';
+      let snippet = rawContent ? truncateContextSnippet(rawContent) : '';
+      if (snippet) {
+        const looksJson = /^[\s\r\n]*[{[]/.test(snippet);
+        snippet = looksJson ? `\`\`\`json\n${snippet}\n\`\`\`` : snippet;
+      }
+      return [
+        `Report ${idx + 1} · ${typeLabel} · ${name}`,
+        summary ? `Summary: ${summary}` : '',
+        relocation,
+        snippet,
+      ]
+        .filter(Boolean)
+        .join('\n');
+    })
+    .join('\n\n');
+}
+
 // Enhanced response classification
 function classifyUserResponse(text: string): 'CLEAR_WB' | 'PARTIAL_ABE' | 'OSR' | 'UNCLEAR' {
   if (checkForClearAffirmation(text)) return 'CLEAR_WB';
@@ -663,10 +697,10 @@ Your response MUST begin with the warm recognition greeting AND include ALL Core
 
   let contextAppendix = '';
   if (Array.isArray(reportContexts) && reportContexts.length > 0) {
-    const compactList = reportContexts.slice(-4)
-      .map((rc:any, idx:number) => `- [${rc.type}] ${rc.name}: ${rc.summary || ''}`.trim())
-      .join('\n');
-    contextAppendix = `\n\nSESSION CONTEXT (Compact Uploads)\n${compactList}\n\nUse these as background only. Prefer the user's live words. Do not restate the uploads; integrate gently where relevant.`;
+    const formattedContexts = formatReportContextsForPrompt(reportContexts);
+    if (formattedContexts) {
+      contextAppendix = `\n\nSESSION CONTEXT\n${formattedContexts}\n\nUse these as background only. Prefer the user's live words. Do not restate the uploads; integrate gently where relevant.`;
+    }
   }
 
   const hasMirror = Array.isArray(reportContexts) && reportContexts.some((rc:any)=> rc.type==='mirror');

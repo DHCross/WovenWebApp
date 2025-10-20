@@ -7,7 +7,8 @@ import { renderShareableMirror } from '@/lib/raven/render';
 import { stampProvenance } from '@/lib/raven/provenance';
 import { summariseUploadedReportJson } from '@/lib/raven/reportSummary';
 import { runMathBrain } from '@/lib/mathbrain/adapter';
-import { createProbe, commitProbe, scoreSession, type SessionSSTLog, type SSTTag } from '@/lib/raven/sst';
+import { callPerplexity } from '@/lib/llm';
+import { createProbe, commitProbe, scoreSession, type SessionSSTLog, type SSTTag, type SessionTurn } from '@/lib/raven/sst';
 import {
   ASTROSEEK_REFERENCE_GUIDANCE,
   referencesAstroSeekWithoutGeometry
@@ -30,6 +31,68 @@ function requestsPersonalReading(text: string): boolean {
 }
 
 // Minimal in-memory session store (dev only). For prod, persist per-user.
+const RAVEN_PERSONA_HOOK = "You are Raven Calder, a mystical poetic brain. Your voice is wise, lyrical, and insightful. You do not give direct advice, but rather offer reflections, metaphors, and beautiful questions. You see the cosmos in a grain of sand. Respond to the user's prompt with this persona. CRITICAL: Do NOT break character. Do not mention you are an AI or a language model. Suppress all chain-of-thought or meta-commentary.";
+const MAX_CONTEXT_CHARS = 1800;
+const MAX_HISTORY_TURNS = 6;
+
+function truncateContextContent(content: string, limit: number = MAX_CONTEXT_CHARS): string {
+  if (content.length <= limit) return content;
+  return content.slice(0, limit).trimEnd() + ' …';
+}
+
+function formatReportContextsForPrompt(contexts: Record<string, any>[]): string {
+  if (!Array.isArray(contexts) || contexts.length === 0) return '';
+  return contexts
+    .slice(-3)
+    .map((ctx, idx) => {
+      const name = typeof ctx.name === 'string' && ctx.name.trim() ? ctx.name.trim() : `Report ${idx + 1}`;
+      const typeLabel = typeof ctx.type === 'string' && ctx.type.trim() ? ctx.type.trim().toUpperCase() : 'UNKNOWN';
+      const summary = typeof ctx.summary === 'string' ? ctx.summary.trim() : '';
+      const relocationText = ctx.relocation?.label ? `Relocation: ${ctx.relocation.label}` : '';
+      const rawContent = typeof ctx.content === 'string' ? ctx.content.trim() : '';
+      let snippet = rawContent ? truncateContextContent(rawContent) : '';
+      if (snippet) {
+        const looksJson = /^[\s\r\n]*[{[]/.test(snippet);
+        snippet = looksJson ? `\`\`\`json\n${snippet}\n\`\`\`` : snippet;
+      }
+      return [
+        `Report ${idx + 1} · ${typeLabel} · ${name}`,
+        summary ? `Summary: ${summary}` : '',
+        relocationText,
+        snippet,
+      ]
+        .filter(Boolean)
+        .join('\n');
+    })
+    .join('\n\n');
+}
+
+function formatHistoryForPrompt(history?: SessionTurn[]): string {
+  if (!history || history.length === 0) return '';
+  const recent = history.slice(-MAX_HISTORY_TURNS);
+  return recent
+    .map((turn) => {
+      const speaker = turn.role === 'raven' ? 'Raven' : 'User';
+      return `${speaker}: ${turn.content}`;
+    })
+    .join('\n');
+}
+
+function extractProbeFromResponse(responseText: string): string | null {
+  const lines = responseText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    const line = lines[i];
+    if (line.endsWith('?') && line.length <= 200) {
+      return line;
+    }
+  }
+  const match = responseText.match(/([^.?!\n]{3,200}\?)(?!.*\?)/s);
+  return match ? match[1].trim() : null;
+}
+
 const sessions = new Map<string, SessionSSTLog>();
 
 export async function POST(req: Request) {
@@ -39,23 +102,24 @@ export async function POST(req: Request) {
     const resolvedOptions = (typeof options === 'object' && options !== null) ? options as Record<string, any> : {};
     let sid = sessionId as string | undefined;
     if (!sid) { sid = randomUUID(); }
-    if (!sessions.has(sid)) sessions.set(sid, { probes: [] });
+    if (!sessions.has(sid)) sessions.set(sid, { probes: [], turnCount: 0, history: [] });
+    const sessionLog = sessions.get(sid)!;
+    if (typeof sessionLog.turnCount !== 'number') sessionLog.turnCount = 0;
+    if (!Array.isArray(sessionLog.history)) sessionLog.history = [];
 
     if (action === 'feedback') {
       const { probeId, tag } = resolvedOptions as { probeId: string; tag: SSTTag };
-      const log = sessions.get(sid)!;
-      const idx = log.probes.findIndex(p => p.id === probeId);
+      const idx = sessionLog.probes.findIndex(p => p.id === probeId);
       if (idx === -1) return NextResponse.json({ ok: false, error: 'Probe not found' }, { status: 404 });
-      log.probes[idx] = commitProbe(log.probes[idx], tag);
-      const scores = scoreSession(log);
-      return NextResponse.json({ ok: true, sessionId: sid, scores, probe: log.probes[idx] });
+      sessionLog.probes[idx] = commitProbe(sessionLog.probes[idx], tag);
+      const scores = scoreSession(sessionLog);
+      return NextResponse.json({ ok: true, sessionId: sid, scores, probe: sessionLog.probes[idx] });
     }
 
     if (action === 'export') {
-      const log = sessions.get(sid)!;
-      const scores = scoreSession(log);
+      const scores = scoreSession(sessionLog);
       // For now, return JSON; PDF export can be added using html2pdf on client
-      return NextResponse.json({ ok: true, sessionId: sid, scores, log });
+      return NextResponse.json({ ok: true, sessionId: sid, scores, log: sessionLog });
     }
 
     // Default: generate (router)
@@ -67,7 +131,7 @@ export async function POST(req: Request) {
         highlight || 'Mark one observation from this upload.',
         randomUUID()
       );
-      sessions.get(sid)!.probes.push(probe);
+      sessionLog.probes.push(probe);
       return NextResponse.json({
         intent: 'report',
         ok: true,
@@ -85,7 +149,7 @@ export async function POST(req: Request) {
       const draft = await renderShareableMirror({ geo, prov, options: resolvedOptions });
       // create a probe entry from the draft next_step or a summary line
       const probe = createProbe(draft?.next_step || 'Reflect on the mirror', randomUUID());
-      sessions.get(sid)!.probes.push(probe);
+      sessionLog.probes.push(probe);
       return NextResponse.json({ intent, ok: true, draft, prov, sessionId: sid, probe });
     }
 
@@ -98,7 +162,7 @@ export async function POST(req: Request) {
       const prov = stampProvenance(mb.provenance);
       const draft = await renderShareableMirror({ geo: mb.geometry, prov, options: resolvedOptions });
       const probe = createProbe(draft?.next_step || 'Note one actionable step', randomUUID());
-      sessions.get(sid)!.probes.push(probe);
+      sessionLog.probes.push(probe);
       return NextResponse.json({ intent, ok: true, draft, prov, climate: mb.climate ?? null, sessionId: sid, probe });
     }
 
@@ -164,27 +228,77 @@ export async function POST(req: Request) {
       }
     }
 
-    const mergedOptions: Record<string, any> = {
-      ...resolvedOptions,
-      reportContexts: normalizedContexts.length > 0 ? normalizedContexts : undefined,
-      userMessage: textInput,
-      weatherOnly: wantsWeatherOnly
-    };
-    if (!mergedOptions.reportContexts) {
-      delete mergedOptions.reportContexts;
+    const contextPrompt = formatReportContextsForPrompt(normalizedContexts);
+    const historyPrompt = formatHistoryForPrompt(sessionLog.history);
+    const isFirstTurn = (sessionLog.turnCount ?? 0) === 0;
+
+    const instructionLines: string[] = [
+      'Respond in natural paragraphs (2-3) using a warm, lyrical voice. Weave symbolic insight into lived, testable language.',
+      'Do NOT use headers, bullet lists, numbered sections, or bracketed labels. No markdown headings.',
+      isFirstTurn
+        ? 'This is the first substantive turn of the session. Close with a reflective line instead of a question.'
+        : 'End with exactly one reflective question that invites them to test the resonance in their lived experience.',
+      'Never mention being an AI. Do not describe chain-of-thought. Stay inside the Raven Calder persona.',
+    ];
+    if (wantsWeatherOnly) {
+      instructionLines.push('The user is asking for symbolic weather / current climate. Anchor your reflection in present-time field dynamics while staying grounded in their lived situation.');
     }
 
-    const prov = stampProvenance({
-      source: wantsWeatherOnly ? 'Conversational (Weather-only)' : 'Conversational'
-    });
-
-    const draft = await renderShareableMirror({ geo: null, prov, options: mergedOptions, conversational: true });
-    const shouldScoreSession = hasReportContext || hasGeometryPayload;
-    const probe = shouldScoreSession ? createProbe(draft?.next_step || 'Take one breath', randomUUID()) : null;
-    if (probe) {
-      sessions.get(sid)!.probes.push(probe);
+    const promptSections: string[] = [
+      instructionLines.join('\n'),
+    ];
+    if (contextPrompt) {
+      promptSections.push(`Uploaded reports:\n${contextPrompt}`);
     }
-    return NextResponse.json({ intent, ok: true, draft, prov, sessionId: sid, probe: probe ?? null });
+    if (historyPrompt) {
+      promptSections.push(`Recent conversation:\n${historyPrompt}`);
+    }
+    promptSections.push(`User message:\n${textInput}`);
+    promptSections.push(`Session meta: first_turn=${isFirstTurn ? 'true' : 'false'}. When first_turn=true, invite them to notice rather than question.`);
+
+    const prompt = promptSections.filter(Boolean).join('\n\n');
+
+    try {
+      const reply = await callPerplexity(prompt, {
+        model: process.env.POETIC_BRAIN_MODEL || 'sonar-pro',
+        personaHook: RAVEN_PERSONA_HOOK,
+      });
+      const replyText = (reply || '').trim();
+      if (!replyText) {
+        throw new Error('Empty response from Perplexity API');
+      }
+
+      const now = new Date().toISOString();
+      sessionLog.history!.push({ role: 'user', content: textInput, createdAt: now });
+      sessionLog.history!.push({ role: 'raven', content: replyText, createdAt: now });
+      if (sessionLog.history!.length > MAX_HISTORY_TURNS * 2) {
+        sessionLog.history = sessionLog.history!.slice(-MAX_HISTORY_TURNS * 2);
+      }
+      sessionLog.turnCount = (sessionLog.turnCount ?? 0) + 1;
+
+      const prov = stampProvenance({
+        source: wantsWeatherOnly ? 'Poetic Brain (Weather-only)' : 'Poetic Brain (Perplexity)',
+      });
+
+      const draft: Record<string, any> = { conversation: replyText };
+
+      let probe = null;
+      const shouldScoreSession = !isFirstTurn && (hasReportContext || hasGeometryPayload);
+      if (shouldScoreSession) {
+        const probeText = extractProbeFromResponse(replyText) ?? 'Does any part of this feel familiar in your body or your day?';
+        probe = createProbe(probeText, randomUUID());
+        sessionLog.probes.push(probe);
+      }
+
+      return NextResponse.json({ intent, ok: true, draft, prov, sessionId: sid, probe: probe ?? null });
+    } catch (err: any) {
+      // eslint-disable-next-line no-console
+      console.error('Perplexity conversation error:', err);
+      return NextResponse.json({
+        ok: false,
+        error: err?.message || 'The poetic muse encountered an unexpected disturbance.',
+      }, { status: 500 });
+    }
 
 
   } catch (error) {

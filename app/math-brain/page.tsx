@@ -29,7 +29,7 @@ import EnhancedDailyClimateCard from "../../components/mathbrain/EnhancedDailyCl
 import BalanceMeterSummary from "../../components/mathbrain/BalanceMeterSummary";
 import SymbolicSeismograph from "../components/SymbolicSeismograph";
 import WeatherPlots from "../../components/mathbrain/WeatherPlots";
-import { transformTransitsByDate } from "../../lib/weatherDataTransforms";
+import { transformTransitsByDate, transformFieldFileDaily } from "../../lib/weatherDataTransforms";
 import HealthDataUpload from "../../components/HealthDataUpload";
 import SnapshotButton from "./components/SnapshotButton";
 import SnapshotDisplay from "./components/SnapshotDisplay";
@@ -4878,11 +4878,34 @@ export default function MathBrainPage() {
                           {/* Scatter Chart Visualization */}
                           {(() => {
                             try {
-                              const transformedData = transformTransitsByDate(transitsByDate);
-                              const weatherArray = Object.entries(transformedData).map(([date, weather]) => ({
-                                date,
-                                weather
-                              }));
+                              const fieldFile =
+                                displayResult?.unified_output?._field_file ||
+                                displayResult?._field_file ||
+                                result?.unified_output?._field_file;
+
+                              let weatherRecords =
+                                (fieldFile?.daily && transformFieldFileDaily(fieldFile)) || {};
+
+                              if (!weatherRecords || Object.keys(weatherRecords).length === 0) {
+                                weatherRecords = transformTransitsByDate(transitsByDate);
+                              }
+
+                              const weatherDates = Object.keys(weatherRecords);
+                              if (weatherDates.length === 0) {
+                                return null;
+                              }
+
+                              const weatherArray = weatherDates
+                                .sort()
+                                .map((date) => ({
+                                  date,
+                                  weather: weatherRecords[date],
+                                }))
+                                .filter((entry) => entry.weather);
+
+                              if (!weatherArray.length) {
+                                return null;
+                              }
                               return (
                                 <div className="mt-6">
                                   <WeatherPlots

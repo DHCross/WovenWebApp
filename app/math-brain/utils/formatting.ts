@@ -6,9 +6,9 @@ type AxisName = 'magnitude' | 'directional_bias' | 'volatility';
 // Balance Meter v4: Canonical field resolution
 // Note: Legacy fallbacks kept for backward compatibility with old cached data
 const AXIS_FIELD_MAP: Record<AxisName, string[]> = {
-  magnitude: ['magnitude'],
-  directional_bias: ['directional_bias'], // v4: Only canonical field
-  volatility: ['volatility', 'coherence'], // coherence is inverse of volatility
+  magnitude: ['magnitude_calibrated', 'magnitude_bounded', 'magnitude'],
+  directional_bias: ['directional_bias', 'bias_signed', 'valence_bounded', 'valence'],
+  volatility: ['volatility_calibrated', 'volatility', 'coherence'], // coherence is inverse of volatility
 };
 
 const AXIS_NUMBER_KEYS = ['value', 'display', 'final', 'scaled', 'score', 'mean'];
