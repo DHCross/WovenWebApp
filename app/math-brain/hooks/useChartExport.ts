@@ -67,7 +67,7 @@ import {
   extractAxisNumber,
 } from '../utils/formatting';
 
-type FriendlyFilenameType = 'directive' | 'dashboard' | 'symbolic-weather' | 'weather-log' | 'engine-config';
+type FriendlyFilenameType = 'directive' | 'dashboard' | 'symbolic-weather' | 'weather-log' | 'engine-config' | 'field-map';
 
 interface UseChartExportOptions {
   result: any | null;
