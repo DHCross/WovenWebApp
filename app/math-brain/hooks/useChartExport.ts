@@ -1455,7 +1455,9 @@ Start with the Solo Mirror(s), then ${
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Mirror+SymbolicWeather_${friendlyFilename}.json`;
+      const rawSymbolicName = friendlyFilename('symbolic-weather');
+      const symbolicSuffix = rawSymbolicName.includes('_') ? rawSymbolicName.slice(rawSymbolicName.indexOf('_') + 1) : rawSymbolicName;
+      a.download = `Mirror+SymbolicWeather_${symbolicSuffix}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -1542,7 +1544,9 @@ Start with the Solo Mirror(s), then ${
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${filenameBase('mirror-directive')}.json`;
+      const rawDirectiveName = friendlyFilename('directive');
+      const directiveSuffix = rawDirectiveName.includes('_') ? rawDirectiveName.slice(rawDirectiveName.indexOf('_') + 1) : rawDirectiveName;
+      a.download = `MirrorDirective_${directiveSuffix}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -1592,7 +1596,9 @@ Start with the Solo Mirror(s), then ${
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `wm-fieldmap-v1_${friendlyFilename}.json`;
+      const rawWeatherLogName = friendlyFilename('weather-log');
+      const weatherLogSuffix = rawWeatherLogName.includes('_') ? rawWeatherLogName.slice(rawWeatherLogName.indexOf('_') + 1) : rawWeatherLogName;
+      a.download = `wm-fieldmap-v1_${weatherLogSuffix}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
