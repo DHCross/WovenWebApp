@@ -71,9 +71,9 @@ export default function DownloadControls({
         </div>
       )}
       <div className="space-y-4 print:hidden">
-      <div className="text-sm text-slate-300">
-        <span className="font-medium">Your report is ready.</span> Choose how to use it:
-      </div>
+        <div className="text-sm text-slate-300">
+          <span className="font-medium">Your report is ready.</span> Choose how to use it:
+        </div>
 
       <div className="rounded-lg border border-slate-700 bg-slate-800/40 p-4 space-y-3">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">For Raven Calder (AI Analysis)</h3>
@@ -335,7 +335,7 @@ export default function DownloadControls({
           </span>
         )}
       </div>
-      </div>
+    </div>
     </>
   );
 }
