@@ -15,7 +15,7 @@
   # Increase timeout for astrology calculations (max 26s on Pro, 10s on free tier)
   # Note: This only affects Netlify Functions, not Next.js API routes
   # For Next.js routes, use route config in the file itself
-  included_files = ["lib/**", "src/**"]
+  included_files = ["lib/**", "src/**", "netlify/functions/**"]
 
 
 
