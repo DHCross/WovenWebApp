@@ -2784,16 +2784,16 @@ export default function ChatClient() {
           })()}
         </div>
       )}
-      <NavigationPanel
-        ravenMessages={ravenMessages}
-        scrollToTop={scrollToTop}
-        scrollToRavenMessage={scrollToRavenMessage}
-        currentRavenIndex={currentRavenIndex}
-        scrollToBottom={scrollToBottom}
-      />
       <main
         className="relative flex flex-1 flex-col gap-3 p-3 min-h-0 lg:grid lg:grid-cols-[280px_1fr] lg:gap-4"
       >
+        <NavigationPanel
+          ravenMessages={ravenMessages}
+          scrollToTop={scrollToTop}
+          scrollToRavenMessage={scrollToRavenMessage}
+          currentRavenIndex={currentRavenIndex}
+          scrollToBottom={scrollToBottom}
+        />
         <div className="hidden h-full lg:block">
           <Sidebar
             onInsert={(m) => {
@@ -4584,7 +4584,11 @@ function NavigationPanel({
   return (
     <div
       data-chat-nav
-      className="flex flex-shrink-0 items-center justify-center gap-2 border-y border-[var(--line)] bg-[var(--panel)] px-[18px] py-2 text-[12px]"
+      className="sticky top-0 z-30 flex items-center justify-center gap-2 border-b border-[var(--line)] bg-[rgba(var(--panel-rgb),0.85)] backdrop-blur-md px-[18px] py-2 text-[12px]"
+      style={{
+        backdropFilter: "blur(6px)",
+        backgroundColor: "rgba(12, 12, 18, 0.85)",
+      }}
     >
       <button
         onClick={scrollToTop}
