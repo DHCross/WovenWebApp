@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
         personB: rawPayload.personB || null,
         translocation: rawPayload.translocation || 'BOTH_LOCAL',
         reportStructure: rawPayload.personB ? 'synastry' : 'solo',
-        relationshipType: rawPayload.relationship_context?.type || 'PARTNER',
+        relationship_context: rawPayload.relationship_context,
         context: rawPayload.context
       };
       fs.writeFileSync(configPath, JSON.stringify(v2Config, null, 2));
