@@ -67,7 +67,7 @@ import {
   extractAxisNumber,
 } from '../utils/formatting';
 
-type FriendlyFilenameType = 'directive' | 'dashboard' | 'symbolic-weather' | 'weather-log' | 'engine-config' | 'field-map';
+type FriendlyFilenameType = 'directive' | 'dashboard' | 'symbolic-weather' | 'weather-log' | 'engine-config';
 
 interface UseChartExportOptions {
   result: any | null;
@@ -1455,7 +1455,7 @@ Start with the Solo Mirror(s), then ${
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Mirror+SymbolicWeather_${friendlyFilename('symbolic-weather')}.json`;
+      a.download = `Mirror+SymbolicWeather_${friendlyFilename}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -1592,7 +1592,7 @@ Start with the Solo Mirror(s), then ${
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `wm-fieldmap-v1_${friendlyFilename('field-map')}.json`;
+      a.download = `wm-fieldmap-v1_${friendlyFilename}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();

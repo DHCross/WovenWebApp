@@ -156,13 +156,16 @@ async function runMathBrain(configPath, transitData = null) {
  * @returns {object} The populated metadata block.
  */
 function createProvenanceBlock(config) {
+  const isRelational = !!(config.personB && config.relationship_context);
   return {
     generated_at: new Date().toISOString(),
     config_source: path.basename(config.sourcePath || 'unknown'),
     math_brain_version: '1.0.0',
     mode: config.mode || 'unknown',
+    is_relational: isRelational,
     person_a: config.personA?.name || 'Person A',
-    person_b: config.personB ? config.personB.name : null,
+    person_b: isRelational ? (config.personB.name || 'Person B') : null,
+    relationship_context: isRelational ? config.relationship_context : undefined,
     date_range: config.startDate && config.endDate ? [config.startDate, config.endDate] : null,
     house_system: 'Placidus',
     orbs_profile: 'default_v5',

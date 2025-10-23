@@ -1165,7 +1165,7 @@ export default function MathBrainPage() {
 
   // User-friendly filename helper (Raven Calder naming system)
   const friendlyFilename = useCallback(
-    (type: 'directive' | 'dashboard' | 'symbolic-weather' | 'weather-log' | 'engine-config' | 'field-map') => {
+    (type: 'directive' | 'dashboard' | 'symbolic-weather' | 'weather-log' | 'engine-config') => {
       const duo = includePersonB
         ? `${personASlug}-${personBSlug}`
         : personASlug;
@@ -1176,8 +1176,7 @@ export default function MathBrainPage() {
         'dashboard': 'Weather_Dashboard',
         'symbolic-weather': 'Symbolic_Weather_Dashboard',
         'weather-log': 'Weather_Log',
-        'engine-config': 'Engine_Configuration',
-        'field-map': 'Field_Map'
+        'engine-config': 'Engine_Configuration'
       };
 
       return `${nameMap[type]}_${duo}_${dateStr}`;
