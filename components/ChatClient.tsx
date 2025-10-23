@@ -4503,7 +4503,15 @@ function Composer({
         <textarea
           ref={textAreaRef}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => {
+            setInput(e.target.value);
+            // Auto-expand textarea
+            const el = textAreaRef.current;
+            if (el) {
+              el.style.height = "auto";
+              el.style.height = `${Math.min(el.scrollHeight, window.innerHeight * 0.4)}px`;
+            }
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -4520,7 +4528,13 @@ function Composer({
           onPaste={() => showPasteMessage("Clipboard pasted into the composer.")}
           placeholder={INPUT_PLACEHOLDER}
           aria-label="Message for Raven Calder"
-          className="order-0 min-h-[48px] max-h-40 w-full min-w-0 flex-1 resize-y rounded-[14px] border border-[var(--line)] bg-[var(--panel)] px-[14px] py-3 text-[14px] text-[var(--text)] sm:order-none"
+          className="order-0 min-h-[48px] w-full min-w-0 flex-1 rounded-[14px] border border-[var(--line)] bg-[var(--panel)] px-[14px] py-3 text-[14px] text-[var(--text)] sm:order-none"
+          style={{
+            resize: "none",
+            overflow: "hidden",
+            maxHeight: "40vh",
+            transition: "height 0.1s ease",
+          }}
         />
         <div className="order-2 flex items-center gap-2 sm:order-none">
           <div className="hidden font-mono text-[11px] text-[var(--muted)] sm:block" aria-hidden>
