@@ -794,16 +794,22 @@ eps = deg2rad(epsilon)          // radians
 //////////////////////////////////////////////////////
 theta = deg2rad(LST)
 
-lambda_mc = atan2( sin(theta)/cos(eps), cos(theta) )    // radians
-mc = norm360( rad2deg(lambda_mc) )
+// The Midheaven (MC) is the ecliptic longitude of the point of the ecliptic
+// that is furthest above the plane of the horizon. It is the Local Sidereal Time (LST)
+// converted directly to degrees, as it lies on the meridian.
+mc = LST  // LST is already in degrees
 
 //////////////////////////////////////////////////////
 //////////////////////////////////////////////////////
 phi = deg2rad(relocate_lat)   // geographic latitude
 
-numer = -cos(theta)*sin(eps) - sin(theta)*tan(phi)*cos(eps)
-denom =  cos(theta)
-lambda_asc = atan2( sin(theta)*cos(eps) - tan(phi)*sin(eps), cos(theta) )
+// The Ascendant (ASC) is the ecliptic longitude of the point on the ecliptic
+// that is rising on the eastern horizon. The formula uses spherical trigonometry
+// to find this intersection point based on the Local Sidereal Time (LST) and
+// the geographic latitude of the location.
+y = -cos(theta)
+x = sin(theta) * cos(eps) + tan(phi) * sin(eps)
+lambda_asc = atan2(y, x)
 asc = norm360( rad2deg(lambda_asc) )
 
 
