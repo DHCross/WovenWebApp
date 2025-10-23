@@ -30,10 +30,8 @@
 const {
   scaleUnipolar,
   scaleBipolar,
-  scaleCoherenceFromVol,
   amplifyByMagnitude,
   normalizeAmplifiedBias,
-  normalizeVolatilityForCoherence,
   SPEC_VERSION,
   SCALE_FACTOR,
   getMagnitudeLabel,
@@ -622,10 +620,10 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   // === VOLATILITY (DIAGNOSTIC ONLY - not a public axis in v5.0) ===
   const VI = volatility(scored, prevCtx, opts);
   // Keep VI_normalized for internal diagnostics, but don't expose coherence as public axis
-  const VI_normalized = normalizeVolatilityForCoherence(VI);
+  const VI_normalized = Math.min(1, VI / 50); // Simple normalization for diagnostics
   const volatility_scaled = Math.max(
     0,
-    Math.min(SCALE_FACTOR, normalizeVolatilityForCoherence(VI) * SCALE_FACTOR)
+    Math.min(SCALE_FACTOR, VI_normalized * SCALE_FACTOR)
   );
 
   // Transform trace for observability (v5.0 - two axes only)
