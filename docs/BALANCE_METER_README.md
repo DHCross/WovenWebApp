@@ -14,8 +14,8 @@ The **Balance Meter** (also called "Symbolic Weather Seismograph") is the mathem
 
 | Axis | Range | Formula | Interpretation |
 |:-----|:------|:--------|:---------------|
-| **Magnitude** | [0, 5] | `norm × 50 → clamp([0, 5])` | Peak activity level (intensity) |
-| **Directional Bias** | [-5, +5] | `norm × 50 → clamp([-5, +5])` | Expansion (+) vs contraction (−) |
+| **Magnitude** | [0, 5] | `norm × 5 → clamp([0, 5])` | Peak activity level (intensity) |
+| **Directional Bias** | [-5, +5] | `norm × 5 → clamp([-5, +5])` | Expansion (+) vs contraction (−) |
 
 ### Internal Diagnostics Only
 
@@ -34,7 +34,7 @@ The **Balance Meter** (also called "Symbolic Weather Seismograph") is the mathem
 ## Architecture (Single Source of Truth)
 
 ```
-lib/balance/constants.js (v5.0 spec: SCALE_FACTOR=50, SPEC_VERSION='5.0')
+lib/balance/constants.js (v5.0 spec: SCALE_FACTOR=5, SPEC_VERSION='5.0')
     ↓
 lib/balance/scale.ts (canonical scalers)
     ├─→ scaleBipolar(normalized)      [Directional Bias]
@@ -187,7 +187,7 @@ Y_amplified = Y_raw × (0.8 + 0.4 × magnitude)
 // Step 2: Normalize to [-1, +1] range
 Y_normalized = Y_amplified / 100
 
-// Step 3: Scale by ×50 to display range [-5, +5]
+// Step 3: Scale by ×5 to display range [-5, +5]
 biasScaled = scaleBipolar(Y_normalized)
 directional_bias = biasScaled.value  // Clamped & rounded
 ```
@@ -206,7 +206,7 @@ VI_normalized = min(0.1, VI / 100)
 
 // Invert: high volatility = low coherence
 coherenceScaled = scaleCoherenceFromVol(VI_normalized)
-coherence = coherenceScaled.value  // (5 - vol×50) → [0, 5]
+coherence = coherenceScaled.value  // (5 - vol×5) → [0, 5]
 ```
 
 ### Field Signature (v4.0)
@@ -259,6 +259,7 @@ fieldSignature = (direction/5) × (magnitude/5) × (coherence/5)
 
 | Version | Date | Changes |
 |:--------|:-----|:--------|
+| 5.0 | 2025-10-22 | **2-axis finalization:** Removed Coherence from public output, aligning all documentation and tests with the two-axis model. Resolved "Spec Fork" by unifying `spec.json` and `constants.js` under v5.0. |
 | 4.0 | 2025-10-09 | **3-axis simplification:** Removed SFD/Integration Bias; Balance Meter now Magnitude + Directional Bias + Coherence only |
 | 3.1 | 2025-01-21 | Dual-pipeline elimination, canonical scalers enforced |
 | 3.0 | 2025 | Initial v3 specification with SFD + Coherence (deprecated in v4.0) |

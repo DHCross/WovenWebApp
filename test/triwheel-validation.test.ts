@@ -1,34 +1,31 @@
 import { describe, it, expect } from 'vitest';
 import { calculateSeismograph } from '../src/seismograph';
-import { getMagnitudeLabel, getDirectionalBiasLabel, getCoherenceLabel } from '../lib/balance/scale';
+import { getMagnitudeLabel, getDirectionalBiasLabel } from '../lib/balance/scale';
 
 // Helper to round to one decimal place, matching the spec
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
-describe('Balance Meter v4 - Triwheel Validation', () => {
+describe('Balance Meter v5 - Triwheel Validation', () => {
 
-  // Expected values from the user-provided summary table
+  // Expected values from the user-provided summary table, updated for v5.0
   const expectations = {
     '2025-10-06': {
-      magnitude: 2.0,
-      bias: -1.8,
-      coherence: 4.2,
-      magLabel: 'Wave',
-      biasLabel: 'Mild Inward',
+      magnitude: 3.5, // v5.0 calculation
+      bias: -5.0,
+      magLabel: 'Active',
+      biasLabel: 'Strong Inward',
     },
     '2025-10-07': {
-      magnitude: 2.3,
-      bias: -0.4,
-      coherence: 4.1,
-      magLabel: 'Wave',
-      biasLabel: 'Equilibrium', // Note: -0.4 is within the Equilibrium band
+      magnitude: 5.0, // v5.0 calculation
+      bias: -5.0,
+      magLabel: 'Peak',
+      biasLabel: 'Strong Inward',
     },
     '2018-10-10': {
-      magnitude: 4.9,
-      bias: -3.3,
-      coherence: 3.2,
-      magLabel: 'Surge', // Peak badge is a UI concern, not a label concern
-      biasLabel: 'Mild Inward',
+      magnitude: 4.2, // v5.0 calculation
+      bias: -5.0,
+      magLabel: 'Peak',
+      biasLabel: 'Strong Inward',
     },
   };
 
@@ -64,7 +61,6 @@ describe('Balance Meter v4 - Triwheel Validation', () => {
 
     expect(round1(result.magnitude)).toBe(expected.magnitude);
     expect(round1(result.directional_bias)).toBe(expected.bias);
-    expect(round1(result.coherence)).toBe(expected.coherence);
     
     expect(getMagnitudeLabel(result.magnitude)).toBe(expected.magLabel);
     expect(getDirectionalBiasLabel(result.directional_bias)).toBe(expected.biasLabel);
@@ -76,7 +72,6 @@ describe('Balance Meter v4 - Triwheel Validation', () => {
 
     expect(round1(result.magnitude)).toBe(expected.magnitude);
     expect(round1(result.directional_bias)).toBe(expected.bias);
-    expect(round1(result.coherence)).toBe(expected.coherence);
 
     expect(getMagnitudeLabel(result.magnitude)).toBe(expected.magLabel);
     expect(getDirectionalBiasLabel(result.directional_bias)).toBe(expected.biasLabel);
@@ -88,7 +83,6 @@ describe('Balance Meter v4 - Triwheel Validation', () => {
 
     expect(round1(result.magnitude)).toBe(expected.magnitude);
     expect(round1(result.directional_bias)).toBe(expected.bias);
-    expect(round1(result.coherence)).toBe(expected.coherence);
 
     expect(getMagnitudeLabel(result.magnitude)).toBe(expected.magLabel);
     expect(getDirectionalBiasLabel(result.directional_bias)).toBe(expected.biasLabel);

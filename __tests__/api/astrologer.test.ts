@@ -149,7 +149,6 @@ describe('Astrologer API Wrapper', () => {
         mockAspects,
         '2024-01-01',
         mockSubject,
-        { coherenceFrom: 'volatility' }
       );
 
       expect(dayInput).toEqual({
@@ -157,9 +156,6 @@ describe('Astrologer API Wrapper', () => {
         magnitude: 0.1, // 1 aspect / 10
         directional_bias: 0,
         volatility: 0.05, // 1 aspect / 20
-        coherence: undefined,
-        sfd: null,
-        sfd_pre_scaled: false,
         aspects: expect.any(Array),
         timezone: 'America/New_York',
       });
@@ -174,16 +170,14 @@ describe('Astrologer API Wrapper', () => {
         timezone: 'America/New_York',
       };
 
-      const scaled = scaleBalanceMeterDay(dayInput, 'volatility');
+      const scaled = scaleBalanceMeterDay(dayInput);
 
       expect(scaled.magnitude).toHaveProperty('value');
       expect(scaled.directionalBias).toHaveProperty('value');
-      expect(scaled.coherence).toHaveProperty('value');
 
       // Values should be properly scaled and rounded
       expect(typeof scaled.magnitude.value).toBe('number');
       expect(typeof scaled.directionalBias.value).toBe('number');
-      expect(typeof scaled.coherence.value).toBe('number');
     });
   });
 

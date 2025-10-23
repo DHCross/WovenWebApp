@@ -21,13 +21,11 @@ const ScalingMeta = z.object({
   mode: z.literal('absolute'),
   factor: z.literal(5),
   pipeline: z.literal('normalize→scale→clamp→round'),
-  coherence_inversion: z.boolean(),
 });
 
 export const DisplayDay = z.object({
   magnitude: AxisDisplay,
   directional_bias: AxisDisplay,
-  coherence: AxisDisplay,
 });
 
 export const DayExport = z.object({
@@ -37,9 +35,8 @@ export const DayExport = z.object({
   meta: z.object({
     scaling_mode: z.literal('absolute'),
     scale_factor: z.literal(5),
-    coherence_inversion: z.boolean(),
     pipeline: z.literal('normalize→scale→clamp→round'),
-    spec_version: z.literal('3.1'),
+    spec_version: z.literal('5.0'),
     orbs: z.any().optional(),
   }).passthrough(),
 });
