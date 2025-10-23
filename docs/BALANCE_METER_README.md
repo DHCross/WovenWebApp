@@ -185,7 +185,7 @@ npm run test:vitest:run
 Y_amplified = Y_raw × (0.8 + 0.4 × magnitude)
 
 // Step 2: Normalize to [-1, +1] range
-Y_normalized = Y_amplified / 100
+Y_normalized = Y_amplified / 10
 
 // Step 3: Scale by ×5 to display range [-5, +5]
 biasScaled = scaleBipolar(Y_normalized)
