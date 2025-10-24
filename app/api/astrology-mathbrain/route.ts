@@ -170,9 +170,9 @@ export async function POST(request: NextRequest) {
       const markdownContent = fs.readFileSync(markdownPath, 'utf8');
       const markdownFilename = path.basename(markdownPath);
 
-      const { run_metadata } = unifiedOutput;
-      const safePersonA = sanitizeForFilename(run_metadata.person_a, 'PersonA');
-      const safePersonB = sanitizeForFilename(run_metadata.person_b, run_metadata.person_b ? 'PersonB' : 'Solo');
+      const runMetadata = unifiedOutput?.run_metadata ?? {};
+      const safePersonA = sanitizeForFilename(runMetadata?.person_a, 'PersonA');
+      const safePersonB = sanitizeForFilename(runMetadata?.person_b, runMetadata?.person_b ? 'PersonB' : 'Solo');
 
       // Cleanup temp files
       [configPath, unifiedOutputPath, markdownPath].forEach(p => {
