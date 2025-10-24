@@ -46,7 +46,7 @@ const PERSONAL = new Set(["Sun","Moon","Mercury","Venus","Mars","ASC","MC","IC",
 const ANGLES = new Set(["ASC","MC","IC","DSC"]);
 
 const DEFAULTS = {
-  magnitudeDivisor: 8,  // Increased from 4 to account for geometry amplification (1.5-2x boost on tight/outer aspects)
+  magnitudeDivisor: 2,  // Reduced from 8 - averaging handles multiple aspects naturally
   hubBonusCap: 0.6,
   sameTargetBonusCap: 0.3,
   tightBandDeg: 1.5,
@@ -523,8 +523,18 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     }
   }
 
-  const X_raw = scored.reduce((acc, x) => acc + Math.abs(x.S), 0);
-  const Y_raw = scored.reduce((acc, x) => acc + x.S, 0);
+  // Average to measure density, then apply nonlinear gain so crises still register
+  const count = scored.length || 1;
+  const avgMagnitude = scored.reduce((acc, x) => acc + Math.abs(x.S), 0) / count;
+  const avgBias = scored.reduce((acc, x) => acc + x.S, 0) / count;
+
+  const aspectGain = Math.log(count + 1); // diminishing returns as complexity grows
+  const X_raw = avgMagnitude > 0 ? Math.pow(avgMagnitude, 1.3) * aspectGain : 0;
+  
+  // Steeper sigmoidal boost for bias - restores crisis detection without blowout
+  const Y_raw = avgBias !== 0
+    ? Math.sign(avgBias) * Math.tanh(Math.pow(Math.abs(avgBias) * 3, 1.8)) * aspectGain * 3.2
+    : 0;
 
   // === MAGNITUDE ===
   // v5.0: Absolute 0-5 scale with SCALE_FACTOR = 5
@@ -541,27 +551,17 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   let scalingMethod = 'static_divisor';
   let magnitudeNormalized;
   
-  // Strategy 1: Use rolling window if available (preferred)
+  // Simple normalization - averaging already handles multiple aspects
   if (rollingContext && rollingContext.magnitudes && rollingContext.magnitudes.length >= 2) {
     // Dynamic normalization based on recent magnitude history
     const normalizedViaDynamic = normalizeWithRollingWindow(X_raw, rollingContext, opts, diagnosticMode);
     // normalizeWithRollingWindow returns a 0-10 scaled value, convert to 0-1 for scaleUnipolar
     magnitudeNormalized = normalizedViaDynamic / 10;
     scalingMethod = `rolling_window_n${rollingContext.magnitudes.length}`;
-  } else if (aspectCount >= 3) {
-    // Strategy 2: Aspect-count adaptive divisor (prevents saturation post-geometry-amplification)
-    // v5.0 Accelerometer: Geometry amplification (up to 2x per aspect) requires aggressive scaling
-    // Formula accounts for compounding geometry boosts on outer-planet/tight aspects
-    // 3-4 aspects: scaleFactor ≈ 2.5-4x (divisor 20-32)
-    // 5-10 aspects: scaleFactor ≈ 4-6x (divisor 32-48)  
-    // 20+ aspects: scaleFactor ≈ 8x+ (divisor 64+)
-    const scaleFactor = Math.min(10, 2 + Math.pow(aspectCount / 5, 1.3));
-    effectiveDivisor = opts.magnitudeDivisor * scaleFactor;
-    scalingMethod = `aspect_adaptive_d${effectiveDivisor.toFixed(1)}`;
-    magnitudeNormalized = Math.min(1, X_raw / effectiveDivisor);
   } else {
-    // Strategy 3: Static divisor (1-2 aspects, very rare)
+    // Simple static divisor - averaging makes aspect count irrelevant
     magnitudeNormalized = Math.min(1, X_raw / effectiveDivisor);
+    scalingMethod = 'static_divisor';
   }
 
   // === STEP 4: Magnitude Normalization Diagnostics ===
