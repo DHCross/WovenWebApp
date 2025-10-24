@@ -179,8 +179,9 @@ export async function POST(request: NextRequest) {
         try { fs.unlinkSync(p); } catch (e) { /* ignore */ }
       });
 
-      return NextResponse.json({
-        success: true,
+      const responseBody = {
+        ...chartData,
+        success: chartData?.success ?? true,
         version: 'v2',
         unified_output: unifiedOutput,
         markdown_reading: markdownContent,
@@ -188,7 +189,9 @@ export async function POST(request: NextRequest) {
           mirror_report: { format: 'markdown', content: markdownContent, filename: markdownFilename },
           symbolic_weather: { format: 'json', content: unifiedOutput, filename: `unified_output_${safePersonA}_${safePersonB}_${new Date().toISOString().split('T')[0]}.json` }
         }
-      }, { status: 200 });
+      };
+
+      return NextResponse.json(responseBody, { status: 200 });
 
     } catch (pipelineError: any) {
       logger.error('Math Brain v2 pipeline error', { error: pipelineError.message, stack: pipelineError.stack });

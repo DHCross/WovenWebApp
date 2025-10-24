@@ -10,22 +10,28 @@ describe('Balance Meter v5 - Triwheel Validation', () => {
   // Expected values from the user-provided summary table, updated for v5.0
   const expectations = {
     '2025-10-06': {
-      magnitude: 3.5, // v5.0 calculation
+      magnitude: 3.5,
       bias: -5.0,
+      volatility: 0.3,
       magLabel: 'Active',
       biasLabel: 'Strong Inward',
+      volatilityLabel: 'Aligned Flow',
     },
     '2025-10-07': {
-      magnitude: 5.0, // v5.0 calculation
+      magnitude: 5.0,
       bias: -5.0,
+      volatility: 0.2,
       magLabel: 'Peak',
       biasLabel: 'Strong Inward',
+      volatilityLabel: 'Aligned Flow',
     },
     '2018-10-10': {
-      magnitude: 4.2, // v5.0 calculation
+      magnitude: 4.2,
       bias: -5.0,
+      volatility: 0.3,
       magLabel: 'Peak',
       biasLabel: 'Strong Inward',
+      volatilityLabel: 'Aligned Flow',
     },
   };
 
@@ -61,9 +67,11 @@ describe('Balance Meter v5 - Triwheel Validation', () => {
 
     expect(round1(result.magnitude)).toBe(expected.magnitude);
     expect(round1(result.directional_bias)).toBe(expected.bias);
-    
+    expect(round1(result.volatility)).toBe(expected.volatility);
+
     expect(getMagnitudeLabel(result.magnitude)).toBe(expected.magLabel);
     expect(getDirectionalBiasLabel(result.directional_bias)).toBe(expected.biasLabel);
+    expect(result.volatility_label).toBe(expected.volatilityLabel);
   });
 
   it('should match the summary for the Inner Wheel (Oct 7, 2025)', () => {
@@ -72,9 +80,11 @@ describe('Balance Meter v5 - Triwheel Validation', () => {
 
     expect(round1(result.magnitude)).toBe(expected.magnitude);
     expect(round1(result.directional_bias)).toBe(expected.bias);
+    expect(round1(result.volatility)).toBe(expected.volatility);
 
     expect(getMagnitudeLabel(result.magnitude)).toBe(expected.magLabel);
     expect(getDirectionalBiasLabel(result.directional_bias)).toBe(expected.biasLabel);
+    expect(result.volatility_label).toBe(expected.volatilityLabel);
   });
 
   it('should match the summary for the Middle Wheel (Oct 10, 2018)', () => {
@@ -83,8 +93,10 @@ describe('Balance Meter v5 - Triwheel Validation', () => {
 
     expect(round1(result.magnitude)).toBe(expected.magnitude);
     expect(round1(result.directional_bias)).toBe(expected.bias);
+    expect(round1(result.volatility)).toBe(expected.volatility);
 
     expect(getMagnitudeLabel(result.magnitude)).toBe(expected.magLabel);
     expect(getDirectionalBiasLabel(result.directional_bias)).toBe(expected.biasLabel);
+    expect(result.volatility_label).toBe(expected.volatilityLabel);
   });
 });

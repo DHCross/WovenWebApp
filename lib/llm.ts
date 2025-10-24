@@ -91,7 +91,7 @@ function extractText(choice: any): string {
 }
 
 async function requestCompletion(prompt: string, opts: StreamOptions) {
-  const apiKey = process.env.PERPLEXITY_API_KEY;
+  const apiKey = process.env.PERPLEXITY_API_KEY || process.env.PERPLEXITY;
   if (!apiKey) {
     throw new Error('Error: PERPLEXITY_API_KEY is not configured.');
   }

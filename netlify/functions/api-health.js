@@ -8,7 +8,8 @@ exports.handler = async function(event, context) {
   };
 
   try {
-    const perplexity = Boolean(process.env.PERPLEXITY_API_KEY && String(process.env.PERPLEXITY_API_KEY).trim());
+    const perplexityKey = process.env.PERPLEXITY_API_KEY || process.env.PERPLEXITY;
+    const perplexity = Boolean(perplexityKey && String(perplexityKey).trim());
     const rapid = Boolean(process.env.RAPIDAPI_KEY && String(process.env.RAPIDAPI_KEY).trim());
     const auth0Domain = Boolean(process.env.AUTH0_DOMAIN && String(process.env.AUTH0_DOMAIN).trim());
     const auth0Client = Boolean(process.env.AUTH0_CLIENT_ID && String(process.env.AUTH0_CLIENT_ID).trim());

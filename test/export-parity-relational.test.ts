@@ -1,6 +1,7 @@
 import { expect, it, describe } from 'vitest';
 import { buildDayExport } from '../lib/export/weatherLog';
 import { buildRelationalDayExport } from '../lib/reporting/relational';
+import { assertNotDoubleInverted } from '../lib/balance/assertions';
 
 describe('Export parity: solo vs relational (v5.0)', () => {
   it('magnitude normalized=1.0 displays as 5.0 in both paths', () => {
@@ -25,5 +26,12 @@ describe('Export parity: solo vs relational (v5.0)', () => {
     const rel = buildRelationalDayExport(norm);
     expect(solo.display.magnitude.value).toBeCloseTo(rel.display.magnitude.value, 5);
     expect(solo.display.directional_bias.value).toBeCloseTo(rel.display.directional_bias.value, 5);
+    expect(Object.keys(rel.display).sort()).toEqual(['directional_bias', 'magnitude']);
+  });
+
+  it('coherence is not inverted twice', () => {
+    const volDisplay = 3.2;
+    const cohDisplay = 5 - volDisplay;
+    expect(() => assertNotDoubleInverted(volDisplay, cohDisplay)).toThrow();
   });
 });
