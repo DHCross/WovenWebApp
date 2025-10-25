@@ -17,6 +17,8 @@ const { runMathBrain } = require('../../../src/math_brain/main.js');
 const { createMarkdownReading } = require('../../../src/formatter/create_markdown_reading.js');
 const { sanitizeForFilename } = require('../../../src/utils/sanitizeFilename.js');
 
+const MAX_DAILY_TRANSIT_WINDOW_DAYS = 30;
+
 const logger = {
   info: (message: string, context: Record<string, unknown> = {}) => {
     // eslint-disable-next-line no-console
@@ -31,6 +33,19 @@ const logger = {
     console.error(`[AstrologyMathBrain] ${message}`, context);
   }
 };
+
+function parseIsoDate(value: unknown): Date | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function countInclusiveDays(start: Date, end: Date): number {
+  const startUtc = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+  const endUtc = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+  const diffMs = endUtc - startUtc;
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+}
 
 export async function GET(request: NextRequest) {
   // Convert Next.js request to Netlify event format
@@ -95,6 +110,42 @@ export async function POST(request: NextRequest) {
     }
 
     const body = JSON.stringify(rawPayload);
+
+    const windowConfig = rawPayload?.window || null;
+    const windowStep = typeof windowConfig?.step === 'string' ? windowConfig.step.toLowerCase() : null;
+
+    if (windowStep === 'daily' && windowConfig?.start && windowConfig?.end) {
+      const startDate = parseIsoDate(windowConfig.start);
+      const endDate = parseIsoDate(windowConfig.end);
+      if (!startDate || !endDate) {
+        logger.warn('Invalid daily window dates received', { start: windowConfig.start, end: windowConfig.end });
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid transit window dates. Please use ISO format (YYYY-MM-DD).',
+          code: 'INVALID_TRANSIT_WINDOW'
+        }, { status: 400 });
+      }
+
+      if (endDate.getTime() < startDate.getTime()) {
+        logger.warn('Daily window end precedes start', { start: windowConfig.start, end: windowConfig.end });
+        return NextResponse.json({
+          success: false,
+          error: 'Transit window end date must be on or after the start date.',
+          code: 'INVALID_TRANSIT_WINDOW_ORDER'
+        }, { status: 400 });
+      }
+
+      const totalDays = countInclusiveDays(startDate, endDate);
+      if (totalDays > MAX_DAILY_TRANSIT_WINDOW_DAYS) {
+        logger.warn('Daily window exceeds maximum allowed span', { totalDays, start: windowConfig.start, end: windowConfig.end });
+        return NextResponse.json({
+          success: false,
+          error: `Daily symbolic weather windows are limited to ${MAX_DAILY_TRANSIT_WINDOW_DAYS} days. Consider weekly sampling or shorten the range.`,
+          code: 'TRANSIT_WINDOW_TOO_LARGE',
+          limit: MAX_DAILY_TRANSIT_WINDOW_DAYS
+        }, { status: 400 });
+      }
+    }
 
     // Prepare event for legacy handler
     const url = new URL(request.url);

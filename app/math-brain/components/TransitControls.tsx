@@ -1,4 +1,4 @@
-import type { FocusEvent, TouchEvent } from 'react';
+import { useMemo, type FocusEvent, type TouchEvent } from 'react';
 import { parseCoordinates, formatDecimal } from '@/src/coords';
 import type {
   ModeOption,
@@ -51,6 +51,18 @@ interface TransitControlsProps {
 }
 
 const ACTIVE_RELOCATION_MODES: TranslocationOption[] = ['A_LOCAL', 'B_LOCAL', 'BOTH_LOCAL', 'MIDPOINT'];
+const DAILY_RANGE_WARNING_THRESHOLD = 12; // days
+
+function getDateRangeDays(start: string, end: string): number | null {
+  if (!start || !end) return null;
+  const startTime = new Date(start).getTime();
+  const endTime = new Date(end).getTime();
+  if (Number.isNaN(startTime) || Number.isNaN(endTime)) return null;
+
+  const diffMs = Math.abs(endTime - startTime);
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1; // inclusive of both endpoints
+  return diffDays;
+}
 
 export function TransitControls(props: TransitControlsProps) {
   const {
@@ -108,6 +120,8 @@ export function TransitControls(props: TransitControlsProps) {
   const relocNormalized = relocCoords ? formatDecimal(relocCoords.lat, relocCoords.lon) : '—';
   const showRelocationInputs = includeTransits && !['NONE', 'A_NATAL', 'B_NATAL'].includes(translocation);
   const relocationActive = ACTIVE_RELOCATION_MODES.includes(relocationStatus.effectiveMode);
+  const dateRangeDays = useMemo(() => getDateRangeDays(startDate, endDate), [startDate, endDate]);
+  const showLongDailyRangeWarning = includeTransits && step === 'daily' && dateRangeDays !== null && dateRangeDays > DAILY_RANGE_WARNING_THRESHOLD;
 
   return (
     <>
@@ -177,6 +191,12 @@ export function TransitControls(props: TransitControlsProps) {
                 <option value="monthly">Monthly</option>
               </select>
             </div>
+          </div>
+        )}
+
+        {showLongDailyRangeWarning && dateRangeDays !== null && (
+          <div className="rounded-md border border-amber-700 bg-amber-900/30 px-3 py-2 text-xs text-amber-100">
+            Daily transits run best for windows up to {DAILY_RANGE_WARNING_THRESHOLD} days. This selection spans {dateRangeDays} days and may take longer to process. Consider narrowing the range or switching to weekly sampling.
           </div>
         )}
 
