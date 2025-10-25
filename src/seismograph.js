@@ -120,7 +120,7 @@ function planetTier(body){
 
 function orbMultiplier(orbDeg, type) {
   const o = Math.abs(orbDeg);
-  const isHard = type === 'square' || type === 'opposition' || type === 'conjunction';
+  const isHard = type === 'square' || type === 'opposition';
 
   if (isHard) {
     // Hard aspects: full weight 0-1°, taper to 0 at 3°
@@ -583,7 +583,7 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   }
 
   const magnitudeScaled = scaleUnipolar(magnitudeNormalized);
-  const magnitudeValue = magnitudeScaled.value;
+  const magnitudeValue = Math.max(0, Math.min(SCALE_FACTOR, magnitudeScaled.value));
 
   // === DIRECTIONAL BIAS ===
   const Y_amplified = amplifyByMagnitude(Y_raw, magnitudeValue);
