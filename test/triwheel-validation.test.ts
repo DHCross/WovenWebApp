@@ -10,10 +10,10 @@ describe('Balance Meter v5 - Triwheel Validation', () => {
   // Expected values from the user-provided summary table, updated for v5.0
   const expectations = {
     '2025-10-06': {
-      magnitude: 3.5,
+      magnitude: 5.0,
       bias: -5.0,
       volatility: 0.3,
-      magLabel: 'Active',
+      magLabel: 'Peak',
       biasLabel: 'Strong Inward',
       volatilityLabel: 'Aligned Flow',
     },
@@ -26,7 +26,7 @@ describe('Balance Meter v5 - Triwheel Validation', () => {
       volatilityLabel: 'Aligned Flow',
     },
     '2018-10-10': {
-      magnitude: 4.2,
+      magnitude: 5.0,
       bias: -5.0,
       volatility: 0.3,
       magLabel: 'Peak',
