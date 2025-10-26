@@ -738,6 +738,7 @@ export default function ChatClient() {
   const [hasMirrorData, setHasMirrorData] = useState(false);
   const [showScrollHint, setShowScrollHint] = useState(false);
   const [scrollPadding, setScrollPadding] = useState(140);
+  const [stickyOffset, setStickyOffset] = useState(0);
   const scrollPaddingRef = useRef(scrollPadding);
 
   const streamContainerRef = useRef<HTMLElement | null>(null);
@@ -1244,37 +1245,50 @@ export default function ChatClient() {
     }
   }, [messages, ravenMessages]);
 
-  const calculateScrollPadding = useCallback(() => {
-    if (typeof window === "undefined") return 140;
+  const calculateScrollMetrics = useCallback(() => {
+    if (typeof window === "undefined") {
+      return { padding: 140, headerHeight: 0, viewportOffset: 0 };
+    }
 
     const header = document.querySelector<HTMLElement>(
       "[data-chat-header]",
     );
     const nav = document.querySelector<HTMLElement>("[data-chat-nav]");
     let total = 16;
+    let headerHeight = 0;
 
     if (header) {
-      total += header.getBoundingClientRect().height;
+      headerHeight = header.getBoundingClientRect().height;
+      total += headerHeight;
     }
     if (nav) {
       total += nav.getBoundingClientRect().height;
     }
 
     const viewport = window.visualViewport;
-    if (viewport && viewport.offsetTop) {
-      total += viewport.offsetTop;
+    const viewportOffset = viewport?.offsetTop ?? 0;
+    if (viewportOffset) {
+      total += viewportOffset;
     }
 
-    return Math.max(total, 128);
+    return {
+      padding: Math.max(total, 128),
+      headerHeight,
+      viewportOffset,
+    };
   }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const update = () => {
-      const next = calculateScrollPadding();
+      const metrics = calculateScrollMetrics();
       setScrollPadding((prev) =>
-        Math.abs(prev - next) > 0.5 ? next : prev,
+        Math.abs(prev - metrics.padding) > 0.5 ? metrics.padding : prev,
+      );
+      const desiredOffset = Math.max(0, metrics.headerHeight + metrics.viewportOffset);
+      setStickyOffset((prev) =>
+        Math.abs(prev - desiredOffset) > 0.5 ? desiredOffset : prev,
       );
     };
 
@@ -1292,7 +1306,7 @@ export default function ChatClient() {
       viewport?.removeEventListener("resize", update);
       viewport?.removeEventListener("scroll", update);
     };
-  }, [calculateScrollPadding]);
+  }, [calculateScrollMetrics]);
 
   useEffect(() => {
     scrollPaddingRef.current = scrollPadding;
@@ -1324,6 +1338,7 @@ export default function ChatClient() {
     if (!ravenMessage) return;
     const element = document.getElementById(`message-${ravenMessage.id}`);
     if (element) {
+      setUserScrolledAway(true);
       scrollMessageElementIntoView(element);
       setCurrentRavenIndex(index);
     }
@@ -1336,15 +1351,24 @@ export default function ChatClient() {
     } else if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
+    setUserScrolledAway(true);
+    if (ravenMessages.length > 0) {
+      setCurrentRavenIndex(0);
+    }
   };
 
   const scrollToBottom = () => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
     setShowScrollHint(false);
+    setUserScrolledAway(false);
+    if (ravenMessages.length > 0) {
+      setCurrentRavenIndex(ravenMessages.length - 1);
+    }
   };
 
   // Position Raven responses optimally for reading, user messages scroll to bottom
   useEffect(() => {
+    if (userScrolledAway) return;
     if (!typing) {
       // Skip auto-scroll on very first mount so intro card is not obscured by sticky header
       if (messages.length === 1 && messages[0]?.id === "init") return;
@@ -1354,7 +1378,7 @@ export default function ChatClient() {
         if (element) scrollMessageElementIntoView(element);
       }
     }
-  }, [typing, messages, scrollMessageElementIntoView]);
+  }, [typing, messages, scrollMessageElementIntoView, userScrolledAway]);
 
   // Auto-scroll immediately for new user messages to bottom
   useEffect(() => {
@@ -1366,6 +1390,7 @@ export default function ChatClient() {
 
   // Auto-scroll to new Raven messages when they start (empty content means just created)
   useEffect(() => {
+    if (userScrolledAway) return;
     const lastMessage = messages[messages.length - 1];
     if (lastMessage?.role === "raven" && lastMessage.html === "") {
       // Small delay to ensure DOM is updated
@@ -1374,7 +1399,7 @@ export default function ChatClient() {
         if (element) scrollMessageElementIntoView(element);
       }, 100);
     }
-  }, [messages, scrollMessageElementIntoView]);
+  }, [messages, scrollMessageElementIntoView, userScrolledAway]);
 
   // IntersectionObserver for reliable auto-scroll on mobile and desktop
   useEffect(() => {
@@ -1396,16 +1421,16 @@ export default function ChatClient() {
 
   // Auto-scroll to sentinel when new messages arrive (unless user scrolled away)
   useEffect(() => {
-    if (messages.length === 0) return;
-    if (userScrolledAway && typing) return; // Don't interrupt user reading
+    if (messages.length === 0 || userScrolledAway) return;
 
     const sentinel = sentinelRef.current;
     if (sentinel) {
-      // Small delay to ensure DOM is updated
-      setTimeout(() => {
+      const timer = window.setTimeout(() => {
         sentinel.scrollIntoView({ behavior: "smooth", block: "end" });
       }, 100);
+      return () => window.clearTimeout(timer);
     }
+    return undefined;
   }, [messages.length, typing, userScrolledAway]);
 
   // Check if user has manually scrolled away from reading position during streaming
@@ -2793,6 +2818,7 @@ export default function ChatClient() {
           scrollToRavenMessage={scrollToRavenMessage}
           currentRavenIndex={currentRavenIndex}
           scrollToBottom={scrollToBottom}
+          stickyOffset={stickyOffset}
         />
         <div className="hidden h-full lg:block">
           <Sidebar
@@ -4572,12 +4598,14 @@ function NavigationPanel({
   scrollToRavenMessage,
   currentRavenIndex,
   scrollToBottom,
+  stickyOffset,
 }: {
   ravenMessages: Message[];
   scrollToTop: () => void;
   scrollToRavenMessage: (index: number) => void;
   currentRavenIndex: number;
   scrollToBottom: () => void;
+  stickyOffset: number;
 }) {
   if (ravenMessages.length === 0) return null;
 
@@ -4588,9 +4616,11 @@ function NavigationPanel({
       style={{
         backdropFilter: "blur(6px)",
         backgroundColor: "rgba(12, 12, 18, 0.85)",
+        top: Math.max(0, stickyOffset),
       }}
     >
       <button
+        type="button"
         onClick={scrollToTop}
         className="bg-transparent border border-[var(--line)] rounded-[6px] text-[var(--text)] px-[10px] py-[6px] text-[11px] cursor-pointer transition-all"
         title="Jump to top"
@@ -4599,6 +4629,7 @@ function NavigationPanel({
       </button>
 
       <button
+        type="button"
         onClick={() => scrollToRavenMessage(Math.max(0, currentRavenIndex - 1))}
         disabled={currentRavenIndex <= 0 || ravenMessages.length <= 1}
         className="bg-transparent border border-[var(--line)] rounded-[6px] text-[var(--text)] px-[10px] py-[6px] text-[11px] cursor-pointer transition-all disabled:opacity-50"
@@ -4612,6 +4643,7 @@ function NavigationPanel({
       </span>
 
       <button
+        type="button"
         onClick={() =>
           scrollToRavenMessage(
             Math.min(ravenMessages.length - 1, currentRavenIndex + 1),
@@ -4628,6 +4660,7 @@ function NavigationPanel({
       </button>
 
       <button
+        type="button"
         onClick={scrollToBottom}
         className="bg-transparent border border-[var(--line)] rounded-[6px] text-[var(--text)] px-[10px] py-[6px] text-[11px] cursor-pointer transition-all"
         title="Jump to bottom"
