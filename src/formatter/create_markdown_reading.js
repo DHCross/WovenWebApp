@@ -42,13 +42,8 @@ function createMarkdownReading(inputJsonPath) {
     markdownContent += '#### Symbolic Weather\n';
     markdownContent += `- **Magnitude**: ${day.symbolic_weather.magnitude} (${day.symbolic_weather.labels.magnitude})\n`;
     markdownContent += `- **Directional Bias**: ${day.symbolic_weather.directional_bias} (${day.symbolic_weather.labels.directional_bias})\n`;
+    markdownContent += `- **Schema**: BM-v5.0\n`;
     
-    // Volatility is deprecated in v5.0, but we include it for historical context
-    const volatility = day.symbolic_weather.volatility !== undefined ? day.symbolic_weather.volatility : 'N/A';
-    const volatilityLabel = day.symbolic_weather.labels.volatility || 'N/A';
-    if (volatility !== 'N/A') {
-      markdownContent += `- **Volatility** (deprecated): ${volatility} (${volatilityLabel})\n`;
-    }
     markdownContent += '\n';
 
     // 2. Mirror Data
