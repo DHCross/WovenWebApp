@@ -63,11 +63,8 @@ async function runMathBrain(configPath, transitData = null) {
 
       dailyEntries.push({
         date: currentDate,
-        symbolic_weather: {
-          magnitude: symbolicWeather.magnitude,
-          directional_bias: symbolicWeather.directional_bias,
-          labels: symbolicWeather.labels
-        },
+        // Pass the full symbolicWeather result to be used by generateFieldFile
+        symbolic_weather: symbolicWeather,
         mirror_data: computeMirrorData(transitsA, transitsB, synastryAspects),
         poetic_hooks: computePoeticHooks(transitsA, transitsB, synastryAspects),
       });
@@ -78,7 +75,7 @@ async function runMathBrain(configPath, transitData = null) {
     const mapFile = generateMapFile(transitData, personA, personB, config);
     
     // Generate FIELD file (transit weather - temporal)
-    const fieldFile = generateFieldFile(dailyEntries, startDate, endDate, config, mapFile._meta.map_id);
+    const fieldFile = generateFieldFile(dailyEntries, startDate, endDate, config, mapFile._meta.map_id, transitData);
     
     // Legacy unified output for backward compatibility
     finalOutput = {
@@ -386,7 +383,7 @@ function getRealAspectData(date, personA, personB, transitData = {}) {
   if (dayA) {
     const extracted = extractAspectsForDay(dayA);
     if (Array.isArray(extracted)) {
-      transitsA.push(...extracted);
+      transitsA.push(...extracted.map(a => ({ ...a, transit: { body: a.p1_name }, natal: { body: a.p2_name } })));
     }
   }
 
@@ -395,7 +392,7 @@ function getRealAspectData(date, personA, personB, transitData = {}) {
     if (dayB) {
       const extracted = extractAspectsForDay(dayB);
       if (Array.isArray(extracted)) {
-        transitsB.push(...extracted);
+        transitsB.push(...extracted.map(a => ({ ...a, transit: { body: a.p1_name }, natal: { body: a.p2_name } })));
       }
     }
 
@@ -403,7 +400,7 @@ function getRealAspectData(date, personA, personB, transitData = {}) {
     if (synDay) {
       const extracted = extractSynastryAspectsForDay(synDay);
       if (Array.isArray(extracted)) {
-        synastryAspects.push(...extracted);
+        synastryAspects.push(...extracted.map(a => ({ ...a, transit: { body: a.p1_name }, natal: { body: a.p2_name } })));
       }
     }
   }
@@ -504,33 +501,42 @@ function generateMapFile(transitData, personA, personB, config) {
  * Generate FIELD file (wm-field-v1) - Symbolic Weather
  * Contains transit data, Balance Meter readings, references parent MAP
  */
-function generateFieldFile(dailyEntries, startDate, endDate, config, mapId) {
+function generateFieldFile(dailyEntries, startDate, endDate, config, mapId, transitData) {
   const daily = {};
+
+  const PLANET_INDEX = {
+    'Sun': 0, 'Moon': 1, 'Mercury': 2, 'Venus': 3, 'Mars': 4,
+    'Jupiter': 5, 'Saturn': 6, 'Uranus': 7, 'Neptune': 8,
+    'Pluto': 9, 'Node': 10, 'Mean_Node': 10, 'ASC': 11, 'Ascendant': 11, 'MC': 12, 'Medium_Coeli': 12
+  };
   
   // Aspect type keys per spec
   const ASP_KEYS = {'cnj': 0, 'opp': 1, 'sq': 2, 'tri': 3, 'sex': 4, 
                     'conjunction': 0, 'opposition': 1, 'square': 2, 'trine': 3, 'sextile': 4};
   
   dailyEntries.forEach(entry => {
-    // Extract transit positions and convert to compact format
-    const aspects = entry.poetic_hooks?.top_contributing_aspects || [];
-    const compactAspects = aspects.map(a => extractCompactAspect(a)).filter(a => a !== null);
+    const scoredAspects = entry.symbolic_weather?._aggregateResult?.scored || [];
+    const compactAspects = scoredAspects
+      .map(a => extractCompactAspect(a, PLANET_INDEX, ASP_KEYS))
+      .filter(a => a !== null)
+      .sort((a, b) => Math.abs(a[3]) - Math.abs(b[3])) // Sort by orb tightness
+      .slice(0, 18); // Keep top 18 per spec
+
+    const dayData = transitData?.person_a?.chart?.transitsByDate?.[entry.date];
+    const tpos = (dayData?.tpos || []).map(p => Math.round(p * 100));
+    const thouse = dayData?.thouse || [];
     
     daily[entry.date] = {
-      // Transit positions (centidegrees) - would come from actual transit data
-      tpos: [],  // TODO: Extract from entry transit data
-      // Transit houses - which natal house each transit occupies
-      thouse: [],  // TODO: Extract from entry transit data
-      // Compact aspect format: [tIdx, nIdx, aspKey, orb_cdeg, w*10]
+      tpos,
+      thouse,
       as: compactAspects,
-      // Store magnitude and bias as ×10 integers per spec
       meter: {
         mag_x10: Math.round(entry.symbolic_weather.magnitude * 10),
         bias_x10: Math.round(entry.symbolic_weather.directional_bias * 10),
       },
       status: {
-        pending: compactAspects.length === 0,  // Mark as pending if no aspects
-        notes: compactAspects.length === 0 ? ['No aspects received for this day'] : [],
+        pending: compactAspects.length === 0,
+        notes: compactAspects.length === 0 ? ['No significant aspects found for this day'] : [],
       },
     };
   });
@@ -622,10 +628,30 @@ function extractNatalAspectsCompact(aspects, planetIndex) {
 /**
  * Extract compact aspect for FIELD file: [tIdx, nIdx, aspKey, orb_cdeg, w*10]
  */
-function extractCompactAspect(aspect) {
-  // TODO: This needs proper parsing of transit aspect data
-  // For now, return null to indicate pending data
-  return null;
+function extractCompactAspect(scoredAspect, planetIndex, aspectKeyIndex) {
+  if (!scoredAspect || !scoredAspect.transit?.body || !scoredAspect.natal?.body || !scoredAspect.type) {
+    return null;
+  }
+
+  const transitPlanetIndex = planetIndex[scoredAspect.transit.body];
+  const natalPlanetIndex = planetIndex[scoredAspect.natal.body];
+  const aspectTypeKey = aspectKeyIndex[scoredAspect.type.toLowerCase()];
+
+  if (transitPlanetIndex === undefined || natalPlanetIndex === undefined || aspectTypeKey === undefined) {
+    return null;
+  }
+
+  const orbCentidegrees = scoredAspect.orbDeg ? Math.round(scoredAspect.orbDeg * 100) : 0;
+  // Use the 'S' score from the seismograph result for the weight, as specified.
+  const weightX10 = scoredAspect.S ? Math.round(scoredAspect.S * 10) : 0;
+
+  return [
+    transitPlanetIndex,
+    natalPlanetIndex,
+    aspectTypeKey,
+    orbCentidegrees,
+    weightX10,
+  ];
 }
 
 // Export the main function (CommonJS for Node.js execution)
