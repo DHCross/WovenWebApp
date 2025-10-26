@@ -455,7 +455,7 @@ export default function SymbolicSeismograph({
 
       {/* Data Point Count */}
       <div className="text-center text-xs text-slate-500">
-        {data.length} data point{data.length !== 1 ? 's' : ''} • Schema: BM-v3
+        {data.length} data point{data.length !== 1 ? 's' : ''} • Schema: BM-v5.0
       </div>
     </div>
   );

@@ -167,7 +167,7 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
     result?.person_a?.chart?.zodiac_type ||
     result?.person_a?.zodiac_type ||
     'Tropical';
-  const schemaVersion = '3.1'; // From your system
+  const schemaVersion = '5.0'; // From your system
 
   const personBDomains = isRelational ? buildDomainsFromChart(result?.person_b?.chart) : [];
   const showPersonBDomains = isRelational && personBDomains.some((domain) => domain.planets.length > 0);
