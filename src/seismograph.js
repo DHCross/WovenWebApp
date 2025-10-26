@@ -39,8 +39,6 @@ const {
 } = require('../lib/balance/scale-bridge');
 const { assertSeismographInvariants } = require('../lib/balance/assertions');
 const { applyGeometryAmplification } = require('../lib/balance/amplifiers');
-const { classifyVolatility } = require('../lib/reporting/metric-labels');
-
 const OUTER = new Set(["Saturn","Uranus","Neptune","Pluto"]);
 const PERSONAL = new Set(["Sun","Moon","Mercury","Venus","Mars","ASC","MC","IC","DSC"]);
 const ANGLES = new Set(["ASC","MC","IC","DSC"]);
@@ -53,17 +51,8 @@ const DEFAULTS = {
   outerTightenStep: 0.2,
   uranusTightFlagDeg: 3.0,
   crisisSupportiveCap: 0.6,          // cap supportive aspects to 60% of friction during crisis
-  // Enhanced volatility settings
-  fastComponentThreshold: 1.0,       // orb threshold for fast-moving aspects (Moon-Mercury/Mars)
   rollingWindowDays: 14,             // magnitude normalization window
   hookStackCap: 5,                   // max hooks to surface in summary
-  // Planetary weights for volatility dispersion
-  planetaryWeights: {
-    'Sun': 1.2, 'Moon': 1.5, 'ASC': 1.3, 'MC': 1.3, 'IC': 1.1, 'DSC': 1.1,
-    'Mercury': 1.0, 'Venus': 1.0, 'Mars': 1.1, 'Jupiter': 0.9,
-    'Saturn': 0.8, 'Uranus': 0.7, 'Neptune': 0.6, 'Pluto': 0.6,
-    'Chiron': 0.8, 'Mean_Node': 0.7, 'Mean_South_Node': 0.7
-  }
 };
 
 function round(n, p=2){ return Math.round(n * (10**p)) / (10**p); }
@@ -193,76 +182,6 @@ function scoreAspect(inA, flags={}){
   return { ...a, S };
 }
 
-// ---------- stacking bonuses for Magnitude ----------
-function multiplicityBonus(scored, opts=DEFAULTS){
-  let hub = 0, target = 0;
-
-  const byTransit = new Map();
-  for (const x of scored){ const k = x.transit.body; byTransit.set(k,(byTransit.get(k)||0)+1); }
-  for (const [,n] of byTransit) if (n>=3) hub += 0.2*(n-2);
-  hub = Math.min(opts.hubBonusCap, hub);
-
-  const byTarget = new Map();
-  for (const x of scored){ const k = x.natal.body; byTarget.set(k,(byTarget.get(k)||0)+1); }
-  for (const [,m] of byTarget) if (m>=2) target += 0.1*(m-1);
-  target = Math.min(opts.sameTargetBonusCap, target);
-
-  return hub + target;
-} 
-
-// ---------- Enhanced Volatility Index (weighted dispersion) ----------
-function volatility(scoredToday, prevCtx=null, opts=DEFAULTS){
-  let A=0,B=0,C=0,D=0;
-  const key = (x)=>`${x.transit.body}|${x.natal.body}|${x.type}`;
-
-  // A: Tight aspects entering/leaving
-  if (prevCtx?.scored){
-    const tight = arr => arr.filter(x=>x.orbDeg <= opts.tightBandDeg);
-    const prevTight = new Set(tight(prevCtx.scored).map(key));
-    const nowTight  = new Set(tight(scoredToday).map(key));
-    for (const k of nowTight) if (!prevTight.has(k)) A++;
-    for (const k of prevTight) if (!nowTight.has(k)) A++;
-  }
-
-  // B: Valence sign flip 
-  if (typeof prevCtx?.Y_effective === "number"){
-    const prevY = prevCtx.Y_effective;
-    const nowY  = scoredToday.reduce((s,x)=>s+x.S,0);
-    if (Math.sign(prevY) !== Math.sign(nowY) && Math.abs(prevY)>0.05 && Math.abs(nowY)>0.05) B = 1;
-  }
-
-  // C: Outer planet hard aspects tightening
-  if (prevCtx?.scored){
-    const prevMap = new Map(prevCtx.scored.map(x=>[key(x),x]));
-    for (const cur of scoredToday){
-      const pX = prevMap.get(key(cur));
-      const isOuterHard = (OUTER.has(cur.transit.body) || OUTER.has(cur.natal.body)) &&
-                          (cur.type==="square" || cur.type==="opposition");
-      if (pX && isOuterHard && (pX.orbDeg - cur.orbDeg) >= opts.outerTightenStep) C++;
-    }
-  }
-
-  // D: Uranus exact activation
-  if (scoredToday.some(x => (x.transit.body==="Uranus" || x.natal.body==="Uranus") && x.orbDeg <= opts.uranusTightFlagDeg)) D = 1;
-
-  // Enhanced: Add weighted valence dispersion component
-  const weightedValences = scoredToday.map(x => {
-    const transitWeight = opts.planetaryWeights[x.transit.body] || 0.5;
-    const natalWeight = opts.planetaryWeights[x.natal.body] || 0.5;
-    const combinedWeight = Math.max(transitWeight, natalWeight);
-    return x.S * combinedWeight;
-  });
-
-  let E = 0; // Dispersion component
-  if (weightedValences.length >= 3) {
-    const mean = weightedValences.reduce((s, v) => s + v, 0) / weightedValences.length;
-    const variance = weightedValences.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / weightedValences.length;
-    const stdDev = Math.sqrt(variance);
-    E = Math.min(2, stdDev * 0.5); // Scale to 0-2 range
-  }
-
-  return A + B + C + D + Math.round(E);
-} 
 
 // ---------- Rolling magnitude normalization with fallback scaling ----------
 function normalizeWithRollingWindow(magnitude, rollingContext = null, opts = DEFAULTS, diagnosticMode = false) {
@@ -617,15 +536,6 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     }, { label: 'BIAS_NORM', enableDiagnostics: true });
   }
 
-  // === VOLATILITY (DIAGNOSTIC ONLY - not a public axis in v5.0) ===
-  const VI = volatility(scored, prevCtx, opts);
-  // Keep VI_normalized for internal diagnostics, but don't expose coherence as public axis
-  const VI_normalized = Math.min(1, VI / 50); // Simple normalization for diagnostics
-  const volatility_scaled = Math.max(
-    0,
-    Math.min(SCALE_FACTOR, VI_normalized * SCALE_FACTOR)
-  );
-
   // Transform trace for observability (v5.0 - two axes only)
   const transform_trace = {
     pipeline: 'normalize_scale_clamp_round',
@@ -633,11 +543,11 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     canonical_scalers_used: true,
     axes_count: 2, // v5.0: Magnitude + Directional Bias only
     steps: [
-      { stage: 'raw', magnitude_energy: X_raw, directional_bias_sum: Y_raw, volatility_index: VI },
-      { stage: 'amplified', magnitude_energy: X_raw, directional_bias_sum: Y_amplified, volatility_index: VI },
-      { stage: 'normalized', magnitude: magnitudeNormalized, bias: Y_normalized, volatility: VI_normalized },
+      { stage: 'raw', magnitude_energy: X_raw, directional_bias_sum: Y_raw },
+      { stage: 'amplified', magnitude_energy: X_raw, directional_bias_sum: Y_amplified },
+      { stage: 'normalized', magnitude: magnitudeNormalized, bias: Y_normalized },
       { stage: 'scaled', magnitude: magnitudeScaled.raw, directional_bias: biasScaled.raw },
-      { stage: 'final', magnitude: magnitudeValue, directional_bias }
+      { stage: 'final', magnitude: magnitudeValue, directional_bias: directional_bias }
     ],
     clamp_events: [
       ...(biasScaled.flags.hitMin || biasScaled.flags.hitMax ? [{ axis: 'directional_bias', raw: biasScaled.raw, clamped: directional_bias }] : []),
@@ -647,79 +557,32 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
 
   const magnitudeRounded = round(magnitudeValue, 1);
   const directionalBiasRounded = round(directional_bias, 1);
-  const volatilityRounded = round(volatility_scaled, 1);
 
   const magnitudeLabel = getMagnitudeLabel(magnitudeValue) || null;
   const directionalBiasLabel = getDirectionalBiasLabel(directional_bias) || null;
-  const volatilityInfo = Number.isFinite(volatilityRounded)
-    ? classifyVolatility(volatilityRounded)
-    : null;
-  const volatilityLabel = volatilityInfo?.label || null;
-
-  const magnitudeRange = [0, SCALE_FACTOR];
-  const magnitudeClamped = magnitudeScaled.flags.hitMin || magnitudeScaled.flags.hitMax;
-  const scalingConfidence = rollingContext?.magnitudes
-    ? Math.min(1, rollingContext.magnitudes.length / 14)
-    : 0;
 
   const result = {
     // === PUBLIC AXES (v5.0 - Two Only) ===
     magnitude: magnitudeRounded,
     directional_bias: directionalBiasRounded,
+
+    // === FULL DATA AXES (for internal/dev use) ===
     axes: {
-      magnitude: { value: magnitudeRounded, normalized: magnitudeNormalized, scaled: magnitudeScaled.raw, raw: X_raw },
-      directional_bias: { value: directionalBiasRounded, normalized: Y_normalized, scaled: biasScaled.raw, raw: Y_raw },
-      volatility: { value: volatilityRounded, normalized: VI_normalized, scaled: volatility_scaled, raw: VI }
+      magnitude: { value: magnitudeRounded, normalized: magnitudeNormalized, scaled: magnitudeScaled.raw, raw: X_raw, label: magnitudeLabel },
+      directional_bias: { value: directionalBiasRounded, normalized: Y_normalized, scaled: biasScaled.raw, raw: Y_raw, label: directionalBiasLabel },
     },
 
-    // === DIAGNOSTIC/INTERNAL (not public axes) ===
+    // === DIAGNOSTICS & TRACEABILITY ===
     _diagnostics: {
-      volatility: round(VI, 2),
-      volatility_normalized: VI_normalized,
       aspect_count: scored.length,
       scaling_method: scalingMethod,
-      effective_divisor: effectiveDivisor
+      effective_divisor: effectiveDivisor,
+      raw_magnitude: X_raw,
+      raw_bias: Y_raw,
+      amplified_bias: Y_amplified,
     },
-
-    // === INTERNAL USE ===
-    scored,
     transform_trace,
-    magnitude_normalized: magnitudeNormalized,
-    bias_normalized: Y_normalized,
-    bias_amplified: Y_amplified,
-    rawMagnitude: magnitudeScaled.raw,
-    rawDirectionalBias: biasScaled.raw,
-    volatility: volatilityRounded,
-    volatility_label: volatilityLabel,
-    volatility_scaled,
-    rawValence: Y_raw,
-    originalMagnitude: magnitudeValue,
-    energyMagnitude: X_raw,
-    biasEnergy: Y_raw,
-
-    // === Legacy compatibility fields (v4 schema) ===
-    magnitude_label: magnitudeLabel,
-    magnitude_meta: null,
-    magnitude_range: magnitudeRange,
-    magnitude_method: scalingMethod,
-    magnitude_clamped: magnitudeClamped,
-    directional_bias_label: directionalBiasLabel,
-    raw_axes: {
-      magnitude: magnitudeScaled.raw,
-      bias_signed: biasScaled.raw,
-      volatility: volatility_scaled
-    },
-    saturation: magnitudeRounded >= (SCALE_FACTOR - 0.05),
-    scaling_strategy: scalingMethod,
-    scaling_confidence: scalingConfidence,
-    magnitude_state: {
-      value: magnitudeRounded,
-      label: magnitudeLabel,
-      range: magnitudeRange,
-      clamped: magnitudeClamped,
-      meta: null,
-      method: scalingMethod
-    },
+    scored,
     version: 'v5.0'
   };
 
@@ -771,6 +634,6 @@ module.exports = {
   calculateSeismograph: aggregate, // Alias for test compatibility
   _internals: {
     normalizeAspect, baseValence, planetTier, orbMultiplier, sensitivityMultiplier,
-    scoreAspect, multiplicityBonus, volatility, normalizeWithRollingWindow, median
+    scoreAspect, normalizeWithRollingWindow, median
   }
 };
