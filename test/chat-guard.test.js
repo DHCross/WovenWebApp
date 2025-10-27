@@ -1,11 +1,13 @@
 /*
  Simple smoke test for chat API guard behavior.
- Requires: netlify dev running locally (http://localhost:8888)
+ Requires: next dev or netlify dev running locally
+ Default: http://localhost:3000 (Next.js dev server)
+ Override: BASE_URL=http://localhost:8888 for Netlify dev
  */
 
 const fetch = require('node-fetch');
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:8888';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 async function post(path, body) {
   const res = await fetch(`${BASE_URL}${path}`, {
