@@ -623,20 +623,21 @@ export async function renderShareableMirror({ geo, prov, options, conversational
     }
   });
 
-  const combinedParagraph = [
-    picture,
-    feeling,
-    container,
-    option,
-    nextStep
-  ].map(s => s.trim()).filter(Boolean).join('\n\n');
+  // Add symbolic weather if available
+  const weatherData = options?.unified_output?.daily_entries?.[0]?.symbolic_weather;
+  let weatherSegment = '';
+  if (weatherData) {
+    weatherSegment = `Today's symbolic weather has a magnitude of ${weatherData.magnitude} and a directional bias of ${weatherData.directional_bias}. This suggests a climate of ${weatherData.labels.magnitude} intensity with a ${weatherData.labels.directional_bias} flow.`;
+  }
+
+  const finalFeeling = [feeling, weatherSegment].filter(Boolean).join(' ');
 
   return {
-    picture: combinedParagraph,
-    feeling: '',
-    container: '',
-    option: '',
-    next_step: '',
+    picture,
+    feeling: finalFeeling,
+    container,
+    option,
+    next_step: nextStep,
     appendix,
   };
 }
