@@ -1165,7 +1165,7 @@ export default function MathBrainPage() {
 
   // User-friendly filename helper (Raven Calder naming system)
   const friendlyFilename = useCallback(
-    (type: 'directive' | 'dashboard' | 'symbolic-weather' | 'weather-log' | 'engine-config') => {
+    (type: 'directive' | 'dashboard' | 'symbolic-weather' | 'weather-log' | 'engine-config' | 'ai-bundle') => {
       const duo = includePersonB
         ? `${personASlug}-${personBSlug}`
         : personASlug;
@@ -1176,7 +1176,8 @@ export default function MathBrainPage() {
         'dashboard': 'Weather_Dashboard',
         'symbolic-weather': 'Symbolic_Weather_Dashboard',
         'weather-log': 'Weather_Log',
-        'engine-config': 'Engine_Configuration'
+        'engine-config': 'Engine_Configuration',
+        'ai-bundle': 'AI_Bundle',
       };
 
       return `${nameMap[type]}_${duo}_${dateStr}`;
@@ -1357,11 +1358,13 @@ export default function MathBrainPage() {
     downloadMirrorDirectiveJSON,
     downloadMapFile,
     downloadFieldFile,
+    downloadAIBundle,
     pdfGenerating,
     markdownGenerating,
     cleanJsonGenerating,
     engineConfigGenerating,
     weatherJsonGenerating,
+    bundleGenerating,
   } = useChartExport({
     result,
     reportType,
@@ -4671,10 +4674,12 @@ export default function MathBrainPage() {
             weatherJsonGenerating={weatherJsonGenerating}
             engineConfigGenerating={engineConfigGenerating}
             cleanJsonGenerating={cleanJsonGenerating}
+            bundleGenerating={bundleGenerating}
             onDownloadPDF={downloadResultPDF}
             onDownloadMarkdown={downloadResultMarkdown}
             onDownloadMirrorDirective={downloadMirrorDirectiveJSON}
             onDownloadSymbolicWeather={downloadSymbolicWeatherJSON}
+            onDownloadBundle={downloadAIBundle}
             onDownloadGraphsPDF={downloadGraphsPDF}
             onDownloadEngineConfig={downloadBackstageJSON}
             onDownloadCleanJSON={downloadResultJSON}
