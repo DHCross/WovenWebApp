@@ -47,6 +47,50 @@ function countInclusiveDays(start: Date, end: Date): number {
   return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
 }
 
+function buildFailureResponse(status: number, payload: any, rawBody: string | null) {
+  const originalMessage = typeof payload?.error === 'string'
+    ? payload.error
+    : typeof payload?.message === 'string'
+      ? payload.message
+      : rawBody || 'Math Brain request failed.';
+
+  let error = originalMessage;
+  let code = typeof payload?.code === 'string' ? payload.code : 'MATH_BRAIN_ERROR';
+  let hint: string | undefined;
+  let httpStatus = status;
+
+  const errorText = `${originalMessage} ${(payload?.detail || payload?.message || payload?.error || '')}`.trim();
+  const missingRapidKey = code === 'RAPIDAPI_KEY_MISSING' || /RAPIDAPI_KEY/i.test(errorText);
+
+  if (missingRapidKey) {
+    error = 'Math Brain is offline until RAPIDAPI_KEY is configured.';
+    code = 'RAPIDAPI_KEY_MISSING';
+    hint = 'Add RAPIDAPI_KEY to .env.local and deployment secrets, then restart.';
+    httpStatus = 503;
+  } else if (code === 'RAPIDAPI_SUBSCRIPTION' || status === 401 || status === 403) {
+    error = 'RapidAPI rejected the request. Verify your RAPIDAPI_KEY and subscription plan.';
+    code = 'RAPIDAPI_AUTH_ERROR';
+    hint = 'Double-check the RapidAPI key, subscription tier, and project linkage.';
+    httpStatus = 503;
+  } else if (status === 429) {
+    error = 'RapidAPI rate limit reached. Pause for a minute and try again.';
+    code = 'RAPIDAPI_RATE_LIMIT';
+    httpStatus = 503;
+  } else if (code === 'UPSTREAM_TEMPORARY' || status >= 500) {
+    error = 'Astrologer API is temporarily unavailable. Please retry shortly.';
+    code = 'UPSTREAM_TEMPORARY';
+    httpStatus = status >= 500 ? 503 : status;
+  }
+
+  return NextResponse.json({
+    success: false,
+    error,
+    code,
+    hint,
+    detail: payload?.detail ?? originalMessage
+  }, { status: httpStatus });
+}
+
 export async function GET(request: NextRequest) {
   // Convert Next.js request to Netlify event format
   const url = new URL(request.url);
@@ -173,26 +217,31 @@ export async function POST(request: NextRequest) {
     try {
       // Get raw chart data by calling the legacy handler
       const legacyResult = await mathBrainFunction.handler(event, context);
-      if (!legacyResult || legacyResult.statusCode >= 400) {
-        const errorBody = legacyResult?.body ? JSON.parse(legacyResult.body) : {};
+      const legacyStatus = legacyResult?.statusCode ?? 500;
+      let legacyBody: any = null;
+      let rawBody: string | null = null;
+
+      if (legacyResult?.body) {
+        rawBody = legacyResult.body;
+        try {
+          legacyBody = JSON.parse(legacyResult.body);
+        } catch {
+          legacyBody = { error: legacyResult.body };
+        }
+      }
+
+      if (!legacyResult || legacyStatus >= 400) {
         logger.error('Failed to fetch raw chart data from legacy handler', {
-          statusCode: legacyResult?.statusCode,
-          errorCode: errorBody?.code,
-          errorMessage: errorBody?.error,
-          errorDetails: errorBody
+          statusCode: legacyStatus,
+          errorCode: legacyBody?.code,
+          errorMessage: legacyBody?.error,
+          errorDetails: legacyBody
         });
 
-        // Return a more detailed error to help debugging
-        return NextResponse.json({
-          success: false,
-          error: 'Math Brain v2 processing failed',
-          detail: errorBody?.error || 'Could not retrieve foundational chart data.',
-          code: errorBody?.code || 'MATH_BRAIN_V2_ERROR',
-          legacyStatusCode: legacyResult?.statusCode,
-          hint: errorBody?.hint
-        }, { status: 500 });
+        return buildFailureResponse(legacyStatus, legacyBody, rawBody);
       }
-      const chartData = JSON.parse(legacyResult.body);
+
+      const chartData = legacyBody;
 
       // Prepare the config for the v2 formatter/aggregator
       const v2Config = {

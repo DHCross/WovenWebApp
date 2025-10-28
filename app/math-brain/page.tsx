@@ -63,6 +63,17 @@ type ChartAssetDisplay = {
   size?: number;
 };
 
+type ProviderGate = {
+  ready: boolean;
+  configured: boolean;
+  message?: string;
+};
+
+type ProviderGateState = {
+  astrology: ProviderGate;
+  poetic: ProviderGate;
+};
+
 const RELATIONAL_MODES: ReportMode[] = [
   'SYNASTRY',
   'SYNASTRY_TRANSITS',
@@ -1058,7 +1069,12 @@ export default function MathBrainPage() {
       return { ...DEFAULT_LAYER_VISIBILITY };
     }
   });
-  const canVisitPoetic = POETIC_BRAIN_ENABLED;
+  const [providerHealth, setProviderHealth] = useState<ProviderGateState>({
+    astrology: { ready: true, configured: true },
+    poetic: { ready: true, configured: true }
+  });
+  const [providerCheckPending, setProviderCheckPending] = useState<boolean>(true);
+  const canVisitPoetic = POETIC_BRAIN_ENABLED && providerHealth.poetic.ready;
 
   // Person B subject state
   const [personB, setPersonB] = useState<Subject>({
@@ -1248,6 +1264,60 @@ export default function MathBrainPage() {
   const lastSubmitRef = useRef<number>(0);
   // Lightweight toast for ephemeral notices (e.g., Mirror failure)
   const [toast, setToast] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function probeProviders() {
+      try {
+        const response = await fetch('/api/provider-health', { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error(`Health check failed with status ${response.status}`);
+        }
+        const data = await response.json();
+        if (cancelled) return;
+
+        const astrology = {
+          ready: Boolean(data?.providers?.astrology?.ok),
+          configured: Boolean(data?.providers?.astrology?.configured),
+          message: data?.providers?.astrology?.message || undefined
+        };
+        const poetic = {
+          ready: Boolean(data?.providers?.poetic?.ok),
+          configured: Boolean(data?.providers?.poetic?.configured),
+          message: data?.providers?.poetic?.message || undefined
+        };
+
+        setProviderHealth({ astrology, poetic });
+
+        const offlineMessages: string[] = [];
+        if (!astrology.ready && astrology.message) offlineMessages.push(astrology.message);
+        if (!poetic.ready && poetic.message) offlineMessages.push(poetic.message);
+        if (offlineMessages.length) {
+          setToast(offlineMessages.join(' • '));
+          setTimeout(() => setToast(null), 3500);
+        }
+      } catch (error: any) {
+        if (cancelled) return;
+        const fallbackMessage = 'Unable to verify provider health. Services may be offline.';
+        setProviderHealth({
+          astrology: { ready: false, configured: false, message: fallbackMessage },
+          poetic: { ready: false, configured: false, message: fallbackMessage }
+        });
+        setToast(fallbackMessage);
+        setTimeout(() => setToast(null), 3500);
+      } finally {
+        if (!cancelled) {
+          setProviderCheckPending(false);
+        }
+      }
+    }
+
+    probeProviders();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setProviderHealth, setProviderCheckPending, setToast]);
   useEffect(() => {
     try {
       // Initialize from URL and localStorage
@@ -3659,12 +3729,14 @@ export default function MathBrainPage() {
     return allPresent && bOk && relOk && Boolean(startDate) && Boolean(endDate);
   }, [personA, personB, includePersonB, relationshipType, relationshipTier, relationshipRole, mode, startDate, endDate, aCoordsValid, bCoordsValid, timeUnknown, timeUnknownB, timePolicy, includeTransits]);
   const submitDisabled = useMemo(() => {
+    if (providerCheckPending) return true;
+    if (!providerHealth.astrology.ready) return true;
     // Additional relocation/report gate
     const locGate = needsLocation(reportType, includeTransits, personA);
     if (includeTransits && !locGate.hasLoc) return true;
     if (!canSubmit || loading) return true;
     return false;
-  }, [canSubmit, loading, personA, reportType, includeTransits]);
+  }, [canSubmit, loading, personA, reportType, includeTransits, providerCheckPending, providerHealth.astrology.ready]);
 
   // Debug panel toggle (append ?debug=1 to the URL to enable)
   const [debugMode, setDebugMode] = useState(false);
@@ -3748,6 +3820,18 @@ export default function MathBrainPage() {
     if (includeTransits && !locGate.hasLoc) {
       setToast('Transits need current location to place houses correctly. Add a location or switch to natal-only mode.');
       setTimeout(()=>setToast(null), 2500);
+      return;
+    }
+    if (providerCheckPending) {
+      setToast('Checking provider readiness…');
+      setTimeout(() => setToast(null), 2500);
+      return;
+    }
+    if (!providerHealth.astrology.ready) {
+      const outageMessage = providerHealth.astrology.message || 'Math Brain is currently unavailable.';
+      setError(outageMessage);
+      setToast(outageMessage);
+      setTimeout(() => setToast(null), 3500);
       return;
     }
     if (!canSubmit) return;
@@ -4539,6 +4623,13 @@ export default function MathBrainPage() {
               <p className="mt-2 text-xs text-amber-400">Hint: Toggle "Include Person B" and fill in required fields to enable relational modes.</p>
             )}
             {submitDisabled && !loading && (() => {
+              if (providerCheckPending) {
+                return <p className="mt-2 text-xs text-amber-400">⚠️ Checking provider readiness…</p>;
+              }
+              if (!providerHealth.astrology.ready) {
+                const outageMessage = providerHealth.astrology.message || 'Math Brain services are currently unavailable.';
+                return <p className="mt-2 text-xs text-amber-400">⚠️ {outageMessage}</p>;
+              }
               const locGate = needsLocation(reportType, includeTransits, personA);
               if (includeTransits && !locGate.hasLoc) {
                 return <p className="mt-2 text-xs text-amber-400">⚠️ Transits require location data. Please enter coordinates or city/state for Person A.</p>;

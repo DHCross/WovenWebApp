@@ -31,10 +31,12 @@ const API_URL = process.env.PERPLEXITY_API_URL || 'https://api.perplexity.ai/cha
 type ErrorType = 'network' | 'timeout' | 'auth' | 'rate_limit' | 'server' | 'unknown';
 
 function classifyError(error: any, status?: number): ErrorType {
+  const message = typeof error?.message === 'string' ? error.message : '';
   if (status === 401 || status === 403) return 'auth';
   if (status === 429) return 'rate_limit';
   if (status && status >= 500) return 'server';
   if (error?.name === 'AbortError') return 'timeout';
+  if (message.includes('PERPLEXITY_API_KEY') || message.includes('Perplexity API key')) return 'auth';
   if (error?.message?.includes('fetch') || error?.message?.includes('network')) return 'network';
   return 'unknown';
 }
@@ -93,7 +95,10 @@ function extractText(choice: any): string {
 async function requestCompletion(prompt: string, opts: StreamOptions) {
   const apiKey = process.env.PERPLEXITY_API_KEY || process.env.PERPLEXITY;
   if (!apiKey) {
-    throw new Error('Error: PERPLEXITY_API_KEY is not configured.');
+    const error: any = new Error('Perplexity API key is not configured. Add PERPLEXITY_API_KEY to your environment.');
+    error.status = 401;
+    error.code = 'PERPLEXITY_API_KEY_MISSING';
+    throw error;
   }
 
   const controller = new AbortController();
@@ -194,7 +199,8 @@ export async function *generateStream(prompt: string, opts: StreamOptions = {}):
       // Don't retry auth or rate limit errors
       if (!shouldRetry(lastErrorType)) {
         logError('generateStream', lastErrorType, error?.message || String(error));
-        yield { delta: '', error: `Error: ${error?.message || 'API request failed'}` };
+        const friendlyMessage = formatPerplexityFailure(lastErrorType, error);
+        yield { delta: friendlyMessage, error: friendlyMessage };
         return;
       }
 
@@ -207,7 +213,8 @@ export async function *generateStream(prompt: string, opts: StreamOptions = {}):
   }
 
   const errorMessage = lastError?.message || 'An unknown error occurred after multiple retries.';
-  yield { delta: '', error: `Error: API call failed after ${MAX_RETRIES} attempts [${lastErrorType}]. Last error: ${errorMessage}` };
+  const fallbackMessage = formatPerplexityFailure(lastErrorType, new Error(errorMessage));
+  yield { delta: fallbackMessage, error: fallbackMessage };
 }
 
 function normalizePrompt(p: string) { return p.replace(/\s+/g, ' ').trim(); }
@@ -233,4 +240,22 @@ export async function generateText(prompt: string, opts: StreamOptions = {}): Pr
 
 export async function callPerplexity(prompt: string, opts: StreamOptions = {}): Promise<string> {
   return generateText(prompt, opts);
+}
+
+function formatPerplexityFailure(errorType: ErrorType, error: any): string {
+  const detail = typeof error?.message === 'string' ? error.message : 'request failed';
+  switch (errorType) {
+    case 'auth':
+      return `Perplexity authentication failed: ${detail}. Check PERPLEXITY_API_KEY and restart the service.`;
+    case 'rate_limit':
+      return `Perplexity rate limit reached. Wait a moment and try again. (${detail})`;
+    case 'timeout':
+      return `Perplexity timed out before responding. Please retry in a moment. (${detail})`;
+    case 'server':
+      return `Perplexity service returned an error. Try again shortly. (${detail})`;
+    case 'network':
+      return `Network error contacting Perplexity. Verify connectivity and retry. (${detail})`;
+    default:
+      return `Perplexity request failed: ${detail}`;
+  }
 }
