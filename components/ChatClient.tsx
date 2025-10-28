@@ -738,7 +738,6 @@ export default function ChatClient() {
   const [hasMirrorData, setHasMirrorData] = useState(false);
   const [showScrollHint, setShowScrollHint] = useState(false);
   const [scrollPadding, setScrollPadding] = useState(140);
-  const [stickyOffset, setStickyOffset] = useState(0);
   const scrollPaddingRef = useRef(scrollPadding);
 
   const streamContainerRef = useRef<HTMLElement | null>(null);
@@ -1245,9 +1244,9 @@ export default function ChatClient() {
     }
   }, [messages, ravenMessages]);
 
-  const calculateScrollMetrics = useCallback(() => {
+  const calculateScrollPadding = useCallback(() => {
     if (typeof window === "undefined") {
-      return { padding: 140, headerHeight: 0, viewportOffset: 0 };
+      return 140;
     }
 
     const header = document.querySelector<HTMLElement>(
@@ -1255,11 +1254,9 @@ export default function ChatClient() {
     );
     const nav = document.querySelector<HTMLElement>("[data-chat-nav]");
     let total = 16;
-    let headerHeight = 0;
 
     if (header) {
-      headerHeight = header.getBoundingClientRect().height;
-      total += headerHeight;
+      total += header.getBoundingClientRect().height;
     }
     if (nav) {
       total += nav.getBoundingClientRect().height;
@@ -1271,24 +1268,16 @@ export default function ChatClient() {
       total += viewportOffset;
     }
 
-    return {
-      padding: Math.max(total, 128),
-      headerHeight,
-      viewportOffset,
-    };
+    return Math.max(total, 128);
   }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const update = () => {
-      const metrics = calculateScrollMetrics();
+      const padding = calculateScrollPadding();
       setScrollPadding((prev) =>
-        Math.abs(prev - metrics.padding) > 0.5 ? metrics.padding : prev,
-      );
-      const desiredOffset = Math.max(0, metrics.headerHeight + metrics.viewportOffset);
-      setStickyOffset((prev) =>
-        Math.abs(prev - desiredOffset) > 0.5 ? desiredOffset : prev,
+        Math.abs(prev - padding) > 0.5 ? padding : prev,
       );
     };
 
@@ -1306,7 +1295,7 @@ export default function ChatClient() {
       viewport?.removeEventListener("resize", update);
       viewport?.removeEventListener("scroll", update);
     };
-  }, [calculateScrollMetrics]);
+  }, [calculateScrollPadding]);
 
   useEffect(() => {
     scrollPaddingRef.current = scrollPadding;
@@ -2582,11 +2571,7 @@ export default function ChatClient() {
 
   return (
     <div
-      className="app relative mx-auto flex min-h-screen min-h-[100dvh] h-full w-full max-w-[980px] xl:max-w-[1400px] 2xl:max-w-[1600px] flex-col overflow-x-hidden"
-      style={{
-        margin: "0 auto",
-      }}
-
+      className="app relative flex min-h-screen min-h-[100dvh] w-full flex-col overflow-x-hidden bg-gradient-to-br from-[#05060b] via-[#0c111e] to-[#010207] text-slate-100"
     >
       <input
         type="file"
@@ -2809,132 +2794,131 @@ export default function ChatClient() {
           })()}
         </div>
       )}
-      <main
-        className="relative flex flex-1 flex-col gap-3 p-3 min-h-0 lg:grid lg:grid-cols-[280px_1fr] lg:gap-4"
-      >
-        <NavigationPanel
-          ravenMessages={ravenMessages}
-          scrollToTop={scrollToTop}
-          scrollToRavenMessage={scrollToRavenMessage}
-          currentRavenIndex={currentRavenIndex}
-          scrollToBottom={scrollToBottom}
-          stickyOffset={stickyOffset}
-        />
-        <div className="hidden h-full lg:block">
-          <Sidebar
-            onInsert={(m) => {
-              // Send the message programmatically to trigger Raven's response
-              const text = m.html || m.content || "";
-              if (text) {
-                sendProgrammatic(text);
-              }
-            }}
-            hasMirrorData={hasMirrorData}
-          />
-        </div>
-        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-          {/* Quick Access Panel - Mobile & Tablet */}
-          <div className="lg:hidden mb-4 space-y-3">
-            {/* Primary Actions Row */}
-            <div className="flex gap-2 flex-wrap">
-              <Link
-                href="/glossary"
-                className="btn rounded-md border border-[var(--line)] bg-[var(--soft)] px-3 py-2 text-xs text-[var(--text)] flex items-center gap-1 hover:bg-[var(--line)]"
-              >
-                📖 Full Glossary
-              </Link>
-              <button
-                onClick={() => {
-                  setShowPoeticMenu(!showPoeticMenu);
-                }}
-                className="btn rounded-md border border-[var(--line)] bg-[var(--soft)] px-3 py-2 text-xs text-[var(--text)] flex items-center gap-1 hover:bg-[var(--line)]"
-              >
-                🎭 Poetic Tools
-              </button>
-              <div className="flex items-center">
-                <UsageMeter compact={true} />
+      <main className="flex-1 w-full px-4 pb-24">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,2.6fr)_minmax(320px,1fr)] lg:items-start">
+          <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[var(--line)] bg-[rgba(15,18,27,0.88)] shadow-[0_30px_70px_rgba(8,11,20,0.55)] backdrop-blur">
+            <div className="flex flex-col gap-4 border-b border-[var(--line)] px-4 py-4 sm:px-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 text-[12px] text-[var(--muted)]">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-2 w-2 rounded-full bg-[var(--good)] shadow-[0_0_10px_var(--good)]" aria-hidden />
+                  <span>Ready for a fresh reflection</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <UsageMeter compact={true} />
+                  <HitRateDisplay />
+                </div>
+              </div>
+              <div className="lg:hidden">
+                <NavigationPanel
+                  ravenMessages={ravenMessages}
+                  scrollToTop={scrollToTop}
+                  scrollToRavenMessage={scrollToRavenMessage}
+                  currentRavenIndex={currentRavenIndex}
+                  scrollToBottom={scrollToBottom}
+                  className="rounded-xl border border-[var(--line)] bg-[rgba(255,255,255,0.02)] p-3"
+                />
               </div>
             </div>
-
-            {/* Balance Framework Quick Access */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <button
-                onClick={() => {
-                  setIsSidebarOpen(true);
-                  // Will open glossary tab by default
-                }}
-                className="btn rounded-md border border-[var(--line)] bg-[rgba(255,255,255,0.02)] px-2 py-2 text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--soft)] flex flex-col items-center gap-1"
-                title="View Magnitude scale details"
-              >
-                <span className="text-sm">⚡</span>
-                <span>Magnitude</span>
-              </button>
-              <button
-                onClick={() => {
-                  setIsSidebarOpen(true);
-                }}
-                className="btn rounded-md border border-[var(--line)] bg-[rgba(255,255,255,0.02)] px-2 py-2 text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--soft)] flex flex-col items-center gap-1"
-                title="View Directional Bias (expansion/contraction)"
-              >
-                <span className="text-sm">🌞</span>
-                <span>Directional Bias</span>
-              </button>
-              <button
-                onClick={() => {
-                  setIsSidebarOpen(true);
-                }}
-                className="btn rounded-md border border-[var(--line)] bg-[rgba(255,255,255,0.02)] px-2 py-2 text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--soft)] flex flex-col items-center gap-1"
-                title="View Four-Channel Architecture"
-              >
-                <span className="text-sm">🌡️</span>
-                <span>Climate</span>
-              </button>
+            <div className="flex flex-1 flex-col min-h-0">
+              <div className="px-4 py-4 sm:px-6 lg:hidden">
+                <div className="space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setIsSidebarOpen(true)}
+                      className="btn rounded-md border border-[var(--line)] bg-[var(--soft)] px-3 py-2 text-xs text-[var(--text)] flex items-center gap-1 hover:bg-[var(--line)]"
+                    >
+                      📖 Glossary
+                    </button>
+                    <button
+                      onClick={() => setShowPoeticMenu(!showPoeticMenu)}
+                      className="btn rounded-md border border-[var(--line)] bg-[var(--soft)] px-3 py-2 text-xs text-[var(--text)] flex items-center gap-1 hover:bg-[var(--line)]"
+                    >
+                      🎭 Poetic Tools
+                    </button>
+                    <button
+                      onClick={requestPoeticCard}
+                      className="btn rounded-md border border-[var(--line)] bg-[rgba(124,92,255,0.08)] px-3 py-2 text-xs text-[var(--text)] flex items-center gap-1 hover:bg-[rgba(124,92,255,0.12)]"
+                    >
+                      🎴 Poetic Card
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {["Magnitude", "Directional", "Climate", "Mirror"].map((label, idx) => (
+                      <button
+                        key={label}
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="btn rounded-md border border-[var(--line)] bg-[rgba(255,255,255,0.02)] px-2 py-3 text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--soft)] flex flex-col items-center gap-1"
+                      >
+                        <span className="text-sm">
+                          {["⚡", "🌞", "🌡️", "🪞"][idx]}
+                        </span>
+                        <span>{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="relative flex-1 min-h-0 px-4 py-4 sm:px-6 sm:py-6">
+                <Stream
+                  messages={messages}
+                  typing={typing}
+                  endRef={endRef}
+                  sentinelRef={sentinelRef}
+                  containerRef={streamContainerRef}
+                  onToggleCollapse={toggleReportCollapse}
+                  onRemove={removeReport}
+                  onPingFeedback={handlePingFeedback}
+                  scrollPadding={scrollPadding}
+                />
+                {showScrollHint && (
+                  <button
+                    onClick={scrollToBottom}
+                    className="absolute bottom-6 right-6 z-[1000] flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-[0_10px_24px_rgba(124,92,255,0.35)]"
+                    title="Return to current response"
+                    aria-label="Return to latest response"
+                  >
+                    ↓
+                  </button>
+                )}
+              </div>
+              <div className="border-t border-[var(--line)] px-4 py-4 sm:px-6">
+                <Composer
+                  input={input}
+                  setInput={setInput}
+                  onSend={send}
+                  onStop={stop}
+                  onAttach={() => handleFileSelect(null)}
+                  disabled={typing}
+                  className="w-full"
+                />
+              </div>
             </div>
-
-            {/* Poetic Features Row */}
-            <div className="flex gap-2 flex-wrap">
-              <button
-                onClick={requestPoeticCard}
-                className="btn rounded-md border border-[var(--line)] bg-[rgba(124,92,255,0.05)] px-3 py-1.5 text-xs text-[var(--text)] hover:bg-[rgba(124,92,255,0.1)] flex items-center gap-1"
-                title="Create symbol-to-poem translation"
-              >
-                🎴 Poetic Card
-              </button>
-              <button
-                onClick={() => {
-                  sendProgrammatic("Please provide a symbolic weather reading for my current situation");
-                }}
-                className="btn rounded-md border border-[var(--line)] bg-[rgba(124,92,255,0.05)] px-3 py-1.5 text-xs text-[var(--text)] hover:bg-[rgba(124,92,255,0.1)] flex items-center gap-1"
-                title="Get symbolic weather reading"
-              >
-                🌡️ Weather
-              </button>
+          </section>
+          <aside className="hidden lg:flex flex-col gap-4">
+            <div className="rounded-2xl border border-[var(--line)] bg-[rgba(15,18,27,0.88)] p-4 shadow-[0_24px_60px_rgba(8,11,20,0.45)] backdrop-blur">
+              <NavigationPanel
+                ravenMessages={ravenMessages}
+                scrollToTop={scrollToTop}
+                scrollToRavenMessage={scrollToRavenMessage}
+                currentRavenIndex={currentRavenIndex}
+                scrollToBottom={scrollToBottom}
+                className="gap-3"
+              />
             </div>
-          </div>
-          <Stream
-            messages={messages}
-            typing={typing}
-            endRef={endRef}
-            sentinelRef={sentinelRef}
-            containerRef={streamContainerRef}
-            onToggleCollapse={toggleReportCollapse}
-            onRemove={removeReport}
-            onPingFeedback={handlePingFeedback}
-            scrollPadding={scrollPadding}
-          />
+            <div className="rounded-2xl border border-[var(--line)] bg-[rgba(15,18,27,0.88)] p-4 shadow-[0_24px_60px_rgba(8,11,20,0.45)] backdrop-blur">
+              <Sidebar
+                onInsert={(m) => {
+                  const text = m.html || m.content || "";
+                  if (text) {
+                    sendProgrammatic(text);
+                  }
+                }}
+                hasMirrorData={hasMirrorData}
+              />
+            </div>
+          </aside>
         </div>
-        {/* Scroll hint button */}
-        {showScrollHint && (
-          <button
-            onClick={scrollToBottom}
-            className="absolute bottom-5 right-5 z-[1000] flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-[0_4px_12px_rgba(124,92,255,0.3)]"
-            title="Return to current response"
-          >
-            ↓
-          </button>
-        )}
       </main>
-
       </div>
 
       {!isDesktop && isSidebarOpen && (
@@ -2961,7 +2945,21 @@ export default function ChatClient() {
                   ✕
                 </button>
               </div>
-              <div className="flex-1 overflow-hidden p-3">
+              <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                <NavigationPanel
+                  ravenMessages={ravenMessages}
+                  scrollToTop={scrollToTop}
+                  scrollToRavenMessage={(index) => {
+                    scrollToRavenMessage(index);
+                    setIsSidebarOpen(false);
+                  }}
+                  currentRavenIndex={currentRavenIndex}
+                  scrollToBottom={() => {
+                    scrollToBottom();
+                    setIsSidebarOpen(false);
+                  }}
+                  className="rounded-lg border border-[var(--line)] bg-[rgba(255,255,255,0.02)] p-3"
+                />
                 <Sidebar
                   onInsert={(m) => {
                     const text = m.html || m.content || "";
@@ -2985,15 +2983,6 @@ export default function ChatClient() {
           </div>
         </>
       )}
-
-      <Composer
-        input={input}
-        setInput={setInput}
-        onSend={send}
-        onStop={stop}
-        onAttach={() => handleFileSelect(null)}
-        disabled={typing}
-      />
       {/* Actor/Role Wrap-Up Card (appears only at wrap-up; offers optional rubric) */}
       {showWrapUpCard && (
         <div
@@ -3243,7 +3232,7 @@ function Header({
       data-chat-header
       className="sticky top-0 z-10 bg-[rgba(20,24,33,.9)] px-[18px] py-3 backdrop-blur border-b border-[var(--line)]"
     >
-      <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-3 sm:items-center">
             <div
@@ -3749,13 +3738,13 @@ function Stream({
       aria-label="Conversation"
       role="log"
       style={{
-        background: "var(--panel)",
-        border: "1px solid var(--line)",
-        borderRadius: "var(--radius)",
-        padding: 12,
+        background: "transparent",
+        border: "none",
+        borderRadius: 0,
+        padding: 0,
         display: "flex",
         flexDirection: "column",
-        gap: 12,
+        gap: 16,
         overflow: "auto",
         flex: 1,
         minHeight: 0,
@@ -4066,6 +4055,7 @@ function Composer({
   onStop,
   onAttach,
   disabled,
+  className,
 }: {
   input: string;
   setInput: React.Dispatch<React.SetStateAction<string>>;
@@ -4073,6 +4063,7 @@ function Composer({
   onStop: () => void;
   onAttach: () => void;
   disabled: boolean;
+  className?: string;
 }) {
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const [pasteFeedback, setPasteFeedback] = useState<string | null>(null);
@@ -4149,13 +4140,13 @@ function Composer({
 
   return (
     <div
-      className="sticky bottom-0 left-0 right-0 z-[900] px-[18px] py-3 bg-[rgba(20,24,33,.9)] backdrop-blur border-t border-[var(--line)]"
+      className={`rounded-2xl border border-[var(--line)] bg-[rgba(20,24,33,0.88)] px-3 py-3 sm:px-4 sm:py-4 shadow-[0_18px_40px_rgba(8,11,20,0.45)] backdrop-blur ${className ?? ""}`}
       style={{
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px))",
       }}
     >
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-[10px]">
-        <div className="order-1 flex items-center gap-2 sm:order-none">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-3">
+        <div className="flex items-center gap-2">
           <button
             className="inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-[var(--line)] bg-[var(--soft)] text-[13px] text-[var(--text)] cursor-pointer"
             title="Attach"
@@ -4203,7 +4194,7 @@ function Composer({
           onPaste={() => showPasteMessage("Clipboard pasted into the composer.")}
           placeholder={INPUT_PLACEHOLDER}
           aria-label="Message for Raven Calder"
-          className="order-0 min-h-[48px] w-full min-w-0 flex-1 rounded-[14px] border border-[var(--line)] bg-[var(--panel)] px-[14px] py-3 text-[14px] text-[var(--text)] sm:order-none"
+          className="min-h-[48px] w-full min-w-0 flex-1 rounded-[14px] border border-[var(--line)] bg-[var(--panel)] px-[14px] py-3 text-[14px] text-[var(--text)] shadow-inner"
           style={{
             resize: "none",
             overflow: "hidden",
@@ -4211,7 +4202,7 @@ function Composer({
             transition: "height 0.1s ease",
           }}
         />
-        <div className="order-2 flex items-center gap-2 sm:order-none">
+        <div className="flex items-center gap-2">
           <div className="hidden font-mono text-[11px] text-[var(--muted)] sm:block" aria-hidden>
             Enter ↵
           </div>
@@ -4247,75 +4238,74 @@ function NavigationPanel({
   scrollToRavenMessage,
   currentRavenIndex,
   scrollToBottom,
-  stickyOffset,
+  className,
 }: {
   ravenMessages: Message[];
   scrollToTop: () => void;
   scrollToRavenMessage: (index: number) => void;
   currentRavenIndex: number;
   scrollToBottom: () => void;
-  stickyOffset: number;
+  className?: string;
 }) {
   if (ravenMessages.length === 0) return null;
+
+  const total = ravenMessages.length;
+  const position = Math.min(currentRavenIndex + 1, total);
+
+  const buttonClass =
+    "inline-flex items-center justify-center rounded-xl border border-[var(--line)] px-3 py-2 text-xs font-medium transition-colors hover:bg-[rgba(255,255,255,0.05)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950 disabled:cursor-not-allowed disabled:opacity-50";
 
   return (
     <div
       data-chat-nav
-      className="sticky top-0 z-30 flex items-center justify-center gap-2 border-b border-[var(--line)] bg-[rgba(var(--panel-rgb),0.85)] backdrop-blur-md px-[18px] py-2 text-[12px]"
-      style={{
-        backdropFilter: "blur(6px)",
-        backgroundColor: "rgba(12, 12, 18, 0.85)",
-        top: Math.max(0, stickyOffset),
-      }}
+      className={`flex flex-col gap-3 ${className ?? ""}`}
     >
-      <button
-        type="button"
-        onClick={scrollToTop}
-        className="bg-transparent border border-[var(--line)] rounded-[6px] text-[var(--text)] px-[10px] py-[6px] text-[11px] cursor-pointer transition-all"
-        title="Jump to top"
-      >
-        ⬆️ Top
-      </button>
-
-      <button
-        type="button"
-        onClick={() => scrollToRavenMessage(Math.max(0, currentRavenIndex - 1))}
-        disabled={currentRavenIndex <= 0 || ravenMessages.length <= 1}
-        className="bg-transparent border border-[var(--line)] rounded-[6px] text-[var(--text)] px-[10px] py-[6px] text-[11px] cursor-pointer transition-all disabled:opacity-50"
-        title="Previous Raven response"
-      >
-        ← Prev
-      </button>
-
-      <span className="text-[var(--muted)]">
-        {currentRavenIndex + 1} / {ravenMessages.length}
-      </span>
-
-      <button
-        type="button"
-        onClick={() =>
-          scrollToRavenMessage(
-            Math.min(ravenMessages.length - 1, currentRavenIndex + 1),
-          )
-        }
-        disabled={
-          currentRavenIndex >= ravenMessages.length - 1 ||
-          ravenMessages.length <= 1
-        }
-        className="bg-transparent border border-[var(--line)] rounded-[6px] text-[var(--text)] px-[10px] py-[6px] text-[11px] cursor-pointer transition-all disabled:opacity-50"
-        title="Next Raven response"
-      >
-        Next →
-      </button>
-
-      <button
-        type="button"
-        onClick={scrollToBottom}
-        className="bg-transparent border border-[var(--line)] rounded-[6px] text-[var(--text)] px-[10px] py-[6px] text-[11px] cursor-pointer transition-all"
-        title="Jump to bottom"
-      >
-        ⬇️ Bottom
-      </button>
+      <div className="flex items-center justify-between text-[12px] text-[var(--muted)]">
+        <span className="font-semibold text-[var(--text)]">
+          Conversation navigator
+        </span>
+        <span>
+          {position} / {total}
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={scrollToTop}
+          className={buttonClass}
+          title="Jump to top"
+        >
+          ⬆️ Top
+        </button>
+        <button
+          type="button"
+          onClick={() => scrollToRavenMessage(Math.max(0, currentRavenIndex - 1))}
+          disabled={currentRavenIndex <= 0 || total <= 1}
+          className={buttonClass}
+          title="Previous Raven response"
+        >
+          ← Prev
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            scrollToRavenMessage(Math.min(total - 1, currentRavenIndex + 1))
+          }
+          disabled={currentRavenIndex >= total - 1 || total <= 1}
+          className={buttonClass}
+          title="Next Raven response"
+        >
+          Next →
+        </button>
+        <button
+          type="button"
+          onClick={scrollToBottom}
+          className={buttonClass}
+          title="Jump to latest message"
+        >
+          ⬇️ Latest
+        </button>
+      </div>
     </div>
   );
 }
