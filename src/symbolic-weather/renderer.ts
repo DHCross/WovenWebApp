@@ -10,8 +10,7 @@ const DEFAULT_TIMEZONE = 'America/Chicago';
 export const SCALE_FACTORS = Object.freeze({
   magnitude: SCALE_FACTOR,
   directional_bias: SCALE_FACTOR,
-  coherence: SCALE_FACTOR,
-  sfd: 10
+  coherence: SCALE_FACTOR
 });
 
 const SUPPORTIVE_ASPECTS = new Set(['trine', 'sextile']);
@@ -147,8 +146,6 @@ export interface EngineDayInput {
   directional_bias: number;
   volatility?: number;
   coherence?: number;
-  sfd?: number | null;
-  sfd_pre_scaled?: boolean;
   aspects?: AspectInput[];
   timezone?: string;
 }
@@ -176,19 +173,6 @@ export interface AxisTrace {
   transform: string;
 }
 
-export interface SfdTrace {
-  date: string;
-  axis: 'sfd';
-  supportive_sum: number | null;
-  frictional_sum: number | null;
-  score_raw: number | null;
-  scaled: number | null;
-  clamped: number | null;
-  rounded: number | null;
-  display: number | 'n/a';
-  reason?: 'input' | 'computed' | 'absent';
-}
-
 export interface ClampCounter {
   axis: string;
   bound: 'min' | 'max';
@@ -199,7 +183,6 @@ export interface ClampCounter {
 
 export interface ObservabilitySnapshot {
   traces: AxisTrace[];
-  sfd: SfdTrace[];
   clampSummary: ClampCounter[];
   alerts: string[];
 }
@@ -213,24 +196,6 @@ export interface AxisDisplay {
   precision: number;
 }
 
-export interface SfdDisplay {
-  value: number | null;
-  display: string;
-  status: 'n/a' | 'ok';
-  source: 'engine' | 'computed' | 'absent';
-  supportive: number | null;
-  frictional: number | null;
-  precision: number;
-}
-
-interface ComputedSfdResult {
-  value: number | null;
-  raw: number | null;
-  supportive: number | null;
-  frictional: number | null;
-  source: 'computed' | 'absent';
-}
-
 export interface DayDisplay {
   date: string;
   timezone: string;
@@ -238,7 +203,6 @@ export interface DayDisplay {
     magnitude: AxisDisplay;
     directionalBias: AxisDisplay;
     narrativeCoherence: AxisDisplay;
-    integrationBias: SfdDisplay;
   };
 }
 
@@ -251,7 +215,6 @@ export interface RendererMetadata {
   pipeline: 'normalize → scale → clamp → round';
   weights_profile_version: 'tight_orbs_v1';
   conjunction_policy: 'neutral';
-  sfd_pre_scaled: boolean;
   normalized_input_hash: string;
   timezone: string;
   provenance: Provenance;
@@ -302,46 +265,6 @@ function computeAspectWeight(aspect: string, orb: number, transitName: string, t
   return base * orbWeight * potency * modifier;
 }
 
-function computeSfdFromAspects(aspects: AspectInput[] | undefined): ComputedSfdResult {
-  if (!aspects || aspects.length === 0) {
-    return { value: null, raw: null, supportive: null, frictional: null, source: 'absent' };
-  }
-
-  let supportiveSum = 0;
-  let frictionalSum = 0;
-
-  for (const aspectRecord of aspects) {
-    const aspectName = normalizeAspectName(aspectRecord.aspect);
-    const transitName = resolveBodyName(aspectRecord.transit);
-    const targetName = resolveBodyName(aspectRecord.target);
-    const weight = computeAspectWeight(
-      aspectName,
-      Number(aspectRecord.orb ?? 0),
-      transitName,
-      targetName,
-      aspectRecord.transit_potency,
-      aspectRecord.target_potency
-    );
-
-    if (weight <= 0) continue;
-
-    if (SUPPORTIVE_ASPECTS.has(aspectName)) {
-      supportiveSum += weight;
-    } else if (FRICTIONAL_ASPECTS.has(aspectName)) {
-      frictionalSum += weight;
-    }
-  }
-
-  if (supportiveSum === 0 && frictionalSum === 0) {
-    return { value: null, raw: null, supportive: 0, frictional: 0, source: 'absent' };
-  }
-
-  const raw = (supportiveSum - frictionalSum) / (supportiveSum + frictionalSum);
-  const [clamped] = clamp(raw, -1, 1);
-  const rounded = roundHalfUp(clamped, 2);
-  return { value: rounded, raw, supportive: supportiveSum, frictional: frictionalSum, source: 'computed' };
-}
-
 function calculateClampCounter(axis: string, bound: 'min' | 'max', hits: number, total: number): ClampCounter {
   const safeTotal = total > 0 ? total : 0;
   const rate = safeTotal === 0 ? 0 : hits / safeTotal;
@@ -374,100 +297,6 @@ function hashNormalizedInput(records: Array<Record<string, unknown>>): string {
   return `sha256:${createHash('sha256').update(normalized).digest('hex')}`;
 }
 
-function resolveSfdDisplay(
-  dayInput: EngineDayInput,
-  computed: ComputedSfdResult
-): {
-  value: number | null;
-  display: string;
-  status: 'n/a' | 'ok';
-  source: 'engine' | 'computed' | 'absent';
-  supportive: number | null;
-  frictional: number | null;
-  trace: SfdTrace;
-} {
-  const provided = dayInput.sfd;
-  const parsedInput = typeof provided === 'string' ? Number(provided) : provided;
-  const hasInput = typeof parsedInput === 'number' && Number.isFinite(parsedInput);
-  let value: number | null = null;
-  let source: 'engine' | 'computed' | 'absent' = 'absent';
-  let supportive = computed.supportive;
-  let frictional = computed.frictional;
-  let scoreRaw: number | null = null;
-  let scaled: number | null = null;
-  let clamped: number | null = null;
-  let rounded: number | null = null;
-
-  if (hasInput) {
-    source = 'engine';
-    const preScaled = dayInput.sfd_pre_scaled === true;
-    scoreRaw = preScaled ? parsedInput : parsedInput * SCALE_FACTORS.sfd;
-    const [bounded, clampFlags] = clamp(scoreRaw, -1, 1);
-    clamped = bounded;
-    rounded = roundHalfUp(bounded, 2);
-    value = rounded;
-  } else if (computed.value !== null) {
-    source = computed.source;
-    supportive = computed.supportive;
-    frictional = computed.frictional;
-    scoreRaw = computed.raw ?? computed.value;
-    scaled = scoreRaw;
-    const [bounded, clampFlags] = clamp(scoreRaw ?? 0, -1, 1);
-    clamped = bounded;
-    rounded = roundHalfUp(bounded, 2);
-    value = rounded;
-  }
-
-  if (value === null) {
-    return {
-      value: null,
-      display: 'n/a',
-      status: 'n/a',
-      source,
-      supportive,
-      frictional,
-      trace: {
-        date: dayInput.date || '',
-        axis: 'sfd',
-        supportive_sum: supportive,
-        frictional_sum: frictional,
-        score_raw: scoreRaw,
-        scaled: null,
-        clamped: null,
-        rounded: null,
-        display: 'n/a',
-        reason: source === 'engine' ? 'input' : source
-      }
-    };
-  }
-
-  if (!hasInput && (supportive == null || frictional == null || supportive + frictional === 0)) {
-    throw new Error(`Fabrication sentinel: tried to display SFD without aspect drivers on ${dayInput.date || 'unknown date'}.`);
-  }
-
-  const display = formatWithMinus(value, 2, { showPlus: value > 0 });
-  return {
-    value,
-    display,
-    status: 'ok',
-    source,
-    supportive,
-    frictional,
-    trace: {
-      date: '',
-      axis: 'sfd',
-      supportive_sum: supportive,
-      frictional_sum: frictional,
-      score_raw: scoreRaw,
-      scaled,
-      clamped,
-      rounded,
-      display: value,
-      reason: source === 'engine' ? 'input' : source
-    }
-  };
-}
-
 export function renderSymbolicWeather(
   inputs: EngineDayInput[],
   config: Partial<RendererConfig> = {}
@@ -494,14 +323,12 @@ export function renderSymbolicWeather(
         pipeline: 'normalize → scale → clamp → round',
         weights_profile_version: 'tight_orbs_v1',
         conjunction_policy: 'neutral',
-        sfd_pre_scaled: false,
         normalized_input_hash: hashNormalizedInput([]),
         timezone,
         provenance
       },
       observability: {
         traces: [],
-        sfd: [],
         clampSummary: [],
         alerts: []
       }
@@ -514,8 +341,7 @@ export function renderSymbolicWeather(
       NormalizedDay.parse({
         magnitude: Number(input.magnitude ?? 0),
         directional_bias: Number(input.directional_bias ?? 0),
-        volatility: Number(input.volatility ?? 0),
-        sfd: (typeof input.sfd === 'number' ? input.sfd : null)
+        volatility: Number(input.volatility ?? 0)
       });
     } catch (error) {
       throw new Error(`Invalid normalized inputs for renderer: ${error instanceof Error ? error.message : 'validation failed'}`);
@@ -523,12 +349,10 @@ export function renderSymbolicWeather(
   }
 
   const axisTraces: AxisTrace[] = [];
-  const sfdTraces: SfdTrace[] = [];
   const clampHits = {
     magnitude: { min: 0, max: 0 },
     directional_bias: { min: 0, max: 0 },
-    coherence: { min: 0, max: 0 },
-    sfd: { min: 0, max: 0 }
+    coherence: { min: 0, max: 0 }
   };
 
   const normalizedRecordsForHash: Array<Record<string, unknown>> = [];
@@ -613,45 +437,9 @@ export function renderSymbolicWeather(
         : '×5, clamp [0,5], round 1dp'
     });
 
-    const computedSfd = computeSfdFromAspects(input.aspects);
-    const sfdDisplay = resolveSfdDisplay({ ...input, date: canonicalDate }, computedSfd);
-    sfdTraces.push(sfdDisplay.trace);
-
-    // SFD pre-scaled detection: remove the heuristic
-    const preScaled = input.sfd_pre_scaled === true;
-    if (!preScaled && Math.abs(Number(input.sfd ?? 0)) > 0.2) {
-      alerts.push(`SFD suspicious magnitude without pre_scaled flag on ${canonicalDate}`);
-    }
-
-    if (
-      sfdDisplay.status === 'ok' &&
-      sfdDisplay.trace.scaled != null &&
-      sfdDisplay.trace.clamped != null &&
-      sfdDisplay.trace.scaled !== sfdDisplay.trace.clamped
-    ) {
-      if (sfdDisplay.trace.scaled < -1 && sfdDisplay.trace.clamped === -1) {
-        clampHits.sfd.min += 1;
-      } else if (sfdDisplay.trace.scaled > 1 && sfdDisplay.trace.clamped === 1) {
-        clampHits.sfd.max += 1;
-      }
-    }
-
     const magnitudeDisplay = formatWithMinus(magnitudeRounded, 1);
     const directionalDisplay = formatWithMinus(directionalRounded, 1, { showPlus: directionalRounded > 0 });
     const coherenceDisplay = formatWithMinus(coherenceRounded, 1);
-
-    const hashedSfd = (() => {
-      if (typeof input.sfd === 'number' && Number.isFinite(input.sfd)) {
-        return roundHalfUp(input.sfd, 6);
-      }
-      if (typeof input.sfd === 'string') {
-        const parsed = Number(input.sfd);
-        if (Number.isFinite(parsed)) {
-          return roundHalfUp(parsed, 6);
-        }
-      }
-      return null;
-    })();
 
     normalizedRecordsForHash.push({
       date: canonicalDate,
@@ -665,7 +453,6 @@ export function renderSymbolicWeather(
           : Number(input.coherence ?? 0),
         6
       ),
-      sfd: hashedSfd,
       coherence_from: coherenceFrom
     });
 
@@ -696,15 +483,6 @@ export function renderSymbolicWeather(
           source: coherenceFrom === 'volatility' ? 'computed' : 'engine',
           clampHit: coherenceClampHit,
           precision: 1
-        },
-        integrationBias: {
-          value: sfdDisplay.value,
-          display: sfdDisplay.display,
-          status: sfdDisplay.status,
-          source: sfdDisplay.source,
-          supportive: sfdDisplay.supportive,
-          frictional: sfdDisplay.frictional,
-          precision: 2
         }
       }
     };
@@ -718,9 +496,7 @@ export function renderSymbolicWeather(
     calculateClampCounter('directional_bias', 'min', clampHits.directional_bias.min, totalSamples),
     calculateClampCounter('directional_bias', 'max', clampHits.directional_bias.max, totalSamples),
     calculateClampCounter('coherence', 'min', clampHits.coherence.min, totalSamples),
-    calculateClampCounter('coherence', 'max', clampHits.coherence.max, totalSamples),
-    calculateClampCounter('sfd', 'min', clampHits.sfd.min, totalSamples),
-    calculateClampCounter('sfd', 'max', clampHits.sfd.max, totalSamples)
+    calculateClampCounter('coherence', 'max', clampHits.coherence.max, totalSamples)
   ];
 
   if (totalDays > 0) {
@@ -749,14 +525,12 @@ export function renderSymbolicWeather(
       pipeline: 'normalize → scale → clamp → round',
       weights_profile_version: 'tight_orbs_v1',
       conjunction_policy: 'neutral',
-      sfd_pre_scaled: inputs.some((input) => input.sfd_pre_scaled === true),
       normalized_input_hash: hashNormalizedInput(normalizedRecordsForHash),
       timezone,
       provenance
     },
     observability: {
       traces: axisTraces,
-      sfd: sfdTraces,
       clampSummary,
       alerts
     }

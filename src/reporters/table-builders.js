@@ -237,8 +237,6 @@ function buildDailyReadingsTable(timeSeries) {
     valence_label: reading.valence_label || '',
     volatility: reading.volatility ? reading.volatility.toFixed(2) : 'N/A',
     volatility_label: reading.volatility_label || '',
-    sfd_disc: reading.sfd_disc !== undefined ? reading.sfd_disc : 'N/A',
-    sfd_cont: reading.sfd_cont ? reading.sfd_cont.toFixed(2) : 'N/A',
     primary_transit: reading.primary_transit || reading.strongest_aspect || '',
     notes: reading.notes || ''
   })).sort((a, b) => new Date(a.date) - new Date(b.date));

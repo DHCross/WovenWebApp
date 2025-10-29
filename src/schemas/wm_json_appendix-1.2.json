@@ -26,17 +26,6 @@
       },
       "additionalProperties": false
     },
-    "sfd": {
-      "type": "object",
-      "required": ["sfd", "sPlus", "sMinus", "version"],
-      "properties": {
-        "sfd": { "type": "number", "minimum": -5, "maximum": 5 },
-        "sPlus": { "type": "number", "minimum": 0, "maximum": 5 },
-        "sMinus": { "type": "number", "minimum": 0, "maximum": 5 },
-        "version": { "const": "v1.2" }
-      },
-      "additionalProperties": false
-    },
     "meta": {
       "type": "object",
       "required": ["calibration_boundary", "engine_versions", "reconstructed"],
@@ -46,8 +35,7 @@
           "type": "object",
           "properties": {
             "seismograph": { "const": "v1.0" },
-            "balance": { "const": "v1.1" },
-            "sfd": { "const": "v1.2" }
+            "balance": { "const": "v1.1" }
           },
           "additionalProperties": false
         },

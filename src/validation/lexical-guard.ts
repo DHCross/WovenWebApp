@@ -3,8 +3,7 @@
  * 
  * Enforces semantic orthogonality by preventing:
  * 1. Directional terms (expansion/contraction) in cohesion descriptions
- * 2. Cohesion terms (harmony/friction) in directional descriptions
- * 3. Lexical bleed that collapses distinct axes
+ * 2. Lexical bleed that collapses distinct axes
  * 
  * This is a build-time and runtime lint that fails hard on violations.
  */
@@ -158,8 +157,8 @@ export function lintText(
 
 /**
  * Lint a complete reading object for lexical violations
- * 
- * @param reading - Reading object with bias_label, sfd_label, etc.
+ *
+ * @param reading - Reading object with bias_label, etc.
  */
 export function lintReading(reading: any): LexicalLintResult {
   const allViolations: LexicalViolation[] = [];
@@ -169,23 +168,6 @@ export function lintReading(reading: any): LexicalLintResult {
     const text = reading.bias_label || reading.directional_label;
     const result = lintText(text, 'directional', 'bias_label');
     allViolations.push(...result.violations);
-  }
-
-  // Check SFD (Integration Bias) label/description
-  if (reading.sfd_label || reading.integration_label) {
-    const text = reading.sfd_label || reading.integration_label;
-    const result = lintText(text, 'cohesion', 'sfd_label');
-    allViolations.push(...result.violations);
-  }
-
-  // Check nested support_friction object
-  if (reading.support_friction) {
-    const sf = reading.support_friction;
-    if (sf.label || sf.sfd_label) {
-      const text = sf.label || sf.sfd_label;
-      const result = lintText(text, 'cohesion', 'support_friction.label');
-      allViolations.push(...result.violations);
-    }
   }
 
   return {
