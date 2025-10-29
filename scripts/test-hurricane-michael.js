@@ -91,7 +91,6 @@ const req = http.request(options, (res) => {
       console.log(`  Directional Bias:  ${seismograph?.bias_signed ?? seismograph?.valence ?? 'N/A'}`);
       console.log(`  Volatility:        ${seismograph?.volatility ?? 'N/A'}`);
       console.log(`  Coherence:         ${seismograph?.coherence ?? 'N/A'}`);
-      console.log(`  SFD:               ${seismograph?.sfd ?? seismograph?.sfd_cont ?? 'N/A'}`);
 
       const magnitude = seismograph?.magnitude;
       const valence = seismograph?.bias_signed ?? seismograph?.valence;

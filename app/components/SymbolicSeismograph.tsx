@@ -85,7 +85,7 @@ export interface SymbolicSeismographProps {
  * - Top panel: Directional Bias (-5 to +5) with zero-line
  * - Bottom panel: Magnitude (0 to 5)
  *
- * Optional: Coherence and SFD can be shown as badges or overlays
+ * Optional: Coherence can be shown as a badge or overlay
  */
 export default function SymbolicSeismograph({
   data: initialData,

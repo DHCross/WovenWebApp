@@ -135,16 +135,6 @@ function getVolatilityLabel(value: number): string {
   return 'Chaotic';
 }
 
-function getSFDLabel(value: number): string {
-  if (value < -2) return 'Heavy Friction';
-  if (value < -1) return 'Moderate Friction';
-  if (value < -0.5) return 'Light Friction';
-  if (value < 0.5) return 'Balanced';
-  if (value < 1) return 'Light Support';
-  if (value < 2) return 'Moderate Support';
-  return 'Strong Support';
-}
-
 function determineClimatePattern(valence: number, volatility: number, magnitude: number): ClimatePattern {
   const absValence = Math.abs(valence);
   const isPositive = valence > 0;
@@ -317,15 +307,13 @@ export function generateClimateNarrative(
     magnitude: climate.magnitude,
     bias: valence,
     coherence: coherenceForLabel,
-    sfd: null,
   });
 
   const voiceLabel = assertApprovedLabel(
     synthesizeLabel(
       climate.magnitude,
       valence,
-      coherenceForLabel,
-      'n/a'
+      coherenceForLabel
     )
   );
 

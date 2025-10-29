@@ -166,11 +166,6 @@ function computeBalanceValence(dayAspects, orbsProfile = 'wm-spec-2025-09'){
   return round(5 * Math.tanh(v / K), 2);
 }
 
-// Core SFD computation (v1.2) - DEPRECATED: SFD metric retired
-function computeSFDFromAspects(dayAspects, orbsProfile = 'wm-spec-2025-09'){
-  throw new Error('SFD computation has been retired. Use directional bias and magnitude instead.');
-}
-
 module.exports = {
   computeBalanceValence
 };

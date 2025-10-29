@@ -9,7 +9,7 @@ export const APPROVED = [
 
 export type Label = (typeof APPROVED)[number];
 
-export function synthesizeLabel(mag: number, bias: number, coh: number, sfd: string): Label {
+export function synthesizeLabel(mag: number, bias: number, coh: number): Label {
   if (mag >= 4.5 && bias <= -4.5) return 'Systemic Shutdown';
   if (mag >= 3.5 && bias <= -4.0) return 'Diagnostic Surge';
   if (mag >= 3.0 && bias < -2.5) return 'Compression Phase';

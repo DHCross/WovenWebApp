@@ -43,12 +43,10 @@ describe('Ghost Exorcism: Correct Engine Wiring', () => {
 
     console.log('Seismograph result:', {
       directional_bias: result.directional_bias,
-      magnitude: result.magnitude,
-      sfd: result.sfd
+      magnitude: result.magnitude
     });
 
     // Should be negative for compressive/hard aspects
     expect(result.directional_bias).toBeLessThan(0);
-    expect(result.sfd).toBeLessThan(0);  // Support-Friction should also be negative
   });
 });

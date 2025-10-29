@@ -11,7 +11,7 @@
 export interface LexicalViolation {
   field: string;
   term: string;
-  category: 'directional' | 'cohesion';
+  category: 'directional';
   wrongContext: string;
   severity: 'error' | 'warning';
   message: string;
@@ -49,32 +49,6 @@ const DIRECTIONAL_TERMS = new Set([
 ]);
 
 /**
- * Cohesion vocabulary (harmony/friction, support/tension)
- * These terms should ONLY appear in Integration Bias (SFD) contexts
- */
-const COHESION_TERMS = new Set([
-  'harmony',
-  'harmonious',
-  'friction',
-  'frictional',
-  'support',
-  'supportive',
-  'tension',
-  'cohesion',
-  'cohesive',
-  'integration',
-  'integrated',
-  'alignment',
-  'aligned',
-  'resistance',
-  'resistant',
-  'smooth',
-  'rough',
-  'fluid',
-  'sticky'
-]);
-
-/**
  * Neutral terms that can appear in any context
  */
 const NEUTRAL_TERMS = new Set([
@@ -100,12 +74,12 @@ const NEUTRAL_TERMS = new Set([
  * Lint a text string for lexical violations
  * 
  * @param text - Text to check
- * @param expectedContext - 'directional' | 'cohesion' | 'neutral'
+ * @param expectedContext - 'directional' | 'neutral'
  * @param fieldName - Name of field being checked (for error messages)
  */
 export function lintText(
   text: string,
-  expectedContext: 'directional' | 'cohesion' | 'neutral',
+  expectedContext: 'directional' | 'neutral',
   fieldName: string
 ): LexicalLintResult {
   if (!text || typeof text !== 'string') {
@@ -115,38 +89,6 @@ export function lintText(
   const violations: LexicalViolation[] = [];
   const normalizedText = text.toLowerCase();
   const words = normalizedText.split(/\s+/);
-
-  // Check for directional terms in cohesion context
-  if (expectedContext === 'cohesion') {
-    DIRECTIONAL_TERMS.forEach(term => {
-      if (words.includes(term) || normalizedText.includes(term)) {
-        violations.push({
-          field: fieldName,
-          term,
-          category: 'directional',
-          wrongContext: 'cohesion',
-          severity: 'error',
-          message: `LEXICAL BLEED: Directional term "${term}" found in cohesion context (${fieldName})`
-        });
-      }
-    });
-  }
-
-  // Check for cohesion terms in directional context
-  if (expectedContext === 'directional') {
-    COHESION_TERMS.forEach(term => {
-      if (words.includes(term) || normalizedText.includes(term)) {
-        violations.push({
-          field: fieldName,
-          term,
-          category: 'cohesion',
-          wrongContext: 'directional',
-          severity: 'error',
-          message: `LEXICAL BLEED: Cohesion term "${term}" found in directional context (${fieldName})`
-        });
-      }
-    });
-  }
 
   return {
     valid: violations.length === 0,
@@ -263,33 +205,13 @@ export function assertLexicalIntegrity(payload: any, context: string = 'payload'
 /**
  * Get suggested replacements for contaminating terms
  */
-export function getSuggestedReplacements(term: string, targetContext: 'directional' | 'cohesion'): string[] {
+export function getSuggestedReplacements(term: string, targetContext: 'directional' | 'neutral'): string[] {
   const suggestions: string[] = [];
 
-  // If cohesion term in directional context, suggest directional alternatives
-  if (COHESION_TERMS.has(term.toLowerCase()) && targetContext === 'directional') {
-    const map: Record<string, string[]> = {
-      'harmony': ['expansion', 'opening'],
-      'friction': ['contraction', 'closing'],
-      'support': ['outward pressure'],
-      'tension': ['inward pressure'],
-      'alignment': ['outward flow'],
-      'resistance': ['inward pull']
-    };
-    return map[term.toLowerCase()] || ['use directional terminology'];
-  }
-
-  // If directional term in cohesion context, suggest cohesion alternatives
-  if (DIRECTIONAL_TERMS.has(term.toLowerCase()) && targetContext === 'cohesion') {
-    const map: Record<string, string[]> = {
-      'expansion': ['harmony', 'support'],
-      'contraction': ['friction', 'tension'],
-      'opening': ['integration', 'alignment'],
-      'closing': ['resistance', 'fragmentation'],
-      'outward': ['supportive', 'cohesive'],
-      'inward': ['frictional', 'resistant']
-    };
-    return map[term.toLowerCase()] || ['use cohesion terminology'];
+  if (targetContext === 'directional') {
+    if (!DIRECTIONAL_TERMS.has(term.toLowerCase())) {
+      return ['use directional terminology (expansion, contraction, outward, inward)'];
+    }
   }
 
   return suggestions;

@@ -131,11 +131,10 @@ describe('CI Gate: Spec Compliance (v5.0)', () => {
 
   test('Ranges are canonical for v5.0', async () => {
     const constants = await import('../lib/balance/constants.js');
-    const { RANGE_MAG, RANGE_BIAS, RANGE_COH, RANGE_SFD } = constants;
-    
+    const { RANGE_MAG, RANGE_BIAS, RANGE_COH } = constants;
+
     expect(RANGE_MAG).toEqual([0, 5]);
     expect(RANGE_BIAS).toEqual([-5, 5]);
-    expect(RANGE_COH).toBeUndefined();
-    expect(RANGE_SFD).toBeUndefined();
+    expect(RANGE_COH).toEqual([0, 5]);
   });
 });

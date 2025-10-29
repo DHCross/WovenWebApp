@@ -61,55 +61,11 @@ export const scaleCoherenceFromVol = (volatilityNorm: number) => {
 
 const MINUS_SIGN = '−';
 
-const warnOnce = (() => {
-  const seen = new Set<string>();
-  return (key: string, message: string) => {
-    if (seen.has(key)) return;
-    seen.add(key);
-    try {
-      // eslint-disable-next-line no-console
-      console.warn(message);
-    } catch {
-      /* noop */
-    }
-  };
-})();
-
-export const scaleSFD = (sfdRaw: number | null, preScaled = false) => {
-  warnOnce(
-    'scaleSFD',
-    'DEPRECATED: scaleSFD() invoked. SFD was removed from Balance Meter v5. Use directional bias and magnitude instead.',
-  );
-  return {
-    raw: null,
-    value: null,
-    display: 'deprecated',
-    flags: { hitMin: false, hitMax: false } as ClampInfo,
-  };
-};
-
 // Backwards-compatible helpers
 export const toUnipolarDisplay = (normalized: number): number => scaleUnipolar(normalized).value;
 export const toBipolarDisplay = (normalized: number): number => scaleBipolar(normalized).value;
 export const coherenceFromVolatility = (volatilityNorm: number): number =>
   scaleCoherenceFromVol(volatilityNorm).value;
-export const sfdValue = (raw: number | null, opts?: { preScaled?: boolean }): number | null => {
-  warnOnce(
-    'sfdValue',
-    'DEPRECATED: sfdValue() invoked. SFD output is no longer supported.',
-  );
-  void opts; // retain signature
-  return null;
-};
-export const sfdDisplay = (raw: number | null, opts?: { preScaled?: boolean }): string => {
-  warnOnce(
-    'sfdDisplay',
-    'DEPRECATED: sfdDisplay() invoked. SFD output is no longer supported.',
-  );
-  void raw;
-  void opts;
-  return 'deprecated';
-};
 
 // Legacy label helpers
 export function getMagnitudeLabel(value: number): string {
@@ -132,15 +88,6 @@ export function getCoherenceLabel(value: number): string {
   if (value >= 2) return 'Stable';
   if (value >= 1) return 'Moderate';
   return 'Scattered';
-}
-
-export function getSFDLabel(value: number | null | string): string {
-  warnOnce(
-    'getSFDLabel',
-    'DEPRECATED: getSFDLabel() invoked. SFD labels are no longer provided.',
-  );
-  void value;
-  return 'Deprecated';
 }
 
 // Convenience helper for modules needing simple clamp behavior

@@ -103,7 +103,6 @@ describe('DHCross + Stephie Synastry with Transits - October 2025', () => {
       console.log('\n📊 Synastry Seismograph:');
       console.log(`  Magnitude: ${result.magnitude.toFixed(2)}`);
       console.log(`  Directional Bias: ${result.directional_bias.toFixed(2)}`);
-      console.log(`  SFD: ${result.sfd !== null ? result.sfd.toFixed(2) : 'null'}`);
 
       // Synastry with trines should show positive bias
       expect(result.directional_bias).toBeGreaterThan(0);
@@ -154,7 +153,6 @@ describe('DHCross + Stephie Synastry with Transits - October 2025', () => {
       console.log('\n📊 Transit Seismograph:');
       console.log(`  Magnitude: ${result.magnitude.toFixed(2)}`);
       console.log(`  Directional Bias: ${result.directional_bias.toFixed(2)}`);
-      console.log(`  SFD: ${result.sfd !== null ? result.sfd.toFixed(2) : 'null'}`);
 
       // Mars-Venus conjunction is harmonious but passionate
       // Uranus square Sun is disruptive (negative)
@@ -199,7 +197,6 @@ describe('DHCross + Stephie Synastry with Transits - October 2025', () => {
       console.log('\n📊 Transit Seismograph:');
       console.log(`  Magnitude: ${result.magnitude.toFixed(2)}`);
       console.log(`  Directional Bias: ${result.directional_bias.toFixed(2)}`);
-      console.log(`  SFD: ${result.sfd !== null ? result.sfd.toFixed(2) : 'null'}`);
 
       // Jupiter conjunction is positive (expansion)
       // Saturn conjunction can be heavy but constructive
@@ -226,12 +223,10 @@ describe('DHCross + Stephie Synastry with Transits - October 2025', () => {
 
       console.log('\n🔍 Mixed Synastry Test:');
       console.log(`  Directional Bias: ${result.directional_bias.toFixed(2)}`);
-      console.log(`  SFD: ${result.sfd !== null ? result.sfd.toFixed(2) : 'null'}`);
 
       // With 2 harmonious + 2 challenging, the sign should match the actual weights
       // The old ghost engine would have distorted this
       expect(result.directional_bias).not.toBe(0); // Should show clear direction
-      expect(typeof result.sfd).toBe('number'); // Should calculate SFD
     });
 
     test('heavily challenging synastry should show negative bias', () => {
@@ -249,11 +244,9 @@ describe('DHCross + Stephie Synastry with Transits - October 2025', () => {
 
       console.log('\n⚠️ All Hard Aspects Test:');
       console.log(`  Directional Bias: ${result.directional_bias.toFixed(2)}`);
-      console.log(`  SFD: ${result.sfd !== null ? result.sfd.toFixed(2) : 'null'}`);
 
       // Hard aspects = negative/compressive
       expect(result.directional_bias).toBeLessThan(0);
-      expect(result.sfd).toBeLessThan(0); // More friction than support
 
       console.log('  ✅ Correctly shows negative bias for challenging synastry');
     });
@@ -273,11 +266,9 @@ describe('DHCross + Stephie Synastry with Transits - October 2025', () => {
 
       console.log('\n✨ All Harmonious Aspects Test:');
       console.log(`  Directional Bias: ${result.directional_bias.toFixed(2)}`);
-      console.log(`  SFD: ${result.sfd !== null ? result.sfd.toFixed(2) : 'null'}`);
 
       // Soft aspects = positive/expansive
       expect(result.directional_bias).toBeGreaterThan(0);
-      expect(result.sfd).toBeGreaterThan(0); // More support than friction
 
       console.log('  ✅ Correctly shows positive bias for harmonious synastry');
     });

@@ -5,7 +5,6 @@ export type DailyIndex = {
   magnitude?: number; // 0..5
   valence?: number;   // -5..5 (bounded or calibrated)
   volatility?: number; // 0..5
-  sf_diff?: number;   // support-friction differential (approx)
 };
 
 export type ScenarioAxis = {
@@ -31,7 +30,6 @@ export function indicesToScenario(indices: DailyIndex[]): ScenarioResult {
   const m = avg(last3.map(d => Number(d.magnitude ?? 0)));
   const v = avg(last3.map(d => Number(d.valence ?? 0)));
   const vol = avg(last3.map(d => Number(d.volatility ?? 0)));
-  const sfd = avg(last3.map(d => Number(d.sf_diff ?? 0)));
 
   // Normalize thresholds (heuristic)
   const hi = (x: number, t: number) => x >= t;
@@ -53,12 +51,12 @@ export function indicesToScenario(indices: DailyIndex[]): ScenarioResult {
     leaning: hi(vol, 3.2) || hi(m, 3.6) ? 'left' : lo(vol, 1.2) && lo(m, 1.2) ? 'right' : 'neutral'
   };
 
-  // Openness ↔ Restriction → valence + sfd
+  // Openness ↔ Restriction → valence tilt
   const opennessAxis: ScenarioAxis = {
     axis: 'Openness \u2194 Restriction',
     left: 'Openness',
     right: 'Restriction',
-    leaning: (v - Math.max(0, -sfd)) > 0.6 ? 'left' : (v + Math.max(0, sfd)) < -0.6 ? 'right' : 'neutral'
+    leaning: v > 0.6 ? 'left' : v < -0.6 ? 'right' : 'neutral'
   };
 
   // Visibility ↔ Obscurity → proxy via magnitude and low volatility

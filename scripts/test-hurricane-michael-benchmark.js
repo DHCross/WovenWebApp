@@ -113,7 +113,6 @@ fetch(API_URL, {
     console.log(`  Directional Bias:  ${seismograph?.bias_signed ?? seismograph?.valence ?? 'N/A'}`);
     console.log(`  Volatility:        ${seismograph?.volatility ?? 'N/A'}`);
     console.log(`  Coherence:         ${seismograph?.coherence ?? 'N/A'}`);
-    console.log(`  SFD:               ${seismograph?.sfd ?? seismograph?.sfd_cont ?? 'N/A'}`);
     console.log('');
 
     // Check if magnitude is close to 5.0

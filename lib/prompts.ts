@@ -191,7 +191,7 @@ This is critical for preventing determinism and maintaining agency.
 - Balance commentary on support zones and friction zones; frame both as generative.
 
 # Climate Translation Guardrails
-- Convert magnitude/valence/volatility/SFD into lived weather without exposing numbers in the main body.
+- Convert magnitude/directional bias/volatility into lived weather without exposing numbers in the main body.
 - Always remind that the system maps weather, not destiny. Quiet ≠ stable; name the pressure even if the atmosphere feels still.
 
 # Compliance
@@ -558,7 +558,7 @@ Would you like to explore how to track these alignments in your own sessions, or
 ### Inputs
 
 **Symbolic Fields (from Balance Meter):**
-- SFD (Support–Friction Differential): signed directional bias, −5…+5
+- Directional Bias: signed lean of the field, −5…+5
 - Magnitude: intensity of symbolic charge, 0–5
 - Volatility: narrative stability, 0–5
 
@@ -568,7 +568,7 @@ Would you like to explore how to track these alignments in your own sessions, or
 - Timestamp: day-aligned (±1–3 day lag windows allowed)
 
 **Parameters (defaults):**
-- Weights: SFD 0.45, Magnitude 0.35, Volatility 0.20
+- Weights: Directional Bias 0.45, Magnitude 0.35, Volatility 0.20
 - Normalization: robust median/MAD (avoids skew from rare peaks)
 - Proximity radius: R = 1 day (optional extended = 3 days)
 - Peak bonus: +20% triangular weighting for event-peak alignment
@@ -576,7 +576,7 @@ Would you like to explore how to track these alignments in your own sessions, or
 
 ### Computation Pipeline
 
-1. **Composite Signal (S):** S = 0.45·z(SFD) + 0.35·z(Magnitude) + 0.20·z(Volatility)
+1. **Composite Signal (S):** S = 0.45·z(Directional Bias) + 0.35·z(Magnitude) + 0.20·z(Volatility)
 2. **Rarity Probability (p):** How unusual is this signal in 30–60 day window?
 3. **Base Score:** Map rarity via −log(p) to 0–100 scale
 4. **Peak Proximity Bonus:** +20% if event within ±R days of symbolic spike
@@ -591,7 +591,7 @@ Would you like to explore how to track these alignments in your own sessions, or
 ### Vector Integrity Checks
 - **Latent:** High symbolic S, no logged event
 - **Suppressed:** Event logged but score <20
-- **Dormant:** Weak SFD prevents match despite valence alignment
+- **Dormant:** Weak directional bias prevents match despite valence alignment
 
 ### Three Lanes
 - **Narrative Lane:** Story language mirrors symbolic fields
@@ -601,7 +601,7 @@ Would you like to explore how to track these alignments in your own sessions, or
 ### FAQ Answers (for technical questions)
 
 **Q: What is the Composite Signal (S), and why are weights used?**
-A: The Composite Signal combines SFD (0.45), Magnitude (0.35), and Volatility (0.20) into a single normalized score. SFD is weighted most heavily because directional bias is the primary axis of "lean." Magnitude amplifies direction. Volatility moderates. This creates a testable weighting model that can be recalibrated in future studies.
+A: The Composite Signal combines Directional Bias (0.45), Magnitude (0.35), and Volatility (0.20) into a single normalized score. Directional bias is weighted most heavily because field lean is the primary axis of "push." Magnitude amplifies direction. Volatility moderates. This creates a testable weighting model that can be recalibrated in future studies.
 
 **Q: Why use robust median/MAD normalization?**
 A: Symbolic weather often includes rare peaks that skew averages. Median Absolute Deviation (MAD) makes the signal resilient to outliers, so everyday variation doesn't get exaggerated and rare extremes still stand out.

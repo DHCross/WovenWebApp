@@ -98,8 +98,7 @@ const req = http.request(options, (res) => {
       console.log('📊 Balance Meter Results:');
       console.log(`  • Magnitude: ${summary.magnitude ?? dayData?.seismograph?.magnitude ?? 'N/A'}`);
       console.log(`  • Directional Bias: ${summary.bias_signed ?? summary.valence ?? dayData?.seismograph?.bias_signed ?? 'N/A'}`);
-      console.log(`  • Volatility: ${summary.volatility ?? dayData?.seismograph?.volatility ?? 'N/A'}`);
-      console.log(`  • SFD: ${summary.sfd ?? dayData?.seismograph?.sfd ?? 'N/A'}\n`);
+      console.log(`  • Volatility: ${summary.volatility ?? dayData?.seismograph?.volatility ?? 'N/A'}\n`);
       
       // Extract transit positions
       if (dayData?.aspects) {

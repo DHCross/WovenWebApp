@@ -4,7 +4,6 @@ export const ROUND_1DP = 1;
 export const RANGE_MAG = [0, 5] as const;
 export const RANGE_BIAS = [-5, 5] as const;
 export const RANGE_COH = [0, 5] as const;
-export const RANGE_SFD = [-1, 1] as const;
 
 // Golden Standard anchors (non-negotiable)
 export const GOLDEN_CASES = {

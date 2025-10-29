@@ -13,7 +13,6 @@ export interface BalanceMeterV2_0 {
   numinosity: number; // 1-5 ⚡ (archetypal charge, replaces magnitude)
   directionalBias: 'inward' | 'neutral' | 'outward'; // Energy lean (replaces valence)
   narrativeCoherence: 'fragmented' | 'mixed' | 'unified'; // Story stability (replaces volatility)
-  integrationBias: number; // Forces cooperation assessment (enhanced SFD)
   version: "v2.0";
 }
 
@@ -23,13 +22,11 @@ export interface BalanceMeterHybrid {
   magnitude?: number;
   valence?: number | string;
   volatility?: number | string;
-  // sfd removed — use directionalBias/integrationBias if needed
   
   // v2 fields (preferred)
   numinosity?: number;
   directionalBias?: string;
   narrativeCoherence?: string;
-  integrationBias?: number;
   
   version: "v1.1" | "v1.2" | "v2.0";
 }

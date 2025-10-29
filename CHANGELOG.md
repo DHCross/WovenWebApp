@@ -1,81 +1,21 @@
 ## [2025-10-19] BREAKING CHANGE: SFD (Support-Friction Differential) Metric Retired - COMPLETE
 
 **Summary**
-Executed comprehensive SFD deprecation plan to surgically remove the Support-Friction Differential metric from the entire WovenWebApp codebase. This includes complete removal from symbolic weather renderer, UI components, validation systems, schemas, and all processing pipelines. The system now operates exclusively on the two-axis Balance Meter system (Magnitude + Directional Bias).
+Retired the Support–Friction Differential (SFD) axis across the runtime. Balance Meter, seismograph, and reporting pipelines now operate solely on magnitude, directional bias, and coherence.
 
 **Changes Made**
 
-1. **Central Math Functions Deprecated**
-   - `src/balance-meter.js`: `computeSFDFromAspects()` → Error stub directing to directional bias
-   - `lib/weatherTransforms.ts`: `computeSFD()` → Error stub with migration guidance
-   - `lib/balance/scale.ts`: `scaleSFD()`, `sfdValue()`, `sfdDisplay()`, `getSFDLabel()` → Error stubs
+- Removed unused SFD helpers and exports from `lib/balance/scale.ts`, `lib/voice`, `lib/climate-narrative.ts`, and `lib/weather-lexicon-adapter.ts`.
+- Trimmed validation and payload typing (`src/validation/lexical-guard.ts`, `src/types/wm-json-appendix.ts`, `lib/types/woven-map-blueprint.ts`, `lib/poetic-brain-schema.ts`) so no schema advertises SFD.
+- Updated reporting utilities and tests to stop logging or asserting on SFD values (`lib/reporting/metric-labels.js`, `test/*`, `scripts/*`).
+- Removed obsolete archival scripts that enforced legacy SFD schema expectations.
 
-2. **Symbolic Weather Renderer Cleanup**
-   - `src/symbolic-weather/renderer.ts`: Complete SFD processing removal
-     - Removed `SCALE_FACTORS.sfd` (×10 scaling factor)
-     - Removed `SfdTrace` and `SfdDisplay` interfaces
-     - Removed `computeSfdFromAspects()` and `resolveSfdDisplay()` functions
-     - Removed SFD axis processing from `renderSymbolicWeather()`
-     - Removed `integrationBias` from `DayDisplay` interface
-     - Removed SFD from observability snapshots and clamp counters
-     - Removed `sfd_pre_scaled` from metadata
-
-3. **Validation & Lexical Systems Updated**
-   - `src/validation/lexical-guard.ts`: Removed SFD-related validation logic
-     - Removed `sfd_label` and `integration_label` checks from `lintReading()`
-     - Updated function comments to remove SFD references
-
-4. **UI & Reporting Components Cleaned**
-   - `src/reporters/table-builders.js`: Removed SFD fields from table exports
-     - Removed `sfd_disc` and `sfd_cont` fields from `buildDailyReadingsTable()`
-
-5. **Schema & Type Definitions Updated**
-   - `src/schemas/wm_json_appendix-1.2.json`: Removed entire SFD schema object
-     - Removed `"sfd"` property with all sub-properties (`sfd`, `sPlus`, `sMinus`, `version`)
-     - Removed SFD version reference from engine_versions
-
-6. **Metric Classification System Updated**
-   - `lib/reporting/metric-labels.js`: `classifySfd()` → Error stub
-   - `validateSfdOrbIntegrity()` → Error stub (function body replaced)
-   - `calculateBalanceMeterWithOrbIntegrity()` → Updated to remove SFD integrity checks
-   - Removed `validateSfdOrbIntegrity` from module exports
-
-7. **Import/Export Cleanup**
-   - Removed all SFD-related imports from affected modules
-   - Updated module exports to exclude deprecated SFD functions
-   - Maintained backward compatibility with informative error messages
-
-**Migration Path**
-- **Old SFD Values**: No longer computed - attempting to use throws informative error
-- **Directional Bias**: Use `directional_bias` or `directionalBias` instead of SFD
-- **Magnitude**: Use `magnitude` for intensity measurements
-- **Error Messages**: All deprecated functions provide clear migration guidance
-
-**Testing Results**
-- ✅ All 19 tests passing (no regressions)
-- ✅ SFD functions properly throw errors when called
-- ✅ Core Balance Meter functionality preserved (magnitude + directional bias)
-- ✅ Symbolic weather renderer operates without SFD dependencies
-- ✅ No lingering SFD references in codebase (except documentation notes)
+**Testing**
+- ✅ `npm test -- raven-geometry.test.ts --silent`
 
 **Impact**
-- Eliminates confusion between SFD and Directional Bias metrics
-- Simplifies Balance Meter to two-axis system (Magnitude + Directional Bias)
-- Prevents accidental usage of deprecated metric
-- Maintains system stability during transition
-- Complete removal from all processing pipelines and UI components
-
-**Files Modified**
-- `src/balance-meter.js` - Deprecated computeSFDFromAspects
-- `lib/weatherTransforms.ts` - Deprecated computeSFD
-- `lib/balance/scale.ts` - Deprecated scaleSFD, sfdValue, sfdDisplay, getSFDLabel
-- `lib/reporting/metric-labels.js` - Deprecated classifySfd, validateSfdOrbIntegrity, updated calculateBalanceMeterWithOrbIntegrity
-- `src/symbolic-weather/renderer.ts` - Complete SFD processing removal
-- `src/validation/lexical-guard.ts` - Removed SFD validation logic
-- `src/reporters/table-builders.js` - Removed SFD fields from table exports
-- `src/schemas/wm_json_appendix-1.2.json` - Removed SFD schema definition
-
----
+- Prevents consumers from reading or relying on SFD outputs.
+- Aligns Balance Meter vocabulary with the two-axis system (magnitude + directional bias/coherence).
 
 ## [2025-10-19] FEATURE: MAP/FIELD Export Architecture + UI Buttons + Cleanup
 
