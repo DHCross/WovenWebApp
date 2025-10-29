@@ -248,7 +248,7 @@ export async function POST(req: Request) {
       instructionLines.join('\n'),
     ];
     if (contextPrompt) {
-      promptSections.push(`Uploaded reports:\n${contextPrompt}`);
+      promptSections.push(`SESSION CONTEXT\n${contextPrompt}\n\nUse these as background only. Prefer the user's live words. Do not restate the uploads; integrate gently where relevant.`);
     }
     if (historyPrompt) {
       promptSections.push(`Recent conversation:\n${historyPrompt}`);
