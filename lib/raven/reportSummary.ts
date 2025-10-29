@@ -441,29 +441,19 @@ export function summariseUploadedReportJson(raw: string): {
     ['symbolic_weather_context', 'balance_meter', 'volatility_label'],
   ]);
 
-  const sfd = pickNumber(parsed, [
-    ['balance_meter', 'sfd_cont_minus1to1'],
-    ['balance_meter', 'sfd_cont'],
-    ['balance_meter', 'sfd'],
-    ['balance_meter', 'integration_bias'],
-    ['balance_meter', 'seismograph', 'sfd_cont_minus1to1'],
-    ['balance_meter', 'seismograph', 'sfd_cont'],
-    ['seismograph', 'sfd_cont_minus1to1'],
-    ['seismograph', 'sfd_cont'],
-    ['summary', 'balance_meter', 'sfd'],
-    ['reports', 'balance_meter', 'sfd'],
-    ['symbolic_weather_context', 'balance_meter', 'sfd'],
-    ['symbolic_weather_context', 'balance_meter', 'sfd', 'value'],
-    ['symbolic_weather_context', 'balance_meter', 'sfd_cont_minus1to1'],
-  ]);
-  const sfdLabel = pickString(parsed, [
-    ['balance_meter', 'sfd', 'label'],
-    ['balance_meter', 'sfd_label'],
-    ['balance_meter', 'integration_bias_label'],
-    ['symbolic_weather_context', 'balance_meter', 'sfd_label'],
-  ]);
-
   const periodStart =
+    pickString(parsed, [
+      ['balance_meter', 'period', 'start'],
+      ['context', 'period', 'start'],
+      ['context', 'window', 'start'],
+      ['window', 'start'],
+      ['reports', 'balance_meter', 'period', 'start'],
+      ['export_info', 'date_range', 'start'],
+      ['symbolic_weather_context', 'transit_context', 'period', 'start'],
+    ]) ||
+    (Array.isArray(parsed?.daily_readings) && parsed.daily_readings.length
+      ? asString(parsed.daily_readings[0]?.date)
+      : undefined);
     pickString(parsed, [
       ['balance_meter', 'period', 'start'],
       ['context', 'period', 'start'],
@@ -580,11 +570,6 @@ export function summariseUploadedReportJson(raw: string): {
       `Coherence ${volatility.toFixed(2)}${volatilityLabel ? ` (${volatilityLabel})` : ''}`
     );
   }
-  if (typeof sfd === 'number') {
-    summaryPieces.push(
-      `Integration ${sfd.toFixed(2)}${sfdLabel ? ` (${sfdLabel})` : ''}`
-    );
-  }
 
   const containerParts: string[] = [];
   if (periodStart && periodEnd) {
@@ -644,8 +629,6 @@ export function summariseUploadedReportJson(raw: string): {
   if (valenceLabel) appendix.directional_bias_label = valenceLabel;
   if (typeof volatility === 'number') appendix.coherence = volatility;
   if (volatilityLabel) appendix.coherence_label = volatilityLabel;
-  if (typeof sfd === 'number') appendix.integration_bias = sfd;
-  if (sfdLabel) appendix.integration_bias_label = sfdLabel;
   if (hooks.length) appendix.hooks = hooks.slice(0, 3);
   if (cadence.cadenceLabel) appendix.cadence = cadence.cadenceLabel.toLowerCase();
   if (typeof cadence.sampleCount === 'number' && cadence.sampleCount > 0) {

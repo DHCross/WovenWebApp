@@ -231,16 +231,15 @@ export function useChartExport(options: UseChartExportOptions): UseChartExportRe
             options: {
               mode: reportMode,
               person_a: result.person_a,
-              indices: result.person_a?.chart?.transitsByDate
+                    indices: result.person_a?.chart?.transitsByDate
                 ? {
                     days: Object.values(result.person_a.chart.transitsByDate)
                       .map((entry: any) => ({
                         date: entry.date || new Date().toISOString().slice(0, 10),
                         magnitude: entry.seismograph?.magnitude,
                         volatility: entry.seismograph?.volatility,
-                        sf_diff: entry.sfd?.sfd_cont,
                       }))
-                      .filter((day) => day.magnitude || day.volatility || day.sf_diff),
+                      .filter((day) => day.magnitude || day.volatility),
                   }
                 : null,
               ...result,
@@ -1366,24 +1365,13 @@ Start with the Solo Mirror(s), then ${
         summaryCoherence = Math.max(0, Math.min(5, Math.round(summaryCoherence * 10) / 10));
       }
 
-      let summarySfd = null;
-      if (balanceSummary.sfd?.value != null && typeof balanceSummary.sfd.value === 'number') {
-        const transits = unifiedOutput?.person_a?.chart?.transitsByDate;
-        const hasDrivers = transits && Object.values(transits).some(
-          (day: any) => Array.isArray((day as any)?.drivers) && (day as any).drivers.length > 0
-        );
-        if (hasDrivers) {
-          summarySfd = balanceSummary.sfd.value;
-        }
-      }
 
       weatherData.balance_meter_frontstage = {
         magnitude: typeof rawMag === 'number' ? normalizeToFrontStage(rawMag, 'magnitude') : null,
         directional_bias:
           typeof rawBias === 'number' ? normalizeToFrontStage(rawBias, 'directional_bias') : null,
         volatility: typeof rawVol === 'number' ? normalizeToFrontStage(rawVol, 'volatility') : null,
-        coherence: summaryCoherence,
-        sfd: summarySfd,
+  coherence: summaryCoherence,
         magnitude_label: balanceSummary.magnitude_label || null,
         directional_bias_label: balanceSummary.directional_bias_label || balanceSummary.valence_label || null,
         volatility_label: balanceSummary.volatility_label || null,
@@ -1419,10 +1407,6 @@ Start with the Solo Mirror(s), then ${
             coherence = Math.max(0, Math.min(5, Math.round(coherence * 10) / 10));
           }
 
-          let sfd: number | null = null;
-          if (Array.isArray((dayData as any).drivers) && (dayData as any).drivers.length > 0 && (dayData as any).sfd && typeof (dayData as any).sfd.value === 'number') {
-            sfd = (dayData as any).sfd.value;
-          }
 
           dailyReadings.push({
             date,
@@ -1433,7 +1417,6 @@ Start with the Solo Mirror(s), then ${
             volatility:
               typeof rawVol === 'number' ? normalizeToFrontStage(rawVol, 'volatility') : null,
             coherence,
-            sfd,
             raw_magnitude: rawMag ?? null,
             raw_bias_signed: rawBias ?? null,
             raw_volatility: rawVol ?? null,
@@ -1859,11 +1842,7 @@ export function createFrontStageResult(rawResult: any) {
         provenance.hash),
   );
   const allowBalancePipeline = hasSeismographData && hasProvenanceStamp;
-  const hasSfdDrivers =
-    hasSeismographData &&
-    transitDates.some(
-      (date) => Array.isArray(transitEntries?.[date]?.drivers) && transitEntries[date].drivers.length > 0,
-    );
+  // SFD is deprecated; no longer track per-day SFD driver availability here
   const frontStageWarnings: string[] = [];
 
   if (!hasTransitWindow) {
@@ -1951,19 +1930,7 @@ export function createFrontStageResult(rawResult: any) {
           },
         };
 
-        const drivers = Array.isArray(dayData.drivers) ? dayData.drivers : null;
-        if ((!drivers || drivers.length === 0) && normalizedDaily[date].sfd) {
-          normalizedDaily[date].sfd = {
-            ...normalizedDaily[date].sfd,
-            sfd_cont: null,
-            sfd_disc: null,
-            sfd_label: 'n/a',
-            verdict: 'n/a',
-            s_plus: null,
-            s_minus: null,
-            _status: 'no_drivers',
-          };
-        }
+        // If no drivers, prefer to leave seismograph normalized values only; SFD fields are removed
       } else {
         normalizedDaily[date] = dayData;
       }
@@ -1972,24 +1939,7 @@ export function createFrontStageResult(rawResult: any) {
     frontStageResult.person_a.chart.transitsByDate = normalizedDaily;
   }
 
-  if (frontStageResult.person_a?.sfd) {
-    if (!hasSfdDrivers) {
-      frontStageResult.person_a.sfd = {
-        ...frontStageResult.person_a.sfd,
-        value: null,
-        display: 'n/a',
-        verdict: 'n/a',
-        _status: 'no_drivers',
-      };
-    } else {
-      frontStageResult.person_a.sfd._note =
-        'SFD (Support-Friction Differential) values are preserved as calculated';
-    }
-  }
-
-  if (allowBalancePipeline && frontStageResult.balance_meter) {
-    frontStageResult.balance_meter.sfd_available = hasSfdDrivers;
-  }
+  // Remove SFD fields from frontstage results entirely — consumers should use directional_bias/magnitude/volatility
 
   if (frontStageWarnings.length) {
     frontStageResult._frontstage_warnings = frontStageWarnings;

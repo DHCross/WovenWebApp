@@ -6,7 +6,7 @@ export type WmSchema = "WM-Chart-1.2" | "WM-Chart-2.0";
 // Legacy v1.x interfaces (maintained for backward compatibility)
 export interface ChannelV1_0 { magnitude: number; valence: number; version: "v1.0"; }
 export interface BalanceV1_1 { magnitude: number; valence: number; version: "v1.1"; }
-export interface SfdV1_2 { sfd: number; sPlus: number; sMinus: number; version: "v1.2"; }
+// SFD types removed as part of Balance Meter v4 deprecation
 
 // v2.0 Balance Meter: Neutral terminology replacing moral language
 export interface BalanceMeterV2_0 {
@@ -23,7 +23,7 @@ export interface BalanceMeterHybrid {
   magnitude?: number;
   valence?: number | string;
   volatility?: number | string;
-  sfd?: number;
+  // sfd removed — use directionalBias/integrationBias if needed
   
   // v2 fields (preferred)
   numinosity?: number;
@@ -36,7 +36,7 @@ export interface BalanceMeterHybrid {
 
 export interface AppendixMeta {
   calibration_boundary: string; // YYYY-MM-DD
-  engine_versions: { seismograph: "v1.0"; balance: "v1.1"; sfd: "v1.2" };
+  engine_versions: { seismograph: "v1.0"; balance: "v1.1" };
   reconstructed: boolean;
   notes?: string;
 }
@@ -46,7 +46,6 @@ export interface WmAppendixEntry {
   date: string; // YYYY-MM-DD
   seismograph: ChannelV1_0;
   balance?: BalanceV1_1 | BalanceMeterV2_0 | BalanceMeterHybrid; // v2 compatibility
-  sfd?: SfdV1_2;
   meta: AppendixMeta;
 }
 

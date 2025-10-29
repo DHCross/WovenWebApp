@@ -263,7 +263,7 @@ export function formatDailyReadingsTable(dailyReadings: any[]): string {
   if (!dailyReadings || !dailyReadings.length) return 'No daily readings available.';
 
   const lines: string[] = [];
-  lines.push('DATE         MAGNITUDE  VALENCE    VOLATILITY  SFD      NOTES');
+  lines.push('DATE         MAGNITUDE  VALENCE    VOLATILITY  NOTES');
   lines.push('─'.repeat(80));
 
   dailyReadings.forEach((day) => {
@@ -271,10 +271,9 @@ export function formatDailyReadingsTable(dailyReadings: any[]): string {
     const mag = fmtAxis(day.magnitude).padEnd(10);
     const val = fmtAxis(day.valence ?? day.directional_bias).padEnd(10);
     const vol = fmtAxis(day.volatility).padEnd(11);
-    const sfd = fmtAxis(day.sfd, 2).padEnd(8);
-    const notes = day.notes || day.label || '';
+  const notes = day.notes || day.label || '';
 
-    lines.push(`${date} ${mag} ${val} ${vol} ${sfd} ${notes}`);
+  lines.push(`${date} ${mag} ${val} ${vol} ${notes}`);
   });
 
   return lines.join('\n');
@@ -322,12 +321,11 @@ export function formatSymbolicWeatherSummary(symbolicWeather: any): string {
         )} (${fmtAxis(volatilitySource)}/5)`,
       );
     }
-    if (bm.support_friction) {
-      const sfd = bm.support_friction;
-      const sfdDisp = sfd?.sfd_label ?? (sfd?.sfd_cont ?? sfd?.value);
-      lines.push(`Integration Bias (SFD): ${fmtAxis(sfdDisp, 2)}`);
-    } else if (bm.sfd !== undefined) {
-      lines.push(`Integration Bias (SFD): ${fmtAxis(bm.sfd, 2)}`);
+    // SFD deprecated: fall back to directional bias/valence when available
+    const biasAxis = extractAxisNumber(bm, 'directional_bias');
+    const biasNum = biasAxis ?? bm.bias_signed ?? bm.directional_bias ?? bm.valence;
+    if (biasNum !== undefined && biasNum !== null) {
+      lines.push(`Integration Bias (approx): ${fmtAxis(biasNum, 2)}`);
     }
     lines.push('');
   }

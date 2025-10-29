@@ -10,7 +10,7 @@ import {
   coherenceFromVolatility,
 } from './balance/scale';
 
-export { getMagnitudeLabel, getDirectionalBiasLabel, getCoherenceLabel, getSFDLabel } from './balance/scale';
+export { getMagnitudeLabel, getDirectionalBiasLabel, getCoherenceLabel } from './balance/scale';
 
 export type ScaleMode = "absolute_x5";
 export const SCALE_MODE: ScaleMode = "absolute_x5";
@@ -63,11 +63,4 @@ export function toCoherence(normVolatility: number, mode: ScaleMode = SCALE_MODE
   return round1(clampValue(coherence, 0, 5));
 }
 
-/**
- * SFD (−1.00..+1.00) = (Support − Friction) / (Support + Friction)
- * Pass summed weights already filtered by aspect category; return "null" when undefined.
- * DEPRECATED: SFD metric has been retired.
- */
-export function computeSFD(supportSum: number, frictionSum: number): number | null {
-  throw new Error('SFD computation has been retired. Use directional bias and magnitude instead.');
-}
+

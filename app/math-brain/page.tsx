@@ -1469,7 +1469,6 @@ export default function MathBrainPage() {
           valence: Number(seismo.valence ?? seismo.valence_bounded ?? 0),
           valence_bounded: Number(seismo.valence_bounded ?? seismo.valence ?? 0),
           volatility: Number(seismo.volatility ?? 0),
-          sfd: Number(seismo.sfd ?? 0),
           coherence: Number(seismo.coherence ?? 0),
         };
       }
@@ -2084,7 +2083,7 @@ export default function MathBrainPage() {
       if (reportType === 'balance') {
         markdown += `This Balance Meter report analyzes energetic patterns and trends using astrological calculations. `;
         markdown += `The data reveals the interplay between magnitude (intensity), valence (positive/negative tilt), `;
-        markdown += `volatility (instability), and SFD (structural field dynamics).\n\n`;
+  markdown += `volatility (instability).\n\n`;
       } else {
         markdown += `This Mirror report provides insights into archetypal patterns and behavioral dynamics `;
         markdown += `through astrological analysis, revealing the Actor/Role composite and confidence metrics.\n\n`;
@@ -2112,40 +2111,37 @@ export default function MathBrainPage() {
             date: d,
             magnitude: Number(daily[d]?.seismograph?.magnitude ?? 0),
             valence: Number(daily[d]?.seismograph?.valence_bounded ?? daily[d]?.seismograph?.valence ?? 0),
-            volatility: Number(daily[d]?.seismograph?.volatility ?? 0),
-            sfd: Number(daily[d]?.sfd?.sfd_cont ?? daily[d]?.sfd ?? 0)
+            volatility: Number(daily[d]?.seismograph?.volatility ?? 0)
           }));
 
           const avgMagnitude = series.reduce((sum, s) => sum + s.magnitude, 0) / series.length;
           const avgValence = series.reduce((sum, s) => sum + s.valence, 0) / series.length;
           const avgVolatility = series.reduce((sum, s) => sum + s.volatility, 0) / series.length;
-          const avgSFD = series.reduce((sum, s) => sum + s.sfd, 0) / series.length;
-
           markdown += `### Key Metrics Summary\n\n`;
           markdown += `| Metric | Average | Range |\n`;
           markdown += `|--------|---------|-------|\n`;
           markdown += `| **Magnitude** | ${avgMagnitude.toFixed(2)} | ${Math.min(...series.map(s => s.magnitude)).toFixed(1)} - ${Math.max(...series.map(s => s.magnitude)).toFixed(1)} |\n`;
           markdown += `| **Valence** | ${avgValence >= 0 ? '+' : ''}${avgValence.toFixed(2)} | ${Math.min(...series.map(s => s.valence)).toFixed(1)} - ${Math.max(...series.map(s => s.valence)).toFixed(1)} |\n`;
           markdown += `| **Volatility** | ${avgVolatility.toFixed(2)} | ${Math.min(...series.map(s => s.volatility)).toFixed(1)} - ${Math.max(...series.map(s => s.volatility)).toFixed(1)} |\n`;
-          markdown += `| **SFD** | ${avgSFD >= 0 ? '+' : ''}${avgSFD.toFixed(0)} | ${Math.min(...series.map(s => s.sfd)).toFixed(0)} - ${Math.max(...series.map(s => s.sfd)).toFixed(0)} |\n\n`;
+          // SFD metric removed (deprecated)
 
           // Recent daily data (last 7 days)
           markdown += `### Recent Daily Data (Last 7 Days)\n\n`;
-          markdown += `| Date | Magnitude | Valence | Volatility | SFD |\n`;
-          markdown += `|------|-----------|---------|------------|-----|\n`;
+          markdown += `| Date | Magnitude | Valence | Volatility |\n`;
+          markdown += `|------|-----------|---------|------------|\n`;
 
           dates.slice(-7).forEach(date => {
             const dayData = daily[date];
             const mag = Number(dayData?.seismograph?.magnitude ?? 0);
             const val = Number(dayData?.seismograph?.valence_bounded ?? dayData?.seismograph?.valence ?? 0);
             const vol = Number(dayData?.seismograph?.volatility ?? 0);
-            const sfd = Number(dayData?.sfd?.sfd_cont ?? dayData?.sfd ?? 0);
+            // SFD removed — use directional bias / integration factors if available
 
             const dateStr = new Date(date).toLocaleDateString('en-US', {
               month: 'short', day: 'numeric'
             });
 
-            markdown += `| ${dateStr} | ${mag.toFixed(1)} | ${val >= 0 ? '+' : ''}${val.toFixed(1)} | ${vol.toFixed(1)} | ${sfd > 0 ? '+' : ''}${sfd} |\n`;
+            markdown += `| ${dateStr} | ${mag.toFixed(1)} | ${val >= 0 ? '+' : ''}${val.toFixed(1)} | ${vol.toFixed(1)} |\n`;
           });
           markdown += `\n`;
 
@@ -2444,7 +2440,7 @@ export default function MathBrainPage() {
         markdown += `- **Magnitude (0-5):** Overall intensity of energetic patterns\n`;
         markdown += `- **Valence (-5 to +5):** Positive (expansion/opportunity) vs Negative (contraction/challenge)\n`;
         markdown += `- **Volatility (0-5):** Instability and unpredictability level\n`;
-        markdown += `- **SFD:** Structural Field Dynamics - underlying stability\n\n`;
+  // SFD deprecated and removed from exports
 
         markdown += `### Valence Scale\n\n`;
         markdown += `- **+5 Liberation:** Peak openness, breakthroughs\n`;
@@ -2726,8 +2722,8 @@ export default function MathBrainPage() {
         'This Symbolic Weather Log provides a comprehensive analysis of geometric patterns',
         'and trends over time, using astrological calculations mapped to a diagnostic framework.',
         'The data shows the interplay between Magnitude (0–5), Directional Bias (−5…+5),',
-        'Coherence (0–5, formerly Volatility), and SFD (−1.00…+1.00) to map the structural',
-        'climate of each day. This is a field report, not a forecast.'
+        'and Coherence (0–5, formerly Volatility) to map the structural climate of each day.',
+        'This is a field report, not a forecast.'
       ];
 
       summaryText.forEach(line => {
@@ -2985,8 +2981,8 @@ export default function MathBrainPage() {
           '',
           'VOICE LAYER — Symbolic Translation',
           'Magnitude (0–5): Energy density. Directional Bias (−5…+5): Expansive vs. restrictive',
-          'tilt. Coherence (0–5): Field stability (formerly Volatility). SFD (−1.00…+1.00):',
-          'Support vs. friction differential. These axes map lived patterns, not outcomes.',
+          'tilt. Coherence (0–5): Field stability (formerly Volatility).',
+          'These axes map lived patterns, not outcomes.',
           '',
           'PROVENANCE LAYER — Metadata and Null Handling',
           'Missing data registers as NULL, not zero. Suppression thresholds prevent noise.',
@@ -2996,8 +2992,6 @@ export default function MathBrainPage() {
           'High Magnitude + expansive Bias: Field shows widening vectors and reinforcing angles.',
           'High Magnitude + restrictive Bias: Field shows compression and cross-pressure.',
           'Low Coherence (3+): Dispersed geometry; maintaining flexibility stabilizes navigation.',
-          'Negative SFD: Friction exceeds support; structural review maps weak points.',
-          'Positive SFD: Support exceeds friction; foundation geometry holds under load.',
           '',
           'Note: This system maps astrological geometry to diagnostic coordinates. It registers',
           'structural climate, not fixed outcomes. Use as one reference among many when',
@@ -4904,7 +4898,7 @@ export default function MathBrainPage() {
                     const dayData = transitsByDate[date];
                     const seismo = dayData?.seismograph || {};
                     const balance = dayData?.balance || {};
-                    const sfd = dayData?.sfd || {};
+                    // SFD deprecated — no longer included in daily seismograph payload
 
                     // v5.0: Use canonical directional_bias structure
                     const biasValue = seismo.directional_bias?.value ?? seismo.bias_signed ?? balance.bias_signed ?? 0;
@@ -4914,7 +4908,6 @@ export default function MathBrainPage() {
                       magnitude_0to5: seismo.magnitude ?? balance.magnitude ?? 0,
                       bias_signed_minus5to5: biasValue,
                       coherence_0to5: seismo.volatility ?? 0,
-                      sfd_cont_minus1to1: sfd.sfd_cont ?? 0,
                       schema_version: 'BM-v3',
                       orbs_profile: displayResult?.provenance?.orbs_profile || 'wm-spec-2025-09',
                       house_frame: 'natal',
@@ -5085,12 +5078,7 @@ export default function MathBrainPage() {
                       return 'Dispersed';
                     };
 
-                    const getSFDState = (sfd: number) => {
-                      if (sfd > 50) return 'Strong Support';
-                      if (sfd >= 1) return 'Supportive';
-                      if (sfd >= -50) return 'Frictional';
-                      return 'Strong Friction';
-                    };
+                    // SFD state helper removed (deprecated)
 
                     const classifyMagnitude = (mag: number) => {
                       if (mag <= 2) {
@@ -5213,8 +5201,7 @@ export default function MathBrainPage() {
                       const mag = Number(dayData?.seismograph?.magnitude ?? 0);
                       const val = Number(dayData?.seismograph?.valence_bounded ?? dayData?.seismograph?.valence ?? 0);
                       const vol = Number(dayData?.seismograph?.volatility ?? 0);
-                      const sfdRaw = dayData?.sfd;
-                      const sfd = typeof sfdRaw === 'number' ? sfdRaw : Number.NaN;
+                      // SFD removed — use magnitude/valence/volatility for cards
                       const valenceStyle = getValenceStyle(val, mag);
 
                       const magnitudeClass = classifyMagnitude(mag);
@@ -5266,7 +5253,7 @@ export default function MathBrainPage() {
                     <div className="rounded border border-slate-700 bg-slate-900/40 p-4">
                       <div className="text-sm text-slate-300 leading-relaxed">
                         {(() => {
-                        const sfdValue = result?.person_a?.sfd?.sfd ?? 0;
+                        // SFD deprecated and removed from summary — omitted
                         const getMagnitudeState = (mag: number) => {
                           if (mag <= 1) return 'latent';
                           if (mag <= 2) return 'murmur-level';
@@ -5323,14 +5310,6 @@ export default function MathBrainPage() {
 
                         // Simple descriptive combinations using flavor patterns - NOT predictive
                         let description = `The symbolic field shows ${magState} pressure with ${volState} patterns.`;
-
-                        if (sfdValue > 0) {
-                          description += ` The Support-Friction balance leans toward supportive conditions (${sfdValue > 0 ? '+' : ''}${sfdValue}).`;
-                        } else if (sfdValue < 0) {
-                          description += ` The Support-Friction balance shows frictional conditions (${sfdValue}).`;
-                        } else {
-                          description += ` The Support-Friction balance is neutral.`;
-                        }
 
                         // Add valence flavor pattern
                         description += ` Valence signature: ${valencePattern.emojis.join('')} ${valencePattern.descriptor} (${valencePattern.anchor}) — ${valencePattern.pattern}.`;
