@@ -51,10 +51,21 @@ function createMarkdownReading(input, options = {}) {
   );
   markdownContent += preface;
 
+  // --- NEW: Add Relational Dynamics Summary ---
+  const relationalSummary = data?._field_file?.relational_summary;
+  if (relationalSummary) {
+    markdownContent += '## Relational Dynamics Summary\n\n';
+    markdownContent += '---\n\n';
+    markdownContent += `*   **Overall Status**: ${relationalSummary.status_label?.replace(/_/g, ' ') || 'N/A'}\n`;
+    markdownContent += `*   **Combined Bias**: ${relationalSummary.combined_bias} (${relationalSummary.combined_bias_label})\n`;
+    markdownContent += `*   **Volatility Index**: ${relationalSummary.volatility_index}\n`;
+    markdownContent += `*   **Bias Contribution (A → B)**: ${relationalSummary.personA_to_personB_bias}\n`;
+    markdownContent += `*   **Bias Contribution (B → A)**: ${relationalSummary.personB_to_personA_bias}\n\n`;
+  }
+
   // --- Generate Markdown for each day ---
   for (const day of daily_entries) {
-    markdownContent += `## Woven Reading: ${run_metadata.person_a} & ${run_metadata.person_b}\n`;
-    markdownContent += `**Date:** ${day.date}\n\n`;
+    markdownContent += `## Daily Reading: ${day.date}\n\n`;
     markdownContent += '---\n\n';
 
     markdownContent += '### Data for Interpretation\n\n';
