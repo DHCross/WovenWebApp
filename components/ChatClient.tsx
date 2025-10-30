@@ -148,6 +148,207 @@ const sanitizeHtml = (html: string): string => {
   });
 };
 
+const ensureSentence = (value: string | undefined | null): string => {
+  if (!value) return "";
+  const trimmed = value.trim().replace(/\s+/g, " ");
+  if (!trimmed) return "";
+  return /[.!?…]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+};
+
+const formatAppendixHighlights = (
+  appendix?: Record<string, any>,
+): string[] => {
+  if (!appendix || typeof appendix !== "object") return [];
+
+  const highlights: string[] = [];
+  const metrics: string[] = [];
+
+  const magnitude =
+    typeof appendix.magnitude === "number"
+      ? appendix.magnitude
+      : typeof appendix.magnitude === "string"
+        ? Number(appendix.magnitude)
+        : undefined;
+
+  if (typeof magnitude === "number" && Number.isFinite(magnitude)) {
+    const label =
+      typeof appendix.magnitude_label === "string"
+        ? ` (${appendix.magnitude_label})`
+        : "";
+    metrics.push(`magnitude ${magnitude.toFixed(2)}${label}`);
+  }
+
+  const directional =
+    typeof appendix.directional_bias === "number"
+      ? appendix.directional_bias
+      : typeof appendix.valence === "number"
+        ? appendix.valence
+        : undefined;
+
+  if (typeof directional === "number" && Number.isFinite(directional)) {
+    const label =
+      typeof appendix.directional_bias_label === "string"
+        ? ` (${appendix.directional_bias_label})`
+        : "";
+    metrics.push(
+      `directional bias ${directional >= 0 ? "+" : ""}${directional.toFixed(2)}${label}`,
+    );
+  }
+
+  const coherence =
+    typeof appendix.coherence === "number"
+      ? appendix.coherence
+      : typeof appendix.volatility === "number"
+        ? appendix.volatility
+        : undefined;
+
+  if (typeof coherence === "number" && Number.isFinite(coherence)) {
+    const label =
+      typeof appendix.coherence_label === "string"
+        ? ` (${appendix.coherence_label})`
+        : "";
+    metrics.push(`coherence ${coherence.toFixed(2)}${label}`);
+  }
+
+  if (metrics.length) {
+    highlights.push(`Key signals: ${metrics.join(", ")}.`);
+  }
+
+  if (Array.isArray(appendix.hooks) && appendix.hooks.length) {
+    highlights.push(
+      `Hooks waiting for exploration: ${appendix.hooks.slice(0, 3).join(" · ")}.`,
+    );
+  }
+
+  const windowStart = appendix.period_start;
+  const windowEnd = appendix.period_end;
+  if (windowStart && windowEnd) {
+    highlights.push(`Window secured: ${windowStart} to ${windowEnd}.`);
+  } else if (windowStart) {
+    highlights.push(`Window opens ${windowStart}.`);
+  }
+
+  if (appendix.relationship_scope_label) {
+    const description =
+      typeof appendix.relationship_scope_description === "string"
+        ? ` — ${appendix.relationship_scope_description}`
+        : "";
+    highlights.push(
+      `Relational frame: ${appendix.relationship_scope_label}${description}.`,
+    );
+  }
+
+  if (appendix.relationship_role) {
+    highlights.push(`Role noted: ${appendix.relationship_role}.`);
+  }
+
+  if (appendix.contact_state) {
+    highlights.push(`Contact state: ${appendix.contact_state}.`);
+  }
+
+  const intimacy =
+    appendix.intimacy_tier_label ?? appendix.intimacy_tier ?? undefined;
+  if (intimacy) {
+    highlights.push(`Intimacy tier registered as ${intimacy}.`);
+  }
+
+  if (appendix.relationship_notes) {
+    highlights.push(`Notes captured: ${appendix.relationship_notes}.`);
+  }
+
+  return highlights;
+};
+
+const buildNarrativeDraft = (
+  draft?: Record<string, any> | null,
+  prov?: Record<string, any> | null,
+): string => {
+  if (!draft || typeof draft !== "object") {
+    return `<p style="margin:0; line-height:1.6;">${escapeHtml(
+      "I'm here whenever you're ready to upload a chart or ask for a translation.",
+    )}</p>`;
+  }
+
+  const picture = ensureSentence(
+    typeof draft.picture === "string" ? draft.picture : undefined,
+  );
+  const feeling = ensureSentence(
+    typeof draft.feeling === "string" ? draft.feeling : undefined,
+  );
+  const container = ensureSentence(
+    typeof draft.container === "string" ? draft.container : undefined,
+  );
+  const option = ensureSentence(
+    typeof draft.option === "string" ? draft.option : undefined,
+  );
+  const nextStep = ensureSentence(
+    typeof draft.next_step === "string" ? draft.next_step : undefined,
+  );
+
+  const appendix =
+    typeof draft.appendix === "object" && draft.appendix ? draft.appendix : undefined;
+  const highlightSentences = formatAppendixHighlights(
+    appendix as Record<string, any> | undefined,
+  );
+
+  const paragraphs: string[] = [];
+  const intro = [picture, feeling].filter(Boolean).join(" ");
+  if (intro) paragraphs.push(intro);
+
+  const context = [container, ...highlightSentences].filter(Boolean).join(" ");
+  if (context) paragraphs.push(context);
+
+  const invitation = [option, nextStep].filter(Boolean).join(" ");
+  if (invitation) paragraphs.push(invitation);
+
+  if (!paragraphs.length) {
+    paragraphs.push(
+      "I've logged this report and set it aside for interpretation. Let me know when you'd like me to mirror a pattern.",
+    );
+  }
+
+  const provenance =
+    prov?.source && typeof prov.source === "string"
+      ? `<div style="margin-top:12px; font-size:11px; color:#94a3b8;">Source · ${escapeHtml(
+          prov.source,
+        )}</div>`
+      : "";
+
+  const htmlParagraphs = paragraphs
+    .map(
+      (text) =>
+        `<p style="margin:0 0 12px 0; line-height:1.65;">${escapeHtml(text)}</p>`,
+    )
+    .join("");
+
+  return `
+    <section class="mirror-draft narrative" style="display:flex; flex-direction:column;">
+      ${htmlParagraphs}
+      ${provenance}
+    </section>
+  `;
+};
+
+const formatFriendlyErrorMessage = (rawMessage: string): string => {
+  const text = rawMessage.trim();
+  if (!text) {
+    return "I reached for the mirror but nothing answered. Try again in a moment.";
+  }
+  if (/cancel/i.test(text)) {
+    return "The channel was closed before I could finish. Ask again whenever you're ready.";
+  }
+  if (/no mirror returned/i.test(text)) {
+    return "I reached for the mirror but it stayed silent. Upload a report or ask again so I can keep listening.";
+  }
+  if (/failed to reach raven api/i.test(text) || /request failed/i.test(text)) {
+    return "I'm having trouble reaching my poetic voice right now. Give me a moment and try again, or upload another chart for me to hold.";
+  }
+  if (/401/.test(text) || /auth/i.test(text)) {
+    return "I couldn't authenticate with the Perplexity wellspring. Double-check the key, then invite me again.";
+  }
+  return `I'm having trouble responding: ${text}`;
+};
+
 function formatShareableDraft(
   draft?: Record<string, any> | null,
   prov?: Record<string, any> | null,
@@ -175,50 +376,7 @@ function formatShareableDraft(
     `;
   }
 
-  const rows = MIRROR_SECTION_ORDER.map(({ key, label }) => {
-    const value = draft[key];
-    if (!value) return null;
-    return `
-      <div class="mirror-row" style="display:flex; flex-direction:column; gap:4px; padding:8px 10px; background:rgba(15,23,42,0.65); border:1px solid rgba(148,163,184,0.18); border-radius:10px;">
-        <span class="mirror-label" style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#94a3b8;">${label}</span>
-        <span class="mirror-value" style="font-size:14px; line-height:1.45; color:#e2e8f0;">${escapeHtml(String(value))}</span>
-      </div>
-    `;
-  })
-    .filter(Boolean)
-    .join("");
-
-  const appendixEntries =
-    draft.appendix && typeof draft.appendix === "object"
-      ? Object.entries(draft.appendix as Record<string, any>)
-          .filter(
-            ([_, val]) =>
-              val !== undefined && val !== null && String(val).trim() !== "",
-          )
-          .map(
-            ([key, val]) =>
-              `<li><strong>${escapeHtml(key.replace(/_/g, " "))}:</strong> ${escapeHtml(String(val))}</li>`,
-          )
-      : [];
-
-  const appendix = appendixEntries.length
-    ? `<div class="mirror-appendix" style="margin-top:10px; padding:10px; border:1px solid rgba(148,163,184,0.18); border-radius:10px; background:rgba(15,23,42,0.5);">
-        <div class="mirror-appendix-title" style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#94a3b8; margin-bottom:6px;">Appendix</div>
-        <ul style="margin:0; padding-left:16px; color:#cbd5f5; font-size:12px; line-height:1.4;">${appendixEntries.join("")}</ul>
-      </div>`
-    : "";
-
-  const provenance = prov?.source
-    ? `<div class="mirror-provenance" style="margin-top:12px; font-size:11px; color:#94a3b8;">Source · ${escapeHtml(String(prov.source))}</div>`
-    : "";
-
-  return `
-    <section class="mirror-draft" style="display:flex; flex-direction:column; gap:10px;">
-      ${rows || "<p><em>No primary mirror lanes provided.</em></p>"}
-      ${appendix}
-      ${provenance}
-    </section>
-  `;
+  return buildNarrativeDraft(draft, prov);
 }
 
 function formatIntentHook(
@@ -663,12 +821,16 @@ export default function ChatClient() {
   );
 
   const commitError = useCallback((ravenId: string, message: string) => {
+    const friendly = formatFriendlyErrorMessage(message);
     setMessages((prev) =>
       prev.map((msg) =>
         msg.id === ravenId
           ? {
               ...msg,
-              html: `<p><em>${escapeHtml(message)}</em></p>`,
+              html: `<div class="raven-error" style="font-size:14px; line-height:1.6; color:#fca5a5;">
+                <strong style="font-weight:600;">Raven:</strong>
+                <span style="margin-left:6px;">${escapeHtml(friendly)}</span>
+              </div>`,
               climate: undefined,
               hook: undefined,
             }
