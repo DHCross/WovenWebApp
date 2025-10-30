@@ -801,9 +801,10 @@ mc = norm360( rad2deg(lambda_mc) )
 //////////////////////////////////////////////////////
 phi = deg2rad(relocate_lat)   // geographic latitude
 
-numer = -cos(theta)*sin(eps) - sin(theta)*tan(phi)*cos(eps)
-denom =  cos(theta)
-lambda_asc = atan2( sin(theta)*cos(eps) - tan(phi)*sin(eps), cos(theta) )
+// Corrected Ascendant formula (matches verified implementation)
+numer = cos(theta)
+denom = -sin(theta)*cos(eps) - tan(phi)*sin(eps)
+lambda_asc = atan2(numer, denom)
 asc = norm360( rad2deg(lambda_asc) )
 
 
