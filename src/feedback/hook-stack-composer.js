@@ -22,20 +22,22 @@ function calculateAspectIntensity(aspect) {
   
   // High-charge aspect type multipliers
   const aspectWeights = {
-    'conjunction': 9,
-    'opposition': 9,
-    'square': 8,
-    'trine': 6,
-    'sextile': 4,
-    'quincunx': 7,
-    'sesquiquadrate': 6,
-    'semi-square': 5,
-    'semi-sextile': 3,
-    'quintile': 4,
-    'biquintile': 4
+    'conjunction': 1.0,
+    'opposition': 1.0,
+    'square': 0.85,
+    'trine': 0.9,
+    'sextile': 0.55,
+    'quincunx': 0.35,
+    'sesquiquadrate': 0.45,
+    'semi-square': 0.45,
+    'semisquare': 0.45,
+    'semi-sextile': 0.2,
+    'semisextile': 0.2,
+    'quintile': 0.3,
+    'biquintile': 0.3
   };
   
-  const aspectWeight = aspectWeights[aspectType] || 3;
+  const aspectWeight = aspectWeights[aspectType] || 0.2;
   
   // Outer planet multiplier for generational vs personal impact
   const planet1 = (aspect.planet1 || aspect.first_planet || '').toLowerCase();

@@ -3543,8 +3543,9 @@ export default function MathBrainPage() {
           setIncludePersonB(true);
         }
 
-        if (data.relationship_context) {
-          const rc = data.relationship_context;
+        const relationshipImport = data.relationship_context || data.relationship;
+        if (relationshipImport) {
+          const rc = relationshipImport;
           if (rc.type) setRelationshipType(String(rc.type).toUpperCase());
           if (rc.intimacy_tier) setRelationshipTier(String(rc.intimacy_tier));
           const contactRaw = rc.contact_state || rc.contactState || rc.contact_status;
@@ -3600,6 +3601,14 @@ export default function MathBrainPage() {
         if (typeof data.relationshipNotes === 'string') setRelationshipNotes(data.relationshipNotes);
         if (typeof data.relationshipTier === 'string') setRelationshipTier(data.relationshipTier);
         if (typeof data.relationshipRole === 'string') setRelationshipRole(data.relationshipRole);
+        if (data.relationship && !data.relationship_context) {
+          const rc = data.relationship;
+          if (rc.type) setRelationshipType(String(rc.type).toUpperCase());
+          if (rc.intimacy_tier) setRelationshipTier(String(rc.intimacy_tier));
+          if (rc.role) setRelationshipRole(rc.role);
+          if (rc.contact_state) setContactState(String(rc.contact_state).toUpperCase() === 'LATENT' ? 'LATENT' : 'ACTIVE');
+          if (typeof rc.notes === 'string') setRelationshipNotes(rc.notes);
+        }
 
         if (typeof data.contactState === 'string') setContactState(data.contactState.toUpperCase() === 'LATENT' ? 'LATENT' : 'ACTIVE');
         if (data.translocation) {

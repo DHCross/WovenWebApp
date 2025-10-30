@@ -94,17 +94,20 @@ function baseValence(type, tBody, nBody){
   const isLuminary = nBody === "Sun" || nBody === "Moon";
 
   switch (type){
-    case "opposition": return -1.6;
-    case "square": return -1.4;
-    case "trine": return +0.8;
-    case "sextile": return +0.5;
+    case "opposition": return -1.0;
+    case "square": return -0.85;
+    case "trine": return +0.9;
+    case "sextile": return +0.55;
+    case "quincunx":
+    case "inconjunct": return -0.35;
+    case "semisextile": return +0.2;
     case "conjunction":{
       const set = new Set([tBody, nBody]);
       if (OUTER.has(tBody) || OUTER.has(nBody) || isAngle || isLuminary) {
-        return -1.2; // Hard conjunction
+        return -1.0; // Hard conjunction
       }
-      if (set.has("Venus") || set.has("Jupiter")) return +0.6;
-      if (set.has("Saturn") || set.has("Pluto") || set.has("Chiron")) return -0.8;
+      if (set.has("Venus") || set.has("Jupiter")) return +1.0;
+      if (set.has("Saturn") || set.has("Pluto") || set.has("Chiron")) return -1.0;
       return 0.2; // Default neutral-ish
     }
     default: return 0.0;

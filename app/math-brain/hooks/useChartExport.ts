@@ -1455,6 +1455,12 @@ Start with the Solo Mirror(s), then ${
   const buildMirrorDirectiveExport = useCallback((): MirrorDirectiveExport | null => {
     if (!result) return null;
 
+    const relationshipContext =
+      result?.relationship_context ||
+      result?.relationship ||
+      result?.context?.relationship_context ||
+      null;
+
     const reportKind = formatReportKind(reportContractType);
     const mirrorDirective = {
       _format: 'mirror_directive_json',
@@ -1475,11 +1481,17 @@ Start with the Solo Mirror(s), then ${
       } : null,
       mirror_contract: {
         report_kind: reportKind,
-        intimacy_tier: result?.relationship_context?.intimacy_tier || null,
-        relationship_type: result?.relationship_context?.type || null,
+        intimacy_tier: relationshipContext?.intimacy_tier || null,
+        relationship_type: relationshipContext?.type || null,
+        relationship_scope: relationshipContext?.scope || null,
+        relationship_scope_label: relationshipContext?.scope_label || null,
+        contact_state: relationshipContext?.contact_state || 'ACTIVE',
+        relationship_role: relationshipContext?.role || null,
+        notes: relationshipContext?.notes || null,
         is_relational: !!result?.person_b,
         is_natal_only: !result?.person_b,
       },
+      relationship_context: relationshipContext || null,
       provenance: result?.provenance ? {
         generated_at: result.provenance.generated_at || new Date().toISOString(),
         math_brain_version: result.provenance.math_brain_version || 'N/A',
@@ -1520,6 +1532,11 @@ Start with the Solo Mirror(s), then ${
     const unifiedOutput = result?.unified_output || result;
     const mapFile = unifiedOutput?._map_file;
     const fieldFile = unifiedOutput?._field_file;
+    const relationshipContext =
+      result?.relationship_context ||
+      result?.relationship ||
+      unifiedOutput?.relationship_context ||
+      null;
 
     if (!mapFile && !fieldFile) {
       return null;
@@ -1534,10 +1551,15 @@ Start with the Solo Mirror(s), then ${
         timezone: mapFile?._meta?.timezone || fieldFile?._meta?.timezone || null,
         created_utc: new Date().toISOString(),
         math_brain_version: mapFile?._meta?.math_brain_version || fieldFile?._meta?.math_brain_version || 'N/A',
+        relationship_context: relationshipContext || null,
       },
       map: mapFile || {},
       field: fieldFile || {},
     };
+
+    if (relationshipContext) {
+      fieldMapData.relationship_context = relationshipContext;
+    }
 
     const rawWeatherLogName = friendlyFilename('weather-log');
     const weatherLogSuffix = rawWeatherLogName.includes('_')

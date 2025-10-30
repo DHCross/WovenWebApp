@@ -32,6 +32,81 @@ async function runMathBrain(configSource, transitData = null) {
     throw new Error('runMathBrain expected a config path or object');
   }
 
+function computeRelationalSummary(dailyEntries, options = {}) {
+  if (!Array.isArray(dailyEntries) || dailyEntries.length === 0) {
+    return null;
+  }
+
+  const { weightByMagnitude = true, biasWeights = {} } = options;
+  let weightedBiasASum = 0;
+  let weightedBiasBSum = 0;
+  let weightASum = 0;
+  let weightBSum = 0;
+  const combinedBiasSeries = [];
+
+  for (const entry of dailyEntries) {
+    const mirror = entry?.mirror_data;
+    if (!mirror) continue;
+
+    const aMagnitude = Number(mirror.person_a_contribution?.magnitude ?? 0);
+    const bMagnitude = Number(mirror.person_b_contribution?.magnitude ?? 0);
+    const aBias = Number(mirror.person_a_contribution?.bias ?? 0);
+    const bBias = Number(mirror.person_b_contribution?.bias ?? 0);
+
+    const magnitudeWeightA = weightByMagnitude ? Math.max(aMagnitude, 0) : 1;
+    const magnitudeWeightB = weightByMagnitude ? Math.max(bMagnitude, 0) : 1;
+    const configWeightA = Number(biasWeights.personA ?? 1);
+    const configWeightB = Number(biasWeights.personB ?? 1);
+
+    const weightA = magnitudeWeightA * configWeightA;
+    const weightB = magnitudeWeightB * configWeightB;
+
+    weightedBiasASum += aBias * weightA;
+    weightedBiasBSum += bBias * weightB;
+    weightASum += weightA;
+    weightBSum += weightB;
+
+    const combined = (aBias * weightA + bBias * weightB) / Math.max(weightA + weightB, 1e-6);
+    combinedBiasSeries.push(combined);
+  }
+
+  if (weightASum === 0 && weightBSum === 0) {
+    return null;
+  }
+
+  const personAToPersonBBias = weightASum ? weightedBiasASum / weightASum : 0;
+  const personBToPersonABias = weightBSum ? weightedBiasBSum / weightBSum : 0;
+  const combinedBias = (weightedBiasASum + weightedBiasBSum) / Math.max(weightASum + weightBSum, 1e-6);
+
+  const volatilityIndex = combinedBiasSeries.length
+    ? Math.sqrt(combinedBiasSeries.reduce((acc, val) => acc + val * val, 0) / combinedBiasSeries.length)
+    : 0;
+
+  const biasLabel = classifyDirectionalBias(combinedBias);
+  let statusLabel = 'balanced';
+  if (volatilityIndex >= 2) {
+    statusLabel = 'high_volatility';
+  } else if (combinedBias >= 1) {
+    statusLabel = 'strong_flow';
+  } else if (combinedBias <= -1) {
+    statusLabel = 'strong_tension';
+  } else if (combinedBias >= 0.5) {
+    statusLabel = 'moderate_flow';
+  } else if (combinedBias <= -0.5) {
+    statusLabel = 'moderate_tension';
+  }
+
+  return {
+    personA_to_personB_bias: Number(personAToPersonBBias.toFixed(2)),
+    personB_to_personA_bias: Number(personBToPersonABias.toFixed(2)),
+    combined_bias: Number(combinedBias.toFixed(2)),
+    combined_bias_label: biasLabel,
+    volatility_index: Number(volatilityIndex.toFixed(2)),
+    status_label: statusLabel,
+    summary_generated_at: new Date().toISOString(),
+  };
+}
+
   config.sourcePath = configPath;
 
   const { personA, personB, startDate, endDate, mode } = config;
@@ -83,11 +158,27 @@ async function runMathBrain(configSource, transitData = null) {
     }
 
     // --- TWO-FILE ARCHITECTURE IMPLEMENTATION ---
+    const relationalSummary = computeRelationalSummary(dailyEntries, {
+      weightByMagnitude: true,
+      biasWeights: {
+        personA: config?.relationalWeights?.personA ?? 1,
+        personB: config?.relationalWeights?.personB ?? 1
+      }
+    });
+
     // Generate MAP file (natal geometry - permanent)
     const mapFile = generateMapFile(transitData, personA, personB, config);
     
     // Generate FIELD file (transit weather - temporal)
-    const fieldFile = generateFieldFile(dailyEntries, startDate, endDate, config, mapFile._meta.map_id, transitData);
+    const fieldFile = generateFieldFile(
+      dailyEntries,
+      startDate,
+      endDate,
+      config,
+      mapFile._meta.map_id,
+      transitData,
+      relationalSummary
+    );
     
     // Legacy unified output for backward compatibility
     finalOutput = {
@@ -133,25 +224,40 @@ async function runMathBrain(configSource, transitData = null) {
   const runDate = new Date().toISOString().split('T')[0];
   
   // 1. Write unified output (legacy format)
-  const outputFileName = `unified_output_${safePersonA}_${safePersonB}_${runDate}.json`;
-  const outputPath = path.join(path.dirname(configPath), outputFileName);
-  fs.writeFileSync(outputPath, JSON.stringify(finalOutput, null, 2));
-  console.log(`[Math Brain] Success! Unified output written to: ${outputPath}`);
-  
-  // 2. Write MAP file (wm-map-v1) if it exists
-  if (finalOutput._map_file) {
-    const mapFileName = `wm-map-v1_${safePersonA}_${safePersonB}_${runDate}.json`;
-    const mapPath = path.join(path.dirname(configPath), mapFileName);
-    fs.writeFileSync(mapPath, JSON.stringify(finalOutput._map_file, null, 2));
-    console.log(`[Math Brain] MAP file written to: ${mapPath}`);
+  const canWriteFiles = typeof configPath === 'string' && configPath.length > 0;
+  if (canWriteFiles) {
+    const targetDir = path.dirname(configPath);
+    const outputFileName = `unified_output_${safePersonA}_${safePersonB}_${runDate}.json`;
+    const outputPath = path.join(targetDir, outputFileName);
+    fs.writeFileSync(outputPath, JSON.stringify(finalOutput, null, 2));
+    console.log(`[Math Brain] Success! Unified output written to: ${outputPath}`);
+    
+    // 2. Write MAP file (wm-map-v1) if it exists
+    if (finalOutput._map_file) {
+      const mapFileName = `wm-map-v1_${safePersonA}_${safePersonB}_${runDate}.json`;
+      const mapPath = path.join(targetDir, mapFileName);
+      fs.writeFileSync(mapPath, JSON.stringify(finalOutput._map_file, null, 2));
+      console.log(`[Math Brain] MAP file written to: ${mapPath}`);
+    }
+    
+    // 3. Write FIELD file (wm-field-v1) if it exists
+    if (finalOutput._field_file) {
+      const fieldFileName = `wm-field-v1_${safePersonA}_${safePersonB}_${runDate}.json`;
+      const fieldPath = path.join(targetDir, fieldFileName);
+      fs.writeFileSync(fieldPath, JSON.stringify(finalOutput._field_file, null, 2));
+      console.log(`[Math Brain] FIELD file written to: ${fieldPath}`);
+    }
+  } else {
+    console.log('[Math Brain] No config path supplied—skipping disk writes.');
   }
-  
-  // 3. Write FIELD file (wm-field-v1) if it exists
-  if (finalOutput._field_file) {
-    const fieldFileName = `wm-field-v1_${safePersonA}_${safePersonB}_${runDate}.json`;
-    const fieldPath = path.join(path.dirname(configPath), fieldFileName);
-    fs.writeFileSync(fieldPath, JSON.stringify(finalOutput._field_file, null, 2));
-    console.log(`[Math Brain] FIELD file written to: ${fieldPath}`);
+
+  // Attach relationship context if provided
+  if (config.relationshipContext) {
+    const relCtx = { ...config.relationshipContext };
+    finalOutput.run_metadata.relationship_context = relCtx;
+    finalOutput.relationship_context = relCtx;
+  } else {
+    finalOutput.run_metadata.relationship_context = null;
   }
 
   return finalOutput;
@@ -176,6 +282,7 @@ function createProvenanceBlock(config) {
     house_system: 'Placidus',
     orbs_profile: 'default_v5',
     relocation_mode: config.translocation || 'NONE',
+    relationship_context: config.relationshipContext ? { ...config.relationshipContext } : null,
     engine_versions: {
       kerykeion: '4.0.0',
     },
@@ -513,7 +620,7 @@ function generateMapFile(transitData, personA, personB, config) {
  * Generate FIELD file (wm-field-v1) - Symbolic Weather
  * Contains transit data, Balance Meter readings, references parent MAP
  */
-function generateFieldFile(dailyEntries, startDate, endDate, config, mapId, transitData) {
+function generateFieldFile(dailyEntries, startDate, endDate, config, mapId, transitData, relationalSummary = null) {
   const daily = {};
 
   const PLANET_INDEX = {
@@ -576,6 +683,7 @@ function generateFieldFile(dailyEntries, startDate, endDate, config, mapId, tran
       e: endDate,    // spec uses 'e' not 'end'
     },
     daily,
+    relational_summary: relationalSummary,
   };
 }
 

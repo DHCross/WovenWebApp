@@ -238,6 +238,39 @@ export async function POST(request: NextRequest) {
       const chartData = legacyBody;
 
       // Prepare the config for the v2 formatter/aggregator
+      const relationshipContextRaw =
+        chartData?.relationship ||
+        chartData?.relationship_context ||
+        rawPayload.relationship_context ||
+        rawPayload.relationship ||
+        null;
+      const scopeLabels: Record<string, string> = {
+        PARTNER: 'Partner',
+        FRIEND: 'Friend / Acquaintance',
+        FAMILY: 'Family Member',
+      };
+
+      const relationshipContext = relationshipContextRaw
+        ? (() => {
+            const type = relationshipContextRaw.type
+              ? String(relationshipContextRaw.type).toUpperCase()
+              : undefined;
+            const scope = relationshipContextRaw.scope || type || null;
+            const contactState = relationshipContextRaw.contact_state || relationshipContextRaw.contactState || 'ACTIVE';
+            const role = relationshipContextRaw.role
+              ? relationshipContextRaw.role.charAt(0).toUpperCase() + relationshipContextRaw.role.slice(1)
+              : relationshipContextRaw.role ?? null;
+            return {
+              ...relationshipContextRaw,
+              type,
+              scope,
+              scope_label: scope ? (scopeLabels[scope] || scope) : null,
+              contact_state: contactState,
+              role,
+            };
+          })()
+        : null;
+
       const v2Config = {
         schema: 'mb-1',
         mode: rawPayload.mode || rawPayload.context?.mode,
@@ -248,7 +281,7 @@ export async function POST(request: NextRequest) {
         personB: rawPayload.personB || null,
         translocation: rawPayload.translocation || 'BOTH_LOCAL',
         reportStructure: rawPayload.personB ? 'synastry' : 'solo',
-        relationshipType: rawPayload.relationship_context?.type || 'PARTNER',
+        relationshipContext,
         context: rawPayload.context
       };
 
@@ -275,6 +308,11 @@ export async function POST(request: NextRequest) {
           symbolic_weather: { format: 'json', content: unifiedOutput, filename: `unified_output_${safePersonA}_${safePersonB}_${new Date().toISOString().split('T')[0]}.json` }
         }
       };
+
+      if (relationshipContext) {
+        responseBody.relationship_context = relationshipContext;
+        responseBody.relationship = relationshipContext;
+      }
 
       return NextResponse.json(responseBody, { status: 200 });
 

@@ -13,7 +13,7 @@ export const SCALE_FACTORS = Object.freeze({
   coherence: SCALE_FACTOR
 });
 
-const SUPPORTIVE_ASPECTS = new Set(['trine', 'sextile']);
+const SUPPORTIVE_ASPECTS = new Set(['trine', 'sextile', 'semisextile']);
 const FRICTIONAL_ASPECTS = new Set([
   'square',
   'opposition',
@@ -24,17 +24,19 @@ const FRICTIONAL_ASPECTS = new Set([
   'sesquisquare'
 ]);
 
-const ASPECT_WEIGHTS: Record<string, number> = {
-  trine: 1.0,
-  sextile: 0.8,
-  square: 1.0,
+const ASPECT_WEIGHTS: Record<string, number> = Object.freeze({
+  conjunction: 1.0,
+  trine: 0.9,
+  sextile: 0.55,
+  square: 0.85,
   opposition: 1.0,
-  quincunx: 0.6,
-  semisquare: 0.6,
-  'semi-square': 0.6,
-  sesquiquadrate: 0.6,
-  sesquisquare: 0.6
-};
+  quincunx: 0.35,
+  semisquare: 0.45,
+  'semi-square': 0.45,
+  sesquiquadrate: 0.45,
+  sesquisquare: 0.45,
+  semisextile: 0.2
+});
 
 const ANGLE_NAMES = new Set([
   'Ascendant',
