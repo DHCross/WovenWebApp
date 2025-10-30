@@ -93,6 +93,14 @@ interface ParsedReportContent {
   isMirror: boolean;
 }
 
+type SessionMode = 'idle' | 'exploration' | 'report';
+
+type SessionShiftOptions = {
+  message?: string;
+  hook?: string;
+  climate?: string;
+};
+
 const MB_LAST_PAYLOAD_KEY = "mb.lastPayload";
 const MB_LAST_PAYLOAD_ACK_KEY = "mb.lastPayloadAck";
 
@@ -702,7 +710,7 @@ const parseReportContent = (rawContent: string, opts: ParseOptions = {}): Parsed
 const createInitialMessage = (): Message => ({
   id: generateId(),
   role: "raven",
-  html: `I’m a clean mirror. I put what you share next to the pattern I see and speak it back in plain language. No fate talk, no certainty—just useful reflections you can test.`,
+  html: `I’m a clean mirror. I set what you share beside the pattern I see and speak it back in plain language. Start a session to talk freely, or upload a Math Brain export when you want the formal reading—either way I’ll tell you which lane we’re in.`,
   climate: formatFullClimateDisplay({ magnitude: 1, valence: 2, volatility: 0 }),
   hook: "Atmosphere · Creator ∠ Mirror",
 });
@@ -718,10 +726,145 @@ export default function ChatClient() {
   const [storedPayload, setStoredPayload] = useState<StoredMathBrainPayload | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [sessionStarted, setSessionStarted] = useState<boolean>(false);
+  const [sessionMode, setSessionMode] = useState<SessionMode>('idle');
 
   const conversationRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const sessionAnnouncementRef = useRef<string | null>(null);
+  const sessionAnnouncementHookRef = useRef<string | undefined>(undefined);
+  const sessionAnnouncementClimateRef = useRef<string | undefined>(undefined);
+  const previousModeRef = useRef<SessionMode>('idle');
+
+  const pushRavenNarrative = useCallback(
+    (text: string, options: { hook?: string; climate?: string } = {}) => {
+      const safe = text.trim();
+      if (!safe) return;
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: generateId(),
+          role: "raven",
+          html: `<p style="margin:0; line-height:1.65;">${escapeHtml(safe)}</p>`,
+          hook: options.hook,
+          climate: options.climate,
+        },
+      ]);
+    },
+    [],
+  );
+
+  const shiftSessionMode = useCallback(
+    (nextMode: SessionMode, options: SessionShiftOptions = {}) => {
+      if (nextMode === 'idle') {
+        setSessionMode('idle');
+        setSessionStarted(false);
+        return;
+      }
+
+      if (nextMode === sessionMode) {
+        setSessionStarted(true);
+        return;
+      }
+
+      sessionAnnouncementRef.current = options.message ?? null;
+      sessionAnnouncementHookRef.current = options.hook;
+      sessionAnnouncementClimateRef.current = options.climate;
+
+      setSessionStarted(true);
+      setSessionMode((prev) => (prev === nextMode ? prev : nextMode));
+    },
+    [sessionMode],
+  );
+
+  useEffect(() => {
+    if (!sessionStarted) {
+      previousModeRef.current = sessionMode;
+      return;
+    }
+    const prev = previousModeRef.current;
+    if (sessionMode === prev || sessionMode === 'idle') {
+      previousModeRef.current = sessionMode;
+      return;
+    }
+
+    let message = sessionAnnouncementRef.current;
+    let hook = sessionAnnouncementHookRef.current;
+    let climate = sessionAnnouncementClimateRef.current;
+
+    if (!message) {
+      if (sessionMode === 'exploration') {
+        message =
+          "Session open. We are outside a formal reading—share whatever you want reflected and I will respond in real time.";
+      } else if (sessionMode === 'report') {
+        message =
+          "Structured reading engaged. Because a report is in play, I will track resonance pings until you end the session.";
+      }
+    }
+    if (!hook) {
+      hook =
+        sessionMode === 'report'
+          ? "Session · Structured Reading"
+          : "Session · Open Dialogue";
+    }
+    if (!climate) {
+      climate =
+        sessionMode === 'report'
+          ? "VOICE · Report Interpretation"
+          : "Listening · Open Dialogue";
+    }
+
+    if (message) {
+      pushRavenNarrative(message, { hook, climate });
+    }
+
+    sessionAnnouncementRef.current = null;
+    sessionAnnouncementHookRef.current = undefined;
+    sessionAnnouncementClimateRef.current = undefined;
+    previousModeRef.current = sessionMode;
+  }, [pushRavenNarrative, sessionMode, sessionStarted]);
+
+  const sessionModeDescriptor = useMemo(() => {
+    switch (sessionMode) {
+      case 'exploration':
+        return {
+          label: 'Exploratory Dialogue',
+          description:
+            'Free-form voice. No report is attached, so feel free to orient, vent, or ask for guidance. Upload a Math Brain export to shift into a structured reading.',
+          badgeClass: 'border-emerald-400/40 bg-emerald-500/20 text-emerald-200',
+        };
+      case 'report':
+        return {
+          label: 'Structured Reading',
+          description:
+            'A report or upload triggered Raven’s VOICE layer. Resonance pings are tracked until you end the session or clear the context.',
+          badgeClass: 'border-indigo-400/40 bg-indigo-500/20 text-indigo-200',
+        };
+      default:
+        return {
+          label: 'Session Idle',
+          description: 'Open a session to begin speaking with Raven.',
+          badgeClass: 'border-slate-700/50 bg-slate-800/60 text-slate-300',
+        };
+    }
+  }, [sessionMode]);
+
+  useEffect(() => {
+    if (
+      sessionStarted &&
+      sessionMode === 'report' &&
+      reportContexts.length === 0
+    ) {
+      shiftSessionMode('exploration', {
+        message:
+          'Report context cleared. We are back in open dialogue until you upload another file or resume Math Brain.',
+        hook: 'Session · Open Dialogue',
+        climate: 'Listening · Open Dialogue',
+      });
+    }
+  }, [reportContexts.length, sessionMode, sessionStarted, shiftSessionMode]);
 
   useEffect(() => {
     const el = conversationRef.current;
@@ -819,6 +962,19 @@ export default function ChatClient() {
     },
     [acknowledgeStoredPayload],
   );
+
+  const beginSession = useCallback(() => {
+    shiftSessionMode('exploration', {
+      message:
+        "Session open. We’re outside the formal reading lane, so speak freely and I’ll mirror you in real time. Upload a Math Brain export when you want the structured VOICE handoff.",
+      hook: "Session · Open Dialogue",
+      climate: "Listening · Open Dialogue",
+    });
+    setStatusMessage("Session open — tell me what you want to explore.");
+    window.setTimeout(() => {
+      inputRef.current?.focus();
+    }, 10);
+  }, [shiftSessionMode]);
 
   const commitError = useCallback((ravenId: string, message: string) => {
     const friendly = formatFriendlyErrorMessage(message);
@@ -932,6 +1088,15 @@ export default function ChatClient() {
       };
       setMessages((prev) => [...prev, placeholder]);
 
+      const reportLabel = reportContext.name?.trim()
+        ? `“${reportContext.name.trim()}”`
+        : 'This report';
+      shiftSessionMode('report', {
+        message: `Structured reading engaged. ${reportLabel} is on the surface, so I’ll use VOICE and keep resonance pings until you end the session.`,
+        hook: "Session · Structured Reading",
+        climate: "VOICE · Report Interpretation",
+      });
+
       const relocationPayload = mapRelocationToPayload(reportContext.relocation);
       const contextPayload = contextList.map((ctx) => {
         const ctxRelocation = mapRelocationToPayload(ctx.relocation);
@@ -962,7 +1127,7 @@ export default function ChatClient() {
         "No mirror returned for this report.",
       );
     },
-    [reportContexts, runRavenRequest, sessionId],
+    [reportContexts, runRavenRequest, sessionId, shiftSessionMode],
   );
 
   const sendMessage = useCallback(
@@ -970,6 +1135,11 @@ export default function ChatClient() {
       const trimmed = text.trim();
       if (!trimmed) return;
 
+      if (sessionMode === 'idle') {
+        shiftSessionMode('exploration');
+      } else {
+        setSessionStarted(true);
+      }
       if (abortRef.current) {
         try {
           abortRef.current.abort();
@@ -1024,7 +1194,7 @@ export default function ChatClient() {
         "No mirror returned for this lane.",
       );
     },
-    [relocation, reportContexts, runRavenRequest, sessionId],
+    [relocation, reportContexts, runRavenRequest, sessionId, sessionMode, shiftSessionMode],
   );
 
   const sendProgrammatic = useCallback(
@@ -1119,12 +1289,19 @@ export default function ChatClient() {
         // ignore
       }
     }
+    shiftSessionMode('idle');
+    sessionAnnouncementRef.current = null;
+    sessionAnnouncementHookRef.current = undefined;
+    sessionAnnouncementClimateRef.current = undefined;
+    previousModeRef.current = 'idle';
     setMessages([createInitialMessage()]);
     setReportContexts([]);
     setRelocation(null);
     setSessionId(null);
+    setStoredPayload(null);
+    setStatusMessage("Session cleared. Start whenever you're ready.");
     pingTracker.sealSession(sessionId ?? undefined);
-  }, [sessionId]);
+  }, [sessionId, shiftSessionMode]);
 
   const handleRemoveReportContext = useCallback((contextId: string) => {
     setReportContexts((prev) => {
@@ -1270,6 +1447,16 @@ export default function ChatClient() {
           ...reportContexts.filter((ctx) => ctx.id !== parsed.context.id),
           parsed.context,
         ];
+
+        const reportLabel = parsed.context.name?.trim()
+          ? `“${parsed.context.name.trim()}”`
+          : 'This report';
+        shiftSessionMode('report', {
+          message: `Structured reading resumed from Math Brain. ${reportLabel} is ready for interpretation.`,
+          hook: "Session · Structured Reading",
+          climate: "VOICE · Report Interpretation",
+        });
+
         setReportContexts(nextContexts);
         setRelocation(parsed.relocation ?? null);
 
@@ -1290,6 +1477,7 @@ export default function ChatClient() {
       analyzeReportContext,
       dismissStoredPayload,
       reportContexts,
+      shiftSessionMode,
       typing,
     ],
   );
@@ -1306,7 +1494,7 @@ export default function ChatClient() {
             </div>
             <h1 className="text-2xl font-semibold text-slate-100">{APP_NAME}</h1>
             <p className="text-sm text-slate-400">
-              Upload Math Brain or Mirror exports, then ask Raven to reflect what resonates.
+              Open a session to speak freely, or upload Math Brain and Mirror exports when you are ready for a structured reading.
             </p>
             <div className="mt-3 flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-emerald-300">
               <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
@@ -1333,11 +1521,35 @@ export default function ChatClient() {
               onClick={handleReset}
               className="rounded-lg border border-transparent px-4 py-2 text-slate-400 hover:text-slate-200 transition"
             >
-              Start New Session
+              Reset Session
             </button>
           </div>
         </div>
       </header>
+
+      {sessionStarted && (
+        <div className="border-b border-slate-800/60 bg-slate-900/60">
+          <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <span
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] ${sessionModeDescriptor.badgeClass}`}
+              >
+                {sessionModeDescriptor.label}
+              </span>
+              <p className="mt-2 text-xs text-slate-300 sm:max-w-xl">
+                {sessionModeDescriptor.description}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="inline-flex items-center justify-center rounded-md border border-slate-700/60 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-800 transition"
+            >
+              End Session
+            </button>
+          </div>
+        </div>
+      )}
 
       {storedPayload && (
         <div className="border-b border-emerald-500/30 bg-emerald-500/10">
@@ -1426,6 +1638,37 @@ export default function ChatClient() {
         </div>
       )}
 
+      {!sessionStarted && !storedPayload && reportContexts.length === 0 && (
+        <section className="mx-auto mt-8 w-full max-w-3xl rounded-xl border border-emerald-500/40 bg-slate-900/60 px-6 py-5 text-slate-100 shadow-lg">
+          <h2 className="text-lg font-semibold text-emerald-200">Open a Poetic Session</h2>
+          <p className="mt-3 text-sm text-slate-300">
+            You can speak with Raven before uploading any reports. Start a session to ask questions,
+            explore a pattern, or simply share what is on your mind.
+          </p>
+          <p className="mt-3 text-xs text-slate-400">
+            Uploading a Math Brain export (or resuming a saved chart) automatically opens a structured
+            reading. Raven will announce the shift and the banner above will always tell you which lane
+            you are in. End the session any time to clear the slate.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={beginSession}
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+            >
+              Start Session
+            </button>
+            <button
+              type="button"
+              onClick={() => handleUploadButton("mirror")}
+              className="rounded-lg border border-slate-600/60 bg-slate-800/70 px-4 py-2 text-sm text-slate-100 transition hover:border-slate-500 hover:bg-slate-800"
+            >
+              Upload a Report instead
+            </button>
+          </div>
+        </section>
+      )}
+
       <main ref={conversationRef} className="flex-1 overflow-y-auto">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-10">
           {messages.map((msg) => {
@@ -1493,6 +1736,7 @@ export default function ChatClient() {
           className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-6 py-6"
         >
           <textarea
+            ref={inputRef}
             value={input}
             onChange={(event) => setInput(event.target.value)}
             placeholder={INPUT_PLACEHOLDER}
