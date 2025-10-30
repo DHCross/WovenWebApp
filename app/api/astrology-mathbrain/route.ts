@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-
 // Configure route to allow longer execution time for complex calculations
 // Netlify Pro allows up to 26 seconds, free tier up to 10 seconds
 export const maxDuration = 26; // seconds
@@ -211,8 +207,6 @@ export async function POST(request: NextRequest) {
 
     // Execute the unified pipeline
     logger.info('Routing to unified Math Brain v2 pipeline');
-    const tempDir = os.tmpdir();
-    const configPath = path.join(tempDir, `math_brain_config_${randomUUID()}.json`);
 
     try {
       // Get raw chart data by calling the legacy handler
@@ -257,27 +251,18 @@ export async function POST(request: NextRequest) {
         relationshipType: rawPayload.relationship_context?.type || 'PARTNER',
         context: rawPayload.context
       };
-      fs.writeFileSync(configPath, JSON.stringify(v2Config, null, 2));
 
       // Run the v2 engine to format the final report
-      const unifiedOutput = await runMathBrain(configPath, chartData);
+      const unifiedOutput = await runMathBrain(v2Config, chartData);
 
-      // Generate Markdown and prepare response
-      const unifiedOutputPath = path.join(tempDir, `math_brain_unified_${randomUUID()}.json`);
-      fs.writeFileSync(unifiedOutputPath, JSON.stringify(unifiedOutput, null, 2));
-
-      const markdownPath = createMarkdownReading(unifiedOutputPath);
-      const markdownContent = fs.readFileSync(markdownPath, 'utf8');
-      const markdownFilename = path.basename(markdownPath);
+      // Generate Markdown and prepare response (no filesystem round-trip)
+      const markdownResult = createMarkdownReading(unifiedOutput, { writeToFile: false });
+      const markdownContent = markdownResult.content;
+      const markdownFilename = markdownResult.filename;
 
       const runMetadata = unifiedOutput?.run_metadata ?? {};
       const safePersonA = sanitizeForFilename(runMetadata?.person_a, 'PersonA');
       const safePersonB = sanitizeForFilename(runMetadata?.person_b, runMetadata?.person_b ? 'PersonB' : 'Solo');
-
-      // Cleanup temp files
-      [configPath, unifiedOutputPath, markdownPath].forEach(p => {
-        try { fs.unlinkSync(p); } catch (e) { /* ignore */ }
-      });
 
       const responseBody = {
         ...chartData,
@@ -295,7 +280,6 @@ export async function POST(request: NextRequest) {
 
     } catch (pipelineError: any) {
       logger.error('Math Brain v2 pipeline error', { error: pipelineError.message, stack: pipelineError.stack });
-      try { if (fs.existsSync(configPath)) fs.unlinkSync(configPath); } catch (e) { /* ignore */ }
       return NextResponse.json({ success: false, error: 'Math Brain v2 processing failed', detail: pipelineError.message, code: 'MATH_BRAIN_V2_ERROR' }, { status: 500 });
     }
   } catch (error: any) {

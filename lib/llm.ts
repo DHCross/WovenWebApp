@@ -217,7 +217,14 @@ export async function *generateStream(prompt: string, opts: StreamOptions = {}):
   yield { delta: fallbackMessage, error: fallbackMessage };
 }
 
-function normalizePrompt(p: string) { return p.replace(/\s+/g, ' ').trim(); }
+function normalizePrompt(p: string) {
+  if (!p) return '';
+  return p
+    .replace(/\r\n/g, '\n')        // normalize line endings
+    .replace(/[ \t]+$/gm, '')      // trim trailing whitespace on each line
+    .replace(/\n{3,}/g, '\n\n')    // collapse runaway blank lines, keep paragraphs
+    .trim();
+}
 
 // Convenience helper: generate a single accumulated text response (uses the stream generator)
 export async function generateText(prompt: string, opts: StreamOptions = {}): Promise<string> {

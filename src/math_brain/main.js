@@ -10,16 +10,28 @@ const { sanitizeForFilename } = require('../utils/sanitizeFilename.js');
 
 /**
  * Main orchestrator for the Math Brain v2 pipeline.
- * @param {string} configPath - Path to the JSON config file.
+ * @param {string|object} configSource - Path to the JSON config file or a prebuilt config object.
  * @param {object} transitData - Optional pre-fetched transit data from API (for real data mode)
  * @returns {object} The final unified output object.
  */
-async function runMathBrain(configPath, transitData = null) {
+async function runMathBrain(configSource, transitData = null) {
   console.log('[Math Brain] Starting...');
 
-  // 1. Load Configuration
-  const configRaw = fs.readFileSync(configPath, 'utf-8');
-  const config = JSON.parse(configRaw);
+  // 1. Load Configuration (from file path or direct object)
+  let configPath = null;
+  let config;
+
+  if (typeof configSource === 'string') {
+    configPath = configSource;
+    const configRaw = fs.readFileSync(configSource, 'utf-8');
+    config = JSON.parse(configRaw);
+  } else if (configSource && typeof configSource === 'object') {
+    configPath = configSource.sourcePath || null;
+    config = JSON.parse(JSON.stringify(configSource));
+  } else {
+    throw new Error('runMathBrain expected a config path or object');
+  }
+
   config.sourcePath = configPath;
 
   const { personA, personB, startDate, endDate, mode } = config;
