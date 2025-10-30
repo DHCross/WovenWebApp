@@ -4073,6 +4073,26 @@ export default function MathBrainPage() {
           <p className="mt-4 text-base md:text-lg text-slate-300">
             Calculate precise astrological geometry, then synthesize meaning in Poetic Brain.
           </p>
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={handleNavigateToPoetic}
+              disabled={!canVisitPoetic}
+              aria-disabled={!canVisitPoetic}
+              className={`inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold transition ${
+                canVisitPoetic
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900'
+                  : 'cursor-not-allowed border border-slate-700 bg-slate-800 text-slate-400'
+              }`}
+            >
+              Enter Poetic Brain
+            </button>
+            <p className={`text-xs ${canVisitPoetic ? 'text-slate-400' : 'text-amber-300'}`}>
+              {canVisitPoetic
+                ? "Explore Raven's narrative space even without generating a Math Brain report first."
+                : 'Poetic Brain is offline - check provider status below.'}
+            </p>
+          </div>
 
         {/* Resume from Past Session Prompt */}
         {showSessionResumePrompt && savedSession && (

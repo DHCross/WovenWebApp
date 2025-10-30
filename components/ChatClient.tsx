@@ -919,15 +919,19 @@ export default function ChatClient() {
     [messages, sendProgrammatic],
   );
 
+  const sendCurrentInput = useCallback(() => {
+    const text = input.trim();
+    if (!text) return;
+    setInput("");
+    void sendMessage(text);
+  }, [input, sendMessage]);
+
   const handleSubmit = useCallback(
     (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      const text = input.trim();
-      if (!text) return;
-      setInput("");
-      void sendMessage(text);
+      sendCurrentInput();
     },
-    [input, sendMessage],
+    [sendCurrentInput],
   );
 
   const handleUploadButton = useCallback((type: "mirror" | "balance") => {
@@ -1331,6 +1335,18 @@ export default function ChatClient() {
             onChange={(event) => setInput(event.target.value)}
             placeholder={INPUT_PLACEHOLDER}
             rows={3}
+            onKeyDown={(event) => {
+              if (
+                event.key === "Enter" &&
+                !event.shiftKey &&
+                !event.ctrlKey &&
+                !event.altKey &&
+                !event.metaKey
+              ) {
+                event.preventDefault();
+                sendCurrentInput();
+              }
+            }}
             className="w-full rounded-xl border border-slate-700/60 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-slate-400 focus:ring-0"
           />
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
