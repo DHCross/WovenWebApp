@@ -1526,6 +1526,21 @@ Start with the Solo Mirror(s), then ${
     payload: any;
   }
 
+  interface FieldMapData {
+    _meta: {
+      schema: string;
+      kind: string[];
+      version: string;
+      coords: any;
+      timezone: any;
+      created_utc: string;
+      math_brain_version: string;
+    };
+    map: any;
+    field: any;
+    relationship_context?: string | null;
+  }
+
   const buildFieldMapExport = useCallback((): FieldMapExport | null => {
     if (!result) return null;
 
@@ -1542,7 +1557,7 @@ Start with the Solo Mirror(s), then ${
       return null;
     }
 
-    const fieldMapData = {
+    const fieldMapData: FieldMapData = {
       _meta: {
         schema: 'wm-fieldmap-v1',
         kind: ['FIELD', 'MAP'],
@@ -1551,7 +1566,6 @@ Start with the Solo Mirror(s), then ${
         timezone: mapFile?._meta?.timezone || fieldFile?._meta?.timezone || null,
         created_utc: new Date().toISOString(),
         math_brain_version: mapFile?._meta?.math_brain_version || fieldFile?._meta?.math_brain_version || 'N/A',
-        relationship_context: relationshipContext || null,
       },
       map: mapFile || {},
       field: fieldFile || {},
