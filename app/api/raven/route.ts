@@ -126,12 +126,7 @@ export async function POST(req: Request) {
     const intent = detectIntent(textInput);
     const uploadedSummary = summariseUploadedReportJson(textInput);
     if (uploadedSummary) {
-      const { draft, prov, climateText, highlight } = uploadedSummary;
-      const probe = createProbe(
-        highlight || 'Mark one observation from this upload.',
-        randomUUID()
-      );
-      sessionLog.probes.push(probe);
+      const { draft, prov, climateText } = uploadedSummary;
       return NextResponse.json({
         intent: 'report',
         ok: true,
@@ -139,7 +134,7 @@ export async function POST(req: Request) {
         prov,
         climate: climateText ?? null,
         sessionId: sid,
-        probe,
+        probe: null,
       });
     }
     if (intent === 'geometry') {
