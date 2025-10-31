@@ -117,6 +117,12 @@ const weatherData = transform(data);
 - Always capitalize: "True Accelerometer v5.0"
 - Emphasizes raw, unsmoothed measurements
 
+### "Overflow Detail"
+- Internal-only label for the overflow diagnostics block in Symbolic Weather exports
+- Always describe it as a **detail** or **diagnostic**; never call it a "warning" or "error"
+- `drivers` are "aspect drivers" or "overflow drivers" (not "reasons" or "causes")
+- Use phrasing like "value trimmed to ±5 with overflow detail recorded" in engineering notes
+
 ### Avoid These Terms
 - ❌ "Astrological forecast" (implies prediction)
 - ❌ "Transit predictions" (violates falsifiability)

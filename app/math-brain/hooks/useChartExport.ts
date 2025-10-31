@@ -67,6 +67,7 @@ import {
   formatChartTables,
   extractAxisNumber,
 } from '../utils/formatting';
+import { computeOverflowDetail } from '../../../lib/math-brain/overflow-detail';
 
 type FriendlyFilenameType =
   | 'directive'
@@ -1287,7 +1288,7 @@ Start with the Solo Mirror(s), then ${
       if (typeof value === 'number' && Number.isFinite(value)) return value;
       if (typeof value === 'string') {
         const parsed = Number(value);
-        if (!Number.isNaN(parsed)) return parsed;
+        if (Number.isFinite(parsed)) return parsed;
       }
       if (value && typeof value === 'object') {
         if (typeof value.value === 'number' && Number.isFinite(value.value)) return value.value;
@@ -1379,7 +1380,7 @@ Start with the Solo Mirror(s), then ${
         directional_bias:
           typeof rawBias === 'number' ? normalizeToFrontStage(rawBias, 'directional_bias') : null,
         volatility: typeof rawVol === 'number' ? normalizeToFrontStage(rawVol, 'volatility') : null,
-  coherence: summaryCoherence,
+        coherence: summaryCoherence,
         magnitude_label: balanceSummary.magnitude_label || null,
         directional_bias_label: balanceSummary.directional_bias_label || balanceSummary.valence_label || null,
         volatility_label: balanceSummary.volatility_label || null,
@@ -1404,9 +1405,13 @@ Start with the Solo Mirror(s), then ${
           );
           const rawVol = toNumber(seismo.volatility, 'volatility', seismo);
 
+          const safeRawMag = typeof rawMag === 'number' && Number.isFinite(rawMag) ? rawMag : null;
+          const safeRawBias = typeof rawBias === 'number' && Number.isFinite(rawBias) ? rawBias : null;
+          const safeRawVol = typeof rawVol === 'number' && Number.isFinite(rawVol) ? rawVol : null;
+
           let volNorm: number | null = null;
-          if (typeof rawVol === 'number') {
-            volNorm = rawVol > 1.01 ? rawVol / 5 : rawVol;
+          if (typeof safeRawVol === 'number') {
+            volNorm = safeRawVol > 1.01 ? safeRawVol / 5 : safeRawVol;
           }
 
           let coherence: number | null = null;
@@ -1415,74 +1420,29 @@ Start with the Solo Mirror(s), then ${
             coherence = Math.max(0, Math.min(5, Math.round(coherence * 10) / 10));
           }
 
-
-          const overflowDetail = (() => {
-            if (typeof rawMag !== 'number' && typeof rawBias !== 'number') return null;
-
-            const clampedMag = typeof rawMag === 'number' ? clamp(rawMag, 0, 5) : null;
-            const clampedBias = typeof rawBias === 'number' ? clamp(rawBias, -5, 5) : null;
-
-            const magDelta = typeof rawMag === 'number' && typeof clampedMag === 'number'
-              ? Number((rawMag - clampedMag).toFixed(4))
-              : null;
-            const biasDelta = typeof rawBias === 'number' && typeof clampedBias === 'number'
-              ? Number((rawBias - clampedBias).toFixed(4))
-              : null;
-
-            const hasOverflow = (magDelta && Math.abs(magDelta) > 0) || (biasDelta && Math.abs(biasDelta) > 0);
-            if (!hasOverflow) return null;
-
-            const topDrivers = (() => {
-              const aspects = Array.isArray((dayData as any).aspects) ? (dayData as any).aspects : [];
-              if (!aspects.length) return [];
-
-              const scoreAspect = (aspect: any) => {
-                if (!aspect || typeof aspect !== 'object') return Number.NEGATIVE_INFINITY;
-                const orb = typeof aspect.orbit === 'number' ? aspect.orbit : Number(aspect.orbit);
-                if (Number.isNaN(orb)) return Number.NEGATIVE_INFINITY;
-                return -Math.abs(orb); // smaller orbit => higher absolute value because tighter
-              };
-
-              const formatted = aspects
-                .map((aspect: any) => {
-                  const p1 = aspect.p1_name || aspect.subject || 'Body A';
-                  const ownerA = aspect.p1_owner ? `(${aspect.p1_owner})` : '';
-                  const p2 = aspect.p2_name || aspect.target || 'Body B';
-                  const ownerB = aspect.p2_owner ? `(${aspect.p2_owner})` : '';
-                  const label = aspect.aspect || aspect.type || 'link';
-                  return {
-                    text: `${p1}${ownerA} ▻ ${p2}${ownerB} ${label}`,
-                    score: scoreAspect(aspect),
-                  };
-                })
-                .filter((item: { text: string; score: number }) => item.score !== Number.NEGATIVE_INFINITY)
-                .sort((a: { text: string; score: number }, b: { text: string; score: number }) => a.score - b.score)
-                .slice(0, 4)
-                .map((item: { text: string; score: number }) => item.text);
-
-              return formatted;
-            })();
-
-            return {
-              magnitude_delta: magDelta,
-              directional_delta: biasDelta,
-              drivers: topDrivers,
-              note: 'Raw readings exceeded the ±5 normalized scale; values above are clamped for display.'
-            };
-          })();
+          const overflowDetail = computeOverflowDetail({
+            rawMagnitude: safeRawMag,
+            clampedMagnitude: typeof safeRawMag === 'number' ? clamp(safeRawMag, 0, 5) : null,
+            rawDirectionalBias: safeRawBias,
+            clampedDirectionalBias:
+              typeof safeRawBias === 'number' ? clamp(safeRawBias, -5, 5) : null,
+            aspects: (dayData as any).aspects,
+          });
 
           dailyReadings.push({
             date,
             magnitude:
-              typeof rawMag === 'number' ? normalizeToFrontStage(rawMag, 'magnitude') : null,
+              typeof safeRawMag === 'number' ? normalizeToFrontStage(safeRawMag, 'magnitude') : null,
             directional_bias:
-              typeof rawBias === 'number' ? normalizeToFrontStage(rawBias, 'directional_bias') : null,
+              typeof safeRawBias === 'number'
+                ? normalizeToFrontStage(safeRawBias, 'directional_bias')
+                : null,
             volatility:
-              typeof rawVol === 'number' ? normalizeToFrontStage(rawVol, 'volatility') : null,
+              typeof safeRawVol === 'number' ? normalizeToFrontStage(safeRawVol, 'volatility') : null,
             coherence,
-            raw_magnitude: rawMag ?? null,
-            raw_bias_signed: rawBias ?? null,
-            raw_volatility: rawVol ?? null,
+            raw_magnitude: safeRawMag ?? null,
+            raw_bias_signed: safeRawBias ?? null,
+            raw_volatility: safeRawVol ?? null,
             label: (dayData as any).label || null,
             notes: (dayData as any).notes || null,
             aspects: (dayData as any).aspects || [],
@@ -1860,7 +1820,7 @@ export function createFrontStageResult(rawResult: any) {
     if (typeof value === 'number' && Number.isFinite(value)) return value;
     if (typeof value === 'string') {
       const parsed = Number(value);
-      if (!Number.isNaN(parsed)) return parsed;
+      if (Number.isFinite(parsed)) return parsed;
     }
     if (value && typeof value === 'object') {
       if (typeof value.value === 'number' && Number.isFinite(value.value)) return value.value;

@@ -257,6 +257,14 @@ X-Math-Brain-Version: v2
 - **Self-contained**: Includes provenance and instructions
 - **Backward compatible**: Default behavior unchanged
 
+### Symbolic Weather Overflow Detail (v2 exports)
+
+- `daily_entries[].symbolic_weather.overflow_detail` is populated when raw magnitude or directional bias exceed the ±5 normalized scale used in UI exports.
+- `magnitude_delta` / `directional_delta` report how far the raw value extended beyond the clamped bounds (rounded to four decimals).
+- `drivers` surfaces up to four tightest aspect strings responsible for the spike; placeholder aspects with missing labels are filtered out.
+- Sanitization rejects `NaN`/`Infinity` inputs before computing deltas so downstream consumers do not need extra guards.
+- The `note` field is static copy that explains why the block exists; keep it unchanged so user-facing exports stay consistent.
+
 ---
 
 ## 🗂️ **Key Data Models**
