@@ -151,6 +151,16 @@ const isValidDrivers = (drivers: string[]): boolean =>
   drivers.length <= MAX_DRIVERS &&
   drivers.every((driver) => typeof driver === 'string' && driver.trim().length > 0);
 
+export const firstFinite = (...values: unknown[]): number | null => {
+  for (const candidate of values) {
+    const parsed = sanitizeMetricValue(candidate);
+    if (parsed != null) {
+      return parsed;
+    }
+  }
+  return null;
+};
+
 export const isValidOverflowDetail = (detail: OverflowDetail | null): detail is OverflowDetail => {
   if (!detail) return false;
 
@@ -206,3 +216,101 @@ export const computeOverflowDetail = ({
 export const sanitizeMetricValue = (value: unknown): number | null => parseFiniteNumber(value);
 
 export const OVERFLOW_NOTE_TEXT = OVERFLOW_NOTE;
+
+export interface SeismographLike {
+  magnitude?: unknown;
+  rawMagnitude?: unknown;
+  magnitude_before_clamp?: unknown;
+  originalMagnitude?: unknown;
+  directional_bias?: any;
+  rawDirectionalBias?: unknown;
+  axes?: {
+    magnitude?: { raw?: unknown; value?: unknown; scaled?: unknown };
+    directional_bias?: { raw?: unknown; value?: unknown };
+  };
+  aspects?: unknown;
+}
+
+export interface DayDataLike {
+  seismograph?: SeismographLike | null;
+  aspects?: unknown;
+}
+
+const extractDirectionalBias = (source: any): number | null => {
+  if (!source) return null;
+  if (isFiniteNumber(source)) return source;
+  if (isFiniteNumber(source?.value)) return source.value;
+  return firstFinite(
+    source?.abs != null && source?.sign != null ? source.sign * source.abs : null,
+    source?.signed,
+    source?.bias,
+    source?.bias_signed,
+    source?.valence,
+    source?.valence_bounded,
+    source?.axes?.directional_bias?.value,
+  );
+};
+
+const extractRawDirectionalBias = (source: any): number | null => {
+  if (!source) return null;
+  if (isFiniteNumber(source)) return source;
+  if (isFiniteNumber(source?.raw)) return source.raw;
+  if (isFiniteNumber(source?.value)) return source.value;
+  if (isFiniteNumber(source?.normalized)) {
+    return source.normalized * 5;
+  }
+  return firstFinite(
+    source?.sources?.raw,
+    source?.rawDirectionalBias,
+    source?.axes?.directional_bias?.raw,
+    source?.raw,
+  );
+};
+
+const extractMagnitude = (source: SeismographLike | null | undefined): number | null => {
+  if (!source) return null;
+  return firstFinite(
+    source.magnitude,
+    source?.axes?.magnitude?.value,
+    source?.rawMagnitude,
+    source?.originalMagnitude,
+  );
+};
+
+const extractRawMagnitude = (source: SeismographLike | null | undefined): number | null => {
+  if (!source) return null;
+  return firstFinite(
+    source.rawMagnitude,
+    source.magnitude_before_clamp,
+    source?.axes?.magnitude?.raw,
+    source?.axes?.magnitude?.scaled,
+  );
+};
+
+export const computeOverflowDetailFromDay = (day: DayDataLike | null | undefined): OverflowDetail | null => {
+  if (!day || !day.seismograph) {
+    return null;
+  }
+
+  const seismo = day.seismograph;
+
+  const rawMagnitude = extractRawMagnitude(seismo);
+  const clampedMagnitude = extractMagnitude(seismo);
+
+  const rawDirectionalBias = extractRawDirectionalBias(seismo.directional_bias ?? seismo);
+  const clampedDirectionalBias = extractDirectionalBias(seismo.directional_bias ?? seismo);
+
+  const aspects = Array.isArray(day.aspects)
+    ? day.aspects
+    : Array.isArray(seismo.aspects)
+    ? seismo.aspects
+    : undefined;
+
+  return computeOverflowDetail({
+    rawMagnitude,
+    clampedMagnitude,
+    rawDirectionalBias,
+    clampedDirectionalBias,
+    aspects,
+  });
+};

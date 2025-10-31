@@ -3,6 +3,7 @@
 import React from "react";
 import { generateClimateNarrative } from "../../lib/climate-narrative";
 import { ClimateData } from "../../lib/climate-renderer";
+import { type OverflowDetail, OVERFLOW_NOTE_TEXT } from "../../lib/math-brain/overflow-detail";
 import { generateClimateClasses, getValenceVisuals } from "../../lib/symbolic-visuals";
 
 interface EnhancedDailyClimateCardProps {
@@ -11,6 +12,7 @@ interface EnhancedDailyClimateCardProps {
   mode: "single" | "relational";
   names?: [string, string];
   climate: ClimateData;
+  overflowDetail?: OverflowDetail | null;
   activatedHouses?: string[];
   isRangeSummary?: boolean;
   dateRange?: { start: string; end: string };
@@ -22,11 +24,37 @@ export default function EnhancedDailyClimateCard({
   mode,
   names,
   climate,
+  overflowDetail,
   activatedHouses,
   isRangeSummary = false,
   dateRange,
 }: EnhancedDailyClimateCardProps) {
   const narrative = generateClimateNarrative(climate, activatedHouses, isRangeSummary);
+
+  const overflowMagnitudeDelta = overflowDetail?.magnitude_delta ?? null;
+  const overflowDirectionalDelta = overflowDetail?.directional_delta ?? null;
+  const hasOverflow = overflowDetail && (overflowMagnitudeDelta ?? 0) !== 0 || (overflowDirectionalDelta ?? 0) !== 0;
+
+  const formatDelta = (delta: number | null): string | null => {
+    if (!delta) return null;
+    const sign = delta > 0 ? '+' : '−';
+    return `${sign}${Math.abs(delta).toFixed(2)}`;
+  };
+
+  const overflowLines: string[] = [];
+  const magnitudeText = formatDelta(overflowMagnitudeDelta);
+  const directionalText = formatDelta(overflowDirectionalDelta);
+
+  if (magnitudeText) {
+    overflowLines.push(`Magnitude overshoot ${magnitudeText}`);
+  }
+  if (directionalText) {
+    overflowLines.push(`Directional bias overshoot ${directionalText}`);
+  }
+
+  const driversText = (overflowDetail?.drivers ?? []).length
+    ? `Drivers: ${(overflowDetail?.drivers ?? []).join(' · ')}`
+    : null;
 
   const modeLabel =
     mode === "single"
@@ -73,6 +101,19 @@ export default function EnhancedDailyClimateCard({
           </div>
         </div>
       </div>
+
+      {hasOverflow && (
+        <div className="mb-4 rounded-md border border-amber-500/40 bg-amber-900/20 px-3 py-2 text-xs text-amber-200">
+          <div className="font-semibold text-amber-100">Overflow registered</div>
+          <div className="mt-1 text-amber-100/90">
+            {(overflowLines.length ? overflowLines.join(' · ') : 'Scale exceeded')}
+          </div>
+          {driversText && (
+            <div className="mt-1 text-amber-100/80">{driversText}</div>
+          )}
+          <div className="mt-1 text-amber-100/60">{OVERFLOW_NOTE_TEXT}</div>
+        </div>
+      )}
 
       {/* Primary Story */}
       <div className={`mb-6 rounded-md bg-slate-900/50 p-4 border-l-4 ${climateClasses.border}`}>

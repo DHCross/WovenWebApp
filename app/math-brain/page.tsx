@@ -36,6 +36,7 @@ import SnapshotDisplay from "./components/SnapshotDisplay";
 
 import { getSavedCharts, saveChart, deleteChart, type SavedChart } from "../../lib/saved-charts";
 import type { SeismographMap } from "../../lib/health-data-types";
+import { computeOverflowDetailFromDay, firstFinite } from "../../lib/math-brain/overflow-detail";
 
 export const dynamic = "force-dynamic";
 
@@ -5247,19 +5248,31 @@ export default function MathBrainPage() {
 
                     return dates.map(date => { // Show all requested days
                       const dayData = daily[date];
-                      const mag = Number(dayData?.seismograph?.magnitude ?? 0);
-                      const val = (() => {
-                        const seismo = dayData?.seismograph || {};
-                        if (typeof seismo.directional_bias === 'number') return seismo.directional_bias;
-                        if (typeof seismo.directional_bias?.value === 'number') return seismo.directional_bias.value;
-                        if (typeof seismo.bias === 'number') return seismo.bias;
-                        if (typeof seismo.bias_signed === 'number') return seismo.bias_signed;
-                        if (typeof seismo.valence_bounded === 'number') return seismo.valence_bounded;
-                        if (typeof seismo.valence === 'number') return seismo.valence;
-                        if (typeof seismo.axes?.directional_bias?.value === 'number') return seismo.axes.directional_bias.value;
-                        return 0;
-                      })();
-                      const vol = Number(dayData?.seismograph?.volatility ?? 0);
+                      const seismo = dayData?.seismograph || dayData;
+
+                      const overflowDetail = computeOverflowDetailFromDay(dayData);
+
+                      const mag = firstFinite(
+                        seismo?.magnitude,
+                        seismo?.axes?.magnitude?.value,
+                        seismo?.rawMagnitude,
+                      ) ?? 0;
+
+                      const val = firstFinite(
+                        seismo?.directional_bias,
+                        seismo?.directional_bias?.value,
+                        seismo?.bias,
+                        seismo?.bias_signed,
+                        seismo?.valence_bounded,
+                        seismo?.valence,
+                        seismo?.axes?.directional_bias?.value,
+                      ) ?? 0;
+
+                      const vol = firstFinite(
+                        seismo?.volatility,
+                        seismo?.axes?.volatility?.value,
+                      ) ?? 0;
+
                       // SFD removed — use magnitude/valence/volatility for cards
                       const valenceStyle = getValenceStyle(val, mag);
 
@@ -5296,8 +5309,10 @@ export default function MathBrainPage() {
                           climate={{
                             magnitude: mag,
                             valence_bounded: val,
-                            volatility: vol
+                            volatility: vol,
+                            drivers: overflowDetail?.drivers,
                           }}
+                          overflowDetail={overflowDetail}
                         />
                       );
                     });
