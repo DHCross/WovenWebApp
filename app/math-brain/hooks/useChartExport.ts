@@ -1312,6 +1312,12 @@ Start with the Solo Mirror(s), then ${
     const hasPersonBChart = !unifiedOutput?.person_b || (unifiedOutput.person_b?.chart && Object.keys(unifiedOutput.person_b.chart || {}).length > 0);
     const hasChartGeometry = !!(hasPersonAChart && hasPersonBChart);
 
+    const relationshipContext =
+      result?.relationship_context ||
+      result?.relationship ||
+      unifiedOutput?.relationship_context ||
+      null;
+
     const weatherData: any = {
       _format: 'mirror-symbolic-weather-v1',
       _version: '1.0',
@@ -1320,6 +1326,7 @@ Start with the Solo Mirror(s), then ${
       _natal_section: {
         mirror_source: 'integrated',
         note: 'Natal geometry integrated with symbolic weather in single file',
+        relationship_context: relationshipContext || null,
       },
       person_a: {
         name: unifiedOutput?.person_a?.details?.name || unifiedOutput?.person_a?.name || null,
@@ -1336,6 +1343,7 @@ Start with the Solo Mirror(s), then ${
         summary: unifiedOutput?.person_b?.summary || null,
       } : null,
       report_kind: formatReportKind(reportContractType),
+      relationship_context: relationshipContext || null,
       balance_meter_frontstage: null,
       daily_readings: [],
     };
@@ -1452,6 +1460,29 @@ Start with the Solo Mirror(s), then ${
     payload: any;
   }
 
+  interface FieldMapMeta {
+    schema: string;
+    kind: string[];
+    version: string;
+    coords: any;
+    timezone: any;
+    created_utc: string;
+    math_brain_version: string;
+    relationship_context?: string | null;
+  }
+
+  interface FieldMapData {
+    _meta: FieldMapMeta;
+    map: any;
+    field: any;
+    relationship_context?: string | null;
+  }
+
+  interface FieldMapExport {
+    filename: string;
+    payload: any;
+  }
+
   const buildMirrorDirectiveExport = useCallback((): MirrorDirectiveExport | null => {
     if (!result) return null;
 
@@ -1520,26 +1551,6 @@ Start with the Solo Mirror(s), then ${
       payload: mirrorDirective,
     };
   }, [friendlyFilename, reportContractType, result]);
-
-  interface FieldMapExport {
-    filename: string;
-    payload: any;
-  }
-
-  interface FieldMapData {
-    _meta: {
-      schema: string;
-      kind: string[];
-      version: string;
-      coords: any;
-      timezone: any;
-      created_utc: string;
-      math_brain_version: string;
-    };
-    map: any;
-    field: any;
-    relationship_context?: string | null;
-  }
 
   const buildFieldMapExport = useCallback((): FieldMapExport | null => {
     if (!result) return null;

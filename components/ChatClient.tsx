@@ -910,6 +910,7 @@ export default function ChatClient() {
   }, [errorMessage]);
 
   useEffect(() => {
+    if (typing) return;
     messages.forEach((msg) => {
       if (msg.role === "raven" && containsInitialProbe(msg.html)) {
         const existing = pingTracker.getFeedback(msg.id);
@@ -922,7 +923,7 @@ export default function ChatClient() {
         }
       }
     });
-  }, [messages]);
+  }, [messages, typing]);
 
   const storedPayloadSummary = useMemo(() => {
     if (!storedPayload) return "";
@@ -1213,6 +1214,7 @@ export default function ChatClient() {
         ? getPingCheckpointType(message.html)
         : "general";
       const messageContent = message ? message.html : "";
+      const alreadyAcknowledged = message?.pingFeedbackRecorded;
 
       pingTracker.recordFeedback(
         messageId,
@@ -1227,6 +1229,34 @@ export default function ChatClient() {
           msg.id === messageId ? { ...msg, pingFeedbackRecorded: true } : msg,
         ),
       );
+
+      if (!alreadyAcknowledged) {
+        let acknowledgement: string | null = null;
+        switch (response) {
+          case "yes":
+            acknowledgement =
+              "Logged as WB — glad that landed. I'll keep threading that resonance.";
+            break;
+          case "maybe":
+            acknowledgement =
+              "Logged as ABE — partially resonant. I'll refine the mirror so we can see the contour more clearly.";
+            break;
+          case "no":
+            acknowledgement =
+              "Logged as OSR — thanks for catching the miss. Let me adjust and offer a repair.";
+            break;
+          case "unclear":
+            acknowledgement =
+              "Logged as unclear — thanks for flagging the fog. I'll restate it in plainer language so we can test it again.";
+            break;
+          default:
+            acknowledgement = null;
+        }
+
+        if (acknowledgement) {
+          pushRavenNarrative(acknowledgement);
+        }
+      }
 
       const followUpParts: string[] = [];
       if (response === "yes") {
@@ -1248,7 +1278,7 @@ export default function ChatClient() {
         }, 400);
       }
     },
-    [messages, sendProgrammatic],
+    [messages, sendProgrammatic, pushRavenNarrative],
   );
 
   const sendCurrentInput = useCallback(() => {

@@ -2757,10 +2757,21 @@ export default function MathBrainPage() {
           return `${label.padEnd(12)} ${sparkline}`;
         };
 
+        const extractBias = (entry: any): number => {
+          const seismo = entry?.seismograph;
+          if (!seismo) return 0;
+          if (typeof seismo.directional_bias === 'number') return seismo.directional_bias;
+          if (typeof seismo.bias === 'number') return seismo.bias;
+          if (typeof seismo.valence === 'number') return seismo.valence;
+          if (typeof seismo.valence_bounded === 'number') return seismo.valence_bounded;
+          if (typeof seismo.directional_bias?.value === 'number') return seismo.directional_bias.value;
+          return 0;
+        };
+
         const series = dates.map(d => ({
           date: d,
           magnitude: Number(daily[d]?.seismograph?.magnitude ?? 0),
-          valence: Number(daily[d]?.seismograph?.valence_bounded ?? daily[d]?.seismograph?.valence ?? 0),
+          bias: extractBias(daily[d]),
           volatility: Number(daily[d]?.seismograph?.volatility ?? 0)
         }));
 
@@ -2775,12 +2786,12 @@ export default function MathBrainPage() {
 
         const magnitudes = series.map(s => s.magnitude);
         const volatilities = series.map(s => s.volatility);
-        const valences = series.map(s => s.valence + 5);
+        const biasesShifted = series.map(s => s.bias + 5);
 
         const charts = [
           createTextChart(magnitudes, 'Magnitude:', 5),
           createTextChart(volatilities, 'Coherence:', 5),
-          createTextChart(valences, 'Dir. Bias:', 10)
+          createTextChart(biasesShifted, 'Dir. Bias:', 10)
         ];
 
         charts.forEach(chart => {
@@ -2809,7 +2820,7 @@ export default function MathBrainPage() {
         dates.slice(-7).forEach(date => {
           const dayData = daily[date];
           const mag = Number(dayData?.seismograph?.magnitude ?? 0);
-          const val = Number(dayData?.seismograph?.valence_bounded ?? dayData?.seismograph?.valence ?? 0);
+          const biasValue = extractBias(dayData);
           const vol = Number(dayData?.seismograph?.volatility ?? 0);
 
           const dateStr = new Date(date).toLocaleDateString('en-US', {
@@ -2821,7 +2832,7 @@ export default function MathBrainPage() {
             yPosition = PAGE_HEIGHT - MARGIN;
           }
 
-          const dayLine = `${dateStr}: Mag ${mag.toFixed(1)} | Bias ${val >= 0 ? '+' : ''}${val.toFixed(1)} | Coh ${vol.toFixed(1)}`;
+          const dayLine = `${dateStr}: Mag ${mag.toFixed(1)} | Bias ${biasValue >= 0 ? '+' : ''}${biasValue.toFixed(1)} | Coh ${vol.toFixed(1)}`;
           page.drawText(sanitizeForPDF(dayLine), {
             x: MARGIN,
             y: yPosition,
@@ -2842,9 +2853,9 @@ export default function MathBrainPage() {
             const segment = series.slice(i, i + chunkSize);
             if (segment.length === 0) continue;
             const peak = segment.reduce((max, current) => current.magnitude > max.magnitude ? current : max, segment[0]);
-            const lowValence = segment.reduce((min, current) => current.valence < min.valence ? current : min, segment[0]);
+            const strongestBias = segment.reduce((chosen, current) => Math.abs(current.bias) > Math.abs(chosen.bias) ? current : chosen, segment[0]);
             const highVol = segment.reduce((max, current) => current.volatility > max.volatility ? current : max, segment[0]);
-            chunks.push(`Segment ${Math.floor(i / chunkSize) + 1}: peak magnitude ${peak.magnitude.toFixed(1)}, sharpest bias ${lowValence.valence.toFixed(1)}, coherence divergence ${highVol.volatility.toFixed(1)}`);
+            chunks.push(`Segment ${Math.floor(i / chunkSize) + 1}: peak magnitude ${peak.magnitude.toFixed(1)}, strongest bias ${strongestBias.bias.toFixed(1)}, coherence divergence ${highVol.volatility.toFixed(1)}`);
           }
           return chunks;
         })();
@@ -4929,8 +4940,17 @@ export default function MathBrainPage() {
                     const balance = dayData?.balance || {};
                     // SFD deprecated — no longer included in daily seismograph payload
 
-                    // v5.0: Use canonical directional_bias structure
-                    const biasValue = seismo.directional_bias?.value ?? seismo.bias_signed ?? balance.bias_signed ?? 0;
+                    const biasValue = (() => {
+                      if (typeof seismo.directional_bias === 'number') return seismo.directional_bias;
+                      if (typeof seismo.directional_bias?.value === 'number') return seismo.directional_bias.value;
+                      if (typeof seismo.bias === 'number') return seismo.bias;
+                      if (typeof seismo.bias_signed === 'number') return seismo.bias_signed;
+                      if (typeof balance.bias_signed === 'number') return balance.bias_signed;
+                      if (typeof seismo.valence === 'number') return seismo.valence;
+                      if (typeof seismo.valence_bounded === 'number') return seismo.valence_bounded;
+                      if (typeof seismo.axes?.directional_bias?.value === 'number') return seismo.axes.directional_bias.value;
+                      return 0;
+                    })();
 
                     return {
                       date,
@@ -5228,7 +5248,17 @@ export default function MathBrainPage() {
                     return dates.map(date => { // Show all requested days
                       const dayData = daily[date];
                       const mag = Number(dayData?.seismograph?.magnitude ?? 0);
-                      const val = Number(dayData?.seismograph?.valence_bounded ?? dayData?.seismograph?.valence ?? 0);
+                      const val = (() => {
+                        const seismo = dayData?.seismograph || {};
+                        if (typeof seismo.directional_bias === 'number') return seismo.directional_bias;
+                        if (typeof seismo.directional_bias?.value === 'number') return seismo.directional_bias.value;
+                        if (typeof seismo.bias === 'number') return seismo.bias;
+                        if (typeof seismo.bias_signed === 'number') return seismo.bias_signed;
+                        if (typeof seismo.valence_bounded === 'number') return seismo.valence_bounded;
+                        if (typeof seismo.valence === 'number') return seismo.valence;
+                        if (typeof seismo.axes?.directional_bias?.value === 'number') return seismo.axes.directional_bias.value;
+                        return 0;
+                      })();
                       const vol = Number(dayData?.seismograph?.volatility ?? 0);
                       // SFD removed — use magnitude/valence/volatility for cards
                       const valenceStyle = getValenceStyle(val, mag);
