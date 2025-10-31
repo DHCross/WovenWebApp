@@ -1416,6 +1416,61 @@ Start with the Solo Mirror(s), then ${
           }
 
 
+          const overflowDetail = (() => {
+            if (typeof rawMag !== 'number' && typeof rawBias !== 'number') return null;
+
+            const clampedMag = typeof rawMag === 'number' ? clamp(rawMag, 0, 5) : null;
+            const clampedBias = typeof rawBias === 'number' ? clamp(rawBias, -5, 5) : null;
+
+            const magDelta = typeof rawMag === 'number' && typeof clampedMag === 'number'
+              ? Number((rawMag - clampedMag).toFixed(4))
+              : null;
+            const biasDelta = typeof rawBias === 'number' && typeof clampedBias === 'number'
+              ? Number((rawBias - clampedBias).toFixed(4))
+              : null;
+
+            const hasOverflow = (magDelta && Math.abs(magDelta) > 0) || (biasDelta && Math.abs(biasDelta) > 0);
+            if (!hasOverflow) return null;
+
+            const topDrivers = (() => {
+              const aspects = Array.isArray((dayData as any).aspects) ? (dayData as any).aspects : [];
+              if (!aspects.length) return [];
+
+              const scoreAspect = (aspect: any) => {
+                if (!aspect || typeof aspect !== 'object') return Number.NEGATIVE_INFINITY;
+                const orb = typeof aspect.orbit === 'number' ? aspect.orbit : Number(aspect.orbit);
+                if (Number.isNaN(orb)) return Number.NEGATIVE_INFINITY;
+                return -Math.abs(orb); // smaller orbit => higher absolute value because tighter
+              };
+
+              const formatted = aspects
+                .map((aspect: any) => {
+                  const p1 = aspect.p1_name || aspect.subject || 'Body A';
+                  const ownerA = aspect.p1_owner ? `(${aspect.p1_owner})` : '';
+                  const p2 = aspect.p2_name || aspect.target || 'Body B';
+                  const ownerB = aspect.p2_owner ? `(${aspect.p2_owner})` : '';
+                  const label = aspect.aspect || aspect.type || 'link';
+                  return {
+                    text: `${p1}${ownerA} ▻ ${p2}${ownerB} ${label}`,
+                    score: scoreAspect(aspect),
+                  };
+                })
+                .filter((item: { text: string; score: number }) => item.score !== Number.NEGATIVE_INFINITY)
+                .sort((a: { text: string; score: number }, b: { text: string; score: number }) => a.score - b.score)
+                .slice(0, 4)
+                .map((item: { text: string; score: number }) => item.text);
+
+              return formatted;
+            })();
+
+            return {
+              magnitude_delta: magDelta,
+              directional_delta: biasDelta,
+              drivers: topDrivers,
+              note: 'Raw readings exceeded the ±5 normalized scale; values above are clamped for display.'
+            };
+          })();
+
           dailyReadings.push({
             date,
             magnitude:
@@ -1432,6 +1487,7 @@ Start with the Solo Mirror(s), then ${
             notes: (dayData as any).notes || null,
             aspects: (dayData as any).aspects || [],
             aspect_count: (dayData as any).aspects?.length || 0,
+            overflow_detail: overflowDetail,
           });
         });
 
