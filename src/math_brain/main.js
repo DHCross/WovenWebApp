@@ -774,30 +774,5 @@ function extractCompactAspect(scoredAspect, planetIndex, aspectKeyIndex) {
   ];
 }
 
-/**
- * Creates a raw export of symbolic weather data for debugging.
- * @param {Array<object>} dailyEntries - The array of daily data.
- * @returns {object} A simplified JSON object with raw data.
- */
-function createRawExport(dailyEntries) {
-  const rawExport = {};
-  if (!Array.isArray(dailyEntries)) {
-    return rawExport;
-  }
-
-  for (const entry of dailyEntries) {
-    const date = entry.date;
-    const weather = entry.symbolic_weather?._aggregateResult;
-    if (date && weather) {
-      rawExport[date] = {
-        raw_magnitude: weather.energyMagnitude,
-        raw_valence: weather.rawValence,
-      };
-    }
-  }
-
-  return rawExport;
-}
-
 // Export the main function (CommonJS for Node.js execution)
-module.exports = { runMathBrain, createRawExport };
+module.exports = { runMathBrain };
