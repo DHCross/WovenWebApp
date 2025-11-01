@@ -1,3 +1,39 @@
+## [2025-11-01] FEATURE: Dual Calibration Model + Poetic Brain Integration
+
+**Summary**
+Completed V5 Balance Meter validation with **two golden standard benchmarks** establishing the Dual Calibration Model. Integrated architectural wisdom into Poetic Brain (privacy-preserving, no case specifics).
+
+**Dual Calibration Model Established:**
+1. **Macro-Class (External Distributed):** -3.2 to -3.5 compression (hurricanes, systemic collapse)
+2. **Micro-Class (Personal Pinpoint):** -4.0 to -5.0 compression (exact natal hits, phase-slip events)
+
+**Key Insight:** Compression measures **symbolic precision**, not physical scale. A personal crisis with 0°-1° natal resonance can register HIGHER compression than large-scale external events.
+
+**Poetic Brain Integration (app/api/chat/route.ts):**
+- Added Dual Calibration wisdom to system instructions (lines 650-675)
+- Recognizes Macro vs Micro crisis classes
+- Frames therapeutic responses appropriate to compression type
+- Honors that small events can land harder when they strike exact natal configurations
+- Privacy-preserving: No case specifics, only architectural principles
+
+**Therapeutic Layer:**
+- Macro-class: External rebuilding + Ladder Tree (Radical Acceptance, Defusion)
+- Micro-class: Somatic anchoring + silence honoring + phase-slip structural support
+- Below -5.0: Unmappable void (requires external structural intervention)
+
+**Files Modified:**
+- `app/api/chat/route.ts` — Poetic Brain system instructions updated
+- `Persona/Two Cases Studies in high negative directional bias` — Golden standards documented
+- Test scripts: `test-dan-bias.js`, `test-stephie-fracture.js`
+
+**Impact:**
+- ✅ Poetic Brain can now honor high-compression crisis context without under-reading
+- ✅ Two golden standards validate architecture across crisis classes
+- ✅ Translocation mandatory for both classes (Felt Weather > Blueprint)
+- ✅ Privacy maintained (no personal identifiers in system knowledge)
+
+---
+
 ## [2025-11-01] CRITICAL FIX: Translocation Architecture — Blueprint vs Felt Weather
 
 **Summary**
