@@ -5,7 +5,8 @@ import DOMPurify from "dompurify";
 import { generateId } from "../lib/id";
 import { formatFullClimateDisplay, type ClimateData } from "../lib/climate-renderer";
 import { summarizeRelocation, type RelocationSummary } from "../lib/relocation";
-import PingFeedback, { type PingResponse } from "./PingFeedback";
+import { type PingResponse } from "./PingFeedback";
+import MirrorResponseActions from "./MirrorResponseActions";
 import { pingTracker } from "../lib/ping-tracker";
 import {
   APP_NAME,
@@ -1255,10 +1256,13 @@ export default function ChatClient() {
       const messageContent = message ? message.html : "";
       const alreadyAcknowledged = message?.pingFeedbackRecorded;
 
+      const skipAutoProgrammatic = note === "__quick_reply__";
+      const sanitizedNote = skipAutoProgrammatic ? undefined : note;
+
       pingTracker.recordFeedback(
         messageId,
         response,
-        note,
+        sanitizedNote,
         checkpointType,
         messageContent,
       );
@@ -1297,24 +1301,26 @@ export default function ChatClient() {
         }
       }
 
-      const followUpParts: string[] = [];
-      if (response === "yes") {
-        followUpParts.push("yes, that resonates with me");
-      } else if (response === "no") {
-        followUpParts.push("that doesn't feel familiar to me");
-      } else if (response === "maybe") {
-        followUpParts.push("that partially resonates, but not completely");
-      } else if (response === "unclear") {
-        followUpParts.push("that feels confusing or unclear to me");
-      }
-      if (note) {
-        followUpParts.push(note);
-      }
+      if (!skipAutoProgrammatic) {
+        const followUpParts: string[] = [];
+        if (response === "yes") {
+          followUpParts.push("yes, that resonates with me");
+        } else if (response === "no") {
+          followUpParts.push("that doesn't feel familiar to me");
+        } else if (response === "maybe") {
+          followUpParts.push("that partially resonates, but not completely");
+        } else if (response === "unclear") {
+          followUpParts.push("that feels confusing or unclear to me");
+        }
+        if (sanitizedNote) {
+          followUpParts.push(sanitizedNote);
+        }
 
-      if (followUpParts.length > 0) {
-        window.setTimeout(() => {
-          void sendProgrammatic(followUpParts.join(". "));
-        }, 400);
+        if (followUpParts.length > 0) {
+          window.setTimeout(() => {
+            void sendProgrammatic(followUpParts.join(". "));
+          }, 400);
+        }
       }
     },
     [messages, sendProgrammatic, pushRavenNarrative],
@@ -1778,7 +1784,12 @@ export default function ChatClient() {
                   />
                   {isRaven && msg.probe && !msg.pingFeedbackRecorded && (
                     <div className="mt-4">
-                      <PingFeedback messageId={msg.id} onFeedback={handlePingFeedback} />
+                      <MirrorResponseActions
+                        messageId={msg.id}
+                        onFeedback={handlePingFeedback}
+                        onQuickReply={sendProgrammatic}
+                        checkpointType={getPingCheckpointType(msg.html)}
+                      />
                     </div>
                   )}
                 </div>
