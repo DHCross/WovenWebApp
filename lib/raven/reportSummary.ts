@@ -315,6 +315,7 @@ export function summariseUploadedReportJson(raw: string): {
     ['person', 'name'],
     ['person_a', 'details', 'name'],
     ['person_a', 'name'],
+    ['balance_meter', 'summary', 'status_label'],
     ['context', 'person', 'name'],
     ['context', 'person_a', 'name'],
     ['provenance', 'person_name'],

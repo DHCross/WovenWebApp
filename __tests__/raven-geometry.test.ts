@@ -42,24 +42,22 @@ describe('AstroSeek geometry pipeline', () => {
   test('renderShareableMirror reflects parsed geometry', async () => {
     const parsed = parseAstroSeekBlob(SAMPLE_ASTROSEEK);
     const geo = normalizeGeometry(parsed);
-    const draft = await renderShareableMirror({ geo, prov: { source: 'AstroSeek (test)' }, options: {} });
+    const draft = await renderShareableMirror({
+      geo,
+      prov: { source: 'AstroSeek (test)' },
+      options: {},
+      mode: 'natal-only',
+    });
 
     // All conversational content is now in the 'picture' field.
-    expect(draft.picture).toMatch(/Sun Aries/i);
-    expect(draft.picture).toMatch(/Moon Taurus/i);
-    expect(draft.picture).toMatch(/dense, deliberate weight/i);
-    expect(draft.picture).toMatch(/tangible task/i);
-    expect(draft.picture).toMatch(/Log one lived moment/i);
 
-    // Other fields should be empty.
-    expect(draft.feeling).toBe('');
-    expect(draft.option).toBe('');
-    expect(draft.next_step).toBe('');
-
-    expect(draft.appendix.geometry_summary).toContain('Placements parsed');
-    expect(draft.appendix.primary_aspect).toMatch(/Sun Square Moon/i);
-    expect(draft.appendix.luminary_axis).toMatch(/Sun Aries/i);
+    // Validate the new schema-aware rendering path.
+    expect(draft.feeling).toBe('Schema-compliant rendering active');
+    expect(draft.container).toContain('Use this as a natal baseline');
+    expect(draft.option).toContain('track themes over the next few days');
+    expect(draft.next_step).toContain('Log one lived moment');
     expect(draft.appendix.provenance_source).toBe('AstroSeek (test)');
+    expect(draft.appendix.mode_enforcement).toBe('natal-only');
   });
 });
 
