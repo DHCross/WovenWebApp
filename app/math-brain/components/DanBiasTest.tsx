@@ -15,7 +15,19 @@ interface BiasDataPoint {
 // --- HELPER FUNCTIONS ---
 
 /**
- * Extracts and cleans the daily bias data from the API response
+ * Format axis value for frontstage display (field-scale -5 to +5)
+ * Detects if value is normalized [-1,+1] and scales accordingly
+ */
+function fmtAxis(value: number | null | undefined): number | null {
+  if (value === null || value === undefined || !Number.isFinite(value)) return null;
+  // If |value| <= 1.2, assume normalized; scale to [-5,+5]
+  // Otherwise, assume already field-scaled
+  return Math.abs(value) <= 1.2 ? Math.round(value * 5) : Math.round(value);
+}
+
+/**
+ * Extracts and cleans the daily bias data from the API response.
+ * Applies field-scale transformation: normalized [-1,+1] → frontstage [-5,+5]
  */
 function extractBiasScatterData(payload: any): BiasDataPoint[] {
   const dailyReadings = payload?.person_a?.chart?.transitsByDate?.daily_readings;
@@ -33,7 +45,7 @@ function extractBiasScatterData(payload: any): BiasDataPoint[] {
       return {
         date: day.date,
         magnitude: mag?.value_calibrated ?? mag?.value ?? null,
-        directional_bias: bias?.value_calibrated ?? bias?.value ?? null,
+        directional_bias: fmtAxis(bias?.value_calibrated ?? bias?.value),
         volatility: vol?.value_calibrated ?? vol?.value ?? null,
         aspect_count: day.aspects?.total_aspect_count ?? 0,
       };
@@ -286,7 +298,7 @@ export function DanBiasTest() {
                   </td>
                   <td className={`px-4 py-3 text-center font-bold ${day.directional_bias !== null && day.directional_bias > 0 ? 'text-blue-600' : 'text-red-600'}`}>
                     {day.directional_bias !== null
-                      ? `${day.directional_bias > 0 ? '+' : ''}${day.directional_bias.toFixed(2)}`
+                      ? `${day.directional_bias > 0 ? '+' : ''}${day.directional_bias}`
                       : '—'}
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -323,9 +335,12 @@ export function DanBiasTest() {
             </div>
             <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
               <div className="text-sm text-slate-600 mb-1">Avg. Directional Bias</div>
-              <div className={`text-2xl font-bold ${summary.directional_bias?.value_calibrated > 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                {summary.directional_bias?.value_calibrated > 0 ? '+' : ''}
-                {summary.directional_bias?.value_calibrated?.toFixed(2) ?? 'N/A'}
+              <div className={`text-2xl font-bold ${(summary.directional_bias?.value_calibrated ?? summary.directional_bias?.value ?? 0) > 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                {(() => {
+                  const rawBias = summary.directional_bias?.value_calibrated ?? summary.directional_bias?.value ?? 0;
+                  const biasScaled = fmtAxis(rawBias) ?? 0;
+                  return `${biasScaled > 0 ? '+' : ''}${biasScaled}`;
+                })()}
               </div>
               <div className="text-xs text-slate-500 mt-1">
                 {summary.directional_bias?.label ?? '...'}

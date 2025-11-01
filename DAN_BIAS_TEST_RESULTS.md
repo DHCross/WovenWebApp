@@ -37,14 +37,16 @@ Response Time: ~500ms
 | Metric | Value | Range | Interpretation |
 |--------|-------|-------|-----------------|
 | **Magnitude** | 2.3 | [0, 5] | Moderate activity level |
-| **Directional Bias** | 0.6 | [-5, +5] | Slightly outward/expansive |
+| **Directional Bias** | +3 | [-5, +5] | Mildly outward/expansive |
 | **Volatility** | 1.1 | [0, 5] | Low volatility (stable) |
 
 ### Interpretation
 
 - **Magnitude 2.3:** Moderate symbolic weather—some planetary activity but not extreme
-- **Directional Bias +0.6:** Slight outward lean—energy inclines toward expansion, openness, or action rather than introspection
+- **Directional Bias +3:** Mild outward lean—energy inclines toward expansion, openness, or action rather than introspection (field-scale display)
 - **Volatility 1.1:** Stable pattern—minimal fluctuations; the system is coherent and predictable
+
+**Note:** API returns normalized values (0.6 on [-1,+1] scale), which are transformed to field-scale integers (+3 on [-5,+5] scale) for symbolic legibility.
 
 ---
 
