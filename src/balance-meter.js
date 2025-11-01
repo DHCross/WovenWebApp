@@ -2,7 +2,7 @@
 // Balance Channel (v1.1) + Support–Friction Differential (SFD, v1.2)
 // Standalone computation based on "Balance Meter.txt" spec (v1.2 Draft, Sep 5, 2025)
 
-const { getEffectiveOrb, isWithinOrb } = require('../lib/config/orb-profiles');
+const { getEffectiveOrb, isWithinOrb } = require('./lib/config/orb-profiles');
 
 function clamp(n, lo, hi){ return Math.max(lo, Math.min(hi, n)); }
 function round(n, p=2){ return Math.round(n * (10**p)) / (10**p); }
