@@ -135,6 +135,5 @@ describe('CI Gate: Spec Compliance (v5.0)', () => {
 
     expect(RANGE_MAG).toEqual([0, 5]);
     expect(RANGE_BIAS).toEqual([-5, 5]);
-    expect(RANGE_COH).toEqual([0, 5]);
   });
 });

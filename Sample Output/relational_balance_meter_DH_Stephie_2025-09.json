@@ -1,0 +1,13 @@
+{
+  "balance_meter": {
+    "person_a": {
+      "name": "DH"
+    },
+    "person_b": {
+      "name": "Stephie"
+    },
+    "summary": {
+      "status_label": "DH Cross Stephie"
+    }
+  }
+}
