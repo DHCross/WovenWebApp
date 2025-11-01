@@ -1482,6 +1482,9 @@ Start with the Solo Mirror(s), then ${
     timezone: any;
     created_utc: string;
     math_brain_version: string;
+    schema_version?: string;
+    orbs_profile?: string;
+    balance_meter_version?: string;
     relationship_context?: string | null;
   }
 
@@ -1505,6 +1508,23 @@ Start with the Solo Mirror(s), then ${
       result?.relationship ||
       result?.context?.relationship_context ||
       null;
+
+    // v5 provenance helpers
+    const toIana = (tz?: string | null) => {
+      if (!tz || typeof tz !== 'string') return tz as any;
+      const map: Record<string, string> = {
+        'US/Central': 'America/Chicago',
+        'US/Eastern': 'America/New_York',
+        'US/Pacific': 'America/Los_Angeles',
+        'US/Mountain': 'America/Denver',
+      };
+      return (map[tz] || tz) as any;
+    };
+    const prov = (result as any)?.provenance || {};
+    const v5Orbs = prov.orbs_profile || 'wm-tight-2025-11-v5';
+    const relocationMode = prov.relocation_mode && typeof prov.relocation_mode === 'object'
+      ? { ...prov.relocation_mode, timezone: toIana(prov.relocation_mode.timezone) }
+      : (prov.relocation_mode || 'None');
 
     const reportKind = formatReportKind(reportContractType);
     const mirrorDirective = {
@@ -1538,15 +1558,15 @@ Start with the Solo Mirror(s), then ${
       },
       relationship_context: relationshipContext || null,
       provenance: result?.provenance ? {
-        generated_at: result.provenance.generated_at || new Date().toISOString(),
-        math_brain_version: result.provenance.math_brain_version || 'N/A',
-        house_system: result.provenance.house_system || 'Placidus',
-        orbs_profile: result.provenance.orbs_profile || 'wm-spec-2025-09',
-        ephemeris_source: result.provenance.ephemeris_source || 'astrologer-api',
-        relocation_mode: result.provenance.relocation_mode || 'None',
-        timezone_db_version: result.provenance.timezone_db_version || 'IANA-2025a',
-        normalized_input_hash: result.provenance.normalized_input_hash || result.provenance.hash || null,
-        engine_versions: result.provenance.engine_versions || {},
+        generated_at: prov.generated_at || new Date().toISOString(),
+        math_brain_version: prov.math_brain_version || 'N/A',
+        house_system: prov.house_system || 'Placidus',
+        orbs_profile: v5Orbs,
+        ephemeris_source: prov.ephemeris_source || 'astrologer-api',
+        relocation_mode: relocationMode,
+        timezone_db_version: prov.timezone_db_version || 'IANA-2025a',
+        normalized_input_hash: prov.normalized_input_hash || prov.hash || null,
+        engine_versions: prov.engine_versions || {},
       } : null,
       narrative_sections: {
         solo_mirror_a: '',
@@ -1582,19 +1602,80 @@ Start with the Solo Mirror(s), then ${
       return null;
     }
 
+    // Utility: shallow clone meta and coerce IANA timezones for common US/* labels
+    const toIana = (tz?: string | null) => {
+      if (!tz || typeof tz !== 'string') return tz;
+      const map: Record<string, string> = {
+        'US/Central': 'America/Chicago',
+        'US/Eastern': 'America/New_York',
+        'US/Pacific': 'America/Los_Angeles',
+        'US/Mountain': 'America/Denver',
+      };
+      return map[tz] || tz;
+    };
+
+    // Prefer provenance values from v5 response
+    const prov = (result as any)?.provenance || (unifiedOutput as any)?.provenance || {};
+    const v5Orbs = prov.orbs_profile || 'wm-tight-2025-11-v5';
+    const bmVersion = '5.0';
+    const ianaTz = toIana(
+      mapFile?._meta?.relocation_mode?.timezone ||
+      fieldFile?._meta?.relocation_mode?.timezone ||
+      mapFile?._meta?.timezone ||
+      fieldFile?._meta?.timezone ||
+      null
+    );
+
+    // Sanitize embedded meta blocks to carry v5 identifiers forward
+    const sanitizedMap = mapFile ? { ...mapFile } : {};
+    if (sanitizedMap._meta) {
+      sanitizedMap._meta = { ...sanitizedMap._meta, orbs_profile: v5Orbs };
+      if (sanitizedMap._meta.relocation_mode) {
+        sanitizedMap._meta.relocation_mode = {
+          ...sanitizedMap._meta.relocation_mode,
+          timezone: toIana(sanitizedMap._meta.relocation_mode.timezone),
+        };
+      }
+    }
+    const sanitizedField = fieldFile ? { ...fieldFile } : {};
+    if (sanitizedField._meta) {
+      sanitizedField._meta = { ...sanitizedField._meta, orbs_profile: v5Orbs };
+      if (sanitizedField._meta.relocation_mode) {
+        sanitizedField._meta.relocation_mode = {
+          ...sanitizedField._meta.relocation_mode,
+          timezone: toIana(sanitizedField._meta.relocation_mode.timezone),
+        };
+      }
+    }
+
     const fieldMapData: FieldMapData = {
       _meta: {
-        schema: 'wm-fieldmap-v1',
+        schema: 'wm-fieldmap-v5',
+        schema_version: 'wm-fieldmap-v5',
         kind: ['FIELD', 'MAP'],
         version: '10.2',
-        coords: mapFile?._meta?.coords || fieldFile?._meta?.coords || null,
-        timezone: mapFile?._meta?.timezone || fieldFile?._meta?.timezone || null,
+        coords: sanitizedMap?._meta?.coords || sanitizedField?._meta?.coords || null,
+        timezone: ianaTz,
         created_utc: new Date().toISOString(),
         math_brain_version: mapFile?._meta?.math_brain_version || fieldFile?._meta?.math_brain_version || 'N/A',
+        orbs_profile: v5Orbs,
+        balance_meter_version: bmVersion,
       },
-      map: mapFile || {},
-      field: fieldFile || {},
+      map: sanitizedMap,
+      field: sanitizedField,
     };
+
+    // Attach provenance block with translocation-aware flags if available
+    const chart_basis = prov.chart_basis || prov.chartBasis || null;
+    const seismograph_chart = prov.seismograph_chart || prov.seismographChart || null;
+    const translocation_applied = prov.translocation_applied ?? prov.translocationApplied ?? undefined;
+    if (chart_basis || seismograph_chart || typeof translocation_applied === 'boolean') {
+      (fieldMapData as any).provenance = {
+        chart_basis,
+        seismograph_chart,
+        translocation_applied,
+      };
+    }
 
     if (relationshipContext) {
       fieldMapData.relationship_context = relationshipContext;
@@ -1606,7 +1687,7 @@ Start with the Solo Mirror(s), then ${
       : rawWeatherLogName;
 
     return {
-      filename: `wm-fieldmap-v1_${weatherLogSuffix}.json`,
+      filename: `wm-fieldmap-v5_${weatherLogSuffix}.json`,
       payload: fieldMapData,
     };
   }, [friendlyFilename, result]);
