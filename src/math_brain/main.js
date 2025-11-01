@@ -32,6 +32,16 @@ async function runMathBrain(configSource, transitData = null) {
     throw new Error('runMathBrain expected a config path or object');
   }
 
+/**
+ * Computes a high-level summary of a relational report, including combined bias and status labels.
+ * This function is critical for providing a top-level interpretation of two-person dynamics over a date range.
+ *
+ * @param {Array<object>} dailyEntries - An array of daily data objects, each expected to have a `mirror_data` property.
+ * @param {object} [options={}] - Configuration options for the summary calculation.
+ * @param {boolean} [options.weightByMagnitude=true] - If true, weights each day's bias by its magnitude, giving more influence to intense days.
+ * @param {object} [options.biasWeights={}] - Optional weights to apply to each person's bias, e.g., `{ personA: 1.2, personB: 0.8 }`.
+ * @returns {object|null} A summary object with directional biases and labels, or null if the input is empty.
+ */
 function computeRelationalSummary(dailyEntries, options = {}) {
   if (!Array.isArray(dailyEntries) || dailyEntries.length === 0) {
     return null;
@@ -42,53 +52,47 @@ function computeRelationalSummary(dailyEntries, options = {}) {
   let weightedBiasBSum = 0;
   let weightASum = 0;
   let weightBSum = 0;
-  const combinedBiasSeries = [];
 
   for (const entry of dailyEntries) {
     const mirror = entry?.mirror_data;
     if (!mirror) continue;
 
-    const aMagnitude = Number(mirror.person_a_contribution?.magnitude ?? 0);
-    const bMagnitude = Number(mirror.person_b_contribution?.magnitude ?? 0);
-    const aBias = Number(mirror.person_a_contribution?.bias ?? 0);
-    const bBias = Number(mirror.person_b_contribution?.bias ?? 0);
+    // Extract contributions, defaulting to 0 if not present.
+    const aMagnitude = mirror.person_a_contribution?.magnitude ?? 0;
+    const bMagnitude = mirror.person_b_contribution?.magnitude ?? 0;
+    const aBias = mirror.person_a_contribution?.bias ?? 0;
+    const bBias = mirror.person_b_contribution?.bias ?? 0;
 
+    // Determine the weight for each person's bias for this day.
+    // This can be influenced by the day's magnitude and any configuration overrides.
     const magnitudeWeightA = weightByMagnitude ? Math.max(aMagnitude, 0) : 1;
     const magnitudeWeightB = weightByMagnitude ? Math.max(bMagnitude, 0) : 1;
-    const configWeightA = Number(biasWeights.personA ?? 1);
-    const configWeightB = Number(biasWeights.personB ?? 1);
+    const configWeightA = biasWeights.personA ?? 1;
+    const configWeightB = biasWeights.personB ?? 1;
 
     const weightA = magnitudeWeightA * configWeightA;
     const weightB = magnitudeWeightB * configWeightB;
 
+    // Accumulate weighted biases and total weights.
     weightedBiasASum += aBias * weightA;
     weightedBiasBSum += bBias * weightB;
     weightASum += weightA;
     weightBSum += weightB;
-
-    const combined = (aBias * weightA + bBias * weightB) / Math.max(weightA + weightB, 1e-6);
-    combinedBiasSeries.push(combined);
   }
 
+  // If no valid data was processed, return null.
   if (weightASum === 0 && weightBSum === 0) {
     return null;
   }
 
-  const personAToPersonBBias = weightASum ? weightedBiasASum / weightASum : 0;
-  const personBToPersonABias = weightBSum ? weightedBiasBSum / weightBSum : 0;
-  const combinedBias = (weightedBiasASum + weightedBiasBSum) / Math.max(weightASum + weightBSum, 1e-6);
+  // Calculate the final averaged biases.
+  const personAToPersonBBias = weightASum > 1e-6 ? weightedBiasASum / weightASum : 0;
+  const personBToPersonABias = weightBSum > 1e-6 ? weightedBiasBSum / weightBSum : 0;
+  const combinedBias = (weightedBiasASum + weightedBiasBSum) / (weightASum + weightBSum);
 
+  // Classify the combined bias into a human-readable label.
   const biasLabel = classifyDirectionalBias(combinedBias);
-  let statusLabel = 'balanced';
-  if (combinedBias >= 1) {
-    statusLabel = 'strong_flow';
-  } else if (combinedBias <= -1) {
-    statusLabel = 'strong_tension';
-  } else if (combinedBias >= 0.5) {
-    statusLabel = 'moderate_flow';
-  } else if (combinedBias <= -0.5) {
-    statusLabel = 'moderate_tension';
-  }
+  const statusLabel = getStatusLabelForBias(combinedBias);
 
   return {
     personA_to_personB_bias: Number(personAToPersonBBias.toFixed(2)),
@@ -98,6 +102,19 @@ function computeRelationalSummary(dailyEntries, options = {}) {
     status_label: statusLabel,
     summary_generated_at: new Date().toISOString(),
   };
+}
+
+/**
+ * Determines a status label based on the combined bias score.
+ * @param {number} bias - The combined bias score.
+ * @returns {string} The corresponding status label.
+ */
+function getStatusLabelForBias(bias) {
+  if (bias >= 1.0) return 'strong_flow';
+  if (bias <= -1.0) return 'strong_tension';
+  if (bias >= 0.5) return 'moderate_flow';
+  if (bias <= -0.5) return 'moderate_tension';
+  return 'balanced';
 }
 
   config.sourcePath = configPath;
@@ -768,4 +785,8 @@ function extractCompactAspect(scoredAspect, planetIndex, aspectKeyIndex) {
 }
 
 // Export the main function (CommonJS for Node.js execution)
-module.exports = { runMathBrain };
+module.exports = {
+  runMathBrain,
+  computeRelationalSummary,
+  getStatusLabelForBias
+};
