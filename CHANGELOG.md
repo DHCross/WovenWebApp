@@ -1,3 +1,73 @@
+## [2025-11-01] FEATURE: Probabilistic Forecasting Micro-Protocol (Option C)
+
+Summary
+Integrated a conditional, falsifiable forecasting layer into Poetic Brain that activates only for timing/decision-window queries, preserving Raven Calder voice and A Strange Cosmic Symbolism v5 math integrity.
+
+Implementation
+- app/api/chat/route.ts: Added micro-protocol system guidance
+   - Trigger keywords: "when", "should I", "upcoming", "future", "wait", "timing"
+   - Field-sensing tone; ranges not dates; moderate depth (3–4 sentences)
+   - Uses Balance Meter v5 (Magnitude, Directional Bias, Volatility) as probability fields (not certainties)
+   - Optional falsifiability prompt: WB / ABE / OSR
+- Integration with Dual Calibration: high compression (−4..−5) narrows probability windows; expansion (+3..+5) widens openness windows
+
+Validation
+- Build: PASS (Next.js)
+- Privacy and tone: preserved (no case-specific terms; agency-first language)
+
+---
+
+## [2025-11-01] UPDATE: FieldMap Exporter v5 + Provenance passthrough
+
+Summary
+Modernized the FieldMap exporter to emit v5-compliant files and consume provenance directly from Balance Meter v5, preventing legacy regressions.
+
+Implementation
+- app/math-brain/hooks/useChartExport.ts
+   - buildFieldMapExport():
+      - schema/schema_version → "wm-fieldmap-v5"
+      - filename prefix → "wm-fieldmap-v5_*.json"
+      - propagate orbs_profile (default: "wm-tight-2025-11-v5")
+      - coerce legacy US/* timezones to IANA (e.g., US/Central → America/Chicago)
+      - attach top-level provenance: chart_basis, seismograph_chart, translocation_applied
+      - sanitize embedded _meta for map/field (override orbs_profile; normalize relocation_mode.timezone)
+      - no raw volatility written (computed downstream)
+- buildMirrorDirectiveExport():
+   - provenance fallback orbs_profile → "wm-tight-2025-11-v5"
+   - normalize relocation_mode.timezone to IANA when present
+
+Why
+- Prior exports showed legacy markers (wm-spec-2025-09, US/Central, missing provenance, wm-fieldmap-v1). Exporter now enforces v5 identifiers at the source.
+
+Quality gates
+- Build: PASS
+
+---
+
+## [2025-11-01] DOCS/TOOLING: FieldMap v5 QA checklist + validator
+
+Summary
+Added a developer-facing checklist and a CLI validator to keep FieldMap exports aligned with Balance Meter v5 and Raven Calder integration.
+
+Artifacts
+- Developers Notes/API/API_INTEGRATION_GUIDE.md
+   - New section: "FieldMap QA + Volatility Modernization Checklist (v5)"
+- scripts/validate-fieldmap-v5.js (CLI)
+   - Checks: orbs_profile, IANA timezone, provenance presence, schema_version (wm-fieldmap-v5), absence of relational artifacts for solo files, no raw volatility
+- package.json
+   - Added npm script: "validate:fieldmap"
+
+Validation run (legacy file example)
+- analysis/wm-fieldmap-v1_Log_dan_2025-11-01_to_2025-11-01.json
+   - FAIL: legacy orbs_profile (wm-spec-2025-09)
+   - FAIL: timezone US/Central (expected IANA)
+   - FAIL: empty people[].planets (legacy artifact)
+   - FAIL: provenance missing
+   - FAIL: schema_version wm-fieldmap-v1 (expected wm-fieldmap-v5)
+   - PASS: balance_meter_version 5.0; no raw volatility
+→ Exporter update resolves these on newly generated files (expected PASS).
+
+---
 ## [2025-11-01] FEATURE: Probabilistic Forecasting Micro-Protocol Integration
 
 **Summary**
