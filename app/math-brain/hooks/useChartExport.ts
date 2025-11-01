@@ -96,7 +96,6 @@ interface UseChartExportResult {
   downloadMirrorSymbolicWeatherJSON: () => void;  // NEW: Consolidated Mirror + Weather
   downloadMirrorDirectiveJSON: () => void;
   downloadFieldMapFile: () => void;               // NEW: Unified FIELD + MAP
-  downloadAIBundle: () => Promise<void>;
   // Backward compatibility (deprecated)
   downloadSymbolicWeatherJSON: () => void;
   downloadMapFile: () => void;
@@ -154,7 +153,6 @@ export function useChartExport(options: UseChartExportOptions): UseChartExportRe
   const [cleanJsonGenerating, setCleanJsonGenerating] = useState<boolean>(false);
   const [engineConfigGenerating, setEngineConfigGenerating] = useState<boolean>(false);
   const [weatherJsonGenerating, setWeatherJsonGenerating] = useState<boolean>(false);
-  const [bundleGenerating, setBundleGenerating] = useState<boolean>(false);
 
   const pushToast = useCallback(
     (message: string, duration?: number) => {
@@ -1709,76 +1707,6 @@ Start with the Solo Mirror(s), then ${
     }
   }, [buildFieldMapExport, pushToast, result]);
 
-  const downloadAIBundle = useCallback(async () => {
-    if (!result) return;
-    setBundleGenerating(true);
-
-    try {
-      const [{ default: JSZip }] = await Promise.all([
-        import('jszip'),
-      ]);
-
-      const zip = new JSZip();
-      const directiveExport = buildMirrorDirectiveExport();
-      const weatherExport = buildMirrorSymbolicWeatherExport();
-      const fieldMapExport = buildFieldMapExport();
-
-      const personAName = result?.person_a?.details?.name || result?.person_a?.name || 'Person A';
-      const personBName = result?.person_b?.details?.name || result?.person_b?.name || undefined;
-
-      const readme = generateDownloadReadme({
-        reportType: reportContractType,
-        personA: personAName,
-        personB: personBName,
-        exportDate: new Date(),
-        includesTransits: reportContractType.includes('balance'),
-      });
-
-      zip.file('README.txt', readme);
-
-      if (directiveExport) {
-        zip.file(directiveExport.filename, JSON.stringify(directiveExport.payload, null, 2));
-      }
-
-      if (weatherExport) {
-        zip.file(weatherExport.filename, JSON.stringify(weatherExport.payload, null, 2));
-      }
-
-      if (fieldMapExport) {
-        zip.file(fieldMapExport.filename, JSON.stringify(fieldMapExport.payload, null, 2));
-      }
-
-      const blob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${friendlyFilename('ai-bundle')}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-
-      if (weatherExport && !weatherExport.hasChartGeometry) {
-        pushToast('⚠️ Chart geometry missing — bundle may not upload cleanly to Poetic Brain. Include the PDF if issues persist.', 3200);
-      } else {
-        pushToast('📦 AI bundle ready for Gemini, Claude, or custom GPT', 2200);
-      }
-    } catch (err) {
-      console.error('AI bundle ZIP export failed', err);
-      pushToast('Could not generate AI bundle ZIP', 2200);
-    } finally {
-      setTimeout(() => setBundleGenerating(false), 300);
-    }
-  }, [
-    buildFieldMapExport,
-    buildMirrorDirectiveExport,
-    buildMirrorSymbolicWeatherExport,
-    friendlyFilename,
-    pushToast,
-    reportContractType,
-    result,
-  ]);
-
   // DEPRECATED: Separate MAP/FIELD exports replaced by unified wm-fieldmap-v1
   // Keeping for backward compatibility during transition
   const downloadMapFile = downloadFieldMapFile;
@@ -1792,7 +1720,6 @@ Start with the Solo Mirror(s), then ${
     downloadMirrorSymbolicWeatherJSON,
     downloadMirrorDirectiveJSON,
     downloadFieldMapFile,
-    downloadAIBundle,
     // Backward compatibility aliases (deprecated)
     downloadSymbolicWeatherJSON: downloadMirrorSymbolicWeatherJSON,
     downloadMapFile: downloadFieldMapFile,
@@ -1802,7 +1729,6 @@ Start with the Solo Mirror(s), then ${
     cleanJsonGenerating,
     engineConfigGenerating,
     weatherJsonGenerating,
-    bundleGenerating,
   };
 }
 

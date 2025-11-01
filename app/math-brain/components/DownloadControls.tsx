@@ -11,12 +11,10 @@ interface DownloadControlsProps {
   weatherJsonGenerating: boolean;
   engineConfigGenerating: boolean;
   cleanJsonGenerating: boolean;
-  bundleGenerating: boolean;
   onDownloadPDF: () => void;
   onDownloadMarkdown: () => void;
   onDownloadMirrorDirective: () => void;
   onDownloadSymbolicWeather: () => void;
-  onDownloadBundle: () => void;
   onDownloadGraphsPDF: () => void;
   onDownloadEngineConfig: () => void;
   onDownloadCleanJSON: () => void;
@@ -37,12 +35,10 @@ export default function DownloadControls({
   weatherJsonGenerating,
   engineConfigGenerating,
   cleanJsonGenerating,
-  bundleGenerating,
   onDownloadPDF,
   onDownloadMarkdown,
   onDownloadMirrorDirective,
   onDownloadSymbolicWeather,
-  onDownloadBundle,
   onDownloadGraphsPDF,
   onDownloadEngineConfig,
   onDownloadCleanJSON,
@@ -61,8 +57,7 @@ export default function DownloadControls({
     graphsPdfGenerating ||
     weatherJsonGenerating ||
     engineConfigGenerating ||
-    cleanJsonGenerating ||
-    bundleGenerating;
+    cleanJsonGenerating;
 
   return (
     <>
@@ -88,37 +83,6 @@ export default function DownloadControls({
 
       <div className="rounded-lg border border-slate-700 bg-slate-800/40 p-4 space-y-3">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">For Raven Calder (AI Analysis)</h3>
-
-
-
-        <button
-          type="button"
-          onClick={onDownloadBundle}
-          disabled={bundleGenerating}
-          className="w-full rounded-md border border-emerald-500 bg-emerald-600/20 px-4 py-3 text-left hover:bg-emerald-600/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          aria-label="Download AI-ready ZIP bundle"
-          title="Includes README, Mirror Directive JSON, Symbolic Weather JSON, and FieldMap JSON"
-        >
-          <div className="flex items-center gap-3">
-            {bundleGenerating ? (
-              <svg className="animate-spin h-5 w-5 text-emerald-200" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-            ) : (
-              <span className="text-2xl">📦</span>
-            )}
-            <div className="flex-1">
-              <div className="text-sm font-medium text-slate-100">
-                {bundleGenerating ? "Preparing AI bundle..." : "AI Analysis Bundle (ZIP)"}
-              </div>
-              <div className="text-xs text-slate-400 mt-0.5">
-                README + Mirror Directive + Symbolic Weather + FieldMap
-              </div>
-            </div>
-          </div>
-        </button>
-
         <button
           type="button"
           onClick={onDownloadMarkdown}
