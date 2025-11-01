@@ -1,14 +1,18 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import DOMPurify from "dompurify";
 import { generateId } from "../lib/id";
 import { formatFullClimateDisplay, type ClimateData } from "../lib/climate-renderer";
 import { summarizeRelocation, type RelocationSummary } from "../lib/relocation";
 import { type PingResponse } from "./PingFeedback";
+import { hasPendingValidations, getValidationStats, formatValidationSummary, validationReducer } from "@/lib/validation/validationUtils";
+import { parseValidationPoints } from "@/lib/validation/parseValidationPoints";
+import type { ValidationPoint, ValidationState } from "@/lib/validation/types";
 import MirrorResponseActions from "./MirrorResponseActions";
 import SessionWrapUpModal from "./SessionWrapUpModal";
 import { pingTracker } from "../lib/ping-tracker";
+import GranularValidation from "./feedback/GranularValidation";
 import {
   APP_NAME,
   STATUS_CONNECTED,
@@ -47,6 +51,8 @@ interface Message {
   prov?: Record<string, any> | null;
   pingFeedbackRecorded?: boolean;
   rawText?: string; // Store clean text for copying
+  validationPoints?: ValidationPoint[];
+  validationComplete?: boolean;
 }
 
 interface ReportContext {
@@ -182,7 +188,7 @@ const removeCitationAnnotations = (text: string): string => {
 
 const ensureSentence = (value: string | undefined | null): string => {
   if (!value) return "";
-  const cleaned = removeCitationAnnotations(String(value));
+  const cleaned = String(value).replace(/\s*\[\d+\]/g, "");
   const trimmed = cleaned.trim();
   if (!trimmed) return "";
   return trimmed.replace(/([^.!?])$/, "$1.");
@@ -393,30 +399,10 @@ const buildNarrativeDraft = (
   };
 };
 
-const formatFriendlyErrorMessage = (rawMessage: string): string => {
-  const text = rawMessage.trim();
-  if (!text) {
-    return "I reached for the mirror but nothing answered. Try again in a moment.";
-  }
-  if (/cancel/i.test(text)) {
-    return "The channel was closed before I could finish. Ask again whenever you're ready.";
-  }
-  if (/no mirror returned/i.test(text)) {
-    return "I reached for the mirror but it stayed silent. Upload a report or ask again so I can keep listening.";
-  }
-  if (/failed to reach raven api/i.test(text) || /request failed/i.test(text)) {
-    return "I'm having trouble reaching my poetic voice right now. Give me a moment and try again, or upload another chart for me to hold.";
-  }
-  if (/401/.test(text) || /auth/i.test(text)) {
-    return "I couldn't authenticate with the Perplexity wellspring. Double-check the key, then invite me again.";
-  }
-  return `I'm having trouble responding: ${text}`;
-};
-
-function formatShareableDraft(
+const formatShareableDraft = (
   draft?: Record<string, any> | null,
   prov?: Record<string, any> | null,
-): { html: string; rawText: string } {
+): { html: string; rawText: string } => {
   if (!draft) {
     return {
       html: "<i>No mirror draft returned.</i>",
@@ -480,36 +466,33 @@ function formatShareableDraft(
   }
 
   return buildNarrativeDraft(draft, prov);
-}
+};
 
-function formatIntentHook(
-  intent?: Intent,
-  prov?: Record<string, any> | null,
-): string | undefined {
-  if (!intent) return prov?.source ? `Source · ${prov.source}` : undefined;
-  const lane =
-    intent === "geometry"
-      ? "Geometry"
-      : intent === "report"
-        ? "Report"
-        : "Conversation";
-  const source = prov?.source ? ` · ${prov.source}` : "";
-  return `Lane · ${lane}${source}`;
-}
+const formatIntentHook =
+  (intent?: Intent, prov?: Record<string, any> | null): string | undefined => {
+    if (!intent) return prov?.source ? `Source · ${prov.source}` : undefined;
+    const lane =
+      intent === "geometry"
+        ? "Geometry"
+        : intent === "report"
+          ? "Report"
+          : "Conversation";
+    const source = prov?.source ? ` · ${prov.source}` : "";
+    return `Lane · ${lane}${source}`;
+  };
 
-function formatClimate(
-  climate?: string | ClimateData | null,
-): string | undefined {
-  if (!climate) return undefined;
-  if (typeof climate === "string") return climate;
-  try {
-    return formatFullClimateDisplay(climate);
-  } catch {
-    return undefined;
-  }
-}
+const formatClimate =
+  (climate?: string | ClimateData | null): string | undefined => {
+    if (!climate) return undefined;
+    if (typeof climate === "string") return climate;
+    try {
+      return formatFullClimateDisplay(climate);
+    } catch {
+      return undefined;
+    }
+  };
 
-function containsRepairValidation(text: string): boolean {
+const containsRepairValidation = (text: string): boolean => {
   const repairValidationPatterns = [
     /does this repair feel true/i,
     /is this a more accurate description/i,
@@ -524,9 +507,9 @@ function containsRepairValidation(text: string): boolean {
   ];
 
   return repairValidationPatterns.some((pattern) => pattern.test(text));
-}
+};
 
-function containsInitialProbe(text: string): boolean {
+const containsInitialProbe = (text: string): boolean => {
   const probePatterns = [
     /does any of this feel familiar/i,
     /did this land/i,
@@ -543,17 +526,16 @@ function containsInitialProbe(text: string): boolean {
   }
 
   return probePatterns.some((pattern) => pattern.test(text));
-}
+};
 
-function getPingCheckpointType(
-  text: string,
-): "hook" | "vector" | "aspect" | "repair" | "general" {
-  if (containsRepairValidation(text)) return "repair";
-  if (/hook stack|paradox.*tags|rock.*spark/i.test(text)) return "hook";
-  if (/hidden push|counterweight|vector signature/i.test(text)) return "vector";
-  if (/mars.*saturn|personal.*outer|hard aspect/i.test(text)) return "aspect";
-  return "general";
-}
+const getPingCheckpointType =
+  (text: string): "hook" | "vector" | "aspect" | "repair" | "general" => {
+    if (containsRepairValidation(text)) return "repair";
+    if (/hook stack|paradox.*tags|rock.*spark/i.test(text)) return "hook";
+    if (/hidden push|counterweight|vector signature/i.test(text)) return "vector";
+    if (/mars.*saturn|personal.*outer|hard aspect/i.test(text)) return "aspect";
+    return "general";
+  };
 
 const mapRelocationToPayload = (
   summary: RelocationSummary | null | undefined,
@@ -813,7 +795,8 @@ const createInitialMessage = (): Message => ({
 
 export default function ChatClient() {
   const [messages, setMessages] = useState<Message[]>([]);
-
+  const [validationMap, dispatchValidation] = useReducer(validationReducer, {} as ValidationState);
+  
   // Handle copy to clipboard
   const handleCopyToClipboard = useCallback(async (text: string, button: HTMLButtonElement) => {
     try {
@@ -837,16 +820,14 @@ export default function ChatClient() {
     const handleCopyClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const button = target.closest('.copy-message') as HTMLButtonElement;
-
-      if (button) {
-        e.preventDefault();
-        const messageId = button.dataset.messageId;
-        if (messageId) {
-          const message = messages.find((m) => m.id === messageId);
-          if (message?.rawText) {
-            handleCopyToClipboard(message.rawText, button);
-          }
-        }
+      
+      if (!button) return;
+      e.preventDefault();
+      const messageId = button.dataset.messageId;
+      if (!messageId) return;
+      const foundMessage = messages.find((m) => m.id === messageId);
+      if (foundMessage?.rawText) {
+        handleCopyToClipboard(foundMessage.rawText, button);
       }
     };
 
@@ -1141,6 +1122,11 @@ export default function ChatClient() {
         typeof parsed.savedAt === "string" && parsed.savedAt
           ? parsed.savedAt
           : new Date().toISOString();
+      setHasSavedPayloadSnapshot(true);
+
+      const ack = window.localStorage.getItem(MB_LAST_PAYLOAD_ACK_KEY);
+      if (ack && ack === savedAt) return;
+
       setStoredPayload({ ...parsed, savedAt });
       setHasSavedPayloadSnapshot(true);
       setStatusMessage("Last Math Brain export is ready to load.");
@@ -1180,11 +1166,18 @@ export default function ChatClient() {
     (ravenId: string, response: RavenDraftResponse, fallbackMessage: string) => {
       const guidance =
         typeof response?.guidance === "string" ? response.guidance.trim() : "";
-      const html = response?.draft
+      const { html: formattedHtml, rawText } = response?.draft
         ? formatShareableDraft(response.draft, response.prov ?? null)
         : guidance
-          ? `<div class="raven-guard" style="font-size:13px; line-height:1.5; color:#94a3b8; white-space:pre-line;">${escapeHtml(guidance)}</div>`
-          : `<p>${escapeHtml(fallbackMessage)}</p>`;
+          ? {
+              html: `<div class="raven-guard" style="font-size:13px; line-height:1.5; color:#94a3b8; white-space:pre-line;">${escapeHtml(guidance)}</div>`,
+              rawText: guidance
+            }
+          : {
+              html: `<p>${escapeHtml(fallbackMessage)}</p>`,
+              rawText: fallbackMessage
+            };
+      
       const climateDisplay = formatClimate(response?.climate ?? undefined);
       const hook = formatIntentHook(response?.intent, response?.prov ?? null);
 
@@ -1193,7 +1186,8 @@ export default function ChatClient() {
           msg.id === ravenId
             ? {
                 ...msg,
-                html,
+                html: formattedHtml,
+                rawText: rawText || msg.rawText || '',
                 climate: climateDisplay ?? msg.climate,
                 hook: hook ?? msg.hook,
                 intent: response.intent ?? msg.intent,
@@ -1992,29 +1986,48 @@ export default function ChatClient() {
       )}
 
       <main ref={conversationRef} className="flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-10">
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`flex ${
-                msg.role === 'assistant' ? 'justify-start' : 'justify-end'
-              }`}
-            >
+        <div className="mx-auto max-w-3xl space-y-6 px-6 py-10">
+          {messages.map((message, i) => {
+            const isAssistant = message.role === 'assistant';
+            return (
               <div
-                className={`relative max-w-[85%] rounded-2xl px-4 py-3 ${
-                  msg.role === 'assistant'
-                    ? 'bg-slate-900/70 border-slate-800/70 text-slate-100'
-                    : 'bg-slate-800/80 border-slate-700/60 text-slate-100'
-                }`}
-                dangerouslySetInnerHTML={{
-                  __html: msg.role === 'assistant'
-                    ? msg.html + `
-                      <button 
-                        class="copy-message" 
-                        data-message-id="${msg.id}"
-                        style="
-                          position: absolute;
-                          top: 0.5rem;
+                key={i}
+                className={`flex ${isAssistant ? 'justify-start' : 'justify-end'}`}
+              >
+                <div
+                  className={`relative max-w-[85%] rounded-2xl px-4 py-3 ${
+                    isAssistant
+                      ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-800 dark:text-gray-100'
+                      : 'bg-indigo-100 text-gray-900 dark:bg-indigo-900/30 dark:text-white'
+                  }`}
+                  dangerouslySetInnerHTML={{
+                    __html: isAssistant
+                      ? `${message.html}
+                        <button 
+                          class="copy-message" 
+                          data-message-id="${message.id}"
+                          style="
+                            position: absolute;
+                            top: 0.5rem;
+                            right: 0.5rem;
+                            background: none;
+                            border: none;
+                            color: #94a3b8;
+                            cursor: pointer;
+                            padding: 2px 6px;
+                            font-size: 11px;
+                            opacity: 0.6;
+                            transition: all 0.2s;
+                            border-radius: 4px;
+                          "
+                          title="Copy to clipboard"
+                          aria-label="Copy message to clipboard"
+                        >
+                          Copy
+                        </button>`
+                      : message.html
+                  }}
+                />
                           right: 0.5rem;
                           background: none;
                           border: none;
