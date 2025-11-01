@@ -710,7 +710,7 @@ const parseReportContent = (rawContent: string, opts: ParseOptions = {}): Parsed
 const createInitialMessage = (): Message => ({
   id: generateId(),
   role: "raven",
-  html: `I’m a clean mirror. I set what you share beside the pattern I see and speak it back in plain language. Start a session to talk freely, or upload a Math Brain export when you want the formal reading—either way I’ll tell you which lane we’re in.`,
+  html: `I’m a clean mirror. I set what you share beside the pattern I see and speak it back in plain language. Drop in whenever you’re ready—type below to talk freely, or upload a Math Brain export when you want the formal reading. I’ll keep you oriented either way.`,
   climate: formatFullClimateDisplay({ magnitude: 1, valence: 2, volatility: 0 }),
   hook: "Atmosphere · Creator ∠ Mirror",
 });
@@ -846,7 +846,7 @@ export default function ChatClient() {
       default:
         return {
           label: 'Session Idle',
-          description: 'Open a session to begin speaking with Raven.',
+          description: 'Begin typing below to start speaking with Raven.',
           badgeClass: 'border-slate-700/50 bg-slate-800/60 text-slate-300',
         };
     }
@@ -1368,7 +1368,7 @@ export default function ChatClient() {
     setRelocation(null);
     setSessionId(null);
     setStoredPayload(null);
-    setStatusMessage("Session cleared. Start whenever you're ready.");
+    setStatusMessage("Session cleared. Begin typing whenever you're ready.");
     pingTracker.sealSession(sessionId ?? undefined);
   }, [sessionId, shiftSessionMode]);
 
@@ -1565,7 +1565,7 @@ export default function ChatClient() {
             </div>
             <h1 className="text-2xl font-semibold text-slate-100">{APP_NAME}</h1>
             <p className="text-sm text-slate-400">
-              Open a session to speak freely, or upload Math Brain and Mirror exports when you are ready for a structured reading.
+              Raven is already listening—share what is present, or upload Math Brain and Mirror exports when you are ready for a structured reading.
             </p>
             <div className="mt-3 flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-emerald-300">
               <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
