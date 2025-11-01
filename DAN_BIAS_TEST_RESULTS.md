@@ -46,7 +46,7 @@ Response Time: ~500ms
 - **Directional Bias +3:** Mild outward lean—energy inclines toward expansion, openness, or action rather than introspection (field-scale display)
 - **Volatility 1.1:** Stable pattern—minimal fluctuations; the system is coherent and predictable
 
-**Note:** API returns normalized values (0.6 on [-1,+1] scale), which are transformed to field-scale integers (+3 on [-5,+5] scale) for symbolic legibility.
+**Note:** Single-source-of-truth architecture — seismograph computes field-scale values [-5,+5] once, summary averages them directly. No meta-derivatives or dual calculation paths.
 
 ---
 
@@ -114,10 +114,15 @@ app/math-brain/components/DanBiasTest.tsx
 
 ## Files Created/Modified
 
-- ✅ `app/math-brain/components/DanBiasTest.tsx` — React test component
+- ✅ `app/math-brain/components/DanBiasTest.tsx` — React test component with field-scale display
 - ✅ `test-dan.sh` — Bash test script
 - ✅ `test-dan-simple.sh` — Simplified output script
 - ✅ `app/api/astrology-mathbrain/route.ts` — Fixed markdown generation condition
+- ✅ `lib/server/astrology-mathbrain.js` — Implemented single-source-of-truth architecture
+  - Removed dual calculation paths for directional bias
+  - Retired `valence` alias completely
+  - Summary now directly averages seismograph values
+  - Mirrors successful magnitude pipeline pattern
 
 ---
 
