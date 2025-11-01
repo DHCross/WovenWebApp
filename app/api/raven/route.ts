@@ -8,7 +8,15 @@ import { stampProvenance } from '@/lib/raven/provenance';
 import { summariseUploadedReportJson } from '@/lib/raven/reportSummary';
 import { runMathBrain } from '@/lib/mathbrain/adapter';
 import { callPerplexity } from '@/lib/llm';
-import { createProbe, commitProbe, scoreSession, type SessionSSTLog, type SSTTag, type SessionTurn } from '@/lib/raven/sst';
+import {
+  createProbe,
+  commitProbe,
+  scoreSession,
+  type SessionSSTLog,
+  type SSTTag,
+  type SessionTurn,
+  type SessionSuggestion,
+} from '@/lib/raven/sst';
 import {
   ASTROSEEK_REFERENCE_GUIDANCE,
   referencesAstroSeekWithoutGeometry
@@ -93,6 +101,76 @@ function extractProbeFromResponse(responseText: string): string | null {
   return match ? match[1].trim() : null;
 }
 
+type ConversationMode = 'explanation' | 'clarification' | 'suggestion';
+
+const CLARIFICATION_PATTERNS: RegExp[] = [
+  /\bcan you clarify\b/i,
+  /\bcan you explain\b/i,
+  /\bwhat do you mean\b/i,
+  /\bi don't (quite\s+)?understand\b/i,
+  /\bthat (doesn't|does not) (fit|land|make sense)\b/i,
+  /\bhelp me understand\b/i,
+  /\bso you're saying\b/i,
+  /\bdoes that mean\b/i,
+];
+
+const SUGGESTION_PATTERNS: RegExp[] = [
+  /\b(feature|product|app) suggestion\b/i,
+  /\bhere'?s an idea\b/i,
+  /\bmaybe you could\b/i,
+  /\bi (recommend|suggest)\b/i,
+  /\bit would help if\b/i,
+  /\bcan you (add|change|update|adjust|stop)\b/i,
+  /\bshould (we|you)\b.*\b(instead|maybe)\b/i,
+  /\bwould it be possible to\b/i,
+];
+
+const FALLBACK_PROBE_BY_MODE: Record<ConversationMode, string> = {
+  explanation: 'Where do you feel this pattern pressing most in your day right now?',
+  clarification: 'What would help me restate this so it feels truer to your lived experience?',
+  suggestion: 'How should we carry this suggestion forward so it genuinely supports you?',
+};
+
+function detectConversationMode(text: string, session: SessionSSTLog): ConversationMode {
+  const input = text.trim();
+  if (!input) return 'explanation';
+
+  if (SUGGESTION_PATTERNS.some((pattern) => pattern.test(input))) {
+    return 'suggestion';
+  }
+
+  const looksLikeClarification =
+    CLARIFICATION_PATTERNS.some((pattern) => pattern.test(input)) ||
+    /\b(resonate|land|fit|accurate|familiar)\b/i.test(input);
+
+  if (looksLikeClarification) {
+    const lastProbe = [...(session.probes || [])].reverse().find((probe) => !probe.committed);
+    if (lastProbe) {
+      return 'clarification';
+    }
+  }
+
+  return 'explanation';
+}
+
+function recordSuggestion(session: SessionSSTLog, text: string): void {
+  const normalized = text.trim();
+  if (!normalized) return;
+  if (!Array.isArray(session.suggestions)) {
+    session.suggestions = [] as SessionSuggestion[];
+  }
+  const alreadyStored = session.suggestions.some(
+    (entry) => entry.text === normalized,
+  );
+  if (!alreadyStored) {
+    session.suggestions.push({
+      text: normalized,
+      acknowledged: true,
+      createdAt: new Date().toISOString(),
+    });
+  }
+}
+
 const sessions = new Map<string, SessionSSTLog>();
 
 export async function POST(req: Request) {
@@ -119,7 +197,13 @@ export async function POST(req: Request) {
     if (action === 'export') {
       const scores = scoreSession(sessionLog);
       // For now, return JSON; PDF export can be added using html2pdf on client
-      return NextResponse.json({ ok: true, sessionId: sid, scores, log: sessionLog });
+      return NextResponse.json({
+        ok: true,
+        sessionId: sid,
+        scores,
+        log: sessionLog,
+        suggestions: sessionLog.suggestions ?? [],
+      });
     }
 
     // Default: generate (router)
@@ -239,6 +323,21 @@ export async function POST(req: Request) {
       instructionLines.push('The user is asking for symbolic weather / current climate. Anchor your reflection in present-time field dynamics while staying grounded in their lived situation.');
     }
 
+    const conversationMode = detectConversationMode(textInput, sessionLog);
+    if (conversationMode === 'suggestion') {
+      instructionLines.push(
+        'The user is offering a product suggestion. Acknowledge it, affirm the useful part, and confirm you will carry it forward without promising implementation.',
+      );
+    } else if (conversationMode === 'clarification') {
+      instructionLines.push(
+        'The user is clarifying a previous mirror. Focus on restating the pattern plainly, integrating their language, and outlining the repair before asking the closing question.',
+      );
+    } else {
+      instructionLines.push(
+        'You are primarily explaining the pattern. Keep the voice grounded, specific, and oriented to their lived moment.',
+      );
+    }
+
     const promptSections: string[] = [
       instructionLines.join('\n'),
     ];
@@ -249,6 +348,7 @@ export async function POST(req: Request) {
       promptSections.push(`Recent conversation:\n${historyPrompt}`);
     }
     promptSections.push(`User message:\n${textInput}`);
+    promptSections.push(`Interaction mode: ${conversationMode}`);
     promptSections.push(`Session meta: first_turn=${isFirstTurn ? 'true' : 'false'}. When first_turn=true, invite them to notice rather than question.`);
 
     const prompt = promptSections.filter(Boolean).join('\n\n');
@@ -277,10 +377,16 @@ export async function POST(req: Request) {
 
       const draft: Record<string, any> = { conversation: replyText };
 
+      if (conversationMode === 'suggestion') {
+        recordSuggestion(sessionLog, textInput);
+      }
+
       let probe = null;
       const shouldScoreSession = !isFirstTurn && (hasReportContext || hasGeometryPayload);
       if (shouldScoreSession) {
-        const probeText = extractProbeFromResponse(replyText) ?? 'Does any part of this feel familiar in your body or your day?';
+        const probeText =
+          extractProbeFromResponse(replyText) ??
+          FALLBACK_PROBE_BY_MODE[conversationMode];
         probe = createProbe(probeText, randomUUID());
         sessionLog.probes.push(probe);
       }

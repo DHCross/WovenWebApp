@@ -15,10 +15,17 @@ export interface SessionTurn {
   createdAt: string;
 }
 
+export interface SessionSuggestion {
+  text: string;
+  acknowledged?: boolean;
+  createdAt: string;
+}
+
 export interface SessionSSTLog {
   probes: SSTProbe[];
   turnCount?: number;
   history?: SessionTurn[];
+  suggestions?: SessionSuggestion[];
 }
 
 export interface SessionScores {
