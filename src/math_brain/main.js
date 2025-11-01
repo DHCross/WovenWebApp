@@ -78,15 +78,9 @@ function computeRelationalSummary(dailyEntries, options = {}) {
   const personBToPersonABias = weightBSum ? weightedBiasBSum / weightBSum : 0;
   const combinedBias = (weightedBiasASum + weightedBiasBSum) / Math.max(weightASum + weightBSum, 1e-6);
 
-  const volatilityIndex = combinedBiasSeries.length
-    ? Math.sqrt(combinedBiasSeries.reduce((acc, val) => acc + val * val, 0) / combinedBiasSeries.length)
-    : 0;
-
   const biasLabel = classifyDirectionalBias(combinedBias);
   let statusLabel = 'balanced';
-  if (volatilityIndex >= 2) {
-    statusLabel = 'high_volatility';
-  } else if (combinedBias >= 1) {
+  if (combinedBias >= 1) {
     statusLabel = 'strong_flow';
   } else if (combinedBias <= -1) {
     statusLabel = 'strong_tension';
@@ -101,7 +95,6 @@ function computeRelationalSummary(dailyEntries, options = {}) {
     personB_to_personA_bias: Number(personBToPersonABias.toFixed(2)),
     combined_bias: Number(combinedBias.toFixed(2)),
     combined_bias_label: biasLabel,
-    volatility_index: Number(volatilityIndex.toFixed(2)),
     status_label: statusLabel,
     summary_generated_at: new Date().toISOString(),
   };

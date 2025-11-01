@@ -214,58 +214,6 @@ function multiplicityBonus(scored, opts=DEFAULTS){
 } 
 
 // ---------- Enhanced Volatility Index (weighted dispersion) ----------
-function volatility(scoredToday, prevCtx=null, opts=DEFAULTS){
-  let A=0,B=0,C=0,D=0;
-  const key = (x)=>`${x.transit.body}|${x.natal.body}|${x.type}`;
-
-  // A: Tight aspects entering/leaving
-  if (prevCtx?.scored){
-    const tight = arr => arr.filter(x=>x.orbDeg <= opts.tightBandDeg);
-    const prevTight = new Set(tight(prevCtx.scored).map(key));
-    const nowTight  = new Set(tight(scoredToday).map(key));
-    for (const k of nowTight) if (!prevTight.has(k)) A++;
-    for (const k of prevTight) if (!nowTight.has(k)) A++;
-  }
-
-  // B: Valence sign flip 
-  if (typeof prevCtx?.Y_effective === "number"){
-    const prevY = prevCtx.Y_effective;
-    const nowY  = scoredToday.reduce((s,x)=>s+x.S,0);
-    if (Math.sign(prevY) !== Math.sign(nowY) && Math.abs(prevY)>0.05 && Math.abs(nowY)>0.05) B = 1;
-  }
-
-  // C: Outer planet hard aspects tightening
-  if (prevCtx?.scored){
-    const prevMap = new Map(prevCtx.scored.map(x=>[key(x),x]));
-    for (const cur of scoredToday){
-      const pX = prevMap.get(key(cur));
-      const isOuterHard = (OUTER.has(cur.transit.body) || OUTER.has(cur.natal.body)) &&
-                          (cur.type==="square" || cur.type==="opposition");
-      if (pX && isOuterHard && (pX.orbDeg - cur.orbDeg) >= opts.outerTightenStep) C++;
-    }
-  }
-
-  // D: Uranus exact activation
-  if (scoredToday.some(x => (x.transit.body==="Uranus" || x.natal.body==="Uranus") && x.orbDeg <= opts.uranusTightFlagDeg)) D = 1;
-
-  // Enhanced: Add weighted valence dispersion component
-  const weightedValences = scoredToday.map(x => {
-    const transitWeight = opts.planetaryWeights[x.transit.body] || 0.5;
-    const natalWeight = opts.planetaryWeights[x.natal.body] || 0.5;
-    const combinedWeight = Math.max(transitWeight, natalWeight);
-    return x.S * combinedWeight;
-  });
-
-  let E = 0; // Dispersion component
-  if (weightedValences.length >= 3) {
-    const mean = weightedValences.reduce((s, v) => s + v, 0) / weightedValences.length;
-    const variance = weightedValences.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / weightedValences.length;
-    const stdDev = Math.sqrt(variance);
-    E = Math.min(2, stdDev * 0.5); // Scale to 0-2 range
-  }
-
-  return A + B + C + D + Math.round(E);
-} 
 
 // ---------- Rolling magnitude normalization with fallback scaling ----------
 function normalizeWithRollingWindow(magnitude, rollingContext = null, opts = DEFAULTS, diagnosticMode = false) {
@@ -620,14 +568,6 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     }, { label: 'BIAS_NORM', enableDiagnostics: true });
   }
 
-  // === VOLATILITY (DIAGNOSTIC ONLY - not a public axis in v5.0) ===
-  const VI = volatility(scored, prevCtx, opts);
-  // Keep VI_normalized for internal diagnostics, but don't expose coherence as public axis
-  const VI_normalized = Math.min(1, VI / 50); // Simple normalization for diagnostics
-  const volatility_scaled = Math.max(
-    0,
-    Math.min(SCALE_FACTOR, VI_normalized * SCALE_FACTOR)
-  );
 
   // Transform trace for observability (v5.0 - two axes only)
   const transform_trace = {
@@ -636,9 +576,9 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     canonical_scalers_used: true,
     axes_count: 2, // v5.0: Magnitude + Directional Bias only
     steps: [
-      { stage: 'raw', magnitude_energy: X_raw, directional_bias_sum: Y_raw, volatility_index: VI },
-      { stage: 'amplified', magnitude_energy: X_raw, directional_bias_sum: Y_amplified, volatility_index: VI },
-      { stage: 'normalized', magnitude: magnitudeNormalized, bias: Y_normalized, volatility: VI_normalized },
+      { stage: 'raw', magnitude_energy: X_raw, directional_bias_sum: Y_raw },
+      { stage: 'amplified', magnitude_energy: X_raw, directional_bias_sum: Y_amplified },
+      { stage: 'normalized', magnitude: magnitudeNormalized, bias: Y_normalized },
       { stage: 'scaled', magnitude: magnitudeScaled.raw, directional_bias: biasScaled.raw },
       { stage: 'final', magnitude: magnitudeValue, directional_bias }
     ],
@@ -650,14 +590,9 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
 
   const magnitudeRounded = round(magnitudeValue, 1);
   const directionalBiasRounded = round(directional_bias, 1);
-  const volatilityRounded = round(volatility_scaled, 1);
 
   const magnitudeLabel = getMagnitudeLabel(magnitudeValue) || null;
   const directionalBiasLabel = getDirectionalBiasLabel(directional_bias) || null;
-  const volatilityInfo = Number.isFinite(volatilityRounded)
-    ? classifyVolatility(volatilityRounded)
-    : null;
-  const volatilityLabel = volatilityInfo?.label || null;
 
   const magnitudeRange = [0, SCALE_FACTOR];
   const magnitudeClamped = magnitudeScaled.flags.hitMin || magnitudeScaled.flags.hitMax;
@@ -672,13 +607,10 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     axes: {
       magnitude: { value: magnitudeRounded, normalized: magnitudeNormalized, scaled: magnitudeScaled.raw, raw: X_raw },
       directional_bias: { value: directionalBiasRounded, normalized: Y_normalized, scaled: biasScaled.raw, raw: Y_raw },
-      volatility: { value: volatilityRounded, normalized: VI_normalized, scaled: volatility_scaled, raw: VI }
     },
 
     // === DIAGNOSTIC/INTERNAL (not public axes) ===
     _diagnostics: {
-      volatility: round(VI, 2),
-      volatility_normalized: VI_normalized,
       aspect_count: scored.length,
       scaling_method: scalingMethod,
       effective_divisor: effectiveDivisor
@@ -692,9 +624,6 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     bias_amplified: Y_amplified,
     rawMagnitude: magnitudeScaled.raw,
     rawDirectionalBias: biasScaled.raw,
-    volatility: volatilityRounded,
-    volatility_label: volatilityLabel,
-    volatility_scaled,
     rawValence: Y_raw,
     originalMagnitude: magnitudeValue,
     energyMagnitude: X_raw,
@@ -709,8 +638,7 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     directional_bias_label: directionalBiasLabel,
     raw_axes: {
       magnitude: magnitudeScaled.raw,
-      bias_signed: biasScaled.raw,
-      volatility: volatility_scaled
+      bias_signed: biasScaled.raw
     },
     saturation: magnitudeRounded >= (SCALE_FACTOR - 0.05),
     scaling_strategy: scalingMethod,
@@ -774,6 +702,6 @@ module.exports = {
   calculateSeismograph: aggregate, // Alias for test compatibility
   _internals: {
     normalizeAspect, baseValence, planetTier, orbMultiplier, sensitivityMultiplier,
-    scoreAspect, multiplicityBonus, volatility, normalizeWithRollingWindow, median
+    scoreAspect, multiplicityBonus, normalizeWithRollingWindow, median
   }
 };

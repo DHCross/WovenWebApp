@@ -30,9 +30,6 @@ describe('Golden Standard: Hurricane Michael (2018-10-10)', () => {
     expect(result.directional_bias).toBeLessThanOrEqual(-2.0);
     expect(result.directional_bias).toBeGreaterThanOrEqual(-5.0); // Spec minimum
 
-    // III. Volatility: Should be moderate to high
-    expect(result.volatility).toBeGreaterThan(0);
-
     // IV. Transform trace should be present (observability)
     expect(result.transform_trace).toBeDefined();
     expect(result.transform_trace.pipeline).toBe('normalize_scale_clamp_round');
