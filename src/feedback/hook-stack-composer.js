@@ -1,7 +1,16 @@
-// Hook Stack Recognition Gateway
-// Generates 2-4 high-charge, dual-polarity titles from tightest aspects
-// Purpose: Bypass analysis, trigger limbic "that's me" ping, open door for depth work
-// v1.1.0: Cap-aware filtering, normalized aspect names, diversity rules, engine-aligned weighting
+/**
+ * HOOK STACK COMPOSER
+ * -------------------
+ * This module operates within the Math Brain measurement domain.
+ * Filters reflect the current profile's calibrated measurement window,
+ * not judgments of validity. Aspects outside the cap are simply
+ * beyond this instrument's confidence range; the Poetic Brain layer
+ * may still treat them as experientially significant.
+ *
+ * Purpose: Generate 2-4 high-charge, dual-polarity titles from tightest aspects
+ * Goal: Bypass analysis, trigger limbic "that's me" ping, open door for depth work
+ * v1.1.0: Cap-aware filtering, normalized aspect names, diversity rules, engine-aligned weighting
+ */
 
 function safeNum(x, def = 0) {
   const n = Number(x);
@@ -83,10 +92,10 @@ function calculateAspectIntensity(aspect) {
   const p2 = (aspect.planet2 || aspect.second_planet || '').toLowerCase();
   const orb = safeNum(aspect.orb, 10);
   
-  // Respect v5 caps: out-of-bounds aspects score zero
+  // Respect v5 caps: beyond measurement window → confidence drops to zero
   const caps = (aspect._orbCaps) || DEFAULT_V5_CAPS;
   const cap = capFor(aspectType, p1, p2, caps);
-  if (orb > cap) return 0; // out-of-bounds → no hook scoring
+  if (orb > cap) return 0; // beyond calibrated cap for this profile
   
   // Smooth step: reward exactness, floor at 4 near boundary
   // Map orb in [0, cap] → weight in [10 .. 4]
@@ -290,7 +299,7 @@ function buildHookStack(aspects, options = {}) {
         item.aspect.planet2 || item.aspect.second_planet
       ].filter(Boolean),
       aspect_type: item.type,
-      is_tier_1: item.orb <= 1 && item.intensity > 0 // ensures within cap
+      is_tier_1: item.orb <= 1 && item.intensity > 0 // tight orb within measurement window
     });
     
     usedTitles.add(item.title);
