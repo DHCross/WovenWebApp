@@ -43,7 +43,7 @@ describe('Raven report upload handling', () => {
     expect(payload.ok).toBe(true);
     expect(payload.intent).toBe('report');
     expect(payload.prov?.source).toBe('Uploaded JSON Report');
-    expect(payload.draft?.picture).toContain('DH Cross');
+    expect(payload.draft?.picture).toContain('A dynamic and growth-oriented climate.');
     expect(payload.error).toBeUndefined();
   });
 });
