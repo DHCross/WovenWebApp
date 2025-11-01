@@ -1712,6 +1712,9 @@ Start with the Solo Mirror(s), then ${
   const downloadMapFile = downloadFieldMapFile;
   const downloadFieldFile = downloadFieldMapFile;
 
+  // Compute bundle generating state: true if any export is generating
+  const bundleGenerating = pdfGenerating || markdownGenerating || cleanJsonGenerating || engineConfigGenerating || weatherJsonGenerating;
+
   return {
     downloadResultPDF,
     downloadResultMarkdown,
@@ -1729,6 +1732,7 @@ Start with the Solo Mirror(s), then ${
     cleanJsonGenerating,
     engineConfigGenerating,
     weatherJsonGenerating,
+    bundleGenerating,
   };
 }
 

@@ -289,9 +289,14 @@ export async function POST(request: NextRequest) {
       const unifiedOutput = await runMathBrain(v2Config, chartData);
 
       // Generate Markdown and prepare response (no filesystem round-trip)
-      const markdownResult = createMarkdownReading(unifiedOutput, { writeToFile: false });
-      const markdownContent = markdownResult.content;
-      const markdownFilename = markdownResult.filename;
+      // Only generate markdown for relational reports with daily_entries
+      let markdownContent = '';
+      let markdownFilename = '';
+      if (unifiedOutput?.daily_entries && Array.isArray(unifiedOutput.daily_entries) && unifiedOutput.daily_entries.length > 0) {
+        const markdownResult = createMarkdownReading(unifiedOutput, { writeToFile: false });
+        markdownContent = markdownResult.content;
+        markdownFilename = markdownResult.filename;
+      }
 
       const runMetadata = unifiedOutput?.run_metadata ?? {};
       const safePersonA = sanitizeForFilename(runMetadata?.person_a, 'PersonA');
