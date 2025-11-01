@@ -7,6 +7,7 @@ import { formatFullClimateDisplay, type ClimateData } from "../lib/climate-rende
 import { summarizeRelocation, type RelocationSummary } from "../lib/relocation";
 import { type PingResponse } from "./PingFeedback";
 import MirrorResponseActions from "./MirrorResponseActions";
+import SessionWrapUpModal from "./SessionWrapUpModal";
 import { pingTracker } from "../lib/ping-tracker";
 import {
   APP_NAME,
@@ -730,6 +731,7 @@ export default function ChatClient() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [sessionStarted, setSessionStarted] = useState<boolean>(false);
   const [sessionMode, setSessionMode] = useState<SessionMode>('idle');
+  const [isWrapUpOpen, setIsWrapUpOpen] = useState(false);
 
   const conversationRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -1356,7 +1358,7 @@ export default function ChatClient() {
     }
   }, []);
 
-  const handleReset = useCallback(() => {
+  const performSessionReset = useCallback(() => {
     if (abortRef.current) {
       try {
         abortRef.current.abort();
@@ -1377,6 +1379,19 @@ export default function ChatClient() {
     setStatusMessage("Session cleared. Begin typing whenever you're ready.");
     pingTracker.sealSession(sessionId ?? undefined);
   }, [sessionId, shiftSessionMode]);
+
+  const handleStartWrapUp = useCallback(() => {
+    setIsWrapUpOpen(true);
+  }, []);
+
+  const handleDismissWrapUp = useCallback(() => {
+    setIsWrapUpOpen(false);
+  }, []);
+
+  const handleConfirmWrapUp = useCallback(() => {
+    performSessionReset();
+    setIsWrapUpOpen(false);
+  }, [performSessionReset]);
 
   const handleRemoveReportContext = useCallback((contextId: string) => {
     setReportContexts((prev) => {
@@ -1604,7 +1619,7 @@ export default function ChatClient() {
             )}
             <button
               type="button"
-              onClick={handleReset}
+              onClick={handleStartWrapUp}
               className="rounded-lg border border-transparent px-4 py-2 text-slate-400 hover:text-slate-200 transition"
             >
               Reset Session
@@ -1628,7 +1643,7 @@ export default function ChatClient() {
             </div>
             <button
               type="button"
-              onClick={handleReset}
+              onClick={handleStartWrapUp}
               className="inline-flex items-center justify-center rounded-md border border-slate-700/60 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-800 transition"
             >
               End Session
@@ -1894,6 +1909,12 @@ export default function ChatClient() {
           accept=".txt,.md,.json,.pdf"
         />
       </footer>
+      <SessionWrapUpModal
+        open={isWrapUpOpen}
+        sessionId={sessionId}
+        onDismiss={handleDismissWrapUp}
+        onConfirmEnd={handleConfirmWrapUp}
+      />
     </div>
   );
 }

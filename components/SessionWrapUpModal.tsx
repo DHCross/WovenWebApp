@@ -6,7 +6,7 @@ interface SessionWrapUpModalProps {
   open: boolean;
   sessionId?: string | null;
   onDismiss: () => void;
-  onConfirmEnd?: () => void;
+  onConfirmEnd: () => void;
 }
 
 const baseButtonClass =
@@ -23,14 +23,19 @@ export function SessionWrapUpModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/80 px-4 py-6">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="session-wrap-up-title"
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/80 px-4 py-6"
+    >
       <div className="w-full max-w-2xl rounded-2xl border border-slate-800 bg-slate-900/95 shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-slate-800 px-6 py-4">
           <div>
             <p className="text-sm uppercase tracking-[0.3em] text-emerald-300">
               Session Wrap-Up
             </p>
-            <h2 className="mt-2 text-xl font-semibold text-slate-100">
+            <h2 id="session-wrap-up-title" className="mt-2 text-xl font-semibold text-slate-100">
               Ready to close this reading?
             </h2>
             <p className="mt-1 text-sm text-slate-400">
