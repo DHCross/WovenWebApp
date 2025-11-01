@@ -710,7 +710,7 @@ const parseReportContent = (rawContent: string, opts: ParseOptions = {}): Parsed
 const createInitialMessage = (): Message => ({
   id: generateId(),
   role: "raven",
-  html: `I’m a clean mirror. I set what you share beside the pattern I see and speak it back in plain language. Start a session to talk freely, or upload a Math Brain export when you want the formal reading—either way I’ll tell you which lane we’re in.`,
+  html: `I’m a clean mirror. I set what you share beside the pattern I see and speak it back in plain language. Drop in whenever you’re ready—type below to talk freely, or upload a Math Brain export when you want the formal reading. I’ll keep you oriented either way.`,
   climate: formatFullClimateDisplay({ magnitude: 1, valence: 2, volatility: 0 }),
   hook: "Atmosphere · Creator ∠ Mirror",
 });
@@ -724,6 +724,7 @@ export default function ChatClient() {
   const [uploadType, setUploadType] = useState<"mirror" | "balance" | null>(null);
   const [relocation, setRelocation] = useState<RelocationSummary | null>(null);
   const [storedPayload, setStoredPayload] = useState<StoredMathBrainPayload | null>(null);
+  const [hasSavedPayloadSnapshot, setHasSavedPayloadSnapshot] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [sessionStarted, setSessionStarted] = useState<boolean>(false);
@@ -845,7 +846,7 @@ export default function ChatClient() {
       default:
         return {
           label: 'Session Idle',
-          description: 'Open a session to begin speaking with Raven.',
+          description: 'Begin typing below to start speaking with Raven.',
           badgeClass: 'border-slate-700/50 bg-slate-800/60 text-slate-300',
         };
     }
@@ -876,18 +877,28 @@ export default function ChatClient() {
     if (typeof window === "undefined") return;
     try {
       const raw = window.localStorage.getItem(MB_LAST_PAYLOAD_KEY);
-      if (!raw) return;
+      if (!raw) {
+        setHasSavedPayloadSnapshot(false);
+        return;
+      }
       const parsed = JSON.parse(raw) as StoredMathBrainPayload | null;
-      if (!parsed || !parsed.payload) return;
+      if (!parsed || !parsed.payload) {
+        setHasSavedPayloadSnapshot(false);
+        return;
+      }
+
       const savedAt =
         typeof parsed.savedAt === "string" && parsed.savedAt
           ? parsed.savedAt
           : new Date().toISOString();
+      setHasSavedPayloadSnapshot(true);
+
       const ack = window.localStorage.getItem(MB_LAST_PAYLOAD_ACK_KEY);
       if (ack && ack === savedAt) return;
+
       setStoredPayload({ ...parsed, savedAt });
     } catch {
-      // ignore storage issues
+      setHasSavedPayloadSnapshot(false);
     }
   }, []);
 
@@ -964,18 +975,46 @@ export default function ChatClient() {
     [acknowledgeStoredPayload],
   );
 
-  const beginSession = useCallback(() => {
-    shiftSessionMode('exploration', {
-      message:
-        "Session open. We’re outside the formal reading lane, so speak freely and I’ll mirror you in real time. Upload a Math Brain export when you want the structured VOICE handoff.",
-      hook: "Session · Open Dialogue",
-      climate: "Listening · Open Dialogue",
-    });
-    setStatusMessage("Session open — tell me what you want to explore.");
-    window.setTimeout(() => {
-      inputRef.current?.focus();
-    }, 10);
-  }, [shiftSessionMode]);
+  const recoverLastStoredPayload = useCallback(() => {
+    if (storedPayload) {
+      setStatusMessage("Math Brain export already queued.");
+      return;
+    }
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(MB_LAST_PAYLOAD_KEY);
+      if (!raw) {
+        setHasSavedPayloadSnapshot(false);
+        setStatusMessage("No saved Math Brain export found.");
+        return;
+      }
+
+      const parsed = JSON.parse(raw) as StoredMathBrainPayload | null;
+      if (!parsed || !parsed.payload) {
+        setHasSavedPayloadSnapshot(false);
+        setStatusMessage("No saved Math Brain export found.");
+        return;
+      }
+
+      const savedAt =
+        typeof parsed.savedAt === "string" && parsed.savedAt
+          ? parsed.savedAt
+          : new Date().toISOString();
+      setStoredPayload({ ...parsed, savedAt });
+      setHasSavedPayloadSnapshot(true);
+      setStatusMessage("Last Math Brain export is ready to load.");
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Failed to recover stored payload:", error);
+      setErrorMessage("Could not retrieve the saved Math Brain export.");
+    }
+  }, [
+    storedPayload,
+    setErrorMessage,
+    setHasSavedPayloadSnapshot,
+    setStatusMessage,
+    setStoredPayload,
+  ]);
 
   const commitError = useCallback((ravenId: string, message: string) => {
     const friendly = formatFriendlyErrorMessage(message);
@@ -1329,7 +1368,7 @@ export default function ChatClient() {
     setRelocation(null);
     setSessionId(null);
     setStoredPayload(null);
-    setStatusMessage("Session cleared. Start whenever you're ready.");
+    setStatusMessage("Session cleared. Begin typing whenever you're ready.");
     pingTracker.sealSession(sessionId ?? undefined);
   }, [sessionId, shiftSessionMode]);
 
@@ -1514,6 +1553,8 @@ export default function ChatClient() {
 
   const showRelocationBanner = relocation !== null;
 
+  const canRecoverStoredPayload = hasSavedPayloadSnapshot || Boolean(storedPayload);
+
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-[#05060b] via-[#0c111e] to-[#010207] text-slate-100">
       <header className="border-b border-slate-800/60 bg-slate-900/70 backdrop-blur-sm">
@@ -1524,7 +1565,7 @@ export default function ChatClient() {
             </div>
             <h1 className="text-2xl font-semibold text-slate-100">{APP_NAME}</h1>
             <p className="text-sm text-slate-400">
-              Open a session to speak freely, or upload Math Brain and Mirror exports when you are ready for a structured reading.
+              Raven is already listening—share what is present, or upload Math Brain and Mirror exports when you are ready for a structured reading.
             </p>
             <div className="mt-3 flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-emerald-300">
               <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
@@ -1546,6 +1587,15 @@ export default function ChatClient() {
             >
               🌡️ Upload Weather
             </button>
+            {canRecoverStoredPayload && (
+              <button
+                type="button"
+                onClick={recoverLastStoredPayload}
+                className="rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-2 font-medium text-emerald-100 transition hover:bg-emerald-500/20"
+              >
+                ⏮️ Resume Math Brain
+              </button>
+            )}
             <button
               type="button"
               onClick={handleReset}
@@ -1670,10 +1720,10 @@ export default function ChatClient() {
 
       {!sessionStarted && !storedPayload && reportContexts.length === 0 && (
         <section className="mx-auto mt-8 w-full max-w-3xl rounded-xl border border-emerald-500/40 bg-slate-900/60 px-6 py-5 text-slate-100 shadow-lg">
-          <h2 className="text-lg font-semibold text-emerald-200">Open a Poetic Session</h2>
+          <h2 className="text-lg font-semibold text-emerald-200">Drop in whenever you&apos;re ready</h2>
           <p className="mt-3 text-sm text-slate-300">
-            You can speak with Raven before uploading any reports. Start a session to ask questions,
-            explore a pattern, or simply share what is on your mind.
+            Raven is already listening. Begin typing below to share what&apos;s on your mind, or send a quick
+            question to move straight into open dialogue.
           </p>
           <p className="mt-3 text-xs text-slate-400">
             Uploading a Math Brain export (or resuming a saved chart) automatically opens a structured
@@ -1683,18 +1733,20 @@ export default function ChatClient() {
           <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="button"
-              onClick={beginSession}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
-            >
-              Start Session
-            </button>
-            <button
-              type="button"
               onClick={() => handleUploadButton("mirror")}
               className="rounded-lg border border-slate-600/60 bg-slate-800/70 px-4 py-2 text-sm text-slate-100 transition hover:border-slate-500 hover:bg-slate-800"
             >
-              Upload a Report instead
+              Upload a Report
             </button>
+            {canRecoverStoredPayload && (
+              <button
+                type="button"
+                onClick={recoverLastStoredPayload}
+                className="rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-100 transition hover:bg-emerald-500/20"
+              >
+                Resume last Math Brain export
+              </button>
+            )}
           </div>
         </section>
       )}
