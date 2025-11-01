@@ -149,6 +149,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
     }
 
+    // If no date window is specified, inject a default one-day window for today.
+    // This ensures "timeless" reports (like Mirror) don't crash the v2 pipeline.
+    if (!rawPayload.window) {
+      const today = new Date().toISOString().split('T')[0];
+      rawPayload.window = {
+        start: today,
+        end: today,
+        step: 'daily'
+      };
+      logger.info('Defaulting to one-day window for timeless report');
+    }
+
     const body = JSON.stringify(rawPayload);
 
     const windowConfig = rawPayload?.window || null;
