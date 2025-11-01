@@ -1,3 +1,43 @@
+## [2025-11-01] FEATURE: Probabilistic Forecasting Micro-Protocol Integration
+
+**Summary**
+Integrated conditional probabilistic forecasting into Poetic Brain following Option C (micro-protocol with conditional trigger). Activates only for temporal/decision-window queries, providing field-sensing probability zones with optional falsifiability testing.
+
+**Implementation (app/api/chat/route.ts):**
+- Conditional trigger: activates when user queries involve "when", "should I", "upcoming", "future", "wait", "timing"
+- Field-sensing translation of Balance Meter v5 outputs:
+  - Compression (-2 to -5): "field feels tight/restricted"
+  - Expansion (+2 to +5): "geometry leans open"
+  - Neutral (-1 to +1): "mixed weather"
+- Moderate depth: 3-4 sentence responses blending data + embodiment
+- Ranges, not dates: temporal zones (e.g., "through mid-month"), never fixed predictions
+- Optional falsifiability: always appends "Try noting how this window lands—WB/ABE/OSR?"
+
+**Integration with Dual Calibration Model:**
+- High compression (-4 to -5) = tighter probability windows (exact-natal-resonance risk)
+- Expansion (+3 to +5) = wider openness zones
+- Frame as symbolic weather supporting agency, never fate
+
+**User Specifications:**
+- Option C (micro-protocol) over temporal query handler or SST extension
+- Field-sensing tone: "field shows compression" vs meteorological "forecast"
+- Moderate depth: 1 paragraph blending math + embodiment
+- Optional falsifiability: prompt included, not mandatory
+
+**Technical Notes:**
+- Replaces deprecated SFD (Support-Friction Differential) from original Primer
+- Uses current V5 metrics: Magnitude, Directional Bias, Volatility, Coherence
+- Honors *A Strange Cosmic Symbolism v5* calibration (Hurricane Michael benchmark)
+- Integrates with Advice Ladder Tree 9.3.25 (Live Test Protocol)
+
+**Validation:**
+- ✅ Build successful (Next.js compiles cleanly)
+- ✅ Preserves Raven Calder conversational warmth
+- ✅ Maintains FIELD → MAP → VOICE architecture
+- ✅ Probability fields, not predictions
+
+---
+
 ## [2025-11-01] FEATURE: Dual Calibration Model + Poetic Brain Integration
 
 **Summary**
@@ -11,6 +51,7 @@ Completed V5 Balance Meter validation with **two golden standard benchmarks** es
 
 **Poetic Brain Integration (app/api/chat/route.ts):**
 - Added Dual Calibration wisdom to system instructions (lines 650-675)
+- Anonymized all identifying terms for privacy (no "hurricane", "kneecap", names)
 - Recognizes Macro vs Micro crisis classes
 - Frames therapeutic responses appropriate to compression type
 - Honors that small events can land harder when they strike exact natal configurations
