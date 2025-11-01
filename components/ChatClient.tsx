@@ -46,6 +46,7 @@ interface Message {
   probe?: SSTProbe | null;
   prov?: Record<string, any> | null;
   pingFeedbackRecorded?: boolean;
+  rawText?: string; // Store clean text for copying
 }
 
 interface ReportContext {
@@ -175,11 +176,16 @@ const sanitizeHtml = (html: string): string => {
   });
 };
 
+const removeCitationAnnotations = (text: string): string => {
+  return text.replace(/\s*\[\d+\]/g, "");
+};
+
 const ensureSentence = (value: string | undefined | null): string => {
   if (!value) return "";
-  const trimmed = value.trim().replace(/\s+/g, " ");
+  const cleaned = removeCitationAnnotations(String(value));
+  const trimmed = cleaned.trim();
   if (!trimmed) return "";
-  return /[.!?…]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+  return trimmed.replace(/([^.!?])$/, "$1.");
 };
 
 const formatAppendixHighlights = (
@@ -289,11 +295,13 @@ const formatAppendixHighlights = (
 const buildNarrativeDraft = (
   draft?: Record<string, any> | null,
   prov?: Record<string, any> | null,
-): string => {
+): { html: string; rawText: string } => {
   if (!draft || typeof draft !== "object") {
-    return `<p style="margin:0; line-height:1.6;">${escapeHtml(
-      "I'm here whenever you're ready to upload a chart or ask for a translation.",
-    )}</p>`;
+    const defaultText = "I'm here whenever you're ready to upload a chart or ask for a translation.";
+    return {
+      html: `<p style="margin:0; line-height:1.6;">${escapeHtml(defaultText)}</p>`,
+      rawText: defaultText,
+    };
   }
 
   const picture = ensureSentence(
@@ -313,7 +321,9 @@ const buildNarrativeDraft = (
   );
 
   const appendix =
-    typeof draft.appendix === "object" && draft.appendix ? draft.appendix : undefined;
+    typeof draft.appendix === "object" && draft.appendix
+      ? draft.appendix
+      : undefined;
   const highlightSentences = formatAppendixHighlights(
     appendix as Record<string, any> | undefined,
   );
@@ -348,12 +358,39 @@ const buildNarrativeDraft = (
     )
     .join("");
 
-  return `
-    <section class="mirror-draft narrative" style="display:flex; flex-direction:column;">
-      ${htmlParagraphs}
-      ${provenance}
-    </section>
-  `;
+  const rawText = paragraphs.join("\n\n");
+
+  return {
+    html: `
+      <section class="mirror-draft narrative" style="position: relative; display:flex; flex-direction:column;">
+        <button
+          class="copy-message"
+          data-message-id="${draft.id || generateId()}"
+          style="
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 2px 6px;
+            font-size: 11px;
+            opacity: 0.6;
+            transition: all 0.2s;
+            border-radius: 4px;
+          "
+          title="Copy to clipboard"
+          aria-label="Copy message to clipboard"
+        >
+          Copy
+        </button>
+        ${htmlParagraphs}
+        ${provenance}
+      </section>
+    `,
+    rawText,
+  };
 };
 
 const formatFriendlyErrorMessage = (rawMessage: string): string => {
@@ -379,28 +416,67 @@ const formatFriendlyErrorMessage = (rawMessage: string): string => {
 function formatShareableDraft(
   draft?: Record<string, any> | null,
   prov?: Record<string, any> | null,
-): string {
-  if (!draft) return "<i>No mirror draft returned.</i>";
+): { html: string; rawText: string } {
+  if (!draft) {
+    return {
+      html: "<i>No mirror draft returned.</i>",
+      rawText: "No mirror draft returned.",
+    };
+  }
 
   const conversationText =
     typeof draft.conversation === "string" ? draft.conversation.trim() : "";
   if (conversationText) {
-    const paragraphs = conversationText
+    const cleanedText = conversationText.replace(/\s*\[\d+\]/g, "");
+    const paragraphs = cleanedText
       .split(/\n{2,}/)
       .map(
         (block) =>
-          `<p style="margin:0; line-height:1.6;">${escapeHtml(block).replace(/\n/g, "<br />")}</p>`,
+          `<p style="margin:0; line-height:1.6;">${escapeHtml(block).replace(
+            /\n/g,
+            "<br />",
+          )}</p>`,
       )
       .join('<div style="height:0.75rem;"></div>');
     const provenance = prov?.source
-      ? `<div class="mirror-provenance" style="margin-top:12px; font-size:11px; color:#94a3b8;">Source · ${escapeHtml(String(prov.source))}</div>`
+      ? `<div class="mirror-provenance" style="margin-top:12px; font-size:11px; color:#94a3b8;">Source · ${escapeHtml(
+          String(prov.source),
+        )}</div>`
       : "";
-    return `
-      <section class="mirror-draft conversation" style="display:flex; flex-direction:column; gap:12px;">
-        ${paragraphs || `<p style="margin:0; line-height:1.6;">${escapeHtml(conversationText)}</p>`}
-        ${provenance}
-      </section>
-    `;
+
+    const messageId = draft.id || generateId();
+
+    return {
+      html: `
+        <section class="mirror-draft conversation" style="position: relative; display:flex; flex-direction:column; gap:12px;">
+          <button
+            class="copy-message"
+            data-message-id="${messageId}"
+            style="
+              position: absolute;
+              top: 0.5rem;
+              right: 0.5rem;
+              background: none;
+              border: none;
+              color: #94a3b8;
+              cursor: pointer;
+              padding: 2px 6px;
+              font-size: 11px;
+              opacity: 0.6;
+              transition: all 0.2s;
+              border-radius: 4px;
+            "
+            title="Copy to clipboard"
+            aria-label="Copy message to clipboard"
+          >
+            Copy
+          </button>
+          ${paragraphs || `<p style="margin:0; line-height:1.6;">${escapeHtml(cleanedText)}</p>`}
+          ${provenance}
+        </section>
+      `,
+      rawText: cleanedText,
+    };
   }
 
   return buildNarrativeDraft(draft, prov);
@@ -732,10 +808,54 @@ const createInitialMessage = (): Message => ({
   html: `I’m a clean mirror. I set what you share beside the pattern I see and speak it back in plain language. Drop in whenever you’re ready—type below to talk freely, or upload a Math Brain export when you want the formal reading. I’ll keep you oriented either way.`,
   climate: formatFullClimateDisplay({ magnitude: 1, valence: 2, volatility: 0 }),
   hook: "Atmosphere · Creator ∠ Mirror",
+  rawText: `I’m a clean mirror. I set what you share beside the pattern I see and speak it back in plain language. Drop in whenever you’re ready—type below to talk freely, or upload a Math Brain export when you want the formal reading. I’ll keep you oriented either way.`,
 });
 
 export default function ChatClient() {
-  const [messages, setMessages] = useState<Message[]>(() => [createInitialMessage()]);
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  // Handle copy to clipboard
+  const handleCopyToClipboard = useCallback(async (text: string, button: HTMLButtonElement) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      const originalText = button.textContent;
+      button.textContent = 'Copied!';
+      button.style.color = '#10b981';
+      setTimeout(() => {
+        if (button) {
+          button.textContent = originalText;
+          button.style.color = '#94a3b8';
+        }
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  }, []);
+
+  // Set up copy button event listeners
+  useEffect(() => {
+    const handleCopyClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const button = target.closest('.copy-message') as HTMLButtonElement;
+
+      if (button) {
+        e.preventDefault();
+        const messageId = button.dataset.messageId;
+        if (messageId) {
+          const message = messages.find((m) => m.id === messageId);
+          if (message?.rawText) {
+            handleCopyToClipboard(message.rawText, button);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('click', handleCopyClick);
+    return () => {
+      document.removeEventListener('click', handleCopyClick);
+    };
+  }, [messages, handleCopyToClipboard]);
+
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -771,6 +891,7 @@ export default function ChatClient() {
           html: `<p style="margin:0; line-height:1.65;">${escapeHtml(safe)}</p>`,
           hook: options.hook,
           climate: options.climate,
+          rawText: safe,
         },
       ]);
     },
@@ -1145,6 +1266,7 @@ export default function ChatClient() {
         intent: undefined,
         probe: null,
         prov: null,
+        rawText: "",
       };
       setMessages((prev) => [...prev, placeholder]);
 
@@ -1226,6 +1348,7 @@ export default function ChatClient() {
         id: userId,
         role: "user",
         html: `<p>${escapeHtml(trimmed)}</p>`,
+        rawText: trimmed,
       };
 
       const hasReportContext = contexts.length > 0;
@@ -1259,6 +1382,7 @@ export default function ChatClient() {
           intent: "conversation",
           probe: null,
           prov: guardProv,
+          rawText: "",
         };
         setMessages((prev) => [...prev, userMessage, guardMessage]);
         return;
@@ -1274,6 +1398,7 @@ export default function ChatClient() {
         intent: undefined,
         probe: null,
         prov: null,
+        rawText: "",
       };
 
       setMessages((prev) => [...prev, userMessage, placeholder]);
@@ -1630,6 +1755,46 @@ export default function ChatClient() {
 
   const canRecoverStoredPayload = hasSavedPayloadSnapshot || Boolean(storedPayload);
 
+  const handleCopyToClipboard = useCallback(async (text: string, button: HTMLButtonElement) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      const originalText = button.textContent;
+      button.textContent = 'Copied!';
+      button.style.color = '#10b981';
+      setTimeout(() => {
+        if (button) {
+          button.textContent = originalText;
+          button.style.color = '#94a3b8';
+        }
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleCopyClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const button = target.closest('.copy-message') as HTMLButtonElement;
+      
+      if (button) {
+        e.preventDefault();
+        const messageId = button.dataset.messageId;
+        if (messageId) {
+          const message = messages.find(m => m.id === messageId);
+          if (message?.rawText) {
+            handleCopyToClipboard(message.rawText, button);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('click', handleCopyClick);
+    return () => {
+      document.removeEventListener('click', handleCopyClick);
+    };
+  }, [messages, handleCopyToClipboard]);
+
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-[#05060b] via-[#0c111e] to-[#010207] text-slate-100">
       <header className="border-b border-slate-800/60 bg-slate-900/70 backdrop-blur-sm">
@@ -1828,25 +1993,49 @@ export default function ChatClient() {
 
       <main ref={conversationRef} className="flex-1 overflow-y-auto">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-10">
-          {messages.map((msg) => {
-            const isRaven = msg.role === "raven";
-            return (
-              <div key={msg.id} className={`flex ${isRaven ? "justify-start" : "justify-end"}`}>
-                <div
-                  className={`max-w-full rounded-2xl border px-5 py-4 shadow-lg transition ${
-                    isRaven
-                      ? "bg-slate-900/70 border-slate-800/70 text-slate-100"
-                      : "bg-slate-800/80 border-slate-700/60 text-slate-100"
-                  }`}
-                  style={{ width: "100%" }}
-                >
-                  <div className="mb-3 flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.2em] text-slate-400">
-                    <span className="font-semibold text-slate-200">
-                      {isRaven ? "Raven" : "You"}
-                    </span>
-                    {msg.climate && <span className="text-slate-400/80">{msg.climate}</span>}
-                    {msg.hook && <span className="text-slate-400/60">{msg.hook}</span>}
-                  </div>
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`flex ${
+                msg.role === 'assistant' ? 'justify-start' : 'justify-end'
+              }`}
+            >
+              <div
+                className={`relative max-w-[85%] rounded-2xl px-4 py-3 ${
+                  msg.role === 'assistant'
+                    ? 'bg-slate-900/70 border-slate-800/70 text-slate-100'
+                    : 'bg-slate-800/80 border-slate-700/60 text-slate-100'
+                }`}
+                dangerouslySetInnerHTML={{
+                  __html: msg.role === 'assistant'
+                    ? msg.html + `
+                      <button 
+                        class="copy-message" 
+                        data-message-id="${msg.id}"
+                        style="
+                          position: absolute;
+                          top: 0.5rem;
+                          right: 0.5rem;
+                          background: none;
+                          border: none;
+                          color: #94a3b8;
+                          cursor: pointer;
+                          padding: 2px 6px;
+                          font-size: 11px;
+                          opacity: 0.6;
+                          transition: all 0.2s;
+                          border-radius: 4px;
+                        "
+                        title="Copy to clipboard"
+                        aria-label="Copy message to clipboard"
+                      >
+                        Copy
+                      </button>`
+                    : msg.html
+                }}
+              />
+            </div>
+          ))}
                   <div
                     className="space-y-3 text-[15px] leading-relaxed text-slate-100"
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(msg.html) }}
