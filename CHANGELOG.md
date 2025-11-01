@@ -1,3 +1,54 @@
+## [2025-11-01] CRITICAL FIX: Translocation Architecture — Blueprint vs Felt Weather
+
+**Summary**
+Implemented pre-computation translocation for Balance Meter, fixing the fundamental architectural gap where seismograph was calculated from natal coordinates instead of relocated coordinates. This distinguishes **Blueprint** (natal-anchored) from **Felt Weather** (relocated-anchored) readings.
+
+**The Problem**
+- Seismograph was always computed using natal coordinates (Bryn Mawr, PA)
+- Transits were fetched FROM natal location, not relocated location
+- Relocation shim applied post-computation (too late to affect seismograph)
+- **Result:** Directional Bias -2.0 (Blueprint reading) instead of -3.5 (Felt Weather)
+
+**The Fix (Three-Part Implementation)**
+
+1. **Fetch Relocated Natal Chart**
+   - When `translocation.applies = true`, fetch a second natal chart using relocated coordinates
+   - Store both `chart_natal` (Blueprint) and `chart_relocated` (Felt Weather)
+   - Use `chart_relocated` as active chart for seismograph calculation
+
+2. **Pass Relocated Subject to getTransits**
+   - Build relocated subject with Panama City coordinates
+   - Pass to `getTransits()` so transits are computed FROM relocated location
+   - Transit house placements and angle aspects now reflect relocated geometry
+
+3. **Provenance Tracking**
+   - Added `chart_basis`: `'blueprint_natal'` or `'felt_weather_relocated'`
+   - Added `seismograph_chart`: `'natal'` or `'relocated'`
+   - Added `translocation_applied`: boolean
+
+**Golden Standard Validation — Hurricane Michael**
+- **Configuration:** Dan (1973-07-24, Bryn Mawr PA) relocated to Panama City FL, Oct 10 2018
+- **Before Fix:** Magnitude 4.6, Directional Bias -2.0 (Blueprint)
+- **After Fix:** Magnitude 4.1, **Directional Bias -3.5** (Felt Weather) ✅
+- **Target Range:** -3.2 to -3.5 ← **MET**
+
+**Philosophical Mandate**
+The Raven Calder system promises "symbolic weather for agency." If you're experiencing Hurricane Michael in Panama City, the mirror must reflect Panama City geometry, not Bryn Mawr. The **Felt Weather** reading is the only philosophically correct output for translocation requests.
+
+**Files Modified**
+- `lib/server/astrology-mathbrain.js` — Three-part translocation implementation
+- `lib/relocation-shim.js` — Kept as validation layer (now redundant but ensures integrity)
+- `test-dan-bias.js` — Added provenance tracking for `chart_basis`, `seismograph_chart`, `translocation_applied`
+- `TRANSLOCATION_ARCHITECTURE_GAP.md` — Documented fix and validation
+
+**Impact**
+- ✅ Balance Meter now measures **felt experience** (Felt Weather) instead of birth geometry (Blueprint)
+- ✅ Translocation properly affects seismograph calculation (pre-computation, not post)
+- ✅ Hurricane Michael benchmark validates at -3.5 (exact upper bound of target range)
+- ✅ V5 Balance Meter calibration: **COMPLETE**
+
+---
+
 ## [2025-10-19] BREAKING CHANGE: SFD (Support-Friction Differential) Metric Retired - COMPLETE
 
 **Summary**

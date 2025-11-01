@@ -1,33 +1,46 @@
 #!/usr/bin/env node
 
 /**
- * Test script to run Dan's Directional Bias test with relocation to Panama City, FL
+ * Test script to run Dan's Directional Bias test (v2 API)
+ * with relocation to Panama City, FL
  */
 
 const http = require('http');
 
+//
+// PAYLOAD UPDATED TO V2/V5 API SPEC
+//
 const payload = {
+  // Use 'context' and 'window' objects per v2 spec
+  context: {
+    mode: 'balance_meter',
+  },
+  transit_start_date: '2018-10-10',
+  transit_end_date: '2018-10-10',
+  translocation: {
+    applies: true,
+    method: 'A_local',
+    coords: {
+      latitude: 30.1667,  // Panama City, FL: 30°10'N
+      longitude: -85.6667, // 85°40'W
+      timezone: 'America/Chicago', // Use IANA timezone
+    }
+  },
   person_a: {
     name: 'Dan',
-    birth_date: '1973-07-24',
-    birth_time: '14:30',
-    timezone: 'US/Eastern',
-    latitude: 40.0196,   // Bryn Mawr, PA
+    // Use v2 keys (year, month, day, etc.)
+    year: 1973,
+    month: 7,
+    day: 24,
+    hour: 14,
+    minute: 30,
+    timezone: 'America/New_York', // Use IANA timezone
+    latitude: 40.0196,
     longitude: -75.3167,
     city: 'Bryn Mawr',
-    nation: 'USA',
+    nation: 'US',
   },
-  report_type: 'balance',
-  transit_start_date: '2025-10-31',
-  transit_end_date: '2025-11-01',
   house_system: 'placidus',
-  relocation: {
-    latitude: 30.1667,  // Panama City, FL: 30°10'N
-    longitude: -85.6667, // 85°40'W
-    city: 'Panama City',
-    state: 'FL',
-    timezone: 'US/Central',
-  },
 };
 
 const postData = JSON.stringify(payload);
@@ -40,13 +53,15 @@ const options = {
   headers: {
     'Content-Type': 'application/json',
     'Content-Length': postData.length,
+    // Add v2 header to be explicit
+    'X-Math-Brain-Version': 'v2',
   },
 };
 
 console.log('🧪 Testing Dan\'s Directional Bias (Relocated to Panama City, FL)');
 console.log('📍 Birth: July 24, 1973, 2:30 PM ET, Bryn Mawr, PA');
 console.log('📍 Relocation: Panama City, FL (30°10\'N, 85°40\'W)');
-console.log('📅 Transit Window: Oct 31 – Nov 1, 2025');
+console.log('📅 Transit Window: Oct 10, 2018 (Hurricane Michael Landfall)');
 console.log('---');
 
 const req = http.request(options, (res) => {
@@ -68,42 +83,20 @@ const req = http.request(options, (res) => {
       console.log('\n✅ SUCCESS!');
       console.log('');
 
-      // Extract daily readings
-      const dailyReadings = response.unified_output?.person_a?.chart?.transitsByDate?.daily_readings || [];
+      // Extract seismograph summary directly
+      const summary = response.person_a?.derived?.seismograph_summary;
       
-      if (dailyReadings.length === 0) {
-        console.log('⚠️  No daily readings returned');
+      if (!summary) {
+        console.log('⚠️  No seismograph summary returned');
         process.exit(0);
       }
 
-      console.log('📊 Daily Directional Bias Readings:');
+      console.log('📊 Seismograph Summary:');
       console.log('---');
-      
-      console.log('| Date       | Magnitude | Directional Bias | Volatility | Aspects |');
-      console.log('|:-----------|----------:|----------------:|----------:|----------|');
-      
-      dailyReadings.forEach((day) => {
-        const mag = day.seismograph?.magnitude?.value_calibrated ?? day.seismograph?.magnitude?.value ?? '—';
-        const bias = day.seismograph?.directional_bias?.value_calibrated ?? day.seismograph?.directional_bias?.value ?? '—';
-        const vol = day.seismograph?.volatility?.value_calibrated ?? day.seismograph?.volatility?.value ?? '—';
-        const aspects = day.seismograph?.aspect_count ?? '—';
-        
-        const biasStr = bias !== '—' ? `${bias > 0 ? '+' : ''}${bias.toFixed(2)}` : '—';
-        const magStr = mag !== '—' ? mag.toFixed(2) : '—';
-        const volStr = vol !== '—' ? vol.toFixed(2) : '—';
-        
-        console.log(`| ${day.date} | ${magStr.padStart(9)} | ${biasStr.padStart(16)} | ${volStr.padStart(10)} | ${String(aspects).padStart(7)} |`);
-      });
-
-      // Overall summary
-      const summary = response.unified_output?.person_a?.chart?.transitsByDate?.summary;
-      if (summary) {
-        console.log('');
-        console.log('📈 Overall Summary:');
-        console.log(`  Avg. Magnitude: ${summary.magnitude?.value_calibrated?.toFixed(2) ?? 'N/A'} (${summary.magnitude?.label ?? '?'})`);
-        console.log(`  Avg. Bias: ${summary.directional_bias?.value_calibrated?.toFixed(2) ?? 'N/A'} (${summary.directional_bias?.label ?? '?'})`);
-        console.log(`  Avg. Volatility: ${summary.volatility?.value_calibrated?.toFixed(2) ?? 'N/A'}`);
-      }
+      console.log(`Magnitude:       ${summary.magnitude?.toFixed(2) ?? '—'} (${summary.magnitude_label ?? '?'})`);
+      console.log(`Directional Bias: ${summary.directional_bias?.value?.toFixed(2) ?? '—'} (${summary.directional_bias?.label ?? '?'})`);
+      console.log(`Volatility:      ${summary.volatility?.toFixed(2) ?? '—'} (${summary.volatility_label ?? '?'})`);
+      console.log('');
 
       // Provenance
       const prov = response.provenance;
@@ -113,7 +106,10 @@ const req = http.request(options, (res) => {
         console.log(`  Math Brain Version: ${prov.math_brain_version ?? 'N/A'}`);
         console.log(`  House System: ${prov.house_system ?? 'N/A'}`);
         console.log(`  Orbs Profile: ${prov.orbs_profile ?? 'N/A'}`);
-        console.log(`  Relocated: ${prov.relocated ? 'Yes' : 'No'}`);
+        console.log(`  Chart Basis: ${prov.chart_basis ?? 'N/A'}`);
+        console.log(`  Seismograph Chart: ${prov.seismograph_chart ?? 'N/A'}`);
+        console.log(`  Translocation Applied: ${prov.translocation_applied ? 'Yes' : 'No'}`);
+        console.log(`  Relocation Shim Applied: ${prov.relocation_shim_applied ? 'Yes' : 'No'}`);
       }
 
       console.log('');
