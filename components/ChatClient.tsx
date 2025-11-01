@@ -1749,46 +1749,6 @@ export default function ChatClient() {
 
   const canRecoverStoredPayload = hasSavedPayloadSnapshot || Boolean(storedPayload);
 
-  const handleCopyToClipboard = useCallback(async (text: string, button: HTMLButtonElement) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      const originalText = button.textContent;
-      button.textContent = 'Copied!';
-      button.style.color = '#10b981';
-      setTimeout(() => {
-        if (button) {
-          button.textContent = originalText;
-          button.style.color = '#94a3b8';
-        }
-      }, 2000);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-    }
-  }, []);
-
-  useEffect(() => {
-    const handleCopyClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const button = target.closest('.copy-message') as HTMLButtonElement;
-      
-      if (button) {
-        e.preventDefault();
-        const messageId = button.dataset.messageId;
-        if (messageId) {
-          const message = messages.find(m => m.id === messageId);
-          if (message?.rawText) {
-            handleCopyToClipboard(message.rawText, button);
-          }
-        }
-      }
-    };
-
-    document.addEventListener('click', handleCopyClick);
-    return () => {
-      document.removeEventListener('click', handleCopyClick);
-    };
-  }, [messages, handleCopyToClipboard]);
-
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-[#05060b] via-[#0c111e] to-[#010207] text-slate-100">
       <header className="border-b border-slate-800/60 bg-slate-900/70 backdrop-blur-sm">
