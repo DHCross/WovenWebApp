@@ -9,6 +9,32 @@ interface RenderOptions {
   mode?: ReportMode;
 }
 
+type ShareableContextModeKey = 'narrative-led' | 'data-led' | 'combined' | 'forward-looking';
+
+interface ShareableTemplate {
+  title?: {
+    date?: string | null;
+    subject?: string | null;
+  };
+  context_mode: string;
+  context_mode_key: ShareableContextModeKey;
+  sections: {
+    map?: string | null;
+    field?: string | null;
+    posture?: string | null;
+    forward_orientation?: string | null;
+  };
+  provenance: {
+    basis?: string | null;
+    location?: string | null;
+    timezone?: string | null;
+    engine?: string | null;
+    window?: string | null;
+  };
+  guardrails: string[];
+  final_line?: string | null;
+}
+
 type ContractLinterModule = typeof import('../../src/contract-linter');
 type FrontstageRendererModule = typeof import('../../src/frontstage-renderer');
 
@@ -632,6 +658,18 @@ export async function renderShareableMirror({ geo, prov, options, conversational
 
   const finalFeeling = [feeling, weatherSegment].filter(Boolean).join(' ');
 
+  const shareableTemplate = buildShareableTemplate({
+    geo,
+    prov,
+    options,
+    mapText: picture,
+    fieldText: finalFeeling,
+    containerText: container,
+    invitationText: option,
+    nextStepText: nextStep,
+    weatherSegment,
+  });
+
   return {
     picture,
     feeling: finalFeeling,
@@ -639,5 +677,187 @@ export async function renderShareableMirror({ geo, prov, options, conversational
     option,
     next_step: nextStep,
     appendix,
+    shareable_template: shareableTemplate,
+  };
+}
+
+interface ShareableBuildOptions {
+  geo: NormalizedGeometry | null;
+  prov: Record<string, any>;
+  options?: Record<string, any>;
+  mapText: string;
+  fieldText: string;
+  containerText: string;
+  invitationText: string;
+  nextStepText: string;
+  weatherSegment?: string;
+}
+
+function detectNarrativePresence(options?: Record<string, any>): boolean {
+  if (!options) return false;
+  if (typeof options.userNarrative === 'string' && options.userNarrative.trim().length > 0) {
+    return true;
+  }
+  const contexts: any[] = Array.isArray(options.reportContexts) ? options.reportContexts : [];
+  return contexts.some((ctx) => {
+    const summary = typeof ctx?.summary === 'string' ? ctx.summary : '';
+    const content = typeof ctx?.content === 'string' ? ctx.content : '';
+    const blob = `${summary} ${content}`.toLowerCase();
+    return /\b(i|me|my|we|us|felt|today|yesterday|last night)\b/.test(blob);
+  });
+}
+
+function detectForwardOrientation(options?: Record<string, any>): boolean {
+  if (!options) return false;
+  const windowObj = options.window || options.indices?.window || options.period;
+  const end = windowObj?.end || windowObj?.to;
+  if (end) {
+    const endDate = new Date(end);
+    if (!Number.isNaN(endDate.getTime())) {
+      const now = new Date();
+      return endDate.getTime() > now.getTime();
+    }
+  }
+  return Boolean(options.forecast || options.forwardLooking || options.futureWindow);
+}
+
+function detectContextMode(geo: NormalizedGeometry | null, options?: Record<string, any>): { key: ShareableContextModeKey; label: string } {
+  const hasNarrative = detectNarrativePresence(options);
+  const hasGeometry = Boolean(geo);
+  const isForward = detectForwardOrientation(options);
+
+  if (isForward) {
+    return { key: 'forward-looking', label: 'Forward-Looking (Probability Corridor)' };
+  }
+
+  if (hasNarrative && hasGeometry) {
+    return { key: 'combined', label: 'Combined (Past/Present)' };
+  }
+
+  if (hasNarrative) {
+    return { key: 'narrative-led', label: 'Narrative-Led (Past/Present)' };
+  }
+
+  return { key: 'data-led', label: 'Data-Led (Past/Present)' };
+}
+
+function resolveBasis(geo: NormalizedGeometry | null, options?: Record<string, any>): string {
+  const hasGeometry = Boolean(geo);
+  const hasWeather = Boolean(options?.unified_output?.daily_entries?.length);
+  if (hasGeometry && hasWeather) return 'Both (Blueprint + Felt Weather)';
+  if (hasWeather && !hasGeometry) return 'Felt Weather (Relocated)';
+  if (hasGeometry) return 'Blueprint (Natal)';
+  return 'Unspecified';
+}
+
+function resolveLocation(options?: Record<string, any>, prov?: Record<string, any>): { label: string | null; timezone: string | null } {
+  const relocation = options?.relocation || options?.context?.relocation;
+  const provRelocation = prov?.relocation_mode;
+  const label = relocation?.label || provRelocation?.label || relocation?.city || provRelocation?.city || null;
+  const timezone = relocation?.timezone || provRelocation?.timezone || options?.location?.timezone || prov?.timezone || null;
+  return { label, timezone };
+}
+
+function formatWindow(options?: Record<string, any>, prov?: Record<string, any>): string | null {
+  const windowObj = options?.window || options?.indices?.window || prov?.window || null;
+  const start = windowObj?.start || windowObj?.from;
+  const end = windowObj?.end || windowObj?.to;
+  if (!start && !end) return null;
+  if (start && end) return `${start} → ${end}`;
+  return start || end || null;
+}
+
+const SHAREABLE_GUARDRAILS = [
+  'Orientation without coercion — no tasks or prescriptions.',
+  'Agency intact — prefer “tends to” and “reads as” over imperatives.',
+  'Minimal jargon — translate geometry into felt language.',
+  'Place matters — anchor weather to locale when present.',
+  'Falsifiability — posture labels clarify resonance vs miss.',
+  'Future talk stays probabilistic — tilt and corridor, never guarantee.',
+];
+
+function buildPostureLine(options?: Record<string, any>): string {
+  const posture = options?.session_posture || options?.posture || options?.sessionScores?.latest?.posture;
+  if (!posture) {
+    return 'Not logged — treat this mirror as calibration data until WB/ABE/OSR is recorded.';
+  }
+  const postureUpper = String(posture).toUpperCase();
+  let descriptor = '— logged as calibration data.';
+  if (postureUpper.includes('WB')) descriptor = '— weather and assessment aligned.';
+  else if (postureUpper.includes('ABE')) descriptor = '— landed partially; refine the mirror on the edge.';
+  else if (postureUpper.includes('OSR')) descriptor = '— miss logged; use the null as information.';
+  return `${postureUpper.replace(/[^A-Z]/g, '')} ${descriptor}`;
+}
+
+function resolveSubject(geo: NormalizedGeometry | null, options?: Record<string, any>): string | null {
+  const optionName = options?.person_a?.name || options?.person_a?.details?.name;
+  if (typeof optionName === 'string' && optionName.trim()) return optionName.trim();
+  const geoName = (geo as any)?.person_a?.name;
+  if (typeof geoName === 'string' && geoName.trim()) return geoName.trim();
+  return null;
+}
+
+function buildForwardOrientationText(isForward: boolean, weatherSegment?: string, fieldText?: string): string | null {
+  if (!isForward) return null;
+  const weatherLine = weatherSegment && weatherSegment.trim().length > 0 ? weatherSegment : null;
+  const base = 'Read this as a probability corridor. The tilt invites preparation, not prediction.';
+  if (weatherLine) {
+    return `${weatherLine} ${base}`.trim();
+  }
+  if (fieldText && fieldText.trim().length > 0) {
+    return `${fieldText.trim()} ${base}`.trim();
+  }
+  return base;
+}
+
+function formatDateTitle(prov?: Record<string, any>, options?: Record<string, any>): string | null {
+  const generated = prov?.generated_at || prov?.timestamp;
+  if (generated) {
+    const date = new Date(generated);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toISOString().slice(0, 10);
+    }
+  }
+  const windowObj = options?.window || options?.indices?.window;
+  if (windowObj?.start && windowObj?.end) {
+    return `${windowObj.start} → ${windowObj.end}`;
+  }
+  return null;
+}
+
+function buildShareableTemplate(payload: ShareableBuildOptions): ShareableTemplate {
+  const { geo, prov, options } = payload;
+  const contextMode = detectContextMode(geo, options);
+  const basis = resolveBasis(geo, options);
+  const location = resolveLocation(options, prov);
+  const windowLabel = formatWindow(options, prov);
+  const isForward = contextMode.key === 'forward-looking';
+  const forwardOrientation = buildForwardOrientationText(isForward, payload.weatherSegment, payload.fieldText);
+  const subject = resolveSubject(geo, options);
+  const dateTitle = formatDateTitle(prov, options);
+  const postureLine = buildPostureLine(options);
+
+  return {
+    title: {
+      date: dateTitle,
+      subject,
+    },
+    context_mode: contextMode.label,
+    context_mode_key: contextMode.key,
+    sections: {
+      map: payload.mapText || null,
+      field: payload.fieldText || null,
+      posture: postureLine,
+      forward_orientation: forwardOrientation,
+    },
+    provenance: {
+      basis,
+      location: location.label,
+      timezone: location.timezone,
+      engine: prov?.math_brain_version || prov?.engine_versions?.math_brain || null,
+      window: windowLabel,
+    },
+    guardrails: SHAREABLE_GUARDRAILS,
+    final_line: 'Compassion through precision; tilt named, agency intact.',
   };
 }

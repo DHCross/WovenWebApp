@@ -22,21 +22,7 @@ import {
   referencesAstroSeekWithoutGeometry
 } from '@/lib/raven/guards';
 import { buildNoContextGuardCopy } from '@/lib/guard/no-context';
-
-const PERSONAL_READING_PATTERNS: RegExp[] = [
-  /\b(read|mirror|interpret|analyze|look at)\b[^.]{0,120}\b(me|my)\b/i,
-  /\b(me|my)\b[^.]{0,120}\b(chart|natal|birth\s+chart|placements|geometry|astrology|transits|report)\b/i,
-  /\bpersonal\s+(reading|mirror)\b/i,
-  /\bwhat do you see in my\b/i,
-  /\btell me what you see\b[^.]{0,120}\b(me|my)\b/i,
-  /\bbalance\s+meter\b/i,
-  /\bsession\b[^.]{0,40}\bscore\b/i,
-];
-
-function requestsPersonalReading(text: string): boolean {
-  if (!text) return false;
-  return PERSONAL_READING_PATTERNS.some((pattern) => pattern.test(text));
-}
+import { requestsPersonalReading } from '@/lib/raven/personal-reading';
 
 // Minimal in-memory session store (dev only). For prod, persist per-user.
 const RAVEN_PERSONA_HOOK = "You are Raven Calder, a mystical poetic brain. Your voice is wise, lyrical, and insightful. You do not give direct advice, but rather offer reflections, metaphors, and beautiful questions. You see the cosmos in a grain of sand. Respond to the user's prompt with this persona. CRITICAL: Do NOT break character. Do not mention you are an AI or a language model. Suppress all chain-of-thought or meta-commentary.";
@@ -173,6 +159,30 @@ function recordSuggestion(session: SessionSSTLog, text: string): void {
 
 const sessions = new Map<string, SessionSSTLog>();
 
+function buildAstroSeekGuardDraft(): Record<string, string> {
+  return {
+    picture: 'Got your AstroSeek mention—one more step.',
+    feeling: 'I need the actual export contents to mirror accurately.',
+    container: 'Option 1 · Click "Upload report" and drop the AstroSeek download (JSON or text).',
+    option: 'Option 2 · Open the export and paste the full table or text here.',
+    next_step: 'Once the geometry is included, I can read you in detail.'
+  };
+}
+
+function createGuardPayload(
+  source: string,
+  guidance: string,
+  draft: Record<string, any>
+): { guard: true; guidance: string; draft: Record<string, any>; prov: Record<string, any> } {
+  const prov = stampProvenance({ source });
+  return {
+    guard: true as const,
+    guidance,
+    draft,
+    prov
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const { action = 'generate', input, options = {}, sessionId } = await req.json();
@@ -232,20 +242,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ intent, ok: true, draft, prov, sessionId: sid, probe });
     }
 
-    if (intent === 'report') {
-      // Map options.reportType → Math Brain payload
-      const mb = await runMathBrain(resolvedOptions);
-      if (!mb.success) {
-        return NextResponse.json({ intent, ok: false, error: 'Math Brain failed', details: mb });
-      }
-      const prov = stampProvenance(mb.provenance);
-      const draft = await renderShareableMirror({ geo: mb.geometry, prov, options: resolvedOptions });
-      const probe = createProbe(draft?.next_step || 'Note one actionable step', randomUUID());
-      sessionLog.probes.push(probe);
-      return NextResponse.json({ intent, ok: true, draft, prov, climate: mb.climate ?? null, sessionId: sid, probe });
-    }
-
-    // conversation
     const rawContexts = Array.isArray(resolvedOptions.reportContexts) ? resolvedOptions.reportContexts : [];
     const normalizedContexts = rawContexts
       .map((ctx: any) => {
@@ -280,21 +276,16 @@ export async function POST(req: Request) {
     const wantsPersonalReading = requestsPersonalReading(textInput);
     const mentionsAstroSeek = referencesAstroSeekWithoutGeometry(textInput);
 
-    if (!hasReportContext && !hasGeometryPayload && !wantsWeatherOnly && (wantsPersonalReading || mentionsAstroSeek)) {
-      if (mentionsAstroSeek) {
-        const prov = stampProvenance({ source: 'Conversational Guard (AstroSeek)' });
-        const guidance = ASTROSEEK_REFERENCE_GUIDANCE;
-        const guardDraft = {
-          picture: 'Got your AstroSeek mention—one more step.',
-          feeling: 'I need the actual export contents to mirror accurately.',
-          container: 'Option 1 · Click “Upload report” and drop the AstroSeek download (JSON or text).',
-          option: 'Option 2 · Open the export and paste the full table or text here.',
-          next_step: 'Once the geometry is included, I can read you in detail.'
-        };
-        return NextResponse.json({ intent, ok: true, guard: true, guidance, draft: guardDraft, prov, sessionId: sid });
-      }
-      if (wantsPersonalReading) {
-        const prov = stampProvenance({ source: 'Conversational Guard' });
+    if (intent === 'report') {
+      if (!hasReportContext && !hasGeometryPayload) {
+        if (mentionsAstroSeek) {
+          const guardPayload = createGuardPayload(
+            'Conversational Guard (AstroSeek)',
+            ASTROSEEK_REFERENCE_GUIDANCE,
+            buildAstroSeekGuardDraft()
+          );
+          return NextResponse.json({ intent, ok: true, sessionId: sid, ...guardPayload });
+        }
         const guardCopy = buildNoContextGuardCopy();
         const guardDraft = {
           picture: guardCopy.picture,
@@ -303,7 +294,42 @@ export async function POST(req: Request) {
           option: guardCopy.option,
           next_step: guardCopy.next_step
         };
-        return NextResponse.json({ intent, ok: true, guard: true, guidance: guardCopy.guidance, draft: guardDraft, prov, sessionId: sid });
+        const guardPayload = createGuardPayload('Conversational Guard', guardCopy.guidance, guardDraft);
+        return NextResponse.json({ intent, ok: true, sessionId: sid, ...guardPayload });
+      }
+      // Map options.reportType → Math Brain payload
+      const mb = await runMathBrain(resolvedOptions);
+      if (!mb.success) {
+        return NextResponse.json({ intent, ok: false, error: 'Math Brain failed', details: mb });
+      }
+      const prov = stampProvenance(mb.provenance);
+      const draft = await renderShareableMirror({ geo: mb.geometry, prov, options: resolvedOptions });
+      const probe = createProbe(draft?.next_step || 'Note one actionable step', randomUUID());
+      sessionLog.probes.push(probe);
+      return NextResponse.json({ intent, ok: true, draft, prov, climate: mb.climate ?? null, sessionId: sid, probe });
+    }
+
+    // conversation
+    if (!hasReportContext && !hasGeometryPayload && !wantsWeatherOnly && (wantsPersonalReading || mentionsAstroSeek)) {
+      if (mentionsAstroSeek) {
+        const guardPayload = createGuardPayload(
+          'Conversational Guard (AstroSeek)',
+          ASTROSEEK_REFERENCE_GUIDANCE,
+          buildAstroSeekGuardDraft()
+        );
+        return NextResponse.json({ intent, ok: true, sessionId: sid, ...guardPayload });
+      }
+      if (wantsPersonalReading) {
+        const guardCopy = buildNoContextGuardCopy();
+        const guardDraft = {
+          picture: guardCopy.picture,
+          feeling: guardCopy.feeling,
+          container: guardCopy.container,
+          option: guardCopy.option,
+          next_step: guardCopy.next_step
+        };
+        const guardPayload = createGuardPayload('Conversational Guard', guardCopy.guidance, guardDraft);
+        return NextResponse.json({ intent, ok: true, sessionId: sid, ...guardPayload });
       }
     }
 

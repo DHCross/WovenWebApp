@@ -16,6 +16,9 @@ import {
 } from "../lib/ui-strings";
 import type { Intent } from "../lib/raven/intent";
 import type { SSTProbe } from "../lib/raven/sst";
+import { buildNoContextGuardCopy } from "../lib/guard/no-context";
+import { referencesAstroSeekWithoutGeometry } from "../lib/raven/guards";
+import { requestsPersonalReading } from "../lib/raven/personal-reading";
 
 type RavenDraftResponse = {
   ok?: boolean;
@@ -113,6 +116,20 @@ const MIRROR_SECTION_ORDER: Array<{ key: string; label: string }> = [
   { key: "option", label: "Option" },
   { key: "next_step", label: "Next Step" },
 ];
+
+const WEATHER_ONLY_PATTERN =
+  /\b(weather|sky today|planetary (weather|currents)|what's happening in the sky)\b/i;
+
+const ASTROSEEK_GUARD_SOURCE = "Conversational Guard (AstroSeek)";
+const ASTROSEEK_GUARD_DRAFT: Record<string, string> = {
+  picture: "Got your AstroSeek mention—one more step.",
+  feeling: "I need the actual export contents to mirror accurately.",
+  container: 'Option 1 · Click "Upload report" and drop the AstroSeek download (JSON or text).',
+  option: "Option 2 · Open the export and paste the full table or text here.",
+  next_step: "Once the geometry is included, I can read you in detail.",
+};
+
+const NO_CONTEXT_GUARD_SOURCE = "Conversational Guard";
 
 const escapeHtml = (input: string): string =>
   input.replace(/[&<>]/g, (char) => {
@@ -1191,26 +1208,6 @@ export default function ChatClient() {
         }
       }
 
-      const userId = generateId();
-      const placeholderId = generateId();
-      const userMessage: Message = {
-        id: userId,
-        role: "user",
-        html: `<p>${escapeHtml(trimmed)}</p>`,
-      };
-      const placeholder: Message = {
-        id: placeholderId,
-        role: "raven",
-        html: "",
-        climate: "",
-        hook: "",
-        intent: undefined,
-        probe: null,
-        prov: null,
-      };
-
-      setMessages((prev) => [...prev, userMessage, placeholder]);
-
       const relocationPayload = mapRelocationToPayload(relocation);
       const contexts = reportContexts.map((ctx) => {
         const ctxRelocation = mapRelocationToPayload(ctx.relocation);
@@ -1223,6 +1220,63 @@ export default function ChatClient() {
           ...(ctxRelocation ? { relocation: ctxRelocation } : {}),
         };
       });
+
+      const userId = generateId();
+      const userMessage: Message = {
+        id: userId,
+        role: "user",
+        html: `<p>${escapeHtml(trimmed)}</p>`,
+      };
+
+      const hasReportContext = contexts.length > 0;
+      const wantsWeatherOnly = WEATHER_ONLY_PATTERN.test(trimmed);
+      const wantsPersonalReading = requestsPersonalReading(trimmed);
+      const mentionsAstroSeek = referencesAstroSeekWithoutGeometry(trimmed);
+
+      if (!hasReportContext && !wantsWeatherOnly && (wantsPersonalReading || mentionsAstroSeek)) {
+        const guardDraft = mentionsAstroSeek
+          ? { ...ASTROSEEK_GUARD_DRAFT }
+          : (() => {
+              const copy = buildNoContextGuardCopy();
+              return {
+                picture: copy.picture,
+                feeling: copy.feeling,
+                container: copy.container,
+                option: copy.option,
+                next_step: copy.next_step,
+              };
+            })();
+        const guardSource = mentionsAstroSeek ? ASTROSEEK_GUARD_SOURCE : NO_CONTEXT_GUARD_SOURCE;
+        const guardProv = { source: guardSource };
+        const guardHtml = formatShareableDraft(guardDraft, guardProv);
+        const guardHook = formatIntentHook("conversation", guardProv);
+        const guardMessage: Message = {
+          id: generateId(),
+          role: "raven",
+          html: guardHtml,
+          climate: undefined,
+          hook: guardHook,
+          intent: "conversation",
+          probe: null,
+          prov: guardProv,
+        };
+        setMessages((prev) => [...prev, userMessage, guardMessage]);
+        return;
+      }
+
+      const placeholderId = generateId();
+      const placeholder: Message = {
+        id: placeholderId,
+        role: "raven",
+        html: "",
+        climate: "",
+        hook: "",
+        intent: undefined,
+        probe: null,
+        prov: null,
+      };
+
+      setMessages((prev) => [...prev, userMessage, placeholder]);
 
       await runRavenRequest(
         {
