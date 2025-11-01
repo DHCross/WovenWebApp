@@ -368,29 +368,7 @@ const buildNarrativeDraft = (
 
   return {
     html: `
-      <section class="mirror-draft narrative" style="position: relative; display:flex; flex-direction:column;">
-        <button
-          class="copy-message"
-          data-message-id="${draft.id || generateId()}"
-          style="
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            background: none;
-            border: none;
-            color: #94a3b8;
-            cursor: pointer;
-            padding: 2px 6px;
-            font-size: 11px;
-            opacity: 0.6;
-            transition: all 0.2s;
-            border-radius: 4px;
-          "
-          title="Copy to clipboard"
-          aria-label="Copy message to clipboard"
-        >
-          Copy
-        </button>
+      <section class="mirror-draft narrative" style="display:flex; flex-direction:column;">
         ${htmlParagraphs}
         ${provenance}
       </section>
@@ -430,33 +408,9 @@ const formatShareableDraft = (
         )}</div>`
       : "";
 
-    const messageId = draft.id || generateId();
-
     return {
       html: `
-        <section class="mirror-draft conversation" style="position: relative; display:flex; flex-direction:column; gap:12px;">
-          <button
-            class="copy-message"
-            data-message-id="${messageId}"
-            style="
-              position: absolute;
-              top: 0.5rem;
-              right: 0.5rem;
-              background: none;
-              border: none;
-              color: #94a3b8;
-              cursor: pointer;
-              padding: 2px 6px;
-              font-size: 11px;
-              opacity: 0.6;
-              transition: all 0.2s;
-              border-radius: 4px;
-            "
-            title="Copy to clipboard"
-            aria-label="Copy message to clipboard"
-          >
-            Copy
-          </button>
+        <section class="mirror-draft conversation" style="display:flex; flex-direction:column; gap:12px;">
           ${paragraphs || `<p style="margin:0; line-height:1.6;">${escapeHtml(cleanedText)}</p>`}
           ${provenance}
         </section>
@@ -466,6 +420,26 @@ const formatShareableDraft = (
   }
 
   return buildNarrativeDraft(draft, prov);
+};
+
+const formatFriendlyErrorMessage = (rawMessage: string): string => {
+  const text = rawMessage.trim();
+  if (!text) {
+    return "I reached for the mirror but nothing answered. Try again in a moment.";
+  }
+  if (/cancel/i.test(text)) {
+    return "The channel was closed before I could finish. Ask again whenever you're ready.";
+  }
+  if (/no mirror returned/i.test(text)) {
+    return "I reached for the mirror but it stayed silent. Upload a report or ask again so I can keep listening.";
+  }
+  if (/failed to reach raven api/i.test(text) || /request failed/i.test(text)) {
+    return "I'm having trouble reaching my poetic voice right now. Give me a moment and try again, or upload another chart for me to hold.";
+  }
+  if (/401/.test(text) || /auth/i.test(text)) {
+    return "I couldn't authenticate with the Perplexity wellspring. Double-check the key, then invite me again.";
+  }
+  return `I'm having trouble responding: ${text}`;
 };
 
 const formatIntentHook =
@@ -791,51 +765,81 @@ const createInitialMessage = (): Message => ({
   climate: formatFullClimateDisplay({ magnitude: 1, valence: 2, volatility: 0 }),
   hook: "Atmosphere · Creator ∠ Mirror",
   rawText: `I’m a clean mirror. I set what you share beside the pattern I see and speak it back in plain language. Drop in whenever you’re ready—type below to talk freely, or upload a Math Brain export when you want the formal reading. I’ll keep you oriented either way.`,
+  validationPoints: [],
+  validationComplete: true,
 });
 
 export default function ChatClient() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => [createInitialMessage()]);
   const [validationMap, dispatchValidation] = useReducer(validationReducer, {} as ValidationState);
-  
-  // Handle copy to clipboard
-  const handleCopyToClipboard = useCallback(async (text: string, button: HTMLButtonElement) => {
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const copyResetRef = useRef<number | null>(null);
+
+  const handleCopyMessage = useCallback(async (messageId: string, text: string) => {
+    if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
-      const originalText = button.textContent;
-      button.textContent = 'Copied!';
-      button.style.color = '#10b981';
-      setTimeout(() => {
-        if (button) {
-          button.textContent = originalText;
-          button.style.color = '#94a3b8';
-        }
+      setCopiedMessageId(messageId);
+      if (copyResetRef.current) {
+        window.clearTimeout(copyResetRef.current);
+      }
+      copyResetRef.current = window.setTimeout(() => {
+        setCopiedMessageId(null);
+        copyResetRef.current = null;
       }, 2000);
     } catch (err) {
-      console.error('Failed to copy text: ', err);
+      // eslint-disable-next-line no-console
+      console.error("Failed to copy text:", err);
     }
   }, []);
 
-  // Set up copy button event listeners
-  useEffect(() => {
-    const handleCopyClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const button = target.closest('.copy-message') as HTMLButtonElement;
-      
-      if (!button) return;
-      e.preventDefault();
-      const messageId = button.dataset.messageId;
-      if (!messageId) return;
-      const foundMessage = messages.find((m) => m.id === messageId);
-      if (foundMessage?.rawText) {
-        handleCopyToClipboard(foundMessage.rawText, button);
+  useEffect(
+    () => () => {
+      if (copyResetRef.current) {
+        window.clearTimeout(copyResetRef.current);
+        copyResetRef.current = null;
       }
-    };
+    },
+    [],
+  );
 
-    document.addEventListener('click', handleCopyClick);
-    return () => {
-      document.removeEventListener('click', handleCopyClick);
-    };
-  }, [messages, handleCopyToClipboard]);
+  const handleValidationUpdate = useCallback(
+    (messageId: string, points: ValidationPoint[]) => {
+      dispatchValidation({ type: "setPoints", messageId, points });
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId
+            ? {
+                ...msg,
+                validationPoints: points,
+                validationComplete:
+                  points.length > 0 && !hasPendingValidations(points),
+              }
+            : msg,
+        ),
+      );
+    },
+    [dispatchValidation],
+  );
+
+  const handleValidationNoteChange = useCallback(
+    (messageId: string, pointId: string, note: string) => {
+      dispatchValidation({ type: "setNote", messageId, pointId, note });
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id !== messageId) return msg;
+          const nextPoints = (msg.validationPoints ?? []).map((point) =>
+            point.id === pointId ? { ...point, note } : point,
+          );
+          return {
+            ...msg,
+            validationPoints: nextPoints,
+          };
+        }),
+      );
+    },
+    [dispatchValidation],
+  );
 
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
@@ -873,6 +877,8 @@ export default function ChatClient() {
           hook: options.hook,
           climate: options.climate,
           rawText: safe,
+          validationPoints: [],
+          validationComplete: true,
         },
       ]);
     },
@@ -1058,6 +1064,59 @@ export default function ChatClient() {
     });
   }, [messages, typing]);
 
+  const validationSyncRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const readyForSync = messages.filter(
+      (msg) =>
+        msg.role === "raven" &&
+        Array.isArray(msg.validationPoints) &&
+        msg.validationPoints.length > 0 &&
+        !msg.validationComplete &&
+        !hasPendingValidations(msg.validationPoints ?? []) &&
+        !validationSyncRef.current.has(msg.id),
+    );
+
+    readyForSync.forEach((msg) => {
+      validationSyncRef.current.add(msg.id);
+      const payload = {
+        sessionId: sessionId ?? null,
+        messageId: msg.id,
+        hook: msg.hook ?? null,
+        climate: msg.climate ?? null,
+        validations: (msg.validationPoints ?? []).map((point) => ({
+          id: point.id,
+          field: point.field,
+          voice: point.voice,
+          tag: point.tag ?? null,
+          note: point.note ?? null,
+        })),
+      };
+
+      void fetch("/api/validation-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+        .then(() => {
+          setMessages((prev) =>
+            prev.map((entry) =>
+              entry.id === msg.id
+                ? { ...entry, validationComplete: true }
+                : entry,
+            ),
+          );
+        })
+        .catch((error) => {
+          // eslint-disable-next-line no-console
+          console.error("Failed to persist validation log:", error);
+        })
+        .finally(() => {
+          validationSyncRef.current.delete(msg.id);
+        });
+    });
+  }, [messages, sessionId]);
+
   const storedPayloadSummary = useMemo(() => {
     if (!storedPayload) return "";
     const parts: string[] = [];
@@ -1171,38 +1230,58 @@ export default function ChatClient() {
         : guidance
           ? {
               html: `<div class="raven-guard" style="font-size:13px; line-height:1.5; color:#94a3b8; white-space:pre-line;">${escapeHtml(guidance)}</div>`,
-              rawText: guidance
+              rawText: guidance,
             }
           : {
               html: `<p>${escapeHtml(fallbackMessage)}</p>`,
-              rawText: fallbackMessage
+              rawText: fallbackMessage,
             };
-      
+
       const climateDisplay = formatClimate(response?.climate ?? undefined);
       const hook = formatIntentHook(response?.intent, response?.prov ?? null);
+      const shouldParseValidation = Boolean(response?.draft) && Boolean(rawText);
+      const existingPoints = validationMap[ravenId] ?? [];
+      const parsedPoints = shouldParseValidation
+        ? parseValidationPoints(rawText, existingPoints)
+        : existingPoints;
+
+      if (shouldParseValidation) {
+        dispatchValidation({
+          type: "setPoints",
+          messageId: ravenId,
+          points: parsedPoints,
+        });
+      }
 
       setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === ravenId
-            ? {
-                ...msg,
-                html: formattedHtml,
-                rawText: rawText || msg.rawText || '',
-                climate: climateDisplay ?? msg.climate,
-                hook: hook ?? msg.hook,
-                intent: response.intent ?? msg.intent,
-                probe: response.probe ?? msg.probe ?? null,
-                prov: response.prov ?? msg.prov ?? null,
-              }
-            : msg,
-        ),
+        prev.map((msg) => {
+          if (msg.id !== ravenId) return msg;
+          const nextMessage: Message = {
+            ...msg,
+            html: formattedHtml,
+            rawText: rawText || msg.rawText || "",
+            climate: climateDisplay ?? msg.climate,
+            hook: hook ?? msg.hook,
+            intent: response.intent ?? msg.intent,
+            probe: response.probe ?? msg.probe ?? null,
+            prov: response.prov ?? msg.prov ?? null,
+          };
+
+          if (shouldParseValidation) {
+            nextMessage.validationPoints = parsedPoints;
+            nextMessage.validationComplete =
+              parsedPoints.length > 0 && !hasPendingValidations(parsedPoints);
+          }
+
+          return nextMessage;
+        }),
       );
 
       if (response?.sessionId) {
         setSessionId(response.sessionId);
       }
     },
-    [],
+    [dispatchValidation, validationMap],
   );
 
   const runRavenRequest = useCallback(
@@ -1261,6 +1340,8 @@ export default function ChatClient() {
         probe: null,
         prov: null,
         rawText: "",
+        validationPoints: [],
+        validationComplete: false,
       };
       setMessages((prev) => [...prev, placeholder]);
 
@@ -1343,6 +1424,8 @@ export default function ChatClient() {
         role: "user",
         html: `<p>${escapeHtml(trimmed)}</p>`,
         rawText: trimmed,
+        validationPoints: [],
+        validationComplete: true,
       };
 
       const hasReportContext = contexts.length > 0;
@@ -1365,7 +1448,7 @@ export default function ChatClient() {
             })();
         const guardSource = mentionsAstroSeek ? ASTROSEEK_GUARD_SOURCE : NO_CONTEXT_GUARD_SOURCE;
         const guardProv = { source: guardSource };
-        const guardHtml = formatShareableDraft(guardDraft, guardProv);
+        const { html: guardHtml, rawText: guardRawText } = formatShareableDraft(guardDraft, guardProv);
         const guardHook = formatIntentHook("conversation", guardProv);
         const guardMessage: Message = {
           id: generateId(),
@@ -1376,7 +1459,9 @@ export default function ChatClient() {
           intent: "conversation",
           probe: null,
           prov: guardProv,
-          rawText: "",
+          rawText: guardRawText,
+          validationPoints: [],
+          validationComplete: true,
         };
         setMessages((prev) => [...prev, userMessage, guardMessage]);
         return;
@@ -1393,6 +1478,8 @@ export default function ChatClient() {
         probe: null,
         prov: null,
         rawText: "",
+        validationPoints: [],
+        validationComplete: false,
       };
 
       setMessages((prev) => [...prev, userMessage, placeholder]);
@@ -1947,72 +2034,58 @@ export default function ChatClient() {
 
       <main ref={conversationRef} className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-3xl space-y-6 px-6 py-10">
-          {messages.map((message, i) => {
-            const isAssistant = message.role === 'assistant';
+          {messages.map((msg) => {
+            const isRaven = msg.role === "raven";
+            const validationPoints =
+              validationMap[msg.id] ??
+              msg.validationPoints ??
+              [];
+            const hasValidation = validationPoints.length > 0;
+            const validationPending = hasValidation && hasPendingValidations(validationPoints);
+            const validationStats = hasValidation ? getValidationStats(validationPoints) : null;
+            const validationSummaryText = hasValidation
+              ? validationPending
+                ? `Validation in progress: ${validationStats?.completed ?? 0} of ${
+                    validationStats?.total ?? validationPoints.length
+                  } tagged`
+                : formatValidationSummary(validationPoints)
+              : null;
+
             return (
               <div
-                key={i}
-                className={`flex ${isAssistant ? 'justify-start' : 'justify-end'}`}
+                key={msg.id}
+                className={`flex ${isRaven ? "justify-start" : "justify-end"}`}
               >
                 <div
-                  className={`relative max-w-[85%] rounded-2xl px-4 py-3 ${
-                    isAssistant
-                      ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-800 dark:text-gray-100'
-                      : 'bg-indigo-100 text-gray-900 dark:bg-indigo-900/30 dark:text-white'
+                  className={`max-w-full rounded-2xl border px-5 py-4 shadow-lg transition ${
+                    isRaven
+                      ? "bg-slate-900/70 border-slate-800/70 text-slate-100"
+                      : "bg-slate-800/80 border-slate-700/60 text-slate-100"
                   }`}
-                  dangerouslySetInnerHTML={{
-                    __html: isAssistant
-                      ? `${message.html}
-                        <button 
-                          class="copy-message" 
-                          data-message-id="${message.id}"
-                          style="
-                            position: absolute;
-                            top: 0.5rem;
-                            right: 0.5rem;
-                            background: none;
-                            border: none;
-                            color: #94a3b8;
-                            cursor: pointer;
-                            padding: 2px 6px;
-                            font-size: 11px;
-                            opacity: 0.6;
-                            transition: all 0.2s;
-                            border-radius: 4px;
-                          "
-                          title="Copy to clipboard"
-                          aria-label="Copy message to clipboard"
-                        >
-                          Copy
-                        </button>`
-                      : message.html
-                  }}
-                />
-                          right: 0.5rem;
-                          background: none;
-                          border: none;
-                          color: #94a3b8;
-                          cursor: pointer;
-                          padding: 2px 6px;
-                          font-size: 11px;
-                          opacity: 0.6;
-                          transition: all 0.2s;
-                          border-radius: 4px;
-                        "
-                        title="Copy to clipboard"
-                        aria-label="Copy message to clipboard"
+                  style={{ width: "100%" }}
+                >
+                  <div className="mb-3 flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.2em] text-slate-400">
+                    <span className="font-semibold text-slate-200">
+                      {isRaven ? "Raven" : "You"}
+                    </span>
+                    {msg.climate && <span className="text-slate-400/80">{msg.climate}</span>}
+                    {msg.hook && <span className="text-slate-400/60">{msg.hook}</span>}
+                  </div>
+                  <div className="relative">
+                    {isRaven && msg.rawText && msg.rawText.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopyMessage(msg.id, msg.rawText ?? "")}
+                        className="absolute right-0 top-0 rounded-md border border-slate-700/60 bg-slate-800/70 px-2 py-1 text-[11px] uppercase tracking-[0.2em] text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
                       >
-                        Copy
-                      </button>`
-                    : msg.html
-                }}
-              />
-            </div>
-          ))}
-                  <div
-                    className="space-y-3 text-[15px] leading-relaxed text-slate-100"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(msg.html) }}
-                  />
+                        {copiedMessageId === msg.id ? "Copied" : "Copy"}
+                      </button>
+                    )}
+                    <div
+                      className="space-y-3 text-[15px] leading-relaxed text-slate-100"
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(msg.html) }}
+                    />
+                  </div>
                   {isRaven && msg.probe && !msg.pingFeedbackRecorded && (
                     <div className="mt-4">
                       <MirrorResponseActions
@@ -2020,6 +2093,27 @@ export default function ChatClient() {
                         onFeedback={handlePingFeedback}
                         onQuickReply={sendProgrammatic}
                         checkpointType={getPingCheckpointType(msg.html)}
+                      />
+                    </div>
+                  )}
+                  {isRaven && hasValidation && (
+                    <div className="mt-4 space-y-3">
+                      {validationSummaryText && (
+                        <p
+                          className={`text-xs ${
+                            validationPending ? "text-amber-300" : "text-emerald-300"
+                          }`}
+                        >
+                          {validationSummaryText}
+                        </p>
+                      )}
+                      <GranularValidation
+                        messageId={msg.id}
+                        validationPoints={validationPoints}
+                        onComplete={(points) => handleValidationUpdate(msg.id, points)}
+                        onNoteChange={(pointId, note) =>
+                          handleValidationNoteChange(msg.id, pointId, note)
+                        }
                       />
                     </div>
                   )}

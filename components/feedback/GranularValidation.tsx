@@ -82,7 +82,7 @@ export function GranularValidation({
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-slate-100">{point.text}</p>
+                <p className="text-slate-100">{point.voice}</p>
                 
                 {point.tag ? (
                   <div className="mt-1">
