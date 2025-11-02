@@ -208,7 +208,14 @@ function resolveSubject(payload: any, key: 'person_a' | 'person_b'): any {
 
 function hasCompleteSubject(subject: any): boolean {
   if (!subject || typeof subject !== 'object') return false;
-  const chart =
+  
+  // Check for v2 schema first (unified_output.person_a.chart)
+  const v2Chart = subject.unified_output?.person_a?.chart || 
+                 subject.unified_output?.personA?.chart ||
+                 subject.unified_output?.chart;
+  
+  // Fall back to v1 schema
+  const chart = v2Chart ||
     subject.chart ??
     subject.chart_natal ??
     subject.chartNatal ??
@@ -216,19 +223,28 @@ function hasCompleteSubject(subject: any): boolean {
     subject.natal_chart ??
     subject.blueprint ??
     null;
+    
+  // Check if we have valid chart data in either format
   const hasPlanets =
-    Array.isArray(chart?.planets)
-      ? chart.planets.length > 0
-      : chart && typeof chart === 'object'
-        ? Object.keys(chart).length > 0
-        : false;
-  const aspects =
-    Array.isArray(subject.aspects) && subject.aspects.length > 0
-      ? true
-      : Array.isArray(chart?.aspects) && chart.aspects.length > 0;
+    Array.isArray(chart?.planets) && chart.planets.length > 0 ||
+    (chart && typeof chart === 'object' && 
+     (chart.planets || chart.planets === undefined) && // Allow missing planets if other data exists
+     Object.keys(chart).some(k => k !== 'planets'));
+     
+  const aspects = 
+    Array.isArray(subject.aspects) && subject.aspects.length > 0 ||
+    Array.isArray(chart?.aspects) && chart.aspects.length > 0;
+    
   const placements =
     Array.isArray(subject.placements) && subject.placements.length > 0;
-  return Boolean(hasPlanets || aspects || placements);
+    
+  // Also check for _natal_section in v2 schema
+  const hasNatalSection = 
+    subject._natal_section && 
+    typeof subject._natal_section === 'object' &&
+    Object.keys(subject._natal_section).length > 0;
+
+  return Boolean(hasPlanets || aspects || placements || hasNatalSection);
 }
 
 function extractSubjectName(subject: any, fallback: string): string {
@@ -642,17 +658,21 @@ export async function POST(req: Request) {
         autoPlan.reason === 'invalid_json'
           ? 'it looks corrupted or incomplete'
           : 'the core chart data is missing';
-      const message = `Logging this as OSR and pausing the reading. I tried to open ${contextName}, but ${reason}. Re-export the Math Brain package and drop it in again when it's ready.`;
-      appendHistoryEntry(sessionLog, 'user', textInput);
+      const message = `I tried to open ${contextName}, but ${reason}.`;
+
       appendHistoryEntry(sessionLog, 'raven', message);
-      sessionLog.turnCount = (sessionLog.turnCount ?? 0) + 1;
-      const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution OSR)' });
+
       return NextResponse.json({
-        intent: 'conversation',
         ok: true,
-        draft: { conversation: message },
-        prov,
-        sessionId: sid,
+        message,
+        guard: true,
+        guidance: 'osr_detected',
+        details: {
+          reason: autoPlan.reason,
+          contextId: autoPlan.contextId,
+          contextName: autoPlan.contextName,
+        },
+        // Explicitly disable resonance probe for OSR responses
         probe: null,
       });
     }
