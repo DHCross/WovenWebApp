@@ -7,19 +7,14 @@
  * 3. Checking for forbidden patterns (premature /100 division)
  */
 
-import { describe, test, expect } from 'vitest';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const fs = require('fs');
+const path = require('path');
 
 describe('CI Gate: Golden Case & Pipeline Order (v5.0)', () => {
   
-  test('Golden Standard: 2018-10-10 Hurricane Michael (via constants)', async () => {
+  test('Golden Standard: 2018-10-10 Hurricane Michael (via constants)', () => {
     // Import constants to verify golden case definition exists
-    const constants = await import('../lib/balance/constants.js');
+    const constants = require('../lib/balance/constants.js');
     const { GOLDEN_CASES } = constants;
     
     // This is the non-negotiable anchor
@@ -28,10 +23,26 @@ describe('CI Gate: Golden Case & Pipeline Order (v5.0)', () => {
     expect(GOLDEN_CASES['2018-10-10'].biasBand).toEqual([-5.0, -4.0]);
   });
 
-  test('BIAS_DIVISOR must be 10 for full amplitude', async () => {
+  test('Golden Standard: 2018-10-10 Hurricane Michael (via calculation)', function() {
+    const { aggregate } = require('../src/seismograph.js');
+    const benchmarkDataPath = path.join(__dirname, '../benchmark-result-2018-10-10.json');
+    const benchmarkData = JSON.parse(fs.readFileSync(benchmarkDataPath, 'utf8'));
+    const aspects = benchmarkData.backstage.labels.Transit_to_A;
+
+    const result = aggregate(aspects, {
+      referenceDate: '2018-10-10',
+    });
+
+    // The spec is a range, but for the golden case, we expect exact values
+    // after the v5.0 refactor.
+    expect(result.magnitude).toBe(5);
+    expect(result.directional_bias).toBe(-5);
+  });
+
+  test('BIAS_DIVISOR must be 10 for full amplitude', () => {
     // Critical: BIAS_DIVISOR=100 caps magnitude at ~3.1
     // BIAS_DIVISOR=10 allows full 5.0 reach
-    const amplifiers = await import('../lib/balance/amplifiers.js');
+    const amplifiers = require('../lib/balance/amplifiers.js');
     const { BIAS_DIVISOR } = amplifiers;
     expect(BIAS_DIVISOR).toBe(10);
   });
@@ -117,20 +128,20 @@ describe('CI Gate: Golden Case & Pipeline Order (v5.0)', () => {
 
 describe('CI Gate: Spec Compliance (v5.0)', () => {
   
-  test('SCALE_FACTOR is 5', async () => {
-    const constants = await import('../lib/balance/constants.js');
+  test('SCALE_FACTOR is 5', () => {
+    const constants = require('../lib/balance/constants.js');
     const { SCALE_FACTOR } = constants;
     expect(SCALE_FACTOR).toBe(5);
   });
 
-  test('SPEC_VERSION is 5.0', async () => {
-    const constants = await import('../lib/balance/constants.js');
+  test('SPEC_VERSION is 5.0', () => {
+    const constants = require('../lib/balance/constants.js');
     const { SPEC_VERSION } = constants;
     expect(SPEC_VERSION).toBe('5.0');
   });
 
-  test('Ranges are canonical for v5.0', async () => {
-    const constants = await import('../lib/balance/constants.js');
+  test('Ranges are canonical for v5.0', () => {
+    const constants = require('../lib/balance/constants.js');
     const { RANGE_MAG, RANGE_BIAS } = constants;
 
     expect(RANGE_MAG).toEqual([0, 5]);
