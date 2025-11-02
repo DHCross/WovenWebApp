@@ -4749,7 +4749,20 @@ export default function MathBrainPage() {
                 Full Diagnostics
               </span>
               <span className="text-slate-600">→</span>
-              <span className={canVisitPoetic ? 'text-emerald-300' : 'text-slate-500'}>Poetic Brain</span>
+              {canVisitPoetic ? (
+                <a
+                  href="/chat"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    handleNavigateToPoetic();
+                  }}
+                  className="text-emerald-300 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 rounded-sm"
+                >
+                  Poetic Brain
+                </a>
+              ) : (
+                <span className="text-slate-500">Poetic Brain</span>
+              )}
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {weather.hasWindow ? (

@@ -31,9 +31,15 @@ export function getValidationStats(points: ValidationPoint[]): {
 }
 
 export function formatValidationSummary(points: ValidationPoint[]): string {
-  const { total, byTag } = getValidationStats(points);
-  const safeTotal = total || 1;
-  return `Validation complete: ${byTag.WB} Within Boundary, ${byTag.ABE} At Boundary Edge, ${byTag.OSR} Outside Range (of ${safeTotal})`;
+  const { total, completed, byTag } = getValidationStats(points);
+  const unreviewed = Math.max(total - completed, 0);
+  const segments = [
+    `✅ ${byTag.WB} Strong Resonance`,
+    `⚪ ${byTag.ABE} Partial Resonance`,
+    `❌ ${byTag.OSR} No Resonance`,
+    `• ${unreviewed} Unreviewed`,
+  ];
+  return segments.join("   ");
 }
 
 export function validationReducer(

@@ -2036,6 +2036,7 @@ export default function ChatClient() {
         <div className="mx-auto max-w-3xl space-y-6 px-6 py-10">
           {messages.map((msg) => {
             const isRaven = msg.role === "raven";
+            const showCopyButton = isRaven && Boolean(msg.rawText && msg.rawText.trim());
             const validationPoints =
               validationMap[msg.id] ??
               msg.validationPoints ??
@@ -2045,9 +2046,9 @@ export default function ChatClient() {
             const validationStats = hasValidation ? getValidationStats(validationPoints) : null;
             const validationSummaryText = hasValidation
               ? validationPending
-                ? `Validation in progress: ${validationStats?.completed ?? 0} of ${
+                ? `Resonance check in progress: ${validationStats?.completed ?? 0} of ${
                     validationStats?.total ?? validationPoints.length
-                  } tagged`
+                  } reflections tagged.`
                 : formatValidationSummary(validationPoints)
               : null;
 
@@ -2071,27 +2072,26 @@ export default function ChatClient() {
                     {msg.climate && <span className="text-slate-400/80">{msg.climate}</span>}
                     {msg.hook && <span className="text-slate-400/60">{msg.hook}</span>}
                   </div>
-                  <div className="relative">
-                    {isRaven && msg.rawText && msg.rawText.trim() && (
+                  <div className={showCopyButton ? "flex items-start gap-3" : undefined}>
+                    <div
+                      className={`${showCopyButton ? "flex-1" : ""} space-y-3 text-[15px] leading-relaxed text-slate-100`}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(msg.html) }}
+                    />
+                    {showCopyButton && (
                       <button
                         type="button"
                         onClick={() => handleCopyMessage(msg.id, msg.rawText ?? "")}
-                        className="absolute right-0 top-0 rounded-md border border-slate-700/60 bg-slate-800/70 px-2 py-1 text-[11px] uppercase tracking-[0.2em] text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
+                        className="shrink-0 rounded-md border border-slate-700/60 bg-slate-800/70 px-2 py-1 text-[11px] uppercase tracking-[0.2em] text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
                       >
                         {copiedMessageId === msg.id ? "Copied" : "Copy"}
                       </button>
                     )}
-                    <div
-                      className="space-y-3 text-[15px] leading-relaxed text-slate-100"
-                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(msg.html) }}
-                    />
                   </div>
                   {isRaven && msg.probe && !msg.pingFeedbackRecorded && (
                     <div className="mt-4">
                       <MirrorResponseActions
                         messageId={msg.id}
                         onFeedback={handlePingFeedback}
-                        onQuickReply={sendProgrammatic}
                         checkpointType={getPingCheckpointType(msg.html)}
                       />
                     </div>
@@ -2100,8 +2100,10 @@ export default function ChatClient() {
                     <div className="mt-4 space-y-3">
                       {validationSummaryText && (
                         <p
-                          className={`text-xs ${
-                            validationPending ? "text-amber-300" : "text-emerald-300"
+                          className={`rounded-md border px-3 py-2 text-xs ${
+                            validationPending
+                              ? "border-amber-500/40 bg-amber-500/10 text-amber-200"
+                              : "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
                           }`}
                         >
                           {validationSummaryText}

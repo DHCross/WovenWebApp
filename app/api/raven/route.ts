@@ -22,6 +22,7 @@ import {
   referencesAstroSeekWithoutGeometry
 } from '@/lib/raven/guards';
 import { buildNoContextGuardCopy } from '@/lib/guard/no-context';
+import { RAVEN_PROMPT_ARCHITECTURE } from '@/lib/raven/prompt-architecture';
 import { requestsPersonalReading } from '@/lib/raven/personal-reading';
 
 // Minimal in-memory session store (dev only). For prod, persist per-user.
@@ -183,6 +184,334 @@ function createGuardPayload(
   };
 }
 
+function safeParseJSON(value: string): { ok: boolean; data: any | null } {
+  if (typeof value !== 'string') return { ok: false, data: null };
+  try {
+    return { ok: true, data: JSON.parse(value) };
+  } catch {
+    return { ok: false, data: null };
+  }
+}
+
+function resolveSubject(payload: any, key: 'person_a' | 'person_b'): any {
+  if (!payload || typeof payload !== 'object') return null;
+  if (payload[key]) return payload[key];
+  if (payload.context && typeof payload.context === 'object' && payload.context[key]) {
+    return payload.context[key];
+  }
+  if (payload.subjects && typeof payload.subjects === 'object' && payload.subjects[key]) {
+    return payload.subjects[key];
+  }
+  const nested = payload.profiles && typeof payload.profiles === 'object' ? payload.profiles[key] : undefined;
+  return nested || null;
+}
+
+function hasCompleteSubject(subject: any): boolean {
+  if (!subject || typeof subject !== 'object') return false;
+  const chart =
+    subject.chart ??
+    subject.chart_natal ??
+    subject.chartNatal ??
+    subject.geometry ??
+    subject.natal_chart ??
+    subject.blueprint ??
+    null;
+  const hasPlanets =
+    Array.isArray(chart?.planets)
+      ? chart.planets.length > 0
+      : chart && typeof chart === 'object'
+        ? Object.keys(chart).length > 0
+        : false;
+  const aspects =
+    Array.isArray(subject.aspects) && subject.aspects.length > 0
+      ? true
+      : Array.isArray(chart?.aspects) && chart.aspects.length > 0;
+  const placements =
+    Array.isArray(subject.placements) && subject.placements.length > 0;
+  return Boolean(hasPlanets || aspects || placements);
+}
+
+function extractSubjectName(subject: any, fallback: string): string {
+  if (!subject || typeof subject !== 'object') return fallback;
+  const name =
+    subject.name ??
+    subject.details?.name ??
+    subject.profile?.name ??
+    subject.meta?.name ??
+    subject.identity?.name ??
+    subject.person?.name;
+  return typeof name === 'string' && name.trim() ? name.trim() : fallback;
+}
+
+function detectContextLayers(payload: any): string[] {
+  if (!payload || typeof payload !== 'object') return [];
+  const layers = new Set<string>();
+  const targets = [payload, payload.context, payload.metadata, payload.meta].filter(
+    (entry): entry is Record<string, any> => Boolean(entry && typeof entry === 'object')
+  );
+  for (const entry of targets) {
+    if (
+      'relationship_context' in entry ||
+      'relationship' in entry ||
+      'relationship_scope' in entry ||
+      'relationship_profile' in entry ||
+      'mirror_contract' in entry && entry.mirror_contract?.relationship_type
+    ) {
+      layers.add('relationship');
+    }
+    if ('dream' in entry || 'dream_context' in entry || 'dream_log' in entry) {
+      layers.add('dream');
+    }
+    if (
+      'field' in entry ||
+      'field_context' in entry ||
+      'fieldmap' in entry ||
+      'wm_fieldmap' in entry ||
+      'field_map' in entry
+    ) {
+      layers.add('field');
+    }
+    if (
+      'symbolic_weather' in entry ||
+      'symbolic_weather_context' in entry ||
+      'weather_overlay' in entry ||
+      'transit_context' in entry ||
+      'symbolic_weather_package' in entry ||
+      'weather_package' in entry
+    ) {
+      layers.add('symbolic_weather');
+    }
+  }
+  return Array.from(layers);
+}
+
+function extractMirrorContract(payload: any): Record<string, any> | null {
+  if (!payload || typeof payload !== 'object') return null;
+  if (payload.mirror_contract && typeof payload.mirror_contract === 'object') {
+    return payload.mirror_contract;
+  }
+  if (payload.contract && typeof payload.contract === 'object') {
+    return payload.contract;
+  }
+  if (payload.context && typeof payload.context === 'object') {
+    const ctx = payload.context;
+    if (ctx.mirror_contract && typeof ctx.mirror_contract === 'object') {
+      return ctx.mirror_contract;
+    }
+    if (ctx.contract && typeof ctx.contract === 'object') {
+      return ctx.contract;
+    }
+  }
+  return null;
+}
+
+type AutoExecutionStatus =
+  | 'none'
+  | 'solo_auto'
+  | 'relational_auto'
+  | 'parallel_auto'
+  | 'relational_choice'
+  | 'contextual_auto'
+  | 'osr';
+
+type AutoExecutionPlan = {
+  status: AutoExecutionStatus;
+  contextId?: string;
+  contextName?: string;
+  instructions?: string[];
+  forceQuestion?: boolean;
+  personAName?: string;
+  personBName?: string;
+  contextLayers?: string[];
+  reason?: string;
+};
+
+function deriveAutoExecutionPlan(
+  contexts: Record<string, any>[],
+  sessionLog: SessionSSTLog & Record<string, any>
+): AutoExecutionPlan {
+  if (!Array.isArray(contexts) || contexts.length === 0) {
+    return { status: 'none' };
+  }
+
+  const mirrorContext =
+    [...contexts].reverse().find((ctx) => ctx && ctx.type === 'mirror' && typeof ctx.content === 'string') ??
+    (typeof contexts[contexts.length - 1]?.content === 'string' ? contexts[contexts.length - 1] : null);
+
+  if (!mirrorContext || typeof mirrorContext.content !== 'string') {
+    return { status: 'none' };
+  }
+
+  const parsed = safeParseJSON(mirrorContext.content);
+  if (!parsed.ok) {
+    return {
+      status: 'osr',
+      contextId: mirrorContext.id,
+      contextName: mirrorContext.name,
+      reason: 'invalid_json',
+    };
+  }
+
+  const payload = parsed.data || {};
+  const personA = resolveSubject(payload, 'person_a');
+  const personB = resolveSubject(payload, 'person_b');
+  if (!hasCompleteSubject(personA)) {
+    return {
+      status: 'osr',
+      contextId: mirrorContext.id,
+      contextName: mirrorContext.name,
+      reason: 'missing_person_a',
+    };
+  }
+
+  const contract = extractMirrorContract(payload);
+  const reportKindRaw: string | null = (() => {
+    if (typeof contract?.report_kind === 'string') return contract.report_kind;
+    if (typeof payload?.report_kind === 'string') return payload.report_kind;
+    if (typeof payload?.report?.kind === 'string') return payload.report.kind;
+    if (typeof payload?.context?.report_kind === 'string') return payload.context.report_kind;
+    return null;
+  })();
+
+  const reportKind = reportKindRaw ? reportKindRaw.toLowerCase() : null;
+  const contractRelational =
+    contract?.is_relational === true ||
+    (typeof contract?.relational === 'boolean' && contract.relational) ||
+    (typeof reportKind === 'string' && /relational|synastry|composite/.test(reportKind));
+  const contractParallel =
+    typeof contract?.mode === 'string' && /parallel/i.test(contract.mode) ||
+    (typeof reportKind === 'string' && /parallel/.test(reportKind));
+
+  const personAName = extractSubjectName(personA, 'Person A');
+  const personBName = hasCompleteSubject(personB)
+    ? extractSubjectName(personB, 'Person B')
+    : undefined;
+  const contextLayers = detectContextLayers(payload);
+
+  if (hasCompleteSubject(personB)) {
+    const relationalModes = (sessionLog.relationalModes || {}) as Record<string, 'relational' | 'parallel'>;
+    const storedMode = relationalModes[mirrorContext.id];
+    const resolvedMode: 'relational' | 'parallel' | null =
+      storedMode ??
+      (contractRelational ? 'relational' : contractParallel ? 'parallel' : null);
+
+    if (resolvedMode === 'relational') {
+      return {
+        status: 'relational_auto',
+        contextId: mirrorContext.id,
+        contextName: mirrorContext.name,
+        personAName,
+        personBName,
+        instructions: [
+          `AUTO-EXECUTION: Relational mirror in progress for ${personAName} and ${personBName}.`,
+          'Begin immediately—no permission or mode checks. Open with the frontstage_preface, then deliver solo mirror A, solo mirror B, and the relational engine before closing with a resonance ping.',
+          'Use both names directly. Keep the flow continuous and grounded in their uploaded geometry.',
+        ],
+        forceQuestion: true,
+      };
+    }
+
+    if (resolvedMode === 'parallel') {
+      return {
+        status: 'parallel_auto',
+        contextId: mirrorContext.id,
+        contextName: mirrorContext.name,
+        personAName,
+        personBName,
+        instructions: [
+          `AUTO-EXECUTION: Parallel diagnostics for ${personAName} and ${personBName}.`,
+          'Execute immediately with frontstage_preface, then separate solo mirrors for each chart. Keep them distinct—no relational synthesis. Close with a shared resonance question once both solos land.',
+          'Do not ask about modes or seek confirmation; the user already defined the lane.',
+        ],
+        forceQuestion: true,
+      };
+    }
+
+    return {
+      status: 'relational_choice',
+      contextId: mirrorContext.id,
+      contextName: mirrorContext.name,
+      personAName,
+      personBName,
+    };
+  }
+
+  if (contextLayers.length > 0) {
+    const layerLabel = contextLayers
+      .map((layer) => {
+        switch (layer) {
+          case 'relationship':
+            return 'relationship context';
+          case 'dream':
+            return 'dream payload';
+          case 'field':
+            return 'field map';
+          case 'symbolic_weather':
+            return 'symbolic weather overlay';
+          default:
+            return layer;
+        }
+      })
+      .join(', ');
+    return {
+      status: 'contextual_auto',
+      contextId: mirrorContext.id,
+      contextName: mirrorContext.name,
+      personAName,
+      contextLayers,
+      instructions: [
+        `AUTO-EXECUTION: Contextual mirror engaged for ${personAName}.`,
+        `Integrate the ${layerLabel} directly into the Mirror Flow without pausing to confirm. Sequence: frontstage_preface → solo mirror core → contextual integration → closing resonance question.`,
+        'Stay inside the uploaded data; no mode or permission prompts.',
+      ],
+      forceQuestion: true,
+    };
+  }
+
+  return {
+    status: 'solo_auto',
+    contextId: mirrorContext.id,
+    contextName: mirrorContext.name,
+    personAName,
+    instructions: [
+      `AUTO-EXECUTION: Solo mirror for ${personAName}.`,
+      'Start instantly—frontstage_preface followed by the full solo mirror chain. No confirmation gates or hesitation.',
+      'Anchor every move in the uploaded geometry and close with a resonance check.',
+    ],
+    forceQuestion: true,
+  };
+}
+
+function parseRelationalChoiceAnswer(text: string): 'relational' | 'parallel' | null {
+  const input = (text || '').trim().toLowerCase();
+  if (!input) return null;
+  if (/(relational|together|both|synastry|relationship|combined|shared)/i.test(input)) {
+    return 'relational';
+  }
+  if (/(parallel|separate|individual|solo|each|individually)/i.test(input)) {
+    return 'parallel';
+  }
+  return null;
+}
+
+function appendHistoryEntry(
+  sessionLog: SessionSSTLog,
+  role: 'user' | 'raven',
+  content: string
+): void {
+  if (!Array.isArray(sessionLog.history)) {
+    sessionLog.history = [];
+  }
+  sessionLog.history.push({
+    role,
+    content,
+    createdAt: new Date().toISOString(),
+  });
+  if (sessionLog.history.length > MAX_HISTORY_TURNS * 2) {
+    sessionLog.history = sessionLog.history.slice(-MAX_HISTORY_TURNS * 2);
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const { action = 'generate', input, options = {}, sessionId } = await req.json();
@@ -191,9 +520,12 @@ export async function POST(req: Request) {
     let sid = sessionId as string | undefined;
     if (!sid) { sid = randomUUID(); }
     if (!sessions.has(sid)) sessions.set(sid, { probes: [], turnCount: 0, history: [] });
-    const sessionLog = sessions.get(sid)!;
+    const sessionLog = sessions.get(sid)! as SessionSSTLog & Record<string, any>;
     if (typeof sessionLog.turnCount !== 'number') sessionLog.turnCount = 0;
     if (!Array.isArray(sessionLog.history)) sessionLog.history = [];
+    if (!sessionLog.relationalModes || typeof sessionLog.relationalModes !== 'object') {
+      sessionLog.relationalModes = {};
+    }
 
     if (action === 'feedback') {
       const { probeId, tag } = resolvedOptions as { probeId: string; tag: SSTTag };
@@ -214,6 +546,33 @@ export async function POST(req: Request) {
         log: sessionLog,
         suggestions: sessionLog.suggestions ?? [],
       });
+    }
+
+    // Allow relational mode answers to short-circuit before intent detection
+    const pendingChoice = sessionLog.pendingRelationalChoice as { contextId: string } | undefined;
+    if (pendingChoice) {
+      const decision = parseRelationalChoiceAnswer(textInput);
+      if (!decision) {
+        const reminder =
+          'I have both charts live. Just let me know—relational (together) or parallel (separate diagnostics)?';
+        appendHistoryEntry(sessionLog, 'user', textInput);
+        appendHistoryEntry(sessionLog, 'raven', reminder);
+        sessionLog.turnCount = (sessionLog.turnCount ?? 0) + 1;
+        const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Prompt)' });
+        return NextResponse.json({
+          intent: 'conversation',
+          ok: true,
+          draft: { conversation: reminder },
+          prov,
+          sessionId: sid,
+          probe: null,
+        });
+      }
+      sessionLog.pendingRelationalChoice = undefined;
+      if (!sessionLog.relationalModes || typeof sessionLog.relationalModes !== 'object') {
+        sessionLog.relationalModes = {};
+      }
+      sessionLog.relationalModes[pendingChoice.contextId] = decision;
     }
 
     // Default: generate (router)
@@ -276,6 +635,46 @@ export async function POST(req: Request) {
     const wantsPersonalReading = requestsPersonalReading(textInput);
     const mentionsAstroSeek = referencesAstroSeekWithoutGeometry(textInput);
 
+    const autoPlan = deriveAutoExecutionPlan(normalizedContexts, sessionLog);
+    if (autoPlan.status === 'osr') {
+      const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'that upload';
+      const reason =
+        autoPlan.reason === 'invalid_json'
+          ? 'it looks corrupted or incomplete'
+          : 'the core chart data is missing';
+      const message = `Logging this as OSR and pausing the reading. I tried to open ${contextName}, but ${reason}. Re-export the Math Brain package and drop it in again when it's ready.`;
+      appendHistoryEntry(sessionLog, 'user', textInput);
+      appendHistoryEntry(sessionLog, 'raven', message);
+      sessionLog.turnCount = (sessionLog.turnCount ?? 0) + 1;
+      const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution OSR)' });
+      return NextResponse.json({
+        intent: 'conversation',
+        ok: true,
+        draft: { conversation: message },
+        prov,
+        sessionId: sid,
+        probe: null,
+      });
+    }
+
+    if (autoPlan.status === 'relational_choice') {
+      sessionLog.pendingRelationalChoice = { contextId: autoPlan.contextId! };
+      const question =
+        `Two full charts are on the table. Do you want the reading together (relational) or separate diagnostics (parallel)?`;
+      appendHistoryEntry(sessionLog, 'user', textInput);
+      appendHistoryEntry(sessionLog, 'raven', question);
+      sessionLog.turnCount = (sessionLog.turnCount ?? 0) + 1;
+      const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Prompt)' });
+      return NextResponse.json({
+        intent: 'conversation',
+        ok: true,
+        draft: { conversation: question },
+        prov,
+        sessionId: sid,
+        probe: null,
+      });
+    }
+
     if (intent === 'report') {
       if (!hasReportContext && !hasGeometryPayload) {
         if (mentionsAstroSeek) {
@@ -337,19 +736,20 @@ export async function POST(req: Request) {
     const historyPrompt = formatHistoryForPrompt(sessionLog.history);
     const isFirstTurn = (sessionLog.turnCount ?? 0) === 0;
 
+    const conversationMode = detectConversationMode(textInput, sessionLog);
+
     const instructionLines: string[] = [
       'Respond in natural paragraphs (2-3) using a warm, lyrical voice. Weave symbolic insight into lived, testable language.',
       'Do NOT use headers, bullet lists, numbered sections, or bracketed labels. No markdown headings.',
-      isFirstTurn
-        ? 'This is the first substantive turn of the session. Close with a reflective line instead of a question.'
-        : 'End with exactly one reflective question that invites them to test the resonance in their lived experience.',
       'Never mention being an AI. Do not describe chain-of-thought. Stay inside the Raven Calder persona.',
     ];
+    if (autoPlan.instructions?.length) {
+      instructionLines.unshift(...autoPlan.instructions);
+    }
     if (wantsWeatherOnly) {
       instructionLines.push('The user is asking for symbolic weather / current climate. Anchor your reflection in present-time field dynamics while staying grounded in their lived situation.');
     }
 
-    const conversationMode = detectConversationMode(textInput, sessionLog);
     if (conversationMode === 'suggestion') {
       instructionLines.push(
         'The user is offering a product suggestion. Acknowledge it, affirm the useful part, and confirm you will carry it forward without promising implementation.',
@@ -364,7 +764,15 @@ export async function POST(req: Request) {
       );
     }
 
+    const closingInstruction = autoPlan.forceQuestion
+      ? 'End with exactly one resonance question that invites them to test the mirror in their lived experience.'
+      : isFirstTurn
+        ? 'This is the first substantive turn of the session. Close with a reflective line instead of a question.'
+        : 'End with exactly one reflective question that invites them to test the resonance in their lived experience.';
+    instructionLines.push(closingInstruction);
+
     const promptSections: string[] = [
+      RAVEN_PROMPT_ARCHITECTURE,
       instructionLines.join('\n'),
     ];
     if (contextPrompt) {
@@ -375,7 +783,11 @@ export async function POST(req: Request) {
     }
     promptSections.push(`User message:\n${textInput}`);
     promptSections.push(`Interaction mode: ${conversationMode}`);
-    promptSections.push(`Session meta: first_turn=${isFirstTurn ? 'true' : 'false'}. When first_turn=true, invite them to notice rather than question.`);
+    promptSections.push(
+      autoPlan.forceQuestion
+        ? `Session meta: first_turn=${isFirstTurn ? 'true' : 'false'}. Auto-execution is active—close with a resonance question even on the first turn.`
+        : `Session meta: first_turn=${isFirstTurn ? 'true' : 'false'}. When first_turn=true, invite them to notice rather than question.`
+    );
 
     const prompt = promptSections.filter(Boolean).join('\n\n');
 
