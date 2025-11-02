@@ -47,10 +47,12 @@ const RESONANCE_OPTIONS: ResonanceOption[] = [
   },
 ];
 
-const ACKNOWLEDGEMENTS: Record<Exclude<PingResponse, "unclear">, string> = {
+const ACKNOWLEDGEMENTS: Record<PingResponse, string> = {
   yes: "Noted — this one resonated strongly.",
   maybe: "Logged as partial resonance. I’ll keep refining the mirror.",
   no: "Marked as no resonance. I’ll adjust course on the next pass.",
+  unclear:
+    "Logged as unclear resonance. I’ll restate it with plainer language and check again.",
 };
 
 const NOTE_PLACEHOLDER =
@@ -62,7 +64,7 @@ const PingFeedback: React.FC<PingFeedbackProps> = ({
   disabled = false,
   checkpointType = "general",
 }) => {
-  const [selectedResponse, setSelectedResponse] = useState<Exclude<PingResponse, "unclear"> | null>(null);
+  const [selectedResponse, setSelectedResponse] = useState<PingResponse | null>(null);
   const [note, setNote] = useState<string>("");
   const [noteTouched, setNoteTouched] = useState(false);
 
@@ -81,7 +83,7 @@ const PingFeedback: React.FC<PingFeedbackProps> = ({
     }
   }, [checkpointType]);
 
-  const handleSelect = (response: Exclude<PingResponse, "unclear">) => {
+  const handleSelect = (response: PingResponse) => {
     if (disabled) return;
     setSelectedResponse(response);
     const noteValue = response === "no" ? note.trim() : undefined;
