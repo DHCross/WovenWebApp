@@ -2019,11 +2019,47 @@ export default function MathBrainPage() {
   const handleNavigateToPoetic = () => {
     const hasReport = Boolean(result);
     if (hasReport) {
+      // Store the report data in localStorage so Poetic Brain can retrieve it
+      try {
+        const payload: Record<string, any> = {
+          savedAt: new Date().toISOString(),
+          reportType: reportContractType,
+          mode: mode,
+          includeTransits: TRANSIT_MODES.has(mode),
+          window: {
+            start: startDate || undefined,
+            end: endDate || undefined,
+          },
+          subjects: {
+            personA: personA ? {
+              name: personA.name,
+              timezone: personA.timezone,
+              city: personA.city,
+              state: personA.state,
+            } : null,
+            personB: personB ? {
+              name: personB.name,
+              timezone: personB.timezone,
+              city: personB.city,
+              state: personB.state,
+            } : null,
+          },
+          payload: result,
+        };
+        window.localStorage.setItem('mb.lastPayload', JSON.stringify(payload));
+        setToast('📤 Report saved to Poetic Brain. Navigating…');
+        setTimeout(() => setToast(null), 1200);
+      } catch (error) {
+        console.error('Failed to save report to localStorage:', error);
+        setToast('⚠️ Could not save report locally. Try downloading instead.');
+        setTimeout(() => setToast(null), 2000);
+        return;
+      }
+
       const confirmNav = window.confirm(
-        '⚠️ Download your report before leaving!\n\n' +
-        'Your Math Brain report will be lost when you navigate away. ' +
-        'Download "Complete Chart Package" or "Symbolic Weather Package" first.\n\n' +
-        'Continue to Poetic Brain anyway?'
+        '✅ Report ready for Poetic Brain!\n\n' +
+        'Your Math Brain report has been saved. You can now navigate to Poetic Brain for AI analysis.\n\n' +
+        'Continue to Poetic Brain?'
       );
       if (confirmNav) {
         window.location.href = '/chat';

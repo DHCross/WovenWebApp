@@ -1,6 +1,33 @@
 import { ValidationPoint } from "./types";
 
 /**
+ * Checks if a text is likely metadata, informational, or a system message.
+ * These should NOT be tagged for resonance validation.
+ */
+function isMetadataOrContext(text: string): boolean {
+  // Skip very short lines (likely metadata)
+  if (text.length < 30) return true;
+  
+  // Skip common metadata patterns
+  const metadataPatterns = [
+    /^report logged/i,
+    /^context added/i,
+    /^stored for interpretation/i,
+    /^upload/i,
+    /^logging this as/i,
+    /^i tried to open/i,
+    /^could not|failed|error/i,
+    /^re-export|drop it in/i,
+    /^ask me to translate/i,
+    /^when something feels ready/i,
+    /^just tell me/i,
+    /^source:/i,
+  ];
+  
+  return metadataPatterns.some(pattern => pattern.test(text));
+}
+
+/**
  * Parses a Raven message to extract validation points based on symbolic drivers
  * and FIELD labels in the text.
  */
@@ -21,6 +48,11 @@ export function parseValidationPoints(
   while ((match = fieldRegex.exec(message)) !== null) {
     const field = match[1].trim();
     const voice = match[2].trim();
+    
+    // Skip metadata/context messages
+    if (isMetadataOrContext(voice)) {
+      continue;
+    }
     
     // Skip if we already have this point (by field + text)
     const existingPoint = existingPoints.find(
@@ -46,8 +78,11 @@ export function parseValidationPoints(
       .filter(p => p.length > 0);
     
     paragraphs.forEach((para, index) => {
-      // Skip very short paragraphs that might be just formatting
-      if (para.length < 20) return;
+      // Skip very short paragraphs that might be just formatting or metadata
+      if (para.length < 50) return;
+      
+      // Skip metadata/context patterns
+      if (isMetadataOrContext(para)) return;
       
       points.push({
         id: `para_${Date.now()}_${index}`,

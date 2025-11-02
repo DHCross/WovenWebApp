@@ -12,10 +12,10 @@ interface GranularValidationProps {
   className?: string;
 }
 
-const TAG_OPTIONS: { value: SSTTag; label: string; color: string; icon: string }[] = [
-  { value: 'WB', label: 'Within Boundary', color: 'emerald', icon: '✓' },
-  { value: 'ABE', label: 'At Boundary Edge', color: 'amber', icon: '~' },
-  { value: 'OSR', label: 'Outside Range', color: 'slate', icon: '×' },
+const TAG_OPTIONS: { value: SSTTag; label: string; color: string; icon: string; shortLabel: string }[] = [
+  { value: 'WB', label: 'Lands', color: 'emerald', icon: '✓', shortLabel: 'Lands' },
+  { value: 'ABE', label: 'Edge', color: 'amber', icon: '~', shortLabel: 'Edge' },
+  { value: 'OSR', label: 'Outside', color: 'slate', icon: '×', shortLabel: 'Outside' },
 ];
 
 export function GranularValidation({
@@ -53,10 +53,10 @@ export function GranularValidation({
     return (
       <div className="text-sm text-slate-400 mt-4 p-3 bg-slate-800/30 rounded-lg">
         <div className="flex flex-wrap gap-4 justify-center">
-          {TAG_OPTIONS.map(({ value, label, color, icon }) => (
+          {TAG_OPTIONS.map(({ value, shortLabel, color, icon }) => (
             <div key={value} className="flex items-center gap-1">
               <span className={`text-${color}-400`}>{icon}</span>
-              <span>{counts[value] || 0} {label}</span>
+              <span>{counts[value] || 0} {shortLabel}</span>
             </div>
           ))}
           {counts.unset > 0 && (
@@ -95,26 +95,28 @@ export function GranularValidation({
                             ? 'bg-amber-900/50 text-amber-200 border border-amber-800/50'
                             : 'bg-slate-800/50 text-slate-300 border border-slate-700/50'
                       }`}
+                      title={TAG_OPTIONS.find(t => t.value === point.tag)?.label}
                     >
-                      {TAG_OPTIONS.find(t => t.value === point.tag)?.icon} {point.tag}
+                      {TAG_OPTIONS.find(t => t.value === point.tag)?.icon} {TAG_OPTIONS.find(t => t.value === point.tag)?.shortLabel}
                     </button>
                   </div>
                 ) : (
                   <div className="mt-1 flex gap-1">
-                    {TAG_OPTIONS.map(({ value, color, icon }) => (
+                    {TAG_OPTIONS.map(({ value, color, icon, label, shortLabel }) => (
                       <button
                         key={value}
                         onClick={() => handleTagSelect(point.id, value)}
-                        className={`w-8 h-6 flex items-center justify-center rounded text-xs ${
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
                           value === 'WB' 
                             ? 'hover:bg-emerald-800/30 hover:text-emerald-300 text-emerald-400'
                             : value === 'ABE'
                               ? 'hover:bg-amber-800/30 hover:text-amber-300 text-amber-400'
                               : 'hover:bg-slate-700/50 hover:text-slate-200 text-slate-400'
                         }`}
-                        title={value}
+                        title={label}
                       >
-                        {icon}
+                        <span>{icon}</span>
+                        <span className="hidden sm:inline">{shortLabel}</span>
                       </button>
                     ))}
                   </div>
