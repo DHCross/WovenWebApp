@@ -216,13 +216,13 @@ function hasCompleteSubject(subject: any): boolean {
   
   // Fall back to v1 schema
   const chart = v2Chart ||
-    subject.chart ??
+    (subject.chart ??
     subject.chart_natal ??
     subject.chartNatal ??
     subject.geometry ??
     subject.natal_chart ??
     subject.blueprint ??
-    null;
+    null);
     
   // Check if we have valid chart data in either format
   const hasPlanets =
