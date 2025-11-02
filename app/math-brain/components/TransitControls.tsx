@@ -1,4 +1,4 @@
-import { useMemo, type FocusEvent, type TouchEvent } from 'react';
+import { useEffect, useMemo, type FocusEvent, type TouchEvent } from 'react';
 import { parseCoordinates, formatDecimal } from '@/src/coords';
 import type {
   ModeOption,
@@ -105,6 +105,16 @@ export function TransitControls(props: TransitControlsProps) {
     personATimezone,
   } = props;
 
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[TransitControls] Toggle state after render', {
+        includeTransits,
+        startDate,
+        endDate,
+      });
+    }
+  }, [includeTransits, startDate, endDate]);
+
   const handleRelocInputChange = (value: string) => {
     onRelocInputChange(value);
     const parsed = parseCoordinates(value, { rejectZeroZero: true });
@@ -132,7 +142,18 @@ export function TransitControls(props: TransitControlsProps) {
             type="checkbox"
             className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
             checked={includeTransits}
-            onChange={(event) => onIncludeTransitsChange(event.target.checked)}
+            onChange={(event) => {
+              const nextChecked = event.target.checked;
+              if (process.env.NODE_ENV !== 'production') {
+                console.log('[TransitControls] Include Transits toggled', {
+                  nextChecked,
+                  includeTransits,
+                  startDate,
+                  endDate,
+                });
+              }
+              onIncludeTransitsChange(nextChecked);
+            }}
           />
           <div>
             <label htmlFor="include-transits" className="block text-sm font-medium text-slate-100">
