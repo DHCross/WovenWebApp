@@ -498,7 +498,9 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   let scalingMethod = 'static_divisor';
   let magnitudeNormalized;
   
-  // Simple normalization - averaging already handles multiple aspects
+  // If a rolling context is available, use it for dynamic normalization.
+  // Otherwise, fall back to a simple static divisor. This prevents saturation
+  // in high-aspect-count scenarios like relational charts.
   if (rollingContext && rollingContext.magnitudes && rollingContext.magnitudes.length >= 2) {
     // Dynamic normalization based on recent magnitude history
     const normalizedViaDynamic = normalizeWithRollingWindow(X_raw, rollingContext, opts, diagnosticMode);
