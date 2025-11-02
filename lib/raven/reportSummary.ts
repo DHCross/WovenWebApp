@@ -615,8 +615,8 @@ export function summariseUploadedReportJson(raw: string): {
   const container = containerParts.length
     ? containerParts.join(' · ')
     : 'Context added to the session library.';
-  const option = 'Ask for a Poetic translation of any section or upload another layer.';
-  const next_step = 'When you are ready, tell me which pattern you want mirrored.';
+  const option = 'Ask me to translate any section into plain, human language—or upload another report or chart layer if you have more context to share.';
+  const next_step = 'When something feels ready for reflection, just tell me which pattern you want mirrored.';
 
   const appendix: Record<string, any> = {};
   if (reportType) appendix.report_type = reportType;
