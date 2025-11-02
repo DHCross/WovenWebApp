@@ -2016,44 +2016,102 @@ export default function MathBrainPage() {
     }));
   }
 
+  function persistTrimmedLastPayload(rawPayload: any): 'success' | 'fallback' | 'error' {
+    if (typeof window === 'undefined') {
+      return 'error';
+    }
+
+    const data = rawPayload?.payload;
+    const trimmedPayload = {
+      ...rawPayload,
+      payload: {
+        person_a: data?.person_a
+          ? {
+              name: data.person_a.name,
+              summary: data.person_a.summary,
+            }
+          : undefined,
+        woven_map: data?.woven_map,
+        _trimmed: true,
+        _note: 'Payload trimmed for localStorage; full data in session export',
+      },
+    };
+
+    try {
+      window.localStorage.setItem('mb.lastPayload', JSON.stringify(trimmedPayload));
+      return 'success';
+    } catch (error: any) {
+      const minimalPayload = {
+        savedAt: rawPayload?.savedAt ?? new Date().toISOString(),
+        from: rawPayload?.from ?? 'math-brain',
+        payload: { _note: 'Payload too large; fetch from chat history' },
+      };
+
+      if (error?.name === 'QuotaExceededError' || error?.code === 22) {
+        // eslint-disable-next-line no-console
+        console.warn('localStorage quota exceeded; storing minimal payload', error);
+      } else if (error) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to persist Math Brain payload for Poetic Brain reuse', error);
+      }
+
+      try {
+        window.localStorage.setItem('mb.lastPayload', JSON.stringify(minimalPayload));
+        return 'fallback';
+      } catch (fallbackError) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to persist Math Brain payload for Poetic Brain reuse', fallbackError);
+        return 'error';
+      }
+    }
+  }
+
   const handleNavigateToPoetic = () => {
     const hasReport = Boolean(result);
     if (hasReport) {
       // Store the report data in localStorage so Poetic Brain can retrieve it
-      try {
-        const payload: Record<string, any> = {
-          savedAt: new Date().toISOString(),
-          reportType: reportContractType,
-          mode: mode,
-          includeTransits: TRANSIT_MODES.has(mode),
-          window: {
-            start: startDate || undefined,
-            end: endDate || undefined,
-          },
-          subjects: {
-            personA: personA ? {
-              name: personA.name,
-              timezone: personA.timezone,
-              city: personA.city,
-              state: personA.state,
-            } : null,
-            personB: personB ? {
-              name: personB.name,
-              timezone: personB.timezone,
-              city: personB.city,
-              state: personB.state,
-            } : null,
-          },
-          payload: result,
-        };
-        window.localStorage.setItem('mb.lastPayload', JSON.stringify(payload));
+      const payload: Record<string, any> = {
+        savedAt: new Date().toISOString(),
+        reportType: reportContractType,
+        mode,
+        includeTransits: TRANSIT_MODES.has(mode),
+        window: {
+          start: startDate || undefined,
+          end: endDate || undefined,
+        },
+        subjects: {
+          personA: personA
+            ? {
+                name: personA.name,
+                timezone: personA.timezone,
+                city: personA.city,
+                state: personA.state,
+              }
+            : null,
+          personB: personB
+            ? {
+                name: personB.name,
+                timezone: personB.timezone,
+                city: personB.city,
+                state: personB.state,
+              }
+            : null,
+        },
+        payload: result,
+      };
+
+      const persistStatus = persistTrimmedLastPayload(payload);
+      if (persistStatus === 'success') {
         setToast('📤 Report saved to Poetic Brain. Navigating…');
         setTimeout(() => setToast(null), 1200);
-      } catch (error) {
-        console.error('Failed to save report to localStorage:', error);
+      } else if (persistStatus === 'fallback') {
+        setToast('📤 Report trimmed for Poetic Brain. Navigating…');
+        setTimeout(() => setToast(null), 1500);
+      } else {
+        // eslint-disable-next-line no-console
+        console.error('Failed to save report to localStorage for Poetic Brain handoff');
         setToast('⚠️ Could not save report locally. Try downloading instead.');
         setTimeout(() => setToast(null), 2000);
-        return;
       }
 
       const confirmNav = window.confirm(
@@ -3242,7 +3300,8 @@ export default function MathBrainPage() {
         reportType,
         mode,
         includeTransits,
-        window: includeTransits && startDate && endDate ? { start: startDate, end: endDate, step } : undefined,
+        window:
+          includeTransits && startDate && endDate ? { start: startDate, end: endDate, step } : undefined,
         subjects: {
           personA: {
             name: personA.name?.trim() || undefined,
@@ -3262,38 +3321,8 @@ export default function MathBrainPage() {
         },
         payload: data,
       };
-      
-      // Trim payload to avoid QuotaExceededError: keep metadata + woven_map only
-      const trimmedPayload = {
-        ...lastPayload,
-        payload: {
-          person_a: data?.person_a
-            ? {
-                name: data.person_a.name,
-                summary: data.person_a.summary,
-              }
-            : undefined,
-          woven_map: data?.woven_map,
-          _trimmed: true,
-          _note: 'Payload trimmed for localStorage; full data in session export',
-        },
-      };
 
-      try {
-        window.localStorage.setItem('mb.lastPayload', JSON.stringify(trimmedPayload));
-      } catch (quotaError) {
-        // eslint-disable-next-line no-console
-        console.warn('localStorage quota exceeded; storing minimal payload', quotaError);
-        // Store absolute minimum
-        window.localStorage.setItem(
-          'mb.lastPayload',
-          JSON.stringify({
-            savedAt: lastPayload.savedAt,
-            from: lastPayload.from,
-            payload: { _note: 'Payload too large; fetch from chat history' },
-          }),
-        );
-      }
+      persistTrimmedLastPayload(lastPayload);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to persist Math Brain payload for Poetic Brain reuse', error);
