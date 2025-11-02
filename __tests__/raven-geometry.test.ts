@@ -44,17 +44,12 @@ describe('AstroSeek geometry pipeline', () => {
     const geo = normalizeGeometry(parsed);
     const draft = await renderShareableMirror({ geo, prov: { source: 'AstroSeek (test)' }, options: {} });
 
-    // All conversational content is now in the 'picture' field.
-    expect(draft.picture).toMatch(/Sun Aries/i);
-    expect(draft.picture).toMatch(/Moon Taurus/i);
-    expect(draft.picture).toMatch(/dense, deliberate weight/i);
-    expect(draft.picture).toMatch(/tangible task/i);
-    expect(draft.picture).toMatch(/Log one lived moment/i);
-
-    // Other fields should be empty.
-    expect(draft.feeling).toBe('');
-    expect(draft.option).toBe('');
-    expect(draft.next_step).toBe('');
+    // Check for key geometric and interpretive phrases.
+    expect(draft.picture).toMatch(/Sun Aries 12°/i);
+    expect(draft.picture).toMatch(/Moon Taurus 18°/i);
+    expect(draft.feeling).toMatch(/dense, deliberate weight/i);
+    expect(draft.option).toMatch(/tangible task/i);
+    expect(draft.next_step).toMatch(/Log one lived moment where Sun and Moon/i);
 
     expect(draft.appendix.geometry_summary).toContain('Placements parsed');
     expect(draft.appendix.primary_aspect).toMatch(/Sun Square Moon/i);
