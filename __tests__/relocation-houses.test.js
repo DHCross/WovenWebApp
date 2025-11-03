@@ -4,7 +4,9 @@ const {
   calculateLST,
   calculateAscendant,
   calculateMidheaven,
+  meanObliquity,
 } = require('../lib/relocation-houses.js');
+const { julianCenturiesSinceJ2000 } = require('../lib/astro/calculations');
 
 // Test data: April 18, 1965, 18:37 in Albany, GA, USA
 // Longitude: -84.1557, Latitude: 31.5785
@@ -31,16 +33,18 @@ describe('Astrological Relocation Calculations', () => {
   describe('Angle Calculations', () => {
     it('should calculate Midheaven (MC) correctly', () => {
       const lst = calculateLST(birthDateTimeUTC, albanyGA.longitude);
-      const mc = calculateMidheaven(lst);
-      // Value from final test run
-      expect(mc).toBeCloseTo(119.010, 3);
+      const t = julianCenturiesSinceJ2000(birthDateTimeUTC);
+      const obliquity = meanObliquity(t);
+      const mc = calculateMidheaven(lst, obliquity);
+      expect(mc).toBeCloseTo(115.022, 3);
     });
 
     it('should calculate Ascendant correctly', () => {
       const lst = calculateLST(birthDateTimeUTC, albanyGA.longitude);
-      const asc = calculateAscendant(lst, albanyGA.latitude);
-      // Value from second test run
-      expect(asc).toBeCloseTo(128.3467, 4);
+      const t = julianCenturiesSinceJ2000(birthDateTimeUTC);
+      const obliquity = meanObliquity(t);
+      const asc = calculateAscendant(lst, albanyGA.latitude, obliquity);
+      expect(asc).toBeCloseTo(203.117, 3);
     });
   });
 
@@ -51,16 +55,15 @@ describe('Astrological Relocation Calculations', () => {
         const cusps = relocatedChart.house_cusps;
 
         // Verify the main angles are correct
-        expect(cusps[0]).toBeCloseTo(128.3, 1); // Ascendant (1st cusp)
-        expect(cusps[9]).toBeCloseTo(119.0, 1);  // MC (10th cusp)
+        expect(cusps[0]).toBeCloseTo(203.1, 1); // Ascendant (1st cusp)
+        expect(cusps[9]).toBeCloseTo(115.0, 1);  // MC (10th cusp)
 
         // Spot check a few intermediate cusps. These are approximations.
         // A full validation would require a trusted astrological library.
-        // Values from final, stable test run
-        expect(cusps[1]).toBeCloseTo(225.5, 1); // 2nd Cusp
-        expect(cusps[2]).toBeCloseTo(245.8, 1); // 3rd Cusp
-        expect(cusps[10]).toBeCloseTo(147.4, 1); // 11th Cusp
-        expect(cusps[11]).toBeCloseTo(177.2, 1); // 12th Cusp
+        expect(cusps[1]).toBeCloseTo(162.9, 1); // 2nd Cusp
+        expect(cusps[2]).toBeCloseTo(170.4, 1); // 3rd Cusp
+        expect(cusps[10]).toBeCloseTo(139.4, 1); // 11th Cusp
+        expect(cusps[11]).toBeCloseTo(147.5, 1); // 12th Cusp
     });
   });
 
@@ -70,13 +73,13 @@ describe('Astrological Relocation Calculations', () => {
         planets: [{ name: 'Sun', longitude: 28.3 }],
         aspects: [],
       };
-      const relocatedChart = calculateRelocatedChart(natalChart, albanyGA, birthDateTimeUTC, 'placidus');
+      const relocatedChart = calculateRelocatedChart( natalChart, albanyGA, birthDateTimeUTC, 'placidus');
 
       expect(relocatedChart.relocation_applied).toBe(true);
       expect(relocatedChart.calculation_method).toBe('internal_math_engine');
       expect(relocatedChart.house_system).toBe('placidus');
       expect(relocatedChart.house_cusps).toHaveLength(12);
-      expect(relocatedChart.angles.Ascendant.abs_pos).toBeCloseTo(128.3, 1);
+      expect(relocatedChart.angles.Ascendant.abs_pos).toBeCloseTo(203.1, 1);
       expect(relocatedChart.planets[0].house_relocated).toBe(true);
     });
   });
