@@ -4056,18 +4056,46 @@ export default function MathBrainPage() {
       } else {
         // Single request mode (no chunking needed)
         setToast(includeTransits ? 'Generating report with transits...' : 'Generating report...');
-        const response = await fetch("/api/astrology-mathbrain", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+        let response;
+        try {
+          response = await fetch("/api/astrology-mathbrain", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        } catch (networkError) {
+          console.error('Network error during API request:', networkError);
+          const errorMessage = networkError instanceof Error ? networkError.message : String(networkError);
+          setError(`Network error: ${errorMessage}`);
+          setToast('Failed to connect to the server. Please check your connection.');
+          return;
+        }
 
-        const parsed = await parseJsonSafely<Record<string, any>>(response);
-        finalData = parsed.data;
+        let parsed;
+        try {
+          parsed = await parseJsonSafely<Record<string, any>>(response);
+          finalData = parsed.data;
+        } catch (parseError) {
+          console.error('Error parsing API response:', parseError);
+          const parseMessage = parseError instanceof Error ? parseError.message : String(parseError);
+          setError(`Invalid response from server: ${parseMessage}`);
+          setToast('Failed to process server response.');
+          return;
+        }
 
         if (!response.ok || parsed.parseError || !isRecord(finalData) || finalData.success === false) {
-          const errorDetail = finalData?.error || parsed.parseError?.message || `Request failed with status ${response.status}`;
-          setToast('Report generation failed.');
+          const errorDetail = finalData?.error || 
+                            parsed.parseError?.message || 
+                            response.statusText || 
+                            `Request failed with status ${response.status}`;
+          console.error('API Error:', {
+            status: response.status,
+            error: finalData?.error,
+            parseError: parsed.parseError,
+            response: finalData
+          });
+          setError(`Report generation failed: ${errorDetail}`);
+          setToast('Report generation failed. See error for details.');
           setTimeout(() => setToast(null), 2500);
           throw new Error(errorDetail);
         }

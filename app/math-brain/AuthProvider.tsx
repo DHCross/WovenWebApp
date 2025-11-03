@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getRedirectUri } from '../../lib/auth';
+import { isAuthEnabled, getMockUser } from '../../lib/devAuth';
 
 type Auth0Client = {
   isAuthenticated: () => Promise<boolean>;
@@ -41,6 +42,16 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
   });
 
   const loginWithGoogle = async () => {
+    if (!isAuthEnabled) {
+      // In local dev, just set mock user
+      setAuthState(prev => ({
+        ...prev,
+        authed: true,
+        authStatus: { domain: 'local-dev', clientId: 'local-dev' },
+      }));
+      return;
+    }
+
     try {
       if (!authClientRef.current) {
         console.error("Auth client not ready.");
@@ -58,6 +69,17 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
   };
 
   useEffect(() => {
+    // Skip auth in development with local auth disabled
+    if (!isAuthEnabled) {
+      setAuthState({
+        authReady: true,
+        authed: true,
+        authEnvOk: true,
+        authStatus: { domain: 'local-dev', clientId: 'local-dev' },
+      });
+      return;
+    }
+
     let cancelled = false;
 
     async function initAuth() {
