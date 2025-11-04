@@ -1,6 +1,13 @@
 /*
  * Smoke test for OSR detection logic (without server)
  * Tests the classification functions directly
+ * 
+ * NOTE: Functions are intentionally duplicated here (not imported) to:
+ * 1. Allow testing without server dependencies
+ * 2. Verify logic independently of route.ts implementation
+ * 3. Catch regressions if route.ts changes
+ * 
+ * If route.ts classification logic changes, update these mocks accordingly.
  */
 
 // Mock the OSR detection functions (copied from route.ts)

@@ -138,6 +138,13 @@ function validatePoeticBrainCompatibility(result: any): { compatible: boolean; i
   };
 }
 
+// Helper to extract suffix from friendlyFilename output (backwards compatibility)
+function extractSuffixFromFriendlyName(friendlyName: string): string {
+  return friendlyName.includes('_')
+    ? friendlyName.slice(friendlyName.indexOf('_') + 1)
+    : friendlyName;
+}
+
 export function useChartExport(options: UseChartExportOptions): UseChartExportResult {
   const {
     result,
@@ -1491,14 +1498,9 @@ Start with the Solo Mirror(s), then ${
       weatherData.symbolic_weather_context = unifiedOutput.woven_map.symbolic_weather;
     }
 
-    // Extract suffix components from friendlyFilename for backwards compatibility
-    const rawSymbolicName = friendlyFilename('symbolic-weather');
-    const symbolicSuffix = rawSymbolicName.includes('_')
-      ? rawSymbolicName.slice(rawSymbolicName.indexOf('_') + 1)
-      : rawSymbolicName;
-
-    // Use consistent prefix from shared utility
+    // Use consistent prefix from shared utility with backwards-compatible suffix
     const prefix = getDirectivePrefix('mirror-symbolic-weather');
+    const symbolicSuffix = extractSuffixFromFriendlyName(friendlyFilename('symbolic-weather'));
     
     return {
       filename: `${prefix}_${symbolicSuffix}.json`,
@@ -1613,14 +1615,9 @@ Start with the Solo Mirror(s), then ${
       },
     };
 
-    // Extract suffix components from friendlyFilename for backwards compatibility
-    const rawDirectiveName = friendlyFilename('directive');
-    const directiveSuffix = rawDirectiveName.includes('_')
-      ? rawDirectiveName.slice(rawDirectiveName.indexOf('_') + 1)
-      : rawDirectiveName;
-
-    // Use consistent prefix from shared utility
+    // Use consistent prefix from shared utility with backwards-compatible suffix
     const prefix = getDirectivePrefix('mirror-directive');
+    const directiveSuffix = extractSuffixFromFriendlyName(friendlyFilename('directive'));
     
     return {
       filename: `${prefix}_${directiveSuffix}.json`,
@@ -1723,14 +1720,9 @@ Start with the Solo Mirror(s), then ${
       fieldMapData.relationship_context = relationshipContext;
     }
 
-    // Extract suffix components from friendlyFilename for backwards compatibility
-    const rawWeatherLogName = friendlyFilename('weather-log');
-    const weatherLogSuffix = rawWeatherLogName.includes('_')
-      ? rawWeatherLogName.slice(rawWeatherLogName.indexOf('_') + 1)
-      : rawWeatherLogName;
-
-    // Use consistent prefix from shared utility
+    // Use consistent prefix from shared utility with backwards-compatible suffix
     const prefix = getDirectivePrefix('fieldmap');
+    const weatherLogSuffix = extractSuffixFromFriendlyName(friendlyFilename('weather-log'));
     
     return {
       filename: `${prefix}_${weatherLogSuffix}.json`,

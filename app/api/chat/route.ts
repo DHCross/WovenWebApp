@@ -452,9 +452,10 @@ Give a short, plain-language summary of the current planetary weather in two par
   }
   
   // Check for natural follow-up flow based on user response type
-  // Skip OSR checks on the very first follow-up after session start
-  const skipOSRCheck = isFirstTurn;
-  const responseType = skipOSRCheck && !checkForOSRIndicators(text) 
+  // Skip OSR checks on the very first follow-up after session start UNLESS
+  // the user explicitly uses OSR indicator phrases (like "doesn't resonate")
+  const skipOSRCheck = isFirstTurn && !checkForOSRIndicators(text);
+  const responseType = skipOSRCheck 
     ? 'CLEAR_WB' 
     : classifyUserResponse(text);
   
