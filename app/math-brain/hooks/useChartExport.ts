@@ -138,11 +138,26 @@ function validatePoeticBrainCompatibility(result: any): { compatible: boolean; i
   };
 }
 
-// Helper to extract suffix from friendlyFilename output (backwards compatibility)
+/**
+ * Helper to extract suffix from friendlyFilename output (backwards compatibility)
+ * 
+ * Extracts everything after the first underscore from a filename like:
+ * "Mirror_Directive_dan-stephie_2024-11-01" → "dan-stephie_2024-11-01"
+ * 
+ * If no underscore exists, returns the original name unchanged.
+ */
 function extractSuffixFromFriendlyName(friendlyName: string): string {
-  return friendlyName.includes('_')
-    ? friendlyName.slice(friendlyName.indexOf('_') + 1)
-    : friendlyName;
+  if (!friendlyName || typeof friendlyName !== 'string') {
+    return 'unknown';
+  }
+  
+  const firstUnderscore = friendlyName.indexOf('_');
+  if (firstUnderscore === -1 || firstUnderscore === friendlyName.length - 1) {
+    // No underscore found or underscore is at the end
+    return friendlyName;
+  }
+  
+  return friendlyName.slice(firstUnderscore + 1);
 }
 
 export function useChartExport(options: UseChartExportOptions): UseChartExportResult {

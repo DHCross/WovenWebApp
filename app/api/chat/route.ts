@@ -452,8 +452,15 @@ Give a short, plain-language summary of the current planetary weather in two par
   }
   
   // Check for natural follow-up flow based on user response type
-  // Skip OSR checks on the very first follow-up after session start UNLESS
-  // the user explicitly uses OSR indicator phrases (like "doesn't resonate")
+  // 
+  // DESIGN NOTE: Skip OSR checks on first turn UNLESS explicit OSR phrases used
+  // Rationale: First turn after "Session Started" is typically a command, not a resonance response.
+  // However, we still detect explicit OSR phrases like "doesn't resonate" for edge cases.
+  // 
+  // The OSR check is duplicated here (before classifyUserResponse) intentionally:
+  // - Early exit for first-turn commands (performance optimization)
+  // - Preserves classification logic independence in classifyUserResponse()
+  // - Makes the first-turn special case explicit and easy to understand
   const skipOSRCheck = isFirstTurn && !checkForOSRIndicators(text);
   const responseType = skipOSRCheck 
     ? 'CLEAR_WB' 
