@@ -1,0 +1,48 @@
+name: Copilot Task
+about: Narrowly scoped task designed for GitHub Copilot assistance
+labels: [copilot]
+title: "[Copilot] "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe the exact issue or improvement needed. Reference links or screenshots if helpful.
+      placeholder: The /math-brain export modal mislabels the Symbolic Weather button.
+    validations:
+      required: true
+  - type: textarea
+    id: layers
+    attributes:
+      label: Woven Map Layer
+      description: Identify which layer(s) this touches (Frontend, API Function, Netlify Build, Poetic Brain, Docs, etc.).
+      placeholder: Frontend component (DownloadControls)
+    validations:
+      required: true
+  - type: textarea
+    id: files
+    attributes:
+      label: Files Involved
+      description: List the key files or directories Copilot should inspect or modify.
+      placeholder: app/math-brain/components/DownloadControls.tsx
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: Describe the desired outcome after the change.
+      placeholder: Button text and download filename align with the Symbolic Weather export.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: Bullet list of verifications (tests, screenshots, docs) required before closing the task.
+      placeholder: |
+        - Button label reads “Symbolic Weather (Compact)”
+        - Downloaded file name matches design spec
+        - `npm run lint` passes
+    validations:
+      required: true
