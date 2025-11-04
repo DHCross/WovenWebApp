@@ -57,12 +57,18 @@ export interface InputPayload {
     birth_data?: any;
     chart?: any;
     aspects?: any[];
+    natal_chart?: any;
+    details?: any;
+    summary?: any;
   };
   person_b?: {
     name?: string;
     birth_data?: any;
     chart?: any;
     aspects?: any[];
+    natal_chart?: any;
+    details?: any;
+    summary?: any;
   } | null;
   
   // NEW: Mirror contract (report scope + intimacy tier)
@@ -80,6 +86,61 @@ export interface InputPayload {
     solo_mirror_b?: string;
     relational_engine?: string;
     weather_overlay?: string;
+  };
+
+  symbolic_weather_context?: {
+    daily_readings?: Array<{
+      date?: string;
+      magnitude?: number;
+      magnitude_x10?: number;
+      directional_bias?: number;
+      directional_bias_x10?: number;
+      coherence?: number;
+      coherence_x10?: number;
+      drivers?: Array<string | Record<string, any>>;
+      aspects?: Array<Record<string, any>>;
+    }>;
+    transit_context?: {
+      period?: {
+        start?: string;
+        end?: string;
+        step?: string;
+      };
+    };
+  };
+
+  balance_meter?: {
+    magnitude?: number;
+    magnitude_0to5?: number;
+    directional_bias?: number;
+    directional_bias_x10?: number;
+    coherence?: number;
+    coherence_0to5?: number;
+    period?: {
+      start?: string;
+      end?: string;
+    };
+    channel_summary_canonical?: Record<string, any>;
+  };
+
+  symbolic_weather?: {
+    balance_meter_frontstage?: {
+      summary?: Array<{
+        span?: string;
+        magnitude_x10?: number;
+        directional_bias_x10?: number;
+        coherence_x10?: number;
+        notes?: string;
+      }>;
+    };
+    daily_readings?: Array<Record<string, any>>;
+    transit_context?: {
+      period?: {
+        start?: string;
+        end?: string;
+        step_days?: number;
+      };
+    };
   };
   
   // EXISTING: Legacy format support (backward compatibility)

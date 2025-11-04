@@ -28,7 +28,7 @@ describe('Balance Meter v5 - Triwheel Validation', () => {
     '2018-10-10': {
       magnitude: 5.0,
       bias: -5.0,
-      volatility: 0.3,
+      volatility: 0.2,
       magLabel: 'Peak',
       biasLabel: 'Strong Inward',
       volatilityLabel: 'Aligned Flow',

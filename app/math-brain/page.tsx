@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable no-console */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useId } from "react";
 import type { FocusEvent, TouchEvent } from "react";
 import { parseCoordinates, formatDecimal } from "../../src/coords";
 import { getRedirectUri } from "../../lib/auth";
@@ -1370,6 +1370,7 @@ export default function MathBrainPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   // Shared file input ref for bottom Session Presets box
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const setupUploadId = useId();
 
   // Weekly aggregation preference: 'mean' | 'max' (for seismograph weekly bars)
   const [weeklyAgg, setWeeklyAgg] = useState<'mean' | 'max'>('mean');
@@ -1478,7 +1479,7 @@ export default function MathBrainPage() {
 
   useEffect(() => {
     setTranslocation((prev) => {
-      if (!isDyadMode && (prev === 'B_LOCAL' || prev === 'BOTH_LOCAL' || prev === 'MIDPOINT')) {
+      if (!isDyadMode && (prev === 'B_LOCAL' || prev === 'MIDPOINT')) {
         return 'NONE';
       }
       if (prev === 'MIDPOINT' && (reportStructure !== 'composite' || !includeTransits)) {
@@ -1685,7 +1686,7 @@ export default function MathBrainPage() {
     B_NATAL: 'Birthplace (no relocation)',
     B_LOCAL: 'Person B – Current Location',
 
-    BOTH_LOCAL: 'Shared Location (custom city)',
+    BOTH_LOCAL: 'Custom Location (manual lens)',
     MIDPOINT: 'Midpoint (Composite only)'
   }), []);
 
@@ -1715,8 +1716,10 @@ export default function MathBrainPage() {
     });
     options.push({
       value: 'BOTH_LOCAL',
-      disabled: relationalDisabled,
-      title: relationalDisabled ? 'Requires Person B in a relational report.' : undefined,
+      disabled: false,
+      title: relationalDisabled
+        ? 'Enter custom relocation coordinates to apply this lens for Person A.'
+        : 'Requires custom coordinates to relocate both charts.',
     });
 
     if (reportStructure === 'composite' && includeTransits) {
@@ -1801,8 +1804,12 @@ export default function MathBrainPage() {
         }
       } else if (translocation === 'BOTH_LOCAL') {
         if (!isDyadMode) {
-          effectiveMode = relocationInputReady ? 'A_LOCAL' : 'NONE';
-          notice = 'Shared relocation requires both Person A and Person B.';
+          if (relocationInputReady) {
+            effectiveMode = 'A_LOCAL';
+          } else {
+            effectiveMode = 'NONE';
+            notice = 'Enter relocation coordinates to activate this lens.';
+          }
         } else if (!relocationInputReady) {
           effectiveMode = 'NONE';
           notice = 'Relocation not provided; defaulting to natal houses.';
@@ -1844,7 +1851,7 @@ export default function MathBrainPage() {
   }, [includePersonB, reportStructure]);
 
   useEffect(() => {
-    if (!includePersonB && (translocation === 'B_LOCAL' || translocation === 'MIDPOINT' || translocation === 'BOTH_LOCAL')) {
+    if (!includePersonB && (translocation === 'B_LOCAL' || translocation === 'MIDPOINT')) {
       setTranslocation('NONE');
     }
   }, [includePersonB, translocation]);
@@ -4347,20 +4354,27 @@ export default function MathBrainPage() {
                 Save A+B
               </button>
             </div>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
+            <label
+              htmlFor={setupUploadId}
               className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-              aria-label="Load a setup from a JSON file"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
             >
               Load setup…
-            </button>
+            </label>
             <input
               ref={fileInputRef}
+              id={setupUploadId}
               type="file"
               accept="application/json"
               onChange={handleLoadSetupFromFile}
-              className="hidden"
+              className="sr-only"
               aria-label="Upload setup JSON file"
             />
           </div>

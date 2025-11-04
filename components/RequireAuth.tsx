@@ -20,12 +20,13 @@ declare global {
 
 const authEnabled = (() => {
   const raw = process.env.NEXT_PUBLIC_ENABLE_AUTH;
-  if (typeof raw !== 'string') return true;
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (typeof raw !== 'string') return isProduction;
   const normalized = raw.trim().toLowerCase();
-  if (normalized === '' || normalized === 'false' || normalized === '0') {
-    return false;
-  }
-  return true;
+  if (normalized === '') return isProduction;
+  if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'off'].includes(normalized)) return false;
+  return isProduction;
 })();
 
 export default function RequireAuth({ children }: { children: React.ReactNode }) {

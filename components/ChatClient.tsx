@@ -854,6 +854,9 @@ export default function ChatClient() {
   const [sessionStarted, setSessionStarted] = useState<boolean>(false);
   const [sessionMode, setSessionMode] = useState<SessionMode>('idle');
   const [isWrapUpOpen, setIsWrapUpOpen] = useState(false);
+  const [showResonanceCard, setShowResonanceCard] = useState(false);
+  const [resonanceCard, setResonanceCard] = useState<any>(null);
+  const [contextualSuggestions, setContextualSuggestions] = useState<string[]>([]);
 
   const conversationRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -1203,18 +1206,26 @@ export default function ChatClient() {
   ]);
 
   const commitError = useCallback((ravenId: string, message: string) => {
-    const friendly = formatFriendlyErrorMessage(message);
+    let friendly = formatFriendlyErrorMessage(message);
+
+    // Handle OSR detection specifically
+    if (message.toLowerCase().includes("osr_detected")) {
+      friendly = "I'm sensing we might need to reframe that question.";
+    }
+
     setMessages((prev) =>
       prev.map((msg) =>
         msg.id === ravenId
           ? {
               ...msg,
-              html: `<div class="raven-error" style="font-size:14px; line-height:1.6; color:#fca5a5;">
-                <strong style="font-weight:600;">Raven:</strong>
-                <span style="margin-left:6px;">${escapeHtml(friendly)}</span>
+              html: `<div class="raven-error">
+                <p class="text-rose-400">${escapeHtml(friendly)}</p>
               </div>`,
-              climate: undefined,
-              hook: undefined,
+              climate: "VOICE · Realignment",
+              hook: message.toLowerCase().includes("osr_detected")
+                ? "Let's Try Again"
+                : msg.hook,
+              rawText: friendly,
             }
           : msg,
       ),
@@ -1289,35 +1300,53 @@ export default function ChatClient() {
       payload: Record<string, any>,
       placeholderId: string,
       fallbackMessage: string,
-    ) => {
+    ): Promise<RavenDraftResponse | null> => {
       const ctrl = new AbortController();
       abortRef.current = ctrl;
       setTyping(true);
       try {
         const res = await fetch("/api/raven", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-Request-Id": generateId(), // Add request ID for tracking
+          },
           body: JSON.stringify(payload),
           signal: ctrl.signal,
         });
-        const data: RavenDraftResponse = await res.json().catch(() => ({}));
-        if (!res.ok || !data?.ok) {
-          const fallback =
-            typeof data?.error === "string"
-              ? data.error
-              : `Request failed (${res.status})`;
-          commitError(placeholderId, fallback);
-          return;
+
+        // Handle non-JSON responses
+        if (!res.headers.get('content-type')?.includes('application/json')) {
+          const errorText = await res.text();
+          throw new Error(`Invalid response format: ${errorText.substring(0, 200)}`);
         }
+
+        const data: RavenDraftResponse = await res.json().catch((err) => {
+          console.error('Failed to parse JSON response:', err);
+          return { ok: false, error: 'Failed to parse server response' };
+        });
+
+        if (!res.ok || !data?.ok) {
+          const errorMessage = data?.error || `Request failed (${res.status})`;
+          commitError(placeholderId, errorMessage);
+          return null;
+        }
+
+        // Process successful response
         applyRavenResponse(placeholderId, data, fallbackMessage);
+        return data;
       } catch (error: any) {
         if (error?.name === "AbortError") {
           commitError(placeholderId, "Request cancelled.");
         } else {
-          // eslint-disable-next-line no-console
           console.error("Raven request failed:", error);
-          commitError(placeholderId, "Error: Failed to reach Raven API.");
+          const networkMessage =
+            error?.message && error.message.includes("Failed to fetch")
+              ? "Network error: Unable to connect to the server. Please check your connection and try again."
+              : "I apologize, but I'm having trouble processing your request. Please try rephrasing or ask about something else.";
+          commitError(placeholderId, networkMessage);
         }
+        return null;
       } finally {
         setTyping(false);
         abortRef.current = null;
@@ -1346,13 +1375,30 @@ export default function ChatClient() {
       setMessages((prev) => [...prev, placeholder]);
 
       const reportLabel = reportContext.name?.trim()
-        ? `“${reportContext.name.trim()}”`
+        ? `"${reportContext.name.trim()}"`
         : 'This report';
-      shiftSessionMode('report', {
-        message: `Structured reading engaged. ${reportLabel} is on the surface, so I’ll use VOICE and keep resonance pings until you end the session.`,
-        hook: "Session · Structured Reading",
-        climate: "VOICE · Report Interpretation",
-      });
+
+      // Set session mode to report and mark as started
+      setSessionMode('report');
+      setSessionStarted(true);
+
+      // Show session start message
+      const sessionStartMessage = {
+        id: generateId(),
+        role: 'raven' as const,
+        html: `<div class="session-start">
+          <p>🌌 <strong>Session Started: Mirror Reading</strong></p>
+          <p>${reportLabel} has been loaded. I'll begin with a symbolic weather report, then we'll explore the mirror together.</p>
+          <p>Shall we begin?</p>
+        </div>`,
+        hook: "Session · Mirror Reading",
+        climate: "VOICE · Symbolic Weather",
+        rawText: `Session Started: Mirror Reading\n\n${reportLabel} has been loaded. I'll begin with a symbolic weather report, then we'll explore the mirror together.\n\nShall we begin?`,
+        validationPoints: [],
+        validationComplete: true,
+      };
+
+      setMessages(prev => [...prev, sessionStartMessage]);
 
       const relocationPayload = mapRelocationToPayload(reportContext.relocation);
       const contextPayload = contextList.map((ctx) => {
@@ -1367,22 +1413,91 @@ export default function ChatClient() {
         };
       });
 
-      await runRavenRequest(
-        {
-          input: reportContext.content,
-          sessionId: sessionId ?? undefined,
-          options: {
-            reportType: reportContext.type,
-            reportId: reportContext.id,
-            reportName: reportContext.name,
-            reportSummary: reportContext.summary,
-            ...(relocationPayload ? { relocation: relocationPayload } : {}),
-            reportContexts: contextPayload,
+      try {
+        // First, get the symbolic weather report with a safer prompt
+        const weatherPlaceholderId = generateId();
+        const weatherResponse = await runRavenRequest(
+          {
+            input: `Provide a brief astrological weather update for ${reportLabel}, focusing on major transits and aspects. Keep it concise and focused on the current celestial patterns.`,
+            sessionId: sessionId ?? undefined,
+            options: {
+              reportType: reportContext.type,
+              reportId: reportContext.id,
+              reportName: reportContext.name,
+              reportSummary: reportContext.summary,
+              ...(relocationPayload ? { relocation: relocationPayload } : {}),
+              reportContexts: contextPayload,
+              intent: 'astrology_weather',
+              safety_level: 'high',
+              max_tokens: 400
+            },
           },
-        },
-        placeholderId,
-        "No mirror returned for this report.",
-      );
+          weatherPlaceholderId,
+          "Analyzing current astrological patterns...",
+        );
+
+        // If weather report was successful, proceed with mirror reading
+        if (weatherResponse?.ok !== false) {
+          // Then, start the mirror reading with a more structured prompt
+          await runRavenRequest(
+            {
+              input: `Please analyze the key patterns in this ${reportContext.type} report for ${reportLabel}. Focus on the most significant aspects and their potential meanings.`,
+              sessionId: sessionId ?? undefined,
+              options: {
+                reportType: reportContext.type,
+                reportId: reportContext.id,
+                reportName: reportContext.name,
+                reportSummary: reportContext.summary,
+                ...(relocationPayload ? { relocation: relocationPayload } : {}),
+                reportContexts: contextPayload,
+                intent: 'pattern_analysis',
+                safety_level: 'high',
+                max_tokens: 600
+              },
+            },
+            placeholderId,
+            `Analyzing patterns in ${reportLabel}...`,
+          );
+        } else {
+          // If weather report failed, try a more general approach
+          await runRavenRequest(
+            {
+              input: `Let's explore the patterns in ${reportLabel}. What stands out to you as the most significant theme or pattern here?`,
+              sessionId: sessionId ?? undefined,
+              options: {
+                reportType: reportContext.type,
+                reportId: reportContext.id,
+                reportName: reportContext.name,
+                reportSummary: reportContext.summary,
+                ...(relocationPayload ? { relocation: relocationPayload } : {}),
+                reportContexts: contextPayload,
+                intent: 'explore_patterns',
+                safety_level: 'high',
+                max_tokens: 500
+              },
+            },
+            placeholderId,
+            `Exploring patterns in ${reportLabel}...`,
+          );
+        }
+      } catch (error) {
+        console.error('Error during report analysis:', error);
+        // Fallback to a simple message if there's an error
+        const errorMessage = {
+          id: generateId(),
+          role: 'raven' as const,
+          html: `<div class="error-message">
+            <p>I had some trouble generating the full analysis, but I'm ready to help you explore this report.</p>
+            <p>What would you like to know about ${reportLabel}?</p>
+          </div>`,
+          hook: "Session · Ready",
+          climate: "VOICE · Awaiting Input",
+          rawText: `I had some trouble generating the full analysis, but I'm ready to help you explore this report.\n\nWhat would you like to know about ${reportLabel}?`,
+          validationPoints: [],
+          validationComplete: true,
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      }
     },
     [reportContexts, runRavenRequest, sessionId, shiftSessionMode],
   );
@@ -1596,8 +1711,8 @@ export default function ChatClient() {
   }, [input, sendMessage]);
 
   const handleSubmit = useCallback(
-    (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
+    (event?: React.FormEvent<HTMLFormElement>) => {
+      event?.preventDefault();
       sendCurrentInput();
     },
     [sendCurrentInput],
@@ -1944,11 +2059,24 @@ export default function ChatClient() {
       )}
 
       {showRelocationBanner && relocation && (
-        <div className="border-b border-slate-800/60 bg-slate-900/60">
-          <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-2 px-6 py-3 text-xs text-slate-300">
-            <span className="font-semibold text-emerald-300">
-              {relocation.active ? "Relocation active" : "Relocation context"}
-            </span>
+        <div className="flex h-full flex-col">
+          <div className="flex justify-between items-center p-4 border-b border-gray-700 bg-gray-800/50">
+            <h1 className="text-xl font-semibold">Poetic Brain</h1>
+            <a
+              href="/math-brain"
+              className="text-sm text-blue-400 hover:text-blue-300 flex items-center transition-colors"
+              title="Return to Math Brain"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Math Brain
+            </a>
+          </div>
+          <div className="flex flex-col items-center justify-center p-8 text-center">
+            <p className="mb-6 max-w-lg text-gray-300">
+              Welcome to the Poetic Brain. I'm here to help you explore the deeper meanings and patterns in your astrological data.
+            </p>
             {relocation.label && <span className="text-slate-400">• {relocation.label}</span>}
             {relocation.status && <span className="text-slate-400">• {relocation.status}</span>}
             {relocation.disclosure && (
@@ -2029,11 +2157,89 @@ export default function ChatClient() {
               </button>
             )}
           </div>
+          <div className="flex justify-between items-center p-2 border-b border-gray-700">
+            <div></div> {/* Empty div for flex spacing */}
+            <h1 className="text-xl font-semibold">Poetic Brain</h1>
+            <a
+              href="/math-brain"
+              className="text-sm text-blue-400 hover:text-blue-300 flex items-center"
+              title="Return to Math Brain"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Math Brain
+            </a>
+          </div>
         </section>
       )}
 
       <main ref={conversationRef} className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-3xl space-y-6 px-6 py-10">
+          {/* Resonance Card */}
+          {showResonanceCard && resonanceCard && (
+            <div className="bg-gradient-to-br from-indigo-900/50 to-purple-900/50 rounded-xl border border-indigo-500/30 p-6 mb-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-indigo-200">{resonanceCard.title}</h3>
+                <button 
+                  onClick={() => setShowResonanceCard(false)}
+                  className="text-indigo-400 hover:text-indigo-200"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div className="bg-indigo-900/30 p-4 rounded-lg">
+                  <p className="text-indigo-100 italic">"{resonanceCard.resonantLine}"</p>
+                </div>
+                <div className="flex items-center space-x-4 text-sm">
+                  <span className="px-3 py-1 bg-indigo-800/50 rounded-full text-indigo-200">
+                    {resonanceCard.scoreIndicator}
+                  </span>
+                  <span className={`px-3 py-1 rounded-full ${
+                    resonanceCard.resonanceFidelity.band === 'HIGH' 
+                      ? 'bg-green-900/50 text-green-200' 
+                      : resonanceCard.resonanceFidelity.band === 'MIXED'
+                      ? 'bg-amber-900/50 text-amber-200'
+                      : 'bg-rose-900/50 text-rose-200'
+                  }`}>
+                    {resonanceCard.resonanceFidelity.percentage}% {resonanceCard.resonanceFidelity.label}
+                  </span>
+                </div>
+                <div className="text-indigo-100 text-sm">
+                  <p className="font-medium">Pattern:</p>
+                  <p>{resonanceCard.compositeGuess}</p>
+                </div>
+                {resonanceCard.driftFlag && (
+                  <div className="text-amber-400 text-sm flex items-center">
+                    <span className="mr-2">⚠️</span>
+                    <span>{resonanceCard.driftFlag}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Contextual Suggestions */}
+          {contextualSuggestions.length > 0 && (
+            <div className="mb-6">
+              <div className="flex flex-wrap gap-2">
+                {contextualSuggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setInput(suggestion);
+                      setContextualSuggestions([]);
+                      handleSubmit();
+                    }}
+                    className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 rounded-full text-sm text-slate-200 transition-colors"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {messages.map((msg) => {
             const isRaven = msg.role === "raven";
             const showCopyButton = isRaven && Boolean(msg.rawText && msg.rawText.trim());
