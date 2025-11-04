@@ -44,18 +44,39 @@ export interface AspectPattern {
  * - "Venus trine Jupiter" → { planet1: 'Venus', planet2: 'Jupiter', aspect: 'trine', orb: 0 }
  */
 export function parseAspectLabel(label: string): AspectPattern | null {
-  // Pattern: "Planet1 aspect Planet2 (orb°)"
-  const match = label.match(/^(\w+)\s+(conjunction|opposition|square|trine|sextile|quincunx)\s+(\w+)(?:\s+\(([0-9.]+)°?\))?/i);
-  
-  if (!match) return null;
-  
-  const [, planet1, aspect, planet2, orbStr] = match;
-  const orb = orbStr ? parseFloat(orbStr) : 0;
-  
+  if (typeof label !== 'string') return null;
+
+  const aspectKeywords = [
+    'conjunction',
+    'opposition',
+    'square',
+    'trine',
+    'sextile',
+    'quincunx'
+  ];
+
+  const lower = label.toLowerCase();
+  const keyword = aspectKeywords.find(k => lower.includes(` ${k} `));
+  if (!keyword) return null;
+
+  const [leftPart, rightPartWithAspect] = lower.split(` ${keyword} `);
+  if (!leftPart || !rightPartWithAspect) return null;
+
+  const orbMatch = rightPartWithAspect.match(/\(([0-9.]+)°?\)/);
+  const orb = orbMatch ? parseFloat(orbMatch[1]) : 0;
+
+  const rightPart = orbMatch ? rightPartWithAspect.replace(orbMatch[0], '').trim() : rightPartWithAspect.trim();
+
+  const planet1 = label.slice(0, leftPart.length).trim();
+  const planet2StartIndex = label.toLowerCase().indexOf(rightPart); // aligns casing
+  const planet2 = planet2StartIndex >= 0 ? label.slice(planet2StartIndex, planet2StartIndex + rightPart.length).trim() : rightPart;
+
+  if (!planet1 || !planet2) return null;
+
   return {
     planet1,
     planet2,
-    aspect: aspect.toLowerCase(),
+    aspect: keyword,
     orb
   };
 }
@@ -90,9 +111,28 @@ export function getPlanetDriver(planet: string): ZodiacDriver | null {
     'Uranus': 'Aquarius',
     'Neptune': 'Pisces',
     'Pluto': 'Scorpio',
+    'North Node': 'Cancer',
+    'South Node': 'Capricorn',
+    'True Node': 'Cancer',
+    'True South Node': 'Capricorn',
+    'Mean Node': 'Cancer',
+    'Mean South Node': 'Capricorn',
+    'Chiron': 'Virgo',
+    'Lilith': 'Scorpio',
+    'Black Moon Lilith': 'Scorpio',
+    'Part of Fortune': 'Sagittarius'
   };
   
-  return rulerships[planet] || null;
+  const normalized = planet.trim();
+  if (rulerships[normalized]) return rulerships[normalized];
+
+  const titleCased = normalized
+    .toLowerCase()
+    .split(/\s+/)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
+  return rulerships[titleCased] || 'Aquarius'; // default to mutable-air style driver for unmapped bodies
 }
 
 /**

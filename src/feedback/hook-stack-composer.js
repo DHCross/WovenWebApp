@@ -11,10 +11,58 @@
  * Goal: Bypass analysis, trigger limbic "that's me" ping, open door for depth work
  * v1.1.0: Cap-aware filtering, normalized aspect names, diversity rules, engine-aligned weighting
  */
+let cachedSRPMapper = undefined;
+
+function tryLoadSRPMapper() {
+  if (cachedSRPMapper !== undefined) {
+    return cachedSRPMapper;
+  }
+
+  try {
+    const { mapAspectToSRP } = require('../../lib/srp/mapper');
+    cachedSRPMapper = typeof mapAspectToSRP === 'function' ? mapAspectToSRP : null;
+  } catch (err) {
+    cachedSRPMapper = null;
+  }
+
+  return cachedSRPMapper;
+}
+
+function isSRPEnabled() {
+  return process.env.ENABLE_SRP === 'true';
+}
 
 function safeNum(x, def = 0) {
   const n = Number(x);
   return Number.isFinite(n) ? n : def;
+}
+
+function enrichHooksWithSRP(hooks) {
+  if (!isSRPEnabled()) return hooks;
+  const mapper = tryLoadSRPMapper();
+  if (!mapper) return hooks;
+
+  return hooks.map(hook => {
+    if (!hook) return hook;
+    
+    // Handle both formats:
+    // 1. New format: { planets: ['Sun', 'Moon'], aspect_type: 'square', ... }
+    // 2. Old format: { planet1: 'Sun', planet2: 'Moon', name: 'square', ... }
+    const planet1 = hook.planets?.[0] || hook.planet1;
+    const planet2 = hook.planets?.[1] || hook.planet2;
+    const aspectType = hook.aspect_type || hook.name;
+    
+    if (!planet1 || !planet2 || !aspectType) return hook;
+
+    const orbText = typeof hook.orb === 'number' ? ` (${hook.orb.toFixed(1)}°)` : '';
+    const label = `${planet1} ${aspectType} ${planet2}${orbText}`;
+    const enrichment = mapper(label, hook.resonanceState || undefined);
+    
+    return {
+      ...hook,
+      srp: enrichment
+    };
+  });
 }
 
 // --- Normalization helpers (synonyms, planets, points, caps) ---
@@ -299,7 +347,9 @@ function buildHookStack(aspects, options = {}) {
         item.aspect.planet2 || item.aspect.second_planet
       ].filter(Boolean),
       aspect_type: item.type,
-      is_tier_1: item.orb <= 1 && item.intensity > 0 // tight orb within measurement window
+      is_tier_1: item.orb <= 1 && item.intensity > 0, // tight orb within measurement window
+      resonanceState: item.aspect.resonanceState,
+      source: sourceKey
     });
     
     usedTitles.add(item.title);
@@ -317,7 +367,7 @@ function buildHookStack(aspects, options = {}) {
   if (selectedHooks.length >= 4 && tier1Count >= 2) coverage = 'strong';
   
   return {
-    hooks: selectedHooks,
+    hooks: enrichHooksWithSRP(selectedHooks),
     tier_1_orbs: tier1Count,
     total_intensity: totalIntensity,
     coverage,
@@ -370,7 +420,10 @@ function extractAspectsFromResult(result) {
  */
 function composeHookStack(result, options = {}) {
   const aspects = extractAspectsFromResult(result);
-  const hookStack = buildHookStack(aspects, options);
+  const hookStack = buildHookStack(aspects, {
+    ...options,  // Pass through all options including minIntensity
+    orbCaps: options.orbCaps || DEFAULT_V5_CAPS
+  });
   
   return {
     ...hookStack,
@@ -380,7 +433,7 @@ function composeHookStack(result, options = {}) {
       composer: 'hook-stack-composer',
       version: '1.1.0',
       tier_1_threshold: 1.0, // orb degrees
-      min_intensity_threshold: options.minIntensity || 10,
+      min_intensity_threshold: options.minIntensity || 10, // This is just for reporting, actual filtering happens in buildHookStack
       orb_profile: options.orbProfile || 'wm-tight-2025-11-v5',
       diversity_rules: 'planet_pairs + aspect_types + sources mixed'
     }
