@@ -155,17 +155,10 @@ export function useChartExport(options: UseChartExportOptions): UseChartExportRe
   const [weatherJsonGenerating, setWeatherJsonGenerating] = useState<boolean>(false);
 
   const pushToast = useCallback(
-    (message: string, duration?: number) => {
-      if (!setToast) return;
-      try {
+    (message: string, duration = 2000) => {
+      if (setToast) {
         setToast(message);
-        if (duration && duration > 0) {
-          setTimeout(() => {
-            try {
-              setToast(null);
-            } catch {
-              // noop
-            }
+        window.setTimeout(() => setToast(null), duration);
           }, duration);
         }
       } catch {
@@ -819,7 +812,11 @@ Start with the Solo Mirror(s), then ${
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${friendlyFilename('directive')}.pdf`;
+      const directiveSuffix = getDirectiveSuffix();
+      const pdfFilename = directiveSuffix
+        ? `Mirror_Report_${directiveSuffix}.pdf`
+        : `${friendlyFilename('directive')}.pdf`;
+      link.download = pdfFilename;
       document.body.appendChild(link);
       link.click();
       setTimeout(() => {
@@ -852,6 +849,7 @@ Start with the Solo Mirror(s), then ${
     }
   }, [
     friendlyFilename,
+    getDirectiveSuffix,
     pushToast,
     reportContractType,
     reportRef,
@@ -1229,7 +1227,11 @@ Start with the Solo Mirror(s), then ${
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${friendlyFilename('directive')}.md`;
+      const directiveSuffix = getDirectiveSuffix();
+      const markdownFilename = directiveSuffix
+        ? `Mirror_Report_${directiveSuffix}.md`
+        : `${friendlyFilename('directive')}.md`;
+      a.download = markdownFilename;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -1250,7 +1252,7 @@ Start with the Solo Mirror(s), then ${
       clearTimeout(longRunningNotice);
       setMarkdownGenerating(false);
     }
-  }, [friendlyFilename, pushToast, reportContractType, result]);
+  }, [friendlyFilename, getDirectiveSuffix, pushToast, reportContractType, result]);
 
   const downloadResultJSON = useCallback(() => {
     if (!result) return;
@@ -1490,17 +1492,17 @@ Start with the Solo Mirror(s), then ${
       weatherData.symbolic_weather_context = unifiedOutput.woven_map.symbolic_weather;
     }
 
-    const rawSymbolicName = friendlyFilename('symbolic-weather');
-    const symbolicSuffix = rawSymbolicName.includes('_')
-      ? rawSymbolicName.slice(rawSymbolicName.indexOf('_') + 1)
-      : rawSymbolicName;
+    const directiveSuffix = getDirectiveSuffix();
+    const symbolicFilename = directiveSuffix
+      ? `Mirror+SymbolicWeather_${directiveSuffix}.json`
+      : 'Mirror+SymbolicWeather.json';
 
     return {
-      filename: `Mirror+SymbolicWeather_${symbolicSuffix}.json`,
+      filename: symbolicFilename,
       payload: weatherData,
       hasChartGeometry,
     };
-  }, [friendlyFilename, reportContractType, result]);
+  }, [getDirectiveSuffix, reportContractType, result]);
 
   interface MirrorDirectiveExport {
     filename: string;
@@ -1608,16 +1610,16 @@ Start with the Solo Mirror(s), then ${
       },
     };
 
-    const rawDirectiveName = friendlyFilename('directive');
-    const directiveSuffix = rawDirectiveName.includes('_')
-      ? rawDirectiveName.slice(rawDirectiveName.indexOf('_') + 1)
-      : rawDirectiveName;
+    const directiveSuffix = getDirectiveSuffix();
+    const directiveFilename = directiveSuffix
+      ? `MirrorDirective_${directiveSuffix}.json`
+      : 'MirrorDirective.json';
 
     return {
-      filename: `MirrorDirective_${directiveSuffix}.json`,
+      filename: directiveFilename,
       payload: mirrorDirective,
     };
-  }, [friendlyFilename, reportContractType, result]);
+  }, [getDirectiveSuffix, reportContractType, result]);
 
   const buildFieldMapExport = useCallback((): FieldMapExport | null => {
     if (!result) return null;
@@ -1714,16 +1716,16 @@ Start with the Solo Mirror(s), then ${
       fieldMapData.relationship_context = relationshipContext;
     }
 
-    const rawWeatherLogName = friendlyFilename('weather-log');
-    const weatherLogSuffix = rawWeatherLogName.includes('_')
-      ? rawWeatherLogName.slice(rawWeatherLogName.indexOf('_') + 1)
-      : rawWeatherLogName;
+    const directiveSuffix = getDirectiveSuffix();
+    const fieldMapFilename = directiveSuffix
+      ? `wm-fieldmap-v5_${directiveSuffix}.json`
+      : 'wm-fieldmap-v5.json';
 
     return {
-      filename: `wm-fieldmap-v5_${weatherLogSuffix}.json`,
+      filename: fieldMapFilename,
       payload: fieldMapData,
     };
-  }, [friendlyFilename, result]);
+  }, [getDirectiveSuffix, result]);
 
   const downloadMirrorSymbolicWeatherJSON = useCallback(() => {
     if (!result) return;
