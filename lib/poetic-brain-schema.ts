@@ -25,7 +25,16 @@ export const hookSchema = z.object({
   exact: z.boolean().optional(),
   // Diagnostic classification
   resonanceState: z.enum(['WB', 'ABE', 'OSR']).optional(), // Within Boundary, At Boundary Edge, Outside Symbolic Range
-  shadowMode: z.enum(['translatable', 'inverted', 'integrated', 'unknown']).optional()
+  shadowMode: z.enum(['translatable', 'inverted', 'integrated', 'unknown']).optional(),
+  // NEW: SRP enrichment (Phase 1) - namespaced for safety
+  srp: z.object({
+    blendId: z.number().int().min(1).max(144).optional(), // Light Ledger blend ID
+    hingePhrase: z.string().optional(), // e.g., "Fervent Flame: Initiateing Initiate"
+    elementWeave: z.string().optional(), // e.g., "Fire-Fire"
+    shadowId: z.string().optional(), // e.g., "1R" if ABE/OSR
+    restorationCue: z.string().optional(), // Shadow restoration guidance
+    collapseMode: z.string().optional(), // e.g., "self-devouring", "custody"
+  }).optional(),
 });
 
 // Shadow Layer structure (for diagnostic integrity)

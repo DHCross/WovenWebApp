@@ -10,12 +10,21 @@ export type Metric = number | MetricObject;
 
 export interface HookObject {
   label: string;
-  angle?: number; // degrees
-  orb?: number; // degrees
+  angle?: number;
+  orb?: number;
   retrograde_involved?: boolean;
   exact?: boolean;
   resonanceState?: 'WB' | 'ABE' | 'OSR';
   shadowMode?: 'translatable' | 'inverted' | 'integrated' | 'unknown';
+  // SRP enrichment (namespaced)
+  srp?: {
+    blendId?: number;
+    hingePhrase?: string;
+    elementWeave?: string;
+    shadowId?: string;
+    restorationCue?: string;
+    collapseMode?: string;
+  };
 }
 
 export interface ShadowTension {
@@ -266,7 +275,14 @@ function seismographSummary(payload: InputPayload): { headline: string; details:
 function formatHooksLine(hooks: HookObject[]): string {
   if (!hooks.length) return 'No high-charge hooks supplied.';
   const items = hooks.map(h => {
+    const parts: string[] = [h.label];
     const tags: string[] = [];
+    
+    // Add SRP hinge phrase if present (Phase 1 enhancement)
+    if (h.srp?.hingePhrase) {
+      parts.push(h.srp.hingePhrase);
+    }
+    
     if (h.exact) tags.push('exact');
     if (typeof h.orb === 'number') tags.push(`${h.orb.toFixed(1)}° orb`);
     if (h.retrograde_involved) tags.push('retrograde signature');
@@ -278,13 +294,19 @@ function formatHooksLine(hooks: HookObject[]): string {
     // Add resonance state indicator
     if (h.resonanceState === 'ABE') tags.push('boundary edge');
     else if (h.resonanceState === 'OSR') tags.push('non-ping');
+    
+    // Add SRP shadow collapse mode if present
+    if (h.srp?.collapseMode) {
+      tags.push(`⚠ ${h.srp.collapseMode}`);
+    }
 
-    return tags.length ? `${h.label} (${tags.join(', ')})` : h.label;
+    if (tags.length) parts.push(`(${tags.join(', ')})`);
+    return parts.join(' | ');
   });
-  return items.join(' | ');
+  return items.join(' · ');
 }
 
-function buildShadowLayerSummary(shadowLayer?: ShadowLayer): string | null {
+function buildShadowLayerSummary(shadowLayer?: ShadowLayer, hooks?: HookObject[]): string | null {
   if (!shadowLayer) return null;
 
   const parts: string[] = [];
@@ -305,6 +327,18 @@ function buildShadowLayerSummary(shadowLayer?: ShadowLayer): string | null {
       })
       .join(', ');
     parts.push(`Structural Tensions: ${tensionList}`);
+  }
+  
+  // NEW: SRP restoration cues (Phase 1)
+  // Extract restoration cues from hooks with shadow references
+  if (hooks) {
+    const shadowHooks = hooks.filter(h => h.srp?.restorationCue && (h.resonanceState === 'ABE' || h.resonanceState === 'OSR'));
+    if (shadowHooks.length > 0) {
+      const restorationCues = shadowHooks.map(h => h.srp?.restorationCue).filter(Boolean);
+      if (restorationCues.length > 0) {
+        parts.push(`Restoration Cues: ${restorationCues.join(' · ')}`);
+      }
+    }
   }
 
   return parts.length > 0 ? parts.join(' · ') : null;
@@ -414,26 +448,27 @@ function buildMirrorVoice(payload: InputPayload): string {
 
   // Build optional diagnostic sections
   const matrixSummary = buildEnhancedMatrixSummary(payload.enhancedMatrix);
-  const shadowSummary = buildShadowLayerSummary(payload.shadowLayer);
   const toolFraming = buildToolFirstFraming(payload.toolDescription, payload.expressionContext);
   const provenanceLine = buildProvenanceLine(payload.provenance);
 
   if (!hasActivationData(payload)) {
-    const lines: string[] = [blueprintLine];
+  const lines: string[] = [blueprintLine];
 
-    if (matrixSummary) lines.push(matrixSummary);
-    if (toolFraming) lines.push(toolFraming);
+  if (matrixSummary) lines.push(matrixSummary);
+  if (toolFraming) lines.push(toolFraming);
 
-    lines.push('Current Mode — No activation data supplied; holding to the natal baseline.');
-    lines.push(`Baseline Hooks — ${formatHooksLine(hooks)}`);
+  lines.push('Current Mode — No activation data supplied; holding to the natal baseline.');
+  lines.push(`Baseline Hooks — ${formatHooksLine(hooks)}`);
 
-    if (shadowSummary) lines.push(shadowSummary);
+  // Build shadow summary with hook restoration cues
+  const shadowSummary = buildShadowLayerSummary(payload.shadowLayer, hooks);
+  if (shadowSummary) lines.push(shadowSummary);
 
-    lines.push('Reflection — Map, not mandate: integrate what resonates and release the rest.');
+  lines.push('Reflection — Map, not mandate: integrate what resonates and release the rest.');
 
-    if (provenanceLine) lines.push(provenanceLine);
+  if (provenanceLine) lines.push(provenanceLine);
 
-    return lines.join('\n');
+  return lines.join('\n');
   }
 
   const s = seismographSummary(payload);
@@ -452,6 +487,8 @@ function buildMirrorVoice(payload: InputPayload): string {
   lines.push(`Weather — ${weatherDescriptor}`);
   lines.push(`Tensions — ${tensionParts.join(' · ')}`);
 
+  // Build shadow summary with hook restoration cues
+  const shadowSummary = buildShadowLayerSummary(payload.shadowLayer, hooks);
   if (shadowSummary) lines.push(shadowSummary);
 
   lines.push('Reflection — Map, not mandate: treat this as symbolic weather. If it lands, log it; if not, discard and proceed.');
