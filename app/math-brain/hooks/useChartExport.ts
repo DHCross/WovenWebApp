@@ -68,6 +68,7 @@ import {
   extractAxisNumber,
 } from '../utils/formatting';
 import { computeOverflowDetail } from '../../../lib/math-brain/overflow-detail';
+import { getDirectivePrefix, getDirectiveSuffix } from '../../../lib/export/filename-utils';
 
 type FriendlyFilenameType =
   | 'directive'
@@ -137,6 +138,28 @@ function validatePoeticBrainCompatibility(result: any): { compatible: boolean; i
   };
 }
 
+/**
+ * Helper to extract suffix from friendlyFilename output (backwards compatibility)
+ * 
+ * Extracts everything after the first underscore from a filename like:
+ * "Mirror_Directive_dan-stephie_2024-11-01" → "dan-stephie_2024-11-01"
+ * 
+ * If no underscore exists, returns the original name unchanged.
+ */
+function extractSuffixFromFriendlyName(friendlyName: string): string {
+  if (!friendlyName || typeof friendlyName !== 'string') {
+    return 'unknown';
+  }
+  
+  const firstUnderscore = friendlyName.indexOf('_');
+  if (firstUnderscore === -1 || firstUnderscore === friendlyName.length - 1) {
+    // No underscore found or underscore is at the end
+    return friendlyName;
+  }
+  
+  return friendlyName.slice(firstUnderscore + 1);
+}
+
 export function useChartExport(options: UseChartExportOptions): UseChartExportResult {
   const {
     result,
@@ -155,10 +178,17 @@ export function useChartExport(options: UseChartExportOptions): UseChartExportRe
   const [weatherJsonGenerating, setWeatherJsonGenerating] = useState<boolean>(false);
 
   const pushToast = useCallback(
-    (message: string, duration = 2000) => {
-      if (setToast) {
+    (message: string, duration?: number) => {
+      if (!setToast) return;
+      try {
         setToast(message);
-        window.setTimeout(() => setToast(null), duration);
+        if (duration && duration > 0) {
+          setTimeout(() => {
+            try {
+              setToast(null);
+            } catch {
+              // noop
+            }
           }, duration);
         }
       } catch {
@@ -812,11 +842,7 @@ Start with the Solo Mirror(s), then ${
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      const directiveSuffix = getDirectiveSuffix();
-      const pdfFilename = directiveSuffix
-        ? `Mirror_Report_${directiveSuffix}.pdf`
-        : `${friendlyFilename('directive')}.pdf`;
-      link.download = pdfFilename;
+      link.download = `${friendlyFilename('directive')}.pdf`;
       document.body.appendChild(link);
       link.click();
       setTimeout(() => {
@@ -849,7 +875,6 @@ Start with the Solo Mirror(s), then ${
     }
   }, [
     friendlyFilename,
-    getDirectiveSuffix,
     pushToast,
     reportContractType,
     reportRef,
@@ -1227,11 +1252,7 @@ Start with the Solo Mirror(s), then ${
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const directiveSuffix = getDirectiveSuffix();
-      const markdownFilename = directiveSuffix
-        ? `Mirror_Report_${directiveSuffix}.md`
-        : `${friendlyFilename('directive')}.md`;
-      a.download = markdownFilename;
+      a.download = `${friendlyFilename('directive')}.md`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -1252,7 +1273,7 @@ Start with the Solo Mirror(s), then ${
       clearTimeout(longRunningNotice);
       setMarkdownGenerating(false);
     }
-  }, [friendlyFilename, getDirectiveSuffix, pushToast, reportContractType, result]);
+  }, [friendlyFilename, pushToast, reportContractType, result]);
 
   const downloadResultJSON = useCallback(() => {
     if (!result) return;
@@ -1492,17 +1513,16 @@ Start with the Solo Mirror(s), then ${
       weatherData.symbolic_weather_context = unifiedOutput.woven_map.symbolic_weather;
     }
 
-    const directiveSuffix = getDirectiveSuffix();
-    const symbolicFilename = directiveSuffix
-      ? `Mirror+SymbolicWeather_${directiveSuffix}.json`
-      : 'Mirror+SymbolicWeather.json';
-
+    // Use consistent prefix from shared utility with backwards-compatible suffix
+    const prefix = getDirectivePrefix('mirror-symbolic-weather');
+    const symbolicSuffix = extractSuffixFromFriendlyName(friendlyFilename('symbolic-weather'));
+    
     return {
-      filename: symbolicFilename,
+      filename: `${prefix}_${symbolicSuffix}.json`,
       payload: weatherData,
       hasChartGeometry,
     };
-  }, [getDirectiveSuffix, reportContractType, result]);
+  }, [friendlyFilename, reportContractType, result]);
 
   interface MirrorDirectiveExport {
     filename: string;
@@ -1610,16 +1630,15 @@ Start with the Solo Mirror(s), then ${
       },
     };
 
-    const directiveSuffix = getDirectiveSuffix();
-    const directiveFilename = directiveSuffix
-      ? `MirrorDirective_${directiveSuffix}.json`
-      : 'MirrorDirective.json';
-
+    // Use consistent prefix from shared utility with backwards-compatible suffix
+    const prefix = getDirectivePrefix('mirror-directive');
+    const directiveSuffix = extractSuffixFromFriendlyName(friendlyFilename('directive'));
+    
     return {
-      filename: directiveFilename,
+      filename: `${prefix}_${directiveSuffix}.json`,
       payload: mirrorDirective,
     };
-  }, [getDirectiveSuffix, reportContractType, result]);
+  }, [friendlyFilename, reportContractType, result]);
 
   const buildFieldMapExport = useCallback((): FieldMapExport | null => {
     if (!result) return null;
@@ -1716,16 +1735,15 @@ Start with the Solo Mirror(s), then ${
       fieldMapData.relationship_context = relationshipContext;
     }
 
-    const directiveSuffix = getDirectiveSuffix();
-    const fieldMapFilename = directiveSuffix
-      ? `wm-fieldmap-v5_${directiveSuffix}.json`
-      : 'wm-fieldmap-v5.json';
-
+    // Use consistent prefix from shared utility with backwards-compatible suffix
+    const prefix = getDirectivePrefix('fieldmap');
+    const weatherLogSuffix = extractSuffixFromFriendlyName(friendlyFilename('weather-log'));
+    
     return {
-      filename: fieldMapFilename,
+      filename: `${prefix}_${weatherLogSuffix}.json`,
       payload: fieldMapData,
     };
-  }, [getDirectiveSuffix, result]);
+  }, [friendlyFilename, result]);
 
   const downloadMirrorSymbolicWeatherJSON = useCallback(() => {
     if (!result) return;
