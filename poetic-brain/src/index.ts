@@ -1,6 +1,10 @@
 // Main entry for Poetic Brain module
 // Exports generateSection(sectionType, inputPayload)
 
+import { buildMandatesForChart } from '../../lib/poetics/mandate';
+import { enhancePromptWithMandates } from '../../lib/poetics/prompt-builder';
+import type { MandateAspect } from '../../lib/poetics/types';
+
 export type SectionType = 'MirrorVoice' | 'PolarityCardVoice' | string;
 
 // Minimal, geometry-first payload shape expected from upstream validator
@@ -638,21 +642,59 @@ function extractGeometrySummary(chart: any): string {
  * Generate solo mirror narrative
  * Uses natal chart geometry for single person
  */
-function generateSoloMirror(person: any, chart: any, calibration: IntimacyCalibration): string {
+function formatMandateHeading(mandate: MandateAspect, index: number): string {
+  const archetypeA = mandate.archetypes.a.name;
+  const archetypeB = mandate.archetypes.b.name;
+  const aspect = mandate.geometry.aspectType;
+  const orb = mandate.geometry.orbDegrees.toFixed(1);
+  return `${index + 1}. ${archetypeA} ↔ ${archetypeB} (${aspect}, orb ${orb}°)`;
+}
+
+function formatMandateBody(mandate: MandateAspect): string[] {
+  const lines: string[] = [];
+  lines.push(`Diagnostic — ${mandate.diagnostic}`);
+  lines.push(`Field Pressure — ${mandate.fieldPressure}`);
+  lines.push(`Map Translation — ${mandate.mapTranslation}`);
+  lines.push(`Voice Mirror — ${mandate.voiceHook}`);
+  return lines;
+}
+
+function renderMandatesSection(personName: string, mandates: MandateAspect[]): string[] {
+  const lines: string[] = [];
+  if (!mandates.length) {
+    lines.push(`No high-charge aspects passed the mandate filter for ${personName}. Treat lived experience as the deciding authority.`);
+    return lines;
+  }
+
+  lines.push('Mandate Highlights — Top Geometries Driving Lived Tension');
+  mandates.forEach((mandate, index) => {
+    lines.push('');
+    lines.push(`### ${formatMandateHeading(mandate, index)}`);
+    lines.push(...formatMandateBody(mandate));
+  });
+  return lines;
+}
+
+function generateSoloMirror(person: any, chart: any, calibration: IntimacyCalibration, mandates: MandateAspect[]): string {
   const name = person.name || 'Person';
   const geometrySummary = extractGeometrySummary(chart);
-  
+
   const lines: string[] = [];
   lines.push(`# Solo Mirror: ${name}`);
   lines.push('');
-  lines.push(`Geometry — ${geometrySummary}`);
+  lines.push(`Boundary Mode — ${calibration.boundaryMode}`);
+  lines.push(`Narrative Tone — ${calibration.toneDescriptor}`);
+  lines.push(`Disclosure Level — ${calibration.disclosureLevel}`);
   lines.push('');
-  lines.push(`Boundary Mode — ${calibration.boundaryMode} (${calibration.toneDescriptor})`);
+  lines.push(`Geometry — ${geometrySummary}`);
   lines.push('');
   lines.push('Blueprint — Natal pattern reflects constitutional climate. This is the baseline geometry before any transits or activations.');
   lines.push('');
-  lines.push('Reflection — Map, not mandate: integrate what resonates and release the rest.');
-  
+  const mandateNarrative = renderMandatesSection(name, mandates);
+  lines.push(...mandateNarrative);
+  lines.push('');
+  lines.push('Reflection — Map, not mandate: Integrate what resonates with current reality and log evidence for or against each pattern.');
+
   return lines.join('\n');
 }
 
@@ -749,6 +791,37 @@ export function processMirrorDirective(payload: InputPayload): {
   const directive = parseMirrorDirective(payload);
   const calibration = calibrateForIntimacyTier(directive.intimacyTier);
 
+  // Generate mandates for Person A
+  const mandatesA = buildMandatesForChart(
+    directive.personA?.name || 'Person A',
+    directive.geometry.chartA || {},
+    { limit: 5 }
+  );
+
+  // Enhance base prompt with mandate data
+  const enhancedPrompt = enhancePromptWithMandates(
+    process.env.DEFAULT_PROMPT || '',
+    { name: directive.personA?.name || 'Person A', mandates: mandatesA.mandates }
+  );
+
+  // Generate mandates for Person B if relational
+  const mandatesB = directive.isRelational && directive.geometry.chartB
+    ? buildMandatesForChart(
+        directive.personB?.name || 'Person B',
+        directive.geometry.chartB,
+        { limit: 5 }
+      )
+    : null;
+
+  // Enhance prompt with Person B's mandates if relational
+  if (directive.isRelational && mandatesB) {
+    enhancePromptWithMandates(
+      enhancedPrompt,
+      { name: directive.personA?.name || 'Person A', mandates: mandatesA.mandates },
+      { name: directive.personB?.name || 'Person B', mandates: mandatesB.mandates }
+    );
+  }
+
   // Generate narrative sections
   const narratives: any = {};
 
@@ -757,7 +830,8 @@ export function processMirrorDirective(payload: InputPayload): {
     narratives.solo_mirror_a = generateSoloMirror(
       directive.personA,
       directive.geometry.chartA,
-      calibration
+      calibration,
+      mandatesA.mandates
     );
   }
 
@@ -766,7 +840,8 @@ export function processMirrorDirective(payload: InputPayload): {
     narratives.solo_mirror_b = generateSoloMirror(
       directive.personB,
       directive.geometry.chartB,
-      calibration
+      calibration,
+      mandatesB?.mandates || []
     );
   }
 
