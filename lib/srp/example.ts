@@ -3,8 +3,8 @@
  * Demonstrates Phase 1: Hook enrichment with Light/Shadow ledger
  */
 
-import { mapAspectToSRP, formatEnrichedHook, formatShadowRestoration } from '../lib/srp/mapper';
-import type { SRPEnrichment } from '../lib/srp/types';
+import { mapAspectToSRP, formatEnrichedHook, formatShadowRestoration } from './mapper';
+import type { SRPEnrichment } from './types';
 
 console.log('=== SRP × Poetic Brain Integration Demo ===\n');
 
@@ -60,7 +60,7 @@ console.log();
 
 // Example 4: Demonstrating batch enrichment
 console.log('Example 4: Batch Hook Enrichment');
-import { enrichHooks } from '../lib/srp/mapper';
+import { enrichHooks } from './mapper';
 
 const sampleHooks = [
   { label: 'Sun square Mars (2.1°)', resonanceState: 'ABE' as const },
