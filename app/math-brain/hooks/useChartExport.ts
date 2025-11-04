@@ -68,6 +68,7 @@ import {
   extractAxisNumber,
 } from '../utils/formatting';
 import { computeOverflowDetail } from '../../../lib/math-brain/overflow-detail';
+import { getDirectivePrefix, getDirectiveSuffix } from '../../../lib/export/filename-utils';
 
 type FriendlyFilenameType =
   | 'directive'
@@ -1490,13 +1491,17 @@ Start with the Solo Mirror(s), then ${
       weatherData.symbolic_weather_context = unifiedOutput.woven_map.symbolic_weather;
     }
 
+    // Extract suffix components from friendlyFilename for backwards compatibility
     const rawSymbolicName = friendlyFilename('symbolic-weather');
     const symbolicSuffix = rawSymbolicName.includes('_')
       ? rawSymbolicName.slice(rawSymbolicName.indexOf('_') + 1)
       : rawSymbolicName;
 
+    // Use consistent prefix from shared utility
+    const prefix = getDirectivePrefix('mirror-symbolic-weather');
+    
     return {
-      filename: `Mirror+SymbolicWeather_${symbolicSuffix}.json`,
+      filename: `${prefix}_${symbolicSuffix}.json`,
       payload: weatherData,
       hasChartGeometry,
     };
@@ -1608,13 +1613,17 @@ Start with the Solo Mirror(s), then ${
       },
     };
 
+    // Extract suffix components from friendlyFilename for backwards compatibility
     const rawDirectiveName = friendlyFilename('directive');
     const directiveSuffix = rawDirectiveName.includes('_')
       ? rawDirectiveName.slice(rawDirectiveName.indexOf('_') + 1)
       : rawDirectiveName;
 
+    // Use consistent prefix from shared utility
+    const prefix = getDirectivePrefix('mirror-directive');
+    
     return {
-      filename: `MirrorDirective_${directiveSuffix}.json`,
+      filename: `${prefix}_${directiveSuffix}.json`,
       payload: mirrorDirective,
     };
   }, [friendlyFilename, reportContractType, result]);
@@ -1714,13 +1723,17 @@ Start with the Solo Mirror(s), then ${
       fieldMapData.relationship_context = relationshipContext;
     }
 
+    // Extract suffix components from friendlyFilename for backwards compatibility
     const rawWeatherLogName = friendlyFilename('weather-log');
     const weatherLogSuffix = rawWeatherLogName.includes('_')
       ? rawWeatherLogName.slice(rawWeatherLogName.indexOf('_') + 1)
       : rawWeatherLogName;
 
+    // Use consistent prefix from shared utility
+    const prefix = getDirectivePrefix('fieldmap');
+    
     return {
-      filename: `wm-fieldmap-v5_${weatherLogSuffix}.json`,
+      filename: `${prefix}_${weatherLogSuffix}.json`,
       payload: fieldMapData,
     };
   }, [friendlyFilename, result]);

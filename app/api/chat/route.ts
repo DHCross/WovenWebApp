@@ -78,6 +78,34 @@ function checkForClearAffirmation(text: string): boolean {
   return clearAffirmPhrases.some(phrase => lower.includes(phrase));
 }
 
+// Check if user is requesting to start/continue the reading (not OSR)
+function checkForReadingStartRequest(text: string): boolean {
+  const lower = text.toLowerCase();
+  const startReadingPhrases = [
+    'give me the reading',
+    'start the reading',
+    'begin the reading',
+    'continue with the reading',
+    'show me the reading',
+    'start the mirror',
+    'give me the mirror',
+    'show me the mirror',
+    'start mirror flow',
+    'give me mirror flow',
+    'show me mirror flow',
+    'start symbolic weather',
+    'give me symbolic weather',
+    'show me symbolic weather',
+    'let\'s begin',
+    'let\'s start',
+    'please continue',
+    'go ahead',
+    'proceed'
+  ];
+  
+  return startReadingPhrases.some(phrase => lower.includes(phrase));
+}
+
 // Check if user is giving partial/uncertain confirmation
 function checkForPartialAffirmation(text: string): boolean {
   const lower = text.toLowerCase();
@@ -132,6 +160,8 @@ function formatReportContextsForPrompt(contexts: any[]): string {
 
 // Enhanced response classification
 function classifyUserResponse(text: string): 'CLEAR_WB' | 'PARTIAL_ABE' | 'OSR' | 'UNCLEAR' {
+  // Check if user is requesting to start/continue the reading (treat as CLEAR_WB)
+  if (checkForReadingStartRequest(text)) return 'CLEAR_WB';
   if (checkForClearAffirmation(text)) return 'CLEAR_WB';
   if (checkForPartialAffirmation(text)) return 'PARTIAL_ABE';
   if (checkForOSRIndicators(text)) return 'OSR';
@@ -422,7 +452,11 @@ Give a short, plain-language summary of the current planetary weather in two par
   }
   
   // Check for natural follow-up flow based on user response type
-  const responseType = classifyUserResponse(text);
+  // Skip OSR checks on the very first follow-up after session start
+  const skipOSRCheck = isFirstTurn;
+  const responseType = skipOSRCheck && !checkForOSRIndicators(text) 
+    ? 'CLEAR_WB' 
+    : classifyUserResponse(text);
   
   // Mock session context (in production, this would be persisted)
   const mockSessionContext: SessionContext = {
