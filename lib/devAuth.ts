@@ -41,7 +41,7 @@ type AnyProps = {
  */
 export function withDevAuth<P extends AnyProps>(
   WrappedComponent: React.ComponentType<P>
-): React.FC<P> {
+): React.ComponentType<P> {
   if (!useLocalAuth) {
     return WrappedComponent;
   }
@@ -52,7 +52,7 @@ export function withDevAuth<P extends AnyProps>(
     'Component';
 
   const DevWrapper: React.FC<P> = (props) => {
-    return <WrappedComponent {...props} />;
+    return React.createElement(WrappedComponent, props);
   };
 
   DevWrapper.displayName = `withDevAuth(${displayName})`;
