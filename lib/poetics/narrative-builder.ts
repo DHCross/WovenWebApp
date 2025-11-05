@@ -27,9 +27,35 @@ export interface SoloMirrorNarrative {
   fullNarrative: string;
 }
 
+// Diagnostic guidance constants
+const DIAGNOSTIC_MESSAGES = {
+  PARADOX_LOCK_CARD: 'This is a paradox lock—live it, don\'t try to solve it.',
+  PARADOX_LOCK_SYNTHESIS: 'Some of these tensions are paradox locks—built-in contradictions that can\'t be resolved. Your work isn\'t to fix them but to inhabit them with more skill.',
+  HOOK_CARD: 'This is a hook point—pay attention to where this tension catches in your life.',
+  HOOK_SYNTHESIS: 'You have hook points in your chart—places where energy catches and demands attention. These are recognition moments. When they surface, they\'re showing you something real.',
+  COMPRESSION_CARD: 'Multiple pressures converge here—this is a high-density zone in your chart.',
+  COMPRESSION_SYNTHESIS: 'Multiple pressures converge in certain zones of your chart. These compression fields create intensity but also transformation. They\'re high-density learning grounds.',
+} as const;
+
 /**
- * Generate hook stack from top mandates
- * Identifies the two dominant polarities driving the chart
+ * Get diagnostic-specific suffix for polarity cards
+ */
+function getDiagnosticSuffix(diagnostic: MandateDiagnostic): string {
+  switch (diagnostic) {
+    case 'Paradox Lock':
+      return DIAGNOSTIC_MESSAGES.PARADOX_LOCK_CARD;
+    case 'Hook':
+      return DIAGNOSTIC_MESSAGES.HOOK_CARD;
+    case 'Compression':
+      return DIAGNOSTIC_MESSAGES.COMPRESSION_CARD;
+    default:
+      return '';
+  }
+}
+
+/**
+ * Generate hook stack from highest-priority mandate
+ * Identifies the two dominant polarities driving the chart by examining the tightest aspect
  */
 export function generateHookStack(mandates: MandateAspect[]): SoloMirrorNarrative['hookStack'] {
   if (mandates.length === 0) {
@@ -108,13 +134,10 @@ export function generatePolarityCards(mandates: MandateAspect[]): PolarityCard[]
       bothSides = mapTranslation;
     }
     
-    // Add diagnostic context if Hook or Paradox Lock
-    if (diagnostic === 'Paradox Lock') {
-      bothSides += ' This is a paradox lock—live it, don\'t try to solve it.';
-    } else if (diagnostic === 'Hook') {
-      bothSides += ' This is a hook point—pay attention to where this tension catches in your life.';
-    } else if (diagnostic === 'Compression') {
-      bothSides += ' Multiple pressures converge here—this is a high-density zone in your chart.';
+    // Add diagnostic context
+    const diagnosticSuffix = getDiagnosticSuffix(diagnostic);
+    if (diagnosticSuffix) {
+      bothSides += ` ${diagnosticSuffix}`;
     }
     
     cards.push({
@@ -139,21 +162,21 @@ export function formatMandateHighlights(mandates: MandateAspect[], personName: s
   }
 
   const lines: string[] = [];
-  lines.push('**Mandate Highlights — Top Geometries Driving Lived Tension**\n');
+  lines.push('**Mandate Highlights — Top Geometries Driving Lived Tension**');
   
   mandates.forEach((mandate, index) => {
     const { archetypes, geometry, diagnostic, fieldPressure, mapTranslation, voiceHook } = mandate;
     const aspectType = geometry.aspectType;
     const orb = geometry.orbDegrees.toFixed(1);
     
-    lines.push(`### ${index + 1}. ${archetypes.a.name} ↔ ${archetypes.b.name} (${aspectType}, ${orb}° orb)\n`);
-    lines.push(`**Diagnostic**: ${diagnostic}\n`);
-    lines.push(`**Field**: ${fieldPressure}\n`);
-    lines.push(`**Map**: ${mapTranslation}\n`);
-    lines.push(`**Voice**: ${voiceHook}\n`);
+    lines.push(`### ${index + 1}. ${archetypes.a.name} ↔ ${archetypes.b.name} (${aspectType}, ${orb}° orb)`);
+    lines.push(`**Diagnostic**: ${diagnostic}`);
+    lines.push(`**Field**: ${fieldPressure}`);
+    lines.push(`**Map**: ${mapTranslation}`);
+    lines.push(`**Voice**: ${voiceHook}`);
   });
 
-  return lines.join('\n');
+  return lines.join('\n\n');
 }
 
 /**
@@ -167,7 +190,7 @@ export function synthesizeMirrorVoice(
 ): string {
   const lines: string[] = [];
   
-  lines.push(`Here's what I see in your chart: You're not one thing. You're a system of tensions, and that's where your power lives.\n`);
+  lines.push(`Here's what I see in your chart: You're not one thing. You're a system of tensions, and that's where your power lives.`);
   
   // Synthesize the primary tensions
   if (polarityCards.length > 0) {
@@ -176,32 +199,31 @@ export function synthesizeMirrorVoice(
     ).join('\n\n');
     
     lines.push(tensions);
-    lines.push('\n');
   }
   
-  // Add diagnostic-specific guidance
+  // Add diagnostic-specific guidance using constants
   const hasParadoxLock = mandates.some(m => m.diagnostic === 'Paradox Lock');
   const hasHooks = mandates.some(m => m.diagnostic === 'Hook');
   const hasCompression = mandates.some(m => m.diagnostic === 'Compression');
   
   if (hasParadoxLock) {
-    lines.push(`Some of these tensions are paradox locks—built-in contradictions that can't be resolved. Your work isn't to fix them but to inhabit them with more skill.\n`);
+    lines.push(DIAGNOSTIC_MESSAGES.PARADOX_LOCK_SYNTHESIS);
   }
   
   if (hasHooks) {
-    lines.push(`You have hook points in your chart—places where energy catches and demands attention. These are recognition moments. When they surface, they're showing you something real.\n`);
+    lines.push(DIAGNOSTIC_MESSAGES.HOOK_SYNTHESIS);
   }
   
   if (hasCompression) {
-    lines.push(`Multiple pressures converge in certain zones of your chart. These compression fields create intensity but also transformation. They're high-density learning grounds.\n`);
+    lines.push(DIAGNOSTIC_MESSAGES.COMPRESSION_SYNTHESIS);
   }
   
   // Closing synthesis
   lines.push(`These aren't contradictions to resolve. They're the actual shape of how you're built. The work isn't to pick a side—it's to let both sides speak to each other.`);
-  lines.push(`\nWhen you can hold both, you become fluid. You can move when you need to move and stay when you need to stay. You can open and close. You can grow and consolidate. You can be yourself and be with others.`);
-  lines.push(`\nThat's not a flaw in your chart. That's the whole point.`);
+  lines.push(`When you can hold both, you become fluid. You can move when you need to move and stay when you need to stay. You can open and close. You can grow and consolidate. You can be yourself and be with others.`);
+  lines.push(`That's not a flaw in your chart. That's the whole point.`);
   
-  return lines.join('\n');
+  return lines.join('\n\n');
 }
 
 /**
@@ -240,37 +262,38 @@ export function generateSoloMirrorNarrative(
     ? synthesizeMirrorVoice(chartMandates.personName, polarityCards, chartMandates.mandates) 
     : '';
 
-  // Build full narrative
+  // Build full narrative with consistent spacing
   const narrativeParts: string[] = [];
   
-  narrativeParts.push(`## Solo Mirror: ${chartMandates.personName}\n`);
+  narrativeParts.push(`## Solo Mirror: ${chartMandates.personName}`);
   
   if (includeHookStack) {
-    narrativeParts.push(`### ${hookStack.polarity1.title} / ${hookStack.polarity2.title}\n`);
-    narrativeParts.push(`**${hookStack.polarity1.title}**: ${hookStack.polarity1.description}\n`);
-    narrativeParts.push(`**${hookStack.polarity2.title}**: ${hookStack.polarity2.description}\n`);
+    narrativeParts.push(`### ${hookStack.polarity1.title} / ${hookStack.polarity2.title}`);
+    narrativeParts.push(`**${hookStack.polarity1.title}**: ${hookStack.polarity1.description}`);
+    narrativeParts.push(`**${hookStack.polarity2.title}**: ${hookStack.polarity2.description}`);
   }
   
   if (includePolarityCards && polarityCards.length > 0) {
-    narrativeParts.push(`### The Defining Tensions\n`);
+    narrativeParts.push(`### The Defining Tensions`);
     polarityCards.forEach(card => {
-      narrativeParts.push(`#### ${card.name}\n`);
-      narrativeParts.push(`**Active**: ${card.activeSide}\n`);
-      narrativeParts.push(`**Reflective**: ${card.reflectiveSide}\n`);
-      narrativeParts.push(`**Both**: ${card.bothSides}\n`);
+      narrativeParts.push(`#### ${card.name}`);
+      narrativeParts.push(`**Active**: ${card.activeSide}`);
+      narrativeParts.push(`**Reflective**: ${card.reflectiveSide}`);
+      narrativeParts.push(`**Both**: ${card.bothSides}`);
     });
   }
   
   if (includeMandateHighlights) {
-    narrativeParts.push(mandateHighlights);
+    narrativeParts.push(mandateHighlights.trim());
   }
   
   if (includeMirrorVoice) {
-    narrativeParts.push(`### Your Mirror\n`);
-    narrativeParts.push(mirrorVoice);
+    narrativeParts.push(`### Your Mirror`);
+    narrativeParts.push(mirrorVoice.trim());
   }
   
-  const fullNarrative = narrativeParts.join('\n');
+  // Join with double newlines for consistent paragraph spacing
+  const fullNarrative = narrativeParts.join('\n\n');
 
   return {
     hookStack,
