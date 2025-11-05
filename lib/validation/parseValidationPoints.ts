@@ -1,5 +1,9 @@
 import { ValidationPoint } from "./types";
 
+export interface ParseValidationOptions {
+  allowParagraphFallback?: boolean;
+}
+
 /**
  * Checks if a text is likely metadata, informational, or a system message.
  * These should NOT be tagged for resonance validation.
@@ -33,8 +37,11 @@ function isMetadataOrContext(text: string): boolean {
  */
 export function parseValidationPoints(
   message: string,
-  existingPoints: ValidationPoint[] = []
+  existingPoints: ValidationPoint[] = [],
+  options: ParseValidationOptions = {}
 ): ValidationPoint[] {
+  const { allowParagraphFallback = false } = options;
+
   // This regex looks for patterns like "FIELD: Text about the field"
   const fieldRegex = /(?:^|\n)([A-Z][A-Z0-9_/ ]+):\s*([^\n]+)/g;
   
@@ -71,7 +78,7 @@ export function parseValidationPoints(
   }
   
   // If no explicit fields found, try to split by paragraphs
-  if (points.length === 0) {
+  if (points.length === 0 && allowParagraphFallback) {
     const paragraphs = message
       .split(/\n\s*\n/)
       .map(p => p.trim())

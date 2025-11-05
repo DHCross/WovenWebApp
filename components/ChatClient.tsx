@@ -11,6 +11,7 @@ import { parseValidationPoints } from "@/lib/validation/parseValidationPoints";
 import type { ValidationPoint, ValidationState } from "@/lib/validation/types";
 import MirrorResponseActions from "./MirrorResponseActions";
 import SessionWrapUpModal from "./SessionWrapUpModal";
+import WrapUpCard from "./WrapUpCard";
 import { pingTracker } from "../lib/ping-tracker";
 import GranularValidation from "./feedback/GranularValidation";
 import {
@@ -36,6 +37,10 @@ type RavenDraftResponse = {
   guidance?: string;
   error?: string;
   details?: any;
+  validation?: {
+    mode: 'resonance' | 'none';
+    allowFallback?: boolean;
+  } | null;
 };
 
 type MessageRole = "user" | "raven";
@@ -53,6 +58,13 @@ interface Message {
   rawText?: string; // Store clean text for copying
   validationPoints?: ValidationPoint[];
   validationComplete?: boolean;
+  metadata?: {
+    onboardingActions?: {
+      startReading: () => void;
+      upload: () => void;
+      dialogue: () => void;
+    };
+  };
 }
 
 interface ReportContext {
@@ -105,6 +117,13 @@ interface ParsedReportContent {
   isMirror: boolean;
 }
 
+type RavenSessionExport = {
+  sessionId?: string;
+  scores?: any;
+  log?: any;
+  suggestions?: any[];
+};
+
 type SessionMode = 'idle' | 'exploration' | 'report';
 
 type SessionShiftOptions = {
@@ -115,6 +134,22 @@ type SessionShiftOptions = {
 
 const MB_LAST_PAYLOAD_KEY = "mb.lastPayload";
 const MB_LAST_PAYLOAD_ACK_KEY = "mb.lastPayloadAck";
+
+const RESONANCE_MARKERS = [
+  "FIELD:",
+  "MAP:",
+  "VOICE:",
+  "WB ·",
+  "ABE ·",
+  "OSR ·",
+  "Resonance Ledger",
+  "VALIDATION:",
+];
+
+function containsResonanceMarkers(text: string | undefined | null): boolean {
+  if (!text) return false;
+  return RESONANCE_MARKERS.some((marker) => text.includes(marker));
+}
 
 const MIRROR_SECTION_ORDER: Array<{ key: string; label: string }> = [
   { key: "picture", label: "Picture" },
@@ -175,9 +210,10 @@ const sanitizeHtml = (html: string): string => {
       "h4",
       "h5",
       "h6",
+      "button",
     ],
-    ALLOWED_ATTR: ["href", "target", "rel", "class", "style"],
-    ALLOW_DATA_ATTR: false,
+    ALLOWED_ATTR: ["href", "target", "rel", "class", "style", "data-action"],
+    ALLOW_DATA_ATTR: true,
     KEEP_CONTENT: true,
   });
 };
@@ -761,15 +797,16 @@ const parseReportContent = (rawContent: string, opts: ParseOptions = {}): Parsed
 const createInitialMessage = (): Message => ({
   id: generateId(),
   role: "raven",
-  html: `I’m a clean mirror. I set what you share beside the pattern I see and speak it back in plain language. Drop in whenever you’re ready—type below to talk freely, or upload a Math Brain export when you want the formal reading. I’ll keep you oriented either way.`,
+  html: `<p style="margin:0; line-height:1.65;">I’m a clean mirror. Share whatever’s moving—type below to talk freely, or upload your Mirror + Symbolic Weather JSON when you want the formal reading. I’ll keep you oriented either way.</p>`,
   climate: formatFullClimateDisplay({ magnitude: 1, valence: 2, volatility: 0 }),
-  hook: "Atmosphere · Creator ∠ Mirror",
-  rawText: `I’m a clean mirror. I set what you share beside the pattern I see and speak it back in plain language. Drop in whenever you’re ready—type below to talk freely, or upload a Math Brain export when you want the formal reading. I’ll keep you oriented either way.`,
+  hook: "Session · Orientation",
+  rawText: `I’m a clean mirror. Share whatever’s moving—type below to talk freely, or upload your Mirror + Symbolic Weather JSON when you want the formal reading. I’ll keep you oriented either way.`,
   validationPoints: [],
   validationComplete: true,
 });
 
 export default function ChatClient() {
+  // ... rest of the code remains the same ...
   const [messages, setMessages] = useState<Message[]>(() => [createInitialMessage()]);
   const [validationMap, dispatchValidation] = useReducer(validationReducer, {} as ValidationState);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
@@ -854,6 +891,9 @@ export default function ChatClient() {
   const [sessionStarted, setSessionStarted] = useState<boolean>(false);
   const [sessionMode, setSessionMode] = useState<SessionMode>('idle');
   const [isWrapUpOpen, setIsWrapUpOpen] = useState(false);
+  const [wrapUpLoading, setWrapUpLoading] = useState(false);
+  const [showWrapUpPanel, setShowWrapUpPanel] = useState(false);
+  const [wrapUpExport, setWrapUpExport] = useState<RavenSessionExport | null>(null);
   const [showResonanceCard, setShowResonanceCard] = useState(false);
   const [resonanceCard, setResonanceCard] = useState<any>(null);
   const [contextualSuggestions, setContextualSuggestions] = useState<string[]>([]);
@@ -1250,18 +1290,32 @@ export default function ChatClient() {
 
       const climateDisplay = formatClimate(response?.climate ?? undefined);
       const hook = formatIntentHook(response?.intent, response?.prov ?? null);
-      const shouldParseValidation = Boolean(response?.draft) && Boolean(rawText);
+      const allowValidationMarkers =
+        containsResonanceMarkers(rawText) ||
+        response?.validation?.mode === "resonance";
+      const shouldParseValidation =
+        Boolean(response?.draft) && Boolean(rawText) && allowValidationMarkers;
       const existingPoints = validationMap[ravenId] ?? [];
       const parsedPoints = shouldParseValidation
-        ? parseValidationPoints(rawText, existingPoints)
+        ? parseValidationPoints(rawText, existingPoints, {
+            allowParagraphFallback: response?.validation?.allowFallback === true,
+          })
         : existingPoints;
 
       if (shouldParseValidation) {
-        dispatchValidation({
-          type: "setPoints",
-          messageId: ravenId,
-          points: parsedPoints,
-        });
+        if (parsedPoints.length > 0) {
+          dispatchValidation({
+            type: "setPoints",
+            messageId: ravenId,
+            points: parsedPoints,
+          });
+        } else if (existingPoints.length > 0) {
+          dispatchValidation({
+            type: "setPoints",
+            messageId: ravenId,
+            points: [],
+          });
+        }
       }
 
       setMessages((prev) =>
@@ -1279,9 +1333,13 @@ export default function ChatClient() {
           };
 
           if (shouldParseValidation) {
-            nextMessage.validationPoints = parsedPoints;
-            nextMessage.validationComplete =
-              parsedPoints.length > 0 && !hasPendingValidations(parsedPoints);
+            if (parsedPoints.length > 0) {
+              nextMessage.validationPoints = parsedPoints;
+              nextMessage.validationComplete = !hasPendingValidations(parsedPoints);
+            } else {
+              nextMessage.validationPoints = [];
+              nextMessage.validationComplete = true;
+            }
           }
 
           return nextMessage;
@@ -1733,7 +1791,7 @@ export default function ChatClient() {
     }
   }, []);
 
-  const performSessionReset = useCallback(() => {
+const performSessionReset = useCallback(() => {
     if (abortRef.current) {
       try {
         abortRef.current.abort();
@@ -1746,6 +1804,9 @@ export default function ChatClient() {
     sessionAnnouncementHookRef.current = undefined;
     sessionAnnouncementClimateRef.current = undefined;
     previousModeRef.current = 'idle';
+    setWrapUpLoading(false);
+    setShowWrapUpPanel(false);
+    setWrapUpExport(null);
     setMessages([createInitialMessage()]);
     setReportContexts([]);
     setRelocation(null);
@@ -1755,6 +1816,26 @@ export default function ChatClient() {
     pingTracker.sealSession(sessionId ?? undefined);
   }, [sessionId, shiftSessionMode]);
 
+  const closeServerSession = useCallback(async (sealedSessionId?: string | null) => {
+    if (!sealedSessionId) return;
+    try {
+      await fetch("/api/raven", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "close", sessionId: sealedSessionId }),
+      });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn("Failed to close session on server:", error);
+    }
+  }, []);
+
+  const handleWrapUpSealed = useCallback(async (sealedSessionId: string) => {
+    await closeServerSession(sealedSessionId);
+    performSessionReset();
+    setShowWrapUpPanel(false);
+  }, [closeServerSession, performSessionReset]);
+
   const handleStartWrapUp = useCallback(() => {
     setIsWrapUpOpen(true);
   }, []);
@@ -1763,10 +1844,42 @@ export default function ChatClient() {
     setIsWrapUpOpen(false);
   }, []);
 
-  const handleConfirmWrapUp = useCallback(() => {
-    performSessionReset();
+  const handleConfirmWrapUp = useCallback(async () => {
     setIsWrapUpOpen(false);
-  }, [performSessionReset]);
+
+    if (!sessionStarted) {
+      performSessionReset();
+      return;
+    }
+
+    setWrapUpLoading(true);
+    try {
+      let exportPayload: RavenSessionExport | null = null;
+      if (sessionId) {
+        const response = await fetch("/api/raven", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "export", sessionId }),
+        });
+
+        if (response.ok) {
+          exportPayload = await response.json();
+        } else if (response.status !== 404) {
+          throw new Error(`Export failed (${response.status})`);
+        }
+      }
+
+      setWrapUpExport(exportPayload);
+      setShowWrapUpPanel(true);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Failed to prepare wrap-up:", error);
+      setStatusMessage("Wrap-up export failed, clearing session instead.");
+      performSessionReset();
+    } finally {
+      setWrapUpLoading(false);
+    }
+  }, [performSessionReset, sessionId, sessionStarted, setStatusMessage]);
 
   const handleRemoveReportContext = useCallback((contextId: string) => {
     setReportContexts((prev) => {
@@ -2350,7 +2463,7 @@ export default function ChatClient() {
           )}
           {messages.length === 0 && !typing && (
             <p className="text-center text-sm text-slate-400">
-              Upload a report or ask Raven a question to begin.
+              Session ready. Raven is preparing your mirror—watch for the reading to appear.
             </p>
           )}
         </div>
@@ -2433,6 +2546,29 @@ export default function ChatClient() {
         onDismiss={handleDismissWrapUp}
         onConfirmEnd={handleConfirmWrapUp}
       />
+      {wrapUpLoading && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/70">
+          <div className="rounded-lg border border-slate-700/70 bg-slate-900 px-6 py-4 text-sm text-slate-200 shadow-xl">
+            Preparing wrap-up summary…
+          </div>
+        </div>
+      )}
+      {showWrapUpPanel && (
+        <div className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/80 px-4 py-6">
+          <div className="w-full max-w-4xl">
+            <WrapUpCard
+              sessionId={sessionId ?? undefined}
+              exportData={wrapUpExport ?? undefined}
+              onClose={() => {
+                setShowWrapUpPanel(false);
+              }}
+              onSealed={(sealedSessionId) => {
+                void handleWrapUpSealed(sealedSessionId);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

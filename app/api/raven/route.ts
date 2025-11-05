@@ -88,7 +88,7 @@ function extractProbeFromResponse(responseText: string): string | null {
   return match ? match[1].trim() : null;
 }
 
-type ConversationMode = 'explanation' | 'clarification' | 'suggestion';
+type ConversationMode = 'explanation' | 'clarification' | 'suggestion' | 'meta_feedback';
 
 const CLARIFICATION_PATTERNS: RegExp[] = [
   /\bcan you clarify\b/i,
@@ -112,15 +112,37 @@ const SUGGESTION_PATTERNS: RegExp[] = [
   /\bwould it be possible to\b/i,
 ];
 
+const META_FEEDBACK_PATTERNS: RegExp[] = [
+  /\b(this|your)\s+(system|app|build|code|program|programming)\b.*\b(broken|bug|issue|problem|stuck|loop|failing)\b/i,
+  /\bpoetic brain\b.*\b(stuck|loop|broken)\b/i,
+  /\bperplexity\b.*\b(issue|problem|bug)\b/i,
+  /\bnetlify\b.*\b(error|fail|deploy)\b/i,
+  /\bresonance check\b.*\b(stop|turn off|stuck)\b/i,
+  /\b(stop|quit)\b.*\b(poetry|metaphor|lyric)\b/i,
+  /\brespond\b.*\bplain(ly)?\b/i,
+  /\bno more\b.*\b(poetry|metaphor)\b/i,
+  /\bfrustrated\b.*\bwith\b.*\byou\b/i,
+  /\bwhy are you\b.*\bdoing\b.*(this|that)\b/i,
+  /\byour programming\b/i,
+  /\bthis feels like a loop\b/i,
+  /\bmeta feedback\b/i,
+  /\bdebug\b/i,
+];
+
 const FALLBACK_PROBE_BY_MODE: Record<ConversationMode, string> = {
   explanation: 'Where do you feel this pattern pressing most in your day right now?',
   clarification: 'What would help me restate this so it feels truer to your lived experience?',
   suggestion: 'How should we carry this suggestion forward so it genuinely supports you?',
+  meta_feedback: 'What specific adjustment would make this feel more useful right now?',
 };
 
 function detectConversationMode(text: string, session: SessionSSTLog): ConversationMode {
   const input = text.trim();
   if (!input) return 'explanation';
+
+  if (META_FEEDBACK_PATTERNS.some((pattern) => pattern.test(input))) {
+    return 'meta_feedback';
+  }
 
   if (SUGGESTION_PATTERNS.some((pattern) => pattern.test(input))) {
     return 'suggestion';
@@ -533,9 +555,20 @@ export async function POST(req: Request) {
     const { action = 'generate', input, options = {}, sessionId } = await req.json();
     const textInput = typeof input === 'string' ? input : '';
     const resolvedOptions = (typeof options === 'object' && options !== null) ? options as Record<string, any> : {};
-    let sid = sessionId as string | undefined;
-    if (!sid) { sid = randomUUID(); }
-    if (!sessions.has(sid)) sessions.set(sid, { probes: [], turnCount: 0, history: [] });
+    let sid = typeof sessionId === 'string' && sessionId.trim() ? String(sessionId) : undefined;
+    const requiresSession = action === 'export' || action === 'close' || action === 'feedback';
+    if (!sid && requiresSession) {
+      return NextResponse.json({ ok: false, error: 'Session ID required' }, { status: 400 });
+    }
+    if (!sid) {
+      sid = randomUUID();
+    }
+    if (!sessions.has(sid)) {
+      if (requiresSession) {
+        return NextResponse.json({ ok: false, error: 'Session not found' }, { status: 404 });
+      }
+      sessions.set(sid, { probes: [], turnCount: 0, history: [] });
+    }
     const sessionLog = sessions.get(sid)! as SessionSSTLog & Record<string, any>;
     if (typeof sessionLog.turnCount !== 'number') sessionLog.turnCount = 0;
     if (!Array.isArray(sessionLog.history)) sessionLog.history = [];
@@ -562,6 +595,11 @@ export async function POST(req: Request) {
         log: sessionLog,
         suggestions: sessionLog.suggestions ?? [],
       });
+    }
+
+    if (action === 'close') {
+      sessions.delete(sid);
+      return NextResponse.json({ ok: true, sessionId: sid });
     }
 
     // Allow relational mode answers to short-circuit before intent detection
@@ -643,7 +681,7 @@ export async function POST(req: Request) {
       resolvedOptions.chart
     );
 
-    const wantsWeatherOnly =
+    let wantsWeatherOnly =
       resolvedOptions.weatherOnly === true ||
       (typeof resolvedOptions.mode === 'string' && /weather/i.test(resolvedOptions.mode)) ||
       /\b(weather|sky today|planetary (weather|currents)|what's happening in the sky)\b/i.test(textInput);
@@ -675,6 +713,48 @@ export async function POST(req: Request) {
         // Explicitly disable resonance probe for OSR responses
         probe: null,
       });
+    }
+
+    if (autoPlan.status === 'relational_auto') {
+      wantsWeatherOnly = false;
+      const relationalResponse = await runMathBrain({
+        ...resolvedOptions,
+        reportType: 'relational',
+        autoMode: 'relational_auto',
+      });
+      if (!relationalResponse.success) {
+        return NextResponse.json({ intent, ok: false, error: 'Math Brain failed', details: relationalResponse });
+      }
+      const relationalProv = stampProvenance(relationalResponse.provenance);
+      const relationalDraft = await renderShareableMirror({ geo: relationalResponse.geometry, prov: relationalProv, options: resolvedOptions });
+      const relationalProbe = createProbe(relationalDraft?.next_step || 'Notice how the mirror moves between you two', randomUUID());
+      sessionLog.probes.push(relationalProbe);
+      return NextResponse.json({ intent, ok: true, draft: relationalDraft, prov: relationalProv, climate: relationalResponse.climate ?? null, sessionId: sid, probe: relationalProbe });
+    }
+
+    if (autoPlan.status === 'parallel_auto') {
+      wantsWeatherOnly = false;
+      const parallelResponse = await runMathBrain({
+        ...resolvedOptions,
+        reportType: 'parallel',
+        autoMode: 'parallel_auto',
+      });
+      if (!parallelResponse.success) {
+        return NextResponse.json({ intent, ok: false, error: 'Math Brain failed', details: parallelResponse });
+      }
+      const parallelProv = stampProvenance(parallelResponse.provenance);
+      const parallelDraft = await renderShareableMirror({ geo: parallelResponse.geometry, prov: parallelProv, options: resolvedOptions });
+      const parallelProbe = createProbe(parallelDraft?.next_step || 'Check how each mirror lands individually', randomUUID());
+      sessionLog.probes.push(parallelProbe);
+      return NextResponse.json({ intent, ok: true, draft: parallelDraft, prov: parallelProv, climate: parallelResponse.climate ?? null, sessionId: sid, probe: parallelProbe });
+    }
+
+    if (autoPlan.status === 'contextual_auto') {
+      wantsWeatherOnly = false;
+    }
+
+    if (autoPlan.status === 'solo_auto') {
+      wantsWeatherOnly = false;
     }
 
     if (autoPlan.status === 'relational_choice') {
@@ -757,6 +837,11 @@ export async function POST(req: Request) {
     const isFirstTurn = (sessionLog.turnCount ?? 0) === 0;
 
     const conversationMode = detectConversationMode(textInput, sessionLog);
+    const previousMode = sessionLog.metaConversationMode;
+    if (previousMode !== conversationMode) {
+      console.info('[Raven] conversation_mode', { session: sid, from: previousMode ?? 'unset', to: conversationMode });
+    }
+    sessionLog.metaConversationMode = conversationMode;
 
     const instructionLines: string[] = [
       'Respond in natural paragraphs (2-3) using a warm, lyrical voice. Weave symbolic insight into lived, testable language.',
@@ -770,7 +855,13 @@ export async function POST(req: Request) {
       instructionLines.push('The user is asking for symbolic weather / current climate. Anchor your reflection in present-time field dynamics while staying grounded in their lived situation.');
     }
 
-    if (conversationMode === 'suggestion') {
+    if (conversationMode === 'meta_feedback') {
+      instructionLines.push(
+        'The user is giving meta feedback about the system or session behavior. Respond in plain, direct language.',
+        'Acknowledge the issue, state what you can adjust, and invite actionable detail only if needed.',
+        'Do NOT use symbolic metaphors, archetypal imagery, or resonance questions. Keep it diagnostic and pragmatic.',
+      );
+    } else if (conversationMode === 'suggestion') {
       instructionLines.push(
         'The user is offering a product suggestion. Acknowledge it, affirm the useful part, and confirm you will carry it forward without promising implementation.',
       );
@@ -784,11 +875,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const closingInstruction = autoPlan.forceQuestion
-      ? 'End with exactly one resonance question that invites them to test the mirror in their lived experience.'
-      : isFirstTurn
-        ? 'This is the first substantive turn of the session. Close with a reflective line instead of a question.'
-        : 'End with exactly one reflective question that invites them to test the resonance in their lived experience.';
+    const closingInstruction =
+      conversationMode === 'meta_feedback'
+        ? 'Do not ask a resonance question. Close by confirming the adjustment you will make or by asking for one concrete detail if required for a fix.'
+        : autoPlan.forceQuestion
+          ? 'End with exactly one resonance question that invites them to test the mirror in their lived experience.'
+          : isFirstTurn
+            ? 'This is the first substantive turn of the session. Close with a reflective line instead of a question.'
+            : 'End with exactly one reflective question that invites them to test the resonance in their lived experience.';
     instructionLines.push(closingInstruction);
 
     const promptSections: string[] = [
@@ -840,7 +934,14 @@ export async function POST(req: Request) {
       }
 
       let probe = null;
-      const shouldScoreSession = !isFirstTurn && (hasReportContext || hasGeometryPayload);
+      const shouldScoreSession =
+        !isFirstTurn &&
+        (hasReportContext || hasGeometryPayload) &&
+        conversationMode !== 'meta_feedback';
+      if (sessionLog.validationActive !== shouldScoreSession) {
+        console.info('[Raven] validation_state', { session: sid, active: shouldScoreSession });
+        sessionLog.validationActive = shouldScoreSession;
+      }
       if (shouldScoreSession) {
         const probeText =
           extractProbeFromResponse(replyText) ??

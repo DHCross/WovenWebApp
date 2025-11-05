@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ActorRoleDetector, { ActorRoleComposite } from '../lib/actor-role-detector';
 import { pingTracker } from '../lib/ping-tracker';
 import { sanitizeForPDF } from '../src/pdf-sanitizer';
@@ -27,9 +27,10 @@ interface WrapUpCardProps {
   sessionId?: string;
   onClose?: () => void;
   onSealed?: (sealedSessionId: string, nextSessionId: string) => void;
+  exportData?: any;
 }
 
-const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed }) => {
+const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, exportData }) => {
   const [composite, setComposite] = useState<ActorRoleComposite | null>(null);
   const [sessionStats, setSessionStats] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -53,6 +54,7 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
   });
   const [rubricSealedSessionId, setRubricSealedSessionId] = useState<string | null>(null);
   const [showPendingNote, setShowPendingNote] = useState<number>(0);
+  const [prefetchedExport, setPrefetchedExport] = useState<any | null>(exportData ?? null);
 
   const ScoreSlider: React.FC<{ label: string; helper: string; keyName: RubricKey }> = ({
     label,
@@ -127,6 +129,13 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
   React.useEffect(() => {
     generateActorRoleReveal();
   }, [sessionId]);
+
+  useEffect(() => {
+    setPrefetchedExport(exportData ?? null);
+    if (exportData?.scores && !sessionStats) {
+      setSessionStats(exportData.scores);
+    }
+  }, [exportData, sessionStats]);
 
   const totalScore = rubricScores.pressure + rubricScores.outlet + rubricScores.conflict + rubricScores.tone + rubricScores.surprise;
   const scoreBand = totalScore >= 13 ? 'Strong signal' : totalScore >= 10 ? 'Some clear hits' : totalScore >= 6 ? 'Mild resonance' : 'Didn\'t land';
@@ -409,17 +418,25 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
 
   const handleExportJSON = async () => {
     try {
-      const response = await fetch('/api/raven', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'export',
-          sessionId: sessionId || pingTracker.getCurrentSessionId()
-        })
-      });
+      let data = prefetchedExport;
+      if (!data) {
+        const response = await fetch('/api/raven', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'export',
+            sessionId: sessionId || pingTracker.getCurrentSessionId()
+          })
+        });
 
-      if (response.ok) {
-        const data = await response.json();
+        if (!response.ok) {
+          throw new Error('Export failed');
+        }
+        data = await response.json();
+        setPrefetchedExport(data);
+      }
+
+      if (data) {
         // Enhanced JSON export with comprehensive data
         const exportData = {
           // Core session metadata
@@ -491,8 +508,6 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
         setToast('Session data exported successfully');
         setTimeout(() => setToast(null), 2500);
         logEvent('json_export_success', { sessionId: data.sessionId });
-      } else {
-        throw new Error('Export failed');
       }
     } catch (error) {
       setToast('Export failed. Please try again.');
