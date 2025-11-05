@@ -421,8 +421,25 @@ function deriveAutoExecutionPlan(
   }
 
   const payload = parsed.data || {};
-  const personA = resolveSubject(payload, 'person_a');
-  const personB = resolveSubject(payload, 'person_b');
+  const companionContexts = contexts.filter((ctx) => ctx && ctx !== mirrorContext && typeof ctx.content === 'string');
+  const resolveWithCompanion = (
+    subject: any,
+    key: 'person_a' | 'person_b'
+  ): any => {
+    if (hasCompleteSubject(subject)) return subject;
+    for (const ctx of companionContexts) {
+      const companionParsed = safeParseJSON(String(ctx.content));
+      if (!companionParsed.ok) continue;
+      const candidate = resolveSubject(companionParsed.data, key);
+      if (hasCompleteSubject(candidate)) {
+        return candidate;
+      }
+    }
+    return subject;
+  };
+
+  const personA = resolveWithCompanion(resolveSubject(payload, 'person_a'), 'person_a');
+  const personB = resolveWithCompanion(resolveSubject(payload, 'person_b'), 'person_b');
   if (!hasCompleteSubject(personA)) {
     return {
       status: 'osr',

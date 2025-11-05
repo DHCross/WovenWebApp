@@ -1491,6 +1491,7 @@ export default function ChatClient() {
   const analyzeReportContext = useCallback(
     async (reportContext: ReportContext, contextsForPayload?: ReportContext[]) => {
       const contextList = contextsForPayload ?? reportContexts;
+      const currentMetadata = detectReportMetadata(reportContext.content);
       const metadataList = contextList.map((ctx) => ({
         id: ctx.id,
         type: ctx.type,
@@ -1500,6 +1501,36 @@ export default function ChatClient() {
       const hasMirrorDirective = metadataList.some((entry) => entry.metadata.hasMirrorDirective);
       const hasSymbolicWeather = metadataList.some((entry) => entry.metadata.hasSymbolicWeather);
       const hasRelationalMirror = metadataList.some((entry) => entry.metadata.isRelationalMirror);
+
+      if (
+        reportContext.type === 'mirror' &&
+        currentMetadata.format === null &&
+        pendingContextRequirementRef.current !== 'mirror'
+      ) {
+        pendingContextRequirementRef.current = 'mirror';
+        setStatusMessage("Mirror upload needs the JSON export.");
+        const prompt =
+          "That looks like the printable Mirror Directive markdown. Export the Mirror Directive as JSON from Math Brain (or grab the combined Mirror + Symbolic Weather JSON) and drop it in so I can open the full geometry.";
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: generateId(),
+            role: 'raven',
+            html: `<p style="margin:0; line-height:1.65;">${escapeHtml(prompt)}</p>`,
+            hook: "Upload · Mirror JSON Needed",
+            climate: "VOICE · Awaiting Upload",
+            rawText: prompt,
+            validationPoints: [],
+            validationComplete: true,
+          },
+        ]);
+        // eslint-disable-next-line no-console
+        console.info('[Poetic Brain] Mirror directive upload missing JSON format', {
+          contextId: reportContext.id,
+          summary: reportContext.summary,
+        });
+        return;
+      }
 
       if (hasRelationalMirror && !hasSymbolicWeather) {
         setStatusMessage("Waiting for the symbolic weather export…");
