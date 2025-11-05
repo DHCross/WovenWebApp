@@ -1,5 +1,5 @@
 # Branch Analysis Report
-Generated: 2025-11-05T21:51:40.480Z
+Generated: 2025-11-05T21:54:49.217Z
 
 ## Summary
 
@@ -226,9 +226,8 @@ These branches are actively being worked on (< 30 days old):
 | copilot/create-mandate-translation-layer | 2025-11-05 | 0 | 1 | [2025-11-05] FIX: Remove duplicate directional_bia |
 | copilot/docsfield-relocation-ui-copy | 2025-11-05 | 0 | 1 | Initial plan |
 | copilot/fix-playwright-port-conflict | 2025-11-05 | 0 | 1 | Final verification complete |
-| copilot/review-outdated-branches | 2025-11-05 | 0 | 0 | Add branch analysis tool and documentation |
+| copilot/review-outdated-branches | 2025-11-05 | 0 | 0 | Add implementation summary and regenerate report |
 | copilot/sub-pr-239 | 2025-11-04 | 0 | 1 | Fix: Remove missing test fixture and update test t |
-| copilot/sub-pr-251 | 2025-11-04 | 0 | 1 | Initial plan |
 | copilot/sub-pr-252 | 2025-11-05 | 0 | 1 | Branch analysis: PR #252 Fix Placidus House Calcul |
 | copilot/sub-pr-265 | 2025-11-05 | 0 | 1 | Fix Playwright port conflict in CI by skipping web |
 | copilot/update-docs-field-relocation-ui | 2025-11-05 | 0 | 1 | docs: add FIELD vs Overlay UI copy and provenance  |
@@ -237,11 +236,12 @@ These branches are actively being worked on (< 30 days old):
 | fix-initial-reading-trigger | 2025-11-05 | 0 | 0 | Fix: Correctly trigger initial report reading |
 | fix/balance-meter-overflow-boundary | 2025-11-05 | 0 | 1 | The overflow detection logic in the Balance Meter  |
 | fix/graceful-error-handling | 2025-11-05 | 0 | 1 | Initial plan (#257) |
-| fix/placidus-calculation-bug | 2025-11-04 | 0 | 1 | Fix: Correct Placidus house calculation algorithm |
 | fix/robust-house-cusp-extraction | 2025-11-05 | 0 | 1 | refactor: Make house cusp extraction more robust |
 | pr-review-1 | 2025-11-05 | 0 | 1 | Reviewed the PR and identified several issues. |
 | codex/fix-typescript-error-in-lib/devauth.ts | 2025-11-04 | 1 | 1 | Fix SRP example relative imports |
 | copilot/fix-osr-detection-error | 2025-11-04 | 1 | 1 | fix: restore corrupted useChartExport.ts file to v |
+| copilot/sub-pr-251 | 2025-11-04 | 1 | 1 | Initial plan |
+| fix/placidus-calculation-bug | 2025-11-04 | 1 | 1 | Fix: Correct Placidus house calculation algorithm |
 | code-review-balance-meter-v5 | 2025-11-03 | 2 | 1 | Reviewed and improved the Balance Meter v5.0 upgra |
 | fix/graceful-error-handling-v2-1 | 2025-11-03 | 2 | 1 | refactor: Improve error handling for composite cha |
 | jules-review-20251102-2 | 2025-11-03 | 2 | 1 | Reviewed the pull request and provided a summary o |
@@ -283,7 +283,7 @@ These branches are actively being worked on (< 30 days old):
 | fix/relocation-houses-bugs | 2025-10-23 | 13 | 1 | Fix: Correct Placidus house calculation and normal |
 | spec-v5-unification | 2025-10-23 | 13 | 1 | Update BALANCE_METER_README.md |
 | agent-deployment-8f47 | 2025-10-22 | 14 | 1 | Fix Type Error in useChartExport.ts for Netlify De |
-| feature/consolidate-poetic-brain-output | 2025-10-19 | 16 | 1 | Refactor: Consolidate Poetic Brain output into a s |
+| feature/consolidate-poetic-brain-output | 2025-10-19 | 17 | 1 | Refactor: Consolidate Poetic Brain output into a s |
 | copilot/add-astrology-mathbrain-api | 2025-10-18 | 18 | 1 | Fix longitude display bug in verification test |
 | feat/perplexity-persona-hook | 2025-10-18 | 18 | 1 | feat(llm): Align Perplexity API with persona requi |
 | fix-mobile-download | 2025-10-18 | 18 | 1 | Merge main into fix-mobile-download, resolve confl |
