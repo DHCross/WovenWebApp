@@ -244,9 +244,9 @@ export const computeOverflowDetail = ({
   const saturationFlag = saturation === true;
 
   const magnitudeExceedsRange =
-    rawMagnitudeValue != null && Math.abs(rawMagnitudeValue) > OVERFLOW_LIMIT + OVERFLOW_TOLERANCE;
+    rawMagnitudeValue != null && Math.abs(rawMagnitudeValue) >= OVERFLOW_LIMIT + OVERFLOW_TOLERANCE;
   const directionalExceedsRange =
-    rawDirectionalBiasValue != null && Math.abs(rawDirectionalBiasValue) > OVERFLOW_LIMIT + OVERFLOW_TOLERANCE;
+    rawDirectionalBiasValue != null && Math.abs(rawDirectionalBiasValue) >= OVERFLOW_LIMIT + OVERFLOW_TOLERANCE;
 
   const overflowRegistered =
     magnitudeClampedFlag ||
