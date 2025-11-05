@@ -34,6 +34,9 @@ describe('overflow detail exports', () => {
     expect(detail.note).toBe(OVERFLOW_NOTE_TEXT);
     expect(detail.drivers).toContain('Mars(Person A) ▻ Venus(Person B) Square');
     expect(detail.drivers).toContain('Sun ▻ Moon Trine');
+    expect(detail.overflowRegistered).toBe(true);
+    expect(detail.magnitude_clamped).toBe(false);
+    expect(detail.directional_clamped).toBe(false);
   });
 
   it('returns null when readings stay within bounds', () => {
@@ -42,6 +45,37 @@ describe('overflow detail exports', () => {
       clampedMagnitude: 4.999,
       rawDirectionalBias: -4.9,
       clampedDirectionalBias: -4.9,
+      aspects: [],
+    });
+
+    expect(detail).toBeNull();
+  });
+
+  it('uses clamp flags to report overflow near the tolerance band', () => {
+    const detail = computeOverflowDetail({
+      rawMagnitude: 5.02,
+      clampedMagnitude: 5,
+      rawDirectionalBias: -5.01,
+      clampedDirectionalBias: -5,
+      magnitudeClamped: true,
+      directionalBiasClamped: true,
+      aspects: [],
+    });
+
+    expect(detail).not.toBeNull();
+    if (!detail) return;
+
+    expect(detail.overflowRegistered).toBe(true);
+    expect(detail.magnitude_delta).toBeCloseTo(0.02, 2);
+    expect(detail.directional_delta).toBeCloseTo(-0.01, 2);
+  });
+
+  it('ignores unclamped jitter within the tolerance band', () => {
+    const detail = computeOverflowDetail({
+      rawMagnitude: 5.02,
+      clampedMagnitude: 5.02,
+      rawDirectionalBias: -5.01,
+      clampedDirectionalBias: -5.01,
       aspects: [],
     });
 

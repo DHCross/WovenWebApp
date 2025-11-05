@@ -3,7 +3,12 @@
 import React from "react";
 import { generateClimateNarrative } from "../../lib/climate-narrative";
 import { ClimateData } from "../../lib/climate-renderer";
-import { type OverflowDetail, OVERFLOW_NOTE_TEXT } from "../../lib/math-brain/overflow-detail";
+import {
+  type OverflowDetail,
+  OVERFLOW_LIMIT,
+  OVERFLOW_NOTE_TEXT,
+  OVERFLOW_TOLERANCE,
+} from "../../lib/math-brain/overflow-detail";
 import { generateClimateClasses, getValenceVisuals } from "../../lib/symbolic-visuals";
 
 interface EnhancedDailyClimateCardProps {
@@ -31,19 +36,48 @@ export default function EnhancedDailyClimateCard({
 }: EnhancedDailyClimateCardProps) {
   const narrative = generateClimateNarrative(climate, activatedHouses, isRangeSummary);
 
-  const overflowMagnitudeDelta = overflowDetail?.magnitude_delta ?? null;
-  const overflowDirectionalDelta = overflowDetail?.directional_delta ?? null;
-  const hasOverflow = overflowDetail && (overflowMagnitudeDelta ?? 0) !== 0 || (overflowDirectionalDelta ?? 0) !== 0;
+  const hasOverflow = overflowDetail?.overflowRegistered === true;
 
-  const formatDelta = (delta: number | null): string | null => {
-    if (!delta) return null;
-    const sign = delta > 0 ? '+' : '−';
-    return `${sign}${Math.abs(delta).toFixed(2)}`;
+  const overflowMagnitudeDelta = hasOverflow ? overflowDetail?.magnitude_delta ?? null : null;
+  const overflowDirectionalDelta = hasOverflow ? overflowDetail?.directional_delta ?? null : null;
+
+  const formatMagnitudeOvershoot = (delta: number | null): string | null => {
+    if (delta == null || delta === 0) {
+      return null;
+    }
+    return `+${Math.abs(delta).toFixed(2)}`;
+  };
+
+  const formatDirectionalOvershoot = (
+    delta: number | null,
+    rawDirectional: number | null,
+  ): string | null => {
+    if (delta == null || delta === 0) {
+      return null;
+    }
+
+    const magnitude = Math.abs(delta).toFixed(2);
+    const raw = typeof rawDirectional === "number" && Number.isFinite(rawDirectional) ? rawDirectional : null;
+
+    if (raw != null) {
+      if (Math.abs(raw) > OVERFLOW_LIMIT + OVERFLOW_TOLERANCE) {
+        const sign = raw > 0 ? "+" : raw < 0 ? "−" : "";
+        return sign ? `${sign}${magnitude}` : magnitude;
+      }
+      return magnitude;
+    }
+
+    const fallbackSign = delta > 0 ? "+" : "−";
+    return `${fallbackSign}${magnitude}`;
   };
 
   const overflowLines: string[] = [];
-  const magnitudeText = formatDelta(overflowMagnitudeDelta);
-  const directionalText = formatDelta(overflowDirectionalDelta);
+  const magnitudeText = formatMagnitudeOvershoot(overflowMagnitudeDelta);
+  const directionalRaw =
+    typeof overflowDetail?.rawDirectionalBias === "number" && Number.isFinite(overflowDetail.rawDirectionalBias)
+      ? overflowDetail.rawDirectionalBias
+      : null;
+  const directionalText = formatDirectionalOvershoot(overflowDirectionalDelta, directionalRaw);
 
   if (magnitudeText) {
     overflowLines.push(`Magnitude overshoot ${magnitudeText}`);
@@ -52,7 +86,7 @@ export default function EnhancedDailyClimateCard({
     overflowLines.push(`Directional bias overshoot ${directionalText}`);
   }
 
-  const driversText = (overflowDetail?.drivers ?? []).length
+  const driversText = hasOverflow && (overflowDetail?.drivers ?? []).length
     ? `Drivers: ${(overflowDetail?.drivers ?? []).join(' · ')}`
     : null;
 

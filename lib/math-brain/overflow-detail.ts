@@ -3,7 +3,16 @@ export interface OverflowDetail {
   directional_delta: number | null;
   drivers: string[];
   note: string;
+  rawMagnitude: number | null;
+  rawDirectionalBias: number | null;
+  magnitude_clamped: boolean;
+  directional_clamped: boolean;
+  saturation: boolean;
+  overflowRegistered: boolean;
 }
+
+export const OVERFLOW_LIMIT = 5;
+export const OVERFLOW_TOLERANCE = 0.05;
 
 const OVERFLOW_NOTE =
   'Raw readings exceeded the ±5 normalized scale; values above are clamped for display.';
@@ -164,12 +173,33 @@ export const firstFinite = (...values: unknown[]): number | null => {
 export const isValidOverflowDetail = (detail: OverflowDetail | null): detail is OverflowDetail => {
   if (!detail) return false;
 
-  const { magnitude_delta: mag, directional_delta: dir, drivers, note } = detail;
+  const {
+    magnitude_delta: mag,
+    directional_delta: dir,
+    drivers,
+    note,
+    rawMagnitude,
+    rawDirectionalBias,
+    magnitude_clamped,
+    directional_clamped,
+    saturation,
+    overflowRegistered,
+  } = detail;
+
+  if (typeof overflowRegistered !== 'boolean' || !overflowRegistered) {
+    return false;
+  }
+
   const magOk = mag === null || isFiniteNumber(mag);
   const dirOk = dir === null || isFiniteNumber(dir);
-  const hasOverflow = (mag ?? 0) !== 0 || (dir ?? 0) !== 0;
+  const rawMagOk = rawMagnitude == null || isFiniteNumber(rawMagnitude);
+  const rawDirOk = rawDirectionalBias == null || isFiniteNumber(rawDirectionalBias);
 
-  if (!magOk || !dirOk || !hasOverflow) {
+  if (!magOk || !dirOk || !rawMagOk || !rawDirOk) {
+    return false;
+  }
+
+  if (typeof magnitude_clamped !== 'boolean' || typeof directional_clamped !== 'boolean' || typeof saturation !== 'boolean') {
     return false;
   }
 
@@ -185,6 +215,9 @@ export interface OverflowDetailInput {
   clampedMagnitude: number | null | undefined;
   rawDirectionalBias: number | null | undefined;
   clampedDirectionalBias: number | null | undefined;
+  magnitudeClamped?: boolean | null | undefined;
+  directionalBiasClamped?: boolean | null | undefined;
+  saturation?: boolean | null | undefined;
   aspects?: unknown;
 }
 
@@ -193,12 +226,52 @@ export const computeOverflowDetail = ({
   clampedMagnitude,
   rawDirectionalBias,
   clampedDirectionalBias,
+  magnitudeClamped,
+  directionalBiasClamped,
+  saturation,
   aspects,
 }: OverflowDetailInput): OverflowDetail | null => {
-  const magnitude_delta = computeDelta(rawMagnitude, clampedMagnitude);
-  const directional_delta = computeDelta(rawDirectionalBias, clampedDirectionalBias);
+  const rawMagnitudeValue = parseFiniteNumber(rawMagnitude);
+  const clampedMagnitudeValue = parseFiniteNumber(clampedMagnitude);
+  const rawDirectionalBiasValue = parseFiniteNumber(rawDirectionalBias);
+  const clampedDirectionalBiasValue = parseFiniteNumber(clampedDirectionalBias);
 
-  if (magnitude_delta == null && directional_delta == null) {
+  const magnitude_delta = computeDelta(rawMagnitudeValue, clampedMagnitudeValue);
+  const directional_delta = computeDelta(rawDirectionalBiasValue, clampedDirectionalBiasValue);
+
+  const magnitudeClampedFlag = magnitudeClamped === true;
+  const directionalClampedFlag = directionalBiasClamped === true;
+  const saturationFlag = saturation === true;
+
+  const magnitudeExceedsRange =
+    rawMagnitudeValue != null && Math.abs(rawMagnitudeValue) > OVERFLOW_LIMIT + OVERFLOW_TOLERANCE;
+  const directionalExceedsRange =
+    rawDirectionalBiasValue != null && Math.abs(rawDirectionalBiasValue) > OVERFLOW_LIMIT + OVERFLOW_TOLERANCE;
+
+  const overflowRegistered =
+    magnitudeClampedFlag ||
+    directionalClampedFlag ||
+    saturationFlag ||
+    magnitudeExceedsRange ||
+    directionalExceedsRange;
+
+  if (!overflowRegistered) {
+    const magnitudeNearLimit =
+      rawMagnitudeValue != null &&
+      Math.abs(rawMagnitudeValue) > OVERFLOW_LIMIT - OVERFLOW_TOLERANCE &&
+      Math.abs(rawMagnitudeValue) <= OVERFLOW_LIMIT + OVERFLOW_TOLERANCE;
+    const directionalNearLimit =
+      rawDirectionalBiasValue != null &&
+      Math.abs(rawDirectionalBiasValue) > OVERFLOW_LIMIT - OVERFLOW_TOLERANCE &&
+      Math.abs(rawDirectionalBiasValue) <= OVERFLOW_LIMIT + OVERFLOW_TOLERANCE;
+
+    if ((magnitudeNearLimit || directionalNearLimit) && typeof console !== 'undefined' && typeof console.debug === 'function') {
+      console.debug('[BalanceMeter] Near-limit reading without overflow registration', {
+        rawMagnitude: rawMagnitudeValue,
+        rawDirectionalBias: rawDirectionalBiasValue,
+      });
+    }
+
     return null;
   }
 
@@ -208,6 +281,12 @@ export const computeOverflowDetail = ({
     directional_delta,
     drivers,
     note: OVERFLOW_NOTE,
+    rawMagnitude: rawMagnitudeValue,
+    rawDirectionalBias: rawDirectionalBiasValue,
+    magnitude_clamped: magnitudeClampedFlag,
+    directional_clamped: directionalClampedFlag,
+    saturation: saturationFlag,
+    overflowRegistered,
   };
 
   return isValidOverflowDetail(detail) ? detail : null;
@@ -300,6 +379,17 @@ export const computeOverflowDetailFromDay = (day: DayDataLike | null | undefined
   const rawDirectionalBias = extractRawDirectionalBias(seismo.directional_bias ?? seismo);
   const clampedDirectionalBias = extractDirectionalBias(seismo.directional_bias ?? seismo);
 
+  const magnitudeClamped =
+    seismo.magnitude_clamped === true ||
+    seismo.magnitude_state?.clamped === true ||
+    seismo.axes?.magnitude?.clamped === true;
+
+  const directionalBiasSource: any = seismo.directional_bias ?? seismo.axes?.directional_bias ?? null;
+  const directionalBiasClamped =
+    (directionalBiasSource?.clamped === true) ||
+    (directionalBiasSource?.state?.clamped === true) ||
+    (directionalBiasSource?.meta?.clamped === true);
+
   const aspects = Array.isArray(day.aspects)
     ? day.aspects
     : Array.isArray(seismo.aspects)
@@ -311,6 +401,9 @@ export const computeOverflowDetailFromDay = (day: DayDataLike | null | undefined
     clampedMagnitude,
     rawDirectionalBias,
     clampedDirectionalBias,
+    magnitudeClamped,
+    directionalBiasClamped,
+    saturation: seismo.saturation === true,
     aspects,
   });
 };

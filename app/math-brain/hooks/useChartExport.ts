@@ -67,7 +67,11 @@ import {
   formatChartTables,
   extractAxisNumber,
 } from '../utils/formatting';
-import { computeOverflowDetail } from '../../../lib/math-brain/overflow-detail';
+import {
+  computeOverflowDetail,
+  OVERFLOW_LIMIT,
+  OVERFLOW_TOLERANCE,
+} from '../../../lib/math-brain/overflow-detail';
 import { getDirectivePrefix, getDirectiveSuffix } from '../../../lib/export/filename-utils';
 
 type FriendlyFilenameType =
@@ -1474,12 +1478,22 @@ Start with the Solo Mirror(s), then ${
             coherence = Math.max(0, Math.min(5, Math.round(coherence * 10) / 10));
           }
 
+          const magnitudeClampedFlag =
+            typeof safeRawMag === 'number' && safeRawMag > OVERFLOW_LIMIT;
+          const directionalClampedFlag =
+            typeof safeRawBias === 'number' && Math.abs(safeRawBias) > OVERFLOW_LIMIT;
+          const saturationFlag =
+            typeof safeRawMag === 'number' && safeRawMag >= OVERFLOW_LIMIT - OVERFLOW_TOLERANCE;
+
           const overflowDetail = computeOverflowDetail({
             rawMagnitude: safeRawMag,
             clampedMagnitude: typeof safeRawMag === 'number' ? clamp(safeRawMag, 0, 5) : null,
             rawDirectionalBias: safeRawBias,
             clampedDirectionalBias:
               typeof safeRawBias === 'number' ? clamp(safeRawBias, -5, 5) : null,
+            magnitudeClamped: magnitudeClampedFlag,
+            directionalBiasClamped: directionalClampedFlag,
+            saturation: saturationFlag,
             aspects: (dayData as any).aspects,
           });
 
