@@ -6,7 +6,7 @@
  * Geometry-first, falsifiable phrasing; no deterministic claims
  */
 
-import type { MandateAspect, ChartMandates } from './types';
+import type { MandateAspect, ChartMandates, MandateDiagnostic } from './types';
 
 export interface PolarityCard {
   name: string;
