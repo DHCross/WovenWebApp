@@ -31,6 +31,67 @@ The **Balance Meter** (also called "Symbolic Weather Seismograph") is the mathem
 
 ---
 
+## Woven FIELD Chart (MANDATE)
+
+Summary
+- The Woven FIELD Chart is the canonical geometry for all symbolic-weather, Seismograph, and Balance Meter computations. It is produced by a full relocation: computing the chart (angles, houses, planetary positions) for a single space–time coordinate (the observer location/time).
+
+Key rule
+- Do not compute symbolic-weather or Balance Meter metrics from a "Transit Overlay" (hybrid) geometry. Transit Overlay is for visualization only and must not feed into the math pipeline.
+
+Computation pattern (canonical)
+1. Decide observer coordinates (either natal coords, chosen relocation coords, or current location).
+2. Request upstream chart(s) with houses included:
+   - `POST /api/v4/birth-chart` with `include_houses: true` for the subject anchored to the observer coords (relocated natal).
+   - `POST /api/v4/transit-chart` with `include_houses: true` for transit windows anchored to the same observer coords (relocated transits).
+3. Use returned houses/angles as canonical for FIELD calculations (set `provenance.house_engine = 'upstream'`).
+4. If upstream houses are missing, compute houses locally as an explicit fallback (`provenance.house_engine = 'local-swiss-ephemeris@x.y'`).
+5. Compute axes (magnitude, directional bias, and any remaining axes) from the unified geometry.
+
+Provenance example (fieldmap footer)
+
+```json
+{
+  "provenance": {
+    "schema": "BM-v5",
+    "house_system": "Placidus",
+    "orbs_profile": "wm-tight-2025-11-v5",
+    "relocation_mode": "A_local",
+    "relocation_coords": { "lat": 40.0167, "lng": -75.3 },
+    "house_engine": "astrologer.p.rapidapi.com@v4.0",
+    "has_transits": true,
+    "drivers_count": 3,
+    "house_shift_summary": [
+      { "num": 1, "delta_deg": -3.12 },
+      { "num": 2, "delta_deg": -1.04 },
+      ...
+    ],
+    "tz": "America/New_York",
+    "math_brain_version": "5.0",
+    "notes": ["FIELD Chart used: relocated natal + relocated transits; upstream houses used"]
+  }
+}
+```
+
+UI guardrail (developer guidance)
+- The UI must label any "overlay" exports or views clearly:
+  - `geometry: OVERLAY` (for hybrid UI-only visualizations)
+  - `geometry: FIELD` (for canonical math outputs)
+- The Balance Meter job runner must assert `provenance.house_engine !== 'missing_upstream'` before proceeding, and if it is, either re-request with `include_houses` or run the local-house fallback and stamp provenance accordingly.
+
+Migration note for legacy reports
+- Old reports generated with transit overlay/hybrid geometry will continue to exist in the archive, but we must avoid using them for statistical calibration. Flag them with `geometry: OVERLAY` and prefer re-running high-value items under the FIELD mandate.
+
+Testing checklist (quick)
+- FIELD happy path:
+  - Request relocation coords -> upstream returns houses -> provenance.house_engine === 'upstream' -> Balance Meter succeeds and outputs stable values.
+- Upstream missing houses:
+  - Adapter retries / fallback to swisseph -> provenance.house_engine === 'local-swiss-ephemeris@x.y' -> Balance Meter completes.
+- Overlay guard:
+  - UI Overlay option does not route to Balance Meter / Poetic Brain; only used for visualization and exports labeled `geometry: OVERLAY`.
+
+---
+
 ## Architecture (Single Source of Truth)
 
 ```
