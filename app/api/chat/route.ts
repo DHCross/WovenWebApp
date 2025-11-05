@@ -87,7 +87,7 @@ function checkForClearAffirmation(text: string): boolean {
 
 // Check if user is requesting to start/continue the reading (not OSR)
 function checkForReadingStartRequest(text: string): boolean {
-  const lower = text.toLowerCase();
+  const lower = text.toLowerCase().trim();
   const startReadingPhrases = [
     'give me the reading',
     'start the reading',
@@ -107,9 +107,13 @@ function checkForReadingStartRequest(text: string): boolean {
     'let\'s start',
     'please continue',
     'go ahead',
-    'proceed'
+    'proceed',
+    'continue',
+    'okay',
+    'yes',
+    'read it'
   ];
-  
+
   return startReadingPhrases.some(phrase => lower.includes(phrase));
 }
 
@@ -345,41 +349,49 @@ Give a short, plain-language summary of the current planetary weather in two par
     return new Response(responseBody, { headers: { 'Content-Type': 'text/plain; charset=utf-8' }});
   }
   
-  // Check for natural follow-up flow based on user response type
-  // 
-  // DESIGN NOTE: Skip OSR checks on first turn UNLESS explicit OSR phrases used
-  // Rationale: First turn after "Session Started" is typically a command, not a resonance response.
-  // However, we still detect explicit OSR phrases like "doesn't resonate" for edge cases.
-  // 
-  // The OSR check is duplicated here (before classifyUserResponse) intentionally:
-  // - Early exit for first-turn commands (performance optimization)
-  // - Preserves classification logic independence in classifyUserResponse()
-  // - Makes the first-turn special case explicit and easy to understand
-  const skipOSRCheck = isFirstTurn && !checkForOSRIndicators(text);
-  const responseType = skipOSRCheck 
-    ? 'CLEAR_WB' 
-    : classifyUserResponse(text);
-  
-  // Mock session context (in production, this would be persisted)
-  const mockSessionContext: SessionContext = {
-    wbHits: [],
-    abeHits: [],
-    osrMisses: [],
-    actorWeighting: 0,
-    roleWeighting: 0,
-    driftIndex: 0,
-    sessionActive: true
-  };
-  
-  // Generate natural follow-up based on response type
-  if (responseType === 'CLEAR_WB') {
-    const followUp = naturalFollowUpFlow.generateFollowUp({
-      type: 'AFFIRM',
-      content: text,
-      originalMirror: text
-    }, mockSessionContext);
-    
-    analysisPrompt = `The user clearly confirmed resonance: "${text}"
+  const lastRavenMessage = messages.filter((m: any) => m.role === 'raven').pop();
+  const isAfterReportReady = lastRavenMessage?.html?.includes('is ready for interpretation');
+  const isTriggerForReading = checkForReadingStartRequest(text);
+
+  if (isAfterReportReady && isTriggerForReading) {
+    analysisPrompt = `CONTEXT: The following chart data has been provided. Use it to generate a complete, conversational mirror reflection following the Five-Step Delivery Framework.
+INSTRUCTIONS: Begin with warm recognition of the person's stance/pattern. Use the chart geometry as context, but write in natural, conversational paragraphs. Follow the FIELD→MAP→VOICE protocol. No technical openings, no data summaries—just the warm, direct mirror.`;
+  } else {
+    // Check for natural follow-up flow based on user response type
+    //
+    // DESIGN NOTE: Skip OSR checks on first turn UNLESS explicit OSR phrases used
+    // Rationale: First turn after "Session Started" is typically a command, not a resonance response.
+    // However, we still detect explicit OSR phrases like "doesn't resonate" for edge cases.
+    //
+    // The OSR check is duplicated here (before classifyUserResponse) intentionally:
+    // - Early exit for first-turn commands (performance optimization)
+    // - Preserves classification logic independence in classifyUserResponse()
+    // - Makes the first-turn special case explicit and easy to understand
+    const skipOSRCheck = isFirstTurn && !checkForOSRIndicators(text);
+    const responseType = skipOSRCheck
+      ? 'CLEAR_WB'
+      : classifyUserResponse(text);
+
+    // Mock session context (in production, this would be persisted)
+    const mockSessionContext: SessionContext = {
+      wbHits: [],
+      abeHits: [],
+      osrMisses: [],
+      actorWeighting: 0,
+      roleWeighting: 0,
+      driftIndex: 0,
+      sessionActive: true
+    };
+
+    // Generate natural follow-up based on response type
+    if (responseType === 'CLEAR_WB') {
+      const followUp = naturalFollowUpFlow.generateFollowUp({
+        type: 'AFFIRM',
+        content: text,
+        originalMirror: text
+      }, mockSessionContext);
+
+      analysisPrompt = `The user clearly confirmed resonance: "${text}"
 
 **AUTO-CLASSIFICATION: WB (Within Boundary)**
 Log this as confirmed resonance. Do NOT ask for additional validation.
@@ -399,9 +411,9 @@ Your response should:
 4. Skip any additional truth gates
 
 User's clear affirmation: ${text}`;
-    
-  } else if (responseType === 'PARTIAL_ABE') {
-    analysisPrompt = `The user gave partial confirmation: "${text}"
+
+    } else if (responseType === 'PARTIAL_ABE') {
+      analysisPrompt = `The user gave partial confirmation: "${text}"
 
 **CLASSIFICATION: ABE (At Boundary Edge)**
 This needs clarification, not full repair. Ask for refinement:
@@ -409,50 +421,49 @@ This needs clarification, not full repair. Ask for refinement:
 "I'm logging this as ABE—partially resonant but needs fine-tuning. What part lands, and what feels off?"
 
 User's partial response: ${text}`;
-    
-  } else if (responseType === 'OSR') {
-    const followUp = naturalFollowUpFlow.generateFollowUp({
-      type: 'OSR',
-      content: text,
-      originalMirror: text
-    }, mockSessionContext);
-    
-    analysisPrompt = `The user indicated that something didn't resonate. Generate a response that includes this natural OSR probe: "${followUp.question}"
+
+    } else if (responseType === 'OSR') {
+      const followUp = naturalFollowUpFlow.generateFollowUp({
+        type: 'OSR',
+        content: text,
+        originalMirror: text
+      }, mockSessionContext);
+
+      analysisPrompt = `The user indicated that something didn't resonate. Generate a response that includes this natural OSR probe: "${followUp.question}"
 
 User's OSR response: ${text}
 
 Your response should acknowledge their feedback and offer the choice-based clarification probe to convert the miss into diagnostic data. Keep it skippable and non-forcing.`;
-    
-  } else if (text.toLowerCase().includes('poetic card') || text.toLowerCase().includes('generate card')) {
-    analysisPrompt = `The user is requesting a poetic card based on their session. Generate a visual card display showing:
+
+    } else if (text.toLowerCase().includes('poetic card') || text.toLowerCase().includes('generate card')) {
+      analysisPrompt = `The user is requesting a poetic card based on their session. Generate a visual card display showing:
 - Resonance Pattern summary
 - Score indicators (WB/ABE/OSR)
 - Actor/Role composite guess
 - Any drift flags
 Do NOT generate a new poem. This is a summary card of what has already resonated.`;
-    
-  } else if (text.toLowerCase().includes('done') || text.toLowerCase().includes('finished') || text.toLowerCase().includes('session complete')) {
-    const closure = naturalFollowUpFlow.generateSessionClosure();
-    analysisPrompt = `The user is indicating they want to end this reading session. Generate a response that includes: "${closure.resetPrompt}"
+
+    } else if (text.toLowerCase().includes('done') || text.toLowerCase().includes('finished') || text.toLowerCase().includes('session complete')) {
+      const closure = naturalFollowUpFlow.generateSessionClosure();
+      analysisPrompt = `The user is indicating they want to end this reading session. Generate a response that includes: "${closure.resetPrompt}"
 
 This will reset the scorecard but not make you forget who you're talking to. Offer these options: ${closure.continuationOptions.join(', ')}`;
-  } else {
-    const lastRavenMessage = messages.filter((m: any) => m.role === 'raven').pop();
-    const isResponseToProbe = lastRavenMessage && 
-      (lastRavenMessage.html.includes('Does any of this feel familiar') ||
-       lastRavenMessage.html.includes('Does this fit your experience') ||
-       lastRavenMessage.html.includes('feel accurate') ||
-       lastRavenMessage.html.includes('resonate'));
+    } else {
+      const isResponseToProbe = lastRavenMessage &&
+        (lastRavenMessage.html.includes('Does any of this feel familiar') ||
+          lastRavenMessage.html.includes('Does this fit your experience') ||
+          lastRavenMessage.html.includes('feel accurate') ||
+          lastRavenMessage.html.includes('resonate'));
 
-    if (isResponseToProbe) {
-      if (isMetaSignalAboutRepetition(text)) {
-        const reversed = [...messages].filter((m:any)=> m.role==='user').reverse();
-        const previousUser = reversed[1];
-        const prevText = previousUser?.content || previousUser?.html || '';
-        const prevType = prevText ? classifyUserResponse(prevText) : 'UNCLEAR';
+      if (isResponseToProbe) {
+        if (isMetaSignalAboutRepetition(text)) {
+          const reversed = [...messages].filter((m: any) => m.role === 'user').reverse();
+          const previousUser = reversed[1];
+          const prevText = previousUser?.content || previousUser?.html || '';
+          const prevType = prevText ? classifyUserResponse(prevText) : 'UNCLEAR';
 
-        if (prevType === 'CLEAR_WB') {
-          analysisPrompt = `The user expressed irritation at being asked again (meta-signal), not new content: "${text}".
+          if (prevType === 'CLEAR_WB') {
+            analysisPrompt = `The user expressed irritation at being asked again (meta-signal), not new content: "${text}".
 
 Preserve the prior classification: WB (Within Boundary). Do NOT re-open validation.
 
@@ -465,30 +476,30 @@ Rules:
 1) No additional "does this feel true?" gates
 2) No motive analysis or personality inference
 3) Mirror only structural pressure and pivot to somatic/behavioral deepening`;
-        } else if (prevType === 'PARTIAL_ABE') {
-          analysisPrompt = `The user commented on repetition (meta-signal), not new content: "${text}".
+          } else if (prevType === 'PARTIAL_ABE') {
+            analysisPrompt = `The user commented on repetition (meta-signal), not new content: "${text}".
 
 Preserve prior classification: ABE (At Boundary Edge). Do NOT re-open the main validation gate.
 
 Respond with: Acknowledge the irritation + offer one focused refinement question about what part lands vs. what doesn't, using their words where possible.
 
 Rules: no new metaphors, no psychoanalysis, keep it brief and user-led.`;
-        } else if (prevType === 'OSR') {
-          analysisPrompt = `The user commented on repetition (meta-signal): "${text}".
+          } else if (prevType === 'OSR') {
+            analysisPrompt = `The user commented on repetition (meta-signal): "${text}".
 
 Preserve prior classification: OSR (Outside Symbolic Range). Do NOT analyze the meta-comment. Offer a minimal repair that uses their prior correction, then validate the repair only if they choose to engage.
 
 Keep it skippable and brief; acknowledge the repetition irritation.`;
-        } else {
-          analysisPrompt = `Treat this as a meta-signal about repetition: "${text}".
+          } else {
+            analysisPrompt = `Treat this as a meta-signal about repetition: "${text}".
 
 Do not analyze it. Briefly acknowledge the irritation and ask one gentle, concrete deepening question about the previously discussed pressure (without re-validating).`;
-        }
-      } else {
-        const probeResponseType = classifyUserResponse(text);
-      
-        if (probeResponseType === 'CLEAR_WB') {
-          analysisPrompt = `The user clearly confirmed resonance to your probe: "${text}"
+          }
+        } else {
+          const probeResponseType = classifyUserResponse(text);
+
+          if (probeResponseType === 'CLEAR_WB') {
+            analysisPrompt = `The user clearly confirmed resonance to your probe: "${text}"
 
 **AUTO-CLASSIFICATION: WB (Within Boundary)**
 This is confirmed resonance. Log it immediately without additional validation.
@@ -505,9 +516,9 @@ This is confirmed resonance. Log it immediately without additional validation.
 **DO NOT** ask "Does this feel true?" or any additional validation. The user already confirmed it.
 
 User's clear confirmation: "${text}"`;
-        
-        } else if (probeResponseType === 'PARTIAL_ABE') {
-          analysisPrompt = `The user gave partial confirmation to your probe: "${text}"
+
+          } else if (probeResponseType === 'PARTIAL_ABE') {
+            analysisPrompt = `The user gave partial confirmation to your probe: "${text}"
 
 **CLASSIFICATION: ABE (At Boundary Edge)**
 This needs refinement, not full repair.
@@ -518,9 +529,9 @@ This needs refinement, not full repair.
 3. Refine the image based on their feedback
 
 User's partial response: "${text}"`;
-        
-        } else if (probeResponseType === 'OSR') {
-          analysisPrompt = `The user redirected/contradicted your probe: "${text}"
+
+          } else if (probeResponseType === 'OSR') {
+            analysisPrompt = `The user redirected/contradicted your probe: "${text}"
 
 **CLASSIFICATION: OSR (Outside Symbolic Range)**
 This requires a repair branch with validation.
@@ -532,9 +543,9 @@ This requires a repair branch with validation.
 4. Validate REPAIR only: "Does this repair feel true?" [Yes] [Partly] [No]
 
 User's OSR response: "${text}"`;
-        
-        } else {
-          analysisPrompt = `The user gave an unclear response to your probe: "${text}"
+
+          } else {
+            analysisPrompt = `The user gave an unclear response to your probe: "${text}"
 
 **CLASSIFICATION: UNCLEAR**
 This needs gentle clarification to determine WB/ABE/OSR.
@@ -543,9 +554,9 @@ This needs gentle clarification to determine WB/ABE/OSR.
 Ask for clarification: "I want to make sure I'm tracking you—does the image I offered feel familiar, or does it miss the mark?"
 
 User's unclear response: "${text}"`;
+          }
         }
-      }
-    } else {
+      } else {
         analysisPrompt = `This appears to be a request for astrological insight or general conversation that could benefit from symbolic reflection.
 
 **MANDATORY: Deliver COMPLETE Core Flow structure in your response:**
@@ -564,6 +575,7 @@ SESSION FLAG: FIRST_TURN = ${isFirstTurn ? 'TRUE' : 'FALSE'}
   "Does any of this feel familiar?"
 
 User's input: "${text}"`;
+      }
     }
   }
 
