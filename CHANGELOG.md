@@ -1,3 +1,30 @@
+## [2025-11-05] FIX: Playwright E2E Port Conflict in CI
+
+Summary
+Resolved GitHub Actions workflow failure caused by port 3000 conflict. CI workflow manually starts `netlify dev --port 8888`, but Playwright config attempted to auto-start its own server on port 3000, causing the port conflict error.
+
+Implementation
+- playwright.config.ts: Made `webServer` conditional on CI environment
+  - In CI: `webServer: undefined` (CI workflow already starts netlify dev on port 8888)
+  - In local dev: `webServer` starts Next.js with `reuseExistingServer: true` to avoid port conflicts
+  - Updated comments to clarify port reuse behavior
+- e2e/README.md: Updated CI Integration and Configuration sections
+  - Documented that CI workflow starts netlify dev separately
+  - Clarified Base URL defaults and server auto-start behavior
+  - Enhanced troubleshooting section for port conflicts
+
+Validation
+- Playwright config validation: ✅ PASS (`npx playwright test --list`)
+- TypeScript syntax check: ✅ PASS (no config-related errors)
+- CI/local mode differentiation: ✅ VERIFIED (webServer undefined in CI, configured in local)
+
+Technical Details
+- CI workflow sets `CI=true` and `BASE_URL=http://localhost:8888`
+- Playwright uses BASE_URL from environment, falling back to http://localhost:3000
+- No webServer conflicts: CI uses pre-started netlify dev; local dev uses Next.js with server reuse
+
+---
+
 ## [2025-11-04] CRITICAL FIX: Full-Stack Epistemic Alignment (Geometry ≠ Experience)
 
 Summary

@@ -88,14 +88,15 @@ Tests run automatically in GitHub Actions when `CI=true` is set. The config incl
 - GitHub reporter for annotations
 - Screenshots on failure
 - Trace on first retry
+- CI workflow starts netlify dev on port 8888 (Playwright won't auto-start a server in CI)
 
 ## Configuration
 
 See `playwright.config.ts` for full configuration including:
 
-- Base URL (defaults to http://localhost:8888)
+- Base URL (defaults to http://localhost:3000, or uses BASE_URL env var)
 - Browser projects (Chromium, Firefox, WebKit)
-- Web server auto-start
+- Web server auto-start (disabled in CI, enabled locally with server reuse)
 - Timeout settings
 - Reporter configuration
 
@@ -159,11 +160,17 @@ test('my test', async ({ page }) => {
 
 ### Port already in use
 
-Kill the existing process:
+If you see "port already in use" errors locally:
 
 ```bash
+# Kill existing Next.js dev server
+pkill -f "next dev"
+
+# Kill existing Netlify dev server
 pkill -f netlify
 ```
+
+Note: The Playwright config now uses `reuseExistingServer: true` for local development to prevent port conflicts. In CI, the webServer is disabled since the workflow starts netlify dev separately.
 
 ### Tests fail locally but pass in CI
 
