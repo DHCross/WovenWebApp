@@ -12,6 +12,13 @@ import {
 } from '@/lib/raven/guards';
 
 import { buildNoContextGuardCopy } from '@/lib/guard/no-context';
+import {
+  extractJSONFromUpload,
+  extractTextFromUpload,
+  isJSONReportUpload,
+  isJournalUpload,
+  isTimedInput,
+} from '@/lib/chat-pipeline/uploads';
 
 
 // Simple in-memory token bucket (dev only). Not production safe for multi-instance.
@@ -190,67 +197,6 @@ function isMetaSignalAboutRepetition(text: string): boolean {
   return phrases.some(p => lower.includes(p));
 }
 
-function isJSONReportUpload(text: string): boolean {
-  // Detect presence of embedded JSON in a <pre> block regardless of UI labels.
-  const preMatch = text.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
-  if (!preMatch) return false;
-  const decoded = preMatch[1]
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"');
-  
-  // Detect new Mirror Directive JSON format (Oct 18, 2025)
-  if (decoded.includes('"_format"') && decoded.includes('"mirror_directive_json"')) {
-    return true;
-  }
-  
-  // Detect consolidated Mirror + Symbolic Weather (Oct 20, 2025)
-  if (decoded.includes('"_format"') && decoded.includes('"mirror-symbolic-weather-v1"')) {
-    return true;
-  }
-  
-  // Detect unified FieldMap (wm-fieldmap-v1) - Oct 20, 2025
-  if (decoded.includes('"schema"') && decoded.includes('"wm-fieldmap-v1"')) {
-    return true;
-  }
-  
-  // Detect MAP file (wm-map-v1) - Oct 19, 2025 [DEPRECATED - use wm-fieldmap-v1]
-  if (decoded.includes('"schema"') && decoded.includes('"wm-map-v1"')) {
-    return true;
-  }
-  
-  // Detect FIELD file (wm-field-v1) - Oct 19, 2025 [DEPRECATED - use wm-fieldmap-v1]
-  if (decoded.includes('"schema"') && decoded.includes('"wm-field-v1"')) {
-    return true;
-  }
-  
-  // Detect legacy balance_meter format
-  return decoded.includes('"balance_meter"') && decoded.includes('"context"');
-}
-
-function extractJSONFromUpload(text: string): string | null {
-  try {
-    // Extract JSON from the HTML pre tag
-    const preMatch = text.match(/<pre[^>]*>(.*?)<\/pre>/s);
-    if (preMatch) {
-      // Decode HTML entities and clean up
-      const jsonStr = preMatch[1]
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
-        .replace(/&quot;/g, '"');
-      
-      // Try to parse to validate
-      JSON.parse(jsonStr);
-      return jsonStr;
-    }
-  } catch (e) {
-    // console.log('Failed to extract JSON from upload:', e);
-  }
-  return null;
-}
-
 function pickHook(t:string){
   // Check for JSON report uploads with specific conditions
   if (t.includes('"balance_meter"') && t.includes('"magnitude"')) {
@@ -281,58 +227,6 @@ function pickHook(t:string){
 }
 
 function encode(obj:any){ return new TextEncoder().encode(JSON.stringify(obj)+"\n"); }
-
-function isJournalUpload(text: string): boolean {
-  // Prefer detecting a non-JSON <pre> text block; fall back to label heuristics.
-  const preMatch = text.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
-  if (preMatch) {
-    const decoded = preMatch[1]
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&amp;/g, '&')
-      .replace(/&quot;/g, '"')
-      .trim();
-    // Treat as journal if it's not JSON but reasonably long prose
-    const looksJson = decoded.startsWith('{') && decoded.endsWith('}');
-    if (!looksJson && decoded.length > 80) return true;
-  }
-  return text.includes('Uploaded Journal Entry:') || text.includes('Journal Entry:');
-}
-
-function extractTextFromUpload(text: string): string {
-  try {
-    // Extract content from the HTML pre tag
-    const preMatch = text.match(/<pre[^>]*>(.*?)<\/pre>/s);
-    if (preMatch) {
-      // Decode HTML entities and clean up
-      return preMatch[1]
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
-        .replace(/&quot;/g, '"')
-        .trim();
-    }
-  } catch (e) {
-    // console.log('Failed to extract text from upload:', e);
-  }
-  return text;
-}
-
-// Determine whether input includes a timing layer (transits/periods/comparisons)
-function isTimedInput(text: string): boolean {
-  // Treat JSON Balance reports as timed
-  if (isJSONReportUpload(text)) return true;
-
-  const plain = text.replace(/<[^>]*>/g, ' ').toLowerCase();
-  // Obvious transit/timing keywords
-  if (/(transit|window|during|between|over the (last|next)|this week|today|tomorrow|yesterday|from\s+\w+\s+\d{1,2}\s*(–|-|to)\s*\w*\s*\d{1,2})/.test(plain)) {
-    return true;
-  }
-  // Date-like patterns (YYYY-MM-DD or MM/DD/YYYY) or month-name ranges
-  if (/(\b\d{4}-\d{2}-\d{2}\b)|(\b\d{1,2}\/\d{1,2}\/\d{2,4}\b)/.test(plain)) return true;
-  if (/(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\s*\d{1,2}\s*(–|-|to)\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)?\s*\d{1,2}/.test(plain)) return true;
-  return false;
-}
 
 export const runtime = 'nodejs';
 

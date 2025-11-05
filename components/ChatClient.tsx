@@ -1509,8 +1509,10 @@ export default function ChatClient() {
       ) {
         pendingContextRequirementRef.current = 'mirror';
         setStatusMessage("Mirror upload needs the JSON export.");
+        shiftSessionMode('idle');
+        setSessionStarted(false);
         const prompt =
-          "That looks like the printable Mirror Directive markdown. Export the Mirror Directive as JSON from Math Brain (or grab the combined Mirror + Symbolic Weather JSON) and drop it in so I can open the full geometry.";
+          "Looks like Rubric skipped the directive export—I only have the printable markdown. Re-run Math Brain (or grab the Mirror Directive JSON / combined Mirror + Symbolic Weather JSON) and drop that in, then I can continue the reading.";
         setMessages((prev) => [
           ...prev,
           {

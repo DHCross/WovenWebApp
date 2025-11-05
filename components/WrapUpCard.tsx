@@ -858,6 +858,11 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
       <div className="export-options">
         <div className="export-title">Export Session Data</div>
         <div className="export-note">These exports are for your records and analysis, not AI consumption.</div>
+        <ul className="export-description">
+          <li><strong>JSON</strong> · Structured session log (resonance marks, probes, timestamps) for tooling or archival.</li>
+          <li><strong>PDF</strong> · Readable summary you can print or hand to collaborators.</li>
+          <li><strong>CSV</strong> · Tabular resonance metrics ready for spreadsheets or custom analysis.</li>
+        </ul>
         <div className="export-buttons">
           <button
             className="btn export-btn"
@@ -1135,6 +1140,8 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
         .export-options { margin: 20px 0; padding: 16px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 8px; }
         .export-title { color: #f1f5f9; font-weight: 600; text-align: center; margin-bottom: 6px; font-size: 14px; }
         .export-note { color: #94a3b8; font-size: 12px; text-align: center; margin-bottom: 12px; font-style: italic; }
+        .export-description { list-style: none; margin: 0 0 16px; padding: 0; color: #cbd5f5; font-size: 12px; line-height: 1.6; }
+        .export-description li + li { margin-top: 6px; }
         .export-buttons { display: flex; gap: 12px; justify-content: center; }
         .export-btn { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #93c5fd; padding: 8px 16px; font-size: 13px; }
         .export-btn:hover { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.5); }
