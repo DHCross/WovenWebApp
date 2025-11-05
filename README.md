@@ -45,6 +45,29 @@ npm run dev
 
 Visit [http://localhost:3000](http://localhost:3000)
 
+### Useful Scripts
+
+```bash
+# Development
+npm run dev                  # Start development server
+npm run build                # Build for production
+npm run start                # Start production server
+
+# Testing
+npm run test                 # Run tests
+npm run test:e2e            # Run end-to-end tests
+npm run smoke:golden        # Run golden standard tests
+
+# Maintenance
+npm run branches:analyze    # Analyze and categorize all branches
+npm run lexicon:lint        # Check voice compliance
+npm run validate:fieldmap   # Validate field mappings
+
+# Environment
+npm run check-env           # Verify .env configuration
+npm run auth:check          # Validate Auth0 configuration
+```
+
 ---
 
 ## 📚 Documentation Navigation
@@ -68,6 +91,7 @@ Visit [http://localhost:3000](http://localhost:3000)
 
 ### 🔧 Maintenance & Troubleshooting
 - **Maintenance Guide:** [Developers Notes/Lessons Learned/MAINTENANCE_GUIDE.md](Developers%20Notes/Lessons%20Learned/MAINTENANCE_GUIDE.md)
+- **Branch Management:** [BRANCH_MANAGEMENT.md](BRANCH_MANAGEMENT.md) - Tool for identifying outdated branches
 - **Emergency Recovery:** [Developers Notes/Lessons Learned/copilot_fix_recovery.md](Developers%20Notes/Lessons%20Learned/copilot_fix_recovery.md)
 - **Deployment Troubleshooting:** [DEPLOYMENT_TROUBLESHOOTING.md](DEPLOYMENT_TROUBLESHOOTING.md)
 

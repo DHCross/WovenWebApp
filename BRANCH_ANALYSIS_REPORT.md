@@ -1,5 +1,5 @@
 # Branch Analysis Report
-Generated: 2025-11-05T21:47:17.947Z
+Generated: 2025-11-05T21:49:11.151Z
 
 ## Summary
 
@@ -226,7 +226,7 @@ These branches are actively being worked on (< 30 days old):
 | copilot/create-mandate-translation-layer | 2025-11-05 | 0 | 1 | [2025-11-05] FIX: Remove duplicate directional_bia |
 | copilot/docsfield-relocation-ui-copy | 2025-11-05 | 0 | 1 | Initial plan |
 | copilot/fix-playwright-port-conflict | 2025-11-05 | 0 | 1 | Final verification complete |
-| copilot/review-outdated-branches | 2025-11-05 | 0 | 0 | Initial plan |
+| copilot/review-outdated-branches | 2025-11-05 | 0 | 0 | Initial plan for branch analysis tool |
 | copilot/sub-pr-239 | 2025-11-04 | 0 | 1 | Fix: Remove missing test fixture and update test t |
 | copilot/sub-pr-251 | 2025-11-04 | 0 | 1 | Initial plan |
 | copilot/sub-pr-252 | 2025-11-05 | 0 | 1 | Branch analysis: PR #252 Fix Placidus House Calcul |
