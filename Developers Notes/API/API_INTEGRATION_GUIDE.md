@@ -525,3 +525,103 @@ You're correct: when assigning access in Google Cloud, the role for AI model API
 Choosing the Vertex AI role was the correct advice. It covers Gemini and future Google-managed models accessible in Vertex AI. Your tester will be able to use Gemini when you grant her "Vertex AI User" (or any appropriate AI/ML role) privileges for your project.
 
 [Google Cloud IAM Console](https://console.cloud.google.com/iam-admin/iam?project=analog-codex-423606-r2)
+
+---
+
+## UI: Transit Overlay vs FIELD Relocation (copy + UX guidance)
+
+Purpose
+- Make the difference between "Transit Overlay" (visual-only hybrid) and "FIELD Relocate" (canonical, computational) explicit and discoverable. This prevents accidental use of hybrid geometry in Balance Meter and symbolic-weather calculations.
+
+Primary UI affordances (recommended)
+- Mode selector: two radio buttons (or segmented control) presented where the user picks how transits should be handled for this run.
+  - Label: "Transit Mode"
+  - Options:
+    - "FIELD (Relocate natal + transits)" — recommended default for symbolic weather and Balance Meter calculations
+    - "Transit Overlay (visual only)" — exploratory visualization; not used for computation
+- Confirm dialog (only when switching to Overlay from FIELD): small non-blocking toast or inline help explaining consequences.
+
+Exact copy to use (pasteable)
+
+- Control label:
+  "Transit Mode"
+
+- FIELD option (primary)
+  Title: "FIELD (Relocate natal + transits)"
+  Short summary / tooltip:
+  "Anchor both natal and transit geometry to the same observer location/time. Use this for canonical symbolic-weather and Balance Meter outputs — the system will request houses from the upstream API and treat them as canonical."
+
+  Long tooltip (hover / info panel):
+  "FIELD relocates the entire chart frame to the selected observer location and time, recomputing ASC/MC and house cusps for that location. This unified geometry is the canonical input used for all Woven Map calculations (Seismograph, Balance Meter, symbolic weather). Recommended."
+
+- Overlay option (secondary)
+  Title: "Transit Overlay (visual only)"
+  Short summary / tooltip:
+  "Show transits calculated for the current location overlaid on the natal houses anchored to birth coordinates. Exploratory only — not used for Balance Meter or symbolic-weather math."
+
+  Long tooltip:
+  "Transit Overlay superimposes the current sky over the natal chart. Natal houses remain anchored to the birth coordinates while transit angles reflect the new location. This creates a hybrid view useful for exploration, but it is not the canonical geometry for automated field calculations."
+
+- Small confirmation message when choosing Overlay (non-blocking):
+  "Heads up: Transit Overlay is visual-only. If you want canonical symbolic-weather results, choose FIELD (Relocate natal + transits)."
+
+- Inline Help / footer note near export buttons:
+  "Exports labeled 'FIELD Chart' use relocated geometry (recommended for calculations). Exports labeled 'Overlay' are hybrid views and are intended for visual exploration only."
+
+Behavioral guidance for front-end engineers
+- Default selection: FIELD (Relocate natal + transits) for any flow that produces seismograph, balance meter, or generated poetic readings. Only enable Transit Overlay as an explicit, secondary selection.
+- Persistence: Persist user's last choice in session / local storage but always surface the tooltip for novice users.
+- Visual indicator: Add a small badge to any exported FieldMap or report with the tag: "geometry: FIELD" or "geometry: OVERLAY" (this also appears in provenance).
+- Accessibility: Tooltips and confirmation UI must be keyboard accessible and screen-reader friendly.
+
+Sample UI toggle JSON (for telemetry)
+```json
+{
+  "label": "Transit Mode",
+  "selected": "FIELD",
+  "options": [
+    { "key": "FIELD", "title": "FIELD (Relocate natal + transits)", "recommended": true },
+    { "key": "OVERLAY", "title": "Transit Overlay (visual only)", "recommended": false }
+  ]
+}
+```
+
+## Adapter contract: include_houses for FIELD
+When the UI choice is FIELD (the default for Balance Meter / symbolic-weather), the adapter MUST request houses from the upstream provider.
+
+- Use endpoints:
+  - `POST /api/v4/birth-chart` (for natal + relocated natal houses)
+  - `POST /api/v4/transit-chart` (for transit windows) OR `POST /api/v4/transit-aspects-data` followed by a houses request when needed
+- Required request flags:
+  - `include_houses: true`
+  - `include_aspects: true` (for drivers)
+- If the upstream response omits houses, the adapter must:
+  1. Re-attempt a call to an endpoint that returns houses (e.g., birth-chart / transit-chart).
+  2. If upstream cannot provide houses, compute houses locally (Swiss Ephemeris or equivalent) and stamp provenance.house_engine accordingly.
+
+Provenance contract (fields required)
+Every FIELD Chart export must contain a provenance block with, at minimum, these keys:
+
+```json
+{
+  "schema": "BM-v5",
+  "house_system": "Placidus",
+  "orbs_profile": "wm-tight-2025-11-v5",
+  "relocation_mode": "None|A_local|B_local|Both_local",
+  "relocation_coords": { "lat": 40.0, "lng": -75.0 },
+  "house_engine": "astrologer.p.rapidapi.com@v4.0|local-swiss-ephemeris@vX.Y|missing_upstream",
+  "has_transits": true,
+  "drivers_count": 4,
+  "house_shift_summary": [{ "num": 1, "delta_deg": -2.12 }, ...] || "not_provided",
+  "tz": "America/New_York",
+  "math_brain_version": "vX.Y",
+  "notes": ["upstream houses used", "include_houses flag set"]
+}
+```
+
+- `relocation_mode`: set by comparing the supplied coords with natal coords and/or by computing house deltas (any non-trivial deltas => A_local).
+- `house_engine`: set to `'astrologer.p.rapidapi.com@v4.0'` when upstream houses used; `'local-swiss-ephemeris@x.y'` when computed locally; `'missing_upstream'` when neither was available (caller must retry).
+- `house_shift_summary`: optional but recommended. If present, must include all houses 1..12 and deltas.
+
+Backward compatibility note
+- When a stored FieldMap or legacy export does not include provenance or uses overlay geometry, mark it explicitly as `geometry: OVERLAY` in the metadata and recommend a re-run via FIELD mode for canonical recalculation.
