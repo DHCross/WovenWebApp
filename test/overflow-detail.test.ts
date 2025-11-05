@@ -125,4 +125,17 @@ describe('overflow detail exports', () => {
     expect(detail.drivers).toContain('Body 3 ▻ Body 4 Trine');
     expect(detail.drivers).not.toContain('');
   });
+
+  it('registers overflow when raw value is exactly at the tolerance boundary', () => {
+    const detail = computeOverflowDetail({
+      rawMagnitude: 5.05,
+      clampedMagnitude: 5,
+      rawDirectionalBias: null,
+      clampedDirectionalBias: null,
+      aspects: [],
+    });
+
+    expect(detail).not.toBeNull();
+    expect(detail?.overflowRegistered).toBe(true);
+  });
 });
