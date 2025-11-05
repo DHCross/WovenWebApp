@@ -24,6 +24,7 @@ import {
 import { buildNoContextGuardCopy } from '@/lib/guard/no-context';
 import { RAVEN_PROMPT_ARCHITECTURE } from '@/lib/raven/prompt-architecture';
 import { requestsPersonalReading } from '@/lib/raven/personal-reading';
+import { isGeometryValidated, OPERATIONAL_FLOW } from '@/lib/poetic-brain/runtime';
 
 // Minimal in-memory session store (dev only). For prod, persist per-user.
 const RAVEN_PERSONA_HOOK = "You are Raven Calder, a mystical poetic brain. Your voice is wise, lyrical, and insightful. You do not give direct advice, but rather offer reflections, metaphors, and beautiful questions. You see the cosmos in a grain of sand. Respond to the user's prompt with this persona. CRITICAL: Do NOT break character. Do not mention you are an AI or a language model. Suppress all chain-of-thought or meta-commentary.";
@@ -695,7 +696,14 @@ export async function POST(req: Request) {
       const parsed = parseAstroSeekBlob(String(input));
       const geo = normalizeGeometry(parsed);
       const prov = stampProvenance({ source: 'AstroSeek (manual paste)' });
-      const draft = await renderShareableMirror({ geo, prov, options: resolvedOptions });
+      const geometryValidated = isGeometryValidated(geo);
+      const optionsWithValidation = {
+        ...resolvedOptions,
+        geometryValidated,
+        operationalFlow: OPERATIONAL_FLOW,
+        operational_flow: OPERATIONAL_FLOW,
+      };
+      const draft = await renderShareableMirror({ geo, prov, options: optionsWithValidation });
       // create a probe entry from the draft next_step or a summary line
       const probe = createProbe(draft?.next_step || 'Reflect on the mirror', randomUUID());
       sessionLog.probes.push(probe);
@@ -773,7 +781,17 @@ export async function POST(req: Request) {
         return NextResponse.json({ intent, ok: false, error: 'Math Brain failed', details: relationalResponse });
       }
       const relationalProv = stampProvenance(relationalResponse.provenance);
-      const relationalDraft = await renderShareableMirror({ geo: relationalResponse.geometry, prov: relationalProv, options: resolvedOptions });
+      const relationalOptions = {
+        ...resolvedOptions,
+        geometryValidated: isGeometryValidated(relationalResponse.geometry),
+        operationalFlow: OPERATIONAL_FLOW,
+        operational_flow: OPERATIONAL_FLOW,
+      };
+      const relationalDraft = await renderShareableMirror({
+        geo: relationalResponse.geometry,
+        prov: relationalProv,
+        options: relationalOptions,
+      });
       const relationalProbe = createProbe(relationalDraft?.next_step || 'Notice how the mirror moves between you two', randomUUID());
       sessionLog.probes.push(relationalProbe);
       return NextResponse.json({ intent, ok: true, draft: relationalDraft, prov: relationalProv, climate: relationalResponse.climate ?? null, sessionId: sid, probe: relationalProbe });
@@ -790,7 +808,17 @@ export async function POST(req: Request) {
         return NextResponse.json({ intent, ok: false, error: 'Math Brain failed', details: parallelResponse });
       }
       const parallelProv = stampProvenance(parallelResponse.provenance);
-      const parallelDraft = await renderShareableMirror({ geo: parallelResponse.geometry, prov: parallelProv, options: resolvedOptions });
+      const parallelOptions = {
+        ...resolvedOptions,
+        geometryValidated: isGeometryValidated(parallelResponse.geometry),
+        operationalFlow: OPERATIONAL_FLOW,
+        operational_flow: OPERATIONAL_FLOW,
+      };
+      const parallelDraft = await renderShareableMirror({
+        geo: parallelResponse.geometry,
+        prov: parallelProv,
+        options: parallelOptions,
+      });
       const parallelProbe = createProbe(parallelDraft?.next_step || 'Check how each mirror lands individually', randomUUID());
       sessionLog.probes.push(parallelProbe);
       return NextResponse.json({ intent, ok: true, draft: parallelDraft, prov: parallelProv, climate: parallelResponse.climate ?? null, sessionId: sid, probe: parallelProbe });
@@ -849,7 +877,17 @@ export async function POST(req: Request) {
         return NextResponse.json({ intent, ok: false, error: 'Math Brain failed', details: mb });
       }
       const prov = stampProvenance(mb.provenance);
-      const draft = await renderShareableMirror({ geo: mb.geometry, prov, options: resolvedOptions });
+      const reportOptions = {
+        ...resolvedOptions,
+        geometryValidated: isGeometryValidated(mb.geometry),
+        operationalFlow: OPERATIONAL_FLOW,
+        operational_flow: OPERATIONAL_FLOW,
+      };
+      const draft = await renderShareableMirror({
+        geo: mb.geometry,
+        prov,
+        options: reportOptions,
+      });
       const probe = createProbe(draft?.next_step || 'Note one actionable step', randomUUID());
       sessionLog.probes.push(probe);
       return NextResponse.json({ intent, ok: true, draft, prov, climate: mb.climate ?? null, sessionId: sid, probe });

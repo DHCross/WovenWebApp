@@ -3,6 +3,29 @@
 import { sanitizeForPDF, sanitizeReportForPDF, isPDFSafe } from '../src/pdf-sanitizer';
 import { ContractLinter } from '../src/contract-linter';
 import { renderShareableMirror } from '../lib/raven/render';
+import { OPERATIONAL_FLOW } from '../lib/poetic-brain/runtime';
+
+const MOCK_GEOMETRY: any = {
+  placements: [
+    { body: 'Sun', sign: 'Leo', degree: 15, house: 1 },
+    { body: 'Moon', sign: 'Scorpio', degree: 22, house: 4 },
+    { body: 'Ascendant', sign: 'Leo', degree: 10, house: 1 },
+  ],
+  aspects: [
+    { from: 'Sun', to: 'Moon', type: 'Square', orb: 3.0 },
+  ],
+  summary: {
+    elementTotals: { Fire: 1, Earth: 0, Air: 0, Water: 1 },
+    modalityTotals: { Cardinal: 0, Fixed: 2, Mutable: 0 },
+    dominantElement: 'Fire',
+    dominantModality: 'Fixed',
+    luminaries: { sun: 'Leo', moon: 'Scorpio', ascendant: 'Leo' },
+    retrogradeBodies: [],
+  },
+  snippet: 'Sun 15° Leo · Moon 22° Scorpio',
+  raw: 'Mock geometry payload',
+  normalizedFrom: { placements: [], aspects: [], snippet: '', raw: '' },
+};
 
 describe('PDF Generation with Schema Rule-Patch Integration', () => {
   describe('PDF Sanitization', () => {
@@ -94,10 +117,15 @@ describe('PDF Generation with Schema Rule-Patch Integration', () => {
 
       try {
         const result = await renderShareableMirror({
-          geo: null,
+          geo: MOCK_GEOMETRY,
           prov: { source: 'pdf-test' },
           mode: 'natal-only',
-          options: natalPayload
+          options: {
+            ...natalPayload,
+            geometryValidated: true,
+            operationalFlow: OPERATIONAL_FLOW,
+            operational_flow: OPERATIONAL_FLOW,
+          },
         });
 
         expect(result.contract).toBe('clear-mirror/1.3');

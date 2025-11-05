@@ -24,6 +24,8 @@ import type { SSTProbe } from "../lib/raven/sst";
 import { buildNoContextGuardCopy } from "../lib/guard/no-context";
 import { referencesAstroSeekWithoutGeometry } from "../lib/raven/guards";
 import { requestsPersonalReading } from "../lib/raven/personal-reading";
+import { applyEPrimeFilter, replaceWithConditional } from "@/lib/poetic-brain/runtime";
+import type { PersonaMode } from "../lib/persona";
 
 type RavenDraftResponse = {
   ok?: boolean;
@@ -334,6 +336,44 @@ const formatAppendixHighlights = (
   return highlights;
 };
 
+interface NarrativeSectionProps {
+  text: string;
+}
+
+const renderNarrativeSection = (label: string, variant: string, text: string): string => {
+  const sanitized = text.trim();
+  if (!sanitized) return "";
+  return [
+    `<section class="raven-section raven-section--${variant}">`,
+    `<h3 class="raven-section__title">${escapeHtml(label)}</h3>`,
+    `<p class="raven-section__body">${escapeHtml(sanitized)}</p>`,
+    `</section>`,
+  ].join("");
+};
+
+const FieldSection = ({ text }: NarrativeSectionProps): string =>
+  renderNarrativeSection("Field", "field", text);
+
+const MapSection = ({ text }: NarrativeSectionProps): string =>
+  renderNarrativeSection("Map", "map", text);
+
+const VoiceSection = ({ text }: NarrativeSectionProps): string =>
+  renderNarrativeSection("Voice", "voice", text);
+
+const coalesceSegments = (segments: Array<string | undefined | null>): string =>
+  segments
+    .map((segment) => (typeof segment === "string" ? segment.trim() : ""))
+    .filter((segment) => Boolean(segment))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const ensureParagraph = (prefix: string, body: string): string => {
+  if (!body) return "";
+  const prefixed = `${prefix} ${body}`.replace(/\s+/g, " ").trim();
+  return ensureSentence(prefixed);
+};
+
 const buildNarrativeDraft = (
   draft?: Record<string, any> | null,
   prov?: Record<string, any> | null,
@@ -346,21 +386,11 @@ const buildNarrativeDraft = (
     };
   }
 
-  const picture = ensureSentence(
-    typeof draft.picture === "string" ? draft.picture : undefined,
-  );
-  const feeling = ensureSentence(
-    typeof draft.feeling === "string" ? draft.feeling : undefined,
-  );
-  const container = ensureSentence(
-    typeof draft.container === "string" ? draft.container : undefined,
-  );
-  const option = ensureSentence(
-    typeof draft.option === "string" ? draft.option : undefined,
-  );
-  const nextStep = ensureSentence(
-    typeof draft.next_step === "string" ? draft.next_step : undefined,
-  );
+  const rawPicture = typeof draft.picture === "string" ? draft.picture : "";
+  const rawFeeling = typeof draft.feeling === "string" ? draft.feeling : "";
+  const rawContainer = typeof draft.container === "string" ? draft.container : "";
+  const rawOption = typeof draft.option === "string" ? draft.option : "";
+  const rawNextStep = typeof draft.next_step === "string" ? draft.next_step : "";
 
   const appendix =
     typeof draft.appendix === "object" && draft.appendix
@@ -370,47 +400,64 @@ const buildNarrativeDraft = (
     appendix as Record<string, any> | undefined,
   );
 
-  const paragraphs: string[] = [];
-  const intro = [picture, feeling].filter(Boolean).join(" ");
-  if (intro) paragraphs.push(intro);
+  const sanitizeBody = (text: string): string =>
+    applyEPrimeFilter(replaceWithConditional(text));
 
-  const context = [container, ...highlightSentences].filter(Boolean).join(" ");
-  if (context) paragraphs.push(context);
+  const fieldBody = sanitizeBody(coalesceSegments([rawPicture, rawFeeling]));
+  const mapBody = sanitizeBody(
+    coalesceSegments([rawContainer, ...highlightSentences]),
+  );
+  const voiceBody = sanitizeBody(
+    coalesceSegments([rawOption, rawNextStep]),
+  );
 
-  const invitation = [option, nextStep].filter(Boolean).join(" ");
-  if (invitation) paragraphs.push(invitation);
+  const fieldParagraph = fieldBody
+    ? ensureParagraph("Field layer may mirror this:", fieldBody)
+    : "";
+  const mapParagraph = mapBody
+    ? ensureParagraph("Map layer could translate this:", mapBody)
+    : "";
+  const voiceParagraph = voiceBody
+    ? ensureParagraph("Voice invitation tends to ask:", voiceBody)
+    : "";
 
-  if (!paragraphs.length) {
-    paragraphs.push(
-      "I've logged this report and set it aside for interpretation. Let me know when you'd like me to mirror a pattern.",
-    );
+  const sections: string[] = [];
+  if (fieldParagraph) sections.push(FieldSection({ text: fieldParagraph }));
+  if (mapParagraph) sections.push(MapSection({ text: mapParagraph }));
+  if (voiceParagraph) sections.push(VoiceSection({ text: voiceParagraph }));
+
+  if (!sections.length) {
+    const fallbackText =
+      "I've logged this report and set it aside for interpretation. Let me know when you'd like me to mirror a pattern.";
+    return {
+      html: `<p style="margin:0; line-height:1.6;">${escapeHtml(fallbackText)}</p>`,
+      rawText: fallbackText,
+    };
   }
 
-  const provenance =
+  const provenanceText =
     prov?.source && typeof prov.source === "string"
-      ? `<div style="margin-top:12px; font-size:11px; color:#94a3b8;">Source · ${escapeHtml(
-          prov.source,
-        )}</div>`
-      : "";
+      ? `Source · ${prov.source}`
+      : null;
 
-  const htmlParagraphs = paragraphs
-    .map(
-      (text) =>
-        `<p style="margin:0 0 12px 0; line-height:1.65;">${escapeHtml(text)}</p>`,
-    )
-    .join("");
+  const provenanceHtml = provenanceText
+    ? `<footer class="raven-provenance" style="margin-top:12px; font-size:11px; color:#94a3b8;">${escapeHtml(
+        provenanceText,
+      )}</footer>`
+    : "";
 
-  const rawText = paragraphs.join("\n\n");
+  const html = `
+    <section class="mirror-draft narrative" style="display:flex; flex-direction:column; gap:12px;">
+      ${sections.join("")}
+      ${provenanceHtml}
+    </section>
+  `;
 
-  return {
-    html: `
-      <section class="mirror-draft narrative" style="display:flex; flex-direction:column;">
-        ${htmlParagraphs}
-        ${provenance}
-      </section>
-    `,
-    rawText,
-  };
+  const rawSegments = [fieldParagraph, mapParagraph, voiceParagraph];
+  if (provenanceText) rawSegments.push(provenanceText);
+  const rawText = rawSegments.filter(Boolean).join("\n\n");
+
+  return { html, rawText };
 };
 
 const formatShareableDraft = (
@@ -884,6 +931,7 @@ export default function ChatClient() {
   const [messages, setMessages] = useState<Message[]>(() => [createInitialMessage()]);
   const [validationMap, dispatchValidation] = useReducer(validationReducer, {} as ValidationState);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [personaMode, setPersonaMode] = useState<PersonaMode>('hybrid');
   const copyResetRef = useRef<number | null>(null);
 
   const handleCopyMessage = useCallback(async (messageId: string, text: string) => {
@@ -1433,18 +1481,22 @@ export default function ChatClient() {
       payload: Record<string, any>,
       placeholderId: string,
       fallbackMessage: string,
-    ): Promise<RavenDraftResponse | null> => {
+  ): Promise<RavenDraftResponse | null> => {
       const ctrl = new AbortController();
       abortRef.current = ctrl;
       setTyping(true);
       try {
+        const payloadWithPersona =
+          payload && typeof payload.persona !== "undefined"
+            ? payload
+            : { ...payload, persona: personaMode };
         const res = await fetch("/api/raven", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "X-Request-Id": generateId(), // Add request ID for tracking
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(payloadWithPersona),
           signal: ctrl.signal,
         });
 
@@ -1485,7 +1537,7 @@ export default function ChatClient() {
         abortRef.current = null;
       }
     },
-    [applyRavenResponse, commitError],
+    [applyRavenResponse, commitError, personaMode],
   );
 
   const analyzeReportContext = useCallback(
@@ -2286,6 +2338,26 @@ const performSessionReset = useCallback(() => {
             </div>
           </div>
           <div className="flex flex-wrap gap-2 text-sm">
+            <div className="inline-flex items-center gap-2 rounded-lg border border-slate-600/60 bg-slate-800/60 px-3 py-2">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
+                Persona
+              </span>
+              <select
+                value={personaMode}
+                onChange={(event) => setPersonaMode(event.target.value as PersonaMode)}
+                className="bg-transparent text-sm font-medium text-slate-100 focus:outline-none"
+              >
+                <option value="plain" className="bg-slate-900 text-slate-100">
+                  Plain · Technical
+                </option>
+                <option value="hybrid" className="bg-slate-900 text-slate-100">
+                  Hybrid · Default
+                </option>
+                <option value="poetic" className="bg-slate-900 text-slate-100">
+                  Poetic · Lyrical
+                </option>
+              </select>
+            </div>
             <button
               type="button"
               onClick={() => handleUploadButton("mirror")}

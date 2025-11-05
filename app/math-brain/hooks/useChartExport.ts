@@ -53,6 +53,7 @@ Definitions for FAMILY and FRIEND/PROFESSIONAL types should be added here when a
 
 import { sanitizeForPDF, sanitizeReportForPDF } from '../../../src/pdf-sanitizer';
 import { renderShareableMirror } from '../../../lib/raven/render';
+import { isGeometryValidated, OPERATIONAL_FLOW } from '../../../lib/poetic-brain/runtime';
 import { generateDownloadReadme } from '../../../lib/download-readme-template';
 import type { ReportContractType } from '../types';
 import { fmtAxis } from '../../../lib/ui/format';
@@ -250,29 +251,40 @@ export function useChartExport(options: UseChartExportOptions): UseChartExportRe
 
       if (!isLargeTransitWindow) {
         try {
-          const mirrorResult = await renderShareableMirror({
-            geo: null,
-            prov: { source: 'pdf-export' },
-            mode: reportMode as any,
-            options: {
-              mode: reportMode,
-              person_a: result.person_a,
-                    indices: result.person_a?.chart?.transitsByDate
-                ? {
-                    days: Object.values(result.person_a.chart.transitsByDate)
-                      .map((entry: any) => ({
-                        date: entry.date || new Date().toISOString().slice(0, 10),
-                        magnitude: entry.seismograph?.magnitude,
-                        volatility: entry.seismograph?.volatility,
-                      }))
-                      .filter((day) => day.magnitude || day.volatility),
-                  }
-                : null,
-              ...result,
-            },
-          });
+          const geometryCandidate =
+            result?.geometry ??
+            result?.report?.geometry ??
+            result?.raw_geometry ??
+            result?.person_a?.geometry ??
+            null;
 
-          if (mirrorResult.contract && mirrorResult.mode) {
+          if (isGeometryValidated(geometryCandidate)) {
+            const mirrorResult = await renderShareableMirror({
+              geo: geometryCandidate,
+              prov: { source: 'pdf-export' },
+              mode: reportMode as any,
+              options: {
+                ...result,
+                mode: reportMode,
+                geometryValidated: true,
+                operationalFlow: OPERATIONAL_FLOW,
+                operational_flow: OPERATIONAL_FLOW,
+                person_a: result.person_a,
+                indices: result.person_a?.chart?.transitsByDate
+                  ? {
+                      days: Object.values(result.person_a.chart.transitsByDate)
+                        .map((entry: any) => ({
+                          date: entry.date || new Date().toISOString().slice(0, 10),
+                          magnitude: entry.seismograph?.magnitude,
+                          volatility: entry.seismograph?.volatility,
+                        }))
+                        .filter((day) => day.magnitude || day.volatility),
+                    }
+                  : null,
+              },
+            });
+
+            if (mirrorResult.contract && mirrorResult.mode) {
             processedResult = {
               ...result,
               contract_compliance: {
@@ -294,6 +306,9 @@ export function useChartExport(options: UseChartExportOptions): UseChartExportRe
               },
             };
             contractCompliant = true;
+          }
+          } else {
+            console.info('Skipping schema rule-patch rendering: geometry validation unavailable for PDF export.');
           }
         } catch (error) {
           console.warn('Schema rule-patch rendering failed, using legacy data:', error);

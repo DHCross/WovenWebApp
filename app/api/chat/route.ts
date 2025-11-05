@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { shapeVoice, pickClimate } from '../../../lib/persona';
+import { shapeVoice, pickClimate, resolvePersonaMode } from '../../../lib/persona';
 import { generateStream } from '../../../lib/llm';
 import { canMakeRequest, trackRequest } from '../../../lib/usage-tracker';
 import { followUpGenerator, ChartContext } from '../../../lib/followup-generator';
@@ -235,6 +235,8 @@ export async function POST(req: NextRequest){
   const body = await req.json();
   const { persona, messages = [] } = body;
   const reportContexts: any[] = body?.reportContexts || [];
+  const personaMode = resolvePersonaMode(persona);
+  const personaConfig = { mode: personaMode };
   
   const user = [...messages].reverse().find((m:any)=> m.role==='user');
   const text = user?.content || user?.html || 'Hello';
@@ -257,7 +259,7 @@ export async function POST(req: NextRequest){
   if (isTechnicalQuestion || isGreeting) {
     const hook = pickHook(text);
     const climate = undefined;
-    const shapedIntro = shapeVoice('Staying close to what you said…', {hook, climate, section:'mirror'}).split(/\n+/)[0];
+    const shapedIntro = shapeVoice('Staying close to what you said…', {hook, climate, section:'mirror'}, personaConfig).split(/\n+/)[0];
     let response = '';
     if (text.toLowerCase().includes('perplexity')) {
       response = 'Yes, I am currently using the Perplexity API. It\'s a pleasure to connect.';
@@ -300,7 +302,7 @@ export async function POST(req: NextRequest){
     const introPicture = astroseekReference
       ? 'I see the AstroSeek export—one more bridge and we can go deep…'
       : guardCopy.picture;
-    const shapedIntro = shapeVoice(introPicture, {hook, climate, section:'mirror'}).split(/\n+/)[0];
+    const shapedIntro = shapeVoice(introPicture, {hook, climate, section:'mirror'}, personaConfig).split(/\n+/)[0];
     const guardGuidance = astroseekReference ? ASTROSEEK_REFERENCE_GUIDANCE : guardCopy.guidance;
 
     const responseBody = new ReadableStream<{ }|Uint8Array>({
@@ -320,7 +322,7 @@ export async function POST(req: NextRequest){
       'With you—reading the sky’s weather…',
       'Here with today’s currents—no personal map applied…'
     ];
-    const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}).split(/\n+/)[0];
+    const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}, personaConfig).split(/\n+/)[0];
     const weatherNote = `
 Field-only read (no natal overlay):
 • Mood/valence: treat as background conditions, not fate
@@ -596,7 +598,7 @@ INSTRUCTIONS: Begin with recognition of the felt texture in their words. Surface
     'Holding what you said against the pattern…',
     'I’m tracking you—slowly, precisely…'
   ];
-  const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}).split(/\n+/)[0];
+  const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}, personaConfig).split(/\n+/)[0];
   
   const v11PromptPrefix = `
 MANDATORY: Follow the v11 "Warm-Core, Rigor-Backed" protocol EXACTLY:

@@ -1,6 +1,7 @@
 import { parseAstroSeekBlob } from '@/lib/raven/parser';
 import { normalizeGeometry } from '@/lib/raven/normalize';
 import { renderShareableMirror } from '@/lib/raven/render';
+import { OPERATIONAL_FLOW } from '@/lib/poetic-brain/runtime';
 
 const SAMPLE_ASTROSEEK = `
 Planets at birth
@@ -42,7 +43,11 @@ describe('AstroSeek geometry pipeline', () => {
   test('renderShareableMirror reflects parsed geometry', async () => {
     const parsed = parseAstroSeekBlob(SAMPLE_ASTROSEEK);
     const geo = normalizeGeometry(parsed);
-    const draft = await renderShareableMirror({ geo, prov: { source: 'AstroSeek (test)' }, options: {} });
+    const draft = await renderShareableMirror({
+      geo,
+      prov: { source: 'AstroSeek (test)' },
+      options: { geometryValidated: true, operationalFlow: OPERATIONAL_FLOW },
+    });
 
     // All conversational content is now in the 'picture' field.
     expect(draft.picture).toMatch(/Sun Aries/i);

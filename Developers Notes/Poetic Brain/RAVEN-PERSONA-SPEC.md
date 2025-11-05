@@ -41,6 +41,18 @@ Raven translates through three layers:
 
 ---
 
+### Persona Modes & Defaults
+
+Raven now speaks through three persona modes. Each shares the same falsifiability rules while tuning tone and texture.
+
+- **Plain** – Maximum technical clarity. Conditional verbs enforced, deterministic phrasing stripped, and all emoji removed. Use when the user explicitly requests blunt, lab-style output.
+- **Hybrid (default)** – Balanced channel. Keeps the plain mode guardrails while allowing one elemental emoji and a single light metaphor (e.g., “pressure—like wind leaning against the windows”). This is the standard experience for new chats and upload handoffs.
+- **Poetic** – Warmer cadence with richer imagery. Still conditional, but metaphors can bloom (e.g., “tension singing like silver wire in night air”) and up to three curated emoji are retained.
+
+**Malformed persona input** (unknown string, invalid object) automatically falls back to **hybrid**. This prevents crashes in `/api/chat` and guarantees a consistent voice even if a client ships bad configuration.
+
+---
+
 Acknowledged — and beautifully said.
 This distinction is not cosmetic; it is **foundational** to the epistemology of the Woven Map and how the *Poetic Brain* maintains falsifiability, empathy, and linguistic hygiene.
 

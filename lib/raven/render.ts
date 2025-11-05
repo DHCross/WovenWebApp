@@ -1,5 +1,16 @@
 import type { NormalizedGeometry, NormalizedPlacement, NormalizedAspect } from './normalize';
 import type { ReportMode } from '../../src/schema-rule-patch';
+import type { ResonanceTier } from '../poetic-brain/runtime';
+import {
+  classifyResonance,
+  isGeometryValidated,
+  OPERATIONAL_FLOW,
+  replaceWithConditional,
+  resolveRelocationDisclosure,
+} from '../poetic-brain/runtime';
+import { scheduleAudit, DAY } from '../governance/schedule';
+import { runUncannyAudit } from '@/audit/uncanny';
+import type { UncannyAuditResult } from '@/audit/uncanny';
 
 interface RenderOptions {
   geo: NormalizedGeometry | null;
@@ -466,8 +477,53 @@ function enrichContractPayload(payload: Record<string, any>) {
 }
 
 export async function renderShareableMirror({ geo, prov, options, conversational = false, mode }: RenderOptions): Promise<Record<string, any>> {
+  scheduleAudit('system-lexicon.json', 45 * DAY);
+  const timestampIso = new Date().toISOString();
+  const computedGeometryValid = isGeometryValidated(geo);
+  const geometryFlag = options?.geometryValidated;
+  const geometryValidatedInitial = geometryFlag === true && computedGeometryValid;
+  const resonanceInput =
+    options?.resonancePing ??
+    options?.session_posture ??
+    options?.sessionScores?.latest?.posture ??
+    prov?.resonancePing ??
+    null;
+  const relocationFrame = extractRelocationFrame(options, prov);
+  const deviations: string[] = [];
+  if (geometryFlag !== true) {
+    deviations.push('geometryValidated flag missing or false.');
+  }
+  if (!computedGeometryValid && geo) {
+    deviations.push('Geometry payload present but failed internal validation.');
+  }
+  if (!geometryValidatedInitial) {
+    deviations.push('Geometry validation incomplete – frontstage limited to guardrail copy.');
+  }
+  const uncannyAudit = await runUncannyAudit(Boolean(options?.uncannyAudit || options?.enableUncannyAudit), {
+    context: {
+      mode: options?.mode ?? null,
+      reportType: options?.reportType ?? null,
+    },
+  });
+  const buildBackstage = (overrides: Partial<BackstageBuildOptions> = {}) =>
+    buildBackstageMetadata({
+      options,
+      prov,
+      geometryValidated: geometryValidatedInitial,
+      resonanceInput,
+      relocationFrame,
+      deviations,
+      timestampIso,
+      uncannyAudit,
+      ...overrides,
+    });
+
   // NEW: Schema rule-patch integration for mode-specific rendering
-  if (mode && ['natal-only', 'balance', 'relational-balance', 'relational-mirror'].includes(mode)) {
+  if (
+    geometryValidatedInitial &&
+    mode &&
+    ['natal-only', 'balance', 'relational-balance', 'relational-mirror'].includes(mode)
+  ) {
     try {
       // Construct payload with all available data
       const payload = {
@@ -520,13 +576,18 @@ export async function renderShareableMirror({ geo, prov, options, conversational
           option: 'Use this as a natal baseline—track themes over the next few days',
           next_step: 'Log one lived moment where this pattern shows up today',
           symbolic_weather: frontstage.symbolic_weather,
-          backstage: cleanedPayload.backstage,
           appendix: {
             geometry_summary: geo ? `Placements parsed: ${geo.placements?.length || 0} · Aspects parsed: ${geo.aspects?.length || 0}` : 'No geometry data',
             provenance_source: prov?.source,
             contract_validation: lintResult,
             mode_enforcement: mode
-          }
+          },
+          backstage: {
+            ...(typeof cleanedPayload.backstage === 'object' && cleanedPayload.backstage
+              ? cleanedPayload.backstage
+              : {}),
+            ...buildBackstage(),
+          },
         };
       }
     } catch (error) {
@@ -545,7 +606,9 @@ export async function renderShareableMirror({ geo, prov, options, conversational
       appendix: {
         geometry_summary: 'No geometry data provided.',
         provenance_source: prov?.source,
+        geometry_validated: false,
       },
+      backstage: buildBackstage({ geometryValidated: false }),
     };
   }
 
@@ -560,7 +623,26 @@ export async function renderShareableMirror({ geo, prov, options, conversational
       appendix: {
         geometry_summary: 'Geometry payload present but no placements were parsed.',
         provenance_source: prov?.source,
+        geometry_validated: false,
       },
+      backstage: buildBackstage({ geometryValidated: false }),
+    };
+  }
+
+  if (!geometryValidatedInitial) {
+    return {
+      picture: 'Validation pending—geometry captured but not confirmed.',
+      feeling: 'Before translating, confirm the Math Brain validation handshake so the geometryValidated flag reads true.',
+      container: 'Run the upstream validator or re-upload via Math Brain so the canonical flow (MathBrain → Seismograph → BalanceMeter → PoeticBrain → Mirror/WovenMap) completes.',
+      option: 'Once validation succeeds, invite me again and I will translate the mirror.',
+      next_step: 'Next step: confirm geometryValidated === true, then re-run this request.',
+      appendix: {
+        geometry_summary: `Placements parsed: ${placements.length} · Aspects parsed: ${aspects.length}.`,
+        provenance_source: prov?.source,
+        geometry_validated: false,
+        validation_required: true,
+      },
+      backstage: buildBackstage({ geometryValidated: false }),
     };
   }
 
@@ -618,6 +700,7 @@ export async function renderShareableMirror({ geo, prov, options, conversational
     geometry_summary: `Placements parsed: ${placements.length} · Aspects parsed: ${aspects.length}.`,
     provenance_source: prov?.source,
   };
+  appendix.geometry_validated = geometryValidatedInitial;
 
   if (summary?.dominantElement) {
     appendix.dominant_element = summary.dominantElement;
@@ -641,6 +724,7 @@ export async function renderShareableMirror({ geo, prov, options, conversational
       : '';
     appendix.primary_aspect = `${primaryAspect.from} ${primaryAspect.type} ${primaryAspect.to}${orbText}`;
   }
+  appendix.resonance_tier = classifyResonance(resonanceInput);
 
   Object.keys(appendix).forEach((key) => {
     const value = appendix[key];
@@ -657,27 +741,33 @@ export async function renderShareableMirror({ geo, prov, options, conversational
   }
 
   const finalFeeling = [feeling, weatherSegment].filter(Boolean).join(' ');
+  const sanitizedPicture = guardDeterministicLanguage(picture) ?? picture;
+  const sanitizedFeeling = guardDeterministicLanguage(finalFeeling) ?? finalFeeling;
+  const sanitizedContainer = guardDeterministicLanguage(container) ?? container;
+  const sanitizedOption = guardDeterministicLanguage(option) ?? option;
+  const sanitizedNextStep = guardDeterministicLanguage(nextStep) ?? nextStep;
 
   const shareableTemplate = buildShareableTemplate({
     geo,
     prov,
     options,
-    mapText: picture,
-    fieldText: finalFeeling,
-    containerText: container,
-    invitationText: option,
-    nextStepText: nextStep,
+    mapText: sanitizedPicture,
+    fieldText: sanitizedFeeling,
+    containerText: sanitizedContainer,
+    invitationText: sanitizedOption,
+    nextStepText: sanitizedNextStep,
     weatherSegment,
   });
 
   return {
-    picture,
-    feeling: finalFeeling,
-    container,
-    option,
-    next_step: nextStep,
+    picture: sanitizedPicture,
+    feeling: sanitizedFeeling,
+    container: sanitizedContainer,
+    option: sanitizedOption,
+    next_step: sanitizedNextStep,
     appendix,
     shareable_template: shareableTemplate,
+    backstage: buildBackstage(),
   };
 }
 
@@ -860,4 +950,128 @@ function buildShareableTemplate(payload: ShareableBuildOptions): ShareableTempla
     guardrails: SHAREABLE_GUARDRAILS,
     final_line: 'Compassion through precision; tilt named, agency intact.',
   };
+}
+
+function guardDeterministicLanguage<T extends string | null | undefined>(text: T): string | undefined {
+  if (typeof text !== 'string') return text ?? undefined;
+  if (/\b(cause|causes|causing|caused|fate|fated|destiny|destined)\b/i.test(text)) {
+    return replaceWithConditional(text);
+  }
+  return text;
+}
+
+function collectOperationalFlow(flowCandidate: any): string[] | null {
+  if (!Array.isArray(flowCandidate)) return null;
+  return flowCandidate.every((stage) => typeof stage === 'string') ? flowCandidate : null;
+}
+
+function flowsMatch(expected: readonly string[], provided: string[]): boolean {
+  if (expected.length !== provided.length) return false;
+  return expected.every((stage, index) => stage.toLowerCase() === provided[index].toLowerCase());
+}
+
+function extractRelocationFrame(options?: Record<string, any>, prov?: Record<string, any>): string | null {
+  if (!options && !prov) return null;
+  const direct = typeof options?.relocationFrame === 'string'
+    ? options.relocationFrame
+    : typeof options?.relocation_frame === 'string'
+      ? options.relocation_frame
+      : null;
+  if (direct) return direct;
+
+  const relocation =
+    options?.relocation ||
+    options?.context?.relocation ||
+    options?.relocationDetail ||
+    options?.context?.relocation_detail ||
+    {};
+
+  if (typeof relocation?.frame === 'string') return relocation.frame;
+  if (typeof relocation?.mode === 'string') return relocation.mode;
+
+  const provMode =
+    typeof prov?.relocation_mode === 'string'
+      ? prov.relocation_mode
+      : typeof prov?.relocation?.mode === 'string'
+        ? prov.relocation.mode
+        : null;
+  return provMode;
+}
+
+interface BackstageBuildOptions {
+  options?: Record<string, any>;
+  prov?: Record<string, any>;
+  geometryValidated: boolean;
+  resonanceInput?: unknown;
+  relocationFrame?: string | null;
+  deviations?: string[];
+  timestampIso: string;
+  uncannyAudit?: UncannyAuditResult;
+}
+
+function buildBackstageMetadata({
+  options,
+  prov,
+  geometryValidated,
+  resonanceInput,
+  relocationFrame,
+  deviations = [],
+  timestampIso,
+  uncannyAudit,
+}: BackstageBuildOptions): Record<string, any> {
+  const resonanceTier: ResonanceTier = classifyResonance(resonanceInput);
+  const relocationDisclosure = resolveRelocationDisclosure(relocationFrame);
+  const providedFlow =
+    collectOperationalFlow(options?.operationalFlow) ??
+    collectOperationalFlow(options?.operational_flow) ??
+    null;
+
+  const flowDeviations: string[] = [];
+  if (providedFlow && !flowsMatch(OPERATIONAL_FLOW, providedFlow)) {
+    flowDeviations.push(
+      `Operational flow mismatch (expected ${OPERATIONAL_FLOW.join(' -> ')}, received ${providedFlow.join(
+        ' -> ',
+      )}).`,
+    );
+  }
+
+  const dataSource =
+    typeof prov?.data_source === 'string' && prov.data_source.trim().length > 0
+      ? prov.data_source
+      : 'AstrologerAPI v4';
+  const mathBrainVersion =
+    prov?.math_brain_version ||
+    prov?.versions?.math_brain ||
+    prov?.engine?.math_brain_version ||
+    process.env.MATH_BRAIN_VERSION ||
+    'unknown';
+  const rendererVersion = process.env.RENDERER_VERSION || 'poetic-brain-runtime';
+
+  const metadata: Record<string, any> = {
+    resonanceTier,
+    relocationDisclosure,
+    geometryValidated,
+    operationalFlow: OPERATIONAL_FLOW,
+    deviations: [...deviations, ...flowDeviations],
+    provenance: {
+      data_source: dataSource,
+      math_brain_version: mathBrainVersion,
+      renderer_version: rendererVersion,
+      timestamp: timestampIso,
+    },
+  };
+
+  if (prov?.relocation_mode) {
+    metadata.relocationMode = prov.relocation_mode;
+  }
+
+  if (providedFlow) {
+    metadata.providedOperationalFlow = providedFlow;
+  }
+
+  if (uncannyAudit && uncannyAudit.status !== 'skipped') {
+    metadata.uncannyAudit = uncannyAudit;
+  }
+
+  return metadata;
 }
