@@ -13,7 +13,7 @@
 - **Location:** `lib/srp/` (types, loader, mapper, guards)
 - **Data:** `/data/srp/` (JSON ledgers: 8 light + 3 shadow samples)
 - **Integration:** Namespaced `srp: {}` object in `lib/poetic-brain-schema.ts`
-- **Protection:** `ENABLE_SRP` feature flag (defaults OFF)
+- **Protection:** `ENABLE_SRP` feature flag (defaults ON; set to false to opt-out)
 - **Tests:** 81+ tests passing (integration, guards, feature flag)
 
 **Status:**
@@ -170,7 +170,7 @@ result.provenance.translocation_applied = translocationApplies;
 - 8 light blend samples (hinge phrases, element weaves)
 - 3 shadow blend samples (restoration cues, collapse modes)
 - Loader with JSON-first + TypeScript fallback
-- Feature flag circuit breaker (defaults OFF)
+- Feature flag circuit breaker (defaults ON with opt-out)
 
 **What's pending:**
 - Populate remaining 136 light + 141 shadow blends

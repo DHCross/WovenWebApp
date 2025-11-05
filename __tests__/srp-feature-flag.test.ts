@@ -21,13 +21,14 @@ describe('SRP Feature Flag (ENABLE_SRP)', () => {
     expect(enrichment).toBeNull();
   });
 
-  it('disables enrichment when ENABLE_SRP is undefined (default)', () => {
+  it('enables enrichment when ENABLE_SRP is undefined (default)', () => {
     // Default state: no env var set
     delete process.env.ENABLE_SRP;
     clearLedgerCache();
 
     const enrichment = mapAspectToSRP('Mars conjunction Mars (0.5°)', 'WB');
-    expect(enrichment).toBeNull();
+    expect(enrichment).not.toBeNull();
+    expect(enrichment?.blendId).toBe(1);
   });
 
   it('enables enrichment when ENABLE_SRP is explicitly true', () => {
@@ -41,17 +42,36 @@ describe('SRP Feature Flag (ENABLE_SRP)', () => {
     expect(enrichment?.hingePhrase).toContain('Initiating');
   });
 
-  it('ignores non-true values (treats as disabled)', () => {
-    // Typos, '1', 'yes', etc. should NOT enable
-    const invalidValues = ['TRUE', '1', 'yes', 'enabled', 'on'];
+  it('treats common truthy values as enabled', () => {
+    const truthyValues = ['TRUE', '1', 'yes', 'enabled', 'on', 'auto'];
 
-    invalidValues.forEach(value => {
+    truthyValues.forEach(value => {
+      process.env.ENABLE_SRP = value;
+      clearLedgerCache();
+
+      const enrichment = mapAspectToSRP('Mars conjunction Mars (0.5°)', 'WB');
+      expect(enrichment).not.toBeNull();
+    });
+  });
+
+  it('treats common falsy values as disabled', () => {
+    const falsyValues = ['FALSE', '0', 'no', 'off', 'disabled'];
+
+    falsyValues.forEach(value => {
       process.env.ENABLE_SRP = value;
       clearLedgerCache();
 
       const enrichment = mapAspectToSRP('Mars conjunction Mars (0.5°)', 'WB');
       expect(enrichment).toBeNull();
     });
+  });
+
+  it('defaults to enabled when given an unrecognized value', () => {
+    process.env.ENABLE_SRP = 'maybe';
+    clearLedgerCache();
+
+    const enrichment = mapAspectToSRP('Mars conjunction Mars (0.5°)', 'WB');
+    expect(enrichment).not.toBeNull();
   });
 
   it('respects feature flag across multiple calls', () => {

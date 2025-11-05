@@ -13,6 +13,25 @@
  */
 let cachedSRPMapper = undefined;
 
+const SRP_TRUTHY_VALUES = new Set([
+  'true',
+  '1',
+  'yes',
+  'on',
+  'enable',
+  'enabled',
+  'auto'
+]);
+
+const SRP_FALSY_VALUES = new Set([
+  'false',
+  '0',
+  'no',
+  'off',
+  'disable',
+  'disabled'
+]);
+
 function tryLoadSRPMapper() {
   if (cachedSRPMapper !== undefined) {
     return cachedSRPMapper;
@@ -29,7 +48,17 @@ function tryLoadSRPMapper() {
 }
 
 function isSRPEnabled() {
-  return process.env.ENABLE_SRP === 'true';
+  const raw = process.env.ENABLE_SRP;
+  if (raw === undefined || raw === null) return true;
+
+  const normalized = String(raw).trim().toLowerCase();
+  if (!normalized) return true;
+
+  if (SRP_TRUTHY_VALUES.has(normalized)) return true;
+  if (SRP_FALSY_VALUES.has(normalized)) return false;
+
+  console.warn(`[SRP] Unrecognized ENABLE_SRP value "${raw}", defaulting to enabled.`);
+  return true;
 }
 
 function safeNum(x, def = 0) {

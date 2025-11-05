@@ -77,7 +77,20 @@ This isn't just a deployment toggle. It's **ethical architecture**—the differe
 **Implementation:**
 ```typescript
 function isSRPEnabled(): boolean {
-  return process.env.ENABLE_SRP === 'true';
+  const raw = process.env.ENABLE_SRP;
+  if (raw === undefined || raw === null) return true;
+
+  const normalized = raw.trim().toLowerCase();
+  if (!normalized) return true;
+
+  const truthy = ['true', '1', 'yes', 'on', 'enable', 'enabled', 'auto'];
+  const falsy = ['false', '0', 'no', 'off', 'disable', 'disabled'];
+
+  if (truthy.includes(normalized)) return true;
+  if (falsy.includes(normalized)) return false;
+
+  console.warn(`[SRP] Unrecognized ENABLE_SRP value "${raw}", defaulting to enabled.`);
+  return true;
 }
 
 // Never assume. Always ask.
@@ -87,7 +100,7 @@ export function getLightBlend(blendId: number): LightBlend | null {
 }
 ```
 
-**Result:** No symbolic interpretation without explicit permission.
+**Result:** Symbolic interpretation is active by default but can be withdrawn instantly.
 
 ### 2. Integrity
 *"No hidden processes interpret or categorize behavior without permission."*

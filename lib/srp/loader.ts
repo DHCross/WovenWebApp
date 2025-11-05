@@ -16,6 +16,25 @@ import {
   SHADOW_LEDGER as FALLBACK_SHADOW_LEDGER 
 } from './ledger';
 
+const SRP_TRUTHY_VALUES = new Set([
+  'true',
+  '1',
+  'yes',
+  'on',
+  'enable',
+  'enabled',
+  'auto'
+]);
+
+const SRP_FALSY_VALUES = new Set([
+  'false',
+  '0',
+  'no',
+  'off',
+  'disable',
+  'disabled'
+]);
+
 interface LightLedgerJSON {
   version: string;
   generated: string;
@@ -37,9 +56,19 @@ let shadowLedgerCache: Record<string, ShadowBlend> | null = null;
  * Check if SRP is enabled via environment variable
  */
 function isSRPEnabled(): boolean {
-  // Feature flag: defaults to FALSE for safety
-  // Explicit opt-in required via ENABLE_SRP=true
-  return process.env.ENABLE_SRP === 'true';
+  const raw = process.env.ENABLE_SRP;
+
+  // Default: enabled (can be disabled via explicit opt-out)
+  if (raw === undefined || raw === null) return true;
+
+  const normalized = raw.trim().toLowerCase();
+  if (!normalized) return true;
+
+  if (SRP_TRUTHY_VALUES.has(normalized)) return true;
+  if (SRP_FALSY_VALUES.has(normalized)) return false;
+
+  console.warn(`[SRP] Unrecognized ENABLE_SRP value "${raw}", defaulting to enabled.`);
+  return true;
 }
 
 /**

@@ -179,7 +179,7 @@ npm run test -- srp
 **Principles Established:**
 1. **Poetic, not diagnostic** - All language reads as creative metaphor
 2. **Anonymization** - No raw user text stored (if Phase 3 logging added)
-3. **Consent-first** - Feature flag defaults OFF (explicit opt-in)
+3. **Consent-first** - Feature flag defaults ON with clear opt-out
 4. **Revocability** - Kill switch always available (ENABLE_SRP)
 
 **Documented:**
@@ -193,7 +193,7 @@ npm run test -- srp
 - [ ] User-facing consent language (if/when UI added)
 
 **Current Safeguards:**
-- Feature flag (default OFF)
+- Feature flag (default ON with opt-out control)
 - No persistent storage of personal data
 - Content/code separation (easy to audit/edit JSON)
 - Graceful degradation (missing data = no enrichment)
@@ -206,8 +206,8 @@ npm run test -- srp
 
 **Implementation:**
 - Feature flag: `ENABLE_SRP` environment variable
-- Default state: **OFF** (explicit opt-in required)
-- Netlify deployment: Set in dashboard or leave disabled
+- Default state: **ON** (set to `false` to disable)
+- Netlify deployment: Set in dashboard or override per environment
 - Documentation: `lib/srp/FEATURE_FLAG_COMPLETE.md`
 
 **Deployment Matrix:**
@@ -221,7 +221,20 @@ npm run test -- srp
 **Feature Flag Logic:**
 ```typescript
 function isSRPEnabled(): boolean {
-  return process.env.ENABLE_SRP === 'true';
+  const raw = process.env.ENABLE_SRP;
+  if (raw === undefined || raw === null) return true;
+
+  const normalized = raw.trim().toLowerCase();
+  if (!normalized) return true;
+
+  const truthy = ['true', '1', 'yes', 'on', 'enable', 'enabled', 'auto'];
+  const falsy = ['false', '0', 'no', 'off', 'disable', 'disabled'];
+
+  if (truthy.includes(normalized)) return true;
+  if (falsy.includes(normalized)) return false;
+
+  console.warn(`[SRP] Unrecognized ENABLE_SRP value "${raw}", defaulting to enabled.`);
+  return true;
 }
 ```
 
@@ -250,7 +263,7 @@ Architecture:
 - JSON-first data loading with TypeScript fallback
 - Namespaced schema addition (srp: {}) for safety
 - Runtime null-guards prevent undefined leakage
-- Feature flag (ENABLE_SRP) defaults OFF for consensual opt-in
+- Feature flag (ENABLE_SRP) defaults ON with opt-out control
 
 Impact:
 - Core engine unaffected when SRP absent
@@ -319,7 +332,7 @@ Does the hinge phrase "breathe" like the rest of the Mandala?
 ┌─────────────────────────────────────────────────────────────┐
 │                     ETHICAL PERIMETER                        │
 │                                                              │
-│  Feature Flag: ENABLE_SRP (defaults OFF)                    │
+│  Feature Flag: ENABLE_SRP (defaults ON; set false to disable)│
 │  ├─ Consent: Explicit opt-in required                       │
 │  ├─ Revocability: Single env var disables layer            │
 │  └─ Testing: A/B comparisons trivial (on vs off)           │
@@ -473,7 +486,7 @@ npx tsx -e "import { getLightBlend, calculateBlendId } from './lib/srp/loader'; 
 - [x] Null-guard utilities (guards.ts)
 - [x] Schema integration (poetic-brain-schema.ts - namespaced)
 - [x] Poetic Brain formatting (poetic-brain/src/index.ts)
-- [x] Feature flag (ENABLE_SRP - defaults OFF)
+- [x] Feature flag (ENABLE_SRP - defaults ON, opt-out supported)
 - [x] Core tests (46 passing)
 - [x] Guard tests (27 passing)
 - [x] Feature flag tests (8 tests)
@@ -508,7 +521,7 @@ The SRP integration now has:
 2. **Editability** - JSON content layer (living lexicon)
 3. **Testability** - Comprehensive test suite (46+ tests)
 4. **Auditability** - Clear documentation (this file)
-5. **Consent** - Explicit opt-in (defaults OFF)
+5. **Consent** - Explicit opt-out available (defaults ON)
 
 **The doors are open. The tower can be questioned.**
 

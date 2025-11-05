@@ -6,11 +6,11 @@
 ## The Door That Lets You Exit
 
 ```bash
-# Default: SRP disabled (safe, consensual)
+# Default: SRP enabled (opt-out available)
 npm run dev
 
-# Explicit opt-in: SRP enabled
-ENABLE_SRP=true npm run dev
+# Explicit opt-out: disable SRP
+ENABLE_SRP=false npm run dev
 ```
 
 ## Implementation
@@ -20,9 +20,20 @@ ENABLE_SRP=true npm run dev
 ```typescript
 // lib/srp/loader.ts
 function isSRPEnabled(): boolean {
-  // Feature flag: defaults to FALSE for safety
-  // Explicit opt-in required via ENABLE_SRP=true
-  return process.env.ENABLE_SRP === 'true';
+  const raw = process.env.ENABLE_SRP;
+  if (raw === undefined || raw === null) return true; // default ON
+
+  const normalized = raw.trim().toLowerCase();
+  if (!normalized) return true;
+
+  const truthy = new Set(['true', '1', 'yes', 'on', 'enable', 'enabled', 'auto']);
+  const falsy = new Set(['false', '0', 'no', 'off', 'disable', 'disabled']);
+
+  if (truthy.has(normalized)) return true;
+  if (falsy.has(normalized)) return false;
+
+  console.warn(`[SRP] Unrecognized ENABLE_SRP value "${raw}", defaulting to enabled.`);
+  return true;
 }
 
 export function getLightBlend(blendId: number): LightBlend | null {
@@ -33,8 +44,8 @@ export function getLightBlend(blendId: number): LightBlend | null {
 
 ### Safety Design
 
-1. **Defaults to OFF** - No symbolic enrichment without explicit consent
-2. **Exact string match** - Only `'true'` enables; typos, '1', 'yes' all disable
+1. **Defaults to ON** - Enrichment available unless explicitly disabled
+2. **Flexible truthy parsing** - `'true'`, `'TRUE'`, `'1'`, `'yes'`, `'auto'` all enable
 3. **Runtime toggle** - Can be changed without code deployment
 4. **Graceful degradation** - System works perfectly with SRP disabled
 5. **No leakage** - Disabled = null enrichment, clean payloads
@@ -60,11 +71,13 @@ The feature flag **is** that door. It ensures:
 
 | `ENABLE_SRP` | Enrichment | Behavior |
 |--------------|------------|----------|
-| undefined    | ❌ Disabled | Clean aspects, no SRP fields |
+| undefined    | ✅ Enabled  | Full SRP enrichment (default) |
 | `'false'`    | ❌ Disabled | Clean aspects, no SRP fields |
+| `'0'`        | ❌ Disabled | Clean aspects, no SRP fields |
 | `'true'`     | ✅ Enabled  | Full SRP enrichment |
-| `'1'`        | ❌ Disabled | Typo safety - only exact 'true' works |
-| `'TRUE'`     | ❌ Disabled | Case-sensitive for safety |
+| `'TRUE'`     | ✅ Enabled  | Case-insensitive |
+| `'1'`        | ✅ Enabled  | Numeric truthy |
+| `'maybe'`    | ✅ Enabled  | Logs warning, defaults to enabled |
 
 ---
 
@@ -73,10 +86,10 @@ The feature flag **is** that door. It ensures:
 ### Development (local testing)
 
 ```bash
-# Test with SRP enabled
-ENABLE_SRP=true npm run dev
+# Test with SRP disabled
+ENABLE_SRP=false npm run dev
 
-# Test with SRP disabled (default)
+# Test with SRP enabled (default)
 npm run dev
 ```
 
@@ -88,13 +101,13 @@ Set environment variable in Netlify dashboard:
 ENABLE_SRP=true
 ```
 
-Or leave unset for disabled state (default safe mode).
+Or leave unset for enabled state (default).
 
 ### A/B Testing
 
 ```javascript
 // In Math Brain or analytics layer
-const srpEnabled = process.env.ENABLE_SRP === 'true';
+const srpEnabled = process.env.ENABLE_SRP !== 'false';
 
 if (srpEnabled) {
   // Track SRP enrichment metrics
