@@ -1,8 +1,6 @@
 // Raven-lite AspectModel → t2n_aspects mapper
 // This function normalizes API AspectModel[] into Raven-lite t2n_aspects with flags for Hook/Seismograph logic
 
-const { calculateRelocatedChart } = require('../lib/relocation-houses');
-
 /**
  * Find house placement for a planet/point in natal chart data
  * @param {string} planetName - Name of planet/point to find
@@ -89,24 +87,12 @@ function applyRelocationDirective(natalChart, relocationContext) {
     return natalChart;
   }
 
-  try {
-    // Execute Raven Calder relocation procedure
-    const relocatedChart = calculateRelocatedChart(
-      natalChart,
-      relocationContext.coordinates,
-      relocationContext.birth_datetime,
-      relocationContext.house_system || 'placidus'
-    );
-
-    return relocatedChart;
-  } catch (error) {
-    console.warn('Relocation directive failed:', error);
-    return {
-      ...natalChart,
-      relocation_error: error.message,
-      disclosure: 'Relocation attempted but could not be applied; houses shown are natal.'
-    };
-  }
+  // Note: Relocation is now handled natively by AstrologerAPI
+  // When fetchNatalChartComplete is called with relocated coordinates,
+  // the API returns a chart with relocated houses. This function is
+  // kept for backward compatibility but just returns the chart as-is.
+  // The real relocation happens at the API level in astrology-mathbrain.js
+  return natalChart;
 }
 
 /**

@@ -125,7 +125,6 @@ const req = http.request(options, (res) => {
         console.log(`  Chart Basis: ${prov.chart_basis ?? 'N/A'}`);
         console.log(`  Seismograph Chart: ${prov.seismograph_chart ?? 'N/A'}`);
         console.log(`  Translocation Applied: ${prov.translocation_applied ? 'Yes' : 'No'}`);
-        console.log(`  Relocation Shim Applied: ${prov.relocation_shim_applied ? 'Yes' : 'No'}`);
         console.log('');
 
         // Validate Felt Weather configuration

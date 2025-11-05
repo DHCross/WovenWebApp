@@ -166,19 +166,19 @@ function generateBalanceMeterSummary(personA, personB, balanceMeter) {
   output += `How loud the symbolic field is right now.\n\n`;
 
   output += `**Directional Bias**: ${bias.toFixed(1)} (${biasLabel})\n`;
-  output += `Which way the energy is leaning—toward expansion or contraction.\n\n`;
+  output += `Geometric direction of symbolic pressure—toward expansion or contraction.\n\n`;
 
-  output += `Together, this creates a climate of: `;
+  output += `Together, this creates a structural pattern: `;
   if (magnitude > 3 && bias > 0) {
-    output += `high intensity with expansive pressure. This is a time of growth, but also potential overwhelm.`;
+    output += `high-intensity field with strong outward directional pressure. How this expresses depends on your relationship with expansive movement—it can support growth, create scatter, or both.`;
   } else if (magnitude > 3 && bias < 0) {
-    output += `high intensity with contractive pressure. This is a time of deep work, but also potential heaviness.`;
+    output += `high-intensity field with strong inward directional pressure. How this expresses depends on your relationship with contractive movement—it can deepen focus, create compression, or both.`;
   } else if (magnitude < 2 && bias > 0) {
-    output += `gentle expansion. This is a time of ease and opening.`;
+    output += `low-intensity field with gentle outward lean. Space for movement without urgency.`;
   } else if (magnitude < 2 && bias < 0) {
-    output += `gentle contraction. This is a time of rest and integration.`;
+    output += `low-intensity field with gentle inward lean. Space for consolidation without pressure.`;
   } else {
-    output += `moderate pressure in both directions. This is a time of balance and choice.`;
+    output += `moderate-intensity field with balanced directional flow. Structure supports multiple response pathways.`;
   }
 
   output += `\n\n`;

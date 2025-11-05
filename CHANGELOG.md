@@ -1,3 +1,36 @@
+## [2025-11-04] CRITICAL FIX: Full-Stack Epistemic Alignment (Geometry ≠ Experience)
+
+Summary
+Aligned all three architectural layers (narrative synthesis, label generation, AI system prompt) with epistemic boundaries established in DIRECTIONAL_BIAS_EPISTEMOLOGY.md. Enforces principle: "Directional Bias measures how energy moves (structure), not how it feels (experience)."
+
+Implementation
+A. Narrative Synthesis (src/formatter/relational-flow.js)
+   - Removed emotional predictions ("overwhelm", "heaviness") from Balance Meter summaries
+   - Replaced with structural pattern descriptions: "How this expresses depends on your relationship with expansive/contractive movement"
+   - Changed 5 emotional forecast statements to pattern-based descriptions with user agency framing
+
+B. Label Generation Audit
+   - Verified all label functions use structural language (lib/reporting/metric-labels.js, lib/balance/scale.ts)
+   - Fixed one instance in astrology-mathbrain.js line 3457: "feels restrictive" → "contractive geometry"
+   - Confirmed DIRECTIONAL_BIAS_LEVELS, classifyDirectionalBias(), getBiasLabel() all use geometric descriptors
+
+C. Poetic Brain System Prompt (netlify/functions/poetic-brain.js)
+   - Added epistemic boundary note to personaHook (linguistic firewall)
+   - Instructs AI: "Directional Bias measures how energy moves (geometric direction), NOT how it feels (emotional tone)"
+   - Prevents emotional reinterpretation of structural metrics in narrative synthesis
+
+Validation
+- Golden standard test (Hurricane Michael): ✅ PASS
+  - Magnitude: 4.10, Directional Bias: -3.50, Volatility: 3.90
+  - No behavior change in calculation layer (epistemic alignment affects only narrative, not geometry)
+- Files modified: 3 (relational-flow.js, astrology-mathbrain.js, poetic-brain.js)
+- Documentation: EPISTEMIC_ALIGNMENT_COMPLETE.md created
+
+Philosophy
+"Anchor humanity in pattern description, not emotional prescription." The system describes structure (what the geometry shows) while leaving experience interpretation (how it feels) to the user. Maintains poetic humanity through metaphor without emotional determinism.
+
+---
+
 ## [2025-11-01] FEATURE: Probabilistic Forecasting Micro-Protocol (Option C)
 
 Summary
