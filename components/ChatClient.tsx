@@ -794,6 +794,80 @@ const parseReportContent = (rawContent: string, opts: ParseOptions = {}): Parsed
   return { context, relocation: relocationSummary, isMirror: resolvedType === "mirror" };
 };
 
+type ReportMetadata = {
+  format: string | null;
+  hasMirrorDirective: boolean;
+  hasSymbolicWeather: boolean;
+  isRelationalMirror: boolean;
+};
+
+const detectReportMetadata = (rawContent: string | undefined): ReportMetadata => {
+  const empty: ReportMetadata = {
+    format: null,
+    hasMirrorDirective: false,
+    hasSymbolicWeather: false,
+    isRelationalMirror: false,
+  };
+  if (!rawContent || typeof rawContent !== 'string') {
+    return empty;
+  }
+  let data: any;
+  try {
+    data = JSON.parse(rawContent);
+  } catch {
+    return empty;
+  }
+
+  const format = typeof data?._format === 'string' ? data._format : null;
+  const mirrorContract =
+    (data?.mirror_contract && typeof data.mirror_contract === 'object' && data.mirror_contract) ||
+    (data?.contract && typeof data.contract === 'object' && data.contract) ||
+    null;
+
+  const reportKindRaw =
+    mirrorContract?.report_kind ??
+    data?.report_kind ??
+    data?.report_type ??
+    data?.mode ??
+    data?.context?.report_kind ??
+    null;
+  const reportKind = typeof reportKindRaw === 'string' ? reportKindRaw.toLowerCase() : '';
+
+  const hasMirrorDirective =
+    format === 'mirror_directive_json' ||
+    Boolean(
+      mirrorContract ||
+        data?.narrative_sections ||
+        (data?.person_a && typeof data.person_a === 'object') ||
+        (data?.personA && typeof data.personA === 'object')
+    );
+
+  const hasSymbolicWeather =
+    format === 'mirror-symbolic-weather-v1' ||
+    format === 'symbolic_weather_json' ||
+    Boolean(
+      data?.symbolic_weather ||
+        data?.symbolic_weather_context ||
+        data?.weather_overlay ||
+        data?.balance_meter?.channel_summary_canonical ||
+        data?.balance_meter_frontstage ||
+        Array.isArray(data?.daily_readings)
+    );
+
+  const mirrorIsRelational =
+    Boolean(mirrorContract?.is_relational) ||
+    Boolean(mirrorContract?.relationship_type) ||
+    /relational|synastry|composite/.test(reportKind) ||
+    Boolean(data?.person_b || data?.personB);
+
+  return {
+    format,
+    hasMirrorDirective,
+    hasSymbolicWeather,
+    isRelationalMirror: Boolean(hasMirrorDirective && mirrorIsRelational),
+  };
+};
+
 const createInitialMessage = (): Message => ({
   id: generateId(),
   role: "raven",
@@ -906,6 +980,7 @@ export default function ChatClient() {
   const sessionAnnouncementHookRef = useRef<string | undefined>(undefined);
   const sessionAnnouncementClimateRef = useRef<string | undefined>(undefined);
   const previousModeRef = useRef<SessionMode>('idle');
+  const pendingContextRequirementRef = useRef<'mirror' | 'weather' | null>(null);
 
   const pushRavenNarrative = useCallback(
     (text: string, options: { hook?: string; climate?: string } = {}) => {
@@ -1416,21 +1491,88 @@ export default function ChatClient() {
   const analyzeReportContext = useCallback(
     async (reportContext: ReportContext, contextsForPayload?: ReportContext[]) => {
       const contextList = contextsForPayload ?? reportContexts;
-      const placeholderId = generateId();
-      const placeholder: Message = {
-        id: placeholderId,
-        role: "raven",
-        html: "",
-        climate: "",
-        hook: "",
-        intent: undefined,
-        probe: null,
-        prov: null,
-        rawText: "",
-        validationPoints: [],
-        validationComplete: false,
-      };
-      setMessages((prev) => [...prev, placeholder]);
+      const metadataList = contextList.map((ctx) => ({
+        id: ctx.id,
+        type: ctx.type,
+        metadata: detectReportMetadata(ctx.content),
+      }));
+
+      const hasMirrorDirective = metadataList.some((entry) => entry.metadata.hasMirrorDirective);
+      const hasSymbolicWeather = metadataList.some((entry) => entry.metadata.hasSymbolicWeather);
+      const hasRelationalMirror = metadataList.some((entry) => entry.metadata.isRelationalMirror);
+
+      if (hasRelationalMirror && !hasSymbolicWeather) {
+        setStatusMessage("Waiting for the symbolic weather export…");
+        if (pendingContextRequirementRef.current !== 'weather') {
+          pendingContextRequirementRef.current = 'weather';
+          const prompt =
+            "I’m holding the relational mirror directive, but its symbolic weather companion isn’t here yet. Upload the Mirror+SymbolicWeather JSON export from Math Brain so I can begin the reading.";
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: generateId(),
+              role: 'raven',
+              html: `<p style="margin:0; line-height:1.65;">${escapeHtml(prompt)}</p>`,
+              hook: "Upload · Missing Weather",
+              climate: "VOICE · Awaiting Upload",
+              rawText: prompt,
+              validationPoints: [],
+              validationComplete: true,
+            },
+          ]);
+          // eslint-disable-next-line no-console
+          console.info('[Poetic Brain] Waiting for symbolic weather payload', {
+            contexts: metadataList.map((entry) => ({
+              id: entry.id,
+              type: entry.type,
+              format: entry.metadata.format,
+              hasMirrorDirective: entry.metadata.hasMirrorDirective,
+              hasSymbolicWeather: entry.metadata.hasSymbolicWeather,
+              isRelationalMirror: entry.metadata.isRelationalMirror,
+            })),
+          });
+        }
+        return;
+      }
+
+      if (hasSymbolicWeather && !hasMirrorDirective) {
+        setStatusMessage("Waiting for the mirror directive upload…");
+        if (pendingContextRequirementRef.current !== 'mirror') {
+          pendingContextRequirementRef.current = 'mirror';
+          const prompt =
+            "I received the symbolic weather export, but I still need the Mirror Directive JSON. Drop the mirror file from Math Brain so we can complete the pair.";
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: generateId(),
+              role: 'raven',
+              html: `<p style="margin:0; line-height:1.65;">${escapeHtml(prompt)}</p>`,
+              hook: "Upload · Missing Mirror",
+              climate: "VOICE · Awaiting Upload",
+              rawText: prompt,
+              validationPoints: [],
+              validationComplete: true,
+            },
+          ]);
+          // eslint-disable-next-line no-console
+          console.info('[Poetic Brain] Waiting for mirror directive payload', {
+            contexts: metadataList.map((entry) => ({
+              id: entry.id,
+              type: entry.type,
+              format: entry.metadata.format,
+              hasMirrorDirective: entry.metadata.hasMirrorDirective,
+              hasSymbolicWeather: entry.metadata.hasSymbolicWeather,
+              isRelationalMirror: entry.metadata.isRelationalMirror,
+            })),
+          });
+        }
+        return;
+      }
+
+      if (pendingContextRequirementRef.current) {
+        pendingContextRequirementRef.current = null;
+        setStatusMessage(null);
+      }
 
       const reportLabel = reportContext.name?.trim()
         ? `"${reportContext.name.trim()}"`
@@ -1456,7 +1598,37 @@ export default function ChatClient() {
         validationComplete: true,
       };
 
-      setMessages(prev => [...prev, sessionStartMessage]);
+      const weatherPlaceholderId = generateId();
+      const weatherPlaceholder: Message = {
+        id: weatherPlaceholderId,
+        role: "raven",
+        html: "",
+        climate: "",
+        hook: "",
+        intent: undefined,
+        probe: null,
+        prov: null,
+        rawText: "",
+        validationPoints: [],
+        validationComplete: false,
+      };
+
+      const mirrorPlaceholderId = generateId();
+      const mirrorPlaceholder: Message = {
+        id: mirrorPlaceholderId,
+        role: "raven",
+        html: "",
+        climate: "",
+        hook: "",
+        intent: undefined,
+        probe: null,
+        prov: null,
+        rawText: "",
+        validationPoints: [],
+        validationComplete: false,
+      };
+
+      setMessages(prev => [...prev, sessionStartMessage, weatherPlaceholder, mirrorPlaceholder]);
 
       const relocationPayload = mapRelocationToPayload(reportContext.relocation);
       const contextPayload = contextList.map((ctx) => {
@@ -1473,7 +1645,6 @@ export default function ChatClient() {
 
       try {
         // First, get the symbolic weather report with a safer prompt
-        const weatherPlaceholderId = generateId();
         const weatherResponse = await runRavenRequest(
           {
             input: `Provide a brief astrological weather update for ${reportLabel}, focusing on major transits and aspects. Keep it concise and focused on the current celestial patterns.`,
@@ -1513,7 +1684,7 @@ export default function ChatClient() {
                 max_tokens: 600
               },
             },
-            placeholderId,
+            mirrorPlaceholderId,
             `Analyzing patterns in ${reportLabel}...`,
           );
         } else {
@@ -1534,7 +1705,7 @@ export default function ChatClient() {
                 max_tokens: 500
               },
             },
-            placeholderId,
+            mirrorPlaceholderId,
             `Exploring patterns in ${reportLabel}...`,
           );
         }

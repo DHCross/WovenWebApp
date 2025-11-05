@@ -217,15 +217,45 @@ function safeParseJSON(value: string): { ok: boolean; data: any | null } {
 
 function resolveSubject(payload: any, key: 'person_a' | 'person_b'): any {
   if (!payload || typeof payload !== 'object') return null;
-  if (payload[key]) return payload[key];
-  if (payload.context && typeof payload.context === 'object' && payload.context[key]) {
-    return payload.context[key];
+  const camelKey = key === 'person_a' ? 'personA' : 'personB';
+
+  const sources: Array<any> = [];
+  if (payload.unified_output && typeof payload.unified_output === 'object') {
+    sources.push(payload.unified_output);
   }
-  if (payload.subjects && typeof payload.subjects === 'object' && payload.subjects[key]) {
-    return payload.subjects[key];
+  sources.push(payload);
+
+  if (payload.context && typeof payload.context === 'object') {
+    sources.push(payload.context);
+    if (payload.context.unified_output && typeof payload.context.unified_output === 'object') {
+      sources.push(payload.context.unified_output);
+    }
+    if (payload.context.subjects && typeof payload.context.subjects === 'object') {
+      sources.push(payload.context.subjects);
+    }
   }
-  const nested = payload.profiles && typeof payload.profiles === 'object' ? payload.profiles[key] : undefined;
-  return nested || null;
+
+  if (payload.subjects && typeof payload.subjects === 'object') {
+    sources.push(payload.subjects);
+  }
+
+  if (payload.profiles && typeof payload.profiles === 'object') {
+    sources.push(payload.profiles);
+  }
+
+  if (payload.people && typeof payload.people === 'object') {
+    sources.push(payload.people);
+  }
+
+  for (const source of sources) {
+    if (!source || typeof source !== 'object') continue;
+    const candidate = source[key] ?? source[camelKey];
+    if (candidate && typeof candidate === 'object') {
+      return candidate;
+    }
+  }
+
+  return null;
 }
 
 function hasCompleteSubject(subject: any): boolean {
