@@ -1,4 +1,18 @@
 /**
+ * Poetics Module - Symbol-to-Narrative Translation
+ * FIELD → MAP → VOICE methodology for converting chart geometry into resonant narratives
+ * 
+ * Phase 1, Task 1.2: Exports narrative builder for solo mirror generation
+ */
+
+// Re-export all public APIs
+export * from './types';
+export * from './mandate';
+export * from './narrative-builder';
+export * from './prompt-builder';
+export * from './parser';
+
+/**
  * Symbol-to-Poem Translation Protocol
  * FIELD → MAP → VOICE methodology for converting chart geometry into resonant poetry
  */
