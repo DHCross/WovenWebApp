@@ -643,6 +643,54 @@ const formatBalanceMeterSummaryLine = (summary: BalanceMeterSummary | null): str
   return parts.length ? parts.join(" · ") : null;
 };
 
+const REPORT_LABEL_OVERRIDES: Record<string, string> = {
+  solo_balance_meter: "Solo Balance Meter",
+  relational_balance_meter: "Relational Balance Meter",
+  solo_balance: "Solo Balance Meter",
+  balance: "Balance Meter",
+  solo_mirror: "Solo Mirror",
+  relational_mirror: "Relational Mirror",
+  mirror: "Mirror Report",
+};
+
+const normalizeReportLabelKey = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+const humanizeIdentifier = (value: string): string => {
+  const spaced = value.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!spaced) return spaced;
+  const isLowerCase = spaced === spaced.toLowerCase();
+  if (!isLowerCase) {
+    return spaced;
+  }
+  return spaced.replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const formatReportDisplayLabel = (
+  label: string | null | undefined,
+  reportType: "mirror" | "balance",
+): string => {
+  const fallback = reportType === "mirror" ? "Mirror Report" : "Balance Report";
+  if (!label) return fallback;
+
+  let cleaned = label.trim();
+  if (!cleaned) return fallback;
+
+  cleaned = cleaned.replace(/\.(json|txt)$/i, "");
+
+  const override = REPORT_LABEL_OVERRIDES[normalizeReportLabelKey(cleaned)];
+  if (override) {
+    return override;
+  }
+
+  const humanized = humanizeIdentifier(cleaned);
+  return humanized || fallback;
+};
+
 const parseReportContent = (rawContent: string, opts: ParseOptions = {}): ParsedReportContent => {
   let inferredType: "mirror" | "balance" | null = null;
   let relocationSummary: RelocationSummary | null = null;
@@ -740,15 +788,16 @@ const parseReportContent = (rawContent: string, opts: ParseOptions = {}): Parsed
   }
 
   const resolvedType = (opts.uploadType || inferredType || "balance") as "mirror" | "balance";
+  const normalizedLabel = formatReportDisplayLabel(displayLabel, resolvedType);
   const summary = Array.from(
-    new Set([displayLabel, ...summaryParts].filter(Boolean)),
+    new Set([normalizedLabel, ...summaryParts].filter(Boolean)),
   );
 
   const context: ReportContext = {
     id: generateId(),
     type: resolvedType,
     name:
-      displayLabel.split("|")[0]?.trim() ||
+      normalizedLabel.split("|")[0]?.trim() ||
       (resolvedType === "mirror" ? "Mirror Report" : "Balance Report"),
     summary: summary.join(" • "),
     content: rawContent,
@@ -1377,6 +1426,25 @@ export default function ChatClient() {
       const reportLabel = reportContext.name?.trim()
         ? `"${reportContext.name.trim()}"`
         : 'This report';
+      const introCopy = (() => {
+        const safeLabel = escapeHtml(reportLabel);
+        if (reportContext.type === 'balance') {
+          const bodyText = `${reportLabel} has been loaded. I'll start with the Balance Meter's symbolic weather and then interpret the meter with you.`;
+          return {
+            title: 'Session Started: Balance Meter',
+            bodyHtml: bodyText.replace(reportLabel, safeLabel),
+            bodyText,
+            hook: 'Session · Balance Meter',
+          };
+        }
+        const bodyText = `${reportLabel} has been loaded. I'll begin with a symbolic weather report, then we'll explore the mirror together.`;
+        return {
+          title: 'Session Started: Mirror Reading',
+          bodyHtml: bodyText.replace(reportLabel, safeLabel),
+          bodyText,
+          hook: 'Session · Mirror Reading',
+        };
+      })();
 
       // Set session mode to report and mark as started
       setSessionMode('report');
@@ -1387,13 +1455,13 @@ export default function ChatClient() {
         id: generateId(),
         role: 'raven' as const,
         html: `<div class="session-start">
-          <p>🌌 <strong>Session Started: Mirror Reading</strong></p>
-          <p>${reportLabel} has been loaded. I'll begin with a symbolic weather report, then we'll explore the mirror together.</p>
+          <p>🌌 <strong>${introCopy.title}</strong></p>
+          <p>${introCopy.bodyHtml}</p>
           <p>Shall we begin?</p>
         </div>`,
-        hook: "Session · Mirror Reading",
+        hook: introCopy.hook,
         climate: "VOICE · Symbolic Weather",
-        rawText: `Session Started: Mirror Reading\n\n${reportLabel} has been loaded. I'll begin with a symbolic weather report, then we'll explore the mirror together.\n\nShall we begin?`,
+        rawText: `${introCopy.title}\n\n${introCopy.bodyText}\n\nShall we begin?`,
         validationPoints: [],
         validationComplete: true,
       };
