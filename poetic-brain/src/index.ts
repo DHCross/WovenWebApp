@@ -1,8 +1,10 @@
 // Main entry for Poetic Brain module
 // Exports generateSection(sectionType, inputPayload)
+// Phase 1, Task 1.2: Integrated with narrative-builder for solo mirror generation
 
 import { buildMandatesForChart } from '../../lib/poetics/mandate';
 import { enhancePromptWithMandates } from '../../lib/poetics/prompt-builder';
+import { generateSoloMirrorNarrative } from '../../lib/poetics/narrative-builder';
 import type { MandateAspect } from '../../lib/poetics/types';
 
 export type SectionType = 'MirrorVoice' | 'PolarityCardVoice' | string;
@@ -679,6 +681,15 @@ function generateSoloMirror(person: any, chart: any, calibration: IntimacyCalibr
   const name = person.name || 'Person';
   const geometrySummary = extractGeometrySummary(chart);
 
+  // Use narrative builder for structured mirror generation
+  const chartMandates = {
+    personName: name,
+    mandates: mandates
+  };
+  
+  const narrative = generateSoloMirrorNarrative(chartMandates);
+
+  // Prepend calibration and geometry context
   const lines: string[] = [];
   lines.push(`# Solo Mirror: ${name}`);
   lines.push('');
@@ -690,8 +701,9 @@ function generateSoloMirror(person: any, chart: any, calibration: IntimacyCalibr
   lines.push('');
   lines.push('Blueprint — Natal pattern reflects constitutional climate. This is the baseline geometry before any transits or activations.');
   lines.push('');
-  const mandateNarrative = renderMandatesSection(name, mandates);
-  lines.push(...mandateNarrative);
+  
+  // Append the generated narrative
+  lines.push(narrative.fullNarrative);
   lines.push('');
   lines.push('Reflection — Map, not mandate: Integrate what resonates with current reality and log evidence for or against each pattern.');
 

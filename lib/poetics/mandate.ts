@@ -105,7 +105,7 @@ function determineDiagnostic(aspect: RawAspect, allAspects: RawAspect[]): Mandat
     const sharedPlanetCount = allAspects.filter(a =>
       a !== aspect && (a.planet_a === planetA || a.planet_b === planetA)
     ).length;
-    if (sharedPlanetCount > 1) {
+    if (sharedPlanetCount >= 1) {
       return 'Compression';
     }
   }
