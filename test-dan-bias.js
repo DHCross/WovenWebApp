@@ -93,9 +93,30 @@ const req = http.request(options, (res) => {
 
       console.log('📊 Seismograph Summary:');
       console.log('---');
-      console.log(`Magnitude:       ${summary.magnitude?.toFixed(2) ?? '—'} (${summary.magnitude_label ?? '?'})`);
-      console.log(`Directional Bias: ${summary.directional_bias?.value?.toFixed(2) ?? '—'} (${summary.directional_bias?.label ?? '?'})`);
+      const magnitude = summary.magnitude;
+      const directionalBias = summary.directional_bias?.value;
+
+      console.log(`Magnitude:       ${magnitude?.toFixed(2) ?? '—'} (${summary.magnitude_label ?? '?'})`);
+      console.log(`Directional Bias: ${directionalBias?.toFixed(2) ?? '—'} (${summary.directional_bias?.label ?? '?'})`);
       console.log(`Volatility:      ${summary.volatility?.toFixed(2) ?? '—'} (${summary.volatility_label ?? '?'})`);
+      console.log('');
+
+      // Assertions for Golden Standard
+      const expectedMagnitude = 4.1;
+      const expectedBias = -3.5;
+      const tolerance = 0.1;
+
+      if (Math.abs(magnitude - expectedMagnitude) > tolerance) {
+        console.error(`❌ Magnitude is out of tolerance: expected ${expectedMagnitude}, got ${magnitude}`);
+        process.exit(1);
+      }
+
+      if (Math.abs(directionalBias - expectedBias) > tolerance) {
+        console.error(`❌ Directional Bias is out of tolerance: expected ${expectedBias}, got ${directionalBias}`);
+        process.exit(1);
+      }
+
+      console.log('✅ Golden Standard values are within tolerance!');
       console.log('');
 
       // Provenance
