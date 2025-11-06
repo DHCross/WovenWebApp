@@ -28,9 +28,10 @@ interface WrapUpCardProps {
   onClose?: () => void;
   onSealed?: (sealedSessionId: string, nextSessionId: string) => void;
   exportData?: any;
+  onExportClearMirror?: () => void;
 }
 
-const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, exportData }) => {
+const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, exportData, onExportClearMirror }) => {
   const [composite, setComposite] = useState<ActorRoleComposite | null>(null);
   const [sessionStats, setSessionStats] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -860,8 +861,9 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
         <div className="export-note">These exports are for your records and analysis, not AI consumption.</div>
         <ul className="export-description">
           <li><strong>JSON</strong> · Structured session log (resonance marks, probes, timestamps) for tooling or archival.</li>
-          <li><strong>PDF</strong> · Readable summary you can print or hand to collaborators.</li>
+          <li><strong>Session PDF</strong> · Readable summary of this session&apos;s resonance data (Actor/Role composite, rubric scores).</li>
           <li><strong>CSV</strong> · Tabular resonance metrics ready for spreadsheets or custom analysis.</li>
+          {onExportClearMirror && <li><strong>Clear Mirror PDF</strong> · E-Prime formatted natal/relational report with Core Insights and symbolic footnotes.</li>}
         </ul>
         <div className="export-buttons">
           <button
@@ -876,7 +878,7 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
             onClick={handleExportPDF}
             title="Download session summary as PDF (human-readable summary)"
           >
-            📋 Export PDF
+            📋 Session PDF
           </button>
           <button
             className="btn export-btn"
@@ -885,6 +887,15 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
           >
             📊 Export CSV
           </button>
+          {onExportClearMirror && (
+            <button
+              className="btn export-btn clear-mirror"
+              onClick={onExportClearMirror}
+              title="Download Clear Mirror report as formatted PDF (E-Prime, Core Insights, symbolic footnotes)"
+            >
+              🪞 Clear Mirror PDF
+            </button>
+          )}
         </div>
       </div>
 
@@ -1145,6 +1156,8 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
         .export-buttons { display: flex; gap: 12px; justify-content: center; }
         .export-btn { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #93c5fd; padding: 8px 16px; font-size: 13px; }
         .export-btn:hover { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.5); }
+        .export-btn.clear-mirror { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: #6ee7b7; }
+        .export-btn.clear-mirror:hover { background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.5); }
       `}</style>
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>

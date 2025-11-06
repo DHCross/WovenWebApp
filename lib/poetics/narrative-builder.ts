@@ -54,7 +54,7 @@ function getDiagnosticSuffix(diagnostic: MandateDiagnostic): string {
 }
 
 /**
- * Generate hook stack from highest-priority mandate
+ * Generate core insights from highest-priority mandate
  * Identifies the two dominant polarities driving the chart by examining the tightest aspect
  */
 export function generateHookStack(mandates: MandateAspect[]): SoloMirrorNarrative['hookStack'] {

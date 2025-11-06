@@ -7,6 +7,7 @@ interface SessionWrapUpModalProps {
   sessionId?: string | null;
   onDismiss: () => void;
   onConfirmEnd: () => void;
+  onSkipToExport?: () => void;
 }
 
 const baseButtonClass =
@@ -17,6 +18,7 @@ export function SessionWrapUpModal({
   sessionId,
   onDismiss,
   onConfirmEnd,
+  onSkipToExport,
 }: SessionWrapUpModalProps) {
   if (!open) {
     return null;
@@ -86,21 +88,34 @@ export function SessionWrapUpModal({
           </ul>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-slate-800 px-6 py-4 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            onClick={onDismiss}
-            className={`${baseButtonClass} border-slate-700/80 bg-transparent text-slate-300 hover:border-slate-500 hover:text-slate-100`}
-          >
-            Return to session
-          </button>
-          <button
-            type="button"
-            onClick={onConfirmEnd}
-            className={`${baseButtonClass} border-emerald-500/60 bg-emerald-500/20 text-emerald-100 hover:border-emerald-400 hover:bg-emerald-500/30`}
-          >
-            Continue to wrap-up
-          </button>
+        <div className="border-t border-slate-800 px-6 py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
+            <button
+              type="button"
+              onClick={onDismiss}
+              className={`${baseButtonClass} border-slate-700/80 bg-transparent text-slate-300 hover:border-slate-500 hover:text-slate-100`}
+            >
+              Return to session
+            </button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+              {onSkipToExport && (
+                <button
+                  type="button"
+                  onClick={onSkipToExport}
+                  className={`${baseButtonClass} border-blue-500/60 bg-blue-500/20 text-blue-100 hover:border-blue-400 hover:bg-blue-500/30`}
+                >
+                  Skip to Clear Mirror Export
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onConfirmEnd}
+                className={`${baseButtonClass} border-emerald-500/60 bg-emerald-500/20 text-emerald-100 hover:border-emerald-400 hover:bg-emerald-500/30`}
+              >
+                Continue to wrap-up
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

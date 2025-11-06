@@ -588,7 +588,7 @@ const containsInitialProbe = (text: string): boolean => {
 const getPingCheckpointType =
   (text: string): "hook" | "vector" | "aspect" | "repair" | "general" => {
     if (containsRepairValidation(text)) return "repair";
-    if (/hook stack|paradox.*tags|rock.*spark/i.test(text)) return "hook";
+    if (/core insights|hook stack|paradox.*tags|rock.*spark/i.test(text)) return "hook";
     if (/hidden push|counterweight|vector signature/i.test(text)) return "vector";
     if (/mars.*saturn|personal.*outer|hard aspect/i.test(text)) return "aspect";
     return "general";
@@ -1016,6 +1016,7 @@ export default function ChatClient() {
   const [wrapUpLoading, setWrapUpLoading] = useState(false);
   const [showWrapUpPanel, setShowWrapUpPanel] = useState(false);
   const [wrapUpExport, setWrapUpExport] = useState<RavenSessionExport | null>(null);
+  const [showClearMirrorExport, setShowClearMirrorExport] = useState(false);
   const [showResonanceCard, setShowResonanceCard] = useState(false);
   const [resonanceCard, setResonanceCard] = useState<any>(null);
   const [contextualSuggestions, setContextualSuggestions] = useState<string[]>([]);
@@ -2076,6 +2077,34 @@ const performSessionReset = useCallback(() => {
     }
   }, [performSessionReset, sessionId, sessionStarted, setStatusMessage]);
 
+  const handleSkipToExport = useCallback(() => {
+    setIsWrapUpOpen(false);
+    setShowClearMirrorExport(true);
+  }, []);
+
+  const handleGenerateClearMirrorPDF = useCallback(async () => {
+    try {
+      const { buildClearMirrorFromContexts } = await import('@/lib/pdf/clear-mirror-context-adapter');
+      const { generateClearMirrorPDF } = await import('@/lib/pdf/clear-mirror-pdf');
+      
+      const clearMirrorData = buildClearMirrorFromContexts(reportContexts);
+      await generateClearMirrorPDF(clearMirrorData);
+      
+      setStatusMessage('Clear Mirror PDF exported successfully.');
+      setShowClearMirrorExport(false);
+      performSessionReset();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Clear Mirror PDF export failed:', error);
+      setStatusMessage('Clear Mirror export failed. Please try again.');
+    }
+  }, [reportContexts, setStatusMessage, performSessionReset]);
+
+  const handleCloseClearMirrorExport = useCallback(() => {
+    setShowClearMirrorExport(false);
+    performSessionReset();
+  }, [performSessionReset]);
+
   const handleRemoveReportContext = useCallback((contextId: string) => {
     setReportContexts((prev) => {
       const next = prev.filter((ctx) => ctx.id !== contextId);
@@ -2760,6 +2789,7 @@ const performSessionReset = useCallback(() => {
         sessionId={sessionId}
         onDismiss={handleDismissWrapUp}
         onConfirmEnd={handleConfirmWrapUp}
+        onSkipToExport={reportContexts.length > 0 ? handleSkipToExport : undefined}
       />
       {wrapUpLoading && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/70">
@@ -2780,7 +2810,89 @@ const performSessionReset = useCallback(() => {
               onSealed={(sealedSessionId) => {
                 void handleWrapUpSealed(sealedSessionId);
               }}
+              onExportClearMirror={reportContexts.length > 0 ? () => {
+                setShowWrapUpPanel(false);
+                setShowClearMirrorExport(true);
+              } : undefined}
             />
+          </div>
+        </div>
+      )}
+      {showClearMirrorExport && (
+        <div className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/80 px-4 py-6">
+          <div className="w-full max-w-2xl rounded-2xl border border-slate-800 bg-slate-900/95 shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-800 px-6 py-4">
+              <div>
+                <p className="text-sm uppercase tracking-[0.3em] text-emerald-300">
+                  Clear Mirror Export
+                </p>
+                <h2 className="mt-2 text-xl font-semibold text-slate-100">
+                  Generate Clear Mirror PDF
+                </h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  {reportContexts.length === 2
+                    ? `Relational mirror for ${reportContexts[0]?.name || 'Person A'} and ${reportContexts[1]?.name || 'Person B'}`
+                    : `Solo mirror for ${reportContexts[0]?.name || 'Unknown'}`}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close Clear Mirror export"
+                className="text-slate-500 transition hover:text-slate-300"
+                onClick={handleCloseClearMirrorExport}
+              >
+                ×
+              </button>
+            </div>
+            <div className="space-y-4 px-6 py-6 text-sm text-slate-300">
+              <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-4 py-3">
+                <p className="font-semibold text-slate-100">This export includes:</p>
+                <ul className="mt-2 space-y-1 text-slate-400">
+                  <li className="flex items-start gap-2">
+                    <span className="mt-[3px] text-emerald-300">•</span>
+                    <span>E-Prime formatted narrative (no "is/am/are" constructions)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-[3px] text-emerald-300">•</span>
+                    <span>Core Insights with symbolic geometry footnotes</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-[3px] text-emerald-300">•</span>
+                    <span>Polarity Cards highlighting tension patterns</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-[3px] text-emerald-300">•</span>
+                    <span>Mirror Voice reflection and Socratic closure</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-[3px] text-emerald-300">•</span>
+                    <span>Developer audit layer (collapsible tables)</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="rounded-lg border border-blue-800/50 bg-blue-950/30 px-4 py-3">
+                <p className="text-sm text-blue-200">
+                  <strong>Note:</strong> This is a template-based export. Full Raven Calder
+                  language generation will be integrated in a future update.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 border-t border-slate-800 px-6 py-4 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={handleCloseClearMirrorExport}
+                className="inline-flex items-center justify-center rounded-md border border-slate-700/80 bg-transparent px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-slate-500 hover:text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateClearMirrorPDF}
+                className="inline-flex items-center justify-center rounded-md border border-emerald-500/60 bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-100 transition hover:border-emerald-400 hover:bg-emerald-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+              >
+                Generate PDF
+              </button>
+            </div>
           </div>
         </div>
       )}

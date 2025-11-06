@@ -2589,7 +2589,7 @@ export default function MathBrainPage() {
       } else {
         // Mirror Report interpretation guide
         markdown += `### Mirror Report Components\n\n`;
-        markdown += `- **Hook Stack:** High-intensity patterns from tightest aspects that serve as recognition gateways\n`;
+        markdown += `- **Core Insights:** High-intensity patterns from tightest aspects that serve as recognition gateways\n`;
         markdown += `- **Polarity Cards:** Three-card field mapping using FIELD → MAP → VOICE progression\n`;
         markdown += `- **Integration Factors:** Quality metrics including harmonic resonance, fertile field, and integration scores\n`;
         markdown += `- **Vector Integrity:** Analysis of latent vs suppressed influences in the symbolic field\n`;
