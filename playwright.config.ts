@@ -34,12 +34,11 @@ export default defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
   ],
-  webServer: {
+  webServer: process.env.CI ? undefined : {
     command: 'npm run dev',
     url: 'http://localhost:3000',
-    // Reuse existing server to avoid port 3000 conflicts in local dev
-    // In CI, start fresh to ensure clean test environment
-    reuseExistingServer: !process.env.CI,
+    // Reuse existing server to avoid port conflicts in local dev
+    reuseExistingServer: true,
     timeout: 120000,
     // Stdout: 'ignore' prevents npm output from cluttering test results
     stdout: 'ignore',
