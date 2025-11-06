@@ -826,10 +826,34 @@ export async function POST(req: Request) {
 
     if (autoPlan.status === 'contextual_auto') {
       wantsWeatherOnly = false;
+      // TODO: Add specific handling for contextual layers (dream, field, etc.)
     }
 
     if (autoPlan.status === 'solo_auto') {
       wantsWeatherOnly = false;
+      const soloResponse = await runMathBrain({
+        ...resolvedOptions,
+        reportType: 'mirror',
+        autoMode: 'solo_auto',
+      });
+      if (!soloResponse.success) {
+        return NextResponse.json({ intent, ok: false, error: 'Math Brain failed', details: soloResponse });
+      }
+      const soloProv = stampProvenance(soloResponse.provenance);
+      const soloOptions = {
+        ...resolvedOptions,
+        geometryValidated: isGeometryValidated(soloResponse.geometry),
+        operationalFlow: OPERATIONAL_FLOW,
+        operational_flow: OPERATIONAL_FLOW,
+      };
+      const soloDraft = await renderShareableMirror({
+        geo: soloResponse.geometry,
+        prov: soloProv,
+        options: soloOptions,
+      });
+      const soloProbe = createProbe(soloDraft?.next_step || 'Notice where this pattern lands in your body', randomUUID());
+      sessionLog.probes.push(soloProbe);
+      return NextResponse.json({ intent, ok: true, draft: soloDraft, prov: soloProv, climate: soloResponse.climate ?? null, sessionId: sid, probe: soloProbe });
     }
 
     if (autoPlan.status === 'relational_choice') {

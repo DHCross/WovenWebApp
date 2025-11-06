@@ -1434,7 +1434,7 @@ export default function MathBrainPage() {
     downloadResultMarkdown,
     downloadResultJSON,
     downloadBackstageJSON,
-    downloadSymbolicWeatherJSON,
+    downloadAstroFileJSON,
     downloadMirrorDirectiveJSON,
     downloadMapFile,
     downloadFieldFile,
@@ -1442,7 +1442,7 @@ export default function MathBrainPage() {
     markdownGenerating,
     cleanJsonGenerating,
     engineConfigGenerating,
-    weatherJsonGenerating,
+    astroFileJsonGenerating,
   } = useChartExport({
     result,
     reportType,
@@ -4947,13 +4947,13 @@ export default function MathBrainPage() {
             pdfGenerating={pdfGenerating}
             markdownGenerating={markdownGenerating}
             graphsPdfGenerating={graphsPdfGenerating}
-            weatherJsonGenerating={weatherJsonGenerating}
+            astroFileJsonGenerating={astroFileJsonGenerating}
             engineConfigGenerating={engineConfigGenerating}
             cleanJsonGenerating={cleanJsonGenerating}
             onDownloadPDF={downloadResultPDF}
             onDownloadMarkdown={downloadResultMarkdown}
             onDownloadMirrorDirective={downloadMirrorDirectiveJSON}
-            onDownloadSymbolicWeather={downloadSymbolicWeatherJSON}
+            onDownloadAstroFile={downloadAstroFileJSON}
             onDownloadGraphsPDF={downloadGraphsPDF}
             onDownloadEngineConfig={downloadBackstageJSON}
             onDownloadCleanJSON={downloadResultJSON}

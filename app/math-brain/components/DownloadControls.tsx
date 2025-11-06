@@ -8,13 +8,13 @@ interface DownloadControlsProps {
   pdfGenerating: boolean;
   markdownGenerating: boolean;
   graphsPdfGenerating: boolean;
-  weatherJsonGenerating: boolean;
+  astroFileJsonGenerating: boolean;
   engineConfigGenerating: boolean;
   cleanJsonGenerating: boolean;
   onDownloadPDF: () => void;
   onDownloadMarkdown: () => void;
   onDownloadMirrorDirective: () => void;
-  onDownloadSymbolicWeather: () => void;
+  onDownloadAstroFile: () => void;
   onDownloadGraphsPDF: () => void;
   onDownloadEngineConfig: () => void;
   onDownloadCleanJSON: () => void;
@@ -32,13 +32,13 @@ export default function DownloadControls({
   pdfGenerating,
   markdownGenerating,
   graphsPdfGenerating,
-  weatherJsonGenerating,
+  astroFileJsonGenerating,
   engineConfigGenerating,
   cleanJsonGenerating,
   onDownloadPDF,
   onDownloadMarkdown,
   onDownloadMirrorDirective,
-  onDownloadSymbolicWeather,
+  onDownloadAstroFile,
   onDownloadGraphsPDF,
   onDownloadEngineConfig,
   onDownloadCleanJSON,
@@ -51,11 +51,11 @@ export default function DownloadControls({
   onNavigateToPoetic,
 }: DownloadControlsProps) {
   const hasSeismographData = Object.keys(seismographMap || {}).length > 0;
-  const isAnyGenerating =
-    pdfGenerating ||
-    markdownGenerating ||
-    graphsPdfGenerating ||
-    weatherJsonGenerating ||
+  const isAnyGenerating = 
+    pdfGenerating || 
+    markdownGenerating || 
+    graphsPdfGenerating || 
+    astroFileJsonGenerating ||
     engineConfigGenerating ||
     cleanJsonGenerating;
   const showDevExports = process.env.NEXT_PUBLIC_DEV_MODE === "true";
@@ -110,34 +110,34 @@ export default function DownloadControls({
             </div>
           </div>
         </button>
-        {includeTransits && (
-          <button
-            type="button"
-            onClick={onDownloadSymbolicWeather}
-            disabled={weatherJsonGenerating}
-            className="w-full rounded-md border border-blue-600 bg-blue-700/30 px-4 py-3 text-left hover:bg-blue-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
-            aria-label="Download Symbolic Weather Log JSON for AI pattern analysis"
-          >
-            <div className="flex items-center gap-3">
-              {weatherJsonGenerating ? (
-                <svg className="animate-spin h-5 w-5 text-blue-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-              ) : (
-                <span className="text-2xl">🌦️</span>
-              )}
-              <div className="flex-1">
-                <div className="text-sm font-medium text-slate-100">
-                  {weatherJsonGenerating ? "Generating..." : "Symbolic Weather (Compact)"}
-                </div>
-                <div className="text-xs text-slate-400 mt-0.5">
-                  Unified data object with computed summaries (JSON)
-                </div>
+        <button
+          type="button"
+          onClick={onDownloadAstroFile}
+          disabled={astroFileJsonGenerating}
+          className="w-full rounded-md border border-blue-600 bg-blue-700/30 px-4 py-3 text-left hover:bg-blue-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          aria-label="Download Astro File JSON (mirror geometry with optional symbolic weather)"
+        >
+          <div className="flex items-center gap-3">
+            {astroFileJsonGenerating ? (
+              <svg className="animate-spin h-5 w-5 text-blue-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            ) : (
+              <span className="text-2xl">🪐</span>
+            )}
+            <div className="flex-1">
+              <div className="text-sm font-medium text-slate-100">
+                {astroFileJsonGenerating ? "Preparing Astro File..." : "Astro File (JSON Bundle)"}
+              </div>
+              <div className="text-xs text-slate-400 mt-0.5">
+                {includeTransits
+                  ? "Mirror geometry + symbolic weather readings (Poetic Brain ready)"
+                  : "Mirror geometry ready for Poetic Brain; add transits to include symbolic weather"}
               </div>
             </div>
-          </button>
-        )}
+          </div>
+        </button>
       </div>
 
       {includeTransits && (
@@ -238,12 +238,12 @@ export default function DownloadControls({
                 <button
                   type="button"
                   onClick={onDownloadFieldFile}
-                  disabled={weatherJsonGenerating}
+                  disabled={astroFileJsonGenerating}
                   className="w-full rounded border border-cyan-500 bg-cyan-600/15 px-3 py-2 text-left text-xs hover:bg-cyan-600/25 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   aria-label="Download FIELD file (symbolic weather)"
                 >
                   <div className="flex items-center gap-2">
-                    {weatherJsonGenerating ? (
+                    {astroFileJsonGenerating ? (
                       <svg className="animate-spin h-4 w-4 text-cyan-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -253,7 +253,7 @@ export default function DownloadControls({
                     )}
                     <div className="flex-1">
                       <div className="font-medium text-slate-200">
-                        {weatherJsonGenerating ? "Preparing FIELD..." : "FIELD File (wm-field-v1)"}
+                        {astroFileJsonGenerating ? "Preparing FIELD..." : "FIELD File (wm-field-v1)"}
                       </div>
                       <div className="text-slate-500 text-[10px] mt-0.5">
                         Raw symbolic-weather activations (daily transit aspects)

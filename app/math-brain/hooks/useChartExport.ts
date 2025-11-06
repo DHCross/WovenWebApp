@@ -99,14 +99,14 @@ interface UseChartExportResult {
   downloadMirrorDirectiveJSON: () => void;
   downloadFieldMapFile: () => void;               // NEW: Unified FIELD + MAP
   // Backward compatibility (deprecated)
-  downloadSymbolicWeatherJSON: () => void;
+  downloadAstroFileJSON: () => void;
   downloadMapFile: () => void;
   downloadFieldFile: () => void;
   pdfGenerating: boolean;
   markdownGenerating: boolean;
   cleanJsonGenerating: boolean;
   engineConfigGenerating: boolean;
-  weatherJsonGenerating: boolean;
+  astroFileJsonGenerating: boolean;
   bundleGenerating: boolean;
 }
 
@@ -176,7 +176,7 @@ export function useChartExport(options: UseChartExportOptions): UseChartExportRe
   const [markdownGenerating, setMarkdownGenerating] = useState<boolean>(false);
   const [cleanJsonGenerating, setCleanJsonGenerating] = useState<boolean>(false);
   const [engineConfigGenerating, setEngineConfigGenerating] = useState<boolean>(false);
-  const [weatherJsonGenerating, setWeatherJsonGenerating] = useState<boolean>(false);
+  const [astroFileJsonGenerating, setAstroFileJsonGenerating] = useState<boolean>(false);
 
   const pushToast = useCallback(
     (message: string, duration?: number) => {
@@ -1573,6 +1573,7 @@ Start with the Solo Mirror(s), then ${
     filename: string;
     payload: any;
     hasChartGeometry: boolean;
+    hasWeather: boolean;
   }
 
   const buildMirrorSymbolicWeatherExport = useCallback((): MirrorSymbolicWeatherExport | null => {
@@ -1583,11 +1584,15 @@ Start with the Solo Mirror(s), then ${
 
     const prefix = getDirectivePrefix('mirror-symbolic-weather');
     const symbolicSuffix = extractSuffixFromFriendlyName(friendlyFilename('symbolic-weather'));
+    const hasWeather =
+      Array.isArray(exportData.payload?.daily_readings) &&
+      exportData.payload.daily_readings.length > 0;
 
     return {
       filename: `${prefix}_${symbolicSuffix}.json`,
       payload: exportData.payload,
       hasChartGeometry: exportData.hasChartGeometry,
+      hasWeather,
     };
   }, [friendlyFilename, reportContractType, result]);
 
@@ -1812,14 +1817,14 @@ Start with the Solo Mirror(s), then ${
     };
   }, [friendlyFilename, result]);
 
-  const downloadMirrorSymbolicWeatherJSON = useCallback(() => {
+  const downloadAstroFileJSON = useCallback(() => {
     if (!result) return;
-    setWeatherJsonGenerating(true);
+    setAstroFileJsonGenerating(true);
 
     try {
       const exportBundle = buildMirrorSymbolicWeatherExport();
       if (!exportBundle) {
-        pushToast('Failed to export Mirror+SymbolicWeather JSON', 2000);
+        pushToast('Failed to build Astro File JSON', 2000);
         return;
       }
 
@@ -1835,14 +1840,16 @@ Start with the Solo Mirror(s), then ${
 
       if (!exportBundle.hasChartGeometry) {
         pushToast('⚠️ Chart geometry missing — export will not work with Poetic Brain. Try downloading the PDF or Markdown instead.', 3000);
+      } else if (exportBundle.hasWeather) {
+        pushToast('📊 Downloading Astro File (natal + symbolic weather)', 2200);
       } else {
-        pushToast('📊 Downloading symbolic weather JSON for Poetic Brain', 1800);
+        pushToast('🌌 Downloading Astro File (natal geometry only)', 2200);
       }
     } catch (error) {
-      console.error('Symbolic weather JSON export failed:', error);
-      pushToast('Failed to export Mirror+SymbolicWeather JSON', 2000);
+      console.error('Astro File JSON export failed:', error);
+      pushToast('Failed to export Astro File JSON', 2000);
     } finally {
-      setTimeout(() => setWeatherJsonGenerating(false), 300);
+      setTimeout(() => setAstroFileJsonGenerating(false), 300);
     }
   }, [buildMirrorSymbolicWeatherExport, pushToast, result]);
 
@@ -1914,25 +1921,25 @@ Start with the Solo Mirror(s), then ${
   const downloadFieldFile = downloadFieldMapFile;
 
   // Compute bundle generating state: true if any export is generating
-  const bundleGenerating = pdfGenerating || markdownGenerating || cleanJsonGenerating || engineConfigGenerating || weatherJsonGenerating;
+  const bundleGenerating = pdfGenerating || markdownGenerating || cleanJsonGenerating || engineConfigGenerating || astroFileJsonGenerating;
 
   return {
     downloadResultPDF,
     downloadResultMarkdown,
     downloadResultJSON,
     downloadBackstageJSON,
-    downloadMirrorSymbolicWeatherJSON,
+    downloadMirrorSymbolicWeatherJSON: downloadAstroFileJSON,
     downloadMirrorDirectiveJSON,
     downloadFieldMapFile,
     // Backward compatibility aliases (deprecated)
-    downloadSymbolicWeatherJSON: downloadMirrorSymbolicWeatherJSON,
+    downloadAstroFileJSON,
     downloadMapFile: downloadFieldMapFile,
     downloadFieldFile: downloadFieldMapFile,
     pdfGenerating,
     markdownGenerating,
     cleanJsonGenerating,
     engineConfigGenerating,
-    weatherJsonGenerating,
+    astroFileJsonGenerating,
     bundleGenerating,
   };
 }

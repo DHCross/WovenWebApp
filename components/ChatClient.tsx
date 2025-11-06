@@ -1683,21 +1683,7 @@ export default function ChatClient() {
         validationComplete: true,
       };
 
-      const weatherPlaceholderId = generateId();
-      const weatherPlaceholder: Message = {
-        id: weatherPlaceholderId,
-        role: "raven",
-        html: "",
-        climate: "",
-        hook: "",
-        intent: undefined,
-        probe: null,
-        prov: null,
-        rawText: "",
-        validationPoints: [],
-        validationComplete: false,
-      };
-
+      // Create a single placeholder for the complete mirror flow report
       const mirrorPlaceholderId = generateId();
       const mirrorPlaceholder: Message = {
         id: mirrorPlaceholderId,
@@ -1713,7 +1699,7 @@ export default function ChatClient() {
         validationComplete: false,
       };
 
-      setMessages(prev => [...prev, sessionStartMessage, weatherPlaceholder, mirrorPlaceholder]);
+      setMessages(prev => [...prev, sessionStartMessage, mirrorPlaceholder]);
 
       const relocationPayload = mapRelocationToPayload(reportContext.relocation);
       const contextPayload = contextList.map((ctx) => {
@@ -1729,10 +1715,11 @@ export default function ChatClient() {
       });
 
       try {
-        // First, get the symbolic weather report with a safer prompt
-        const weatherResponse = await runRavenRequest(
+        // Let the backend auto-execution handle the full mirror flow
+        // Send an empty input to trigger auto-execution based on report context
+        await runRavenRequest(
           {
-            input: `Provide a brief astrological weather update for ${reportLabel}, focusing on major transits and aspects. Keep it concise and focused on the current celestial patterns.`,
+            input: '', // Empty input triggers auto-execution logic
             sessionId: sessionId ?? undefined,
             options: {
               reportType: reportContext.type,
@@ -1741,59 +1728,11 @@ export default function ChatClient() {
               reportSummary: reportContext.summary,
               ...(relocationPayload ? { relocation: relocationPayload } : {}),
               reportContexts: contextPayload,
-              intent: 'astrology_weather',
-              safety_level: 'high',
-              max_tokens: 400
             },
           },
-          weatherPlaceholderId,
-          "Analyzing current astrological patterns...",
+          mirrorPlaceholderId,
+          "Generating complete mirror flow report...",
         );
-
-        // If weather report was successful, proceed with mirror reading
-        if (weatherResponse?.ok !== false) {
-          // Then, start the mirror reading with a more structured prompt
-          await runRavenRequest(
-            {
-              input: `Please analyze the key patterns in this ${reportContext.type} report for ${reportLabel}. Focus on the most significant aspects and their potential meanings.`,
-              sessionId: sessionId ?? undefined,
-              options: {
-                reportType: reportContext.type,
-                reportId: reportContext.id,
-                reportName: reportContext.name,
-                reportSummary: reportContext.summary,
-                ...(relocationPayload ? { relocation: relocationPayload } : {}),
-                reportContexts: contextPayload,
-                intent: 'pattern_analysis',
-                safety_level: 'high',
-                max_tokens: 600
-              },
-            },
-            mirrorPlaceholderId,
-            `Analyzing patterns in ${reportLabel}...`,
-          );
-        } else {
-          // If weather report failed, try a more general approach
-          await runRavenRequest(
-            {
-              input: `Let's explore the patterns in ${reportLabel}. What stands out to you as the most significant theme or pattern here?`,
-              sessionId: sessionId ?? undefined,
-              options: {
-                reportType: reportContext.type,
-                reportId: reportContext.id,
-                reportName: reportContext.name,
-                reportSummary: reportContext.summary,
-                ...(relocationPayload ? { relocation: relocationPayload } : {}),
-                reportContexts: contextPayload,
-                intent: 'explore_patterns',
-                safety_level: 'high',
-                max_tokens: 500
-              },
-            },
-            mirrorPlaceholderId,
-            `Exploring patterns in ${reportLabel}...`,
-          );
-        }
       } catch (error) {
         console.error('Error during report analysis:', error);
         // Fallback to a simple message if there's an error
