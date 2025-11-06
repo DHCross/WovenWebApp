@@ -629,6 +629,8 @@ export async function renderShareableMirror({ geo, prov, options, conversational
     };
   }
 
+  const aspects = Array.isArray(geo.aspects) ? geo.aspects : [];
+
   if (!geometryValidatedInitial) {
     return {
       picture: 'Validation pending—geometry captured but not confirmed.',
@@ -646,7 +648,6 @@ export async function renderShareableMirror({ geo, prov, options, conversational
     };
   }
 
-  const aspects = Array.isArray(geo.aspects) ? geo.aspects : [];
   const summary = geo.summary;
 
   const primaryAspect = pickPrimaryAspect(aspects);

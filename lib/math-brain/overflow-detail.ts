@@ -301,12 +301,15 @@ export interface SeismographLike {
   rawMagnitude?: unknown;
   magnitude_before_clamp?: unknown;
   originalMagnitude?: unknown;
+  magnitude_clamped?: boolean;
+  magnitude_state?: { clamped?: boolean } | null;
   directional_bias?: any;
   rawDirectionalBias?: unknown;
   axes?: {
-    magnitude?: { raw?: unknown; value?: unknown; scaled?: unknown };
+    magnitude?: { raw?: unknown; value?: unknown; scaled?: unknown; clamped?: boolean };
     directional_bias?: { raw?: unknown; value?: unknown };
   };
+  saturation?: unknown;
   aspects?: unknown;
 }
 
