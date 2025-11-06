@@ -28,7 +28,11 @@ interface WrapUpCardProps {
   onClose?: () => void;
   onSealed?: (sealedSessionId: string, nextSessionId: string) => void;
   exportData?: any;
-  onExportClearMirror?: () => void;
+  onExportClearMirror?: (sessionDiagnostics?: {
+    actorRoleComposite?: any;
+    sessionStats?: any;
+    rubricScores?: any;
+  }) => void;
 }
 
 const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, exportData, onExportClearMirror }) => {
@@ -161,6 +165,11 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
     setToast('Rubric skipped');
     setTimeout(() => setToast(null), 2000);
     logEvent('rubric_skipped', { sessionId: sessionId || pingTracker.getCurrentSessionId() });
+    
+    // Close the WrapUpCard and return to main chat
+    if (onClose) {
+      onClose();
+    }
   };
 
   const handleCancelRubric = () => {
@@ -170,6 +179,11 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
     setToast('Rubric canceled');
     setTimeout(() => setToast(null), 2000);
     logEvent('rubric_cancelled', { sessionId: sessionId || pingTracker.getCurrentSessionId() });
+    
+    // Close the WrapUpCard and return to main chat
+    if (onClose) {
+      onClose();
+    }
   };
 
   const handleSealRubric = () => {
@@ -890,7 +904,39 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
           {onExportClearMirror && (
             <button
               className="btn export-btn clear-mirror"
-              onClick={onExportClearMirror}
+              onClick={() => {
+                const diagnostics = {
+                  actorRoleComposite: composite ? {
+                    actor: composite.actor,
+                    role: composite.role,
+                    composite: composite.composite,
+                    confidence: composite.confidence,
+                    confidenceBand: composite.confidenceBand,
+                    siderealDrift: composite.siderealDrift,
+                    driftBand: composite.driftBand,
+                    driftIndex: composite.driftIndex,
+                    evidenceN: composite.evidenceN,
+                    sampleSize: composite.sampleSize
+                  } : undefined,
+                  sessionStats: sessionStats ? {
+                    totalMirrors: sessionStats.total || 0,
+                    accuracyRate: sessionStats.accuracyRate || 0,
+                    clarityRate: sessionStats.clarityRate || 0,
+                    breakdown: sessionStats.breakdown || { wb: 0, abe: 0, osr: 0, pending: 0 }
+                  } : undefined,
+                  rubricScores: rubricSealedSessionId ? {
+                    pressure: rubricScores.pressure,
+                    outlet: rubricScores.outlet,
+                    conflict: rubricScores.conflict,
+                    tone: rubricScores.tone,
+                    surprise: rubricScores.surprise,
+                    totalScore,
+                    scoreBand,
+                    nullCount: Object.values(rubricNulls).filter(Boolean).length
+                  } : undefined
+                };
+                onExportClearMirror(diagnostics);
+              }}
               title="Download Clear Mirror report as formatted PDF (E-Prime, Core Insights, symbolic footnotes)"
             >
               🪞 Clear Mirror PDF

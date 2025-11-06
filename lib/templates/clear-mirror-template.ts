@@ -44,6 +44,13 @@ export interface ClearMirrorData {
     footnotes?: Array<{ number: number; content: string }>;
   };
   preface?: string;
+  // Hook Stack: Top-loaded high-charge aspects
+  hookStack?: Array<{
+    headline: string;        // e.g., "The Pressure Valve"
+    livedExample: string;    // Brief real-world scenario
+    geometry?: string;       // e.g., "♂︎☍☉ @ 0.2° • M=3.8"
+  }>;
+  // Frontstage: Sensory-level patterns (FIELD LAYER)
   frontstage: {
     text: string;
     footnotes: Array<{ number: number; content: string }>;
@@ -59,10 +66,11 @@ export interface ClearMirrorData {
     text: string;
     footnotes?: Array<{ number: number; content: string }>;
   };
+  // Polarity Cards: Named tensions with reflections
   polarityCards?: Array<{
-    title: string;
-    text: string;
-    footnote?: string;
+    title: string;           // e.g., "The Engine and the Brake"
+    text: string;            // Reflection on the polarity
+    footnote?: string;       // Geometry reference
   }>;
   integration?: {
     text: string;
@@ -72,9 +80,51 @@ export interface ClearMirrorData {
     text: string;
     footnotes?: Array<{ number: number; content: string }>;
   };
+  // Mirror Voice: Direct "you" reflection (VOICE LAYER)
   mirrorVoice?: {
     text: string;
     footnotes?: Array<{ number: number; content: string }>;
+  };
+  // Socratic Closure: WB/ABE/OSR marking instructions (always included)
+  socraticClosure?: {
+    text?: string;           // Optional custom closing text
+    includeMarkingGuide?: boolean;  // Default true
+  };
+  // Session validation layer (optional)
+  sessionDiagnostics?: {
+    actorRoleComposite?: {
+      actor: string;
+      role: string;
+      composite: string;
+      confidence: number;
+      confidenceBand: 'LOW' | 'MODERATE' | 'HIGH';
+      siderealDrift?: boolean;
+      driftBand?: 'NONE' | 'POSSIBLE' | 'STRONG';
+      driftIndex?: number;
+      evidenceN?: number;
+      sampleSize?: number;
+    };
+    sessionStats?: {
+      totalMirrors: number;
+      accuracyRate: number;
+      clarityRate: number;
+      breakdown: {
+        wb: number;
+        abe: number;
+        osr: number;
+        pending: number;
+      };
+    };
+    rubricScores?: {
+      pressure: number;
+      outlet: number;
+      conflict: number;
+      tone: number;
+      surprise: number;
+      totalScore: number;
+      scoreBand: string;
+      nullCount?: number;
+    };
   };
   auditLayer?: {
     frontstage?: Array<{ observed: string; geometry: string; testMarker: string }>;
@@ -126,6 +176,25 @@ export function generateClearMirrorMarkdown(data: ClearMirrorData): string {
     lines.push('### Preface');
     lines.push(data.preface);
     lines.push('');
+    lines.push('---');
+    lines.push('');
+  }
+
+  // Hook Stack (High-Charge Aspects)
+  if (data.hookStack && data.hookStack.length > 0) {
+    lines.push('### Hook Stack');
+    lines.push('*Top-loaded patterns: each hooks attention, invites recognition, or sparks validation.*');
+    lines.push('');
+    
+    data.hookStack.forEach((hook, idx) => {
+      lines.push(`**${idx + 1}. ${hook.headline}**`);
+      lines.push(hook.livedExample);
+      if (hook.geometry) {
+        lines.push(`*${hook.geometry}*`);
+      }
+      lines.push('');
+    });
+    
     lines.push('---');
     lines.push('');
   }
@@ -328,26 +397,126 @@ export function generateClearMirrorMarkdown(data: ClearMirrorData): string {
     lines.push('');
   }
 
+  // Session Diagnostics (Actor/Role + Resonance Stats)
+  if (data.sessionDiagnostics) {
+    lines.push('### Session Validation Layer');
+    lines.push('*Diagnostic feedback from this reading session*');
+    lines.push('');
+    
+    // Actor/Role Composite
+    if (data.sessionDiagnostics.actorRoleComposite) {
+      const composite = data.sessionDiagnostics.actorRoleComposite;
+      lines.push('#### Actor / Role Composite');
+      lines.push('');
+      
+      if (composite.actor !== 'Unknown' || composite.role !== 'Unknown') {
+        lines.push(`**Detected Pattern:** ${composite.composite}`);
+        if (composite.actor !== 'Unknown') {
+          lines.push(`- **Actor (Driver):** ${composite.actor}`);
+        }
+        if (composite.role !== 'Unknown') {
+          lines.push(`- **Role (Style):** ${composite.role}`);
+        }
+        lines.push(`- **Confidence:** ${composite.confidenceBand} (${Math.round(composite.confidence * 100)}%)`);
+        if (composite.sampleSize) {
+          lines.push(`- **Sample Size:** ${composite.sampleSize} feedback points`);
+        }
+        lines.push('');
+        
+        if (composite.siderealDrift && composite.driftBand && composite.driftBand !== 'NONE') {
+          lines.push('**Sidereal Drift Detection:**');
+          if (composite.driftBand === 'POSSIBLE') {
+            lines.push(`Some clarifications aligned with sidereal (Driver-first) orientation. Drift index: ${composite.driftIndex ? Math.round(composite.driftIndex * 100) : 'N/A'}% (n=${composite.evidenceN || 0})`);
+          } else if (composite.driftBand === 'STRONG') {
+            lines.push(`Strong alignment with sidereal Drivers detected. Drift index: ${composite.driftIndex ? Math.round(composite.driftIndex * 100) : 'N/A'}% (n=${composite.evidenceN || 0})`);
+          }
+          lines.push('');
+        }
+        
+        lines.push('*This composite emerged from your resonance pattern—what landed (✅) and how you clarified misses (❌). Raven tests patterns; you validate them.*');
+      } else {
+        lines.push('Not enough feedback data for Actor/Role composite detection.');
+      }
+      lines.push('');
+    }
+    
+    // Session Stats
+    if (data.sessionDiagnostics.sessionStats) {
+      const stats = data.sessionDiagnostics.sessionStats;
+      lines.push('#### Resonance Summary');
+      lines.push('');
+      lines.push('| Metric | Value |');
+      lines.push('|--------|-------|');
+      lines.push(`| Total Mirrors Presented | ${stats.totalMirrors} |`);
+      lines.push(`| Accuracy Rate (✅ WB) | ${stats.accuracyRate.toFixed(1)}% |`);
+      lines.push(`| Clarity Rate (🟡 ABE) | ${stats.clarityRate.toFixed(1)}% |`);
+      lines.push(`| Within Boundary | ${stats.breakdown.wb} |`);
+      lines.push(`| At Boundary Edge | ${stats.breakdown.abe} |`);
+      lines.push(`| Outside Symbolic Range | ${stats.breakdown.osr} |`);
+      if (stats.breakdown.pending > 0) {
+        lines.push(`| Pending (no feedback) | ${stats.breakdown.pending} |`);
+      }
+      lines.push('');
+    }
+    
+    // Rubric Scores
+    if (data.sessionDiagnostics.rubricScores) {
+      const rubric = data.sessionDiagnostics.rubricScores;
+      lines.push('#### Reading Rubric');
+      lines.push('');
+      lines.push('| Category | Score |');
+      lines.push('|----------|-------|');
+      lines.push(`| Pressure Mirror | ${rubric.pressure}/3 |`);
+      lines.push(`| Outlet Type | ${rubric.outlet}/3 |`);
+      lines.push(`| Internal Conflict | ${rubric.conflict}/3 |`);
+      lines.push(`| Emotional Tone | ${rubric.tone}/3 |`);
+      lines.push(`| Surprise Signal | ${rubric.surprise}/3 |`);
+      lines.push(`| **Total** | **${rubric.totalScore}/15** |`);
+      lines.push(`| **Assessment** | **${rubric.scoreBand}** |`);
+      if (rubric.nullCount && rubric.nullCount > 0) {
+        lines.push(`| Items Marked Off-Base | ${rubric.nullCount} |`);
+      }
+      lines.push('');
+      lines.push('*These scores apply to this session only and help calibrate future mirrors.*');
+      lines.push('');
+    }
+    
+    lines.push('---');
+    lines.push('');
+  }
+
   // Socratic Closure
   lines.push('### Socratic Closure');
-  if (data.chartType === 'relational') {
-    lines.push('Invite both readers to mark resonance separately:');
+  
+  // Custom text if provided
+  if (data.socraticClosure?.text) {
+    lines.push(data.socraticClosure.text);
     lines.push('');
-    lines.push('| Symbol | Meaning |');
-    lines.push('|--------|---------|');
-    lines.push('| **WB** | Felt accurate for me |');
-    lines.push('| **ABE** | Partial or situational |');
-    lines.push('| **OSR** | Did not fit my experience |');
-    lines.push('');
-    lines.push('Reflection becomes research; agreement is optional.');
-  } else {
-    lines.push('As you read, mark each idea:');
-    lines.push('- **WB** (Within Boundary): experience supports this');
-    lines.push('- **ABE** (At Boundary Edge): experience partly supports, partly contradicts');
-    lines.push('- **OSR** (Outside Symbolic Range): experience contradicts this');
-    lines.push('');
-    lines.push('These marks calibrate. The act of marking participates in the mirror—proof through lived testing, not belief.');
   }
+  
+  // Include marking guide unless explicitly disabled
+  const includeGuide = data.socraticClosure?.includeMarkingGuide !== false;
+  if (includeGuide) {
+    if (data.chartType === 'relational') {
+      lines.push('Invite both readers to mark resonance separately:');
+      lines.push('');
+      lines.push('| Symbol | Meaning |');
+      lines.push('|--------|---------|');
+      lines.push('| **WB** | Felt accurate for me |');
+      lines.push('| **ABE** | Partial or situational |');
+      lines.push('| **OSR** | Did not fit my experience |');
+      lines.push('');
+      lines.push('Reflection becomes research; agreement is optional.');
+    } else {
+      lines.push('As you read, mark each idea:');
+      lines.push('- **WB** (Within Boundary): experience supports this');
+      lines.push('- **ABE** (At Boundary Edge): experience partly supports, partly contradicts');
+      lines.push('- **OSR** (Outside Symbolic Range): experience contradicts this');
+      lines.push('');
+      lines.push('These marks calibrate. The act of marking participates in the mirror—proof through lived testing, not belief.');
+    }
+  }
+  
   lines.push('');
   lines.push('---');
   lines.push('');

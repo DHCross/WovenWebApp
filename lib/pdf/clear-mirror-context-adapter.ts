@@ -1,11 +1,15 @@
 /**
  * Clear Mirror Export Builder
  * 
- * Converts ReportContext (from ChatClient) into ClearMirrorData for PDF generation
+ * Converts ReportContext (from ChatClient) into ClearMirrorData for PDF generation.
+ * Supports both:
+ * 1. Structured LLM responses (from auto-execution with Clear Mirror sections)
+ * 2. Legacy format (direct content without structure)
  */
 
 import type { ClearMirrorData } from '@/lib/templates/clear-mirror-template';
 import type { RelocationSummary } from '@/lib/relocation';
+import { parseClearMirrorResponse, hasValidClearMirrorStructure } from '@/lib/raven/clear-mirror-parser';
 
 interface ReportContext {
   id: string;
@@ -14,6 +18,42 @@ interface ReportContext {
   summary: string;
   content: string;
   relocation?: RelocationSummary;
+}
+
+export interface SessionDiagnostics {
+  actorRoleComposite?: {
+    actor: string;
+    role: string;
+    composite: string;
+    confidence: number;
+    confidenceBand: 'LOW' | 'MODERATE' | 'HIGH';
+    siderealDrift?: boolean;
+    driftBand?: 'NONE' | 'POSSIBLE' | 'STRONG';
+    driftIndex?: number;
+    evidenceN?: number;
+    sampleSize?: number;
+  };
+  sessionStats?: {
+    totalMirrors: number;
+    accuracyRate: number;
+    clarityRate: number;
+    breakdown: {
+      wb: number;
+      abe: number;
+      osr: number;
+      pending: number;
+    };
+  };
+  rubricScores?: {
+    pressure: number;
+    outlet: number;
+    conflict: number;
+    tone: number;
+    surprise: number;
+    totalScore: number;
+    scoreBand: string;
+    nullCount?: number;
+  };
 }
 
 /**
@@ -51,17 +91,115 @@ function determineIntimacyTier(contexts: ReportContext[]): string | undefined {
 }
 
 /**
- * Builds placeholder Clear Mirror data from report contexts
+ * Builds Clear Mirror data from report contexts.
  * 
- * NOTE: This creates the structure with template placeholders.
- * In production, the actual narrative content would come from:
- * 1. Math Brain geometry (already in reportContexts.content)
- * 2. Raven Calder API calls to translate geometry → language
+ * Attempts to parse structured LLM response first (auto-execution format).
+ * Falls back to template-based construction if structure not found.
+ * 
+ * @param contexts - Report contexts from Math Brain or Poetic Brain
+ * @param sessionDiagnostics - Optional session validation data
  */
-export function buildClearMirrorFromContexts(contexts: ReportContext[]): ClearMirrorData {
+export function buildClearMirrorFromContexts(
+  contexts: ReportContext[], 
+  sessionDiagnostics?: SessionDiagnostics
+): ClearMirrorData {
   const { personA, personB } = extractPersonNames(contexts);
   const isRelational = contexts.length === 2;
   const timestamp = new Date().toISOString();
+  
+  // Try to parse structured LLM response from first context content
+  const primaryContent = contexts[0]?.content || '';
+  const parsed = parseClearMirrorResponse(primaryContent);
+  
+  // If LLM response has valid Clear Mirror structure, use it
+  if (hasValidClearMirrorStructure(parsed)) {
+    return buildFromStructuredResponse(parsed, personA, personB, isRelational, timestamp, sessionDiagnostics);
+  }
+  
+  // Otherwise, use template-based construction (legacy/fallback)
+  return buildFromTemplate(contexts, personA, personB, isRelational, timestamp, sessionDiagnostics);
+}
+
+/**
+ * Build Clear Mirror from structured LLM sections
+ */
+function buildFromStructuredResponse(
+  parsed: ReturnType<typeof parseClearMirrorResponse>,
+  personA: string,
+  personB: string | undefined,
+  isRelational: boolean,
+  timestamp: string,
+  sessionDiagnostics?: SessionDiagnostics
+): ClearMirrorData {
+  const data: ClearMirrorData = {
+    personName: personA,
+    date: timestamp,
+    chartType: isRelational ? 'relational' : 'solo',
+    
+    // Add relational fields if applicable
+    ...(isRelational && personB ? {
+      personBName: personB,
+    } : {}),
+    
+    // Map parsed Hook Stack to ClearMirrorData structure
+    hookStack: parsed.hookStack?.map(hook => ({
+      headline: hook.headline,
+      livedExample: hook.body, // Parser's 'body' maps to template's 'livedExample'
+      geometry: undefined // Geometry embedded in body text with footnotes
+    })),
+    
+    preface: isRelational
+      ? `This relational mirror translates symbolic overlays between ${personA} and ${personB} into testable hypotheses. The geometry reveals what each person's natal structure activates in the other—friction points, resonant frequencies, directional weather patterns. These dynamics predict nothing; they offer coordinates for recognition. Accuracy emerges only through lived comparison.`
+      : `This reflection draws from symbolic geometry rather than observed behavior. It outlines tendencies the natal pattern could imply—hypotheses to test in lived experience. The chart translates planetary positions at birth into language patterns you can verify against your actual life.`,
+    
+    // Use parsed frontstage or fall back to empty
+    frontstage: parsed.frontstage ? {
+      text: parsed.frontstage,
+      footnotes: []
+    } : {
+      text: '',
+      footnotes: []
+    },
+    
+    // Map polarity cards if present
+    polarityCards: parsed.polarityCards?.map(card => ({
+      title: card.title,
+      text: card.body,
+      footnote: '' // Footnotes embedded in body text already
+    })),
+    
+    // Use Mirror Voice as mirror voice (not resonant summary)
+    mirrorVoice: parsed.mirrorVoice ? {
+      text: parsed.mirrorVoice,
+      footnotes: []
+    } : undefined,
+    
+    // Socratic Closure with proper structure
+    socraticClosure: parsed.socraticClosure ? {
+      text: parsed.socraticClosure,
+      includeMarkingGuide: true
+    } : {
+      includeMarkingGuide: true // Always include marking guide even if no custom text
+    },
+    
+    // Add session diagnostics if provided
+    sessionDiagnostics: sessionDiagnostics
+  };
+  
+  return data;
+}
+
+/**
+ * Build Clear Mirror from template (legacy fallback)
+ */
+function buildFromTemplate(
+  contexts: ReportContext[],
+  personA: string,
+  personB: string | undefined,
+  isRelational: boolean,
+  timestamp: string,
+  sessionDiagnostics?: SessionDiagnostics
+): ClearMirrorData {
   
   const data: ClearMirrorData = {
     personName: personA,
@@ -245,7 +383,10 @@ The chart shows internal complexity: craving intimacy while simultaneously const
         { dynamic: 'Pressure → structure', correlation: '♂︎☍☉ tight orb', testPrompt: 'Does stillness amplify tension?' },
         { dynamic: 'Distance = recalibration', correlation: '☽□♅ pattern', testPrompt: 'Does withdrawal follow vulnerability?' }
       ]
-    }
+    },
+    
+    // Add session diagnostics if provided
+    sessionDiagnostics: sessionDiagnostics
   };
   
   return data;

@@ -889,12 +889,12 @@ export default function ChatClient() {
     setShowClearMirrorExport(true);
   }, []);
 
-  const handleGenerateClearMirrorPDF = useCallback(async () => {
+  const handleGenerateClearMirrorPDF = useCallback(async (sessionDiagnostics?: any) => {
     try {
       const { buildClearMirrorFromContexts } = await import('@/lib/pdf/clear-mirror-context-adapter');
       const { generateClearMirrorPDF } = await import('@/lib/pdf/clear-mirror-pdf');
       
-      const clearMirrorData = buildClearMirrorFromContexts(reportContexts);
+      const clearMirrorData = buildClearMirrorFromContexts(reportContexts, sessionDiagnostics);
       await generateClearMirrorPDF(clearMirrorData);
       
       setStatusMessage('Clear Mirror PDF exported successfully.');
