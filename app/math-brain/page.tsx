@@ -1431,15 +1431,15 @@ export default function MathBrainPage() {
 
   const {
     downloadResultPDF,
-    downloadResultMarkdown,
     downloadResultJSON,
     downloadBackstageJSON,
-    downloadAstroFileJSON,
+    downloadMirrorSymbolicWeatherJSON,
     downloadMirrorDirectiveJSON,
+    downloadFieldMapFile,
+    downloadAstroFileJSON,
     downloadMapFile,
     downloadFieldFile,
     pdfGenerating,
-    markdownGenerating,
     cleanJsonGenerating,
     engineConfigGenerating,
     astroFileJsonGenerating,
