@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
-import { getRedirectUri } from '../../lib/auth';
+import { getRedirectUri, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from '../../lib/auth';
 import { isAuthEnabled, getMockUser } from '../../lib/devAuth';
 
 type Auth0Client = {
@@ -107,13 +107,29 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
             }
             return;
           }
+          const normalizedDomain = normalizeAuth0Domain(config.domain);
+          const normalizedClientId = normalizeAuth0ClientId(config.clientId);
+          const normalizedAudience = normalizeAuth0Audience(config.audience ?? null);
+          if (!normalizedDomain || !normalizedClientId) {
+            if (!cancelled) {
+              setAuthState(prev => ({ ...prev, authEnvOk: false, authReady: true }));
+            }
+            return;
+          }
+
           if (!cancelled) {
             setAuthState(prev => ({
               ...prev,
-              authStatus: { domain: String(config.domain), clientId: String(config.clientId) },
+              authStatus: { domain: normalizedDomain, clientId: normalizedClientId },
               authEnvOk: true,
             }));
           }
+          config = {
+            ...config,
+            domain: normalizedDomain,
+            clientId: normalizedClientId,
+            audience: normalizedAudience,
+          };
         } catch (e) {
           if (!cancelled) {
             setAuthState(prev => ({ ...prev, authEnvOk: false, authReady: true }));
@@ -124,12 +140,20 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
         const creator = window.auth0?.createAuth0Client || window.createAuth0Client;
         if (typeof creator !== 'function') throw new Error('Auth0 SDK not available');
 
+        const domain = normalizeAuth0Domain(config.domain);
+        const clientId = normalizeAuth0ClientId(config.clientId);
+        const audience = normalizeAuth0Audience(config.audience ?? null);
+        if (!domain || !clientId) throw new Error('Auth0 config missing domain/clientId');
+
         // Add timeout to prevent hanging
         const client = await Promise.race([
           creator({
-            domain: String(config.domain).replace(/^https?:\/\//, ''),
-            clientId: config.clientId,
-            authorizationParams: { redirect_uri: getRedirectUri() },
+            domain,
+            clientId,
+            authorizationParams: {
+              redirect_uri: getRedirectUri(),
+              ...(audience ? { audience } : {}),
+            },
           }),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Auth0 client creation timeout')), 10000)
