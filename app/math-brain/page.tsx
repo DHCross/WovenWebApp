@@ -30,6 +30,7 @@ import BalanceMeterSummary from "../../components/mathbrain/BalanceMeterSummary"
 import SymbolicSeismograph from "../components/SymbolicSeismograph";
 import WeatherPlots from "../../components/mathbrain/WeatherPlots";
 import { transformTransitsByDate, transformFieldFileDaily } from "../../lib/weatherDataTransforms";
+import { createMirrorSymbolicWeatherPayload } from "../../lib/export/mirrorSymbolicWeather";
 import HealthDataUpload from "../../components/HealthDataUpload";
 import SnapshotButton from "./components/SnapshotButton";
 import SnapshotDisplay from "./components/SnapshotDisplay";
@@ -2028,21 +2029,42 @@ export default function MathBrainPage() {
       return 'error';
     }
 
-    const data = rawPayload?.payload;
-    const trimmedPayload = {
-      ...rawPayload,
-      payload: {
-        person_a: data?.person_a
-          ? {
-              name: data.person_a.name,
-              summary: data.person_a.summary,
-            }
-          : undefined,
-        woven_map: data?.woven_map,
-        _trimmed: true,
-        _note: 'Payload trimmed for localStorage; full data in session export',
-      },
-    };
+    const reportType = rawPayload?.reportType as ReportContractType | undefined;
+    let basePayload = rawPayload?.payload;
+    if (typeof basePayload === 'string') {
+      try {
+        basePayload = JSON.parse(basePayload);
+      } catch {
+        basePayload = rawPayload?.payload;
+      }
+    }
+
+    const mirrorSymbolicWeather =
+      reportType && basePayload
+        ? createMirrorSymbolicWeatherPayload(basePayload, reportType)
+        : null;
+
+    const trimmedPayload = mirrorSymbolicWeather
+      ? {
+          ...rawPayload,
+          payload: mirrorSymbolicWeather.payload,
+          payloadFormat: 'mirror-symbolic-weather-v1',
+          poeticBrainCompatible: mirrorSymbolicWeather.hasChartGeometry,
+        }
+      : {
+          ...rawPayload,
+          payload: {
+            person_a: basePayload?.person_a
+              ? {
+                  name: basePayload.person_a.name,
+                  summary: basePayload.person_a.summary,
+                }
+              : undefined,
+            woven_map: basePayload?.woven_map,
+            _trimmed: true,
+            _note: 'Payload trimmed for localStorage; full data in session export',
+          },
+        };
 
     try {
       window.localStorage.setItem('mb.lastPayload', JSON.stringify(trimmedPayload));

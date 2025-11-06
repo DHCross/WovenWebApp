@@ -68,11 +68,7 @@ import {
   formatChartTables,
   extractAxisNumber,
 } from '../utils/formatting';
-import {
-  computeOverflowDetail,
-  OVERFLOW_LIMIT,
-  OVERFLOW_TOLERANCE,
-} from '../../../lib/math-brain/overflow-detail';
+import { createMirrorSymbolicWeatherPayload } from '../../../lib/export/mirrorSymbolicWeather';
 import { getDirectivePrefix, getDirectiveSuffix } from '../../../lib/export/filename-utils';
 
 type FriendlyFilenameType =
@@ -928,6 +924,223 @@ Start with the Solo Mirror(s), then ${
       const isNatalOnly = !reportKind.includes('Balance Meter');
       const subjectName = sanitizedReport?.person_a?.name || 'Subject';
       const birthData = sanitizedReport?.person_a?.birth_data || sanitizedReport?.context?.person_a;
+      const unifiedOutput = result?.unified_output || {};
+      const personBDisplayName =
+        sanitizedReport?.person_b?.name ||
+        unifiedOutput?.person_b?.name ||
+        result?.person_b?.details?.name ||
+        result?.person_b?.name ||
+        'Person B';
+
+      const prepareChartForMarkdown = (
+        primaryChart: any,
+        personContext: any,
+        fallbackChart?: any
+      ): any | null => {
+        const fragments: any[] = [];
+        if (fallbackChart && typeof fallbackChart === 'object') {
+          fragments.push(fallbackChart);
+        }
+        if (primaryChart && typeof primaryChart === 'object') {
+          fragments.push(primaryChart);
+        }
+        if (!fragments.length) {
+          return null;
+        }
+        const merged = fragments.reduce((acc, fragment) => ({ ...acc, ...fragment }), {});
+        if (!Array.isArray(merged.aspects)) {
+          const aspectSources = [
+            primaryChart?.aspects,
+            personContext?.aspects,
+            fallbackChart?.aspects,
+            personContext?.chart?.aspects,
+          ];
+          const resolvedAspects = aspectSources.find(
+            (candidate) => Array.isArray(candidate) && candidate.length
+          );
+          if (resolvedAspects) {
+            merged.aspects = resolvedAspects;
+          }
+        }
+        return merged;
+      };
+
+      const buildAxisLine = (
+        labelText: string,
+        numericValue: unknown,
+        stateLabel?: string | null,
+        decimals = 2
+      ): string | null => {
+        if (typeof numericValue !== 'number' || !Number.isFinite(numericValue)) {
+          return null;
+        }
+        const formatted = fmtAxis(numericValue, decimals);
+        if (formatted === 'n/a') {
+          return null;
+        }
+        return `- ${labelText}: ${formatted}${stateLabel ? ` (${stateLabel})` : ''}`;
+      };
+
+      const extractSymbolicEntries = (): any[] => {
+        if (Array.isArray(unifiedOutput?.daily_entries) && unifiedOutput.daily_entries.length) {
+          return unifiedOutput.daily_entries;
+        }
+        if (Array.isArray(result?.daily_entries) && result.daily_entries.length) {
+          return result.daily_entries;
+        }
+        return [];
+      };
+
+      const buildSymbolicWeatherSection = (entries: any[]): string => {
+        if (!entries.length) return '';
+        const firstDate = entries[0]?.date;
+        const lastDate = entries[entries.length - 1]?.date;
+        let section = `\n---\n\n## Symbolic Weather Log (Daily)\n\n`;
+        if (firstDate && lastDate) {
+          section += `*Window: ${firstDate} – ${lastDate} (${entries.length} days)*\n\n`;
+        }
+
+        entries.forEach((entry) => {
+          const dateLabel = entry?.date || 'Date unknown';
+          const weather = entry?.symbolic_weather || entry || {};
+          const labels = weather?.labels || {};
+
+          const magnitude =
+            typeof weather.magnitude === 'number'
+              ? weather.magnitude
+              : typeof entry?.magnitude === 'number'
+                ? entry.magnitude
+                : typeof weather.raw_magnitude === 'number'
+                  ? weather.raw_magnitude
+                  : null;
+
+          const directionalBias =
+            typeof weather.directional_bias === 'number'
+              ? weather.directional_bias
+              : typeof entry?.directional_bias === 'number'
+                ? entry.directional_bias
+                : typeof weather.raw_bias_signed === 'number'
+                  ? weather.raw_bias_signed
+                  : null;
+
+          const volatility =
+            typeof weather.volatility === 'number'
+              ? weather.volatility
+              : typeof entry?.volatility === 'number'
+                ? entry.volatility
+                : null;
+
+          const coherence =
+            typeof entry?.coherence === 'number'
+              ? entry.coherence
+              : typeof weather.coherence === 'number'
+                ? weather.coherence
+                : null;
+
+          const lines: string[] = [];
+
+          const magnitudeLine = buildAxisLine(
+            'Magnitude',
+            magnitude,
+            labels.magnitude || weather.magnitude_label
+          );
+          if (magnitudeLine) lines.push(magnitudeLine);
+
+          const biasLine = buildAxisLine(
+            'Directional Bias',
+            directionalBias,
+            labels.directional_bias || weather.directional_bias_label || weather.bias_label
+          );
+          if (biasLine) lines.push(biasLine);
+
+          const volatilityLine = buildAxisLine(
+            'Volatility',
+            volatility,
+            labels.volatility || weather.volatility_label
+          );
+          if (volatilityLine) lines.push(volatilityLine);
+
+          const coherenceLine = buildAxisLine('Coherence', coherence, null);
+          if (coherenceLine) lines.push(coherenceLine);
+
+          const mirror = entry?.mirror_data;
+          if (mirror) {
+            if (mirror.dominant_theme) {
+              lines.push(`- Relational Theme: ${mirror.dominant_theme}`);
+            }
+            if (
+              typeof mirror.relational_tension === 'number' &&
+              Number.isFinite(mirror.relational_tension)
+            ) {
+              lines.push(`- Relational Tension: ${fmtAxis(mirror.relational_tension, 2)}`);
+            }
+            if (
+              typeof mirror.relational_flow === 'number' &&
+              Number.isFinite(mirror.relational_flow)
+            ) {
+              lines.push(`- Relational Flow: ${fmtAxis(mirror.relational_flow, 2)}`);
+            }
+
+            const contributions: string[] = [];
+            const contribA = mirror.person_a_contribution;
+            if (
+              contribA &&
+              (typeof contribA.magnitude === 'number' || typeof contribA.bias === 'number')
+            ) {
+              const parts: string[] = [];
+              if (typeof contribA.magnitude === 'number') {
+                parts.push(`mag ${fmtAxis(contribA.magnitude, 2)}`);
+              }
+              if (typeof contribA.bias === 'number') {
+                parts.push(`bias ${fmtAxis(contribA.bias, 2)}`);
+              }
+              if (parts.length) {
+                contributions.push(`${subjectName}: ${parts.join(', ')}`);
+              }
+            }
+
+            const contribB = mirror.person_b_contribution;
+            if (
+              contribB &&
+              (typeof contribB.magnitude === 'number' || typeof contribB.bias === 'number')
+            ) {
+              const parts: string[] = [];
+              if (typeof contribB.magnitude === 'number') {
+                parts.push(`mag ${fmtAxis(contribB.magnitude, 2)}`);
+              }
+              if (typeof contribB.bias === 'number') {
+                parts.push(`bias ${fmtAxis(contribB.bias, 2)}`);
+              }
+              if (parts.length) {
+                contributions.push(`${personBDisplayName}: ${parts.join(', ')}`);
+              }
+            }
+
+            if (contributions.length) {
+              lines.push('- Contributions:');
+              contributions.forEach((entryLine) => {
+                lines.push(`  - ${entryLine}`);
+              });
+            }
+          }
+
+          const hooks = entry?.poetic_hooks || weather?.poetic_hooks;
+          if (hooks?.peak_aspect_of_the_day) {
+            lines.push(`- Peak Aspect: ${hooks.peak_aspect_of_the_day}`);
+          }
+          if (Array.isArray(hooks?.key_themes) && hooks.key_themes.length) {
+            lines.push(`- Key Themes: ${hooks.key_themes.join(', ')}`);
+          }
+
+          if (!lines.length) {
+            lines.push('- No symbolic weather metrics available for this date.');
+          }
+
+          section += `### ${dateLabel}\n\n${lines.join('\n')}\n\n`;
+        });
+
+        return section;
+      };
 
       let markdown = '';
 
@@ -1177,20 +1390,35 @@ Start with the Solo Mirror(s), then ${
         markdown += `## ANALYSIS DIRECTIVE (READ FIRST)\n\n${analysisDirective}\n\n---\n\n`;
       }
 
-      if (sanitizedReport.person_a?.chart) {
+      const chartAForMarkdown = prepareChartForMarkdown(
+        sanitizedReport.person_a?.chart,
+        sanitizedReport.person_a,
+        unifiedOutput?.person_a?.chart || result?.person_a?.chart
+      );
+      if (chartAForMarkdown) {
         const sectionTitle = isNatalOnly
           ? `## 1. Planetary Architecture\n\n*All data points below populated from /api/v4/birth-chart endpoint response.*\n\n`
           : `## Person A: ${sanitizedReport.person_a.name || 'Natal Chart'}\n\n`;
         markdown += sectionTitle;
-        markdown += formatChartTables(sanitizedReport.person_a.chart);
+        markdown += formatChartTables(chartAForMarkdown);
       }
 
-      if (sanitizedReport.person_b?.chart) {
+      const chartBForMarkdown = prepareChartForMarkdown(
+        sanitizedReport.person_b?.chart,
+        sanitizedReport.person_b,
+        unifiedOutput?.person_b?.chart || result?.person_b?.chart
+      );
+      if (chartBForMarkdown) {
         const personBTitle = isNatalOnly
           ? `\n## Person B: Natal Pattern\n\n`
           : `\n## Person B: ${sanitizedReport.person_b.name || 'Natal Chart'}\n\n`;
         markdown += personBTitle;
-        markdown += formatChartTables(sanitizedReport.person_b.chart);
+        markdown += formatChartTables(chartBForMarkdown);
+      }
+
+      const symbolicEntries = extractSymbolicEntries();
+      if (symbolicEntries.length) {
+        markdown += buildSymbolicWeatherSection(symbolicEntries);
       }
 
       // Add Mirror Flow sections for natal-only reports
@@ -1350,206 +1578,16 @@ Start with the Solo Mirror(s), then ${
   const buildMirrorSymbolicWeatherExport = useCallback((): MirrorSymbolicWeatherExport | null => {
     if (!result) return null;
 
-    const toNumber = (
-      value: any,
-      axis?: AxisKey,
-      context?: any
-    ): number | undefined => {
-      if (axis && context) {
-        return extractAxisNumber(context, axis);
-      }
-      if (typeof value === 'number' && Number.isFinite(value)) return value;
-      if (typeof value === 'string') {
-        const parsed = Number(value);
-        if (Number.isFinite(parsed)) return parsed;
-      }
-      if (value && typeof value === 'object') {
-        if (typeof value.value === 'number' && Number.isFinite(value.value)) return value.value;
-        if (typeof value.display === 'number' && Number.isFinite(value.display)) return value.display;
-        if (typeof value.mean === 'number' && Number.isFinite(value.mean)) return value.mean;
-        if (typeof value.score === 'number' && Number.isFinite(value.score)) return value.score;
-      }
-      return undefined;
-    };
+    const exportData = createMirrorSymbolicWeatherPayload(result, reportContractType);
+    if (!exportData) return null;
 
-    const normalizeToFrontStage = (
-      calibratedValue: number,
-      metric: 'magnitude' | 'directional_bias' | 'volatility',
-    ): number => {
-      if (metric === 'directional_bias') return roundHalfUp(clamp(calibratedValue, -5, 5), 1);
-      if (metric === 'volatility') return roundHalfUp(clamp(calibratedValue, 0, 5), 1);
-      return roundHalfUp(clamp(calibratedValue, 0, 5), 2);
-    };
-
-    const unifiedOutput = result?.unified_output || result;
-    const hasPersonAChart = unifiedOutput?.person_a?.chart && Object.keys(unifiedOutput.person_a.chart).length > 0;
-    const hasPersonBChart = !unifiedOutput?.person_b || (unifiedOutput.person_b?.chart && Object.keys(unifiedOutput.person_b.chart || {}).length > 0);
-    const hasChartGeometry = !!(hasPersonAChart && hasPersonBChart);
-
-    const relationshipContext =
-      result?.relationship_context ||
-      result?.relationship ||
-      unifiedOutput?.relationship_context ||
-      null;
-
-    const weatherData: any = {
-      _format: 'mirror-symbolic-weather-v1',
-      _version: '1.0',
-      _poetic_brain_compatible: hasChartGeometry,
-      generated_at: new Date().toISOString(),
-      _natal_section: {
-        mirror_source: 'integrated',
-        note: 'Natal geometry integrated with symbolic weather in single file',
-        relationship_context: relationshipContext || null,
-      },
-      person_a: {
-        name: unifiedOutput?.person_a?.details?.name || unifiedOutput?.person_a?.name || null,
-        birth_data: unifiedOutput?.person_a?.details || unifiedOutput?.person_a?.birth_data || null,
-        chart: unifiedOutput?.person_a?.chart || null,
-        aspects: unifiedOutput?.person_a?.aspects || [],
-        summary: unifiedOutput?.person_a?.summary || null,
-      },
-      person_b: unifiedOutput?.person_b ? {
-        name: unifiedOutput?.person_b?.details?.name || unifiedOutput?.person_b?.name || null,
-        birth_data: unifiedOutput?.person_b?.details || unifiedOutput?.person_b?.birth_data || null,
-        chart: unifiedOutput?.person_b?.chart || null,
-        aspects: unifiedOutput?.person_b?.aspects || [],
-        summary: unifiedOutput?.person_b?.summary || null,
-      } : null,
-      report_kind: formatReportKind(reportContractType),
-      relationship_context: relationshipContext || null,
-      balance_meter_frontstage: null,
-      daily_readings: [],
-    };
-
-    if (unifiedOutput?.provenance) {
-      weatherData.provenance = unifiedOutput.provenance;
-      const smpId = unifiedOutput.provenance.normalized_input_hash || unifiedOutput.provenance.hash;
-      if (smpId) {
-        weatherData.signed_map_package = smpId;
-      }
-    }
-
-    const balanceSummary = unifiedOutput?.person_a?.summary;
-    if (balanceSummary) {
-      const rawMag = toNumber(balanceSummary.magnitude, 'magnitude', balanceSummary);
-      const rawBias = toNumber(
-        balanceSummary.directional_bias?.value,
-        'directional_bias',
-        balanceSummary
-      );
-      const rawVol = toNumber(balanceSummary.volatility, 'volatility', balanceSummary);
-
-      let summaryCoherence = null;
-      if (typeof rawVol === 'number') {
-        const volNorm = rawVol > 1.01 ? rawVol / 5 : rawVol;
-        summaryCoherence = 5 - volNorm * 5;
-        summaryCoherence = Math.max(0, Math.min(5, Math.round(summaryCoherence * 10) / 10));
-      }
-
-
-      weatherData.balance_meter_frontstage = {
-        magnitude: typeof rawMag === 'number' ? normalizeToFrontStage(rawMag, 'magnitude') : null,
-        directional_bias:
-          typeof rawBias === 'number' ? normalizeToFrontStage(rawBias, 'directional_bias') : null,
-        volatility: typeof rawVol === 'number' ? normalizeToFrontStage(rawVol, 'volatility') : null,
-        coherence: summaryCoherence,
-        magnitude_label: balanceSummary.magnitude_label || null,
-        directional_bias_label: balanceSummary.directional_bias_label || balanceSummary.valence_label || null,
-        volatility_label: balanceSummary.volatility_label || null,
-      };
-    }
-
-    const transits = unifiedOutput?.person_a?.chart?.transitsByDate;
-    if (transits && typeof transits === 'object') {
-      const dailyReadings: any[] = [];
-      Object.keys(transits)
-        .sort()
-        .forEach((date) => {
-          const dayData = (transits as any)[date];
-          if (!dayData) return;
-
-          const seismo = (dayData as any).seismograph || dayData;
-          const rawMag = toNumber(seismo.magnitude, 'magnitude', seismo);
-          const rawBias = toNumber(
-            seismo.directional_bias?.value,
-            'directional_bias',
-            seismo
-          );
-          const rawVol = toNumber(seismo.volatility, 'volatility', seismo);
-
-          const safeRawMag = typeof rawMag === 'number' && Number.isFinite(rawMag) ? rawMag : null;
-          const safeRawBias = typeof rawBias === 'number' && Number.isFinite(rawBias) ? rawBias : null;
-          const safeRawVol = typeof rawVol === 'number' && Number.isFinite(rawVol) ? rawVol : null;
-
-          let volNorm: number | null = null;
-          if (typeof safeRawVol === 'number') {
-            volNorm = safeRawVol > 1.01 ? safeRawVol / 5 : safeRawVol;
-          }
-
-          let coherence: number | null = null;
-          if (typeof volNorm === 'number') {
-            coherence = 5 - volNorm * 5;
-            coherence = Math.max(0, Math.min(5, Math.round(coherence * 10) / 10));
-          }
-
-          const magnitudeClampedFlag =
-            typeof safeRawMag === 'number' && safeRawMag > OVERFLOW_LIMIT;
-          const directionalClampedFlag =
-            typeof safeRawBias === 'number' && Math.abs(safeRawBias) > OVERFLOW_LIMIT;
-          const saturationFlag =
-            typeof safeRawMag === 'number' && safeRawMag >= OVERFLOW_LIMIT - OVERFLOW_TOLERANCE;
-
-          const overflowDetail = computeOverflowDetail({
-            rawMagnitude: safeRawMag,
-            clampedMagnitude: typeof safeRawMag === 'number' ? clamp(safeRawMag, 0, 5) : null,
-            rawDirectionalBias: safeRawBias,
-            clampedDirectionalBias:
-              typeof safeRawBias === 'number' ? clamp(safeRawBias, -5, 5) : null,
-            magnitudeClamped: magnitudeClampedFlag,
-            directionalBiasClamped: directionalClampedFlag,
-            saturation: saturationFlag,
-            aspects: (dayData as any).aspects,
-          });
-
-          dailyReadings.push({
-            date,
-            magnitude:
-              typeof safeRawMag === 'number' ? normalizeToFrontStage(safeRawMag, 'magnitude') : null,
-            directional_bias:
-              typeof safeRawBias === 'number'
-                ? normalizeToFrontStage(safeRawBias, 'directional_bias')
-                : null,
-            volatility:
-              typeof safeRawVol === 'number' ? normalizeToFrontStage(safeRawVol, 'volatility') : null,
-            coherence,
-            raw_magnitude: safeRawMag ?? null,
-            raw_bias_signed: safeRawBias ?? null,
-            raw_volatility: safeRawVol ?? null,
-            label: (dayData as any).label || null,
-            notes: (dayData as any).notes || null,
-            aspects: (dayData as any).aspects || [],
-            aspect_count: (dayData as any).aspects?.length || 0,
-            overflow_detail: overflowDetail,
-          });
-        });
-
-      weatherData.daily_readings = dailyReadings;
-      weatherData.reading_count = dailyReadings.length;
-    }
-
-    if (unifiedOutput?.woven_map?.symbolic_weather) {
-      weatherData.symbolic_weather_context = unifiedOutput.woven_map.symbolic_weather;
-    }
-
-    // Use consistent prefix from shared utility with backwards-compatible suffix
     const prefix = getDirectivePrefix('mirror-symbolic-weather');
     const symbolicSuffix = extractSuffixFromFriendlyName(friendlyFilename('symbolic-weather'));
-    
+
     return {
       filename: `${prefix}_${symbolicSuffix}.json`,
-      payload: weatherData,
-      hasChartGeometry,
+      payload: exportData.payload,
+      hasChartGeometry: exportData.hasChartGeometry,
     };
   }, [friendlyFilename, reportContractType, result]);
 

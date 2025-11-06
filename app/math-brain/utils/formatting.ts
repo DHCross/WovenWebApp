@@ -344,40 +344,288 @@ export function formatSymbolicWeatherSummary(symbolicWeather: any): string {
   return lines.join('\n');
 }
 
+const ZODIAC_SIGNS = [
+  'Aries',
+  'Taurus',
+  'Gemini',
+  'Cancer',
+  'Leo',
+  'Virgo',
+  'Libra',
+  'Scorpio',
+  'Sagittarius',
+  'Capricorn',
+  'Aquarius',
+  'Pisces',
+];
+
+const HOUSE_ORDINALS = [
+  '1st',
+  '2nd',
+  '3rd',
+  '4th',
+  '5th',
+  '6th',
+  '7th',
+  '8th',
+  '9th',
+  '10th',
+  '11th',
+  '12th',
+];
+
+const HOUSE_NAME_LOOKUP: Record<string, string> = {
+  first: '1st',
+  first_house: '1st House',
+  second: '2nd',
+  second_house: '2nd House',
+  third: '3rd',
+  third_house: '3rd House',
+  fourth: '4th',
+  fourth_house: '4th House',
+  fifth: '5th',
+  fifth_house: '5th House',
+  sixth: '6th',
+  sixth_house: '6th House',
+  seventh: '7th',
+  seventh_house: '7th House',
+  eighth: '8th',
+  eighth_house: '8th House',
+  ninth: '9th',
+  ninth_house: '9th House',
+  tenth: '10th',
+  tenth_house: '10th House',
+  eleventh: '11th',
+  eleventh_house: '11th House',
+  twelfth: '12th',
+  twelfth_house: '12th House',
+};
+
+function normalizeAngle(value: number): number {
+  const mod = value % 360;
+  return mod < 0 ? mod + 360 : mod;
+}
+
+function deriveSignFromDegree(degree: number | undefined, fallback?: string | null): string | null {
+  if (typeof degree !== 'number' || !Number.isFinite(degree)) {
+    return fallback ?? null;
+  }
+  const normalized = normalizeAngle(degree);
+  const index = Math.floor(normalized / 30);
+  return ZODIAC_SIGNS[index] || fallback || null;
+}
+
+function houseOrdinal(index: number): string {
+  return HOUSE_ORDINALS[index] || `${index + 1}th`;
+}
+
+function normalizeHouseLabel(raw: any, index: number): string | null {
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return `${houseOrdinal(Math.max(raw - 1, 0))} House`;
+  }
+  if (typeof raw !== 'string') {
+    return `${houseOrdinal(index)} House`;
+  }
+
+  const cleaned = raw.trim().replace(/_/g, ' ');
+  const key = cleaned.toLowerCase().replace(/\s+/g, '_');
+  if (HOUSE_NAME_LOOKUP[key]) {
+    const mapped = HOUSE_NAME_LOOKUP[key];
+    return mapped.endsWith('House') ? mapped : `${mapped} House`;
+  }
+  const firstToken = key.split('_')[0];
+  if (HOUSE_NAME_LOOKUP[firstToken]) {
+    const mapped = HOUSE_NAME_LOOKUP[firstToken];
+    return mapped.endsWith('House') ? mapped : `${mapped} House`;
+  }
+  return cleaned;
+}
+
+function generateKeyCandidates(rawName: string): string[] {
+  const variants = new Set<string>();
+  const base = rawName || '';
+  variants.add(base);
+  variants.add(base.replace(/\s+/g, '_'));
+  variants.add(base.replace(/[\s-]+/g, '_'));
+  variants.add(base.replace(/[\s-]+/g, '').toLowerCase());
+  variants.add(base.toLowerCase());
+  variants.add(base.toLowerCase().replace(/\s+/g, '_'));
+  variants.add(base.toLowerCase().replace(/[\s-]+/g, '_'));
+  variants.add(base.toLowerCase().replace(/[\s-_]+/g, ''));
+  return Array.from(variants);
+}
+
+function findChartEntry(chart: any, rawName: string): any {
+  if (!chart || typeof chart !== 'object') return undefined;
+  const candidates = generateKeyCandidates(rawName);
+  for (const candidate of candidates) {
+    if (candidate in chart) {
+      return chart[candidate];
+    }
+    const camelCandidate = candidate.replace(/_([a-z])/g, (_, chr: string) => chr.toUpperCase());
+    if (camelCandidate in chart) {
+      return chart[camelCandidate];
+    }
+  }
+  return undefined;
+}
+
+function derivePositionsFromChart(chart: any): Record<string, any> | null {
+  if (!chart || typeof chart !== 'object') return null;
+
+  const rawNames: string[] = [];
+  if (Array.isArray(chart.planets_names_list)) {
+    rawNames.push(...chart.planets_names_list);
+  }
+  if (Array.isArray(chart.axial_cusps_names_list)) {
+    rawNames.push(...chart.axial_cusps_names_list);
+  }
+
+  const supplementalNames = [
+    'True_Node',
+    'Mean_Node',
+    'True_South_Node',
+    'Mean_South_Node',
+    'Chiron',
+    'Lilith',
+  ];
+
+  supplementalNames.forEach((name) => {
+    if (findChartEntry(chart, name)) {
+      rawNames.push(name);
+    }
+  });
+
+  const uniqueNames = Array.from(new Set(rawNames));
+  const positions: Record<string, any> = {};
+
+  uniqueNames.forEach((rawName, index) => {
+    const entry = findChartEntry(chart, rawName);
+    if (!entry || typeof entry !== 'object') return;
+
+    const absPos =
+      typeof entry.abs_pos === 'number'
+        ? entry.abs_pos
+        : typeof entry.absolute_position === 'number'
+          ? entry.absolute_position
+          : undefined;
+    const withinSign =
+      typeof entry.position === 'number'
+        ? entry.position
+        : typeof absPos === 'number'
+          ? normalizeAngle(absPos) % 30
+          : undefined;
+
+    const sign = entry.sign || deriveSignFromDegree(absPos, null);
+    const house = normalizeHouseLabel(entry.house ?? entry.house_name, index);
+
+    positions[rawName] = {
+      sign,
+      degree: withinSign ?? absPos ?? null,
+      house: house ?? null,
+      element: entry.element || null,
+      quality: entry.quality || null,
+      retrograde: Boolean(
+        entry.retrograde ||
+          (typeof entry.motion === 'string' && entry.motion.toLowerCase().includes('retro')),
+      ),
+    };
+  });
+
+  return Object.keys(positions).length ? positions : null;
+}
+
+function deriveHousesFromChart(chart: any): Record<string, any> | null {
+  if (!chart || typeof chart !== 'object' || !Array.isArray(chart.house_cusps)) {
+    return null;
+  }
+
+  const houses: Record<string, any> = {};
+  const names = Array.isArray(chart.houses_names_list) ? chart.houses_names_list : [];
+
+  chart.house_cusps.forEach((degree: any, index: number) => {
+    if (typeof degree !== 'number' || !Number.isFinite(degree)) return;
+    const sign = deriveSignFromDegree(degree, null);
+    const label = names[index] ? normalizeHouseLabel(names[index], index) : `${houseOrdinal(index)} House`;
+    houses[label ?? `${houseOrdinal(index)} House`] = {
+      sign,
+      degree,
+    };
+  });
+
+  return Object.keys(houses).length ? houses : null;
+}
+
 export function formatChartTables(chart: any): string {
   let md = '';
 
-  if (chart.positions) {
+  const positions = chart?.positions ?? derivePositionsFromChart(chart);
+  if (positions) {
     md += `### Planetary Positions\n\n`;
     md += `| Planet | Sign | Degree | House | Element | Quality | Retro |\n`;
     md += `|--------|------|--------|-------|---------|---------|-------|\n`;
-    Object.entries(chart.positions).forEach(([planet, data]: [string, any]) => {
+    Object.entries(positions).forEach(([planet, data]: [string, any]) => {
       const retro = (data as any).retrograde ? 'R' : '';
       const degree = (data as any).degree;
-      md += `| ${planet} | ${(data as any).sign || '—'} | ${degree?.toFixed ? degree.toFixed(2) : '—'} | ${(data as any).house || '—'} | ${(data as any).element || '—'} | ${(data as any).quality || '—'} | ${retro} |\n`;
+      const degreeValue =
+        typeof degree === 'number' && Number.isFinite(degree)
+          ? degree
+          : (data as any).abs_pos;
+      md += `| ${planet} | ${(data as any).sign || '—'} | ${
+        typeof degreeValue === 'number' && Number.isFinite(degreeValue)
+          ? degreeValue.toFixed(2)
+          : '—'
+      } | ${(data as any).house || '—'} | ${(data as any).element || '—'} | ${(data as any).quality || '—'} | ${retro} |\n`;
     });
     md += `\n`;
   }
 
-  if (chart.aspects && chart.aspects.length > 0) {
+  const aspectsSource =
+    Array.isArray(chart?.aspects) && chart.aspects.length > 0
+      ? chart.aspects
+      : Array.isArray(chart?.natal_aspects) && chart.natal_aspects.length > 0
+        ? chart.natal_aspects
+        : [];
+
+  if (aspectsSource.length > 0) {
     md += `### Aspects\n\n`;
     md += `| Body 1 | Aspect | Body 2 | Orb | Type |\n`;
     md += `|--------|--------|--------|-----|------|\n`;
-    chart.aspects.slice(0, 50).forEach((asp: any) => {
-      md += `| ${asp.body1 || '—'} | ${asp.aspect || '—'} | ${asp.body2 || '—'} | ${asp.orb?.toFixed?.(2) || '—'}° | ${asp.type || '—'} |\n`;
+    aspectsSource.slice(0, 50).forEach((asp: any) => {
+      const body1 = asp.body1 || asp.planet1 || asp.p1_name || asp.a_body || asp.a || '—';
+      const body2 = asp.body2 || asp.planet2 || asp.p2_name || asp.b_body || asp.b || '—';
+      const aspectName = asp.aspect || asp.type || asp.aspect_name || '—';
+      const orbValue =
+        typeof asp.orb === 'number'
+          ? asp.orb
+          : typeof asp.orbit === 'number'
+            ? asp.orbit
+            : typeof asp.orbDeg === 'number'
+              ? asp.orbDeg
+              : undefined;
+      const aspectType = asp.type || asp.aspect_type || asp.classification || '';
+      md += `| ${body1} | ${aspectName} | ${body2} | ${
+        typeof orbValue === 'number' && Number.isFinite(orbValue) ? orbValue.toFixed(2) : '—'
+      }° | ${aspectType || '—'} |\n`;
     });
-    if (chart.aspects.length > 50) {
-      md += `\n*... and ${chart.aspects.length - 50} more aspects*\n`;
+    if (aspectsSource.length > 50) {
+      md += `\n*... and ${aspectsSource.length - 50} more aspects*\n`;
     }
     md += `\n`;
   }
 
-  if (chart.houses) {
+  const houses = chart?.houses ?? deriveHousesFromChart(chart);
+  if (houses) {
     md += `### House Cusps\n\n`;
     md += `| House | Sign | Degree |\n`;
     md += `|-------|------|--------|\n`;
-    Object.entries(chart.houses).forEach(([house, data]: [string, any]) => {
-      md += `| ${house} | ${(data as any).sign || '—'} | ${(data as any).degree?.toFixed?.(2) || '—'} |\n`;
+    Object.entries(houses).forEach(([house, data]: [string, any]) => {
+      const degreeValue = (data as any).degree;
+      md += `| ${house} | ${(data as any).sign || '—'} | ${
+        typeof degreeValue === 'number' && Number.isFinite(degreeValue)
+          ? degreeValue.toFixed(2)
+          : '—'
+      } |\n`;
     });
     md += `\n`;
   }
