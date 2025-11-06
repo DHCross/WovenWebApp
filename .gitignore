@@ -61,3 +61,4 @@ specs/*/api/*.json
 examples/*.json
 examples/*.md
 !examples/.keep
+server_output.log
