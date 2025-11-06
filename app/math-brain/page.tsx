@@ -4952,7 +4952,6 @@ export default function MathBrainPage() {
             cleanJsonGenerating={cleanJsonGenerating}
             onDownloadPDF={downloadResultPDF}
             onDownloadMarkdown={downloadResultMarkdown}
-            onDownloadMirrorDirective={downloadMirrorDirectiveJSON}
             onDownloadAstroFile={downloadAstroFileJSON}
             onDownloadGraphsPDF={downloadGraphsPDF}
             onDownloadEngineConfig={downloadBackstageJSON}

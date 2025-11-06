@@ -13,7 +13,6 @@ interface DownloadControlsProps {
   cleanJsonGenerating: boolean;
   onDownloadPDF: () => void;
   onDownloadMarkdown: () => void;
-  onDownloadMirrorDirective: () => void;
   onDownloadAstroFile: () => void;
   onDownloadGraphsPDF: () => void;
   onDownloadEngineConfig: () => void;
@@ -37,7 +36,6 @@ export default function DownloadControls({
   cleanJsonGenerating,
   onDownloadPDF,
   onDownloadMarkdown,
-  onDownloadMirrorDirective,
   onDownloadAstroFile,
   onDownloadGraphsPDF,
   onDownloadEngineConfig,
@@ -83,7 +81,8 @@ export default function DownloadControls({
         </div>
 
       <div className="rounded-lg border border-slate-700 bg-slate-800/40 p-4 space-y-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">For Raven Calder (AI Analysis)</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">For AI Analysis & Interpretation</h3>
+        <p className="text-xs text-slate-400 -mt-1 mb-2">Download and use with any AI trained in astrology, or upload to Poetic Brain for the unique Raven Calder experience</p>
         <button
           type="button"
           onClick={onDownloadMarkdown}
@@ -102,10 +101,10 @@ export default function DownloadControls({
             )}
             <div className="flex-1">
               <div className="text-sm font-medium text-slate-100">
-                {markdownGenerating ? "Generating Markdown..." : "Mirror Report (AI Optimized)"}
+                {markdownGenerating ? "Generating Markdown..." : "Mirror Report (Markdown)"}
               </div>
               <div className="text-xs text-slate-400 mt-0.5">
-                Clean Markdown with structured summaries (~100KB)
+                Use with any AI trained in astrology (ChatGPT, Claude, etc.)
               </div>
             </div>
           </div>
@@ -115,7 +114,7 @@ export default function DownloadControls({
           onClick={onDownloadAstroFile}
           disabled={astroFileJsonGenerating}
           className="w-full rounded-md border border-blue-600 bg-blue-700/30 px-4 py-3 text-left hover:bg-blue-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          aria-label="Download Astro File JSON (mirror geometry with optional symbolic weather)"
+          aria-label="Download Astro File JSON for Poetic Brain"
         >
           <div className="flex items-center gap-3">
             {astroFileJsonGenerating ? (
@@ -128,12 +127,12 @@ export default function DownloadControls({
             )}
             <div className="flex-1">
               <div className="text-sm font-medium text-slate-100">
-                {astroFileJsonGenerating ? "Preparing Astro File..." : "Astro File (JSON Bundle)"}
+                {astroFileJsonGenerating ? "Preparing Astro File..." : "Astro File (JSON)"}
               </div>
               <div className="text-xs text-slate-400 mt-0.5">
                 {includeTransits
-                  ? "Mirror geometry + symbolic weather readings (Poetic Brain ready)"
-                  : "Mirror geometry ready for Poetic Brain; add transits to include symbolic weather"}
+                  ? "Upload to Poetic Brain for the unique Raven Calder experience (Google login required)"
+                  : "Upload to Poetic Brain (Google login required); add transits for symbolic weather"}
               </div>
             </div>
           </div>
@@ -180,33 +179,6 @@ export default function DownloadControls({
         <div className="border-t border-slate-700/50 p-3 space-y-2">
           {showDevExports && (
             <>
-              <button
-                type="button"
-                onClick={onDownloadMirrorDirective}
-                disabled={cleanJsonGenerating}
-                className="w-full rounded border border-amber-500 bg-amber-600/15 px-3 py-2 text-left text-xs hover:bg-amber-600/25 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                aria-label="Download Mirror Directive JSON for Poetic Brain"
-              >
-                <div className="flex items-center gap-2">
-                  {cleanJsonGenerating ? (
-                    <svg className="animate-spin h-4 w-4 text-amber-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                  ) : (
-                    <span>🧭</span>
-                  )}
-                  <div className="flex-1">
-                    <div className="font-medium text-slate-200">
-                      {cleanJsonGenerating ? "Preparing Mirror Directive..." : "Mirror Directive (JSON)"}
-                    </div>
-                    <div className="text-slate-500 text-[10px] mt-0.5">
-                      Structured natal blueprint used internally by Poetic Brain
-                    </div>
-                  </div>
-                </div>
-              </button>
-
               <button
                 type="button"
                 onClick={onDownloadMapFile}
