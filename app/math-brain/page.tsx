@@ -4945,13 +4945,11 @@ export default function MathBrainPage() {
           <DownloadControls
             includeTransits={includeTransits}
             pdfGenerating={pdfGenerating}
-            markdownGenerating={markdownGenerating}
             graphsPdfGenerating={graphsPdfGenerating}
             astroFileJsonGenerating={astroFileJsonGenerating}
             engineConfigGenerating={engineConfigGenerating}
             cleanJsonGenerating={cleanJsonGenerating}
             onDownloadPDF={downloadResultPDF}
-            onDownloadMarkdown={downloadResultMarkdown}
             onDownloadAstroFile={downloadAstroFileJSON}
             onDownloadGraphsPDF={downloadGraphsPDF}
             onDownloadEngineConfig={downloadBackstageJSON}

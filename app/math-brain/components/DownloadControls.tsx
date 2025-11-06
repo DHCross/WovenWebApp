@@ -6,13 +6,11 @@ import type { SeismographMap } from "../../../lib/health-data-types";
 interface DownloadControlsProps {
   includeTransits: boolean;
   pdfGenerating: boolean;
-  markdownGenerating: boolean;
   graphsPdfGenerating: boolean;
   astroFileJsonGenerating: boolean;
   engineConfigGenerating: boolean;
   cleanJsonGenerating: boolean;
   onDownloadPDF: () => void;
-  onDownloadMarkdown: () => void;
   onDownloadAstroFile: () => void;
   onDownloadGraphsPDF: () => void;
   onDownloadEngineConfig: () => void;
@@ -29,13 +27,11 @@ interface DownloadControlsProps {
 export default function DownloadControls({
   includeTransits,
   pdfGenerating,
-  markdownGenerating,
   graphsPdfGenerating,
   astroFileJsonGenerating,
   engineConfigGenerating,
   cleanJsonGenerating,
   onDownloadPDF,
-  onDownloadMarkdown,
   onDownloadAstroFile,
   onDownloadGraphsPDF,
   onDownloadEngineConfig,
@@ -51,7 +47,6 @@ export default function DownloadControls({
   const hasSeismographData = Object.keys(seismographMap || {}).length > 0;
   const isAnyGenerating = 
     pdfGenerating || 
-    markdownGenerating || 
     graphsPdfGenerating || 
     astroFileJsonGenerating ||
     engineConfigGenerating ||
@@ -85,36 +80,10 @@ export default function DownloadControls({
         <p className="text-xs text-slate-400 -mt-1 mb-2">Download and use with any AI trained in astrology, or upload to Poetic Brain for the unique Raven Calder experience</p>
         <button
           type="button"
-          onClick={onDownloadMarkdown}
-          disabled={markdownGenerating}
-          className="w-full rounded-md border border-purple-600 bg-purple-700/30 px-4 py-3 text-left hover:bg-purple-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          aria-label="Download Mirror Report (lightweight, AI-friendly)"
-        >
-          <div className="flex items-center gap-3">
-            {markdownGenerating ? (
-              <svg className="animate-spin h-5 w-5 text-purple-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-            ) : (
-              <span className="text-2xl">📝</span>
-            )}
-            <div className="flex-1">
-              <div className="text-sm font-medium text-slate-100">
-                {markdownGenerating ? "Generating Markdown..." : "Mirror Report (Markdown)"}
-              </div>
-              <div className="text-xs text-slate-400 mt-0.5">
-                Use with any AI trained in astrology (ChatGPT, Claude, etc.)
-              </div>
-            </div>
-          </div>
-        </button>
-        <button
-          type="button"
           onClick={onDownloadAstroFile}
           disabled={astroFileJsonGenerating}
           className="w-full rounded-md border border-blue-600 bg-blue-700/30 px-4 py-3 text-left hover:bg-blue-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          aria-label="Download Astro File JSON for Poetic Brain"
+          aria-label="Download Astro File JSON for AI analysis or Poetic Brain"
         >
           <div className="flex items-center gap-3">
             {astroFileJsonGenerating ? (
@@ -131,7 +100,7 @@ export default function DownloadControls({
               </div>
               <div className="text-xs text-slate-400 mt-0.5">
                 {includeTransits
-                  ? "Upload to Poetic Brain for the unique Raven Calder experience (Google login required)"
+                  ? "Use with any AI trained in astrology, or upload to Poetic Brain for the unique Raven Calder experience (Google login required)"
                   : "Upload to Poetic Brain (Google login required); add transits for symbolic weather"}
               </div>
             </div>

@@ -185,6 +185,62 @@ const escapeHtml = (input: string): string =>
     return map[char] ?? char;
   });
 
+/**
+ * Retry logic with exponential backoff + jitter for API requests.
+ * Handles transient network failures gracefully.
+ */
+const fetchWithRetry = async (
+  url: string,
+  options: RequestInit,
+  maxRetries: number = 3,
+  timeoutMs: number = 30000,
+): Promise<Response> => {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      lastError = error as Error;
+      clearTimeout(0); // Clean up timeout if needed
+
+      // Don't retry on abort signals from caller
+      if ((error as Error)?.name === "AbortError" && options.signal?.aborted) {
+        throw error;
+      }
+
+      // Only retry on network errors and timeouts, not on other abort errors
+      if (
+        attempt < maxRetries &&
+        ((error as Error)?.name === "TypeError" || // Network error
+          (error as Error)?.name === "AbortError") // Timeout
+      ) {
+        // Exponential backoff with jitter: 100ms * 2^attempt ± random 0-50%
+        const baseDelay = 100 * Math.pow(2, attempt);
+        const jitter = baseDelay * 0.5 * Math.random();
+        const delay = baseDelay + jitter;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  throw (
+    lastError ||
+    new Error(`Request failed after ${maxRetries + 1} attempts`)
+  );
+};
+
 const sanitizeHtml = (html: string): string => {
   if (typeof window === "undefined" || !DOMPurify) {
     return escapeHtml(html);
@@ -214,14 +270,42 @@ const sanitizeHtml = (html: string): string => {
       "h6",
       "button",
     ],
-    ALLOWED_ATTR: ["href", "target", "rel", "class", "style", "data-action"],
-    ALLOW_DATA_ATTR: true,
+    // Strict allowlist: only essential attributes + explicitly safe data-action
+    ALLOWED_ATTR: [
+      "href",
+      "target",
+      "rel",
+      "class",
+      "style",
+      "data-action", // only this single data-* attr allowed
+    ],
+    ALLOW_DATA_ATTR: false, // Disable blanket data-* attribute permission
     KEEP_CONTENT: true,
   });
 };
 
 const removeCitationAnnotations = (text: string): string => {
   return text.replace(/\s*\[\d+\]/g, "");
+};
+
+const stripPersonaMetadata = (text: string): string => {
+  // Remove lines that are purely metadata (RAVEN · VOICE · SESSION etc.)
+  return text
+    .split('\n')
+    .filter(line => {
+      const trimmed = line.trim();
+      // Skip lines that are mostly dots/separators and persona tags
+      if (/^(RAVEN|VOICE|SESSION|ORIENTATION|SYMBOLIC WEATHER|MIRROR READING|MAP|FIELD)/.test(trimmed)) {
+        return false;
+      }
+      // Skip lines that look like metadata only (all caps with dots)
+      if (/^[A-Z\s·]+$/.test(trimmed) && trimmed.length < 60) {
+        return false;
+      }
+      return true;
+    })
+    .join('\n')
+    .trim();
 };
 
 const ensureSentence = (value: string | undefined | null): string => {
@@ -386,11 +470,11 @@ const buildNarrativeDraft = (
     };
   }
 
-  const rawPicture = typeof draft.picture === "string" ? draft.picture : "";
-  const rawFeeling = typeof draft.feeling === "string" ? draft.feeling : "";
-  const rawContainer = typeof draft.container === "string" ? draft.container : "";
-  const rawOption = typeof draft.option === "string" ? draft.option : "";
-  const rawNextStep = typeof draft.next_step === "string" ? draft.next_step : "";
+  const rawPicture = typeof draft.picture === "string" ? stripPersonaMetadata(draft.picture) : "";
+  const rawFeeling = typeof draft.feeling === "string" ? stripPersonaMetadata(draft.feeling) : "";
+  const rawContainer = typeof draft.container === "string" ? stripPersonaMetadata(draft.container) : "";
+  const rawOption = typeof draft.option === "string" ? stripPersonaMetadata(draft.option) : "";
+  const rawNextStep = typeof draft.next_step === "string" ? stripPersonaMetadata(draft.next_step) : "";
 
   const appendix =
     typeof draft.appendix === "object" && draft.appendix
@@ -1491,15 +1575,22 @@ export default function ChatClient() {
           payload && typeof payload.persona !== "undefined"
             ? payload
             : { ...payload, persona: personaMode };
-        const res = await fetch("/api/raven", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Request-Id": generateId(), // Add request ID for tracking
+        
+        // Use fetch with retry/backoff for better network resilience
+        const res = await fetchWithRetry(
+          "/api/raven",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Request-Id": generateId(),
+            },
+            body: JSON.stringify(payloadWithPersona),
+            signal: ctrl.signal,
           },
-          body: JSON.stringify(payloadWithPersona),
-          signal: ctrl.signal,
-        });
+          3, // max retries
+          30000, // 30 second timeout
+        );
 
         // Handle non-JSON responses
         if (!res.headers.get('content-type')?.includes('application/json')) {
@@ -2120,13 +2211,24 @@ const performSessionReset = useCallback(() => {
       const file = event.target.files?.[0];
       if (!file) return;
 
+      // File size guard: 50 MB limit for PDFs, 10 MB for text files
+      const MAX_PDF_SIZE = 50 * 1024 * 1024; // 50 MB
+      const MAX_TEXT_SIZE = 10 * 1024 * 1024; // 10 MB
+      const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+      const maxSize = isPdf ? MAX_PDF_SIZE : MAX_TEXT_SIZE;
+
+      if (file.size > maxSize) {
+        const sizeInMB = (maxSize / (1024 * 1024)).toFixed(0);
+        setErrorMessage(`File too large. Max size: ${sizeInMB}MB. Please upload a smaller file.`);
+        if (event.target) event.target.value = "";
+        return;
+      }
+
       let rawContent = "";
 
-      if (
-        file.type === "application/pdf" ||
-        file.name.toLowerCase().endsWith(".pdf")
-      ) {
+      if (isPdf) {
         try {
+          setStatusMessage("Extracting PDF text...");
           const pdfjsLib = await import("pdfjs-dist");
           (pdfjsLib as any).GlobalWorkerOptions.workerSrc =
             "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -2155,6 +2257,7 @@ const performSessionReset = useCallback(() => {
         }
       } else {
         try {
+          setStatusMessage("Reading file...");
           rawContent = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(String(e.target?.result ?? ""));
@@ -2706,9 +2809,47 @@ const performSessionReset = useCallback(() => {
             </div>
           )}
           {messages.length === 0 && !typing && (
-            <p className="text-center text-sm text-slate-400">
-              Session ready. Raven is preparing your mirror—watch for the reading to appear.
-            </p>
+            <div className="space-y-6 py-12">
+              <div className="text-center">
+                <h2 className="text-2xl font-semibold text-slate-100 mb-2">Start the Symbolic Reading</h2>
+                <p className="text-slate-400 mb-6">Share what's moving, or choose a direction below</p>
+                <div className="flex flex-wrap gap-3 justify-center max-w-2xl mx-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInput("Begin with a symbolic weather report");
+                      inputRef.current?.focus();
+                    }}
+                    className="px-4 py-3 rounded-lg bg-slate-800/60 border border-slate-700/60 text-slate-200 text-sm hover:border-slate-500 hover:bg-slate-800/80 transition"
+                  >
+                    📊 Start with symbolic weather
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInput("Read my natal mirror");
+                      inputRef.current?.focus();
+                    }}
+                    className="px-4 py-3 rounded-lg bg-slate-800/60 border border-slate-700/60 text-slate-200 text-sm hover:border-slate-500 hover:bg-slate-800/80 transition"
+                  >
+                    🪞 Explore my natal pattern
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInput("What patterns do you see in this data?");
+                      inputRef.current?.focus();
+                    }}
+                    className="px-4 py-3 rounded-lg bg-slate-800/60 border border-slate-700/60 text-slate-200 text-sm hover:border-slate-500 hover:bg-slate-800/80 transition"
+                  >
+                    💬 Ask a question
+                  </button>
+                </div>
+              </div>
+              <div className="text-center text-xs text-slate-500">
+                Or paste your Mirror + Symbolic Weather JSON using the upload buttons below
+              </div>
+            </div>
           )}
         </div>
       </main>
