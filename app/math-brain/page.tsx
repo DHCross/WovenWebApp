@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useId } from "react";
 import type { FocusEvent, TouchEvent } from "react";
 import { parseCoordinates, formatDecimal } from "../../src/coords";
-import { getRedirectUri } from "../../lib/auth";
+import { getRedirectUri, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from "../../lib/auth";
 // AuthProvider removed - auth handled globally by HomeHero component
 import { needsLocation, isTimeUnknown } from "../../lib/relocation";
 import { sanitizeForPDF } from "../../src/pdf-sanitizer";
@@ -914,22 +914,29 @@ export default function MathBrainPage() {
       const res = await fetch('/api/auth-config', { cache: 'no-store' });
       if (!res.ok) throw new Error('Auth config fetch failed');
       const cfg = await res.json();
-      if (!cfg?.domain || !cfg?.clientId) throw new Error('Auth0 config missing');
+      const domain = normalizeAuth0Domain(cfg?.domain);
+      const clientId = normalizeAuth0ClientId(cfg?.clientId);
+      const audience = normalizeAuth0Audience(cfg?.audience ?? null);
+      if (!domain || !clientId) throw new Error('Auth0 config missing');
 
       const win = window as any;
       const creator = win?.auth0?.createAuth0Client || win?.createAuth0Client;
       if (typeof creator !== 'function') throw new Error('Auth0 SDK not available');
 
       const client = await creator({
-        domain: String(cfg.domain).replace(/^https?:\/\//, ''),
-        clientId: cfg.clientId,
-        authorizationParams: { redirect_uri: getRedirectUri() },
+        domain,
+        clientId,
+        authorizationParams: {
+          redirect_uri: getRedirectUri(),
+          ...(audience ? { audience } : {}),
+        },
       });
 
       await client.loginWithRedirect({
         authorizationParams: {
           redirect_uri: getRedirectUri(),
           connection: 'google-oauth2',
+          ...(audience ? { audience } : {}),
         },
       });
     } catch (err) {
@@ -1585,21 +1592,24 @@ export default function MathBrainPage() {
         const res = await fetch('/api/auth-config', { cache: 'no-store' });
         if (!res.ok) throw new Error('Auth config fetch failed');
         const cfg = await res.json();
-        if (!cfg?.domain || !cfg?.clientId) throw new Error('Auth0 config missing domain/clientId');
+        const domain = normalizeAuth0Domain(cfg?.domain);
+        const clientId = normalizeAuth0ClientId(cfg?.clientId);
+        const audience = normalizeAuth0Audience(cfg?.audience ?? null);
+        if (!domain || !clientId) throw new Error('Auth0 config missing domain/clientId');
 
         const win = window as any;
         const creator = win?.auth0?.createAuth0Client || win?.createAuth0Client;
         if (typeof creator !== 'function') throw new Error('Auth0 SDK not available');
 
         const client = await creator({
-          domain: String(cfg.domain).replace(/^https?:\/\//, ''),
-          clientId: cfg.clientId,
+          domain,
+          clientId,
           cacheLocation: 'localstorage',
           useRefreshTokens: true,
           useRefreshTokensFallback: true,
           authorizationParams: {
             redirect_uri: getRedirectUri(),
-            ...(cfg.audience ? { audience: cfg.audience } : {}),
+            ...(audience ? { audience } : {}),
           },
         });
 

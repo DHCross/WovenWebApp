@@ -1,7 +1,7 @@
 "use client";
 export const dynamic = 'force-dynamic';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { getRedirectUri } from '../../../lib/auth';
+import { getRedirectUri, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from '../../../lib/auth';
 
 // Hidden diagnostics page for Auth0 SPA SDK integration.
 // Access is gated by NEXT_PUBLIC_ENABLE_DEV_TOOLS (client-only) to avoid exposing details in prod.
@@ -60,8 +60,15 @@ export default function AuthDebugPage() {
         const res = await fetch('/api/auth-config', { cache: 'no-store' });
         if (!res.ok) throw new Error(`auth-config failed: ${res.status}`);
         const cfg = await res.json();
-        if (!cancelled) setConfig(cfg);
-        if (!cfg?.domain || !cfg?.clientId) {
+        const domain = normalizeAuth0Domain(cfg?.domain);
+        const clientId = normalizeAuth0ClientId(cfg?.clientId);
+        const audience = normalizeAuth0Audience(cfg?.audience ?? null);
+        if (!cancelled) setConfig({
+          domain,
+          clientId,
+          audience,
+        });
+        if (!domain || !clientId) {
           if (!cancelled) {
             setClientState((s) => ({ ...s, error: 'Auth config present but missing domain/clientId' }));
             setReady(true);
@@ -72,9 +79,12 @@ export default function AuthDebugPage() {
         const creator = window.auth0?.createAuth0Client || window.createAuth0Client;
         if (typeof creator !== 'function') throw new Error('Auth0 SDK not available');
         const client = await creator({
-          domain: String(cfg.domain).replace(/^https?:\/\//, ''),
-          clientId: cfg.clientId,
-          authorizationParams: { redirect_uri: getRedirectUri() },
+          domain,
+          clientId,
+          authorizationParams: {
+            redirect_uri: getRedirectUri(),
+            ...(audience ? { audience } : {}),
+          },
         });
         clientRef.current = client;
         if (!cancelled) setClientState((s) => ({ ...s, created: true }));

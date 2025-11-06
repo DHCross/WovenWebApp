@@ -21,6 +21,27 @@ function normalizeCallbackPath(raw?: string | null): string {
 
 const AUTH_CALLBACK_PATH = normalizeCallbackPath(process.env.NEXT_PUBLIC_AUTH_CALLBACK_PATH);
 
+export function normalizeAuth0Domain(raw?: string | null): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const withoutProtocol = trimmed.replace(/^https?:\/\//i, '');
+  const withoutTrailingSlashes = withoutProtocol.replace(/\/+$/, '');
+  return withoutTrailingSlashes || null;
+}
+
+export function normalizeAuth0ClientId(raw?: string | null): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  return trimmed || null;
+}
+
+export function normalizeAuth0Audience(raw?: string | null): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  return trimmed || null;
+}
+
 export function getRedirectUri(): string {
   if (typeof window === 'undefined') {
     // SSR fallback: safe default path; client will compute exact origin

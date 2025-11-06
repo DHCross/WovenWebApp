@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable no-console */
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { getRedirectUri } from "../lib/auth";
+import { getRedirectUri, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from "../lib/auth";
 
 type Auth0Client = {
   isAuthenticated: () => Promise<boolean>;
@@ -121,10 +121,26 @@ export default function HomeHero() {
             throw new Error(`Auth config failed: ${res.status} ${res.statusText}`);
           }
           config = await res.json();
-          console.log(`Auth config fetched in ${Date.now() - configStartTime}ms:`, config);
-          if (!cancelled) {
-            setAuthCfg({ domain: config?.domain, clientId: config?.clientId, audience: config?.audience ?? null });
+          const normalizedDomain = normalizeAuth0Domain(config?.domain);
+          const normalizedClientId = normalizeAuth0ClientId(config?.clientId);
+          const normalizedAudience = normalizeAuth0Audience(config?.audience ?? null);
+          if (!normalizedDomain || !normalizedClientId) {
+            throw new Error("Invalid Auth0 config - missing domain or clientId");
           }
+          console.log(`Auth config fetched in ${Date.now() - configStartTime}ms:`, {
+            domain: normalizedDomain,
+            clientId: normalizedClientId ? `${normalizedClientId.slice(0, 4)}…` : null,
+            hasAudience: Boolean(normalizedAudience),
+          });
+          if (!cancelled) {
+            setAuthCfg({ domain: normalizedDomain, clientId: normalizedClientId, audience: normalizedAudience });
+          }
+          config = {
+            ...config,
+            domain: normalizedDomain,
+            clientId: normalizedClientId,
+            audience: normalizedAudience,
+          };
         } catch (fetchError) {
           // Fallback for development when Netlify functions aren't available
           console.warn("Could not fetch auth config, using development fallback:", fetchError);
@@ -134,24 +150,26 @@ export default function HomeHero() {
           }
           return;
         }
-        
-        if (!config?.domain || !config?.clientId) {
-          throw new Error("Invalid Auth0 config - missing domain or clientId");
-        }
 
         const creator = window.auth0?.createAuth0Client || window.createAuth0Client;
         if (typeof creator !== 'function') {
           throw new Error('Auth0 SDK not available after load');
         }
+        const normalizedDomain = normalizeAuth0Domain(config?.domain);
+        const normalizedClientId = normalizeAuth0ClientId(config?.clientId);
+        const normalizedAudience = normalizeAuth0Audience(config?.audience ?? null);
+        if (!normalizedDomain || !normalizedClientId) {
+          throw new Error('Invalid Auth0 config - missing domain or clientId');
+        }
         const authorizationParams: Record<string, any> = {
           redirect_uri: getRedirectUri(),
         };
-        if (config.audience) {
-          authorizationParams.audience = config.audience;
+        if (normalizedAudience) {
+          authorizationParams.audience = normalizedAudience;
         }
         const client = await creator({
-          domain: String(config.domain).replace(/^https?:\/\//, ""),
-          clientId: config.clientId,
+          domain: normalizedDomain,
+          clientId: normalizedClientId,
           cacheLocation: 'localstorage',
           useRefreshTokens: true,
           useRefreshTokensFallback: true,
