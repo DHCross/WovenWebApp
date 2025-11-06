@@ -93,6 +93,19 @@
 
 ---
 
+## Verification Snapshot (Nov 6 follow-up)
+
+To confirm the "So made changes" check-in, we validated the hardening work directly against the codebase:
+
+- ✅ `fetchWithRetry` helper is present at the top of `components/ChatClient.tsx` and used for all `/api/raven` requests.
+- ✅ DOMPurify configuration explicitly disables blanket `data-*` attributes while allowing only `data-action` for interactive replies.
+- ✅ File upload guardrails enforce the 50 MB (PDF) / 10 MB (text) limits with user-facing messaging and input reset.
+- ✅ Metadata stripping helper removes persona headers before rendering responses.
+
+**Result:** The production branch reflects the security, UX, and resilience improvements exactly as documented.
+
+---
+
 ## What's Ready
 
 ### ✅ For Immediate Action
