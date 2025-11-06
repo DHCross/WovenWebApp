@@ -39,6 +39,41 @@ export const ensureSentence = (value: string | undefined | null): string => {
   return trimmed.replace(/([^.!?])$/, "$1.");
 };
 
+const MAGNITUDE_PATTERN = /\bMagnitude\s*:\s*-?\d+(\.\d+)?/i;
+const DIRECTIONAL_PATTERN = /\bDirectional\s+Bias\s*:\s*-?\d+(\.\d+)?/i;
+const COHERENCE_PATTERN = /\b(Coherence|Volatility)\s*:\s*-?\d+(\.\d+)?/i;
+const RESONANCE_PATTERN = /\b(?:WB|ABE|OSR)\b/;
+const QUESTION_PATTERN = /\?/;
+
+export const hasStructuralScaffolding = (text: string | undefined | null): boolean => {
+  if (!text) return false;
+  const normalized = text.trim();
+  if (!normalized) return false;
+
+  const hasFieldLayer =
+    /\bFIELD\s+(?:LAYER|→)\b/i.test(normalized) ||
+    /\bFIELD\s*[:\-]/i.test(normalized);
+  const hasMapLayer =
+    /\bMAP\s+(?:LAYER|→)\b/i.test(normalized) ||
+    /\bMAP\s*[:\-]/i.test(normalized);
+  const hasVoiceLayer =
+    /\bVOICE\s+(?:LAYER|→)\b/i.test(normalized) ||
+    /\bVOICE\s*[:\-]/i.test(normalized);
+
+  if (!hasFieldLayer || !hasMapLayer || !hasVoiceLayer) {
+    return false;
+  }
+
+  const hasAxisData =
+    MAGNITUDE_PATTERN.test(normalized) &&
+    DIRECTIONAL_PATTERN.test(normalized) &&
+    COHERENCE_PATTERN.test(normalized);
+  const hasResonanceTag = RESONANCE_PATTERN.test(normalized);
+  const hasQuestion = QUESTION_PATTERN.test(normalized);
+
+  return hasAxisData && hasResonanceTag && hasQuestion;
+};
+
 export interface NarrativeSectionProps {
   text: string;
 }
@@ -282,6 +317,11 @@ export const formatShareableDraft = (
     typeof draft.conversation === "string" ? draft.conversation.trim() : "";
   if (conversationText) {
     const cleanedText = conversationText.replace(/\s*\[\d+\]/g, "");
+
+    if (!hasStructuralScaffolding(cleanedText) && draft && Object.keys(draft).length > 0) {
+      return buildNarrativeDraft(draft, prov);
+    }
+
     const paragraphs = cleanedText
       .split(/\n{2,}/)
       .map(
@@ -311,4 +351,3 @@ export const formatShareableDraft = (
 
   return buildNarrativeDraft(draft, prov);
 };
-

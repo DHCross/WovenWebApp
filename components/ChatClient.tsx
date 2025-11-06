@@ -1,14 +1,26 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DOMPurify from "dompurify";
 import { generateId } from "../lib/id";
-import { formatFullClimateDisplay, type ClimateData } from "../lib/climate-renderer";
+import { formatFullClimateDisplay } from "../lib/climate-renderer";
 import type { RelocationSummary } from "../lib/relocation";
 import { type PingResponse } from "./PingFeedback";
-import { hasPendingValidations, getValidationStats, formatValidationSummary, validationReducer } from "@/lib/validation/validationUtils";
-import { parseValidationPoints } from "@/lib/validation/parseValidationPoints";
-import type { ValidationPoint, ValidationState } from "@/lib/validation/types";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import { useRavenRequest } from "@/hooks/useRavenRequest";
+import { useValidation } from "@/hooks/useValidation";
+import {
+  hasPendingValidations,
+  getValidationStats,
+  formatValidationSummary,
+} from "@/lib/validation/validationUtils";
+import type { ValidationPoint } from "@/lib/validation/types";
+import type {
+  Message,
+  RavenSessionExport,
+  SessionMode,
+  SessionShiftOptions,
+} from "@/lib/raven-client/types";
 import MirrorResponseActions from "./MirrorResponseActions";
 import SessionWrapUpModal from "./SessionWrapUpModal";
 import WrapUpCard from "./WrapUpCard";
@@ -19,21 +31,16 @@ import {
   STATUS_CONNECTED,
   INPUT_PLACEHOLDER,
 } from "../lib/ui-strings";
-import type { Intent } from "../lib/raven/intent";
-import type { SSTProbe } from "../lib/raven/sst";
 import { buildNoContextGuardCopy } from "../lib/guard/no-context";
 import { referencesAstroSeekWithoutGeometry } from "../lib/raven/guards";
 import { requestsPersonalReading } from "../lib/raven/personal-reading";
 import type { PersonaMode } from "../lib/persona";
 import { escapeHtml, formatShareableDraft } from "@/lib/raven-narrative";
 import {
-  formatFriendlyErrorMessage,
   formatIntentHook,
   formatClimate,
   containsInitialProbe,
   getPingCheckpointType,
-  extractBalanceMeterSummary,
-  formatBalanceMeterSummaryLine,
 } from "@/lib/raven-formatting";
 import {
   ASTROSEEK_GUARD_DRAFT,
@@ -43,153 +50,8 @@ import {
   containsResonanceMarkers,
   detectReportMetadata,
   mapRelocationToPayload,
-  parseReportContent,
   type ReportContext,
 } from "@/lib/report-parsing";
-
-type RavenDraftResponse = {
-  ok?: boolean;
-  intent?: Intent;
-  draft?: Record<string, any> | null;
-  prov?: Record<string, any> | null;
-  climate?: string | ClimateData | null;
-  sessionId?: string;
-  probe?: SSTProbe | null;
-  guard?: boolean;
-  guidance?: string;
-  error?: string;
-  details?: any;
-  validation?: {
-    mode: 'resonance' | 'none';
-    allowFallback?: boolean;
-  } | null;
-};
-
-type MessageRole = "user" | "raven";
-
-interface Message {
-  id: string;
-  role: MessageRole;
-  html: string;
-  climate?: string;
-  hook?: string;
-  intent?: Intent;
-  probe?: SSTProbe | null;
-  prov?: Record<string, any> | null;
-  pingFeedbackRecorded?: boolean;
-  rawText?: string; // Store clean text for copying
-  validationPoints?: ValidationPoint[];
-  validationComplete?: boolean;
-  metadata?: {
-    onboardingActions?: {
-      startReading: () => void;
-      upload: () => void;
-      dialogue: () => void;
-    };
-  };
-}
-
-interface StoredMathBrainPayload {
-  savedAt: string;
-  from?: string;
-  reportType?: string;
-  mode?: string;
-  includeTransits?: boolean;
-  window?: {
-    start?: string;
-    end?: string;
-    step?: string;
-  } | null;
-  subjects?: {
-    personA?: {
-      name?: string;
-      timezone?: string;
-      city?: string;
-      state?: string;
-    } | null;
-    personB?: {
-      name?: string;
-      timezone?: string;
-      city?: string;
-      state?: string;
-    } | null;
-  } | null;
-  payload: any;
-}
-
-type RavenSessionExport = {
-  sessionId?: string;
-  scores?: any;
-  log?: any;
-  suggestions?: any[];
-};
-
-type SessionMode = 'idle' | 'exploration' | 'report';
-
-type SessionShiftOptions = {
-  message?: string;
-  hook?: string;
-  climate?: string;
-};
-
-const MB_LAST_PAYLOAD_KEY = "mb.lastPayload";
-const MB_LAST_PAYLOAD_ACK_KEY = "mb.lastPayloadAck";
-
-/**
- * Retry logic with exponential backoff + jitter for API requests.
- * Handles transient network failures gracefully.
- */
-const fetchWithRetry = async (
-  url: string,
-  options: RequestInit,
-  maxRetries: number = 3,
-  timeoutMs: number = 30000,
-): Promise<Response> => {
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-      return response;
-    } catch (error) {
-      lastError = error as Error;
-      clearTimeout(0); // Clean up timeout if needed
-
-      // Don't retry on abort signals from caller
-      if ((error as Error)?.name === "AbortError" && options.signal?.aborted) {
-        throw error;
-      }
-
-      // Only retry on network errors and timeouts, not on other abort errors
-      if (
-        attempt < maxRetries &&
-        ((error as Error)?.name === "TypeError" || // Network error
-          (error as Error)?.name === "AbortError") // Timeout
-      ) {
-        // Exponential backoff with jitter: 100ms * 2^attempt ± random 0-50%
-        const baseDelay = 100 * Math.pow(2, attempt);
-        const jitter = baseDelay * 0.5 * Math.random();
-        const delay = baseDelay + jitter;
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  throw (
-    lastError ||
-    new Error(`Request failed after ${maxRetries + 1} attempts`)
-  );
-};
 
 const sanitizeHtml = (html: string): string => {
   if (typeof window === "undefined" || !DOMPurify) {
@@ -248,10 +110,30 @@ const createInitialMessage = (): Message => ({
 export default function ChatClient() {
   // ... rest of the code remains the same ...
   const [messages, setMessages] = useState<Message[]>(() => [createInitialMessage()]);
-  const [validationMap, dispatchValidation] = useReducer(validationReducer, {} as ValidationState);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [reportContexts, setReportContexts] = useState<ReportContext[]>([]);
+  const [relocation, setRelocation] = useState<RelocationSummary | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [sessionStarted, setSessionStarted] = useState<boolean>(false);
+  const [sessionMode, setSessionMode] = useState<SessionMode>('idle');
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [personaMode, setPersonaMode] = useState<PersonaMode>('hybrid');
   const copyResetRef = useRef<number | null>(null);
+
+  const { validationMap, setValidationPoints, updateValidationNote } = useValidation({
+    sessionId,
+    messages,
+    setMessages,
+  });
+
+  const { typing, runRavenRequest, stop } = useRavenRequest({
+    personaMode,
+    setMessages,
+    setSessionId,
+    validationMap,
+    setValidationPoints,
+  });
 
   const handleCopyMessage = useCallback(async (messageId: string, text: string) => {
     if (!text) return;
@@ -283,54 +165,19 @@ export default function ChatClient() {
 
   const handleValidationUpdate = useCallback(
     (messageId: string, points: ValidationPoint[]) => {
-      dispatchValidation({ type: "setPoints", messageId, points });
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === messageId
-            ? {
-                ...msg,
-                validationPoints: points,
-                validationComplete:
-                  points.length > 0 && !hasPendingValidations(points),
-              }
-            : msg,
-        ),
-      );
+      setValidationPoints(messageId, points);
     },
-    [dispatchValidation],
+    [setValidationPoints],
   );
 
   const handleValidationNoteChange = useCallback(
     (messageId: string, pointId: string, note: string) => {
-      dispatchValidation({ type: "setNote", messageId, pointId, note });
-      setMessages((prev) =>
-        prev.map((msg) => {
-          if (msg.id !== messageId) return msg;
-          const nextPoints = (msg.validationPoints ?? []).map((point) =>
-            point.id === pointId ? { ...point, note } : point,
-          );
-          return {
-            ...msg,
-            validationPoints: nextPoints,
-          };
-        }),
-      );
+      updateValidationNote(messageId, pointId, note);
     },
-    [dispatchValidation],
+    [updateValidationNote],
   );
 
   const [input, setInput] = useState("");
-  const [typing, setTyping] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [reportContexts, setReportContexts] = useState<ReportContext[]>([]);
-  const [uploadType, setUploadType] = useState<"mirror" | "balance" | null>(null);
-  const [relocation, setRelocation] = useState<RelocationSummary | null>(null);
-  const [storedPayload, setStoredPayload] = useState<StoredMathBrainPayload | null>(null);
-  const [hasSavedPayloadSnapshot, setHasSavedPayloadSnapshot] = useState<boolean>(false);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [sessionStarted, setSessionStarted] = useState<boolean>(false);
-  const [sessionMode, setSessionMode] = useState<SessionMode>('idle');
   const [isWrapUpOpen, setIsWrapUpOpen] = useState(false);
   const [wrapUpLoading, setWrapUpLoading] = useState(false);
   const [showWrapUpPanel, setShowWrapUpPanel] = useState(false);
@@ -341,14 +188,13 @@ export default function ChatClient() {
   const [contextualSuggestions, setContextualSuggestions] = useState<string[]>([]);
 
   const conversationRef = useRef<HTMLDivElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const sessionAnnouncementRef = useRef<string | null>(null);
   const sessionAnnouncementHookRef = useRef<string | undefined>(undefined);
   const sessionAnnouncementClimateRef = useRef<string | undefined>(undefined);
   const previousModeRef = useRef<SessionMode>('idle');
   const pendingContextRequirementRef = useRef<'mirror' | 'weather' | null>(null);
+  const [pendingUploadRequirement, setPendingUploadRequirement] = useState<'mirror' | 'weather' | null>(null);
 
   const pushRavenNarrative = useCallback(
     (text: string, options: { hook?: string; climate?: string } = {}) => {
@@ -488,41 +334,6 @@ export default function ChatClient() {
   }, [messages, typing]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(MB_LAST_PAYLOAD_KEY);
-      if (!raw) {
-        setHasSavedPayloadSnapshot(false);
-        return;
-      }
-      const parsed = JSON.parse(raw) as StoredMathBrainPayload | null;
-      if (!parsed || !parsed.payload) {
-        setHasSavedPayloadSnapshot(false);
-        return;
-      }
-
-      const savedAt =
-        typeof parsed.savedAt === "string" && parsed.savedAt
-          ? parsed.savedAt
-          : new Date().toISOString();
-      setHasSavedPayloadSnapshot(true);
-
-      const ack = window.localStorage.getItem(MB_LAST_PAYLOAD_ACK_KEY);
-      if (ack && ack === savedAt) return;
-
-      setStoredPayload({ ...parsed, savedAt });
-    } catch {
-      setHasSavedPayloadSnapshot(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (reportContexts.length > 0 && storedPayload) {
-      setStoredPayload(null);
-    }
-  }, [reportContexts, storedPayload]);
-
-  useEffect(() => {
     if (!statusMessage) return;
     const timer = window.setTimeout(() => setStatusMessage(null), 2800);
     return () => window.clearTimeout(timer);
@@ -550,322 +361,6 @@ export default function ChatClient() {
     });
   }, [messages, typing]);
 
-  const validationSyncRef = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    const readyForSync = messages.filter(
-      (msg) =>
-        msg.role === "raven" &&
-        Array.isArray(msg.validationPoints) &&
-        msg.validationPoints.length > 0 &&
-        !msg.validationComplete &&
-        !hasPendingValidations(msg.validationPoints ?? []) &&
-        !validationSyncRef.current.has(msg.id),
-    );
-
-    readyForSync.forEach((msg) => {
-      validationSyncRef.current.add(msg.id);
-      const payload = {
-        sessionId: sessionId ?? null,
-        messageId: msg.id,
-        hook: msg.hook ?? null,
-        climate: msg.climate ?? null,
-        validations: (msg.validationPoints ?? []).map((point) => ({
-          id: point.id,
-          field: point.field,
-          voice: point.voice,
-          tag: point.tag ?? null,
-          note: point.note ?? null,
-        })),
-      };
-
-      void fetch("/api/validation-log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-        .then(() => {
-          setMessages((prev) =>
-            prev.map((entry) =>
-              entry.id === msg.id
-                ? { ...entry, validationComplete: true }
-                : entry,
-            ),
-          );
-        })
-        .catch((error) => {
-          // eslint-disable-next-line no-console
-          console.error("Failed to persist validation log:", error);
-        })
-        .finally(() => {
-          validationSyncRef.current.delete(msg.id);
-        });
-    });
-  }, [messages, sessionId]);
-
-  const storedPayloadSummary = useMemo(() => {
-    if (!storedPayload) return "";
-    const parts: string[] = [];
-    const person = storedPayload.subjects?.personA?.name?.trim();
-    if (person) parts.push(person);
-    if (storedPayload.includeTransits) parts.push("Transits on");
-    const windowStart = storedPayload.window?.start;
-    const windowEnd = storedPayload.window?.end;
-    if (windowStart && windowEnd) {
-      parts.push(`${windowStart} → ${windowEnd}`);
-    } else if (windowStart) {
-      parts.push(`Starting ${windowStart}`);
-    } else if (windowEnd) {
-      parts.push(`Ending ${windowEnd}`);
-    }
-    return parts.join(" • ");
-  }, [storedPayload]);
-
-  const acknowledgeStoredPayload = useCallback((timestamp?: string) => {
-    if (typeof window === "undefined") return;
-    try {
-      const token =
-        typeof timestamp === "string" && timestamp
-          ? timestamp
-          : new Date().toISOString();
-      window.localStorage.setItem(MB_LAST_PAYLOAD_ACK_KEY, token);
-    } catch {
-      // ignore storage quota issues
-    }
-  }, []);
-
-  const dismissStoredPayload = useCallback(
-    (record?: StoredMathBrainPayload | null) => {
-      acknowledgeStoredPayload(record?.savedAt);
-      setStoredPayload(null);
-    },
-    [acknowledgeStoredPayload],
-  );
-
-  const recoverLastStoredPayload = useCallback(() => {
-    if (storedPayload) {
-      setStatusMessage("Math Brain export already queued.");
-      return;
-    }
-    if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(MB_LAST_PAYLOAD_KEY);
-      if (!raw) {
-        setHasSavedPayloadSnapshot(false);
-        setStatusMessage("No saved Math Brain export found.");
-        return;
-      }
-
-      const parsed = JSON.parse(raw) as StoredMathBrainPayload | null;
-      if (!parsed || !parsed.payload) {
-        setHasSavedPayloadSnapshot(false);
-        setStatusMessage("No saved Math Brain export found.");
-        return;
-      }
-
-      const savedAt =
-        typeof parsed.savedAt === "string" && parsed.savedAt
-          ? parsed.savedAt
-          : new Date().toISOString();
-      setHasSavedPayloadSnapshot(true);
-
-      const ack = window.localStorage.getItem(MB_LAST_PAYLOAD_ACK_KEY);
-      if (ack && ack === savedAt) return;
-
-      setStoredPayload({ ...parsed, savedAt });
-      setHasSavedPayloadSnapshot(true);
-      setStatusMessage("Last Math Brain export is ready to load.");
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Failed to recover stored payload:", error);
-      setErrorMessage("Could not retrieve the saved Math Brain export.");
-    }
-  }, [
-    storedPayload,
-    setErrorMessage,
-    setHasSavedPayloadSnapshot,
-    setStatusMessage,
-    setStoredPayload,
-  ]);
-
-  const commitError = useCallback((ravenId: string, message: string) => {
-    let friendly = formatFriendlyErrorMessage(message);
-
-    // Handle OSR detection specifically
-    if (message.toLowerCase().includes("osr_detected")) {
-      friendly = "I'm sensing we might need to reframe that question.";
-    }
-
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === ravenId
-          ? {
-              ...msg,
-              html: `<div class="raven-error">
-                <p class="text-rose-400">${escapeHtml(friendly)}</p>
-              </div>`,
-              climate: "VOICE · Realignment",
-              hook: message.toLowerCase().includes("osr_detected")
-                ? "Let's Try Again"
-                : msg.hook,
-              rawText: friendly,
-            }
-          : msg,
-      ),
-    );
-  }, []);
-
-  const applyRavenResponse = useCallback(
-    (ravenId: string, response: RavenDraftResponse, fallbackMessage: string) => {
-      const guidance =
-        typeof response?.guidance === "string" ? response.guidance.trim() : "";
-      const { html: formattedHtml, rawText } = response?.draft
-        ? formatShareableDraft(response.draft, response.prov ?? null)
-        : guidance
-          ? {
-              html: `<div class="raven-guard" style="font-size:13px; line-height:1.5; color:#94a3b8; white-space:pre-line;">${escapeHtml(guidance)}</div>`,
-              rawText: guidance,
-            }
-          : {
-              html: `<p>${escapeHtml(fallbackMessage)}</p>`,
-              rawText: fallbackMessage,
-            };
-
-      const climateDisplay = formatClimate(response?.climate ?? undefined);
-      const hook = formatIntentHook(response?.intent, response?.prov ?? null);
-      const allowValidationMarkers =
-        containsResonanceMarkers(rawText) ||
-        response?.validation?.mode === "resonance";
-      const shouldParseValidation =
-        Boolean(response?.draft) && Boolean(rawText) && allowValidationMarkers;
-      const existingPoints = validationMap[ravenId] ?? [];
-      const parsedPoints = shouldParseValidation
-        ? parseValidationPoints(rawText, existingPoints, {
-            allowParagraphFallback: response?.validation?.allowFallback === true,
-          })
-        : existingPoints;
-
-      if (shouldParseValidation) {
-        if (parsedPoints.length > 0) {
-          dispatchValidation({
-            type: "setPoints",
-            messageId: ravenId,
-            points: parsedPoints,
-          });
-        } else if (existingPoints.length > 0) {
-          dispatchValidation({
-            type: "setPoints",
-            messageId: ravenId,
-            points: [],
-          });
-        }
-      }
-
-      setMessages((prev) =>
-        prev.map((msg) => {
-          if (msg.id !== ravenId) return msg;
-          const nextMessage: Message = {
-            ...msg,
-            html: formattedHtml,
-            rawText: rawText || msg.rawText || "",
-            climate: climateDisplay ?? msg.climate,
-            hook: hook ?? msg.hook,
-            intent: response.intent ?? msg.intent,
-            probe: response.probe ?? msg.probe ?? null,
-            prov: response.prov ?? msg.prov ?? null,
-          };
-
-          if (shouldParseValidation) {
-            if (parsedPoints.length > 0) {
-              nextMessage.validationPoints = parsedPoints;
-              nextMessage.validationComplete = !hasPendingValidations(parsedPoints);
-            } else {
-              nextMessage.validationPoints = [];
-              nextMessage.validationComplete = true;
-            }
-          }
-
-          return nextMessage;
-        }),
-      );
-
-      if (response?.sessionId) {
-        setSessionId(response.sessionId);
-      }
-    },
-    [dispatchValidation, validationMap],
-  );
-
-  const runRavenRequest = useCallback(
-    async (
-      payload: Record<string, any>,
-      placeholderId: string,
-      fallbackMessage: string,
-  ): Promise<RavenDraftResponse | null> => {
-      const ctrl = new AbortController();
-      abortRef.current = ctrl;
-      setTyping(true);
-      try {
-        const payloadWithPersona =
-          payload && typeof payload.persona !== "undefined"
-            ? payload
-            : { ...payload, persona: personaMode };
-        
-        // Use fetch with retry/backoff for better network resilience
-        const res = await fetchWithRetry(
-          "/api/raven",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Request-Id": generateId(),
-            },
-            body: JSON.stringify(payloadWithPersona),
-            signal: ctrl.signal,
-          },
-          3, // max retries
-          30000, // 30 second timeout
-        );
-
-        // Handle non-JSON responses
-        if (!res.headers.get('content-type')?.includes('application/json')) {
-          const errorText = await res.text();
-          throw new Error(`Invalid response format: ${errorText.substring(0, 200)}`);
-        }
-
-        const data: RavenDraftResponse = await res.json().catch((err) => {
-          console.error('Failed to parse JSON response:', err);
-          return { ok: false, error: 'Failed to parse server response' };
-        });
-
-        if (!res.ok || !data?.ok) {
-          const errorMessage = data?.error || `Request failed (${res.status})`;
-          commitError(placeholderId, errorMessage);
-          return null;
-        }
-
-        // Process successful response
-        applyRavenResponse(placeholderId, data, fallbackMessage);
-        return data;
-      } catch (error: any) {
-        if (error?.name === "AbortError") {
-          commitError(placeholderId, "Request cancelled.");
-        } else {
-          console.error("Raven request failed:", error);
-          const networkMessage =
-            error?.message && error.message.includes("Failed to fetch")
-              ? "Network error: Unable to connect to the server. Please check your connection and try again."
-              : "I apologize, but I'm having trouble processing your request. Please try rephrasing or ask about something else.";
-          commitError(placeholderId, networkMessage);
-        }
-        return null;
-      } finally {
-        setTyping(false);
-        abortRef.current = null;
-      }
-    },
-    [applyRavenResponse, commitError, personaMode],
-  );
 
   const analyzeReportContext = useCallback(
     async (reportContext: ReportContext, contextsForPayload?: ReportContext[]) => {
@@ -887,6 +382,7 @@ export default function ChatClient() {
         pendingContextRequirementRef.current !== 'mirror'
       ) {
         pendingContextRequirementRef.current = 'mirror';
+        setPendingUploadRequirement('mirror');
         setStatusMessage("Mirror upload needs the JSON export.");
         shiftSessionMode('idle');
         setSessionStarted(false);
@@ -917,6 +413,7 @@ export default function ChatClient() {
         setStatusMessage("Waiting for the symbolic weather export…");
         if (pendingContextRequirementRef.current !== 'weather') {
           pendingContextRequirementRef.current = 'weather';
+          setPendingUploadRequirement('weather');
           const prompt =
             "I’m holding the relational mirror directive, but its symbolic weather companion isn’t here yet. Upload the Mirror+SymbolicWeather JSON export from Math Brain so I can begin the reading.";
           setMessages((prev) => [
@@ -951,6 +448,7 @@ export default function ChatClient() {
         setStatusMessage("Waiting for the mirror directive upload…");
         if (pendingContextRequirementRef.current !== 'mirror') {
           pendingContextRequirementRef.current = 'mirror';
+          setPendingUploadRequirement('mirror');
           const prompt =
             "I received the symbolic weather export, but I still need the Mirror Directive JSON. Drop the mirror file from Math Brain so we can complete the pair.";
           setMessages((prev) => [
@@ -983,6 +481,7 @@ export default function ChatClient() {
 
       if (pendingContextRequirementRef.current) {
         pendingContextRequirementRef.current = null;
+        setPendingUploadRequirement(null);
         setStatusMessage(null);
       }
 
@@ -994,23 +493,8 @@ export default function ChatClient() {
       setSessionMode('report');
       setSessionStarted(true);
 
-      // Show session start message
-      const sessionStartMessage = {
-        id: generateId(),
-        role: 'raven' as const,
-        html: `<div class="session-start">
-          <p>🌌 <strong>Session Started: Mirror Reading</strong></p>
-          <p>${reportLabel} has been loaded. I'll begin with a symbolic weather report, then we'll explore the mirror together.</p>
-          <p>Shall we begin?</p>
-        </div>`,
-        hook: "Session · Mirror Reading",
-        climate: "VOICE · Symbolic Weather",
-        rawText: `Session Started: Mirror Reading\n\n${reportLabel} has been loaded. I'll begin with a symbolic weather report, then we'll explore the mirror together.\n\nShall we begin?`,
-        validationPoints: [],
-        validationComplete: true,
-      };
-
       // Create a single placeholder for the complete mirror flow report
+      // The backend's auto-execution will provide the full narrative including session start
       const mirrorPlaceholderId = generateId();
       const mirrorPlaceholder: Message = {
         id: mirrorPlaceholderId,
@@ -1026,7 +510,7 @@ export default function ChatClient() {
         validationComplete: false,
       };
 
-      setMessages(prev => [...prev, sessionStartMessage, mirrorPlaceholder]);
+      setMessages(prev => [...prev, mirrorPlaceholder]);
 
       const relocationPayload = mapRelocationToPayload(reportContext.relocation);
       const contextPayload = contextList.map((ctx) => {
@@ -1061,6 +545,7 @@ export default function ChatClient() {
           "Generating complete mirror flow report...",
         );
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('Error during report analysis:', error);
         // Fallback to a simple message if there's an error
         const errorMessage = {
@@ -1082,6 +567,28 @@ export default function ChatClient() {
     [reportContexts, runRavenRequest, sessionId, shiftSessionMode],
   );
 
+  const {
+    fileInputRef,
+    storedPayload,
+    hasSavedPayloadSnapshot,
+    storedPayloadSummary,
+    handleUploadButton,
+    handleFileChange,
+    recoverLastStoredPayload,
+    dismissStoredPayload,
+    applyStoredPayload,
+    clearStoredPayload,
+  } = useFileUpload({
+    reportContexts,
+    setReportContexts,
+    setRelocation,
+    analyzeReportContext,
+    typing,
+    setStatusMessage,
+    setErrorMessage,
+    shiftSessionMode,
+  });
+
   const sendMessage = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
@@ -1092,13 +599,7 @@ export default function ChatClient() {
       } else {
         setSessionStarted(true);
       }
-      if (abortRef.current) {
-        try {
-          abortRef.current.abort();
-        } catch {
-          // ignore abort errors
-        }
-      }
+      stop();
 
       const relocationPayload = mapRelocationToPayload(relocation);
       const contexts = reportContexts.map((ctx) => {
@@ -1192,7 +693,7 @@ export default function ChatClient() {
         "No mirror returned for this lane.",
       );
     },
-    [relocation, reportContexts, runRavenRequest, sessionId, sessionMode, shiftSessionMode],
+    [relocation, reportContexts, runRavenRequest, sessionId, sessionMode, shiftSessionMode, stop],
   );
 
   const sendProgrammatic = useCallback(
@@ -1298,29 +799,8 @@ export default function ChatClient() {
     [sendCurrentInput],
   );
 
-  const handleUploadButton = useCallback((type: "mirror" | "balance") => {
-    setUploadType(type);
-    fileInputRef.current?.click();
-  }, []);
-
-  const stop = useCallback(() => {
-    if (abortRef.current) {
-      try {
-        abortRef.current.abort();
-      } catch {
-        // ignore
-      }
-    }
-  }, []);
-
-const performSessionReset = useCallback(() => {
-    if (abortRef.current) {
-      try {
-        abortRef.current.abort();
-      } catch {
-        // ignore
-      }
-    }
+  const performSessionReset = useCallback(() => {
+    stop();
     shiftSessionMode('idle');
     sessionAnnouncementRef.current = null;
     sessionAnnouncementHookRef.current = undefined;
@@ -1333,10 +813,11 @@ const performSessionReset = useCallback(() => {
     setReportContexts([]);
     setRelocation(null);
     setSessionId(null);
-    setStoredPayload(null);
+    clearStoredPayload();
+    setPendingUploadRequirement(null);
     setStatusMessage("Session cleared. Begin typing whenever you're ready.");
     pingTracker.sealSession(sessionId ?? undefined);
-  }, [sessionId, shiftSessionMode]);
+  }, [clearStoredPayload, sessionId, shiftSessionMode, stop]);
 
   const closeServerSession = useCallback(async (sealedSessionId?: string | null) => {
     if (!sealedSessionId) return;
@@ -1439,188 +920,9 @@ const performSessionReset = useCallback(() => {
       }
       return next;
     });
+    setPendingUploadRequirement(null);
+    setStatusMessage(null);
   }, []);
-
-  const handleFileChange = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      // File size guard: 50 MB limit for PDFs, 10 MB for text files
-      const MAX_PDF_SIZE = 50 * 1024 * 1024; // 50 MB
-      const MAX_TEXT_SIZE = 10 * 1024 * 1024; // 10 MB
-      const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-      const maxSize = isPdf ? MAX_PDF_SIZE : MAX_TEXT_SIZE;
-
-      if (file.size > maxSize) {
-        const sizeInMB = (maxSize / (1024 * 1024)).toFixed(0);
-        setErrorMessage(`File too large. Max size: ${sizeInMB}MB. Please upload a smaller file.`);
-        if (event.target) event.target.value = "";
-        return;
-      }
-
-      let rawContent = "";
-
-      if (isPdf) {
-        try {
-          setStatusMessage("Extracting PDF text...");
-          const pdfjsLib = await import("pdfjs-dist");
-          (pdfjsLib as any).GlobalWorkerOptions.workerSrc =
-            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-
-          const arrayBuffer = await file.arrayBuffer();
-          const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-          const pdf = await loadingTask.promise;
-
-          let fullText = "";
-          for (let i = 1; i <= pdf.numPages; i += 1) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items
-              .map((item: any) => ("str" in item ? (item as any).str : ""))
-              .join(" ");
-            fullText += pageText + "\n\n";
-          }
-
-          rawContent = fullText.trim();
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error("Error extracting PDF text:", error);
-          setErrorMessage("Failed to extract text from that PDF.");
-          if (event.target) event.target.value = "";
-          return;
-        }
-      } else {
-        try {
-          setStatusMessage("Reading file...");
-          rawContent = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(String(e.target?.result ?? ""));
-            reader.onerror = () => reject(new Error("File read failure"));
-            reader.readAsText(file);
-          });
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error("File read error:", error);
-          setErrorMessage("Failed to read that file.");
-          if (event.target) event.target.value = "";
-          return;
-        }
-      }
-
-      if (!rawContent.trim()) {
-        setErrorMessage("That file looked empty.");
-        if (event.target) event.target.value = "";
-        return;
-      }
-
-      const parsed = parseReportContent(rawContent, {
-        uploadType,
-        fileName: file.name,
-      });
-
-      const nextContexts = [
-        ...reportContexts.filter((ctx) => ctx.id !== parsed.context.id),
-        parsed.context,
-      ];
-      setReportContexts(nextContexts);
-      setRelocation(parsed.relocation ?? null);
-
-      if (parsed.isMirror) {
-        setStatusMessage("Mirror context loaded.");
-      } else {
-        setStatusMessage("Report context added.");
-      }
-
-      await analyzeReportContext(parsed.context, nextContexts);
-
-      if (event.target) {
-        event.target.value = "";
-      }
-      setUploadType(null);
-    },
-    [analyzeReportContext, reportContexts, uploadType],
-  );
-
-  const applyStoredPayload = useCallback(
-    async (record: StoredMathBrainPayload) => {
-      if (!record?.payload) {
-        dismissStoredPayload(record);
-        return;
-      }
-      if (typing) {
-        setStatusMessage("Hold on—analysis already in progress.");
-        return;
-      }
-
-      try {
-        let rawContent: string;
-        if (typeof record.payload === "string") {
-          rawContent = record.payload;
-        } else {
-          try {
-            rawContent = JSON.stringify(record.payload);
-          } catch {
-            rawContent = String(record.payload);
-          }
-        }
-
-        const parsed = parseReportContent(rawContent, {
-          uploadType:
-            record.reportType === "mirror"
-              ? "mirror"
-              : record.reportType === "balance"
-                ? "balance"
-                : null,
-          sourceLabel: record.from || record.reportType || undefined,
-          windowLabel:
-            record.window?.start && record.window?.end
-              ? `Window ${record.window.start} → ${record.window.end}`
-              : record.window?.start
-                ? `Window starting ${record.window.start}`
-                : record.window?.end
-                  ? `Window ending ${record.window.end}`
-                  : null,
-        });
-
-        const nextContexts = [
-          ...reportContexts.filter((ctx) => ctx.id !== parsed.context.id),
-          parsed.context,
-        ];
-
-        const reportLabel = parsed.context.name?.trim()
-          ? `“${parsed.context.name.trim()}”`
-          : 'This report';
-        shiftSessionMode('report', {
-          message: `Structured reading resumed from Math Brain. ${reportLabel} is ready for interpretation.`,
-          hook: "Session · Structured Reading",
-          climate: "VOICE · Report Interpretation",
-        });
-
-        setReportContexts(nextContexts);
-        setRelocation(parsed.relocation ?? null);
-
-        acknowledgeStoredPayload(record.savedAt);
-        setStoredPayload(null);
-        setStatusMessage("Math Brain payload loaded.");
-
-        await analyzeReportContext(parsed.context, nextContexts);
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error("Failed to apply stored payload:", error);
-        setStatusMessage("Could not load the stored Math Brain report. Upload it manually.");
-        dismissStoredPayload(record);
-      }
-    },
-    [
-      acknowledgeStoredPayload,
-      analyzeReportContext,
-      dismissStoredPayload,
-      reportContexts,
-      shiftSessionMode,
-      typing,
-    ],
-  );
 
   const showRelocationBanner = relocation !== null;
 
@@ -1822,6 +1124,19 @@ const performSessionReset = useCallback(() => {
         </div>
       )}
 
+      {pendingUploadRequirement && (
+        <div className="border-b border-amber-500/40 bg-amber-500/10 text-center text-sm text-amber-200">
+          <div className="mx-auto flex max-w-5xl items-center justify-center gap-2 px-6 py-3">
+            <span aria-hidden="true">⚠️</span>
+            <span>
+              {pendingUploadRequirement === 'mirror'
+                ? 'Awaiting Mirror Directive JSON to complete this upload pair.'
+                : 'Awaiting Symbolic Weather export to complete this upload pair.'}
+            </span>
+          </div>
+        </div>
+      )}
+
       {!sessionStarted && !storedPayload && reportContexts.length === 0 && (
         <section className="mx-auto mt-8 w-full max-w-3xl rounded-xl border border-emerald-500/40 bg-slate-900/60 px-6 py-5 text-slate-100 shadow-lg">
           <h2 className="text-lg font-semibold text-emerald-200">Drop in whenever you&apos;re ready</h2>
@@ -1952,6 +1267,7 @@ const performSessionReset = useCallback(() => {
                   } reflections tagged.`
                 : formatValidationSummary(validationPoints)
               : null;
+            const resonanceActive = msg.validationMode === 'resonance';
 
             return (
               <div
@@ -1972,6 +1288,11 @@ const performSessionReset = useCallback(() => {
                     </span>
                     {msg.climate && <span className="text-slate-400/80">{msg.climate}</span>}
                     {msg.hook && <span className="text-slate-400/60">{msg.hook}</span>}
+                    {resonanceActive && (
+                      <span className="inline-flex items-center rounded-full border border-emerald-400/40 px-2 py-0.5 text-[10px] font-semibold tracking-[0.2em] text-emerald-200">
+                        Resonance
+                      </span>
+                    )}
                   </div>
                   <div className={showCopyButton ? "flex items-start gap-3" : undefined}>
                     <div

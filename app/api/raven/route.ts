@@ -826,7 +826,41 @@ export async function POST(req: Request) {
 
     if (autoPlan.status === 'contextual_auto') {
       wantsWeatherOnly = false;
-      // TODO: Add specific handling for contextual layers (dream, field, etc.)
+      const contextualResponse = await runMathBrain({
+        ...resolvedOptions,
+        reportType: resolvedOptions.reportType ?? 'mirror',
+        autoMode: 'contextual_auto',
+      });
+      if (!contextualResponse.success) {
+        return NextResponse.json({ intent, ok: false, error: 'Math Brain failed', details: contextualResponse });
+      }
+
+      const contextualProv = stampProvenance(contextualResponse.provenance);
+      const contextualOptions = {
+        ...resolvedOptions,
+        geometryValidated: isGeometryValidated(contextualResponse.geometry),
+        operationalFlow: OPERATIONAL_FLOW,
+        operational_flow: OPERATIONAL_FLOW,
+      };
+      const contextualDraft = await renderShareableMirror({
+        geo: contextualResponse.geometry,
+        prov: contextualProv,
+        options: contextualOptions,
+      });
+      const contextualProbe = createProbe(
+        contextualDraft?.next_step || 'Let me know how that contextual mirror lands for you',
+        randomUUID(),
+      );
+      sessionLog.probes.push(contextualProbe);
+      return NextResponse.json({
+        intent,
+        ok: true,
+        draft: contextualDraft,
+        prov: contextualProv,
+        climate: contextualResponse.climate ?? null,
+        sessionId: sid,
+        probe: contextualProbe,
+      });
     }
 
     if (autoPlan.status === 'solo_auto') {
@@ -953,8 +987,12 @@ export async function POST(req: Request) {
     sessionLog.metaConversationMode = conversationMode;
 
     const instructionLines: string[] = [
+      'STRUCTURE REQUIREMENT: Compose exactly three paragraphs labeled in-line as "FIELD LAYER:", "MAP LAYER:", and "VOICE LAYER:". Keep labels uppercase, followed by a colon, no markdown headings.',
+      'FIELD LAYER must open with numeric coordinates — Magnitude, Directional Bias, and Coherence/Volatility — each with value and descriptive label before the sensory description. Name the polarity that is in tension.',
+      'MAP LAYER links those observations to specific symbolic geometry (hooks, engines, or contracts). Reference the driving pattern and explain what it implies without giving directives.',
+      'VOICE LAYER states a conditional inference, names the resonance classification (WB / ABE / OSR with weight), and ends with one falsifiable question.',
       'Respond in natural paragraphs (2-3) using a warm, lyrical voice. Weave symbolic insight into lived, testable language.',
-      'Do NOT use headers, bullet lists, numbered sections, or bracketed labels. No markdown headings.',
+      'Do NOT use markdown headings, bullet lists, or numbered sections beyond the required labels.',
       'Never mention being an AI. Do not describe chain-of-thought. Stay inside the Raven Calder persona.',
     ];
     if (autoPlan.instructions?.length) {
