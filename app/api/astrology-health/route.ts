@@ -1,36 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server';
-
-const mathBrainFunction = require('../../../lib/server/astrology-mathbrain.js');
+import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
-export async function GET(request: NextRequest) {
-  const url = new URL(request.url);
-  const params = Object.fromEntries(url.searchParams);
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const search = Object.fromEntries(url.searchParams.entries());
 
-  // Convert headers
-  const headers: Record<string, string> = {};
-  request.headers.forEach((value, key) => {
-    headers[key] = value;
-  });
-
+  // Reuse compact health logic from server module by adapting event shape
+  const { health } = await import('../../../lib/server/astrology-mathbrain.js');
   const event = {
-    httpMethod: 'GET',
-    queryStringParameters: params,
-    headers,
-  };
+    queryStringParameters: search,
+  } as any;
 
-  const result = await mathBrainFunction.health(event);
+  const result = await health(event);
+
   return new NextResponse(result.body, {
-    status: result.statusCode,
-    headers: new Headers(result.headers || { 'content-type': 'application/json' })
+    status: result.statusCode || 200,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
 }
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: new Headers({
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
-  }) });
-}

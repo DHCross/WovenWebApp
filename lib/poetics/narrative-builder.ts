@@ -233,6 +233,7 @@ export function synthesizeMirrorVoice(
 export function generateSoloMirrorNarrative(
   chartMandates: ChartMandates,
   options: {
+    includeHeading?: boolean;
     includeHookStack?: boolean;
     includePolarityCards?: boolean;
     includeMandateHighlights?: boolean;
@@ -240,6 +241,7 @@ export function generateSoloMirrorNarrative(
   } = {}
 ): SoloMirrorNarrative {
   const {
+    includeHeading = true,
     includeHookStack = true,
     includePolarityCards = true,
     includeMandateHighlights = true,
@@ -265,7 +267,9 @@ export function generateSoloMirrorNarrative(
   // Build full narrative with consistent spacing
   const narrativeParts: string[] = [];
   
-  narrativeParts.push(`## Solo Mirror: ${chartMandates.personName}`);
+  if (includeHeading) {
+    narrativeParts.push(`## Solo Mirror: ${chartMandates.personName}`);
+  }
   
   if (includeHookStack) {
     narrativeParts.push(`### ${hookStack.polarity1.title} / ${hookStack.polarity2.title}`);

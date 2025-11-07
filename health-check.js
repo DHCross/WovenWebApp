@@ -10,21 +10,21 @@ async function healthCheck() {
     
     const results = {};
     
-    // 1. Check if Netlify dev server is running
-    console.log('\n📡 Checking Netlify Dev Server...');
+    // 1. Check if Next.js dev server is running
+    console.log('\n📡 Checking Next.js Dev Server...');
     try {
-        const response = await makeRequest('http://localhost:8888');
-        console.log('✅ Netlify dev server responding');
-        results.netlifyDev = { status: 'healthy', statusCode: response.statusCode };
+        const response = await makeRequest('http://localhost:3000');
+        console.log('✅ Next.js dev server responding');
+        results.nextDev = { status: 'healthy', statusCode: response.statusCode };
     } catch (error) {
-        console.log('❌ Netlify dev server not responding:', error.message);
-        results.netlifyDev = { status: 'unhealthy', error: error.message };
+        console.log('❌ Next.js dev server not responding:', error.message);
+        results.nextDev = { status: 'unhealthy', error: error.message };
     }
     
     // 2. Check /api/auth-config (Auth0 wiring)
     console.log('\n🔐 Checking Auth0 Config Endpoint...');
     try {
-        const response = await makeRequest('http://localhost:8888/api/auth-config');
+        const response = await makeRequest('http://localhost:3000/api/api-health');
         const data = JSON.parse(response.data);
         if (data.success) {
             console.log('✅ Auth config responding');
@@ -42,7 +42,7 @@ async function healthCheck() {
     // 3. Check astrology-health function
     console.log('\n🔮 Checking Astrology Health Function...');
     try {
-        const response = await makeRequest('http://localhost:8888/.netlify/functions/astrology-health');
+        const response = await makeRequest('http://localhost:3000/api/astrology-health');
         const data = JSON.parse(response.data);
         console.log('✅ Astrology health function responding');
         console.log('   API Status:', data.rapidapi?.status || 'unknown');
@@ -72,7 +72,7 @@ async function healthCheck() {
     
     try {
         const response = await makeRequest(
-            'http://localhost:8888/.netlify/functions/astrology-mathbrain',
+            'http://localhost:3000/api/astrology-mathbrain',
             'POST',
             JSON.stringify(testPayload)
         );
@@ -88,16 +88,7 @@ async function healthCheck() {
         results.mathBrain = { status: 'unhealthy', error: error.message };
     }
     
-    // 5. Check Next.js dev server (port 4000)
-    console.log('\n⚛️  Checking Next.js Dev (4000)...');
-    try {
-        const response = await makeRequest('http://localhost:4000');
-        console.log('✅ Next.js dev server responding');
-        results.nextjs = { status: 'healthy', statusCode: response.statusCode };
-    } catch (error) {
-        console.log('❌ Next.js dev server not responding:', error.message);
-        results.nextjs = { status: 'unhealthy', error: error.message };
-    }
+    // 5. (Optional) Additional port checks can be added if you customize PORT
     
     // 6. Summary
     console.log('\n📊 Health Summary');

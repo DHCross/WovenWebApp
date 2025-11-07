@@ -5,6 +5,7 @@ import {
   MandateBuildOptions,
   MandateDiagnostic,
   PlanetArchetypeData,
+  RelationalMandates,
 } from './types';
 
 interface RawAspect {
@@ -25,6 +26,17 @@ interface RawChart {
   aspects?: RawAspect[];
   index?: Record<string, number>;
   [key: string]: any;
+}
+
+interface TranslateMandateOptions {
+  indexLookup?: Record<string, number>;
+  owners?: {
+    a?: string;
+    b?: string;
+  };
+  narrativeMode?: 'natal' | 'synastry';
+  personAName?: string;
+  personBName?: string;
 }
 
 const PLANET_ARCHETYPES: Record<string, PlanetArchetypeData> = {
@@ -79,8 +91,9 @@ const MAP_TRANSLATIONS: Record<string, string> = {
 };
 
 function getPlanetArchetype(planet?: string): PlanetArchetypeData {
-  if (!planet) return DEFAULT_ARCHETYPE;
-  return PLANET_ARCHETYPES[planet] ?? { ...DEFAULT_ARCHETYPE, planet };
+  if (!planet) return { ...DEFAULT_ARCHETYPE };
+  const base = PLANET_ARCHETYPES[planet] ?? { ...DEFAULT_ARCHETYPE, planet };
+  return { ...base };
 }
 
 function determineDiagnostic(aspect: RawAspect, allAspects: RawAspect[]): MandateDiagnostic {
@@ -134,6 +147,40 @@ function buildMapTranslation(planetA: string, planetB: string, aspectType: Aspec
   return MAP_TRANSLATIONS[key] ?? MAP_TRANSLATIONS[reversedKey] ?? `Your ${planetA.toLowerCase()} and ${planetB.toLowerCase()} create a particular dynamic through ${aspectType}.`;
 }
 
+function possessive(name?: string): string {
+  const trimmed = (name || 'Person').trim();
+  if (!trimmed) return 'Person';
+  return trimmed.endsWith('s') ? `${trimmed}'` : `${trimmed}'s`;
+}
+
+function buildSynastryMapTranslation(opts: {
+  personAName: string;
+  personBName: string;
+  planetA: string;
+  planetB: string;
+  aspectType: AspectType;
+}): string {
+  const { personAName, personBName, planetA, planetB, aspectType } = opts;
+  const aLabel = `${possessive(personAName)} ${planetA}`;
+  const bLabel = `${possessive(personBName)} ${planetB}`;
+  const typeKey = (aspectType || '').toLowerCase();
+
+  switch (typeKey) {
+    case 'conjunction':
+      return `${aLabel} and ${bLabel} lock onto the same frequency. They amplify each other instantly—when one moves, the other responds.`;
+    case 'opposition':
+      return `${aLabel} faces ${bLabel} across an axis. You trade roles along this line, passing power back and forth until the tension becomes dialogue.`;
+    case 'square':
+      return `${aLabel} meets ${bLabel} at right angles. The friction is real and productive—it keeps both of you honest about what each planet needs.`;
+    case 'trine':
+      return `${aLabel} and ${bLabel} speak the same dialect. Flow is easy; the work is keeping it conscious so you build something with the ease.`;
+    case 'sextile':
+      return `${aLabel} and ${bLabel} create cooperative pathways when you both reach for them. It's a potential that wakes up through intentional choice.`;
+    default:
+      return `${aLabel} and ${bLabel} interact through a ${aspectType}. Track how this geometry resurfaces when you're together.`;
+  }
+}
+
 function buildVoiceHook(mapTranslation: string): string {
   return `This often shows up as: ${mapTranslation}`;
 }
@@ -177,8 +224,16 @@ function buildMandateId(planetA: string, planetB: string, aspectType: AspectType
 export function translateAspectToMandate(
   aspect: RawAspect,
   allAspects: RawAspect[] = [],
-  options: { indexLookup?: Record<string, number> } = {}
+  options: TranslateMandateOptions = {}
 ): MandateAspect | null {
+  const {
+    indexLookup = {},
+    owners,
+    narrativeMode = 'natal',
+    personAName,
+    personBName,
+  } = options;
+
   const planetA = aspect.planet_a || aspect.p1_name;
   const planetB = aspect.planet_b || aspect.p2_name;
   if (!planetA || !planetB) {
@@ -189,12 +244,29 @@ export function translateAspectToMandate(
   const diagnostic = determineDiagnostic(aspect, allAspects);
   const archetypeA = getPlanetArchetype(planetA);
   const archetypeB = getPlanetArchetype(planetB);
+  if (owners?.a) {
+    archetypeA.owner = owners.a;
+  }
+  if (owners?.b) {
+    archetypeB.owner = owners.b;
+  }
   const fieldPressure = buildFieldPressure(geometry.aspectType, diagnostic);
-  const mapTranslation = buildMapTranslation(planetA, planetB, geometry.aspectType);
+  const relationalNames = {
+    a: personAName || owners?.a || 'Person A',
+    b: personBName || owners?.b || 'Person B',
+  };
+  const mapTranslation =
+    narrativeMode === 'synastry'
+      ? buildSynastryMapTranslation({
+          personAName: relationalNames.a,
+          personBName: relationalNames.b,
+          planetA,
+          planetB,
+          aspectType: geometry.aspectType,
+        })
+      : buildMapTranslation(planetA, planetB, geometry.aspectType);
   const voiceHook = buildVoiceHook(mapTranslation);
   const id = buildMandateId(planetA, planetB, geometry.aspectType);
-
-  const indexLookup = options.indexLookup ?? {};
 
   const provenance = {
     source: 'MAP' as const,
@@ -252,5 +324,261 @@ export function buildMandatesForChart(
   return {
     personName,
     mandates: sorted,
+  };
+}
+
+const PERSON_A_ALIASES = new Set(['persona', 'subjecta', 'partnera', 'firstsubject', 'primary', 'a']);
+const PERSON_B_ALIASES = new Set(['personb', 'subjectb', 'partnerb', 'secondsubject', 'secondary', 'b']);
+
+function toTokens(value?: string | null): string[] {
+  if (!value || typeof value !== 'string') return [];
+  return value
+    .toLowerCase()
+    .split(/[\s_/|-]+/)
+    .map(token => token.replace(/[^a-z0-9]/g, ''))
+    .filter(Boolean);
+}
+
+function matchesPersonIdentity(
+  candidate: string | null | undefined,
+  personName: string,
+  aliases: Set<string>
+): boolean {
+  if (!candidate) return false;
+  const candidateTokens = toTokens(candidate);
+  const candidateJoined = candidateTokens.join('');
+  if (!candidateJoined) return false;
+
+  const personTokens = toTokens(personName);
+  const personJoined = personTokens.join('');
+  if (!personJoined) return false;
+
+  if (candidateJoined === personJoined) return true;
+  if (candidateJoined.includes(personJoined) || personJoined.includes(candidateJoined)) return true;
+  if (aliases.has(candidateJoined)) return true;
+  return candidateTokens.some(token => token.length > 2 && personTokens.includes(token));
+}
+
+type Getter = (aspect: any) => any;
+
+const PLANET_A_SOURCES: Getter[] = [
+  asp => asp?.person_a_planet,
+  asp => asp?.planet_a,
+  asp => asp?.personAPlanet,
+  asp => asp?.person_a?.planet,
+  asp => asp?.person_a?.body,
+  asp => asp?.p1_name,
+  asp => asp?.transit?.body,
+  asp => asp?.transit?.planet,
+  asp => asp?.from?.body,
+  asp => asp?.source?.body,
+  asp => asp?.a_body,
+];
+
+const PLANET_B_SOURCES: Getter[] = [
+  asp => asp?.person_b_planet,
+  asp => asp?.planet_b,
+  asp => asp?.personBPlanet,
+  asp => asp?.person_b?.planet,
+  asp => asp?.person_b?.body,
+  asp => asp?.p2_name,
+  asp => asp?.natal?.body,
+  asp => asp?.target?.body,
+  asp => asp?.to?.body,
+  asp => asp?.b_body,
+];
+
+const OWNER_A_SOURCES: Getter[] = [
+  asp => asp?.person_a_name,
+  asp => asp?.person_a_owner,
+  asp => asp?.person_a_label,
+  asp => asp?.person_a?.name,
+  asp => asp?.personA,
+  asp => asp?.p1_owner,
+  asp => asp?.transit?.owner,
+  asp => asp?.transit?.name,
+  asp => asp?.from?.owner,
+  asp => asp?.source_owner,
+  asp => asp?.owner_a,
+];
+
+const OWNER_B_SOURCES: Getter[] = [
+  asp => asp?.person_b_name,
+  asp => asp?.person_b_owner,
+  asp => asp?.person_b_label,
+  asp => asp?.person_b?.name,
+  asp => asp?.personB,
+  asp => asp?.p2_owner,
+  asp => asp?.natal?.owner,
+  asp => asp?.natal?.name,
+  asp => asp?.to?.owner,
+  asp => asp?.target?.owner,
+  asp => asp?.owner_b,
+];
+
+function pickString(aspect: any, getters: Getter[]): string | undefined {
+  for (const getter of getters) {
+    const value = getter(aspect);
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return undefined;
+}
+
+function extractSynastryOrb(aspect: any): number | undefined {
+  const candidates = [
+    aspect?.orb,
+    aspect?.orbit,
+    aspect?.orbDeg,
+    aspect?.orb_degrees,
+    aspect?.orbDegrees,
+    aspect?.delta,
+    aspect?.deviation,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+      return Math.abs(candidate);
+    }
+  }
+
+  if (typeof aspect?.diff === 'number' && typeof aspect?.aspect_degrees === 'number') {
+    const diff = Math.abs(Math.abs(aspect.diff) - Math.abs(aspect.aspect_degrees));
+    if (Number.isFinite(diff)) {
+      return Math.abs(diff);
+    }
+  }
+
+  return undefined;
+}
+
+function normalizeSynastryAspect(
+  aspect: any,
+  ctx: { personAName: string; personBName: string }
+): RawAspect | null {
+  if (!aspect || typeof aspect !== 'object') {
+    return null;
+  }
+
+  const rawType = (aspect.type || aspect.aspect || aspect.aspect_type || '').toString().trim().toLowerCase();
+  if (!rawType) {
+    return null;
+  }
+
+  let planetA = pickString(aspect, PLANET_A_SOURCES);
+  let planetB = pickString(aspect, PLANET_B_SOURCES);
+  if (!planetA || !planetB) {
+    return null;
+  }
+
+  const ownerA = pickString(aspect, OWNER_A_SOURCES);
+  const ownerB = pickString(aspect, OWNER_B_SOURCES);
+
+  const ownerAMatchesA = matchesPersonIdentity(ownerA, ctx.personAName, PERSON_A_ALIASES);
+  const ownerAMatchesB = matchesPersonIdentity(ownerA, ctx.personBName, PERSON_B_ALIASES);
+  const ownerBMatchesA = matchesPersonIdentity(ownerB, ctx.personAName, PERSON_A_ALIASES);
+  const ownerBMatchesB = matchesPersonIdentity(ownerB, ctx.personBName, PERSON_B_ALIASES);
+
+  let orientation: 'AtoB' | 'BtoA' = 'AtoB';
+  if (ownerAMatchesB && ownerBMatchesA) {
+    orientation = 'BtoA';
+  } else if (ownerAMatchesB && !ownerBMatchesB) {
+    orientation = 'BtoA';
+  } else if (ownerBMatchesA && !ownerAMatchesA) {
+    orientation = 'BtoA';
+  } else if (ownerAMatchesA && ownerBMatchesB) {
+    orientation = 'AtoB';
+  }
+
+  const direction = String(aspect.direction || aspect.flow || aspect.vector || '').toLowerCase();
+  if (direction === 'b_to_a' || direction === 'btoa') {
+    orientation = 'BtoA';
+  } else if (direction === 'a_to_b' || direction === 'atoa') {
+    orientation = 'AtoB';
+  }
+
+  if (orientation === 'BtoA') {
+    [planetA, planetB] = [planetB, planetA];
+  }
+
+  if (!planetA || !planetB) {
+    return null;
+  }
+
+  const houseA = aspect?.p1_house ?? aspect?.person_a_house ?? aspect?.house_a ?? aspect?.from?.house;
+  const houseB = aspect?.p2_house ?? aspect?.person_b_house ?? aspect?.house_b ?? aspect?.to?.house;
+  const houses =
+    houseA !== undefined || houseB !== undefined
+      ? {
+          primary: houseA,
+          secondary: houseB,
+        }
+      : undefined;
+
+  return {
+    planet_a: planetA,
+    planet_b: planetB,
+    type: rawType,
+    orb: extractSynastryOrb(aspect),
+    applying: typeof aspect?.applying === 'boolean' ? aspect.applying : undefined,
+    weight: aspect?.weight,
+    houses,
+    id: aspect?.id ?? aspect?.uuid ?? aspect?.aspect_id,
+  };
+}
+
+export function buildSynastryMandates(
+  personAName: string,
+  personBName: string,
+  synastryAspects: any,
+  options: MandateBuildOptions = {}
+): RelationalMandates {
+  const safePersonA = personAName && personAName.trim().length ? personAName.trim() : 'Person A';
+  const safePersonB = personBName && personBName.trim().length ? personBName.trim() : 'Person B';
+  const limit = options.limit ?? 5;
+
+  const aspectArray = Array.isArray(synastryAspects)
+    ? synastryAspects
+    : Array.isArray(synastryAspects?.aspects)
+      ? synastryAspects.aspects
+      : [];
+
+  const normalizedAspects = aspectArray
+    .map(aspect => normalizeSynastryAspect(aspect, { personAName: safePersonA, personBName: safePersonB }))
+    .filter((aspect): aspect is RawAspect => Boolean(aspect));
+
+  if (!normalizedAspects.length) {
+    return {
+      pairLabel: `${safePersonA} & ${safePersonB}`,
+      personA: safePersonA,
+      personB: safePersonB,
+      mandates: [],
+    };
+  }
+
+  const mandates = normalizedAspects
+    .map(aspect =>
+      translateAspectToMandate(aspect, normalizedAspects, {
+        owners: { a: safePersonA, b: safePersonB },
+        narrativeMode: 'synastry',
+        personAName: safePersonA,
+        personBName: safePersonB,
+      })
+    )
+    .filter((mandate): mandate is MandateAspect => Boolean(mandate))
+    .sort((a, b) => {
+      if (a.geometry.weight !== b.geometry.weight) {
+        return b.geometry.weight - a.geometry.weight;
+      }
+      return a.geometry.orbDegrees - b.geometry.orbDegrees;
+    })
+    .slice(0, Math.max(limit, 0));
+
+  return {
+    pairLabel: `${safePersonA} & ${safePersonB}`,
+    personA: safePersonA,
+    personB: safePersonB,
+    mandates,
   };
 }

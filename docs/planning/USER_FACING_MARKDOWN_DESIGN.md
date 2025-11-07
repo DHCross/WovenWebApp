@@ -84,7 +84,7 @@ Stephie's need for structure and earned trust can feel like a wall to Dan's natu
 
 ---
 
-## Part 4: Symbolic Weather Overlay — What's Stirring Now
+## Part 4: Symbolic Weather — What's Stirring Now
 
 ### The Current Climate (Oct 19 - Oct 25, 2025)
 

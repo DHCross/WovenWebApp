@@ -279,7 +279,7 @@ Serves as the Poetic Brain playbook—a Markdown-based text file that instructs 
 **Contents:**
 - Solo Mirror instructions for each subject
 - Relational Engines section (synastry dynamics, bidirectional attribution)
-- Symbolic Weather Overlay narrative guidance
+- Symbolic Weather narrative guidance
 - Optional Ladder Tree hooks for therapeutic translation
 - Interpretive sequencing rules (resonance before paradox)
 - Intimacy tier calibration notes

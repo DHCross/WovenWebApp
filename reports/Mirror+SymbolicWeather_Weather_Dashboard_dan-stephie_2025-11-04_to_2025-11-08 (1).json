@@ -16,6 +16,38 @@
       "role": null
     }
   },
+  "synastry_aspects": [
+    {
+      "person_a_planet": "Sun",
+      "person_b_planet": "Moon",
+      "type": "conjunction",
+      "orb": 1.2,
+      "person_a_name": "Dan",
+      "person_b_name": "Stephie",
+      "interpretation": "Shared baseline rhythm — instant recognition",
+      "id": "sun_moon_conjunction"
+    },
+    {
+      "p1_name": "Mars",
+      "p2_name": "Venus",
+      "aspect": "square",
+      "orbit": 2.6,
+      "person_a_label": "Stephie",
+      "person_b_label": "Dan",
+      "direction": "b_to_a",
+      "notes": "Catalytic tension keeps momentum honest",
+      "uuid": "mars_venus_square"
+    },
+    {
+      "person_a": { "planet": "Mercury", "name": "Dan" },
+      "person_b": { "planet": "Saturn", "name": "Stephie" },
+      "aspect_type": "trine",
+      "orb_degrees": 3.1,
+      "flow": "a_to_b",
+      "weight": 0.45,
+      "aspect_id": "mercury_saturn_trine"
+    }
+  ],
   "person_a": {
     "name": "Dan",
     "birth_data": {

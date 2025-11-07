@@ -2,7 +2,7 @@
 // Exports generateSection(sectionType, inputPayload)
 // Phase 1, Task 1.2: Integrated with narrative-builder for solo mirror generation
 
-import { buildMandatesForChart } from '../../lib/poetics/mandate';
+import { buildMandatesForChart, buildSynastryMandates } from '../../lib/poetics/mandate';
 import { enhancePromptWithMandates } from '../../lib/poetics/prompt-builder';
 import { generateSoloMirrorNarrative } from '../../lib/poetics/narrative-builder';
 import type { MandateAspect } from '../../lib/poetics/types';
@@ -93,6 +93,37 @@ export interface InputPayload {
     relationship_type?: string;
     is_relational?: boolean;
     is_natal_only?: boolean;
+  };
+  relationship_context?: {
+    scope?: string;
+    intimacy_tier?: string;
+    synastry_aspects?: any[];
+    synastry?: {
+      aspects?: any[];
+      [key: string]: any;
+    };
+    [key: string]: any;
+  };
+  synastry_aspects?: any[];
+  synastry?: {
+    aspects?: any[];
+    [key: string]: any;
+  };
+  composite?: {
+    synastry_aspects?: any[];
+    relational_mirror?: {
+      synastry_aspects?: any[];
+      [key: string]: any;
+    };
+    [key: string]: any;
+  };
+  relational_engine?: {
+    synastry_aspects?: any[];
+    [key: string]: any;
+  };
+  backstage?: {
+    synastry_aspects_raw?: any[];
+    [key: string]: any;
   };
   
   // NEW: Narrative sections (empty placeholders for Poetic Brain output)
@@ -542,7 +573,29 @@ interface MirrorDirectiveParsed {
     chartB: any | null;
     aspectsA: any[];
     aspectsB: any[];
+    synastryAspects: any[];
   };
+}
+
+function extractSynastryAspects(payload: InputPayload): any[] {
+  const candidates = [
+    payload.synastry_aspects,
+    payload.relationship_context?.synastry_aspects,
+    payload.relationship_context?.synastry?.aspects,
+    payload.synastry?.aspects,
+    payload.relational_engine?.synastry_aspects,
+    payload.composite?.synastry_aspects,
+    payload.composite?.relational_mirror?.synastry_aspects,
+    payload.backstage?.synastry_aspects_raw,
+  ];
+
+  for (const source of candidates) {
+    if (Array.isArray(source) && source.length > 0) {
+      return source;
+    }
+  }
+
+  return Array.isArray(payload.synastry_aspects) ? payload.synastry_aspects : [];
 }
 
 /**
@@ -562,6 +615,7 @@ function parseMirrorDirective(payload: InputPayload): MirrorDirectiveParsed {
       chartB: payload.person_b?.chart || null,
       aspectsA: payload.person_a?.aspects || [],
       aspectsB: payload.person_b?.aspects || [],
+      synastryAspects: extractSynastryAspects(payload),
     }
   };
 }
@@ -677,6 +731,33 @@ function renderMandatesSection(personName: string, mandates: MandateAspect[]): s
   return lines;
 }
 
+function formatPossessiveName(name?: string): string {
+  const base = (name || 'Person').trim();
+  if (!base) return 'Person';
+  return base.endsWith('s') ? `${base}'` : `${base}'s`;
+}
+
+function renderSynastryMandatesSection(nameA: string, nameB: string, mandates: MandateAspect[]): string[] {
+  const lines: string[] = [];
+  if (!mandates.length) {
+    lines.push('Synastry Field — Cross-chart aspect data not provided. Relational narrative is running on baseline geometry only.');
+    return lines;
+  }
+
+  lines.push('Synastry Field — Cross-chart geometries animating the shared climate.');
+  mandates.forEach((mandate, index) => {
+    const ownerA = mandate.archetypes.a.owner || nameA;
+    const ownerB = mandate.archetypes.b.owner || nameB;
+    const heading = `${index + 1}. ${formatPossessiveName(ownerA)} ${mandate.archetypes.a.planet} ↔ ${formatPossessiveName(ownerB)} ${mandate.archetypes.b.planet} (${mandate.geometry.aspectType}, ${mandate.geometry.orbDegrees.toFixed(1)}° orb)`;
+    lines.push('');
+    lines.push(`### ${heading}`);
+    lines.push(`Field — ${mandate.fieldPressure}`);
+    lines.push(`Map — ${mandate.mapTranslation}`);
+    lines.push(`Voice — ${mandate.voiceHook}`);
+  });
+  return lines;
+}
+
 function generateSoloMirror(person: any, chart: any, calibration: IntimacyCalibration, mandates: MandateAspect[]): string {
   const name = person.name || 'Person';
   const geometrySummary = extractGeometrySummary(chart);
@@ -687,7 +768,7 @@ function generateSoloMirror(person: any, chart: any, calibration: IntimacyCalibr
     mandates: mandates
   };
   
-  const narrative = generateSoloMirrorNarrative(chartMandates);
+  const narrative = generateSoloMirrorNarrative(chartMandates, { includeHeading: false });
 
   // Prepend calibration and geometry context
   const lines: string[] = [];
@@ -719,6 +800,8 @@ function generateRelationalEngine(personA: any, personB: any, geometry: any, cal
   const nameB = personB?.name || 'Person B';
   const geoA = extractGeometrySummary(geometry.chartA);
   const geoB = extractGeometrySummary(geometry.chartB);
+  const synastrySource = geometry?.synastryAspects || [];
+  const synastryMandates = buildSynastryMandates(nameA, nameB, synastrySource, { limit: 4 });
   
   const lines: string[] = [];
   lines.push(`# Relational Engine: ${nameA} & ${nameB}`);
@@ -729,7 +812,16 @@ function generateRelationalEngine(personA: any, personB: any, geometry: any, cal
   lines.push(`Intimacy Tier — ${calibration.toneDescriptor}`);
   lines.push(`Disclosure Level — ${calibration.disclosureLevel}`);
   lines.push('');
-  lines.push('Relational Field — Two natal patterns in conversation. Each person brings their constitutional climate; the interaction creates emergent dynamics.');
+  if (synastryMandates.mandates.length) {
+    lines.push(`Relational Field — ${synastryMandates.mandates.length} high-charge synastry aspects describe how your baselines meet in real time.`);
+  } else {
+    lines.push('Relational Field — Synastry aspects not supplied; referencing baseline geometries for directional guidance.');
+  }
+  const synastrySection = renderSynastryMandatesSection(nameA, nameB, synastryMandates.mandates);
+  if (synastrySection.length) {
+    lines.push('');
+    lines.push(...synastrySection);
+  }
   lines.push('');
   lines.push('Reflection — Relational mirrors show how individual geometries meet, blend, or clash. This is not prediction—it\'s pattern recognition.');
   
@@ -740,21 +832,59 @@ function generateRelationalEngine(personA: any, personB: any, geometry: any, cal
  * Generate weather overlay narrative
  * Adds transit/activation layer if present
  */
-function generateWeatherOverlay(seismograph: any): string {
-  if (!seismograph) {
-    return 'Weather Overlay — No activation data provided. Holding to natal baseline.';
+function summarizeSymbolicWeatherContext(ctx: any): { headline: string; details: string } {
+  const readings = Array.isArray(ctx?.daily_readings) ? ctx.daily_readings : [];
+  if (!readings.length) {
+    return { headline: 'No readings', details: 'No daily readings supplied.' };
   }
-  
-  const s = seismographSummary({ seismograph });
-  
+
+  // Use the first reading as "current" snapshot; fall back to simple averages
+  const first = readings[0] || {};
+  const mag = typeof first.magnitude === 'number'
+    ? first.magnitude
+    : (readings.map((r: any) => r?.magnitude).filter((n: any) => Number.isFinite(n)).reduce((a: number, b: number) => a + b, 0) / Math.max(1, readings.length));
+  const bias = typeof first.directional_bias === 'number'
+    ? first.directional_bias
+    : (readings.map((r: any) => r?.directional_bias).filter((n: any) => Number.isFinite(n)).reduce((a: number, b: number) => a + b, 0) / Math.max(1, readings.length));
+  const coh = typeof first.coherence === 'number'
+    ? first.coherence
+    : (readings.map((r: any) => r?.coherence).filter((n: any) => Number.isFinite(n)).reduce((a: number, b: number) => a + b, 0) / Math.max(1, readings.length));
+
+  const { band, label } = classifyMagnitude(mag);
+  const vt = classifyDirectionalBias(bias);
+  const vv = classifyNarrativeCoherence(coh);
+
+  const parts: string[] = [];
+  parts.push(`Magnitude ${Number.isFinite(mag) ? mag.toFixed(2) : '—'} (⚡ ${label} at ${band})`);
+  parts.push(`Directional Bias ${Number.isFinite(bias) ? bias.toFixed(2) : '—'} (${vt.descriptor})`);
+  if (Number.isFinite(coh)) {
+    parts.push(`Narrative Coherence ${coh.toFixed(2)} (${vv.label})`);
+  }
+
+  return {
+    headline: `${label} with ${vt.descriptor}`,
+    details: parts.join(' · '),
+  };
+}
+
+function generateWeatherOverlay(source: any): string {
+  if (!source) {
+    return 'Symbolic Weather — No activation data provided. Holding to natal baseline.';
+  }
+
+  const isSymbolicContext = !!(source?.daily_readings || source?.transit_context);
+  const summary = isSymbolicContext
+    ? summarizeSymbolicWeatherContext(source)
+    : seismographSummary({ seismograph: source });
+
   const lines: string[] = [];
-  lines.push('# Weather Overlay');
+  lines.push('# Symbolic Weather');
   lines.push('');
-  lines.push(`Current Atmosphere — ${s.headline}`);
-  lines.push(`Seismograph — ${s.details}`);
+  lines.push(`Current Atmosphere — ${summary.headline}`);
+  lines.push(`${isSymbolicContext ? 'Summary' : 'Seismograph'} — ${summary.details}`);
   lines.push('');
   lines.push('Reflection — This is symbolic weather over the natal baseline. Transits activate existing patterns; they don\'t create new ones.');
-  
+
   return lines.join('\n');
 }
 
@@ -811,7 +941,7 @@ export function processMirrorDirective(payload: InputPayload): {
   );
 
   // Enhance base prompt with mandate data
-  const enhancedPrompt = enhancePromptWithMandates(
+  let enhancedPrompt = enhancePromptWithMandates(
     process.env.DEFAULT_PROMPT || '',
     { name: directive.personA?.name || 'Person A', mandates: mandatesA.mandates }
   );
@@ -827,7 +957,7 @@ export function processMirrorDirective(payload: InputPayload): {
 
   // Enhance prompt with Person B's mandates if relational
   if (directive.isRelational && mandatesB) {
-    enhancePromptWithMandates(
+    enhancedPrompt = enhancePromptWithMandates(
       enhancedPrompt,
       { name: directive.personA?.name || 'Person A', mandates: mandatesA.mandates },
       { name: directive.personB?.name || 'Person B', mandates: mandatesB.mandates }
@@ -868,8 +998,9 @@ export function processMirrorDirective(payload: InputPayload): {
   }
 
   // Generate weather overlay if seismograph data present
-  if (payload.seismograph) {
-    narratives.weather_overlay = generateWeatherOverlay(payload.seismograph);
+  const weatherSource = payload.symbolic_weather_context || payload.seismograph;
+  if (weatherSource) {
+    narratives.weather_overlay = generateWeatherOverlay(weatherSource);
   }
 
   return {

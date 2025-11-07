@@ -22,6 +22,8 @@ export interface PlanetArchetypeData {
   name: string;
   /** Short essence statement describing how the planet tends to act */
   essence: string;
+  /** Optional owner/context label (e.g., Person A, Person B) */
+  owner?: string;
 }
 
 export interface AspectGeometry {
@@ -60,6 +62,13 @@ export interface MandateAspect {
 
 export interface ChartMandates {
   personName: string;
+  mandates: MandateAspect[];
+}
+
+export interface RelationalMandates {
+  pairLabel: string;
+  personA: string;
+  personB: string;
   mandates: MandateAspect[];
 }
 

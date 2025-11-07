@@ -241,7 +241,7 @@ With the mandate engine (1.1) and narrative builder (1.2) complete, the next pha
    - Cross-chart aspect synthesis
    - Intimacy tier calibration
 
-2. **Weather Overlay**
+2. **Symbolic Weather**
    - Transit narrative generation
    - Seismograph integration with narratives
    - Time-bound activation stories

@@ -228,7 +228,7 @@ This requires calculation:
    - Generate synastry analysis
    - NO transit interpretation (FIELD incomplete)
 
-3. **Weather Overlay** ⚠️
+3. **Symbolic Weather** ⚠️
    - Can see magnitude and directional bias trends
    - Cannot describe specific transit-to-natal activations
    - Cannot anchor to houses

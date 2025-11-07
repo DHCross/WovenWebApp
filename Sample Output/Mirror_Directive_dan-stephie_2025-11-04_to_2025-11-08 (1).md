@@ -1,134 +1,111 @@
-# Woven Web App — Relational Balance Meter Report
+# Relational Mirror Directive Sample
 
-**Generated:** 11/4/2025, 11:36:09 PM
-
-**Specification Version:** 3.1
-**Scaling Mode:** Absolute ×5
-**Pipeline:** normalize -> scale -> clamp -> round
-**Coherence Inversion:** ON (Coherence = 5 - vol_norm × 5)
+Source: Mirror+SymbolicWeather_Weather_Dashboard_dan-stephie_2025-11-04_to_2025-11-08 (1).json
+Generated: 2025-11-07T03:33:20.586Z
 
 ---
 
-## YOUR TASK: Generate a Full Conversational Reading
+## Solo Mirror — Person A
 
-This is a **MIRROR and CONVERSATION STARTER**, not just a weather report or data summary.
+# Solo Mirror: Dan
 
-###  — :
+Boundary Mode — friendly
+Narrative Tone — warm but bounded
+Disclosure Level — moderate
 
-#### 1️⃣ SOLO MIRRORS — Individual Foundations (BOTH PEOPLE)
-**For EACH person, provide a separate solo mirror:**
-- **Synthesize their natal chart** into plain-language behavioral snapshot
-- **"Here's how [Name]'s system tends to move"** — specific, falsifiable patterns
-- **Include:** Core drives, strengths, tensions, how they process the world
-- **NO JARGON** — Conversational, grounded in lived experience
-- **Use ALL provided data** for each chart (positions, aspects, houses)
+Geometry — Chart geometry present but unparsed.
 
-**DO NOT SKIP INDIVIDUAL READINGS** — Even in relational reports, each person gets their own mirror first.
+Blueprint — Natal pattern reflects constitutional climate. This is the baseline geometry before any transits or activations.
 
-#### 2️⃣ RELATIONAL ENGINES — Synastry Dynamics
-**After solo mirrors, synthesize how the charts interact:**
-- **Named patterns** (e.g., "Spark Engine," "Crossed-Wires Loop," "Sweet Glue")
-- **Mechanism + tendency** in plain language for each engine
-- **Clear list format** with engine names as headers
-- **Focus:** Where energies harmonize vs. where friction/growth pressure appears
-- **Use actual names** (e.g., "Dan's Mars squares Stephie's Moon") — never "they" or generic pronouns
+### The Seeker / The Builder
 
-#### 3️⃣ SYMBOLIC WEATHER OVERLAY — Transits (Current Symbolic Climate)
-**Layer current symbolic weather over the foundational patterns:**
-- **Continuous narrative form** (paragraphs, NOT bullet lists)
-- **Describe the climate** currently activating natal/relational foundations
-- **NO assigned percentages, NO prescriptive advice**
-- **Generalized atmosphere:** "What's stirring right now" — how transits light up the blueprint
-- **Ground in the data:** Reference specific transit aspects from tables below
+**The Seeker**: The part that wants to grow and explore
 
----
+**The Builder**: The part that wants to stabilize and deepen
 
-## TONE GUARDRAILS
+No high-charge aspects passed the mandate filter for Dan. Treat lived experience as the deciding authority.
 
-- **Grounded clarity** — Describe motion, texture, and timing through elemental, testable imagery. Every line must anchor to something the reader could notice.
-- **No reassurance scripting** — Do **not** tell the reader what is or is not a problem. Map the field without managing their emotions.
-- **No abstraction drift** — Avoid vague declarations like "energy shifts." Tie each symbol to a felt hinge (body, environment, conversation, decision).
+### Your Mirror
 
-## CRITICAL DATA REQUIREMENTS:
+Here's what I see in your chart: You're not one thing. You're a system of tensions, and that's where your power lives.
 
-✅ **Use ALL provided planetary positions, aspects, and house placements** from tables
-✅ **Reference the comprehensive data** — this is geometry-first, then symbolic translation
-✅ **For relational readings:** Use BOTH complete natal charts, then cross-aspects
-✅ **Ground every insight** in the actual chart data, not generic astrology
+These aren't contradictions to resolve. They're the actual shape of how you're built. The work isn't to pick a side—it's to let both sides speak to each other.
+
+When you can hold both, you become fluid. You can move when you need to move and stay when you need to stay. You can open and close. You can grow and consolidate. You can be yourself and be with others.
+
+That's not a flaw in your chart. That's the whole point.
+
+Reflection — Map, not mandate: Integrate what resonates with current reality and log evidence for or against each pattern.
 
 ---
 
-## TONE & VOICE — RAVEN CALDER MANDATE:
+## Solo Mirror — Person B
 
-- **Conversational, shareable, accessible** language
-- **Plain language** — avoid heavy astrological jargon in body text
-- **Falsifiable claims** that can be tested against lived experience
-- **Agency-first:** Frame as probabilities/tendencies, never fixed fate
-- **Support possibility** — the user decides what resonates
-- **Conversation starter** — this is a mirror to reflect on, not a prescription to follow
+# Solo Mirror: Stephie
 
----
+Boundary Mode — friendly
+Narrative Tone — warm but bounded
+Disclosure Level — moderate
 
-## WORKFLOW: FIELD -> MAP -> VOICE
+Geometry — Chart geometry present but unparsed.
 
-You have been given the **FIELD** (geometric data) and **MAP** (structural patterns).
-Your job is **VOICE** — synthesize this into resonant, lived-experience language.
+Blueprint — Natal pattern reflects constitutional climate. This is the baseline geometry before any transits or activations.
 
----
+### The Seeker / The Builder
 
-## 🎯 What "Full Reading" Means:
+**The Seeker**: The part that wants to grow and explore
 
-**NOT ACCEPTABLE:**
-❌ Describing the file contents or reflecting on what you've received
-❌ "Here's a brief overview based on the summary below"
-❌ Skipping aspects, houses, or chart details
-❌ Generic astrology without specific chart references
+**The Builder**: The part that wants to stabilize and deepen
 
-**ACCEPTABLE:**
-✅ **Analyzing EVERY major aspect** from the aspects table
-✅ **Translating geometric patterns** into behavioral tendencies
-✅ **Using chart-specific details** (degrees, signs, houses)
-✅ **Conversational synthesis** that feels personal and testable
+No high-charge aspects passed the mandate filter for Stephie. Treat lived experience as the deciding authority.
 
----
+### Your Mirror
 
-## :
+Here's what I see in your chart: You're not one thing. You're a system of tensions, and that's where your power lives.
 
-Generate the full reading following the mandatory structure above.
-Start with the Solo Mirror(s), then Relational Engines, then Symbolic Weather Overlay.
+These aren't contradictions to resolve. They're the actual shape of how you're built. The work isn't to pick a side—it's to let both sides speak to each other.
 
-**Do not describe what you're about to do. Do it.**
+When you can hold both, you become fluid. You can move when you need to move and stay when you need to stay. You can open and close. You can grow and consolidate. You can be yourself and be with others.
+
+That's not a flaw in your chart. That's the whole point.
+
+Reflection — Map, not mandate: Integrate what resonates with current reality and log evidence for or against each pattern.
 
 ---
 
+## Relational Engine
+
+# Relational Engine: Dan & Stephie
+
+Dan Geometry — Chart geometry present but unparsed.
+Stephie Geometry — Chart geometry present but unparsed.
+
+Intimacy Tier — warm but bounded
+Disclosure Level — moderate
+
+Relational Field — 3 high-charge synastry aspects describe how your baselines meet in real time.
+
+Synastry Field — Cross-chart geometries animating the shared climate.
+
+### 1. Dan's Sun ↔ Stephie's Moon (conjunction, 1.2° orb)
+Field — Energy merges and intensifies. This is present-time energy.
+Map — Dan's Sun and Stephie's Moon lock onto the same frequency. They amplify each other instantly—when one moves, the other responds.
+Voice — This often shows up as: Dan's Sun and Stephie's Moon lock onto the same frequency. They amplify each other instantly—when one moves, the other responds.
+
+### 2. Dan's Mercury ↔ Stephie's Saturn (trine, 3.1° orb)
+Field — Energy flows with ease and resonance. This is present-time energy.
+Map — Dan's Mercury and Stephie's Saturn speak the same dialect. Flow is easy; the work is keeping it conscious so you build something with the ease.
+Voice — This often shows up as: Dan's Mercury and Stephie's Saturn speak the same dialect. Flow is easy; the work is keeping it conscious so you build something with the ease.
+
+### 3. Dan's Venus ↔ Stephie's Mars (square, 2.6° orb)
+Field — Energy creates friction and urgency. This is present-time energy.
+Map — Dan's Venus meets Stephie's Mars at right angles. The friction is real and productive—it keeps both of you honest about what each planet needs.
+Voice — This often shows up as: Dan's Venus meets Stephie's Mars at right angles. The friction is real and productive—it keeps both of you honest about what each planet needs.
+
+Reflection — Relational mirrors show how individual geometries meet, blend, or clash. This is not prediction—it's pattern recognition.
+
 ---
 
-## Person A: Natal Chart
+## Symbolic Weather
 
-## Person B: Natal Chart
-
----
-
-## Data Appendix
-
-Full raw JSON has been removed to reduce file size and improve AI parsing.
-
-To access complete machine-readable data:
-• Use "Clean JSON (0-5 scale)" for frontstage data
-• Use "Raw JSON (Full)" in Advanced exports for debugging
-
-This Markdown contains all essential natal data in table format above.
-
-### Provenance Stamp
-
-```
-Math Brain Version: 0.2.1
-Build Timestamp: 2025-11-05T05:36:03.649Z
-Ephemeris Source: AstrologerAPI-v4
-House System: Placidus
-Orbs Profile: wm-spec-2025-09
-Timezone Database: IANA (system)
-Relocation Mode: none
-Engine Versions: seismograph: v5.0 · balance: v5.0
-Signed Map Package ID: unavailable
-```
+_Missing_

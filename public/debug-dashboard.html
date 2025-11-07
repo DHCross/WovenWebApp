@@ -372,7 +372,7 @@
                 log(`✅ Environment: ${env}`, 'success');
                 
                 // Check API configuration
-                const response = await fetch('/.netlify/functions/auth-config');
+                const response = await fetch('/api/api-health');
                 if (response.ok) {
                     const config = await response.json();
                     if (config.error) {
@@ -397,7 +397,7 @@
             log('🔐 Checking Auth0 configuration...', 'info');
             
             try {
-                const response = await fetch('/.netlify/functions/auth-config');
+                const response = await fetch('/api/api-health');
                 const data = await response.json();
                 
                 if (response.ok && !data.error) {
@@ -492,7 +492,7 @@
                 }
                 
                 // Check functions (by testing endpoints)
-                const funcResponse = await fetch('/.netlify/functions/astrology-mathbrain');
+                const funcResponse = await fetch('/api/astrology-mathbrain');
                 if (funcResponse.status === 405) {
                     updateStatus('functions-status', 'success', 'Working');
                     log('✅ Netlify functions deployed', 'success');

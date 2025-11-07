@@ -5,7 +5,7 @@ This workspace provides fast, in-IDE fixtures for exercising the Four Report Typ
 ## Goals
 
 1. **Observable Pattern (Solo Mirror)** – Baseline mirror payload with natal geometry only.
-2. **Subjective Mirror (Symbolic Weather Overlay)** – Solo payload plus transit window and seismograph slot.
+2. **Subjective Mirror (Symbolic Weather)** – Solo payload plus transit window and seismograph slot.
 3. **Interpersonal Field (Relational Mirror)** – Dual-chart payload with intimacy tier and relocation handling.
 4. **Integration Loop (Full Stack)** – Composite bundle that stitches mirror + weather outputs in report order.
 
