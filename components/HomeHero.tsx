@@ -2,6 +2,7 @@
 /* eslint-disable no-console */
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { getRedirectUri, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from "../lib/auth";
+import { persistAuthStatus } from "../lib/authStatus";
 
 type Auth0Client = {
   isAuthenticated: () => Promise<boolean>;
@@ -38,9 +39,6 @@ const poeticBrainEnabled = (() => {
   return false;
 })();
 
-const AUTH_STATUS_STORAGE_KEY = 'auth.status';
-const AUTH_STATUS_EVENT = 'auth-status-change';
-
 export default function HomeHero() {
   const authDisabled = !authEnabled;
   const [ready, setReady] = useState(false);
@@ -56,22 +54,7 @@ export default function HomeHero() {
   const clientRef = useRef<Auth0Client | null>(null);
 
   const persistAuthState = useCallback((authedValue: boolean, nameValue: string | null) => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    try {
-      const payload = {
-        authed: authedValue,
-        user: nameValue,
-        updatedAt: Date.now(),
-      };
-      window.localStorage.setItem(AUTH_STATUS_STORAGE_KEY, JSON.stringify(payload));
-      window.dispatchEvent(new CustomEvent(AUTH_STATUS_EVENT, { detail: payload }));
-    } catch (err) {
-      // Silent failure – auth should still work without persistence
-      console.warn('Auth status persistence failed', err);
-    }
+    persistAuthStatus(authedValue, nameValue);
   }, []);
 
   // Set dev tools flag on client side only to avoid hydration mismatch
@@ -180,11 +163,27 @@ export default function HomeHero() {
 
         // Handle callback once (if coming back from Auth0)
         const qs = window.location.search;
+        let returnTo: string | null = null;
         if (qs.includes("code=") && qs.includes("state=")) {
-          await client.handleRedirectCallback();
+          const result = await client.handleRedirectCallback();
           const url = new URL(window.location.href);
           url.search = "";
           window.history.replaceState({}, "", url.toString());
+          const rawReturn = (result as any)?.appState?.returnTo;
+          if (typeof rawReturn === 'string' && rawReturn.trim()) {
+            try {
+              if (/^https?:\/\//i.test(rawReturn)) {
+                const parsed = new URL(rawReturn);
+                if (parsed.origin === window.location.origin) {
+                  returnTo = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+                }
+              } else {
+                returnTo = rawReturn.startsWith('/') ? rawReturn : `/${rawReturn.replace(/^\/+/, '')}`;
+              }
+            } catch (err) {
+              console.warn('Failed to normalize Auth0 return path', err);
+            }
+          }
         }
 
         const isAuthed = await client.isAuthenticated();
@@ -203,6 +202,10 @@ export default function HomeHero() {
           setReady(true);
           persistAuthState(isAuthed, name);
           clearTimeout(safety); // Clear timeout since we completed successfully
+          if (returnTo) {
+            window.location.replace(returnTo);
+            return;
+          }
         }
       } catch (e: any) {
         if (!cancelled) {
