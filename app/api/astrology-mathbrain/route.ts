@@ -288,6 +288,46 @@ export async function POST(request: NextRequest) {
       // Run the v2 engine to format the final report
       const unifiedOutput = await runMathBrain(v2Config, chartData);
 
+      // Enrich unified_output for exporters expecting provenance and woven_map.symbolic_weather
+      try {
+        // 1) Provide unified_output.provenance, deriving a stable package/hash id from MAP meta
+        const runMeta = unifiedOutput?.run_metadata || {};
+        const mapId = unifiedOutput?._map_file?._meta?.map_id || null;
+        const legacyProv = chartData?.provenance || {};
+        const provenance = { ...legacyProv, ...runMeta } as any;
+        if (mapId && !provenance.normalized_input_hash) {
+          provenance.normalized_input_hash = mapId;
+        }
+        (unifiedOutput as any).provenance = provenance;
+
+        // 2) Provide unified_output.woven_map.symbolic_weather from FIELD daily entries when available
+        const fieldDaily = unifiedOutput?._field_file?.daily || null;
+        let symbolicWeather: any[] | null = null;
+        if (fieldDaily && typeof fieldDaily === 'object') {
+          const dates = Object.keys(fieldDaily).sort();
+          symbolicWeather = dates.map((d) => {
+            const day = (fieldDaily as any)[d] || {};
+            return {
+              date: d,
+              meter: day.meter || null,
+              status: day.status || null,
+              as: day.as || [],
+              tpos: day.tpos || [],
+              thouse: day.thouse || [],
+            };
+          });
+        } else if (chartData?.woven_map?.symbolic_weather) {
+          // Fallback: copy from legacy woven_map if present
+          symbolicWeather = chartData.woven_map.symbolic_weather;
+        }
+        if (symbolicWeather) {
+          (unifiedOutput as any).woven_map = (unifiedOutput as any).woven_map || {};
+          (unifiedOutput as any).woven_map.symbolic_weather = symbolicWeather;
+        }
+      } catch (enrichError) {
+        logger.warn('Unified output enrichment failed', { error: (enrichError as any)?.message });
+      }
+
       // Generate Markdown and prepare response (no filesystem round-trip)
       // Only generate markdown for relational reports with daily_entries
       let markdownContent = '';

@@ -58,6 +58,7 @@ export function createMirrorSymbolicWeatherPayload(
   if (!rawResult) return null;
 
   const unifiedOutput = rawResult?.unified_output || rawResult;
+  const isRelational = Boolean(unifiedOutput?.person_b);
   const hasPersonAChart =
     unifiedOutput?.person_a?.chart && Object.keys(unifiedOutput.person_a.chart).length > 0;
   const hasPersonBChart =
@@ -71,10 +72,43 @@ export function createMirrorSymbolicWeatherPayload(
     unifiedOutput?.relationship_context ||
     null;
 
+  // Pre-compute window/date hints
+  const transitsObj: Record<string, any> | null =
+    (unifiedOutput?.person_a?.chart?.transitsByDate && typeof unifiedOutput.person_a.chart.transitsByDate === 'object')
+      ? unifiedOutput.person_a.chart.transitsByDate
+      : (unifiedOutput?._field_file?.daily && typeof unifiedOutput._field_file.daily === 'object')
+        ? unifiedOutput._field_file.daily
+        : null;
+  const dateKeys = transitsObj ? Object.keys(transitsObj).sort() : [];
+  const transitDays = dateKeys.length;
+  const rangeDates = (() => {
+    const fieldPeriod = unifiedOutput?._field_file?.period;
+    if (fieldPeriod?.s && fieldPeriod?.e) return [fieldPeriod.s, fieldPeriod.e];
+    const runRange = unifiedOutput?.run_metadata?.date_range;
+    if (Array.isArray(runRange) && runRange.length === 2) return runRange;
+    if (transitDays > 0) return [dateKeys[0], dateKeys[transitDays - 1]];
+    return undefined;
+  })();
+
+  const containsTransits = transitDays > 0;
+  const containsWeatherData = Boolean(
+    (Array.isArray(unifiedOutput?.daily_entries) && unifiedOutput.daily_entries.length > 0) ||
+    containsTransits ||
+    (Array.isArray(unifiedOutput?.woven_map?.symbolic_weather) && unifiedOutput.woven_map.symbolic_weather.length > 0)
+  );
+
   const payload: any = {
     _format: 'mirror-symbolic-weather-v1',
     _version: '1.0',
     _poetic_brain_compatible: hasChartGeometry,
+    // Lightweight ingestion hints to help early classification in partial reads
+    _template_hint: isRelational ? 'relational_pair' : 'solo_mirror',
+    _required_sections: isRelational ? ['person_a', 'person_b'] : ['person_a'],
+    _contains_transits: containsTransits,
+    _contains_weather_data: containsWeatherData,
+    _natal_sections: isRelational ? 2 : 1,
+    ...(rangeDates ? { _range_dates: rangeDates } : {}),
+    ...(transitDays ? { _transit_days: transitDays } : {}),
     generated_at: new Date().toISOString(),
     _natal_section: {
       mirror_source: 'integrated',
