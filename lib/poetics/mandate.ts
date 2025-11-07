@@ -313,7 +313,7 @@ export function buildMandatesForChart(
   }
 
   const sorted = mandates
-    .sort((a, b) => {
+    .sort((a: MandateAspect, b: MandateAspect) => {
       if (a.geometry.weight !== b.geometry.weight) {
         return b.geometry.weight - a.geometry.weight;
       }
@@ -545,8 +545,8 @@ export function buildSynastryMandates(
       : [];
 
   const normalizedAspects = aspectArray
-    .map(aspect => normalizeSynastryAspect(aspect, { personAName: safePersonA, personBName: safePersonB }))
-    .filter((aspect): aspect is RawAspect => Boolean(aspect));
+    .map((aspect: any) => normalizeSynastryAspect(aspect, { personAName: safePersonA, personBName: safePersonB }))
+    .filter((aspect: any): aspect is RawAspect => Boolean(aspect));
 
   if (!normalizedAspects.length) {
     return {
@@ -558,7 +558,7 @@ export function buildSynastryMandates(
   }
 
   const mandates = normalizedAspects
-    .map(aspect =>
+    .map((aspect: RawAspect) =>
       translateAspectToMandate(aspect, normalizedAspects, {
         owners: { a: safePersonA, b: safePersonB },
         narrativeMode: 'synastry',
@@ -566,8 +566,8 @@ export function buildSynastryMandates(
         personBName: safePersonB,
       })
     )
-    .filter((mandate): mandate is MandateAspect => Boolean(mandate))
-    .sort((a, b) => {
+    .filter((mandate: any): mandate is MandateAspect => Boolean(mandate))
+    .sort((a: MandateAspect, b: MandateAspect) => {
       if (a.geometry.weight !== b.geometry.weight) {
         return b.geometry.weight - a.geometry.weight;
       }

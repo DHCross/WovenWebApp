@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
-// Import the centralized Perplexity caller
-const { callPerplexity } = require('../../lib/llm.js');
+// Import the centralized Perplexity caller (resolved by bundler)
+const { callPerplexity } = require('../../lib/llm');
 
 // Initialize the JWKS client for Auth0 token verification
 const client = jwksClient({
