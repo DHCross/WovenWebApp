@@ -6,7 +6,7 @@
     "build:css": "tailwindcss -i ./src/input.css -o ./dist/output.css --minify",
     "build:offshoot": "tailwindcss -c tailwind.offshoot.config.js -i ./offshoot/offshoot.css -o ./offshoot/offshoot.min.css --minify",
     "dev:tailwind": "tailwindcss -i ./src/input.css -o ./dist/output.css --watch",
-    "check-env": "node -e \"if (!require('fs').existsSync('.env')) { console.error('Error: .env file not found. Copy .env.example to .env and configure your API keys.'); process.exit(1); } else { console.log('Environment file found.'); }\"",
+    "check-env": "node scripts/ensure-env.js",
     "dev": "npm run check-env && netlify dev",
     "start:local": "npm run check-env && npm run build:css && netlify dev",
     "verify-copilot": "node verify-copilot-setup.js",
