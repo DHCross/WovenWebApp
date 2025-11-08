@@ -109,6 +109,66 @@ This guide explains how the Raven Calder Poetic Brain test page works, how to ru
 ---
 
 ## Quick Test Script (optional)
-- E2E test demonstrates the upload flow and verifies the five keys:
-  - `tests/e2e/poetic-brain.ui.spec.ts:1`
+- E2E tests demonstrate the upload flow and verify the five keys:
+  - **UI Test:** `tests/e2e/poetic-brain.ui.spec.ts:1`
+  - **API Test:** `tests/e2e/poetic-brain.api.spec.ts:1`
+  - **Raven Compliance Test:** `tests/e2e/poetic-brain.raven-compliance.spec.ts:1` ✨ NEW
+
+### Run All Tests
+```bash
+npm run test:e2e                    # All E2E tests
+npm run test:e2e:ui                 # Interactive mode
+npm run test:e2e -- poetic-brain    # Just Poetic Brain tests
+```
+
+### Raven Compliance Tests
+The new `poetic-brain.raven-compliance.spec.ts` validates:
+- ✅ **E-Prime compliance** — No static "to be" violations (is/are/was/were)
+- ✅ **Polarity Cards** — FIELD + VOICE present, MAP backstage-only
+- ✅ **Safe Lexicon** — Magnitude descriptors (Whisper→Apex), valence symbols (🌞🌑🌗)
+- ✅ **Conditional language** — May/might/could throughout
+- ✅ **Somatic language** — Friction/ease/tension/pull/pressure/flow
+- ✅ **Agency Hygiene** — OSR validity, conditional framing
+- ✅ **Forbidden patterns** — No deterministic/moral/psychoanalytic language
+- ✅ **Terminology** — "symbolic_climate" enforced (never "climate" alone)
+- ✅ **Relational scaffolding** — Proper context echo + typed shapes
+
+### Manual Verification Checklist
+When testing with real payloads:
+
+1. **Upload a file** via the test page at `http://localhost:3000/`
+2. **Check DevTools → Network** for the POST response
+3. **Verify five keys** appear in the UI panel
+4. **Inspect `draft.appendix.reader_markdown`** (if formatter active):
+   - Should have `## Polarity Cards` section
+   - Each card has `**FIELD:**` (somatic) + `**VOICE:**` (behavioral)
+   - NO `**MAP:**` visible to user
+   - Uses conditional language (may/might/could)
+   - Somatic terms present (friction heat, flowing ease, etc.)
+   - `## Agency Hygiene` clause included
+5. **Check relational scaffolding** (if relational_context provided):
+   - `draft.appendix.relational_context` echoes input
+   - `draft.appendix.relational` has typed shapes:
+     - `synastry_aspects: []`
+     - `composite_midpoints: []`
+     - `shared_symbolic_climate: { magnitude, valence, volatility }`
+     - `cross_symbolic_climate: { magnitude, valence, volatility }`
+
+---
+
+## Linting + Quality Checks
+## Linting + Quality Checks
+
+```bash
+# Lexicon compliance check (Safe Lexicon, symbolic terminology)
+npm run lexicon:lint
+
+# Raven voice compliance check (E-Prime + forbidden patterns)
+npm run raven:lint
+
+# Human-in-the-loop resonance audit (10% qualitative sampling)
+npm run raven:audit
+```
+
+All three checks should be run before production deployment. `lexicon:lint` and `raven:lint` are automated. `raven:audit` requires manual review for tone nuance that only human ears can catch.
 

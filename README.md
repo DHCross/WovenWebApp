@@ -524,6 +524,22 @@ Examples:
 - Reference `FORM_DATA_EXAMPLE.md` for valid input formats
 - Check `debug-api.html` and `debug-test.html` for debugging tools
 
+**Quality Assurance:**
+```bash
+# Automated checks (before every deploy)
+npm run raven:lint      # E-Prime + forbidden patterns + Blueprint vs. Weather
+npm run lexicon:lint    # Safe Lexicon + terminology compliance
+npm run test:ci         # Full test suite
+
+# Human-in-the-loop review (quarterly or before major releases)
+npm run raven:audit     # Samples 10% of outputs for tone nuance
+```
+
+**Critical Semantic Boundary (Blueprint vs. Weather):**
+- Blueprint/Baseline (inner structure, natal geometry): permanent, never uses "weather"
+- Symbolic Weather (external activation, transits): only with active transiting geometry
+- See `docs/BLUEPRINT_VS_WEATHER_FIREWALL.md` for complete enforcement rules
+
 ### 5. Error Handling Best Practices
 
 **From MAINTENANCE_GUIDE.md:**

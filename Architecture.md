@@ -311,6 +311,49 @@ Add permissive Zod block for `relational_context` in API route.
 
 ---
 
+## Semantic Boundary: Blueprint vs. Weather
+
+This is the **foundational distinction** for falsifiability:
+
+### Blueprint / Baseline / Natal Geometry (Inner Structure—Static)
+- The **permanent pattern**, the skeleton, the vessel
+- The native chart geometry (sun/moon/rising, aspects, placements)
+- Fields of tension/ease that define enduring patterns
+- Always present; never "activated" or "dormant"
+- **Never uses "weather" terminology**
+
+**Language:** "blueprint," "baseline," "natal geometry," "enduring field," "inner architecture"
+
+**Example:** "Saturn conjunct Venus in your natal chart tends to compress relational ease."
+
+### Symbolic Weather (External Activation—Dynamic)
+- **Transits, progressions, directions**—the sky in motion
+- Activations pressing against the static map
+- Temporal, ephemeral (changes with time)
+- **Only uses "weather" terminology when active transiting geometry exists in data**
+
+**Language:** "symbolic weather," "atmospheric," "sky pressing," "activating," "in transit"
+
+**Example:** "Saturn transiting your natal Venus tends to intensify relational friction."
+
+### The Linguistic Firewall (Enforced)
+
+**Core Rule:** Do not confuse the vessel (blueprint) for the tide (weather). This collapses falsifiability.
+
+| Context | Language to Use | Language to Avoid |
+|---------|-----------------|-------------------|
+| Describing natal chart alone | Blueprint/baseline/natal geometry/field | Weather/atmospheric/pressing |
+| Describing transits pressing natal | Weather/atmospheric/sky in motion | Blueprint (use only for comparison) |
+| Both blueprint + transits | Make distinction explicit | Mixing without clarity |
+| No transits in data | Blueprint language only | Any weather terminology |
+
+**Enforcement Points:**
+- `tests/e2e/poetic-brain.temporal-integrity.spec.ts` (Test 4: Symbolic weather semantic sanity check)
+- `scripts/raven-lexicon-lint.js` can extend to flag weather language without active transits
+- Formatter logic in `src/formatter/create_markdown_reading_enhanced.js` should check `data.transits` before using weather language
+
+---
+
 ## Raven Calder: E-Prime & Lexical Firewall
 
 ### E-Prime Discipline
@@ -342,6 +385,15 @@ Eight categories of forbidden language enforced by `scripts/raven-lexicon-lint.j
 npm run raven:lint  # Scans lib/legacy, src/formatter, lib/pipeline
 npm run lint:all    # Runs ESLint + Raven lint
 ```
+
+**Human-in-the-Loop Quality:**
+```bash
+npm run raven:audit  # Samples 10% of outputs for tone nuance review
+```
+
+Automated tests catch correctness (schema, E-Prime, Safe Lexicon).  
+Manual audits catch tone drift that only human ears detect.  
+See `docs/RAVEN_RESONANCE_AUDIT_GUIDE.md` for full review process.
 
 **Implementation:**
 - Voice templates in `lib/legacy/polarityHelpers.js` use only conditional verbs

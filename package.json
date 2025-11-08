@@ -50,6 +50,7 @@
     "auth:check": "node scripts/auth-config-check.js",
     "lexicon:lint": "node scripts/lexicon-lint.mjs",
     "raven:lint": "node scripts/raven-lexicon-lint.js",
+    "raven:audit": "node scripts/raven-resonance-audit.js",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:all": "npm run lint && npm run raven:lint",
     "validate:fieldmap": "node scripts/validate-fieldmap-v5.js"

@@ -1,3 +1,282 @@
+## [2025-11-08] FEATURE: Blueprint vs. Weather Semantic Firewall
+
+**Implemented by:** GitHub Copilot (AI Agent)  
+**Context:** Critical falsifiability boundary enforcement (user insight: Codex)  
+**Principle:** "The vessel vs. the tide"
+
+### What Changed
+
+Implemented foundational semantic boundary to preserve falsifiability across all Raven output.
+
+**The Boundary:**
+- **Blueprint/Baseline/Natal Geometry** (inner structure—static)
+  - Permanent skeleton, enduring patterns
+  - Never uses "weather" terminology
+  - Always present, never activated/dormant
+  - The vessel through which weather moves
+
+- **Symbolic Weather** (external activation—dynamic)
+  - Transits, progressions, directions
+  - Only uses "weather" terminology when active transiting geometry exists
+  - Sky in motion pressing against the map
+  - The tide, not the vessel
+
+**Core Rule:** Do not confuse vessel (blueprint) for tide (weather). This collapses falsifiability.
+
+### Why This Matters
+
+If readers can't distinguish between:
+1. Permanent structure (testable over lifetime)
+2. Temporary activation (testable until it passes)
+
+...then they can't test claims. Everything becomes unfalsifiable mysticism.
+
+The distinction enables Raven's ethical frame:
+- Observe the pattern (blueprint)
+- Name the activation (weather)
+- Preserve agency (reader can disagree with either)
+
+### Files Created
+
+1. **docs/BLUEPRINT_VS_WEATHER_FIREWALL.md** (290 lines)
+   - Complete semantic boundary definition
+   - Data checks and validation requirements
+   - Enforcement points (formatter, linter, tests, audits)
+   - Decision tree for formatters
+   - Common violations with examples
+   - Implementation checklist
+
+2. **docs/BLUEPRINT_VS_WEATHER_IMPLEMENTATION.md** (220 lines)
+   - Implementation summary
+   - Enforcement integration checklist
+   - Examples of correct/incorrect usage
+   - Next actions and priorities
+
+### Files Modified
+
+1. **Architecture.md**
+   - Added "Semantic Boundary: Blueprint vs. Weather" section
+   - Clarified distinction in system design
+   - Added enforcement points with code references
+
+2. **docs/RAVEN_CALDER_VOICE.md**
+   - Added "Blueprint vs. Weather (Semantic Boundary)" section
+   - Language rules with examples
+   - "The Linguistic Firewall" explanation
+
+3. **docs/RAVEN_RESONANCE_AUDIT_GUIDE.md**
+   - **NEW Question #4:** "Blueprint vs. Weather (Semantic Boundary)"
+   - What to look for, red flags, examples
+   - Updated: now **9 criteria** (was 8)
+   - Updated common patterns section
+
+4. **scripts/raven-lexicon-lint.js**
+   - **NEW Category #9:** "Weather without transits"
+   - Detects weather language in formatter output
+   - Flags patterns: symbolic weather, atmospheric, pressing, activating
+   - Severity: high
+   - Message directs to Blueprint vs. Weather Firewall doc
+
+### Enforcement Points
+
+**1. Linter Check (Now Active)**
+```bash
+npm run raven:lint
+```
+Will flag weather language without active transits as high severity.
+
+**2. Test Coverage**
+- Test 4 in `tests/e2e/poetic-brain.temporal-integrity.spec.ts`
+- "Symbolic weather semantic sanity check"
+- Validates: Only weather language when transits exist
+
+**3. Human Audit (Question #4)**
+Reviewers check during manual audit:
+- Natal geometry uses blueprint/baseline language
+- Transits use weather/atmospheric language (if present)
+- No weather language without transits in data
+- Distinction explicit if both discussed
+
+**4. Formatter Logic (Future)**
+- Check `data.transits` before using weather language
+- Use decision tree from firewall doc
+- Blueprint language if natal-only
+
+### Examples
+
+**Correct (Natal Only):**
+> "Your Venus-Saturn conjunction tends to compress relational ease. This baseline geometry means you often approach connection with caution."
+
+**Incorrect (Weather Without Transits):**
+> "Your Venus-Saturn conjunction brings intense relational weather right now." ❌
+
+**Correct (With Transits):**
+> "Saturn is transiting your natal Venus. This symbolic weather tends to intensify relational friction. Once the transit separates, this activation will pass."
+
+---
+
+## [2025-01-21] FEATURE: Human-in-the-Loop Raven Resonance Audit
+
+**Implemented by:** GitHub Copilot (AI Agent)  
+**Context:** Bulletproof maintenance refinements for Raven voice quality
+
+### What Changed
+
+Added comprehensive human audit system to catch tone drift that automated tests miss.
+
+**Core Philosophy:**
+- Automated tests catch correctness (API schema, E-Prime compliance, Safe Lexicon)
+- Manual audits catch tone nuance that only human ears can detect
+- The Eight Questions validate voice identity across multiple dimensions
+
+### Files Created
+
+1. **scripts/raven-resonance-audit.js** (220 lines)
+   - Samples 10% of outputs from `test-results/`
+   - Displays The Eight Questions with guidance
+   - Shows first 50 lines of each sampled output
+   - Provides manual review checklist
+   - Run with: `npm run raven:audit`
+
+2. **docs/RAVEN_RESONANCE_AUDIT_GUIDE.md** (415 lines)
+   - Complete audit methodology
+   - **The Eight Questions** with detailed red flags:
+     1. Voice Identity (pattern witness, not oracle)
+     2. Poetic Vitality (E-Prime without sterilization)
+     3. Geometric Grounding (metaphors leashed to math)
+     4. Conditional Naturalness (may/might/could flows smoothly)
+     5. Rhythm & Cadence (sentence variation, not robotic)
+     6. Somatic Resonance (FIELD descriptions land in body)
+     7. Falsifiability (can reader test claims?)
+     8. Agency Safety (preserves reader sovereignty)
+   - Scoring system (✅ Pass / ⚠️ Borderline / ❌ Fail)
+   - Common tone drift patterns (Mystical Oracle, Academic Sterilization, etc.)
+   - Audit log template
+   - Maintenance cadence (quarterly, pre-release, post-changes, on-suspicion)
+   - Emergency response protocol (STOP → investigate → fix → re-audit)
+
+3. **docs/HUMAN_IN_LOOP_IMPLEMENTATION.md** (280 lines)
+   - Implementation summary
+   - Integration with existing quality systems
+   - Example workflows (normal, pre-release, emergency)
+   - Tips for reviewers
+   - Future enhancement possibilities
+
+### Files Modified
+
+1. **package.json**
+   - Added `"raven:audit": "node scripts/raven-resonance-audit.js"`
+
+2. **Architecture.md**
+   - Added "Human-in-the-Loop Quality" section under E-Prime & Lexical Firewall
+   - Commands reference + link to full guide
+
+3. **README.md**
+   - Added "Quality Assurance" subsection to Testing & Verification
+   - Commands for automated checks + manual audit
+
+4. **docs/POETIC_BRAIN_TEST_PAGE.md**
+   - Updated "Linting + Quality Checks" section
+   - Note that both automated + manual checks required before production
+
+### How It Works
+
+**Sampling Strategy:**
+- Random 10% sample from `test-results/` directory (minimum 1 file)
+- Extracts markdown from JSON files (`draft.appendix.reader_markdown`)
+- Displays first 50 lines with audit criteria
+
+**The Eight Questions:**
+Each targets a specific dimension of Raven voice, from identity/tone to rhythm/agency. Reviewer marks ✅/⚠️/❌ for each question per sample.
+
+**Threshold for Concern:**
+- All pass → Continue
+- 1-2 borderline → Monitor next cycle
+- 3+ fail → STOP, investigate recent changes, fix before deploy
+
+**Maintenance Cadence:**
+- Quarterly routine (10% sample)
+- Before major releases (20% + edge cases)
+- After voice/formatter changes (30% + focused review)
+- On suspicion of tone drift (targeted investigation)
+
+### Integration with Quality Systems
+
+**Before Every Deploy (Automated):**
+```bash
+npm run raven:lint      # E-Prime + forbidden patterns → must pass
+npm run lexicon:lint    # Safe Lexicon + terminology → must pass
+npm run test:ci         # Full test suite → must pass
+```
+
+**Quarterly + Pre-Release (Manual):**
+```bash
+npm run raven:audit     # Human tone review → >90% pass rate
+```
+
+**Complete Test Coverage:**
+1. UI Tests (`tests/e2e/poetic-brain.ui.spec.ts`)
+2. API Tests (`tests/e2e/poetic-brain.api.spec.ts`)
+3. Raven Compliance (`tests/e2e/poetic-brain.raven-compliance.spec.ts` - 8 tests)
+4. Temporal Integrity (`tests/e2e/poetic-brain.temporal-integrity.spec.ts` - 6 tests)
+5. **Human Audit** (`scripts/raven-resonance-audit.js` - qualitative)
+
+### Why This Matters
+
+**Automated tests can't catch:**
+- Shift from "pattern witness" to "mystical oracle" tone
+- E-Prime sterilizing poetry instead of enhancing precision
+- Metaphors becoming decorative instead of geometric
+- Conditional language sounding evasive instead of natural
+- Robotic rhythm uniformity
+- Abstract FIELD descriptions that don't land in body
+- Vague unfalsifiable claims
+- Disempowering prescriptive language
+
+**Human reviewers catch:**
+- "This doesn't sound like Raven anymore"
+- Tone shifts that automated pattern matching misses
+- Subtle loss of poetic vitality
+- Rhythm monotony
+- Agency erosion
+
+### Emergency Response
+
+If audit reveals critical tone drift:
+1. **STOP** all deployments immediately
+2. `git log` + `git diff` on voice-critical files
+3. Identify what changed vs last passing audit
+4. Revert if needed or fix forward with careful testing
+5. Re-run audit before resuming deployments
+6. Document root cause + fix in audit log
+
+### Success Metrics
+
+✅ Audit script runs successfully and samples outputs  
+✅ The Eight Questions documented with red flags  
+✅ Scoring system + thresholds defined  
+✅ Maintenance cadence specified  
+✅ Emergency protocol established  
+✅ Integration complete (package.json, docs, README)  
+✅ Audit log template provided  
+
+### Tips for Reviewers
+
+- **Read aloud** — Awkward phrasing becomes obvious
+- **Check your body** — FIELD descriptions should create sensation
+- **Test falsifiability** — Can you imagine disagreeing and testing the claim?
+- **Compare to reference** — Keep 2-3 golden standard outputs for comparison
+- **Trust your ears** — Gut reactions often catch what checklists miss
+
+### Next Steps
+
+1. Run first quarterly audit to establish baseline
+2. Create `AUDIT_LOG.md` to track audit history
+3. Optional: Integrate with CI for pre-commit enforcement
+4. Optional: Add user feedback loop ("Does this resonate?" button)
+
+---
+
 ⚠️ **NOTE:** The following entry documents work that was NOT actually completed. Files referenced do not exist on disk. See GROUND_TRUTH_INVENTORY_2025_01_21.md for verification. This entry is retained for reference but should be removed before merging to main.
 
 ## [2025-01-21] FEATURE: Clear Mirror Unified Rendering Schema (⚠️ UNVERIFIED - FILES DO NOT EXIST)

@@ -133,6 +133,21 @@ const FORBIDDEN_PATTERNS = {
     ],
     severity: 'high',
     message: 'Passive absolute: Map how something connects, not that it does'
+  },
+
+  // 9. Blueprint vs. Weather boundary (Critical semantic firewall)
+  'Weather without transits': {
+    patterns: [
+      /\bsymbolic weather\b/i,
+      /\batmospheric\b/i,
+      /\bsky (is|in) motion\b/i,
+      /\bcurrent climate\b/i,
+      /\bpressing against\b/i,
+      /\bactivating your\b/i
+    ],
+    severity: 'high',
+    message: 'Weather language detected: Ensure transits are active in data. Use "blueprint" language if natal-only.',
+    context: 'Blueprint vs. Weather Firewall'
   }
 };
 

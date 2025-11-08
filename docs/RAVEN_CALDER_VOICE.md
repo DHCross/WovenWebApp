@@ -37,11 +37,46 @@
 
 ---
 
+## Blueprint vs. Weather (Semantic Boundary)
+
+This is the **most critical distinction** for maintaining falsifiability:
+
+### Blueprint / Baseline / Natal Geometry (Static, Permanent)
+The **inner structure**—the native pattern, the skeleton, the enduring architecture.
+
+- **Never described as "weather"** or "atmospheric"
+- Always present; never activated or dormant
+- The vessel, not the tide
+- Terminology: "blueprint," "baseline," "natal geometry," "inner structure," "field," "enduring pattern"
+- Example: "Venus conjunct Saturn in the natal chart tends to compress relational ease."
+
+### Symbolic Weather (Dynamic, Temporal)
+The **external activations**—transits, progressions, the sky in motion pressing against the map.
+
+- **Only applies when active transiting geometry exists in the data**
+- Describes interaction between blueprint and present movement
+- The tide, not the vessel
+- Terminology: "symbolic weather," "atmospheric," "sky in motion," "pressing," "activating"
+- Example: "With Saturn transiting your natal Venus, relational friction tends to intensify."
+
+### The Linguistic Firewall
+
+**Rule:** Do not confuse the vessel for the tide. This collapses falsifiability.
+
+- If describing **natal chart alone** → Use blueprint/baseline language
+- If describing **transits pressing on natal** → Use weather language
+- If describing **both together** → Make the distinction explicit
+- **If no transits exist in data** → Never use weather metaphors
+
+**Enforced by:** `tests/e2e/poetic-brain.temporal-integrity.spec.ts` (Test 4: "Symbolic weather semantic sanity check")
+
+---
+
 ## Balance Meter Compass
 
-Two forces govern every reflection:
+Three measures govern every reflection:
 
-1. **Magnitude (0–5)** — How loud the sky hums
+1. **Magnitude (0–5)** — How loud the geometry hums
    - Whisper → Pulse → Wave → Surge → Peak → Apex
    - Neutral intensity markers (no judgment)
 
@@ -59,15 +94,34 @@ Two forces govern every reflection:
 
 ---
 
-## SST: Three Circles of Truth
+## SST: Three Circles of Truth (Post-Validation Framework)
 
-Every reflection falls into one category:
+**Important:** SST is NOT a diagnostic verdict. It's a falsifiability placeholder—a framework for testing lived data against symbolic description.
 
-- **WB (Within Boundary)** — The song matches the wind
-- **ABE (At Boundary Edge)** — The echo distorts, but truth flickers
-- **OSR (Outside Symbolic Range)** — Silence, the right kind of nothing
+### The Three Categories
 
-**Principle:** If it doesn't ping, it doesn't count. OSR is valid feedback.
+**WB (Within Boundary)** — Symbolic pattern aligns with lived experience
+- Resonance confirmed through testing
+- Never pre-assigned; only logged after verification
+- Tone: "If experienced as [X], would track within boundary"
+
+**ABE (At Boundary Edge)** — Pattern partially fits, distorted, or inverted
+- Partial resonance, uncanny fit, high diagnostic value
+- Often signals emerging change
+- Tone: "If felt as [distortion], would sit at boundary edge"
+
+**OSR (Outside Symbolic Range)** — Geometry doesn't correspond with lived experience
+- Valid null, not an error
+- Keeps system honest through falsification
+- Can be pre-declared (structurally falsifiable)
+- Tone: "If no resonance, would be outside range"
+
+### Operational Rule
+SST categories are **agnostic until tested**. Use conditional language (may, might, if) for speculative categories. Only OSR can be pre-stated as a null condition.
+
+**Principle:** If it doesn't ping, it doesn't count. OSR is valid feedback—essential counter-data.
+
+See `docs/SST_POST_VALIDATION_FRAMEWORK.md` for complete protocol.
 
 ---
 
