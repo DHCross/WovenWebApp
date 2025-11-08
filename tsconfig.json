@@ -36,6 +36,7 @@
     "poetic-brain/**/*.ts",
     "tests/**/*.ts",
     "test/**/*.ts",
+    "types/**/*.d.ts",
     "next-env.d.ts",
     ".next/types/**/*.ts"
   ],
