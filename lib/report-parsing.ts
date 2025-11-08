@@ -111,6 +111,7 @@ export const parseReportContent = (
   try {
     const jsonData = JSON.parse(rawContent);
     if (jsonData && typeof jsonData === "object") {
+      // Explicit Mirror Directive export
       if (jsonData._format === "mirror_directive_json") {
         inferredType = "mirror";
         const personName =
@@ -118,7 +119,10 @@ export const parseReportContent = (
           jsonData?.person_a?.details?.name;
         displayLabel = personName ? `Mirror Directive for ${personName}` : "Mirror Directive";
         summaryParts.push("Mirror Directive JSON");
-      } else if (jsonData.context && jsonData.balance_meter) {
+      }
+
+      // Balance/Weather style export with context
+      else if (jsonData.context && jsonData.balance_meter) {
         const context = jsonData.context;
         const subject = context?.natal?.name || "Unknown";
         displayLabel = `JSON Report for ${subject}`;
@@ -171,16 +175,43 @@ export const parseReportContent = (
           summaryParts.push(`Window ending ${windowEnd}`);
         }
 
-        if (
-          jsonData.reports?.templates?.solo_mirror ||
-          /solo mirror/i.test(rawContent)
-        ) {
+        // Heuristic: if mirror templates are present OR raw contains "solo mirror",
+        // classify as mirror; otherwise balance. This remains as-is.
+        if (jsonData.reports?.templates?.solo_mirror || /solo mirror/i.test(rawContent)) {
           inferredType = "mirror";
         } else {
           inferredType = "balance";
         }
-      } else if (jsonData.reports?.templates?.solo_mirror) {
+      }
+
+      // Template-only indicator
+      else if (jsonData.reports?.templates?.solo_mirror) {
         inferredType = "mirror";
+      }
+
+      // NEW: Combined Mirror + Symbolic Weather export or mirror-like payloads
+      // If the payload carries mirror-specific fields, force type to 'mirror'.
+      if (
+        !inferredType && (
+          (jsonData._format && /^(mirror-symbolic-weather-v1|symbolic_weather_json)$/i.test(jsonData._format)) ||
+          (jsonData.mirror_contract && typeof jsonData.mirror_contract === "object") ||
+          (jsonData.contract && typeof jsonData.contract === "object") ||
+          (jsonData.person_a && typeof jsonData.person_a === "object") ||
+          (jsonData.personA && typeof jsonData.personA === "object")
+        )
+      ) {
+        inferredType = "mirror";
+        const personName =
+          jsonData?.person_a?.name ||
+          jsonData?.person_a?.details?.name ||
+          jsonData?.personA?.name ||
+          jsonData?.personA?.details?.name;
+        if (personName && !/Mirror Directive/.test(displayLabel)) {
+          displayLabel = `Mirror Directive for ${personName}`;
+        }
+        if (jsonData._format) {
+          summaryParts.push(String(jsonData._format));
+        }
       }
     }
   } catch {
@@ -282,4 +313,3 @@ export const detectReportMetadata = (rawContent: string | undefined): ReportMeta
     isRelationalMirror: Boolean(hasMirrorDirective && mirrorIsRelational),
   };
 };
-
