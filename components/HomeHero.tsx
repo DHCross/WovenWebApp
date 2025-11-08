@@ -3,22 +3,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { getRedirectUri, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from "../lib/auth";
 
-type Auth0Client = {
-  isAuthenticated: () => Promise<boolean>;
-  handleRedirectCallback: () => Promise<void>;
-  loginWithRedirect: (opts?: any) => Promise<void>;
-  getUser: () => Promise<any>;
-};
-
-declare global {
-  interface Window {
-    createAuth0Client?: (config: any) => Promise<Auth0Client>;
-    auth0?: {
-      createAuth0Client?: (config: any) => Promise<Auth0Client>;
-    };
-  }
-}
-
 const authEnabled = (() => {
   const raw = process.env.NEXT_PUBLIC_ENABLE_AUTH;
   if (typeof raw !== "string") return true;
@@ -174,7 +158,7 @@ export default function HomeHero() {
           useRefreshTokens: true,
           useRefreshTokensFallback: true,
           authorizationParams,
-        } as any);
+        } as Auth0ClientOptions);
         clientRef.current = client;
         setClientReady(true);
 
@@ -255,7 +239,7 @@ export default function HomeHero() {
   const logout = async () => {
     if (authDisabled || !clientRef.current) return;
     try {
-      await (clientRef.current as any).logout({
+      await clientRef.current.logout?.({
         logoutParams: {
           returnTo: window.location.origin
         }

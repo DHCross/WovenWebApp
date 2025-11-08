@@ -2,22 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { getRedirectUri, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from '../lib/auth';
 
-type Auth0Client = {
-  isAuthenticated: () => Promise<boolean>;
-  handleRedirectCallback: () => Promise<void>;
-  loginWithRedirect: (opts?: any) => Promise<void>;
-  getUser: () => Promise<any>;
-};
-
-declare global {
-  interface Window {
-    createAuth0Client?: (config: any) => Promise<Auth0Client>;
-    auth0?: {
-      createAuth0Client?: (config: any) => Promise<Auth0Client>;
-    };
-  }
-}
-
 const authEnabled = (() => {
   const raw = process.env.NEXT_PUBLIC_ENABLE_AUTH;
   const isProduction = process.env.NODE_ENV === 'production';
@@ -82,7 +66,7 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
           useRefreshTokens: true,
           useRefreshTokensFallback: true,
           authorizationParams
-        } as any);
+        } as Auth0ClientOptions);
 
         // Handle callback if present
         const qs = window.location.search;

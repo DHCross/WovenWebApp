@@ -2,22 +2,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from "@/lib/auth";
 
-type Auth0Client = {
-  isAuthenticated: () => Promise<boolean>;
-  handleRedirectCallback: () => Promise<void>;
-  loginWithRedirect: (opts?: any) => Promise<void>;
-  getUser: () => Promise<any>;
-};
-
-declare global {
-  interface Window {
-    createAuth0Client?: (config: any) => Promise<Auth0Client>;
-    auth0?: {
-      createAuth0Client?: (config: any) => Promise<Auth0Client>;
-    };
-  }
-}
-
 function nowISO() {
   return new Date().toISOString();
 }
@@ -96,7 +80,7 @@ export default function DebugAuthClient() {
           redirect_uri,
           ...(audience ? { audience } : {}),
         }
-      });
+      } as Auth0ClientOptions);
       clientRef.current = client;
       setClientReady(true);
 

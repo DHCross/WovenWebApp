@@ -4,22 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { getRedirectUri, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from '../../lib/auth';
 import { isAuthEnabled, getMockUser } from '../../lib/devAuth';
 
-type Auth0Client = {
-  isAuthenticated: () => Promise<boolean>;
-  handleRedirectCallback: () => Promise<void>;
-  loginWithRedirect: (opts?: any) => Promise<void>;
-  getUser: () => Promise<any>;
-};
-
-declare global {
-  interface Window {
-    createAuth0Client?: (config: any) => Promise<Auth0Client>;
-    auth0?: {
-      createAuth0Client?: (config: any) => Promise<Auth0Client>;
-    };
-  }
-}
-
 export interface AuthState {
   authReady: boolean;
   authed: boolean;
@@ -154,7 +138,7 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
               redirect_uri: getRedirectUri(),
               ...(audience ? { audience } : {}),
             },
-          }),
+          } as Auth0ClientOptions),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Auth0 client creation timeout')), 10000)
           )
