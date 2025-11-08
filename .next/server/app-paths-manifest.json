@@ -1,1 +1,4 @@
-{}
+{
+  "/api/poetic-brain/route": "app/api/poetic-brain/route.js",
+  "/page": "app/page.js"
+}

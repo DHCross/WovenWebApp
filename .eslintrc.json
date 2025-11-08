@@ -1,5 +1,6 @@
 {
   "extends": ["next/core-web-vitals"],
+  "plugins": ["@typescript-eslint"],
   "settings": {
     "import/resolver": {
       "typescript": {
@@ -9,4 +10,3 @@
     }
   }
 }
-

@@ -37,7 +37,7 @@ export type RelationalOutput = {
 export async function analyzeRelationship(
   payload: any,
   geometryA: { aspects?: Array<Record<string, any>>; summary?: Record<string, any> },
-  _header?: Record<string, any>
+  _header?: Record<string, any> | null
 ): Promise<RelationalOutput> {
   const aspectsA = Array.isArray(geometryA?.aspects) ? geometryA.aspects : [];
   // Placeholder: echo a subset as "synastry" to prove shape wiring.
@@ -70,4 +70,3 @@ export async function analyzeRelationship(
 
   return { synastry_aspects, composite_midpoints, shared_symbolic_climate, cross_symbolic_climate };
 }
-

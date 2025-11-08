@@ -88,6 +88,7 @@
     "@types/node": "20.11.30",
     "@types/react": "18.2.79",
     "@types/uuid": "^9.0.7",
+    "@typescript-eslint/eslint-plugin": "^7.2.0",
     "@vitest/coverage-v8": "^4.0.3",
     "@vitest/ui": "^4.0.3",
     "autoprefixer": "^10.4.0",

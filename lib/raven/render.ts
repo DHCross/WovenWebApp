@@ -12,7 +12,6 @@ async function tryLoadFormatter(): Promise<{
   fn: ((ctx: AnyRecord) => Promise<any> | any) | null;
 }> {
   try {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
     const mod: AnyRecord = await import('@/src/formatter/create_markdown_reading_enhanced.js');
     const fn =
       (typeof mod?.default === 'function' && mod.default) ||

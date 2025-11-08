@@ -93,7 +93,6 @@ export async function renderMirrorDraft(payload: any, geometry: NormalizedGeomet
     const allowIntegration = process.env.RAVEN_RENDER_INTEGRATION !== '0';
     if (allowIntegration) {
       // Dynamic import to avoid build-time hard dependency in minimal test harnesses
-      // eslint-disable-next-line @typescript-eslint/consistent-type-imports
       const mod: any = await import('@/lib/raven/render').catch(() => null);
       const renderFn: any = mod?.renderShareableMirror || mod?.renderMirror || mod?.default;
       if (typeof renderFn === 'function') {
@@ -103,7 +102,7 @@ export async function renderMirrorDraft(payload: any, geometry: NormalizedGeomet
         try {
           const hasRel = Boolean(header?.relational_context) || Boolean(payload?.person_b);
           if (hasRel) {
-            relational = await analyzeRelationship(payload, geometry, header);
+            relational = await analyzeRelationship(payload, geometry, header ?? undefined);
           }
         } catch {
           relational = undefined;
