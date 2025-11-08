@@ -62,7 +62,7 @@ export default function HomePage() {
           type="file"
           accept="application/json"
           // Keep visually hidden but programmatically visible for WebKit
-          style={{ position: 'absolute', left: -9999, width: 1, height: 1, opacity: 0 }}
+          style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0 }}
           onChange={handleFileChange}
         />
       </div>

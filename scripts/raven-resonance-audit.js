@@ -19,7 +19,10 @@ const rootDir = __dirname.replace('/scripts', '');
 
 // Configuration
 const SAMPLE_RATE = 0.1; // 10% sampling
-const OUTPUT_DIR = join(rootDir, 'test-results');
+const OUTPUT_DIRS = [
+  join(rootDir, 'test-results'),
+  join(rootDir, 'Sample Output')
+];
 
 /**
  * @typedef {Object} AuditCriteria
@@ -73,24 +76,36 @@ const AUDIT_CRITERIA = [
 ];
 
 function sampleOutputs() {
-  // Look for recent test results or output files
-  if (!existsSync(OUTPUT_DIR)) {
-    console.log('⚠️  No test-results directory found. Run tests first.');
+  // Look for recent test results or output files in multiple directories
+  const allFiles = [];
+  
+  OUTPUT_DIRS.forEach(dir => {
+    if (existsSync(dir)) {
+      const files = readdirSync(dir)
+        .filter(f => f.endsWith('.json') || f.endsWith('.md'))
+        .filter(f => !f.startsWith('.')) // Skip hidden files like .last-run.json
+        .map(f => join(dir, f));
+      allFiles.push(...files);
+    }
+  });
+  
+  if (allFiles.length === 0) {
+    console.log('⚠️  No output files found in any output directories.');
+    console.log('Directories checked:', OUTPUT_DIRS.map(d => d.replace(rootDir + '/', '')).join(', '));
+    console.log('Run tests or generate outputs first:\n');
+    console.log('  npm run test:e2e');
+    console.log('  npm run dev  # Then upload test JSON\n');
     return [];
   }
   
-  const files = readdirSync(OUTPUT_DIR)
-    .filter(f => f.endsWith('.json') || f.endsWith('.md'))
-    .map(f => join(OUTPUT_DIR, f));
-  
   // Random sampling
-  const sampleSize = Math.max(1, Math.ceil(files.length * SAMPLE_RATE));
+  const sampleSize = Math.max(1, Math.ceil(allFiles.length * SAMPLE_RATE));
   const samples = [];
   
-  while (samples.length < sampleSize && files.length > 0) {
-    const idx = Math.floor(Math.random() * files.length);
-    samples.push(files[idx]);
-    files.splice(idx, 1);
+  while (samples.length < sampleSize && allFiles.length > 0) {
+    const idx = Math.floor(Math.random() * allFiles.length);
+    samples.push(allFiles[idx]);
+    allFiles.splice(idx, 1);
   }
   
   return samples;

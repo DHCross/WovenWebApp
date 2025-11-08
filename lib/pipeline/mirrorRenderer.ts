@@ -161,43 +161,114 @@ async function buildLocalDraft(payload: any, geometry: NormalizedGeometry): Prom
     .filter(Boolean)
     .join(' · ');
 
+  // FIELD: Somatic texture — phenomenon, not verdict
+  const fieldMap: Record<string, string> = {
+    fire: 'A quickening, like a spark catching in dry grass. The heat reads as urgency held in suspension.',
+    earth: 'A sense of density, like roots taking hold. The weight reads not as burden, but as anchor.',
+    air: 'A current of change, like wind shifting direction. The movement reads as possibility, not chaos.',
+    water: "A pull toward depth, like a river's undertow. The pressure reads as invitation, not undertow.",
+  };
+
   const feeling = primary
-    ? `Feels like ${primary} leaning through this window—track how that shows up today.`
-    : `Feels steady; check where the pattern actually shows in your day.`;
+    ? fieldMap[primary]
+    : 'A point of balance—still water under a clear sky. The quiet reads not as absence, but as compression held in suspension.';
 
-  const container = `Treat this as a natal/period mirror. Use it to notice tensions and name one concrete signal.`;
-  const option = `Pick one move that would test this mirror in the next 24 hours.`;
-  const next_step = `If this lands, what single moment confirms it—WB, ABE, or OSR?`;
+  // MAP: Structural description — geometry meeting activation
+  const hasTransits = Boolean(start && end);
+  const container = hasTransits
+    ? 'Long-wave structure (natal geometry) meeting short-wave activation (current transit). The tension between them sketches a fulcrum rather than a fault. Here, pressure organizes instead of fragments.'
+    : 'Long-wave structure only (natal baseline). The permanent inner geometry that shapes how you meet the world. This is the map, not the weather.';
 
-  // Generate fallback reader_markdown with both precision and metaphor
+  // VOICE: Testable invitation — agency-preserving hypothesis
+  const option = hasTransits
+    ? 'You could test this balance by naming one concrete signal—an action, a word, a silence—that feels like it sits on that fulcrum. Not to solve it, only to see if the stillness bends or holds.'
+    : 'You could test this pattern by noticing where it shows up in one concrete moment today. The geometry suggests a tendency; your experience confirms whether it translates to lived pressure or remains abstract.';
+
+  // Resonance Test: Falsifiability gate
+  const next_step =
+    'One small, reversible act in the next 24 hours can test the reflection. If it resonates, notice where it lands: In the body (WB), in memory (ABE), or in the outer world (OSR).';
+
   const aspectCount = geometry?.aspects?.length ?? 0;
   const aspectSummary = aspectCount > 0
-    ? geometry.aspects.map((a: any) => `${a.from}–${a.to} ${a.type}${a.orb ? ` (${a.orb}° orb)` : ''}`).join(', ')
-    : 'No aspects detected';
+    ? geometry.aspects.map((a: any) => `${a.from}–${a.to} ${a.type}${a.orb ? ` (${a.orb}° orb)` : ''}`).join('; ')
+    : 'No significant aspects detected';
+
+  const symbolicFootnotes = aspectCount > 0
+    ? '### Symbolic Footnotes\n\n' + geometry.aspects.map((a: any, i: number) => {
+        const from = a.from.charAt(0).toUpperCase() + a.from.slice(1);
+        const to = a.to.charAt(0).toUpperCase() + a.to.slice(1);
+        const type = a.type;
+        let interpretation = '';
+        if (type === 'conjunction') interpretation = `merges the energies of ${from} and ${to}, creating a focal point of intense, unified expression.`;
+        else if (type === 'opposition') interpretation = `creates a tension between ${from} and ${to}, demanding balance and integration of seemingly opposite forces.`;
+        else if (type === 'trine') interpretation = `forms a harmonious flow between ${from} and ${to}, indicating natural talent and ease.`;
+        else if (type === 'square') interpretation = `builds dynamic friction between ${from} and ${to}, prompting action and demanding resolution.`;
+        else interpretation = `links ${from} and ${to} in a significant pattern.`;
+        
+        return `${i + 1}. **${from} ${type} ${to}**: This aspect ${interpretation}`;
+      }).join('\n')
+    : '';
+
+  // Generate personality reflection based on elemental emphasis
+  const personalityReflection = primary
+    ? primary === 'fire'
+      ? 'You tend to learn through action. Movement precedes understanding; initiative reveals the path. When stuck, forward motion often dissolves the uncertainty.'
+      : primary === 'earth'
+      ? 'You tend to trust what can be built and tested. Stability arrives through consistent effort. When overwhelmed, return to what is tangible and verifiable.'
+      : primary === 'air'
+      ? 'You tend to understand through connection and exchange. Ideas clarify when shared; isolation can feel like stagnation. When uncertain, reach for conversation or new perspective.'
+      : 'You tend to navigate through feeling and depth. Emotional truth often arrives before rational clarity. When disconnected, stillness and introspection restore alignment.'
+    : 'Your pattern suggests balanced engagement with all elements—fire, earth, air, water. This creates versatility, but may require conscious choice about which mode serves the current moment.';
 
   const readerMarkdown = `# Mirror Reading for ${name}
 
 ## Geometric Overview
+This reflection translates symbolic geometry into testable language. The configuration shows **${aspectCount}** major aspect${aspectCount !== 1 ? 's' : ''}: *${aspectSummary}*.
 
-The chart geometry shows ${aspectCount} aspect${aspectCount !== 1 ? 's' : ''} in this configuration: ${aspectSummary}.
+${primary ? `The dominant elemental pressure leans toward **${primary}**. This suggests a climate where themes of ${primary === 'fire' ? 'initiative and action' : primary === 'earth' ? 'structure and stability' : primary === 'air' ? 'connection and ideas' : 'emotion and depth'} may feel more present.` : 'The elemental pressures are balanced, suggesting a climate of integration.'}
 
-${primary ? `The dominant elemental pressure leans toward **${primary}**, creating a climate where ${primary === 'fire' ? 'initiative and momentum' : primary === 'earth' ? 'structure and grounding' : primary === 'air' ? 'connection and flow' : 'depth and feeling'} may surface more readily.` : 'The elemental distribution shows balanced pressure across all quadrants.'}
+## Symbolic Weather
+${start && end ? `This reading covers the period from ${start} to ${end}, tracking how a current symbolic "weather" pattern interacts with your natal "blueprint."` : 'This reading reflects your natal baseline—the permanent inner structure that shapes how you meet the world.'}
 
-## Current Weather
+The aspects above create channels of flow and points of friction. The most resonant insights often emerge where you can feel these geometric patterns as lived experience.
 
-${start && end ? `This reading covers the period from ${start} to ${end}, tracking how symbolic weather moves through your natal geometry.` : 'This reading reflects your natal baseline—the permanent structure that shapes how transiting weather moves through your chart.'}
+${symbolicFootnotes}
 
-The aspects above create friction points and flow channels. Watch for moments when these geometric tensions surface as lived experience—that's where the mirror becomes testable.
+## Resonant Reflection
+${personalityReflection}
+
+${aspectCount > 0 ? 'The aspects in your chart create specific pressure points—moments where energy concentrates and choice becomes visible. These are not mandates, but invitations. Where the geometry suggests tension, you may feel the pull to act, integrate, or reframe.' : 'With minimal major aspects detected, the chart suggests a more fluid, self-directed quality. The absence of strong geometric pressure can mean greater freedom—or the need to consciously create your own momentum.'}
 
 ## What to Track
+Notice where the feeling of **${primary || 'elemental balance'}** shows up. The geometry is a map of potential; your experience is the ground truth. A testable mirror emerges when you can name one concrete moment where you felt the pull of these patterns. That is the beginning of a dialogue with the symbols.
 
-Notice where ${primary || 'the elemental balance'} shows up in your day. The geometry suggests certain patterns may appear, but only your lived experience confirms whether these aspects translate to actual pressure or ease.
+---
 
-Test this mirror by naming one concrete moment where you felt the pull of these patterns. That's your falsifiability check.`;
+*This reading offers hypotheses drawn from symbolic geometry. Its accuracy emerges only through comparison with lived experience. Mark what resonates: **WB** (fits), **ABE** (partially fits), **OSR** (doesn't fit). Testing creates truth.*`;
 
   const appendix: Record<string, any> = { 
     aspects: geometry?.aspects ?? [],
-    reader_markdown: readerMarkdown
+    reader_markdown: readerMarkdown,
+    // Provenance block (v5.0 requirement)
+    provenance: {
+      house_system: 'Placidus', // TODO: Extract from payload or geometry
+      orbs_profile: 'wm-spec-2025-09',
+      timezone_db_version: 'IANA-2025a',
+      math_brain_version: 'mb-2025.11.08',
+      balance_meter_version: hasTransits ? 'v5.0' : 'n/a',
+      relocation_mode: 'none', // TODO: Extract from payload if present
+      generated_utc: new Date().toISOString(),
+    },
+    // Mirror metadata (Recognition Stack → Mirror interface)
+    mirror: {
+      mirror_id: `${name.toLowerCase().replace(/\s+/g, '.')}.${hasTransits ? 'transit' : 'natal'}`,
+      field: feeling,
+      map: container,
+      voice: option,
+      invitation: next_step,
+      classification_pending: true,
+      has_transits: hasTransits,
+    },
   };
   const relational = extractRelationalContext(payload);
   if (elements) appendix.elements = elements;

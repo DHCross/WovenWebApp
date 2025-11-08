@@ -3663,8 +3663,8 @@ function renderTransitDay(dateStr, items){
                 md += generateTypologicalProfile(data.person_b, personB, 'Person_B');
             }
             
-            // Hook Stack (Recognition Hierarchy)
-            md += generateHookStack(data, isRelational);
+            // Core Insights (Recognition Hierarchy)
+            md += generateCoreInsights(data, isRelational);
             
             // Balance Meter (Full Stack) in Plain-Weather
             md += generateBalanceMeterClimate(data, formData);
@@ -3732,14 +3732,14 @@ function renderTransitDay(dateStr, items){
             return md;
         }
         
-        function generateHookStack(data, isRelational) {
-            let md = `## Hook_Stack\n\n`;
-            md += `**Order_Rule:** "${isRelational ? 'relational hooks then personal hooks' : 'personal-outer hard → angles → anaretic → anchors'}"\n\n`;
+        function generateCoreInsights(data, isRelational) {
+            let md = `## Core_Insights\n\n`;
+            md += `**Recognition_Pattern:** "${isRelational ? 'relational patterns then personal patterns' : 'personal-outer hard → angles → anaretic → anchors'}"\n\n`;
             
-            const hooks = extractTopHooks(data, isRelational);
-            md += `**Hooks:**\n`;
-            hooks.forEach((hook, index) => {
-                md += `  - ${hook.description}\n`;
+            const insights = extractTopHooks(data, isRelational);
+            md += `**Key_Insights:**\n`;
+            insights.forEach((insight, index) => {
+                md += `  - ${insight.description.replace('hook', 'pattern')}\n`;
             });
             md += `\n`;
             
