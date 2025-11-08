@@ -30,7 +30,7 @@
     "test:deployment": "node test/deployment-verification.js",
     "test:all": "node test/run-all-smoke-tests.js",
     "test:production": "node test/run-all-smoke-tests.js --environment=production",
-    "test:ci": "vitest run && node test/run-all-smoke-tests.js --skip-network && npm run lexicon:lint",
+    "test:ci": "vitest run && node test/run-all-smoke-tests.js --skip-network && npm run lexicon:lint && npm run raven:lint",
     "test:vitest": "vitest",
     "test:vitest:ui": "vitest --ui",
     "test:vitest:run": "vitest run",
@@ -49,7 +49,9 @@
     "postinstall": "if [ -f package.json ] && node -e \"try{require('concurrently')}catch(e){process.exit(1)}\"; then echo 'concurrently already installed'; else echo 'Installing concurrently...'; npm i -D concurrently; fi",
     "auth:check": "node scripts/auth-config-check.js",
     "lexicon:lint": "node scripts/lexicon-lint.mjs",
+    "raven:lint": "node scripts/raven-lexicon-lint.js",
     "lint": "eslint . --ext .ts,.tsx",
+    "lint:all": "npm run lint && npm run raven:lint",
     "validate:fieldmap": "node scripts/validate-fieldmap-v5.js"
   },
   "dependencies": {

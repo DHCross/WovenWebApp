@@ -308,12 +308,59 @@ These were created by earlier AI assistant but are NOT in the repo:
 
 ---
 
-## Next Steps for Alignment
+## Safe Next Steps (Additive, Non-Breaking)
+
+### Priority 1: Dual Provenance
+Add `appendix.provenance_a` and `appendix.provenance_b` to response shape:
+```typescript
+provenance_a?: {
+  source?: string;           // e.g., "natal", "transit", "composite"
+  rectification_status?: string;
+  map_reference?: string;
+  confidence?: number;
+};
+provenance_b?: { /* same structure */ };
+```
+**Impact:** Additive only; no existing code breaks. Documents data origin per person.
+
+### Priority 2: Real Synastry/Composite Math
+Replace placeholder shapes in `lib/pipeline/relationalAdapter.ts` with actual calculations:
+- `synastry_aspects[]` → real inter-chart aspects
+- `composite_midpoints[]` → real midpoint computations
+- `shared_symbolic_climate` → aggregate field metrics
+- `cross_symbolic_climate` → cross-person field interactions
+
+**Impact:** Fills in real geometry. Formatter will have better data to render.
+
+### Priority 3: Extend Formatter Sections
+`src/formatter/create_markdown_reading_enhanced.js` currently scaffolds Dialogue Voice and Dual Polarity.
+Replace placeholders with real narrative:
+- Dialogue Voice: Relational reflection (how each person's pattern activates in the other)
+- Dual Polarity: Shared contradictions and integration paths
+
+**Impact:** Reader markdown becomes richer. Maintains 5-key structure (picture, feeling, container, option, next_step).
+
+### Priority 4: Stricter Zod Validation
+Add optional, permissive Zod block for `relational_context` in `app/api/poetic-brain/route.ts`:
+```typescript
+relational_context?: z.object({
+  type: z.string().optional(),
+  relationship_type: z.string().optional(),
+  intimacy_tier: z.string().optional(),
+  contact_state: z.string().optional(),
+  // ... additional fields as needed
+});
+```
+**Impact:** Can hard-fail with 400 on invalid relational inputs (currently permissive).
+
+---
+
+## Next Steps for Phase 1 Alignment
 
 ### Immediate
-1. **Remove false CHANGELOG entries** about Clear Mirror implementation
-2. **Clarify Phase 1 targets** - Are functions supposed to be created? Are they in index.html?
-3. **Verify artifact uploads** - Why did `create_file` report success but files don't exist?
+1. ✅ **Remove false CHANGELOG entries** about Clear Mirror implementation
+2. ⏳ **Clarify Phase 1 targets** - Are functions supposed to be created? Are they in index.html?
+3. ✅ **Verify artifact uploads** - (resolved: files don't exist = creation didn't work)
 
 ### For Phase 1 Refactoring
 1. **Search `/index.html`** for the specific functions mentioned (buildNarrativeDraft, etc.)
@@ -321,14 +368,13 @@ These were created by earlier AI assistant but are NOT in the repo:
 3. **If NOT found:** Re-spec what functions should be extracted
 4. **Note:** ChatClient.tsx doesn't exist - refactoring target is likely `/index.html` or `/app/page.tsx`
 
-### For Clear Mirror Work
-1. **Abandon Clear Mirror files** - they don't exist, don't try to edit them
-2. **Work with actual files:**
+### For Pipeline Enhancement (Instead of Phase 1)
+1. **Work with actual files:**
    - `lib/pipeline/mirrorRenderer.ts`
    - `lib/raven/render.ts`
    - `src/formatter/create_markdown_reading_enhanced.js`
-   - `netlify/functions/poetic-brain.js` (Gemini)
    - `app/api/poetic-brain/route.ts` (Next.js handler)
+2. **Implement Safe Next Steps above** (additive, no breaking changes)
 
 ---
 
@@ -342,6 +388,7 @@ These were created by earlier AI assistant but are NOT in the repo:
    - Extraction strategy (should functions be moved, copied, or rewritten?)
    - Integration points (how will refactored code be called?)
    - Testing strategy (what validations ensure refactoring didn't break anything?)
+5. **Current best bet:** Implement Priority 1-4 Safe Next Steps above. All are additive, non-breaking, and enhance the real pipeline.
 
 ---
 

@@ -1,5 +1,8 @@
-// Stub enhanced markdown formatter.
-// Replace this with your real narrative generator.
+// Enhanced markdown formatter with FIELD → MAP → VOICE implementation
+// Uses extracted legacy functions for Polarity Cards and Safe Lexicon
+
+import { generatePolarityCards } from '../../lib/legacy/polarityHelpers.js';
+import { getMagnitudeDescriptor, getVolatilityDescriptor } from '../../lib/legacy/safeLexicon.js';
 
 /**
  * @param {Object} ctx
@@ -26,35 +29,57 @@ export default function createMarkdownReadingEnhanced(ctx = {}) {
 
   // Relationship Context block (if available)
   const relCtx = prov.relational_context || null;
+  const isRelational = !!relCtx;
+  
   const relHeader = relCtx
     ? `\n\n## Relationship Context\n- type: ${relCtx.relationship_type ?? relCtx.type ?? '—'}\n- intimacy_tier: ${relCtx.intimacy_tier ?? '—'}\n- contact_state: ${relCtx.contact_state ?? '—'}\n`
     : '';
 
-  // Dialogue Voice (placeholder)
+  // Dialogue Voice (placeholder for now - Priority 3 Safe Step)
   const dialogue = relCtx
-    ? `\n\n## Dialogue Voice\nThe shared field speaks in integration tones: directness meeting receptivity. (placeholder)\n`
+    ? `\n\n## Dialogue Voice\nThe shared field speaks in integration tones: directness meeting receptivity. (Awaiting Priority 3 implementation)\n`
     : '';
 
-  // Dual Polarity Cards (placeholder)
-  const polarity = relCtx
-    ? `\n\n## Dual Polarity Cards\n- Axis A vs Axis B (placeholder)\n`
-    : '';
+  // Polarity Cards - NOW USING EXTRACTED LEGACY FUNCTIONS
+  // This generates FIELD (somatic) + VOICE (behavioral) with MAP backstage-only
+  const polarityData = { person_a: { aspects: geo.aspects || [] } };
+  const polarityCards = generatePolarityCards(polarityData, isRelational);
 
-  // Symbolic climates (placeholders)
+  // Symbolic climates with Safe Lexicon descriptors
   const shared = relational.shared_symbolic_climate
-    ? `\n\n### Shared Symbolic Climate\n- magnitude: ${relational.shared_symbolic_climate.magnitude ?? '—'}\n- valence: ${relational.shared_symbolic_climate.valence ?? '—'}\n- volatility: ${relational.shared_symbolic_climate.volatility ?? '—'}\n`
+    ? `\n\n### Shared Symbolic Climate\n${formatSymbolicClimate(relational.shared_symbolic_climate)}`
     : '';
   const cross = relational.cross_symbolic_climate
-    ? `\n\n### Cross Symbolic Climate\n- magnitude: ${relational.cross_symbolic_climate.magnitude ?? '—'}\n- valence: ${relational.cross_symbolic_climate.valence ?? '—'}\n- volatility: ${relational.cross_symbolic_climate.volatility ?? '—'}\n`
+    ? `\n\n### Cross Symbolic Climate\n${formatSymbolicClimate(relational.cross_symbolic_climate)}`
     : '';
 
   return (
     `${header}${preface}${summary}` +
     relHeader +
     dialogue +
-    polarity +
+    '\n\n' + polarityCards +
     shared +
     cross +
-    `\n\n*This is a placeholder narrative. Replace the formatter at src/formatter/create_markdown_reading_enhanced.js with your full interpretive generator.*\n`
+    `\n\n## Agency Hygiene\n\nIf this doesn't land, it doesn't count (OSR valid).\nAll phrasing remains conditional (may/might/could).\nThe SST classification depends entirely on your lived experience confirmation.\n`
   );
+}
+
+/**
+ * Format symbolic climate with Safe Lexicon descriptors
+ * @param {Object} climate - Climate data with magnitude, valence, volatility
+ * @returns {string} Formatted climate description
+ */
+function formatSymbolicClimate(climate) {
+  const mag = climate.magnitude ?? 0;
+  const val = climate.valence ?? 0;
+  const vol = climate.volatility ?? 0;
+  
+  const magDesc = getMagnitudeDescriptor(mag);
+  const volDesc = getVolatilityDescriptor(vol);
+  
+  const valenceDir = val > 0 ? '🌞 supportive' : val < 0 ? '🌑 restrictive' : '🌗 neutral';
+  
+  return `- **Magnitude**: ${magDesc.emoji} ${magDesc.label} (${mag.toFixed(1)}) — ${magDesc.description}\n` +
+         `- **Valence**: ${valenceDir} (${val.toFixed(1)})\n` +
+         `- **Volatility**: ${volDesc.emoji} ${volDesc.label} (${vol.toFixed(1)}) — ${volDesc.description}\n`;
 }
