@@ -170,7 +170,36 @@ async function buildLocalDraft(payload: any, geometry: NormalizedGeometry): Prom
   const option = `Pick one move that would test this mirror in the next 24 hours.`;
   const next_step = `If this lands, what single moment confirms it—WB, ABE, or OSR?`;
 
-  const appendix: Record<string, any> = { aspects: geometry?.aspects ?? [] };
+  // Generate fallback reader_markdown with both precision and metaphor
+  const aspectCount = geometry?.aspects?.length ?? 0;
+  const aspectSummary = aspectCount > 0
+    ? geometry.aspects.map((a: any) => `${a.from}–${a.to} ${a.type}${a.orb ? ` (${a.orb}° orb)` : ''}`).join(', ')
+    : 'No aspects detected';
+
+  const readerMarkdown = `# Mirror Reading for ${name}
+
+## Geometric Overview
+
+The chart geometry shows ${aspectCount} aspect${aspectCount !== 1 ? 's' : ''} in this configuration: ${aspectSummary}.
+
+${primary ? `The dominant elemental pressure leans toward **${primary}**, creating a climate where ${primary === 'fire' ? 'initiative and momentum' : primary === 'earth' ? 'structure and grounding' : primary === 'air' ? 'connection and flow' : 'depth and feeling'} may surface more readily.` : 'The elemental distribution shows balanced pressure across all quadrants.'}
+
+## Current Weather
+
+${start && end ? `This reading covers the period from ${start} to ${end}, tracking how symbolic weather moves through your natal geometry.` : 'This reading reflects your natal baseline—the permanent structure that shapes how transiting weather moves through your chart.'}
+
+The aspects above create friction points and flow channels. Watch for moments when these geometric tensions surface as lived experience—that's where the mirror becomes testable.
+
+## What to Track
+
+Notice where ${primary || 'the elemental balance'} shows up in your day. The geometry suggests certain patterns may appear, but only your lived experience confirms whether these aspects translate to actual pressure or ease.
+
+Test this mirror by naming one concrete moment where you felt the pull of these patterns. That's your falsifiability check.`;
+
+  const appendix: Record<string, any> = { 
+    aspects: geometry?.aspects ?? [],
+    reader_markdown: readerMarkdown
+  };
   const relational = extractRelationalContext(payload);
   if (elements) appendix.elements = elements;
   if (start || end) {
