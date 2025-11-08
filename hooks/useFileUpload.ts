@@ -163,7 +163,7 @@ export function useFileUpload({
     setStatusMessage("Extracting PDF text...");
     const pdfjsLib = await import("pdfjs-dist");
     (pdfjsLib as any).GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.149/pdf.worker.min.js";
 
     const arrayBuffer = await file.arrayBuffer();
     const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
