@@ -5,16 +5,14 @@ import { defineConfig, devices } from '@playwright/test';
  * Tests Math Brain, Poetic Brain (auth-gated), API endpoints, and export flows
  */
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './tests/e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: [
-    ['html'],
-    ['list'],
-    ...(process.env.CI ? [['github']] : []),
-  ],
+  reporter: process.env.CI
+    ? [['html'], ['list'], ['github']]
+    : [['html'], ['list']],
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
@@ -36,13 +34,11 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:3000',
-    // Reuse existing server to avoid port 3000 conflicts in local dev
-    // In CI, start fresh to ensure clean test environment
+    url: 'http://localhost:3000/api/health',
     reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-    // Stdout: 'ignore' prevents npm output from cluttering test results
-    stdout: 'ignore',
+    timeout: 180000, // 3 minutes
+    stdout: 'pipe',
     stderr: 'pipe',
+    ignoreHTTPSErrors: true,
   },
 });

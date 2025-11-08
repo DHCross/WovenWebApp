@@ -1,0 +1,47 @@
+{
+  "_format": "mirror-symbolic-weather-v1",
+  "mirror_contract": {
+    "person_a": {
+      "name": "Test User",
+      "birth_data": {
+        "year": 1990,
+        "month": 1,
+        "day": 1,
+        "hour": 12,
+        "minute": 0,
+        "latitude": 40.7128,
+        "longitude": -74.0060,
+        "timezone": "America/New_York"
+      }
+    },
+    "start_date": "2025-01-01T00:00:00.000Z",
+    "end_date": "2025-12-31T23:59:59.999Z"
+  },
+  "symbolic_weather": {
+    "periods": [
+      {
+        "start": "2025-01-01T00:00:00.000Z",
+        "end": "2025-01-31T23:59:59.999Z",
+        "themes": ["new_beginnings", "planning"],
+        "elements": {
+          "fire": 0.7,
+          "earth": 0.5,
+          "air": 0.6,
+          "water": 0.4
+        },
+        "aspects": [
+          {
+            "planets": ["sun", "moon"],
+            "aspect": "conjunction",
+            "orb": 2.5,
+            "exact_time": "2025-01-15T12:00:00.000Z"
+          }
+        ]
+      }
+    ]
+  },
+  "metadata": {
+    "generated_at": "2025-01-01T00:00:00.000Z",
+    "version": "1.0.0"
+  }
+}
