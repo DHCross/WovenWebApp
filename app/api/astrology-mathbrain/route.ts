@@ -237,6 +237,32 @@ export async function POST(request: NextRequest) {
 
       const chartData = legacyBody;
 
+      // Defensive guard: ensure natal data exists before continuing. If the
+      // upstream responded 200 but did not include person_a chart basics,
+      // fail fast so the client doesn't save an empty shell.
+      const hasNatalData = Boolean(
+        chartData &&
+        chartData.person_a &&
+        chartData.person_a.chart && // Stricter check: must have the chart object
+        (chartData.person_a.chart.person?.planets || chartData.person_a.chart.aspects) // And planets or aspects
+      );
+      if (!hasNatalData) {
+        logger.error('Missing critical natal data (chart.person or chart.aspects) for person_a from legacy handler', {
+          chartData: {
+            person_a: {
+              chart: chartData.person_a?.chart ? 'exists' : 'missing',
+              details: chartData.person_a?.details ? 'exists' : 'missing',
+              meta: chartData.person_a?.meta ? 'exists' : 'missing',
+            }
+          }
+        });
+        return NextResponse.json({
+          success: false,
+          error: 'Upstream service returned an incomplete chart. Natal data is missing.',
+          code: 'INCOMPLETE_NATAL_CHART_DATA'
+        }, { status: 502 });
+      }
+
       // Prepare the config for the v2 formatter/aggregator
       const relationshipContextRaw =
         chartData?.relationship ||

@@ -243,6 +243,9 @@ const AUTH_ENABLED = (() => {
   return true;
 })();
 
+// Dev helper: bypass provider readiness checks (astrology/poetic) when true
+const PROVIDER_BYPASS = String(process.env.NEXT_PUBLIC_BYPASS_PROVIDER_CHECK) === 'true';
+
 const AUTH_STATUS_STORAGE_KEY = 'auth.status';
 const AUTH_STATUS_EVENT = 'auth-status-change';
 
@@ -908,6 +911,55 @@ export default function MathBrainPage() {
     });
   };
 
+  // Handle Auth0 redirect callback on /math-brain so login initiated from Home works
+  useEffect(() => {
+    if (!AUTH_ENABLED || typeof window === 'undefined') return;
+    const qs = window.location.search;
+    if (!qs.includes('code=') || !qs.includes('state=')) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await ensureSdk();
+        const res = await fetch('/api/auth-config', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`Auth config fetch failed: ${res.status}`);
+        const cfg = await res.json();
+        const domain = normalizeAuth0Domain(cfg?.domain);
+        const clientId = normalizeAuth0ClientId(cfg?.clientId);
+        const audience = normalizeAuth0Audience(cfg?.audience ?? null);
+        if (!domain || !clientId) throw new Error('Auth0 config missing');
+
+        const win = window as any;
+        const creator = win?.auth0?.createAuth0Client || win?.createAuth0Client;
+        if (typeof creator !== 'function') throw new Error('Auth0 SDK not available');
+
+        const client = await creator({
+          domain,
+          clientId,
+          authorizationParams: {
+            redirect_uri: getRedirectUri(),
+            ...(audience ? { audience } : {}),
+          },
+        });
+
+        await client.handleRedirectCallback();
+        const url = new URL(window.location.href);
+        url.search = '';
+        window.history.replaceState({}, '', url.toString());
+        const authed = await client.isAuthenticated();
+        if (!cancelled) {
+          setIsAuthenticated(authed);
+          setAuthReady(true);
+          broadcastAuthStatus(authed);
+        }
+      } catch (err) {
+        console.error('Auth callback handling failed on /math-brain', err);
+        if (!cancelled) setAuthReady(true);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleSnapshotAuthRequired = useCallback(async () => {
     try {
       await ensureSdk();
@@ -1082,7 +1134,7 @@ export default function MathBrainPage() {
     astrology: { ready: true, configured: true },
     poetic: { ready: true, configured: true }
   });
-  const [providerCheckPending, setProviderCheckPending] = useState<boolean>(true);
+  const [providerCheckPending, setProviderCheckPending] = useState<boolean>(() => !PROVIDER_BYPASS);
   const canVisitPoetic = POETIC_BRAIN_ENABLED && providerHealth.poetic.ready;
 
   // Person B subject state
@@ -1277,6 +1329,11 @@ export default function MathBrainPage() {
     let cancelled = false;
 
     async function probeProviders() {
+      if (PROVIDER_BYPASS) {
+        setProviderHealth({ astrology: { ready: true, configured: true }, poetic: { ready: true, configured: true } });
+        setProviderCheckPending(false);
+        return;
+      }
       try {
         const response = await fetch('/api/provider-health', { cache: 'no-store' });
         if (!response.ok) {
@@ -3846,8 +3903,8 @@ export default function MathBrainPage() {
     return allPresent && bOk && relOk && Boolean(startDate) && Boolean(endDate);
   }, [personA, personB, includePersonB, relationshipType, relationshipTier, relationshipRole, mode, startDate, endDate, aCoordsValid, bCoordsValid, timeUnknown, timeUnknownB, timePolicy, includeTransits]);
   const submitDisabled = useMemo(() => {
-    if (providerCheckPending) return true;
-    if (!providerHealth.astrology.ready) return true;
+    if (!PROVIDER_BYPASS && providerCheckPending) return true;
+    if (!PROVIDER_BYPASS && !providerHealth.astrology.ready) return true;
     // Additional relocation/report gate
     const locGate = needsLocation(reportType, includeTransits, personA);
     if (includeTransits && !locGate.hasLoc) return true;
@@ -4795,10 +4852,10 @@ export default function MathBrainPage() {
               <p className="mt-2 text-xs text-amber-400">Hint: Toggle "Include Person B" and fill in required fields to enable relational modes.</p>
             )}
             {submitDisabled && !loading && (() => {
-              if (providerCheckPending) {
+              if (!PROVIDER_BYPASS && providerCheckPending) {
                 return <p className="mt-2 text-xs text-amber-400">⚠️ Checking provider readiness…</p>;
               }
-              if (!providerHealth.astrology.ready) {
+              if (!PROVIDER_BYPASS && !providerHealth.astrology.ready) {
                 const outageMessage = providerHealth.astrology.message || 'Math Brain services are currently unavailable.';
                 return <p className="mt-2 text-xs text-amber-400">⚠️ {outageMessage}</p>;
               }

@@ -25,10 +25,10 @@ const jwtVerifyOptions: jwt.VerifyOptions = {
 };
 
 async function verifyToken(token: string) {
-  return new Promise((resolve, reject) => {
+  return new Promise<any>((resolve, reject) => {
     jwt.verify(token, getKey as any, jwtVerifyOptions, (err, decoded) => {
       if (err) return reject(new Error('Token is not valid.'));
-      resolve(decoded);
+      resolve(decoded as any);
     });
   });
 }
@@ -40,7 +40,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized. No or malformed token provided.' }, { status: 401 });
     }
     const token = authHeader.split(' ')[1];
-    await verifyToken(token);
+    const decoded = await verifyToken(token);
+
+    // Optional RBAC/scope gate for paywall-style access control
+    // Disabled by default. Set POETIC_REQUIRED_SCOPE to enable (e.g., 'read:poetic_brain').
+    const requiredScope = process.env.POETIC_REQUIRED_SCOPE || '';
+    if (requiredScope && typeof requiredScope === 'string') {
+      const scopes: string[] = (() => {
+        const s = (decoded as any)?.scope;
+        if (typeof s === 'string') return s.split(/\s+/).filter(Boolean);
+        const p = (decoded as any)?.permissions;
+        if (Array.isArray(p)) return p.map(String);
+        return [];
+      })();
+      if (!scopes.includes(requiredScope)) {
+        return NextResponse.json({ error: 'Forbidden: missing permission', required: requiredScope }, { status: 403 });
+      }
+    }
 
     const body = await req.json().catch(() => ({}));
     const prompt = body?.prompt;
