@@ -1,3 +1,27 @@
+## [2025-10-10] NOTE: Development Environment Reminder
+
+**Date:** 2025-10-10  Summary
+
+**Status:** ✅ VERIFIED  Documented the recommended local workflow so everyone keeps Netlify auth, proxies, and functions aligned.
+
+**Details**
+
+  - `netlify dev` should be the default local runner because it mirrors production: the Next.js frontend runs on `http://localhost:8888`, Netlify Functions are auto-proxied under `/.netlify/functions/*`, and Auth0 callbacks stay aligned with the saved `http://localhost:8888` origin.
+  - The plain `npm run dev`/`next dev` server lands on `http://localhost:3000` and bypasses the proxy, so OAuth callbacks break and serverless APIs disappear unless a separate functions runner or proxy is wired up.
+- Keeping `netlify dev` in the loop keeps Poetic Brain flows, Auth0, and any other Netlify-backed routes functional during development.
+
+## [Unreleased] AUTH: Dev Auth0 Reminder
+
+**Date:** 2025-11-08  Summary
+
+**Status:** ⚠️ CONFIGURATION  Clarified that running locally still requires the dev Auth0 tenant entries and explained how / when to change them.
+
+**Details**
+
+  - Your local `.env` needs the Auth0 values `AUTH0_DOMAIN=dev-z8gw1uk6zgsrzubk.us.auth0.com`, `AUTH0_CLIENT_ID=0nV0L41xZijfc8HTKtoROPgyqgMttJYT`, and `AUTH0_AUDIENCE=https://ravencalder-api` so RavenCalder can authenticate against the dev tenant.
+  - The audience string comes from the Auth0 API identifier and is effectively locked once created, so keep `https://ravencalder-api` unless you delete that API and recreate it with a different identifier.
+  - If you opt to change the identifier, note that Auth0 won’t let you edit it later; you must delete the API and re-run the Create API flow before updating `.env`.
+
 ## [2025-01-21] FEATURE: Clear Mirror Unified Rendering Schema
 
 

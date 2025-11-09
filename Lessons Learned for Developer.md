@@ -114,3 +114,29 @@ When you want to enable Auth0 again, either:
 - Change `NEXT_PUBLIC_ENABLE_AUTH=true` and add your Auth0 credentials
 
 The snapshot feature is fully functional and ready to test without authentication!
+
+---
+
+## Netlify Dev + Workflow Pillars
+
+Recent conversations reinforced the four pillars that keep Poetic Brain development stable under the Netlify/Next.js stack.
+
+1. **Strategic AI Workflows**
+   - Treat AI assistants (Copilot, Claude, GPT-5) as partners that still need verification via logs, network payloads, or docs.
+   - Choose models by task: GPT-5/o3 or Claude Opus 4/4.1 for deep debugging/architecture, mini variants for quick triage, and Gemini 2.5 Pro when you need to reason over screenshots or diagrams.
+   - Feed rich context: break complex requests into pieces, use custom instructions (e.g., `.github/copilot-instructions.md`), enforce conventions, and extend context via MCP resources when possible.
+
+2. **Git Hygiene**
+   - Work in feature branches, stage thoughtfully with `git add --patch`, and keep commits atomic with clear “what and why” messaging.
+   - Clean up local history via `git rebase -i` before sharing (without rebasing already-pushed commits) and prefer squash-and-merge to avoid noisy master history.
+
+3. **Debugging Environment**
+   - Keep a tight feedback loop inside VS Code (or similar) to use built-in Git, browser debugging, and integrated AI tooling.
+   - Use real ground truth (logs, HARs, devtools) for config issues, and understand port conflicts like `EADDRINUSE` instead of replacing the shared environment.
+
+4. **API & Deployment Best Practices**
+   - Follow external API contract details (headers, keys, hostnames) rather than guessing.
+   - Always run `netlify dev` on `http://localhost:8888` during development: it proxies Netlify functions under `/.netlify/functions/*`, keeps Auth0 callbacks aligned with the saved origin, and ensures Poetic Brain and other serverless routes remain reachable.
+   - Keep documentation (Changelog, lessons, error histories) updated so repeated problems become easier to diagnose.
+
+Together these practices protect the Auth0 flows, Netlify Functions, and Poetic Brain experiences while keeping work aligned with the deployed stack.

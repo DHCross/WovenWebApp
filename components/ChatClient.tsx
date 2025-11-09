@@ -96,6 +96,12 @@ const sanitizeHtml = (html: string): string => {
   });
 };
 
+const PERSONA_DESCRIPTIONS: Record<PersonaMode, string> = {
+  plain: "Plain · Technical keeps the focus on precise reasoning and chart mechanics.",
+  hybrid: "Hybrid · Default blends clarity with gentle lyrical framing for balanced guidance.",
+  poetic: "Poetic · Lyrical leans into metaphor-rich storytelling when you want the music of the read.",
+};
+
 const createInitialMessage = (): Message => ({
   id: generateId(),
   role: "raven",
@@ -119,6 +125,7 @@ export default function ChatClient() {
   const [sessionMode, setSessionMode] = useState<SessionMode>('idle');
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [personaMode, setPersonaMode] = useState<PersonaMode>('hybrid');
+  const [resumeFlashActive, setResumeFlashActive] = useState(false);
   const copyResetRef = useRef<number | null>(null);
 
   const { validationMap, setValidationPoints, updateValidationNote } = useValidation({
@@ -338,6 +345,17 @@ export default function ChatClient() {
     const timer = window.setTimeout(() => setStatusMessage(null), 2800);
     return () => window.clearTimeout(timer);
   }, [statusMessage]);
+
+  useEffect(() => {
+    if (resumeFlashToken === 0) return;
+    setResumeFlashActive(true);
+    const timer = window.setTimeout(() => {
+      setResumeFlashActive(false);
+    }, 1200);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [resumeFlashToken]);
 
   useEffect(() => {
     if (!errorMessage) return;
@@ -578,6 +596,7 @@ export default function ChatClient() {
     dismissStoredPayload,
     applyStoredPayload,
     clearStoredPayload,
+    resumeFlashToken,
   } = useFileUpload({
     reportContexts,
     setReportContexts,
@@ -945,57 +964,79 @@ export default function ChatClient() {
               <span>{STATUS_CONNECTED}</span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 text-sm">
-            <div className="inline-flex items-center gap-2 rounded-lg border border-slate-600/60 bg-slate-800/60 px-3 py-2">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
-                Persona
-              </span>
-              <select
-                value={personaMode}
-                onChange={(event) => setPersonaMode(event.target.value as PersonaMode)}
-                className="bg-transparent text-sm font-medium text-slate-100 focus:outline-none"
-              >
-                <option value="plain" className="bg-slate-900 text-slate-100">
-                  Plain · Technical
-                </option>
-                <option value="hybrid" className="bg-slate-900 text-slate-100">
-                  Hybrid · Default
-                </option>
-                <option value="poetic" className="bg-slate-900 text-slate-100">
-                  Poetic · Lyrical
-                </option>
-              </select>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleUploadButton("mirror")}
-              className="rounded-lg border border-slate-600/60 bg-slate-800/60 px-4 py-2 font-medium text-slate-100 hover:border-slate-500 hover:bg-slate-800 transition"
-            >
-              🪞 Upload Mirror
-            </button>
-            <button
-              type="button"
-              onClick={() => handleUploadButton("balance")}
-              className="rounded-lg border border-slate-600/60 bg-slate-800/60 px-4 py-2 font-medium text-slate-100 hover:border-slate-500 hover:bg-slate-800 transition"
-            >
-              🌡️ Upload Weather
-            </button>
-            {canRecoverStoredPayload && (
+          <div className="flex flex-col gap-2 text-sm">
+            <div className="flex flex-wrap gap-2">
+              <div className="flex flex-col gap-1">
+                <div className="inline-flex items-center gap-2 rounded-lg border border-slate-600/60 bg-slate-800/60 px-3 py-2">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
+                    Persona
+                  </span>
+                  <select
+                    value={personaMode}
+                    onChange={(event) => setPersonaMode(event.target.value as PersonaMode)}
+                    className="bg-transparent text-sm font-medium text-slate-100 focus:outline-none"
+                  >
+                    <option value="plain" className="bg-slate-900 text-slate-100">
+                      Plain · Technical
+                    </option>
+                    <option value="hybrid" className="bg-slate-900 text-slate-100">
+                      Hybrid · Default
+                    </option>
+                    <option value="poetic" className="bg-slate-900 text-slate-100">
+                      Poetic · Lyrical
+                    </option>
+                  </select>
+                </div>
+                <p className="max-w-[220px] text-[10px] text-slate-400">
+                  {PERSONA_DESCRIPTIONS[personaMode]}
+                </p>
+              </div>
               <button
                 type="button"
-                onClick={recoverLastStoredPayload}
-                className="rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-2 font-medium text-emerald-100 transition hover:bg-emerald-500/20"
+                onClick={() => handleUploadButton("mirror")}
+                className="rounded-lg border border-slate-600/60 bg-slate-800/60 px-4 py-2 font-medium text-slate-100 hover:border-slate-500 hover:bg-slate-800 transition"
               >
-                ⏮️ Resume Math Brain
+                🪞 Upload Mirror
               </button>
-            )}
-            <button
-              type="button"
-              onClick={handleStartWrapUp}
-              className="rounded-lg border border-transparent px-4 py-2 text-slate-400 hover:text-slate-200 transition"
-            >
-              Reset Session
-            </button>
+              <button
+                type="button"
+                onClick={() => handleUploadButton("balance")}
+                className="rounded-lg border border-slate-600/60 bg-slate-800/60 px-4 py-2 font-medium text-slate-100 hover:border-slate-500 hover:bg-slate-800 transition"
+              >
+                🌡️ Upload Symbolic Weather
+              </button>
+              {canRecoverStoredPayload && (
+                <button
+                  type="button"
+                  onClick={recoverLastStoredPayload}
+                  className={`rounded-lg border px-4 py-2 font-medium text-emerald-100 transition ${
+                    resumeFlashActive
+                      ? "border-emerald-400/80 bg-emerald-500/30 shadow-[0_0_18px_rgba(16,185,129,0.65)] ring-2 ring-emerald-300/90"
+                      : "border-emerald-500/50 bg-emerald-500/10 hover:bg-emerald-500/20"
+                  }`}
+                >
+                  ⏮️ Resume Math Brain
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleStartWrapUp}
+                className="rounded-lg border border-transparent px-4 py-2 text-slate-400 hover:text-slate-200 transition"
+              >
+                Reset Session
+              </button>
+            </div>
+            <div className="text-xs text-slate-400 sm:flex sm:flex-wrap sm:gap-6">
+              <p className="max-w-[220px]">
+                🪞 Upload Mirror brings in the Math Brain Mirror export so Raven can parse the saved charts.
+              </p>
+              <p className="max-w-[220px]">
+                🌡️ Upload Symbolic Weather supplies the Astro Report/Weather data Raven needs for transit context.
+              </p>
+              <p className="max-w-[220px]">
+                ⏮️ Resume Math Brain restores the last archived session and flashes the button when it’s queued.
+              </p>
+            </div>
           </div>
         </div>
       </header>

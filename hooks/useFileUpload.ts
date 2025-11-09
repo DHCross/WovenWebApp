@@ -41,6 +41,14 @@ export interface UseFileUploadArgs {
   shiftSessionMode: (mode: SessionMode, options?: SessionShiftOptions) => void;
 }
 
+const readFileAsText = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => resolve(String(event.target?.result ?? ""));
+    reader.onerror = () => reject(new Error("File read failure"));
+    reader.readAsText(file);
+  });
+
 export interface UseFileUploadResult {
   fileInputRef: MutableRefObject<HTMLInputElement | null>;
   storedPayload: StoredMathBrainPayload | null;
@@ -52,15 +60,8 @@ export interface UseFileUploadResult {
   dismissStoredPayload: (record?: StoredMathBrainPayload | null) => void;
   applyStoredPayload: (record: StoredMathBrainPayload) => Promise<void>;
   clearStoredPayload: () => void;
+  resumeFlashToken: number;
 }
-
-const readFileAsText = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (event) => resolve(String(event.target?.result ?? ""));
-    reader.onerror = () => reject(new Error("File read failure"));
-    reader.readAsText(file);
-  });
 
 export function useFileUpload({
   reportContexts,
@@ -76,6 +77,7 @@ export function useFileUpload({
   const uploadTypeRef = useRef<ReportContextType | null>(null);
   const [storedPayload, setStoredPayload] = useState<StoredMathBrainPayload | null>(null);
   const [hasSavedPayloadSnapshot, setHasSavedPayloadSnapshot] = useState<boolean>(false);
+  const [resumeFlashToken, setResumeFlashToken] = useState(0);
 
   const acknowledgeStoredPayload = useCallback((timestamp?: string) => {
     if (typeof window === "undefined") return;
@@ -291,16 +293,14 @@ export function useFileUpload({
           : new Date().toISOString();
       setHasSavedPayloadSnapshot(true);
 
-      const ack = window.localStorage.getItem(MB_LAST_PAYLOAD_ACK_KEY);
-      if (ack && ack === savedAt) return;
-
       setStoredPayload({ ...parsed, savedAt });
+      setResumeFlashToken((prev) => prev + 1);
       setStatusMessage("Last Math Brain export is ready to load.");
     } catch (error) {
       console.error("Failed to recover stored payload:", error);
       setErrorMessage("Could not retrieve the saved Math Brain export.");
     }
-  }, [setErrorMessage, setStatusMessage, storedPayload]);
+  }, [setErrorMessage, setResumeFlashToken, setStatusMessage, storedPayload]);
 
   const applyStoredPayload = useCallback(
     async (record: StoredMathBrainPayload) => {
@@ -396,6 +396,7 @@ export function useFileUpload({
     dismissStoredPayload,
     applyStoredPayload,
     clearStoredPayload,
+    resumeFlashToken,
   };
 }
 
