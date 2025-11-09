@@ -108,6 +108,10 @@ Go to: http://localhost:3000/math-brain
     - Growth (H3): [planets]
     - Responsibility (H4): [planets]
 
+### 🔐 Local Auth Toggle (Quick Fix)
+- If the Math Brain landing page keeps showing "Continue with Google" on localhost, add `NEXT_PUBLIC_ENABLE_AUTH=false` to your `.env` (or `.env.local`) and restart `netlify dev`. This bypasses Auth0 for local-only testing.
+- When you need to exercise the full Auth0 + auto-exec flow, flip the flag back to `true`, ensure real `AUTH0_*` values are set, and restart the dev server so `/api/auth-config` is reachable.
+
 ### 🔒 Re-enabling Auth Later
 When you want to enable Auth0 again, either:
 - Delete `.env.local`, or
