@@ -9,22 +9,40 @@
  * - formatTransitTable() - Orb-band formatting with phase and scoring
  */
 
-// These helpers are imported from the monolith; will be refactored to seismograph-utils.js later
+// Import from proper module locations to avoid circular dependencies
+const { aggregate, _internals: seismoInternals } = require('../../src/seismograph.js');
 const {
-  enrichDailyAspects,
-  seismoInternals,
-  ASPECT_CLASS,
-  BALANCE_CALIBRATION_VERSION,
-  SEISMOGRAPH_VERSION,
-  WEIGHTS_LEGEND,
   classifyMagnitude,
   classifyDirectionalBias,
   classifyVolatility,
   scaleDirectionalBias,
-  aggregate,
-  selectPoeticAspects,
-  weightAspect,
-} = require('../../lib/server/astrology-mathbrain');
+} = require('../../lib/reporting/metric-labels');
+
+// Lazy-load these to break circular dependency (they depend on this module completing first)
+let enrichDailyAspectsLazy, selectPoeticAspectsLazy, weightAspectLazy;
+let ASPECT_CLASS_LAZY, BALANCE_CALIBRATION_VERSION_LAZY, SEISMOGRAPH_VERSION_LAZY, WEIGHTS_LEGEND_LAZY;
+
+function getLazyImports() {
+  if (!enrichDailyAspectsLazy) {
+    const monolith = require('../../lib/server/astrology-mathbrain');
+    enrichDailyAspectsLazy = monolith.enrichDailyAspects;
+    selectPoeticAspectsLazy = monolith.selectPoeticAspects;
+    weightAspectLazy = monolith.weightAspect;
+    ASPECT_CLASS_LAZY = monolith.ASPECT_CLASS;
+    BALANCE_CALIBRATION_VERSION_LAZY = monolith.BALANCE_CALIBRATION_VERSION;
+    SEISMOGRAPH_VERSION_LAZY = monolith.SEISMOGRAPH_VERSION;
+    WEIGHTS_LEGEND_LAZY = monolith.WEIGHTS_LEGEND;
+  }
+  return {
+    enrichDailyAspects: enrichDailyAspectsLazy,
+    selectPoeticAspects: selectPoeticAspectsLazy,
+    weightAspect: weightAspectLazy,
+    ASPECT_CLASS: ASPECT_CLASS_LAZY,
+    BALANCE_CALIBRATION_VERSION: BALANCE_CALIBRATION_VERSION_LAZY,
+    SEISMOGRAPH_VERSION: SEISMOGRAPH_VERSION_LAZY,
+    WEIGHTS_LEGEND: WEIGHTS_LEGEND_LAZY,
+  };
+}
 
 /**
  * Formats daily aspects into orb-band transit table with phase tracking and scoring.
@@ -164,6 +182,17 @@ function formatTransitTable(enrichedAspects, prevDayAspects = null) {
  * @returns {Object} { daily: { date: entry, ... }, summary: {...}, graph_rows: [...] }
  */
 function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {}) {
+  // Lazy-load monolith dependencies to break circular dependency
+  const {
+    enrichDailyAspects,
+    selectPoeticAspects,
+    weightAspect,
+    ASPECT_CLASS,
+    BALANCE_CALIBRATION_VERSION,
+    SEISMOGRAPH_VERSION,
+    WEIGHTS_LEGEND,
+  } = getLazyImports();
+  
   if (!transitsByDate || Object.keys(transitsByDate).length === 0) {
     return { daily: {}, summary: {}, graph_rows: [] };
   }
