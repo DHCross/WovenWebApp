@@ -49,6 +49,9 @@
     "postinstall": "if [ -f package.json ] && node -e \"try{require('concurrently')}catch(e){process.exit(1)}\"; then echo 'concurrently already installed'; else echo 'Installing concurrently...'; npm i -D concurrently; fi",
     "auth:check": "node scripts/auth-config-check.js",
     "lexicon:lint": "node scripts/lexicon-lint.mjs",
+    "velocity": "node scripts/velocity-tracker.js --analyze",
+    "velocity:estimate": "node scripts/velocity-tracker.js --estimate",
+    "velocity:report": "node scripts/velocity-tracker.js --report",
     "validate:fieldmap": "node scripts/validate-fieldmap-v5.js"
   },
   "dependencies": {
