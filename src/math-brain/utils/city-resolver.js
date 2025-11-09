@@ -11,124 +11,13 @@ const MATH_BRAIN_VERSION = '0.2.1';
 const EPHEMERIS_SOURCE = 'AstrologerAPI-v4';
 const CALIBRATION_BOUNDARY = '2025-09-05';
 
-const API_BASE_URL = 'https://astrologer.p.rapidapi.com';
-const API_ENDPOINTS = {
-  BIRTH_DATA: `${API_BASE_URL}/api/v4/birth-data`,
-  NOW: `${API_BASE_URL}/api/v4/now`,
-};
-
 const { logger } = require('./time-and-coords.js');
-
-let loggedMissingRapidApiKey = false;
-
-/**
- * Builds HTTP headers for RapidAPI requests
- * @returns {Object} Headers with authentication
- * @throws {Error} If RAPIDAPI_KEY is not configured
- */
-function buildHeaders() {
-  const rawKey = process.env.RAPIDAPI_KEY;
-  const key = rawKey && String(rawKey).trim();
-  if (!key) {
-    if (!loggedMissingRapidApiKey) {
-      logger.error('RAPIDAPI_KEY environment variable is not configured.');
-      loggedMissingRapidApiKey = true;
-    }
-    throw new Error('RAPIDAPI_KEY environment variable is not configured.');
-  }
-  // Log masked key for debugging (show only first/last 4 chars)
-  const maskedKey = key.length > 8 ? `${key.slice(0, 4)}...${key.slice(-4)}` : '****';
-  logger.debug(`Building headers with RAPIDAPI_KEY: ${maskedKey}`);
-  return {
-    "content-type": "application/json",
-    "x-rapidapi-key": key,
-    "x-rapidapi-host": "astrologer.p.rapidapi.com",
-  };
-}
-
-/**
- * Makes an API call with exponential backoff retry logic
- * @param {string} url - API endpoint URL
- * @param {Object} options - Fetch options
- * @param {string} operation - Operation name for logging
- * @param {number} maxRetries - Maximum retry attempts
- * @returns {Promise<Object>} Parsed response body
- * @throws {Error} On non-retryable errors or max retries exceeded
- */
-async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      logger.debug(`API call attempt ${attempt}/${maxRetries} for ${operation}`);
-      const response = await fetch(url, options);
-
-      if (!response.ok) {
-        if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-          // Capture status + body once
-          const status = response.status;
-          let rawText = '';
-          try { rawText = await response.text(); } catch { rawText = 'Unable to read response body'; }
-          let parsedMessage = rawText;
-          try {
-            const j = JSON.parse(rawText);
-            if (j.message) parsedMessage = j.message;
-          } catch(_) {/* keep rawText */}
-          // Special handling for auth/subscription issues
-          if (status === 401 || status === 403) {
-            const hint = parsedMessage && /not subscribed|unauthorized|invalid api key|api key is invalid/i.test(parsedMessage)
-              ? 'Verify RAPIDAPI_KEY, subscription plan, and that the key matches this API.'
-              : 'Authentication / subscription issue likely.';
-            logger.error('RapidAPI auth/subscription error', { status, operation, parsedMessage, hint });
-            const err = new Error(`RapidAPI access denied (${status}): ${parsedMessage}. ${hint}`);
-            err.code = 'RAPIDAPI_SUBSCRIPTION';
-            err.status = status;
-            err.raw = rawText.slice(0,1200);
-            throw err;
-          }
-          logger.error('Client error (non-retryable)', { status, operation, url, body: rawText.slice(0,1200) });
-          const err = new Error(`Client error ${status} for ${operation}`);
-          err.code = 'CLIENT_ERROR';
-          err.status = status;
-          err.raw = rawText.slice(0,1200);
-          throw err;
-        }
-        logger.warn(`API call failed with status ${response.status}. Retrying...`);
-        throw new Error(`Server error: ${response.status}`);
-      }
-      return response.json();
-    } catch (error) {
-      if (attempt === maxRetries || error.message.includes('Non-retryable')) {
-        logger.error(`Failed after ${attempt} attempts: ${error.message}`, { url, operation, code: error.code, status: error.status });
-        if (error.code === 'RAPIDAPI_SUBSCRIPTION') throw error; // surface directly
-        if (error.code === 'CLIENT_ERROR') throw error;
-        const err = new Error(`Service temporarily unavailable. Please try again later.`);
-        err.code = 'UPSTREAM_TEMPORARY';
-        throw err;
-      }
-      const delay = Math.pow(2, attempt) * 100 + Math.random() * 100; // Exponential backoff
-      await new Promise(res => setTimeout(res, delay));
-    }
-  }
-}
-
-/**
- * Probes RapidAPI endpoint for latency/connectivity check
- * @param {Object} headers - Request headers with authentication
- * @returns {Promise<Object>} Status object with ok flag and optional error
- */
-async function rapidApiPing(headers){
-  const controller = new AbortController();
-  const to = setTimeout(()=>controller.abort(), 3500);
-  try {
-    const res = await fetch(`${API_ENDPOINTS.NOW}`, { method:'GET', headers, signal: controller.signal });
-    const ok = res.ok;
-    const status = res.status;
-    clearTimeout(to);
-    return { ok, status };
-  } catch (e) {
-    clearTimeout(to);
-    return { ok:false, error: e.name === 'AbortError' ? 'timeout' : e.message };
-  }
-}
+const {
+  API_ENDPOINTS,
+  buildHeaders,
+  apiCallWithRetry,
+  rapidApiPing,
+} = require('../api-client.js');
 
 /**
  * Resolves a city name to coordinates and timezone

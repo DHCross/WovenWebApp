@@ -464,6 +464,142 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
   return { transitsByDate, retroFlagsByDate, provenanceByDate, chartAssets };
 }
 
+async function computeComposite(personA, personB, pass = {}, headers) {
+  try {
+    logger.debug('Computing composite for subjects:', {
+      personA: personA?.name || 'Unknown A',
+      personB: personB?.name || 'Unknown B'
+    });
+
+    const payload = {
+      first_subject: subjectToAPI(personA, pass),
+      second_subject: subjectToAPI(personB, pass),
+      ...pass,
+    };
+
+    const response = await apiCallWithRetry(
+      API_ENDPOINTS.COMPOSITE_ASPECTS,
+      { method: 'POST', headers, body: JSON.stringify(payload) },
+      'Composite aspects'
+    );
+
+    const { sanitized: data, assets } = sanitizeChartPayload(response.data || {}, {
+      subject: 'composite',
+      chartType: 'composite',
+      scope: 'composite_aspects',
+    });
+
+    const aspects = Array.isArray(response.aspects) ? response.aspects : (data.aspects || []);
+    logger.debug('Composite calculation successful, aspects found:', aspects.length);
+
+    if (assets && assets.length) {
+      data.assets = assets;
+    }
+
+    return { aspects, raw: data };
+  } catch (error) {
+    logger.error('Composite calculation failed:', error);
+    throw new Error(`Composite calculation failed: ${error.message}`);
+  }
+}
+
+async function computeCompositeTransits(compositeRaw, start, end, step, pass = {}, headers) {
+  if (!compositeRaw) return { transitsByDate: {} };
+
+  const transitsByDate = {};
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  endDate.setDate(endDate.getDate() + 1); // Make end date inclusive
+
+  const promises = [];
+
+  for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
+    const dateString = d.toISOString().split('T')[0];
+
+    const transitSubject = {
+      year: d.getUTCFullYear(),
+      month: d.getUTCMonth() + 1,
+      day: d.getUTCDate(),
+      hour: 12,
+      minute: 0,
+      city: 'Greenwich',
+      nation: 'GB',
+      latitude: 51.48,
+      longitude: 0,
+      timezone: 'UTC',
+      zodiac_type: 'Tropic'
+    };
+
+    const payload = {
+      first_subject: subjectToAPI(compositeRaw, pass),
+      transit_subject: subjectToAPI(transitSubject, pass),
+      ...pass
+    };
+
+    logger.debug(`Composite transit API call for ${dateString}:`, {
+      pass_keys: Object.keys(pass),
+      composite_subject: compositeRaw?.name || 'Unknown composite'
+    });
+    logger.debug(`Full composite transit API payload for ${dateString}:`, JSON.stringify(payload, null, 2));
+
+    promises.push(
+      apiCallWithRetry(
+        API_ENDPOINTS.TRANSIT_ASPECTS,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+        },
+        `Composite transits for ${dateString}`
+      )
+        .then(resp => {
+          logger.debug(`Composite transit API response for ${dateString}:`, {
+            hasAspects: !!(resp && resp.aspects),
+            aspectCount: resp?.aspects?.length || 0,
+            responseKeys: resp ? Object.keys(resp) : 'null response'
+          });
+
+          if (resp && Array.isArray(resp.aspects) && resp.aspects.length > 0) {
+            transitsByDate[dateString] = resp.aspects;
+            logger.debug(`Stored ${resp.aspects.length} composite aspects for ${dateString}`);
+          } else {
+            logger.debug(`No composite aspects found for ${dateString} - response structure:`, resp);
+            if (resp) {
+              logger.debug(`Full raw composite API response for ${dateString} (no aspects):`, JSON.stringify(resp, null, 2));
+            }
+          }
+        })
+        .catch(e => {
+          logger.warn(`Failed to get composite transits for ${dateString}:`, e.message);
+        })
+    );
+  }
+
+  try {
+    await Promise.all(promises);
+    return { transitsByDate };
+  } catch (error) {
+    logger.error('Composite transits calculation failed:', error);
+    return {
+      transitsByDate: {},
+      _note: 'Composite transits not available in current plan'
+    };
+  }
+}
+
+async function rapidApiPing(headers) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3500);
+  try {
+    const res = await fetch(API_ENDPOINTS.NOW, { method: 'GET', headers, signal: controller.signal });
+    clearTimeout(timeout);
+    return { ok: res.ok, status: res.status };
+  } catch (error) {
+    clearTimeout(timeout);
+    return { ok: false, error: error.name === 'AbortError' ? 'timeout' : error.message };
+  }
+}
+
 /**
  * Builds standard HTTP headers for RapidAPI requests, including authentication.
  * @returns {Object} A headers object for fetch.
@@ -646,4 +782,7 @@ module.exports = {
   callNatal,
   geoResolve,
   getTransits,
+  computeComposite,
+  computeCompositeTransits,
+  rapidApiPing,
 };
