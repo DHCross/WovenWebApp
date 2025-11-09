@@ -54,15 +54,7 @@ const PHASE_TEMPLATES = {
     description: 'Extract validateSubject(), normalizeSubjectData(), subjectToAPI() to validation.js',
   },
   'Phase 4: Seismograph Engine': {
-    base_hours: 2.0, // Blitz estimate (was 48h conservative)
-    status: 'TO_DO',
-    complexity: 'critical',
-    dependencies: ['Phase 2: API Client Extraction'],
-    risks: [
-      '2000+ lines of complex math',
-      'Zero test coverage currently',
-      'Must preserve Balance Meter v5 calibration'
-    ],
+    status: 'DONE', // ✅ Verified: calculateSeismograph, formatTransitTable extracted to seismograph-engine.js
     description: 'Extract calculateSeismograph(), formatTransitTable() to seismograph-engine.js',
   },
   'Phase 5: Relational Logic': {
