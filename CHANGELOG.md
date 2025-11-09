@@ -22,6 +22,22 @@
   - The audience string comes from the Auth0 API identifier and is effectively locked once created, so keep `https://ravencalder-api` unless you delete that API and recreate it with a different identifier.
   - If you opt to change the identifier, note that Auth0 won’t let you edit it later; you must delete the API and re-run the Create API flow before updating `.env`.
 
+## [2025-11-09] FIX: Math Brain Phase 2 Tail Cleanup
+
+**Date:** 2025-11-09  Summary
+
+**Status:** ✅ STABILIZED  Finished the API-client extraction for `getTransits` by deleting the orphaned legacy code and re-validating the monolith load.
+
+**Build:** ✅ `node -e "require('./lib/server/astrology-mathbrain.js')"` now exits cleanly.
+
+**Details**
+
+- `lib/server/astrology-mathbrain.js`
+  - Removed the leftover inline `getTransits` implementation (and its `ensureCoords` helper) that still lived between `validateSubjectStrictWithMap` and `exports.resolveCity`, so the monolith only imports the API-client version.
+  - Ensured `subjectToAPI`, `getTransits`, and `geoResolve` are exclusively sourced from `src/math-brain/api-client.js`, preventing duplicate logic.
+  - Fixed the missing `);` after the synastry `apiCallWithRetry` call once the duplicate block was removed, resolving the `Unexpected token 'const'/'catch'` errors on require.
+  - Re-ran `node -e "require('./lib/server/astrology-mathbrain.js'); console.log('monolith loaded');"` to confirm the handler loads without syntax faults.
+
 ## [2025-01-21] FEATURE: Clear Mirror Unified Rendering Schema
 
 
