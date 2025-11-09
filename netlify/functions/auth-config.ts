@@ -10,7 +10,7 @@ export const handler: Handler = async (event) => {
 
   const domain = process.env.AUTH0_DOMAIN;
   const clientId = process.env.AUTH0_CLIENT_ID;
-  const redirectUri = process.env.AUTH0_REDIRECT_URI || "http://localhost:8888/chat";
+  const redirectUri = process.env.AUTH0_REDIRECT_URI || "http://localhost:8888/math-brain";
 
   if (!domain || !clientId) {
     return json(500, { error: "Auth misconfiguration: AUTH0_DOMAIN/CLIENT_ID missing" });

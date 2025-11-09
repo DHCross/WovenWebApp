@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
-import { getRedirectUri, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from '../../lib/auth';
+import { getRedirectUri, getAuthConnection, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from '../../lib/auth';
 import { isAuthEnabled, getMockUser } from '../../lib/devAuth';
 
 export interface AuthState {
@@ -44,7 +44,7 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
       await authClientRef.current?.loginWithRedirect({
         authorizationParams: {
           redirect_uri: getRedirectUri(),
-          connection: "google-oauth2",
+          ...(getAuthConnection() ? { connection: getAuthConnection()! } : {}),
         },
       });
     } catch (e) {

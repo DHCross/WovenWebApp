@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable no-console */
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { getRedirectUri, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from "../lib/auth";
+import { getRedirectUri, getAuthConnection, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from "../lib/auth";
 
 const authEnabled = (() => {
   const raw = process.env.NEXT_PUBLIC_ENABLE_AUTH;
@@ -218,10 +218,13 @@ export default function HomeHero() {
       setIsLoggingIn(true);
       const params: Record<string, any> = {
         redirect_uri: getRedirectUri(),
-        // If the Google connection is configured in Auth0, this triggers the Google login directly
-        // Remove this line if you prefer the Universal Login page
-        connection: "google-oauth2",
       };
+      const connection = getAuthConnection();
+      if (connection) {
+        // If the social connection is configured in Auth0 and enabled for this app,
+        // passing it here skips Universal Login. Otherwise, omit to show Universal Login.
+        params.connection = connection;
+      }
       if (authCfg?.audience) {
         params.audience = authCfg.audience;
       }

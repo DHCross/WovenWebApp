@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useId } from "react";
 import type { FocusEvent, TouchEvent } from "react";
 import { parseCoordinates, formatDecimal } from "../../src/coords";
-import { getRedirectUri, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from "../../lib/auth";
+import { getRedirectUri, getAuthConnection, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from "../../lib/auth";
 // AuthProvider removed - auth handled globally by HomeHero component
 import { needsLocation, isTimeUnknown } from "../../lib/relocation";
 import { sanitizeForPDF } from "../../src/pdf-sanitizer";
@@ -932,13 +932,13 @@ export default function MathBrainPage() {
         },
       });
 
-      await client.loginWithRedirect({
-        authorizationParams: {
-          redirect_uri: getRedirectUri(),
-          connection: 'google-oauth2',
-          ...(audience ? { audience } : {}),
-        },
-      });
+      const params: Record<string, any> = {
+        redirect_uri: getRedirectUri(),
+        ...(audience ? { audience } : {}),
+      };
+      const connection = getAuthConnection();
+      if (connection) params.connection = connection;
+      await client.loginWithRedirect({ authorizationParams: params });
     } catch (err) {
       console.error('Login failed', err);
       setError('Login failed. Please try again.');

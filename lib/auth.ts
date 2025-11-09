@@ -64,3 +64,14 @@ export function getRedirectUri(): string {
     return `${origin}${target.startsWith('/') ? target : `/${target}`}`;
   }
 }
+
+// Optional connection override. Defaults to 'google-oauth2' for convenience,
+// but can be disabled (to use Universal Login) by setting
+// NEXT_PUBLIC_AUTH_CONNECTION to 'auto', 'none', '' or 'false'.
+export function getAuthConnection(): string | null {
+  const raw = process.env.NEXT_PUBLIC_AUTH_CONNECTION;
+  if (typeof raw !== 'string') return 'google-oauth2';
+  const v = raw.trim().toLowerCase();
+  if (!v || v === 'auto' || v === 'none' || v === 'false') return null;
+  return raw.trim();
+}
