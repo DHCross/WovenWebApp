@@ -50,10 +50,7 @@ const PHASE_TEMPLATES = {
     description: 'Move remaining API functions (getTransits, geoResolve, etc.) to api-client.js',
   },
   'Phase 3: Validation Layer': {
-    base_hours: 0.5, // Blitz estimate
-    status: 'TO_DO',
-    complexity: 'medium',
-    dependencies: [],
+    status: 'DONE', // ✅ Verified: normalizeSubjectData, validateSubject extracted to validation.js
     description: 'Extract validateSubject(), normalizeSubjectData(), subjectToAPI() to validation.js',
   },
   'Phase 4: Seismograph Engine': {
