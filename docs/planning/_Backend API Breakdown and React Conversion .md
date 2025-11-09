@@ -1,8 +1,381 @@
-# You Asked:
+# WovenWebApp Math Brain: Architecture & Refactoring Status
 
-this needs to be converted to react. But I want you to break down everything it does for the record: /* eslint-disable no-console */
-// This code is a consolidated and cleaned version of the provided Javascript for interacting with the Astrologer API.
-// It is ready to be used as a serverless function handler (e.g., in a Node.js environment).
+**Last Updated:** November 9, 2025  
+**Status:** Phase 2 (API Client Extraction) — In Progress, Architecture Corrected  
+**Goal:** Decompose the legacy 6000-line monolith into modular, testable, and reusable components.
+
+---
+
+## Executive Summary
+
+The WovenWebApp backend is transitioning from a single 6000-line serverless function (`lib/server/astrology-mathbrain.js`) to a modular Next.js API route architecture. The new entry point is `app/api/astrology-mathbrain/route.ts`, which delegates to a growing suite of focused modules in `src/math-brain/`.
+
+**Current Progress:**
+- ✅ **Phase 1 Complete:** Utility and compression functions extracted.
+- ✅ **Phase 1.5 Complete:** Core API client module created (`src/math-brain/api-client.js`).
+- 🔄 **Phase 2 In Progress:** Moving remaining API functions into the API client.
+- ⏳ **Phases 3–6 Pending:** Seismograph, validation, relational logic, and main handlers.
+
+---
+
+## Architecture: New vs. Legacy
+
+### New Next.js API Route (`app/api/astrology-mathbrain/route.ts`)
+
+**Location:** `app/api/astrology-mathbrain/route.ts`  
+**Purpose:** Modern TypeScript API wrapper. Acts as:
+1. **Request validator** — Ensures incoming data is valid.
+2. **Safety layer** — Catches and formats errors from the legacy backend.
+3. **Entry point** — All requests from the frontend hit this route first.
+
+**Current Responsibilities:**
+```
+Frontend Request
+    ↓
+app/api/astrology-mathbrain/route.ts (validation, error formatting)
+    ↓
+lib/server/astrology-mathbrain.js (legacy handler → being decomposed)
+    ↓
+src/math-brain/ (new modular components)
+    ↓
+External APIs (RapidAPI Astrologer, GeoNames)
+```
+
+**Future State (Target):**
+```
+Frontend Request
+    ↓
+app/api/astrology-mathbrain/route.ts (validation)
+    ↓
+src/math-brain/orchestrator.js (new main handler)
+    ├→ src/math-brain/api-client.js
+    ├→ src/math-brain/validation.js
+    ├→ src/math-brain/seismograph-engine.js
+    ├→ src/math-brain/relational.js
+    └→ src/math-brain/utils/
+    ↓
+External APIs
+```
+
+---
+
+## Modular Components (v2 Engine)
+
+### ✅ Phase 1: Utilities & Compression
+
+**Extracted into `src/math-brain/utils/`:**
+
+#### `time-and-coords.js`
+- `normalizeTimezone()` — Map US abbreviations (EST, CST, etc.) to IANA zones.
+- `parseCoordinates()` — Parse DMS and decimal coordinate strings.
+- `formatBirthDate()`, `formatBirthTime()`, `formatBirthPlace()` — Format subject metadata.
+- `normalizeRelocationMode()` — Canonicalize relocation mode tokens.
+- `normalizeTranslocationBlock()` — Normalize relocation configuration objects.
+- `deriveTransitTimeSpecFromBody()` — Extract time spec from transit request body.
+- **Logger:** Shared logging utility.
+
+#### `compression.js`
+- `buildCodebook()` — Create a compression codebook from transit data.
+- `resolveDayAspects()` — Extract aspects from various response shapes.
+- `calculateNatalHouse()` — Map transit longitude to natal house.
+- `extractHouseCusps()` — Extract 12 house cusps from birth chart data.
+- `compressAspects()` — Compress aspects using a codebook (fixed-point integer format).
+- `computeDayDeltas()` — Calculate daily aspect deltas (add/update/remove).
+
+#### `city-resolver.js` (Legacy—being refactored)
+- `resolveCity()` — GeoNames city lookup endpoint helper.
+- `health()` — Health check endpoint.
+- ⚠️ **Currently imports from `api-client.js`** (correct after architectural fix).
+
+---
+
+### ✅ Phase 1.5: API Client Core
+
+**Location:** `src/math-brain/api-client.js`  
+**Status:** Created; contains core utilities and partially contains Phase 2 functions.
+
+**Current Exports:**
+- `API_BASE_URL`, `API_ENDPOINTS` — RapidAPI constants.
+- `buildHeaders()` — Build authenticated request headers.
+- `apiCallWithRetry()` — Generic retry-logic wrapper for fetch.
+- `fetchNatalChartComplete()` — Fetch and validate complete natal chart.
+
+**Pending Additions (Phase 2):**
+- `callNatal()` — Helper for natal endpoints with formation fallback.
+- `getTransits()` — Fetch transits for a date range with chunking and fallback.
+- `geoResolve()` — GeoNames latitude/longitude/timezone lookup.
+- `computeComposite()` — Calculate composite chart (midpoint).
+- `computeCompositeTransits()` — Composite + transits.
+- `rapidApiPing()` — Health check for RapidAPI connectivity.
+
+---
+
+### 🔄 Phase 2: API Client Extraction (In Progress)
+
+**Target Location:** `src/math-brain/api-client.js` (already created)
+
+**Functions to Move:**
+1. `callNatal(endpoint, subject, headers, pass, description)` — Call natal endpoints with city/coords fallback.
+2. `fetchNatalChartComplete(subject, headers, pass, subjectLabel, contextLabel)` — Complete natal data fetcher (currently in api-client.js).
+3. `getTransits(subject, transitParams, headers, pass)` — Fetch transits with chunking, fallback endpoints, and retry logic.
+4. `geoResolve({ city, state, nation })` — GeoNames resolver.
+5. `computeComposite(personA, personB, headers, pass)` — Composite chart calculation.
+6. `computeCompositeTransits(composite, transitParams, headers, pass)` — Composite + transits.
+7. `rapidApiPing()` — RapidAPI health check.
+
+**Architectural Fix (This Week):**
+- ✅ Create `src/math-brain/api-client.js` with core utilities (`buildHeaders`, `apiCallWithRetry`, API constants).
+- ✅ `city-resolver.js` imports from `api-client.js` (avoid circular dependencies).
+- 🔄 Move remaining API functions into `api-client.js`.
+
+**Remaining in Monolith After Phase 2:**
+```javascript
+// Monolith will still contain:
+- Seismograph functions (calculateSeismograph, formatTransitTable, etc.)
+- Validation functions (validateSubject, normalizeSubjectData, etc.)
+- Relational logic (polarity cards, echo loops, etc.)
+- Main handlers (processMathbrain, applyCompressionAndReadiness)
+- Export functions (handler, resolveCity, health)
+```
+
+---
+
+### ⏳ Phase 3: Seismograph Engine (Pending)
+
+**Target Location:** `src/math-brain/seismograph-engine.js`
+
+**Functions to Extract:**
+- `calculateSeismograph()` — Compute magnitude, directional bias, volatility.
+- `formatTransitTable()` — Format transit aspects into orb bands with phase data.
+- `calculateTrend()` — Compute trend for time-series data.
+- `extractSeismographData()` — Extract seismograph metrics from comprehensive result.
+
+**Why Last:** Depends on validated aspect data; should only run after Phase 2 complete.
+
+---
+
+### ⏳ Phase 4: Validation & Normalization (Pending)
+
+**Target Location:** `src/math-brain/validation.js`
+
+**Functions to Extract:**
+- `validateSubjectLean()` — Lightweight subject validation (coords only).
+- `validateSubject()` — Full subject validation (coords or city+nation).
+- `normalizeSubjectData()` — Convert various input formats to canonical subject shape.
+- `subjectToAPI()` — Convert internal subject to RapidAPI Subject Model.
+- `validateSubjectStrictWithMap()` — Strict field-by-field validation.
+
+**Why Here:** Input cleaning should run early; enables reuse in React/frontend contexts.
+
+---
+
+### ⏳ Phase 5: Relational Logic (Pending)
+
+**Target Location:** `src/math-brain/relational.js`
+
+**Functions to Extract:**
+- `generatePolarityCards()` — Identify and describe polarity tensions.
+- `detectEchoLoops()` — Find reciprocal aspect patterns.
+- `generateSharedSSTTags()` — Identify shared synastry strength tags.
+- `computeBidirectionalOverlays()` — Calculate overlays in both directions.
+- `classifyAspectRole()` — Categorize synastry aspect as tension, harmony, or catalyst.
+- `describeExperienceForA()`, `describeExperienceForB()` — Generate experience narratives.
+- `computeCombinedRelationalMetrics()` — Aggregate relational statistics.
+- `computeRelationalBalanceMeter()` — Balance Meter for relational charts.
+- `generateVectorIntegrityTags()` — Tag vector integrity (coherence, suppression, etc.).
+- `generateRelationalMirror()` — Build complete relational Mirror output.
+
+**Why Late:** Complex; depends on validated natal + transit data from earlier phases.
+
+---
+
+### ⏳ Phase 6: Main Handler Refactoring (Pending)
+
+**Target Location:** `src/math-brain/orchestrator.js` (new)
+
+**Functions to Refactor:**
+- `processMathbrain()` — Main orchestrator (currently ~2000+ lines).
+- `applyCompressionAndReadiness()` — Apply compression and readiness gates.
+- `exports.handler` — Lambda/Netlify handler wrapper.
+- `exports.resolveCity` — City resolution endpoint (move to separate export).
+- `exports.health` — Health check endpoint.
+
+**Strategy:**
+1. Create `orchestrator.js` that calls extracted modules in sequence.
+2. Replace legacy `processMathbrain` with modular calls.
+3. Keep exports lean; they should just validate and delegate.
+
+---
+
+## What Remains in the Monolith
+
+### `lib/server/astrology-mathbrain.js` (Current State)
+
+**Size:** ~5579 lines (after Phase 1 extractions)  
+**Current Problems:** Syntax errors from failed refactoring; being repaired.
+
+**Still Inside (Not Yet Extracted):**
+
+#### API Layer (Moving to Phase 2)
+- `API_BASE_URL`, `API_ENDPOINTS`
+- `buildHeaders()` ⚠️ Partially in api-client.js; being moved.
+- `apiCallWithRetry()` ⚠️ Partially in api-client.js; being moved.
+- `callNatal()`
+- `fetchNatalChartComplete()` ⚠️ Already in api-client.js
+- `getTransits()` ← **Critical function; handles 30+ concurrent requests, retry logic, formation switching**
+- `geoResolve()`
+- `computeComposite()`, `computeCompositeTransits()`
+- `rapidApiPing()` ⚠️ Incorrectly in city-resolver; should be in api-client.
+
+#### Seismograph Engine (Phase 3)
+- `calculateSeismograph()` ← **The "secret sauce"; computes magnitude, directional bias, volatility, coherence**
+- `formatTransitTable()` ← **Creates phase lookup, orb bands, markdown output**
+- `calculateTrend()`, `extractSeismographData()`
+
+#### Validation (Phase 4)
+- `validateSubjectLean()`, `validateSubject()`, `normalizeSubjectData()`
+- `subjectToAPI()`, `validateSubjectStrictWithMap()`
+
+#### Relational Logic (Phase 5) — ~1000+ lines
+- `generatePolarityCards()`, `detectEchoLoops()`, `generateSharedSSTTags()`
+- `computeBidirectionalOverlays()`, `classifyAspectRole()`
+- `describeExperienceForA()`, `describeExperienceForB()`
+- `computeCombinedRelationalMetrics()`, `computeRelationalBalanceMeter()`
+- `generateVectorIntegrityTags()`, `generateRelationalMirror()`
+
+#### Main Handlers (Phase 6) — ~2000+ lines
+- `processMathbrain()` ← **Main orchestrator; everything flows through here**
+- `applyCompressionAndReadiness()`, `exports.handler`
+
+#### Miscellaneous Utilities (Unategorized; need homes)
+- `RELOCATION_FOOTNOTE_LABELS` (constant)
+- `deriveRelocationDetail()`, `relocationFrameFromMode()`
+- `normalizeStep()`, `canonicalizeMode()`
+- `generateErrorId()` ← Error ID generation
+- `loggedMissingRapidApiKey` (global flag)
+- `parseCoordinate()` ⚠️ Different from `parseCoordinates` (already extracted)
+- Aspect classification helpers: `isPrimaryFramePoint()`, `isAngle()`, `matchCategoryA/B/C/D()`
+- Aspect filtering: `filterPriorityAspects()`, `selectPoeticAspects()`, `enrichDailyAspects()`
+- Readiness logic: `checkMirrorReadiness()`, `checkBalanceReadiness()`, `computeReadinessState()`
+- Various constants: `PRIMARY_FRAME_POINTS`, `LUMINARIES_SET`, `HARD_ASPECT_TYPES`, etc.
+
+---
+
+## Dependency Graph (Critical for Phasing)
+
+```
+Phase 1 (✅ DONE)
+└─ Utilities (time-and-coords, compression)
+
+Phase 1.5 (✅ DONE)
+└─ API Client Core (buildHeaders, apiCallWithRetry)
+   └─ Utils (time-and-coords for logger)
+
+Phase 2 (🔄 IN PROGRESS)
+├─ callNatal, getTransits, geoResolve, computeComposite, rapidApiPing
+└─ Depends on: Phase 1.5 (API core)
+
+Phase 3 (⏳ PENDING)
+├─ calculateSeismograph, formatTransitTable, calculateTrend
+└─ Depends on: Phase 1 (compression for data access), Phase 2 (API for data sources)
+
+Phase 4 (⏳ PENDING)
+├─ Validation functions
+└─ Depends on: Phase 1 (utils for normalization)
+
+Phase 5 (⏳ PENDING)
+├─ Relational logic (polarity, echo loops, overlay, etc.)
+└─ Depends on: Phase 2 (API to fetch data), Phase 3 (seismograph for aggregation)
+
+Phase 6 (⏳ PENDING)
+├─ Main handler (processMathbrain)
+└─ Depends on: All prior phases
+```
+
+---
+
+## Quick Reference: What Calls What
+
+### `app/api/astrology-mathbrain/route.ts` (Entry Point)
+1. Validates request with schema.
+2. Calls `processMathbrain` from legacy monolith.
+3. Formats response or error.
+
+### `processMathbrain()` (Currently Main Orchestrator)
+1. Parse and normalize input (Phase 4 functions).
+2. Fetch natal charts (Phase 2: `callNatal`, `fetchNatalChartComplete`).
+3. Fetch transits (Phase 2: `getTransits`).
+4. Calculate seismograph (Phase 3: `calculateSeismograph`).
+5. Apply relational logic if dyadic (Phase 5: `generateRelationalMirror`, etc.).
+6. Format output with readiness checks.
+7. Return structured result.
+
+### `getTransits()` (Critical Phase 2 Function)
+1. Parse transit time range; determine sampling grid.
+2. Chunk requests (5 concurrent max) to respect API rate limits.
+3. For each day:
+   - Try primary endpoint (`transit-aspects-data`).
+   - Fallback to `transit-chart` if no aspects.
+   - Fallback to formation switching (city ↔ coords) if still empty.
+4. Store results with provenance (endpoint, formation, attempts).
+5. Return `transitsByDate`, `retroFlagsByDate`, `provenanceByDate`, `chartAssets`.
+
+---
+
+## For React Integration: What You Need to Know
+
+### Current State
+- **Backend Entry:** `app/api/astrology-mathbrain` (TypeScript + validation)
+- **Processing:** Delegates to legacy monolith + growing v2 modules
+- **Response Shape:** See `API_INTEGRATION_GUIDE.md` for response schema
+
+### During Phase 2–6
+- **No changes to request/response contract** — Frontend continues unchanged
+- **Internal reshuffling only** — Functions move, but behavior stays the same
+- **Performance:** Modular design *should* enable better caching and reuse
+
+### After Phase 6 (Final)
+- **New orchestrator** replaces `processMathbrain`
+- **Cleaner separation** enables frontend to call specific modules directly if needed
+- **Testability** — Each module can be unit-tested in isolation
+
+---
+
+## Files to Reference
+
+| File | Purpose |
+|------|---------|
+| `app/api/astrology-mathbrain/route.ts` | Next.js API route (entry point) |
+| `src/math-brain/api-client.js` | Core API utilities (Phase 1.5) |
+| `src/math-brain/utils/time-and-coords.js` | Time/timezone/coordinate parsing (Phase 1) |
+| `src/math-brain/utils/compression.js` | Aspect compression utilities (Phase 1) |
+| `src/math-brain/utils/city-resolver.js` | City resolution endpoints (Phase 1) |
+| `lib/server/astrology-mathbrain.js` | Legacy monolith (being decomposed) |
+| `lib/reporting/metric-labels.js` | Aspect metric classification helpers |
+| `lib/config/orb-profiles.js` | Orb cap configuration |
+| `lib/relocation/index.js` | Relocation calculations |
+| `src/seismograph.js` | Seismograph aggregation (external; used by Phase 3) |
+| `src/reporters/woven-map-composer.js` | Woven Map report generation |
+
+---
+
+## Deployment & CI/CD
+
+- **Build:** `npm run build:css` (Tailwind)
+- **Dev:** `netlify dev` (tests Next.js + Netlify functions)
+- **Deploy:** Auto-deploy from `main` to Netlify
+- **Env Vars:** `RAPIDAPI_KEY`, `GEONAMES_USERNAME` (must be set in Netlify dashboard)
+
+---
+
+## Next Steps (Prioritized)
+
+1. **Immediate:** Fix syntax error in `lib/server/astrology-mathbrain.js` (stray brace).
+2. **Phase 2:** Complete API client extraction (move `callNatal`, `getTransits`, etc.).
+3. **Phase 3:** Extract seismograph engine.
+4. **Phase 4:** Extract validation layer.
+5. **Phase 5:** Extract relational logic.
+6. **Phase 6:** Refactor main handler; delete legacy monolith.
 
 const { aggregate } = require('../../src/seismograph.js');
 const { _internals: seismoInternals } = require('../../src/seismograph.js');

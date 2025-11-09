@@ -1,15 +1,17 @@
 /* eslint-disable no-console */
 /**
- * API Client for Astrologer RapidAPI Service
+ * Math Brain API Client Module
  * 
- * This module centralizes all networking logic for interacting with the
- * external Astrologer API. It handles endpoint construction, authentication,
- * request/response logging, and retry logic.
+ * Centralized external API communication logic for astrology data.
+ * Handles authentication, retries, and data transformation.
  * 
- * Extracted from lib/server/astrology-mathbrain.js
+ * Extracted from lib/server/astrology-mathbrain.js as part of Phase 2 refactoring.
  */
 
 const { logger } = require('./utils/time-and-coords.js');
+const { sanitizeChartPayload } = require('./readiness.js');
+const { extractHouseCusps } = require('./utils/compression.js');
+const { sanitizeChartPayload } = require('./readiness.js');
 
 const API_BASE_URL = 'https://astrologer.p.rapidapi.com';
 
