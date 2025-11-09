@@ -3,7 +3,7 @@
 // Returns resolved coordinates and timezone to verify what the API sees
 
 
-const { health, resolveCity } = require('../../lib/server/astrology-mathbrain.js');
+const { health, resolveCity } = require('../../src/math-brain/utils/city-resolver.js');
 
 
 exports.handler = async (event, context) => {
