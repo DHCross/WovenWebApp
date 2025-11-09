@@ -1,0 +1,110 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Velocity Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.0.0/dist/chart.umd.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    .chart-box {
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      padding: 20px;
+    }
+    h2 {
+      margin-top: 0;
+    }
+    canvas {
+      max-height: 300px;
+    }
+  </style>
+</head>
+<body>
+  <h1>📊 Velocity Dashboard</h1>
+  
+  <div class="container">
+    <div class="chart-box">
+      <h2>7-Day Trend</h2>
+      <canvas id="chart7day"></canvas>
+    </div>
+    <div class="chart-box">
+      <h2>30-Day Trend</h2>
+      <canvas id="chart30day"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const data = {"labels":["11/9/2025","11/9/2025"],"commitsPerHour":["0.363","0.363"]};
+    
+    const ctx7 = document.getElementById('chart7day').getContext('2d');
+    new Chart(ctx7, {
+      type: 'line',
+      data: {
+        labels: data.labels.slice(-14),
+        datasets: [{
+          label: 'Commits/Hour',
+          data: data.commitsPerHour.slice(-14),
+          borderColor: '#0969da',
+          backgroundColor: 'rgba(9, 105, 218, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: '#0969da',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { display: true, position: 'top' }
+        },
+        scales: {
+          y: { min: 0 }
+        }
+      }
+    });
+    
+    const ctx30 = document.getElementById('chart30day').getContext('2d');
+    new Chart(ctx30, {
+      type: 'line',
+      data: {
+        labels: data.labels,
+        datasets: [{
+          label: 'Commits/Hour',
+          data: data.commitsPerHour,
+          borderColor: '#238636',
+          backgroundColor: 'rgba(35, 134, 54, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: '#238636',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { display: true, position: 'top' }
+        },
+        scales: {
+          y: { min: 0 }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

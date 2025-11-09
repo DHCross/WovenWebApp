@@ -9,8 +9,10 @@ on:
     - cron: "0 */12 * * *"  # every 12 hours
 
 jobs:
-  log_velocity:
+  track_velocity:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -19,9 +21,35 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install Dependencies
+        run: npm install
+
       - name: Run Velocity Tracker
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/velocity-tracker.js --analyze
+
+      - name: Generate Artifacts
+        run: node scripts/velocity-artifacts.js
+
+      - name: Send Notifications
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: node scripts/velocity-notifier.js
+
+      - name: Commit Velocity Log
         run: |
-          npm install
-          node scripts/velocity-tracker.js --analyze
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add velocity-log.jsonl
+          git add velocity-artifacts/
+          git diff --quiet && git diff --staged --quiet || git commit -m "[AUTO] Update velocity tracking data"
+          git push
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: velocity-report-${{ github.run_number }}
+          path: velocity-artifacts/
+          retention-days: 90
