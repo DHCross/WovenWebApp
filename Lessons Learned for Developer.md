@@ -1,6 +1,87 @@
 # Lessons Learned for Developer
 
-_Last updated: 2025-10-04_
+_Last updated: 2025-11-09_
+
+---
+
+## Circular Dependencies: The Silent Killer in Refactoring
+
+**Date:** 2025-11-09
+
+### The Problem
+
+During modular refactoring, introduced a circular dependency that broke all local development but worked fine in production:
+
+```
+astrology-mathbrain.js → orchestrator.js → validation.js → astrology-mathbrain.js
+```
+
+**Symptoms:**
+- Error: `Cannot read properties of undefined (reading 'info')`
+- All API requests returned 503 "temporarily unavailable"
+- Production worked fine (compiled modules cached the dependency graph)
+- Dev environment crashed immediately
+
+### Root Cause
+
+`validation.js` was importing `logger` from the monolith file that itself imported validation:
+
+```javascript
+// BAD - Creates circular dependency
+const { parseCoordinates, logger } = require('../../lib/server/astrology-mathbrain');
+const { normalizeTimezone } = require('./utils/time-and-coords');
+```
+
+During module initialization in dev mode, Node.js couldn't resolve the cycle, leaving `logger` as `undefined`.
+
+### The Fix
+
+Consolidated all imports to use the utility module directly:
+
+```javascript
+// GOOD - Clean dependency flow
+const { normalizeTimezone, logger, parseCoordinates } = require('./utils/time-and-coords');
+```
+
+### Prevention Checklist
+
+When refactoring large files into modules:
+
+1. **Map dependency flow FIRST** - Draw arrows showing which modules import which
+2. **Enforce one-way imports** - If A imports B, B should never import A (directly or indirectly)
+3. **Use orchestrator correctly** - Modules import FROM orchestrator, never create loops THROUGH it
+4. **Test in dev mode** - Production caching can hide circular dependencies
+5. **Audit all require() statements** - Look for `require('../../')` patterns that might loop back
+6. **Use static analysis** - Tools like `madge` can detect circular dependencies:
+   ```bash
+   npx madge --circular --extensions js ./src
+   ```
+
+### Key Insight
+
+**Production worked because:** Webpack/Next.js build process resolves and caches the dependency graph at compile time, masking the circular reference.
+
+**Dev broke because:** Node.js module loader resolves dependencies dynamically during `require()` calls, exposing the cycle immediately.
+
+### When Refactoring Modules
+
+- ✅ Extract shared utilities to dedicated files (like `time-and-coords.js`)
+- ✅ Have modules import from utilities, not from each other
+- ✅ Use orchestrator as a central export hub, not a dependency bridge
+- ❌ Never import from a file that transitively imports you back
+- ❌ Don't import from the monolith when extracting from it
+
+### Quick Test
+
+After any refactoring that changes imports:
+
+```bash
+# Test module loads cleanly
+node -e "require('./src/math-brain/validation.js')"
+
+# Check for circular dependencies
+npx madge --circular src/
+```
 
 ---
 

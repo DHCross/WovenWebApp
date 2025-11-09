@@ -1,5 +1,4 @@
-const { parseCoordinates, logger } = require('../../lib/server/astrology-mathbrain');
-const { normalizeTimezone } = require('./utils/time-and-coords');
+const { normalizeTimezone, logger, parseCoordinates } = require('./utils/time-and-coords');
 
 /**
  * Lean validation - checks only essential birth data fields.

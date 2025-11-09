@@ -1,3 +1,43 @@
+## [2025-11-09] CRITICAL FIX: Circular Dependency in Validation Module
+
+**Date:** 2025-11-09  
+**Status:** ✅ RESOLVED  
+**Impact:** CRITICAL - Broke all local API requests with "Cannot read properties of undefined (reading 'info')"
+
+**Root Cause**
+- `src/math-brain/validation.js` was importing `logger` from `lib/server/astrology-mathbrain.js`
+- This created a circular dependency: `astrology-mathbrain.js` → `orchestrator.js` → `validation.js` → `astrology-mathbrain.js`
+- During module initialization, `logger` was `undefined`, causing validation to crash on every request
+- Production worked because it uses compiled/cached modules; dev environment exposed the issue
+
+**The Fix**
+- Consolidated imports in `validation.js` to use `time-and-coords.js` as single source:
+  ```javascript
+  // BEFORE (circular):
+  const { parseCoordinates, logger } = require('../../lib/server/astrology-mathbrain');
+  const { normalizeTimezone } = require('./utils/time-and-coords');
+  
+  // AFTER (clean):
+  const { normalizeTimezone, logger, parseCoordinates } = require('./utils/time-and-coords');
+  ```
+- All three utilities are properly exported from `time-and-coords.js`, breaking the cycle
+
+**Lesson**
+- **Always check import paths during refactoring** - circular dependencies can be silent in production but fatal in dev
+- When extracting modules, audit all imports to ensure they flow in one direction
+- If a module imports from a file that imports it back (even indirectly), you have a cycle
+- Use the orchestrator pattern correctly: modules should import FROM orchestrator, never create cycles THROUGH it
+
+**Files Changed**
+- `src/math-brain/validation.js` - Fixed import statement
+
+**Testing**
+- ✅ Dev server now handles API requests without crashes
+- ✅ Validation module loads cleanly
+- ✅ No circular dependency warnings
+
+---
+
 ## [2025-11-09] FEATURE: Math Brain Refactoring and Comparison Tools
 
 **Date:** 2025-11-09  Summary
