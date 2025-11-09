@@ -1,0 +1,27 @@
+name: Velocity Tracker
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  schedule:
+    - cron: "0 */12 * * *"  # every 12 hours
+
+jobs:
+  log_velocity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run Velocity Tracker
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm install
+          node scripts/velocity-tracker.js --analyze
