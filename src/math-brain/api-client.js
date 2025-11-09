@@ -9,9 +9,8 @@
  */
 
 const { logger } = require('./utils/time-and-coords.js');
-const { sanitizeChartPayload } = require('./readiness.js');
+const { sanitizeChartPayload } = require('./utils/readiness.js');
 const { extractHouseCusps } = require('./utils/compression.js');
-const { sanitizeChartPayload } = require('./readiness.js');
 
 const API_BASE_URL = 'https://astrologer.p.rapidapi.com';
 
