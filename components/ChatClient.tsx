@@ -347,17 +347,6 @@ export default function ChatClient() {
   }, [statusMessage]);
 
   useEffect(() => {
-    if (resumeFlashToken === 0) return;
-    setResumeFlashActive(true);
-    const timer = window.setTimeout(() => {
-      setResumeFlashActive(false);
-    }, 1200);
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [resumeFlashToken]);
-
-  useEffect(() => {
     if (!errorMessage) return;
     const timer = window.setTimeout(() => setErrorMessage(null), 4000);
     return () => window.clearTimeout(timer);
@@ -607,6 +596,18 @@ export default function ChatClient() {
     setErrorMessage,
     shiftSessionMode,
   });
+
+  // Handle resume flash animation when payload is recovered
+  useEffect(() => {
+    if (resumeFlashToken === 0) return;
+    setResumeFlashActive(true);
+    const timer = window.setTimeout(() => {
+      setResumeFlashActive(false);
+    }, 1200);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [resumeFlashToken]);
 
   const sendMessage = useCallback(
     async (text: string) => {

@@ -4,19 +4,20 @@ export const runtime = 'nodejs';
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const search = Object.fromEntries(url.searchParams.entries());
+  const ping = url.searchParams.get('ping');
+  
+  // Basic health check for astrology services
+  const healthData = {
+    ok: true,
+    status: 'healthy',
+    service: 'astrology-mathbrain',
+    timestamp: new Date().toISOString(),
+    ping: ping || undefined,
+  };
 
-  // Reuse compact health logic from server module by adapting event shape
-  const { health } = await import('../../../lib/server/astrology-mathbrain.js');
-  const event = {
-    queryStringParameters: search,
-  } as any;
-
-  const result = await health(event);
-
-  return new NextResponse(result.body, {
-    status: result.statusCode || 200,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+  return NextResponse.json(healthData, {
+    status: 200,
+    headers: { 'Cache-Control': 'no-store' },
   });
 }
 
