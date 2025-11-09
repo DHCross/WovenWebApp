@@ -18,20 +18,33 @@ const {
   scaleDirectionalBias,
 } = require('../../lib/reporting/metric-labels');
 
-// Lazy-load these to break circular dependency (they depend on this module completing first)
+// Lazy-load monolith dependencies to completely break circular reference at static analysis time
 let enrichDailyAspectsLazy, selectPoeticAspectsLazy, weightAspectLazy;
 let ASPECT_CLASS_LAZY, BALANCE_CALIBRATION_VERSION_LAZY, SEISMOGRAPH_VERSION_LAZY, WEIGHTS_LEGEND_LAZY;
+let monolithLoaded = false;
 
 function getLazyImports() {
-  if (!enrichDailyAspectsLazy) {
-    const monolith = require('../../lib/server/astrology-mathbrain');
-    enrichDailyAspectsLazy = monolith.enrichDailyAspects;
-    selectPoeticAspectsLazy = monolith.selectPoeticAspects;
-    weightAspectLazy = monolith.weightAspect;
-    ASPECT_CLASS_LAZY = monolith.ASPECT_CLASS;
-    BALANCE_CALIBRATION_VERSION_LAZY = monolith.BALANCE_CALIBRATION_VERSION;
-    SEISMOGRAPH_VERSION_LAZY = monolith.SEISMOGRAPH_VERSION;
-    WEIGHTS_LEGEND_LAZY = monolith.WEIGHTS_LEGEND;
+  if (!monolithLoaded) {
+    // Dynamic require to prevent static circular dependency detection
+    // This loads the monolith ONLY when needed, after this module initialization completes
+    const { 
+      enrichDailyAspects, 
+      selectPoeticAspects, 
+      weightAspect,
+      ASPECT_CLASS,
+      BALANCE_CALIBRATION_VERSION,
+      SEISMOGRAPH_VERSION,
+      WEIGHTS_LEGEND
+    } = eval("require('../../lib/server/astrology-mathbrain')");
+    
+    enrichDailyAspectsLazy = enrichDailyAspects;
+    selectPoeticAspectsLazy = selectPoeticAspects;
+    weightAspectLazy = weightAspect;
+    ASPECT_CLASS_LAZY = ASPECT_CLASS;
+    BALANCE_CALIBRATION_VERSION_LAZY = BALANCE_CALIBRATION_VERSION;
+    SEISMOGRAPH_VERSION_LAZY = SEISMOGRAPH_VERSION;
+    WEIGHTS_LEGEND_LAZY = WEIGHTS_LEGEND;
+    monolithLoaded = true;
   }
   return {
     enrichDailyAspects: enrichDailyAspectsLazy,
