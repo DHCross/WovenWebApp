@@ -42,6 +42,8 @@ function validateSubject(subject) {
 function normalizeSubjectData(data) {
   if (!data || typeof data !== 'object') return {};
 
+  logger.info('[VALIDATION] normalizeSubjectData called', { input: data });
+
   const normalized = {
     name: data.name || 'Subject',
     zodiac_type: data.zodiac_type || data.zodiac || 'Tropic',
@@ -161,6 +163,7 @@ function normalizeSubjectData(data) {
     }
   }
 
+  logger.info('[VALIDATION] normalizeSubjectData complete', { input: data, output: normalized });
   return normalized;
 }
 

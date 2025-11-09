@@ -21,6 +21,7 @@
 // ============================================================================
 const {
   validateSubject,
+  validateSubjectLean,
   normalizeSubjectData,
 } = require('./validation');
 
@@ -51,6 +52,7 @@ const {
 module.exports = {
   // Validation Layer
   validateSubject,
+  validateSubjectLean,
   normalizeSubjectData,
 
   // API Client Layer
