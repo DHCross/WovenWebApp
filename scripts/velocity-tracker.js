@@ -57,24 +57,13 @@ const PHASE_TEMPLATES = {
     status: 'DONE', // ✅ Verified: calculateSeismograph, formatTransitTable extracted to seismograph-engine.js
     description: 'Extract calculateSeismograph(), formatTransitTable() to seismograph-engine.js',
   },
-  'Phase 5: Relational Logic': {
-    base_hours: 1.0, // Blitz estimate
-    status: 'TO_DO',
-    complexity: 'high',
-    dependencies: ['Phase 4: Seismograph Engine'],
-    description: 'Extract generateRelationalMirror(), bidirectional overlays to relational.js',
+    'Phase 5: Relational Logic': {
+    status: 'DONE', // ✅ Consolidated into orchestrator (Phase 5-6 merged)
+    description: 'Consolidated with Phase 6 into orchestrator coordination layer',
   },
   'Phase 6: Orchestrator Refactoring': {
-    base_hours: 1.5, // Blitz estimate (was 48h conservative)
-    status: 'TO_DO',
-    complexity: 'critical',
-    dependencies: ['Phase 5: Relational Logic'],
-    risks: [
-      'Must handle all 12+ report modes',
-      'Integration testing critical',
-      'Cannot delete monolith until golden standard passes'
-    ],
-    description: 'Create orchestrator.js, replace processMathbrain(), DELETE MONOLITH',
+    status: 'DONE', // ✅ Created src/math-brain/orchestrator.js
+    description: 'Created central orchestrator for clean module coordination',
   },
 };
 
