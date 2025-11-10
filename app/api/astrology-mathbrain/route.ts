@@ -57,8 +57,14 @@ function buildFailureResponse(status: number, payload: any, rawBody: string | nu
 
   const errorText = `${originalMessage} ${(payload?.detail || payload?.message || payload?.error || '')}`.trim();
   const missingRapidKey = code === 'RAPIDAPI_KEY_MISSING' || /RAPIDAPI_KEY/i.test(errorText);
+  const birthDataRejected = code === 'NATAL_CHART_FETCH_FAILED' || /birth data/i.test(errorText);
 
-  if (missingRapidKey) {
+  if (birthDataRejected) {
+    error = 'Birth data appears invalid or incomplete. Double-check date, time, and location details.';
+    code = 'BIRTH_DATA_INVALID';
+    hint = 'Verify that the birth date, time (if provided), city, state, and coordinates are entered correctly.';
+    httpStatus = 422;
+  } else if (missingRapidKey) {
     error = 'Math Brain is offline until RAPIDAPI_KEY is configured.';
     code = 'RAPIDAPI_KEY_MISSING';
     hint = 'Add RAPIDAPI_KEY to .env.local and deployment secrets, then restart.';
