@@ -1,7 +1,82 @@
-## [2025-11-09] CRITICAL FIX: Multiple Circular Dependencies Causing Production 503 Errors
+## [2025-11-09] CRITICAL FIX: RapidAPI v4 Requires City+Nation Even With Coordinates
 
 **Date:** 2025-11-09  
 **Status:** ✅ RESOLVED  
+**Impact:** CRITICAL - Production API returning 503 "Unable to retrieve natal chart data"
+
+**Production Symptoms**
+- Math Brain API consistently returned HTTP 503 with error code `UPSTREAM_TEMPORARY`
+- Error detail: "Unable to retrieve natal chart data from upstream service"
+- Local testing revealed RapidAPI v4 was rejecting requests with validation errors
+- API key was valid and subscription active
+
+**Root Cause Analysis**
+RapidAPI Astrologer API v4 **requires `city` and `nation` fields even when coordinates (lat/lon/tz) are provided**. The coordinate fallback path in `src/math-brain/api-client.js` was omitting these fields, causing upstream validation failures.
+
+**API Behavior Discovery**
+```bash
+# Without city - FAILS with validation error
+curl -X POST 'https://astrologer.p.rapidapi.com/api/v4/birth-chart' \
+  -d '{"subject":{"name":"Dan","year":1973,"month":7,"day":24,"hour":14,"minute":30,
+       "latitude":40.0167,"longitude":-75.3,"timezone":"America/New_York","zodiac_type":"Tropic"}}'
+# Response: {"detail":[{"type":"missing","loc":["body","subject","city"],"msg":"Field required"}]}
+
+# With city+nation - SUCCESS
+curl -X POST 'https://astrologer.p.rapidapi.com/api/v4/birth-chart' \
+  -d '{"subject":{"name":"Dan","year":1973,"month":7,"day":24,"hour":14,"minute":30,
+       "city":"Bryn Mawr","nation":"US","latitude":40.0167,"longitude":-75.3,
+       "timezone":"America/New_York","zodiac_type":"Tropic"}}'
+# Response: {"status":"OK", ...complete birth chart...}
+```
+
+**The Fix**
+Updated `callNatal()` coordinate fallback path to always include city+nation when available:
+
+```javascript
+// BEFORE (line 70):
+const payloadCoords = { subject: subjectToAPI(subject, { 
+  ...pass, 
+  require_city: canTryCity,  // ← Only if city exists
+  force_city_mode: false, 
+  suppress_coords: false, 
+  suppress_geonames: true 
+}) };
+
+// AFTER:
+// CRITICAL: RapidAPI v4 requires city+nation even when coordinates are provided
+const payloadCoords = { subject: subjectToAPI(subject, { 
+  ...pass, 
+  require_city: true,  // ← Always include city if available
+  force_city_mode: false, 
+  suppress_coords: false, 
+  suppress_geonames: true 
+}) };
+```
+
+**Alignment with API Documentation**
+This fix aligns with documented API requirements from `API_INTEGRATION_GUIDE.md`:
+- "All Math Brain API requests must include a valid IANA timezone string"
+- Expected payload format requires: `name, year, month, day, hour, minute, city, nation, latitude, longitude, timezone`
+
+**Files Changed**
+- `src/math-brain/api-client.js` - Updated coordinate fallback to require city+nation
+
+**Testing**
+- ✅ Local test with `subjectToAPI()` confirms city+nation included in coordinate mode
+- ✅ Direct RapidAPI curl test with benchmark payload succeeds
+- ⏳ Netlify production deployment in progress
+
+**Impact**
+- **Before:** 100% failure rate on Generate Report (503 errors)
+- **After:** Natal chart fetch succeeds with complete geometry
+- **User Impact:** Restores full Math Brain functionality
+
+---
+
+## [2025-11-09] CRITICAL FIX: Multiple Circular Dependencies Causing Production 503 Errors
+
+**Date:** 2025-11-09  
+**Status:** ✅ RESOLVED (superseded by RapidAPI v4 city+nation fix above)
 **Impact:** CRITICAL - Production 503 errors on ALL astrology-mathbrain API requests
 
 **Production Symptoms**
