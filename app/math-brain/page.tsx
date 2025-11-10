@@ -790,6 +790,7 @@ export default function MathBrainPage() {
     minute: "30",
     city: "Bryn Mawr",
     state: "PA",
+    nation: "US",
     latitude: 40.0167,
     longitude: -75.3,
     timezone: "US/Eastern",
@@ -1147,6 +1148,7 @@ export default function MathBrainPage() {
     minute: "",
     city: "",
     state: "",
+    nation: "US",
     latitude: "",
     longitude: "",
     timezone: "",
@@ -3365,6 +3367,7 @@ export default function MathBrainPage() {
             timezone: personA.timezone,
             city: personA.city,
             state: personA.state,
+            nation: personA.nation || "US",
           },
           ...(includePersonB
             ? {
@@ -3373,6 +3376,7 @@ export default function MathBrainPage() {
                   timezone: personB.timezone,
                   city: personB.city,
                   state: personB.state,
+                  nation: personB.nation || "US",
                 },
               }
             : {}),
@@ -4036,7 +4040,7 @@ export default function MathBrainPage() {
         mode,
         personA: {
           ...personA,
-          nation: "US",
+          nation: personA.nation || "US",
           year: Number(personA.year),
           month: Number(personA.month),
           day: Number(personA.day),
@@ -4089,7 +4093,7 @@ export default function MathBrainPage() {
       if (RELATIONAL_MODES.includes(mode) && includePersonB) {
         payload.personB = {
           ...personB,
-          nation: "US",
+          nation: personB.nation || "US",
           year: Number(personB.year),
           month: Number(personB.month),
           day: Number(personB.day),

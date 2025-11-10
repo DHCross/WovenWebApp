@@ -1,3 +1,28 @@
+## [2025-11-10] Math Brain now persists nation for both subjects
+
+**Date:** 2025-11-10  
+**Status:** ✅ RESOLVED  
+**Impact:** HIGH – prevents false "Birth data invalid" errors when reusing saved configs or exports
+
+**What changed**
+- Added `nation` to the Math Brain `Subject` type so both Person A and Person B always store the country used for API calls.
+- Default Person A/B state now seeds `nation: "US"` (matching previous implicit assumption) but allows the user to override it.
+- Payload builder, session persistence, and chunked requests now forward the stored nation instead of hard-coding one-off defaults.
+
+**Why it matters**
+- RapidAPI v4 rejects requests lacking `city + nation`; previously we only injected "US" at request time. When configs were exported/imported (e.g., `math_brain_setup_*.json`), the nation field was lost, producing validation failures on rerun.
+- Persisting the nation alongside other birth details keeps saved setups, session resumes, and replayed JSON inputs API-compliant without extra manual edits.
+
+**Files Changed**
+- `app/math-brain/types.ts` – added optional `nation` to `Subject` type definition.
+- `app/math-brain/page.tsx` – defaulted nation for both subjects, ensured payload/session logic forwards stored values.
+- `analysis/math_brain_setup_A_20251110T070438.json` – updated reference setup to include `"nation": "US"`.
+
+**Testing**
+- Manual verification: reran Math Brain with saved setup; route accepted payload and produced report without birth-data validation errors.
+
+---
+
 ## [2025-11-09] CRITICAL FIX: RapidAPI v4 Requires City+Nation Even With Coordinates
 
 **Date:** 2025-11-09  
