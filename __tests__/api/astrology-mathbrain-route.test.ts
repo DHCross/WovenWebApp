@@ -81,6 +81,7 @@ describe('Astrology Math Brain API route', () => {
       detail: 'Birth data missing coordinates',
     });
     expect(payload.error).toContain('Birth data appears invalid or incomplete');
+    expect(payload.hint).toContain('Verify that the birth date, time');
   });
 
   it('returns 503 with hint when RapidAPI key is missing', async () => {
