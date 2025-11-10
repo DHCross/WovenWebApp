@@ -96,7 +96,8 @@ async function callNatal(endpoint, subject, headers, pass = {}, description = 'N
   }
 
   if (hasCoords) {
-    const payloadCoords = { subject: subjectToAPI(subject, { ...pass, require_city: canTryCity, force_city_mode: false, suppress_coords: false, suppress_geonames: true }) };
+    // CRITICAL: RapidAPI v4 requires city+nation even when coordinates are provided
+    const payloadCoords = { subject: subjectToAPI(subject, { ...pass, require_city: true, force_city_mode: false, suppress_coords: false, suppress_geonames: true }) };
     if (chartPrefs) Object.assign(payloadCoords, chartPrefs);
     try {
       return await apiCallWithRetry(endpoint, { method: 'POST', headers, body: JSON.stringify(payloadCoords) }, description);
