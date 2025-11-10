@@ -19,6 +19,12 @@ function normalizeTimezone(tz) {
 
   // Map common US timezone names and abbreviations to the correct IANA format.
   const timezoneMap = {
+    // Deprecated US/* format (common in legacy systems)
+    'US/EASTERN': 'America/New_York',
+    'US/CENTRAL': 'America/Chicago',
+    'US/MOUNTAIN': 'America/Denver',
+    'US/PACIFIC': 'America/Los_Angeles',
+    // Common timezone names
     'EASTERN': 'America/New_York',
     'EST': 'America/New_York',
     'EDT': 'America/New_York',
