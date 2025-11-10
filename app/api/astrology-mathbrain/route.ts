@@ -5,8 +5,7 @@ import { randomUUID } from 'crypto';
 export const maxDuration = 26; // seconds
 export const dynamic = 'force-dynamic'; // Disable caching for this route
 
-// Reuse the legacy math brain implementation directly
-const mathBrainFunction = require('../../../lib/server/astrology-mathbrain.js');
+import { mathBrainService } from '@/src/math_brain/service';
 
 // NEW: Import the v2 Math Brain orchestrator
 const { runMathBrain } = require('../../../src/math_brain/main.js');
@@ -88,57 +87,12 @@ function buildFailureResponse(status: number, payload: any, rawBody: string | nu
 }
 
 export async function GET(request: NextRequest) {
-  // Convert Next.js request to Netlify event format
-  const url = new URL(request.url);
-  
-  // Convert headers
-  const headers: Record<string, string> = {};
-  request.headers.forEach((value, key) => {
-    headers[key] = value;
+  return NextResponse.json({
+    success: true,
+    message: 'Astrology MathBrain v2 service is active.',
+    service: 'astrology-mathbrain',
+    version: 'v2'
   });
-  
-  const event = {
-    httpMethod: 'GET',
-    queryStringParameters: Object.fromEntries(url.searchParams),
-    headers,
-    body: null,
-    path: url.pathname,
-    pathParameters: null,
-    requestContext: {},
-    resource: '',
-    stageVariables: null,
-    isBase64Encoded: false
-  };
-
-  const context = {
-    callbackWaitsForEmptyEventLoop: false,
-    functionName: 'astrology-mathbrain',
-    functionVersion: '$LATEST',
-    invokedFunctionArn: '',
-    memoryLimitInMB: '1024',
-  awsRequestId: randomUUID(),
-    logGroupName: '',
-    logStreamName: '',
-    getRemainingTimeInMillis: () => 30000
-  };
-
-  try {
-    const result = await mathBrainFunction.handler(event, context);
-    
-    return new NextResponse(result.body, {
-      status: result.statusCode,
-      headers: new Headers(result.headers || {})
-    });
-  } catch (error: any) {
-    logger.error('Astrology MathBrain API error', {
-      error: error instanceof Error ? error.message : String(error)
-    });
-    return NextResponse.json({
-      success: false,
-      error: 'Internal server error',
-      code: 'ASTROLOGY_API_ERROR'
-    }, { status: 500 });
-  }
 }
 
 export async function POST(request: NextRequest) {
@@ -149,93 +103,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const body = JSON.stringify(rawPayload);
-
-    const windowConfig = rawPayload?.window || null;
-    const windowStep = typeof windowConfig?.step === 'string' ? windowConfig.step.toLowerCase() : null;
-
-    if (windowStep === 'daily' && windowConfig?.start && windowConfig?.end) {
-      const startDate = parseIsoDate(windowConfig.start);
-      const endDate = parseIsoDate(windowConfig.end);
-      if (!startDate || !endDate) {
-        logger.warn('Invalid daily window dates received', { start: windowConfig.start, end: windowConfig.end });
-        return NextResponse.json({
-          success: false,
-          error: 'Invalid transit window dates. Please use ISO format (YYYY-MM-DD).',
-          code: 'INVALID_TRANSIT_WINDOW'
-        }, { status: 400 });
-      }
-
-      if (endDate.getTime() < startDate.getTime()) {
-        logger.warn('Daily window end precedes start', { start: windowConfig.start, end: windowConfig.end });
-        return NextResponse.json({
-          success: false,
-          error: 'Transit window end date must be on or after the start date.',
-          code: 'INVALID_TRANSIT_WINDOW_ORDER'
-        }, { status: 400 });
-      }
-
-      const totalDays = countInclusiveDays(startDate, endDate);
-      if (totalDays > MAX_DAILY_TRANSIT_WINDOW_DAYS) {
-        logger.warn('Daily window exceeds maximum allowed span', { totalDays, start: windowConfig.start, end: windowConfig.end });
-        return NextResponse.json({
-          success: false,
-          error: `Daily symbolic weather windows are limited to ${MAX_DAILY_TRANSIT_WINDOW_DAYS} days. Consider weekly sampling or shorten the range.`,
-          code: 'TRANSIT_WINDOW_TOO_LARGE',
-          limit: MAX_DAILY_TRANSIT_WINDOW_DAYS
-        }, { status: 400 });
-      }
-    }
-
-    // Prepare event for legacy handler
-    const url = new URL(request.url);
-    const headers: Record<string, string> = {};
-    request.headers.forEach((value, key) => { headers[key] = value; });
-
-    const event = {
-      httpMethod: 'POST',
-      headers,
-      body,
-      queryStringParameters: Object.fromEntries(url.searchParams),
-      path: url.pathname, pathParameters: null, requestContext: {}, resource: '', stageVariables: null, isBase64Encoded: false
-    };
-
-    const context = {
-      callbackWaitsForEmptyEventLoop: false, functionName: 'astrology-mathbrain', functionVersion: '$LATEST', invokedFunctionArn: '',
-      memoryLimitInMB: '1024', awsRequestId: randomUUID(), logGroupName: '', logStreamName: '', getRemainingTimeInMillis: () => 30000
-    };
-
     // Execute the unified pipeline
     logger.info('Routing to unified Math Brain v2 pipeline');
 
     try {
-      // Get raw chart data by calling the legacy handler
-      const legacyResult = await mathBrainFunction.handler(event, context);
-      const legacyStatus = legacyResult?.statusCode ?? 500;
-      let legacyBody: any = null;
-      let rawBody: string | null = null;
-
-      if (legacyResult?.body) {
-        rawBody = legacyResult.body;
-        try {
-          legacyBody = JSON.parse(legacyResult.body);
-        } catch {
-          legacyBody = { error: legacyResult.body };
-        }
-      }
-
-      if (!legacyResult || legacyStatus >= 400) {
-        logger.error('Failed to fetch raw chart data from legacy handler', {
-          statusCode: legacyStatus,
-          errorCode: legacyBody?.code,
-          errorMessage: legacyBody?.error,
-          errorDetails: legacyBody
-        });
-
-        return buildFailureResponse(legacyStatus, legacyBody, rawBody);
-      }
-
-      const chartData = legacyBody;
+      // Get raw chart data by calling the new Math Brain Service
+      const chartData = await mathBrainService.fetch(rawPayload);
 
       // Prepare the config for the v2 formatter/aggregator
       const relationshipContextRaw =
