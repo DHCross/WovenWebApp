@@ -14,7 +14,7 @@ const path = require('path');
 const https = require('https');
 
 // ============================================================================
-// TEAM & VELOCITY MODEL
+// TEAM & VELOCITY MODEL (STC Signal → Trace → Convergence context)
 // ============================================================================
 
 const TEAM_MODEL = {
