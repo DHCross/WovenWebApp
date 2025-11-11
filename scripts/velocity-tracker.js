@@ -82,14 +82,26 @@ const PHASE_TEMPLATES = {
 // UTILS
 // ============================================================================
 
-const LOG_FILE_PATH = path.resolve(__dirname, '../velocity-log.jsonl');
+const LOG_DIR_PATH = path.resolve(__dirname, '../.logs');
+const LOG_FILE_PATH = path.resolve(LOG_DIR_PATH, 'velocity-log.jsonl');
+
+function ensureLogFileReady() {
+  if (!fs.existsSync(LOG_DIR_PATH)) {
+    fs.mkdirSync(LOG_DIR_PATH, { recursive: true });
+  }
+  if (!fs.existsSync(LOG_FILE_PATH)) {
+    fs.writeFileSync(LOG_FILE_PATH, '', { encoding: 'utf8' });
+  }
+}
 
 function logRun(data) {
+  ensureLogFileReady();
   const line = JSON.stringify(data);
   fs.appendFileSync(LOG_FILE_PATH, line + '\n', { encoding: 'utf8' });
 }
 
 function readRecentRuns(limit = 10) {
+  ensureLogFileReady();
   if (!fs.existsSync(LOG_FILE_PATH)) return [];
   const lines = fs.readFileSync(LOG_FILE_PATH, 'utf8').trim().split('\n');
   const runs = lines.map(line => {

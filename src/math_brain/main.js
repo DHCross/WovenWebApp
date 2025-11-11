@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-// Import the seismograph aggregator for symbolic weather calculations
-const { aggregate } = require('../seismograph');
+// Import the seismograph aggregator for symbolic weather calculations (via orchestrator)
+const { calculateSeismograph: aggregate } = require('../math-brain/orchestrator');
 
 // Import metric label classifiers
 const { classifyMagnitude, classifyDirectionalBias } = require('../../lib/reporting/metric-labels');

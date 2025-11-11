@@ -10,7 +10,8 @@
  */
 
 // Import from proper module locations to avoid circular dependencies
-const { aggregate, _internals: seismoInternals } = require('../../src/seismograph.js');
+// Use canonical core under math-brain to avoid legacy dependency
+const { aggregate, _internals: seismoInternals } = require('./seismograph-core.js');
 const {
   classifyMagnitude,
   classifyDirectionalBias,
