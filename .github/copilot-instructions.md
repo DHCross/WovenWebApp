@@ -70,24 +70,23 @@ WovenWebApp is a web-based astrological chart analysis application that generate
 1. **[Developers Notes/Core/Four Report Types_Integrated 10.1.25.md](../Developers%20Notes/Core/Four%20Report%20Types_Integrated%2010.1.25.md)** ⭐ PRIMARY REFERENCE
 2. **[Developers Notes/Lessons Learned/Lessons Learned for Developer.md](../Developers%20Notes/Lessons%20Learned/Lessons%20Learned%20for%20Developer.md)** — Essential context
 3. **[Developers Notes/README.md](../Developers%20Notes/README.md)** — Complete developer index
-4. `README.md` — Setup, API details, troubleshooting
-5. `MAINTENANCE_GUIDE.md` — Best practices, error handling, file org
-6. `CHANGELOG.md` — Change history with AI collaboration notes
-7. `copilot_fix_recovery.md` — **Emergency recovery when AI assistants cause issues**
-8. `MATH_BRAIN_COMPLIANCE.md` — Technical compliance requirements
-9. `API_INTEGRATION_GUIDE.md` — External API usage patterns
+4. [README.md](../README.md) — Setup, API details, troubleshooting
+5. [Developers Notes/Lessons Learned/MAINTENANCE_GUIDE.md](../Developers%20Notes/Lessons%20Learned/MAINTENANCE_GUIDE.md) — Best practices, error handling, file org
+6. [CHANGELOG.md](../CHANGELOG.md) — Change history with AI collaboration notes
+7. [Developers Notes/Lessons Learned/copilot_fix_recovery.md](../Developers%20Notes/Lessons%20Learned/copilot_fix_recovery.md) — **Emergency recovery when AI assistants cause issues**
+8. [Developers Notes/Implementation/MATH_BRAIN_COMPLIANCE.md](../Developers%20Notes/Implementation/MATH_BRAIN_COMPLIANCE.md) — Technical compliance requirements
+9. [Developers Notes/API/API_INTEGRATION_GUIDE.md](../Developers%20Notes/API/API_INTEGRATION_GUIDE.md) — External API usage patterns
 
 ### Additional Key Resources
 
 * **API Integration:** [Developers Notes/API/API_INTEGRATION_GUIDE.md](../Developers%20Notes/API/API_INTEGRATION_GUIDE.md)
 * **API Reference:** [Developers Notes/API/API_REFERENCE.md](../Developers%20Notes/API/API_REFERENCE.md)
-* **Balance Meter v5.0:** [V5_IMPLEMENTATION_SUMMARY.md](../V5_IMPLEMENTATION_SUMMARY.md)
+* **Balance Meter v5.0:** [Developers Notes/Core/V5_IMPLEMENTATION_SUMMARY.md](../Developers%20Notes/Core/V5_IMPLEMENTATION_SUMMARY.md)
 * **Seismograph:** [Developers Notes/Implementation/SEISMOGRAPH_GUIDE.md](../Developers%20Notes/Implementation/SEISMOGRAPH_GUIDE.md)
 * **Raven Persona:** [Developers Notes/Poetic Brain/RAVEN-PERSONA-SPEC.md](../Developers%20Notes/Poetic%20Brain/RAVEN-PERSONA-SPEC.md)
 * **Output Protocol:** [Developers Notes/Poetic Brain/RAVEN_OUTPUT_PROTOCOL.md](../Developers%20Notes/Poetic%20Brain/RAVEN_OUTPUT_PROTOCOL.md)
 * **Voice Guide:** [docs/CLEAR_MIRROR_VOICE.md](../docs/CLEAR_MIRROR_VOICE.md)
-* **Export Formats:** [docs/planning/USER_FACING_MARKDOWN_DESIGN.md](../docs/planning/USER_FACING_MARKDOWN_DESIGN.md), `useChartExport.ts`
-* **Troubleshooting:** [DEPLOYMENT_TROUBLESHOOTING.md](../DEPLOYMENT_TROUBLESHOOTING.md)
+* **Export Formats:** [docs/planning/USER_FACING_MARKDOWN_DESIGN.md](../docs/planning/USER_FACING_MARKDOWN_DESIGN.md), [app/math-brain/hooks/useChartExport.ts](../app/math-brain/hooks/useChartExport.ts)
 
 ---
 
@@ -521,7 +520,7 @@ These rules govern React UI code under the Next.js App Router (`app/`, `componen
 
 **Recommended Reading**
 
-* `README.md`, `MAINTENANCE_GUIDE.md`, `Lessons Learned for Developer.md`
+* [README.md](../README.md), [Developers Notes/Lessons Learned/MAINTENANCE_GUIDE.md](../Developers%20Notes/Lessons%20Learned/MAINTENANCE_GUIDE.md), [Developers Notes/Lessons Learned/Lessons Learned for Developer.md](../Developers%20Notes/Lessons%20Learned/Lessons%20Learned%20for%20Developer.md)
 * Raven Calder system briefs (Hook Stack, Seismograph, Shareable Mirror)
 
 ---
