@@ -60,3 +60,5 @@ specs/*/api/*.json
 examples/*.json
 examples/*.md
 !examples/.keep
+__pycache__/
+*.pyc
