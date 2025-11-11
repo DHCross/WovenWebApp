@@ -1,0 +1,73 @@
+# Raven Calder Corpus Registry
+# Tracks maintenance scripts and system state for audit trail and compliance validation
+
+corpus_metadata:
+  schema_version: "1.0"
+  system: "WovenWebApp"
+  doctrine: "Raven Calder"
+  last_updated: "2025-11-11"
+
+balance_meter:
+  version: "5.0"
+  active_axes:
+    - magnitude  # 0-5 scale
+    - directional_bias  # -5 to +5 scale
+  deprecated_axes:
+    - coherence  # Retired Oct 2025
+    - sfd  # Retired Oct 2025
+  philosophy: "Geometry-first, falsifiable, deterministic"
+
+math_brain:
+  version: "3.2.7"
+  data_source: "AstrologerAPI v4"
+  architecture: "FIELD → MAP → VOICE"
+  renderer_version: "mirror_renderer 4.1"
+  semantic_profile: "technical"
+
+maintenance_scripts:
+  - name: cleanup-deps.sh
+    version: "1.0.0"
+    purpose: "Removes deprecated packages and re-aligns orchestration layer with Math Brain doctrine"
+    last_executed: "2025-11-11"
+    compliance: 
+      - FIELD  # System state management
+      - MAP  # Refactor logic
+      - VOICE  # Human-readable summary
+      - WB  # Whole Better (falsifiability standard)
+    changes:
+      - "Removed unused @google/generative-ai package"
+      - "Moved playwright and node-fetch to devDependencies"
+      - "Deleted duplicate src/math-brain/readiness.js"
+      - "Wired utils/readiness.js exports through orchestrator"
+      - "Added corpus provenance metadata"
+    validation:
+      geometry_only: true
+      falsifiable: true
+      deterministic: true
+      no_symbolic_interpolation: true
+
+corpus_validation_rules:
+  - name: "Geometry-only enforcement"
+    description: "Math Brain modules must contain only geometric calculations, no symbolic interpretation"
+    scope: ["src/math-brain/*", "lib/server/astrology-mathbrain.js"]
+    
+  - name: "Balance Meter v5.0 axis fidelity"
+    description: "Only magnitude and directional_bias axes are valid; coherence and sfd are deprecated"
+    scope: ["src/seismograph.js", "lib/balance/*"]
+    
+  - name: "FIELD → MAP → VOICE structural integrity"
+    description: "All data flows must follow: raw geometry (FIELD) → structural patterns (MAP) → narrative synthesis (VOICE)"
+    scope: ["src/math_brain/*", "src/reporters/*", "lib/raven/*"]
+    
+  - name: "Provenance layer enforcement"
+    description: "All builds and exports must record data source, versions, and semantic profile"
+    scope: ["all"]
+
+excluded_from_math_brain:
+  description: "These belong in Poetic Brain, NOT Math Brain orchestrator"
+  forbidden_imports:
+    - "interpretationUtils"
+    - "symbolicHelpers"
+    - "narrativeGenerators"
+    - "metaphorMappings"
+  rationale: "Math Brain must remain falsifiable and geometry-only per Raven Calder doctrine"
