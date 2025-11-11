@@ -16,45 +16,24 @@ const {
   classifyMagnitude,
   classifyDirectionalBias,
   classifyVolatility,
-  scaleDirectionalBias,
 } = require('../../lib/reporting/metric-labels');
+const { scaleDirectionalBias } = require('../../lib/reporting/canonical-scaling');
 
-// Lazy-load monolith dependencies to completely break circular reference at static analysis time
-let enrichDailyAspectsLazy, selectPoeticAspectsLazy, weightAspectLazy;
-let ASPECT_CLASS_LAZY, BALANCE_CALIBRATION_VERSION_LAZY, SEISMOGRAPH_VERSION_LAZY, WEIGHTS_LEGEND_LAZY;
-let monolithLoaded = false;
+// NOTE: Helper functions from monolith are passed via options.helpers to avoid circular dependency
+// (seismograph-engine is required by orchestrator, which is required by monolith)
+// Instead of trying to lazy-load them, we accept them as parameters.
 
 function getLazyImports() {
-  if (!monolithLoaded) {
-    // Dynamic require to prevent static circular dependency detection
-    // This loads the monolith ONLY when needed, after this module initialization completes
-    const { 
-      enrichDailyAspects, 
-      selectPoeticAspects, 
-      weightAspect,
-      ASPECT_CLASS,
-      BALANCE_CALIBRATION_VERSION,
-      SEISMOGRAPH_VERSION,
-      WEIGHTS_LEGEND
-    } = eval("require('../../lib/server/astrology-mathbrain')");
-    
-    enrichDailyAspectsLazy = enrichDailyAspects;
-    selectPoeticAspectsLazy = selectPoeticAspects;
-    weightAspectLazy = weightAspect;
-    ASPECT_CLASS_LAZY = ASPECT_CLASS;
-    BALANCE_CALIBRATION_VERSION_LAZY = BALANCE_CALIBRATION_VERSION;
-    SEISMOGRAPH_VERSION_LAZY = SEISMOGRAPH_VERSION;
-    WEIGHTS_LEGEND_LAZY = WEIGHTS_LEGEND;
-    monolithLoaded = true;
-  }
+  // This function is deprecated - helpers should be passed via options.helpers
+  // But we keep it for backward compatibility
   return {
-    enrichDailyAspects: enrichDailyAspectsLazy,
-    selectPoeticAspects: selectPoeticAspectsLazy,
-    weightAspect: weightAspectLazy,
-    ASPECT_CLASS: ASPECT_CLASS_LAZY,
-    BALANCE_CALIBRATION_VERSION: BALANCE_CALIBRATION_VERSION_LAZY,
-    SEISMOGRAPH_VERSION: SEISMOGRAPH_VERSION_LAZY,
-    WEIGHTS_LEGEND: WEIGHTS_LEGEND_LAZY,
+    enrichDailyAspects: undefined,
+    selectPoeticAspects: undefined,
+    weightAspect: undefined,
+    ASPECT_CLASS: undefined,
+    BALANCE_CALIBRATION_VERSION: undefined,
+    SEISMOGRAPH_VERSION: undefined,
+    WEIGHTS_LEGEND: undefined,
   };
 }
 
@@ -196,7 +175,8 @@ function formatTransitTable(enrichedAspects, prevDayAspects = null) {
  * @returns {Object} { daily: { date: entry, ... }, summary: {...}, graph_rows: [...] }
  */
 function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {}) {
-  // Lazy-load monolith dependencies to break circular dependency
+  // Extract helper functions from options.helpers (passed from monolith to avoid circular dependency)
+  const helpers = options.helpers || {};
   const {
     enrichDailyAspects,
     selectPoeticAspects,
@@ -205,7 +185,18 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
     BALANCE_CALIBRATION_VERSION,
     SEISMOGRAPH_VERSION,
     WEIGHTS_LEGEND,
-  } = getLazyImports();
+  } = helpers;
+  
+  // Validate that helpers are provided
+  if (!enrichDailyAspects || typeof enrichDailyAspects !== 'function') {
+    throw new Error('calculateSeismograph requires options.helpers.enrichDailyAspects function');
+  }
+  if (!selectPoeticAspects || typeof selectPoeticAspects !== 'function') {
+    throw new Error('calculateSeismograph requires options.helpers.selectPoeticAspects function');
+  }
+  if (!weightAspect || typeof weightAspect !== 'function') {
+    throw new Error('calculateSeismograph requires options.helpers.weightAspect function');
+  }
   
   if (!transitsByDate || Object.keys(transitsByDate).length === 0) {
     return { daily: {}, summary: {}, graph_rows: [] };
