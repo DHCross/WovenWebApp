@@ -1,0 +1,35 @@
+{
+  "_schema": "corpus_provenance_v1",
+  "maintenance_event": {
+    "script_name": "cleanup-deps.sh",
+    "script_version": "1.2.0",
+    "executed_at": "2025-11-11T08:31:30Z",
+    "purpose": "Removes deprecated dependencies and re-aligns orchestrator with lift-and-shift baseline; maintains core Math Brain geometry-first doctrine",
+    "compliance": ["FIELD", "MAP", "VOICE", "WB"],
+    "changes": [
+      "Removed unused @google/generative-ai package",
+      "Moved playwright and node-fetch to devDependencies",
+      "Deleted duplicate src/math-brain/readiness.js",
+      "Rewrote src/math-brain/orchestrator.js via guarded template",
+      "Saved orchestrator baseline to scripts/orchestrator.expected.js for future divergence detection",
+      "Recorded complete provenance metadata in corpus_provenance.json"
+    ]
+  },
+  "system_state": {
+    "data_source": "AstrologerAPI v4",
+    "math_brain_version": "3.2.7",
+    "renderer_version": "mirror_renderer 4.1",
+    "semantic_profile": "technical",
+    "balance_meter_version": "5.0",
+    "active_axes": ["magnitude", "directional_bias"],
+    "deprecated_axes": ["coherence", "sfd"]
+  },
+  "corpus_validation": {
+    "field_integrity": "preserved",
+    "map_logic": "refactored",
+    "voice_clean": "verified",
+    "geometry_only": true,
+    "falsifiable": true,
+    "deterministic": true
+  }
+}

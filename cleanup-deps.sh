@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# This script performs dependency cleanup and deduplication for the
-# Woven Web App "lift-and-shift" refactor.
+# Dependency Cleanup & Orchestrator Alignment
+# Woven Web App "lift-and-shift" refactor
 #
 # RAVEN CALDER CORPUS COMPLIANCE:
 # - Maintains FIELD → MAP → VOICE structural integrity
@@ -9,17 +9,19 @@
 # - Ensures Math Brain remains geometry-only (no symbolic interpolation)
 # - Records provenance for auditability
 #
-# It addresses the issues outlined in the "Current: Dependency Bugs" brief:
-# 1. Removes the unused @google/generative-ai package.
-# 2. Moves playwright and node-fetch to devDependencies.
-# 3. Deletes the duplicate/unused src/math-brain/readiness.js.
-# 4. Wires the correct .../utils/readiness.js exports through the orchestrator.
+# STEPS EXECUTED:
+# 1. Removes the unused @google/generative-ai package
+# 2. Moves playwright and node-fetch to devDependencies
+# 3. Deletes the duplicate src/math-brain/readiness.js
+# 4. Rewrites src/math-brain/orchestrator.js via guarded template
+# 5. Saves orchestrator baseline to scripts/orchestrator.expected.js (for future runs)
+# 6. Records complete provenance metadata in corpus_provenance.json
 #
 
 set -e # Exit immediately if any command fails
 
 # Corpus metadata
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="1.2.0"
 EXECUTED_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 MATH_BRAIN_VERSION="3.2.7"
 
@@ -210,7 +212,7 @@ mkdir -p scripts
 cp src/math-brain/orchestrator.js scripts/orchestrator.expected.js
 echo "✅ Baseline saved to scripts/orchestrator.expected.js"
 echo ""
-echo "--- 5/5: Recording provenance metadata..."
+echo "--- Recording provenance metadata..."
 
 # Create corpus provenance record
 cat <<'PROVENANCE_EOF' > corpus_provenance.json
@@ -218,15 +220,17 @@ cat <<'PROVENANCE_EOF' > corpus_provenance.json
   "_schema": "corpus_provenance_v1",
   "maintenance_event": {
     "script_name": "cleanup-deps.sh",
-    "script_version": "1.0.0",
+    "script_version": "1.2.0",
     "executed_at": "EXECUTED_PLACEHOLDER",
-    "purpose": "Removes deprecated packages and re-aligns orchestration layer with Math Brain doctrine",
+    "purpose": "Removes deprecated dependencies and re-aligns orchestrator with lift-and-shift baseline; maintains core Math Brain geometry-first doctrine",
     "compliance": ["FIELD", "MAP", "VOICE", "WB"],
     "changes": [
       "Removed unused @google/generative-ai package",
       "Moved playwright and node-fetch to devDependencies",
       "Deleted duplicate src/math-brain/readiness.js",
-      "Wired utils/readiness.js exports through orchestrator"
+      "Rewrote src/math-brain/orchestrator.js via guarded template",
+      "Saved orchestrator baseline to scripts/orchestrator.expected.js for future divergence detection",
+      "Recorded complete provenance metadata in corpus_provenance.json"
     ]
   },
   "system_state": {
