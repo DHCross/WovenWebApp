@@ -261,14 +261,18 @@ const normalizeSubjectPayload = (subject: Subject, options: NormalizeSubjectOpti
   const day = toOptionalNumber(subject.day);
   if (day != null) normalized.day = day;
 
-  if (allowUnknownTime) {
+  const parsedHour = toOptionalNumber(subject.hour);
+  const parsedMinute = toOptionalNumber(subject.minute);
+
+  if (parsedHour != null && parsedMinute != null) {
+    normalized.hour = parsedHour;
+    normalized.minute = parsedMinute;
+  } else if (allowUnknownTime) {
     normalized.hour = null;
     normalized.minute = null;
   } else {
-    const hour = toOptionalNumber(subject.hour);
-    if (hour != null) normalized.hour = hour;
-    const minute = toOptionalNumber(subject.minute);
-    if (minute != null) normalized.minute = minute;
+    if (parsedHour != null) normalized.hour = parsedHour;
+    if (parsedMinute != null) normalized.minute = parsedMinute;
   }
 
   const latitude = toOptionalNumber(subject.latitude);
