@@ -1,3 +1,39 @@
+## [2025-11-11] UPDATE: Comprehensive Copilot Instructions
+
+**Date:** 2025-11-11  
+**Status:** ✅ COMPLETED  
+**Impact:** MEDIUM – Improves AI-assisted development quality and consistency
+
+**What changed**
+- Updated `.github/copilot-instructions.md` with comprehensive project documentation:
+  - Added Project Snapshot section with stack details (Next.js 14, React 18, TypeScript, Tailwind)
+  - Expanded Coding Conventions with TypeScript, React, and terminology guidelines
+  - Enhanced Architecture Overview with detailed component descriptions
+  - Added comprehensive Essential Documentation section with links to key references
+  - Expanded Development Workflow with environment setup, testing, and best practices
+  - Added Style & Voice Guardrails section with Frontstage vs Backstage guidelines
+  - Added Security & Privacy section with Dan/Stephie constraint and data handling rules
+  - Updated File Organization to reflect modern Next.js structure
+  - Added Serverless Functions Instructions section with validation, error handling, and testing guidelines
+  - Added Frontend Instructions section with React/Next.js best practices, styling, and accessibility guidelines
+  - Retained all existing sections on deployment, troubleshooting, and quick reference commands
+
+**Why it matters**
+- Provides clear, comprehensive guidance for AI assistants working on the codebase
+- Ensures consistency in code style, terminology, and architecture decisions
+- Documents privacy constraints (Dan/Stephie names) and voice guidelines (FIELD → MAP → VOICE)
+- References key documentation for deeper context (Four Report Types, Raven Persona, etc.)
+- Reduces likelihood of AI-introduced bugs by specifying validation patterns and error handling
+
+**Files Changed**
+- `.github/copilot-instructions.md` – comprehensive update with project guidelines
+
+**References**
+- Issue: "✨ Set up Copilot instructions"
+- Primary references: `Developers Notes/Core/Four Report Types_Integrated 10.1.25.md`, `RAVEN-PERSONA-SPEC.md`, `CLEAR_MIRROR_VOICE.md`
+
+---
+
 ## [2025-11-10] Math Brain now persists nation for both subjects
 
 **Date:** 2025-11-10  
