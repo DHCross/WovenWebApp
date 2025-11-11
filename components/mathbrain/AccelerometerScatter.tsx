@@ -17,7 +17,7 @@ type AccelerometerScatterProps = {
  * - Color: Directional Bias (-5 to +5) - Which way does energy lean?
  * - No smoothing, no derivatives, only raw measurements
  */
-export function AccelerometerScatter({ data, title = 'Astrological Field Map' }: AccelerometerScatterProps) {
+export function AccelerometerScatter({ data, title = 'Symbolic Weather — FIELD Layer' }: AccelerometerScatterProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartInstanceRef = useRef<any>(null);
   const [isClient, setIsClient] = useState(false);
@@ -184,7 +184,7 @@ export function AccelerometerScatter({ data, title = 'Astrological Field Map' }:
   if (!data || data.length === 0) {
     return (
       <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-400">
-        No accelerometer data available
+        No symbolic weather data available
       </div>
     );
   }

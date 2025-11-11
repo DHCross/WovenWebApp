@@ -1,1 +1,111 @@
-{"schema":"WM-Chart-1.2","provenance":{"math_brain_version":"0.2.1","ephemeris_source":"AstrologerAPI-v4","build_ts":"2025-09-14T07:34:12.185Z","timezone":"UTC","calibration_boundary":"2025-09-05","engine_versions":{"seismograph":"v1.0","balance":"v1.1","sfd":"v1.2"},"time_meta_a":{"birth_time_known":true,"time_precision":"exact","effective_time_used":"14:30"},"house_system":"P","orbs_profile":"wm-spec-2025-09","timezone_db_version":"IANA (system)","relocation_mode":"A_local","house_system_name":"Placidus"},"context":{"mode":"BALANCE_METER"},"mirror_ready":true,"contract":"clear-mirror/1.2","person_a":{"details":{"name":"DH Cross","year":1973,"month":7,"day":24,"hour":14,"minute":30,"city":"Bryn Mawr","nation":"US","zodiac_type":"Tropic"},"meta":{"birth_time_known":true,"time_precision":"exact","effective_time_used":"14:30"},"chart":{"transitsByDate":{}},"derived":{"t2n_aspects":[],"seismograph_summary":{}},"transit_data":[]},"balance_meter":{"period":{"start":"2025-09-01","end":"2025-09-30","step":"daily"},"schema_version":"1.2","channel_summary":{},"daily_entries":{},"person":{"name":"DH Cross"}},"mode":"balance_meter","woven_map":{"schema":"WM-WovenMap-1.0","type":"solo","context":{"mode":"BALANCE_METER","period":{"start":"2025-09-01","end":"2025-09-30","step":"daily"},"translocation":null,"person_a":{"name":"DH Cross","birth_date":null,"birth_time":null,"coordinates":null,"timezone":null},"person_b":null},"balance_meter":{},"hook_stack":{"hooks":[],"tier_1_orbs":0,"total_intensity":0,"coverage":"minimal","timestamp":"2025-09-14T07:34:20.800Z","source_aspects_count":0,"provenance":{"composer":"hook-stack-composer","version":"1.0.0","tier_1_threshold":1,"min_intensity_threshold":8}},"integration_factors":{"fertile_field":65,"harmonic_resonance":70,"expansion_lift":20,"combustion_clarity":0,"liberation_release":15,"integration":80},"time_series":[],"natal_summary":{"placements":null,"angles":null,"major_aspects":[]},"vector_integrity":{"latent":[],"suppressed":[],"method":"stub-0"},"polarity_cards":[{"id":"card_1","field_tone":null,"map_geometry":[],"voice_slot":null},{"id":"card_2","field_tone":null,"map_geometry":[],"voice_slot":null},{"id":"card_3","field_tone":null,"map_geometry":[],"voice_slot":null}],"mirror_voice":null,"raw_geometry":{"solo":{"natal_placements":null,"angles":null,"natal_aspects":[],"transit_logs":{}}},"provenance":{"math_brain_version":"0.2.1","ephemeris_source":"AstrologerAPI-v4","build_ts":"2025-09-14T07:34:12.185Z","timezone":"UTC","calibration_boundary":"2025-09-05","engine_versions":{"seismograph":"v1.0","balance":"v1.1","sfd":"v1.2"},"time_meta_a":{"birth_time_known":true,"time_precision":"exact","effective_time_used":"14:30"},"house_system":"P","orbs_profile":"wm-spec-2025-09","timezone_db_version":"IANA (system)","relocation_mode":"A_local","house_system_name":"Placidus"}}}
+{
+  "_format": "mirror-symbolic-weather-v1",
+  "report_kind": "Relational Balance Meter",
+  "generated_at": "2025-09-15T12:00:00Z",
+  "person_a": {
+    "name": "DH Cross",
+    "natal_chart": {
+      "sun": { "sign": "Leo", "degree": 1.2 },
+      "moon": { "sign": "Cancer", "degree": 28.4 },
+      "ascendant": { "sign": "Sagittarius", "degree": 8.1 }
+    }
+  },
+  "person_b": {
+    "name": "Stephie",
+    "natal_chart": {
+      "sun": { "sign": "Aries", "degree": 28.7 },
+      "moon": { "sign": "Pisces", "degree": 12.4 },
+      "ascendant": { "sign": "Libra", "degree": 4.3 }
+    }
+  },
+  "mirror_contract": {
+    "report_kind": "relational_balance_meter",
+    "intimacy_tier": "P5a",
+    "relationship_type": "Partner",
+    "is_relational": true
+  },
+  "symbolic_weather_context": {
+    "transit_context": {
+      "period": {
+        "start": "2025-09-01",
+        "end": "2025-09-07",
+        "step": "1d"
+      }
+    },
+    "balance_meter": {
+      "magnitude": 5,
+      "magnitude_label": "Peak",
+      "bias_signed": -5,
+      "valence_label": "Strong Inward",
+      "directional_bias": -5,
+      "directional_bias_x10": -50,
+      "volatility_label": "Aligned Flow"
+    },
+    "daily_readings": [
+      {
+        "date": "2025-09-01",
+        "magnitude": 5,
+        "directional_bias": -5,
+        "directional_bias_x10": -50,
+        "aspects": [
+          {
+            "planet_1": "Mars",
+            "planet_2": "Pluto",
+            "symbol": "square",
+            "orb": 0.2,
+            "potency": 9
+          },
+          {
+            "planet_1": "Sun",
+            "planet_2": "Moon",
+            "symbol": "opposition",
+            "orb": 0.8,
+            "potency": 7
+          }
+        ]
+      },
+      {
+        "date": "2025-09-02",
+        "magnitude": 4.6,
+        "directional_bias": -4.2,
+        "directional_bias_x10": -42,
+        "aspects": [
+          {
+            "planet_1": "Saturn",
+            "planet_2": "ASC",
+            "symbol": "conjunction",
+            "orb": 0.5,
+            "potency": 8
+          }
+        ]
+      }
+    ]
+  },
+  "balance_meter": {
+    "magnitude": 5,
+    "magnitude_label": "Peak",
+    "directional_bias": -5,
+    "valence_label": "Strong Inward",
+    "volatility": 0.2,
+    "period": {
+      "start": "2025-09-01",
+      "end": "2025-09-07"
+    },
+    "channel_summary_canonical": {
+      "axes": {
+        "magnitude": { "value": 5 },
+        "directional_bias": { "value": -5 }
+      },
+      "labels": {
+        "magnitude": "Peak",
+        "directional_bias": "Strong Inward"
+      }
+    }
+  },
+  "provenance": {
+    "data_source": "Math Brain v5.0",
+    "orbs_profile": "wm-spec-2025-09",
+    "relocation_mode": "A_local",
+    "math_brain_version": "mb-2025.09.15"
+  }
+}

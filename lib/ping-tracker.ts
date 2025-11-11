@@ -88,12 +88,23 @@ class PingTracker {
     return this.sealedSessions.has(target);
   }
 
+  private autoRegisterEnabled = true;
+
+  enableAutoRegister(): void {
+    this.autoRegisterEnabled = true;
+  }
+
+  disableAutoRegister(): void {
+    this.autoRegisterEnabled = false;
+  }
+
   // Register a pending ping for an item that's been shown but not answered yet
   registerPending(
     messageId: string,
     checkpointType?: PingFeedbackData['checkpointType'],
     messageContent?: string
   ): void {
+    if (!this.autoRegisterEnabled) return;
     // Ignore writes to sealed sessions; pendings always attach to current container
     if (this.isSessionSealed()) {
       // no-op if somehow called after sealing; ensure we are writing to current (fresh) container

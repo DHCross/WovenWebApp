@@ -1,4 +1,4 @@
-import type { FocusEvent, TouchEvent } from 'react';
+import { useEffect, useMemo, type FocusEvent, type TouchEvent } from 'react';
 import { parseCoordinates, formatDecimal } from '@/src/coords';
 import type {
   ModeOption,
@@ -51,6 +51,18 @@ interface TransitControlsProps {
 }
 
 const ACTIVE_RELOCATION_MODES: TranslocationOption[] = ['A_LOCAL', 'B_LOCAL', 'BOTH_LOCAL', 'MIDPOINT'];
+const DAILY_RANGE_WARNING_THRESHOLD = 12; // days
+
+function getDateRangeDays(start: string, end: string): number | null {
+  if (!start || !end) return null;
+  const startTime = new Date(start).getTime();
+  const endTime = new Date(end).getTime();
+  if (Number.isNaN(startTime) || Number.isNaN(endTime)) return null;
+
+  const diffMs = Math.abs(endTime - startTime);
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1; // inclusive of both endpoints
+  return diffDays;
+}
 
 export function TransitControls(props: TransitControlsProps) {
   const {
@@ -93,6 +105,16 @@ export function TransitControls(props: TransitControlsProps) {
     personATimezone,
   } = props;
 
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[TransitControls] Toggle state after render', {
+        includeTransits,
+        startDate,
+        endDate,
+      });
+    }
+  }, [includeTransits, startDate, endDate]);
+
   const handleRelocInputChange = (value: string) => {
     onRelocInputChange(value);
     const parsed = parseCoordinates(value, { rejectZeroZero: true });
@@ -106,8 +128,10 @@ export function TransitControls(props: TransitControlsProps) {
   };
 
   const relocNormalized = relocCoords ? formatDecimal(relocCoords.lat, relocCoords.lon) : '—';
-  const showRelocationInputs = includeTransits && !['NONE', 'A_NATAL', 'B_NATAL'].includes(translocation);
+  const showRelocationInputs = !['NONE', 'A_NATAL', 'B_NATAL'].includes(translocation);
   const relocationActive = ACTIVE_RELOCATION_MODES.includes(relocationStatus.effectiveMode);
+  const dateRangeDays = useMemo(() => getDateRangeDays(startDate, endDate), [startDate, endDate]);
+  const showLongDailyRangeWarning = includeTransits && step === 'daily' && dateRangeDays !== null && dateRangeDays > DAILY_RANGE_WARNING_THRESHOLD;
 
   return (
     <>
@@ -118,7 +142,18 @@ export function TransitControls(props: TransitControlsProps) {
             type="checkbox"
             className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
             checked={includeTransits}
-            onChange={(event) => onIncludeTransitsChange(event.target.checked)}
+            onChange={(event) => {
+              const nextChecked = event.target.checked;
+              if (process.env.NODE_ENV !== 'production') {
+                console.log('[TransitControls] Include Transits toggled', {
+                  nextChecked,
+                  includeTransits,
+                  startDate,
+                  endDate,
+                });
+              }
+              onIncludeTransitsChange(nextChecked);
+            }}
           />
           <div>
             <label htmlFor="include-transits" className="block text-sm font-medium text-slate-100">
@@ -180,7 +215,13 @@ export function TransitControls(props: TransitControlsProps) {
           </div>
         )}
 
-        <div className={`grid grid-cols-1 gap-4 ${includeTransits ? 'sm:grid-cols-2' : ''}`}>
+        {showLongDailyRangeWarning && dateRangeDays !== null && (
+          <div className="rounded-md border border-amber-700 bg-amber-900/30 px-3 py-2 text-xs text-amber-100">
+            Daily transits run best for windows up to {DAILY_RANGE_WARNING_THRESHOLD} days. This selection spans {dateRangeDays} days and may take longer to process. Consider narrowing the range or switching to weekly sampling.
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="t-mode" className="block text-sm text-slate-300">Mode</label>
             <select
@@ -214,59 +255,56 @@ export function TransitControls(props: TransitControlsProps) {
             )}
           </div>
 
-          {includeTransits && (
-            <div>
-              <label htmlFor="t-reloc" className="block text-sm text-slate-300">Relocation (angles/houses)</label>
-              <select
-                id="t-reloc"
-                className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                value={translocation}
-                onChange={(event) => onTranslocationChange(event.target.value)}
-              >
-                {relocationOptions.map((option) => (
-                  <option
-                    key={option.value}
-                    value={option.value}
-                    disabled={option.disabled}
-                    title={option.title}
-                  >
-                    {relocationLabels[option.value]}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-slate-400">
-                Relocation remaps houses/angles only; planets stay fixed. Choose the lens that fits this report.
+          <div>
+            <label htmlFor="t-reloc" className="block text-sm text-slate-300">Relocation (angles/houses)</label>
+            <select
+              id="t-reloc"
+              className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              value={translocation}
+              onChange={(event) => onTranslocationChange(event.target.value)}
+            >
+              {relocationOptions.map((option) => (
+                <option
+                  key={option.value}
+                  value={option.value}
+                  disabled={option.disabled}
+                  title={option.title}
+                >
+                  {relocationLabels[option.value]}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-slate-400">
+              Relocation remaps houses/angles only; planets stay fixed. Choose the lens that fits this report.
+            </p>
+            {!includeTransits && (
+              <p className="mt-1 text-xs text-slate-500">
+                You can stage the lens now—enable transits later without losing this selection.
               </p>
-              {mode === 'COMPOSITE_TRANSITS' && (
-                <p className="mt-1 text-xs text-emerald-300">
-                  Experimental — bond midpoint, not a physical place.
-                </p>
-              )}
-              {relocationStatus.notice && (
-                <p className="mt-1 text-xs text-amber-400">{relocationStatus.notice}</p>
-              )}
-              {relocationActive ? (
-                <div className="mt-4 inline-flex flex-wrap items-center gap-2 rounded-full border border-emerald-700 bg-emerald-900/30 px-3 py-1 text-xs text-emerald-200">
-                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
-                  <span className="font-medium">{relocationModeCaption[relocationStatus.effectiveMode]}</span>
-                  <span className="text-emerald-100">Lens: {relocationStatus.effectiveMode === 'MIDPOINT' ? 'Computed midpoint (A + B)' : relocLabel || 'Custom'}</span>
-                  <span className="text-emerald-300">({relocationStatus.effectiveMode === 'MIDPOINT' ? personATimezone || '—' : relocTz || personATimezone || '—'})</span>
-                </div>
-              ) : (
-                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1 text-xs text-slate-200">
-                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" aria-hidden />
-                  <span>{relocationModeCaption[relocationStatus.effectiveMode]}</span>
-                </div>
-              )}
-            </div>
-          )}
+            )}
+            {mode === 'COMPOSITE_TRANSITS' && (
+              <p className="mt-1 text-xs text-emerald-300">
+                Experimental — bond midpoint, not a physical place.
+              </p>
+            )}
+            {relocationStatus.notice && (
+              <p className="mt-1 text-xs text-amber-400">{relocationStatus.notice}</p>
+            )}
+            {relocationActive ? (
+              <div className="mt-4 inline-flex flex-wrap items-center gap-2 rounded-full border border-emerald-700 bg-emerald-900/30 px-3 py-1 text-xs text-emerald-200">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
+                <span className="font-medium">{relocationModeCaption[relocationStatus.effectiveMode]}</span>
+                <span className="text-emerald-100">Lens: {relocationStatus.effectiveMode === 'MIDPOINT' ? 'Computed midpoint (A + B)' : relocLabel || 'Custom'}</span>
+                <span className="text-emerald-300">({relocationStatus.effectiveMode === 'MIDPOINT' ? personATimezone || '—' : relocTz || personATimezone || '—'})</span>
+              </div>
+            ) : (
+              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1 text-xs text-slate-200">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" aria-hidden />
+                <span>{relocationModeCaption[relocationStatus.effectiveMode]}</span>
+              </div>
+            )}
+          </div>
         </div>
-
-        {!includeTransits && (
-          <p className="text-xs text-slate-400">
-            Relocation options appear when transits are included.
-          </p>
-        )}
       </div>
 
       {showRelocationInputs && (

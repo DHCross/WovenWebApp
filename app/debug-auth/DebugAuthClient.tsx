@@ -1,21 +1,6 @@
 "use client";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-type Auth0Client = {
-  isAuthenticated: () => Promise<boolean>;
-  handleRedirectCallback: () => Promise<void>;
-  loginWithRedirect: (opts?: any) => Promise<void>;
-  getUser: () => Promise<any>;
-};
-
-declare global {
-  interface Window {
-    createAuth0Client?: (config: any) => Promise<Auth0Client>;
-    auth0?: {
-      createAuth0Client?: (config: any) => Promise<Auth0Client>;
-    };
-  }
-}
+import { normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from "@/lib/auth";
 
 function nowISO() {
   return new Date().toISOString();
@@ -76,9 +61,12 @@ export default function DebugAuthClient() {
       const res = await fetch('/api/auth-config', { cache: 'no-store' });
       if (!res.ok) throw new Error(`auth-config HTTP ${res.status}`);
       const cfg = await res.json();
-      setConfig({ domain: cfg?.domain || null, clientId: cfg?.clientId || null });
-      log(`Config: domain=${cfg?.domain || '—'} clientId=${cfg?.clientId ? String(cfg.clientId).slice(0,4)+'…' : '—'}`);
-      if (!cfg?.domain || !cfg?.clientId) throw new Error('Invalid Auth0 config');
+      const domain = normalizeAuth0Domain(cfg?.domain);
+      const clientId = normalizeAuth0ClientId(cfg?.clientId);
+      const audience = normalizeAuth0Audience(cfg?.audience ?? null);
+      setConfig({ domain: domain || null, clientId: clientId || null });
+      log(`Config: domain=${domain || '—'} clientId=${clientId ? `${clientId.slice(0,4)}…` : '—'}`);
+      if (!domain || !clientId) throw new Error('Invalid Auth0 config');
 
       // 3) Create client
       const creator = window.auth0?.createAuth0Client || window.createAuth0Client;
@@ -86,10 +74,13 @@ export default function DebugAuthClient() {
       log('Creating Auth0 client…');
       const redirect_uri = window.location.origin + '/math-brain';
       const client = await creator({
-        domain: String(cfg.domain).replace(/^https?:\/\//, ''),
-        clientId: cfg.clientId,
-        authorizationParams: { redirect_uri }
-      });
+        domain,
+        clientId,
+        authorizationParams: {
+          redirect_uri,
+          ...(audience ? { audience } : {}),
+        }
+      } as Auth0ClientOptions);
       clientRef.current = client;
       setClientReady(true);
 

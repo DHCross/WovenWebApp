@@ -274,6 +274,13 @@ export function summariseUploadedReportJson(raw: string): {
   if (!trimmed.startsWith('{') || trimmed.length < 20) {
     return null;
   }
+  if (trimmed.includes('"_format"') && /"mirror_directive_json"/i.test(trimmed)) {
+    return null;
+  }
+  if (/"schema"\s*:\s*"wm-fieldmap-v1"/i.test(trimmed)) {
+    return null;
+  }
+
   if (!/"balance_meter"|"solo_mirror"|"mirror_voice"|"symbolic_weather"|"balance_meter_summary"/i.test(trimmed)) {
     return null;
   }
@@ -434,29 +441,19 @@ export function summariseUploadedReportJson(raw: string): {
     ['symbolic_weather_context', 'balance_meter', 'volatility_label'],
   ]);
 
-  const sfd = pickNumber(parsed, [
-    ['balance_meter', 'sfd_cont_minus1to1'],
-    ['balance_meter', 'sfd_cont'],
-    ['balance_meter', 'sfd'],
-    ['balance_meter', 'integration_bias'],
-    ['balance_meter', 'seismograph', 'sfd_cont_minus1to1'],
-    ['balance_meter', 'seismograph', 'sfd_cont'],
-    ['seismograph', 'sfd_cont_minus1to1'],
-    ['seismograph', 'sfd_cont'],
-    ['summary', 'balance_meter', 'sfd'],
-    ['reports', 'balance_meter', 'sfd'],
-    ['symbolic_weather_context', 'balance_meter', 'sfd'],
-    ['symbolic_weather_context', 'balance_meter', 'sfd', 'value'],
-    ['symbolic_weather_context', 'balance_meter', 'sfd_cont_minus1to1'],
-  ]);
-  const sfdLabel = pickString(parsed, [
-    ['balance_meter', 'sfd', 'label'],
-    ['balance_meter', 'sfd_label'],
-    ['balance_meter', 'integration_bias_label'],
-    ['symbolic_weather_context', 'balance_meter', 'sfd_label'],
-  ]);
-
   const periodStart =
+    pickString(parsed, [
+      ['balance_meter', 'period', 'start'],
+      ['context', 'period', 'start'],
+      ['context', 'window', 'start'],
+      ['window', 'start'],
+      ['reports', 'balance_meter', 'period', 'start'],
+      ['export_info', 'date_range', 'start'],
+      ['symbolic_weather_context', 'transit_context', 'period', 'start'],
+    ]) ||
+    (Array.isArray(parsed?.daily_readings) && parsed.daily_readings.length
+      ? asString(parsed.daily_readings[0]?.date)
+      : undefined);
     pickString(parsed, [
       ['balance_meter', 'period', 'start'],
       ['context', 'period', 'start'],
@@ -573,11 +570,6 @@ export function summariseUploadedReportJson(raw: string): {
       `Coherence ${volatility.toFixed(2)}${volatilityLabel ? ` (${volatilityLabel})` : ''}`
     );
   }
-  if (typeof sfd === 'number') {
-    summaryPieces.push(
-      `Integration ${sfd.toFixed(2)}${sfdLabel ? ` (${sfdLabel})` : ''}`
-    );
-  }
 
   const containerParts: string[] = [];
   if (periodStart && periodEnd) {
@@ -623,8 +615,8 @@ export function summariseUploadedReportJson(raw: string): {
   const container = containerParts.length
     ? containerParts.join(' · ')
     : 'Context added to the session library.';
-  const option = 'Ask for a Poetic translation of any section or upload another layer.';
-  const next_step = 'When you are ready, tell me which pattern you want mirrored.';
+  const option = 'Ask me to translate any section into plain, human language—or upload another report or chart layer if you have more context to share.';
+  const next_step = 'When something feels ready for reflection, just tell me which pattern you want mirrored.';
 
   const appendix: Record<string, any> = {};
   if (reportType) appendix.report_type = reportType;
@@ -637,8 +629,6 @@ export function summariseUploadedReportJson(raw: string): {
   if (valenceLabel) appendix.directional_bias_label = valenceLabel;
   if (typeof volatility === 'number') appendix.coherence = volatility;
   if (volatilityLabel) appendix.coherence_label = volatilityLabel;
-  if (typeof sfd === 'number') appendix.integration_bias = sfd;
-  if (sfdLabel) appendix.integration_bias_label = sfdLabel;
   if (hooks.length) appendix.hooks = hooks.slice(0, 3);
   if (cadence.cadenceLabel) appendix.cadence = cadence.cadenceLabel.toLowerCase();
   if (typeof cadence.sampleCount === 'number' && cadence.sampleCount > 0) {

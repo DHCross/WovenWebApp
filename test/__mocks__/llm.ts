@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 
-export const callGemini = vi.fn(async (prompt: string, context?: any) => {
+export const callPerplexity = vi.fn(async (prompt: string, context?: any) => {
   if (prompt.includes('narrateSymbolicWeather')) {
     return '3-day window of symbolic weather';
   }

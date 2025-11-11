@@ -1,9 +1,9 @@
-/* Bias Sanity Check from Raven's v3 Spec */
+/* Bias Sanity Check from Raven's v5 Spec */
 
 import { calculateSeismograph } from '../src/seismograph';
 
 describe('Bias Sanity Check (Acceptance Test)', () => {
-  test('bias_n = −0.05 should display as −0.3, not −5.0 (spec v3.1)', () => {
+  test('bias_n = −0.05 should display as −0.3, not −5.0 (spec v5.0)', () => {
     // Per spec: normalized × 5 → clamp([-5, +5]) → round(1dp)
     // If bias_n = -0.05, then display = -0.05 × 5 = -0.25 → round = -0.3
 
@@ -28,7 +28,7 @@ describe('Bias Sanity Check (Acceptance Test)', () => {
     // Verify canonical scaling was used
     if (result.transform_trace && 'canonical_scalers_used' in result.transform_trace) {
       expect(result.transform_trace.canonical_scalers_used).toBe(true);
-      expect(result.transform_trace.spec_version).toBe('3.1');
+      expect(result.transform_trace.spec_version).toBe('5.0');
     }
   });
 

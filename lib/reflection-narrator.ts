@@ -6,7 +6,7 @@
  * final reflection that honors the complexity of the individual's experience
  */
 
-import { callGemini } from './llm';
+import { callPerplexity } from './llm';
 
 interface ReflectionContext {
   mode: 'natal-only' | 'balance' | 'relational-mirror' | 'relational-balance';
@@ -94,7 +94,7 @@ Your task:
 Output only the paragraph, no title or preamble.`;
 
   try {
-    const reflection = await callGemini(prompt, { model: 'gemini-1.5-flash' });
+    const reflection = await callPerplexity(prompt, { model: 'sonar-pro' });
     return reflection.trim();
   } catch (error) {
     console.error('Stitched reflection generation failed:', error);
@@ -199,7 +199,7 @@ Your task:
 Output only the paragraph, no title or preamble.`;
 
   try {
-    const reflection = await callGemini(prompt, { model: 'gemini-1.5-flash' });
+    const reflection = await callPerplexity(prompt, { model: 'sonar-pro' });
     return reflection.trim();
   } catch (error) {
     console.error('Relational reflection generation failed:', error);

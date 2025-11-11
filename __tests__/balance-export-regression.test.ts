@@ -147,7 +147,7 @@ describe('Balance Meter export regression', () => {
     const summarySection = findSection(exportPayload.export_contract?.mirror?.sections, 'Balance Meter Summary');
     expect(summarySection).toBeDefined();
     expect(summarySection?.body).toContain('Magnitude: 3.9');
-    expect(summarySection?.body).toContain('Valence: -2.3');
+    expect(summarySection?.body).toContain('Directional Bias: -2.3');
     expect(summarySection?.body).not.toContain('5.0');
 
     const directive = exportPayload.export_contract?.mirror?.directive;

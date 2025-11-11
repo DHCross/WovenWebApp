@@ -1,10 +1,10 @@
 "use client";
 /* eslint-disable no-console */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useId } from "react";
 import type { FocusEvent, TouchEvent } from "react";
 import { parseCoordinates, formatDecimal } from "../../src/coords";
-import { getRedirectUri } from "../../lib/auth";
+import { getRedirectUri, getAuthConnection, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from "../../lib/auth";
 // AuthProvider removed - auth handled globally by HomeHero component
 import { needsLocation, isTimeUnknown } from "../../lib/relocation";
 import { sanitizeForPDF } from "../../src/pdf-sanitizer";
@@ -29,13 +29,15 @@ import EnhancedDailyClimateCard from "../../components/mathbrain/EnhancedDailyCl
 import BalanceMeterSummary from "../../components/mathbrain/BalanceMeterSummary";
 import SymbolicSeismograph from "../components/SymbolicSeismograph";
 import WeatherPlots from "../../components/mathbrain/WeatherPlots";
-import { transformTransitsByDate } from "../../lib/weatherDataTransforms";
+import { transformTransitsByDate, transformFieldFileDaily } from "../../lib/weatherDataTransforms";
+import { createMirrorSymbolicWeatherPayload } from "../../lib/export/mirrorSymbolicWeather";
 import HealthDataUpload from "../../components/HealthDataUpload";
 import SnapshotButton from "./components/SnapshotButton";
 import SnapshotDisplay from "./components/SnapshotDisplay";
 
 import { getSavedCharts, saveChart, deleteChart, type SavedChart } from "../../lib/saved-charts";
 import type { SeismographMap } from "../../lib/health-data-types";
+import { computeOverflowDetailFromDay, firstFinite } from "../../lib/math-brain/overflow-detail";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +63,17 @@ type ChartAssetDisplay = {
   scope: string | null;
   expiresAt?: number;
   size?: number;
+};
+
+type ProviderGate = {
+  ready: boolean;
+  configured: boolean;
+  message?: string;
+};
+
+type ProviderGateState = {
+  astrology: ProviderGate;
+  poetic: ProviderGate;
 };
 
 const RELATIONAL_MODES: ReportMode[] = [
@@ -229,6 +242,9 @@ const AUTH_ENABLED = (() => {
   }
   return true;
 })();
+
+// Dev helper: bypass provider readiness checks (astrology/poetic) when true
+const PROVIDER_BYPASS = String(process.env.NEXT_PUBLIC_BYPASS_PROVIDER_CHECK) === 'true';
 
 const AUTH_STATUS_STORAGE_KEY = 'auth.status';
 const AUTH_STATUS_EVENT = 'auth-status-change';
@@ -774,6 +790,7 @@ export default function MathBrainPage() {
     minute: "30",
     city: "Bryn Mawr",
     state: "PA",
+    nation: "US",
     latitude: 40.0167,
     longitude: -75.3,
     timezone: "US/Eastern",
@@ -895,30 +912,86 @@ export default function MathBrainPage() {
     });
   };
 
+  // Handle Auth0 redirect callback on /math-brain so login initiated from Home works
+  useEffect(() => {
+    if (!AUTH_ENABLED || typeof window === 'undefined') return;
+    const qs = window.location.search;
+    if (!qs.includes('code=') || !qs.includes('state=')) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await ensureSdk();
+        const res = await fetch('/api/auth-config', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`Auth config fetch failed: ${res.status}`);
+        const cfg = await res.json();
+        const domain = normalizeAuth0Domain(cfg?.domain);
+        const clientId = normalizeAuth0ClientId(cfg?.clientId);
+        const audience = normalizeAuth0Audience(cfg?.audience ?? null);
+        if (!domain || !clientId) throw new Error('Auth0 config missing');
+
+        const win = window as any;
+        const creator = win?.auth0?.createAuth0Client || win?.createAuth0Client;
+        if (typeof creator !== 'function') throw new Error('Auth0 SDK not available');
+
+        const client = await creator({
+          domain,
+          clientId,
+          authorizationParams: {
+            redirect_uri: getRedirectUri(),
+            ...(audience ? { audience } : {}),
+          },
+        });
+
+        await client.handleRedirectCallback();
+        const url = new URL(window.location.href);
+        url.search = '';
+        window.history.replaceState({}, '', url.toString());
+        const authed = await client.isAuthenticated();
+        if (!cancelled) {
+          setIsAuthenticated(authed);
+          setAuthReady(true);
+          broadcastAuthStatus(authed);
+        }
+      } catch (err) {
+        console.error('Auth callback handling failed on /math-brain', err);
+        if (!cancelled) setAuthReady(true);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleSnapshotAuthRequired = useCallback(async () => {
     try {
       await ensureSdk();
       const res = await fetch('/api/auth-config', { cache: 'no-store' });
       if (!res.ok) throw new Error('Auth config fetch failed');
       const cfg = await res.json();
-      if (!cfg?.domain || !cfg?.clientId) throw new Error('Auth0 config missing');
+      const domain = normalizeAuth0Domain(cfg?.domain);
+      const clientId = normalizeAuth0ClientId(cfg?.clientId);
+      const audience = normalizeAuth0Audience(cfg?.audience ?? null);
+      if (!domain || !clientId) throw new Error('Auth0 config missing');
 
       const win = window as any;
       const creator = win?.auth0?.createAuth0Client || win?.createAuth0Client;
       if (typeof creator !== 'function') throw new Error('Auth0 SDK not available');
 
       const client = await creator({
-        domain: String(cfg.domain).replace(/^https?:\/\//, ''),
-        clientId: cfg.clientId,
-        authorizationParams: { redirect_uri: getRedirectUri() },
-      });
-
-      await client.loginWithRedirect({
+        domain,
+        clientId,
         authorizationParams: {
           redirect_uri: getRedirectUri(),
-          connection: 'google-oauth2',
+          ...(audience ? { audience } : {}),
         },
       });
+
+      const params: Record<string, any> = {
+        redirect_uri: getRedirectUri(),
+        ...(audience ? { audience } : {}),
+      };
+      const connection = getAuthConnection();
+      if (connection) params.connection = connection;
+      await client.loginWithRedirect({ authorizationParams: params });
     } catch (err) {
       console.error('Login failed', err);
       setError('Login failed. Please try again.');
@@ -1058,7 +1131,12 @@ export default function MathBrainPage() {
       return { ...DEFAULT_LAYER_VISIBILITY };
     }
   });
-  const canVisitPoetic = POETIC_BRAIN_ENABLED;
+  const [providerHealth, setProviderHealth] = useState<ProviderGateState>({
+    astrology: { ready: true, configured: true },
+    poetic: { ready: true, configured: true }
+  });
+  const [providerCheckPending, setProviderCheckPending] = useState<boolean>(() => !PROVIDER_BYPASS);
+  const canVisitPoetic = POETIC_BRAIN_ENABLED && providerHealth.poetic.ready;
 
   // Person B subject state
   const [personB, setPersonB] = useState<Subject>({
@@ -1070,6 +1148,7 @@ export default function MathBrainPage() {
     minute: "",
     city: "",
     state: "",
+    nation: "US",
     latitude: "",
     longitude: "",
     timezone: "",
@@ -1165,7 +1244,7 @@ export default function MathBrainPage() {
 
   // User-friendly filename helper (Raven Calder naming system)
   const friendlyFilename = useCallback(
-    (type: 'directive' | 'dashboard' | 'symbolic-weather' | 'weather-log' | 'engine-config') => {
+    (type: 'directive' | 'dashboard' | 'symbolic-weather' | 'weather-log' | 'engine-config' | 'ai-bundle') => {
       const duo = includePersonB
         ? `${personASlug}-${personBSlug}`
         : personASlug;
@@ -1176,7 +1255,8 @@ export default function MathBrainPage() {
         'dashboard': 'Weather_Dashboard',
         'symbolic-weather': 'Symbolic_Weather_Dashboard',
         'weather-log': 'Weather_Log',
-        'engine-config': 'Engine_Configuration'
+        'engine-config': 'Engine_Configuration',
+        'ai-bundle': 'AI_Bundle',
       };
 
       return `${nameMap[type]}_${duo}_${dateStr}`;
@@ -1248,6 +1328,65 @@ export default function MathBrainPage() {
   // Lightweight toast for ephemeral notices (e.g., Mirror failure)
   const [toast, setToast] = useState<string | null>(null);
   useEffect(() => {
+    let cancelled = false;
+
+    async function probeProviders() {
+      if (PROVIDER_BYPASS) {
+        setProviderHealth({ astrology: { ready: true, configured: true }, poetic: { ready: true, configured: true } });
+        setProviderCheckPending(false);
+        return;
+      }
+      try {
+        const response = await fetch('/api/provider-health', { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error(`Health check failed with status ${response.status}`);
+        }
+        const data = await response.json();
+        if (cancelled) return;
+
+        const astrology = {
+          ready: Boolean(data?.providers?.astrology?.ok),
+          configured: Boolean(data?.providers?.astrology?.configured),
+          message: data?.providers?.astrology?.message || undefined
+        };
+        const poetic = {
+          ready: Boolean(data?.providers?.poetic?.ok),
+          configured: Boolean(data?.providers?.poetic?.configured),
+          message: data?.providers?.poetic?.message || undefined
+        };
+
+        setProviderHealth({ astrology, poetic });
+
+        const offlineMessages: string[] = [];
+        if (!astrology.ready && astrology.message) offlineMessages.push(astrology.message);
+        if (!poetic.ready && poetic.message) offlineMessages.push(poetic.message);
+        if (offlineMessages.length) {
+          setToast(offlineMessages.join(' • '));
+          setTimeout(() => setToast(null), 3500);
+        }
+      } catch (error: any) {
+        if (cancelled) return;
+        const fallbackMessage = 'Unable to verify provider health. Services may be offline.';
+        setProviderHealth({
+          astrology: { ready: false, configured: false, message: fallbackMessage },
+          poetic: { ready: false, configured: false, message: fallbackMessage }
+        });
+        setToast(fallbackMessage);
+        setTimeout(() => setToast(null), 3500);
+      } finally {
+        if (!cancelled) {
+          setProviderCheckPending(false);
+        }
+      }
+    }
+
+    probeProviders();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setProviderHealth, setProviderCheckPending, setToast]);
+  useEffect(() => {
     try {
       // Initialize from URL and localStorage
       const url = new URL(window.location.href);
@@ -1286,10 +1425,19 @@ export default function MathBrainPage() {
 
   // Session memory flags
   const [hasSavedInputs, setHasSavedInputs] = useState<boolean>(false);
-  const [saveForNextSession, setSaveForNextSession] = useState<boolean>(false);
+  const [saveForNextSession, setSaveForNextSession] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      const stored = window.localStorage.getItem('mb.saveInputsPreference');
+      if (stored === 'false') return false;
+      if (stored === 'true') return true;
+    } catch {/* ignore */}
+    return true;
+  });
   const [loadError, setLoadError] = useState<string | null>(null);
   // Shared file input ref for bottom Session Presets box
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const setupUploadId = useId();
 
   // Weekly aggregation preference: 'mean' | 'max' (for seismograph weekly bars)
   const [weeklyAgg, setWeeklyAgg] = useState<'mean' | 'max'>('mean');
@@ -1328,6 +1476,12 @@ export default function MathBrainPage() {
     }
   }, []);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('mb.saveInputsPreference', String(saveForNextSession));
+    } catch {/* ignore */}
+  }, [saveForNextSession]);
+
   // Relational modes list used for UI guards
   const isRelationalStructure = reportStructure !== 'solo';
   const isDyadMode = includePersonB && isRelationalStructure;
@@ -1336,15 +1490,18 @@ export default function MathBrainPage() {
 
   const {
     downloadResultPDF,
-    downloadResultMarkdown,
     downloadResultJSON,
     downloadBackstageJSON,
-    downloadSymbolicWeatherJSON,
+    downloadMirrorSymbolicWeatherJSON,
+    downloadMirrorDirectiveJSON,
+    downloadFieldMapFile,
+    downloadAstroFileJSON,
+    downloadMapFile,
+    downloadFieldFile,
     pdfGenerating,
-    markdownGenerating,
     cleanJsonGenerating,
     engineConfigGenerating,
-    weatherJsonGenerating,
+    astroFileJsonGenerating,
   } = useChartExport({
     result,
     reportType,
@@ -1379,7 +1536,6 @@ export default function MathBrainPage() {
           valence: Number(seismo.valence ?? seismo.valence_bounded ?? 0),
           valence_bounded: Number(seismo.valence_bounded ?? seismo.valence ?? 0),
           volatility: Number(seismo.volatility ?? 0),
-          sfd: Number(seismo.sfd ?? 0),
           coherence: Number(seismo.coherence ?? 0),
         };
       }
@@ -1390,7 +1546,7 @@ export default function MathBrainPage() {
 
   useEffect(() => {
     setTranslocation((prev) => {
-      if (!isDyadMode && (prev === 'B_LOCAL' || prev === 'BOTH_LOCAL' || prev === 'MIDPOINT')) {
+      if (!isDyadMode && (prev === 'B_LOCAL' || prev === 'MIDPOINT')) {
         return 'NONE';
       }
       if (prev === 'MIDPOINT' && (reportStructure !== 'composite' || !includeTransits)) {
@@ -1495,21 +1651,24 @@ export default function MathBrainPage() {
         const res = await fetch('/api/auth-config', { cache: 'no-store' });
         if (!res.ok) throw new Error('Auth config fetch failed');
         const cfg = await res.json();
-        if (!cfg?.domain || !cfg?.clientId) throw new Error('Auth0 config missing domain/clientId');
+        const domain = normalizeAuth0Domain(cfg?.domain);
+        const clientId = normalizeAuth0ClientId(cfg?.clientId);
+        const audience = normalizeAuth0Audience(cfg?.audience ?? null);
+        if (!domain || !clientId) throw new Error('Auth0 config missing domain/clientId');
 
         const win = window as any;
         const creator = win?.auth0?.createAuth0Client || win?.createAuth0Client;
         if (typeof creator !== 'function') throw new Error('Auth0 SDK not available');
 
         const client = await creator({
-          domain: String(cfg.domain).replace(/^https?:\/\//, ''),
-          clientId: cfg.clientId,
+          domain,
+          clientId,
           cacheLocation: 'localstorage',
           useRefreshTokens: true,
           useRefreshTokensFallback: true,
           authorizationParams: {
             redirect_uri: getRedirectUri(),
-            ...(cfg.audience ? { audience: cfg.audience } : {}),
+            ...(audience ? { audience } : {}),
           },
         });
 
@@ -1597,7 +1756,7 @@ export default function MathBrainPage() {
     B_NATAL: 'Birthplace (no relocation)',
     B_LOCAL: 'Person B – Current Location',
 
-    BOTH_LOCAL: 'Shared Location (custom city)',
+    BOTH_LOCAL: 'Custom Location (manual lens)',
     MIDPOINT: 'Midpoint (Composite only)'
   }), []);
 
@@ -1627,8 +1786,10 @@ export default function MathBrainPage() {
     });
     options.push({
       value: 'BOTH_LOCAL',
-      disabled: relationalDisabled,
-      title: relationalDisabled ? 'Requires Person B in a relational report.' : undefined,
+      disabled: false,
+      title: relationalDisabled
+        ? 'Enter custom relocation coordinates to apply this lens for Person A.'
+        : 'Requires custom coordinates to relocate both charts.',
     });
 
     if (reportStructure === 'composite' && includeTransits) {
@@ -1713,8 +1874,12 @@ export default function MathBrainPage() {
         }
       } else if (translocation === 'BOTH_LOCAL') {
         if (!isDyadMode) {
-          effectiveMode = relocationInputReady ? 'A_LOCAL' : 'NONE';
-          notice = 'Shared relocation requires both Person A and Person B.';
+          if (relocationInputReady) {
+            effectiveMode = 'A_LOCAL';
+          } else {
+            effectiveMode = 'NONE';
+            notice = 'Enter relocation coordinates to activate this lens.';
+          }
         } else if (!relocationInputReady) {
           effectiveMode = 'NONE';
           notice = 'Relocation not provided; defaulting to natal houses.';
@@ -1756,7 +1921,7 @@ export default function MathBrainPage() {
   }, [includePersonB, reportStructure]);
 
   useEffect(() => {
-    if (!includePersonB && (translocation === 'B_LOCAL' || translocation === 'MIDPOINT' || translocation === 'BOTH_LOCAL')) {
+    if (!includePersonB && (translocation === 'B_LOCAL' || translocation === 'MIDPOINT')) {
       setTranslocation('NONE');
     }
   }, [includePersonB, translocation]);
@@ -1785,6 +1950,8 @@ export default function MathBrainPage() {
       const saved = JSON.parse(raw);
       if (saved.personA) setPersonA(saved.personA);
       if (saved.personB) setPersonB(saved.personB);
+      if (typeof saved.aCoordsInput === 'string') setACoordsInput(saved.aCoordsInput);
+      if (typeof saved.bCoordsInput === 'string') setBCoordsInput(saved.bCoordsInput);
       if (typeof saved.includePersonB === 'boolean') setIncludePersonB(saved.includePersonB);
       if (saved.mode) applyMode(normalizeReportMode(saved.mode));
       if (saved.step) setStep(saved.step);
@@ -1805,6 +1972,30 @@ export default function MathBrainPage() {
       if (typeof saved.contactState === 'string') setContactState(saved.contactState.toUpperCase() === 'LATENT' ? 'LATENT' : 'ACTIVE');
       if (saved.translocation) {
         setTranslocation(normalizeTranslocationOption(saved.translocation));
+      }
+      if (typeof saved.includeTransits === 'boolean') {
+        setIncludeTransits(saved.includeTransits);
+      }
+      if (typeof saved.reportStructure === 'string' && ['solo', 'synastry', 'composite'].includes(saved.reportStructure)) {
+        setReportStructure(saved.reportStructure as ReportStructure);
+      }
+      if (typeof saved.relocInput === 'string') setRelocInput(saved.relocInput);
+      if (typeof saved.relocLabel === 'string') setRelocLabel(saved.relocLabel);
+      if (typeof saved.relocTz === 'string') setRelocTz(saved.relocTz);
+      if (saved.relocCoords && typeof saved.relocCoords === 'object') {
+        const { lat, lon } = saved.relocCoords as { lat?: unknown; lon?: unknown };
+        if (typeof lat === 'number' && typeof lon === 'number') {
+          setRelocCoords({ lat, lon });
+        }
+      }
+      if (typeof saved.timePolicy === 'string') {
+        const validPolicies: TimePolicyChoice[] = ['planetary_only', 'whole_sign', 'sensitivity_scan', 'user_provided'];
+        if ((validPolicies as string[]).includes(saved.timePolicy)) {
+          setTimePolicy(saved.timePolicy as TimePolicyChoice);
+        }
+      }
+      if (typeof saved.saveForNextSession === 'boolean') {
+        setSaveForNextSession(saved.saveForNextSession);
       }
 
       // Hide the resume prompt after successful load
@@ -1902,14 +2093,129 @@ export default function MathBrainPage() {
     }));
   }
 
+  function persistTrimmedLastPayload(rawPayload: any): 'success' | 'fallback' | 'error' {
+    if (typeof window === 'undefined') {
+      return 'error';
+    }
+
+    const reportType = rawPayload?.reportType as ReportContractType | undefined;
+    let basePayload = rawPayload?.payload;
+    if (typeof basePayload === 'string') {
+      try {
+        basePayload = JSON.parse(basePayload);
+      } catch {
+        basePayload = rawPayload?.payload;
+      }
+    }
+
+    const mirrorSymbolicWeather =
+      reportType && basePayload
+        ? createMirrorSymbolicWeatherPayload(basePayload, reportType)
+        : null;
+
+    const trimmedPayload = mirrorSymbolicWeather
+      ? {
+          ...rawPayload,
+          payload: mirrorSymbolicWeather.payload,
+          payloadFormat: 'mirror-symbolic-weather-v1',
+          poeticBrainCompatible: mirrorSymbolicWeather.hasChartGeometry,
+        }
+      : {
+          ...rawPayload,
+          payload: {
+            person_a: basePayload?.person_a
+              ? {
+                  name: basePayload.person_a.name,
+                  summary: basePayload.person_a.summary,
+                }
+              : undefined,
+            woven_map: basePayload?.woven_map,
+            _trimmed: true,
+            _note: 'Payload trimmed for localStorage; full data in session export',
+          },
+        };
+
+    try {
+      window.localStorage.setItem('mb.lastPayload', JSON.stringify(trimmedPayload));
+      return 'success';
+    } catch (error: any) {
+      const minimalPayload = {
+        savedAt: rawPayload?.savedAt ?? new Date().toISOString(),
+        from: rawPayload?.from ?? 'math-brain',
+        payload: { _note: 'Payload too large; fetch from chat history' },
+      };
+
+      if (error?.name === 'QuotaExceededError' || error?.code === 22) {
+        // eslint-disable-next-line no-console
+        console.warn('localStorage quota exceeded; storing minimal payload', error);
+      } else if (error) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to persist Math Brain payload for Poetic Brain reuse', error);
+      }
+
+      try {
+        window.localStorage.setItem('mb.lastPayload', JSON.stringify(minimalPayload));
+        return 'fallback';
+      } catch (fallbackError) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to persist Math Brain payload for Poetic Brain reuse', fallbackError);
+        return 'error';
+      }
+    }
+  }
+
   const handleNavigateToPoetic = () => {
     const hasReport = Boolean(result);
     if (hasReport) {
+      // Store the report data in localStorage so Poetic Brain can retrieve it
+      const payload: Record<string, any> = {
+        savedAt: new Date().toISOString(),
+        reportType: reportContractType,
+        mode,
+        includeTransits: TRANSIT_MODES.has(mode),
+        window: {
+          start: startDate || undefined,
+          end: endDate || undefined,
+        },
+        subjects: {
+          personA: personA
+            ? {
+                name: personA.name,
+                timezone: personA.timezone,
+                city: personA.city,
+                state: personA.state,
+              }
+            : null,
+          personB: personB
+            ? {
+                name: personB.name,
+                timezone: personB.timezone,
+                city: personB.city,
+                state: personB.state,
+              }
+            : null,
+        },
+        payload: result,
+      };
+
+      const persistStatus = persistTrimmedLastPayload(payload);
+      if (persistStatus === 'success') {
+        setToast('📤 Report saved to Poetic Brain. Navigating…');
+        setTimeout(() => setToast(null), 1200);
+      } else if (persistStatus === 'fallback') {
+        setToast('📤 Report trimmed for Poetic Brain. Navigating…');
+        setTimeout(() => setToast(null), 1500);
+      } else {
+        // eslint-disable-next-line no-console
+        console.error('Failed to save report to localStorage for Poetic Brain handoff');
+        setToast('⚠️ Could not save report locally. Try downloading instead.');
+        setTimeout(() => setToast(null), 2000);
+      }
+
       const confirmNav = window.confirm(
-        '⚠️ Download your report before leaving!\n\n' +
-        'Your Math Brain report will be lost when you navigate away. ' +
-        'Download "Complete Chart Package" or "Symbolic Weather Package" first.\n\n' +
-        'Continue to Poetic Brain anyway?'
+        '✅ Report ready for Poetic Brain!\n\n' +
+        'Your Math Brain report has been saved. You can now navigate to Poetic Brain for AI analysis.\n\n' +
+        'Continue to Poetic Brain?'
       );
       if (confirmNav) {
         window.location.href = '/chat';
@@ -1923,249 +2229,6 @@ export default function MathBrainPage() {
     try { window.print(); } catch {/* noop */}
   }
 
-  // Math Brain v2 Download Handlers
-  async function downloadV2Markdown() {
-    if (!result) {
-      setToast('No report available to export');
-      setTimeout(() => setToast(null), 2000);
-      return;
-    }
-
-    // eslint-disable-next-line no-console
-    console.log('[downloadV2Markdown] Starting download...');
-
-    try {
-      const payload: Record<string, any> = {
-        use_v2: true,
-        personA: {
-          name: personA.name,
-          year: personA.year,
-          month: personA.month,
-          day: personA.day,
-          hour: personA.hour,
-          minute: personA.minute,
-          city: personA.city,
-          state: personA.state,
-          nation: (personA as any).nation || 'US',
-          latitude: personA.latitude,
-          longitude: personA.longitude,
-          timezone: personA.timezone
-        },
-        personB: personB ? {
-          name: personB.name,
-          year: personB.year,
-          month: personB.month,
-          day: personB.day,
-          hour: personB.hour,
-          minute: personB.minute,
-          city: personB.city,
-          state: personB.state,
-          nation: (personB as any).nation || 'US',
-          latitude: personB.latitude,
-          longitude: personB.longitude,
-          timezone: personB.timezone
-        } : null,
-        window: {
-          start: startDate,
-          end: endDate,
-          step: step
-        },
-        context: {
-          mode: mode
-        }
-      };
-
-      if (RELATIONAL_MODES.includes(mode)) {
-        payload.relationship_context = {
-          type: relationshipType,
-          intimacy_tier: relationshipType === 'PARTNER' ? relationshipTier : undefined,
-          role: relationshipType !== 'PARTNER' ? relationshipRole : undefined,
-          contact_state: contactState,
-          ex_estranged: relationshipType === 'FRIEND' ? undefined : exEstranged,
-          notes: relationshipNotes || undefined,
-        };
-      }
-
-      const response = await fetch('/api/astrology-mathbrain', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Math-Brain-Version': 'v2'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      // eslint-disable-next-line no-console
-      console.log('[downloadV2Markdown] Response status:', response.status);
-
-      const data = await response.json();
-      // eslint-disable-next-line no-console
-      console.log('[downloadV2Markdown] Response data:', {
-        success: data.success,
-        version: data.version,
-        hasDownloadFormats: Boolean(data.download_formats),
-        hasMirrorReport: Boolean(data.download_formats?.mirror_report),
-        error: data.error,
-        detail: data.detail
-      });
-
-      if (data.success && data.version === 'v2' && data.download_formats?.mirror_report) {
-        const { content, filename } = data.download_formats.mirror_report;
-        const encodedContent = encodeURIComponent(content);
-        const dataUri = `data:text/markdown;charset=utf-8,${encodedContent}`;
-
-        const newTab = window.open(dataUri, '_blank');
-        if (newTab) {
-          newTab.document.title = filename;
-          setToast('Your report is opening in a new tab');
-        } else {
-          // Fallback for browsers that block popups
-          const a = document.createElement('a');
-          a.href = dataUri;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setToast('Math Brain v2 Markdown downloaded');
-        }
-        setTimeout(() => setToast(null), 2000);
-        // eslint-disable-next-line no-console
-        console.log('[downloadV2Markdown] Report opened in new tab');
-      } else {
-        const errorMsg = data.error || data.detail || 'Failed to generate v2 report';
-        // eslint-disable-next-line no-console
-        console.error('[downloadV2Markdown] Download failed:', errorMsg, data);
-        throw new Error(errorMsg);
-      }
-    } catch (error: any) {
-      // eslint-disable-next-line no-console
-      console.error('[downloadV2Markdown] Error:', error);
-      setToast(`Error: ${error.message}`);
-      setTimeout(() => setToast(null), 3000);
-    }
-  }
-
-  async function downloadV2SymbolicWeather() {
-    if (!result) {
-      setToast('No report available to export');
-      setTimeout(() => setToast(null), 2000);
-      return;
-    }
-
-    // eslint-disable-next-line no-console
-    console.log('[downloadV2SymbolicWeather] Starting download...');
-
-    try {
-      const payload: Record<string, any> = {
-        use_v2: true,
-        personA: {
-          name: personA.name,
-          year: personA.year,
-          month: personA.month,
-          day: personA.day,
-          hour: personA.hour,
-          minute: personA.minute,
-          city: personA.city,
-          state: personA.state,
-          nation: (personA as any).nation || 'US',
-          latitude: personA.latitude,
-          longitude: personA.longitude,
-          timezone: personA.timezone
-        },
-        personB: personB ? {
-          name: personB.name,
-          year: personB.year,
-          month: personB.month,
-          day: personB.day,
-          hour: personB.hour,
-          minute: personB.minute,
-          city: personB.city,
-          state: personB.state,
-          nation: (personB as any).nation || 'US',
-          latitude: personB.latitude,
-          longitude: personB.longitude,
-          timezone: personB.timezone
-        } : null,
-        window: {
-          start: startDate,
-          end: endDate,
-          step: step
-        },
-        context: {
-          mode: mode
-        }
-      };
-
-      if (RELATIONAL_MODES.includes(mode)) {
-        payload.relationship_context = {
-          type: relationshipType,
-          intimacy_tier: relationshipType === 'PARTNER' ? relationshipTier : undefined,
-          role: relationshipType !== 'PARTNER' ? relationshipRole : undefined,
-          contact_state: contactState,
-          ex_estranged: relationshipType === 'FRIEND' ? undefined : exEstranged,
-          notes: relationshipNotes || undefined,
-        };
-      }
-
-      const response = await fetch('/api/astrology-mathbrain', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Math-Brain-Version': 'v2'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      // eslint-disable-next-line no-console
-      console.log('[downloadV2SymbolicWeather] Response status:', response.status);
-
-      const data = await response.json();
-      // eslint-disable-next-line no-console
-      console.log('[downloadV2SymbolicWeather] Response data:', {
-        success: data.success,
-        version: data.version,
-        hasDownloadFormats: Boolean(data.download_formats),
-        hasSymbolicWeather: Boolean(data.download_formats?.symbolic_weather),
-        error: data.error,
-        detail: data.detail
-      });
-
-      if (data.success && data.version === 'v2' && data.download_formats?.symbolic_weather) {
-        const { content, filename } = data.download_formats.symbolic_weather;
-        const jsonContent = JSON.stringify(content, null, 2);
-        const encodedContent = encodeURIComponent(jsonContent);
-        const dataUri = `data:application/json;charset=utf-8,${encodedContent}`;
-
-        const newTab = window.open(dataUri, '_blank');
-        if (newTab) {
-          newTab.document.title = filename;
-          setToast('Your report is opening in a new tab');
-        } else {
-          // Fallback for browsers that block popups
-          const a = document.createElement('a');
-          a.href = dataUri;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setToast('Math Brain v2 JSON downloaded');
-        }
-        setTimeout(() => setToast(null), 2000);
-        // eslint-disable-next-line no-console
-        console.log('[downloadV2SymbolicWeather] Report opened in new tab');
-      } else {
-        const errorMsg = data.error || data.detail || 'Failed to generate v2 report';
-        // eslint-disable-next-line no-console
-        console.error('[downloadV2SymbolicWeather] Download failed:', errorMsg, data);
-        throw new Error(errorMsg);
-      }
-    } catch (error: any) {
-      // eslint-disable-next-line no-console
-      console.error('[downloadV2SymbolicWeather] Error:', error);
-      setToast(`Error: ${error.message}`);
-      setTimeout(() => setToast(null), 3000);
-    }
-  }
 
   // Generate condensed Markdown summary export (limited to ~29,000 tokens for ChatGPT compatibility)
   async function downloadMarkdownSummary() {
@@ -2211,7 +2274,7 @@ export default function MathBrainPage() {
       if (reportType === 'balance') {
         markdown += `This Balance Meter report analyzes energetic patterns and trends using astrological calculations. `;
         markdown += `The data reveals the interplay between magnitude (intensity), valence (positive/negative tilt), `;
-        markdown += `volatility (instability), and SFD (structural field dynamics).\n\n`;
+  markdown += `volatility (instability).\n\n`;
       } else {
         markdown += `This Mirror report provides insights into archetypal patterns and behavioral dynamics `;
         markdown += `through astrological analysis, revealing the Actor/Role composite and confidence metrics.\n\n`;
@@ -2239,40 +2302,37 @@ export default function MathBrainPage() {
             date: d,
             magnitude: Number(daily[d]?.seismograph?.magnitude ?? 0),
             valence: Number(daily[d]?.seismograph?.valence_bounded ?? daily[d]?.seismograph?.valence ?? 0),
-            volatility: Number(daily[d]?.seismograph?.volatility ?? 0),
-            sfd: Number(daily[d]?.sfd?.sfd_cont ?? daily[d]?.sfd ?? 0)
+            volatility: Number(daily[d]?.seismograph?.volatility ?? 0)
           }));
 
           const avgMagnitude = series.reduce((sum, s) => sum + s.magnitude, 0) / series.length;
           const avgValence = series.reduce((sum, s) => sum + s.valence, 0) / series.length;
           const avgVolatility = series.reduce((sum, s) => sum + s.volatility, 0) / series.length;
-          const avgSFD = series.reduce((sum, s) => sum + s.sfd, 0) / series.length;
-
           markdown += `### Key Metrics Summary\n\n`;
           markdown += `| Metric | Average | Range |\n`;
           markdown += `|--------|---------|-------|\n`;
           markdown += `| **Magnitude** | ${avgMagnitude.toFixed(2)} | ${Math.min(...series.map(s => s.magnitude)).toFixed(1)} - ${Math.max(...series.map(s => s.magnitude)).toFixed(1)} |\n`;
           markdown += `| **Valence** | ${avgValence >= 0 ? '+' : ''}${avgValence.toFixed(2)} | ${Math.min(...series.map(s => s.valence)).toFixed(1)} - ${Math.max(...series.map(s => s.valence)).toFixed(1)} |\n`;
           markdown += `| **Volatility** | ${avgVolatility.toFixed(2)} | ${Math.min(...series.map(s => s.volatility)).toFixed(1)} - ${Math.max(...series.map(s => s.volatility)).toFixed(1)} |\n`;
-          markdown += `| **SFD** | ${avgSFD >= 0 ? '+' : ''}${avgSFD.toFixed(0)} | ${Math.min(...series.map(s => s.sfd)).toFixed(0)} - ${Math.max(...series.map(s => s.sfd)).toFixed(0)} |\n\n`;
+          // SFD metric removed (deprecated)
 
           // Recent daily data (last 7 days)
           markdown += `### Recent Daily Data (Last 7 Days)\n\n`;
-          markdown += `| Date | Magnitude | Valence | Volatility | SFD |\n`;
-          markdown += `|------|-----------|---------|------------|-----|\n`;
+          markdown += `| Date | Magnitude | Valence | Volatility |\n`;
+          markdown += `|------|-----------|---------|------------|\n`;
 
           dates.slice(-7).forEach(date => {
             const dayData = daily[date];
             const mag = Number(dayData?.seismograph?.magnitude ?? 0);
             const val = Number(dayData?.seismograph?.valence_bounded ?? dayData?.seismograph?.valence ?? 0);
             const vol = Number(dayData?.seismograph?.volatility ?? 0);
-            const sfd = Number(dayData?.sfd?.sfd_cont ?? dayData?.sfd ?? 0);
+            // SFD removed — use directional bias / integration factors if available
 
             const dateStr = new Date(date).toLocaleDateString('en-US', {
               month: 'short', day: 'numeric'
             });
 
-            markdown += `| ${dateStr} | ${mag.toFixed(1)} | ${val >= 0 ? '+' : ''}${val.toFixed(1)} | ${vol.toFixed(1)} | ${sfd > 0 ? '+' : ''}${sfd} |\n`;
+            markdown += `| ${dateStr} | ${mag.toFixed(1)} | ${val >= 0 ? '+' : ''}${val.toFixed(1)} | ${vol.toFixed(1)} |\n`;
           });
           markdown += `\n`;
 
@@ -2571,7 +2631,7 @@ export default function MathBrainPage() {
         markdown += `- **Magnitude (0-5):** Overall intensity of energetic patterns\n`;
         markdown += `- **Valence (-5 to +5):** Positive (expansion/opportunity) vs Negative (contraction/challenge)\n`;
         markdown += `- **Volatility (0-5):** Instability and unpredictability level\n`;
-        markdown += `- **SFD:** Structural Field Dynamics - underlying stability\n\n`;
+  // SFD deprecated and removed from exports
 
         markdown += `### Valence Scale\n\n`;
         markdown += `- **+5 Liberation:** Peak openness, breakthroughs\n`;
@@ -2588,7 +2648,7 @@ export default function MathBrainPage() {
       } else {
         // Mirror Report interpretation guide
         markdown += `### Mirror Report Components\n\n`;
-        markdown += `- **Hook Stack:** High-intensity patterns from tightest aspects that serve as recognition gateways\n`;
+        markdown += `- **Core Insights:** High-intensity patterns from tightest aspects that serve as recognition gateways\n`;
         markdown += `- **Polarity Cards:** Three-card field mapping using FIELD → MAP → VOICE progression\n`;
         markdown += `- **Integration Factors:** Quality metrics including harmonic resonance, fertile field, and integration scores\n`;
         markdown += `- **Vector Integrity:** Analysis of latent vs suppressed influences in the symbolic field\n`;
@@ -2853,8 +2913,8 @@ export default function MathBrainPage() {
         'This Symbolic Weather Log provides a comprehensive analysis of geometric patterns',
         'and trends over time, using astrological calculations mapped to a diagnostic framework.',
         'The data shows the interplay between Magnitude (0–5), Directional Bias (−5…+5),',
-        'Coherence (0–5, formerly Volatility), and SFD (−1.00…+1.00) to map the structural',
-        'climate of each day. This is a field report, not a forecast.'
+        'and Coherence (0–5, formerly Volatility) to map the structural climate of each day.',
+        'This is a field report, not a forecast.'
       ];
 
       summaryText.forEach(line => {
@@ -2888,10 +2948,21 @@ export default function MathBrainPage() {
           return `${label.padEnd(12)} ${sparkline}`;
         };
 
+        const extractBias = (entry: any): number => {
+          const seismo = entry?.seismograph;
+          if (!seismo) return 0;
+          if (typeof seismo.directional_bias === 'number') return seismo.directional_bias;
+          if (typeof seismo.bias === 'number') return seismo.bias;
+          if (typeof seismo.valence === 'number') return seismo.valence;
+          if (typeof seismo.valence_bounded === 'number') return seismo.valence_bounded;
+          if (typeof seismo.directional_bias?.value === 'number') return seismo.directional_bias.value;
+          return 0;
+        };
+
         const series = dates.map(d => ({
           date: d,
           magnitude: Number(daily[d]?.seismograph?.magnitude ?? 0),
-          valence: Number(daily[d]?.seismograph?.valence_bounded ?? daily[d]?.seismograph?.valence ?? 0),
+          bias: extractBias(daily[d]),
           volatility: Number(daily[d]?.seismograph?.volatility ?? 0)
         }));
 
@@ -2906,12 +2977,12 @@ export default function MathBrainPage() {
 
         const magnitudes = series.map(s => s.magnitude);
         const volatilities = series.map(s => s.volatility);
-        const valences = series.map(s => s.valence + 5);
+        const biasesShifted = series.map(s => s.bias + 5);
 
         const charts = [
           createTextChart(magnitudes, 'Magnitude:', 5),
           createTextChart(volatilities, 'Coherence:', 5),
-          createTextChart(valences, 'Dir. Bias:', 10)
+          createTextChart(biasesShifted, 'Dir. Bias:', 10)
         ];
 
         charts.forEach(chart => {
@@ -2940,7 +3011,7 @@ export default function MathBrainPage() {
         dates.slice(-7).forEach(date => {
           const dayData = daily[date];
           const mag = Number(dayData?.seismograph?.magnitude ?? 0);
-          const val = Number(dayData?.seismograph?.valence_bounded ?? dayData?.seismograph?.valence ?? 0);
+          const biasValue = extractBias(dayData);
           const vol = Number(dayData?.seismograph?.volatility ?? 0);
 
           const dateStr = new Date(date).toLocaleDateString('en-US', {
@@ -2952,7 +3023,7 @@ export default function MathBrainPage() {
             yPosition = PAGE_HEIGHT - MARGIN;
           }
 
-          const dayLine = `${dateStr}: Mag ${mag.toFixed(1)} | Bias ${val >= 0 ? '+' : ''}${val.toFixed(1)} | Coh ${vol.toFixed(1)}`;
+          const dayLine = `${dateStr}: Mag ${mag.toFixed(1)} | Bias ${biasValue >= 0 ? '+' : ''}${biasValue.toFixed(1)} | Coh ${vol.toFixed(1)}`;
           page.drawText(sanitizeForPDF(dayLine), {
             x: MARGIN,
             y: yPosition,
@@ -2973,9 +3044,9 @@ export default function MathBrainPage() {
             const segment = series.slice(i, i + chunkSize);
             if (segment.length === 0) continue;
             const peak = segment.reduce((max, current) => current.magnitude > max.magnitude ? current : max, segment[0]);
-            const lowValence = segment.reduce((min, current) => current.valence < min.valence ? current : min, segment[0]);
+            const strongestBias = segment.reduce((chosen, current) => Math.abs(current.bias) > Math.abs(chosen.bias) ? current : chosen, segment[0]);
             const highVol = segment.reduce((max, current) => current.volatility > max.volatility ? current : max, segment[0]);
-            chunks.push(`Segment ${Math.floor(i / chunkSize) + 1}: peak magnitude ${peak.magnitude.toFixed(1)}, sharpest bias ${lowValence.valence.toFixed(1)}, coherence divergence ${highVol.volatility.toFixed(1)}`);
+            chunks.push(`Segment ${Math.floor(i / chunkSize) + 1}: peak magnitude ${peak.magnitude.toFixed(1)}, strongest bias ${strongestBias.bias.toFixed(1)}, coherence divergence ${highVol.volatility.toFixed(1)}`);
           }
           return chunks;
         })();
@@ -3112,8 +3183,8 @@ export default function MathBrainPage() {
           '',
           'VOICE LAYER — Symbolic Translation',
           'Magnitude (0–5): Energy density. Directional Bias (−5…+5): Expansive vs. restrictive',
-          'tilt. Coherence (0–5): Field stability (formerly Volatility). SFD (−1.00…+1.00):',
-          'Support vs. friction differential. These axes map lived patterns, not outcomes.',
+          'tilt. Coherence (0–5): Field stability (formerly Volatility).',
+          'These axes map lived patterns, not outcomes.',
           '',
           'PROVENANCE LAYER — Metadata and Null Handling',
           'Missing data registers as NULL, not zero. Suppression thresholds prevent noise.',
@@ -3123,8 +3194,6 @@ export default function MathBrainPage() {
           'High Magnitude + expansive Bias: Field shows widening vectors and reinforcing angles.',
           'High Magnitude + restrictive Bias: Field shows compression and cross-pressure.',
           'Low Coherence (3+): Dispersed geometry; maintaining flexibility stabilizes navigation.',
-          'Negative SFD: Friction exceeds support; structural review maps weak points.',
-          'Positive SFD: Support exceeds friction; foundation geometry holds under load.',
           '',
           'Note: This system maps astrological geometry to diagnostic coordinates. It registers',
           'structural climate, not fixed outcomes. Use as one reference among many when',
@@ -3298,6 +3367,7 @@ export default function MathBrainPage() {
             timezone: personA.timezone,
             city: personA.city,
             state: personA.state,
+            nation: personA.nation || "US",
           },
           ...(includePersonB
             ? {
@@ -3306,6 +3376,7 @@ export default function MathBrainPage() {
                   timezone: personB.timezone,
                   city: personB.city,
                   state: personB.state,
+                  nation: personB.nation || "US",
                 },
               }
             : {}),
@@ -3329,7 +3400,8 @@ export default function MathBrainPage() {
         reportType,
         mode,
         includeTransits,
-        window: includeTransits && startDate && endDate ? { start: startDate, end: endDate, step } : undefined,
+        window:
+          includeTransits && startDate && endDate ? { start: startDate, end: endDate, step } : undefined,
         subjects: {
           personA: {
             name: personA.name?.trim() || undefined,
@@ -3349,38 +3421,8 @@ export default function MathBrainPage() {
         },
         payload: data,
       };
-      
-      // Trim payload to avoid QuotaExceededError: keep metadata + woven_map only
-      const trimmedPayload = {
-        ...lastPayload,
-        payload: {
-          person_a: data?.person_a
-            ? {
-                name: data.person_a.name,
-                summary: data.person_a.summary,
-              }
-            : undefined,
-          woven_map: data?.woven_map,
-          _trimmed: true,
-          _note: 'Payload trimmed for localStorage; full data in session export',
-        },
-      };
 
-      try {
-        window.localStorage.setItem('mb.lastPayload', JSON.stringify(trimmedPayload));
-      } catch (quotaError) {
-        // eslint-disable-next-line no-console
-        console.warn('localStorage quota exceeded; storing minimal payload', quotaError);
-        // Store absolute minimum
-        window.localStorage.setItem(
-          'mb.lastPayload',
-          JSON.stringify({
-            savedAt: lastPayload.savedAt,
-            from: lastPayload.from,
-            payload: { _note: 'Payload too large; fetch from chat history' },
-          }),
-        );
-      }
+      persistTrimmedLastPayload(lastPayload);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to persist Math Brain payload for Poetic Brain reuse', error);
@@ -3676,8 +3718,9 @@ export default function MathBrainPage() {
           setIncludePersonB(true);
         }
 
-        if (data.relationship_context) {
-          const rc = data.relationship_context;
+        const relationshipImport = data.relationship_context || data.relationship;
+        if (relationshipImport) {
+          const rc = relationshipImport;
           if (rc.type) setRelationshipType(String(rc.type).toUpperCase());
           if (rc.intimacy_tier) setRelationshipTier(String(rc.intimacy_tier));
           const contactRaw = rc.contact_state || rc.contactState || rc.contact_status;
@@ -3733,6 +3776,14 @@ export default function MathBrainPage() {
         if (typeof data.relationshipNotes === 'string') setRelationshipNotes(data.relationshipNotes);
         if (typeof data.relationshipTier === 'string') setRelationshipTier(data.relationshipTier);
         if (typeof data.relationshipRole === 'string') setRelationshipRole(data.relationshipRole);
+        if (data.relationship && !data.relationship_context) {
+          const rc = data.relationship;
+          if (rc.type) setRelationshipType(String(rc.type).toUpperCase());
+          if (rc.intimacy_tier) setRelationshipTier(String(rc.intimacy_tier));
+          if (rc.role) setRelationshipRole(rc.role);
+          if (rc.contact_state) setContactState(String(rc.contact_state).toUpperCase() === 'LATENT' ? 'LATENT' : 'ACTIVE');
+          if (typeof rc.notes === 'string') setRelationshipNotes(rc.notes);
+        }
 
         if (typeof data.contactState === 'string') setContactState(data.contactState.toUpperCase() === 'LATENT' ? 'LATENT' : 'ACTIVE');
         if (data.translocation) {
@@ -3856,12 +3907,14 @@ export default function MathBrainPage() {
     return allPresent && bOk && relOk && Boolean(startDate) && Boolean(endDate);
   }, [personA, personB, includePersonB, relationshipType, relationshipTier, relationshipRole, mode, startDate, endDate, aCoordsValid, bCoordsValid, timeUnknown, timeUnknownB, timePolicy, includeTransits]);
   const submitDisabled = useMemo(() => {
+    if (!PROVIDER_BYPASS && providerCheckPending) return true;
+    if (!PROVIDER_BYPASS && !providerHealth.astrology.ready) return true;
     // Additional relocation/report gate
     const locGate = needsLocation(reportType, includeTransits, personA);
     if (includeTransits && !locGate.hasLoc) return true;
     if (!canSubmit || loading) return true;
     return false;
-  }, [canSubmit, loading, personA, reportType, includeTransits]);
+  }, [canSubmit, loading, personA, reportType, includeTransits, providerCheckPending, providerHealth.astrology.ready]);
 
   // Debug panel toggle (append ?debug=1 to the URL to enable)
   const [debugMode, setDebugMode] = useState(false);
@@ -3947,6 +4000,18 @@ export default function MathBrainPage() {
       setTimeout(()=>setToast(null), 2500);
       return;
     }
+    if (providerCheckPending) {
+      setToast('Checking provider readiness…');
+      setTimeout(() => setToast(null), 2500);
+      return;
+    }
+    if (!providerHealth.astrology.ready) {
+      const outageMessage = providerHealth.astrology.message || 'Math Brain is currently unavailable.';
+      setError(outageMessage);
+      setToast(outageMessage);
+      setTimeout(() => setToast(null), 3500);
+      return;
+    }
     if (!canSubmit) return;
     if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
       setError("Transit start date must be on or before the end date.");
@@ -3975,7 +4040,7 @@ export default function MathBrainPage() {
         mode,
         personA: {
           ...personA,
-          nation: "US",
+          nation: personA.nation || "US",
           year: Number(personA.year),
           month: Number(personA.month),
           day: Number(personA.day),
@@ -4028,7 +4093,7 @@ export default function MathBrainPage() {
       if (RELATIONAL_MODES.includes(mode) && includePersonB) {
         payload.personB = {
           ...personB,
-          nation: "US",
+          nation: personB.nation || "US",
           year: Number(personB.year),
           month: Number(personB.month),
           day: Number(personB.day),
@@ -4091,18 +4156,46 @@ export default function MathBrainPage() {
       } else {
         // Single request mode (no chunking needed)
         setToast(includeTransits ? 'Generating report with transits...' : 'Generating report...');
-        const response = await fetch("/api/astrology-mathbrain", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+        let response;
+        try {
+          response = await fetch("/api/astrology-mathbrain", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        } catch (networkError) {
+          console.error('Network error during API request:', networkError);
+          const errorMessage = networkError instanceof Error ? networkError.message : String(networkError);
+          setError(`Network error: ${errorMessage}`);
+          setToast('Failed to connect to the server. Please check your connection.');
+          return;
+        }
 
-        const parsed = await parseJsonSafely<Record<string, any>>(response);
-        finalData = parsed.data;
+        let parsed;
+        try {
+          parsed = await parseJsonSafely<Record<string, any>>(response);
+          finalData = parsed.data;
+        } catch (parseError) {
+          console.error('Error parsing API response:', parseError);
+          const parseMessage = parseError instanceof Error ? parseError.message : String(parseError);
+          setError(`Invalid response from server: ${parseMessage}`);
+          setToast('Failed to process server response.');
+          return;
+        }
 
         if (!response.ok || parsed.parseError || !isRecord(finalData) || finalData.success === false) {
-          const errorDetail = finalData?.error || parsed.parseError?.message || `Request failed with status ${response.status}`;
-          setToast('Report generation failed.');
+          const errorDetail = finalData?.error || 
+                            parsed.parseError?.message || 
+                            response.statusText || 
+                            `Request failed with status ${response.status}`;
+          console.error('API Error:', {
+            status: response.status,
+            error: finalData?.error,
+            parseError: parsed.parseError,
+            response: finalData
+          });
+          setError(`Report generation failed: ${errorDetail}`);
+          setToast('Report generation failed. See error for details.');
           setTimeout(() => setToast(null), 2500);
           throw new Error(errorDetail);
         }
@@ -4117,6 +4210,8 @@ export default function MathBrainPage() {
             startDate,
             endDate,
             includePersonB,
+            includeTransits,
+            reportStructure,
             translocation: relocationStatus.effectiveMode,
             relationshipType,
             relationshipTier,
@@ -4126,6 +4221,14 @@ export default function MathBrainPage() {
             relationshipNotes,
             personA,
             personB,
+            aCoordsInput,
+            bCoordsInput,
+            relocInput,
+            relocLabel,
+            relocTz,
+            relocCoords,
+            timePolicy,
+            saveForNextSession,
           };
           window.localStorage.setItem('mb.lastInputs', JSON.stringify(inputs));
           setHasSavedInputs(true);
@@ -4182,6 +4285,26 @@ export default function MathBrainPage() {
           <p className="mt-4 text-base md:text-lg text-slate-300">
             Calculate precise astrological geometry, then synthesize meaning in Poetic Brain.
           </p>
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={handleNavigateToPoetic}
+              disabled={!canVisitPoetic}
+              aria-disabled={!canVisitPoetic}
+              className={`inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold transition ${
+                canVisitPoetic
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900'
+                  : 'cursor-not-allowed border border-slate-700 bg-slate-800 text-slate-400'
+              }`}
+            >
+              Enter Poetic Brain
+            </button>
+            <p className={`text-xs ${canVisitPoetic ? 'text-slate-400' : 'text-amber-300'}`}>
+              {canVisitPoetic
+                ? "Explore Raven's narrative space even without generating a Math Brain report first."
+                : 'Poetic Brain is offline - check provider status below.'}
+            </p>
+          </div>
 
         {/* Resume from Past Session Prompt */}
         {showSessionResumePrompt && savedSession && (
@@ -4324,20 +4447,27 @@ export default function MathBrainPage() {
                 Save A+B
               </button>
             </div>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
+            <label
+              htmlFor={setupUploadId}
               className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-              aria-label="Load a setup from a JSON file"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
             >
               Load setup…
-            </button>
+            </label>
             <input
               ref={fileInputRef}
+              id={setupUploadId}
               type="file"
               accept="application/json"
               onChange={handleLoadSetupFromFile}
-              className="hidden"
+              className="sr-only"
               aria-label="Upload setup JSON file"
             />
           </div>
@@ -4726,6 +4856,13 @@ export default function MathBrainPage() {
               <p className="mt-2 text-xs text-amber-400">Hint: Toggle "Include Person B" and fill in required fields to enable relational modes.</p>
             )}
             {submitDisabled && !loading && (() => {
+              if (!PROVIDER_BYPASS && providerCheckPending) {
+                return <p className="mt-2 text-xs text-amber-400">⚠️ Checking provider readiness…</p>;
+              }
+              if (!PROVIDER_BYPASS && !providerHealth.astrology.ready) {
+                const outageMessage = providerHealth.astrology.message || 'Math Brain services are currently unavailable.';
+                return <p className="mt-2 text-xs text-amber-400">⚠️ {outageMessage}</p>;
+              }
               const locGate = needsLocation(reportType, includeTransits, personA);
               if (includeTransits && !locGate.hasLoc) {
                 return <p className="mt-2 text-xs text-amber-400">⚠️ Transits require location data. Please enter coordinates or city/state for Person A.</p>;
@@ -4812,7 +4949,20 @@ export default function MathBrainPage() {
                 Full Diagnostics
               </span>
               <span className="text-slate-600">→</span>
-              <span className={canVisitPoetic ? 'text-emerald-300' : 'text-slate-500'}>Poetic Brain</span>
+              {canVisitPoetic ? (
+                <a
+                  href="/chat"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    handleNavigateToPoetic();
+                  }}
+                  className="text-emerald-300 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 rounded-sm"
+                >
+                  Poetic Brain
+                </a>
+              ) : (
+                <span className="text-slate-500">Poetic Brain</span>
+              )}
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {weather.hasWindow ? (
@@ -4856,17 +5006,17 @@ export default function MathBrainPage() {
           <DownloadControls
             includeTransits={includeTransits}
             pdfGenerating={pdfGenerating}
-            markdownGenerating={markdownGenerating}
             graphsPdfGenerating={graphsPdfGenerating}
-            weatherJsonGenerating={weatherJsonGenerating}
+            astroFileJsonGenerating={astroFileJsonGenerating}
             engineConfigGenerating={engineConfigGenerating}
             cleanJsonGenerating={cleanJsonGenerating}
             onDownloadPDF={downloadResultPDF}
-            onDownloadMarkdown={downloadV2Markdown}
-            onDownloadSymbolicWeather={downloadV2SymbolicWeather}
+            onDownloadAstroFile={downloadAstroFileJSON}
             onDownloadGraphsPDF={downloadGraphsPDF}
             onDownloadEngineConfig={downloadBackstageJSON}
             onDownloadCleanJSON={downloadResultJSON}
+            onDownloadMapFile={downloadMapFile}
+            onDownloadFieldFile={downloadFieldFile}
             seismographMap={seismographMap}
             authReady={authReady}
             isAuthenticated={isAuthenticated}
@@ -4995,17 +5145,25 @@ export default function MathBrainPage() {
                     const dayData = transitsByDate[date];
                     const seismo = dayData?.seismograph || {};
                     const balance = dayData?.balance || {};
-                    const sfd = dayData?.sfd || {};
+                    // SFD deprecated — no longer included in daily seismograph payload
 
-                    // v5.0: Use canonical directional_bias structure
-                    const biasValue = seismo.directional_bias?.value ?? seismo.bias_signed ?? balance.bias_signed ?? 0;
+                    const biasValue = (() => {
+                      if (typeof seismo.directional_bias === 'number') return seismo.directional_bias;
+                      if (typeof seismo.directional_bias?.value === 'number') return seismo.directional_bias.value;
+                      if (typeof seismo.bias === 'number') return seismo.bias;
+                      if (typeof seismo.bias_signed === 'number') return seismo.bias_signed;
+                      if (typeof balance.bias_signed === 'number') return balance.bias_signed;
+                      if (typeof seismo.valence === 'number') return seismo.valence;
+                      if (typeof seismo.valence_bounded === 'number') return seismo.valence_bounded;
+                      if (typeof seismo.axes?.directional_bias?.value === 'number') return seismo.axes.directional_bias.value;
+                      return 0;
+                    })();
 
                     return {
                       date,
                       magnitude_0to5: seismo.magnitude ?? balance.magnitude ?? 0,
                       bias_signed_minus5to5: biasValue,
                       coherence_0to5: seismo.volatility ?? 0,
-                      sfd_cont_minus1to1: sfd.sfd_cont ?? 0,
                       schema_version: 'BM-v3',
                       orbs_profile: displayResult?.provenance?.orbs_profile || 'wm-spec-2025-09',
                       house_frame: 'natal',
@@ -5065,11 +5223,34 @@ export default function MathBrainPage() {
                           {/* Scatter Chart Visualization */}
                           {(() => {
                             try {
-                              const transformedData = transformTransitsByDate(transitsByDate);
-                              const weatherArray = Object.entries(transformedData).map(([date, weather]) => ({
-                                date,
-                                weather
-                              }));
+                              const fieldFile =
+                                displayResult?.unified_output?._field_file ||
+                                displayResult?._field_file ||
+                                result?.unified_output?._field_file;
+
+                              let weatherRecords =
+                                (fieldFile?.daily && transformFieldFileDaily(fieldFile)) || {};
+
+                              if (!weatherRecords || Object.keys(weatherRecords).length === 0) {
+                                weatherRecords = transformTransitsByDate(transitsByDate);
+                              }
+
+                              const weatherDates = Object.keys(weatherRecords);
+                              if (weatherDates.length === 0) {
+                                return null;
+                              }
+
+                              const weatherArray = weatherDates
+                                .sort()
+                                .map((date) => ({
+                                  date,
+                                  weather: weatherRecords[date],
+                                }))
+                                .filter((entry) => entry.weather);
+
+                              if (!weatherArray.length) {
+                                return null;
+                              }
                               return (
                                 <div className="mt-6">
                                   <WeatherPlots
@@ -5153,12 +5334,7 @@ export default function MathBrainPage() {
                       return 'Dispersed';
                     };
 
-                    const getSFDState = (sfd: number) => {
-                      if (sfd > 50) return 'Strong Support';
-                      if (sfd >= 1) return 'Supportive';
-                      if (sfd >= -50) return 'Frictional';
-                      return 'Strong Friction';
-                    };
+                    // SFD state helper removed (deprecated)
 
                     const classifyMagnitude = (mag: number) => {
                       if (mag <= 2) {
@@ -5278,11 +5454,32 @@ export default function MathBrainPage() {
 
                     return dates.map(date => { // Show all requested days
                       const dayData = daily[date];
-                      const mag = Number(dayData?.seismograph?.magnitude ?? 0);
-                      const val = Number(dayData?.seismograph?.valence_bounded ?? dayData?.seismograph?.valence ?? 0);
-                      const vol = Number(dayData?.seismograph?.volatility ?? 0);
-                      const sfdRaw = dayData?.sfd;
-                      const sfd = typeof sfdRaw === 'number' ? sfdRaw : Number.NaN;
+                      const seismo = dayData?.seismograph || dayData;
+
+                      const overflowDetail = computeOverflowDetailFromDay(dayData);
+
+                      const mag = firstFinite(
+                        seismo?.magnitude,
+                        seismo?.axes?.magnitude?.value,
+                        seismo?.rawMagnitude,
+                      ) ?? 0;
+
+                      const val = firstFinite(
+                        seismo?.directional_bias,
+                        seismo?.directional_bias?.value,
+                        seismo?.bias,
+                        seismo?.bias_signed,
+                        seismo?.valence_bounded,
+                        seismo?.valence,
+                        seismo?.axes?.directional_bias?.value,
+                      ) ?? 0;
+
+                      const vol = firstFinite(
+                        seismo?.volatility,
+                        seismo?.axes?.volatility?.value,
+                      ) ?? 0;
+
+                      // SFD removed — use magnitude/valence/volatility for cards
                       const valenceStyle = getValenceStyle(val, mag);
 
                       const magnitudeClass = classifyMagnitude(mag);
@@ -5318,8 +5515,10 @@ export default function MathBrainPage() {
                           climate={{
                             magnitude: mag,
                             valence_bounded: val,
-                            volatility: vol
+                            volatility: vol,
+                            drivers: overflowDetail?.drivers,
                           }}
+                          overflowDetail={overflowDetail}
                         />
                       );
                     });
@@ -5334,7 +5533,7 @@ export default function MathBrainPage() {
                     <div className="rounded border border-slate-700 bg-slate-900/40 p-4">
                       <div className="text-sm text-slate-300 leading-relaxed">
                         {(() => {
-                        const sfdValue = result?.person_a?.sfd?.sfd ?? 0;
+                        // SFD deprecated and removed from summary — omitted
                         const getMagnitudeState = (mag: number) => {
                           if (mag <= 1) return 'latent';
                           if (mag <= 2) return 'murmur-level';
@@ -5391,14 +5590,6 @@ export default function MathBrainPage() {
 
                         // Simple descriptive combinations using flavor patterns - NOT predictive
                         let description = `The symbolic field shows ${magState} pressure with ${volState} patterns.`;
-
-                        if (sfdValue > 0) {
-                          description += ` The Support-Friction balance leans toward supportive conditions (${sfdValue > 0 ? '+' : ''}${sfdValue}).`;
-                        } else if (sfdValue < 0) {
-                          description += ` The Support-Friction balance shows frictional conditions (${sfdValue}).`;
-                        } else {
-                          description += ` The Support-Friction balance is neutral.`;
-                        }
 
                         // Add valence flavor pattern
                         description += ` Valence signature: ${valencePattern.emojis.join('')} ${valencePattern.descriptor} (${valencePattern.anchor}) — ${valencePattern.pattern}.`;

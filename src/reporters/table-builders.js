@@ -36,9 +36,14 @@ function calculateIntensity(aspect) {
 
   const orbWeight = aspect.orbit < 1 ? 3 : aspect.orbit < 3 ? 2 : 1;
   const aspectWeight = {
-    'conjunction': 3, 'opposition': 3, 'square': 2,
-    'trine': 2, 'sextile': 1, 'quincunx': 1
-  }[aspect.aspect] || 1;
+    'conjunction': 1.0,
+    'opposition': 1.0,
+    'square': 0.85,
+    'trine': 0.9,
+    'sextile': 0.55,
+    'quincunx': 0.35,
+    'semisextile': 0.2
+  }[(aspect.aspect || '').toLowerCase()] || 0.2;
 
   const planetWeight = {
     'Sun': 3, 'Moon': 3, 'Mercury': 2, 'Venus': 2, 'Mars': 2,
@@ -237,8 +242,6 @@ function buildDailyReadingsTable(timeSeries) {
     valence_label: reading.valence_label || '',
     volatility: reading.volatility ? reading.volatility.toFixed(2) : 'N/A',
     volatility_label: reading.volatility_label || '',
-    sfd_disc: reading.sfd_disc !== undefined ? reading.sfd_disc : 'N/A',
-    sfd_cont: reading.sfd_cont ? reading.sfd_cont.toFixed(2) : 'N/A',
     primary_transit: reading.primary_transit || reading.strongest_aspect || '',
     notes: reading.notes || ''
   })).sort((a, b) => new Date(a.date) - new Date(b.date));

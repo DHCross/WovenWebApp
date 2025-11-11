@@ -2,7 +2,6 @@ export interface Axes {
   magnitude: number;
   bias: number;
   coherence: number;
-  sfd: number | null;
 }
 
 type Label = { title: string; subtitle: string };
@@ -30,16 +29,8 @@ const cohBand = (c: number) =>
   c >= 1.0 ? 'Mostly coherent' :
   'Single-thread';
 
-const sfdBand = (s: number | null) =>
-  s === null ? 'n/a' :
-  s <= -0.50 ? 'Frictional' :
-  s < -0.10 ? 'Mild friction' :
-  s <= 0.10 ? 'Balanced' :
-  s <= 0.50 ? 'Mild supportive' :
-  'Supportive';
-
 export function buildPeriodLabel(a: Axes): Label {
   const title = `${magBand(a.magnitude)} field · ${biasBand(a.bias)} tilt`;
-  const subtitle = `${cohBand(a.coherence)} storyline · Forces ${sfdBand(a.sfd)}`;
+  const subtitle = `${cohBand(a.coherence)} storyline`;
   return { title, subtitle };
 }

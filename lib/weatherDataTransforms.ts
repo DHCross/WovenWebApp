@@ -40,6 +40,7 @@ const runtime = require('./weatherDataTransforms.js') as {
   transformWeatherData(raw: RawSeismograph): TransformedWeatherData;
   transformDailyWeather(dayData: any): TransformedWeatherData;
   transformTransitsByDate(transitsByDate: Record<string, any>): Record<string, TransformedWeatherData>;
+  transformFieldFileDaily(fieldFile: any): Record<string, TransformedWeatherData>;
 };
 
 export const transformWeatherData: (raw: RawSeismograph) => TransformedWeatherData =
@@ -51,3 +52,7 @@ export const transformDailyWeather: (dayData: any) => TransformedWeatherData =
 export const transformTransitsByDate: (
   transitsByDate: Record<string, any>
 ) => Record<string, TransformedWeatherData> = runtime.transformTransitsByDate;
+
+export const transformFieldFileDaily: (
+  fieldFile: any
+) => Record<string, TransformedWeatherData> = runtime.transformFieldFileDaily;

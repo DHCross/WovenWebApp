@@ -3,7 +3,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 /**
- * Unified Symbolic Dashboard v5.0
+ * Unified Symbolic Dashboard v5.0 - MAP + FIELD Hybrid Visualization
+ * 
+ * ⚠️ ARCHITECTURAL NOTE:
+ * This visualization INTENTIONALLY DEVIATES from "True Accelerometer v5.0" spec.
+ * 
+ * DESIGN DECISION: Y-axis shows HOUSES (1-12), not Magnitude.
+ * 
+ * Why?
+ * - Purpose: Show correlation between MAP (planetary geometry) and FIELD (pressure)
+ * - MAP layer requires y-axis for houses to plot planetary positions
+ * - FIELD layer overlays as bubbles (size = magnitude, color = directional bias)
+ * - Enables diagnostic pattern matching: "Saturn in House 10 when magnitude spiked"
+ * 
+ * For a pure "True Accelerometer" view (y-axis = magnitude), use AccelerometerScatter.tsx instead.
  * 
  * Combines two data layers:
  * - MAP Layer: Planetary geometry (lines + points) - where planets move through houses
@@ -13,6 +26,9 @@ import React, { useEffect, useRef, useState } from 'react';
  * - Lines tell where the sky moves (structure)
  * - Bubbles tell how that motion feels (weather)
  * - When both spike together = diagnostic handshake between MAP and FIELD
+ * 
+ * User Question Answered: "WHY am I feeling this?" (MAP + FIELD correlation)
+ * Compare to AccelerometerScatter which answers: "WHAT am I feeling?" (FIELD only)
  */
 
 export type MapDataPoint = {
@@ -59,7 +75,7 @@ export function UnifiedSymbolicDashboard({
   mapData = [],
   fieldData = [],
   integration = [],
-  title = 'Unified Symbolic Dashboard',
+  title = 'Symbolic Weather — MAP + FIELD',
 }: UnifiedDashboardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartInstanceRef = useRef<any>(null);
@@ -164,13 +180,15 @@ export function UnifiedSymbolicDashboard({
       };
 
       // Map FIELD data to chart coordinates
-      // Since FIELD doesn't have house numbers, we need to map magnitude to a pseudo-house position
-      // or overlay on a secondary axis. For now, we'll map magnitude to Y-axis position
+      // ARCHITECTURAL DECISION: Y-axis is dedicated to houses (MAP layer)
+      // FIELD bubbles use pseudo-house position (magnitude * 2) to approximate vertical placement
+      // This is a compromise to fit both MAP and FIELD on one chart
+      // TRUE ACCELEROMETER USERS: Use AccelerometerScatter.tsx for y-axis = magnitude
       const fieldPoints = fieldData.map(point => {
         const xIndex = allDates.indexOf(point.date);
         return {
           x: xIndex,
-          y: point.magnitude * 2, // Scale magnitude (0-5) to fit house range (0-10)
+          y: point.magnitude * 2, // Pseudo-house position: scale magnitude (0-5) to fit house range (0-10)
           magnitude: point.magnitude,
           valence: point.valence,
           date: point.date,
@@ -311,7 +329,7 @@ export function UnifiedSymbolicDashboard({
   if (mapData.length === 0 && fieldData.length === 0) {
     return (
       <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-400">
-        No MAP or FIELD data available for visualization
+        No symbolic weather data available for visualization
       </div>
     );
   }
@@ -323,7 +341,7 @@ export function UnifiedSymbolicDashboard({
           <div className="text-xs text-slate-400">
             <span className="font-medium">Balance Meter v5.0</span>
             <span className="mx-2">•</span>
-            <span>MAP: Planetary Geometry + FIELD: Symbolic Pressure</span>
+            <span>Symbolic Weather: MAP (Planetary Geometry) + FIELD (Symbolic Pressure)</span>
           </div>
           
           {/* Color legend for FIELD layer */}

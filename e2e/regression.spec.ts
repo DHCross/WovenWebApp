@@ -45,7 +45,7 @@ test.describe('Regression Tests', () => {
 
   test('should reproduce benchmark data (Hurricane Michael)', async ({ request }) => {
     // Test with Hurricane Michael benchmark (2018-10-10)
-    const response = await request.post('/.netlify/functions/astrology-mathbrain', {
+    const response = await request.post('/api/astrology-mathbrain', {
       data: {
         name: 'Hurricane Michael',
         birthDate: '2018-10-10',
@@ -79,7 +79,7 @@ test.describe('Regression Tests', () => {
   });
 
   test('should handle empty transit response gracefully', async ({ request }) => {
-    const response = await request.post('/.netlify/functions/astrology-mathbrain', {
+    const response = await request.post('/api/astrology-mathbrain', {
       data: {
         name: 'Test Subject',
         birthDate: '1973-07-24',
@@ -116,7 +116,7 @@ test.describe('Regression Tests', () => {
   });
 
   test('should validate orbs enforcement', async ({ request }) => {
-    const response = await request.post('/.netlify/functions/astrology-mathbrain', {
+    const response = await request.post('/api/astrology-mathbrain', {
       data: {
         name: 'Test Subject',
         birthDate: '1973-07-24',

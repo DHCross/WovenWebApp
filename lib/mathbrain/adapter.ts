@@ -112,20 +112,38 @@ export async function runMathBrain(options: Record<string, any>): Promise<Record
   const endpoint = `${getInternalBaseUrl()}/api/astrology-mathbrain`;
   const payloadOptions = normaliseOptions(options ?? {});
   try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payloadOptions),
-      cache: 'no-store'
-    });
+    async function callOnce(): Promise<{ res: Response; text: string; payload: any }> {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payloadOptions),
+        cache: 'no-store'
+      });
+      const text = await res.text();
+      let payload: any = {};
+      if (text) {
+        try {
+          payload = JSON.parse(text);
+        } catch (parseError) {
+          payload = { raw: text };
+        }
+      }
+      return { res, text, payload };
+    }
 
-    const text = await res.text();
-    let payload: any = {};
-    if (text) {
-      try {
-        payload = JSON.parse(text);
-      } catch (parseError) {
-        payload = { raw: text };
+    // First attempt
+    let { res, payload } = await callOnce();
+
+    // Transient failure guard: quick one-shot retry on upstream hiccups
+    if (!res.ok) {
+      const status = res.status;
+      const code = (payload && (payload.code || payload.details?.code)) || '';
+      const transient = status === 429 || status >= 500 || /UPSTREAM|RATE_LIMIT/i.test(String(code)) || /temporar(il)?y|unavailable/i.test(String(payload?.error || payload?.message));
+      if (transient) {
+        await new Promise(r => setTimeout(r, 800));
+        const retry = await callOnce();
+        res = retry.res;
+        payload = retry.payload;
       }
     }
 

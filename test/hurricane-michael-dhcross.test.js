@@ -108,7 +108,6 @@ describe('Hurricane Michael: DHCross Personal Chart', () => {
     console.log(`  Directional Bias: ${result.directional_bias.toFixed(2)} (should be NEGATIVE)`);
     console.log(`  Volatility: ${result.volatility.toFixed(2)}`);
     console.log(`  Coherence: ${result.coherence.toFixed(2)}`);
-    console.log(`  SFD: ${result.sfd !== null ? result.sfd.toFixed(2) : 'null'} (support-friction)`);
 
     console.log('\n🔍 Interpretation:');
     if (result.directional_bias < 0) {
@@ -122,7 +121,6 @@ describe('Hurricane Michael: DHCross Personal Chart', () => {
     // Assertions
     expect(result.directional_bias).toBeLessThan(0);
     expect(result.magnitude).toBeGreaterThan(1); // Should show significant intensity
-    expect(result.sfd).toBeLessThan(0); // More friction than support
 
     console.log('\n✅ Ghost exorcism verified with real personal chart data!\n');
   });

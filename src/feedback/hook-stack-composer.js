@@ -1,56 +1,211 @@
-// Hook Stack Recognition Gateway
-// Generates 2-4 high-charge, dual-polarity titles from tightest aspects
-// Purpose: Bypass analysis, trigger limbic "that's me" ping, open door for depth work
+/**
+ * HOOK STACK COMPOSER
+ * -------------------
+ * This module operates within the Math Brain measurement domain.
+ * Filters reflect the current profile's calibrated measurement window,
+ * not judgments of validity. Aspects outside the cap are simply
+ * beyond this instrument's confidence range; the Poetic Brain layer
+ * may still treat them as experientially significant.
+ *
+ * Purpose: Generate 2-4 high-charge, dual-polarity titles from tightest aspects
+ * Goal: Bypass analysis, trigger limbic "that's me" ping, open door for depth work
+ * v1.1.0: Cap-aware filtering, normalized aspect names, diversity rules, engine-aligned weighting
+ */
+let cachedSRPMapper = undefined;
+
+const SRP_TRUTHY_VALUES = new Set([
+  'true',
+  '1',
+  'yes',
+  'on',
+  'enable',
+  'enabled',
+  'auto'
+]);
+
+const SRP_FALSY_VALUES = new Set([
+  'false',
+  '0',
+  'no',
+  'off',
+  'disable',
+  'disabled'
+]);
+
+function tryLoadSRPMapper() {
+  if (cachedSRPMapper !== undefined) {
+    return cachedSRPMapper;
+  }
+
+  try {
+    const { mapAspectToSRP } = require('../../lib/srp/mapper');
+    cachedSRPMapper = typeof mapAspectToSRP === 'function' ? mapAspectToSRP : null;
+  } catch (err) {
+    cachedSRPMapper = null;
+  }
+
+  return cachedSRPMapper;
+}
+
+function isSRPEnabled() {
+  const raw = process.env.ENABLE_SRP;
+  if (raw === undefined || raw === null) return true;
+
+  const normalized = String(raw).trim().toLowerCase();
+  if (!normalized) return true;
+
+  if (SRP_TRUTHY_VALUES.has(normalized)) return true;
+  if (SRP_FALSY_VALUES.has(normalized)) return false;
+
+  console.warn(`[SRP] Unrecognized ENABLE_SRP value "${raw}", defaulting to enabled.`);
+  return true;
+}
 
 function safeNum(x, def = 0) {
   const n = Number(x);
   return Number.isFinite(n) ? n : def;
 }
 
+function enrichHooksWithSRP(hooks) {
+  if (!isSRPEnabled()) return hooks;
+  const mapper = tryLoadSRPMapper();
+  if (!mapper) return hooks;
+
+  return hooks.map(hook => {
+    if (!hook) return hook;
+    
+    // Handle both formats:
+    // 1. New format: { planets: ['Sun', 'Moon'], aspect_type: 'square', ... }
+    // 2. Old format: { planet1: 'Sun', planet2: 'Moon', name: 'square', ... }
+    const planet1 = hook.planets?.[0] || hook.planet1;
+    const planet2 = hook.planets?.[1] || hook.planet2;
+    const aspectType = hook.aspect_type || hook.name;
+    
+    if (!planet1 || !planet2 || !aspectType) return hook;
+
+    const orbText = typeof hook.orb === 'number' ? ` (${hook.orb.toFixed(1)}°)` : '';
+    const label = `${planet1} ${aspectType} ${planet2}${orbText}`;
+    const enrichment = mapper(label, hook.resonanceState || undefined);
+    
+    return {
+      ...hook,
+      srp: enrichment
+    };
+  });
+}
+
+// --- Normalization helpers (synonyms, planets, points, caps) ---
+const ASPECT_SYNONYMS = {
+  'semi-square': 'semisquare',
+  'semi square': 'semisquare',
+  'semi-sextile': 'semisextile',
+  'semi sextile': 'semisextile',
+  'sesqui-square': 'sesquiquadrate',
+  'sesquisquare': 'sesquiquadrate',
+  'inconjunct': 'quincunx'
+};
+
+const PERSONAL = new Set(['sun','moon','mercury','venus','mars']);
+const SOCIAL   = new Set(['jupiter','saturn']);
+const OUTER    = new Set(['uranus','neptune','pluto']);
+const ANGLES   = new Set(['asc','mc','ic','dc','ascendant','midheaven','imum coeli','descendant','medium_coeli']);
+const POINTS   = new Set(['chiron','mean_node','true_node','north_node','south_node','mean_lilith','true_lilith','vertex','fortune','mean_south_node','true_south_node']);
+
+function normAspectType(t='') {
+  let k = String(t||'').trim().toLowerCase();
+  k = ASPECT_SYNONYMS[k] || k;
+  return k;
+}
+
+function isPointish(p='') {
+  const k = String(p||'').toLowerCase().replace(/_/g,'_'); // normalize underscores
+  return POINTS.has(k) || ANGLES.has(k);
+}
+
+function isLuminary(p='') { 
+  const k = String(p||'').toLowerCase(); 
+  return k==='sun' || k==='moon'; 
+}
+
+function isHard(t=''){ 
+  t=normAspectType(t); 
+  return t==='conjunction'||t==='square'||t==='opposition'; 
+}
+
+function isSoft(t=''){ 
+  t=normAspectType(t); 
+  return t==='trine'||t==='sextile'||t==='quincunx'||t==='semisextile'||t==='sesquiquadrate'||t==='semisquare'||t==='quintile'||t==='biquintile'; 
+}
+
+// Pull caps from options.orbCaps or supply v5 defaults consistent with engine
+const DEFAULT_V5_CAPS = {
+  // majors: 4° for general, but engine may tighten for points
+  conjunction: 3.5, square: 4.0, opposition: 4.0,
+  // minors: surgical
+  trine: 3.0, sextile: 1.0, quincunx: 1.0, semisextile: 0.5, 
+  sesquiquadrate: 0.8, semisquare: 0.8, quintile: 0.5, biquintile: 0.5
+};
+
+function capFor(aspectType, p1, p2, caps=DEFAULT_V5_CAPS) {
+  const t = normAspectType(aspectType);
+  let base = caps[t] ?? 1;
+  const eitherPoint = isPointish(p1) || isPointish(p2);
+  const lumTouch = isLuminary(p1) || isLuminary(p2);
+  // Luminary exception +0.5° ONLY for planet–planet hard aspects
+  if (isHard(t) && lumTouch && !eitherPoint) base += 0.5;
+  return base;
+}
+
 /**
  * Aspect intensity scoring for Hook Stack selection
  * Prioritizes tight orbs and high-charge aspect types
+ * Now cap-aware and engine-aligned with v5 orb discipline
  */
 function calculateAspectIntensity(aspect) {
   if (!aspect) return 0;
   
+  const aspectType = normAspectType(aspect.name || aspect.type || '');
+  const p1 = (aspect.planet1 || aspect.first_planet || '').toLowerCase();
+  const p2 = (aspect.planet2 || aspect.second_planet || '').toLowerCase();
   const orb = safeNum(aspect.orb, 10);
-  const aspectType = (aspect.name || aspect.type || '').toLowerCase();
   
-  // Tier-1 Orbs: Surgical window for immediate recognition
-  const orbWeight = orb <= 1 ? 10 : orb <= 2 ? 8 : orb <= 3 ? 6 : orb <= 4 ? 4 : orb <= 5 ? 2 : 1;
+  // Respect v5 caps: beyond measurement window → confidence drops to zero
+  const caps = (aspect._orbCaps) || DEFAULT_V5_CAPS;
+  const cap = capFor(aspectType, p1, p2, caps);
+  if (orb > cap) return 0; // beyond calibrated cap for this profile
   
-  // High-charge aspect type multipliers
+  // Smooth step: reward exactness, floor at 4 near boundary
+  // Map orb in [0, cap] → weight in [10 .. 4]
+  const tightness = Math.max(0, Math.min(1, (cap - Math.abs(orb)) / cap)); // 1 at exact, 0 at cap
+  const orbWeight = Math.max(4, 4 + 6 * tightness); // 10 at exact, 4 at cap
+  
+  // High-charge aspect type multipliers (engine-aligned, unsigned for salience)
   const aspectWeights = {
-    'conjunction': 9,
-    'opposition': 9,
-    'square': 8,
-    'trine': 6,
-    'sextile': 4,
-    'quincunx': 7,
-    'sesquiquadrate': 6,
-    'semi-square': 5,
-    'semi-sextile': 3,
-    'quintile': 4,
-    'biquintile': 4
+    'conjunction': 1.0,
+    'opposition': 1.0,
+    'square': 0.9,     // small bump to reflect crisis salience in hooks
+    'trine': 0.8,      // slightly down; trines less "hooky" despite being positive
+    'sextile': 0.55,
+    'quincunx': 0.35,
+    'sesquiquadrate': 0.45,
+    'semi-square': 0.45,
+    'semisquare': 0.45,
+    'semi-sextile': 0.2,
+    'semisextile': 0.2,
+    'quintile': 0.3,
+    'biquintile': 0.3
   };
   
-  const aspectWeight = aspectWeights[aspectType] || 3;
+  const aspectWeight = aspectWeights[aspectType] ?? 0.2;
   
-  // Outer planet multiplier for generational vs personal impact
-  const planet1 = (aspect.planet1 || aspect.first_planet || '').toLowerCase();
-  const planet2 = (aspect.planet2 || aspect.second_planet || '').toLowerCase();
-  
-  const outerPlanets = ['uranus', 'neptune', 'pluto'];
-  const personalPlanets = ['sun', 'moon', 'mercury', 'venus', 'mars'];
-  
+  // Planet weighting: personal contact (relatable) × outer driver (depth)
   let planetWeight = 1;
-  if (personalPlanets.includes(planet1) || personalPlanets.includes(planet2)) {
-    planetWeight = 1.5; // Personal planet involvement increases intensity
-  }
-  if (outerPlanets.includes(planet1) || outerPlanets.includes(planet2)) {
-    planetWeight *= 1.3; // Outer planet adds generational depth
-  }
+  const personalTouch = PERSONAL.has(p1) || PERSONAL.has(p2);
+  const outerTouch = OUTER.has(p1) || OUTER.has(p2);
+  if (personalTouch) planetWeight *= 1.4;
+  if (outerTouch)    planetWeight *= 1.25;
+  // De-emphasize point-only interactions in hooks (still valid, just less "that's me")
+  if (isPointish(p1) || isPointish(p2)) planetWeight *= 0.9;
   
   return orbWeight * aspectWeight * planetWeight;
 }
@@ -122,7 +277,7 @@ const HOOK_TEMPLATES = {
 function generateAspectKey(aspect) {
   const p1 = (aspect.planet1 || aspect.first_planet || '').toLowerCase();
   const p2 = (aspect.planet2 || aspect.second_planet || '').toLowerCase();
-  const aspectType = (aspect.name || aspect.type || '').toLowerCase();
+  const aspectType = normAspectType(aspect.name || aspect.type || '');
   
   // Sort planets alphabetically for consistent keys
   const [planet1, planet2] = [p1, p2].sort();
@@ -163,6 +318,7 @@ function generateHookTitle(aspect) {
 /**
  * Build Hook Stack from aspects
  * Returns 2-4 high-charge, dual-polarity titles for immediate recognition
+ * v1.1.0: Diversity rules, cap-aware selection, engine-aligned filtering
  */
 function buildHookStack(aspects, options = {}) {
   if (!Array.isArray(aspects) || aspects.length === 0) {
@@ -176,25 +332,40 @@ function buildHookStack(aspects, options = {}) {
   
   const maxHooks = options.maxHooks || 4;
   const minIntensity = options.minIntensity || 10;
+  const orbCaps = options.orbCaps || DEFAULT_V5_CAPS;
   
   // Score and sort aspects by intensity
   const scoredAspects = aspects
     .map(aspect => ({
-      aspect,
-      intensity: calculateAspectIntensity(aspect),
+      aspect: { ...aspect, _orbCaps: orbCaps },
+      intensity: calculateAspectIntensity({ ...aspect, _orbCaps: orbCaps }),
       title: generateHookTitle(aspect),
-      orb: safeNum(aspect.orb, 10)
+      orb: safeNum(aspect.orb, 10),
+      type: normAspectType(aspect.name || aspect.type || ''),
+      p1: (aspect.planet1 || aspect.first_planet || '').toLowerCase(),
+      p2: (aspect.planet2 || aspect.second_planet || '').toLowerCase(),
+      isTransit: !!(aspect.is_transit || aspect.transit)
     }))
     .filter(item => item.title && item.intensity >= minIntensity)
     .sort((a, b) => b.intensity - a.intensity);
   
-  // Select top hooks, avoiding duplicates
+  // Select top hooks with diversity rules
   const selectedHooks = [];
   const usedTitles = new Set();
+  const usedCombos = new Set(); // avoid repeated planet pairs
+  const usedTypes  = new Set(); // avoid all-squares, etc.
+  const usedSource = new Set(); // prefer mixing transit/natal/synastry
   
   for (const item of scoredAspects) {
     if (selectedHooks.length >= maxHooks) break;
     if (usedTitles.has(item.title)) continue;
+    
+    const pairKey = [item.p1, item.p2].sort().join('-');
+    const sourceKey = item.isTransit ? 'transit' : (item.aspect.source || 'unknown');
+    
+    // gentle diversity: allow duplicates only if intensity is very high and we need slots
+    const duplicatePenalty = (usedCombos.has(pairKey) || usedTypes.has(item.type) || usedSource.has(sourceKey)) ? 1 : 0;
+    if (duplicatePenalty && selectedHooks.length < maxHooks - 1) continue;
     
     selectedHooks.push({
       title: item.title,
@@ -204,11 +375,16 @@ function buildHookStack(aspects, options = {}) {
         item.aspect.planet1 || item.aspect.first_planet,
         item.aspect.planet2 || item.aspect.second_planet
       ].filter(Boolean),
-      aspect_type: item.aspect.name || item.aspect.type,
-      is_tier_1: item.orb <= 1
+      aspect_type: item.type,
+      is_tier_1: item.orb <= 1 && item.intensity > 0, // tight orb within measurement window
+      resonanceState: item.aspect.resonanceState,
+      source: sourceKey
     });
     
     usedTitles.add(item.title);
+    usedCombos.add(pairKey);
+    usedTypes.add(item.type);
+    usedSource.add(sourceKey);
   }
   
   const tier1Count = selectedHooks.filter(h => h.is_tier_1).length;
@@ -220,11 +396,11 @@ function buildHookStack(aspects, options = {}) {
   if (selectedHooks.length >= 4 && tier1Count >= 2) coverage = 'strong';
   
   return {
-    hooks: selectedHooks,
+    hooks: enrichHooksWithSRP(selectedHooks),
     tier_1_orbs: tier1Count,
     total_intensity: totalIntensity,
     coverage,
-    schema: 'HookStack-1.0'
+    schema: 'HookStack-1.1'
   };
 }
 
@@ -269,10 +445,14 @@ function extractAspectsFromResult(result) {
 
 /**
  * Main Hook Stack composer function
+ * v1.1.0: Engine-aligned with seismograph orb discipline and v5 caps
  */
 function composeHookStack(result, options = {}) {
   const aspects = extractAspectsFromResult(result);
-  const hookStack = buildHookStack(aspects, options);
+  const hookStack = buildHookStack(aspects, {
+    ...options,  // Pass through all options including minIntensity
+    orbCaps: options.orbCaps || DEFAULT_V5_CAPS
+  });
   
   return {
     ...hookStack,
@@ -280,9 +460,11 @@ function composeHookStack(result, options = {}) {
     source_aspects_count: aspects.length,
     provenance: {
       composer: 'hook-stack-composer',
-      version: '1.0.0',
+      version: '1.1.0',
       tier_1_threshold: 1.0, // orb degrees
-      min_intensity_threshold: options.minIntensity || 10
+      min_intensity_threshold: options.minIntensity || 10, // This is just for reporting, actual filtering happens in buildHookStack
+      orb_profile: options.orbProfile || 'wm-tight-2025-11-v5',
+      diversity_rules: 'planet_pairs + aspect_types + sources mixed'
     }
   };
 }

@@ -95,7 +95,7 @@ This is your work order, not documentation to describe.
 - Focus on harmonies vs. friction/growth pressure points
 - Reference specific cross-aspects from tables
 
-### §2.5 Symbolic Weather Overlay {#2.5-symbolic-weather-overlay}
+### §2.5 Symbolic Weather {#2.5-symbolic-weather}
 
 `[L100]` When transits are included, weather MUST:
 - Use continuous narrative paragraphs (NOT bullet lists)

@@ -22,7 +22,7 @@ exports.handler = async (event, context) => {
   // Since this is a serverless function, we'll import and call the handler directly
   try {
     // Import the astrology-mathbrain handler
-    const { handler: mathBrainHandler } = await import('./astrology-mathbrain.ts');
+    const { handler: mathBrainHandler } = await import('./astrology-mathbrain');
 
     // Call the math brain handler with the same event and context
     const result = await mathBrainHandler(event, context);

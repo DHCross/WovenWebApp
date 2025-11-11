@@ -3,7 +3,7 @@ import { transformWeatherData } from '../lib/weatherDataTransforms';
 import { buildDayExport } from '../lib/export/weatherLog';
 import { buildRelationalDayExport } from '../lib/reporting/relational';
 
-describe('Acceptance: relational export uses canonical scaler only', () => {
+describe('Acceptance: relational export uses canonical scaler only (v5.0)', () => {
   it('raw 5 and -5 yield value 5.0 and -5.0 in both pipelines', () => {
     // Simulate upstream providing frontstage values
     const rawSeismo = {
@@ -20,8 +20,7 @@ describe('Acceptance: relational export uses canonical scaler only', () => {
     const n = {
       magnitude: t.axes.magnitude.normalized,
       directional_bias: t.axes.directional_bias.normalized,
-      volatility: t.axes.coherence.normalized, // coherence normalized comes from volatility
-      sfd: null as number | null,
+      volatility: 0, // No longer used, but required by type
     };
 
     const solo = buildDayExport(n);

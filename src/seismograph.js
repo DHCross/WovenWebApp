@@ -30,10 +30,8 @@
 const {
   scaleUnipolar,
   scaleBipolar,
-  scaleCoherenceFromVol,
   amplifyByMagnitude,
   normalizeAmplifiedBias,
-  normalizeVolatilityForCoherence,
   SPEC_VERSION,
   SCALE_FACTOR,
   getMagnitudeLabel,
@@ -48,7 +46,7 @@ const PERSONAL = new Set(["Sun","Moon","Mercury","Venus","Mars","ASC","MC","IC",
 const ANGLES = new Set(["ASC","MC","IC","DSC"]);
 
 const DEFAULTS = {
-  magnitudeDivisor: 8,  // Increased from 4 to account for geometry amplification (1.5-2x boost on tight/outer aspects)
+  magnitudeDivisor: 2,  // Reduced from 8 - averaging handles multiple aspects naturally
   hubBonusCap: 0.6,
   sameTargetBonusCap: 0.3,
   tightBandDeg: 1.5,
@@ -96,17 +94,20 @@ function baseValence(type, tBody, nBody){
   const isLuminary = nBody === "Sun" || nBody === "Moon";
 
   switch (type){
-    case "opposition": return -1.6;
-    case "square": return -1.4;
-    case "trine": return +0.8;
-    case "sextile": return +0.5;
+    case "opposition": return -1.0;
+    case "square": return -0.85;
+    case "trine": return +0.9;
+    case "sextile": return +0.55;
+    case "quincunx":
+    case "inconjunct": return -0.35;
+    case "semisextile": return +0.2;
     case "conjunction":{
       const set = new Set([tBody, nBody]);
       if (OUTER.has(tBody) || OUTER.has(nBody) || isAngle || isLuminary) {
-        return -1.2; // Hard conjunction
+        return -1.0; // Hard conjunction
       }
-      if (set.has("Venus") || set.has("Jupiter")) return +0.6;
-      if (set.has("Saturn") || set.has("Pluto") || set.has("Chiron")) return -0.8;
+      if (set.has("Venus") || set.has("Jupiter")) return +1.0;
+      if (set.has("Saturn") || set.has("Pluto") || set.has("Chiron")) return -1.0;
       return 0.2; // Default neutral-ish
     }
     default: return 0.0;
@@ -122,7 +123,7 @@ function planetTier(body){
 
 function orbMultiplier(orbDeg, type) {
   const o = Math.abs(orbDeg);
-  const isHard = type === 'square' || type === 'opposition' || type === 'conjunction';
+  const isHard = type === 'square' || type === 'opposition';
 
   if (isHard) {
     // Hard aspects: full weight 0-1°, taper to 0 at 3°
@@ -525,8 +526,18 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     }
   }
 
-  const X_raw = scored.reduce((acc, x) => acc + Math.abs(x.S), 0);
-  const Y_raw = scored.reduce((acc, x) => acc + x.S, 0);
+  // Average to measure density, then apply nonlinear gain so crises still register
+  const count = scored.length || 1;
+  const avgMagnitude = scored.reduce((acc, x) => acc + Math.abs(x.S), 0) / count;
+  const avgBias = scored.reduce((acc, x) => acc + x.S, 0) / count;
+
+  const aspectGain = Math.log(count + 1); // diminishing returns as complexity grows
+  const X_raw = avgMagnitude > 0 ? Math.pow(avgMagnitude, 1.3) * aspectGain : 0;
+  
+  // Steeper sigmoidal boost for bias - restores crisis detection without blowout
+  const Y_raw = avgBias !== 0
+    ? Math.sign(avgBias) * Math.tanh(Math.pow(Math.abs(avgBias) * 3, 1.8)) * aspectGain * 3.2
+    : 0;
 
   // === MAGNITUDE ===
   // v5.0: Absolute 0-5 scale with SCALE_FACTOR = 5
@@ -543,27 +554,17 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   let scalingMethod = 'static_divisor';
   let magnitudeNormalized;
   
-  // Strategy 1: Use rolling window if available (preferred)
+  // Simple normalization - averaging already handles multiple aspects
   if (rollingContext && rollingContext.magnitudes && rollingContext.magnitudes.length >= 2) {
     // Dynamic normalization based on recent magnitude history
     const normalizedViaDynamic = normalizeWithRollingWindow(X_raw, rollingContext, opts, diagnosticMode);
     // normalizeWithRollingWindow returns a 0-10 scaled value, convert to 0-1 for scaleUnipolar
     magnitudeNormalized = normalizedViaDynamic / 10;
     scalingMethod = `rolling_window_n${rollingContext.magnitudes.length}`;
-  } else if (aspectCount >= 3) {
-    // Strategy 2: Aspect-count adaptive divisor (prevents saturation post-geometry-amplification)
-    // v5.0 Accelerometer: Geometry amplification (up to 2x per aspect) requires aggressive scaling
-    // Formula accounts for compounding geometry boosts on outer-planet/tight aspects
-    // 3-4 aspects: scaleFactor ≈ 2.5-4x (divisor 20-32)
-    // 5-10 aspects: scaleFactor ≈ 4-6x (divisor 32-48)  
-    // 20+ aspects: scaleFactor ≈ 8x+ (divisor 64+)
-    const scaleFactor = Math.min(10, 2 + Math.pow(aspectCount / 5, 1.3));
-    effectiveDivisor = opts.magnitudeDivisor * scaleFactor;
-    scalingMethod = `aspect_adaptive_d${effectiveDivisor.toFixed(1)}`;
-    magnitudeNormalized = Math.min(1, X_raw / effectiveDivisor);
   } else {
-    // Strategy 3: Static divisor (1-2 aspects, very rare)
+    // Simple static divisor - averaging makes aspect count irrelevant
     magnitudeNormalized = Math.min(1, X_raw / effectiveDivisor);
+    scalingMethod = 'static_divisor';
   }
 
   // === STEP 4: Magnitude Normalization Diagnostics ===
@@ -585,7 +586,7 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   }
 
   const magnitudeScaled = scaleUnipolar(magnitudeNormalized);
-  const magnitudeValue = magnitudeScaled.value;
+  const magnitudeValue = Math.max(0, Math.min(SCALE_FACTOR, magnitudeScaled.value));
 
   // === DIRECTIONAL BIAS ===
   const Y_amplified = amplifyByMagnitude(Y_raw, magnitudeValue);
@@ -622,10 +623,10 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   // === VOLATILITY (DIAGNOSTIC ONLY - not a public axis in v5.0) ===
   const VI = volatility(scored, prevCtx, opts);
   // Keep VI_normalized for internal diagnostics, but don't expose coherence as public axis
-  const VI_normalized = normalizeVolatilityForCoherence(VI);
+  const VI_normalized = Math.min(1, VI / 50); // Simple normalization for diagnostics
   const volatility_scaled = Math.max(
     0,
-    Math.min(SCALE_FACTOR, normalizeVolatilityForCoherence(VI) * SCALE_FACTOR)
+    Math.min(SCALE_FACTOR, VI_normalized * SCALE_FACTOR)
   );
 
   // Transform trace for observability (v5.0 - two axes only)

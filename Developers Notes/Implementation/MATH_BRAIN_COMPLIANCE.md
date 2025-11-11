@@ -206,7 +206,7 @@ Updated terminology guide that includes:
 - ✅ **FIELD → MAP → VOICE**: Complete framework explanation
 - ✅ **Recognition-First Principle**: Mode selection based on real questions
 - ✅ **SST**: Falsifiability filter definitions
-- ✅ **Symbolic Weather Overlay**: Transit interpretation approach
+- ✅ **Symbolic Weather**: Transit interpretation approach
 
 ## FIELD → MAP → VOICE Separation
 
@@ -301,7 +301,7 @@ Updated terminology definitions include:
 - **FIELD → MAP → VOICE**: Complete framework explanation (FIELD = energetic climate, MAP = geometry, VOICE = felt reflection)
 - **Recognition-First Principle**: Mode selection based on real questions vs technical curiosity
 - **SST**: Falsifiability filter (WB = Within Boundary, ABE = At Boundary Edge, OSR = Outside Symbolic Range)
-- **Symbolic Weather Overlay**: Current transits as energetic "weather"
+- **Symbolic Weather**: Current transits as energetic "weather"
 
 ### Math Brain Protocol Warnings
 Clear messaging throughout the interface:

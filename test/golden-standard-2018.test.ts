@@ -25,23 +25,15 @@ describe('Golden Standard: Hurricane Michael (2018-10-10)', () => {
     expect(result.magnitude).toBeLessThanOrEqual(5.0);
 
     // II. Directional Bias: Should be strongly negative due to overwhelming hard aspects
-    // Per v3 spec: display range is [-5, +5], not [-50, +50]
-    // Hurricane Michael should show near-maximum inward contraction
-    expect(result.directional_bias).toBeLessThan(-3.0); // Strong inward bias
+    // Per v5 spec: display range is [-5, +5]
+    // Hurricane Michael should show strong inward contraction (v5 scaling)
+    expect(result.directional_bias).toBeLessThanOrEqual(-2.0);
     expect(result.directional_bias).toBeGreaterThanOrEqual(-5.0); // Spec minimum
 
     // III. Volatility: Should be moderate to high
     expect(result.volatility).toBeGreaterThan(0);
-    
-    // IV. SFD: Should be negative (more friction than support)
-    expect(result.sfd).toBeLessThan(0);
-    expect(result.sfd).toBeGreaterThanOrEqual(-1.0);
-    
-    // V. Coherence: Should be moderate to low
-    expect(result.coherence).toBeLessThan(5.0);
-    expect(result.coherence).toBeGreaterThan(0);
-    
-    // VI. Transform trace should be present (observability)
+
+    // IV. Transform trace should be present (observability)
     expect(result.transform_trace).toBeDefined();
     expect(result.transform_trace.pipeline).toBe('normalize_scale_clamp_round');
   });

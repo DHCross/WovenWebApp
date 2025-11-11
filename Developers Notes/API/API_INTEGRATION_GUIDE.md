@@ -11,9 +11,122 @@ A note on API endpoints:
 
 A single, practical guide that preserves the original architecture (Mirror Flow vs Balance Meter; FIELD → MAP → VOICE; Poetic Brain) while integrating operational lessons discovered during implementation and live testing: API resolver quirks, relocation brittleness, provenance needs, orb policy, formation/fallback rules, developer UX, and QA checks.
 
----
 
-## At-a-glance: What changed (quick summary)
+## FieldMap QA + Volatility Modernization Checklist (v5)
+
+Use this checklist to regenerate or validate FieldMap JSON files under Balance Meter v5 with Raven Calder integration. It merges our translocation learnings with the volatility-computation update.
+
+### 1) Header and Meta — update legacy markers
+
+Replace any legacy values:
+
+```jsonc
+// legacy examples
+"orbs_profile": "wm-spec-2025-09",
+"math_brain_version": "mb-2025.10.18",
+"timezone": "US/Central"
+```
+
+With v5 identifiers:
+
+```jsonc
+"orbs_profile": "wm-tight-2025-11-v5",
+"balance_meter_version": "5.0",
+"timezone": "America/Chicago" // IANA
+```
+
+### 2) Remove relational artifacts for solo runs
+
+Eliminate fields produced by the dual-mirror exporter when validating a single-subject file:
+
+- `relational_summary`
+- Empty `people[].planets` arrays or ordinal-encoded `houses` payloads
+
+### 3) Provenance (MANDATORY)
+
+Every FieldMap must include a provenance block that records the translocation-aware engine:
+
+```jsonc
+"provenance": {
+  "chart_basis": "felt_weather_relocated",
+  "seismograph_chart": "relocated",
+  "translocation_applied": true
+}
+```
+
+If this is missing, the file likely came through a legacy path.
+
+### 4) Coordinates and houses — human-readable
+
+Use decimal degrees for lat/lon and proper house cusp arrays. Large integers for houses indicate legacy ordinal encoding and should be regenerated.
+
+### 5) Aspect weights — v5 fixed curve
+
+Verify the weight curve before aggregation:
+
+| Aspect      | Weight |
+| ----------- | ------ |
+| Trine       | +0.40  |
+| Sextile     | +0.25  |
+| Square      | −0.50  |
+| Opposition  | −0.45  |
+| Conjunction | ±0.00  |
+
+Moon +1° cap exception; outer→personal −1° cap. Ensure the absolute-orb cap check is applied: `if (Math.abs(orb) > cap) drop`.
+
+### 6) Magnitude/Bias — normalized values
+
+If raw fields appear as `mag_x10` / `bias_x10` at their theoretical limits (e.g., 50, −50), ensure the interpreter normalizes to human-scale outputs:
+
+- Magnitude ≈ 0.0–5.0
+- Directional Bias ≈ −5.0..+5.0
+
+### 7) Volatility — computed downstream (v5 change)
+
+- Remove or ignore any raw `volatility` in FieldMap
+- Ensure aspects include `orb_deg` and total aspect count — inputs to interpreter
+- Interpreter emits:
+
+```jsonc
+"interpreted_volatility": <0–5>,
+"volatility_source": "computed_interpreter_v5"
+```
+
+### 8) Provenance ↔ Mirror handshake
+
+Crosswalk for interpreter alignment:
+
+| FieldMap key             | MirrorDirective key      | Relation |
+| ------------------------ | ------------------------ | -------- |
+| `mag_x10`                | `magnitude`              | ÷10      |
+| `bias_x10`               | `directional_bias`       | ÷10      |
+| `provenance.chart_basis` | `mirror_meta.chart_basis`| identical|
+| (no `volatility`)        | `interpreted_volatility` | computed |
+
+### 9) Schema/version tag
+
+Footer should advertise v5 exporter:
+
+```jsonc
+"_meta": {
+  "schema_version": "wm-fieldmap-v5",
+  "exporter": "RavenCalder-5.0.1"
+}
+```
+
+### 10) Validation run — expected hurricane benchmark
+
+Run the local test against the hurricane date window. Expect approximately:
+
+```
+Magnitude: 4.0 ± 0.1
+Directional Bias: −4.8 ± 0.2
+interpreted_volatility: ≈ 0.0–0.5
+provenance.translocation_applied: true
+```
+
+Bottom line: strip raw volatility, enforce v5 provenance/orbs, and let the interpreter compute volatility dynamically. This keeps Mirror Flow and FieldMap numerically and philosophically aligned with Felt‑Weather standards.
+
 
 - Provenance is required. Every report must stamp house system, orbs_profile, relocation_mode, timezone_db_version, engine versions and math_brain_version.
 - Relocation is valuable — and fragile. A_local/B_local reanchors houses but depends on reliable geocoding. We added fallbacks and an Angle Drift Cone for ambiguous inputs.
@@ -23,6 +136,104 @@ A single, practical guide that preserves the original architecture (Mirror Flow 
 - Non-programmer UX stays minimal. The backend/adaptor hides complexity but exposes clear UI hints and admin debug guidance.
 
 ---
+
+## UI: Transit Overlay vs FIELD Relocation (copy + UX guidance)
+
+Purpose
+- Make the difference between "Transit Overlay" (visual-only hybrid) and "FIELD Relocate" (canonical, computational) explicit and discoverable. This prevents accidental use of hybrid geometry in Balance Meter and symbolic-weather calculations.
+
+Primary UI affordances (recommended)
+- Mode selector: two radio buttons (or segmented control) presented where the user picks how transits should be handled for this run.
+  - Label: "Transit Mode"
+  - Options:
+    - "FIELD (Relocate natal + transits)" — recommended default for symbolic weather and Balance Meter calculations
+    - "Transit Overlay (visual only)" — exploratory visualization; not used for computation
+- Confirm dialog (only when switching to Overlay from FIELD): small non-blocking toast or inline help explaining consequences.
+
+Exact copy to use (pasteable)
+
+- Control label:
+  "Transit Mode"
+
+- FIELD option (primary)
+  Title: "FIELD (Relocate natal + transits)"
+  Short summary / tooltip:
+  "Anchor both natal and transit geometry to the same observer location/time. Use this for canonical symbolic-weather and Balance Meter outputs — the system will request houses from the upstream API and treat them as canonical."
+
+  Long tooltip (hover / info panel):
+  "FIELD relocates the entire chart frame to the selected observer location and time, recomputing ASC/MC and house cusps for that location. This unified geometry is the canonical input used for all Woven Map calculations (Seismograph, Balance Meter, symbolic weather). Recommended."
+
+- Overlay option (secondary)
+  Title: "Transit Overlay (visual only)"
+  Short summary / tooltip:
+  "Show transits calculated for the current location overlaid on the natal houses anchored to birth coordinates. Exploratory only — not used for Balance Meter or symbolic-weather math."
+
+  Long tooltip:
+  "Transit Overlay superimposes the current sky over the natal chart. Natal houses remain anchored to the birth coordinates while transit angles reflect the new location. This creates a hybrid view useful for exploration, but it is not the canonical geometry for automated field calculations."
+
+- Small confirmation message when choosing Overlay (non-blocking):
+  "Heads up: Transit Overlay is visual-only. If you want canonical symbolic-weather results, choose FIELD (Relocate natal + transits)."
+
+- Inline Help / footer note near export buttons:
+  "Exports labeled 'FIELD Chart' use relocated geometry (recommended for calculations). Exports labeled 'Overlay' are hybrid views and are intended for visual exploration only."
+
+Behavioral guidance for front-end engineers
+- Default selection: FIELD (Relocate natal + transits) for any flow that produces seismograph, balance meter, or generated poetic readings. Only enable Transit Overlay as an explicit, secondary selection.
+- Persistence: Persist user's last choice in session / local storage but always surface the tooltip for novice users.
+- Visual indicator: Add a small badge to any exported FieldMap or report with the tag: "geometry: FIELD" or "geometry: OVERLAY" (this also appears in provenance).
+- Accessibility: Tooltips and confirmation UI must be keyboard accessible and screen-reader friendly.
+
+Sample UI toggle JSON (for telemetry)
+```json
+{
+  "label": "Transit Mode",
+  "selected": "FIELD",
+  "options": [
+    { "key": "FIELD", "title": "FIELD (Relocate natal + transits)", "recommended": true },
+    { "key": "OVERLAY", "title": "Transit Overlay (visual only)", "recommended": false }
+  ]
+}
+```
+
+## Adapter contract: include_houses for FIELD
+When the UI choice is FIELD (the default for Balance Meter / symbolic-weather), the adapter MUST request houses from the upstream provider.
+
+- Use endpoints:
+  - `POST /api/v4/birth-chart` (for natal + relocated natal houses)
+  - `POST /api/v4/transit-chart` (for transit windows) OR `POST /api/v4/transit-aspects-data` followed by a houses request when needed
+- Required request flags:
+  - `include_houses: true`
+  - `include_aspects: true` (for drivers)
+- If the upstream response omits houses, the adapter must:
+  1. Re-attempt a call to an endpoint that returns houses (e.g., birth-chart / transit-chart).
+  2. If upstream cannot provide houses, compute houses locally (Swiss Ephemeris or equivalent) and stamp provenance.house_engine accordingly.
+
+Provenance contract (fields required)
+Every FIELD Chart export must contain a provenance block with, at minimum, these keys:
+
+```json
+{
+  "schema": "BM-v5",
+  "house_system": "Placidus",
+  "orbs_profile": "wm-tight-2025-11-v5",
+  "relocation_mode": "None|A_local|B_local|Both_local",
+  "relocation_coords": { "lat": 40.0, "lng": -75.0 },
+  "house_engine": "astrologer.p.rapidapi.com@v4.0|local-swiss-ephemeris@vX.Y|missing_upstream",
+  "has_transits": true,
+  "drivers_count": 4,
+  "house_shift_summary": [{ "num": 1, "delta_deg": -2.12 }, ...] || "not_provided",
+  "tz": "America/New_York",
+  "math_brain_version": "vX.Y",
+  "notes": ["upstream houses used", "include_houses flag set"]
+}
+```
+
+- `relocation_mode`: set by comparing the supplied coords with natal coords and/or by computing house deltas (any non-trivial deltas => A_local).
+- `house_engine`: set to `'astrologer.p.rapidapi.com@v4.0'` when upstream houses used; `'local-swiss-ephemeris@x.y'` when computed locally; `'missing_upstream'` when neither was available (caller must retry).
+- `house_shift_summary`: optional but recommended. If present, must include all houses 1..12 and deltas.
+
+Backward compatibility note
+- When a stored FieldMap or legacy export does not include provenance or uses overlay geometry, mark it explicitly as `geometry: OVERLAY` in the metadata and recommend a re-run via FIELD mode for canonical recalculation.
 
 ## 1. Report Types — core distinction
 
@@ -314,3 +525,103 @@ You're correct: when assigning access in Google Cloud, the role for AI model API
 Choosing the Vertex AI role was the correct advice. It covers Gemini and future Google-managed models accessible in Vertex AI. Your tester will be able to use Gemini when you grant her "Vertex AI User" (or any appropriate AI/ML role) privileges for your project.
 
 [Google Cloud IAM Console](https://console.cloud.google.com/iam-admin/iam?project=analog-codex-423606-r2)
+
+---
+
+## UI: Transit Overlay vs FIELD Relocation (copy + UX guidance)
+
+Purpose
+- Make the difference between "Transit Overlay" (visual-only hybrid) and "FIELD Relocate" (canonical, computational) explicit and discoverable. This prevents accidental use of hybrid geometry in Balance Meter and symbolic-weather calculations.
+
+Primary UI affordances (recommended)
+- Mode selector: two radio buttons (or segmented control) presented where the user picks how transits should be handled for this run.
+  - Label: "Transit Mode"
+  - Options:
+    - "FIELD (Relocate natal + transits)" — recommended default for symbolic weather and Balance Meter calculations
+    - "Transit Overlay (visual only)" — exploratory visualization; not used for computation
+- Confirm dialog (only when switching to Overlay from FIELD): small non-blocking toast or inline help explaining consequences.
+
+Exact copy to use (pasteable)
+
+- Control label:
+  "Transit Mode"
+
+- FIELD option (primary)
+  Title: "FIELD (Relocate natal + transits)"
+  Short summary / tooltip:
+  "Anchor both natal and transit geometry to the same observer location/time. Use this for canonical symbolic-weather and Balance Meter outputs — the system will request houses from the upstream API and treat them as canonical."
+
+  Long tooltip (hover / info panel):
+  "FIELD relocates the entire chart frame to the selected observer location and time, recomputing ASC/MC and house cusps for that location. This unified geometry is the canonical input used for all Woven Map calculations (Seismograph, Balance Meter, symbolic weather). Recommended."
+
+- Overlay option (secondary)
+  Title: "Transit Overlay (visual only)"
+  Short summary / tooltip:
+  "Show transits calculated for the current location overlaid on the natal houses anchored to birth coordinates. Exploratory only — not used for Balance Meter or symbolic-weather math."
+
+  Long tooltip:
+  "Transit Overlay superimposes the current sky over the natal chart. Natal houses remain anchored to the birth coordinates while transit angles reflect the new location. This creates a hybrid view useful for exploration, but it is not the canonical geometry for automated field calculations."
+
+- Small confirmation message when choosing Overlay (non-blocking):
+  "Heads up: Transit Overlay is visual-only. If you want canonical symbolic-weather results, choose FIELD (Relocate natal + transits)."
+
+- Inline Help / footer note near export buttons:
+  "Exports labeled 'FIELD Chart' use relocated geometry (recommended for calculations). Exports labeled 'Overlay' are hybrid views and are intended for visual exploration only."
+
+Behavioral guidance for front-end engineers
+- Default selection: FIELD (Relocate natal + transits) for any flow that produces seismograph, balance meter, or generated poetic readings. Only enable Transit Overlay as an explicit, secondary selection.
+- Persistence: Persist user's last choice in session / local storage but always surface the tooltip for novice users.
+- Visual indicator: Add a small badge to any exported FieldMap or report with the tag: "geometry: FIELD" or "geometry: OVERLAY" (this also appears in provenance).
+- Accessibility: Tooltips and confirmation UI must be keyboard accessible and screen-reader friendly.
+
+Sample UI toggle JSON (for telemetry)
+```json
+{
+  "label": "Transit Mode",
+  "selected": "FIELD",
+  "options": [
+    { "key": "FIELD", "title": "FIELD (Relocate natal + transits)", "recommended": true },
+    { "key": "OVERLAY", "title": "Transit Overlay (visual only)", "recommended": false }
+  ]
+}
+```
+
+## Adapter contract: include_houses for FIELD
+When the UI choice is FIELD (the default for Balance Meter / symbolic-weather), the adapter MUST request houses from the upstream provider.
+
+- Use endpoints:
+  - `POST /api/v4/birth-chart` (for natal + relocated natal houses)
+  - `POST /api/v4/transit-chart` (for transit windows) OR `POST /api/v4/transit-aspects-data` followed by a houses request when needed
+- Required request flags:
+  - `include_houses: true`
+  - `include_aspects: true` (for drivers)
+- If the upstream response omits houses, the adapter must:
+  1. Re-attempt a call to an endpoint that returns houses (e.g., birth-chart / transit-chart).
+  2. If upstream cannot provide houses, compute houses locally (Swiss Ephemeris or equivalent) and stamp provenance.house_engine accordingly.
+
+Provenance contract (fields required)
+Every FIELD Chart export must contain a provenance block with, at minimum, these keys:
+
+```json
+{
+  "schema": "BM-v5",
+  "house_system": "Placidus",
+  "orbs_profile": "wm-tight-2025-11-v5",
+  "relocation_mode": "None|A_local|B_local|Both_local",
+  "relocation_coords": { "lat": 40.0, "lng": -75.0 },
+  "house_engine": "astrologer.p.rapidapi.com@v4.0|local-swiss-ephemeris@vX.Y|missing_upstream",
+  "has_transits": true,
+  "drivers_count": 4,
+  "house_shift_summary": [{ "num": 1, "delta_deg": -2.12 }, ...] || "not_provided",
+  "tz": "America/New_York",
+  "math_brain_version": "vX.Y",
+  "notes": ["upstream houses used", "include_houses flag set"]
+}
+```
+
+- `relocation_mode`: set by comparing the supplied coords with natal coords and/or by computing house deltas (any non-trivial deltas => A_local).
+- `house_engine`: set to `'astrologer.p.rapidapi.com@v4.0'` when upstream houses used; `'local-swiss-ephemeris@x.y'` when computed locally; `'missing_upstream'` when neither was available (caller must retry).
+- `house_shift_summary`: optional but recommended. If present, must include all houses 1..12 and deltas.
+
+Backward compatibility note
+- When a stored FieldMap or legacy export does not include provenance or uses overlay geometry, mark it explicitly as `geometry: OVERLAY` in the metadata and recommend a re-run via FIELD mode for canonical recalculation.

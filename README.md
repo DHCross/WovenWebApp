@@ -37,7 +37,7 @@ npm install
 
 # Set up environment variables
 cp .env.example .env
-# Add your RAPIDAPI_KEY to .env
+# Add your RAPIDAPI_KEY to .env (SRP is enabled by default; set ENABLE_SRP=false to opt-out)
 
 # Run development server
 npm run dev

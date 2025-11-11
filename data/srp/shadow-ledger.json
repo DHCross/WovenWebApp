@@ -1,0 +1,47 @@
+{
+  "$schema": "./shadow-ledger-schema.json",
+  "version": "1.0.0",
+  "generated": "2025-11-04",
+  "description": "SRP Shadow Annex (ShA) - 144 inversions of entropic resonance. Each shadow is the inverted twin of its light blend. Phase 1 contains 3 sample shadows.",
+  "shadows": {
+    "1R": {
+      "id": "1R",
+      "originBlendId": 1,
+      "fracturePhrase": "Smoldering Void: Incinerateing Incinerate",
+      "shadowVoice": "Speaks in charred surges, words that scar rather than spark, devouring their own rhythm. Under strain, assertion collapses into manic burnout.",
+      "auditPolarity": {
+        "abe": 8,
+        "wb": 1,
+        "osr": 1
+      },
+      "restorationCue": "Name the void; allow a single unburnt thread to weave back to fervent initiation.",
+      "collapseMode": "self-devouring"
+    },
+    "14R": {
+      "id": "14R",
+      "originBlendId": 14,
+      "fracturePhrase": "Calcified Crypt: Entombing Entomb",
+      "shadowVoice": "Speaks in unmoving vaults, words that crush their own resonance. Structure hardens into tyranny; stillness into death.",
+      "auditPolarity": {
+        "abe": 8,
+        "wb": 1,
+        "osr": 1
+      },
+      "restorationCue": "Name the crypt; allow a softening root to fissure the calcify toward solid core.",
+      "collapseMode": "custody"
+    },
+    "119R": {
+      "id": "119R",
+      "originBlendId": 119,
+      "fracturePhrase": "Entombed Ideal",
+      "shadowVoice": "The Architect seals the Keep against the Air, preserving order through exclusion. Ideas circle but cannot land. Reform becomes simulation.",
+      "auditPolarity": {
+        "abe": 6,
+        "wb": 2,
+        "osr": 2
+      },
+      "restorationCue": "Name the seal; ground the current—the Keep reopens when stone touches wind without fear.",
+      "collapseMode": "exclusion"
+    }
+  }
+}

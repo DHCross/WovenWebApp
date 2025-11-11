@@ -1,5 +1,5 @@
 // Mirror Narrative Engine
-// Transforms raw hook stack data into story-first mirror summaries
+// Transforms raw core insights data into story-first mirror summaries
 
 export interface BigVector {
   tension: string;

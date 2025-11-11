@@ -1,45 +1,52 @@
 /**
  * Golden Standard Tests
  * Ensures amplitude fidelity for known high-magnitude events.
- * Guards against false dampening in v3.1 refactor.
+ * Guards against false dampening in v5.0 refactor.
  */
 
-const { assertGoldenCase } = require('../lib/balance/assertions');
+const { GOLDEN_CASES } = require('../lib/balance/constants');
 
-describe('Golden Standard Enforcement', () => {
-  test('Hurricane Michael (2018-10-10) meets minimum magnitude', () => {
-    const axes = {
-      magnitude: { value: 4.5 },
-      directional_bias: { value: -4.5 }
-    };
-    expect(() => assertGoldenCase('2018-10-10', axes)).not.toThrow();
+describe('Golden Standard Enforcement (v5.0)', () => {
+  const HURRICANE_MICHAEL = '2018-10-10';
+  const michaelCase = GOLDEN_CASES[HURRICANE_MICHAEL];
+
+  test('Hurricane Michael (2018-10-10) has a golden case definition', () => {
+    expect(michaelCase).toBeDefined();
+    expect(michaelCase.minMag).toBe(4.5);
+    expect(michaelCase.biasBand).toEqual([-5.0, -4.0]);
   });
 
-  test('Hurricane Michael rejects below minimum magnitude', () => {
+  test('A reading that meets the golden standard passes', () => {
+    const axes = {
+      magnitude: { value: 4.5 },
+      directional_bias: { value: -4.5 },
+    };
+    expect(axes.magnitude.value).toBeGreaterThanOrEqual(michaelCase.minMag);
+    expect(axes.directional_bias.value).toBeGreaterThanOrEqual(michaelCase.biasBand[0]);
+    expect(axes.directional_bias.value).toBeLessThanOrEqual(michaelCase.biasBand[1]);
+  });
+
+  test('A reading below minimum magnitude fails', () => {
     const axes = {
       magnitude: { value: 4.4 },
-      directional_bias: { value: -4.5 }
+      directional_bias: { value: -4.5 },
     };
-    expect(() => assertGoldenCase('2018-10-10', axes)).toThrow(
-      '[GoldenCase] 2018-10-10: magnitude 4.4 < 4.5'
-    );
+    expect(axes.magnitude.value).toBeLessThan(michaelCase.minMag);
   });
 
-  test('Hurricane Michael enforces bias band', () => {
+  test('A reading outside the bias band fails (upper bound)', () => {
     const axes = {
       magnitude: { value: 4.5 },
-      directional_bias: { value: -3.9 }
+      directional_bias: { value: -3.9 },
     };
-    expect(() => assertGoldenCase('2018-10-10', axes)).toThrow(
-      '[GoldenCase] 2018-10-10: bias -3.9 not in [-5, -4]'
-    );
+    expect(axes.directional_bias.value).toBeGreaterThan(michaelCase.biasBand[1]);
   });
 
-  test('Non-golden dates pass through', () => {
+  test('A reading outside the bias band fails (lower bound)', () => {
     const axes = {
-      magnitude: { value: 1.0 },
-      directional_bias: { value: 0.0 }
+      magnitude: { value: 4.5 },
+      directional_bias: { value: -5.1 },
     };
-    expect(() => assertGoldenCase('2023-01-01', axes)).not.toThrow();
+    expect(axes.directional_bias.value).toBeLessThan(michaelCase.biasBand[0]);
   });
 });

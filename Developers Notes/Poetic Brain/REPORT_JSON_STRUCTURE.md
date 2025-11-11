@@ -109,6 +109,15 @@ Math Brain exports contain rich geometric and symbolic data. This document maps 
       "coherence": 2.3,
       "magnitude_label": "Surge",
       "drivers": ["Mars □ Pluto", "Saturn △ ASC"],
+      "overflow_detail": {
+        "magnitude_delta": 1.2,
+        "directional_delta": -0.4,
+        "drivers": [
+          "Mars(Person A) ▻ Pluto(Person B) Square",
+          "Sun ▻ Moon Trine"
+        ],
+        "note": "Raw readings exceeded the ±5 normalized scale; values above are clamped for display."
+      },
       "aspects": [
         {
           "type": "square",
@@ -158,6 +167,18 @@ Math Brain exports contain rich geometric and symbolic data. This document maps 
 - `symbolic_weather_context.daily_readings[].aspects[].potency` → Weight/strength (0-10)
 - `symbolic_weather_context.daily_readings[].aspects[].exact_date` → When aspect becomes exact
 - `symbolic_weather_context.transit_houses[]` → Which house each planet transits
+- `symbolic_weather_context.house_cusps[]` → House cusp degrees (0°–360°)
+- `symbolic_weather_context.daily_readings[].overflow_detail.magnitude_delta` → Amount trimmed from raw magnitude to fit the export scale
+- `symbolic_weather_context.daily_readings[].overflow_detail.directional_delta` → Signed trim applied to directional bias
+- `symbolic_weather_context.daily_readings[].overflow_detail.drivers[]` → Ranked aspect strings that explain the overflow spike
+
+### Overflow Detail Reference
+
+- Only present when raw magnitude or directional bias exceeds the ±5 normalized range
+- Deltas are rounded to four decimals and omit zero values
+- Drivers are capped at four strings and duplicates are collapsed
+- Placeholder aspects with missing names/labels are ignored so exports stay human-readable
+- Invalid numeric inputs (`NaN`, `Infinity`) are discarded before the overflow block is emitted
 
 ---
 

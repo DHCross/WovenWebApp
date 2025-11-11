@@ -1,45 +1,100 @@
-⬥ Injecting environment variable values for all scopes
-⬥ Ignored general context env var: LANG (defined in process)
-⬥ Injected .env file env vars: RAPIDAPI_KEY, NODE_ENV, LOG_LEVEL, AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_AUDIENCE, GEMINI_API_KEY
-⬥ No app server detected. Using simple static server
-⬥ Running static server from "WovenWebApp"
-⬥ Setting up local dev server
 
-⬥ Static server listening to 3999
-⬥ Loaded function poetic-brain
-⬥ Loaded function logger
-⬥ Loaded function auth-config
-⬥ Loaded function astrology-mathbrain
-⬥ Loaded function astrology-health
+> woven-web-app@1.0.0 dev
+> next dev
 
-   ╭─────────────────────── ⬥  ────────────────────────╮
-   │                                                   │
-   │   Local dev server ready: http://localhost:8888   │
-   │                                                   │
-   ╰───────────────────────────────────────────────────╯
+  ▲ Next.js 14.2.32
+  - Local:        http://localhost:3000
+  - Environments: .env.local
 
-⬥ Rewrote URL to /public/vendor/auth0-spa-js.production.js
-⬥ Rewrote URL to /public/vendor/auth0-spa-js.production.js
-⬥ Rewrote URL to /vendor/auth0-spa-js.production.js
-⬥ Rewrote URL to /vendor/auth0-spa-js.production.js
-⬥ Rewrote URL to /index.html
-Request from ::1: GET /.netlify/functions/auth-config
-[INFO] Auth0 configuration retrieved successfully {
-  domain: 'dev-z8gw1uk6zgsrzubk.us.auth0.com',
-  hasAudience: true,
-  errorId: 'auth-config-1757517695582-jkkx8a2oi'
+ ✓ Starting...
+ ✓ Ready in 1412ms
+ ✓ Compiled /api/astrology-mathbrain in 338ms (90 modules)
+[AstrologyMathBrain] Routing to unified Math Brain v2 pipeline {}
+[INFO] [TRANSLOCATION] Fetching relocated chart for Felt Weather seismograph
+[ERROR] Client error (non-retryable) {
+  status: 400,
+  operation: 'Birth chart (person_a_relocated) - translocation_felt_weather (city-first)',
+  url: 'https://astrologer.p.rapidapi.com/api/v4/birth-chart',
+  body: '{"status":"ERROR","message":"City/Nation name error or invalid GeoNames username. Please check your username or city name and try again. You can create a free username here: https://www.geonames.org/login/. If you want to bypass the usage of GeoNames, please remove the geonames_username field from the request. Note: The nation field should be the country code (e.g. US, UK, FR, DE, etc.)."}'
 }
-Response with status 200 in 43 ms.
-⬥ Rewrote URL to /public/vendor/auth0-spa-js.production.js
-⬥ Rewrote URL to /public/vendor/auth0-spa-js.production.js
-⬥ Rewrote URL to /public/vendor/auth0-spa-js.production.js
-⬥ Rewrote URL to /public/vendor/auth0-spa-js.production.js
-⬥ Rewrote URL to /public/vendor/auth0-spa-js.production.js
-⬥ Rewrote URL to /vendor/auth0-spa-js.production.js
-⬥ Rewrote URL to /vendor/auth0-spa-js.production.js
-⬥ Rewrote URL to /index.html
-⬥ Rewrote URL to /public/vendor/auth0-spa-js.production.js
-⬥ Rewrote URL to /public/vendor/auth0-spa-js.production.js
-⬥ Rewrote URL to /index.html
-⬥ Rewrote URL to /vendor/auth0-spa-js.production.js
-⬥ Rewrote URL to /vendor/auth0-spa-js.production.js
+[ERROR] Client error (non-retryable) {
+  status: 400,
+  operation: 'Birth chart (person_a_relocated) - translocation_felt_weather (city-first)',
+  url: 'https://astrologer.p.rapidapi.com/api/v4/birth-chart',
+  body: '{"status":"ERROR","message":"City/Nation name error or invalid GeoNames username. Please check your username or city name and try again. You can create a free username here: https://www.geonames.org/login/. If you want to bypass the usage of GeoNames, please remove the geonames_username field from the request. Note: The nation field should be the country code (e.g. US, UK, FR, DE, etc.)."}'
+}
+[ERROR] Failed after 2 attempts: Client error 400 for Birth chart (person_a_relocated) - translocation_felt_weather (city-first) {
+  url: 'https://astrologer.p.rapidapi.com/api/v4/birth-chart',
+  operation: 'Birth chart (person_a_relocated) - translocation_felt_weather (city-first)',
+  code: 'CLIENT_ERROR',
+  status: 400
+}
+[WARN] City/geonames mode failed for Birth chart (person_a_relocated) - translocation_felt_weather, falling back to coordinates {
+  error: 'Client error 400 for Birth chart (person_a_relocated) - translocation_felt_weather (city-first)'
+}
+[INFO] [TRANSLOCATION] Successfully fetched Felt Weather chart {
+  natal_asc: undefined,
+  relocated_asc: undefined,
+  coordinates: {
+    latitude: 30.1667,
+    longitude: -85.6667,
+    timezone: 'America/Chicago'
+  }
+}
+[INFO] [TRANSLOCATION] Using relocated coordinates for transit calculation {
+  natal_coords: { lat: 40.0196, lon: -75.3167 },
+  relocated_coords: { lat: 30.1667, lon: -85.6667 }
+}
+[INFO] ✓ Success for 2018-10-10: 120 aspects via transit-aspects-data (attempts: 1)
+[INFO] Compressed 1 days with 0 unique patterns
+[INFO] [TRANSLOCATION] Provenance marked as Felt Weather (relocated chart basis)
+[Math Brain] Starting...
+[Math Brain] Running FOUNDATION report for mode: balance_meter
+[Math Brain] No config path supplied—skipping disk writes.
+ POST /api/astrology-mathbrain 200 in 3952ms
+ ✓ Compiled in 155ms
+ ✓ Compiled /api/astrology-mathbrain in 421ms (90 modules)
+[AstrologyMathBrain] Routing to unified Math Brain v2 pipeline {}
+[INFO] [TRANSLOCATION] Fetching relocated chart for Felt Weather seismograph
+[ERROR] Client error (non-retryable) {
+  status: 400,
+  operation: 'Birth chart (person_a_relocated) - translocation_felt_weather (city-first)',
+  url: 'https://astrologer.p.rapidapi.com/api/v4/birth-chart',
+  body: '{"status":"ERROR","message":"City/Nation name error or invalid GeoNames username. Please check your username or city name and try again. You can create a free username here: https://www.geonames.org/login/. If you want to bypass the usage of GeoNames, please remove the geonames_username field from the request. Note: The nation field should be the country code (e.g. US, UK, FR, DE, etc.)."}'
+}
+[ERROR] Client error (non-retryable) {
+  status: 400,
+  operation: 'Birth chart (person_a_relocated) - translocation_felt_weather (city-first)',
+  url: 'https://astrologer.p.rapidapi.com/api/v4/birth-chart',
+  body: '{"status":"ERROR","message":"City/Nation name error or invalid GeoNames username. Please check your username or city name and try again. You can create a free username here: https://www.geonames.org/login/. If you want to bypass the usage of GeoNames, please remove the geonames_username field from the request. Note: The nation field should be the country code (e.g. US, UK, FR, DE, etc.)."}'
+}
+[ERROR] Failed after 2 attempts: Client error 400 for Birth chart (person_a_relocated) - translocation_felt_weather (city-first) {
+  url: 'https://astrologer.p.rapidapi.com/api/v4/birth-chart',
+  operation: 'Birth chart (person_a_relocated) - translocation_felt_weather (city-first)',
+  code: 'CLIENT_ERROR',
+  status: 400
+}
+[WARN] City/geonames mode failed for Birth chart (person_a_relocated) - translocation_felt_weather, falling back to coordinates {
+  error: 'Client error 400 for Birth chart (person_a_relocated) - translocation_felt_weather (city-first)'
+}
+[WARN] API call failed with status 504. Retrying...
+[INFO] [TRANSLOCATION] Successfully fetched Felt Weather chart {
+  natal_asc: undefined,
+  relocated_asc: undefined,
+  coordinates: {
+    latitude: 30.1667,
+    longitude: -85.6667,
+    timezone: 'America/Chicago'
+  }
+}
+[INFO] [TRANSLOCATION] Using relocated coordinates for transit calculation {
+  natal_coords: { lat: 40.0196, lon: -75.3167 },
+  relocated_coords: { lat: 30.1667, lon: -85.6667 }
+}
+[INFO] ✓ Success for 2018-10-10: 120 aspects via transit-aspects-data (attempts: 1)
+[INFO] Compressed 1 days with 0 unique patterns
+[INFO] [TRANSLOCATION] Provenance marked as Felt Weather (relocated chart basis)
+[Math Brain] Starting...
+[Math Brain] Running FOUNDATION report for mode: balance_meter
+[Math Brain] No config path supplied—skipping disk writes.
+ POST /api/astrology-mathbrain 200 in 14122ms

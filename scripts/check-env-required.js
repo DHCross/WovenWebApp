@@ -8,8 +8,8 @@
 const REQUIRED = [
   // Core external APIs
   'RAPIDAPI_KEY',
-  // Gemini / Generative AI for Poetic Brain
-  'GEMINI_API_KEY'
+  // Perplexity AI for Poetic Brain
+  'PERPLEXITY_API_KEY'
 ];
 
 const missing = REQUIRED.filter(k => !process.env[k] || String(process.env[k]).trim() === '');

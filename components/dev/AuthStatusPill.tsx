@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { getRedirectUri } from '../../lib/auth';
+import { getRedirectUri, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from '../../lib/auth';
 
 type Auth0Client = { isAuthenticated: () => Promise<boolean>; getUser: () => Promise<any> };
 
@@ -15,7 +15,10 @@ export default function AuthStatusPill() {
         const res = await fetch('/api/auth-config', { cache: 'no-store' });
         if (!res.ok) throw new Error('auth-config failed');
         const cfg = await res.json();
-        if (!cfg?.domain || !cfg?.clientId) {
+        const domain = normalizeAuth0Domain(cfg?.domain);
+        const clientId = normalizeAuth0ClientId(cfg?.clientId);
+        const audience = normalizeAuth0Audience(cfg?.audience ?? null);
+        if (!domain || !clientId) {
           if (!cancelled) { setStatus('error'); setHint('Missing AUTH0_* env'); }
           return;
         }
@@ -26,9 +29,12 @@ export default function AuthStatusPill() {
           return;
         }
         const client = await creator({
-          domain: String(cfg.domain).replace(/^https?:\/\//, ''),
-          clientId: cfg.clientId,
-          authorizationParams: { redirect_uri: getRedirectUri() }
+          domain,
+          clientId,
+          authorizationParams: {
+            redirect_uri: getRedirectUri(),
+            ...(audience ? { audience } : {}),
+          }
         });
         const ok = await client.isAuthenticated();
         if (!cancelled) setStatus(ok ? 'authed' : 'unauth');
