@@ -15,8 +15,8 @@ const {
   classifyMagnitude,
   classifyDirectionalBias,
   classifyVolatility,
-  scaleDirectionalBias,
 } = require('../../lib/reporting/metric-labels');
+const { scaleDirectionalBias } = require('../../lib/reporting/canonical-scaling');
 
 // Lazy-load monolith dependencies to completely break circular reference at static analysis time
 let enrichDailyAspectsLazy, selectPoeticAspectsLazy, weightAspectLazy;

@@ -10,21 +10,66 @@ const path = require('path');
 // Mock successful API responses
 const MOCK_NATAL_RESPONSE = {
   status: "OK",
-  data: { subject: { name: "Test Person" }, aspects: [{ p1_name: "Sun", p2_name: "Moon", aspect: "trine" }] }
+  data: {
+    subject: { name: "Test Person" },
+    person: {
+      name: "Test Person",
+      planets: [
+        { name: "Sun", sign: "Taurus", longitude: 45.5, house: 1 },
+        { name: "Moon", sign: "Cancer", longitude: 120.3, house: 3 },
+        { name: "Mercury", sign: "Taurus", longitude: 50.2, house: 1 },
+        { name: "Venus", sign: "Gemini", longitude: 75.1, house: 2 },
+        { name: "Mars", sign: "Aries", longitude: 15.4, house: 12 }
+      ]
+    },
+    aspects: [{ p1_name: "Sun", p2_name: "Moon", aspect: "trine", orbit: 1.2 }]
+  },
+  aspects: [{ p1_name: "Sun", p2_name: "Moon", aspect: "trine", orbit: 1.2 }]
 };
 
 const MOCK_SYNASTRY_RESPONSE = {
     status: "OK",
-    data: { first_subject: { name: "Person A" }, second_subject: { name: "Person B" } },
-    aspects: [{ p1_name: "Sun", p2_name: "Mars", aspect: "conjunction" }]
+    data: {
+      first_subject: {
+        name: "Person A",
+        person: {
+          name: "Person A",
+          planets: [
+            { name: "Sun", sign: "Taurus", longitude: 45.5, house: 1 },
+            { name: "Moon", sign: "Cancer", longitude: 120.3, house: 3 }
+          ]
+        }
+      },
+      second_subject: {
+        name: "Person B",
+        person: {
+          name: "Person B",
+          planets: [
+            { name: "Sun", sign: "Leo", longitude: 135.2, house: 5 },
+            { name: "Mars", sign: "Aries", longitude: 15.4, house: 1 }
+          ]
+        }
+      }
+    },
+    aspects: [{ p1_name: "Sun", p2_name: "Mars", aspect: "conjunction", orbit: 0.8 }]
 };
 
 const MOCK_COMPOSITE_RESPONSE = {
     status: "OK",
     data: {
-        composite_subject: { name: "Composite" },
-        aspects: [{ p1_name: "Sun", p2_name: "Moon", aspect: "square" }]
-    }
+        composite_subject: {
+          name: "Composite",
+          person: {
+            name: "Composite",
+            planets: [
+              { name: "Sun", sign: "Gemini", longitude: 90.1, house: 4 },
+              { name: "Moon", sign: "Virgo", longitude: 180.5, house: 7 }
+            ]
+          }
+        },
+        aspects: [{ p1_name: "Sun", p2_name: "Moon", aspect: "square", orbit: 0.4 }]
+    },
+    aspects: [{ p1_name: "Sun", p2_name: "Moon", aspect: "square", orbit: 0.4 }]
 };
 
 const MOCK_TRANSIT_RESPONSE = {

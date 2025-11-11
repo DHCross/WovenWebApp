@@ -35,6 +35,7 @@ const {
   getTransitsByDateRange,
   getNatalAspectsData,
   synastryComparison,
+  subjectToAPI,
 } = require('./api-client');
 
 // ============================================================================
@@ -44,6 +45,13 @@ const {
   calculateSeismograph,
   formatTransitTable,
 } = require('./seismograph-engine');
+
+// ============================================================================
+// RAVEN MAPPER MODULE
+// ============================================================================
+const {
+  mapT2NAspects,
+} = require('../raven-lite-mapper');
 
 // ============================================================================
 // ORCHESTRATOR EXPORTS
@@ -62,10 +70,14 @@ module.exports = {
   getTransitsByDateRange,
   getNatalAspectsData,
   synastryComparison,
+  subjectToAPI,
 
   // Seismograph Engine
   calculateSeismograph,
   formatTransitTable,
+
+  // Raven Mapper
+  mapT2NAspects,
 };
 
 /**
