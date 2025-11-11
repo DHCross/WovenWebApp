@@ -204,6 +204,11 @@ module.exports = {
 EOF
 
 echo "✅ 'src/math-brain/orchestrator.js' updated."
+
+# Save new baseline for future runs
+mkdir -p scripts
+cp src/math-brain/orchestrator.js scripts/orchestrator.expected.js
+echo "✅ Baseline saved to scripts/orchestrator.expected.js"
 echo ""
 echo "--- 5/5: Recording provenance metadata..."
 
