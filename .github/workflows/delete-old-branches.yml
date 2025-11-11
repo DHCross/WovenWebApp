@@ -1,0 +1,185 @@
+name: Delete Old Branches
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run - only list branches to delete without actually deleting them'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      days_old:
+        description: 'Delete branches older than this many days'
+        required: false
+        default: '1'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  delete-old-branches:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Delete old branches
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          DAYS_OLD: ${{ inputs.days_old }}
+        run: |
+          #!/bin/bash
+          set -euo pipefail
+          
+          echo "========================================================================"
+          echo "Delete Old Branches Workflow"
+          echo "========================================================================"
+          echo "Dry run: $DRY_RUN"
+          echo "Days threshold: $DAYS_OLD days"
+          echo ""
+          
+          # Protected branches
+          PROTECTED_BRANCHES=("main" "develop" "staging" "production")
+          
+          # Calculate cutoff time
+          CURRENT_TIME=$(date +%s)
+          CUTOFF_SECONDS=$((DAYS_OLD * 86400))
+          CUTOFF_TIME=$((CURRENT_TIME - CUTOFF_SECONDS))
+          
+          echo "Current time: $(date -u '+%Y-%m-%d %H:%M:%S %Z')"
+          echo "Cutoff time ($DAYS_OLD days ago): $(date -u -d @$CUTOFF_TIME '+%Y-%m-%d %H:%M:%S %Z')"
+          echo ""
+          
+          # Statistics
+          DELETED_COUNT=0
+          SKIPPED_COUNT=0
+          ERROR_COUNT=0
+          
+          # Function to check if branch is protected
+          is_protected() {
+              local branch=$1
+              for protected in "${PROTECTED_BRANCHES[@]}"; do
+                  if [[ "$branch" == "$protected" ]]; then
+                      return 0
+                  fi
+              done
+              return 1
+          }
+          
+          # Get all branches
+          echo "Fetching branches..."
+          mapfile -t BRANCHES < <(git ls-remote --heads origin | awk '{print $2}' | sed 's|refs/heads/||' | sort)
+          
+          echo "Found ${#BRANCHES[@]} branches to check"
+          echo ""
+          echo "========================================================================"
+          echo "Processing Branches"
+          echo "========================================================================"
+          echo ""
+          
+          for BRANCH in "${BRANCHES[@]}"; do
+              # Skip protected branches
+              if is_protected "$BRANCH"; then
+                  echo "[PROTECTED] Skipping $BRANCH"
+                  ((SKIPPED_COUNT++))
+                  continue
+              fi
+              
+              # Get SHA and commit date
+              SHA=$(git ls-remote origin "refs/heads/$BRANCH" | awk '{print $1}')
+              
+              if [ -z "$SHA" ]; then
+                  echo "[ERROR] Could not get SHA for $BRANCH"
+                  ((ERROR_COUNT++))
+                  continue
+              fi
+              
+              # Fetch commit metadata
+              git fetch --depth=1 origin "$SHA" 2>/dev/null || true
+              COMMIT_TIME=$(git log -1 --format=%ct "$SHA" 2>/dev/null || echo "0")
+              
+              if [ "$COMMIT_TIME" == "0" ]; then
+                  echo "[ERROR] Could not get commit time for $BRANCH"
+                  ((ERROR_COUNT++))
+                  continue
+              fi
+              
+              # Calculate age
+              AGE_SECONDS=$((CURRENT_TIME - COMMIT_TIME))
+              AGE_DAYS=$((AGE_SECONDS / 86400))
+              COMMIT_DATE=$(date -u -d @$COMMIT_TIME '+%Y-%m-%d %H:%M:%S' 2>/dev/null)
+              
+              # Check if old enough
+              if [ "$COMMIT_TIME" -lt "$CUTOFF_TIME" ]; then
+                  echo "[OLD - ${AGE_DAYS}d] $BRANCH (Last commit: $COMMIT_DATE)"
+                  
+                  if [ "$DRY_RUN" == "false" ]; then
+                      # Actually delete the branch
+                      if git push origin --delete "$BRANCH" 2>&1; then
+                          echo "  ✓ Deleted successfully"
+                          ((DELETED_COUNT++))
+                      else
+                          echo "  ✗ Failed to delete"
+                          ((ERROR_COUNT++))
+                      fi
+                  else
+                      echo "  [DRY RUN] Would delete this branch"
+                      ((DELETED_COUNT++))
+                  fi
+              else
+                  echo "[RECENT] $BRANCH (${AGE_DAYS}d old, Last commit: $COMMIT_DATE)"
+                  ((SKIPPED_COUNT++))
+              fi
+          done
+          
+          echo ""
+          echo "========================================================================"
+          echo "Summary"
+          echo "========================================================================"
+          if [ "$DRY_RUN" == "true" ]; then
+              echo "DRY RUN MODE - No branches were actually deleted"
+              echo "Branches that would be deleted: $DELETED_COUNT"
+          else
+              echo "Branches deleted: $DELETED_COUNT"
+          fi
+          echo "Branches skipped (recent or protected): $SKIPPED_COUNT"
+          echo "Errors: $ERROR_COUNT"
+          echo "========================================================================"
+          
+          # Create artifact with details
+          {
+              echo "# Branch Deletion Report"
+              echo "Generated: $(date -u)"
+              echo ""
+              echo "## Configuration"
+              echo "- Dry Run: $DRY_RUN"
+              echo "- Days Threshold: $DAYS_OLD"
+              echo ""
+              echo "## Summary"
+              if [ "$DRY_RUN" == "true" ]; then
+                  echo "- Branches that would be deleted: $DELETED_COUNT"
+              else
+                  echo "- Branches deleted: $DELETED_COUNT"
+              fi
+              echo "- Branches skipped: $SKIPPED_COUNT"
+              echo "- Errors: $ERROR_COUNT"
+          } > branch-deletion-report.md
+      
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: branch-deletion-report
+          path: branch-deletion-report.md
