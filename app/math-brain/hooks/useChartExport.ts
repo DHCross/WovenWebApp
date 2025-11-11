@@ -963,8 +963,10 @@ Start with the Solo Mirror(s), then ${
   const buildFieldMapExport = useCallback((): FieldMapExport | null => {
     if (!result) return null;
     const unifiedOutput = result?.unified_output || result;
-    const mapFile = unifiedOutput?._map_file;
-    const fieldFile = unifiedOutput?._field_file;
+    
+    // MAP/FIELD files removed - use unified output directly
+    const mapFile = null; // unifiedOutput contains all data now
+    const fieldFile = null; // unifiedOutput contains all data now
     const relationshipContext =
       result?.relationship_context ||
       result?.relationship ||

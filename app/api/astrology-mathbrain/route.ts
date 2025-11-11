@@ -322,23 +322,23 @@ export async function POST(request: NextRequest) {
 
       // Enrich unified_output for exporters expecting provenance and woven_map.symbolic_weather
       try {
-        // 1) Provide unified_output.provenance, deriving a stable package/hash id from MAP meta
+        // 1) Provide unified_output.provenance, deriving a stable package/hash id from run metadata
         const runMeta = unifiedOutput?.run_metadata || {};
-        const mapId = unifiedOutput?._map_file?._meta?.map_id || null;
         const legacyProv = chartData?.provenance || {};
         const provenance = { ...legacyProv, ...runMeta } as any;
-        if (mapId && !provenance.normalized_input_hash) {
-          provenance.normalized_input_hash = mapId;
+        // Use run ID or timestamp as fallback for hash
+        if (!provenance.normalized_input_hash && runMeta.run_id) {
+          provenance.normalized_input_hash = runMeta.run_id;
         }
         (unifiedOutput as any).provenance = provenance;
 
-        // 2) Provide unified_output.woven_map.symbolic_weather from FIELD daily entries when available
-        const fieldDaily = unifiedOutput?._field_file?.daily || null;
+        // 2) Provide unified_output.woven_map.symbolic_weather from transits when available
+        const transits = unifiedOutput?.transits || null;
         let symbolicWeather: any[] | null = null;
-        if (fieldDaily && typeof fieldDaily === 'object') {
-          const dates = Object.keys(fieldDaily).sort();
+        if (transits && typeof transits === 'object') {
+          const dates = Object.keys(transits).sort();
           symbolicWeather = dates.map((d) => {
-            const day = (fieldDaily as any)[d] || {};
+            const day = (transits as any)[d] || {};
             return {
               date: d,
               meter: day.meter || null,

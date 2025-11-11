@@ -712,7 +712,21 @@ async function fetchNatalChartComplete(subject, headers, pass, subjectLabel, con
   );
   
   // CRITICAL: Validate that we received actual chart data from the upstream API
-  if (!natalResponse || !natalResponse.data || !natalResponse.data.person || !natalResponse.data.person.planets || natalResponse.data.person.planets.length === 0) {
+  // The API returns planets directly in data object (sun, moon, etc.), not nested under person
+  const hasPlanets = natalResponse?.data && 
+    (natalResponse.data.sun || natalResponse.data.moon || natalResponse.data.mercury);
+  
+  logger.info('Natal API response validation', {
+    subject: subject.name,
+    hasResponse: !!natalResponse,
+    hasData: !!natalResponse?.data,
+    hasPerson: !!natalResponse?.data?.person,
+    hasPlanets,
+    responseKeys: natalResponse ? Object.keys(natalResponse) : 'none',
+    dataKeys: natalResponse?.data ? Object.keys(natalResponse.data) : 'none'
+  });
+  
+  if (!natalResponse || !natalResponse.data || !hasPlanets) {
     logger.error('Incomplete natal chart data received from upstream API', { 
       subject: subject.name, 
       subjectLabel,

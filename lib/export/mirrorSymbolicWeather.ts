@@ -72,18 +72,21 @@ export function createMirrorSymbolicWeatherPayload(
     unifiedOutput?.relationship_context ||
     null;
 
-  // Pre-compute window/date hints
+  // Pre-compute window/date hints from unified output
   const transitsObj: Record<string, any> | null =
     (unifiedOutput?.person_a?.chart?.transitsByDate && typeof unifiedOutput.person_a.chart.transitsByDate === 'object')
       ? unifiedOutput.person_a.chart.transitsByDate
-      : (unifiedOutput?._field_file?.daily && typeof unifiedOutput._field_file.daily === 'object')
-        ? unifiedOutput._field_file.daily
+      : (unifiedOutput?.transits && typeof unifiedOutput.transits === 'object')
+        ? unifiedOutput.transits
         : null;
   const dateKeys = transitsObj ? Object.keys(transitsObj).sort() : [];
   const transitDays = dateKeys.length;
   const rangeDates = (() => {
-    const fieldPeriod = unifiedOutput?._field_file?.period;
-    if (fieldPeriod?.s && fieldPeriod?.e) return [fieldPeriod.s, fieldPeriod.e];
+    // Use transit window from unified output
+    const transitWindow = unifiedOutput?.transit_window;
+    if (transitWindow?.start_date && transitWindow?.end_date) {
+      return [transitWindow.start_date, transitWindow.end_date];
+    }
     const runRange = unifiedOutput?.run_metadata?.date_range;
     if (Array.isArray(runRange) && runRange.length === 2) return runRange;
     if (transitDays > 0) return [dateKeys[0], dateKeys[transitDays - 1]];
