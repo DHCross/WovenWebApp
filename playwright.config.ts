@@ -34,10 +34,20 @@ export default defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
   ],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  // Only auto-start webServer if BASE_URL is not provided
+  // In CI, the workflow manages the server (netlify dev on port 8888)
+  // In local dev, Playwright will start the dev server if not already running
+  ...(process.env.BASE_URL ? {} : {
+    webServer: {
+      command: 'npm run dev',
+      url: 'http://localhost:3000',
+      // Reuse existing server to avoid port 3000 conflicts in local dev
+      // In CI, start fresh to ensure clean test environment
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+      // Stdout: 'ignore' prevents npm output from cluttering test results
+      stdout: 'ignore',
+      stderr: 'pipe',
+    },
+  }),
 });

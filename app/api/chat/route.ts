@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { shapeVoice, pickClimate } from '../../../lib/persona';
+import { shapeVoice, pickClimate, resolvePersonaMode } from '../../../lib/persona';
 import { generateStream } from '../../../lib/llm';
 import { canMakeRequest, trackRequest } from '../../../lib/usage-tracker';
 import { followUpGenerator, ChartContext } from '../../../lib/followup-generator';
@@ -12,6 +12,13 @@ import {
 } from '@/lib/raven/guards';
 
 import { buildNoContextGuardCopy } from '@/lib/guard/no-context';
+import {
+  extractJSONFromUpload,
+  extractTextFromUpload,
+  isJSONReportUpload,
+  isJournalUpload,
+  isTimedInput,
+} from '@/lib/chat-pipeline/uploads';
 
 
 // Simple in-memory token bucket (dev only). Not production safe for multi-instance.
@@ -78,6 +85,34 @@ function checkForClearAffirmation(text: string): boolean {
   return clearAffirmPhrases.some(phrase => lower.includes(phrase));
 }
 
+// Check if user is requesting to start/continue the reading (not OSR)
+function checkForReadingStartRequest(text: string): boolean {
+  const lower = text.toLowerCase();
+  const startReadingPhrases = [
+    'give me the reading',
+    'start the reading',
+    'begin the reading',
+    'continue with the reading',
+    'show me the reading',
+    'start the mirror',
+    'give me the mirror',
+    'show me the mirror',
+    'start mirror flow',
+    'give me mirror flow',
+    'show me mirror flow',
+    'start symbolic weather',
+    'give me symbolic weather',
+    'show me symbolic weather',
+    'let\'s begin',
+    'let\'s start',
+    'please continue',
+    'go ahead',
+    'proceed'
+  ];
+
+  return startReadingPhrases.some(phrase => lower.includes(phrase));
+}
+
 // Check if user is giving partial/uncertain confirmation
 function checkForPartialAffirmation(text: string): boolean {
   const lower = text.toLowerCase();
@@ -96,8 +131,44 @@ function checkForPartialAffirmation(text: string): boolean {
   return partialPhrases.some(phrase => lower.includes(phrase));
 }
 
+const CHAT_CONTEXT_CHAR_LIMIT = 1800;
+
+function truncateContextSnippet(content: string, limit: number = CHAT_CONTEXT_CHAR_LIMIT): string {
+  if (content.length <= limit) return content;
+  return content.slice(0, limit).trimEnd() + ' …';
+}
+
+function formatReportContextsForPrompt(contexts: any[]): string {
+  if (!Array.isArray(contexts) || contexts.length === 0) return '';
+  return contexts
+    .slice(-3)
+    .map((ctx, idx) => {
+      const name = typeof ctx.name === 'string' && ctx.name.trim() ? ctx.name.trim() : `Report ${idx + 1}`;
+      const typeLabel = typeof ctx.type === 'string' && ctx.type.trim() ? ctx.type.trim().toUpperCase() : 'UNKNOWN';
+      const summary = typeof ctx.summary === 'string' ? ctx.summary.trim() : '';
+      const relocation = ctx.relocation?.label ? `Relocation: ${ctx.relocation.label}` : '';
+      const rawContent = typeof ctx.content === 'string' ? ctx.content.trim() : '';
+      let snippet = rawContent ? truncateContextSnippet(rawContent) : '';
+      if (snippet) {
+        const looksJson = /^[\s\r\n]*[{[]/.test(snippet);
+        snippet = looksJson ? `\`\`\`json\n${snippet}\n\`\`\`` : snippet;
+      }
+      return [
+        `Report ${idx + 1} · ${typeLabel} · ${name}`,
+        summary ? `Summary: ${summary}` : '',
+        relocation,
+        snippet,
+      ]
+        .filter(Boolean)
+        .join('\n');
+    })
+    .join('\n\n');
+}
+
 // Enhanced response classification
 function classifyUserResponse(text: string): 'CLEAR_WB' | 'PARTIAL_ABE' | 'OSR' | 'UNCLEAR' {
+  // Check if user is requesting to start/continue the reading (treat as CLEAR_WB)
+  if (checkForReadingStartRequest(text)) return 'CLEAR_WB';
   if (checkForClearAffirmation(text)) return 'CLEAR_WB';
   if (checkForPartialAffirmation(text)) return 'PARTIAL_ABE';
   if (checkForOSRIndicators(text)) return 'OSR';
@@ -124,40 +195,6 @@ function isMetaSignalAboutRepetition(text: string): boolean {
     'well, yeah',
   ];
   return phrases.some(p => lower.includes(p));
-}
-
-function isJSONReportUpload(text: string): boolean {
-  // Detect presence of embedded JSON in a <pre> block regardless of UI labels.
-  const preMatch = text.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
-  if (!preMatch) return false;
-  const decoded = preMatch[1]
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"');
-  return decoded.includes('"balance_meter"') && decoded.includes('"context"');
-}
-
-function extractJSONFromUpload(text: string): string | null {
-  try {
-    // Extract JSON from the HTML pre tag
-    const preMatch = text.match(/<pre[^>]*>(.*?)<\/pre>/s);
-    if (preMatch) {
-      // Decode HTML entities and clean up
-      const jsonStr = preMatch[1]
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
-        .replace(/&quot;/g, '"');
-      
-      // Try to parse to validate
-      JSON.parse(jsonStr);
-      return jsonStr;
-    }
-  } catch (e) {
-    // console.log('Failed to extract JSON from upload:', e);
-  }
-  return null;
 }
 
 function pickHook(t:string){
@@ -191,58 +228,6 @@ function pickHook(t:string){
 
 function encode(obj:any){ return new TextEncoder().encode(JSON.stringify(obj)+"\n"); }
 
-function isJournalUpload(text: string): boolean {
-  // Prefer detecting a non-JSON <pre> text block; fall back to label heuristics.
-  const preMatch = text.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
-  if (preMatch) {
-    const decoded = preMatch[1]
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&amp;/g, '&')
-      .replace(/&quot;/g, '"')
-      .trim();
-    // Treat as journal if it's not JSON but reasonably long prose
-    const looksJson = decoded.startsWith('{') && decoded.endsWith('}');
-    if (!looksJson && decoded.length > 80) return true;
-  }
-  return text.includes('Uploaded Journal Entry:') || text.includes('Journal Entry:');
-}
-
-function extractTextFromUpload(text: string): string {
-  try {
-    // Extract content from the HTML pre tag
-    const preMatch = text.match(/<pre[^>]*>(.*?)<\/pre>/s);
-    if (preMatch) {
-      // Decode HTML entities and clean up
-      return preMatch[1]
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
-        .replace(/&quot;/g, '"')
-        .trim();
-    }
-  } catch (e) {
-    // console.log('Failed to extract text from upload:', e);
-  }
-  return text;
-}
-
-// Determine whether input includes a timing layer (transits/periods/comparisons)
-function isTimedInput(text: string): boolean {
-  // Treat JSON Balance reports as timed
-  if (isJSONReportUpload(text)) return true;
-
-  const plain = text.replace(/<[^>]*>/g, ' ').toLowerCase();
-  // Obvious transit/timing keywords
-  if (/(transit|window|during|between|over the (last|next)|this week|today|tomorrow|yesterday|from\s+\w+\s+\d{1,2}\s*(–|-|to)\s*\w*\s*\d{1,2})/.test(plain)) {
-    return true;
-  }
-  // Date-like patterns (YYYY-MM-DD or MM/DD/YYYY) or month-name ranges
-  if (/(\b\d{4}-\d{2}-\d{2}\b)|(\b\d{1,2}\/\d{1,2}\/\d{2,4}\b)/.test(plain)) return true;
-  if (/(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\s*\d{1,2}\s*(–|-|to)\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)?\s*\d{1,2}/.test(plain)) return true;
-  return false;
-}
-
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest){
@@ -250,11 +235,13 @@ export async function POST(req: NextRequest){
   const body = await req.json();
   const { persona, messages = [] } = body;
   const reportContexts: any[] = body?.reportContexts || [];
+  const personaMode = resolvePersonaMode(persona);
+  const personaConfig = { mode: personaMode };
   
   const user = [...messages].reverse().find((m:any)=> m.role==='user');
   const text = user?.content || user?.html || 'Hello';
   
-  const isTechnicalQuestion = /\b(are you|what are you|how do you work|gemini|api|technical|test|version|system)\b/i.test(text);
+  const isTechnicalQuestion = /\b(are you|what are you|how do you work|perplexity|api|technical|test|version|system)\b/i.test(text);
   const isGreeting = /^(hello|hi|hey|good morning|good afternoon|good evening|greetings)\b/i.test(text.trim());
   
   const ravenMsgs = Array.isArray(messages) ? messages.filter((m:any)=> m.role==='raven') : [];
@@ -272,14 +259,14 @@ export async function POST(req: NextRequest){
   if (isTechnicalQuestion || isGreeting) {
     const hook = pickHook(text);
     const climate = undefined;
-    const shapedIntro = shapeVoice('Staying close to what you said…', {hook, climate, section:'mirror'}).split(/\n+/)[0];
+    const shapedIntro = shapeVoice('Staying close to what you said…', {hook, climate, section:'mirror'}, personaConfig).split(/\n+/)[0];
     let response = '';
-    if (text.toLowerCase().includes('gemini')) {
-      response = 'Yes, I am currently using Google\'s Gemini API. It\'s a pleasure to connect.';
+    if (text.toLowerCase().includes('perplexity')) {
+      response = 'Yes, I am currently using the Perplexity API. It\'s a pleasure to connect.';
     } else if (isGreeting) {
       response = 'Hello! I\'m Raven Calder, and I\'m here to help you see yourself more clearly. I\'m ready when you are.';
     } else {
-      response = 'I\'m Raven Calder, a symbolic mirror that uses Google\'s Gemini API to provide reflective insights. How can I help you today?';
+      response = 'I\'m Raven Calder, a symbolic mirror that uses the Perplexity API to provide reflective insights. How can I help you today?';
     }
     const responseBody = new ReadableStream<{ }|Uint8Array>({
       async start(controller){
@@ -315,7 +302,7 @@ export async function POST(req: NextRequest){
     const introPicture = astroseekReference
       ? 'I see the AstroSeek export—one more bridge and we can go deep…'
       : guardCopy.picture;
-    const shapedIntro = shapeVoice(introPicture, {hook, climate, section:'mirror'}).split(/\n+/)[0];
+    const shapedIntro = shapeVoice(introPicture, {hook, climate, section:'mirror'}, personaConfig).split(/\n+/)[0];
     const guardGuidance = astroseekReference ? ASTROSEEK_REFERENCE_GUIDANCE : guardCopy.guidance;
 
     const responseBody = new ReadableStream<{ }|Uint8Array>({
@@ -335,7 +322,7 @@ export async function POST(req: NextRequest){
       'With you—reading the sky’s weather…',
       'Here with today’s currents—no personal map applied…'
     ];
-    const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}).split(/\n+/)[0];
+    const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}, personaConfig).split(/\n+/)[0];
     const weatherNote = `
 Field-only read (no natal overlay):
 • Mood/valence: treat as background conditions, not fate
@@ -361,7 +348,19 @@ Give a short, plain-language summary of the current planetary weather in two par
   }
   
   // Check for natural follow-up flow based on user response type
-  const responseType = classifyUserResponse(text);
+  //
+  // DESIGN NOTE: Skip OSR checks on first turn UNLESS explicit OSR phrases used
+  // Rationale: First turn after "Session Started" is typically a command, not a resonance response.
+  // However, we still detect explicit OSR phrases like "doesn't resonate" for edge cases.
+  //
+  // The OSR check is duplicated here (before classifyUserResponse) intentionally:
+  // - Early exit for first-turn commands (performance optimization)
+  // - Preserves classification logic independence in classifyUserResponse()
+  // - Makes the first-turn special case explicit and easy to understand
+  const skipOSRCheck = isFirstTurn && !checkForOSRIndicators(text);
+  const responseType = skipOSRCheck
+    ? 'CLEAR_WB'
+    : classifyUserResponse(text);
   
   // Mock session context (in production, this would be persisted)
   const mockSessionContext: SessionContext = {
@@ -573,19 +572,21 @@ User's input: "${text}"`;
   if (isJSONReportUpload(analysisPrompt)) {
     const reportData = extractJSONFromUpload(analysisPrompt);
     if (reportData) {
-      analysisPrompt = `I've received a WovenWebApp JSON report. Please provide a complete Solo Mirror analysis based on this data:
+      analysisPrompt = `CONTEXT: The following chart data has been provided. Use it to generate a complete, conversational mirror reflection following the Five-Step Delivery Framework.
 
+CHART DATA:
 ${reportData}
 
-Focus on completing any empty template sections with VOICE synthesis.`;
+INSTRUCTIONS: Begin with warm recognition of the person's stance/pattern. Use the chart geometry as context, but write in natural, conversational paragraphs. Follow the FIELD→MAP→VOICE protocol. No technical openings, no data summaries—just the warm, direct mirror.`;
     }
   } else if (isJournalUpload(analysisPrompt)) {
     const journalContent = extractTextFromUpload(analysisPrompt);
-    analysisPrompt = `I've received a journal entry for analysis. Please read this with your symbolic weather lens and provide insights into the patterns, emotional climate, and potential astrological correlates:
+    analysisPrompt = `CONTEXT: The user has shared a journal entry. Read it with your symbolic weather lens and provide warm, conversational reflections.
 
+JOURNAL ENTRY:
 ${journalContent}
 
-Apply Recognition Layer analysis and provide conditional reflections that can be tested (SST protocol).`;
+INSTRUCTIONS: Begin with recognition of the felt texture in their words. Surface patterns and emotional climate using conditional language. Apply Recognition Layer analysis (SST protocol) and offer reflections they can test against their lived experience. Write in natural paragraphs, not technical summaries.`;
   }
   
   const hook = pickHook(analysisPrompt);
@@ -597,7 +598,7 @@ Apply Recognition Layer analysis and provide conditional reflections that can be
     'Holding what you said against the pattern…',
     'I’m tracking you—slowly, precisely…'
   ];
-  const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}).split(/\n+/)[0];
+  const shapedIntro = shapeVoice(greetings[Math.floor(Math.random()*greetings.length)], {hook, climate, section:'mirror'}, personaConfig).split(/\n+/)[0];
   
   const v11PromptPrefix = `
 MANDATORY: Follow the v11 "Warm-Core, Rigor-Backed" protocol EXACTLY:
@@ -634,6 +635,49 @@ Anti-psychologizing rule: Mirror structural pressure and behavior only. Avoid mo
 
 First-turn rule: If this is the very first substantive mirror of a session, end with a reflective close (no question). Questions begin on later turns.
 
+**ARCHITECTURAL WISDOM - Dual Calibration Model (V5 Balance Meter):**
+
+The Balance Meter measures **symbolic precision**, not physical scale. Compression (directional bias) indicates how precisely external pressure resonates with natal architecture.
+
+**Two Crisis Classes:**
+1. **Macro-Class (External Distributed):** Broad collective pressure (e.g., natural disasters, systemic collapse, infrastructure loss) typically registers -3.2 to -3.5 compression. Multi-domain impact, extended acute phase, distributed field disruption.
+
+2. **Micro-Class (Personal Pinpoint):** Exact natal configuration hits (e.g., 0°-1° aspect activations, body-betrayal events, sudden physical disruption) can register -4.0 to -5.0 compression despite smaller external scale. Single-domain acute crisis, precise harmonic strike on natal fault line.
+
+**Key Insight:** A localized personal crisis with exact natal resonance can measure HIGHER compression than large-scale collective events. This is geometrically correct—it measures how tightly external pressure locks onto internal wiring, not the scope of the external event.
+
+**Therapeutic Integration:**
+- Macro-class compression: Environmental rebuilding + field grounding (Ladder Tree: Radical Acceptance, Defusion)
+- Micro-class compression: Somatic anchoring + silence honoring + incremental re-contact (sudden-onset disruption requires structural support)
+- Below -5.0: Unmappable void (dissociation, total field collapse) requires external structural intervention
+
+**Translocation Mandate:** Both crisis classes require Felt Weather (relocated) coordinates. Blueprint (natal-only) readings underestimate compression by 30-40% because they miss location-specific angle activations.
+
+When discussing crisis events or high-compression readings, honor this architecture: localized events can land harder when they strike exact natal configurations. Compression measures **resonance fidelity**, not magnitude.
+
+**PROBABILISTIC FORECASTING MICRO-PROTOCOL (Conditional Trigger):**
+
+**When user queries involve timing, decision-windows, or future orientation** (e.g., "when", "should I", "upcoming", "future", "wait", "timing"), activate this protocol:
+
+1. **Math Brain Foundation:** Draw from Balance Meter v5 outputs (Magnitude 0-5, Directional Bias -5 to +5, Volatility). These are probability fields, never certainties.
+
+2. **Field-Sensing Translation:**
+   - **Compression windows** (negative bias -2 to -5): "The field feels tight/restricted through [timeframe]—conditions favor moving slowly, testing boundaries gently."
+   - **Expansion windows** (positive bias +2 to +5): "The geometry leans open through [timeframe]—conditions favor expansion if you anchor your intent."
+   - **Neutral zones** (bias -1 to +1): "The field shows mixed weather—neither pushing nor pulling strongly."
+
+3. **Ranges, Not Single Dates:** Provide temporal zones (e.g., "through mid-month", "until after the 15th"), never fixed predictions.
+
+4. **Optional Falsifiability Prompt:** Always append: *"Try noting how this window lands—does it feel Within Boundary (WB), At Boundary Edge (ABE), or Outside Range (OSR)?"*
+
+5. **Tone Calibration:** Use field-sensing language, not meteorological or deterministic phrasing:
+   - ❌ "You will face delays until October 12."
+   - ✅ "The field shows compression until mid-October; if things feel tight, move gently and test again after the 12th."
+
+6. **Moderate Depth:** 1 paragraph (3-4 sentences) blending numerical backend data with embodied symbolic language. Magnitude/Bias stay in backend; VOICE layer describes field texture.
+
+**Integration with Dual Calibration Model:** High compression (-4 to -5) in forecasting = tighter probability windows where exact-natal-resonance may strike. Expansion (+3 to +5) = wider openness zones. Always frame as symbolic weather supporting agency, never as fate.
+
 CRITICAL INTEGRATION RULE: When users share specific personal details (living situation, family circumstances, financial challenges, etc.), reflect back their ACTUAL words and circumstances rather than generic metaphors. For example:
 - If they mention "living with elderly parents and disabled daughter" → acknowledge this specific caregiving reality
 - If they mention "they pay rent but caregiving makes it hard to survive" → reflect this exact financial bind
@@ -644,10 +688,10 @@ Your response MUST begin with the warm recognition greeting AND include ALL Core
 
   let contextAppendix = '';
   if (Array.isArray(reportContexts) && reportContexts.length > 0) {
-    const compactList = reportContexts.slice(-4)
-      .map((rc:any, idx:number) => `- [${rc.type}] ${rc.name}: ${rc.summary || ''}`.trim())
-      .join('\n');
-    contextAppendix = `\n\nSESSION CONTEXT (Compact Uploads)\n${compactList}\n\nUse these as background only. Prefer the user's live words. Do not restate the uploads; integrate gently where relevant.`;
+    const formattedContexts = formatReportContextsForPrompt(reportContexts);
+    if (formattedContexts) {
+      contextAppendix = `\n\nSESSION CONTEXT\n${formattedContexts}\n\nUse these as background only. Prefer the user's live words. Do not restate the uploads; integrate gently where relevant.`;
+    }
   }
 
   const hasMirror = Array.isArray(reportContexts) && reportContexts.some((rc:any)=> rc.type==='mirror');

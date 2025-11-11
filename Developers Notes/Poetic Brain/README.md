@@ -176,6 +176,15 @@ All Poetic Brain specs align with:
 - Frontstage Preface requirements
 - Report type specifications
 
+### Internal Testing Utilities
+
+- **`test/generateMirrorDirective.ts`** — lightweight script for fast internal validation. Generates a Poetic Brain–compatible `mirror_directive_json` payload (with optional symbolic weather request) for Dan’s solo mirror without invoking Math Brain. Use it to:
+  - smoke-test Poetic Brain narrative handlers against known payloads;
+  - prototype changes to Mirror Directive schema locally before wiring UI export buttons;
+  - sanity-check relocation and provenance fields while keeping the production export pipeline untouched.
+
+  > **Note:** This script is intentionally isolated from the core Math Brain export flow. It should never be bundled into user-facing builds or referenced in production documentation; it exists purely for rapid internal experimentation.
+
 ### Connection to Math Brain
 Poetic Brain receives input from:
 - [`/Implementation/MATH_BRAIN_COMPLIANCE.md`](../Implementation/MATH_BRAIN_COMPLIANCE.md) - Calculation outputs

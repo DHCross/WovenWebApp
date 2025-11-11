@@ -1,0 +1,442 @@
+{
+  "_meta": {
+    "schema": "wm-fieldmap-v1",
+    "kind": [
+      "FIELD",
+      "MAP"
+    ],
+    "version": "10.2",
+    "coords": null,
+    "timezone": null,
+    "created_utc": "2025-11-01T20:11:33.550Z",
+    "math_brain_version": "mb-2025.10.18"
+  },
+  "map": {
+    "_meta": {
+      "kind": "MAP",
+      "schema": "wm-map-v1",
+      "map_id": "map_1762027735164_8wmf6zep5",
+      "math_brain_version": "mb-2025.10.18",
+      "ephemeris_source": "astrologer-api",
+      "house_system": "Placidus",
+      "orbs_profile": "wm-spec-2025-09",
+      "timezone_db_version": "IANA-2025a",
+      "relocation_mode": {
+        "applies": true,
+        "method": "A_local",
+        "coords": {
+          "latitude": 30.166666666666668,
+          "longitude": -85.66666666666667
+        },
+        "label": "Panama City, FL",
+        "timezone": "US/Central"
+      },
+      "created_utc": "2025-11-01T20:08:55.165Z"
+    },
+    "people": [
+      {
+        "id": "A",
+        "name": "Dan",
+        "birth": {
+          "date": "1973-07-24",
+          "time": "14:30",
+          "city": "Bryn Mawr",
+          "state": "PA",
+          "nation": "US"
+        },
+        "index": {
+          "Sun": 0,
+          "Moon": 1,
+          "Mercury": 2,
+          "Venus": 3,
+          "Mars": 4,
+          "Jupiter": 5,
+          "Saturn": 6,
+          "Uranus": 7,
+          "Neptune": 8,
+          "Pluto": 9,
+          "Node": 10,
+          "Mean_Node": 10,
+          "ASC": 11,
+          "Ascendant": 11,
+          "MC": 12,
+          "Medium_Coeli": 12
+        },
+        "planets": [],
+        "houses": [
+          16609,
+          27408,
+          29047,
+          25526,
+          25414,
+          25675,
+          34609,
+          9408,
+          11047,
+          7526,
+          7414,
+          7675
+        ],
+        "aspects": [
+          {
+            "a": 0,
+            "b": 2,
+            "t": "cnj",
+            "o": 0
+          },
+          {
+            "a": 0,
+            "b": 5,
+            "t": "opp",
+            "o": 0
+          },
+          {
+            "a": 0,
+            "b": 6,
+            "t": "semi-sextile",
+            "o": 0
+          },
+          {
+            "a": 0,
+            "b": 8,
+            "t": "tri",
+            "o": 0
+          },
+          {
+            "a": 0,
+            "b": 9,
+            "t": "sex",
+            "o": 0
+          },
+          {
+            "a": 1,
+            "b": 2,
+            "t": "sex",
+            "o": 0
+          },
+          {
+            "a": 1,
+            "b": 3,
+            "t": "sq",
+            "o": 0
+          },
+          {
+            "a": 1,
+            "b": 4,
+            "t": "semi-sextile",
+            "o": 0
+          },
+          {
+            "a": 1,
+            "b": 10,
+            "t": "sesquiquadrate",
+            "o": 0
+          },
+          {
+            "a": 1,
+            "b": 12,
+            "t": "sq",
+            "o": 0
+          },
+          {
+            "a": 2,
+            "b": 4,
+            "t": "sq",
+            "o": 0
+          },
+          {
+            "a": 2,
+            "b": 7,
+            "t": "sq",
+            "o": 0
+          },
+          {
+            "a": 3,
+            "b": 6,
+            "t": "sex",
+            "o": 0
+          },
+          {
+            "a": 3,
+            "b": 8,
+            "t": "sq",
+            "o": 0
+          },
+          {
+            "a": 3,
+            "b": 9,
+            "t": "semi-sextile",
+            "o": 0
+          },
+          {
+            "a": 3,
+            "b": 10,
+            "t": "tri",
+            "o": 0
+          },
+          {
+            "a": 4,
+            "b": 5,
+            "t": "qui",
+            "o": 0
+          },
+          {
+            "a": 4,
+            "b": 7,
+            "t": "opp",
+            "o": 0
+          },
+          {
+            "a": 4,
+            "b": 8,
+            "t": "sesquiquadrate",
+            "o": 0
+          },
+          {
+            "a": 5,
+            "b": 8,
+            "t": "sex",
+            "o": 0
+          },
+          {
+            "a": 5,
+            "b": 9,
+            "t": "tri",
+            "o": 0
+          },
+          {
+            "a": 5,
+            "b": 10,
+            "t": "semi-sextile",
+            "o": 0
+          },
+          {
+            "a": 6,
+            "b": 9,
+            "t": "sq",
+            "o": 0
+          },
+          {
+            "a": 6,
+            "b": 10,
+            "t": "opp",
+            "o": 0
+          },
+          {
+            "a": 6,
+            "b": 11,
+            "t": "sesquiquadrate",
+            "o": 0
+          },
+          {
+            "a": 7,
+            "b": 8,
+            "t": "semi-square",
+            "o": 0
+          },
+          {
+            "a": 8,
+            "b": 9,
+            "t": "sex",
+            "o": 0
+          },
+          {
+            "a": 8,
+            "b": 10,
+            "t": "semi-sextile",
+            "o": 0
+          },
+          {
+            "a": 9,
+            "b": 10,
+            "t": "sq",
+            "o": 0
+          },
+          {
+            "a": 10,
+            "b": 12,
+            "t": "sesquiquadrate",
+            "o": 0
+          }
+        ]
+      }
+    ]
+  },
+  "field": {
+    "_meta": {
+      "kind": "FIELD",
+      "schema": "wm-field-v1",
+      "_natal_ref": "map_1762027735164_8wmf6zep5",
+      "math_brain_version": "mb-2025.10.18",
+      "balance_meter_version": "5.0",
+      "ephemeris_source": "astrologer-api",
+      "orbs_profile": "wm-spec-2025-09",
+      "house_system": "Placidus",
+      "timezone_db_version": "IANA-2025a",
+      "relocation_mode": {
+        "applies": true,
+        "method": "A_local",
+        "coords": {
+          "latitude": 30.166666666666668,
+          "longitude": -85.66666666666667
+        },
+        "label": "Panama City, FL",
+        "timezone": "US/Central"
+      },
+      "angle_drift_alert": false,
+      "created_utc": "2025-11-01T20:08:55.165Z"
+    },
+    "keys": {
+      "asp": {
+        "cnj": 0,
+        "opp": 1,
+        "sq": 2,
+        "tri": 3,
+        "sex": 4,
+        "conjunction": 0,
+        "opposition": 1,
+        "square": 2,
+        "trine": 3,
+        "sextile": 4
+      }
+    },
+    "period": {
+      "s": "2025-11-01",
+      "e": "2025-11-01"
+    },
+    "daily": {
+      "2025-11-01": {
+        "tpos": [],
+        "thouse": [],
+        "as": [
+          [
+            0,
+            9,
+            1,
+            -25,
+            -43
+          ],
+          [
+            2,
+            5,
+            0,
+            41,
+            20
+          ],
+          [
+            3,
+            7,
+            2,
+            -64,
+            -33
+          ],
+          [
+            6,
+            8,
+            2,
+            -71,
+            -43
+          ],
+          [
+            9,
+            2,
+            4,
+            83,
+            20
+          ],
+          [
+            2,
+            3,
+            2,
+            -118,
+            -18
+          ],
+          [
+            2,
+            6,
+            3,
+            -118,
+            36
+          ],
+          [
+            0,
+            2,
+            3,
+            130,
+            13
+          ],
+          [
+            3,
+            4,
+            2,
+            -167,
+            -19
+          ],
+          [
+            8,
+            2,
+            0,
+            181,
+            -31
+          ],
+          [
+            9,
+            7,
+            3,
+            191,
+            23
+          ],
+          [
+            0,
+            8,
+            3,
+            192,
+            20
+          ],
+          [
+            9,
+            8,
+            1,
+            -239,
+            -42
+          ],
+          [
+            4,
+            3,
+            1,
+            -272,
+            -20
+          ]
+        ],
+        "meter": {
+          "mag_x10": 50,
+          "bias_x10": -50
+        },
+        "status": {
+          "pending": false,
+          "notes": []
+        }
+      }
+    },
+    "relational_summary": {
+      "personA_to_personB_bias": -5,
+      "personB_to_personA_bias": 0,
+      "combined_bias": -5,
+      "combined_bias_label": {
+        "value": -5,
+        "label": "Maximum Inward",
+        "emoji": "🔻",
+        "direction": "inward",
+        "band": [
+          -5,
+          -4
+        ],
+        "code": "max_inward",
+        "motion": "peak contraction; boundaries enforced strongly"
+      },
+      "volatility_index": 5,
+      "status_label": "high_volatility",
+      "summary_generated_at": "2025-11-01T20:08:55.164Z"
+    }
+  }
+}

@@ -6,7 +6,7 @@ This implementation adds a "Conversational" presentation style preference to Wov
 
 1. **Solo Mirrors** - Short, plain-language snapshots for each person
 2. **Relational Engines** - Structured, named patterns (Spark Engine, Sweet Glue, etc.)
-3. **Weather Overlay** - Continuous narrative form without lists or percentages
+3. **Symbolic Weather** - Continuous narrative form without lists or percentages
 
 ## How to Use
 
@@ -40,7 +40,7 @@ This implementation adds a "Conversational" presentation style preference to Wov
   - Creative Amplifier, Mirror Effect, Complementary Flow
 - Each engine shows mechanism and tendency
 
-**Weather Overlay:**
+**Symbolic Weather:**
 - Continuous narrative paragraphs
 - No bullet points, lists, or percentages
 - Climate descriptions rather than prescriptions

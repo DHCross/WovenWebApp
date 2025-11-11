@@ -32,7 +32,12 @@ jobs:
       run: npm run build:css
     
     - name: Run Playwright tests
-      run: npm run test:e2e
+      run: |
+        npx netlify dev --port 8888 --context dev &
+        NETLIFY_PID=$!
+        trap "kill $NETLIFY_PID" EXIT
+        npx wait-on --timeout 120000 http://127.0.0.1:8888
+        npm run test:e2e
       env:
         CI: true
         BASE_URL: http://localhost:8888

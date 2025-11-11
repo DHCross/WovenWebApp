@@ -1,0 +1,91 @@
+{
+  "$schema": "./light-ledger-schema.json",
+  "version": "1.0.0",
+  "generated": "2025-11-04",
+  "description": "SRP Light Ledger (LsG) - 144 blends of constructive resonance. Driver × Manner matrix (12×12). Phase 1 contains 8 sample blends for proof-of-concept.",
+  "blends": {
+    "1": {
+      "id": 1,
+      "driver": "Aries",
+      "driverVerb": "initiate",
+      "manner": "Aries",
+      "mannerVerb": "initiate",
+      "hingePhrase": "Fervent Flame: Initiating the Initiate",
+      "elementWeave": "Fire-Fire",
+      "sampleVoice": "Speaks in surges boldly, words Initiate Initiate that stir the core's rhythm like Fire-Fire weaves. Relates forthrightly with inspiring presence, motivated by initiates that initiate without fracture. Under strain, initiates surgesly, echoing Fervent Flame: Initiateing Initiate in quiet resolve.",
+      "auditNotes": "Pure cardinal fire; impulse meets impulse"
+    },
+    "2": {
+      "id": 2,
+      "driver": "Aries",
+      "driverVerb": "initiate",
+      "manner": "Taurus",
+      "mannerVerb": "stabilize",
+      "hingePhrase": "Grounded Blaze: Initiateing Stabilize",
+      "elementWeave": "Fire-Earth",
+      "sampleVoice": "Speaks in surges boldly, words Initiate Stabilize that stir the core's rhythm like Fire-Earth weaves. Relates loyally with protective anchors, motivated by initiates that stabilize without fracture. Under strain, stabilizes holdsly, echoing Grounded Blaze: Initiateing Stabilize in quiet resolve."
+    },
+    "5": {
+      "id": 5,
+      "driver": "Aries",
+      "driverVerb": "initiate",
+      "manner": "Leo",
+      "mannerVerb": "validate",
+      "hingePhrase": "Fervent Flame: Initiating Validation",
+      "elementWeave": "Fire-Fire",
+      "sampleVoice": "Speaks in surges boldly, words Initiate Validate that stir the core's rhythm like Fire-Fire weaves. Relates forthrightly with inspiring presence, motivated by initiates that validate without fracture. Under strain, validates holdsly, echoing Fervent Flame: Initiateing Validate in quiet resolve."
+    },
+    "9": {
+      "id": 9,
+      "driver": "Aries",
+      "driverVerb": "initiate",
+      "manner": "Sagittarius",
+      "mannerVerb": "inspire",
+      "hingePhrase": "Fervent Flame: Initiateing Inspire",
+      "elementWeave": "Fire-Fire",
+      "sampleVoice": "Speaks in surges boldly, words Initiate Inspire that stir the core's rhythm like Fire-Fire weaves. Relates forthrightly with inspiring presence, motivated by initiates that inspire without fracture. Under strain, inspires flowsly, echoing Fervent Flame: Initiateing Inspire in quiet resolve."
+    },
+    "14": {
+      "id": 14,
+      "driver": "Taurus",
+      "driverVerb": "stabilize",
+      "manner": "Taurus",
+      "mannerVerb": "stabilize",
+      "hingePhrase": "Solid Core: Stabilizeing Stabilize",
+      "elementWeave": "Earth-Earth",
+      "sampleVoice": "Speaks in holds steadfastly, words Stabilize Stabilize that stir the core's rhythm like Earth-Earth weaves. Relates loyally with protective anchors, motivated by stabilizes that stabilize without fracture. Under strain, stabilizes holdsly, echoing Solid Core: Stabilizeing Stabilize in quiet resolve.",
+      "auditNotes": "Pure fixed earth; endurance meets endurance"
+    },
+    "27": {
+      "id": 27,
+      "driver": "Gemini",
+      "driverVerb": "connect",
+      "manner": "Gemini",
+      "mannerVerb": "connect",
+      "hingePhrase": "Whirling Thought: Connecting Connect",
+      "elementWeave": "Air-Air",
+      "sampleVoice": "Speaks in flows adaptively, words Connect Connect that stir the core's rhythm like Air-Air weaves. Relates sociably with detached poise, motivated by connects that connect without fracture. Under strain, connects flowsly, echoing Whirling Thought: Connecting Connect in quiet resolve."
+    },
+    "40": {
+      "id": 40,
+      "driver": "Cancer",
+      "driverVerb": "nurture",
+      "manner": "Cancer",
+      "mannerVerb": "nurture",
+      "hingePhrase": "Oceanic Depth: Nurtureing Nurture",
+      "elementWeave": "Water-Water",
+      "sampleVoice": "Speaks in surges boldly, words Nurture Nurture that stir the core's rhythm like Water-Water weaves. Relates compassionately with private depths, motivated by nurtures that nurture without fracture. Under strain, nurtures surgesly, echoing Oceanic Depth: Nurtureing Nurture in quiet resolve."
+    },
+    "119": {
+      "id": 119,
+      "driver": "Capricorn",
+      "driverVerb": "architect",
+      "manner": "Aquarius",
+      "mannerVerb": "reform",
+      "hingePhrase": "Stable Breeze: Architecting Reform",
+      "elementWeave": "Earth-Air",
+      "sampleVoice": "Speaks in surges boldly, words Architect Reform that stir the core's rhythm like Earth-Air weaves. Relates sociably with detached poise, motivated by architects that reform without fracture. Under strain, reforms holdsly, echoing Stable Breeze: Architecting Reform in quiet resolve.",
+      "auditNotes": "Innovation meets structure; the Conductive Keep of PSS lore"
+    }
+  }
+}

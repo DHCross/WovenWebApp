@@ -61,40 +61,11 @@ export const scaleCoherenceFromVol = (volatilityNorm: number) => {
 
 const MINUS_SIGN = '−';
 
-export const scaleSFD = (sfdRaw: number | null, preScaled = false) => {
-  if (sfdRaw == null || Number.isNaN(sfdRaw)) {
-    return {
-      raw: null as number | null,
-      value: null as number | null,
-      display: 'n/a',
-      flags: { hitMin: false, hitMax: false } as ClampInfo,
-    };
-  }
-  const base = preScaled ? sfdRaw : sfdRaw * 10;
-  const [clamped, flags] = clamp(base, -1, 1);
-  const value = roundHalfUp(clamped, ROUND_2DP);
-  const formatted = value === 0
-    ? '0.00'
-    : value > 0
-      ? value.toFixed(2)
-      : `${MINUS_SIGN}${Math.abs(value).toFixed(2)}`;
-  return {
-    raw: base,
-    value,
-    display: formatted,
-    flags,
-  };
-};
-
 // Backwards-compatible helpers
 export const toUnipolarDisplay = (normalized: number): number => scaleUnipolar(normalized).value;
 export const toBipolarDisplay = (normalized: number): number => scaleBipolar(normalized).value;
 export const coherenceFromVolatility = (volatilityNorm: number): number =>
   scaleCoherenceFromVol(volatilityNorm).value;
-export const sfdValue = (raw: number | null, opts?: { preScaled?: boolean }): number | null =>
-  scaleSFD(raw, opts?.preScaled ?? false).value;
-export const sfdDisplay = (raw: number | null, opts?: { preScaled?: boolean }): string =>
-  scaleSFD(raw, opts?.preScaled ?? false).display;
 
 // Legacy label helpers
 export function getMagnitudeLabel(value: number): string {
@@ -117,17 +88,6 @@ export function getCoherenceLabel(value: number): string {
   if (value >= 2) return 'Stable';
   if (value >= 1) return 'Moderate';
   return 'Scattered';
-}
-
-export function getSFDLabel(value: number | null | string): string {
-  if (value === null || value === 'n/a') return 'n/a';
-  const numValue = typeof value === 'string' ? Number(value.replace(MINUS_SIGN, '-')) : value;
-  if (!Number.isFinite(numValue)) return 'n/a';
-  if (numValue >= 0.5) return 'Strong Cooperation';
-  if (numValue >= 0.1) return 'Mild Cooperation';
-  if (numValue >= -0.1) return 'Balanced';
-  if (numValue >= -0.5) return 'Mild Fragmentation';
-  return 'Strong Fragmentation';
 }
 
 // Convenience helper for modules needing simple clamp behavior

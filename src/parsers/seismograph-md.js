@@ -12,7 +12,6 @@
     if (s.includes('hook')) return 'hooks';
     // New Balance Meter format columns
     if (s === 'triple channel') return 'triple_channel';
-    if (s === 'sfd verdict') return 'sfd_verdict';
     if (s === 'top hooks') return 'hooks';
     return s;
   }
@@ -73,7 +72,7 @@
   }
 
   function parseTripleChannelData(tripleChannelText){
-    // Parse Balance Meter format: "⚡ 5.0 · Val 🌋 -10.9 · Bal 💎 +5.0 · stabilizers mixed (SFD +0.5; S+ 5.0/S− 4.5)"
+    // Parse Balance Meter format: "⚡ 5.0 · Val 🌋 -10.9 · Bal 💎 +5.0 · stabilizers mixed"
     const defaults = { magnitude: 0, valence: 0, balance: 0 };
     if (!tripleChannelText) return defaults;
     
@@ -151,4 +150,3 @@
 
   global.parseSeismographMarkdown = parseSeismographMarkdown;
 })(typeof window !== 'undefined' ? window : globalThis);
-

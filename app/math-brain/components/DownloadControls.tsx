@@ -1,23 +1,22 @@
-"use client";
-
-import HealthDataUpload from "../../../components/HealthDataUpload";
-import type { SeismographMap } from "../../../lib/health-data-types";
+'use client';
+import { SeismographData } from '@/lib/types/woven-map-blueprint';
+// import HealthDataUpload from './HealthDataUpload';
 
 interface DownloadControlsProps {
   includeTransits: boolean;
-  pdfGenerating: boolean;
-  markdownGenerating: boolean;
-  graphsPdfGenerating: boolean;
-  weatherJsonGenerating: boolean;
-  engineConfigGenerating: boolean;
   cleanJsonGenerating: boolean;
-  onDownloadPDF: () => void;
-  onDownloadMarkdown: () => void;
-  onDownloadSymbolicWeather: () => void;
-  onDownloadGraphsPDF: () => void;
-  onDownloadEngineConfig: () => void;
+  engineConfigGenerating: boolean;
+  graphsPdfGenerating: boolean;
+  markdownGenerating: boolean;
+  pdfGenerating: boolean;
+  weatherJsonGenerating: boolean;
   onDownloadCleanJSON: () => void;
-  seismographMap: SeismographMap;
+  onDownloadEngineConfig: () => void;
+  onDownloadGraphsPDF: () => void;
+  onDownloadMarkdown: () => void;
+  onDownloadPDF: () => void;
+  onDownloadSymbolicWeather: () => void;
+  seismographMap: SeismographData | null;
   authReady: boolean;
   isAuthenticated: boolean;
   canVisitPoetic: boolean;
@@ -26,18 +25,18 @@ interface DownloadControlsProps {
 
 export default function DownloadControls({
   includeTransits,
-  pdfGenerating,
-  markdownGenerating,
-  graphsPdfGenerating,
-  weatherJsonGenerating,
-  engineConfigGenerating,
   cleanJsonGenerating,
-  onDownloadPDF,
-  onDownloadMarkdown,
-  onDownloadSymbolicWeather,
-  onDownloadGraphsPDF,
-  onDownloadEngineConfig,
+  engineConfigGenerating,
+  graphsPdfGenerating,
+  markdownGenerating,
+  pdfGenerating,
+  weatherJsonGenerating,
   onDownloadCleanJSON,
+  onDownloadEngineConfig,
+  onDownloadGraphsPDF,
+  onDownloadMarkdown,
+  onDownloadPDF,
+  onDownloadSymbolicWeather,
   seismographMap,
   authReady,
   isAuthenticated,
@@ -199,7 +198,7 @@ export default function DownloadControls({
         </div>
       </details>
 
-      {includeTransits && hasSeismographData && (
+      {/* {includeTransits && hasSeismographData && (
         authReady ? (
           <HealthDataUpload seismographData={seismographMap} isAuthenticated={isAuthenticated} />
         ) : (
@@ -208,7 +207,7 @@ export default function DownloadControls({
             <span className="ml-1 animate-pulse">…</span>
           </div>
         )
-      )}
+      )} */}
 
       <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-700/50">
         <div className="text-xs text-slate-400">Ready for AI reading?</div>

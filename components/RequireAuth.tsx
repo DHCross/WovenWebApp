@@ -1,31 +1,16 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { getRedirectUri } from '../lib/auth';
-
-type Auth0Client = {
-  isAuthenticated: () => Promise<boolean>;
-  handleRedirectCallback: () => Promise<void>;
-  loginWithRedirect: (opts?: any) => Promise<void>;
-  getUser: () => Promise<any>;
-};
-
-declare global {
-  interface Window {
-    createAuth0Client?: (config: any) => Promise<Auth0Client>;
-    auth0?: {
-      createAuth0Client?: (config: any) => Promise<Auth0Client>;
-    };
-  }
-}
+import { getRedirectUri, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from '../lib/auth';
 
 const authEnabled = (() => {
   const raw = process.env.NEXT_PUBLIC_ENABLE_AUTH;
-  if (typeof raw !== 'string') return true;
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (typeof raw !== 'string') return isProduction;
   const normalized = raw.trim().toLowerCase();
-  if (normalized === '' || normalized === 'false' || normalized === '0') {
-    return false;
-  }
-  return true;
+  if (normalized === '') return isProduction;
+  if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'off'].includes(normalized)) return false;
+  return isProduction;
 })();
 
 export default function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -55,8 +40,12 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
 
         // Fetch Auth0 config from Netlify function
         const res = await fetch('/api/auth-config');
+        if (!res.ok) throw new Error(`Auth config failed: ${res.status}`);
         const config = await res.json();
-        if (!config?.domain || !config?.clientId) {
+        const domain = normalizeAuth0Domain(config?.domain);
+        const clientId = normalizeAuth0ClientId(config?.clientId);
+        const audience = normalizeAuth0Audience(config?.audience ?? null);
+        if (!domain || !clientId) {
           throw new Error('Invalid Auth0 config');
         }
 
@@ -67,17 +56,17 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
 
         const redirect_uri = getRedirectUri();
         const authorizationParams: Record<string, any> = { redirect_uri };
-        if (config.audience) {
-          authorizationParams.audience = config.audience;
+        if (audience) {
+          authorizationParams.audience = audience;
         }
         const client = await creator({
-          domain: (config.domain as string).replace(/^https?:\/\//, ''),
-          clientId: config.clientId,
+          domain,
+          clientId,
           cacheLocation: 'localstorage',
           useRefreshTokens: true,
           useRefreshTokensFallback: true,
           authorizationParams
-        } as any);
+        } as Auth0ClientOptions);
 
         // Handle callback if present
         const qs = window.location.search;

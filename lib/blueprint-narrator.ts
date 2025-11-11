@@ -6,7 +6,7 @@
  * constitutional modes that honor the specificity of their chart
  */
 
-import { callGemini } from './llm';
+import { callPerplexity } from './llm';
 
 interface ConstitutionalMode {
   function: string;
@@ -93,7 +93,7 @@ Do NOT use these phrases: "structured lattice", "flowing current", "steady found
 Output ONLY the metaphor, nothing else.`;
 
   try {
-    const metaphor = await callGemini(prompt, { model: 'gemini-1.5-flash' });
+    const metaphor = await callPerplexity(prompt, { model: 'sonar-pro' });
     return metaphor.trim();
   } catch (error) {
     console.error('Blueprint metaphor generation failed:', error);
@@ -148,7 +148,7 @@ Remember: This is BASELINE climate, not current weather. Keep it enduring and st
 Output only the paragraph, no title or preamble.`;
 
   try {
-    const narrative = await callGemini(prompt, { model: 'gemini-1.5-flash' });
+    const narrative = await callPerplexity(prompt, { model: 'sonar-pro' });
     return narrative.trim();
   } catch (error) {
     console.error('Blueprint narrative generation failed:', error);

@@ -14,8 +14,8 @@ The **Balance Meter** (also called "Symbolic Weather Seismograph") is the mathem
 
 | Axis | Range | Formula | Interpretation |
 |:-----|:------|:--------|:---------------|
-| **Magnitude** | [0, 5] | `norm × 50 → clamp([0, 5])` | Peak activity level (intensity) |
-| **Directional Bias** | [-5, +5] | `norm × 50 → clamp([-5, +5])` | Expansion (+) vs contraction (−) |
+| **Magnitude** | [0, 5] | `norm × 5 → clamp([0, 5])` | Peak activity level (intensity) |
+| **Directional Bias** | [-5, +5] | `norm × 5 → clamp([-5, +5])` | Expansion (+) vs contraction (−) |
 
 ### Internal Diagnostics Only
 
@@ -31,10 +31,71 @@ The **Balance Meter** (also called "Symbolic Weather Seismograph") is the mathem
 
 ---
 
+## Woven FIELD Chart (MANDATE)
+
+Summary
+- The Woven FIELD Chart is the canonical geometry for all symbolic-weather, Seismograph, and Balance Meter computations. It is produced by a full relocation: computing the chart (angles, houses, planetary positions) for a single space–time coordinate (the observer location/time).
+
+Key rule
+- Do not compute symbolic-weather or Balance Meter metrics from a "Transit Overlay" (hybrid) geometry. Transit Overlay is for visualization only and must not feed into the math pipeline.
+
+Computation pattern (canonical)
+1. Decide observer coordinates (either natal coords, chosen relocation coords, or current location).
+2. Request upstream chart(s) with houses included:
+   - `POST /api/v4/birth-chart` with `include_houses: true` for the subject anchored to the observer coords (relocated natal).
+   - `POST /api/v4/transit-chart` with `include_houses: true` for transit windows anchored to the same observer coords (relocated transits).
+3. Use returned houses/angles as canonical for FIELD calculations (set `provenance.house_engine = 'upstream'`).
+4. If upstream houses are missing, compute houses locally as an explicit fallback (`provenance.house_engine = 'local-swiss-ephemeris@x.y'`).
+5. Compute axes (magnitude, directional bias, and any remaining axes) from the unified geometry.
+
+Provenance example (fieldmap footer)
+
+```json
+{
+  "provenance": {
+    "schema": "BM-v5",
+    "house_system": "Placidus",
+    "orbs_profile": "wm-tight-2025-11-v5",
+    "relocation_mode": "A_local",
+    "relocation_coords": { "lat": 40.0167, "lng": -75.3 },
+    "house_engine": "astrologer.p.rapidapi.com@v4.0",
+    "has_transits": true,
+    "drivers_count": 3,
+    "house_shift_summary": [
+      { "num": 1, "delta_deg": -3.12 },
+      { "num": 2, "delta_deg": -1.04 },
+      ...
+    ],
+    "tz": "America/New_York",
+    "math_brain_version": "5.0",
+    "notes": ["FIELD Chart used: relocated natal + relocated transits; upstream houses used"]
+  }
+}
+```
+
+UI guardrail (developer guidance)
+- The UI must label any "overlay" exports or views clearly:
+  - `geometry: OVERLAY` (for hybrid UI-only visualizations)
+  - `geometry: FIELD` (for canonical math outputs)
+- The Balance Meter job runner must assert `provenance.house_engine !== 'missing_upstream'` before proceeding, and if it is, either re-request with `include_houses` or run the local-house fallback and stamp provenance accordingly.
+
+Migration note for legacy reports
+- Old reports generated with transit overlay/hybrid geometry will continue to exist in the archive, but we must avoid using them for statistical calibration. Flag them with `geometry: OVERLAY` and prefer re-running high-value items under the FIELD mandate.
+
+Testing checklist (quick)
+- FIELD happy path:
+  - Request relocation coords -> upstream returns houses -> provenance.house_engine === 'upstream' -> Balance Meter succeeds and outputs stable values.
+- Upstream missing houses:
+  - Adapter retries / fallback to swisseph -> provenance.house_engine === 'local-swiss-ephemeris@x.y' -> Balance Meter completes.
+- Overlay guard:
+  - UI Overlay option does not route to Balance Meter / Poetic Brain; only used for visualization and exports labeled `geometry: OVERLAY`.
+
+---
+
 ## Architecture (Single Source of Truth)
 
 ```
-lib/balance/constants.js (v5.0 spec: SCALE_FACTOR=50, SPEC_VERSION='5.0')
+lib/balance/constants.js (v5.0 spec: SCALE_FACTOR=5, SPEC_VERSION='5.0')
     ↓
 lib/balance/scale.ts (canonical scalers)
     ├─→ scaleBipolar(normalized)      [Directional Bias]
@@ -185,9 +246,9 @@ npm run test:vitest:run
 Y_amplified = Y_raw × (0.8 + 0.4 × magnitude)
 
 // Step 2: Normalize to [-1, +1] range
-Y_normalized = Y_amplified / 100
+Y_normalized = Y_amplified / 10
 
-// Step 3: Scale by ×50 to display range [-5, +5]
+// Step 3: Scale by ×5 to display range [-5, +5]
 biasScaled = scaleBipolar(Y_normalized)
 directional_bias = biasScaled.value  // Clamped & rounded
 ```
@@ -206,7 +267,7 @@ VI_normalized = min(0.1, VI / 100)
 
 // Invert: high volatility = low coherence
 coherenceScaled = scaleCoherenceFromVol(VI_normalized)
-coherence = coherenceScaled.value  // (5 - vol×50) → [0, 5]
+coherence = coherenceScaled.value  // (5 - vol×5) → [0, 5]
 ```
 
 ### Field Signature (v4.0)
@@ -259,6 +320,7 @@ fieldSignature = (direction/5) × (magnitude/5) × (coherence/5)
 
 | Version | Date | Changes |
 |:--------|:-----|:--------|
+| 5.0 | 2025-10-22 | **2-axis finalization:** Removed Coherence from public output, aligning all documentation and tests with the two-axis model. Resolved "Spec Fork" by unifying `spec.json` and `constants.js` under v5.0. |
 | 4.0 | 2025-10-09 | **3-axis simplification:** Removed SFD/Integration Bias; Balance Meter now Magnitude + Directional Bias + Coherence only |
 | 3.1 | 2025-01-21 | Dual-pipeline elimination, canonical scalers enforced |
 | 3.0 | 2025 | Initial v3 specification with SFD + Coherence (deprecated in v4.0) |

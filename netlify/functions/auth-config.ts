@@ -1,6 +1,6 @@
 // netlify/functions/auth-config.ts
 import type { Handler } from "@netlify/functions";
-import { CORS_HEADERS, json, noContent } from "./_shared";
+import { CORS_HEADERS, json, noContent } from "../lib/function-helpers";
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return noContent();
@@ -10,7 +10,7 @@ export const handler: Handler = async (event) => {
 
   const domain = process.env.AUTH0_DOMAIN;
   const clientId = process.env.AUTH0_CLIENT_ID;
-  const redirectUri = process.env.AUTH0_REDIRECT_URI || "http://localhost:8888/chat";
+  const redirectUri = process.env.AUTH0_REDIRECT_URI || "http://localhost:8888/math-brain";
 
   if (!domain || !clientId) {
     return json(500, { error: "Auth misconfiguration: AUTH0_DOMAIN/CLIENT_ID missing" });

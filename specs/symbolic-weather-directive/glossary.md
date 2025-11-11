@@ -22,7 +22,7 @@ Individual personality foundation: plain-language synthesis of natal chart showi
 **Relational Engines**
 Synastry dynamics: named patterns showing how two charts interact. Mechanisms + tendencies for where energies harmonize or create friction/growth pressure.
 
-**Symbolic Weather Overlay**
+**Symbolic Weather**
 Transit layer: current astrological climate activating natal/relational foundations. Presented as continuous narrative paragraphs describing "what's stirring right now."
 
 **Named Patterns**

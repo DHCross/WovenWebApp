@@ -1,23 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
-import { getRedirectUri } from '../../lib/auth';
-
-type Auth0Client = {
-  isAuthenticated: () => Promise<boolean>;
-  handleRedirectCallback: () => Promise<void>;
-  loginWithRedirect: (opts?: any) => Promise<void>;
-  getUser: () => Promise<any>;
-};
-
-declare global {
-  interface Window {
-    createAuth0Client?: (config: any) => Promise<Auth0Client>;
-    auth0?: {
-      createAuth0Client?: (config: any) => Promise<Auth0Client>;
-    };
-  }
-}
+import { getRedirectUri, getAuthConnection, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from '../../lib/auth';
+import { isAuthEnabled, getMockUser } from '../../lib/devAuth';
 
 export interface AuthState {
   authReady: boolean;
@@ -41,6 +26,16 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
   });
 
   const loginWithGoogle = async () => {
+    if (!isAuthEnabled) {
+      // In local dev, just set mock user
+      setAuthState(prev => ({
+        ...prev,
+        authed: true,
+        authStatus: { domain: 'local-dev', clientId: 'local-dev' },
+      }));
+      return;
+    }
+
     try {
       if (!authClientRef.current) {
         console.error("Auth client not ready.");
@@ -49,7 +44,7 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
       await authClientRef.current?.loginWithRedirect({
         authorizationParams: {
           redirect_uri: getRedirectUri(),
-          connection: "google-oauth2",
+          ...(getAuthConnection() ? { connection: getAuthConnection()! } : {}),
         },
       });
     } catch (e) {
@@ -58,6 +53,17 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
   };
 
   useEffect(() => {
+    // Skip auth in development with local auth disabled
+    if (!isAuthEnabled) {
+      setAuthState({
+        authReady: true,
+        authed: true,
+        authEnvOk: true,
+        authStatus: { domain: 'local-dev', clientId: 'local-dev' },
+      });
+      return;
+    }
+
     let cancelled = false;
 
     async function initAuth() {
@@ -85,13 +91,29 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
             }
             return;
           }
+          const normalizedDomain = normalizeAuth0Domain(config.domain);
+          const normalizedClientId = normalizeAuth0ClientId(config.clientId);
+          const normalizedAudience = normalizeAuth0Audience(config.audience ?? null);
+          if (!normalizedDomain || !normalizedClientId) {
+            if (!cancelled) {
+              setAuthState(prev => ({ ...prev, authEnvOk: false, authReady: true }));
+            }
+            return;
+          }
+
           if (!cancelled) {
             setAuthState(prev => ({
               ...prev,
-              authStatus: { domain: String(config.domain), clientId: String(config.clientId) },
+              authStatus: { domain: normalizedDomain, clientId: normalizedClientId },
               authEnvOk: true,
             }));
           }
+          config = {
+            ...config,
+            domain: normalizedDomain,
+            clientId: normalizedClientId,
+            audience: normalizedAudience,
+          };
         } catch (e) {
           if (!cancelled) {
             setAuthState(prev => ({ ...prev, authEnvOk: false, authReady: true }));
@@ -102,13 +124,21 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
         const creator = window.auth0?.createAuth0Client || window.createAuth0Client;
         if (typeof creator !== 'function') throw new Error('Auth0 SDK not available');
 
+        const domain = normalizeAuth0Domain(config.domain);
+        const clientId = normalizeAuth0ClientId(config.clientId);
+        const audience = normalizeAuth0Audience(config.audience ?? null);
+        if (!domain || !clientId) throw new Error('Auth0 config missing domain/clientId');
+
         // Add timeout to prevent hanging
         const client = await Promise.race([
           creator({
-            domain: String(config.domain).replace(/^https?:\/\//, ''),
-            clientId: config.clientId,
-            authorizationParams: { redirect_uri: getRedirectUri() },
-          }),
+            domain,
+            clientId,
+            authorizationParams: {
+              redirect_uri: getRedirectUri(),
+              ...(audience ? { audience } : {}),
+            },
+          } as Auth0ClientOptions),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Auth0 client creation timeout')), 10000)
           )

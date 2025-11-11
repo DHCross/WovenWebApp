@@ -55,3 +55,8 @@ specs/*/spec.pdf
 specs/*/manifest.yaml
 specs/*/index.html
 specs/*/api/*.json
+
+# Example exports (generated during testing)
+examples/*.json
+examples/*.md
+!examples/.keep

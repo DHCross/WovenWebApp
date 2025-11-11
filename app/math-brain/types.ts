@@ -36,6 +36,7 @@ export type Subject = {
   minute: number | string;
   city: string;
   state: string;
+  nation?: string;
   latitude: number | string;
   longitude: number | string;
   timezone: string;

@@ -1,24 +1,55 @@
 const fs = require('fs');
 const path = require('path');
 const { sanitizeForFilename } = require('../utils/sanitizeFilename.js');
+const { generateFrontstagePreface } = require('./frontstage-preface.js');
 
 /**
- * Creates a self-contained Markdown reading file from a unified JSON data object.
+ * Creates a self-contained Markdown reading from a unified JSON data object.
  * This is the final step (Stage 2) of the FIELD -> MAP -> VOICE pipeline.
- * 
- * @param {string} inputJsonPath - Path to the unified_output.json file (the "MAP").
+ *
+ * @param {string|object} input - Path to the unified_output.json file (the "MAP") or the parsed object itself.
+ * @param {object} options
+ * @param {boolean} [options.writeToFile=true] - When true, write the markdown to disk and return the path.
+ * @param {string} [options.outputDir] - Directory to write the file to (defaults to input file directory or cwd).
+ * @returns {string|{filename: string, content: string}} Path when writing to disk, otherwise an object with filename/content.
  */
-function createMarkdownReading(inputJsonPath) {
-  console.log(`[Formatter] Reading MAP data from: ${inputJsonPath}`);
+function createMarkdownReading(input, options = {}) {
+  const { writeToFile = true, outputDir } = options;
 
-  if (!fs.existsSync(inputJsonPath)) {
-    throw new Error(`Input JSON file not found at: ${inputJsonPath}`);
+  let data;
+  let baseDir = outputDir ? path.resolve(outputDir) : null;
+  let inputJsonPath = null;
+
+  if (typeof input === 'string') {
+    inputJsonPath = input;
+    baseDir = baseDir || path.dirname(inputJsonPath);
+    console.log(`[Formatter] Reading MAP data from: ${inputJsonPath}`);
+
+    if (!fs.existsSync(inputJsonPath)) {
+      throw new Error(`Input JSON file not found at: ${inputJsonPath}`);
+    }
+    data = JSON.parse(fs.readFileSync(inputJsonPath, 'utf8'));
+  } else if (input && typeof input === 'object') {
+    data = input;
+    if (!baseDir && writeToFile) {
+      baseDir = process.cwd();
+    }
+  } else {
+    throw new Error('createMarkdownReading expected a file path or data object');
   }
-  const data = JSON.parse(fs.readFileSync(inputJsonPath, 'utf8'));
 
   const { run_metadata, daily_entries } = data;
 
   let markdownContent = '';
+
+  // --- Generate Frontstage Preface ---
+  const preface = generateFrontstagePreface(
+    run_metadata?.person_a,
+    run_metadata?.person_b,
+    data.person_a?.chart,
+    data.person_b?.chart
+  );
+  markdownContent += preface;
 
   // --- Generate Markdown for each day ---
   for (const day of daily_entries) {
@@ -32,13 +63,8 @@ function createMarkdownReading(inputJsonPath) {
     markdownContent += '#### Symbolic Weather\n';
     markdownContent += `- **Magnitude**: ${day.symbolic_weather.magnitude} (${day.symbolic_weather.labels.magnitude})\n`;
     markdownContent += `- **Directional Bias**: ${day.symbolic_weather.directional_bias} (${day.symbolic_weather.labels.directional_bias})\n`;
+    markdownContent += `- **Schema**: BM-v5.0\n`;
     
-    // Volatility is deprecated in v5.0, but we include it for historical context
-    const volatility = day.symbolic_weather.volatility !== undefined ? day.symbolic_weather.volatility : 'N/A';
-    const volatilityLabel = day.symbolic_weather.labels.volatility || 'N/A';
-    if (volatility !== 'N/A') {
-      markdownContent += `- **Volatility** (deprecated): ${volatility} (${volatilityLabel})\n`;
-    }
     markdownContent += '\n';
 
     // 2. Mirror Data
@@ -79,11 +105,18 @@ function createMarkdownReading(inputJsonPath) {
   const safeEnd = sanitizeForFilename(dateRange[1], dateRange[0] ? 'end' : 'start');
 
   const outputFileName = `Woven_Reading_${safePersonA}_${safePersonB}_${safeStart}_to_${safeEnd}.md`;
-  const outputPath = path.join(path.dirname(inputJsonPath), outputFileName);
-  fs.writeFileSync(outputPath, markdownContent);
-  console.log(`[Formatter] Success! Formatted Markdown reading written to: ${outputPath}`);
+  if (writeToFile) {
+    const targetDir = baseDir || process.cwd();
+    const outputPath = path.join(targetDir, outputFileName);
+    fs.writeFileSync(outputPath, markdownContent);
+    console.log(`[Formatter] Success! Formatted Markdown reading written to: ${outputPath}`);
+    return outputPath;
+  }
 
-  return outputPath;
+  return {
+    filename: outputFileName,
+    content: markdownContent,
+  };
 }
 
 // --- Main Execution Block ---

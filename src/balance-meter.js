@@ -2,7 +2,7 @@
 // Balance Channel (v1.1) + Support–Friction Differential (SFD, v1.2)
 // Standalone computation based on "Balance Meter.txt" spec (v1.2 Draft, Sep 5, 2025)
 
-const { getEffectiveOrb, isWithinOrb } = require('../lib/config/orb-profiles');
+const { getEffectiveOrb, isWithinOrb } = require('./lib/config/orb-profiles');
 
 function clamp(n, lo, hi){ return Math.max(lo, Math.min(hi, n)); }
 function round(n, p=2){ return Math.round(n * (10**p)) / (10**p); }
@@ -166,105 +166,6 @@ function computeBalanceValence(dayAspects, orbsProfile = 'wm-spec-2025-09'){
   return round(5 * Math.tanh(v / K), 2);
 }
 
-// Core SFD computation (v1.2)
-function computeSFD(dayAspects, orbsProfile = 'wm-spec-2025-09'){
-  if (!Array.isArray(dayAspects)) return { SFD: 0, Splus: 0, Sminus: 0 };
-
-  let support = 0;
-  let counter = 0;
-  const supportNodes = new Set();
-
-  // First pass: collect S+ and nodes
-  for (const rec of dayAspects){
-    const type = normAspectName(rec.aspect || rec.type || rec._aspect);
-    const a = normBody(rec.p1_name || rec.a || rec.transit);
-    const b = normBody(rec.p2_name || rec.b || rec.natal);
-    const orb = rec.orb != null ? rec.orb : (rec.orbit != null ? rec.orbit : rec._orb);
-
-    let base = baseSupportWeight(type, a,b);
-    if (isMoonSaturnSoft(type, a,b)) base = Math.max(base, 1.2);
-    if (isMinorSupport(type) && Math.abs(orb) <= 1.0) base = Math.max(base, 0.5);
-
-    if (base > 0){
-      const mA = planetMultiplier(a, 'support');
-      const mB = planetMultiplier(b, 'support');
-      const o = orbMultiplier(type, orb, a, b, orbsProfile);
-      const s = sensitivity(a,b);
-      const w = base * mA * mB * o * s;
-      support += Math.max(w, 0);
-      supportNodes.add(a); supportNodes.add(b);
-    }
-  }
-
-  const touched = (a,b)=> supportNodes.has(a) || supportNodes.has(b);
-
-  // Second pass: collect S−
-  for (const rec of dayAspects){
-    const type = normAspectName(rec.aspect || rec.type || rec._aspect);
-    const a = normBody(rec.p1_name || rec.a || rec.transit);
-    const b = normBody(rec.p2_name || rec.b || rec.natal);
-    const orb = rec.orb != null ? rec.orb : (rec.orbit != null ? rec.orbit : rec._orb);
-
-    let base = 0;
-    // base negatives
-    base = Math.min(base, baseCounterWeight(type, a,b));
-
-    // Hard aspects to S+ nodes by Saturn/Mars/Neptune → negative
-    const hard = (type==='square' || type==='opposition');
-    const SplusNodes = new Set([...supportNodes]);
-    if (hard && (a==='Saturn' || a==='Mars' || a==='Neptune' || b==='Saturn' || b==='Mars' || b==='Neptune') && (SplusNodes.has(a) || SplusNodes.has(b))){
-      base = Math.min(base, -1.1); // conservative default
-    }
-    // Sat/Nept hard to Moon/Mercury when Moon/Mercury in S+
-    const specialTargets = new Set(['Moon','Mercury']);
-    if (hard && (a==='Saturn' || a==='Neptune' || b==='Saturn' || b==='Neptune') && (specialTargets.has(a) || specialTargets.has(b)) && (SplusNodes.has('Moon') || SplusNodes.has('Mercury'))){
-      base = Math.min(base, -1.1);
-    }
-    // Mars hard to Ven/Jup
-    if (hard && (a==='Mars' || b==='Mars') && (a==='Venus' || a==='Jupiter' || b==='Venus' || b==='Jupiter')){
-      base = Math.min(base, -1.2);
-    }
-    // Saturn hard to Venus
-    if (hard && (a==='Saturn' || b==='Saturn') && (a==='Venus' || b==='Venus')){
-      base = Math.min(base, -1.1);
-    }
-
-    if (base < 0){
-      const mA = planetMultiplier(a, 'counter');
-      const mB = planetMultiplier(b, 'counter');
-      const o = orbMultiplier(type, orb, a, b, orbsProfile);
-      const s = sensitivity(a,b);
-      let w = Math.abs(base) * mA * mB * o * s;
-      if (!touched(a,b)) w *= 0.7; // locality factor if not touching S+ nodes
-      counter += Math.max(w, 0);
-    }
-  }
-
-  // SFD v1.3: Ratio-difference formula per Raven Calder diagnostic
-  // (Support - Friction) / (Support + Friction) on [-1, +1] scale
-  const total = support + counter;
-
-  if (total === 0 || !Number.isFinite(total)) {
-    // No aspects: return null for SFD (show "n/a"), keep Splus/Sminus for backstage
-    const K = 4.0;
-    const Splus  = +(5 * Math.tanh(support / K)).toFixed(2);
-    const Sminus = +(5 * Math.tanh(counter / K)).toFixed(2);
-    return { SFD: null, Splus, Sminus };
-  }
-
-  const rawSFD = (support - counter) / total;
-  const SFD = round(clamp(rawSFD, -1, 1), 2);
-
-  // Keep Splus/Sminus for backstage debugging (tanh-normalized 0-5)
-  const K = 4.0;
-  const Splus  = +(5 * Math.tanh(support / K)).toFixed(2);
-  const Sminus = +(5 * Math.tanh(counter / K)).toFixed(2);
-
-  return { SFD, Splus, Sminus };
-}
-
 module.exports = {
-  computeSFD,
   computeBalanceValence
 };
-

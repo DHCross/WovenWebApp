@@ -9,8 +9,23 @@ export interface SSTProbe {
   committedAt?: string; // ISO timestamp when committed
 }
 
+export interface SessionTurn {
+  role: 'user' | 'raven';
+  content: string;
+  createdAt: string;
+}
+
+export interface SessionSuggestion {
+  text: string;
+  acknowledged?: boolean;
+  createdAt: string;
+}
+
 export interface SessionSSTLog {
   probes: SSTProbe[];
+  turnCount?: number;
+  history?: SessionTurn[];
+  suggestions?: SessionSuggestion[];
 }
 
 export interface SessionScores {

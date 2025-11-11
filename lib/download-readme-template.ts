@@ -58,11 +58,11 @@ ${params.includesTransits ? `3. Graphs PDF (if Balance Meter)
 
 These files are designed for:
 
-✅ Gemini GEM (Google AI Studio)
-   Upload the PDF to create a custom Raven Calder instance
+✅ Perplexity API (Woven Web App)
+   The in-app Poetic Brain uses Perplexity for narrative generation
 
-✅ Poetic Brain (Woven Web App)
-   The in-app AI already has access to this data structure
+✅ Custom GPT (ChatGPT)
+   Upload the PDF to create a custom Raven Calder instance
 
 ✅ Custom GPT (ChatGPT)
    Upload the PDF to provide chart context for analysis

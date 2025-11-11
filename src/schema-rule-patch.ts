@@ -51,7 +51,7 @@ export const ContractSchema = z.object({
   backstage: BackstageSchema.optional()
 });
 
-// Balance/SFD fields that should be stripped in natal-only mode
+// Balance fields that should be stripped in natal-only mode
 const BALANCE_FIELDS = [
   'indices',
   'days',

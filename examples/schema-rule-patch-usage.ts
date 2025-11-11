@@ -3,6 +3,29 @@
 import { ContractLinter, lintAndFixPayload } from '../src/contract-linter';
 import { renderFrontstage } from '../src/frontstage-renderer';
 import { renderShareableMirror } from '../lib/raven/render';
+import { OPERATIONAL_FLOW } from '../lib/poetic-brain/runtime';
+
+const DEMO_GEOMETRY: any = {
+  placements: [
+    { body: 'Sun', sign: 'Leo', degree: 15, house: 1 },
+    { body: 'Moon', sign: 'Scorpio', degree: 22, house: 4 },
+    { body: 'Ascendant', sign: 'Sagittarius', degree: 5, house: 1 },
+  ],
+  aspects: [
+    { from: 'Sun', to: 'Moon', type: 'Square', orb: 3.0 },
+  ],
+  summary: {
+    elementTotals: { Fire: 1, Earth: 0, Air: 0, Water: 1 },
+    modalityTotals: { Cardinal: 0, Fixed: 2, Mutable: 0 },
+    dominantElement: 'Fire',
+    dominantModality: 'Fixed',
+    luminaries: { sun: 'Leo', moon: 'Scorpio', ascendant: 'Sagittarius' },
+    retrogradeBodies: [],
+  },
+  snippet: 'Sun 15° Leo · Moon 22° Scorpio',
+  raw: 'Demo geometry payload',
+  normalizedFrom: { placements: [], aspects: [], snippet: '', raw: '' },
+};
 
 // Example 1: Natal-Only Mode (what the user wanted)
 export async function exampleNatalOnly() {
@@ -45,10 +68,15 @@ export async function exampleNatalOnly() {
 
   // Step 3: Full render using updated renderShareableMirror
   const fullRender = await renderShareableMirror({
-    geo: null,
+    geo: DEMO_GEOMETRY,
     prov: { source: 'example' },
     mode: 'natal-only',
-    options: cleanPayload
+    options: {
+      ...cleanPayload,
+      geometryValidated: true,
+      operationalFlow: OPERATIONAL_FLOW,
+      operational_flow: OPERATIONAL_FLOW,
+    },
   });
 
   console.log('\nFull Mirror Output:');
@@ -105,10 +133,15 @@ export async function exampleBalanceMode() {
 
   // Step 3: Full render
   const fullRender = await renderShareableMirror({
-    geo: null,
+    geo: DEMO_GEOMETRY,
     prov: { source: 'example' },
     mode: 'balance',
-    options: cleanPayload
+    options: {
+      ...cleanPayload,
+      geometryValidated: true,
+      operationalFlow: OPERATIONAL_FLOW,
+      operational_flow: OPERATIONAL_FLOW,
+    },
   });
 
   console.log('\nFull Mirror Output:');
@@ -192,10 +225,15 @@ export async function exampleIntegration() {
 
   // Show what gets rendered
   const rendered = await renderShareableMirror({
-    geo: null,
+    geo: DEMO_GEOMETRY,
     prov: { source: 'integration-demo' },
     mode: processed.mode as any,
-    options: processed
+    options: {
+      ...processed,
+      geometryValidated: true,
+      operationalFlow: OPERATIONAL_FLOW,
+      operational_flow: OPERATIONAL_FLOW,
+    },
   });
 
   console.log('\nFinal rendered result keys:', Object.keys(rendered));

@@ -8,10 +8,9 @@ import {
   toBipolarDisplay,
   toUnipolarDisplay,
   coherenceFromVolatility,
-  sfdValue,
 } from './balance/scale';
 
-export { getMagnitudeLabel, getDirectionalBiasLabel, getCoherenceLabel, getSFDLabel } from './balance/scale';
+export { getMagnitudeLabel, getDirectionalBiasLabel, getCoherenceLabel } from './balance/scale';
 
 export type ScaleMode = "absolute_x5";
 export const SCALE_MODE: ScaleMode = "absolute_x5";
@@ -64,13 +63,3 @@ export function toCoherence(normVolatility: number, mode: ScaleMode = SCALE_MODE
   return round1(clampValue(coherence, 0, 5));
 }
 
-/**
- * SFD (−1.00..+1.00) = (Support − Friction) / (Support + Friction)
- * Pass summed weights already filtered by aspect category; return "null" when undefined.
- */
-export function computeSFD(supportSum: number, frictionSum: number): number | null {
-  const denom = supportSum + frictionSum;
-  if (!isFinite(denom) || Math.abs(denom) < 1e-9) return null; // n/a: no drivers
-  const raw = (supportSum - frictionSum) / denom;
-  return sfdValue(raw, { preScaled: true });
-}

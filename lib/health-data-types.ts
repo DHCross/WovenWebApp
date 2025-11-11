@@ -101,7 +101,7 @@ export interface SeismographDay {
   valence?: number; // -5 to +5 (or valence_bounded)
   valence_bounded?: number; // -5 to +5
   volatility: number; // 0-5
-  sfd?: number; // Symbolic Friction Density
+  // sfd removed (deprecated)
   coherence?: number; // Narrative coherence 0-5
   [key: string]: any;
 }

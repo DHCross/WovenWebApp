@@ -1,9 +1,8 @@
 {
-  "spec_version": "3.1",
+  "spec_version": "5.0",
   "scaling_mode": "absolute",
   "scale_factor": 5,
   "pipeline": "normalize→scale→clamp→round",
-  "coherence_inversion": true,
   "ranges": {
     "magnitude": {
       "min": 0,
@@ -12,11 +11,6 @@
     },
     "directional_bias": {
       "min": -5,
-      "max": 5,
-      "decimals": 1
-    },
-    "coherence": {
-      "min": 0,
       "max": 5,
       "decimals": 1
     }

@@ -85,7 +85,7 @@ export interface SymbolicSeismographProps {
  * - Top panel: Directional Bias (-5 to +5) with zero-line
  * - Bottom panel: Magnitude (0 to 5)
  *
- * Optional: Coherence and SFD can be shown as badges or overlays
+ * Optional: Coherence can be shown as a badge or overlay
  */
 export default function SymbolicSeismograph({
   data: initialData,
@@ -220,7 +220,10 @@ export default function SymbolicSeismograph({
           tooltip: {
             callbacks: {
               label: (ctx) => {
-                const val = ctx.parsed.y;
+                const val = ctx.parsed?.y;
+                if (typeof val !== 'number') {
+                  return 'Bias: 0.00 (neutral balance)';
+                }
                 let motion = 'neutral balance';
                 if (val > 0) motion = 'expansion (outward)';
                 else if (val < 0) motion = 'contraction (inward)';
@@ -287,7 +290,10 @@ export default function SymbolicSeismograph({
           tooltip: {
             callbacks: {
               label: (ctx) => {
-                const val = ctx.parsed.y;
+                const val = ctx.parsed?.y;
+                if (typeof val !== 'number') {
+                  return 'Magnitude: 0.00 (latent)';
+                }
                 let intensity = 'latent';
                 if (val >= 4) intensity = 'peak storm';
                 else if (val >= 2) intensity = 'noticeable';
@@ -455,7 +461,7 @@ export default function SymbolicSeismograph({
 
       {/* Data Point Count */}
       <div className="text-center text-xs text-slate-500">
-        {data.length} data point{data.length !== 1 ? 's' : ''} • Schema: BM-v3
+        {data.length} data point{data.length !== 1 ? 's' : ''} • Schema: BM-v5.0
       </div>
     </div>
   );

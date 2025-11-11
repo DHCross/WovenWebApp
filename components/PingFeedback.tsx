@@ -1,8 +1,9 @@
 "use client";
-import React, { useState } from 'react';
 
-export type PingResponse = 'yes' | 'no' | 'maybe' | 'unclear';
-export type CheckpointType = 'hook' | 'vector' | 'aspect' | 'general' | 'repair';
+import React, { useMemo, useState } from "react";
+
+export type PingResponse = "yes" | "no" | "maybe" | "unclear";
+export type CheckpointType = "hook" | "vector" | "aspect" | "general" | "repair";
 
 interface PingFeedbackProps {
   messageId: string;
@@ -11,249 +12,170 @@ interface PingFeedbackProps {
   checkpointType?: CheckpointType;
 }
 
-const PingFeedback: React.FC<PingFeedbackProps> = ({ messageId, onFeedback, disabled = false, checkpointType = 'general' }) => {
+type ResonanceOption = {
+  id: PingResponse;
+  label: string;
+  caption: string;
+  icon: string;
+  accentClasses: string;
+};
+
+const RESONANCE_OPTIONS: ResonanceOption[] = [
+  {
+    id: "yes",
+    label: "Strong Resonance",
+    caption: "Lands clearly and feels vivid right now.",
+    icon: "✅",
+    accentClasses:
+      "border-emerald-400/70 bg-emerald-500/10 text-emerald-200 shadow-[0_0_22px_rgba(16,185,129,0.25)]",
+  },
+  {
+    id: "maybe",
+    label: "Partial Resonance",
+    caption: "Some of it fits; tone or timing feels slightly off.",
+    icon: "⚪",
+    accentClasses:
+      "border-amber-400/70 bg-amber-500/10 text-amber-200 shadow-[0_0_22px_rgba(245,158,11,0.25)]",
+  },
+  {
+    id: "no",
+    label: "No Resonance",
+    caption: "Doesn’t connect with what’s happening right now.",
+    icon: "❌",
+    accentClasses:
+      "border-slate-500/70 bg-slate-800/60 text-slate-200 shadow-[0_0_22px_rgba(148,163,184,0.25)]",
+  },
+];
+
+const ACKNOWLEDGEMENTS: Record<PingResponse, string> = {
+  yes: "Noted — this one resonated strongly.",
+  maybe: "Logged as partial resonance. I’ll keep refining the mirror.",
+  no: "Marked as no resonance. I’ll adjust course on the next pass.",
+  unclear:
+    "Logged as unclear resonance. I’ll restate it with plainer language and check again.",
+};
+
+const NOTE_PLACEHOLDER =
+  "Optional: share what missed the mark so Raven can refine the repair.";
+
+const PingFeedback: React.FC<PingFeedbackProps> = ({
+  messageId,
+  onFeedback,
+  disabled = false,
+  checkpointType = "general",
+}) => {
   const [selectedResponse, setSelectedResponse] = useState<PingResponse | null>(null);
-  const [note, setNote] = useState('');
-  const [showNote, setShowNote] = useState(false);
+  const [note, setNote] = useState<string>("");
+  const [noteTouched, setNoteTouched] = useState(false);
 
-  const getCheckpointLabel = (type: CheckpointType) => {
-    switch (type) {
-      case 'hook': return 'Does this Hook Stack recognition resonate?';
-      case 'vector': return 'Does this hidden push/counterweight feel accurate?';
-      case 'aspect': return 'Does this high-voltage pattern ring true?';
-      case 'repair': return 'Does this repair feel true to your experience?';
-      default: return 'Does any of this feel familiar?';
+  const promptText = useMemo(() => {
+    switch (checkpointType) {
+      case "hook":
+        return "How does this recognition land for you?";
+      case "vector":
+        return "Does this hidden push or counterweight echo your experience?";
+      case "aspect":
+        return "Does this high-voltage pattern resonate with what you feel?";
+      case "repair":
+        return "Does this repair feel true in your system?";
+      default:
+        return "How does this one land for you?";
     }
-  };
+  }, [checkpointType]);
 
-  const handleResponse = (response: PingResponse) => {
+  const handleSelect = (response: PingResponse) => {
+    if (disabled) return;
     setSelectedResponse(response);
-    onFeedback(messageId, response, note || undefined);
-    
-    // Show note field for "no" or "unclear" responses
-    if (response === 'no' || response === 'unclear') {
-      setShowNote(true);
+    const noteValue = response === "no" ? note.trim() : undefined;
+    onFeedback(messageId, response, noteValue);
+    if (response !== "no") {
+      setNote("");
+      setNoteTouched(false);
     }
   };
 
-  const handleNoteSubmit = () => {
-    if (selectedResponse) {
-      onFeedback(messageId, selectedResponse, note || undefined);
-      setShowNote(false);
+  const handleNoteBlur = () => {
+    setNoteTouched(true);
+    if (selectedResponse === "no") {
+      const trimmed = note.trim();
+      onFeedback(messageId, "no", trimmed || undefined);
     }
   };
 
   if (disabled) {
     return (
-      <div className="ping-feedback-disabled">
-        <span className="feedback-label">✓ Feedback recorded</span>
+      <div className="rounded-md border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+        Resonance recorded.
       </div>
     );
   }
 
   return (
-    <div className="ping-feedback">
-      <div className="feedback-header">
-        <span className="feedback-label">{getCheckpointLabel(checkpointType)}</span>
-      </div>
-      
-      <div className="feedback-options">
-        <button
-          className={`feedback-btn yes ${selectedResponse === 'yes' ? 'selected' : ''}`}
-          onClick={() => handleResponse('yes')}
-          disabled={!!selectedResponse}
-        >
-          <span className="feedback-icon">✓</span>
-          <span className="feedback-text">Yes, resonates</span>
-        </button>
-        
-        <button
-          className={`feedback-btn maybe ${selectedResponse === 'maybe' ? 'selected' : ''}`}
-          onClick={() => handleResponse('maybe')}
-          disabled={!!selectedResponse}
-        >
-          <span className="feedback-icon">~</span>
-          <span className="feedback-text">Partly/Maybe</span>
-        </button>
-        
-        <button
-          className={`feedback-btn no ${selectedResponse === 'no' ? 'selected' : ''}`}
-          onClick={() => handleResponse('no')}
-          disabled={!!selectedResponse}
-        >
-          <span className="feedback-icon">✗</span>
-          <span className="feedback-text">No, doesn't fit</span>
-        </button>
-        
-        <button
-          className={`feedback-btn unclear ${selectedResponse === 'unclear' ? 'selected' : ''}`}
-          onClick={() => handleResponse('unclear')}
-          disabled={!!selectedResponse}
-        >
-          <span className="feedback-icon">?</span>
-          <span className="feedback-text">Unclear/Confusing</span>
-        </button>
+    <div className="rounded-2xl border border-slate-700/60 bg-slate-900/60 p-4 shadow-inner shadow-black/20">
+      <p className="text-sm font-medium uppercase tracking-[0.25em] text-slate-400">
+        {promptText}
+      </p>
+
+      <div className="mt-4 flex flex-col gap-3">
+        {RESONANCE_OPTIONS.map((option) => {
+          const isActive = selectedResponse === option.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => handleSelect(option.id)}
+              className={`flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left transition duration-200 ${
+                isActive
+                  ? option.accentClasses
+                  : "border-slate-700/60 bg-slate-950/40 text-slate-200 hover:border-slate-500/70 hover:bg-slate-900/60"
+              }`}
+            >
+              <span className="text-lg">{option.icon}</span>
+              <span className="flex-1">
+                <span className="block text-sm font-semibold tracking-wide">
+                  {option.label}
+                </span>
+                <span className="mt-1 block text-xs text-slate-300">
+                  {option.caption}
+                </span>
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      {showNote && (
-        <div className="feedback-note">
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Optional: What specifically didn't resonate or was unclear?"
-            className="note-input"
-            rows={2}
-          />
-          <button onClick={handleNoteSubmit} className="note-submit">
-            Submit feedback
-          </button>
+      {selectedResponse && (
+        <div className="mt-4 space-y-3 text-sm text-slate-200">
+          <p className="rounded-lg border border-slate-700/60 bg-slate-900/70 px-3 py-2 text-xs text-slate-300">
+            {ACKNOWLEDGEMENTS[selectedResponse]}
+          </p>
+          {selectedResponse === "no" && (
+            <div>
+              <label htmlFor={`resonance-note-${messageId}`} className="block text-xs uppercase tracking-[0.2em] text-slate-500">
+                Want to add context?
+              </label>
+              <textarea
+                id={`resonance-note-${messageId}`}
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                onBlur={handleNoteBlur}
+                rows={2}
+                placeholder={NOTE_PLACEHOLDER}
+                className="mt-2 w-full rounded-lg border border-slate-700/60 bg-slate-950/60 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:border-emerald-400/70 focus:outline-none focus:ring-1 focus:ring-emerald-400/50"
+              />
+              {noteTouched && !note.trim() && (
+                <p className="mt-1 text-xs text-slate-500">
+                  Skipping the note is fine — the resonance tag is already recorded.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      <style jsx>{`
-        .ping-feedback {
-          margin: 16px 0;
-          padding: 16px;
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-          font-family: 'Inter', sans-serif;
-        }
-
-        .ping-feedback-disabled {
-          margin: 8px 0;
-          padding: 8px 12px;
-          background: rgba(0, 255, 0, 0.1);
-          border: 1px solid rgba(0, 255, 0, 0.2);
-          border-radius: 6px;
-          font-size: 12px;
-          color: #4ade80;
-        }
-
-        .feedback-header {
-          margin-bottom: 12px;
-        }
-
-        .feedback-label {
-          font-size: 14px;
-          font-weight: 500;
-          color: #e5e7eb;
-          font-style: italic;
-        }
-
-        .feedback-options {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-
-        .feedback-btn {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px 12px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 6px;
-          color: #d1d5db;
-          font-size: 12px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          min-width: 100px;
-        }
-
-        .feedback-btn:hover:not(:disabled) {
-          background: rgba(255, 255, 255, 0.1);
-          border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .feedback-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .feedback-btn.selected {
-          background: rgba(59, 130, 246, 0.2);
-          border-color: #3b82f6;
-          color: #93c5fd;
-        }
-
-        .feedback-btn.yes.selected {
-          background: rgba(34, 197, 94, 0.2);
-          border-color: #22c55e;
-          color: #86efac;
-        }
-
-        .feedback-btn.no.selected {
-          background: rgba(239, 68, 68, 0.2);
-          border-color: #ef4444;
-          color: #fca5a5;
-        }
-
-        .feedback-btn.maybe.selected {
-          background: rgba(245, 158, 11, 0.2);
-          border-color: #f59e0b;
-          color: #fcd34d;
-        }
-
-        .feedback-btn.unclear.selected {
-          background: rgba(139, 92, 246, 0.2);
-          border-color: #8b5cf6;
-          color: #c4b5fd;
-        }
-
-        .feedback-icon {
-          font-weight: bold;
-          font-size: 14px;
-        }
-
-        .feedback-text {
-          font-weight: 400;
-        }
-
-        .feedback-note {
-          margin-top: 12px;
-          padding-top: 12px;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .note-input {
-          width: 100%;
-          padding: 8px 12px;
-          background: rgba(0, 0, 0, 0.3);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 6px;
-          color: #e5e7eb;
-          font-size: 12px;
-          font-family: 'Inter', sans-serif;
-          resize: vertical;
-          margin-bottom: 8px;
-        }
-
-        .note-input:focus {
-          outline: none;
-          border-color: #3b82f6;
-        }
-
-        .note-input::placeholder {
-          color: #6b7280;
-        }
-
-        .note-submit {
-          padding: 6px 12px;
-          background: #3b82f6;
-          border: none;
-          border-radius: 4px;
-          color: white;
-          font-size: 11px;
-          cursor: pointer;
-          font-family: 'Inter', sans-serif;
-        }
-
-        .note-submit:hover {
-          background: #2563eb;
-        }
-      `}</style>
+      <p className="mt-4 text-xs text-slate-500">
+        You can leave this reflection untagged if it felt more like a statement than a question.
+      </p>
     </div>
   );
 };

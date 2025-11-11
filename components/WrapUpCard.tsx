@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ActorRoleDetector, { ActorRoleComposite } from '../lib/actor-role-detector';
 import { pingTracker } from '../lib/ping-tracker';
 import { sanitizeForPDF } from '../src/pdf-sanitizer';
@@ -27,9 +27,15 @@ interface WrapUpCardProps {
   sessionId?: string;
   onClose?: () => void;
   onSealed?: (sealedSessionId: string, nextSessionId: string) => void;
+  exportData?: any;
+  onExportClearMirror?: (sessionDiagnostics?: {
+    actorRoleComposite?: any;
+    sessionStats?: any;
+    rubricScores?: any;
+  }) => void;
 }
 
-const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed }) => {
+const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, exportData, onExportClearMirror }) => {
   const [composite, setComposite] = useState<ActorRoleComposite | null>(null);
   const [sessionStats, setSessionStats] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -53,6 +59,7 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
   });
   const [rubricSealedSessionId, setRubricSealedSessionId] = useState<string | null>(null);
   const [showPendingNote, setShowPendingNote] = useState<number>(0);
+  const [prefetchedExport, setPrefetchedExport] = useState<any | null>(exportData ?? null);
 
   const ScoreSlider: React.FC<{ label: string; helper: string; keyName: RubricKey }> = ({
     label,
@@ -128,6 +135,13 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
     generateActorRoleReveal();
   }, [sessionId]);
 
+  useEffect(() => {
+    setPrefetchedExport(exportData ?? null);
+    if (exportData?.scores && !sessionStats) {
+      setSessionStats(exportData.scores);
+    }
+  }, [exportData, sessionStats]);
+
   const totalScore = rubricScores.pressure + rubricScores.outlet + rubricScores.conflict + rubricScores.tone + rubricScores.surprise;
   const scoreBand = totalScore >= 13 ? 'Strong signal' : totalScore >= 10 ? 'Some clear hits' : totalScore >= 6 ? 'Mild resonance' : 'Didn\'t land';
 
@@ -151,6 +165,11 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
     setToast('Rubric skipped');
     setTimeout(() => setToast(null), 2000);
     logEvent('rubric_skipped', { sessionId: sessionId || pingTracker.getCurrentSessionId() });
+
+    // Close the WrapUpCard and return to main chat
+    if (onClose) {
+      onClose();
+    }
   };
 
   const handleCancelRubric = () => {
@@ -160,6 +179,11 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
     setToast('Rubric canceled');
     setTimeout(() => setToast(null), 2000);
     logEvent('rubric_cancelled', { sessionId: sessionId || pingTracker.getCurrentSessionId() });
+
+    // Close the WrapUpCard and return to main chat
+    if (onClose) {
+      onClose();
+    }
   };
 
   const handleSealRubric = () => {
@@ -409,17 +433,25 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
 
   const handleExportJSON = async () => {
     try {
-      const response = await fetch('/api/raven', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'export',
-          sessionId: sessionId || pingTracker.getCurrentSessionId()
-        })
-      });
+      let data = prefetchedExport;
+      if (!data) {
+        const response = await fetch('/api/raven', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'export',
+            sessionId: sessionId || pingTracker.getCurrentSessionId()
+          })
+        });
 
-      if (response.ok) {
-        const data = await response.json();
+        if (!response.ok) {
+          throw new Error('Export failed');
+        }
+        data = await response.json();
+        setPrefetchedExport(data);
+      }
+
+      if (data) {
         // Enhanced JSON export with comprehensive data
         const exportData = {
           // Core session metadata
@@ -491,8 +523,6 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
         setToast('Session data exported successfully');
         setTimeout(() => setToast(null), 2500);
         logEvent('json_export_success', { sessionId: data.sessionId });
-      } else {
-        throw new Error('Export failed');
       }
     } catch (error) {
       setToast('Export failed. Please try again.');
@@ -843,6 +873,12 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
       <div className="export-options">
         <div className="export-title">Export Session Data</div>
         <div className="export-note">These exports are for your records and analysis, not AI consumption.</div>
+        <ul className="export-description">
+          <li><strong>JSON</strong> · Structured session log (resonance marks, probes, timestamps) for tooling or archival.</li>
+          <li><strong>Session PDF</strong> · Readable summary of this session&apos;s resonance data (Actor/Role composite, rubric scores).</li>
+          <li><strong>CSV</strong> · Tabular resonance metrics ready for spreadsheets or custom analysis.</li>
+          {onExportClearMirror && <li><strong>Clear Mirror PDF</strong> · E-Prime formatted natal/relational report with Core Insights and symbolic footnotes.</li>}
+        </ul>
         <div className="export-buttons">
           <button
             className="btn export-btn"
@@ -856,7 +892,7 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
             onClick={handleExportPDF}
             title="Download session summary as PDF (human-readable summary)"
           >
-            📋 Export PDF
+            📋 Session PDF
           </button>
           <button
             className="btn export-btn"
@@ -865,6 +901,47 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
           >
             📊 Export CSV
           </button>
+          {onExportClearMirror && (
+            <button
+              className="btn export-btn clear-mirror"
+              onClick={() => {
+                const diagnostics = {
+                  actorRoleComposite: composite ? {
+                    actor: composite.actor,
+                    role: composite.role,
+                    composite: composite.composite,
+                    confidence: composite.confidence,
+                    confidenceBand: composite.confidenceBand,
+                    siderealDrift: composite.siderealDrift,
+                    driftBand: composite.driftBand,
+                    driftIndex: composite.driftIndex,
+                    evidenceN: composite.evidenceN,
+                    sampleSize: composite.sampleSize
+                  } : undefined,
+                  sessionStats: sessionStats ? {
+                    totalMirrors: sessionStats.total || 0,
+                    accuracyRate: sessionStats.accuracyRate || 0,
+                    clarityRate: sessionStats.clarityRate || 0,
+                    breakdown: sessionStats.breakdown || { wb: 0, abe: 0, osr: 0, pending: 0 }
+                  } : undefined,
+                  rubricScores: rubricSealedSessionId ? {
+                    pressure: rubricScores.pressure,
+                    outlet: rubricScores.outlet,
+                    conflict: rubricScores.conflict,
+                    tone: rubricScores.tone,
+                    surprise: rubricScores.surprise,
+                    totalScore,
+                    scoreBand,
+                    nullCount: Object.values(rubricNulls).filter(Boolean).length
+                  } : undefined
+                };
+                onExportClearMirror(diagnostics);
+              }}
+              title="Download Clear Mirror report as formatted PDF (E-Prime, Core Insights, symbolic footnotes)"
+            >
+              🪞 Clear Mirror PDF
+            </button>
+          )}
         </div>
       </div>
 
@@ -1120,9 +1197,13 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed })
         .export-options { margin: 20px 0; padding: 16px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 8px; }
         .export-title { color: #f1f5f9; font-weight: 600; text-align: center; margin-bottom: 6px; font-size: 14px; }
         .export-note { color: #94a3b8; font-size: 12px; text-align: center; margin-bottom: 12px; font-style: italic; }
+        .export-description { list-style: none; margin: 0 0 16px; padding: 0; color: #cbd5f5; font-size: 12px; line-height: 1.6; }
+        .export-description li + li { margin-top: 6px; }
         .export-buttons { display: flex; gap: 12px; justify-content: center; }
         .export-btn { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #93c5fd; padding: 8px 16px; font-size: 13px; }
         .export-btn:hover { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.5); }
+        .export-btn.clear-mirror { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: #6ee7b7; }
+        .export-btn.clear-mirror:hover { background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.5); }
       `}</style>
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>

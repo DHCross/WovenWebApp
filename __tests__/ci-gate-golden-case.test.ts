@@ -15,7 +15,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-describe('CI Gate: Golden Case & Pipeline Order', () => {
+describe('CI Gate: Golden Case & Pipeline Order (v5.0)', () => {
   
   test('Golden Standard: 2018-10-10 Hurricane Michael (via constants)', async () => {
     // Import constants to verify golden case definition exists
@@ -28,7 +28,7 @@ describe('CI Gate: Golden Case & Pipeline Order', () => {
     expect(GOLDEN_CASES['2018-10-10'].biasBand).toEqual([-5.0, -4.0]);
   });
 
-  test('BIAS_DIVISOR must be 10 (not 100) for full amplitude', async () => {
+  test('BIAS_DIVISOR must be 10 for full amplitude', async () => {
     // Critical: BIAS_DIVISOR=100 caps magnitude at ~3.1
     // BIAS_DIVISOR=10 allows full 5.0 reach
     const amplifiers = await import('../lib/balance/amplifiers.js');
@@ -73,7 +73,7 @@ describe('CI Gate: Golden Case & Pipeline Order', () => {
     const seismoPath = path.join(__dirname, '../src/seismograph.js');
     const content = fs.readFileSync(seismoPath, 'utf8');
     
-    // Seismograph should NOT have inline * 50 or clamp() calls
+    // Seismograph should NOT have inline * 5 or clamp() calls
     // All scaling must go through lib/balance/scale.js
     const lines = content.split('\n');
     
@@ -81,7 +81,7 @@ describe('CI Gate: Golden Case & Pipeline Order', () => {
     const hasInlineScaling = lines.some(line => {
       if (line.includes('//')) return false; // skip comments
       // Look for raw multiplication by scale factor
-      return (line.includes('* 50') || line.includes('*50')) && 
+      return (line.includes('* 5') || line.includes('*5')) &&
              !line.includes('SCALE_FACTOR');
     });
     
@@ -115,41 +115,26 @@ describe('CI Gate: Golden Case & Pipeline Order', () => {
   });
 });
 
-describe('CI Gate: Runtime Assertions Active', () => {
+describe('CI Gate: Spec Compliance (v5.0)', () => {
   
-  test('assertGoldenCase is exported from assertions.js', () => {
-    const assertionsPath = path.join(__dirname, '../lib/balance/assertions.js');
-    const content = fs.readFileSync(assertionsPath, 'utf8');
-    
-    // Verify assertGoldenCase function exists
-    expect(content).toContain('function assertGoldenCase');
-    
-    // Verify it's in module.exports object (flexible multi-line match)
-    expect(content).toMatch(/module\.exports\s*=\s*{[^}]*assertGoldenCase/s);
-  });
-});
-
-describe('CI Gate: Backward Compatibility', () => {
-  
-  test('SCALE_FACTOR remains 5', async () => {
+  test('SCALE_FACTOR is 5', async () => {
     const constants = await import('../lib/balance/constants.js');
     const { SCALE_FACTOR } = constants;
     expect(SCALE_FACTOR).toBe(5);
   });
 
-  test('SPEC_VERSION is 3.1', async () => {
+  test('SPEC_VERSION is 5.0', async () => {
     const constants = await import('../lib/balance/constants.js');
     const { SPEC_VERSION } = constants;
-    expect(SPEC_VERSION).toBe('3.1');
+    expect(SPEC_VERSION).toBe('5.0');
   });
 
-  test('Ranges remain canonical', async () => {
+  test('Ranges are canonical for v5.0', async () => {
     const constants = await import('../lib/balance/constants.js');
-    const { RANGE_MAG, RANGE_BIAS, RANGE_COH, RANGE_SFD } = constants;
-    
+    const { RANGE_MAG, RANGE_BIAS, RANGE_COH } = constants;
+
     expect(RANGE_MAG).toEqual([0, 5]);
     expect(RANGE_BIAS).toEqual([-5, 5]);
-    expect(RANGE_COH).toEqual([0, 5]);
-    expect(RANGE_SFD).toEqual([-1, 1]);
+    expect(RANGE_COH).toBeUndefined();
   });
 });

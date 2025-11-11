@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Astrology Math Brain API', () => {
   test('should compute natal chart via API', async ({ request }) => {
-    const response = await request.post('/.netlify/functions/astrology-mathbrain', {
+    const response = await request.post('/api/astrology-mathbrain', {
       data: {
         name: 'Test Subject',
         birthDate: '1973-07-24',
@@ -36,7 +36,7 @@ test.describe('Astrology Math Brain API', () => {
   });
 
   test('should validate missing required fields', async ({ request }) => {
-    const response = await request.post('/.netlify/functions/astrology-mathbrain', {
+    const response = await request.post('/api/astrology-mathbrain', {
       data: {
         name: 'Test Subject',
         // Missing birthDate, birthTime, etc.
@@ -53,7 +53,7 @@ test.describe('Astrology Math Brain API', () => {
   });
 
   test('should handle invalid coordinates gracefully', async ({ request }) => {
-    const response = await request.post('/.netlify/functions/astrology-mathbrain', {
+    const response = await request.post('/api/astrology-mathbrain', {
       data: {
         name: 'Test Subject',
         birthDate: '1973-07-24',
@@ -73,7 +73,7 @@ test.describe('Astrology Math Brain API', () => {
   });
 
   test('should compute relational chart via API', async ({ request }) => {
-    const response = await request.post('/.netlify/functions/astrology-mathbrain', {
+    const response = await request.post('/api/astrology-mathbrain', {
       data: {
         report_type: 'relational_balance_meter',
         subjectA: {
@@ -117,7 +117,7 @@ test.describe('Astrology Math Brain API', () => {
   });
 
   test('should apply orb filters correctly', async ({ request }) => {
-    const response = await request.post('/.netlify/functions/astrology-mathbrain', {
+    const response = await request.post('/api/astrology-mathbrain', {
       data: {
         name: 'Test Subject',
         birthDate: '1973-07-24',

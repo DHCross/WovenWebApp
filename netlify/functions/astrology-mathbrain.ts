@@ -1,7 +1,7 @@
 // netlify/functions/astrology-mathbrain.ts
 import type { Handler, HandlerEvent } from "@netlify/functions";
 import { z } from "zod";
-import { CORS_HEADERS, json, noContent, safeParseJson } from "./_shared";
+import { CORS_HEADERS, json, noContent, safeParseJson } from "../lib/function-helpers";
 
 // ---- Zod schema: edit to match your actual API contract ----
 const BodySchema = z.object({

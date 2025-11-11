@@ -124,7 +124,6 @@ export interface TransitReading {
   seismograph?: {                    // Raw seismograph data
     support: number;
     friction: number;
-    sfd_cont: number;
   };
 }
 
@@ -183,12 +182,6 @@ export interface RelationalData {
   composite_chart?: {
     positions: PlanetaryPosition[];
     aspects: Aspect[];
-  };
-  support_friction_differential?: {
-    support_score: number;
-    friction_score: number;
-    sfd: number;                     // Normalized -1 to +1
-    interpretation: string;
   };
 }
 

@@ -1,0 +1,30 @@
+{
+  "schema": "mb-1",
+  "mode": "NATAL_ONLY",
+  "step": "daily",
+  "startDate": "2025-10-31",
+  "endDate": "2025-11-06",
+  "includePersonB": false,
+  "translocation": "A_LOCAL",
+  "reportStructure": "solo",
+  "personA": {
+    "name": "Mary",
+    "year": "1973",
+    "month": "07",
+    "day": "24",
+    "hour": "03",
+    "minute": "33",
+    "city": "Ottawa",
+    "state": "IL",
+    "latitude": 41.35,
+    "longitude": -88.85,
+    "timezone": "US/Central",
+    "zodiac_type": "Tropic"
+  },
+  "relationshipType": "PARTNER",
+  "relationshipTier": "",
+  "relationshipRole": "",
+  "contactState": "LATENT",
+  "exEstranged": false,
+  "relationshipNotes": ""
+}

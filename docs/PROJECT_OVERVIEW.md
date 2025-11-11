@@ -7,7 +7,7 @@ The WovenWebApp is an advanced astrological analysis system built on a set of co
 *   **Geometry-First:** All analysis originates from raw, verifiable mathematical calculations of planetary positions and aspects. Interpretation follows calculation, never the other way around.
 *   **The "Two-Mind" Architecture:** The system is fundamentally divided into two distinct, decoupled brains:
     *   **The Math Brain:** A utilitarian calculator responsible for all astronomical computations, data fetching, and the generation of a precise, comprehensive data contract (the `WovenMapBlueprint`). It is the "architect" that builds the instrument.
-    *   **The Poetic Brain (Raven Calder):** An immersive, interpretive experience responsible for translating the mathematical data into meaningful, conversational narratives. It is the "musician" that plays the instrument. This brain *never* performs its own calculations.
+    *   **The Poetic Brain (Raven Calder):** An immersive, interpretive experience responsible for translating the mathematical data into meaningful, conversational narratives using the Perplexity API. It is the "musician" that plays the instrument. This brain *never* performs its own calculations.
 *   **Landscape First:** Every report is person-centric. The system first establishes the individual's natal chart (the "landscape") before layering on transient influences like transits (the "weather"). This ensures that all analysis is grounded in the user's unique context.
 *   **Map, Not Mandate:** All outputs, especially from the Poetic Brain, are presented as possibilities, tendencies, and testable reflections. The system provides a symbolic map, but the user's lived experience is the ultimate authority.
 
@@ -19,7 +19,7 @@ The project follows a modern web architecture, decoupling its core components to
 *   **Backend & API:**
     *   **Primary Backend:** Netlify serverless functions (`netlify/functions/astrology-mathbrain.js`) handle all core astronomical computations and data processing.
     *   Integrates with the external **RapidAPI Astrologer** (Kerykeion) for ephemeris calculations.
-    *   The **Poetic Brain** leverages a Large Language Model (Gemini) for narrative generation and is gated behind **Auth0** (Google) authentication at the `/chat` route.
+    *   The **Poetic Brain** leverages the **Perplexity API** for narrative generation and is gated behind **Auth0** authentication at the `/chat` route.
 *   **Deployment:** Netlify hosts the Next.js application with serverless functions. Requests authenticate through Auth0, execute in Netlify Functions, and return JSON to the React frontend.
 *   **Data Contract:** The `WovenMapBlueprint` is the canonical JSON schema that serves as the single source of truth for all data exchange between the Math Brain and the Poetic Brain. This strict contract is the foundation of the "Two-Mind" covenant.
 
