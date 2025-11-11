@@ -40,3 +40,7 @@ This appends a structured entry so other agents can notice it.
 
 - `docs/STC_PROTOCOL.md` — overall Signal → Trace → Convergence guidance
 
+
+## Reference Signal
+
+If a log entry mentions `astrologer-api` or validation failures, review `Developers Notes/API/astrologerAPI.md` for contract details (required fields, endpoints, nation/city rules).
