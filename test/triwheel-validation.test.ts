@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { calculateSeismograph } from '../src/seismograph';
+import { describe, it, expect, beforeAll } from 'vitest';
+let calculateSeismograph: any;
+beforeAll(async () => {
+  const mod: any = await import('../src/math-brain/seismograph-core.js');
+  calculateSeismograph = mod.calculateSeismograph || mod.aggregate;
+});
 import { getMagnitudeLabel, getDirectionalBiasLabel } from '../lib/balance/scale';
 
 // Helper to round to one decimal place, matching the spec

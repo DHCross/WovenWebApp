@@ -1,6 +1,11 @@
 /* Golden Standard Test Case: Hurricane Michael, October 10, 2018 */
+import { beforeAll, describe, test, expect } from 'vitest';
 
-import { calculateSeismograph } from '../src/seismograph';
+let calculateSeismograph: any;
+beforeAll(async () => {
+  const mod: any = await import('../src/math-brain/seismograph-core.js');
+  calculateSeismograph = mod.calculateSeismograph || mod.aggregate;
+});
 
 describe('Golden Standard: Hurricane Michael (2018-10-10)', () => {
   test('should correctly identify the high-magnitude, negative-valence signature of Hurricane Michael', () => {

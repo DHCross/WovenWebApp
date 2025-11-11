@@ -48,6 +48,9 @@ test-output-*
 # Local testing files
 test-composite-scaffolding.html
 
+# Velocity tracker log directory (created on-demand)
+.logs/
+
 # Generated specification artifacts (built from source)
 specs/*/spec.html
 specs/*/spec.txt

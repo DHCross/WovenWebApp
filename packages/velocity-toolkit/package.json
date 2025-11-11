@@ -1,0 +1,20 @@
+{
+  "name": "@human-ai/velocity-toolkit",
+  "version": "0.0.0-skeleton",
+  "private": true,
+  "description": "Skeleton for a reusable human–AI velocity measurement toolkit (analyze + forecast).",
+  "bin": {
+    "velocli": "./bin/velocli.js"
+  },
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["velocity","ai","human-ai","telemetry","github-actions","forecast"],
+  "files": [
+    "bin/",
+    "src/",
+    "README.md"
+  ]
+}
+

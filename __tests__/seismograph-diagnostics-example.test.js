@@ -8,7 +8,8 @@
  * 3. Review console output for each pipeline stage
  */
 
-const { aggregate } = require('../src/seismograph');
+/* eslint-disable no-console */
+const { aggregate } = require('../src/math-brain/seismograph-core.js');
 
 describe('Seismograph Pipeline Diagnostics', () => {
   // Sample aspect data for testing

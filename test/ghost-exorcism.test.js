@@ -30,7 +30,7 @@ describe('Ghost Exorcism: Correct Engine Wiring', () => {
   });
 
   test('seismograph correctly produces negative directional_bias for compressive forces', () => {
-    const { aggregate } = require('../src/seismograph');
+  const { aggregate } = require('../src/math-brain/seismograph-core.js');
 
     // Hurricane Michael-style compressive aspects
     const aspects = [

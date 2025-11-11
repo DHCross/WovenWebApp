@@ -1,6 +1,11 @@
 /* Bias Sanity Check from Raven's v5 Spec */
+import { beforeAll, describe, test, expect } from 'vitest';
 
-import { calculateSeismograph } from '../src/seismograph';
+let calculateSeismograph: any;
+beforeAll(async () => {
+  const mod: any = await import('../src/math-brain/seismograph-core.js');
+  calculateSeismograph = mod.calculateSeismograph || mod.aggregate;
+});
 
 describe('Bias Sanity Check (Acceptance Test)', () => {
   test('bias_n = −0.05 should display as −0.3, not −5.0 (spec v5.0)', () => {

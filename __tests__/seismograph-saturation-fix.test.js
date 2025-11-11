@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Regression test for seismograph magnitude saturation fix (2025-10-08).
  * 
@@ -7,7 +8,7 @@
  * After fix: magnitude should vary proportionally with aspect load.
  */
 
-const { aggregate } = require('../src/seismograph');
+const { aggregate } = require('../src/math-brain/seismograph-core.js');
 
 describe('Seismograph magnitude saturation fix', () => {
   // Helper to create mock aspects with varying intensities

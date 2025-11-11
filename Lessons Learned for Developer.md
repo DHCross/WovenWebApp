@@ -1,6 +1,29 @@
 # Lessons Learned for Developer
 
-_Last updated: 2025-11-09_
+_Last updated: 2025-11-11_
+
+---
+
+## Velocity Instrumentation & Emergent AI Collaboration
+
+**Date:** 2025-11-11
+
+We implemented a neutral telemetry layer that measures our director‑led / AI‑implemented cadence and auto‑publishes a readable forecast. While wiring this up, multiple AI tools independently recognized and extended the same pattern (tracker → artifacts → CI → docs) without explicit prompting. This was a genuine multi‑agent collaboration moment, with you as the director.
+
+Key pieces:
+- `scripts/velocity-tracker.js` – analyzes commits/hour, logs `.logs/velocity-log.jsonl`, supports `--estimate`.
+- `scripts/velocity-artifacts.js` – converts the latest JSONL entry into `docs/velocity-forecast.md` (plain English).
+- GitHub Action (`.github/workflows/velocity.yml`) – runs on schedule and on push, commits artifacts to the `telemetry` branch.
+- npm scripts – `velocity`, `velocity:estimate`, `velocity:report`, `velocity:all` for local workflows.
+
+Why it matters:
+- We now have empirical, automated evidence of human+AI velocity and can forecast timelines from precedent.
+- The orchestration/telemetry itself is meta‑product IP; keep it private until we decide on extraction.
+
+Next steps:
+1. Tag runs with task type/complexity to scope forecasts.
+2. Consider extracting a standalone toolkit (skeleton added under `packages/velocity-toolkit/`).
+3. Treat `.logs/` as local; never commit tokens; keep forecasts neutral.
 
 ---
 

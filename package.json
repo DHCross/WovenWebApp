@@ -51,8 +51,10 @@
     "lexicon:lint": "node scripts/lexicon-lint.mjs",
     "velocity": "node scripts/velocity-tracker.js --analyze",
     "velocity:estimate": "node scripts/velocity-tracker.js --estimate",
-    "velocity:report": "node scripts/velocity-tracker.js --report",
+    "velocity:all": "node scripts/velocity-tracker.js --analyze && node scripts/velocity-artifacts.js",
+    "velocity:forecast": "node scripts/velocity-artifacts.js",
     "velocity:artifacts": "node scripts/velocity-artifacts.js",
+    "velocity:report": "node scripts/velocity-artifacts.js",
     "velocity:notify": "node scripts/velocity-notifier.js",
     "validate:fieldmap": "node scripts/validate-fieldmap-v5.js"
   },
