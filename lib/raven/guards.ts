@@ -14,9 +14,24 @@ Once that geometry is included, I can mirror you accurately.`;
 
 const ASTROSEEK_REGEX = /astro\s*-?\s*seek/i;
 const GEOMETRY_MARKERS = /\d{1,2}°|\basc\b|\bmc\b|\b\d{1,2}(st|nd|rd|th)\s+house\b|\borb:\s*\d/i;
+const PERSONAL_READING_PATTERN = /\b(my|me|I)\b.*\b(chart|reading|birth|natal|astrology)\b/i;
 
 export function referencesAstroSeekWithoutGeometry(text: string): boolean {
   if (!text) return false;
   if (!ASTROSEEK_REGEX.test(text)) return false;
   return !GEOMETRY_MARKERS.test(text);
 }
+
+export const requestsPersonalReading = (input: string): boolean => {
+  return PERSONAL_READING_PATTERN.test(input);
+};
+
+export const buildNoContextGuardCopy = () => {
+  return {
+    picture: "I can see you're asking for a personal reading.",
+    feeling: "To do that accurately, I need your astrological geometry.",
+    container: "Option 1 · Go to Astro-Seek.com, run your natal chart, and download the JSON export.",
+    option: "Option 2 · Click 'Upload report' below and drop that file in.",
+    next_step: "Once your chart is uploaded, I can give you a full reading.",
+  };
+};
