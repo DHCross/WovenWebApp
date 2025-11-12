@@ -4,6 +4,15 @@ name: JULES PR Reviewer
 # Disabled - change to manual trigger only
 on:
   workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull request number to review'
+        required: true
+        type: number
+      branch:
+        description: 'Branch name to review'
+        required: true
+        type: string
 # Automatic trigger disabled:
 #  pull_request:
 #    types: [opened]
@@ -22,9 +31,9 @@ jobs:
             "sourceContext": {
               "source": "sources/github/${{ github.repository }}",
               "githubRepoContext": {
-                "startingBranch": "${{ github.head_ref }}"
+                "startingBranch": "${{ inputs.branch }}"
               }
             },
             "automationMode": "AUTO_CREATE_PR",
-            "title": "JULES Review for PR #${{ github.event.number }}"
+            "title": "JULES Review for PR #${{ inputs.pr_number }}"
           }'
