@@ -92,6 +92,8 @@ const REPORT_TYPE_ALIAS: Record<string, string> = {
   composite: 'relational_balance_meter',
   relational_balance_meter: 'relational_balance_meter',
   relational_balance: 'relational_balance_meter',
+  solar_return: 'solar_return',
+  'solar-return': 'solar_return',
 };
 
 function normaliseOptions(options: Record<string, any>): Record<string, any> {

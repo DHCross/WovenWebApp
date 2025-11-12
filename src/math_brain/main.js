@@ -119,6 +119,7 @@ function computeRelationalSummary(dailyEntries, options = {}) {
     console.log(`[Math Brain] Running TRANSIT report for mode: ${mode}`);
     const dailyEntries = [];
     const dateRange = generateDateArray(startDate, endDate);
+    let symbolicWeather = null;
 
     console.log(`[Math Brain] Processing ${dateRange.length} days from ${startDate} to ${endDate}...`);
     
@@ -132,7 +133,7 @@ function computeRelationalSummary(dailyEntries, options = {}) {
         : getMockAspectData(currentDate);
 
       // Compute symbolic weather with rolling context
-      const symbolicWeather = computeSymbolicWeatherWithContext(
+      symbolicWeather = computeSymbolicWeatherWithContext(
         transitsA,
         transitsB,
         prev,
@@ -167,6 +168,7 @@ function computeRelationalSummary(dailyEntries, options = {}) {
     });
 
     // Build final unified output
+    const latestSymbolicWeather = symbolicWeather || {};
     finalOutput = {
       ...finalOutput,
       person_a: transitData?.person_a || {},
@@ -178,11 +180,11 @@ function computeRelationalSummary(dailyEntries, options = {}) {
       },
       transits: dailyEntries || {},
       balance_meter: {
-        magnitude: symbolicWeather?.magnitude || 0,
-        directional_bias: symbolicWeather?.directional_bias || 0,
-        volatility: symbolicWeather?.volatility || 0,
+        magnitude: latestSymbolicWeather?.magnitude || 0,
+        directional_bias: latestSymbolicWeather?.directional_bias || 0,
+        volatility: latestSymbolicWeather?.volatility || 0,
       },
-      symbolic_weather: symbolicWeather || {},
+      symbolic_weather: latestSymbolicWeather,
       mirror_data: mirrorData || {},
       relational_summary: relationalSummary || null,
       provenance: {

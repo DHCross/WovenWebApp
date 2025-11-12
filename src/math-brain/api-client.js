@@ -712,9 +712,39 @@ async function fetchNatalChartComplete(subject, headers, pass, subjectLabel, con
   );
   
   // CRITICAL: Validate that we received actual chart data from the upstream API
-  // The API returns planets directly in data object (sun, moon, etc.), not nested under person
-  const hasPlanets = natalResponse?.data && 
-    (natalResponse.data.sun || natalResponse.data.moon || natalResponse.data.mercury);
+  // RapidAPI payloads have evolved — planets may live directly on data.*, under data.planets,
+  // data.person.planets, or data.chart.planets. Accept any of those footprints.
+  const planetArray = Array.isArray(natalResponse?.data?.person?.planets)
+    ? natalResponse.data.person.planets
+    : Array.isArray(natalResponse?.data?.planets)
+      ? natalResponse.data.planets
+      : Array.isArray(natalResponse?.data?.chart?.planets)
+        ? natalResponse.data.chart.planets
+        : null;
+  const keyedPlanets = natalResponse?.data
+    ? ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto']
+        .filter(key => natalResponse.data[key] != null)
+    : [];
+  const hasPlanets = Boolean(
+    (keyedPlanets && keyedPlanets.length > 0) || (planetArray && planetArray.length > 0)
+  );
+
+  const normalizedPlanets = (() => {
+    if (Array.isArray(planetArray) && planetArray.length) {
+      return planetArray;
+    }
+    if (!keyedPlanets.length) return [];
+    return keyedPlanets
+      .map(key => {
+        const record = natalResponse?.data?.[key];
+        if (!record || typeof record !== 'object') return null;
+        return {
+          name: key,
+          ...record,
+        };
+      })
+      .filter(Boolean);
+  })();
   
   logger.info('Natal API response validation', {
     subject: subject.name,
@@ -734,7 +764,8 @@ async function fetchNatalChartComplete(subject, headers, pass, subjectLabel, con
       hasResponse: !!natalResponse,
       hasData: !!natalResponse?.data,
       hasPerson: !!natalResponse?.data?.person,
-      planetCount: natalResponse?.data?.person?.planets?.length || 0
+      planetCount: planetArray?.length || natalResponse?.data?.person?.planets?.length || 0,
+      keyedPlanets
     });
     // Return null to signal the failure - callers MUST handle this
     return null;
@@ -746,13 +777,28 @@ async function fetchNatalChartComplete(subject, headers, pass, subjectLabel, con
     chartType: 'natal',
     scope: 'natal_chart',
   });
-  
+
+  // Ensure the sanitized chart retains explicit planet listings for downstream consumers
+  if (normalizedPlanets.length) {
+    chartData.person = chartData.person || {};
+    if (!Array.isArray(chartData.person.planets) || chartData.person.planets.length === 0) {
+      chartData.person.planets = normalizedPlanets;
+    }
+    if (!Array.isArray(chartData.planets) || chartData.planets.length === 0) {
+      chartData.planets = normalizedPlanets;
+    }
+  }
+
   // Build complete natal object
   const natalData = {
     details: subject,
     chart: chartData,
     aspects: Array.isArray(natalResponse.aspects) ? natalResponse.aspects : (chartData.aspects || []),
   };
+
+  if (!Array.isArray(chartData.aspects) || chartData.aspects.length === 0) {
+    chartData.aspects = natalData.aspects;
+  }
   
   // Extract house cusps for transit-to-natal-house calculations
   if (natalResponse.data) {

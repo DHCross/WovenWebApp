@@ -13,8 +13,8 @@ The WovenWebApp backend is transitioning from a single 6000-line serverless func
 **Current Progress:**
 - ✅ **Phase 1 Complete:** Utility and compression functions extracted.
 - ✅ **Phase 1.5 Complete:** Core API client module created (`src/math-brain/api-client.js`).
-- 🔄 **Phase 2 In Progress:** Moving remaining API functions into the API client.
-- ⏳ **Phases 3–6 Pending:** Seismograph, validation, relational logic, and main handlers.
+- 🔄 **Phase 2 :** Moving remaining API functions into the API client.
+- ⏳ **Phases 3–6 :** Seismograph, validation, relational logic, and main handlers.
 
 ---
 

@@ -19,7 +19,7 @@ curl -X POST http://localhost:3000/api/astrology-mathbrain \
   -H "Content-Type: application/json" \
   -d '{
     "mode": "NATAL_ONLY",
-    "person_a": {
+    "personA": {
       "name": "Dan",
       "year": 1973,
       "month": 7,
@@ -28,7 +28,26 @@ curl -X POST http://localhost:3000/api/astrology-mathbrain \
       "minute": 30,
       "city": "Bryn Mawr",
       "state": "PA",
-      "nation": "US"
+      "nation": "US",
+      "latitude": 40.0047,
+      "longitude": -75.3224,
+      "timezone": "America/New_York",
+      "zodiac_type": "Tropic"
+    },
+    "personB": {
+      "name": "Maya",
+      "year": 1975,
+      "month": 4,
+      "day": 18,
+      "hour": 9,
+      "minute": 15,
+      "city": "Richmond",
+      "state": "VA",
+      "nation": "US",
+      "latitude": 37.5407,
+      "longitude": -77.4360,
+      "timezone": "America/New_York",
+      "zodiac_type": "Tropic"
     },
     "translocation": {
       "applies": true,

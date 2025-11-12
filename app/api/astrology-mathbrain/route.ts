@@ -155,6 +155,72 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
     }
 
+    const normalizeNumber = (value: unknown): number | null => {
+      const coerced = typeof value === 'string' ? value.trim() : value;
+      const numeric = Number(coerced);
+      return Number.isFinite(numeric) ? numeric : null;
+    };
+
+    const reportTypeRaw = typeof rawPayload.report_type === 'string'
+      ? rawPayload.report_type.toLowerCase()
+      : '';
+    const isSolarReturn = reportTypeRaw === 'solar_return' || reportTypeRaw === 'solar-return';
+
+    if (isSolarReturn) {
+      if (!rawPayload.personA || typeof rawPayload.personA !== 'object') {
+        return NextResponse.json(
+          { success: false, error: 'Person A data is required for solar return calculation' },
+          { status: 400 }
+        );
+      }
+
+      const personA = rawPayload.personA;
+      const birthMonth = normalizeNumber(personA.month);
+      const birthDay = normalizeNumber(personA.day);
+      if (!birthMonth || !birthDay) {
+        return NextResponse.json(
+          { success: false, error: 'Person A month and day are required for solar return calculation' },
+          { status: 400 }
+        );
+      }
+
+      const solarReturnYearRaw = normalizeNumber(rawPayload.solar_return_year);
+      const fallbackYear = new Date().getFullYear();
+      let solarReturnYear = Number.isInteger(solarReturnYearRaw ?? NaN) ? solarReturnYearRaw as number : fallbackYear;
+
+      const birthYear = normalizeNumber(personA.year);
+      const baseDate = new Date(
+        Number.isInteger(birthYear ?? NaN) ? birthYear as number : fallbackYear,
+        birthMonth - 1,
+        birthDay
+      );
+      if (Number.isNaN(baseDate.getTime())) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid birth date supplied for solar return calculation' },
+          { status: 400 }
+        );
+      }
+
+      const computeReturnDate = (year: number) =>
+        new Date(year, baseDate.getMonth(), baseDate.getDate());
+
+      let returnDate = computeReturnDate(solarReturnYear);
+      const now = new Date();
+      if (returnDate.getTime() < now.getTime()) {
+        solarReturnYear += 1;
+        returnDate = computeReturnDate(solarReturnYear);
+      }
+
+      rawPayload.personA = {
+        ...personA,
+        year: returnDate.getFullYear(),
+        month: returnDate.getMonth() + 1,
+        day: returnDate.getDate()
+      };
+      rawPayload.report_type = 'natal';
+      rawPayload.solar_return_year = solarReturnYear;
+    }
+
     const body = JSON.stringify(rawPayload);
 
     const windowConfig = rawPayload?.window || null;
@@ -249,23 +315,49 @@ export async function POST(request: NextRequest) {
       const hasNatalData = Boolean(
         chartData &&
         chartData.person_a &&
-        chartData.person_a.chart && // Stricter check: must have the chart object
-        (chartData.person_a.chart.person?.planets || chartData.person_a.chart.aspects) // And planets or aspects
+        chartData.person_a.chart && // Must have the chart object
+        (
+          // Accept any of these valid data structures:
+          // 1. chart.person.planets array
+          // 2. chart.planets array (top-level)
+          // 3. chart.aspects array
+          (chartData.person_a.chart.person?.planets && Array.isArray(chartData.person_a.chart.person.planets)) ||
+          (chartData.person_a.chart.planets && Array.isArray(chartData.person_a.chart.planets)) ||
+          (chartData.person_a.chart.aspects && Array.isArray(chartData.person_a.chart.aspects))
+        )
       );
+      
       if (!hasNatalData) {
-        logger.error('Missing critical natal data (chart.person or chart.aspects) for person_a from legacy handler', {
+        // Log detailed debug info about what we received
+        const debugInfo = {
+          hasChartData: !!chartData,
+          hasPersonA: !!chartData?.person_a,
+          hasChart: !!chartData?.person_a?.chart,
+          hasPersonPlanets: Array.isArray(chartData?.person_a?.chart?.person?.planets) ? 
+            `${chartData.person_a.chart.person.planets.length} planets` : 'none',
+          hasTopLevelPlanets: Array.isArray(chartData?.person_a?.chart?.planets) ? 
+            `${chartData.person_a.chart.planets.length} planets` : 'none',
+          hasAspects: Array.isArray(chartData?.person_a?.chart?.aspects) ? 
+            `${chartData.person_a.chart.aspects.length} aspects` : 'none',
+          chartKeys: chartData?.person_a?.chart ? Object.keys(chartData.person_a.chart) : []
+        };
+        
+        logger.error('Missing critical natal data for person_a from legacy handler', {
+          debugInfo,
           chartData: {
             person_a: {
-              chart: chartData.person_a?.chart ? 'exists' : 'missing',
-              details: chartData.person_a?.details ? 'exists' : 'missing',
-              meta: chartData.person_a?.meta ? 'exists' : 'missing',
+              chart: chartData?.person_a?.chart ? 'exists' : 'missing',
+              details: chartData?.person_a?.details ? 'exists' : 'missing',
+              meta: chartData?.person_a?.meta ? 'exists' : 'missing',
             }
           }
         });
+        
         return NextResponse.json({
           success: false,
-          error: 'Upstream service returned an incomplete chart. Natal data is missing.',
-          code: 'INCOMPLETE_NATAL_CHART_DATA'
+          error: 'Upstream service returned an incomplete chart. Required planet or aspect data is missing.',
+          code: 'INCOMPLETE_NATAL_CHART_DATA',
+          debug: debugInfo
         }, { status: 502 });
       }
 
