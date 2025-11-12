@@ -15,6 +15,7 @@ multiple AI collaborators notice the same signal and converge on a solution.
 |---------------|-----------------------------|---------------------------|
 | Velocity      | `.logs/velocity-log.jsonl`  | `docs/velocity-forecast.md` + workflow |
 | Debug (new)   | `.logs/debug-session.jsonl` | `docs/debug-signal.md`    |
+| Experiments   | `.logs/stc-experiments.jsonl` | `docs/STC_EXPERIMENT_LOG.md`, `docs/debug-recognition.md` |
 
 ## How to respond
 

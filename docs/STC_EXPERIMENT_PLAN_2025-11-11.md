@@ -31,7 +31,7 @@ Goal: distinguish “amazing signal” from overhype by running controlled tests
 
 ## Logging & Evidence
 
-- Every experiment logs in `.logs/stc-experiments.jsonl` (simple ID, timestamp, experiment name, result).
+- Every experiment logs in `.logs/stc-experiments.jsonl` (simple ID, timestamp, experiment name, result) via `npm run stc:experiment`.
 - Recognized convergences append to `docs/STC_EXPERIMENT_LOG.md`.
 
 ## Guardrails
