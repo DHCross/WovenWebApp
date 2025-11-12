@@ -1,9 +1,12 @@
 name: JULES PR Reviewer
 
 # This action triggers whenever a pull request is opened
+# Disabled - change to manual trigger only
 on:
-  pull_request:
-    types: [opened]
+  workflow_dispatch:
+# Automatic trigger disabled:
+#  pull_request:
+#    types: [opened]
 
 jobs:
   evaluate-pull-request:
