@@ -1,0 +1,563 @@
+delete-old-branches	Set up job	﻿2025-11-12T20:13:44.1204854Z Current runner version: '2.329.0'
+delete-old-branches	Set up job	2025-11-12T20:13:44.1230790Z ##[group]Runner Image Provisioner
+delete-old-branches	Set up job	2025-11-12T20:13:44.1231684Z Hosted Compute Agent
+delete-old-branches	Set up job	2025-11-12T20:13:44.1232593Z Version: 20251016.436
+delete-old-branches	Set up job	2025-11-12T20:13:44.1233265Z Commit: 8ab8ac8bfd662a3739dab9fe09456aba92132568
+delete-old-branches	Set up job	2025-11-12T20:13:44.1233956Z Build Date: 2025-10-15T20:44:12Z
+delete-old-branches	Set up job	2025-11-12T20:13:44.1234601Z ##[endgroup]
+delete-old-branches	Set up job	2025-11-12T20:13:44.1235170Z ##[group]Operating System
+delete-old-branches	Set up job	2025-11-12T20:13:44.1235772Z Ubuntu
+delete-old-branches	Set up job	2025-11-12T20:13:44.1236214Z 24.04.3
+delete-old-branches	Set up job	2025-11-12T20:13:44.1236782Z LTS
+delete-old-branches	Set up job	2025-11-12T20:13:44.1237286Z ##[endgroup]
+delete-old-branches	Set up job	2025-11-12T20:13:44.1237760Z ##[group]Runner Image
+delete-old-branches	Set up job	2025-11-12T20:13:44.1238427Z Image: ubuntu-24.04
+delete-old-branches	Set up job	2025-11-12T20:13:44.1238928Z Version: 20251102.99.1
+delete-old-branches	Set up job	2025-11-12T20:13:44.1239969Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20251102.99/images/ubuntu/Ubuntu2404-Readme.md
+delete-old-branches	Set up job	2025-11-12T20:13:44.1241573Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20251102.99
+delete-old-branches	Set up job	2025-11-12T20:13:44.1242966Z ##[endgroup]
+delete-old-branches	Set up job	2025-11-12T20:13:44.1244030Z ##[group]GITHUB_TOKEN Permissions
+delete-old-branches	Set up job	2025-11-12T20:13:44.1245994Z Contents: write
+delete-old-branches	Set up job	2025-11-12T20:13:44.1246681Z Metadata: read
+delete-old-branches	Set up job	2025-11-12T20:13:44.1247174Z ##[endgroup]
+delete-old-branches	Set up job	2025-11-12T20:13:44.1249646Z Secret source: Actions
+delete-old-branches	Set up job	2025-11-12T20:13:44.1250606Z Prepare workflow directory
+delete-old-branches	Set up job	2025-11-12T20:13:44.1593062Z Prepare all required actions
+delete-old-branches	Set up job	2025-11-12T20:13:44.1631676Z Getting action download info
+delete-old-branches	Set up job	2025-11-12T20:13:44.6301671Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+delete-old-branches	Set up job	2025-11-12T20:13:44.7349103Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+delete-old-branches	Set up job	2025-11-12T20:13:44.9288507Z Complete job name: delete-old-branches
+delete-old-branches	Checkout repository	﻿2025-11-12T20:13:45.0003103Z ##[group]Run actions/checkout@v4
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.0004009Z with:
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.0004419Z   fetch-depth: 0
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.0004860Z   repository: DHCross/WovenWebApp
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.0005567Z   token: ***
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.0005988Z   ssh-strict: true
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.0006407Z   ssh-user: git
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.0006867Z   persist-credentials: true
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.0007329Z   clean: true
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.0007745Z   sparse-checkout-cone-mode: true
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.0008247Z   fetch-tags: false
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.0008669Z   show-progress: true
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.0009075Z   lfs: false
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.0009462Z   submodules: false
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.0009867Z   set-safe-directory: true
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.0010559Z ##[endgroup]
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1140747Z Syncing repository: DHCross/WovenWebApp
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1143183Z ##[group]Getting Git version info
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1143992Z Working directory is '/home/runner/work/WovenWebApp/WovenWebApp'
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1145047Z [command]/usr/bin/git version
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1225185Z git version 2.51.2
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1253379Z ##[endgroup]
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1268520Z Temporarily overriding HOME='/home/runner/work/_temp/acd0c3c5-fc75-4c0b-bd8a-cda4fb5635f3' before making global git config changes
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1270051Z Adding repository directory to the temporary git global config as a safe directory
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1282694Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/WovenWebApp/WovenWebApp
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1324011Z Deleting the contents of '/home/runner/work/WovenWebApp/WovenWebApp'
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1327879Z ##[group]Initializing the repository
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1332188Z [command]/usr/bin/git init /home/runner/work/WovenWebApp/WovenWebApp
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1452600Z hint: Using 'master' as the name for the initial branch. This default branch name
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1454550Z hint: is subject to change. To configure the initial branch name to use in all
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1456232Z hint: of your new repositories, which will suppress this warning, call:
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1457390Z hint:
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1458046Z hint: 	git config --global init.defaultBranch <name>
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1458994Z hint:
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1460078Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1461158Z hint: 'development'. The just-created branch can be renamed via this command:
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1462212Z hint:
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1462720Z hint: 	git branch -m <name>
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1463361Z hint:
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1464409Z hint: Disable this message with "git config set advice.defaultBranchName false"
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1465515Z Initialized empty Git repository in /home/runner/work/WovenWebApp/WovenWebApp/.git/
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1470426Z [command]/usr/bin/git remote add origin https://github.com/DHCross/WovenWebApp
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1509904Z ##[endgroup]
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1510673Z ##[group]Disabling automatic garbage collection
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1514746Z [command]/usr/bin/git config --local gc.auto 0
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1546466Z ##[endgroup]
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1547220Z ##[group]Setting up auth
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1554110Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1586681Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.1979001Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.2016023Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.2275109Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.2320812Z ##[endgroup]
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.2322685Z ##[group]Fetching the repository
+delete-old-branches	Checkout repository	2025-11-12T20:13:45.2344675Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9165443Z From https://github.com/DHCross/WovenWebApp
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9166963Z  * [new branch]      agent-deployment-8f47   -> origin/agent-deployment-8f47
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9168143Z  * [new branch]      chore-restore-env-example -> origin/chore-restore-env-example
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9169247Z  * [new branch]      chore/chat-client-refactor-review -> origin/chore/chat-client-refactor-review
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9170545Z  * [new branch]      chore/remove-legacy-balance-meter-code -> origin/chore/remove-legacy-balance-meter-code
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9171717Z  * [new branch]      code-review-1700000000  -> origin/code-review-1700000000
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9173014Z  * [new branch]      code-review-balance-meter-v5 -> origin/code-review-balance-meter-v5
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9174264Z  * [new branch]      code-review-balance-meter-v5-1 -> origin/code-review-balance-meter-v5-1
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9175515Z  * [new branch]      code-review-epistemic-alignment -> origin/code-review-epistemic-alignment
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9176888Z  * [new branch]      code-review/volatility-metric-removal -> origin/code-review/volatility-metric-removal
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9178168Z  * [new branch]      codex/add-api-key-presence-check -> origin/codex/add-api-key-presence-check
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9179571Z  * [new branch]      codex/add-button-to-switch-to-math-brain -> origin/codex/add-button-to-switch-to-math-brain
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9181075Z  * [new branch]      codex/add-direct-json-export-alongside-pdf -> origin/codex/add-direct-json-export-alongside-pdf
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9182856Z  * [new branch]      codex/add-error-handling-to-astrology-functions -> origin/codex/add-error-handling-to-astrology-functions
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9184433Z  * [new branch]      codex/add-glossary-terms-to-readme.md -> origin/codex/add-glossary-terms-to-readme.md
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9186102Z  * [new branch]      codex/add-guard-for-conversation-intent-in-raven-route -> origin/codex/add-guard-for-conversation-intent-in-raven-route
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9188092Z  * [new branch]      codex/add-guard-logic-to-raven-route -> origin/codex/add-guard-logic-to-raven-route
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9189468Z  * [new branch]      codex/add-include-transits-toggle-to-menu -> origin/codex/add-include-transits-toggle-to-menu
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9190927Z  * [new branch]      codex/add-integration-note-to-readme-file -> origin/codex/add-integration-note-to-readme-file
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9192758Z  * [new branch]      codex/add-missing-natal-chart-data -> origin/codex/add-missing-natal-chart-data
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9194210Z  * [new branch]      codex/add-no-chart/report-guard-to-raven-route -> origin/codex/add-no-chart/report-guard-to-raven-route
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9195749Z  * [new branch]      codex/add-option-to-download-zipfile-bundle -> origin/codex/add-option-to-download-zipfile-bundle
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9197233Z  * [new branch]      codex/add-raw-natal-math-to-reports -> origin/codex/add-raw-natal-math-to-reports
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9198754Z  * [new branch]      codex/add-relocate-both-option-and-contact-toggle -> origin/codex/add-relocate-both-option-and-contact-toggle
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9200618Z  * [new branch]      codex/add-reloclabel-parameter-to-extractreportheader -> origin/codex/add-reloclabel-parameter-to-extractreportheader
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9202503Z  * [new branch]      codex/add-version-number-to-front-page -> origin/codex/add-version-number-to-front-page
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9203995Z  * [new branch]      codex/adjust-jsx-for-authentication-handling -> origin/codex/adjust-jsx-for-authentication-handling
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9205705Z  * [new branch]      codex/check-sidereal-chart-support-in-api -> origin/codex/check-sidereal-chart-support-in-api
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9207241Z  * [new branch]      codex/clarify-symbolic-weather-constraints -> origin/codex/clarify-symbolic-weather-constraints
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9209492Z  * [new branch]      codex/create-config.example.js-with-api-key-placeholder -> origin/codex/create-config.example.js-with-api-key-placeholder
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9211543Z  * [new branch]      codex/create-netlify_integration.md-for-auth0-troubleshooting -> origin/codex/create-netlify_integration.md-for-auth0-troubleshooting
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9213708Z  * [new branch]      codex/decide-project-licensing-and-update-documentation -> origin/codex/decide-project-licensing-and-update-documentation
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9215504Z  * [new branch]      codex/delete-openapi-1.json-and-temporary-files -> origin/codex/delete-openapi-1.json-and-temporary-files
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9217193Z  * [new branch]      codex/enhance-poetic-brain-mobile-chat-experience -> origin/codex/enhance-poetic-brain-mobile-chat-experience
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9218843Z  * [new branch]      codex/ensure-apidata.detail-is-a-string -> origin/codex/ensure-apidata.detail-is-a-string
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9220359Z  * [new branch]      codex/ensure-glossary-card-consistency -> origin/codex/ensure-glossary-card-consistency
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9221856Z  * [new branch]      codex/ensure-glossary-card-consistency-yeaqw3 -> origin/codex/ensure-glossary-card-consistency-yeaqw3
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9224109Z  * [new branch]      codex/extend-detectintent-for-astroseek-responses -> origin/codex/extend-detectintent-for-astroseek-responses
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9225027Z  * [new branch]      codex/find-gemini-api-usage-for-raven-calder -> origin/codex/find-gemini-api-usage-for-raven-calder
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9225829Z  * [new branch]      codex/fix-500-internal-server-error-on-synastry -> origin/codex/fix-500-internal-server-error-on-synastry
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9226563Z  * [new branch]      codex/fix-504-gateway-timeout-error -> origin/codex/fix-504-gateway-timeout-error
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9227275Z  * [new branch]      codex/fix-api-error-when-generating-report -> origin/codex/fix-api-error-when-generating-report
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9228095Z  * [new branch]      codex/fix-callback-url-mismatch-for-google-login -> origin/codex/fix-callback-url-mismatch-for-google-login
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9229069Z  * [new branch]      codex/fix-callback-url-mismatch-in-auth0 -> origin/codex/fix-callback-url-mismatch-in-auth0
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9229769Z  * [new branch]      codex/fix-chat-message-clipping-issue -> origin/codex/fix-chat-message-clipping-issue
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9230568Z  * [new branch]      codex/fix-chat-visibility-issue-during-report-pull -> origin/codex/fix-chat-visibility-issue-during-report-pull
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9231393Z  * [new branch]      codex/fix-chat-visibility-on-ios-mobile -> origin/codex/fix-chat-visibility-on-ios-mobile
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9232356Z  * [new branch]      codex/fix-codex-review-issues-for-pr-#187 -> origin/codex/fix-codex-review-issues-for-pr-#187
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9233183Z  * [new branch]      codex/fix-contract-validation-errors-for-mirrors -> origin/codex/fix-contract-validation-errors-for-mirrors
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9234183Z  * [new branch]      codex/fix-deployment-issues-due-to-missing-.env-and-port-conflict -> origin/codex/fix-deployment-issues-due-to-missing-.env-and-port-conflict
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9235114Z  * [new branch]      codex/fix-disappearing-date-picker-in-ios -> origin/codex/fix-disappearing-date-picker-in-ios
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9235845Z  * [new branch]      codex/fix-external-api-error-in-dropdown -> origin/codex/fix-external-api-error-in-dropdown
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9236623Z  * [new branch]      codex/fix-generate-reports-button-functionality -> origin/codex/fix-generate-reports-button-functionality
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9237362Z  * [new branch]      codex/fix-google-auth0-login-issue -> origin/codex/fix-google-auth0-login-issue
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9238135Z  * [new branch]      codex/fix-google-login-suppression-for-poetic-brain -> origin/codex/fix-google-login-suppression-for-poetic-brain
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9239257Z  * [new branch]      codex/fix-google-login-suppression-for-poetic-brain-num1aq -> origin/codex/fix-google-login-suppression-for-poetic-brain-num1aq
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9240163Z  * [new branch]      codex/fix-header-label-and-add-resume-button -> origin/codex/fix-header-label-and-add-resume-button
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9240959Z  * [new branch]      codex/fix-import-issue-with-math-brain-session -> origin/codex/fix-import-issue-with-math-brain-session
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9241698Z  * [new branch]      codex/fix-ios-mobile-chat-display-issue -> origin/codex/fix-ios-mobile-chat-display-issue
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9242516Z  * [new branch]      codex/fix-issues-in-reports-structure -> origin/codex/fix-issues-in-reports-structure
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9243239Z  * [new branch]      codex/fix-issues-in-reports-structure-d1qcoy -> origin/codex/fix-issues-in-reports-structure-d1qcoy
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9244018Z  * [new branch]      codex/fix-issues-in-reports-structure-dh2ypx -> origin/codex/fix-issues-in-reports-structure-dh2ypx
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9244870Z  * [new branch]      codex/fix-json-report-issues-and-improve-pdf-output -> origin/codex/fix-json-report-issues-and-improve-pdf-output
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9245633Z  * [new branch]      codex/fix-json-syntax-and-validate -> origin/codex/fix-json-syntax-and-validate
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9246359Z  * [new branch]      codex/fix-json-upload-handling-in-poetic-brain -> origin/codex/fix-json-upload-handling-in-poetic-brain
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9247170Z  * [new branch]      codex/fix-math-brain-error-on-balance-report -> origin/codex/fix-math-brain-error-on-balance-report
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9247913Z  * [new branch]      codex/fix-missing-fields-error-in-request -> origin/codex/fix-missing-fields-error-in-request
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9248690Z  * [new branch]      codex/fix-missing-visual-graphs-in-pdf-download -> origin/codex/fix-missing-visual-graphs-in-pdf-download
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9249523Z  * [new branch]      codex/fix-multiple-definitions-and-syntax-errors -> origin/codex/fix-multiple-definitions-and-syntax-errors
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9250469Z  * [new branch]      codex/fix-netlify-deploy-failure-due-to-missing-dependencies -> origin/codex/fix-netlify-deploy-failure-due-to-missing-dependencies
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9251632Z  * [new branch]      codex/fix-netlify-deploy-module-not-found-error -> origin/codex/fix-netlify-deploy-module-not-found-error
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9252641Z  * [new branch]      codex/fix-netlify-publish-directory-configuration -> origin/codex/fix-netlify-publish-directory-configuration
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9253573Z  * [new branch]      codex/fix-netlify-publish-directory-configuration-3ow25v -> origin/codex/fix-netlify-publish-directory-configuration-3ow25v
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9254561Z  * [new branch]      codex/fix-netlify-publish-directory-configuration-4eb94r -> origin/codex/fix-netlify-publish-directory-configuration-4eb94r
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9255501Z  * [new branch]      codex/fix-overflow-detection-logic-in-balance-meter -> origin/codex/fix-overflow-detection-logic-in-balance-meter
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9256336Z  * [new branch]      codex/fix-poetic-brain-conversation-handling -> origin/codex/fix-poetic-brain-conversation-handling
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9257155Z  * [new branch]      codex/fix-relocation-dropdown-menu-functionality -> origin/codex/fix-relocation-dropdown-menu-functionality
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9257982Z  * [new branch]      codex/fix-report-generation-birth-data-error -> origin/codex/fix-report-generation-birth-data-error
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9258680Z  * [new branch]      codex/fix-report-generation-error -> origin/codex/fix-report-generation-error
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9259417Z  * [new branch]      codex/fix-report-generation-error-in-math-brain-v2 -> origin/codex/fix-report-generation-error-in-math-brain-v2
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9260220Z  * [new branch]      codex/fix-report-generation-error-p06sqz -> origin/codex/fix-report-generation-error-p06sqz
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9260890Z  * [new branch]      codex/fix-report-generation-in-v2 -> origin/codex/fix-report-generation-in-v2
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9261717Z  * [new branch]      codex/fix-report-issue-with-mirror_ready-flag -> origin/codex/fix-report-issue-with-mirror_ready-flag
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9262833Z  * [new branch]      codex/fix-report-self-invalidations-and-readiness-flags -> origin/codex/fix-report-self-invalidations-and-readiness-flags
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9263729Z  * [new branch]      codex/fix-report-upload-error-in-raven-calder -> origin/codex/fix-report-upload-error-in-raven-calder
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9264503Z  * [new branch]      codex/fix-response-to-engage-astrology-data -> origin/codex/fix-response-to-engage-astrology-data
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9265365Z  * [new branch]      codex/fix-scaling-issues-in-weather-data-pipeline -> origin/codex/fix-scaling-issues-in-weather-data-pipeline
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9266173Z  * [new branch]      codex/fix-scoring-options-context-placement -> origin/codex/fix-scoring-options-context-placement
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9266938Z  * [new branch]      codex/fix-syntax-error-in-chatclient.tsx -> origin/codex/fix-syntax-error-in-chatclient.tsx
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9267608Z  * [new branch]      codex/fix-syntax-error-in-page.tsx -> origin/codex/fix-syntax-error-in-page.tsx
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9268327Z  * [new branch]      codex/fix-syntax-error-in-woven-map-composer.js -> origin/codex/fix-syntax-error-in-woven-map-composer.js
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9269082Z  * [new branch]      codex/fix-syntax-error-in-wrapupcard.tsx -> origin/codex/fix-syntax-error-in-wrapupcard.tsx
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9269717Z  * [new branch]      codex/fix-type-error-for-logevent -> origin/codex/fix-type-error-for-logevent
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9270395Z  * [new branch]      codex/fix-type-error-for-mandatediagnostic -> origin/codex/fix-type-error-for-mandatediagnostic
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9271057Z  * [new branch]      codex/fix-type-error-in-page.tsx -> origin/codex/fix-type-error-in-page.tsx
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9271709Z  * [new branch]      codex/fix-typescript-error-in-lib/devauth.ts -> origin/codex/fix-typescript-error-in-lib/devauth.ts
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9272727Z  * [new branch]      codex/fix-typescript-error-in-seismographlike -> origin/codex/fix-typescript-error-in-seismographlike
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9273542Z  * [new branch]      codex/fix-typescript-type-error-in-pingfeedback -> origin/codex/fix-typescript-type-error-in-pingfeedback
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9274474Z  * [new branch]      codex/fix-undefined-object-error-in-chart -> origin/codex/fix-undefined-object-error-in-chart
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9275224Z  * [new branch]      codex/fix-unknown-deployment-status-message -> origin/codex/fix-unknown-deployment-status-message
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9275951Z  * [new branch]      codex/fix-usability-issues-on-chat-page -> origin/codex/fix-usability-issues-on-chat-page
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9276717Z  * [new branch]      codex/fix-visibility-issue-in-poetic-brain-chat -> origin/codex/fix-visibility-issue-in-poetic-brain-chat
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9277607Z  * [new branch]      codex/implement-compensation-for-penalty-in-computesfd -> origin/codex/implement-compensation-for-penalty-in-computesfd
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9278420Z  * [new branch]      codex/improve-chat-interface-on-ios -> origin/codex/improve-chat-interface-on-ios
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9279038Z  * [new branch]      codex/improve-chat-ui-for-mobile -> origin/codex/improve-chat-ui-for-mobile
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9279677Z  * [new branch]      codex/improve-chat-ui-for-mobile-mjw2qx -> origin/codex/improve-chat-ui-for-mobile-mjw2qx
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9280368Z  * [new branch]      codex/improve-poetic-brain-experience -> origin/codex/improve-poetic-brain-experience
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9281034Z  * [new branch]      codex/improve-raven-s-response-modes -> origin/codex/improve-raven-s-response-modes
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9281724Z  * [new branch]      codex/improve-session-flow-in-poetic-brain -> origin/codex/improve-session-flow-in-poetic-brain
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9282649Z  * [new branch]      codex/investigate-access-issue-for-poetic-brain -> origin/codex/investigate-access-issue-for-poetic-brain
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9283599Z  * [new branch]      codex/investigate-frozen-date-range-selection -> origin/codex/investigate-frozen-date-range-selection
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9284409Z  * [new branch]      codex/investigate-navigation-and-report-errors -> origin/codex/investigate-navigation-and-report-errors
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9285168Z  * [new branch]      codex/investigate-server-side-500-error -> origin/codex/investigate-server-side-500-error
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9285899Z  * [new branch]      codex/investigate-solo-mirror-options-issue -> origin/codex/investigate-solo-mirror-options-issue
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9286827Z  * [new branch]      codex/modify-buildravenjsonreport-to-exclude-reports.templates -> origin/codex/modify-buildravenjsonreport-to-exclude-reports.templates
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9287734Z  * [new branch]      codex/propose-pdf-report-format-for-users -> origin/codex/propose-pdf-report-format-for-users
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9288518Z  * [new branch]      codex/refactor-application-for-transit-overlays -> origin/codex/refactor-application-for-transit-overlays
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9289303Z  * [new branch]      codex/refactor-guard-block-and-add-tests -> origin/codex/refactor-guard-block-and-add-tests
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9290097Z  * [new branch]      codex/refactor-poeticsnapshotcard-for-bold-markup -> origin/codex/refactor-poeticsnapshotcard-for-bold-markup
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9290965Z  * [new branch]      codex/reinstate-report-fetching-for-raven-calder -> origin/codex/reinstate-report-fetching-for-raven-calder
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9291753Z  * [new branch]      codex/remove-default-person-b-information -> origin/codex/remove-default-person-b-information
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9292801Z  * [new branch]      codex/reorganize-project-structure-with-wovenmap -> origin/codex/reorganize-project-structure-with-wovenmap
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9293603Z  * [new branch]      codex/resolve-netlify-deployment-issues -> origin/codex/resolve-netlify-deployment-issues
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9294362Z  * [new branch]      codex/review-and-refactor-chatclient-component -> origin/codex/review-and-refactor-chatclient-component
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9295196Z  * [new branch]      codex/review-and-refactor-chatclient-component-1 -> origin/codex/review-and-refactor-chatclient-component-1
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9296244Z  * [new branch]      codex/review-and-refactor-chatclient-component-1-1 -> origin/codex/review-and-refactor-chatclient-component-1-1
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9297022Z  * [new branch]      codex/set-default-date-range-to-today -> origin/codex/set-default-date-range-to-today
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9297717Z  * [new branch]      codex/simplify-raven-s-greeting-response -> origin/codex/simplify-raven-s-greeting-response
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9298481Z  * [new branch]      codex/simplify-timezone-normalization-function -> origin/codex/simplify-timezone-normalization-function
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9299301Z  * [new branch]      codex/summarize-lighthouse-performance-report -> origin/codex/summarize-lighthouse-performance-report
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9300138Z  * [new branch]      codex/update-authenabled-case-insensitive-checks -> origin/codex/update-authenabled-case-insensitive-checks
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9300939Z  * [new branch]      codex/update-balance/triple-channel-sections -> origin/codex/update-balance/triple-channel-sections
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9301724Z  * [new branch]      codex/update-buildmirrorvoice-for-data-checks -> origin/codex/update-buildmirrorvoice-for-data-checks
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9302840Z  * [new branch]      codex/update-buildravenjsonreport-to-merge-reports -> origin/codex/update-buildravenjsonreport-to-merge-reports
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9303742Z  * [new branch]      codex/update-computebalancevalence-with-new-weights -> origin/codex/update-computebalancevalence-with-new-weights
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9304598Z  * [new branch]      codex/update-country-code-validation-message -> origin/codex/update-country-code-validation-message
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9305440Z  * [new branch]      codex/update-error-handling-in-getchartdatafromapi -> origin/codex/update-error-handling-in-getchartdatafromapi
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9306433Z  * [new branch]      codex/update-guidance-strings-for-json-export -> origin/codex/update-guidance-strings-for-json-export
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9307251Z  * [new branch]      codex/update-json-export-and-guidance-in-routes -> origin/codex/update-json-export-and-guidance-in-routes
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9308028Z  * [new branch]      codex/update-readme-with-new-instructions -> origin/codex/update-readme-with-new-instructions
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9308818Z  * [new branch]      codex/update-relational-menu-and-fix-date-input -> origin/codex/update-relational-menu-and-fix-date-input
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9309634Z  * [new branch]      codex/update-relocation-options-in-transits-ui -> origin/codex/update-relocation-options-in-transits-ui
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9310415Z  * [new branch]      codex/update-scrolling-behavior-for-mobile -> origin/codex/update-scrolling-behavior-for-mobile
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9311175Z  * [new branch]      codex/verify-api-key-exposure-in-repository -> origin/codex/verify-api-key-exposure-in-repository
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9311925Z  * [new branch]      codex/widen-no-context-guard-for-astroseek -> origin/codex/widen-no-context-guard-for-astroseek
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9312886Z  * [new branch]      codex/wrap-console.error-in-astrology.js -> origin/codex/wrap-console.error-in-astrology.js
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9313600Z  * [new branch]      codex/write-unit-test-for-error-handling -> origin/codex/write-unit-test-for-error-handling
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9314275Z  * [new branch]      copilot/add-astrology-mathbrain-api -> origin/copilot/add-astrology-mathbrain-api
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9314958Z  * [new branch]      copilot/create-mandate-translation-layer -> origin/copilot/create-mandate-translation-layer
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9315676Z  * [new branch]      copilot/create-master-reference-document -> origin/copilot/create-master-reference-document
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9316368Z  * [new branch]      copilot/docsfield-relocation-ui-copy -> origin/copilot/docsfield-relocation-ui-copy
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9317100Z  * [new branch]      copilot/fix-07cd75fd-1ac0-44a5-adcf-4ac8d48635e7 -> origin/copilot/fix-07cd75fd-1ac0-44a5-adcf-4ac8d48635e7
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9318006Z  * [new branch]      copilot/fix-0b19b383-3435-4766-be78-14a77006a258 -> origin/copilot/fix-0b19b383-3435-4766-be78-14a77006a258
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9318780Z  * [new branch]      copilot/fix-0c9d168b-35ae-44cd-a257-ce862ced51c0 -> origin/copilot/fix-0c9d168b-35ae-44cd-a257-ce862ced51c0
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9319544Z  * [new branch]      copilot/fix-1d91bbb6-6bd1-409d-9749-16848b93bf1f -> origin/copilot/fix-1d91bbb6-6bd1-409d-9749-16848b93bf1f
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9320316Z  * [new branch]      copilot/fix-1da9b008-d12b-4e32-85e0-1dffa74f1edc -> origin/copilot/fix-1da9b008-d12b-4e32-85e0-1dffa74f1edc
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9321079Z  * [new branch]      copilot/fix-26213c81-e071-48aa-81e0-66645d9876e7 -> origin/copilot/fix-26213c81-e071-48aa-81e0-66645d9876e7
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9321661Z  * [new branch]      copilot/fix-31          -> origin/copilot/fix-31
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9322374Z  * [new branch]      copilot/fix-32ee73bb-005d-41a2-a202-f1f457ff2626 -> origin/copilot/fix-32ee73bb-005d-41a2-a202-f1f457ff2626
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9322970Z  * [new branch]      copilot/fix-34          -> origin/copilot/fix-34
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9323557Z  * [new branch]      copilot/fix-360586f8-7e73-4d64-9cd5-70568c1905da -> origin/copilot/fix-360586f8-7e73-4d64-9cd5-70568c1905da
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9324319Z  * [new branch]      copilot/fix-3b23575d-8d72-4f4e-a18f-793ba95b7cdf -> origin/copilot/fix-3b23575d-8d72-4f4e-a18f-793ba95b7cdf
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9325069Z  * [new branch]      copilot/fix-45563531-0a68-4387-a36e-45e97da9b1b8 -> origin/copilot/fix-45563531-0a68-4387-a36e-45e97da9b1b8
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9325833Z  * [new branch]      copilot/fix-480b0116-bc05-4091-8f0d-6c01ef1257bf -> origin/copilot/fix-480b0116-bc05-4091-8f0d-6c01ef1257bf
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9326586Z  * [new branch]      copilot/fix-49b98822-0339-46d1-af26-9f1892861875 -> origin/copilot/fix-49b98822-0339-46d1-af26-9f1892861875
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9327477Z  * [new branch]      copilot/fix-4c9bb9ac-aeb6-4401-97e6-4f860c0862ca -> origin/copilot/fix-4c9bb9ac-aeb6-4401-97e6-4f860c0862ca
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9328251Z  * [new branch]      copilot/fix-4dd7469c-9237-40d4-ab8e-6925220c389c -> origin/copilot/fix-4dd7469c-9237-40d4-ab8e-6925220c389c
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9328832Z  * [new branch]      copilot/fix-50          -> origin/copilot/fix-50
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9329418Z  * [new branch]      copilot/fix-51be708d-65a2-43c6-85f7-aa6619e48234 -> origin/copilot/fix-51be708d-65a2-43c6-85f7-aa6619e48234
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9330174Z  * [new branch]      copilot/fix-5383224f-879f-4976-afce-8c6e4c4d38a5 -> origin/copilot/fix-5383224f-879f-4976-afce-8c6e4c4d38a5
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9330930Z  * [new branch]      copilot/fix-581002cf-689b-4afe-94ea-7a15595ed847 -> origin/copilot/fix-581002cf-689b-4afe-94ea-7a15595ed847
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9331686Z  * [new branch]      copilot/fix-5c646122-e59b-406c-8925-c26f96121a87 -> origin/copilot/fix-5c646122-e59b-406c-8925-c26f96121a87
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9332727Z  * [new branch]      copilot/fix-5cc562f4-eabf-4291-bf1d-4780c50038f9 -> origin/copilot/fix-5cc562f4-eabf-4291-bf1d-4780c50038f9
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9333513Z  * [new branch]      copilot/fix-5ea8110a-eb8d-4f71-9cc7-27edf68af253 -> origin/copilot/fix-5ea8110a-eb8d-4f71-9cc7-27edf68af253
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9334099Z  * [new branch]      copilot/fix-68          -> origin/copilot/fix-68
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9334689Z  * [new branch]      copilot/fix-6b7c5e8d-24f3-4c6d-9db3-ee8c022df31f -> origin/copilot/fix-6b7c5e8d-24f3-4c6d-9db3-ee8c022df31f
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9335470Z  * [new branch]      copilot/fix-6cb4ea92-0a95-4870-ae46-b34b0b81d818 -> origin/copilot/fix-6cb4ea92-0a95-4870-ae46-b34b0b81d818
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9336241Z  * [new branch]      copilot/fix-6cb5d9e5-4a51-4355-89f0-90371b49be4f -> origin/copilot/fix-6cb5d9e5-4a51-4355-89f0-90371b49be4f
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9337004Z  * [new branch]      copilot/fix-6ce62961-f0e6-49c7-9058-b03ac9415665 -> origin/copilot/fix-6ce62961-f0e6-49c7-9058-b03ac9415665
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9337764Z  * [new branch]      copilot/fix-6dc8162a-0655-4a28-92c2-b3f353bef901 -> origin/copilot/fix-6dc8162a-0655-4a28-92c2-b3f353bef901
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9338658Z  * [new branch]      copilot/fix-6f453f4d-65f1-4eb7-afdc-8a73773a3ea5 -> origin/copilot/fix-6f453f4d-65f1-4eb7-afdc-8a73773a3ea5
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9339428Z  * [new branch]      copilot/fix-768eb520-c96d-4d12-b578-a8157816a94d -> origin/copilot/fix-768eb520-c96d-4d12-b578-a8157816a94d
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9340185Z  * [new branch]      copilot/fix-86cd59e6-0299-49a4-99cc-23a4d4433430 -> origin/copilot/fix-86cd59e6-0299-49a4-99cc-23a4d4433430
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9340938Z  * [new branch]      copilot/fix-8edd74c6-9619-49c7-9e49-d0c4412b69b2 -> origin/copilot/fix-8edd74c6-9619-49c7-9e49-d0c4412b69b2
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9341700Z  * [new branch]      copilot/fix-925cfa18-71f9-43e0-9e3e-c99287df5a3f -> origin/copilot/fix-925cfa18-71f9-43e0-9e3e-c99287df5a3f
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9342691Z  * [new branch]      copilot/fix-94025603-cfc2-4ca0-bf00-4271a38c38b6 -> origin/copilot/fix-94025603-cfc2-4ca0-bf00-4271a38c38b6
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9343290Z  * [new branch]      copilot/fix-95          -> origin/copilot/fix-95
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9343695Z  * [new branch]      copilot/fix-97          -> origin/copilot/fix-97
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9344278Z  * [new branch]      copilot/fix-9c52c6df-5a1e-4cd0-930c-f78bea2a0156 -> origin/copilot/fix-9c52c6df-5a1e-4cd0-930c-f78bea2a0156
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9345053Z  * [new branch]      copilot/fix-a218acb0-6322-400c-8f2f-3ea3b276f523 -> origin/copilot/fix-a218acb0-6322-400c-8f2f-3ea3b276f523
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9345813Z  * [new branch]      copilot/fix-a4cc9020-91fe-4038-a2cc-0cb55a1891f6 -> origin/copilot/fix-a4cc9020-91fe-4038-a2cc-0cb55a1891f6
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9346588Z  * [new branch]      copilot/fix-a69409b9-6a62-4784-a69d-01cb1fcddf50 -> origin/copilot/fix-a69409b9-6a62-4784-a69d-01cb1fcddf50
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9347416Z  * [new branch]      copilot/fix-auth0-redirect-urls -> origin/copilot/fix-auth0-redirect-urls
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9348106Z  * [new branch]      copilot/fix-b53974a4-ab90-4666-a7b9-2c339be0fba9 -> origin/copilot/fix-b53974a4-ab90-4666-a7b9-2c339be0fba9
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9348872Z  * [new branch]      copilot/fix-bd3e3386-9a1f-4566-b7ab-8e10f1b1a805 -> origin/copilot/fix-bd3e3386-9a1f-4566-b7ab-8e10f1b1a805
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9349846Z  * [new branch]      copilot/fix-chunk-upload-http-400-errors -> origin/copilot/fix-chunk-upload-http-400-errors
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9350713Z  * [new branch]      copilot/fix-d2649197-c508-48c6-83d0-6b7caa8e47ac -> origin/copilot/fix-d2649197-c508-48c6-83d0-6b7caa8e47ac
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9351632Z  * [new branch]      copilot/fix-daccaf49-c2bf-4047-bedc-ce202fd403aa -> origin/copilot/fix-daccaf49-c2bf-4047-bedc-ce202fd403aa
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9352778Z  * [new branch]      copilot/fix-e42c3162-2547-42c2-beb5-2a9b7c625525 -> origin/copilot/fix-e42c3162-2547-42c2-beb5-2a9b7c625525
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9353578Z  * [new branch]      copilot/fix-e79e6a74-0ca9-4b65-adb5-f47fe3267ebe -> origin/copilot/fix-e79e6a74-0ca9-4b65-adb5-f47fe3267ebe
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9354354Z  * [new branch]      copilot/fix-f6067b52-cc09-4411-b5f6-1add9ec053fa -> origin/copilot/fix-f6067b52-cc09-4411-b5f6-1add9ec053fa
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9355119Z  * [new branch]      copilot/fix-f6e82f54-71ed-4430-98c6-de1caa4e1d90 -> origin/copilot/fix-f6e82f54-71ed-4430-98c6-de1caa4e1d90
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9355893Z  * [new branch]      copilot/fix-ff65a0d7-ec2c-4f2c-8f65-dde6d49d3d9f -> origin/copilot/fix-ff65a0d7-ec2c-4f2c-8f65-dde6d49d3d9f
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9356622Z  * [new branch]      copilot/fix-magnitudeavg-definition -> origin/copilot/fix-magnitudeavg-definition
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9357395Z  * [new branch]      copilot/fix-missing-export-assertnotdoubleinverted -> origin/copilot/fix-missing-export-assertnotdoubleinverted
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9358140Z  * [new branch]      copilot/fix-natal-inputs-in-report -> origin/copilot/fix-natal-inputs-in-report
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9358831Z  * [new branch]      copilot/fix-osr-detection-error -> origin/copilot/fix-osr-detection-error
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9359684Z  * [new branch]      copilot/fix-pdf-generation-initialization-error -> origin/copilot/fix-pdf-generation-initialization-error
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9360428Z  * [new branch]      copilot/fix-playwright-port-conflict -> origin/copilot/fix-playwright-port-conflict
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9361081Z  * [new branch]      copilot/fix-typescript-syntax-error -> origin/copilot/fix-typescript-syntax-error
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9361763Z  * [new branch]      copilot/manage-pull-request-organization -> origin/copilot/manage-pull-request-organization
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9362615Z  * [new branch]      copilot/remove-unnecessary-report-titles -> origin/copilot/remove-unnecessary-report-titles
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9363280Z  * [new branch]      copilot/review-outdated-branches -> origin/copilot/review-outdated-branches
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9363802Z  * [new branch]      copilot/sub-pr-230      -> origin/copilot/sub-pr-230
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9364244Z  * [new branch]      copilot/sub-pr-239      -> origin/copilot/sub-pr-239
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9364684Z  * [new branch]      copilot/sub-pr-251      -> origin/copilot/sub-pr-251
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9365108Z  * [new branch]      copilot/sub-pr-252      -> origin/copilot/sub-pr-252
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9365537Z  * [new branch]      copilot/sub-pr-265      -> origin/copilot/sub-pr-265
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9365957Z  * [new branch]      copilot/sub-pr-283      -> origin/copilot/sub-pr-283
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9366419Z  * [new branch]      copilot/sub-pr-293      -> origin/copilot/sub-pr-293
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9366980Z  * [new branch]      copilot/update-docs-field-relocation-ui -> origin/copilot/update-docs-field-relocation-ui
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9367637Z  * [new branch]      copilot/update-solo-mirror-report -> origin/copilot/update-solo-mirror-report
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9368474Z  * [new branch]      copilot/update-transit-overlay-documentation -> origin/copilot/update-transit-overlay-documentation
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9369097Z  * [new branch]      docs-project-overview   -> origin/docs-project-overview
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9369640Z  * [new branch]      docs/update-v5-balance-meter-docs -> origin/docs/update-v5-balance-meter-docs
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9370227Z  * [new branch]      feat/performance-optimizations -> origin/feat/performance-optimizations
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9370791Z  * [new branch]      feat/perplexity-persona-hook -> origin/feat/perplexity-persona-hook
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9371282Z  * [new branch]      feat/raw-export         -> origin/feat/raw-export
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9371714Z  * [new branch]      feat/srp-translocation  -> origin/feat/srp-translocation
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9372352Z  * [new branch]      feature/add-doc-organizer-agent -> origin/feature/add-doc-organizer-agent
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9372887Z  * [new branch]      feature/code-review     -> origin/feature/code-review
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9373473Z  * [new branch]      feature/consolidate-poetic-brain-output -> origin/feature/consolidate-poetic-brain-output
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9374153Z  * [new branch]      feature/display-relational-summary -> origin/feature/display-relational-summary
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9374729Z  * [new branch]      feature/full-next-migration -> origin/feature/full-next-migration
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9375242Z  * [new branch]      fix-balance-meter-schema -> origin/fix-balance-meter-schema
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9375770Z  * [new branch]      fix-garbled-download-filename -> origin/fix-garbled-download-filename
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9376325Z  * [new branch]      fix-initial-reading-trigger -> origin/fix-initial-reading-trigger
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9377149Z  * [new branch]      fix-jsx-attribute-duplication-erro-ntl-68e38fd0a82e512055650732 -> origin/fix-jsx-attribute-duplication-erro-ntl-68e38fd0a82e512055650732
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9378003Z  * [new branch]      fix-legacy-balance-meter-exports -> origin/fix-legacy-balance-meter-exports
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9378550Z  * [new branch]      fix-missing-transits    -> origin/fix-missing-transits
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9378994Z  * [new branch]      fix-mobile-download     -> origin/fix-mobile-download
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9379587Z  * [new branch]      fix-netlify-build-error -> origin/fix-netlify-build-error
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9380040Z  * [new branch]      fix-raven-chat-auth     -> origin/fix-raven-chat-auth
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9380480Z  * [new branch]      fix-single-day-transits -> origin/fix-single-day-transits
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9381260Z  * [new branch]      fix-type-error-in-appmath-brainpag-ntl-68e42c975259e79a4a43fb39 -> origin/fix-type-error-in-appmath-brainpag-ntl-68e42c975259e79a4a43fb39
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9382491Z  * [new branch]      fix-type-error-in-netlify-deploy-e-ntl-68e36cd73b140cd07ff47602 -> origin/fix-type-error-in-netlify-deploy-e-ntl-68e36cd73b140cd07ff47602
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9383594Z  * [new branch]      fix-typescript-type-error-in-weath-ntl-68e6a7e2c587bf7a1fa0df2a -> origin/fix-typescript-type-error-in-weath-ntl-68e6a7e2c587bf7a1fa0df2a
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9384441Z  * [new branch]      fix/balance-meter-export-zeros -> origin/fix/balance-meter-export-zeros
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9385054Z  * [new branch]      fix/balance-meter-overflow-boundary -> origin/fix/balance-meter-overflow-boundary
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9385632Z  * [new branch]      fix/docs-ascendant-formula -> origin/fix/docs-ascendant-formula
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9386150Z  * [new branch]      fix/end-to-end-transit-logic -> origin/fix/end-to-end-transit-logic
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9386664Z  * [new branch]      fix/gemini-api-compliance -> origin/fix/gemini-api-compliance
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9387180Z  * [new branch]      fix/graceful-error-handling -> origin/fix/graceful-error-handling
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9387730Z  * [new branch]      fix/graceful-error-handling-v2-1 -> origin/fix/graceful-error-handling-v2-1
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9388312Z  * [new branch]      fix/mobile-download-buttons-1 -> origin/fix/mobile-download-buttons-1
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9388970Z  * [new branch]      fix/placidus-calculation -> origin/fix/placidus-calculation
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9389493Z  * [new branch]      fix/placidus-calculation-bug -> origin/fix/placidus-calculation-bug
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9390031Z  * [new branch]      fix/raven-tests-and-cleanup -> origin/fix/raven-tests-and-cleanup
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9390549Z  * [new branch]      fix/relocation-calculations -> origin/fix/relocation-calculations
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9391040Z  * [new branch]      fix/relocation-docs     -> origin/fix/relocation-docs
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9391511Z  * [new branch]      fix/relocation-houses-bugs -> origin/fix/relocation-houses-bugs
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9392161Z  * [new branch]      fix/remove-dead-code    -> origin/fix/remove-dead-code
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9392769Z  * [new branch]      fix/robust-house-cusp-extraction -> origin/fix/robust-house-cusp-extraction
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9393262Z  * [new branch]      imgbot                  -> origin/imgbot
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9393706Z  * [new branch]      jules-math-brain-refactor -> origin/jules-math-brain-refactor
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9394185Z  * [new branch]      jules-review-20251102-2 -> origin/jules-review-20251102-2
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9394681Z  * [new branch]      jules-timeless-report-fix -> origin/jules-timeless-report-fix
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9395197Z  * [new branch]      jules-timeless-report-fix-1 -> origin/jules-timeless-report-fix-1
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9395680Z  * [new branch]      jules/audit-fixes       -> origin/jules/audit-fixes
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9396179Z  * [new branch]      jules/remove-volatility-metric -> origin/jules/remove-volatility-metric
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9396638Z  * [new branch]      main                    -> origin/main
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9397036Z  * [new branch]      perf-improvements       -> origin/perf-improvements
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9397451Z  * [new branch]      pr-review-1             -> origin/pr-review-1
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9397932Z  * [new branch]      refactor-relational-summary -> origin/refactor-relational-summary
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9398449Z  * [new branch]      refactor-seismograph-v5 -> origin/refactor-seismograph-v5
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9398952Z  * [new branch]      refactor/math-brain-service -> origin/refactor/math-brain-service
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9399635Z  * [new branch]      refactor/remove-legacy-metrics -> origin/refactor/remove-legacy-metrics
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9400140Z  * [new branch]      relocation-refactor     -> origin/relocation-refactor
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9400603Z  * [new branch]      remove-bundle-download  -> origin/remove-bundle-download
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9401167Z  * [new branch]      remove-deprecated-volatility-metric -> origin/remove-deprecated-volatility-metric
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9401726Z  * [new branch]      spec-v5-unification     -> origin/spec-v5-unification
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9402262Z  * [new branch]      telemetry               -> origin/telemetry
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9402711Z  * [new branch]      test-coverage-improvements -> origin/test-coverage-improvements
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9600873Z [command]/usr/bin/git branch --list --remote origin/main
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9652621Z   origin/main
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9661531Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9681769Z 8d2018d7c8e9b8a32e9bf6947edb88dac503e667
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9687420Z ##[endgroup]
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9687922Z ##[group]Determining the checkout info
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9688913Z ##[endgroup]
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9693800Z [command]/usr/bin/git sparse-checkout disable
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9737380Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9763568Z ##[group]Checking out the ref
+delete-old-branches	Checkout repository	2025-11-12T20:14:12.9768054Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+delete-old-branches	Checkout repository	2025-11-12T20:14:13.2874869Z Switched to a new branch 'main'
+delete-old-branches	Checkout repository	2025-11-12T20:14:13.2876955Z branch 'main' set up to track 'origin/main'.
+delete-old-branches	Checkout repository	2025-11-12T20:14:13.2902618Z ##[endgroup]
+delete-old-branches	Checkout repository	2025-11-12T20:14:13.2944272Z [command]/usr/bin/git log -1 --format=%H
+delete-old-branches	Checkout repository	2025-11-12T20:14:13.2968366Z 8d2018d7c8e9b8a32e9bf6947edb88dac503e667
+delete-old-branches	Configure Git	﻿2025-11-12T20:14:13.3139723Z ##[group]Run git config user.name "github-actions[bot]"
+delete-old-branches	Configure Git	2025-11-12T20:14:13.3140273Z [36;1mgit config user.name "github-actions[bot]"[0m
+delete-old-branches	Configure Git	2025-11-12T20:14:13.3140714Z [36;1mgit config user.email "github-actions[bot]@users.noreply.github.com"[0m
+delete-old-branches	Configure Git	2025-11-12T20:14:13.3177722Z shell: /usr/bin/bash -e {0}
+delete-old-branches	Configure Git	2025-11-12T20:14:13.3178033Z ##[endgroup]
+delete-old-branches	Delete old branches	﻿2025-11-12T20:14:13.3335443Z ##[group]Run #!/bin/bash
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3336585Z [36;1m#!/bin/bash[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3336859Z [36;1mset -euo pipefail[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3337115Z [36;1m[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3337372Z [36;1mecho "========================================================================"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3337765Z [36;1mecho "Delete Old Branches Workflow"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3338112Z [36;1mecho "========================================================================"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3338438Z [36;1mecho "Dry run: $DRY_RUN"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3338733Z [36;1mecho "Days threshold: $DAYS_OLD days"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3339019Z [36;1mecho ""[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3339253Z [36;1m[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3339461Z [36;1m# Protected branches[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3406793Z [36;1mPROTECTED_BRANCHES=("main" "develop" "staging" "production")[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3407450Z [36;1m[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3407906Z [36;1m# Calculate cutoff time[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3408454Z [36;1mCURRENT_TIME=$(date +%s)[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3409105Z [36;1mCUTOFF_SECONDS=$((DAYS_OLD * 86400))[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3409752Z [36;1mCUTOFF_TIME=$((CURRENT_TIME - CUTOFF_SECONDS))[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3410220Z [36;1m[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3410781Z [36;1mecho "Current time: $(date -u '+%Y-%m-%d %H:%M:%S %Z')"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3411695Z [36;1mecho "Cutoff time ($DAYS_OLD days ago): $(date -u -d @$CUTOFF_TIME '+%Y-%m-%d %H:%M:%S %Z')"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3412675Z [36;1mecho ""[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3413051Z [36;1m[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3413370Z [36;1m# Statistics[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3413836Z [36;1mDELETED_COUNT=0[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3414290Z [36;1mSKIPPED_COUNT=0[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3415091Z [36;1mERROR_COUNT=0[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3415492Z [36;1m[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3415956Z [36;1m# Function to check if branch is protected[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3416528Z [36;1mis_protected() {[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3416922Z [36;1m    local branch=$1[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3417419Z [36;1m    for protected in "${PROTECTED_BRANCHES[@]}"; do[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3418017Z [36;1m        if [[ "$branch" == "$protected" ]]; then[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3418541Z [36;1m            return 0[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3418950Z [36;1m        fi[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3419334Z [36;1m    done[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3419687Z [36;1m    return 1[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3420081Z [36;1m}[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3420431Z [36;1m[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3420795Z [36;1m# Get all branches[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3421275Z [36;1mecho "Fetching branches..."[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3422297Z [36;1mmapfile -t BRANCHES < <(git ls-remote --heads origin | awk '{print $2}' | sed 's|refs/heads/||' | sort)[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3423148Z [36;1m[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3423581Z [36;1mecho "Found ${#BRANCHES[@]} branches to check"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3424108Z [36;1mecho ""[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3424600Z [36;1mecho "========================================================================"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3425249Z [36;1mecho "Processing Branches"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3425840Z [36;1mecho "========================================================================"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3426298Z [36;1mecho ""[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3426526Z [36;1m[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3426747Z [36;1mfor BRANCH in "${BRANCHES[@]}"; do[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3427051Z [36;1m    # Skip protected branches[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3427349Z [36;1m    if is_protected "$BRANCH"; then[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3427675Z [36;1m        echo "[PROTECTED] Skipping $BRANCH"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3428002Z [36;1m        ((SKIPPED_COUNT++))[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3428270Z [36;1m        continue[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3428525Z [36;1m    fi[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3428728Z [36;1m    [0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3428954Z [36;1m    # Get SHA and commit date[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3429319Z [36;1m    SHA=$(git ls-remote origin "refs/heads/$BRANCH" | awk '{print $1}')[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3429680Z [36;1m    [0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3430183Z [36;1m    if [ -z "$SHA" ]; then[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3430508Z [36;1m        echo "[ERROR] Could not get SHA for $BRANCH"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3430830Z [36;1m        ((ERROR_COUNT++))[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3431093Z [36;1m        continue[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3431328Z [36;1m    fi[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3431530Z [36;1m    [0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3431753Z [36;1m    # Fetch commit metadata[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3432300Z [36;1m    git fetch --depth=1 origin "$SHA" 2>/dev/null || true[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3432735Z [36;1m    COMMIT_TIME=$(git log -1 --format=%ct "$SHA" 2>/dev/null || echo "0")[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3433094Z [36;1m    [0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3433329Z [36;1m    if [ "$COMMIT_TIME" == "0" ]; then[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3433676Z [36;1m        echo "[ERROR] Could not get commit time for $BRANCH"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3434007Z [36;1m        ((ERROR_COUNT++))[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3434270Z [36;1m        continue[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3434508Z [36;1m    fi[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3434716Z [36;1m    [0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3434925Z [36;1m    # Calculate age[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3435215Z [36;1m    AGE_SECONDS=$((CURRENT_TIME - COMMIT_TIME))[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3435564Z [36;1m    AGE_DAYS=$((AGE_SECONDS / 86400))[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3435938Z [36;1m    COMMIT_DATE=$(date -u -d @$COMMIT_TIME '+%Y-%m-%d %H:%M:%S' 2>/dev/null)[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3436298Z [36;1m    [0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3436513Z [36;1m    # Check if old enough[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3436816Z [36;1m    if [ "$COMMIT_TIME" -lt "$CUTOFF_TIME" ]; then[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3437192Z [36;1m        echo "[OLD - ${AGE_DAYS}d] $BRANCH (Last commit: $COMMIT_DATE)"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3437746Z [36;1m        [0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3437990Z [36;1m        if [ "$DRY_RUN" == "false" ]; then[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3438301Z [36;1m            # Actually delete the branch[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3438640Z [36;1m            if git push origin --delete "$BRANCH" 2>&1; then[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3439011Z [36;1m                echo "  ✓ Deleted successfully"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3439326Z [36;1m                ((DELETED_COUNT++))[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3439598Z [36;1m            else[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3439852Z [36;1m                echo "  ✗ Failed to delete"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3440149Z [36;1m                ((ERROR_COUNT++))[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3440417Z [36;1m            fi[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3440647Z [36;1m        else[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3440905Z [36;1m            echo "  [DRY RUN] Would delete this branch"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3441223Z [36;1m            ((DELETED_COUNT++))[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3441504Z [36;1m        fi[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3441725Z [36;1m    else[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3442303Z [36;1m        echo "[RECENT] $BRANCH (${AGE_DAYS}d old, Last commit: $COMMIT_DATE)"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3442690Z [36;1m        ((SKIPPED_COUNT++))[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3442955Z [36;1m    fi[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3443179Z [36;1mdone[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3443389Z [36;1m[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3443580Z [36;1mecho ""[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3443840Z [36;1mecho "========================================================================"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3444150Z [36;1mecho "Summary"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3444425Z [36;1mecho "========================================================================"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3444748Z [36;1mif [ "$DRY_RUN" == "true" ]; then[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3445086Z [36;1m    echo "DRY RUN MODE - No branches were actually deleted"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3445480Z [36;1m    echo "Branches that would be deleted: $DELETED_COUNT"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3445802Z [36;1melse[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3446043Z [36;1m    echo "Branches deleted: $DELETED_COUNT"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3446329Z [36;1mfi[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3446635Z [36;1mecho "Branches skipped (recent or protected): $SKIPPED_COUNT"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3447001Z [36;1mecho "Errors: $ERROR_COUNT"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3447472Z [36;1mecho "========================================================================"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3447780Z [36;1m[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3447991Z [36;1m# Create artifact with details[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3448259Z [36;1m{[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3448479Z [36;1m    echo "# Branch Deletion Report"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3448778Z [36;1m    echo "Generated: $(date -u)"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3449051Z [36;1m    echo ""[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3449281Z [36;1m    echo "## Configuration"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3449557Z [36;1m    echo "- Dry Run: $DRY_RUN"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3449843Z [36;1m    echo "- Days Threshold: $DAYS_OLD"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3450135Z [36;1m    echo ""[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3450360Z [36;1m    echo "## Summary"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3450626Z [36;1m    if [ "$DRY_RUN" == "true" ]; then[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3450967Z [36;1m        echo "- Branches that would be deleted: $DELETED_COUNT"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3451299Z [36;1m    else[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3451555Z [36;1m        echo "- Branches deleted: $DELETED_COUNT"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3451843Z [36;1m    fi[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3452843Z [36;1m    echo "- Branches skipped: $SKIPPED_COUNT"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3453190Z [36;1m    echo "- Errors: $ERROR_COUNT"[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3453494Z [36;1m} > branch-deletion-report.md[0m
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3487741Z shell: /usr/bin/bash -e {0}
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3488058Z env:
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3488729Z   GITHUB_TOKEN: ***
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3488962Z   DRY_RUN: true
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3489178Z   DAYS_OLD: 1
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3489386Z ##[endgroup]
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3542931Z ========================================================================
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3543523Z Delete Old Branches Workflow
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3543807Z ========================================================================
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3544102Z Dry run: true
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3544319Z Days threshold: 1 days
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3544486Z 
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3569004Z Current time: 2025-11-12 20:14:13 UTC
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3581168Z Cutoff time (1 days ago): 2025-11-11 20:14:13 UTC
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3581507Z 
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.3581634Z Fetching branches...
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.7212631Z Found 282 branches to check
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.7212951Z 
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.7213092Z ========================================================================
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.7213537Z Processing Branches
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.7213831Z ========================================================================
+delete-old-branches	Delete old branches	2025-11-12T20:14:13.7214102Z 
+delete-old-branches	Delete old branches	2025-11-12T20:14:14.9210952Z [OLD - 21d] agent-deployment-8f47 (Last commit: 2025-10-22 16:29:09)
+delete-old-branches	Delete old branches	2025-11-12T20:14:14.9211651Z   [DRY RUN] Would delete this branch
+delete-old-branches	Delete old branches	2025-11-12T20:14:14.9224733Z ##[error]Process completed with exit code 1.
+delete-old-branches	Post Checkout repository	﻿2025-11-12T20:14:14.9323073Z Post job cleanup.
+delete-old-branches	Post Checkout repository	2025-11-12T20:14:15.0275219Z [command]/usr/bin/git version
+delete-old-branches	Post Checkout repository	2025-11-12T20:14:15.0313330Z git version 2.51.2
+delete-old-branches	Post Checkout repository	2025-11-12T20:14:15.0360526Z Temporarily overriding HOME='/home/runner/work/_temp/f6d04183-ff1e-49e9-a93f-7982cb720bc7' before making global git config changes
+delete-old-branches	Post Checkout repository	2025-11-12T20:14:15.0361848Z Adding repository directory to the temporary git global config as a safe directory
+delete-old-branches	Post Checkout repository	2025-11-12T20:14:15.0367377Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/WovenWebApp/WovenWebApp
+delete-old-branches	Post Checkout repository	2025-11-12T20:14:15.0407324Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+delete-old-branches	Post Checkout repository	2025-11-12T20:14:15.0442492Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+delete-old-branches	Post Checkout repository	2025-11-12T20:14:15.0679135Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+delete-old-branches	Post Checkout repository	2025-11-12T20:14:15.0702721Z http.https://github.com/.extraheader
+delete-old-branches	Post Checkout repository	2025-11-12T20:14:15.0716090Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+delete-old-branches	Post Checkout repository	2025-11-12T20:14:15.0749871Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+delete-old-branches	Complete job	﻿2025-11-12T20:14:15.1091578Z Cleaning up orphan processes
