@@ -6,7 +6,14 @@ Core components (as implemented in this repo):
 - `scripts/velocity-tracker.js` — analyzer/estimator (commits/hour, rolling averages)
 - `scripts/velocity-artifacts.js` — forecast generator (Markdown)
 - `.github/workflows/velocity.yml` — scheduled automation and artifact commits
-- `.logs/velocity-log.jsonl` — local, git‑ignored telemetry ledger
+- `.logs/velocity-log.jsonl` — local, git‑ignored telemetry ledger (mirrored to `velocity-log.jsonl` for CI commits)
+
+### Logging defaults
+
+- `scripts/velocity-tracker.js` now emits a `commitCount`, `totalDurationSeconds`, and `id` for every run, plus optional branch/commit context pulled from git.
+- The CLI writes to `.logs/velocity-log.jsonl` by default and mirrors each entry to `velocity-log.jsonl` so the GitHub Action can continue committing artifacts.
+- Override the locations with `VELOCITY_LOG_PATH` / `VELOCITY_LOG_MIRROR_PATH` if you need to point telemetry elsewhere (e.g., shared volume or cloud bucket).
+- First‑time operators should create `.logs/` or run the tracker once; the script auto-creates the directory but it remains git-ignored to avoid noisy diffs.
 
 Extraction plan:
 1. Keep terminology neutral and configurable (no product‑specific names)

@@ -22,7 +22,7 @@ Each JSON line looks like:
 
 ## When this file changes
 
-1. Read the last entry in `.logs/debug-session.jsonl`.
+1. Read the last entry in `.logs/debug-session.jsonl` (create the `.logs/` folder if it doesn’t exist—`npm run debug:signal` will scaffold it automatically).
 2. Investigate the described area (math brain, poetic brain, etc.).
 3. Propose a fix or diagnosis referencing the entry’s `id`.
 4. Once multiple agents agree on a fix, document the resolution (future script
@@ -39,6 +39,8 @@ This appends a structured entry so other agents can notice it.
 ## Related docs
 
 - `docs/STC_PROTOCOL.md` — overall Signal → Trace → Convergence guidance
+- `docs/debug-recognition.md` — how to capture the convergence decision for each debug signal
+- `docs/STC_EXPERIMENT_LOG.md` — running ledger of experiment outcomes linked back to debug fixes when applicable
 
 
 ## Reference Signal

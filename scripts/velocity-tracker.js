@@ -12,6 +12,8 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const { randomUUID } = require('crypto');
+const { execSync } = require('child_process');
 
 // ============================================================================
 // TEAM & VELOCITY MODEL (STC Signal → Trace → Convergence context)
@@ -82,28 +84,47 @@ const PHASE_TEMPLATES = {
 // UTILS
 // ============================================================================
 
-const LOG_DIR_PATH = path.resolve(__dirname, '../.logs');
-const LOG_FILE_PATH = path.resolve(LOG_DIR_PATH, 'velocity-log.jsonl');
+const LOG_FILE_PATH = path.resolve(
+  process.cwd(),
+  process.env.VELOCITY_LOG_PATH || '.logs/velocity-log.jsonl',
+);
+const MIRROR_LOG_FILE_PATH = path.resolve(
+  process.cwd(),
+  process.env.VELOCITY_LOG_MIRROR_PATH || 'velocity-log.jsonl',
+);
 
-function ensureLogFileReady() {
-  if (!fs.existsSync(LOG_DIR_PATH)) {
-    fs.mkdirSync(LOG_DIR_PATH, { recursive: true });
+function ensureLogFileReady(filePath) {
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
-  if (!fs.existsSync(LOG_FILE_PATH)) {
-    fs.writeFileSync(LOG_FILE_PATH, '', { encoding: 'utf8' });
+  if (!fs.existsSync(filePath)) {
+    fs.writeFileSync(filePath, '', { encoding: 'utf8' });
+  }
+}
+
+function appendLogLine(filePath, data) {
+  try {
+    ensureLogFileReady(filePath);
+    fs.appendFileSync(filePath, JSON.stringify(data) + '\n', { encoding: 'utf8' });
+  } catch (err) {
+    console.warn(`⚠️  Unable to write velocity log at ${filePath}:`, err.message);
   }
 }
 
 function logRun(data) {
-  ensureLogFileReady();
-  const line = JSON.stringify(data);
-  fs.appendFileSync(LOG_FILE_PATH, line + '\n', { encoding: 'utf8' });
+  appendLogLine(LOG_FILE_PATH, data);
+  if (MIRROR_LOG_FILE_PATH !== LOG_FILE_PATH) {
+    appendLogLine(MIRROR_LOG_FILE_PATH, data);
+  }
 }
 
 function readRecentRuns(limit = 10) {
-  ensureLogFileReady();
+  ensureLogFileReady(LOG_FILE_PATH);
   if (!fs.existsSync(LOG_FILE_PATH)) return [];
-  const lines = fs.readFileSync(LOG_FILE_PATH, 'utf8').trim().split('\n');
+  const raw = fs.readFileSync(LOG_FILE_PATH, 'utf8').trim();
+  if (!raw) return [];
+  const lines = raw.split('\n');
   const runs = lines.map(line => {
     try {
       return JSON.parse(line);
@@ -116,11 +137,16 @@ function readRecentRuns(limit = 10) {
 
 function computeRollingAverage(runs) {
   if (runs.length === 0) return null;
-  const sum = runs.reduce((acc, run) => acc + run.total_commits, 0);
-  const sumHours = runs.reduce((acc, run) => acc + run.total_elapsed_hours, 0);
+  const sum = runs.reduce((acc, run) => acc + (Number.isFinite(run.commitCount) ? run.commitCount : run.total_commits || 0), 0);
+  const sumHours = runs.reduce((acc, run) => acc + (Number.isFinite(run.total_elapsed_hours)
+    ? run.total_elapsed_hours
+    : Number.isFinite(run.totalDurationSeconds)
+      ? run.totalDurationSeconds / 3600
+      : (run.total_elapsed_minutes || 0) / 60
+  ), 0);
   const avgCommits = sum / runs.length;
   const avgHours = sumHours / runs.length;
-  const avgCommitsPerHour = avgCommits / avgHours;
+  const avgCommitsPerHour = avgHours > 0 ? avgCommits / avgHours : 0;
   return {
     avgCommits,
     avgHours,
@@ -130,11 +156,36 @@ function computeRollingAverage(runs) {
 
 function computeTrendDelta(latest, previous) {
   if (!latest || !previous) return null;
+  const latestCommits = Number.isFinite(latest.commitCount) ? latest.commitCount : latest.total_commits || 0;
+  const previousCommits = Number.isFinite(previous.commitCount) ? previous.commitCount : previous.total_commits || 0;
+  const latestHours = Number.isFinite(latest.total_elapsed_hours)
+    ? latest.total_elapsed_hours
+    : Number.isFinite(latest.totalDurationSeconds)
+      ? latest.totalDurationSeconds / 3600
+      : (latest.total_elapsed_minutes || 0) / 60;
+  const previousHours = Number.isFinite(previous.total_elapsed_hours)
+    ? previous.total_elapsed_hours
+    : Number.isFinite(previous.totalDurationSeconds)
+      ? previous.totalDurationSeconds / 3600
+      : (previous.total_elapsed_minutes || 0) / 60;
   return {
-    commits_delta: latest.total_commits - previous.total_commits,
-    elapsed_hours_delta: latest.total_elapsed_hours - previous.total_elapsed_hours,
-    commits_per_hour_delta: latest.commits_per_hour - previous.commits_per_hour,
+    commits_delta: latestCommits - previousCommits,
+    elapsed_hours_delta: latestHours - previousHours,
+    commits_per_hour_delta: (latest.commits_per_hour || latest.commitsPerHour || 0)
+      - (previous.commits_per_hour || previous.commitsPerHour || 0),
   };
+}
+
+function getGitContext() {
+  try {
+    const branch = execSync('git rev-parse --abbrev-ref HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString().trim();
+    const commit = execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString().trim();
+    return { branch, commit };
+  } catch {
+    return { branch: null, commit: null };
+  }
 }
 
 // ============================================================================
@@ -294,13 +345,36 @@ async function analyzeAndEstimate(isBlitz = false) {
     process.exit(1);
   }
 
+  const git = getGitContext();
+  const timestamp = new Date().toISOString();
+  const totalDurationSeconds = Number.isFinite(sessionData.total_elapsed_minutes)
+    ? Math.round(sessionData.total_elapsed_minutes * 60)
+    : Number.isFinite(sessionData.total_elapsed_hours)
+      ? Math.round(sessionData.total_elapsed_hours * 3600)
+      : 0;
+  const commitCount = Number.isFinite(sessionData.total_commits) ? sessionData.total_commits : 0;
+  const commitsPerHour = Number.isFinite(sessionData.commits_per_hour)
+    ? sessionData.commits_per_hour
+    : totalDurationSeconds > 0
+      ? commitCount / (totalDurationSeconds / 3600)
+      : 0;
+
   // Log current run
   const runLogEntry = {
-    timestamp: new Date().toISOString(),
+    id: randomUUID(),
+    timestamp,
+    repo: REPO,
+    branch: git.branch,
+    commit: git.commit,
+    source: 'velocity-tracker',
+    windowStart: sinceDate,
     total_commits: sessionData.total_commits,
     total_elapsed_minutes: sessionData.total_elapsed_minutes,
     total_elapsed_hours: sessionData.total_elapsed_hours,
-    commits_per_hour: sessionData.commits_per_hour,
+    commits_per_hour: commitsPerHour,
+    commitsPerHour,
+    commitCount,
+    totalDurationSeconds,
     start: sessionData.start,
     end: sessionData.end,
   };
