@@ -1,39 +1,38 @@
 name: JULES PR Reviewer
 
-# This action triggers whenever a pull request is opened
-# Disabled - change to manual trigger only
 on:
   workflow_dispatch:
     inputs:
-      pr_number:
-        description: 'Pull request number to review'
-        required: true
-        type: number
       branch:
         description: 'Branch name to review'
         required: true
         type: string
-# Automatic trigger disabled:
-#  pull_request:
-#    types: [opened]
-
+        
 jobs:
   evaluate-pull-request:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Get PR number from branch
+        id: pr
+        run: |
+          PR_NUMBER=$(gh pr list --head "${{ inputs.branch }}" --json number --jq '.[0].number')
+          if [ -z "$PR_NUMBER" ]; then
+            echo "No PR found for branch ${{ inputs.branch }}"
+            exit 1
+          fi
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+          
       - name: Call JULES API for PR Evaluation
         run: |
           curl -X POST 'https://jules.googleapis.com/v1alpha/sessions' \
-          -H "Content-Type: application/json" \
-          -H "X-Goog-Api-Key: ${{ secrets.JULES_API }}" \
-          -d '{
-            "prompt": "Please review the code changes in this pull request. Look for potential bugs, style issues, or areas for improvement. Provide a summary of your findings.",
-            "sourceContext": {
-              "source": "sources/github/${{ github.repository }}",
-              "githubRepoContext": {
-                "startingBranch": "${{ inputs.branch }}"
-              }
-            },
-            "automationMode": "AUTO_CREATE_PR",
-            "title": "JULES Review for PR #${{ inputs.pr_number }}"
-          }'
+            -H "Content-Type: application/json" \
+            -H "X-Goog-Api-Key: ${{ secrets.JULES_API }}" \
+            -d '{
+              "pr_number": "${{ steps.pr.outputs.pr_number }}",
+              "branch": "${{ inputs.branch }}"
+            }'
