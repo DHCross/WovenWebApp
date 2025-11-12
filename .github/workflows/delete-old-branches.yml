@@ -94,7 +94,7 @@ jobs:
               # Skip protected branches
               if is_protected "$BRANCH"; then
                   echo "[PROTECTED] Skipping $BRANCH"
-                  ((SKIPPED_COUNT++))
+                  ((SKIPPED_COUNT+=1))
                   continue
               fi
               
@@ -103,7 +103,7 @@ jobs:
               
               if [ -z "$SHA" ]; then
                   echo "[ERROR] Could not get SHA for $BRANCH"
-                  ((ERROR_COUNT++))
+                  ((ERROR_COUNT+=1))
                   continue
               fi
               
@@ -113,7 +113,7 @@ jobs:
               
               if [ "$COMMIT_TIME" == "0" ]; then
                   echo "[ERROR] Could not get commit time for $BRANCH"
-                  ((ERROR_COUNT++))
+                  ((ERROR_COUNT+=1))
                   continue
               fi
               
@@ -130,18 +130,18 @@ jobs:
                       # Actually delete the branch
                       if git push origin --delete "$BRANCH" 2>&1; then
                           echo "  ✓ Deleted successfully"
-                          ((DELETED_COUNT++))
+                          ((DELETED_COUNT+=1))
                       else
                           echo "  ✗ Failed to delete"
-                          ((ERROR_COUNT++))
+                          ((ERROR_COUNT+=1))
                       fi
                   else
                       echo "  [DRY RUN] Would delete this branch"
-                      ((DELETED_COUNT++))
+                      ((DELETED_COUNT+=1))
                   fi
               else
                   echo "[RECENT] $BRANCH (${AGE_DAYS}d old, Last commit: $COMMIT_DATE)"
-                  ((SKIPPED_COUNT++))
+                  ((SKIPPED_COUNT+=1))
               fi
           done
           
