@@ -1,3 +1,65 @@
+## [2025-11-13] CRITICAL FIX: Math Brain v2 Report Generation Restored
+
+**Date:** 2025-11-13  
+**Status:** ✅ COMPLETED  
+**Impact:** CRITICAL – Restores all report generation functionality
+
+**What changed**
+- Fixed two critical bugs in `src/math_brain/main.js` that prevented report generation:
+  1. **Undefined variable reference** (line 199): Removed reference to non-existent `mirrorData` variable
+  2. **Missing run_metadata object** (lines 183-206): Ensured `run_metadata` exists for transit reports
+- Added comprehensive regression test suite: `test/mathbrain-v2-regression.test.js`
+- Updated `.gitignore` to exclude log files from version control
+
+**Why it matters**
+- Users were completely unable to generate reports, receiving only "Math Brain v2 failure" errors
+- The pipeline would crash immediately when attempting to create any report
+- No specific error details were provided to users, making debugging difficult
+- This was a blocker for all Math Brain functionality
+
+**Root Causes**
+1. **Undefined mirrorData variable**: Code at line 199 referenced `mirrorData` which was never defined. The `mirror_data` field is already present in each daily entry, so a top-level field was unnecessary and the undefined variable caused an immediate crash.
+2. **Missing run_metadata**: Transit reports only created a `provenance` field but not `run_metadata`, yet code at lines 248/251 tried to set properties on `run_metadata`, causing a "Cannot set properties of undefined" error.
+
+**Files Changed**
+- `src/math_brain/main.js` – Fixed undefined variable and metadata initialization
+- `test/mathbrain-v2-regression.test.js` – New comprehensive test suite (3 tests, all passing)
+- `.gitignore` – Added log files to ignore list
+- `docs/bug-fixes/mathbrain-v2-report-generation-fix-2025-11-13.md` – Detailed fix documentation
+
+**Testing & Verification**
+- Created regression test suite with 3 tests covering:
+  - Basic transit reports (solo person)
+  - Foundation reports (natal without transits)
+  - Relationship context handling (synastry)
+- All new tests pass: ✅ 3/3 passed
+- Manual API endpoint testing confirms successful report generation
+- Existing test suite remains stable (5 passing tests, 14 pre-existing failures unrelated to this fix)
+
+**What's Fixed**
+- ✅ Transit reports generate successfully
+- ✅ Foundation reports generate successfully
+- ✅ Solo person reports work
+- ✅ Synastry (two-person) reports work
+- ✅ Balance meter calculations included
+- ✅ Symbolic weather data populated
+- ✅ Mirror data in daily entries
+- ✅ Relationship context preserved
+- ✅ Both `run_metadata` and `provenance` fields present (backward compatibility)
+
+**Impact**
+- Users can now generate all types of reports
+- No breaking changes to API or response structure
+- Backward compatibility maintained
+- All report types (solo, synastry, transit, foundation) functional
+
+**Next Steps**
+1. Consider enhancing error reporting to show specific failure details instead of generic "v2 failure" message
+2. Address pre-existing test failures related to API key configuration (separate issue)
+3. Add TypeScript type checking to prevent similar undefined variable issues
+
+---
+
 ## [2025-11-11] FEATURE: Collaboration Velocity Instrumentation (artifacts + thesis)
 
 **Date:** 2025-11-11  
