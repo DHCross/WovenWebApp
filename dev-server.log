@@ -9,3 +9,4 @@ nohup: ignoring input
 
  ✓ Starting...
  ✓ Ready in 1353ms
+   Reload env: .env
