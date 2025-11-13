@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const isCI = !!process.env.CI;
+const hasExternalBaseURL = !!process.env.BASE_URL;
+const resolvedBaseURL =
+  process.env.BASE_URL || (isCI ? 'http://127.0.0.1:8888' : 'http://localhost:3000');
+
 /**
  * Playwright configuration for WovenWebApp
  * Tests Math Brain, Poetic Brain (auth-gated), API endpoints, and export flows
@@ -16,7 +21,7 @@ export default defineConfig({
     ...(process.env.CI ? [['github']] : []),
   ],
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:3000',
+    baseURL: resolvedBaseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -34,20 +39,16 @@ export default defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
   ],
-  // Only auto-start webServer if BASE_URL is not provided
-  // In CI, the workflow manages the server (netlify dev on port 8888)
-  // In local dev, Playwright will start the dev server if not already running
-  ...(process.env.BASE_URL ? {} : {
-    webServer: {
-      command: 'npm run dev',
-      url: 'http://localhost:3000',
-      // Reuse existing server to avoid port 3000 conflicts in local dev
-      // In CI, start fresh to ensure clean test environment
-      reuseExistingServer: !process.env.CI,
-      timeout: 120000,
-      // Stdout: 'ignore' prevents npm output from cluttering test results
-      stdout: 'ignore',
-      stderr: 'pipe',
-    },
-  }),
+  // GitHub Actions workflow starts Netlify dev on port 8888 when CI=true.
+  // Locally, Playwright can launch `npm run dev` on port 3000 and reuse it across test runs.
+  webServer: isCI || hasExternalBaseURL
+    ? undefined
+    : {
+        command: 'npm run dev',
+        url: 'http://localhost:3000',
+        reuseExistingServer: true,
+        timeout: 120000,
+        stdout: 'ignore',
+        stderr: 'pipe',
+      },
 });
