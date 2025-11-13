@@ -8,6 +8,17 @@ const { calculateSeismograph: aggregate } = require('../math-brain/orchestrator'
 const { classifyMagnitude, classifyDirectionalBias } = require('../../lib/reporting/metric-labels');
 const { sanitizeForFilename } = require('../utils/sanitizeFilename.js');
 
+// Import required helper functions for seismograph
+const {
+  enrichDailyAspects,
+  selectPoeticAspects,
+  weightAspect,
+  ASPECT_CLASS,
+  BALANCE_CALIBRATION_VERSION,
+  SEISMOGRAPH_VERSION,
+  WEIGHTS_LEGEND
+} = require('../../lib/server/astrology-mathbrain.js');
+
 /**
  * Main orchestrator for the Math Brain v2 pipeline.
  * @param {string|object} configSource - Path to the JSON config file or a prebuilt config object.
@@ -311,7 +322,19 @@ function computeSymbolicWeatherWithContext(transitsA, transitsB, prevContext, ro
   const rollingContext = rollingMagnitudes.length >= 1 ? { magnitudes: [...rollingMagnitudes] } : null;
 
   // Use the seismograph aggregate function with proper context
-  const weather = aggregate(allTransits, prevContext, { rollingContext, enableDiagnostics: false });
+  const weather = aggregate(allTransits, prevContext, { 
+    rollingContext, 
+    enableDiagnostics: false,
+    helpers: {
+      enrichDailyAspects,
+      selectPoeticAspects,
+      weightAspect,
+      ASPECT_CLASS,
+      BALANCE_CALIBRATION_VERSION,
+      SEISMOGRAPH_VERSION,
+      WEIGHTS_LEGEND
+    }
+  });
 
   // Extract and label the metrics
   const magnitude = weather.magnitude || 0;
@@ -337,8 +360,17 @@ function computeMirrorData(transitsA, transitsB, synastryAspects) {
   const safeSynastry = Array.isArray(synastryAspects) ? synastryAspects : [];
 
   // Calculate individual contributions for each person
-  const weatherA = safeTransitsA.length > 0 ? aggregate(safeTransitsA, null, { enableDiagnostics: false }) : { magnitude: 0, directional_bias: 0 };
-  const weatherB = safeTransitsB.length > 0 ? aggregate(safeTransitsB, null, { enableDiagnostics: false }) : { magnitude: 0, directional_bias: 0 };
+  const helpers = {
+    enrichDailyAspects,
+    selectPoeticAspects,
+    weightAspect,
+    ASPECT_CLASS,
+    BALANCE_CALIBRATION_VERSION,
+    SEISMOGRAPH_VERSION,
+    WEIGHTS_LEGEND
+  };
+  const weatherA = safeTransitsA.length > 0 ? aggregate(safeTransitsA, null, { enableDiagnostics: false, helpers }) : { magnitude: 0, directional_bias: 0 };
+  const weatherB = safeTransitsB.length > 0 ? aggregate(safeTransitsB, null, { enableDiagnostics: false, helpers }) : { magnitude: 0, directional_bias: 0 };
 
   // Determine relational dynamics from synastry aspects
   const hardAspects = safeSynastry.filter(a => ['square', 'opposition', 'conjunction'].includes(a.aspect));
@@ -478,11 +510,23 @@ function getRealAspectData(date, personA, personB, transitData = {}) {
   const transitsB = [];
   const synastryAspects = [];
 
+  console.log('[getRealAspectData] Processing date:', date);
+  console.log('[getRealAspectData] transitData keys:', Object.keys(transitData || {}));
+  console.log('[getRealAspectData] person_a exists:', !!transitData?.person_a);
+  console.log('[getRealAspectData] person_a.chart exists:', !!transitData?.person_a?.chart);
+  console.log('[getRealAspectData] transitsByDate exists:', !!transitData?.person_a?.chart?.transitsByDate);
+
   const dayA = transitData?.person_a?.chart?.transitsByDate?.[date];
   if (dayA) {
     const extracted = extractAspectsForDay(dayA);
-    if (Array.isArray(extracted)) {
-      transitsA.push(...extracted.map(a => ({ ...a, transit: { body: a.p1_name }, natal: { body: a.p2_name } })));
+    if (Array.isArray(extracted) && extracted.length > 0) {
+      transitsA.push(...extracted.map(a => ({ 
+        ...a, 
+        transit: { body: a?.p1_name || a?.transit?.body || 'Unknown' }, 
+        natal: { body: a?.p2_name || a?.natal?.body || 'Unknown' },
+        type: a?.aspect || a?.type || 'unknown',
+        orb: a?.orbit || a?.orb || 0
+      })));
     }
   }
 
@@ -490,16 +534,28 @@ function getRealAspectData(date, personA, personB, transitData = {}) {
     const dayB = transitData?.person_b?.chart?.transitsByDate?.[date];
     if (dayB) {
       const extracted = extractAspectsForDay(dayB);
-      if (Array.isArray(extracted)) {
-        transitsB.push(...extracted.map(a => ({ ...a, transit: { body: a.p1_name }, natal: { body: a.p2_name } })));
+      if (Array.isArray(extracted) && extracted.length > 0) {
+        transitsB.push(...extracted.map(a => ({ 
+          ...a, 
+          transit: { body: a?.p1_name || a?.transit?.body || 'Unknown' }, 
+          natal: { body: a?.p2_name || a?.natal?.body || 'Unknown' },
+          type: a?.aspect || a?.type || 'unknown',
+          orb: a?.orbit || a?.orb || 0
+        })));
       }
     }
 
     const synDay = transitData?.synastry?.aspectsByDate?.[date] || transitData?.composite?.transitsByDate?.[date];
     if (synDay) {
       const extracted = extractSynastryAspectsForDay(synDay);
-      if (Array.isArray(extracted)) {
-        synastryAspects.push(...extracted.map(a => ({ ...a, transit: { body: a.p1_name }, natal: { body: a.p2_name } })));
+      if (Array.isArray(extracted) && extracted.length > 0) {
+        synastryAspects.push(...extracted.map(a => ({ 
+          ...a, 
+          transit: { body: a?.p1_name || a?.transit?.body || 'Unknown' }, 
+          natal: { body: a?.p2_name || a?.natal?.body || 'Unknown' },
+          type: a?.aspect || a?.type || 'unknown',
+          orb: a?.orbit || a?.orb || 0
+        })));
       }
     }
   }

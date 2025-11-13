@@ -17,6 +17,7 @@
     "build:prod": "cross-env NODE_ENV=production next build",
     "start": "next start -p 3000",
     "start:prod": "cross-env NODE_ENV=production next start -p 3000",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx --ignore-path .eslintignore",
     "env:required": "node scripts/check-env-required.js",
     "tinker": "node scripts/tinker-chat.js",
     "tinker:watch": "nodemon scripts/tinker-chat.js",
