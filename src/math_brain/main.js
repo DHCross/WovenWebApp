@@ -180,8 +180,12 @@ function computeRelationalSummary(dailyEntries, options = {}) {
 
     // Build final unified output
     const latestSymbolicWeather = symbolicWeather || {};
+    const metadata = {
+      ...createProvenanceBlock(config),
+      relocation_applied: !!(config.translocation && config.translocation.applies),
+      relocation_details: config.translocation || null,
+    };
     finalOutput = {
-      ...finalOutput,
       person_a: transitData?.person_a || {},
       person_b: transitData?.person_b || null,
       transit_window: {
@@ -196,13 +200,10 @@ function computeRelationalSummary(dailyEntries, options = {}) {
         volatility: latestSymbolicWeather?.volatility || 0,
       },
       symbolic_weather: latestSymbolicWeather,
-      mirror_data: mirrorData || {},
+      // mirror_data is included in each daily entry; no top-level mirror_data needed
       relational_summary: relationalSummary || null,
-      provenance: {
-        ...createProvenanceBlock(config),
-        relocation_applied: !!(config.translocation && config.translocation.applies),
-        relocation_details: config.translocation || null,
-      },
+      run_metadata: metadata,
+      provenance: metadata, // Keep provenance for backward compatibility
     };
 
   } else {

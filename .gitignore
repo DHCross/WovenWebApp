@@ -41,6 +41,9 @@ temp-*
 debug-*.log
 test-output-*
 *.backup
+dev-server.log
+server.log
+server_output.log
 
 # Test files (keep mobile test as it's useful for debugging)
 # test-mobile.html
