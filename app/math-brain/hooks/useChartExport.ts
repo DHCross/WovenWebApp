@@ -101,6 +101,63 @@ interface UseChartExportResult {
   bundleGenerating: boolean;
 }
 
+interface FieldMapMeta {
+  schema: string;
+  kind: string[];
+  version: string;
+  coords: any;
+  timezone: string | null;
+  created_utc: string;
+  math_brain_version: string;
+  schema_version?: string;
+  orbs_profile?: string;
+  balance_meter_version?: string;
+}
+
+interface LegacyFieldFragment {
+  _meta?: {
+    coords?: any;
+    timezone?: string | null;
+    math_brain_version?: string;
+    relocation_mode?: {
+      timezone?: string | null;
+      [key: string]: any;
+    } | null;
+    [key: string]: any;
+  } | null;
+  [key: string]: any;
+}
+
+interface FieldMapData {
+  _meta: FieldMapMeta;
+  map: LegacyFieldFragment;
+  field: LegacyFieldFragment;
+  relationship_context?: any;
+  provenance?: {
+    chart_basis?: unknown;
+    seismograph_chart?: unknown;
+    translocation_applied?: boolean;
+    [key: string]: any;
+  };
+}
+
+interface FieldMapExport {
+  filename: string;
+  payload: FieldMapData;
+}
+
+interface MirrorSymbolicWeatherExport {
+  filename: string;
+  payload: any;
+  hasChartGeometry: boolean;
+  hasWeather: boolean;
+}
+
+interface MirrorDirectiveExport {
+  filename: string;
+  payload: any;
+}
+
 // Validation: Ensure all exports have chart geometry for Poetic Brain
 function validatePoeticBrainCompatibility(result: any): { compatible: boolean; issues: string[] } {
   const issues: string[] = [];
@@ -825,12 +882,6 @@ Start with the Solo Mirror(s), then ${
     }
   }, [friendlyFilename, pushToast, result]);
 
-  interface MirrorSymbolicWeatherExport {
-    filename: string;
-    payload: any;
-    hasChartGeometry: boolean;
-    hasWeather: boolean;
-  }
   const buildMirrorSymbolicWeatherExport = useCallback((): MirrorSymbolicWeatherExport | null => {
     if (!result) return null;
     const exportData = createMirrorSymbolicWeatherPayload(result, reportContractType);
@@ -847,37 +898,7 @@ Start with the Solo Mirror(s), then ${
       hasWeather,
     };
   }, [friendlyFilename, reportContractType, result]);
-
-  interface MirrorDirectiveExport {
-    filename: string;
-    payload: any;
-  }
-
-  interface FieldMapMeta {
-    schema: string;
-    kind: string[];
-    version: string;
-    coords: any;
-    timezone: any;
-    created_utc: string;
-    math_brain_version: string;
-    schema_version?: string;
-    orbs_profile?: string;
-    balance_meter_version?: string;
-    relationship_context?: string | null;
-  }
-
-  interface FieldMapData {
-    _meta: FieldMapMeta;
-    map: any;
-    field: any;
-    relationship_context?: string | null;
-  }
-
-  interface FieldMapExport {
-    filename: string;
-    payload: any;
-  }
+  
 
   const buildMirrorDirectiveExport = useCallback((): MirrorDirectiveExport | null => {
     if (!result) return null;
@@ -888,14 +909,14 @@ Start with the Solo Mirror(s), then ${
       null;
     // v5 provenance helpers
     const toIana = (tz?: string | null) => {
-      if (!tz || typeof tz !== 'string') return tz as any;
+      if (!tz || typeof tz !== 'string') return tz ?? null;
       const map: Record<string, string> = {
         'US/Central': 'America/Chicago',
         'US/Eastern': 'America/New_York',
         'US/Pacific': 'America/Los_Angeles',
         'US/Mountain': 'America/Denver',
       };
-      return (map[tz] || tz) as any;
+      return map[tz] || tz;
     };
     const prov = (result as any)?.provenance || {};
     const v5Orbs = prov.orbs_profile || 'wm-tight-2025-11-v5';
@@ -963,10 +984,11 @@ Start with the Solo Mirror(s), then ${
   const buildFieldMapExport = useCallback((): FieldMapExport | null => {
     if (!result) return null;
     const unifiedOutput = result?.unified_output || result;
-    
-    // MAP/FIELD files removed - use unified output directly
-    const mapFile = null; // unifiedOutput contains all data now
-    const fieldFile = null; // unifiedOutput contains all data now
+
+    const mapFile: LegacyFieldFragment | null =
+      (unifiedOutput as any)?.map_file ?? (result as any)?.map_file ?? null;
+    const fieldFile: LegacyFieldFragment | null =
+      (unifiedOutput as any)?.field_file ?? (result as any)?.field_file ?? null;
     const relationshipContext =
       result?.relationship_context ||
       result?.relationship ||
@@ -977,7 +999,7 @@ Start with the Solo Mirror(s), then ${
     }
     // Utility: shallow clone meta and coerce IANA timezones for common US/* labels
     const toIana = (tz?: string | null) => {
-      if (!tz || typeof tz !== 'string') return tz;
+      if (!tz || typeof tz !== 'string') return tz ?? null;
       const map: Record<string, string> = {
         'US/Central': 'America/Chicago',
         'US/Eastern': 'America/New_York',
@@ -996,9 +1018,9 @@ Start with the Solo Mirror(s), then ${
       mapFile?._meta?.timezone ||
       fieldFile?._meta?.timezone ||
       null
-    );
+    ) ?? null;
     // Sanitize embedded meta blocks to carry v5 identifiers forward
-    const sanitizedMap = mapFile ? { ...mapFile } : {};
+    const sanitizedMap: LegacyFieldFragment = mapFile ? { ...mapFile } : {};
     if (sanitizedMap._meta) {
       sanitizedMap._meta = { ...sanitizedMap._meta, orbs_profile: v5Orbs };
       if (sanitizedMap._meta.relocation_mode) {
@@ -1008,7 +1030,7 @@ Start with the Solo Mirror(s), then ${
         };
       }
     }
-    const sanitizedField = fieldFile ? { ...fieldFile } : {};
+    const sanitizedField: LegacyFieldFragment = fieldFile ? { ...fieldFile } : {};
     if (sanitizedField._meta) {
       sanitizedField._meta = { ...sanitizedField._meta, orbs_profile: v5Orbs };
       if (sanitizedField._meta.relocation_mode) {
