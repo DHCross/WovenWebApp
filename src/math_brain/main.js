@@ -225,8 +225,26 @@ function computeRelationalSummary(dailyEntries, options = {}) {
       composite: transitData?.composite?.chart?.aspects || [],
     };
 
+    const runMetadata = createProvenanceBlock(config);
+    const personAChart = transitData?.person_a || {};
+    const personBChart = transitData?.person_b || null;
+
     finalOutput = {
-      run_metadata: createProvenanceBlock(config),
+      person_a: personAChart,
+      person_b: personBChart,
+      run_metadata: runMetadata,
+      balance_meter: null,
+      symbolic_weather: null,
+      transit_window: null,
+      transits: {},
+      daily_entries: [],
+      mirror_data: null,
+      relational_summary: null,
+      provenance: {
+        ...runMetadata,
+        relocation_applied: !!(config.translocation && config.translocation.applies),
+        relocation_details: config.translocation || null,
+      },
       foundation_blueprint: blueprint,
     };
   }
