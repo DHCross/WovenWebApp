@@ -289,10 +289,65 @@ function fetchCommitData(repo, since) {
 
 // ============================================================================
 // ESTIMATION LOGIC
-// ============================================================================
 
-function estimateTask(taskName, isBlitz = false) {
+  // ============================================================================
+  // LOCAL GIT FALLBACK
+  // ============================================================================
+  function fetchCommitDataLocal(since) {
+    try {
+      const fmt = '%H%x1f%an%x1f%ae%x1f%ai%x1f%s';
+      const cmd = `git log --since="${since}" --pretty=format:"${fmt}"`;
+      const out = execSync(cmd, { encoding: 'utf8' });
+      if (!out || !out.trim()) {
+        return {
+          total_commits: 0,
+          total_elapsed_minutes: 0,
+          total_elapsed_hours: 0,
+          commits_per_hour: 0,
+          start: null,
+          end: null,
+        };
+      }
+
+      const commits = out.split('\n').map(line => {
+        const parts = line.split('\x1f');
+        return {
+          sha: parts[0],
+          author: parts[1],
+          email: parts[2],
+          date: parts[3],
+          subject: parts[4],
+        };
+      });
+
+      const dates = commits.map(c => new Date(c.date));
+      const startDate = new Date(Math.min(...dates));
+      const endDate = new Date(Math.max(...dates));
+      const elapsedMs = endDate - startDate;
+      const elapsedMinutes = elapsedMs / 60000;
+      const elapsedHours = elapsedMinutes / 60 || 1;
+      const commitsPerHour = commits.length / elapsedHours;
+
+      return {
+        total_commits: commits.length,
+        total_elapsed_minutes: elapsedMinutes,
+        total_elapsed_hours: elapsedHours,
+        commits_per_hour: commitsPerHour,
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+        samples: commits.slice(0, 20).map(c => ({ sha: c.sha, author: c.author, date: c.date, subject: c.subject })),
+      };
+    } catch (err) {
+      throw new Error(`Local git log failed: ${err.message}`);
+    }
+  }
+
+  // ============================================================================
+  // ESTIMATION LOGIC
+  // ============================================================================
+  function estimateTask(taskName, isBlitz = false) {
   const template = PHASE_TEMPLATES[taskName];
+
   if (!template || template.status === 'DONE') {
     return null;
   }
@@ -331,18 +386,37 @@ function estimateTask(taskName, isBlitz = false) {
   };
 }
 
-async function analyzeAndEstimate(isBlitz = false) {
+async function analyzeAndEstimate(isBlitz = false, forceLocal = false) {
   // Define repository and since date for commits fetch
   const REPO = 'DHCross/WovenWebApp';
   // We will fetch commits since 7 days ago as a default window
   const sinceDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
+  // Try GitHub API first (unless forceLocal), fall back to local git when token is missing or API fails
   let sessionData;
-  try {
-    sessionData = await fetchCommitData(REPO, sinceDate);
-  } catch (err) {
-    console.error('Error fetching commit data:', err.message);
-    process.exit(1);
+  let sourceUsed = 'velocity-tracker';
+  
+  if (forceLocal) {
+    try {
+      sessionData = fetchCommitDataLocal(sinceDate);
+      sourceUsed = 'mcp-local-git';
+    } catch (localErr) {
+      console.error('Local git failed:', localErr.message);
+      process.exit(1);
+    }
+  } else {
+    try {
+      sessionData = await fetchCommitData(REPO, sinceDate);
+    } catch (err) {
+      console.warn('GitHub fetch failed — falling back to local git scanner:', err.message);
+      try {
+        sessionData = fetchCommitDataLocal(sinceDate);
+        sourceUsed = 'mcp-local-git';
+      } catch (localErr) {
+        console.error('Local git fallback also failed:', localErr.message);
+        process.exit(1);
+      }
+    }
   }
 
   const git = getGitContext();
@@ -366,7 +440,7 @@ async function analyzeAndEstimate(isBlitz = false) {
     repo: REPO,
     branch: git.branch,
     commit: git.commit,
-    source: 'velocity-tracker',
+    source: sourceUsed,
     windowStart: sinceDate,
     total_commits: sessionData.total_commits,
     total_elapsed_minutes: sessionData.total_elapsed_minutes,
@@ -512,13 +586,20 @@ Usage:
 Options:
   --blitz                   Show analysis for finishing tonight (default).
   --analyze                 Show full velocity analysis for a standard pace.
+  --force-local             Force local git mode (skip GitHub API).
   --help, -h                Show this help.
+
+Behavior:
+  • Attempts to fetch commit data from GitHub API using GITHUB_TOKEN.
+  • Automatically falls back to local git if token is missing or API fails.
+  • Use --force-local to skip GitHub API and always use local git.
     `);
     return;
   }
 
   const isBlitz = !args.includes('--analyze');
-  analyzeAndEstimate(isBlitz);
+  const forceLocal = args.includes('--force-local');
+  analyzeAndEstimate(isBlitz, forceLocal);
 }
 
 if (require.main === module) {

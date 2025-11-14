@@ -285,7 +285,9 @@ export const detectReportMetadata = (rawContent: string | undefined): ReportMeta
       mirrorContract ||
         data?.narrative_sections ||
         (data?.person_a && typeof data.person_a === "object") ||
-        (data?.personA && typeof data.personA === "object"),
+        (data?.personA && typeof data.personA === "object") ||
+        (data?.person_b && typeof data.person_b === "object") ||
+        (data?.personB && typeof data.personB === "object"),
     );
 
   const hasSymbolicWeather =

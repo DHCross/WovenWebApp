@@ -1,24 +1,86 @@
 {
-  "generated_at": "2025-11-14T01:28:51.582Z",
+  "generated_at": "2025-11-14T09:12:11.659Z",
   "latest_run": {
-    "timestamp": "2025-11-11T09:18:28.380Z",
-    "commit_count": 106,
-    "total_duration_seconds": 599979,
-    "commits_per_hour": 0.6360222607791273
+    "timestamp": "2025-11-14T09:12:01.633Z",
+    "commit_count": 95,
+    "total_duration_seconds": 546637,
+    "commits_per_hour": 0.6256437087134608
   },
   "rolling_window_limit": 10,
   "synergy": {
-    "window_hours": 166.66083333333333,
-    "window_start": "2025-11-04T10:10:40.000Z",
-    "window_end": "2025-11-11T08:50:19.000Z",
-    "successful_ai_fixes": 0,
+    "window_hours": 151.8436111111111,
+    "window_start": "2025-11-08T00:11:36.000Z",
+    "window_end": "2025-11-14T08:02:13.000Z",
+    "successful_ai_fixes": 1,
     "ai_induced_failures": 0,
-    "signals_considered": 0,
-    "commits_per_hour": 0.6360222607791273,
-    "synergy_ratio": 0,
+    "signals_considered": 1,
+    "commits_per_hour": 0.6256437087134608,
+    "synergy_ratio": 0.010526315789473684,
     "regression_rate": 0,
     "failures_per_hour": 0,
-    "net_synergy_velocity": 0.6360222607791273
+    "net_synergy_velocity": 0.6256437087134608,
+    "git_signals": {
+      "found": 95,
+      "fixes": 16,
+      "failures": 0,
+      "reverts": 0,
+      "samples": [
+        {
+          "commit": "e85fcadf23eb0cd8458da0fa56d682a867d7874b",
+          "author": "google-labs-jules[bot]",
+          "date": "Thu Nov 13 21:41:52 2025 -0600",
+          "subject": "fix(build): Correct Uint8Array to Blob conversion for PDF export (#304)"
+        },
+        {
+          "commit": "fcf1bbb2ff62b0b1d0807173653c3227b546145e",
+          "author": "DHCross",
+          "date": "Thu Nov 13 15:09:38 2025 -0600",
+          "subject": "fix: gate playwright web server on CI (#303)"
+        },
+        {
+          "commit": "30aa19c9a07bf6ea58a6f061439f9a1e9ce59eb1",
+          "author": "DHCross",
+          "date": "Thu Nov 13 14:38:51 2025 -0600",
+          "subject": "fix: import mandate diagnostic type (#264)"
+        },
+        {
+          "commit": "9a34ab781b46f3ba7700fddbda36471428897dc6",
+          "author": "DHCross",
+          "date": "Wed Nov 12 14:18:07 2025 -0600",
+          "subject": "Fix delete-old-branches counters"
+        },
+        {
+          "commit": "ced2a302b41db79672ec779ae8b8c6c9fc073111",
+          "author": "Copilot",
+          "date": "Mon Nov 10 00:01:46 2025 -0600",
+          "subject": "Add API master reference, fix deprecated timezone format handling, and resolve Playwright CI port conflict (#289)"
+        },
+        {
+          "commit": "eede7c04f04f6cee6d6c73d9fad6d367b6de2999",
+          "author": "DHCross",
+          "date": "Sun Nov 9 20:07:25 2025 -0600",
+          "subject": "[2025-11-09] CRITICAL FIX: RapidAPI v4 requires city+nation even with coordinates"
+        },
+        {
+          "commit": "83c9bec43cbc504b61bafa014543b028c120a5ce",
+          "author": "DHCross",
+          "date": "Sun Nov 9 18:03:44 2025 -0600",
+          "subject": "[2025-11-09] FIX: Replace undefined relocationRaw with translocationRaw"
+        },
+        {
+          "commit": "7537086d8df1af02fff5b4e2ebf5d5176b7bbea8",
+          "author": "DHCross",
+          "date": "Sun Nov 9 17:34:18 2025 -0600",
+          "subject": "[2025-11-09] CRITICAL FIX: Complete circular dependency elimination using dynamic require"
+        },
+        {
+          "commit": "c9b46a69d6a98bf5a07a08f07efd6a3018a52d85",
+          "author": "DHCross",
+          "date": "Sun Nov 9 17:23:59 2025 -0600",
+          "subject": "[2025-11-09] DOCS: Comprehensive CHANGELOG entry for circular dependency fixes"
+        }
+      ]
+    }
   },
   "parse_errors": 0
 }

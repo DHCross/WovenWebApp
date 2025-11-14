@@ -36,6 +36,7 @@ const DEBUG_LOG_FILENAME = 'debug-session.jsonl';
 const SUCCESS_TYPE = 'ai_fix_success';
 const FAILURE_TYPE = 'ai_fix_failure_regression';
 
+const { execSync } = require('child_process');
 function parseArgs(argv){
   const args = { out: 'docs/velocity-forecast.md', limit: 10 };
   for (let i=2;i<argv.length;i++){
@@ -77,6 +78,47 @@ function computeRolling(entries, limit){
     totalDurationSeconds: totalSeconds,
     commitsPerHour: totalSeconds>0 ? (totalCommits / (totalSeconds/3600)) : 0
   };
+}
+
+/**
+ * Scan git log for keywords indicating fixes, rollbacks, or failures
+ * between `sinceIso` and `untilIso`.
+ * Returns counts and sample messages.
+ */
+function scanGitForSignals(sinceIso, untilIso){
+  try{
+    const sinceArg = sinceIso ? `--since="${sinceIso}"` : '';
+    const untilArg = untilIso ? `--until="${untilIso}"` : '';
+    const format = '%H||%an||%ad||%s';
+    const cmd = `git log ${sinceArg} ${untilArg} --pretty=format:"${format}"`;
+    const out = execSync(cmd, { encoding: 'utf8' }).trim();
+    if (!out) return { found: 0, fixes: 0, failures: 0, reverts: 0, samples: [] };
+
+    const lines = out.split('\n');
+    let fixes = 0, failures = 0, reverts = 0;
+    const samples = [];
+    const fixRegex = /\bfix\b|\bfixes\b|\bfixed\b|\bCRITICAL FIX\b|\bHOTFIX\b/i;
+    const failureRegex = /\bfail\b|\bfailure\b|\bregression\b|\berror\b/i;
+    const revertRegex = /\brevert\b|\brollback\b/i;
+
+    for (const l of lines){
+      const parts = l.split('||');
+      if (parts.length < 4) continue;
+      const subject = parts[3] || '';
+      if (fixRegex.test(subject)) fixes++;
+      if (failureRegex.test(subject)) failures++;
+      if (revertRegex.test(subject)) reverts++;
+      if (fixes + failures + reverts < 10 && (fixRegex.test(subject) || failureRegex.test(subject) || revertRegex.test(subject))) {
+        samples.push({ commit: parts[0], author: parts[1], date: parts[2], subject });
+      }
+    }
+
+    return { found: lines.length, fixes, failures, reverts, samples };
+  }
+  catch(err){
+    // If git not available or error, return empty
+    return { found: 0, fixes: 0, failures: 0, reverts: 0, samples: [] };
+  }
 }
 
 function normalizeEntry(entry){
@@ -176,7 +218,7 @@ function deriveWindow(entry){
   };
 }
 
-function summarizeSynergy(signals, latestEntry){
+function summarizeSynergy(signals, latestEntry, gitSignals){
   if (!latestEntry) {
     return { window_hours: 0, successful_ai_fixes: 0, ai_induced_failures: 0, signals_considered: 0 };
   }
@@ -187,7 +229,7 @@ function summarizeSynergy(signals, latestEntry){
   const { start, end, hours } = window;
   const startMs = start.getTime();
   const endMs = end.getTime();
-  const withinWindow = signals.filter(sig => sig.timestampMs >= startMs && sig.timestampMs <= endMs);
+  const withinWindow = (signals || []).filter(sig => sig.timestampMs >= startMs && sig.timestampMs <= endMs);
   const successCount = withinWindow.filter(sig => sig.signal_type === SUCCESS_TYPE).length;
   const failureCount = withinWindow.filter(sig => sig.signal_type === FAILURE_TYPE).length;
   const commitCount = Number.isFinite(latestEntry.commitCount)
@@ -216,6 +258,7 @@ function summarizeSynergy(signals, latestEntry){
     regression_rate: regressionRate,
     failures_per_hour: failuresPerHour,
     net_synergy_velocity: commitsPerHour - failuresPerHour,
+    git_signals: gitSignals || { found:0, fixes:0, failures:0, reverts:0, samples:[] }
   };
 }
 
@@ -274,6 +317,21 @@ function renderMarkdown({ nowISO, latest, rolling, parseErrors, args, synergy })
     ].join('  \n');
   }
 
+  // Append git-detected signals (commits with fix/failure keywords)
+  if (synergy && synergy.git_signals && synergy.git_signals.found > 0) {
+    const g = synergy.git_signals;
+    const sampleList = (g.samples || []).map(s => `    - ${s.date} ${s.author}: ${s.subject}`).join('  \n');
+    const gitBlock = [
+      `- Git-detected commits in window: **${g.found}**`,
+      `- Git-detected fixes: **${g.fixes}**`,
+      `- Git-detected failures: **${g.failures}**`,
+      `- Git-detected reverts/rollbacks: **${g.reverts}**`,
+      sampleList ? `- Samples:\n${sampleList}` : null,
+    ].filter(Boolean).join('  \n');
+
+    synergyBlock = synergyBlock + '  \n' + gitBlock;
+  }
+
   return `# Velocity Forecast Summary\n\n**Generated:** ${nowISO}  \n**Snapshot Timestamp:** ${latest.timestamp}${branchInfo}${commitInfo}  \n**Subject:** Math Brain refactor velocity\n\n## What the data says\n\n- Latest run: **${latest.commitCount} commits** over **${formatDuration(latest.totalDurationSeconds)}** (${latestRate.toFixed(2)} commits/hour).\n- Rolling window (${args.limit}): ${rollingLine}.\n- Phases DONE: ${humanList(phase.done)}.  \n- Phases Pending: ${humanList(phase.pending)}.${estBlock}\n\n## Plain-English Outlook\n\n1. Current cadence suggests ~${narrativeRate.toFixed(2)} commits/hour is sustainable short‑term.  \n2. All done phases indicate remaining focus should shift to documentation, CI hardening, and post‑refactor cleanup.  \n3. Feed more runs via \`velocity-tracker.js --analyze\` to refine rolling accuracy and detect acceleration or decay.\n\n## Synergy Analysis (Speed + Quality)\n\n${synergyBlock}\n\n## Suggested pipeline hook\n\nAdd an npm script: \`velocity:report\` → \`node scripts/velocity-artifacts.js\` and invoke it in CI after merge to main. Commit the updated \`docs/velocity-forecast.md\` so stakeholders always see a fresh forecast.\n\n---\n_Parsed lines: ${(latest._index||0)+1}/${(latest._total||0)}. Parse errors: ${parseErrors}. Generated by velocity-artifacts.js v1.0.0._\n`;
 }
 
@@ -302,7 +360,17 @@ function main(){
   const latest = entries.length ? entries[entries.length-1] : null;
   const rolling = entries.length ? computeRolling(entries, args.limit) : null;
   const debugSignals = readDebugSignals();
-  const synergy = summarizeSynergy(debugSignals, latest);
+  // also scan git commits in the analysis window (derive from latest entry)
+  let gitSignals = { found:0, fixes:0, failures:0, reverts:0, samples:[] };
+  try {
+    const win = deriveWindow(latest);
+    if (win && win.start && win.end) {
+      gitSignals = scanGitForSignals(win.start.toISOString(), win.end.toISOString());
+    }
+  } catch (e) {
+    gitSignals = { found:0, fixes:0, failures:0, reverts:0, samples:[] };
+  }
+  const synergy = summarizeSynergy(debugSignals, latest, gitSignals);
   const nowISO = new Date().toISOString();
   const md = renderMarkdown({ nowISO, latest, rolling, parseErrors, args, synergy });
   const outPath = path.isAbsolute(args.out) ? args.out : path.join(process.cwd(), args.out);
