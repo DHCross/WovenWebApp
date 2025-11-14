@@ -291,6 +291,33 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
   };
 
   // Distinct PDF content creation for Mirror and Balance reports
+type PdfSection = {
+  title: string;
+  body: string;
+};
+
+const cleanSectionText = (value: string): string =>
+  value
+    .replace(/\u00a0/g, ' ')
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+const extractPdfSections = (root: HTMLElement): PdfSection[] => {
+  const nodes = Array.from(root.querySelectorAll<HTMLElement>('[data-pdf-section]'));
+  if (nodes.length === 0) {
+    const fallback = cleanSectionText(root.innerText || '');
+    return fallback ? [{ title: 'Session Summary', body: fallback }] : [];
+  }
+  return nodes
+    .map((node) => ({
+      title: node.getAttribute('data-pdf-section') || 'Section',
+      body: cleanSectionText(node.innerText || ''),
+    }))
+    .filter((section) => section.body.length > 0);
+};
+
   const createEnhancedPDFContent = (): HTMLElement => {
     const container = document.createElement('div');
     container.style.cssText = `
@@ -319,7 +346,7 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
       );
     const breakdown = (sessionStats?.breakdown as Record<string, number> | undefined) || {};
     const balanceSummary = `
-      <div style="margin-bottom: 0.4in;">
+      <div data-pdf-section="Executive Summary" style="margin-bottom: 0.4in;">
         <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Executive Summary</h2>
         <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
           <p><strong>Magnitude:</strong> ${safe((sessionStats as any)?.magnitude)}</p>
@@ -330,7 +357,7 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
       </div>
     `;
     const mirrorSummary = `
-      <div style="margin-bottom: 0.4in;">
+      <div data-pdf-section="Executive Summary" style="margin-bottom: 0.4in;">
         <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Executive Summary</h2>
         <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
           <p><strong>Actor/Role Composite:</strong> ${safe(composite?.composite)}</p>
@@ -356,7 +383,7 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
     `;
     const responseBreakdown = `${breakdown.yes ?? 0} yes • ${breakdown.maybe ?? 0} maybe • ${breakdown.no ?? 0} no • ${breakdown.unclear ?? 0} unclear`;
     const statisticsSection = `
-      <div style="margin-bottom: 0.4in;">
+      <div data-pdf-section="Session Statistics" style="margin-bottom: 0.4in;">
         <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Session Statistics</h2>
         <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
           <p><strong>Total Responses:</strong> ${safe((sessionStats as any)?.total)}</p>
@@ -378,7 +405,7 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
     `;
     const highlightsSection = isBalanceReport
       ? `
-        <div style="margin-bottom: 0.4in;">
+        <div data-pdf-section="Patterns & Highlights" style="margin-bottom: 0.4in;">
           <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Patterns & Highlights</h2>
           <div style="background: #f1f5f9; padding: 0.3in; border-radius: 8px;">
             <p><strong>Balance Missing:</strong> ${safe((sessionStats as any)?.balance_missing)}</p>
@@ -387,7 +414,7 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
         </div>
       `
       : `
-        <div style="margin-bottom: 0.4in;">
+        <div data-pdf-section="Patterns & Highlights" style="margin-bottom: 0.4in;">
           <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Patterns & Highlights</h2>
           <div style="background: #f1f5f9; padding: 0.3in; border-radius: 8px;">
             <p><strong>Notable Patterns:</strong> ${safe((sessionStats as any)?.totalPatterns)}</p>
@@ -398,7 +425,7 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
       `;
     const rubricSection = rubricSealedSessionId
       ? `
-        <div style="margin-bottom: 0.4in;">
+        <div data-pdf-section="Rubric Snapshot" style="margin-bottom: 0.4in;">
           <h2 style="color: #4338ca; font-size: 18pt; margin-bottom: 0.2in; border-bottom: 1px solid #e5e7eb;">Rubric Snapshot</h2>
           <div style="background: #eef2ff; padding: 0.3in; border-radius: 8px;">
             <p><strong>Aggregate:</strong> ${safe(`${totalScore}/15`)}</p>
@@ -413,19 +440,27 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
       `
       : '';
 
-    container.innerHTML = `
-      <div style="text-align: center; border-bottom: 2px solid #4338ca; padding-bottom: 0.5in; margin-bottom: 0.5in;">
+    const headerBlock = `
+      <div data-pdf-section="Session Overview" style="text-align: center; border-bottom: 2px solid #4338ca; padding-bottom: 0.5in; margin-bottom: 0.5in;">
         <h1 style="color: #4338ca; font-size: 24pt; margin: 0; font-weight: bold;">${sanitizeForPDF(reportTitle)}</h1>
         <p style="color: #666; font-size: 12pt; margin: 0.2in 0;">${safe(`Session ID: ${currentSessionId} | Export Date: ${exportDate.toLocaleDateString()} ${exportDate.toLocaleTimeString()}`)}</p>
       </div>
+    `;
+
+    const footerBlock = `
+      <div data-pdf-section="Session Footer" style="margin-top: 0.6in; padding-top: 0.3in; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 10pt;">
+        <p>Generated by Raven Calder • Woven Web Application • ${safe(exportDate.toISOString())}</p>
+        <p style="font-style: italic;">${isBalanceReport ? 'Symbolic weather, not deterministic prediction.' : "Here's what resonated, here's what didn't — you remain the validator."}</p>
+      </div>
+    `;
+
+    container.innerHTML = `
+      ${headerBlock}
       ${(isBalanceReport ? balanceSummary : mirrorSummary)}
       ${statisticsSection}
       ${highlightsSection}
       ${rubricSection}
-      <div style="margin-top: 0.6in; padding-top: 0.3in; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 10pt;">
-        <p>Generated by Raven Calder • Woven Web Application • ${safe(exportDate.toISOString())}</p>
-        <p style="font-style: italic;">${isBalanceReport ? 'Symbolic weather, not deterministic prediction.' : "Here's what resonated, here's what didn't — you remain the validator."}</p>
-      </div>
+      ${footerBlock}
     `;
 
     return container;
@@ -532,23 +567,102 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
   };
 
   const handleExportPDF = async () => {
-    let enhancedElement: HTMLElement | null = null;
     try {
-      const html2pdf = (await import('html2pdf.js')).default;
-      enhancedElement = createEnhancedPDFContent();
-      document.body.appendChild(enhancedElement);
-
+      const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+      const enhancedElement = createEnhancedPDFContent();
+      const sections = extractPdfSections(enhancedElement);
       const activeSessionId = sessionId || pingTracker.getCurrentSessionId();
       const filenameId = activeSessionId ? activeSessionId.slice(-8) : 'session';
-      const opt = {
-        margin: 0.5,
-        filename: `raven-session-${filenameId}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      const pdfDoc = await PDFDocument.create();
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      const pageWidth = 612;
+      const pageHeight = 792;
+      const margin = 48;
+      const lineHeight = 14;
+      const titleLineHeight = 18;
+      let page = pdfDoc.addPage([pageWidth, pageHeight]);
+      let cursorY = pageHeight - margin;
+
+      const ensureSpace = (linesNeeded: number, extra: number = 0) => {
+        const needed = linesNeeded * lineHeight + extra;
+        if (cursorY - needed < margin) {
+          page = pdfDoc.addPage([pageWidth, pageHeight]);
+          cursorY = pageHeight - margin;
+        }
       };
 
-      await html2pdf().from(enhancedElement).set(opt).save();
+      const wrapText = (
+        text: string,
+        fontSize: number,
+        maxWidth: number,
+        typeface: { widthOfTextAtSize: (value: string, size: number) => number },
+      ): string[] => {
+        const words = text.split(' ');
+        const lines: string[] = [];
+        let currentLine = '';
+        const widthOf = (value: string) => typeface.widthOfTextAtSize(value, fontSize);
+        words.forEach((word) => {
+          const candidate = currentLine ? `${currentLine} ${word}` : word;
+          if (widthOf(candidate) > maxWidth) {
+            if (currentLine) lines.push(currentLine);
+            currentLine = word;
+          } else {
+            currentLine = candidate;
+          }
+        });
+        if (currentLine) lines.push(currentLine);
+        return lines;
+      };
+
+      const drawTextBlock = (title: string, body: string) => {
+        const cleanedBody = cleanSectionText(body);
+        if (!cleanedBody) return;
+        ensureSpace(2, titleLineHeight);
+        page.drawText(title, {
+          x: margin,
+          y: cursorY,
+          size: 13,
+          font,
+          color: rgb(0.26, 0.26, 0.35),
+        });
+        cursorY -= titleLineHeight;
+        cleanedBody.split('\n').forEach((paragraph) => {
+          const lines = wrapText(paragraph, 11, pageWidth - margin * 2, font);
+          lines.forEach((line) => {
+            ensureSpace(1);
+            page.drawText(line, {
+              x: margin,
+              y: cursorY,
+              size: 11,
+              font,
+              color: rgb(0, 0, 0),
+            });
+            cursorY -= lineHeight;
+          });
+          cursorY -= lineHeight * 0.3;
+        });
+        cursorY -= lineHeight * 0.3;
+      };
+
+      if (sections.length === 0) {
+        sections.push({
+          title: 'Session Summary',
+          body: cleanSectionText(enhancedElement.innerText || 'No session data available.'),
+        });
+      }
+
+      sections.forEach((section) => drawTextBlock(section.title, section.body));
+
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `raven-session-${filenameId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
       setToast('Enhanced PDF exported successfully');
       setTimeout(() => setToast(null), 2500);
@@ -564,10 +678,6 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
         handleExportJSON();
       }, 1500);
       logEvent('pdf_export_failed', { error: String(error) });
-    } finally {
-      if (enhancedElement?.isConnected) {
-        document.body.removeChild(enhancedElement);
-      }
     }
   };
 

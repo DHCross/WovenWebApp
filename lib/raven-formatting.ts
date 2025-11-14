@@ -42,6 +42,9 @@ export const formatFriendlyErrorMessage = (rawMessage: string): string => {
   if (/401/.test(text) || /auth/i.test(text)) {
     return "I couldn't authenticate with the Perplexity wellspring. Double-check the key, then invite me again.";
   }
+  if (/math brain failed/i.test(text) || /mirror.?data is not defined/i.test(text)) {
+    return "Math Brain stumbled on that pass, so I'm re-running the geometry. If the mirror stays quiet for more than a minute, tap “Generate again” and I'll fetch a fresh reading.";
+  }
   return `I'm having trouble responding: ${text}`;
 };
 
@@ -202,4 +205,3 @@ export const formatBalanceMeterSummaryLine = (
   }
   return parts.length ? parts.join(" · ") : null;
 };
-
