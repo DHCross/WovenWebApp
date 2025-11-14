@@ -65,3 +65,5 @@ examples/*.md
 !examples/.keep
 __pycache__/
 *.pyc
+server_output.log
+public/dist
