@@ -196,7 +196,10 @@ function computeRelationalSummary(dailyEntries, options = {}) {
         volatility: latestSymbolicWeather?.volatility || 0,
       },
       symbolic_weather: latestSymbolicWeather,
-      mirror_data: mirrorData || {},
+      // Mirror data guardrail: derive from the most recent daily entry per WOVENWEB_CODEMAP.md 1.C
+      mirror_data: dailyEntries.length > 0 ? dailyEntries[dailyEntries.length - 1].mirror_data || {} : {},
+      // Daily entries guardrail: expose the array at the root level per API_REFERENCE.md ACC Spec v2
+      daily_entries: dailyEntries,
       relational_summary: relationalSummary || null,
       provenance: {
         ...createProvenanceBlock(config),
