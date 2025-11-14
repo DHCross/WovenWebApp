@@ -97,27 +97,48 @@ function scanGitForSignals(sinceIso, untilIso){
     const lines = out.split('\n');
     let fixes = 0, failures = 0, reverts = 0;
     const samples = [];
+    const modelCounts = {};
     const fixRegex = /\bfix\b|\bfixes\b|\bfixed\b|\bCRITICAL FIX\b|\bHOTFIX\b/i;
     const failureRegex = /\bfail\b|\bfailure\b|\bregression\b|\berror\b/i;
     const revertRegex = /\brevert\b|\brollback\b/i;
+    const modelTagRegex = /\[AI:([^\]]+)\]/i;
 
     for (const l of lines){
       const parts = l.split('||');
       if (parts.length < 4) continue;
       const subject = parts[3] || '';
-      if (fixRegex.test(subject)) fixes++;
-      if (failureRegex.test(subject)) failures++;
-      if (revertRegex.test(subject)) reverts++;
-      if (fixes + failures + reverts < 10 && (fixRegex.test(subject) || failureRegex.test(subject) || revertRegex.test(subject))) {
+
+      const isFix = fixRegex.test(subject);
+      const isFailure = failureRegex.test(subject);
+      const isRevert = revertRegex.test(subject);
+
+      if (isFix) fixes++;
+      if (isFailure) failures++;
+      if (isRevert) reverts++;
+
+      const modelMatch = subject.match(modelTagRegex);
+      if (modelMatch) {
+        const rawModel = modelMatch[1].trim();
+        const model = rawModel || 'unknown';
+        if (!modelCounts[model]) {
+          modelCounts[model] = { commits: 0, fixes: 0, failures: 0, reverts: 0 };
+        }
+        modelCounts[model].commits += 1;
+        if (isFix) modelCounts[model].fixes += 1;
+        if (isFailure) modelCounts[model].failures += 1;
+        if (isRevert) modelCounts[model].reverts += 1;
+      }
+
+      if (fixes + failures + reverts < 10 && (isFix || isFailure || isRevert)) {
         samples.push({ commit: parts[0], author: parts[1], date: parts[2], subject });
       }
     }
 
-    return { found: lines.length, fixes, failures, reverts, samples };
+    return { found: lines.length, fixes, failures, reverts, samples, model_counts: modelCounts };
   }
   catch(err){
     // If git not available or error, return empty
-    return { found: 0, fixes: 0, failures: 0, reverts: 0, samples: [] };
+    return { found: 0, fixes: 0, failures: 0, reverts: 0, samples: [], model_counts: {} };
   }
 }
 
@@ -258,7 +279,7 @@ function summarizeSynergy(signals, latestEntry, gitSignals){
     regression_rate: regressionRate,
     failures_per_hour: failuresPerHour,
     net_synergy_velocity: commitsPerHour - failuresPerHour,
-    git_signals: gitSignals || { found:0, fixes:0, failures:0, reverts:0, samples:[] }
+    git_signals: gitSignals || { found:0, fixes:0, failures:0, reverts:0, samples:[], model_counts:{} }
   };
 }
 
@@ -330,6 +351,21 @@ function renderMarkdown({ nowISO, latest, rolling, parseErrors, args, synergy })
     ].filter(Boolean).join('  \n');
 
     synergyBlock = synergyBlock + '  \n' + gitBlock;
+
+    // Append per-model AI synergy breakdown when [AI:Model] tags are present
+    const modelCounts = g.model_counts || {};
+    const modelKeys = Object.keys(modelCounts);
+    if (modelKeys.length > 0) {
+      const modelLines = modelKeys.map(name => {
+        const mc = modelCounts[name];
+        const totalTagged = mc.commits || 0;
+        const fixRate = totalTagged > 0 ? mc.fixes / totalTagged : 0;
+        const failureRate = totalTagged > 0 ? mc.failures / totalTagged : 0;
+        return `    - ${name}: commits=${totalTagged}, fixes=${mc.fixes}, failures=${mc.failures}, reverts=${mc.reverts}, fix_rate=${fixRate.toFixed(3)}, failure_rate=${failureRate.toFixed(3)}`;
+      }).join('  \n');
+
+      synergyBlock = `${synergyBlock}  \n- Per-model AI synergy (from [AI:Model] commit tags):\n${modelLines}`;
+    }
   }
 
   return `# Velocity Forecast Summary\n\n**Generated:** ${nowISO}  \n**Snapshot Timestamp:** ${latest.timestamp}${branchInfo}${commitInfo}  \n**Subject:** Math Brain refactor velocity\n\n## What the data says\n\n- Latest run: **${latest.commitCount} commits** over **${formatDuration(latest.totalDurationSeconds)}** (${latestRate.toFixed(2)} commits/hour).\n- Rolling window (${args.limit}): ${rollingLine}.\n- Phases DONE: ${humanList(phase.done)}.  \n- Phases Pending: ${humanList(phase.pending)}.${estBlock}\n\n## Plain-English Outlook\n\n1. Current cadence suggests ~${narrativeRate.toFixed(2)} commits/hour is sustainable short‑term.  \n2. All done phases indicate remaining focus should shift to documentation, CI hardening, and post‑refactor cleanup.  \n3. Feed more runs via \`velocity-tracker.js --analyze\` to refine rolling accuracy and detect acceleration or decay.\n\n## Synergy Analysis (Speed + Quality)\n\n${synergyBlock}\n\n## Suggested pipeline hook\n\nAdd an npm script: \`velocity:report\` → \`node scripts/velocity-artifacts.js\` and invoke it in CI after merge to main. Commit the updated \`docs/velocity-forecast.md\` so stakeholders always see a fresh forecast.\n\n---\n_Parsed lines: ${(latest._index||0)+1}/${(latest._total||0)}. Parse errors: ${parseErrors}. Generated by velocity-artifacts.js v1.0.0._\n`;
