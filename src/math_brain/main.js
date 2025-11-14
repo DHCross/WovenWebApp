@@ -180,6 +180,11 @@ function computeRelationalSummary(dailyEntries, options = {}) {
 
     // Build final unified output
     const latestSymbolicWeather = symbolicWeather || {};
+    const latestMirrorData =
+      dailyEntries.length > 0
+        ? dailyEntries[dailyEntries.length - 1].mirror_data || {}
+        : {};
+    const runMetadata = createProvenanceBlock(config);
     finalOutput = {
       ...finalOutput,
       person_a: transitData?.person_a || {},
@@ -197,12 +202,13 @@ function computeRelationalSummary(dailyEntries, options = {}) {
       },
       symbolic_weather: latestSymbolicWeather,
       // Mirror data guardrail: derive from the most recent daily entry per WOVENWEB_CODEMAP.md 1.C
-      mirror_data: dailyEntries.length > 0 ? dailyEntries[dailyEntries.length - 1].mirror_data || {} : {},
+      mirror_data: latestMirrorData,
       // Daily entries guardrail: expose the array at the root level per API_REFERENCE.md ACC Spec v2
       daily_entries: dailyEntries,
+      run_metadata: runMetadata,
       relational_summary: relationalSummary || null,
       provenance: {
-        ...createProvenanceBlock(config),
+        ...runMetadata,
         relocation_applied: !!(config.translocation && config.translocation.applies),
         relocation_details: config.translocation || null,
       },

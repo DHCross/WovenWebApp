@@ -50,14 +50,23 @@
     "postinstall": "if [ -f package.json ] && node -e \"try{require('concurrently')}catch(e){process.exit(1)}\"; then echo 'concurrently already installed'; else echo 'Installing concurrently...'; npm i -D concurrently; fi",
     "auth:check": "node scripts/auth-config-check.js",
     "lexicon:lint": "node scripts/lexicon-lint.mjs",
-    "velocity": "node scripts/velocity-tracker.js --analyze",
+
+    "// --- VELOCITY & SYNERGY TRACKING ---": "---",
+    "velocity": "npm run velocity:run",
+    "velocity:run": "node scripts/velocity-tracker.js --analyze",
     "velocity:estimate": "node scripts/velocity-tracker.js --estimate",
-    "velocity:all": "node scripts/velocity-tracker.js --analyze && node scripts/velocity-artifacts.js",
-    "velocity:forecast": "node scripts/velocity-artifacts.js",
-    "velocity:artifacts": "node scripts/velocity-artifacts.js",
+    "velocity:all": "npm run velocity:run && npm run velocity:report",
     "velocity:report": "node scripts/velocity-artifacts.js",
-    "debug:signal": "node scripts/debug-signal.js",
+    "velocity:forecast": "npm run velocity:report",
+    "velocity:artifacts": "node scripts/velocity-artifacts.js",
     "velocity:notify": "node scripts/velocity-notifier.js",
+    "velocity:provenance": "node scripts/append-recognition-provenance.js",
+
+    "// --- AI SYNERGY SIGNAL LOGGING ---": "---",
+    "debug:signal": "node scripts/debug-signal.js",
+    "debug:success": "node scripts/debug-signal.js --signal_type=ai_fix_success",
+    "debug:failure": "node scripts/debug-signal.js --signal_type=ai_fix_failure_regression",
+
     "stc:experiment": "node scripts/stc-experiment-log.js",
     "validate:fieldmap": "node scripts/validate-fieldmap-v5.js"
   },

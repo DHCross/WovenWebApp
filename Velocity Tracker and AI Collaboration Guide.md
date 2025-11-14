@@ -1,84 +1,47 @@
-# Concept Guide: The "Velocity Project"
+# **Concept Guide: The "Velocity Project" (Proprietary AI-Collab Tracker)**
 
-**Status:** Archived (Historical Sub-Project)
+**Status:** Active (Proprietary Meta-Project)
 
-This document provides conceptual and historical context for the **Velocity Project** and **Velocity Tracker** referenced in legacy repository files.
+This document provides the definitive context for the **"Velocity Project"** and **"Velocity Tracker."**
 
-This concept is **not** part of the current **Pure Next.js** architecture and is **not** referenced in the canonical documentation set (e.g., `ASTRO_BRAIN.md`, `API_REFERENCE.md`).
+This is **not** part of the WovenWebApp application. It is a proprietary, automated meta-system used by the architect (Dan Cross) to track, analyze, and forecast the development cadence of the AI-human collaborative workflow.
 
----
+## **1\. Core Purpose**
 
-## 1. Historical Concept
+The Velocity Project is an automated, empirical system to provide an auditable trail and concrete metrics for the "human-ai-collab-velocity."
 
-The **Velocity Project** appears to have been a distinct R&D initiative that ran parallel to the core **Astro Brain** development.
+Its primary role is to track metrics like:
 
-Based on archived file names and content, this project's goals included:
+* Commits per hour  
+* Phase completion  
+* Rolling averages  
+* Automated forecasts
 
-- Defining and exploring symbolic **“velocity”** as a metric.  
-- Measuring and tracking **recognition** and **attribution** across features or outputs.  
-- Building tooling to **track**, **forecast**, and **analyze** these metrics over time.
+The system runs via GitHub Actions, generating automated reports every 12 hours. As of late 2025, it has successfully logged data such as **106 commits over 166 hours**, for an average of **0.64 commits/hour**.
 
-This project was comprehensive and included:
+## **2\. System Features**
 
-- A formal thesis:  
-  `docs/VELOCITY_PRODUCT_THESIS_2025-11-11.md`
-- A whitepaper:  
-  `docs/velocity-whitepaper.md`
-- Specific tracking setup:  
-  `docs/VELOCITY_TRACKING_SETUP.md`
-- Forecasting models:  
-  `docs/velocity-forecast.md`
-- Analysis and tooling:  
-  `docs/VELOCITY_ANALYSIS.md`  
-  `packages/velocity-toolkit/README.md`
+The project is not just a single script but a collection of telemetry, analytics, and automation tools:
 
----
+* **Telemetry Ingestion:** Scripts that log git history and other development events (e.g., to velocity-log.jsonl).  
+* **Analytics & Artifacts:** Scripts that analyze the telemetry to generate markdown reports, JSON summaries, and forecasts.  
+* **Automated CI:** Uses GitHub Actions to run the tracker and reports automatically.  
+* **Signal-Tracking:** Part of a broader debugging and signal-tracking infrastructure that automates failure logging and helps guide AI-assisted fixes.  
+* **Validation:** Includes methods for convergence detection and falsifiable validation.
 
-## 2. Key Archived Files
+## **3\. Current Role & Privacy**
 
-The **Velocity Project** is not defined by a single file but by a **collection** of related documents and code.
+* **Current Role:** The Velocity Tracker is set to continue its automated runs in the background, providing an auditable trail while development focus shifts to WovenWebApp.  
+* **Privacy:** The system is currently private and proprietary. Before any part of this repository is made public, the git history must be audited for secrets.
 
-The key files for understanding this project (all of which belong in the `/archive/06-Velocity-Project/` folder) include:
+## **4\. Strategic Future Plans**
 
-- `docs/VELOCITY_PRODUCT_THESIS_2025-11-11.md`  
-- `docs/VELOCITY_RECOGNITION_ATTRIBUTION_2025-11-11.md`  
-- `docs/VELOCITY_TRACKING_SETUP.md`  
-- `docs/VELOCITY_TOOLKIT_README.md`  
-- `docs/VELOCITY_ANALYSIS.md`  
-- `docs/velocity-forecast.md`  
-- `docs/velocity-whitepaper.md`  
-- `VELOCITY_RETROSPECTIVE.md`  
-- `packages/velocity-toolkit/README.md`
+The "Velocity Project" is a distinct asset with several potential futures, separate from WovenWebApp:
 
-These documents collectively describe:
+1. **Remain Internal:** Keep the system as a private, proprietary tool.  
+2. **Productize (Standalone):** Extract the project into its own standalone repository, tentatively named **human-ai-collab-velocity**.  
+3. **Hybrid:** Do both, releasing a public version while keeping the core telemetry private.
 
-- The conceptual foundations of “velocity”  
-- Proposed productization and measurement strategies  
-- Implementation notes for a “velocity toolkit”  
-- Retrospective and analysis of the effort
+A key part of this future plan is to use the project's changelog to document the specific insights learned about AI-human collaboration.
 
----
-
-## 3. Current Status: Archived
-
-The **Velocity Project** and its associated **Velocity Tracker**:
-
-- Were **not merged** into the final, canonical **Pure Next.js** architecture.  
-- Are **not referenced** by the current Astro Brain or Poetic Brain specs.  
-- Exist now as a **separate, historical research body**, preserved for reference.
-
-In the current system:
-
-- Core **Astro Brain** metrics are defined exclusively by the **Seismograph** engine  
-  (`src/math-brain/seismograph-engine.js`), which produces:
-
-  - `magnitude`  
-  - `directional_bias`  
-  - `volatility`
-
-- These are the **only metrics standardized** in `API_REFERENCE.md` (ACC Spec v2).
-
-The **“Velocity”** metrics and associated tooling are therefore considered:
-
-- **Archived R&D**, not part of the current runtime or public API.  
-- Useful as historical context and inspiration, but **not active or supported** in the production architectu
+The "team" is DH Cross (musician, poet, songwriter, writer, game designer, systems thiker and creator of Woven Web and cohort (Cascade/Jules/Codex/third-party assists)

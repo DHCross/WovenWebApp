@@ -1,3 +1,41 @@
+## [2025-11-13] FIX: Math Brain v2 unified output + Velocity synergies
+
+**Date:** 2025-11-13  
+**Status:** ✅ DEPLOYED  
+**Impact:** HIGH – Restores production report generation and enriches velocity/synergy telemetry
+
+**What changed**
+- **Math Brain v2 resiliency**
+  - Patched `runMathBrain()` so `run_metadata` is created once and shared across the unified payload, preventing `relationship_context` assignments from hitting `undefined` (@src/math_brain/main.js).
+  - Derived root-level `mirror_data` from the most recent `daily_entries` record (`latestMirrorData`) to honor Guardrail 1.C and stop Netlify from throwing `ReferenceError: mirrorData is not defined`.
+- **Velocity & synergy instrumentation**
+  - `scripts/debug-signal.js` now accepts `--signal_type` (with npm shortcuts `debug:success` / `debug:failure`) so every debug entry is auto-tagged for AI-assisted fix tracking.
+  - Expanded `scripts/velocity-artifacts.js` to ingest `.logs/debug-session.jsonl`, compute AI synergy ratios (fix vs. regression counts, failures/hour, net-synergy velocity), and surface them in both `docs/velocity-forecast.md` and `velocity-artifacts/velocity-summary.json`.
+  - Grouped velocity scripts in `package.json` (`velocity`, `velocity:all`, `velocity:provenance`) to keep analytics invocations consistent.
+
+**Why it matters**
+- Production previously failed with `Math Brain v2 processing failed` whenever `relationship_context` was missing; the fix reestablishes ACC Spec v2 compliance and restores report generation at https://ravencalder.com.
+- Synergy instrumentation now quantifies whether AI-assisted fixes outpace AI-induced regressions, giving empirical velocity + quality metrics for future retros.
+
+**Files Changed / Added**
+- `src/math_brain/main.js`
+- `scripts/debug-signal.js`
+- `scripts/velocity-artifacts.js`
+- `package.json`
+- Regenerated artifacts: `docs/velocity-forecast.md`, `velocity-artifacts/velocity-summary.json`
+
+**Testing & Deployment**
+- `npm run build`
+- `netlify deploy --prod` → https://ravencalder.com (deploy id `69168940f30b3911a59d97b0`)
+- Manual verification: Generated Math Brain report (Mirror) succeeds, synergy section renders with zero baseline pending future signals.
+
+**Next Steps**
+1. Start logging real `debug:success` / `debug:failure` events so the synergy dashboard reflects live AI collaboration data.
+2. Automate `velocity:all` in CI to publish updated Markdown/JSON after meaningful merges.
+3. Monitor Netlify logs for any additional Math Brain edge cases (e.g., Foundation mode) and add regression tests once stabilized.
+
+---
+
 ## [2025-11-11] FEATURE: Collaboration Velocity Instrumentation (artifacts + thesis)
 
 **Date:** 2025-11-11  

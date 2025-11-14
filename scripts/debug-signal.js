@@ -73,6 +73,7 @@ function main() {
     branch: process.env.GITHUB_REF_NAME || getLocalBranch(),
     commit: process.env.GITHUB_SHA || null,
     environment: process.env.NODE_ENV || 'development',
+    signal_type: meta.signal_type || meta.type || 'unspecified',
     message: message || 'No description provided',
   };
 
@@ -81,6 +82,7 @@ function main() {
   console.log('✅ Debug signal appended to', LOG_FILE);
   console.log(`   • ID: ${entry.id}`);
   console.log(`   • Area: ${entry.area}`);
+  console.log(`   • Type: ${entry.signal_type}`);
   console.log(`   • Message: ${entry.message}`);
   console.log('');
   console.log(`ℹ️  See ${DOCS_HINT} for how to respond when this log updates.`);
