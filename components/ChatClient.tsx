@@ -105,10 +105,10 @@ const PERSONA_DESCRIPTIONS: Record<PersonaMode, string> = {
 const createInitialMessage = (): Message => ({
   id: generateId(),
   role: "raven",
-  html: `<p style="margin:0; line-height:1.65;">I’m a clean mirror. Share whatever’s moving—type below to talk freely, or upload your Mirror + Symbolic Weather JSON when you want the formal reading. I’ll keep you oriented either way.</p>`,
+  html: `<p style="margin:0; line-height:1.65;">I’m a clean mirror. Share whatever’s moving—type below to talk freely, or upload your Astro Report JSON (Mirror + Symbolic Weather combined) when you want the formal reading. I’ll keep you oriented either way.</p>`,
   climate: formatFullClimateDisplay({ magnitude: 1, valence: 2, volatility: 0 }),
   hook: "Session · Orientation",
-  rawText: `I’m a clean mirror. Share whatever’s moving—type below to talk freely, or upload your Mirror + Symbolic Weather JSON when you want the formal reading. I’ll keep you oriented either way.`,
+  rawText: `I’m a clean mirror. Share whatever’s moving—type below to talk freely, or upload your Astro Report JSON (Mirror + Symbolic Weather combined) when you want the formal reading. I’ll keep you oriented either way.`,
   validationPoints: [],
   validationComplete: true,
 });
@@ -200,8 +200,6 @@ export default function ChatClient() {
   const sessionAnnouncementHookRef = useRef<string | undefined>(undefined);
   const sessionAnnouncementClimateRef = useRef<string | undefined>(undefined);
   const previousModeRef = useRef<SessionMode>('idle');
-  const pendingContextRequirementRef = useRef<'mirror' | 'weather' | null>(null);
-  const [pendingUploadRequirement, setPendingUploadRequirement] = useState<'mirror' | 'weather' | null>(null);
 
   const pushRavenNarrative = useCallback(
     (text: string, options: { hook?: string; climate?: string } = {}) => {
@@ -372,136 +370,42 @@ export default function ChatClient() {
   const analyzeReportContext = useCallback(
     async (reportContext: ReportContext, contextsForPayload?: ReportContext[]) => {
       const contextList = contextsForPayload ?? reportContexts;
-      const currentMetadata = detectReportMetadata(reportContext.content);
-      const metadataList = contextList.map((ctx) => ({
-        id: ctx.id,
-        type: ctx.type,
-        metadata: detectReportMetadata(ctx.content),
-      }));
+      const metadata = detectReportMetadata(reportContext.content);
+      const reportLabel = reportContext.name?.trim()
+        ? `"${reportContext.name.trim()}"`
+        : 'This report';
+      const hasCombinedAstroReport = metadata.hasMirrorDirective && metadata.hasSymbolicWeather;
 
-      const hasMirrorDirective = metadataList.some((entry) => entry.metadata.hasMirrorDirective);
-      const hasSymbolicWeather = metadataList.some((entry) => entry.metadata.hasSymbolicWeather);
-      const hasRelationalMirror = metadataList.some((entry) => entry.metadata.isRelationalMirror);
-
-      if (
-        reportContext.type === 'mirror' &&
-        currentMetadata.format === null &&
-        pendingContextRequirementRef.current !== 'mirror'
-      ) {
-        pendingContextRequirementRef.current = 'mirror';
-        setPendingUploadRequirement('mirror');
-        setStatusMessage("Mirror upload needs the JSON export.");
+      if (!hasCombinedAstroReport) {
         shiftSessionMode('idle');
         setSessionStarted(false);
+        setStatusMessage("Astro report incomplete—export the combined Mirror + Symbolic Weather JSON and upload again.");
         const prompt =
-          "Looks like Rubric skipped the directive export—I only have the printable markdown. Re-run Math Brain (or grab the Mirror Directive JSON / combined Mirror + Symbolic Weather JSON) and drop that in, then I can continue the reading.";
+          "I need the combined Astro Report JSON (Mirror + Symbolic Weather) to generate the full reading. Re-export from Math Brain or use Resume Math Brain to hand off the latest report, then drop it here and I'll begin automatically.";
         setMessages((prev) => [
           ...prev,
           {
             id: generateId(),
             role: 'raven',
-            html: `<p style="margin:0; line-height:1.65;">${escapeHtml(prompt)}</p>`,
-            hook: "Upload · Mirror JSON Needed",
+            html: `<p style=\"margin:0; line-height:1.65;\">${escapeHtml(prompt)}</p>`,
+            hook: "Upload · Astro Report Needed",
             climate: "VOICE · Awaiting Upload",
             rawText: prompt,
             validationPoints: [],
             validationComplete: true,
           },
         ]);
-        // eslint-disable-next-line no-console
-        console.info('[Poetic Brain] Mirror directive upload missing JSON format', {
+        console.info('[Poetic Brain] Combined astro report required for auto-execution', {
           contextId: reportContext.id,
           summary: reportContext.summary,
         });
         return;
       }
 
-      if (hasRelationalMirror && !hasSymbolicWeather) {
-        setStatusMessage("Waiting for the symbolic weather export…");
-        if (pendingContextRequirementRef.current !== 'weather') {
-          pendingContextRequirementRef.current = 'weather';
-          setPendingUploadRequirement('weather');
-          const prompt =
-            "I’m holding the relational mirror directive, but its symbolic weather companion isn’t here yet. Upload the Mirror+SymbolicWeather JSON export from Math Brain so I can begin the reading.";
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: generateId(),
-              role: 'raven',
-              html: `<p style="margin:0; line-height:1.65;">${escapeHtml(prompt)}</p>`,
-              hook: "Upload · Missing Weather",
-              climate: "VOICE · Awaiting Upload",
-              rawText: prompt,
-              validationPoints: [],
-              validationComplete: true,
-            },
-          ]);
-          // eslint-disable-next-line no-console
-          console.info('[Poetic Brain] Waiting for symbolic weather payload', {
-            contexts: metadataList.map((entry) => ({
-              id: entry.id,
-              type: entry.type,
-              format: entry.metadata.format,
-              hasMirrorDirective: entry.metadata.hasMirrorDirective,
-              hasSymbolicWeather: entry.metadata.hasSymbolicWeather,
-              isRelationalMirror: entry.metadata.isRelationalMirror,
-            })),
-          });
-        }
-        return;
-      }
-
-      if (hasSymbolicWeather && !hasMirrorDirective) {
-        setStatusMessage("Waiting for the mirror directive upload…");
-        if (pendingContextRequirementRef.current !== 'mirror') {
-          pendingContextRequirementRef.current = 'mirror';
-          setPendingUploadRequirement('mirror');
-          const prompt =
-            "I received the symbolic weather export, but I still need the Mirror Directive JSON. Drop the mirror file from Math Brain so we can complete the pair.";
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: generateId(),
-              role: 'raven',
-              html: `<p style="margin:0; line-height:1.65;">${escapeHtml(prompt)}</p>`,
-              hook: "Upload · Missing Mirror",
-              climate: "VOICE · Awaiting Upload",
-              rawText: prompt,
-              validationPoints: [],
-              validationComplete: true,
-            },
-          ]);
-          // eslint-disable-next-line no-console
-          console.info('[Poetic Brain] Waiting for mirror directive payload', {
-            contexts: metadataList.map((entry) => ({
-              id: entry.id,
-              type: entry.type,
-              format: entry.metadata.format,
-              hasMirrorDirective: entry.metadata.hasMirrorDirective,
-              hasSymbolicWeather: entry.metadata.hasSymbolicWeather,
-              isRelationalMirror: entry.metadata.isRelationalMirror,
-            })),
-          });
-        }
-        return;
-      }
-
-      if (pendingContextRequirementRef.current) {
-        pendingContextRequirementRef.current = null;
-        setPendingUploadRequirement(null);
-        setStatusMessage(null);
-      }
-
-      const reportLabel = reportContext.name?.trim()
-        ? `"${reportContext.name.trim()}"`
-        : 'This report';
-
-      // Set session mode to report and mark as started
+      setStatusMessage("Astro report received. Generating Mirror Flow + Symbolic Weather reading...");
       setSessionMode('report');
       setSessionStarted(true);
 
-      // Create a single placeholder for the complete mirror flow report
-      // The backend's auto-execution will provide the full narrative including session start
       const mirrorPlaceholderId = generateId();
       const mirrorPlaceholder: Message = {
         id: mirrorPlaceholderId,
@@ -549,8 +453,9 @@ export default function ChatClient() {
             },
           },
           mirrorPlaceholderId,
-          "Generating complete mirror flow report...",
+          "Generating combined mirror flow report...",
         );
+        setStatusMessage(null);
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('Error during report analysis:', error);
@@ -834,7 +739,6 @@ export default function ChatClient() {
     setRelocation(null);
     setSessionId(null);
     clearStoredPayload();
-    setPendingUploadRequirement(null);
     setStatusMessage("Session cleared. Begin typing whenever you're ready.");
     pingTracker.sealSession(sessionId ?? undefined);
   }, [clearStoredPayload, sessionId, shiftSessionMode, stop]);
@@ -940,7 +844,6 @@ export default function ChatClient() {
       }
       return next;
     });
-    setPendingUploadRequirement(null);
     setStatusMessage(null);
   }, []);
 
@@ -958,7 +861,7 @@ export default function ChatClient() {
             </div>
             <h1 className="text-2xl font-semibold text-slate-100">{APP_NAME}</h1>
             <p className="text-sm text-slate-400">
-              Raven is already listening—share what is present, or upload Math Brain and Mirror exports when you are ready for a structured reading.
+              Raven is already listening—share what is present, or upload your Astro Report JSON (Mirror + Symbolic Weather combined) when you are ready for a structured reading.
             </p>
             <div className="mt-3 flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-emerald-300">
               <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
@@ -997,14 +900,7 @@ export default function ChatClient() {
                 onClick={() => handleUploadButton("mirror")}
                 className="rounded-lg border border-slate-600/60 bg-slate-800/60 px-4 py-2 font-medium text-slate-100 hover:border-slate-500 hover:bg-slate-800 transition"
               >
-                🪞 Upload Mirror
-              </button>
-              <button
-                type="button"
-                onClick={() => handleUploadButton("balance")}
-                className="rounded-lg border border-slate-600/60 bg-slate-800/60 px-4 py-2 font-medium text-slate-100 hover:border-slate-500 hover:bg-slate-800 transition"
-              >
-                🌡️ Upload Symbolic Weather
+                📦 Upload Astro Report
               </button>
               {canRecoverStoredPayload && (
                 <button
@@ -1029,10 +925,7 @@ export default function ChatClient() {
             </div>
             <div className="text-xs text-slate-400 sm:flex sm:flex-wrap sm:gap-6">
               <p className="max-w-[220px]">
-                🪞 Upload Mirror brings in the Math Brain Mirror export so Raven can parse the saved charts.
-              </p>
-              <p className="max-w-[220px]">
-                🌡️ Upload Symbolic Weather supplies the Astro Report/Weather data Raven needs for transit context.
+                📦 Upload Astro Report hands Raven the combined Mirror + Symbolic Weather JSON export from Math Brain for immediate interpretation.
               </p>
               <p className="max-w-[220px]">
                 ⏮️ Resume Math Brain restores the last archived session and flashes the button when it’s queued.
@@ -1163,19 +1056,6 @@ export default function ChatClient() {
       {errorMessage && (
         <div className="border-b border-rose-500/40 bg-rose-500/10 text-center text-sm text-rose-200">
           <div className="mx-auto max-w-5xl px-6 py-3">{errorMessage}</div>
-        </div>
-      )}
-
-      {pendingUploadRequirement && (
-        <div className="border-b border-amber-500/40 bg-amber-500/10 text-center text-sm text-amber-200">
-          <div className="mx-auto flex max-w-5xl items-center justify-center gap-2 px-6 py-3">
-            <span aria-hidden="true">⚠️</span>
-            <span>
-              {pendingUploadRequirement === 'mirror'
-                ? 'Awaiting Mirror Directive JSON to complete this upload pair.'
-                : 'Awaiting Symbolic Weather export to complete this upload pair.'}
-            </span>
-          </div>
         </div>
       )}
 
