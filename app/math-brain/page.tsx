@@ -76,6 +76,22 @@ type ProviderGateState = {
   poetic: ProviderGate;
 };
 
+const createEmptySubject = (): Subject => ({
+  name: "",
+  year: "",
+  month: "",
+  day: "",
+  hour: "",
+  minute: "",
+  city: "",
+  state: "",
+  nation: "US",
+  latitude: "",
+  longitude: "",
+  timezone: "",
+  zodiac_type: "Tropic",
+});
+
 const RELATIONAL_MODES: ReportMode[] = [
   'SYNASTRY',
   'SYNASTRY_TRANSITS',
@@ -781,24 +797,10 @@ export default function MathBrainPage() {
     return { start, end };
   }, [today, fmt]);
 
-  const [personA, setPersonA] = useState<Subject>({
-    name: "Dan",
-    year: "1973",
-    month: "07",
-    day: "24",
-    hour: "14",
-    minute: "30",
-    city: "Bryn Mawr",
-    state: "PA",
-    nation: "US",
-    latitude: 40.0167,
-    longitude: -75.3,
-    timezone: "US/Eastern",
-    zodiac_type: "Tropic",
-  });
+  const [personA, setPersonA] = useState<Subject>(() => createEmptySubject());
 
   // Single-field coordinates (Person A)
-  const [aCoordsInput, setACoordsInput] = useState<string>("40°1'N, 75°18'W");
+  const [aCoordsInput, setACoordsInput] = useState<string>("");
   const [aCoordsError, setACoordsError] = useState<string | null>(null);
   const [aCoordsValid, setACoordsValid] = useState<boolean>(true);
 
@@ -1139,21 +1141,7 @@ export default function MathBrainPage() {
   const canVisitPoetic = POETIC_BRAIN_ENABLED && providerHealth.poetic.ready;
 
   // Person B subject state
-  const [personB, setPersonB] = useState<Subject>({
-    name: "",
-    year: "",
-    month: "",
-    day: "",
-    hour: "",
-    minute: "",
-    city: "",
-    state: "",
-    nation: "US",
-    latitude: "",
-    longitude: "",
-    timezone: "",
-    zodiac_type: "Tropic",
-  });
+  const [personB, setPersonB] = useState<Subject>(() => createEmptySubject());
   // Person B single-field coordinates
   const [bCoordsInput, setBCoordsInput] = useState<string>("");
   const [bCoordsError, setBCoordsError] = useState<string | null>(null);

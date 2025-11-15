@@ -2,6 +2,38 @@
 
 import { useEffect, useState } from 'react';
 
+const SAMPLE_SUBJECT_NAME = 'Sample Subject';
+const SAMPLE_BIRTH_SUMMARY = 'July 24, 1973, 2:30 PM ET — Sample City, Sample State';
+const SAMPLE_RELOCATION_SUMMARY = "Sample Relocation (30°10'N, 85°40'W) | Central Time";
+const SAMPLE_CHART_TITLE = 'Sample Directional Bias (Oct 31 – Nov 1, 2025)';
+const SAMPLE_RELOCATION_NOTE = "Relocated to Sample Relocation (30°10'N, 85°40'W)";
+const SAMPLE_RUN_MESSAGE = 'Running sample directional bias test (relocated to Sample Relocation)...';
+const SAMPLE_TRANSIT_WINDOW_LABEL = 'October 31 – November 1, 2025';
+const SAMPLE_TRANSIT_WINDOW = {
+  start: '2025-10-31',
+  end: '2025-11-01',
+};
+
+const SAMPLE_SUBJECT_REQUEST = {
+  name: SAMPLE_SUBJECT_NAME,
+  birth_date: '1973-07-24',
+  birth_time: '14:30',
+  timezone: 'US/Eastern',
+  latitude: 40.0196, // Sample latitude
+  longitude: -75.3167, // Sample longitude
+  city: 'Sample City',
+  state: 'EX',
+  nation: 'USA',
+} as const;
+
+const SAMPLE_RELOCATION_REQUEST = {
+  latitude: 30.1667,
+  longitude: -85.6667,
+  city: 'Sample Relocation',
+  state: 'EX',
+  timezone: 'US/Central',
+} as const;
+
 // --- TYPE DEFINITIONS ---
 
 interface BiasDataPoint {
@@ -142,8 +174,8 @@ Aspects: ${d.aspect_count}</title>`;
   // --- Titles and Labels ---
   svg += `<text x="15" y="${height / 2}" font-size="13" fill="#1e293b" text-anchor="middle" transform="rotate(-90 15 ${height / 2})">Directional Bias (−5 Inward to +5 Outward)</text>`;
   svg += `<text x="${width / 2}" y="${height - 15}" font-size="13" fill="#1e293b" text-anchor="middle">Date</text>`;
-  svg += `<text x="${width / 2}" y="30" font-size="16" font-weight="600" fill="#111827" text-anchor="middle">Dan's Daily Directional Bias (Oct 31 – Nov 1, 2025)</text>`;
-  svg += `<text x="${width / 2}" y="50" font-size="12" fill="#4a5568" text-anchor="middle">Relocated to Panama City, FL (30°10'N, 85°40'W)</text>`;
+  svg += `<text x="${width / 2}" y="30" font-size="16" font-weight="600" fill="#111827" text-anchor="middle">${SAMPLE_CHART_TITLE}</text>`;
+  svg += `<text x="${width / 2}" y="50" font-size="12" fill="#4a5568" text-anchor="middle">${SAMPLE_RELOCATION_NOTE}</text>`;
 
   svg += '</svg>';
   return svg;
@@ -151,7 +183,7 @@ Aspects: ${d.aspect_count}</title>`;
 
 // --- MAIN COMPONENT ---
 
-export function DanBiasTest() {
+export function DirectionalBiasTest() {
   const [data, setData] = useState<any>(null);
   const [biasData, setBiasData] = useState<BiasDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,28 +198,13 @@ export function DanBiasTest() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            person_a: {
-              name: 'Dan',
-              birth_date: '1973-07-24',
-              birth_time: '14:30',
-              timezone: 'US/Eastern',
-              latitude: 40.0196,   // Bryn Mawr, PA
-              longitude: -75.3167,
-              city: 'Bryn Mawr',
-              nation: 'USA',
-            },
+            person_a: SAMPLE_SUBJECT_REQUEST,
             report_type: 'balance',
-            transit_start_date: '2025-10-31',
-            transit_end_date: '2025-11-01',
+            transit_start_date: SAMPLE_TRANSIT_WINDOW.start,
+            transit_end_date: SAMPLE_TRANSIT_WINDOW.end,
             house_system: 'placidus',
             // --- RELOCATION DATA ---
-            relocation: {
-              latitude: 30.1667,  // Panama City, FL: 30°10'N
-              longitude: -85.6667, // 85°40'W
-              city: 'Panama City',
-              state: 'FL',
-              timezone: 'US/Central', // Correct timezone for Panama City, FL
-            },
+            relocation: SAMPLE_RELOCATION_REQUEST,
           }),
         });
 
@@ -229,7 +246,7 @@ export function DanBiasTest() {
       <div className="p-6 bg-slate-50 border border-slate-200 rounded-lg">
         <div className="flex items-center gap-3">
           <div className="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full" />
-          <span className="text-slate-700 font-medium">Running test for Dan (Relocated to Panama City, FL)...</span>
+          <span className="text-slate-700 font-medium">{SAMPLE_RUN_MESSAGE}</span>
         </div>
       </div>
     );
@@ -259,15 +276,15 @@ export function DanBiasTest() {
   return (
     <div className="space-y-6 p-4 md:p-6 bg-slate-50">
       <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Dan's Directional Bias Analysis</h2>
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">{SAMPLE_SUBJECT_NAME} Directional Bias Analysis</h2>
         <p className="text-slate-600">
-          <strong>Birth:</strong> July 24, 1973, 2:30 PM ET, Bryn Mawr, PA
+          <strong>Birth:</strong> {SAMPLE_BIRTH_SUMMARY}
         </p>
         <p className="text-slate-600 font-medium">
-          <strong>Relocation:</strong> Panama City, FL (30°10'N, 85°40'W) | Central Time
+          <strong>Relocation:</strong> {SAMPLE_RELOCATION_SUMMARY}
         </p>
         <p className="text-slate-600">
-          <strong>Transit Window:</strong> October 31 – November 1, 2025
+          <strong>Transit Window:</strong> {SAMPLE_TRANSIT_WINDOW_LABEL}
         </p>
       </div>
 
