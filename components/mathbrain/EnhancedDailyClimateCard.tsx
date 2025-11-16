@@ -34,7 +34,7 @@ export default function EnhancedDailyClimateCard({
   isRangeSummary = false,
   dateRange,
 }: EnhancedDailyClimateCardProps) {
-  const narrative = generateClimateNarrative(climate, activatedHouses, isRangeSummary);
+  const narrative = generateClimateNarrative(climate, activatedHouses, isRangeSummary, false, mode, names);
 
   const hasOverflow = overflowDetail?.overflowRegistered === true;
 

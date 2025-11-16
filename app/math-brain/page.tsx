@@ -4499,6 +4499,7 @@ export default function MathBrainPage() {
               showTimePolicy={timeUnknown}
               timePolicy={timePolicy}
               onTimePolicyChange={setTimePolicy}
+              timePolicyScopeLabel={personA.name ? `${personA.name} (Person A)` : 'Person A'}
               requireName
               requireBirthDate
               requireTime
@@ -4548,7 +4549,10 @@ export default function MathBrainPage() {
                 setCoordsValid={setBCoordsValid}
                 timezoneOptions={tzOptions}
                 allowUnknownTime={allowUnknownB}
-                showTimePolicy={false}
+                showTimePolicy={includePersonB && timeUnknownB}
+                timePolicy={timePolicy}
+                onTimePolicyChange={setTimePolicy}
+                timePolicyScopeLabel={personB.name ? `${personB.name} (Person B)` : 'Person B'}
                 disabled={!includePersonB}
                 coordinateLabel="Birth Coordinates (B)"
                 coordinatePlaceholder="e.g., 34°03′S, 18°25′E or -34.0500, 18.4167"

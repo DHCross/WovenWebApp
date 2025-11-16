@@ -1325,7 +1325,7 @@ export default function ChatClient() {
                 </div>
               </div>
               <div className="text-center text-xs text-slate-500">
-                Or paste your Mirror + Symbolic Weather JSON using the upload buttons below
+                Need to upload a Mirror + Symbolic Weather JSON? Use the Upload button near the top of this page.
               </div>
             </div>
           )}
@@ -1366,20 +1366,6 @@ export default function ChatClient() {
               >
                 Send
               </button>
-              <button
-                type="button"
-                onClick={() => handleUploadButton("mirror")}
-                className="rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2 text-slate-100 transition hover:border-slate-500 hover:bg-slate-800"
-              >
-                🪞 Mirror
-              </button>
-              <button
-                type="button"
-                onClick={() => handleUploadButton("balance")}
-                className="rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2 text-slate-100 transition hover:border-slate-500 hover:bg-slate-800"
-              >
-                🌡️ Weather
-              </button>
               {typing && (
                 <button
                   type="button"
@@ -1391,7 +1377,7 @@ export default function ChatClient() {
               )}
             </div>
             <div className="text-xs text-slate-500">
-              Upload Math Brain exports, Mirror JSON, or AstroSeek charts to give Raven geometry.
+              Upload Math Brain exports, Mirror JSON, or AstroSeek charts using the controls near the top of the page.
             </div>
           </div>
         </form>

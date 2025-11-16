@@ -17,6 +17,7 @@ interface PersonFormProps {
   showTimePolicy: boolean;
   timePolicy?: TimePolicyChoice;
   onTimePolicyChange?: (policy: TimePolicyChoice) => void;
+  timePolicyScopeLabel?: string;
   disabled?: boolean;
   coordinateLabel?: string;
   coordinatePlaceholder?: string;
@@ -49,6 +50,7 @@ export function PersonForm({
   showTimePolicy,
   timePolicy,
   onTimePolicyChange,
+  timePolicyScopeLabel,
   disabled = false,
   coordinateLabel = 'Birth Coordinates',
   coordinatePlaceholder = 'e.g., 40°42′N, 74°0′W or 40.7128, -74.006',
@@ -334,12 +336,17 @@ export function PersonForm({
         <div className="sm:col-span-2">
           <fieldset className="rounded-md border border-slate-700 bg-slate-900/50 p-3">
             <legend className="px-1 text-xs font-medium text-slate-200">Birth time policy</legend>
+            <p className="mt-1 text-[11px] text-slate-400">
+              Applies to {timePolicyScopeLabel || 'any chart without a recorded birth time'}.
+              Choose how Math Brain should treat houses/angles when an exact birth time is missing.
+            </p>
             <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
               <TimePolicyOption
                 label="Planetary-only"
                 description="No houses/angles; tightest, falsifiable geometry"
                 value="planetary_only"
                 active={timePolicy === 'planetary_only'}
+                name={`time-policy-${idPrefix}`}
                 onSelect={onTimePolicyChange}
               />
               <TimePolicyOption
@@ -347,6 +354,7 @@ export function PersonForm({
                 description="House semantics without exact time; angles still suppressed"
                 value="whole_sign"
                 active={timePolicy === 'whole_sign'}
+                name={`time-policy-${idPrefix}`}
                 onSelect={onTimePolicyChange}
               />
               <TimePolicyOption
@@ -354,6 +362,7 @@ export function PersonForm({
                 description="Test a window of possible times; house-dependent insights flagged"
                 value="sensitivity_scan"
                 active={timePolicy === 'sensitivity_scan'}
+                name={`time-policy-${idPrefix}`}
                 onSelect={onTimePolicyChange}
               />
             </div>
@@ -369,10 +378,11 @@ interface TimePolicyOptionProps {
   description: string;
   value: TimePolicyChoice;
   active: boolean;
+  name: string;
   onSelect: (value: TimePolicyChoice) => void;
 }
 
-function TimePolicyOption({ label, description, value, active, onSelect }: TimePolicyOptionProps) {
+function TimePolicyOption({ label, description, value, active, onSelect, name }: TimePolicyOptionProps) {
   return (
     <label
       className={`flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-xs ${
@@ -383,7 +393,7 @@ function TimePolicyOption({ label, description, value, active, onSelect }: TimeP
     >
       <input
         type="radio"
-        name="time-policy"
+        name={name}
         className="mt-0.5"
         checked={active}
         onChange={() => onSelect(value)}

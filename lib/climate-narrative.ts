@@ -170,10 +170,72 @@ function determineClimatePattern(valence: number, volatility: number, magnitude:
   return CLIMATE_PATTERNS.steady_flow;
 }
 
-function generateStory(climate: ClimateData, pattern: ClimatePattern, isRangeSummary: boolean = false): string {
+function formatRelationalPair(names?: [string, string]): string {
+  if (names && names[0] && names[1]) {
+    return `${names[0]} and ${names[1]}`;
+  }
+  if (names && names[0]) {
+    return `${names[0]} and their counterpart`;
+  }
+  if (names && names[1]) {
+    return `${names[1]} and their counterpart`;
+  }
+  return 'both people';
+}
+
+function generateRelationalStory(
+  climate: ClimateData,
+  valenceLevel: ValenceLevel,
+  magnitudeLabel: string,
+  isRangeSummary: boolean,
+  names?: [string, string]
+): string {
+  const pairLabel = formatRelationalPair(names);
+  const timeFrame = isRangeSummary
+    ? "This period's relational field"
+    : "Today's relational field";
+
+  const magnitudeTone = climate.magnitude >= 4
+    ? 'peak compression'
+    : climate.magnitude >= 3
+      ? 'noticeable pressure'
+      : climate.magnitude >= 2
+        ? 'steady background hum'
+        : 'soft, low-volume charge';
+
+  const directionTone = valenceLevel.level <= -2
+    ? 'an inward tilt'
+    : valenceLevel.level >= 2
+      ? 'an outward tilt'
+      : 'a neutral tilt';
+
+  const nervousSystemLine = valenceLevel.level <= -2
+    ? 'Each nervous system is conserving energy internally, so subtle, low-demand contact lands best.'
+    : valenceLevel.level >= 2
+      ? 'Both nervous systems prefer motion and exchange, so collaborative gestures feel natural.'
+      : 'Either person can steer tone with gentle intent because the field sits close to equilibrium.';
+
+  const echoSensitivity = climate.magnitude >= 3
+    ? 'Small misreads echo louder than usual, so clarity matters more than volume.'
+    : 'The stakes are moderate, allowing room for softness and calibration.';
+
+  return `${timeFrame} between ${pairLabel} carries ${magnitudeTone} (${magnitudeLabel.toLowerCase()}) with ${directionTone}. ${nervousSystemLine} ${echoSensitivity}`;
+}
+
+function generateStory(
+  climate: ClimateData,
+  pattern: ClimatePattern,
+  isRangeSummary: boolean = false,
+  mode: 'single' | 'relational' = 'single',
+  names?: [string, string]
+): string {
   const valenceLevel = getValenceLevel(climate.valence_bounded ?? climate.valence ?? 0);
   const magnitudeLabel = getMagnitudeLabel(climate.magnitude);
   const volatilityLabel = getVolatilityLabel(climate.volatility);
+
+  if (mode === 'relational') {
+    return generateRelationalStory(climate, valenceLevel, magnitudeLabel, isRangeSummary, names);
+  }
 
   const intensityPhrase = climate.magnitude >= 4
     ? "chapter-defining intensity"
@@ -290,15 +352,38 @@ function generateParadoxPoles(climate: ClimateData, isLatentField: boolean = fal
   };
 }
 
+function generateRelationalGuidance(
+  climate: ClimateData,
+  valenceLevel: ValenceLevel,
+  names?: [string, string]
+): string {
+  const pairLabel = formatRelationalPair(names);
+  const directional = valenceLevel.level <= -2
+    ? 'Keep contact light and clear; compression days reward steady presence more than initiatives.'
+    : valenceLevel.level >= 2
+      ? 'Share momentum cues and invite co-creation; outward tilt supports shared action.'
+      : 'Name what you notice and let the other person steer if they have more bandwidth.';
+
+  const magnitudeNote = climate.magnitude >= 4
+    ? 'Treat every exchange like it echoes.'
+    : climate.magnitude >= 3
+      ? 'Expect small ripples to matter; clarity prevents misreads.'
+      : 'Use the lower volume to stay curious rather than corrective.';
+
+  return `${pairLabel} benefit from clarity without demand today. ${directional} ${magnitudeNote}`;
+}
+
 export function generateClimateNarrative(
   climate: ClimateData,
   activatedHouses?: string[],
   isRangeSummary: boolean = false,
-  isLatentField: boolean = false
+  isLatentField: boolean = false,
+  mode: 'single' | 'relational' = 'single',
+  names?: [string, string]
 ): ClimateNarrative {
   const valence = climate.valence_bounded ?? climate.valence ?? 0;
   const pattern = determineClimatePattern(valence, climate.volatility, climate.magnitude);
-  const story = generateStory(climate, pattern, isRangeSummary);
+  const story = generateStory(climate, pattern, isRangeSummary, mode, names);
   const paradox = generateParadoxPoles(climate, isLatentField);
   const valenceLevel = getValenceLevel(valence);
   const clampedVolatility = clampValue(climate.volatility ?? 0, 0, 5);
@@ -318,12 +403,18 @@ export function generateClimateNarrative(
   );
 
   const headline = periodLabel.title;
+  const relationalAdvice = mode === 'relational'
+    ? generateRelationalGuidance(climate, valenceLevel, names)
+    : undefined;
+  const patternForMode = relationalAdvice
+    ? { ...pattern, advice: relationalAdvice }
+    : pattern;
 
   return {
     headline,
     labelSubtitle: periodLabel.subtitle,
     voiceLabel,
-    pattern,
+    pattern: patternForMode,
     story,
     dimensions: {
       magnitude: {

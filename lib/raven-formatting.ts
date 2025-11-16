@@ -43,7 +43,7 @@ export const formatFriendlyErrorMessage = (rawMessage: string): string => {
     return "I couldn't authenticate with the Perplexity wellspring. Double-check the key, then invite me again.";
   }
   if (/math brain failed/i.test(text) || /mirror.?data is not defined/i.test(text)) {
-    return "Math Brain stumbled on that pass, so I'm re-running the geometry. If the mirror stays quiet for more than a minute, tap “Generate again” and I'll fetch a fresh reading.";
+    return "Math Brain stumbled on that pass, but the uploaded report is still ready. Ask again or tap “Generate again” if you truly need a fresh run.";
   }
   return `I'm having trouble responding: ${text}`;
 };
