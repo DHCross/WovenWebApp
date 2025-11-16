@@ -1,27 +1,27 @@
 {
-  "generated_at": "2025-11-14T18:06:10.819Z",
+  "generated_at": "2025-11-16T01:33:01.673Z",
   "latest_run": {
-    "timestamp": "2025-11-14T18:06:10.707Z",
-    "commit_count": 96,
-    "total_duration_seconds": 551243,
-    "commits_per_hour": 0.626946736738607
+    "timestamp": "2025-11-16T01:32:48.209Z",
+    "commit_count": 91,
+    "total_duration_seconds": 572739,
+    "commits_per_hour": 0.5719882878588677
   },
   "rolling_window_limit": 10,
   "synergy": {
-    "window_hours": 153.12305555555557,
-    "window_start": "2025-11-08T00:11:36.000Z",
-    "window_end": "2025-11-14T09:18:59.000Z",
+    "window_hours": 159.09416666666667,
+    "window_start": "2025-11-09T08:14:58.000Z",
+    "window_end": "2025-11-15T23:20:37.000Z",
     "successful_ai_fixes": 2,
     "ai_induced_failures": 0,
     "signals_considered": 2,
-    "commits_per_hour": 0.626946736738607,
-    "synergy_ratio": 0.020833333333333332,
+    "commits_per_hour": 0.5719882878588677,
+    "synergy_ratio": 0.02197802197802198,
     "regression_rate": 0,
     "failures_per_hour": 0,
-    "net_synergy_velocity": 0.626946736738607,
+    "net_synergy_velocity": 0.5719882878588677,
     "git_signals": {
-      "found": 96,
-      "fixes": 16,
+      "found": 91,
+      "fixes": 15,
       "failures": 0,
       "reverts": 0,
       "samples": [

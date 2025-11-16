@@ -11,7 +11,28 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
-const LOG_FILE_PATH = path.resolve(__dirname, '../velocity-log.jsonl');
+function resolveLogPath() {
+  const cwd = process.cwd();
+  const envPrimary = process.env.VELOCITY_LOG_PATH
+    ? path.resolve(cwd, process.env.VELOCITY_LOG_PATH)
+    : null;
+  const envMirror = process.env.VELOCITY_LOG_MIRROR_PATH
+    ? path.resolve(cwd, process.env.VELOCITY_LOG_MIRROR_PATH)
+    : null;
+  const dotLogsPath = path.resolve(cwd, '.logs/velocity-log.jsonl');
+  const legacyPath = path.resolve(__dirname, '../velocity-log.jsonl');
+
+  const candidates = [envPrimary, dotLogsPath, envMirror, legacyPath].filter(Boolean);
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  // Ensure we still point to the canonical .logs location even if it doesn't exist yet
+  return envPrimary || dotLogsPath;
+}
+
+const LOG_FILE_PATH = resolveLogPath();
 
 /**
  * Read recent runs from log
@@ -36,21 +57,32 @@ function readRecentRuns(limit = 2) {
  */
 function detectSignificantChange(current, previous) {
   if (!current || !previous) return null;
-  
-  const absDelta = Math.abs(current.commits_per_hour - previous.commits_per_hour);
-  const percentDelta = Math.abs(current.commits_per_hour - previous.commits_per_hour) / previous.commits_per_hour;
-  
-  // Significant if > 0.1 commits/hour OR > 20% change
-  if (absDelta > 0.1 || percentDelta > 0.2) {
+
+  const normalizeRate = (run) => {
+    const direct = Number.isFinite(run.commits_per_hour) ? run.commits_per_hour : null;
+    if (direct !== null) return direct;
+    return Number.isFinite(run.commitsPerHour) ? run.commitsPerHour : 0;
+  };
+
+  const currentRate = normalizeRate(current);
+  const previousRate = normalizeRate(previous);
+
+  const absDelta = Math.abs(currentRate - previousRate);
+  const percentDelta = previousRate === 0 ? null : Math.abs(currentRate - previousRate) / Math.abs(previousRate);
+  const percentDisplay = percentDelta === null ? '∞' : (percentDelta * 100).toFixed(1);
+
+  // Significant if > 0.1 commits/hour OR > 20% change (when previous rate is non-zero)
+  const percentThresholdMet = percentDelta !== null && percentDelta > 0.2;
+  if (absDelta > 0.1 || percentThresholdMet) {
     return {
-      direction: current.commits_per_hour > previous.commits_per_hour ? '📈 UP' : '📉 DOWN',
+      direction: currentRate > previousRate ? '📈 UP' : '📉 DOWN',
       abs_delta: absDelta,
-      percent_delta: (percentDelta * 100).toFixed(1),
-      current_velocity: current.commits_per_hour.toFixed(3),
-      previous_velocity: previous.commits_per_hour.toFixed(3),
+      percent_delta: percentDisplay,
+      current_velocity: currentRate.toFixed(3),
+      previous_velocity: previousRate.toFixed(3),
     };
   }
-  
+
   return null;
 }
 

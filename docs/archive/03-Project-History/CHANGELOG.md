@@ -1,3 +1,38 @@
+## [2025-11-15] Velocity tracker guardrails + telemetry refresh
+
+**Date:** 2025-11-15  
+**Status:** ✅ COMPLETED  
+**Impact:** MEDIUM – keeps collaboration telemetry trustworthy as we prep to re-home the toolkit
+
+**What changed**
+- **Notifier hardening**
+  - `scripts/velocity-notifier.js` now respects `VELOCITY_LOG_PATH` / `VELOCITY_LOG_MIRROR_PATH`, falling back to `.logs/velocity-log.jsonl` so every component watches the same ledger.
+  - Added a divide-by-zero guard in `detectSignificantChange()` so zero-velocity baselines no longer blow up percentage math when the previous run logged 0 commits/hour.
+- **Synergy log bootstrap**
+  - `scripts/velocity-artifacts.js` now auto-creates `.logs/debug-session.jsonl` (with a one-time console hint) before reading signals, ensuring the synergy dashboard never reports "no signals" just because the log file was missing.
+- **Telemetry refresh**
+  - Re-ran `npm run velocity:run -- --force-local` followed by `npm run velocity:report` inside the primary repo to seed the latest Math Brain cadence, regenerate `docs/velocity-forecast.md`, and update `velocity-artifacts/velocity-summary.json` plus `.logs/velocity-log.jsonl`.
+
+**Why it matters**
+- These fixes close the gaps flagged by the velocity toolkit staging repo so we can safely transplant `tools/velocity/` back into the Electron Markdown Book App without shipping brittle guards.
+- Auto-bootstrapping the debug signal log keeps the AI synergy metrics honest—operators immediately see zero real signals instead of silent file-not-found failures.
+- The fresh telemetry snapshot provides a verifiable baseline for the receiving repo (and for our own records) before we hand off the toolkit.
+
+**Files Changed / Added**
+- `scripts/velocity-notifier.js`
+- `scripts/velocity-artifacts.js`
+- Regenerated artifacts/logs:
+  - `.logs/velocity-log.jsonl`
+  - `docs/velocity-forecast.md`
+  - `velocity-artifacts/velocity-summary.json`
+
+**Next Steps**
+1. Port `tools/velocity/` (with these fixes) into the Electron Markdown Book App and re-run the telemetry seeding commands there.
+2. Capture the cross-repo integration details in that repo’s changelog or PR body so stakeholders have provenance for the new guardrails.
+3. If the host repo is shared/third-party, open an issue describing the notifier/log fixes plus the synergy bootstrap requirement so future contributors can trace the context.
+
+---
+
 ## [2025-11-13] FIX: Math Brain v2 unified output + Velocity synergies
 
 **Date:** 2025-11-13  

@@ -182,12 +182,28 @@ function pickLogPath(){
   return preferred;
 }
 
+let warnedDebugBootstrap = false;
+function ensureDebugLogBootstrap(filePath){
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  if (!fs.existsSync(filePath)) {
+    fs.writeFileSync(filePath, '', 'utf8');
+    if (!warnedDebugBootstrap) {
+      console.log('ℹ️  Created .logs/debug-session.jsonl so synergy metrics can track signals.');
+      warnedDebugBootstrap = true;
+    }
+  }
+}
+
 function pickDebugLogPath(){
   const preferred = path.join(process.cwd(), '.logs', DEBUG_LOG_FILENAME);
   const fallback = path.join(process.cwd(), DEBUG_LOG_FILENAME);
   if (fs.existsSync(preferred)) return preferred;
   if (fs.existsSync(fallback)) return fallback;
-  return null;
+  ensureDebugLogBootstrap(preferred);
+  return preferred;
 }
 
 function readDebugSignals(){
