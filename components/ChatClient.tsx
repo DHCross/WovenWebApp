@@ -863,6 +863,9 @@ export default function ChatClient() {
             <p className="text-sm text-slate-400">
               Raven is already listening—share what is present, or upload your Astro Report JSON (Mirror + Symbolic Weather combined) when you are ready for a structured reading.
             </p>
+            <p className="max-w-md text-[11px] text-slate-500">
+              Raven&apos;s intuition: it notices when the chart&apos;s symbolic architecture seems to echo the movement of your inner life. It can describe those patterns and offer meaning, but it never claims law, cause, or certainty—what&apos;s real is what truly resonates in you.
+            </p>
             <div className="mt-3 flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-emerald-300">
               <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
               <span>{STATUS_CONNECTED}</span>
