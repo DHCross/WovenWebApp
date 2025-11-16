@@ -64,6 +64,22 @@ export default function BalanceMeterSummary({
   // Balance Meter v5.0: Two axes only (Magnitude + Directional Bias)
   // Volatility moved to _diagnostics for internal use only
 
+  const countInclusiveDays = (start: string, end: string): number | null => {
+    if (!start || !end) return null;
+    const parsedStart = new Date(start);
+    const parsedEnd = new Date(end);
+    if (Number.isNaN(parsedStart.getTime()) || Number.isNaN(parsedEnd.getTime())) return null;
+    const startUtc = Date.UTC(parsedStart.getFullYear(), parsedStart.getMonth(), parsedStart.getDate());
+    const endUtc = Date.UTC(parsedEnd.getFullYear(), parsedEnd.getMonth(), parsedEnd.getDate());
+    const diffMs = Math.abs(endUtc - startUtc);
+    return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+  };
+
+  const rangeSpan = countInclusiveDays(dateRange.start, dateRange.end);
+  const daysLabel = rangeSpan && rangeSpan !== totalDays
+    ? `${totalDays} sample${totalDays === 1 ? '' : 's'} covering ${rangeSpan} days`
+    : `${totalDays} day${totalDays === 1 ? '' : 's'} analyzed`;
+
   return (
     <section
       className="mb-6 rounded-lg border-2 border-indigo-500 bg-slate-800/80 p-6"
@@ -75,7 +91,7 @@ export default function BalanceMeterSummary({
         <div className="space-y-0.5 text-xs text-slate-300">
           <div className="text-indigo-200 font-semibold text-sm">BALANCE METER SUMMARY</div>
           <div className="font-medium">Period: {dateRange.start} to {dateRange.end}</div>
-          <div>{location} • {totalDays} days analyzed</div>
+          <div>{location} • {daysLabel}</div>
           <div>{modeLabel}</div>
         </div>
         <div className="text-right">

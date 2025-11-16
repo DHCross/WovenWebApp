@@ -217,7 +217,7 @@ export function TransitControls(props: TransitControlsProps) {
 
         {showLongDailyRangeWarning && dateRangeDays !== null && (
           <div className="rounded-md border border-amber-700 bg-amber-900/30 px-3 py-2 text-xs text-amber-100">
-            Daily transits run best for windows up to {DAILY_RANGE_WARNING_THRESHOLD} days. This selection spans {dateRangeDays} days and may take longer to process. Consider narrowing the range or switching to weekly sampling.
+            Daily transits are most efficient when you stay under {DAILY_RANGE_WARNING_THRESHOLD} days. This {dateRangeDays}-day window can still run; expect longer processing time, or switch to weekly sampling if you need a broader span more quickly.
           </div>
         )}
 

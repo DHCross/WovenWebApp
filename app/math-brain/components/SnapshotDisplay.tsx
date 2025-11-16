@@ -151,9 +151,33 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
 
   // Extract chart assets for visualization
   const chartAssets = result?.person_a?.chart_assets || [];
-  const natalChart = chartAssets.find((asset: any) => 
-    asset.type === 'natal' || asset.chartType === 'natal'
-  );
+
+  const selectWheelAsset = () => {
+    if (!Array.isArray(chartAssets) || chartAssets.length === 0) return null;
+
+    const priorityChartTypes = ['natal', 'transit', 'synastry', 'composite'];
+    const prioritySubjects = ['person_a', 'transit', 'synastry'];
+
+    for (const type of priorityChartTypes) {
+      const match = chartAssets.find((asset: any) => {
+        const chartType = typeof asset?.chartType === 'string' ? asset.chartType.toLowerCase() : '';
+        return chartType === type;
+      });
+      if (match?.url) return match;
+    }
+
+    for (const subject of prioritySubjects) {
+      const match = chartAssets.find((asset: any) => {
+        const subjectKey = typeof asset?.subject === 'string' ? asset.subject.toLowerCase() : '';
+        return subjectKey === subject;
+      });
+      if (match?.url) return match;
+    }
+
+    return chartAssets.find((asset: any) => asset?.url) || null;
+  };
+
+  const wheelChart = selectWheelAsset();
 
   // Extract provenance
   const houseSystem =
@@ -207,10 +231,10 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
       </div>
 
       {/* CHART WHEEL PLACEHOLDER (TOP HALF) */}
-      {natalChart?.url ? (
+      {wheelChart?.url ? (
         <div className="mb-6 flex justify-center rounded border border-slate-700 bg-slate-900/50 p-4">
           <img 
-            src={natalChart.url} 
+            src={wheelChart.url} 
             alt="Natal Chart" 
             className="max-w-full h-auto"
             onError={(e) => {
