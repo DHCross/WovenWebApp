@@ -17,6 +17,7 @@ interface DownloadControlsProps {
   onDownloadCleanJSON: () => void;
   onDownloadMapFile: () => void;           // NEW: MAP file export
   onDownloadFieldFile: () => void;         // NEW: FIELD file export
+  onDownloadWovenAIPacket: () => void;     // NEW: Woven AI Packet (Markdown)
   seismographMap: SeismographMap;
   authReady: boolean;
   isAuthenticated: boolean;
@@ -38,6 +39,7 @@ export default function DownloadControls({
   onDownloadCleanJSON,
   onDownloadMapFile,
   onDownloadFieldFile,
+   onDownloadWovenAIPacket,
   seismographMap,
   authReady,
   isAuthenticated,
@@ -102,6 +104,26 @@ export default function DownloadControls({
                 {includeTransits
                   ? "Use with any AI trained in astrology, or upload to Poetic Brain for the unique Raven Calder experience (Google login required)"
                   : "Upload to Poetic Brain (Google login required); add transits for symbolic weather"}
+              </div>
+            </div>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={onDownloadWovenAIPacket}
+          disabled={astroFileJsonGenerating}
+          className="w-full rounded-md border border-indigo-600 bg-indigo-700/20 px-4 py-3 text-left hover:bg-indigo-700/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          aria-label="Download Woven AI Packet (Markdown) for GPT-style models"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">📄</span>
+            <div className="flex-1">
+              <div className="text-sm font-medium text-slate-100">
+                Woven AI Packet (Markdown)
+              </div>
+              <div className="text-xs text-slate-400 mt-0.5">
+                Protocol + MAP/FIELD snapshot for any GPT; use together with the Astro File JSON
               </div>
             </div>
           </div>

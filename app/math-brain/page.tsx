@@ -1490,6 +1490,7 @@ export default function MathBrainPage() {
     cleanJsonGenerating,
     engineConfigGenerating,
     astroFileJsonGenerating,
+    downloadWovenAIPacket,
   } = useChartExport({
     result,
     reportType,
@@ -5010,12 +5011,14 @@ export default function MathBrainPage() {
             onDownloadCleanJSON={downloadResultJSON}
             onDownloadMapFile={downloadMapFile}
             onDownloadFieldFile={downloadFieldFile}
+            onDownloadWovenAIPacket={downloadWovenAIPacket}
             seismographMap={seismographMap}
             authReady={authReady}
             isAuthenticated={isAuthenticated}
             canVisitPoetic={canVisitPoetic}
             onNavigateToPoetic={handleNavigateToPoetic}
-          />          {weather.hasWindow && layerVisibility.balance && (
+          />
+          {weather.hasWindow && layerVisibility.balance && (
             <>
           {(() => {
             const daily = frontStageTransitsByDate;

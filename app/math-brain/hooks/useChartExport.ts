@@ -62,6 +62,7 @@ import {
   extractAxisNumber,
 } from '../utils/formatting';
 import { createMirrorSymbolicWeatherPayload } from '../../../lib/export/mirrorSymbolicWeather';
+import { createWovenAIPacket } from '../../../lib/export/wovenAIPacket';
 import { getDirectivePrefix, getDirectiveSuffix } from '../../../lib/export/filename-utils';
 
 type FriendlyFilenameType =
@@ -90,6 +91,7 @@ interface UseChartExportResult {
   downloadMirrorSymbolicWeatherJSON: () => void; // NEW: Consolidated Mirror + Weather
   downloadMirrorDirectiveJSON: () => void;
   downloadFieldMapFile: () => void; // NEW: Unified FIELD + MAP
+  downloadWovenAIPacket: () => void; // NEW: Woven AI Packet v1.0 (Markdown)
   // Backward compatibility (deprecated)
   downloadAstroFileJSON: () => void;
   downloadMapFile: () => void;
@@ -1173,6 +1175,34 @@ Start with the Solo Mirror(s), then ${
     }
   }, [buildFieldMapExport, pushToast, result]);
 
+  const downloadWovenAIPacket = useCallback(() => {
+    if (!result) {
+      pushToast('No report available to export', 2000);
+      return;
+    }
+
+    try {
+      const unifiedOutput = (result as any).unified_output || result;
+      const packet = createWovenAIPacket(unifiedOutput, {
+        variant: 'compact',
+      });
+
+      const blob = new Blob([packet.content], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = packet.filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      pushToast('✅ Woven AI Packet (Markdown) downloaded', 2000);
+    } catch (err) {
+      console.error('Woven AI Packet export failed', err);
+      pushToast('Could not generate Woven AI Packet', 2000);
+    }
+  }, [pushToast, result]);
+
   // DEPRECATED: Separate MAP/FIELD exports replaced by unified wm-fieldmap-v1
   // Keeping for backward compatibility during transition
   const downloadMapFile = downloadFieldMapFile;
@@ -1188,6 +1218,7 @@ Start with the Solo Mirror(s), then ${
     downloadMirrorSymbolicWeatherJSON,
     downloadMirrorDirectiveJSON,
     downloadFieldMapFile,
+    downloadWovenAIPacket,
     // Backward compatibility aliases (deprecated)
     downloadAstroFileJSON,
     downloadMapFile,
