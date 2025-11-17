@@ -62,7 +62,6 @@ import {
   extractAxisNumber,
 } from '../utils/formatting';
 import { createMirrorSymbolicWeatherPayload } from '../../../lib/export/mirrorSymbolicWeather';
-import { createWovenAIPacket } from '../../../lib/export/wovenAIPacket';
 import { getDirectivePrefix, getDirectiveSuffix } from '../../../lib/export/filename-utils';
 
 type FriendlyFilenameType =
@@ -1175,7 +1174,7 @@ Start with the Solo Mirror(s), then ${
     }
   }, [buildFieldMapExport, pushToast, result]);
 
-  const downloadWovenAIPacket = useCallback(() => {
+  const downloadWovenAIPacket = useCallback(async () => {
     if (!result) {
       pushToast('No report available to export', 2000);
       return;
@@ -1183,9 +1182,31 @@ Start with the Solo Mirror(s), then ${
 
     try {
       const unifiedOutput = (result as any).unified_output || result;
-      const packet = createWovenAIPacket(unifiedOutput, {
-        variant: 'compact',
+
+      const response = await fetch('/api/woven-packet', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          unifiedOutput,
+          options: { variant: 'compact' },
+        }),
       });
+
+      if (!response.ok) {
+        console.error('Woven AI Packet API error', response.status, await response.text());
+        pushToast('Could not generate Woven AI Packet', 2000);
+        return;
+      }
+
+      const data = await response.json();
+      const packet = data?.packet;
+      if (!packet?.content || !packet?.filename) {
+        console.error('Invalid Woven AI Packet response', data);
+        pushToast('Could not generate Woven AI Packet', 2000);
+        return;
+      }
 
       const blob = new Blob([packet.content], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
@@ -1198,6 +1219,7 @@ Start with the Solo Mirror(s), then ${
       URL.revokeObjectURL(url);
       pushToast('✅ Woven AI Packet (Markdown) downloaded', 2000);
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Woven AI Packet export failed', err);
       pushToast('Could not generate Woven AI Packet', 2000);
     }
