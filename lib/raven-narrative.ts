@@ -269,8 +269,12 @@ export const buildNarrativeDraft = (
   if (voiceParagraph) sections.push(VoiceSection({ text: voiceParagraph }));
 
   if (!sections.length) {
-    const fallbackText =
-      "I've logged this report and set it aside for interpretation. Let me know when you'd like me to mirror a pattern.";
+    const sourceLabel = typeof prov?.source === "string" ? prov.source.trim() : "";
+    const autoExecStall =
+      sourceLabel && sourceLabel.toLowerCase().includes("auto-execution fallback");
+    const fallbackText = autoExecStall
+      ? `${sourceLabel}: the auto-run didn’t return a mirror. The report is saved—ask for a specific pattern to mirror or re-upload the combined Mirror + Symbolic Weather JSON to regenerate.`
+      : "I've logged this report and set it aside for interpretation. Let me know when you'd like me to mirror a pattern.";
     return {
       html: `<p style="margin:0; line-height:1.6;">${escapeHtml(fallbackText)}</p>`,
       rawText: fallbackText,
