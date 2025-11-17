@@ -102,6 +102,15 @@ const PERSONA_DESCRIPTIONS: Record<PersonaMode, string> = {
   poetic: "Poetic · Lyrical leans into metaphor-rich storytelling when you want the music of the read.",
 };
 
+const formatLastActiveLabel = (timestamp: number | null): string => {
+  if (!timestamp) return "No replies yet. Send a message to start.";
+  const diff = Date.now() - timestamp;
+  if (diff < 45_000) return "Active just now.";
+  if (diff < 2 * 60_000) return "Last reply about a minute ago.";
+  const minutes = Math.round(diff / 60_000);
+  return `Last reply ${minutes} minutes ago.`;
+};
+
 const createInitialMessage = (): Message => ({
   id: generateId(),
   role: "raven",
@@ -126,6 +135,7 @@ export default function ChatClient() {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [personaMode, setPersonaMode] = useState<PersonaMode>('hybrid');
   const [resumeFlashActive, setResumeFlashActive] = useState(false);
+  const [lastActiveAt, setLastActiveAt] = useState<number | null>(null);
   const copyResetRef = useRef<number | null>(null);
 
   const { validationMap, setValidationPoints, updateValidationNote } = useValidation({
@@ -141,6 +151,37 @@ export default function ChatClient() {
     validationMap,
     setValidationPoints,
   });
+
+  useEffect(() => {
+    if (typing) {
+      setLastActiveAt(Date.now());
+    }
+  }, [typing]);
+
+  const liveStatus = useMemo(
+    () => {
+      if (typing) {
+        return {
+          title: "Raven is responding",
+          detail: "Auto-executing your request now. You can stop or adjust once the reply lands.",
+          tone: "active",
+        } as const;
+      }
+      if (sessionStarted || reportContexts.length > 0) {
+        return {
+          title: "Raven is live",
+          detail: formatLastActiveLabel(lastActiveAt),
+          tone: "ready",
+        } as const;
+      }
+      return {
+        title: "Raven is listening",
+        detail: "Type below to start a Poetic Brain session or upload a report to auto-run it.",
+        tone: "idle",
+      } as const;
+    },
+    [lastActiveAt, reportContexts.length, sessionStarted, typing],
+  );
 
   const handleCopyMessage = useCallback(async (messageId: string, text: string) => {
     if (!text) return;
@@ -937,6 +978,25 @@ export default function ChatClient() {
           </div>
         </div>
       </header>
+
+      <div className="border-b border-slate-800/60 bg-slate-950/70">
+        <div className="mx-auto flex w-full max-w-5xl items-center gap-3 px-6 py-3">
+          <span
+            className={`inline-flex h-3 w-3 rounded-full ${
+              liveStatus.tone === "active"
+                ? "bg-emerald-300 animate-pulse"
+                : liveStatus.tone === "ready"
+                  ? "bg-emerald-400"
+                  : "bg-slate-500"
+            }`}
+            aria-hidden
+          />
+          <div className="flex flex-col">
+            <p className="text-sm font-semibold text-slate-100">{liveStatus.title}</p>
+            <p className="text-xs text-slate-400">{liveStatus.detail}</p>
+          </div>
+        </div>
+      </div>
 
       {sessionStarted && (
         <div className="border-b border-slate-800/60 bg-slate-900/60">
