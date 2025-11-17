@@ -798,7 +798,18 @@ export async function POST(req: Request) {
         autoMode: 'relational_auto',
       });
       if (!relationalResponse.success) {
-        return NextResponse.json({ intent, ok: false, error: 'Math Brain failed', details: relationalResponse });
+        const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'this report';
+        const message = `I tried to regenerate a fresh relational Math Brain pass from ${contextName}, but the engine didn’t respond cleanly. Your uploaded report is still attached here—I can work directly with it. What would you like to explore first?`;
+        appendHistoryEntry(sessionLog, 'raven', message);
+        const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Fallback)' });
+        return NextResponse.json({
+          intent: 'conversation',
+          ok: true,
+          draft: { conversation: message },
+          prov,
+          sessionId: sid,
+          probe: null,
+        });
       }
       const relationalProv = stampProvenance(relationalResponse.provenance);
       const relationalOptions = {
@@ -825,7 +836,18 @@ export async function POST(req: Request) {
         autoMode: 'parallel_auto',
       });
       if (!parallelResponse.success) {
-        return NextResponse.json({ intent, ok: false, error: 'Math Brain failed', details: parallelResponse });
+        const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'this report';
+        const message = `I tried to regenerate parallel mirrors from ${contextName}, but the Math Brain engine stalled. The report itself is still live here—tell me whose side you want to start with or what pattern you’d like to test.`;
+        appendHistoryEntry(sessionLog, 'raven', message);
+        const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Fallback)' });
+        return NextResponse.json({
+          intent: 'conversation',
+          ok: true,
+          draft: { conversation: message },
+          prov,
+          sessionId: sid,
+          probe: null,
+        });
       }
       const parallelProv = stampProvenance(parallelResponse.provenance);
       const parallelOptions = {
@@ -852,7 +874,18 @@ export async function POST(req: Request) {
         autoMode: 'contextual_auto',
       });
       if (!contextualResponse.success) {
-        return NextResponse.json({ intent, ok: false, error: 'Math Brain failed', details: contextualResponse });
+        const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'this report';
+        const message = `I tried to weave in the extra context around ${contextName}, but the Math Brain engine didn’t complete a fresh run. The uploaded report is still present—describe the context you care about, and I’ll mirror it directly.`;
+        appendHistoryEntry(sessionLog, 'raven', message);
+        const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Fallback)' });
+        return NextResponse.json({
+          intent: 'conversation',
+          ok: true,
+          draft: { conversation: message },
+          prov,
+          sessionId: sid,
+          probe: null,
+        });
       }
 
       const contextualProv = stampProvenance(contextualResponse.provenance);
@@ -891,7 +924,18 @@ export async function POST(req: Request) {
         autoMode: 'solo_auto',
       });
       if (!soloResponse.success) {
-        return NextResponse.json({ intent, ok: false, error: 'Math Brain failed', details: soloResponse });
+        const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'this report';
+        const message = `I tried to auto-run a fresh solo mirror from ${contextName}, but the Math Brain engine didn’t return a clean result. The report you uploaded is still in view—I can read directly from it. What would you like the first mirror to focus on?`;
+        appendHistoryEntry(sessionLog, 'raven', message);
+        const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Fallback)' });
+        return NextResponse.json({
+          intent: 'conversation',
+          ok: true,
+          draft: { conversation: message },
+          prov,
+          sessionId: sid,
+          probe: null,
+        });
       }
       const soloProv = stampProvenance(soloResponse.provenance);
       const soloOptions = {

@@ -1,3 +1,56 @@
+## [2025-11-16] Poetic Brain Reading stack + Symbolic Weather export repair
+
+**Date:** 2025-11-16  
+**Status:** ✅ COMPLETED  
+**Impact:** HIGH – Clarifies Poetic Brain Reading vs. Symbolic Weather and restores usable FIELD data for exports
+
+**What changed**
+- **UI vocabulary: Poetic Brain Reading ↔ Symbolic Weather / FIELD**
+  - Updated Math Brain frontstage labels so the three-layer stack is explicit:
+    - MAP = natal chart / constitutional geometry.
+    - Symbolic Weather / FIELD = dynamic pressure metrics (magnitude, directional bias, coherence).
+    - Poetic Brain Reading = Raven's narrative built from MAP + Symbolic Weather.
+  - Reintroduced "Symbolic Weather" where the UI is clearly talking about raw FIELD data (transits config, snapshot card, FIELD scatter plots), while reserving "Poetic Brain Reading" for narrative/log surfaces and dashboards.
+  - Clarified copy in the Unified dashboard, Weather plots, snapshot, and graphs download so users see that their Poetic Brain Reading is explicitly "reading from" the Symbolic Weather / FIELD layer.
+
+- **Math Brain v2: Symbolic Weather export pipeline fixed**
+  - Patched `app/api/astrology-mathbrain/route.ts` so `unified_output.woven_map.symbolic_weather` is synthesized from `daily_entries.symbolic_weather` (creating `meter.mag_x10` / `meter.bias_x10` per day) instead of assuming `unifiedOutput.transits` is a keyed object.
+  - Kept a fallback: if v2 daily entries are missing but legacy `chartData.woven_map.symbolic_weather` exists, the route still forwards that data.
+  - Updated the Poetic Brain adapter (`lib/poetic-brain-adapter.ts`) to fall back to root-level `daily_readings` when `symbolic_weather_context.daily_readings` is absent, so Poetic Brain can still build hooks and climate lines from existing FIELD metrics.
+  - As a result, new `mirror-symbolic-weather` JSON exports now contain non-empty `symbolic_weather_context` entries with real dates and FIELD meters, instead of null shells.
+
+**Why it matters**
+- Makes the epistemic contract visible in the product: users can see the difference between MAP (geometry), Symbolic Weather (FIELD), and Poetic Brain Reading (interpretation), rather than treating "weather" as a vague synonym for "reading".
+- Restores a usable FIELD layer for downstream tools and Poetic Brain, closing the gap where `symbolic_weather_context` existed structurally but carried no transit geometry.
+- Aligns the external Poetic Brain payload (`symbolic_weather_context`) with the internal Math Brain v2 `daily_entries` data, reducing the chance of future regressions when the seismograph/field engines evolve.
+
+**Files Changed / Added**
+- UI / frontstage:
+  - `app/math-brain/page.tsx`
+  - `app/math-brain/components/SnapshotDisplay.tsx`
+  - `app/math-brain/components/DownloadControls.tsx`
+  - `components/mathbrain/UnifiedSymbolicDashboard.tsx`
+  - `components/mathbrain/WeatherPlots.tsx`
+- Engine / export:
+  - `app/api/astrology-mathbrain/route.ts`
+  - `lib/export/mirrorSymbolicWeather.ts` (read-path only; now fed with richer data)
+  - `lib/poetic-brain-adapter.ts`
+
+**Testing & Verification**
+- Ran a daily transit report through Math Brain v2 from the UI, then:
+  - Downloaded the Mirror+Symbolic Weather JSON and verified `symbolic_weather_context` contains one entry per date with non-null `meter.mag_x10` / `meter.bias_x10`.
+  - Confirmed that Poetic Brain payloads can still be validated and that the adapter sees daily FIELD metrics via either `symbolic_weather_context.daily_readings` or root `daily_readings`.
+- Manually sanity-checked the Math Brain frontstage UI for:
+  - Clear separation of MAP vs. Symbolic Weather vs. Poetic Brain Reading.
+  - No regressions in Balance Meter visuals or snapshot cards.
+
+**Next Steps**
+1. Gradually populate `as`, `tpos`, and `thouse` in `symbolic_weather_context` from the seismograph/transit tables, so the FIELD map fully matches the spec (not just meters).
+2. Add a short, user-facing tooltip or help card that summarizes the MAP → Symbolic Weather / FIELD → Poetic Brain Reading stack in one place.
+3. Once FIELD map completeness is stable, consider adding light automated tests around `woven_map.symbolic_weather` shape to prevent regressions.
+
+---
+
 ## [2025-11-15] Velocity tracker guardrails + telemetry refresh
 
 **Date:** 2025-11-15  

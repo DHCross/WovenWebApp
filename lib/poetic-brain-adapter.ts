@@ -50,7 +50,9 @@ function enrichPayload(payload: InputPayload): InputPayload {
 
   const dailyReadings = Array.isArray(payload.symbolic_weather_context?.daily_readings)
     ? payload.symbolic_weather_context!.daily_readings!
-    : [];
+    : Array.isArray((payload as any).daily_readings)
+      ? (payload as any).daily_readings as any[]
+      : [];
 
   const hookCandidates = buildHooksFromDaily(dailyReadings);
   if (hookCandidates.length) {

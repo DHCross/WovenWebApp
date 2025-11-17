@@ -346,11 +346,11 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
           </table>
         </div>
 
-        {/* Symbolic Weather Summary */}
+        {/* Symbolic Reading Summary (Field Metrics) */}
         {(typeof magnitude === 'number' || typeof directionalBias === 'number') && (
           <div className="mt-3 rounded border border-slate-700 bg-slate-800/30 p-3">
             <p className="text-xs text-slate-400 mb-1">
-              <span className="font-medium text-slate-300">Symbolic Weather:</span>
+              <span className="font-medium text-slate-300">Symbolic Weather (FIELD layer):</span>
             </p>
             <p className="text-sm text-indigo-200">
               {typeof directionalBias === 'number' && directionalBias < -1

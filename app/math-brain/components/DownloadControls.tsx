@@ -117,7 +117,7 @@ export default function DownloadControls({
             onClick={onDownloadGraphsPDF}
             disabled={graphsPdfGenerating}
             className="w-full rounded-md border border-emerald-600 bg-emerald-700/30 px-4 py-3 text-left hover:bg-emerald-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
-            aria-label="Download Symbolic Weather Dashboard PDF (visual summary)"
+            aria-label="Download Poetic Brain Reading Dashboard PDF (Symbolic Weather / FIELD visuals)"
           >
             <div className="flex items-center gap-3">
               {graphsPdfGenerating ? (
@@ -130,10 +130,10 @@ export default function DownloadControls({
               )}
               <div className="flex-1">
                 <div className="text-sm font-medium text-slate-100">
-                  {graphsPdfGenerating ? "Generating..." : "Symbolic Weather Dashboard"}
+                  {graphsPdfGenerating ? "Generating..." : "Poetic Brain Reading Dashboard"}
                 </div>
                 <div className="text-xs text-slate-400 mt-0.5">
-                  At-a-glance charts and summaries (PDF)
+                  Symbolic Weather / FIELD charts that your Poetic Brain Reading is built from (PDF)
                 </div>
               </div>
             </div>

@@ -2760,7 +2760,7 @@ export default function MathBrainPage() {
       const graphPage = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
       let visualY = PAGE_HEIGHT - MARGIN;
 
-      graphPage.drawText(sanitizeForPDF('Symbolic Weather Log - Visual Overview'), {
+      graphPage.drawText(sanitizeForPDF('Poetic Brain Reading Log - Visual Overview'), {
         x: MARGIN,
         y: visualY,
         size: 18,
@@ -2871,7 +2871,7 @@ export default function MathBrainPage() {
       let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
       let yPosition = PAGE_HEIGHT - MARGIN;
 
-      page.drawText(sanitizeForPDF('Symbolic Weather Log - Complete Analysis Report'), {
+      page.drawText(sanitizeForPDF('Poetic Brain Reading Log - Complete Analysis Report'), {
         x: MARGIN,
         y: yPosition,
         size: 18,
@@ -2898,10 +2898,11 @@ export default function MathBrainPage() {
       });
       yPosition -= 25;
       const summaryText = [
-        'This Symbolic Weather Log provides a comprehensive analysis of geometric patterns',
+        'This Poetic Brain Reading Log provides a comprehensive analysis of geometric patterns',
         'and trends over time, using astrological calculations mapped to a diagnostic framework.',
         'The data shows the interplay between Magnitude (0–5), Directional Bias (−5…+5),',
         'and Coherence (0–5, formerly Volatility) to map the structural climate of each day.',
+        'These metrics are the Symbolic Weather / FIELD layer that Raven reads from.',
         'This is a field report, not a forecast.'
       ];
 
@@ -2987,7 +2988,7 @@ export default function MathBrainPage() {
 
         yPosition -= 20;
 
-        page.drawText(sanitizeForPDF('Symbolic Weather'), {
+        page.drawText(sanitizeForPDF('Symbolic Reading (Field Layer)'), {
           x: MARGIN,
           y: yPosition,
           size: 14,
@@ -3204,7 +3205,7 @@ export default function MathBrainPage() {
           yPosition -= 13;
         });
       }
-      const footerText = `Generated: ${exportTimestamp.toLocaleString()} | Symbolic Weather Log Charts`;
+      const footerText = `Generated: ${exportTimestamp.toLocaleString()} | Poetic Brain Reading Log Charts`;
       page.drawText(sanitizeForPDF(footerText), {
         x: MARGIN,
         y: MARGIN - 20,
@@ -5076,7 +5077,7 @@ export default function MathBrainPage() {
 
             return (
               <div ref={balanceGraphsRef} data-balance-export="true">
-                <Section title="Symbolic Weather Log">
+                <Section title="Poetic Brain Reading Log">
                 {/* LAYER 1: SUMMARY VIEW (At a Glance) */}
                 <BalanceMeterSummary
                   dateRange={{

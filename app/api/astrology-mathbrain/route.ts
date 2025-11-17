@@ -424,26 +424,40 @@ export async function POST(request: NextRequest) {
         }
         (unifiedOutput as any).provenance = provenance;
 
-        // 2) Provide unified_output.woven_map.symbolic_weather from transits when available
-        const transits = unifiedOutput?.transits || null;
+        // 2) Provide unified_output.woven_map.symbolic_weather from daily_entries when available
+        const dailyEntries = Array.isArray((unifiedOutput as any)?.daily_entries)
+          ? (unifiedOutput as any).daily_entries as any[]
+          : [];
+
         let symbolicWeather: any[] | null = null;
-        if (transits && typeof transits === 'object') {
-          const dates = Object.keys(transits).sort();
-          symbolicWeather = dates.map((d) => {
-            const day = (transits as any)[d] || {};
+        if (dailyEntries.length > 0) {
+          symbolicWeather = dailyEntries.map((entry: any) => {
+            const date = entry?.date ?? null;
+            const sw = entry?.symbolic_weather || {};
+            const mag = typeof sw.magnitude === 'number' ? sw.magnitude : null;
+            const bias = typeof sw.directional_bias === 'number' ? sw.directional_bias : null;
+            const meter =
+              mag !== null || bias !== null
+                ? {
+                    mag_x10: mag !== null ? Math.round(mag * 10) : null,
+                    bias_x10: bias !== null ? Math.round(bias * 10) : null,
+                  }
+                : null;
+
             return {
-              date: d,
-              meter: day.meter || null,
-              status: day.status || null,
-              as: day.as || [],
-              tpos: day.tpos || [],
-              thouse: day.thouse || [],
+              date,
+              meter,
+              status: null,
+              as: [] as any[],
+              tpos: [] as any[],
+              thouse: [] as any[],
             };
           });
         } else if (chartData?.woven_map?.symbolic_weather) {
           // Fallback: copy from legacy woven_map if present
           symbolicWeather = chartData.woven_map.symbolic_weather;
         }
+
         if (symbolicWeather) {
           (unifiedOutput as any).woven_map = (unifiedOutput as any).woven_map || {};
           (unifiedOutput as any).woven_map.symbolic_weather = symbolicWeather;

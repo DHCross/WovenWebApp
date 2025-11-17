@@ -404,9 +404,8 @@ Response: text stream with NDJSON lines. Client should append `delta` fields.
 
 ## Env Placeholders
 ```
-GEMINI_API_KEY=
-MODEL_PROVIDER=gemini
-MODEL_API_KEY=
+PERPLEXITY_API_KEY=
+POETIC_BRAIN_MODEL=sonar-pro
 ```
 Do not expose secrets to client.
 

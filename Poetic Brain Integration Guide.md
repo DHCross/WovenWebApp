@@ -176,16 +176,16 @@ Poetic Brain is an **external LLM**, not a local subsystem.
 
 ### Service
 
-**Google Generative AI**
+**Perplexity AI**
 
 ### Model
 
-`gemini-2.5-flash-preview-09-2025`
+Default: `sonar-pro` (configurable via `POETIC_BRAIN_MODEL` / `PERPLEXITY_DEFAULT_MODEL`)
 
 ### Endpoint
 
 ```
-https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent
+https://api.perplexity.ai/chat/completions
 ```
 
 ### Guardrail
@@ -193,10 +193,10 @@ https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview
 API key is **server-only**, accessed exclusively by the VOICE layer:
 
 ```
-process.env.GEMINI_API_KEY
+process.env.PERPLEXITY_API_KEY
 ```
 
-It is never exposed to the client.
+It is never exposed to the client. Poetic Brain does **not** use Gemini, OpenAI, or any other LLM provider in production.
 
 ---
 
@@ -215,6 +215,19 @@ It is never exposed to the client.
 * a consistent JSON schema
 * a matching system instruction
 * clean serialized input
+
+### 5.1 Vocabulary: MAP, Symbolic Weather / FIELD, Poetic Brain Reading
+
+For clarity across code, exports, and UI, the integration contract uses the following naming:
+
+* **MAP** – Natal chart / constitutional geometry. Stable structure: planets, houses, angles, aspects.
+* **Symbolic Weather / FIELD** – Dynamic transit pressure. Daily magnitude, directional bias, and coherence/seismograph metrics over a window.
+* **Poetic Brain Reading** – Raven’s narrative layer built from MAP + Symbolic Weather / FIELD. The reading **describes** patterns and pressures; it does not predict events or prescribe action.
+
+Concretely:
+
+* Math Brain owns MAP and Symbolic Weather / FIELD and exposes them via `daily_entries`, `balance_meter`, and `symbolic_weather_context`.
+* Poetic Brain consumes those structures and produces the Poetic Brain Reading, subject to the non‑prediction, map‑not‑mandate, and user‑sovereignty guardrails.
 
 ### VOICE ensures:
 

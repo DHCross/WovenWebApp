@@ -75,7 +75,7 @@ export function UnifiedSymbolicDashboard({
   mapData = [],
   fieldData = [],
   integration = [],
-  title = 'Symbolic Weather — MAP + FIELD',
+  title = 'Symbolic Reading — MAP + FIELD',
 }: UnifiedDashboardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartInstanceRef = useRef<any>(null);
@@ -329,7 +329,7 @@ export function UnifiedSymbolicDashboard({
   if (mapData.length === 0 && fieldData.length === 0) {
     return (
       <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-400">
-        No symbolic weather data available for visualization
+        No symbolic reading data available for visualization
       </div>
     );
   }
@@ -341,7 +341,7 @@ export function UnifiedSymbolicDashboard({
           <div className="text-xs text-slate-400">
             <span className="font-medium">Balance Meter v5.0</span>
             <span className="mx-2">•</span>
-            <span>Symbolic Weather: MAP (Planetary Geometry) + FIELD (Symbolic Pressure)</span>
+            <span>Poetic Brain Reading = MAP (chart geometry) + Symbolic Weather / FIELD (symbolic pressure)</span>
           </div>
           
           {/* Color legend for FIELD layer */}

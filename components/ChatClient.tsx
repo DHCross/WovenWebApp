@@ -305,7 +305,7 @@ export default function ChatClient() {
         return {
           label: 'Structured Reading',
           description:
-            'A report or upload triggered Raven’s VOICE layer. Resonance pings are tracked until you end the session or clear the context.',
+            'A combined report or upload opened a structured reading lane. Raven auto-runs the initial Mirror Flow + Symbolic Weather reading from the attached report and tracks resonance pings until you end the session.',
           badgeClass: 'border-indigo-400/40 bg-indigo-500/20 text-indigo-200',
         };
       default:
@@ -1379,8 +1379,19 @@ export default function ChatClient() {
                 </button>
               )}
             </div>
-            <div className="text-xs text-slate-500">
-              Upload Math Brain exports, Mirror JSON, or AstroSeek charts using the controls near the top of the page.
+            <div className="flex flex-col items-start gap-2 text-xs text-slate-500 sm:items-end">
+              {(sessionStarted || reportContexts.length > 0) && (
+                <button
+                  type="button"
+                  onClick={handleStartWrapUp}
+                  className="inline-flex items-center justify-center rounded-md border border-slate-600/70 bg-slate-900/70 px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-200 hover:border-slate-400 hover:bg-slate-800 transition"
+                >
+                  End Session Reading
+                </button>
+              )}
+              <div>
+                Upload Math Brain exports, Mirror JSON, or AstroSeek charts using the controls near the top of the page.
+              </div>
             </div>
           </div>
         </form>

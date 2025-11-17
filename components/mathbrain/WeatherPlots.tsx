@@ -93,7 +93,7 @@ export function WeatherPlots({
           mapData={unifiedData.mapData}
           fieldData={unifiedData.fieldData}
           integration={unifiedData.integration}
-          title="Symbolic Weather — MAP + FIELD"
+          title="Poetic Brain Reading — MAP + Symbolic Weather"
         />
       )}
 
@@ -103,6 +103,7 @@ export function WeatherPlots({
           <AccelerometerScatter data={data} title="Symbolic Weather — FIELD Layer" />
           <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-3 text-xs text-slate-400">
             <span className="font-medium">Interpretation Guide:</span>
+            <span className="ml-1 text-slate-500">These FIELD points are the Symbolic Weather that feeds your Poetic Brain Reading.</span>
             <div className="mt-2 grid grid-cols-2 gap-2">
               <div>
                 • <span className="text-slate-300">High Mag / +Bias:</span> Constructive force, breakthroughs
