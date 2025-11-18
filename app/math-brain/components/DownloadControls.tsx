@@ -39,7 +39,7 @@ export default function DownloadControls({
   onDownloadCleanJSON,
   onDownloadMapFile,
   onDownloadFieldFile,
-   onDownloadWovenAIPacket,
+  onDownloadWovenAIPacket,
   seismographMap,
   authReady,
   isAuthenticated,
@@ -128,12 +128,8 @@ export default function DownloadControls({
             </div>
           </div>
         </button>
-      </div>
 
-      {includeTransits && (
-        <div className="rounded-lg border border-slate-700 bg-slate-800/40 p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">For Human Review</h3>
-
+        {includeTransits && (
           <button
             type="button"
             onClick={onDownloadGraphsPDF}
@@ -160,8 +156,8 @@ export default function DownloadControls({
               </div>
             </div>
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       <details className="rounded-lg border border-slate-700/50 bg-slate-900/20">
         <summary className="cursor-pointer px-4 py-2 text-xs font-medium text-slate-400 hover:text-slate-300 select-none">
