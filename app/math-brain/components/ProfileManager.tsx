@@ -72,7 +72,12 @@ export default function ProfileManager({
         <div className="flex gap-2">
           <button
             onClick={() => handleSaveClick('A')}
-            disabled={!currentPersonA?.birthDate || loading}
+            disabled={
+              loading ||
+              !currentPersonA?.year ||
+              !currentPersonA?.month ||
+              !currentPersonA?.day
+            }
             className="flex-1 rounded-md border border-emerald-600 bg-emerald-700/30 px-3 py-2 text-sm text-white hover:bg-emerald-700/40 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             Save Person A
@@ -80,7 +85,12 @@ export default function ProfileManager({
           </button>
           <button
             onClick={() => handleSaveClick('B')}
-            disabled={!currentPersonB?.birthDate || loading}
+            disabled={
+              loading ||
+              !currentPersonB?.year ||
+              !currentPersonB?.month ||
+              !currentPersonB?.day
+            }
             className="flex-1 rounded-md border border-emerald-600 bg-emerald-700/30 px-3 py-2 text-sm text-white hover:bg-emerald-700/40 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             Save Person B
