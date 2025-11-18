@@ -46,7 +46,12 @@ function extractGeometryFromUploadedReport(contexts: Record<string, any>[]): any
       // Unwrap unified_output if present (Math Brain v2 format)
       const unwrapped = parsed.unified_output || parsed;
       
-      // Look for geometry in various possible locations
+      // PRIORITY 1: Check for Mirror + Symbolic Weather format (person_a.chart structure)
+      if (unwrapped.person_a?.chart && typeof unwrapped.person_a.chart === 'object') {
+        return unwrapped; // Return the whole structure with person_a/person_b
+      }
+      
+      // PRIORITY 2: Look for geometry in various possible locations
       const geo = unwrapped.geometry || unwrapped.chart || unwrapped.natal_chart || unwrapped;
       
       // Validate that we have the minimum required geometry fields
@@ -807,7 +812,7 @@ export async function POST(req: Request) {
     const mentionsAstroSeek = referencesAstroSeekWithoutGeometry(textInput);
 
     // Allow "begin" or "start" to re-trigger auto-execution if contexts exist
-    const requestsAutoStart = /^\s*(begin|start|please begin|go ahead|let'?s start)\s*$/i.test(textInput);
+    const requestsAutoStart = /^\s*(begin|start|please\s+(begin|start)|go\s+ahead|let'?s\s+start)\s*$/i.test(textInput);
     const effectiveInput = requestsAutoStart ? '' : textInput;
 
     const autoPlan = deriveAutoExecutionPlan(normalizedContexts, sessionLog);

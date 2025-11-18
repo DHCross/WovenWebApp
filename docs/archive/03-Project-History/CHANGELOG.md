@@ -1,3 +1,48 @@
+## [2025-11-18] FEATURE: User Profile Database (Netlify Blobs + Auth0)
+
+**Date:** 2025-11-18  
+**Status:** ✅ COMPLETED  
+**Impact:** HIGH – Eliminates repeated birth-data entry by syncing profiles across devices
+
+**What changed**
+- **Netlify Blobs profile storage**
+  - Added `/api/user-profiles` (GET/POST/DELETE) backed by Netlify Blobs for per-user data keyed by Auth0 `user.sub`.
+  - Handles ArrayBuffer responses, validates payloads, and logs actions for observability.
+- **Math Brain profile management UI**
+  - New `useUserProfiles` hook orchestrates CRUD operations and exposes loading/error states.
+  - Added `ProfileManager` component with save/load/delete controls, modal confirmations, and auth gating.
+  - Integrated the manager into `app/math-brain/page.tsx`, wiring Person A/B forms to the new save/load handlers.
+- **Documentation & deps**
+  - Authored `docs/USER_PROFILE_DATABASE_IMPLEMENTATION.md` covering architecture, testing, and future enhancements.
+  - Added `@netlify/blobs` dependency for the server route.
+
+**Why it matters**
+- Saves 2–3 minutes per report by letting Dan (and future users) store birth profiles once instead of retyping from Astroseek.
+- Profiles now persist across sessions/devices via Auth0, improving reliability for ongoing relational readings.
+- Establishes a reusable Blobs pattern for additional per-user data (e.g., saved transits, presets) without external DBs.
+
+**Files Changed / Added**
+- `app/api/user-profiles/route.ts`
+- `app/math-brain/hooks/useUserProfiles.ts`
+- `app/math-brain/components/ProfileManager.tsx`
+- `app/math-brain/page.tsx`
+- `docs/USER_PROFILE_DATABASE_IMPLEMENTATION.md`
+- `package.json`, `package-lock.json` (dependency)
+
+**Testing & Verification**
+- `npm run build` (passes)
+- Manual QA plan documented in the new implementation guide:
+  - Sign in via Auth0 → verify Saved Profiles section appears.
+  - Save Person A/B, load into forms, delete profile.
+  - Confirm data syncs after reload and across devices.
+
+**Next Steps**
+1. Add profile metadata (tags/notes) and search for large libraries.
+2. Offer JSON export/import for portability.
+3. Auto-save “last used” profile after successful report generation for even quicker resumes.
+
+---
+
 ## [2025-11-16] Poetic Brain Reading stack + Symbolic Weather export repair
 
 **Date:** 2025-11-16  

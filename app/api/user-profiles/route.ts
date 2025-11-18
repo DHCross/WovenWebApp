@@ -53,7 +53,9 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const parsed: UserProfiles = JSON.parse(data);
+    // Netlify Blobs returns ArrayBuffer, convert to string
+    const dataString = typeof data === 'string' ? data : new TextDecoder().decode(data as ArrayBuffer);
+    const parsed: UserProfiles = JSON.parse(dataString);
     logger.info('Profiles retrieved', { userId, count: parsed.profiles.length });
     
     return NextResponse.json({
@@ -150,7 +152,9 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const parsed: UserProfiles = JSON.parse(data);
+    // Netlify Blobs returns ArrayBuffer, convert to string
+    const dataString = typeof data === 'string' ? data : new TextDecoder().decode(data as ArrayBuffer);
+    const parsed: UserProfiles = JSON.parse(dataString);
     const filteredProfiles = parsed.profiles.filter(p => p.id !== profileId);
 
     if (filteredProfiles.length === parsed.profiles.length) {
