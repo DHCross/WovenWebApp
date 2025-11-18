@@ -3,11 +3,30 @@ name: JULES PR Reviewer
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: 'Branch name to review'
+      mode:
+        description: 'Review mode'
         required: true
+        type: choice
+        options:
+          - 'single-branch'
+          - 'list-all-prs'
+          - 'review-oldest'
+          - 'review-by-author'
+        default: 'single-branch'
+      branch:
+        description: 'Branch name to review (for single-branch mode)'
+        required: false
         type: string
-        
+      author:
+        description: 'Filter by PR author (for review-by-author mode)'
+        required: false
+        type: string
+      max_age_days:
+        description: 'Max age in days for PRs (0 = no limit)'
+        required: false
+        type: number
+        default: 0
+
 jobs:
   evaluate-pull-request:
     runs-on: ubuntu-latest
@@ -15,24 +34,170 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       
-      - name: Get PR number from branch
-        id: pr
+      - name: Get PR data based on mode
+        id: pr_data
         run: |
-          PR_NUMBER=$(gh pr list --head "${{ inputs.branch }}" --json number --jq '.[0].number')
-          if [ -z "$PR_NUMBER" ]; then
-            echo "No PR found for branch ${{ inputs.branch }}"
-            exit 1
+          MODE="${{ inputs.mode }}"
+          BRANCH="${{ inputs.branch }}"
+          AUTHOR="${{ inputs.author }}"
+          MAX_AGE="${{ inputs.max_age_days }}"
+          
+          echo "=== JULES PR Reviewer ==="
+          echo "Mode: $MODE"
+          echo ""
+          
+          # Function to format PR info
+          format_pr_info() {
+            local pr_json="$1"
+            local number=$(echo "$pr_json" | jq -r '.number')
+            local title=$(echo "$pr_json" | jq -r '.title')
+            local author=$(echo "$pr_json" | jq -r '.author.login')
+            local created=$(echo "$pr_json" | jq -r '.createdAt')
+            local updated=$(echo "$pr_json" | jq -r '.updatedAt')
+            local state=$(echo "$pr_json" | jq -r '.state')
+            local branch=$(echo "$pr_json" | jq -r '.headRefName')
+            local reviews=$(echo "$pr_json" | jq -r '.reviews.totalCount // 0')
+            local comments=$(echo "$pr_json" | jq -r '.comments.totalCount // 0')
+            
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "PR #$number: $title"
+            echo "Branch: $branch"
+            echo "Author: @$author | State: $state"
+            echo "Created: $created"
+            echo "Updated: $updated"
+            echo "Reviews: $reviews | Comments: $comments"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          }
+          
+          if [ "$MODE" = "single-branch" ]; then
+            if [ -z "$BRANCH" ]; then
+              echo "❌ Error: branch input required for single-branch mode"
+              exit 1
+            fi
+            
+            echo "Searching for PR with branch: $BRANCH"
+            PR_DATA=$(gh pr list --head "$BRANCH" --json number,title,author,createdAt,updatedAt,state,headRefName,reviews,comments --limit 1)
+            
+            if [ "$(echo "$PR_DATA" | jq '. | length')" -eq 0 ]; then
+              echo "❌ No PR found for branch $BRANCH"
+              exit 1
+            fi
+            
+            PR_JSON=$(echo "$PR_DATA" | jq '.[0]')
+            format_pr_info "$PR_JSON"
+            
+            PR_NUMBER=$(echo "$PR_JSON" | jq -r '.number')
+            echo "pr_numbers=$PR_NUMBER" >> $GITHUB_OUTPUT
+            
+          elif [ "$MODE" = "list-all-prs" ]; then
+            echo "📋 Listing all open PRs:"
+            echo ""
+            
+            PRS=$(gh pr list --state open --json number,title,author,createdAt,updatedAt,state,headRefName,reviews,comments --limit 50)
+            PR_COUNT=$(echo "$PRS" | jq '. | length')
+            
+            echo "Found $PR_COUNT open PRs"
+            echo ""
+            
+            echo "$PRS" | jq -c '.[]' | while read -r pr; do
+              format_pr_info "$pr"
+              echo ""
+            done
+            
+            # Get all PR numbers
+            PR_NUMBERS=$(echo "$PRS" | jq -r '.[].number' | tr '\n' ',' | sed 's/,$//')
+            echo "pr_numbers=$PR_NUMBERS" >> $GITHUB_OUTPUT
+            
+          elif [ "$MODE" = "review-oldest" ]; then
+            echo "🕒 Finding oldest open PRs:"
+            echo ""
+            
+            PRS=$(gh pr list --state open --json number,title,author,createdAt,updatedAt,state,headRefName,reviews,comments --limit 50)
+            
+            # Sort by creation date (oldest first) and take top 5
+            OLDEST_PRS=$(echo "$PRS" | jq 'sort_by(.createdAt) | .[0:5]')
+            
+            echo "$OLDEST_PRS" | jq -c '.[]' | while read -r pr; do
+              format_pr_info "$pr"
+              echo ""
+            done
+            
+            PR_NUMBERS=$(echo "$OLDEST_PRS" | jq -r '.[].number' | tr '\n' ',' | sed 's/,$//')
+            echo "pr_numbers=$PR_NUMBERS" >> $GITHUB_OUTPUT
+            
+          elif [ "$MODE" = "review-by-author" ]; then
+            if [ -z "$AUTHOR" ]; then
+              echo "❌ Error: author input required for review-by-author mode"
+              exit 1
+            fi
+            
+            echo "👤 Finding PRs by author: @$AUTHOR"
+            echo ""
+            
+            PRS=$(gh pr list --state open --author "$AUTHOR" --json number,title,author,createdAt,updatedAt,state,headRefName,reviews,comments --limit 50)
+            PR_COUNT=$(echo "$PRS" | jq '. | length')
+            
+            echo "Found $PR_COUNT PRs by @$AUTHOR"
+            echo ""
+            
+            echo "$PRS" | jq -c '.[]' | while read -r pr; do
+              format_pr_info "$pr"
+              echo ""
+            done
+            
+            PR_NUMBERS=$(echo "$PRS" | jq -r '.[].number' | tr '\n' ',' | sed 's/,$//')
+            echo "pr_numbers=$PR_NUMBERS" >> $GITHUB_OUTPUT
           fi
-          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          
+          echo ""
+          echo "✅ PR data collection complete"
         env:
           GH_TOKEN: ${{ github.token }}
-          
-      - name: Call JULES API for PR Evaluation
+      
+      - name: Display Summary Stats
         run: |
-          curl -X POST 'https://jules.googleapis.com/v1alpha/sessions' \
-            -H "Content-Type: application/json" \
-            -H "X-Goog-Api-Key: ${{ secrets.JULES_API }}" \
-            -d '{
-              "pr_number": "${{ steps.pr.outputs.pr_number }}",
-              "branch": "${{ inputs.branch }}"
-            }'
+          echo "=== Repository PR Statistics ==="
+          echo ""
+          
+          TOTAL_OPEN=$(gh pr list --state open --json number | jq '. | length')
+          TOTAL_CLOSED=$(gh pr list --state closed --limit 100 --json number | jq '. | length')
+          
+          echo "📊 Open PRs: $TOTAL_OPEN"
+          echo "📊 Recently Closed: $TOTAL_CLOSED (last 100)"
+          echo ""
+          
+          # PRs by author
+          echo "📊 Open PRs by Author:"
+          gh pr list --state open --json author --jq '.[].author.login' | sort | uniq -c | sort -rn
+          echo ""
+          
+          # PRs needing review
+          NEEDS_REVIEW=$(gh pr list --state open --json reviews --jq '[.[] | select(.reviews.totalCount == 0)] | length')
+          echo "⚠️  PRs with no reviews: $NEEDS_REVIEW"
+          echo ""
+        env:
+          GH_TOKEN: ${{ github.token }}
+      
+      - name: Call JULES API for PR Evaluation
+        if: steps.pr_data.outputs.pr_numbers != ''
+        run: |
+          PR_NUMBERS="${{ steps.pr_data.outputs.pr_numbers }}"
+          
+          echo "Calling JULES API for PRs: $PR_NUMBERS"
+          
+          # For now, just echo the API call structure
+          # Uncomment and modify when JULES API is ready
+          
+          # IFS=',' read -ra PR_ARRAY <<< "$PR_NUMBERS"
+          # for pr_num in "${PR_ARRAY[@]}"; do
+          #   echo "Evaluating PR #$pr_num"
+          #   curl -X POST 'https://jules.googleapis.com/v1alpha/sessions' \
+          #     -H "Content-Type: application/json" \
+          #     -H "X-Goog-Api-Key: ${{ secrets.JULES_API }}" \
+          #     -d "{
+          #       \"pr_number\": \"$pr_num\",
+          #       \"repository\": \"${{ github.repository }}\"
+          #     }"
+          # done
+          
+          echo "✅ JULES API evaluation would be called for: $PR_NUMBERS"
