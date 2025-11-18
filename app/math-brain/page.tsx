@@ -4734,6 +4734,39 @@ export default function MathBrainPage() {
               requireLocation
               requireTimezone
             />
+            
+            {/* Save Person A Profile Button */}
+            {isAuthenticated && personA.year && personA.month && personA.day && (
+              <div className="mt-4 pt-4 border-t border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const name = prompt('Enter a name for this profile:', personA.name || 'Person A');
+                    if (name) {
+                      handleSaveCurrentProfile('A', name);
+                    }
+                  }}
+                  className="w-full rounded-md bg-emerald-700/30 border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-700/40 transition-colors flex items-center justify-center gap-2"
+                >
+                  <span>💾</span>
+                  <span>Save Person A to Profile Database</span>
+                </button>
+                <p className="mt-2 text-xs text-slate-400 text-center">
+                  Save this person's birth data for quick loading later
+                </p>
+              </div>
+            )}
+            
+            {!isAuthenticated && personA.year && personA.month && personA.day && (
+              <div className="mt-4 pt-4 border-t border-slate-700">
+                <div className="rounded-md bg-amber-900/30 border border-amber-700 p-3 text-amber-200 text-sm">
+                  <p className="font-medium">Sign in to save profiles</p>
+                  <p className="text-xs mt-1 text-amber-300">
+                    Sign in with Google (top of page) to save Person A for later
+                  </p>
+                </div>
+              </div>
+            )}
           </Section>
 
 
@@ -4788,6 +4821,39 @@ export default function MathBrainPage() {
                 nameInputRef={bNameRef}
                 skipParseWhenDisabled
               />
+              
+              {/* Save Person B Profile Button */}
+              {isAuthenticated && includePersonB && personB.year && personB.month && personB.day && (
+                <div className="mt-4 pt-4 border-t border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const name = prompt('Enter a name for this profile:', personB.name || 'Person B');
+                      if (name) {
+                        handleSaveCurrentProfile('B', name);
+                      }
+                    }}
+                    className="w-full rounded-md bg-emerald-700/30 border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-700/40 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <span>💾</span>
+                    <span>Save Person B to Profile Database</span>
+                  </button>
+                  <p className="mt-2 text-xs text-slate-400 text-center">
+                    Save this person's birth data for quick loading later
+                  </p>
+                </div>
+              )}
+              
+              {!isAuthenticated && includePersonB && personB.year && personB.month && personB.day && (
+                <div className="mt-4 pt-4 border-t border-slate-700">
+                  <div className="rounded-md bg-amber-900/30 border border-amber-700 p-3 text-amber-200 text-sm">
+                    <p className="font-medium">Sign in to save profiles</p>
+                    <p className="text-xs mt-1 text-amber-300">
+                      Sign in with Google (top of page) to save Person B for later
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </Section>
           {/* Relationship Context (only when Person B included) */}

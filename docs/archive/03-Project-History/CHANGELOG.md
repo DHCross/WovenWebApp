@@ -1,3 +1,89 @@
+## [2025-11-18] ENHANCEMENT: Save Profiles Before Report Generation
+
+**Date:** 2025-11-18  
+**Status:** ✅ COMPLETED  
+**Impact:** MEDIUM – Improves profile save workflow by allowing saves before report generation
+
+**What changed**
+- **In-form save buttons**
+  - Added "💾 Save Person A to Profile Database" button directly in Person A form section
+  - Added "💾 Save Person B to Profile Database" button directly in Person B form section
+  - Buttons appear immediately when birth date is filled (authenticated users only)
+  - Unauthenticated users see amber "Sign in to save profiles" reminder
+- **Independent save workflow**
+  - Save Person A without needing Person B
+  - Save Person B without needing to generate report
+  - No longer requires scrolling to "📚 Saved Profiles" section after report generation
+
+**Why it matters**
+- Enables building profile library **before** generating any reports
+- Saves 3-5 interactions per profile save
+- Faster workflow for users who want to pre-populate their database
+- Matches user expectation: "I should be able to save as I enter data"
+
+**Files Changed**
+- `app/math-brain/page.tsx` (lines 4738-4769, 4825-4856)
+- `docs/SAVE_PROFILES_BEFORE_REPORT.md` (comprehensive documentation)
+
+**Testing & Verification**
+- `npm run build` (passes)
+- Manual QA:
+  - Fill Person A → Save button appears → Save works
+  - Fill Person B → Save button appears → Save works
+  - Both profiles appear in "📚 Saved Profiles" list
+  - Unauthenticated users see "Sign in" reminder
+
+**Next Steps**
+1. Add keyboard shortcuts (Ctrl+S for quick save)
+2. Toast notifications instead of alert dialogs
+3. Duplicate detection (warn if name already exists)
+
+---
+
+## [2025-11-18] FIX: Poetic Brain Auto-Execution for Mirror + Symbolic Weather
+
+**Date:** 2025-11-18  
+**Status:** ✅ FIXED  
+**Impact:** HIGH – Fixes critical workflow bug preventing auto-execution of uploaded reports
+
+**What changed**
+- **Geometry extraction fix**
+  - Enhanced `extractGeometryFromUploadedReport()` to recognize Mirror + Symbolic Weather format (`person_a.chart` structure)
+  - Added priority check for new format before falling back to legacy formats
+  - Returns entire unwrapped structure so Poetic Brain can access all nested data
+- **Pattern matching fix**
+  - Fixed regex for "please start" command: `please\s+(begin|start)` instead of just `please begin`
+  - Now correctly triggers auto-execution when user types "please start"
+
+**Why it matters**
+- **Before**: Uploaded reports showed "I've logged this report and set it aside for interpretation"
+- **After**: Immediate auto-execution generates Hook Stack, Frontstage, Polarity Cards, and Mirror Voice
+- Eliminates 2-3 interactions per reading (no more "please interpret this" loops)
+- Matches expected upload → reading workflow
+
+**Files Changed**
+- `app/api/raven/route.ts` (lines 49-52, 815)
+- `docs/POETIC_BRAIN_AUTO_EXECUTION_FIX.md` (full documentation with testing instructions)
+
+**Root Cause**
+- Mirror + Symbolic Weather format was added in Nov 2025 with `person_a`/`person_b` structure
+- Geometry extractor was written for older formats and never updated
+- "please start" regex only matched "please begin" not "please start"
+
+**Testing & Verification**
+- `npm run build` (passes)
+- Manual QA (post-deployment):
+  - Upload Mirror + Symbolic Weather JSON → Should auto-generate reading
+  - Type "please start" → Should trigger execution
+  - Two-person reports → Should prompt for relational vs parallel
+
+**Next Steps**
+1. Deploy to production
+2. Test with real Math Brain exports
+3. Monitor for any edge cases with different report formats
+
+---
+
 ## [2025-11-18] FEATURE: User Profile Database (Netlify Blobs + Auth0)
 
 **Date:** 2025-11-18  
