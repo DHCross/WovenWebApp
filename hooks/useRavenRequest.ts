@@ -34,6 +34,7 @@ import { parseValidationPoints } from "@/lib/validation/parseValidationPoints";
 export interface UseRavenRequestArgs {
   personaMode: PersonaMode;
   setMessages: Dispatch<SetStateAction<Message[]>>;
+  sessionId: string | null;
   setSessionId: Dispatch<SetStateAction<string | null>>;
   validationMap: ValidationState;
   setValidationPoints: (messageId: string, points: ValidationPoint[]) => void;
@@ -52,6 +53,7 @@ export interface UseRavenRequestResult {
 export function useRavenRequest({
   personaMode,
   setMessages,
+  sessionId,
   setSessionId,
   validationMap,
   setValidationPoints,
@@ -178,10 +180,13 @@ export function useRavenRequest({
       setTyping(true);
 
       try {
-        const payloadWithPersona =
-          payload && typeof payload.persona !== "undefined"
-            ? payload
-            : { ...payload, persona: personaMode };
+        let mergedPayload = payload;
+        if (typeof mergedPayload.sessionId === "undefined" && sessionId) {
+          mergedPayload = { ...mergedPayload, sessionId };
+        }
+        if (typeof mergedPayload.persona === "undefined") {
+          mergedPayload = { ...mergedPayload, persona: personaMode };
+        }
 
         const response = await fetchWithRetry(
           "/api/raven",
@@ -191,7 +196,7 @@ export function useRavenRequest({
               "Content-Type": "application/json",
               "X-Request-Id": generateId(),
             },
-            body: JSON.stringify(payloadWithPersona),
+            body: JSON.stringify(mergedPayload),
             signal: controller.signal,
           },
           3,
@@ -238,7 +243,7 @@ export function useRavenRequest({
         abortRef.current = null;
       }
     },
-    [applyRavenResponse, commitError, personaMode],
+    [applyRavenResponse, commitError, personaMode, sessionId],
   );
 
   return {

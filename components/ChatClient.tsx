@@ -147,15 +147,18 @@ export default function ChatClient() {
   const { typing, runRavenRequest, stop } = useRavenRequest({
     personaMode,
     setMessages,
+    sessionId,
     setSessionId,
     validationMap,
     setValidationPoints,
   });
 
+  const typingPrevRef = useRef<boolean>(false);
   useEffect(() => {
-    if (typing) {
+    if (typingPrevRef.current && !typing) {
       setLastActiveAt(Date.now());
     }
+    typingPrevRef.current = typing;
   }, [typing]);
 
   const liveStatus = useMemo(
