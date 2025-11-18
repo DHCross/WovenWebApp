@@ -144,6 +144,9 @@ export function useSnapshot() {
           allow_symbolic_weather: true
         },
         presentation_style: 'conversational',
+        // Explicitly request a transit wheel for snapshot preview
+        request_transit_wheel: true,
+        snapshot_mode: true,
         // Chart wheel generation
         wheel_format: 'png',
         theme: 'classic',

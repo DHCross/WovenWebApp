@@ -113,7 +113,7 @@ export default function EnhancedDailyClimateCard({
     <section
       className={`mb-6 rounded-lg ${climateClasses.border} ${climateClasses.background} p-6 ${climateClasses.borderWidth}`}
       role="region"
-      aria-label="Daily symbolic climate narrative"
+      aria-label="Daily symbolic weather narrative"
     >
       {/* Header */}
       <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
@@ -152,7 +152,7 @@ export default function EnhancedDailyClimateCard({
       {/* Primary Story */}
       <div className={`mb-6 rounded-md bg-slate-900/50 p-4 border-l-4 ${climateClasses.border}`}>
         <h3 className={`text-sm font-semibold ${climateClasses.text} mb-2`}>
-          {isRangeSummary ? 'Period Symbolic Climate Story' : 'Today\'s Symbolic Climate Story'}
+          {isRangeSummary ? 'Period Symbolic Weather Story' : 'Today\'s Symbolic Weather Story'}
         </h3>
         <p className="text-slate-200 leading-relaxed mb-3">
           {narrative.story}
@@ -173,7 +173,7 @@ export default function EnhancedDailyClimateCard({
               <span className={`text-lg ${climateClasses.weight} ${climateClasses.text}`}>{formatValue(narrative.dimensions.magnitude.value)}</span>
             </div>
             <div className="text-xs text-slate-300 mb-1">{narrative.dimensions.magnitude.label}</div>
-            <div className="text-xs text-slate-400">How loud the symbolic climate field is</div>
+            <div className="text-xs text-slate-400">How loud the symbolic weather field is</div>
           </div>
 
           <div className="relative bg-slate-900/40 rounded-md p-3 border border-slate-700/50 overflow-hidden">

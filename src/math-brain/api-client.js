@@ -146,6 +146,14 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
   const provenanceByDate = {};
   const chartAssets = [];
 
+  const {
+    request_transit_wheel = false,
+    snapshot_mode = false,
+    ...passRest
+  } = pass || {};
+  const wantsTransitWheel = !!request_transit_wheel || !!snapshot_mode;
+  const { natalHouseCusps, ...apiPass } = passRest;
+
   const ianaTz = subject?.timezone || 'UTC';
   const step = normalizeStep(transitParams.step || 'daily');
   const samplingWindow = buildWindowSamples(
@@ -182,6 +190,7 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
   }
 
   const CHUNK_SIZE = 5;
+  let wheelCaptured = false;
 
   for (let chunkStart = 0; chunkStart < samples.length; chunkStart += CHUNK_SIZE) {
     const chunkEnd = Math.min(chunkStart + CHUNK_SIZE, samples.length);
@@ -238,13 +247,13 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
 
       const hasCoords = !!(subject.latitude && subject.longitude && subject.timezone);
       const transitPass = hasCoords
-        ? { ...pass, require_city: true, suppress_geonames: true, suppress_coords: false }
-        : { ...pass, require_city: true, suppress_geonames: false, suppress_coords: true };
+        ? { ...apiPass, require_city: true, suppress_geonames: true, suppress_coords: false }
+        : { ...apiPass, require_city: true, suppress_geonames: false, suppress_coords: true };
 
       const payload = {
         first_subject: subjectToAPI(subject, transitPass),
         transit_subject: subjectToAPI(transitSubject, transitPass),
-        ...pass
+        ...transitPass
       };
 
       const baseProvenance = {
@@ -267,31 +276,16 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
           let formation = transitSubject.city ? 'city' : 'coords';
           let attempts = 0;
           const maxAttempts = 3;
+          const preferWheel = wantsTransitWheel && !wheelCaptured;
 
-          try {
-            resp = await apiCallWithRetry(
-              API_ENDPOINTS.TRANSIT_ASPECTS,
-              {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(payload),
-              },
-              `Transits for ${subject.name} on ${dateString}`
-            );
-            attempts++;
-            logger.debug(`Transit API response for ${dateString} (${endpoint})`, { aspectCount: resp?.aspects?.length || 0 });
-          } catch (e) {
-            logger.warn(`Primary transit endpoint failed for ${dateString}:`, e.message);
-          }
-
-          if ((!resp || !resp.aspects || resp.aspects.length === 0) && attempts < maxAttempts) {
+          if (preferWheel) {
             try {
               endpoint = 'transit-chart';
-              logger.info(`Fallback: Trying transit-chart endpoint for ${dateString}`);
+              logger.info(`Preferring transit-chart for wheel capture on ${dateString}`);
 
               const payloadWithPrefs = {
                 ...payload,
-                ...resolveChartPreferences(pass),
+                ...resolveChartPreferences(apiPass),
               };
               resp = await apiCallWithRetry(
                 API_ENDPOINTS.TRANSIT_CHART,
@@ -307,9 +301,30 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
               if (resp && !resp.aspects && resp.data) {
                 resp.aspects = resp.data.aspects || resp.aspects;
               }
-              logger.debug(`Transit chart fallback response for ${dateString}`, { aspectCount: resp?.aspects?.length || 0 });
+              wheelCaptured = true;
+              logger.debug(`Transit chart (wheel) response for ${dateString}`, { aspectCount: resp?.aspects?.length || 0 });
             } catch (e) {
-              logger.warn(`Transit chart fallback failed for ${dateString}:`, e.message);
+              logger.warn(`Transit chart preferred fetch failed for ${dateString}:`, e.message);
+              resp = null;
+            }
+          }
+
+          if ((!resp || !resp.aspects || resp.aspects.length === 0) && attempts < maxAttempts) {
+            try {
+              endpoint = 'transit-aspects-data';
+              resp = await apiCallWithRetry(
+                API_ENDPOINTS.TRANSIT_ASPECTS,
+                {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify(payload),
+                },
+                `Transits for ${subject.name} on ${dateString}`
+              );
+              attempts++;
+              logger.debug(`Transit API response for ${dateString} (${endpoint})`, { aspectCount: resp?.aspects?.length || 0 });
+            } catch (e) {
+              logger.warn(`Primary transit endpoint failed for ${dateString}:`, e.message);
             }
           }
 
@@ -341,9 +356,9 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
               })();
 
               const alternatePayload = {
-                first_subject: subjectToAPI(subject, pass),
-                transit_subject: subjectToAPI(alternateTransitSubject, pass),
-                ...pass
+                first_subject: subjectToAPI(subject, transitPass),
+                transit_subject: subjectToAPI(alternateTransitSubject, transitPass),
+                ...transitPass
               };
 
               resp = await apiCallWithRetry(
@@ -369,14 +384,14 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
           if (resp && resp.aspects && resp.aspects.length > 0) {
             let transitHouses = [];
 
-            if (pass.natalHouseCusps && resp.data && resp.data.transit_subject) {
+            if (natalHouseCusps && resp.data && resp.data.transit_subject) {
               const ts = resp.data.transit_subject;
               const planetNames = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','mean_node','chiron'];
 
               for (const planetName of planetNames) {
                 const planetData = ts[planetName];
                 if (planetData && typeof planetData.abs_pos === 'number') {
-                  const house = calculateNatalHouse(planetData.abs_pos, pass.natalHouseCusps);
+                  const house = calculateNatalHouse(planetData.abs_pos, natalHouseCusps);
                   transitHouses.push(house);
                 }
               }

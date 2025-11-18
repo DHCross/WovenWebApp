@@ -17,7 +17,7 @@ export const VALENCE_COLORS = {
   '-2': { bg: 'from-rose-800/20 to-red-900/20', border: 'border-rose-600/50', text: 'text-rose-300', icon: '🧩' }, // Contraction
   '-3': { bg: 'from-indigo-800/20 to-blue-900/20', border: 'border-indigo-600/50', text: 'text-indigo-300', icon: '⚔️' }, // Friction
   '-4': { bg: 'from-purple-800/20 to-violet-900/20', border: 'border-purple-600/50', text: 'text-purple-300', icon: '🕰' }, // Grind
-  '-5': { bg: 'from-gray-800/20 to-black/30', border: 'border-gray-600/50', text: 'text-gray-300', icon: '🌋' }, // Collapse / Compression
+  '-5': { bg: 'from-gray-800/20 to-black/30', border: 'border-gray-600/50', text: 'text-gray-300', icon: '🌋' }, // Compression
 };
 
 // Magnitude visual weight (intensity through thickness, not brightness)

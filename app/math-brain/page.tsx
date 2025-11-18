@@ -38,6 +38,8 @@ import SnapshotDisplay from "./components/SnapshotDisplay";
 import { getSavedCharts, saveChart, deleteChart, type SavedChart } from "../../lib/saved-charts";
 import type { SeismographMap } from "../../lib/health-data-types";
 import { computeOverflowDetailFromDay, firstFinite } from "../../lib/math-brain/overflow-detail";
+import { useUserProfiles, type BirthProfile } from "./hooks/useUserProfiles";
+import ProfileManager from "./components/ProfileManager";
 
 export const dynamic = "force-dynamic";
 
@@ -851,6 +853,16 @@ export default function MathBrainPage() {
   const [result, setResult] = useState<ApiResult>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(() => !AUTH_ENABLED);
   const [authReady, setAuthReady] = useState(() => !AUTH_ENABLED);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // User profiles hook
+  const {
+    profiles,
+    loading: profilesLoading,
+    error: profilesError,
+    saveProfile,
+    deleteProfile
+  } = useUserProfiles(userId);
 
   const frontStageResult = useMemo(() => {
     if (!result) return null;
@@ -1685,14 +1697,17 @@ export default function MathBrainPage() {
             const user = await client.getUser();
             if (!cancelled) {
               setIsAdmin(user?.email === 'nathal@gmail.com');
+              setUserId(user?.sub || null);
             }
           } catch {
             if (!cancelled) {
               setIsAdmin(false);
+              setUserId(null);
             }
           }
         } else {
           setIsAdmin(false);
+          setUserId(null);
         }
       } catch (err) {
         if (!cancelled) {
@@ -2063,6 +2078,67 @@ export default function MathBrainPage() {
       zodiac_type: "Tropic",
     });
   }
+
+  // Profile management functions
+  const handleLoadProfile = useCallback((profile: BirthProfile, slot: 'A' | 'B') => {
+    const person = {
+      name: profile.name,
+      year: profile.birthDate.split('-')[0] || '',
+      month: profile.birthDate.split('-')[1] || '',
+      day: profile.birthDate.split('-')[2] || '',
+      hour: profile.birthTime.split(':')[0] || '',
+      minute: profile.birthTime.split(':')[1] || '',
+      city: profile.birthCity,
+      state: profile.birthState || '',
+      latitude: profile.lat ? String(profile.lat) : '',
+      longitude: profile.lng ? String(profile.lng) : '',
+      timezone: profile.timezone || '',
+      zodiac_type: 'Tropic' as const,
+    };
+
+    if (slot === 'A') {
+      setPersonA(person);
+    } else {
+      setPersonB(person);
+    }
+  }, []);
+
+  const handleSaveCurrentProfile = useCallback(async (slot: 'A' | 'B', name: string) => {
+    const person = slot === 'A' ? personA : personB;
+    
+    if (!person.year || !person.month || !person.day) {
+      alert('Please fill in birth date before saving');
+      return;
+    }
+
+    const profile: BirthProfile = {
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name,
+      birthDate: `${person.year}-${String(person.month).padStart(2, '0')}-${String(person.day).padStart(2, '0')}`,
+      birthTime: `${String(person.hour).padStart(2, '0')}:${String(person.minute).padStart(2, '0')}`,
+      birthCity: person.city,
+      birthState: person.state,
+      timezone: person.timezone,
+      lat: person.latitude ? parseFloat(String(person.latitude)) : undefined,
+      lng: person.longitude ? parseFloat(String(person.longitude)) : undefined,
+    };
+
+    const success = await saveProfile(profile);
+    if (success) {
+      alert(`✅ Profile "${name}" saved successfully!`);
+    } else {
+      alert(`❌ Failed to save profile: ${profilesError || 'Unknown error'}`);
+    }
+  }, [personA, personB, saveProfile, profilesError]);
+
+  const handleDeleteProfile = useCallback(async (profileId: string) => {
+    const success = await deleteProfile(profileId);
+    if (success) {
+      alert('✅ Profile deleted successfully');
+    } else {
+      alert(`❌ Failed to delete profile: ${profilesError || 'Unknown error'}`);
+    }
+  }, [deleteProfile, profilesError]);
 
   function setBNowUTC() {
     if (!includePersonB) return;
@@ -2633,7 +2709,7 @@ export default function MathBrainPage() {
         markdown += `- **-2 Contraction:** Narrowing options, energy drain\n`;
         markdown += `- **-3 Friction:** Conflicts, slow progress\n`;
         markdown += `- **-4 Grind:** Sustained resistance, heavy load\n`;
-        markdown += `- **-5 Collapse:** Maximum restriction, failure points\n\n`;
+        markdown += `- **-5 Compression:** Maximum restrictive tilt, deep inward compression\n\n`;
       } else {
         // Mirror Report interpretation guide
         markdown += `### Mirror Report Components\n\n`;
@@ -4619,6 +4695,21 @@ export default function MathBrainPage() {
             </div>
           </div>
         </section>
+
+        {/* Profile Manager */}
+        <Section title="📚 Saved Profiles">
+          <ProfileManager
+            profiles={profiles}
+            loading={profilesLoading}
+            onLoadProfile={handleLoadProfile}
+            onSaveCurrentProfile={handleSaveCurrentProfile}
+            onDeleteProfile={handleDeleteProfile}
+            currentPersonA={personA}
+            currentPersonB={personB}
+            isAuthenticated={isAuthenticated}
+          />
+        </Section>
+
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
           {/* Left column: Person A */}
           <Section title="Person A (required)">
@@ -5405,7 +5496,7 @@ export default function MathBrainPage() {
 
                 {layerVisibility.diagnostics && (
                   <div className="mb-6">
-                    <h3 className="text-sm font-medium text-slate-200 mb-3">Daily Climate Cards</h3>
+                    <h3 className="text-sm font-medium text-slate-200 mb-3">Daily Symbolic Weather Cards</h3>
                     {(() => {
                     const daily = frontStageTransitsByDate;
                     const dates = Object.keys(daily).sort();
@@ -5455,7 +5546,7 @@ export default function MathBrainPage() {
                         return { emojis, descriptor: 'Grind', anchor: '−4', pattern: 'sustained resistance; heavy duty load' };
                       } else {
                         const emojis = magLevel === 'low' ? ['🌋', '🧩'] : ['🌋', '🧩', '⬇️'];
-                        return { emojis, descriptor: 'Collapse', anchor: '−5', pattern: 'maximum restrictive tilt; compression / failure points' };
+                        return { emojis, descriptor: 'Compression', anchor: '−5', pattern: 'maximum restrictive tilt; deep inward compression' };
                       }
                     };
 
@@ -5578,8 +5669,8 @@ export default function MathBrainPage() {
                         };
                       }
                       return {
-                        wb: 'Collapse reset: breakdown clears what no longer fits.',
-                        abe: 'Collapse crisis: extreme compression can trigger shutdown.',
+                        wb: 'Compression focus: maximum density creates clarity through constraint.',
+                        abe: 'Compression overload: extreme restriction can trigger shutdown.',
                       };
                     };
 
@@ -5711,7 +5802,7 @@ export default function MathBrainPage() {
                             return { emojis, descriptor: 'Disruption', anchor: '−4', pattern: 'systemic challenges; breakdown precedes breakthrough' };
                           } else {
                             const emojis = magLevel === 'low' ? ['💥', '🌊'] : ['💥', '🌊', '⚔️'];
-                            return { emojis, descriptor: 'Collapse', anchor: '−5', pattern: 'maximum restrictive tilt; compression / failure points' };
+                            return { emojis, descriptor: 'Compression', anchor: '−5', pattern: 'maximum restrictive tilt; deep inward compression' };
                           }
                         };
 

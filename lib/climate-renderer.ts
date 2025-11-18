@@ -27,7 +27,7 @@ export interface ValenceLevel {
 }
 
 export const VALENCE_LEVELS: ValenceLevel[] = [
-  { level: -5, anchor: 'Collapse', emojis: ['🌋', '🧩', '⬇️'], description: 'Maximum restrictive tilt; compression/failure points' },
+  { level: -5, anchor: 'Compression', emojis: ['🌋', '🧩', '⬇️'], description: 'Maximum restrictive tilt; deep inward compression' },
   { level: -4, anchor: 'Grind', emojis: ['🕰', '⚔', '🌪'], description: 'Sustained resistance; heavy duty load' },
   { level: -3, anchor: 'Friction', emojis: ['⚔', '🌊', '🌫'], description: 'Conflicts or cross-purposes slow motion' },
   { level: -2, anchor: 'Contraction', emojis: ['🌫', '🧩', '⬇️'], description: 'Narrowing options; ambiguity or energy drain' },
