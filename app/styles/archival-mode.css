@@ -1,0 +1,200 @@
+/* ==========================================================================
+   RAVEN CALDER: ARCHIVAL MODE (PDF GENERATION)
+   Directive: Transform "Screen Experience" into "Precision Instrument Log"
+   ========================================================================== */
+
+@media print {
+
+  /* 1. THE CANVAS: Set the Stage for Paper, Not Pixels */
+  @page {
+    size: letter portrait; /* or A4 */
+    margin: 0.5in;         /* Maximizes data area, minimizes drift */
+  }
+
+  body {
+    background-color: #FFFFFF !important; /* Force White Paper */
+    color: #111111 !important;            /* Force Ink Black */
+    -webkit-print-color-adjust: exact;    /* Forces browsers to print background colors */
+    print-color-adjust: exact;
+  }
+
+  /* 2. THE CONTAINER: Fix the Width Failure */
+  /* This forces the dashboard to respect the page boundaries explicitly */
+  .raven-dashboard-container, 
+  .balance-meter-wrapper,
+  .balance-graphs-container {
+    width: 7.5in !important;  /* 8.5in page minus 0.5in margins */
+    max-width: 7.5in !important;
+    margin: 0 auto !important;
+    box-shadow: none !important; /* Remove "card" shadows to look flat/printed */
+    border: none !important;
+  }
+
+  /* 3. VISUAL INVERSION: From "Web Dark" to "Scientific Log" */
+  /* Hides the charcoal backgrounds and replaces them with precision borders */
+  .card, .panel, .metric-box {
+    background: transparent !important;
+    border: 1px solid #000000 !important; /* The "Wireframe" look */
+    color: #000000 !important;
+  }
+
+  /* 4. TYPOGRAPHY: The Dual-Channel Voice Implementation */
+  
+  /* MAP CHANNEL (Math Brain) -> Monospace */
+  .magnitude-value, 
+  .bias-value, 
+  .date-stamp, 
+  .coordinates,
+  .seismograph-data,
+  .balance-meter-value {
+    font-family: "JetBrains Mono", "Roboto Mono", "Courier New", monospace !important;
+    font-size: 0.85rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #000000 !important;
+  }
+
+  /* VOICE CHANNEL (Poetic Brain) -> Serif */
+  .poetic-voice, 
+  .guidance-text, 
+  .climate-description,
+  .narrative-text {
+    font-family: "Merriweather", "Cormorant Garamond", "Georgia", serif !important;
+    font-size: 1rem !important;
+    line-height: 1.5;
+    font-style: italic; /* Distinguishes the "Mirror" from the "Data" */
+    color: #000000 !important;
+  }
+
+  /* 5. DATA VISUALIZATION: The "Seismograph" Strip */
+  /* Replaces the text list with a visual bar */
+  
+  .seismograph-bar {
+    height: 12px !important;
+    border: 1px solid #000;
+    background: linear-gradient(
+      to right, 
+      rgba(0, 50, 100, 0.2) 0%,   /* Deep Blue (Compression) */
+      rgba(0, 50, 100, 0.2) 50%, 
+      rgba(255, 180, 0, 0.2) 50%, /* Amber (Expansion) */
+      rgba(255, 180, 0, 0.2) 100%
+    ) !important;
+    position: relative;
+  }
+
+  /* The Diamond Marker indicating the specific Tilt */
+  .seismograph-marker {
+    width: 0; 
+    height: 0; 
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid #000; /* Black ink marker */
+    position: absolute;
+    top: -8px; /* Sits on top of the bar */
+    /* 'left' is calculated dynamically in your component */
+  }
+
+  /* 6. STATUS STAMPS: The Integrity Mechanism (SST) */
+  .status-stamp-wb {
+    border: 2px solid #000 !important;
+    padding: 4px 8px;
+    font-weight: bold;
+    display: inline-block;
+    background: transparent !important;
+    color: #000000 !important;
+  }
+  
+  .status-stamp-abe {
+    border: 2px dashed #555 !important; /* Dashed = "Boundary Edge" */
+    padding: 4px 8px;
+    display: inline-block;
+    background: transparent !important;
+    color: #000000 !important;
+  }
+
+  /* 7. CHART ELEMENTS: Vector-First Rendering */
+  svg {
+    /* Ensure SVGs render at full quality */
+    shape-rendering: geometricPrecision;
+  }
+
+  canvas {
+    /* Hide canvas elements in print - use SVG instead */
+    display: none !important;
+  }
+
+  /* 8. COLOR CODING: Raven Color Protocol */
+  .compression-indicator,
+  .inward-bias {
+    color: #003264 !important; /* Deep Blue (Ink Blue) */
+  }
+
+  .expansion-indicator,
+  .outward-bias {
+    color: #FFB400 !important; /* Amber/Gold */
+  }
+
+  .friction-indicator,
+  .storm-marker {
+    color: #8B4513 !important; /* Red/Rust */
+  }
+
+  /* 9. CLEANUP: Hide Non-Print Elements */
+  nav, 
+  footer, 
+  .btn, 
+  .no-print, 
+  .download-button,
+  .print\\:hidden {
+    display: none !important;
+  }
+
+  /* 10. DASHBOARD LAYOUT: Two-Column Grid */
+  .dashboard-header {
+    display: grid !important;
+    grid-template-columns: 60% 40% !important;
+    gap: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .seismograph-column {
+    grid-column: 1 !important;
+  }
+
+  .metadata-column {
+    grid-column: 2 !important;
+  }
+
+  /* 11. PAGE BREAKS: Strategic Pagination */
+  .page-break-before {
+    page-break-before: always !important;
+  }
+
+  .page-break-after {
+    page-break-after: always !important;
+  }
+
+  .avoid-page-break {
+    page-break-inside: avoid !important;
+  }
+
+  /* 12. TABLES: Clean Data Presentation */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    background: transparent !important;
+  }
+
+  th, td {
+    border: 1px solid #000 !important;
+    padding: 4px 8px !important;
+    text-align: left !important;
+    background: transparent !important;
+    color: #000000 !important;
+  }
+
+  th {
+    font-weight: bold !important;
+    font-family: "JetBrains Mono", "Courier New", monospace !important;
+  }
+}

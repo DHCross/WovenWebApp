@@ -1,5 +1,6 @@
 import React from 'react';
 import './globals.css';
+import './styles/archival-mode.css';
 import { APP_NAME } from '../lib/ui-strings';
 
 export const metadata = { title: `${APP_NAME} · Chat`, description: `${APP_NAME} diagnostic chat` };

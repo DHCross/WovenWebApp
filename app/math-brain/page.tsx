@@ -2687,6 +2687,7 @@ export default function MathBrainPage() {
   }
 
   // Generate a PDF specifically focused on Balance Meter graphs and charts
+  // ARCHIVAL MODE: Native PDF generation (no html2canvas screenshot)
   async function downloadGraphsPDF() {
     if (!result || reportType !== 'balance') {
       setToast('Balance Meter charts not available');
@@ -2695,22 +2696,9 @@ export default function MathBrainPage() {
     }
 
     setGraphsPdfGenerating(true);
-    let revertVisibility: (() => void) | null = null;
 
     try {
       const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
-      const html2canvasModule = await import('html2canvas');
-      const html2canvas = html2canvasModule?.default;
-
-      if (typeof html2canvas !== 'function') {
-        throw new Error('html2canvas unavailable');
-      }
-
-      if (!layerVisibility.balance && weather.hasWindow) {
-        setLayerVisibility((prev) => ({ ...prev, balance: true }));
-        revertVisibility = () => setLayerVisibility((prev) => ({ ...prev, balance: false }));
-        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      }
 
       const pdfDoc = await PDFDocument.create();
       const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
@@ -2719,6 +2707,7 @@ export default function MathBrainPage() {
       const PAGE_WIDTH = 612; // 8.5" * 72 DPI
       const PAGE_HEIGHT = 792; // 11" * 72 DPI
       const MARGIN = 50;
+      const PRINTABLE_WIDTH = PAGE_WIDTH - (2 * MARGIN); // 7.5" - Archival Mode spec
 
       const daily = frontStageTransitsByDate;
       const dates = Object.keys(daily)
@@ -2726,84 +2715,233 @@ export default function MathBrainPage() {
         .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
       const dateRangeText = dates.length > 0
-        ? `Analysis Period: ${new Date(dates[0]).toLocaleDateString()} - ${new Date(dates[dates.length - 1]).toLocaleDateString()}`
+        ? `${new Date(dates[0]).toLocaleDateString()} - ${new Date(dates[dates.length - 1]).toLocaleDateString()}`
         : 'Complete Analysis Report';
 
-      let target = balanceGraphsRef.current;
-      if (!target) {
-        await new Promise((resolve) => requestAnimationFrame(resolve));
-        target = balanceGraphsRef.current;
-      }
-
-      if (!target) {
-        setToast('Open Balance Metrics to capture the charts');
-        setTimeout(() => setToast(null), 2500);
-        return;
-      }
-
       const exportTimestamp = new Date();
-      const canvas = await html2canvas(target, {
-        backgroundColor: '#0f172a',
-        scale: Math.min(3, window.devicePixelRatio || 2),
-        useCORS: true,
-        logging: false,
-        scrollY: -window.scrollY,
-        windowWidth: target.scrollWidth,
-        windowHeight: target.scrollHeight,
-        ignoreElements: (element) => {
-          if (!(element instanceof HTMLElement)) return false;
-          return element.classList.contains('print:hidden') || element.dataset?.exportSkip === 'true';
-        },
-      });
 
-      const graphImage = await pdfDoc.embedPng(canvas.toDataURL('image/png'));
-
+      // ARCHIVAL MODE: Visual Overview Page with Dashboard Header
       const graphPage = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
       let visualY = PAGE_HEIGHT - MARGIN;
 
+      // Title
       graphPage.drawText(sanitizeForPDF('Poetic Brain Reading Log - Visual Overview'), {
         x: MARGIN,
         y: visualY,
         size: 18,
         font: timesRomanFont,
-        color: rgb(0.2, 0.2, 0.2),
+        color: rgb(0, 0, 0), // Black ink for Archival Mode
       });
       visualY -= 30;
 
-      graphPage.drawText(sanitizeForPDF(dateRangeText), {
+      graphPage.drawText(sanitizeForPDF(`Analysis Period: ${dateRangeText}`), {
         x: MARGIN,
         y: visualY,
         size: 12,
         font: timesRomanFont,
-        color: rgb(0.4, 0.4, 0.4),
+        color: rgb(0.2, 0.2, 0.2),
       });
-      visualY -= 40;
+      visualY -= 50;
 
-      const availableHeight = Math.max(0, visualY - MARGIN);
-      const graphDimensions = graphImage.scaleToFit(PAGE_WIDTH - 2 * MARGIN, availableHeight);
-      const graphY = visualY - graphDimensions.height;
+      // Dashboard Header: Two-Column Layout (60/40 split)
+      const leftColumnWidth = PRINTABLE_WIDTH * 0.6;
+      const rightColumnX = MARGIN + leftColumnWidth + 20;
 
-      graphPage.drawImage(graphImage, {
+      // Left Column: Seismograph Strip Header
+      graphPage.drawText('SYMBOLIC SEISMOGRAPH', {
         x: MARGIN,
-        y: graphY,
-        width: graphDimensions.width,
-        height: graphDimensions.height,
-      });
-      visualY = graphY - 20;
-
-      graphPage.drawText(sanitizeForPDF('Captured directly from the Balance Meter dashboard.'), {
-        x: MARGIN,
-        y: Math.max(MARGIN, visualY),
+        y: visualY,
         size: 10,
-        font: timesRomanFont,
-        color: rgb(0.35, 0.35, 0.35),
+        font: courierFont,
+        color: rgb(0, 0, 0),
+      });
+      visualY -= 20;
+
+      // Draw seismograph bar (simplified visual representation)
+      if (dates.length > 0) {
+        const barHeight = 40;
+        const barY = visualY - barHeight;
+        
+        // Background bar
+        graphPage.drawRectangle({
+          x: MARGIN,
+          y: barY,
+          width: leftColumnWidth,
+          height: barHeight,
+          borderColor: rgb(0, 0, 0),
+          borderWidth: 1,
+        });
+
+        // Draw magnitude line as simplified path
+        const extractBias = (entry: any): number => {
+          const seismo = entry?.seismograph;
+          if (!seismo) return 0;
+          if (typeof seismo.directional_bias === 'number') return seismo.directional_bias;
+          if (typeof seismo.bias === 'number') return seismo.bias;
+          if (typeof seismo.valence === 'number') return seismo.valence;
+          return 0;
+        };
+
+        dates.slice(0, 20).forEach((date, i) => {
+          const dayData = daily[date];
+          const mag = Number(dayData?.seismograph?.magnitude ?? 0);
+          const bias = extractBias(dayData);
+          
+          const x = MARGIN + (i / Math.min(20, dates.length)) * leftColumnWidth;
+          const y = barY + (mag / 5) * barHeight;
+          
+          // Draw point
+          graphPage.drawCircle({
+            x,
+            y,
+            size: 2,
+            color: bias > 0 ? rgb(1, 0.7, 0) : rgb(0, 0.2, 0.4), // Amber or Blue
+          });
+        });
+
+        visualY = barY - 15;
+      }
+
+      // Right Column: Status Stamps
+      let rightY = PAGE_HEIGHT - MARGIN - 60;
+      
+      graphPage.drawText('STATUS', {
+        x: rightColumnX,
+        y: rightY,
+        size: 10,
+        font: courierFont,
+        color: rgb(0, 0, 0),
+      });
+      rightY -= 20;
+
+      const startDate = dates[0] ? new Date(dates[0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A';
+      const endDate = dates[dates.length - 1] ? new Date(dates[dates.length - 1]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A';
+      
+      graphPage.drawText(`START: ${startDate}`, {
+        x: rightColumnX,
+        y: rightY,
+        size: 8,
+        font: courierFont,
+        color: rgb(0, 0, 0),
+      });
+      rightY -= 15;
+
+      graphPage.drawText(`END: ${endDate}`, {
+        x: rightColumnX,
+        y: rightY,
+        size: 8,
+        font: courierFont,
+        color: rgb(0, 0, 0),
+      });
+      rightY -= 15;
+
+      // Location stamp (if available)
+      const location = result?.provenance?.location || 
+                      result?.person_a?.details?.location?.label ||
+                      'Location not specified';
+      graphPage.drawText(`LOC: ${sanitizeForPDF(location.substring(0, 20))}`, {
+        x: rightColumnX,
+        y: rightY,
+        size: 8,
+        font: courierFont,
+        color: rgb(0, 0, 0),
+      });
+      rightY -= 20;
+
+      // SST Status Stamp (WB = Within Bounds)
+      graphPage.drawRectangle({
+        x: rightColumnX,
+        y: rightY - 12,
+        width: 40,
+        height: 16,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 2,
+      });
+      graphPage.drawText('WB', {
+        x: rightColumnX + 10,
+        y: rightY - 8,
+        size: 10,
+        font: courierFont,
+        color: rgb(0, 0, 0),
       });
 
-      graphPage.drawText(sanitizeForPDF(`Generated: ${exportTimestamp.toLocaleString()} | Balance Meter Visuals`), {
+      visualY -= 30;
+
+      // Field Summary
+      if (dates.length > 0) {
+        const extractBias = (entry: any): number => {
+          const seismo = entry?.seismograph;
+          if (!seismo) return 0;
+          if (typeof seismo.directional_bias === 'number') return seismo.directional_bias;
+          if (typeof seismo.bias === 'number') return seismo.bias;
+          return 0;
+        };
+
+        const avgMag = dates.reduce((sum, d) => sum + Number(daily[d]?.seismograph?.magnitude ?? 0), 0) / dates.length;
+        const avgBias = dates.reduce((sum, d) => sum + extractBias(daily[d]), 0) / dates.length;
+
+        graphPage.drawText('FIELD SUMMARY', {
+          x: MARGIN,
+          y: visualY,
+          size: 14,
+          font: timesRomanFont,
+          color: rgb(0, 0, 0),
+        });
+        visualY -= 25;
+
+        graphPage.drawText(`Average Magnitude: ${avgMag.toFixed(2)}`, {
+          x: MARGIN,
+          y: visualY,
+          size: 10,
+          font: courierFont,
+          color: rgb(0, 0, 0),
+        });
+        visualY -= 15;
+
+        graphPage.drawText(`Average Directional Bias: ${avgBias >= 0 ? '+' : ''}${avgBias.toFixed(2)}`, {
+          x: MARGIN,
+          y: visualY,
+          size: 10,
+          font: courierFont,
+          color: rgb(0, 0, 0),
+        });
+        visualY -= 15;
+
+        graphPage.drawText(`Days Analyzed: ${dates.length}`, {
+          x: MARGIN,
+          y: visualY,
+          size: 10,
+          font: courierFont,
+          color: rgb(0, 0, 0),
+        });
+        visualY -= 30;
+      }
+
+      // Interpretive Note (VOICE channel - serif)
+      const noteLines = [
+        'This is a field report, not a forecast. The seismograph measures',
+        'structural climate—the geometry of pressure and possibility—not',
+        'predetermined outcomes. Use as one reference among many when',
+        'orienting to lived patterns.'
+      ];
+
+      noteLines.forEach(line => {
+        graphPage.drawText(line, {
+          x: MARGIN,
+          y: visualY,
+          size: 10,
+          font: timesRomanFont,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+        visualY -= 14;
+      });
+
+      // Footer
+      graphPage.drawText(sanitizeForPDF(`Generated: ${exportTimestamp.toLocaleString()} | Archival Mode v1.0`), {
         x: MARGIN,
         y: MARGIN - 20,
         size: 8,
-        font: timesRomanFont,
+        font: courierFont,
         color: rgb(0.5, 0.5, 0.5),
       });
 
@@ -3226,16 +3364,13 @@ export default function MathBrainPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      setToast('Symbolic Weather Dashboard PDF downloaded successfully');
+      setToast('✅ Archival Mode PDF downloaded successfully');
       setTimeout(() => setToast(null), 2500);
     } catch (error) {
       console.error('PDF generation failed:', error);
       setToast('Failed to generate charts PDF');
       setTimeout(() => setToast(null), 2500);
     } finally {
-      if (revertVisibility) {
-        revertVisibility();
-      }
       setGraphsPdfGenerating(false);
     }
   }
