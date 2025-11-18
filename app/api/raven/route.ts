@@ -312,6 +312,42 @@ function extractSubjectName(subject: any, fallback: string): string {
   return typeof name === 'string' && name.trim() ? name.trim() : fallback;
 }
 
+function extractGeometryFromContext(mirrorContext: Record<string, any>): any | null {
+  if (!mirrorContext || typeof mirrorContext.content !== 'string') return null;
+  
+  const parsed = safeParseJSON(mirrorContext.content);
+  if (!parsed.ok || !parsed.data) return null;
+  
+  const payload = parsed.data;
+  
+  // Check for mirror_directive format (uploaded reports)
+  if (payload._format === 'mirror_directive_json' && payload.mirror_directive) {
+    return payload.mirror_directive;
+  }
+  
+  // Check for geometry directly in payload
+  if (payload.geometry) return payload.geometry;
+  if (payload.raw_geometry) return payload.raw_geometry;
+  if (payload.report?.geometry) return payload.report.geometry;
+  
+  // Check unified_output structure
+  if (payload.unified_output) {
+    if (payload.unified_output.geometry) return payload.unified_output.geometry;
+    if (payload.unified_output.person_a || payload.unified_output.personA) {
+      // Has person data, can construct geometry from it
+      return payload.unified_output;
+    }
+  }
+  
+  // Check if payload itself has person_a structure
+  const personA = resolveSubject(payload, 'person_a');
+  if (hasCompleteSubject(personA)) {
+    return payload;
+  }
+  
+  return null;
+}
+
 function detectContextLayers(payload: any): string[] {
   if (!payload || typeof payload !== 'object') return [];
   const layers = new Set<string>();
@@ -916,42 +952,70 @@ export async function POST(req: Request) {
       });
     }
 
-    if (autoPlan.status === 'solo_auto') {
+if (autoPlan.status === 'solo_auto') {
       wantsWeatherOnly = false;
-      const soloResponse = await runMathBrain({
-        ...resolvedOptions,
-        reportType: 'mirror',
-        autoMode: 'solo_auto',
-      });
-      if (!soloResponse.success) {
-        const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'this report';
-        const message = `I tried to auto-run a fresh solo mirror from ${contextName}, but the Math Brain engine didn’t return a clean result. The report you uploaded is still in view—I can read directly from it. What would you like the first mirror to focus on?`;
-        appendHistoryEntry(sessionLog, 'raven', message);
-        const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Fallback)' });
-        return NextResponse.json({
-          intent: 'conversation',
-          ok: true,
-          draft: { conversation: message },
-          prov,
-          sessionId: sid,
-          probe: null,
+      
+      // Try to extract geometry from the uploaded report context first
+      const mirrorContext = normalizedContexts.find(ctx => ctx.id === autoPlan.contextId) || normalizedContexts[normalizedContexts.length - 1];
+      const extractedGeo = mirrorContext ? extractGeometryFromContext(mirrorContext) : null;
+      
+      let geometry = null;
+      let provenance: any = null;
+      let climate: any = null;
+      
+      if (extractedGeo) {
+        // Use geometry directly from uploaded report
+        geometry = extractedGeo;
+        provenance = {
+          source: `Uploaded Report: ${autoPlan.contextName || 'Mirror Directive'}`,
+          report_type: 'mirror',
+        };
+        // Try to extract climate if available
+        const parsed = safeParseJSON(mirrorContext.content);
+        if (parsed.ok && parsed.data) {
+          climate = parsed.data.climate || parsed.data.balance_meter?.climate || null;
+        }
+      } else {
+        // Fall back to calling Math Brain if geometry not found in upload
+        const soloResponse = await runMathBrain({
+          ...resolvedOptions,
+          reportType: 'mirror',
+          autoMode: 'solo_auto',
         });
+        if (!soloResponse.success) {
+          const contextName = autoPlan.contextName ? `"${autoPlan.contextName}"` : 'this report';
+          const message = `I tried to auto-run a fresh solo mirror from ${contextName}, but the Math Brain engine didn't return a clean result. The report you uploaded is still in view—I can read directly from it. What would you like the first mirror to focus on?`;
+          appendHistoryEntry(sessionLog, 'raven', message);
+          const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Fallback)' });
+          return NextResponse.json({
+            intent: 'conversation',
+            ok: true,
+            draft: { conversation: message },
+            prov,
+            sessionId: sid,
+            probe: null,
+          });
+        }
+        geometry = soloResponse.geometry;
+        provenance = soloResponse.provenance;
+        climate = soloResponse.climate;
       }
-      const soloProv = stampProvenance(soloResponse.provenance);
+      
+      const soloProv = stampProvenance(provenance);
       const soloOptions = {
         ...resolvedOptions,
-        geometryValidated: isGeometryValidated(soloResponse.geometry),
+        geometryValidated: isGeometryValidated(geometry),
         operationalFlow: OPERATIONAL_FLOW,
         operational_flow: OPERATIONAL_FLOW,
       };
       const soloDraft = await renderShareableMirror({
-        geo: soloResponse.geometry,
+        geo: geometry,
         prov: soloProv,
         options: soloOptions,
       });
       const soloProbe = createProbe(soloDraft?.next_step || 'Notice where this pattern lands in your body', randomUUID());
       sessionLog.probes.push(soloProbe);
-      return NextResponse.json({ intent, ok: true, draft: soloDraft, prov: soloProv, climate: soloResponse.climate ?? null, sessionId: sid, probe: soloProbe });
+      return NextResponse.json({ intent, ok: true, draft: soloDraft, prov: soloProv, climate: climate ?? null, sessionId: sid, probe: soloProbe });
     }
 
     if (autoPlan.status === 'relational_choice') {
