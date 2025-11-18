@@ -500,17 +500,23 @@ export default function ChatClient() {
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('Error during report analysis:', error);
-        // Fallback to a simple message if there's an error
+        // Fallback with actionable guidance tied to provenance
         const errorMessage = {
           id: generateId(),
           role: 'raven' as const,
           html: `<div class="error-message">
-            <p>I had some trouble generating the full analysis, but I'm ready to help you explore this report.</p>
-            <p>What would you like to know about ${reportLabel}?</p>
+            <p>The auto-execution stalled, but ${reportLabel} is loaded and ready.</p>
+            <p>To start the symbolic reading, try one of these prompts:</p>
+            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+              <li><strong>"Begin with a symbolic weather report"</strong> — Start with the current astrological field</li>
+              <li><strong>"Read my natal mirror"</strong> — Explore the core natal pattern</li>
+              <li><strong>"Show me the hook stack"</strong> — Begin with high-charge aspects</li>
+            </ul>
+            <p style="margin-top: 0.5rem;">Or ask any question about the symbolic geometry in ${reportLabel}.</p>
           </div>`,
           hook: "Session · Ready",
-          climate: "VOICE · Awaiting Input",
-          rawText: `I had some trouble generating the full analysis, but I'm ready to help you explore this report.\n\nWhat would you like to know about ${reportLabel}?`,
+          climate: "VOICE · Awaiting Prompt",
+          rawText: `The auto-execution stalled, but ${reportLabel} is loaded and ready.\n\nTo start the symbolic reading, try one of these prompts:\n• "Begin with a symbolic weather report" — Start with the current astrological field\n• "Read my natal mirror" — Explore the core natal pattern\n• "Show me the hook stack" — Begin with high-charge aspects\n\nOr ask any question about the symbolic geometry in ${reportLabel}.`,
           validationPoints: [],
           validationComplete: true,
         };
