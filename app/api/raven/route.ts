@@ -348,6 +348,42 @@ function extractGeometryFromContext(mirrorContext: Record<string, any>): any | n
   return null;
 }
 
+function extractGeometryFromContext(mirrorContext: Record<string, any>): any | null {
+  if (!mirrorContext || typeof mirrorContext.content !== 'string') return null;
+  
+  const parsed = safeParseJSON(mirrorContext.content);
+  if (!parsed.ok || !parsed.data) return null;
+  
+  const payload = parsed.data;
+  
+  // Check for mirror_directive format (uploaded reports)
+  if (payload._format === 'mirror_directive_json' && payload.mirror_directive) {
+    return payload.mirror_directive;
+  }
+  
+  // Check for geometry directly in payload
+  if (payload.geometry) return payload.geometry;
+  if (payload.raw_geometry) return payload.raw_geometry;
+  if (payload.report?.geometry) return payload.report.geometry;
+  
+  // Check unified_output structure
+  if (payload.unified_output) {
+    if (payload.unified_output.geometry) return payload.unified_output.geometry;
+    if (payload.unified_output.person_a || payload.unified_output.personA) {
+      // Has person data, can construct geometry from it
+      return payload.unified_output;
+    }
+  }
+  
+  // Check if payload itself has person_a structure
+  const personA = resolveSubject(payload, 'person_a');
+  if (hasCompleteSubject(personA)) {
+    return payload;
+  }
+  
+  return null;
+}
+
 function detectContextLayers(payload: any): string[] {
   if (!payload || typeof payload !== 'object') return [];
   const layers = new Set<string>();
@@ -952,7 +988,7 @@ export async function POST(req: Request) {
       });
     }
 
-if (autoPlan.status === 'solo_auto') {
+    if (autoPlan.status === 'solo_auto') {
       wantsWeatherOnly = false;
       
       // Try to extract geometry from the uploaded report context first
