@@ -172,8 +172,7 @@ jobs:
           echo ""
           
           # PRs needing review
-          NEEDS_REVIEW=$(gh pr list --state open --json reviews --jq '[.[] | select(.reviews.totalCount == 0)] | length')
-          echo "⚠️  PRs with no reviews: $NEEDS_REVIEW"
+          NEEDS_REVIEW=$(gh pr list --state open --json number,reviews | jq '[.[] | select((.reviews | length) == 0)] | length')          echo "⚠️  PRs with no reviews: $NEEDS_REVIEW"
           echo ""
         env:
           GH_TOKEN: ${{ github.token }}
