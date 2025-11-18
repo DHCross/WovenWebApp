@@ -2096,6 +2096,7 @@ export default function MathBrainPage() {
       latitude: lat != null ? String(lat) : '',
       longitude: lng != null ? String(lng) : '',
       timezone: profile.timezone || '',
+      nation: profile.birthCountry || 'US',
       zodiac_type: 'Tropic' as const,
     };
 
@@ -2124,6 +2125,7 @@ export default function MathBrainPage() {
       birthTime: `${String(person.hour).padStart(2, '0')}:${String(person.minute).padStart(2, '0')}`,
       birthCity: person.city,
       birthState: person.state,
+      birthCountry: person.nation,
       timezone: person.timezone,
       lat,
       lng,

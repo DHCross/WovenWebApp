@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { BirthProfile } from '../hooks/useUserProfiles';
 
 interface ProfileManagerProps {
@@ -28,6 +28,24 @@ export default function ProfileManager({
   const [saveSlot, setSaveSlot] = useState<'A' | 'B'>('A');
   const [saveName, setSaveName] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [expandedProfiles, setExpandedProfiles] = useState<Set<string>>(new Set());
+
+  const sortedProfiles = useMemo(
+    () => [...profiles].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })),
+    [profiles]
+  );
+
+  const toggleExpanded = (profileId: string) => {
+    setExpandedProfiles(prev => {
+      const next = new Set(prev);
+      if (next.has(profileId)) {
+        next.delete(profileId);
+      } else {
+        next.add(profileId);
+      }
+      return next;
+    });
+  };
 
   if (!isAuthenticated) {
     return (
@@ -119,52 +137,91 @@ export default function ProfileManager({
 
         {!loading && profiles.length > 0 && (
           <div className="space-y-2 max-h-96 overflow-y-auto">
-            {profiles.map(profile => (
-              <div
-                key={profile.id}
-                className="rounded-md border border-slate-700 bg-slate-800/60 p-3 hover:bg-slate-800/80 transition"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-slate-100 truncate">{profile.name}</div>
-                    <div className="text-xs text-slate-400 mt-1">
-                      {profile.birthDate} {profile.birthTime && `• ${profile.birthTime}`}
-                    </div>
-                    <div className="text-xs text-slate-500 mt-0.5 truncate">
-                      {profile.birthCity}{profile.birthState && `, ${profile.birthState}`}
-                    </div>
-                    {profile.notes && (
-                      <div className="text-xs text-slate-500 mt-1 italic truncate">
-                        {profile.notes}
+            {sortedProfiles.map(profile => {
+              const isExpanded = expandedProfiles.has(profile.id);
+
+              return (
+                <div
+                  key={profile.id}
+                  className="rounded-md border border-slate-700 bg-slate-800/60 p-3 hover:bg-slate-800/80 transition"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <button
+                      onClick={() => toggleExpanded(profile.id)}
+                      className="flex-1 min-w-0 text-left"
+                      aria-expanded={isExpanded}
+                      aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${profile.name} details`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
+                        <span className="font-medium text-slate-100 truncate">{profile.name}</span>
                       </div>
-                    )}
+                      <div className="text-xs text-slate-400 mt-1">
+                        {profile.birthDate} {profile.birthTime && `• ${profile.birthTime}`}
+                      </div>
+                      {!isExpanded && (
+                        <div className="text-[11px] text-slate-500 mt-0.5 truncate">
+                          {profile.birthCity}{profile.birthState && `, ${profile.birthState}`}
+                        </div>
+                      )}
+                    </button>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => onLoadProfile(profile, 'A')}
+                        className="rounded px-2 py-1 text-xs bg-blue-700/30 text-blue-200 hover:bg-blue-700/40 border border-blue-600/50 transition"
+                        title="Load as Person A"
+                      >
+                        → A
+                      </button>
+                      <button
+                        onClick={() => onLoadProfile(profile, 'B')}
+                        className="rounded px-2 py-1 text-xs bg-purple-700/30 text-purple-200 hover:bg-purple-700/40 border border-purple-600/50 transition"
+                        title="Load as Person B"
+                      >
+                        → B
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(profile.id)}
+                        className="rounded px-2 py-1 text-xs bg-rose-700/30 text-rose-200 hover:bg-rose-700/40 border border-rose-600/50 transition"
+                        title="Delete profile"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex gap-1 flex-shrink-0">
-                    <button
-                      onClick={() => onLoadProfile(profile, 'A')}
-                      className="rounded px-2 py-1 text-xs bg-blue-700/30 text-blue-200 hover:bg-blue-700/40 border border-blue-600/50 transition"
-                      title="Load as Person A"
-                    >
-                      → A
-                    </button>
-                    <button
-                      onClick={() => onLoadProfile(profile, 'B')}
-                      className="rounded px-2 py-1 text-xs bg-purple-700/30 text-purple-200 hover:bg-purple-700/40 border border-purple-600/50 transition"
-                      title="Load as Person B"
-                    >
-                      → B
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(profile.id)}
-                      className="rounded px-2 py-1 text-xs bg-rose-700/30 text-rose-200 hover:bg-rose-700/40 border border-rose-600/50 transition"
-                      title="Delete profile"
-                    >
-                      ✕
-                    </button>
-                  </div>
+
+                  {isExpanded && (
+                    <div className="mt-2 space-y-1 text-xs text-slate-400">
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-500">Birthplace:</span>
+                        <span className="truncate">
+                          {profile.birthCity}
+                          {profile.birthState && `, ${profile.birthState}`}
+                          {profile.birthCountry && ` • ${profile.birthCountry}`}
+                        </span>
+                      </div>
+                      {profile.timezone && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-500">Timezone:</span>
+                          <span className="truncate">{profile.timezone}</span>
+                        </div>
+                      )}
+                      {(profile.lat != null || profile.lng != null) && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-500">Lat / Long:</span>
+                          <span className="truncate">
+                            {profile.lat ?? profile.latitude} / {profile.lng ?? profile.longitude}
+                          </span>
+                        </div>
+                      )}
+                      {profile.notes && (
+                        <div className="italic text-slate-500">{profile.notes}</div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
