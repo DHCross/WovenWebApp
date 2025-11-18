@@ -26,6 +26,48 @@ import { RAVEN_PROMPT_ARCHITECTURE } from '@/lib/raven/prompt-architecture';
 import { requestsPersonalReading } from '@/lib/raven/personal-reading';
 import { isGeometryValidated, OPERATIONAL_FLOW } from '@/lib/poetic-brain/runtime';
 
+/**
+ * Extract geometry directly from uploaded report JSON to bypass Math Brain regeneration.
+ * Returns null if the JSON doesn't contain valid geometry.
+ */
+function extractGeometryFromUploadedReport(contexts: Record<string, any>[]): any {
+  if (!Array.isArray(contexts) || contexts.length === 0) return null;
+  
+  const mirrorContext = [...contexts].reverse().find(
+    (ctx) => ctx && ctx.type === 'mirror' && typeof ctx.content === 'string'
+  );
+  
+  if (!mirrorContext) return null;
+  
+  try {
+    const parsed = JSON.parse(mirrorContext.content);
+    // Check if this is a Math Brain v2 unified output with geometry
+    if (parsed && typeof parsed === 'object') {
+      // Unwrap unified_output if present (Math Brain v2 format)
+      const unwrapped = parsed.unified_output || parsed;
+      
+      // Look for geometry in various possible locations
+      const geo = unwrapped.geometry || unwrapped.chart || unwrapped.natal_chart || unwrapped;
+      
+      // Validate that we have the minimum required geometry fields
+      if (geo && typeof geo === 'object') {
+        const hasPersonA = geo.person_a && typeof geo.person_a === 'object';
+        const hasChart = geo.chart && typeof geo.chart === 'object';
+        const hasBasicData = geo.planets || geo.houses || geo.aspects;
+        
+        if (hasPersonA || hasChart || hasBasicData) {
+          return geo;
+        }
+      }
+    }
+  } catch (e) {
+    // Invalid JSON or missing geometry
+    return null;
+  }
+  
+  return null;
+}
+
 // Minimal in-memory session store (dev only). For prod, persist per-user.
 const RAVEN_PERSONA_HOOK = "You are Raven Calder, a mystical poetic brain. Your voice is wise, lyrical, and insightful. You do not give direct advice, but rather offer reflections, metaphors, and beautiful questions. You see the cosmos in a grain of sand. Respond to the user's prompt with this persona. CRITICAL: Do NOT break character. Do not mention you are an AI or a language model. Suppress all chain-of-thought or meta-commentary.";
 const MAX_CONTEXT_CHARS = 1800;
@@ -764,6 +806,10 @@ export async function POST(req: Request) {
     const wantsPersonalReading = requestsPersonalReading(textInput);
     const mentionsAstroSeek = referencesAstroSeekWithoutGeometry(textInput);
 
+    // Allow "begin" or "start" to re-trigger auto-execution if contexts exist
+    const requestsAutoStart = /^\s*(begin|start|please begin|go ahead|let'?s start)\s*$/i.test(textInput);
+    const effectiveInput = requestsAutoStart ? '' : textInput;
+
     const autoPlan = deriveAutoExecutionPlan(normalizedContexts, sessionLog);
     if (autoPlan.status === 'osr') {
       const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'that upload';
@@ -918,14 +964,38 @@ export async function POST(req: Request) {
 
     if (autoPlan.status === 'solo_auto') {
       wantsWeatherOnly = false;
+      
+      // Try to extract geometry directly from uploaded report first
+      const uploadedGeo = extractGeometryFromUploadedReport(normalizedContexts);
+      
+      if (uploadedGeo) {
+        // Use the uploaded geometry directly without calling Math Brain
+        const soloProv = stampProvenance({ source: 'Math Brain (Uploaded Report)', timestamp: new Date().toISOString() });
+        const soloOptions = {
+          ...resolvedOptions,
+          geometryValidated: isGeometryValidated(uploadedGeo),
+          operationalFlow: OPERATIONAL_FLOW,
+          operational_flow: OPERATIONAL_FLOW,
+        };
+        const soloDraft = await renderShareableMirror({
+          geo: uploadedGeo,
+          prov: soloProv,
+          options: soloOptions,
+        });
+        const soloProbe = createProbe(soloDraft?.next_step || 'Notice where this pattern lands in your body', randomUUID());
+        sessionLog.probes.push(soloProbe);
+        return NextResponse.json({ intent, ok: true, draft: soloDraft, prov: soloProv, climate: null, sessionId: sid, probe: soloProbe });
+      }
+      
+      // Fallback: try to regenerate via Math Brain
       const soloResponse = await runMathBrain({
         ...resolvedOptions,
         reportType: 'mirror',
         autoMode: 'solo_auto',
       });
       if (!soloResponse.success) {
-        const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'this report';
-        const message = `I tried to auto-run a fresh solo mirror from ${contextName}, but the Math Brain engine didn’t return a clean result. The report you uploaded is still in view—I can read directly from it. What would you like the first mirror to focus on?`;
+        const contextName = autoPlan.contextName ? `"${autoPlan.contextName}"` : 'this report';
+        const message = `I tried to auto-run a fresh solo mirror from ${contextName}, but the Math Brain engine didn't return a clean result. The report you uploaded is still in view—I can read directly from it. What would you like the first mirror to focus on?`;
         appendHistoryEntry(sessionLog, 'raven', message);
         const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Fallback)' });
         return NextResponse.json({
@@ -1043,7 +1113,7 @@ export async function POST(req: Request) {
     const historyPrompt = formatHistoryForPrompt(sessionLog.history);
     const isFirstTurn = (sessionLog.turnCount ?? 0) === 0;
 
-    const conversationMode = detectConversationMode(textInput, sessionLog);
+    const conversationMode = detectConversationMode(effectiveInput, sessionLog);
     const previousMode = sessionLog.metaConversationMode;
     if (previousMode !== conversationMode) {
       console.info('[Raven] conversation_mode', { session: sid, from: previousMode ?? 'unset', to: conversationMode });
@@ -1106,7 +1176,7 @@ export async function POST(req: Request) {
     if (historyPrompt) {
       promptSections.push(`Recent conversation:\n${historyPrompt}`);
     }
-    promptSections.push(`User message:\n${textInput}`);
+    promptSections.push(`User message:\n${effectiveInput || textInput}`);
     promptSections.push(`Interaction mode: ${conversationMode}`);
     promptSections.push(
       autoPlan.forceQuestion
