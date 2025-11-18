@@ -17,6 +17,8 @@ interface BirthProfile {
   timezone?: string;
   lat?: number;
   lng?: number;
+  latitude?: number;
+  longitude?: number;
   notes?: string;
 }
 
@@ -56,11 +58,24 @@ export async function GET(req: NextRequest) {
     // Netlify Blobs returns ArrayBuffer, convert to string
     const dataString = typeof data === 'string' ? data : new TextDecoder().decode(data as ArrayBuffer);
     const parsed: UserProfiles = JSON.parse(dataString);
-    logger.info('Profiles retrieved', { userId, count: parsed.profiles.length });
-    
+
+    // Normalize any legacy coordinate field names (latitude/longitude -> lat/lng)
+    const normalizedProfiles = parsed.profiles.map((profile) => {
+      const lat = profile.lat ?? (profile as any).latitude;
+      const lng = profile.lng ?? (profile as any).longitude;
+
+      return {
+        ...profile,
+        lat: typeof lat === 'number' ? lat : lat != null ? Number(lat) : undefined,
+        lng: typeof lng === 'number' ? lng : lng != null ? Number(lng) : undefined,
+      } satisfies BirthProfile;
+    });
+
+    logger.info('Profiles retrieved', { userId, count: normalizedProfiles.length });
+
     return NextResponse.json({
       success: true,
-      profiles: parsed.profiles,
+      profiles: normalizedProfiles,
       userId: parsed.userId,
       lastUpdated: parsed.lastUpdated
     });
@@ -100,9 +115,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Normalize coordinates to ensure lat/lng are persisted even if client sends latitude/longitude
+    const normalizedProfiles: BirthProfile[] = profiles.map((profile) => {
+      const lat = profile.lat ?? (profile as any).latitude;
+      const lng = profile.lng ?? (profile as any).longitude;
+
+      return {
+        ...profile,
+        lat: typeof lat === 'number' ? lat : lat != null ? Number(lat) : undefined,
+        lng: typeof lng === 'number' ? lng : lng != null ? Number(lng) : undefined,
+      } satisfies BirthProfile;
+    });
+
     const userProfiles: UserProfiles = {
       userId,
-      profiles,
+      profiles: normalizedProfiles,
       lastUpdated: new Date().toISOString()
     };
 

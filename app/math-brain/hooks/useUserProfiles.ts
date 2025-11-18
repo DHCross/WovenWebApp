@@ -11,6 +11,8 @@ export interface BirthProfile {
   timezone?: string;
   lat?: number;
   lng?: number;
+  latitude?: number;
+  longitude?: number;
   notes?: string;
 }
 
@@ -46,7 +48,18 @@ export function useUserProfiles(userId: string | null): UseUserProfilesResult {
         throw new Error(data.error || 'Failed to load profiles');
       }
 
-      setProfiles(data.profiles || []);
+      const normalized = (data.profiles || []).map((profile: BirthProfile) => {
+        const lat = profile.lat ?? profile.latitude;
+        const lng = profile.lng ?? profile.longitude;
+
+        return {
+          ...profile,
+          lat: typeof lat === 'number' ? lat : lat != null ? Number(lat) : undefined,
+          lng: typeof lng === 'number' ? lng : lng != null ? Number(lng) : undefined,
+        } as BirthProfile;
+      });
+
+      setProfiles(normalized);
     } catch (err: any) {
       console.error('[useUserProfiles] Load failed:', err);
       setError(err.message || 'Failed to load profiles');

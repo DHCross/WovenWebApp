@@ -2081,6 +2081,9 @@ export default function MathBrainPage() {
 
   // Profile management functions
   const handleLoadProfile = useCallback((profile: BirthProfile, slot: 'A' | 'B') => {
+    const lat = profile.lat ?? (profile as any).latitude;
+    const lng = profile.lng ?? (profile as any).longitude;
+
     const person = {
       name: profile.name,
       year: profile.birthDate.split('-')[0] || '',
@@ -2090,8 +2093,8 @@ export default function MathBrainPage() {
       minute: profile.birthTime.split(':')[1] || '',
       city: profile.birthCity,
       state: profile.birthState || '',
-      latitude: profile.lat ? String(profile.lat) : '',
-      longitude: profile.lng ? String(profile.lng) : '',
+      latitude: lat != null ? String(lat) : '',
+      longitude: lng != null ? String(lng) : '',
       timezone: profile.timezone || '',
       zodiac_type: 'Tropic' as const,
     };
@@ -2111,6 +2114,9 @@ export default function MathBrainPage() {
       return;
     }
 
+    const lat = person.latitude ? parseFloat(String(person.latitude)) : undefined;
+    const lng = person.longitude ? parseFloat(String(person.longitude)) : undefined;
+
     const profile: BirthProfile = {
       id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name,
@@ -2119,8 +2125,10 @@ export default function MathBrainPage() {
       birthCity: person.city,
       birthState: person.state,
       timezone: person.timezone,
-      lat: person.latitude ? parseFloat(String(person.latitude)) : undefined,
-      lng: person.longitude ? parseFloat(String(person.longitude)) : undefined,
+      lat,
+      lng,
+      latitude: lat,
+      longitude: lng,
     };
 
     const success = await saveProfile(profile);
