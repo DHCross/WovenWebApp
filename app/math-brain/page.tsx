@@ -2115,8 +2115,12 @@ export default function MathBrainPage() {
 
   // Profile management functions
   const handleLoadProfile = useCallback((profile: BirthProfile, slot: 'A' | 'B') => {
-    const lat = profile.lat ?? (profile as any).latitude;
-    const lng = profile.lng ?? (profile as any).longitude;
+    const rawLat = profile.lat ?? (profile as any).latitude;
+    const rawLng = profile.lng ?? (profile as any).longitude;
+
+    const lat = rawLat != null ? Number(rawLat) : undefined;
+    const lng = rawLng != null ? Number(rawLng) : undefined;
+    const hasCoords = Number.isFinite(lat as number) && Number.isFinite(lng as number);
 
     const person = {
       name: profile.name,
@@ -2127,8 +2131,8 @@ export default function MathBrainPage() {
       minute: profile.birthTime.split(':')[1] || '',
       city: profile.birthCity,
       state: profile.birthState || '',
-      latitude: lat != null ? String(lat) : '',
-      longitude: lng != null ? String(lng) : '',
+      latitude: hasCoords && typeof lat === 'number' ? String(lat) : '',
+      longitude: hasCoords && typeof lng === 'number' ? String(lng) : '',
       timezone: profile.timezone || '',
       nation: profile.birthCountry || 'US',
       zodiac_type: 'Tropic' as const,
@@ -2136,8 +2140,26 @@ export default function MathBrainPage() {
 
     if (slot === 'A') {
       setPersonA(person);
+      if (hasCoords && typeof lat === 'number' && typeof lng === 'number') {
+        setACoordsInput(formatDecimal(lat, lng));
+        setACoordsError(null);
+        setACoordsValid(true);
+      } else {
+        setACoordsInput('');
+        setACoordsError(null);
+        setACoordsValid(true);
+      }
     } else {
       setPersonB(person);
+      if (hasCoords && typeof lat === 'number' && typeof lng === 'number') {
+        setBCoordsInput(formatDecimal(lat, lng));
+        setBCoordsError(null);
+        setBCoordsValid(true);
+      } else {
+        setBCoordsInput('');
+        setBCoordsError(null);
+        setBCoordsValid(true);
+      }
     }
   }, []);
 
