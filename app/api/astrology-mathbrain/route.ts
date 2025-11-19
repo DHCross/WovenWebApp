@@ -479,6 +479,7 @@ export async function POST(request: NextRequest) {
       const runMetadata = unifiedOutput?.run_metadata ?? {};
       const safePersonA = sanitizeForFilename(runMetadata?.person_a, 'PersonA');
       const safePersonB = sanitizeForFilename(runMetadata?.person_b, runMetadata?.person_b ? 'PersonB' : 'Solo');
+      const todayIso = new Date().toISOString().split('T')[0];
 
       const responseBody = {
         ...chartData,
@@ -488,7 +489,11 @@ export async function POST(request: NextRequest) {
         markdown_reading: markdownContent,
         download_formats: {
           mirror_report: { format: 'markdown', content: markdownContent, filename: markdownFilename },
-          symbolic_weather: { format: 'json', content: unifiedOutput, filename: `unified_output_${safePersonA}_${safePersonB}_${new Date().toISOString().split('T')[0]}.json` }
+          symbolic_weather: {
+            format: 'json',
+            content: unifiedOutput,
+            filename: `Mirror+SymbolicWeather_${safePersonA}_${safePersonB}_${todayIso}.json`,
+          }
         }
       };
 

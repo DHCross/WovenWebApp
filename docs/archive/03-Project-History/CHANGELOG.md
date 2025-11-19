@@ -1,3 +1,32 @@
+## [2025-11-18] ARCHITECTURE: Retiring the "Hybrid Beast" and migrating to Pure Next.js
+
+**Date:** 2025-11-18  
+**Status:** ✅ COMPLETED  
+**Impact:** HIGH – Simplifies architecture, eliminates two-port dev, and stabilizes routing
+
+**What changed**
+- Migrated from mixed static HTML + Netlify Functions + Next.js to a single **Pure Next.js App Router** application.
+- Consolidated the Astro Brain ingress into `app/api/astrology-mathbrain/route.ts` as the keystone route handler.
+- Archived legacy static entry points (`index.html`, `chat.html`, and old `pages/` routes) into `/docs/archive` and removed them from the live routing surface.
+- Stopped relying on `netlify dev` + multi-port proxying for local development; `npm run dev` (Next.js dev server) is now the canonical way to run the app locally.
+- Updated architecture docs to the “Pure Next.js Edition” describing the unified System Spine and guardrails.
+
+**Why it matters**
+- Eliminates the "Hybrid Beast" routing tug-of-war between static files, Next.js pages, and Netlify Functions.
+- Removes the two-port problem and fragile `netlify.toml` redirect hacks.
+- Makes the backend self-reporting and easier to reason about for both humans and AI tooling.
+- Ensures the code that runs in development is the same shape that runs in production.
+
+**Files Changed / Added**
+- `WovenWebApp – Architecture OverviewPure Next.js Edition.md`
+- `WovenWeb Codemap & GuardrailsAuthoritative System Flow – Pure.md`
+- Legacy static assets and configs moved under `docs/archive/04-Legacy-Architecture/` and related history folders.
+
+**Notes**
+- Earlier entries recommending `netlify dev` as the default runner now describe the **legacy** environment that existed prior to this migration.
+
+---
+
 ## [2025-11-18] ENHANCEMENT: Save Profiles Before Report Generation
 
 **Date:** 2025-11-18  

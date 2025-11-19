@@ -190,8 +190,8 @@ function computeRelationalSummary(dailyEntries, options = {}) {
       person_a: transitData?.person_a || {},
       person_b: transitData?.person_b || null,
       transit_window: {
-        start_date: config.transitStartDate,
-        end_date: config.transitEndDate,
+        start_date: startDate,
+        end_date: endDate,
         step: config.step || 'daily',
       },
       transits: dailyEntries || {},
@@ -537,11 +537,13 @@ function getRealAspectData(date, personA, personB, transitData = {}) {
   const transitsB = [];
   const synastryAspects = [];
 
-  console.log('[getRealAspectData] Processing date:', date);
-  console.log('[getRealAspectData] transitData keys:', Object.keys(transitData || {}));
-  console.log('[getRealAspectData] person_a exists:', !!transitData?.person_a);
-  console.log('[getRealAspectData] person_a.chart exists:', !!transitData?.person_a?.chart);
-  console.log('[getRealAspectData] transitsByDate exists:', !!transitData?.person_a?.chart?.transitsByDate);
+  if (process.env.MATH_BRAIN_DEBUG_TRANSITS === '1') {
+    console.log('[getRealAspectData] Processing date:', date);
+    console.log('[getRealAspectData] transitData keys:', Object.keys(transitData || {}));
+    console.log('[getRealAspectData] person_a exists:', !!transitData?.person_a);
+    console.log('[getRealAspectData] person_a.chart exists:', !!transitData?.person_a?.chart);
+    console.log('[getRealAspectData] transitsByDate exists:', !!transitData?.person_a?.chart?.transitsByDate);
+  }
 
   const dayA = transitData?.person_a?.chart?.transitsByDate?.[date];
   if (dayA) {

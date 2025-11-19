@@ -40,6 +40,10 @@ function createMarkdownReading(input, options = {}) {
 
   const { run_metadata, daily_entries } = data;
 
+  const personALabel = run_metadata?.person_a || 'Person A';
+  const personBLabel = run_metadata?.person_b || null;
+  const isRelational = Boolean(personBLabel);
+
   let markdownContent = '';
 
   // --- Generate Frontstage Preface ---
@@ -53,16 +57,31 @@ function createMarkdownReading(input, options = {}) {
 
   // --- Generate Markdown for each day ---
   for (const day of daily_entries) {
-    markdownContent += `## Woven Reading: ${run_metadata.person_a} & ${run_metadata.person_b}\n`;
+    if (isRelational) {
+      markdownContent += `## Woven Reading: ${personALabel} & ${personBLabel}\n`;
+    } else {
+      markdownContent += `## Woven Reading: ${personALabel}\n`;
+    }
     markdownContent += `**Date:** ${day.date}\n\n`;
     markdownContent += '---\n\n';
 
     markdownContent += '### Data for Interpretation\n\n';
 
     // 1. Symbolic Reading (Field Metrics)
+    const magLabelObj = day?.symbolic_weather?.labels?.magnitude;
+    const biasLabelObj = day?.symbolic_weather?.labels?.directional_bias;
+    const magLabel =
+      magLabelObj && typeof magLabelObj === 'object'
+        ? (magLabelObj.label || magLabelObj.code || '')
+        : (magLabelObj || '');
+    const biasLabel =
+      biasLabelObj && typeof biasLabelObj === 'object'
+        ? (biasLabelObj.label || biasLabelObj.code || '')
+        : (biasLabelObj || '');
+
     markdownContent += '#### Symbolic Reading (Field Metrics)\n';
-    markdownContent += `- **Magnitude**: ${day.symbolic_weather.magnitude} (${day.symbolic_weather.labels.magnitude})\n`;
-    markdownContent += `- **Directional Bias**: ${day.symbolic_weather.directional_bias} (${day.symbolic_weather.labels.directional_bias})\n`;
+    markdownContent += `- **Magnitude**: ${day.symbolic_weather.magnitude} (${magLabel})\n`;
+    markdownContent += `- **Directional Bias**: ${day.symbolic_weather.directional_bias} (${biasLabel})\n`;
     markdownContent += `- **Schema**: BM-v5.0\n`;
     
     markdownContent += '\n';
@@ -72,8 +91,11 @@ function createMarkdownReading(input, options = {}) {
     markdownContent += `- **Relational Tension**: ${day.mirror_data.relational_tension}\n`;
     markdownContent += `- **Relational Flow**: ${day.mirror_data.relational_flow}\n`;
     markdownContent += `- **Dominant Theme**: ${day.mirror_data.dominant_theme}\n`;
-    markdownContent += `- **${run_metadata.person_a}'s Contribution**: Magnitude ${day.mirror_data.person_a_contribution.magnitude}, Bias ${day.mirror_data.person_a_contribution.bias}\n`;
-    markdownContent += `- **${run_metadata.person_b}'s Contribution**: Magnitude ${day.mirror_data.person_b_contribution.magnitude}, Bias ${day.mirror_data.person_b_contribution.bias}\n\n`;
+    markdownContent += `- **${personALabel}'s Contribution**: Magnitude ${day.mirror_data.person_a_contribution.magnitude}, Bias ${day.mirror_data.person_a_contribution.bias}\n`;
+    if (isRelational && day.mirror_data.person_b_contribution) {
+      markdownContent += `- **${personBLabel}'s Contribution**: Magnitude ${day.mirror_data.person_b_contribution.magnitude}, Bias ${day.mirror_data.person_b_contribution.bias}\n`;
+    }
+    markdownContent += '\n';
 
     // 3. Poetic Hooks
     markdownContent += '#### Poetic Hooks (Narrative Triggers)\n';
