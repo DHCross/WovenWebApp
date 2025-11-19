@@ -1901,8 +1901,42 @@ export default function MathBrainPage() {
       }
     }
 
+    // UX guard: if relocation coordinates effectively match birth place, call it out
+    if (
+      includeTransits &&
+      relocationInputReady &&
+      relocCoords &&
+      !notice &&
+      (translocation === 'A_LOCAL' || (isDyadMode && translocation === 'B_LOCAL'))
+    ) {
+      const epsilon = 1e-4; // ~11m — close enough to treat as same place
+      const source = translocation === 'A_LOCAL' ? personA : personB;
+      const latBirth = parseMaybeNumber((source as any).latitude);
+      const lonBirth = parseMaybeNumber((source as any).longitude);
+
+      if (latBirth !== null && lonBirth !== null) {
+        const latDiff = Math.abs(latBirth - relocCoords.lat);
+        const lonDiff = Math.abs(lonBirth - relocCoords.lon);
+        if (latDiff <= epsilon && lonDiff <= epsilon) {
+          notice =
+            translocation === 'A_LOCAL'
+              ? 'Relocation matches Person A birth place; symbolic weather will match natal houses.'
+              : 'Relocation matches Person B birth place; symbolic weather will match natal houses.';
+        }
+      }
+    }
+
     return { effectiveMode, notice };
-  }, [includeTransits, translocation, relocationInputReady, isDyadMode, personBLocationReady]);
+  }, [
+    includeTransits,
+    translocation,
+    relocationInputReady,
+    isDyadMode,
+    personBLocationReady,
+    relocCoords,
+    personA,
+    personB,
+  ]);
 
   // Extract UI/UX Contract types (computed once, passed down to children)
   const reportHeader = useMemo(
@@ -2115,8 +2149,16 @@ export default function MathBrainPage() {
       return;
     }
 
-    const lat = person.latitude ? parseFloat(String(person.latitude)) : undefined;
-    const lng = person.longitude ? parseFloat(String(person.longitude)) : undefined;
+    const latRaw = (person as any).latitude ?? (person as any).lat;
+    const lngRaw = (person as any).longitude ?? (person as any).lng;
+    const latParsed = latRaw !== undefined && latRaw !== null && `${latRaw}`.trim() !== ''
+      ? Number(latRaw)
+      : undefined;
+    const lngParsed = lngRaw !== undefined && lngRaw !== null && `${lngRaw}`.trim() !== ''
+      ? Number(lngRaw)
+      : undefined;
+    const lat = Number.isFinite(latParsed as number) ? (latParsed as number) : undefined;
+    const lng = Number.isFinite(lngParsed as number) ? (lngParsed as number) : undefined;
 
     const profile: BirthProfile = {
       id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -4637,27 +4679,15 @@ export default function MathBrainPage() {
             Save for next session
           </label>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex overflow-hidden rounded-md border border-slate-700 bg-slate-800">
-              <button
-                type="button"
-                onClick={() => handleSaveSetupJSON('A_ONLY')}
-                className="px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-                title="Save only Person A’s setup to JSON"
-                aria-label="Save only Person A setup"
-              >
-                Save A
-              </button>
-              <div className="h-6 w-px bg-slate-700 my-1" />
-              <button
-                type="button"
-                onClick={() => handleSaveSetupJSON('A_B')}
-                className="px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-                title="Save Person A + B (if included)"
-                aria-label="Save Person A and B setup"
-              >
-                Save A+B
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => handleSaveSetupJSON()}
+              className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+              title="Save the current setup (people, dates, mode, relationship) to JSON"
+              aria-label="Save current setup to JSON"
+            >
+              Save Setup
+            </button>
             <label
               htmlFor={setupUploadId}
               className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
@@ -4670,7 +4700,7 @@ export default function MathBrainPage() {
                 }
               }}
             >
-              Load setup…
+              Load Setup…
             </label>
             <input
               ref={fileInputRef}

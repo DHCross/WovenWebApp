@@ -29,6 +29,7 @@ export default function ProfileManager({
   const [saveName, setSaveName] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [expandedProfiles, setExpandedProfiles] = useState<Set<string>>(new Set());
+  const [showProfilesList, setShowProfilesList] = useState(true);
 
   const sortedProfiles = useMemo(
     () => [...profiles].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })),
@@ -119,110 +120,130 @@ export default function ProfileManager({
 
       {/* Saved Profiles List */}
       <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4">
-        <h3 className="text-sm font-semibold text-slate-200 mb-3">
-          📚 Saved Profiles ({profiles.length})
-        </h3>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-slate-200">
+            📚 Saved Profiles ({profiles.length})
+          </h3>
+          {profiles.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowProfilesList((prev) => !prev)}
+              className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+              aria-expanded={showProfilesList}
+              aria-label={showProfilesList ? 'Collapse saved profiles list' : 'Expand saved profiles list'}
+            >
+              <span>{showProfilesList ? 'Hide list' : 'Show list'}</span>
+              <span className={`text-[10px] transition-transform ${showProfilesList ? 'rotate-90' : ''}`}>
+                ▶
+              </span>
+            </button>
+          )}
+        </div>
 
-        {loading && (
-          <div className="text-sm text-slate-400 py-4 text-center">
-            Loading profiles...
-          </div>
-        )}
+        {showProfilesList && (
+          <>
+            {loading && (
+              <div className="text-sm text-slate-400 py-4 text-center">
+                Loading profiles...
+              </div>
+            )}
 
-        {!loading && profiles.length === 0 && (
-          <div className="text-sm text-slate-400 py-4 text-center">
-            No saved profiles yet. Save Person A or B above to get started!
-          </div>
-        )}
+            {!loading && profiles.length === 0 && (
+              <div className="text-sm text-slate-400 py-4 text-center">
+                No saved profiles yet. Save Person A or B above to get started!
+              </div>
+            )}
 
-        {!loading && profiles.length > 0 && (
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {sortedProfiles.map(profile => {
-              const isExpanded = expandedProfiles.has(profile.id);
+            {!loading && profiles.length > 0 && (
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {sortedProfiles.map(profile => {
+                  const isExpanded = expandedProfiles.has(profile.id);
 
-              return (
-                <div
-                  key={profile.id}
-                  className="rounded-md border border-slate-700 bg-slate-800/60 p-3 hover:bg-slate-800/80 transition"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <button
-                      onClick={() => toggleExpanded(profile.id)}
-                      className="flex-1 min-w-0 text-left"
-                      aria-expanded={isExpanded}
-                      aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${profile.name} details`}
+                  return (
+                    <div
+                      key={profile.id}
+                      className="rounded-md border border-slate-700 bg-slate-800/60 p-3 hover:bg-slate-800/80 transition"
                     >
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
-                        <span className="font-medium text-slate-100 truncate">{profile.name}</span>
-                      </div>
-                      <div className="text-xs text-slate-400 mt-1">
-                        {profile.birthDate} {profile.birthTime && `• ${profile.birthTime}`}
-                      </div>
-                      {!isExpanded && (
-                        <div className="text-[11px] text-slate-500 mt-0.5 truncate">
-                          {profile.birthCity}{profile.birthState && `, ${profile.birthState}`}
+                      <div className="flex items-start justify-between gap-3">
+                        <button
+                          onClick={() => toggleExpanded(profile.id)}
+                          className="flex-1 min-w-0 text-left"
+                          aria-expanded={isExpanded}
+                          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${profile.name} details`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
+                            <span className="font-medium text-slate-100 truncate">{profile.name}</span>
+                          </div>
+                          <div className="text-xs text-slate-400 mt-1">
+                            {profile.birthDate} {profile.birthTime && `• ${profile.birthTime}`}
+                          </div>
+                          {!isExpanded && (
+                            <div className="text-[11px] text-slate-500 mt-0.5 truncate">
+                              {profile.birthCity}{profile.birthState && `, ${profile.birthState}`}
+                            </div>
+                          )}
+                        </button>
+                        <div className="flex gap-1 flex-shrink-0">
+                          <button
+                            onClick={() => onLoadProfile(profile, 'A')}
+                            className="rounded px-2 py-1 text-xs bg-blue-700/30 text-blue-200 hover:bg-blue-700/40 border border-blue-600/50 transition"
+                            title="Load as Person A"
+                          >
+                            → A
+                          </button>
+                          <button
+                            onClick={() => onLoadProfile(profile, 'B')}
+                            className="rounded px-2 py-1 text-xs bg-purple-700/30 text-purple-200 hover:bg-purple-700/40 border border-purple-600/50 transition"
+                            title="Load as Person B"
+                          >
+                            → B
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(profile.id)}
+                            className="rounded px-2 py-1 text-xs bg-rose-700/30 text-rose-200 hover:bg-rose-700/40 border border-rose-600/50 transition"
+                            title="Delete profile"
+                          >
+                            ✕
+                          </button>
                         </div>
-                      )}
-                    </button>
-                    <div className="flex gap-1 flex-shrink-0">
-                      <button
-                        onClick={() => onLoadProfile(profile, 'A')}
-                        className="rounded px-2 py-1 text-xs bg-blue-700/30 text-blue-200 hover:bg-blue-700/40 border border-blue-600/50 transition"
-                        title="Load as Person A"
-                      >
-                        → A
-                      </button>
-                      <button
-                        onClick={() => onLoadProfile(profile, 'B')}
-                        className="rounded px-2 py-1 text-xs bg-purple-700/30 text-purple-200 hover:bg-purple-700/40 border border-purple-600/50 transition"
-                        title="Load as Person B"
-                      >
-                        → B
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(profile.id)}
-                        className="rounded px-2 py-1 text-xs bg-rose-700/30 text-rose-200 hover:bg-rose-700/40 border border-rose-600/50 transition"
-                        title="Delete profile"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
+                      </div>
 
-                  {isExpanded && (
-                    <div className="mt-2 space-y-1 text-xs text-slate-400">
-                      <div className="flex items-center gap-2">
-                        <span className="text-slate-500">Birthplace:</span>
-                        <span className="truncate">
-                          {profile.birthCity}
-                          {profile.birthState && `, ${profile.birthState}`}
-                          {profile.birthCountry && ` • ${profile.birthCountry}`}
-                        </span>
-                      </div>
-                      {profile.timezone && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-500">Timezone:</span>
-                          <span className="truncate">{profile.timezone}</span>
+                      {isExpanded && (
+                        <div className="mt-2 space-y-1 text-xs text-slate-400">
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-500">Birthplace:</span>
+                            <span className="truncate">
+                              {profile.birthCity}
+                              {profile.birthState && `, ${profile.birthState}`}
+                              {profile.birthCountry && ` • ${profile.birthCountry}`}
+                            </span>
+                          </div>
+                          {profile.timezone && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-500">Timezone:</span>
+                              <span className="truncate">{profile.timezone}</span>
+                            </div>
+                          )}
+                          {(profile.lat != null || profile.lng != null) && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-500">Lat / Long:</span>
+                              <span className="truncate">
+                                {profile.lat ?? profile.latitude} / {profile.lng ?? profile.longitude}
+                              </span>
+                            </div>
+                          )}
+                          {profile.notes && (
+                            <div className="italic text-slate-500">{profile.notes}</div>
+                          )}
                         </div>
-                      )}
-                      {(profile.lat != null || profile.lng != null) && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-500">Lat / Long:</span>
-                          <span className="truncate">
-                            {profile.lat ?? profile.latitude} / {profile.lng ?? profile.longitude}
-                          </span>
-                        </div>
-                      )}
-                      {profile.notes && (
-                        <div className="italic text-slate-500">{profile.notes}</div>
                       )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
 
