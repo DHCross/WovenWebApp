@@ -225,6 +225,53 @@ const structureFromMode = (mode: ReportMode): ReportStructure => {
   }
 };
 
+const normalizeText = (value: unknown) => (value ?? "").toString().trim().toLowerCase();
+
+const normalizeNumber = (value: unknown) => {
+  if (value === null || value === undefined || `${value}`.trim() === "") return "";
+  const num = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(num) ? num.toFixed(6) : "";
+};
+
+const pad2 = (value: string | number | undefined) => {
+  if (value === null || value === undefined) return "";
+  const stringValue = value.toString();
+  return stringValue.length === 0 ? "" : stringValue.padStart(2, "0");
+};
+
+const buildProfileSignature = (profile: BirthProfile) => {
+  return [
+    normalizeText(profile.name),
+    profile.birthDate || "",
+    profile.birthTime || "",
+    normalizeText(profile.birthCity),
+    normalizeText(profile.birthState),
+    normalizeText(profile.birthCountry),
+    normalizeText(profile.timezone),
+    normalizeNumber(profile.lat ?? profile.latitude),
+    normalizeNumber(profile.lng ?? profile.longitude),
+  ].join("|");
+};
+
+const buildPersonSignature = (person: Subject) => {
+  if (!person?.name || !person.year || !person.month || !person.day) return "";
+
+  const birthDate = `${person.year}-${pad2(person.month)}-${pad2(person.day)}`;
+  const birthTime = `${pad2(person.hour)}:${pad2(person.minute)}`;
+
+  return [
+    normalizeText(person.name),
+    birthDate,
+    birthTime,
+    normalizeText(person.city),
+    normalizeText((person as any).state),
+    normalizeText((person as any).nation),
+    normalizeText(person.timezone),
+    normalizeNumber((person as any).latitude),
+    normalizeNumber((person as any).longitude),
+  ].join("|");
+};
+
 const toFiniteNumber = (value: unknown): number => {
   if (value == null) return Number.NaN;
   if (typeof value === 'number') {
@@ -863,6 +910,19 @@ export default function MathBrainPage() {
     saveProfile,
     deleteProfile
   } = useUserProfiles(userId);
+
+  const personASignature = useMemo(() => buildPersonSignature(personA), [personA]);
+  const personBSignature = useMemo(() => buildPersonSignature(personB), [personB]);
+
+  const existingProfileForPersonA = useMemo(() => {
+    if (!personASignature) return null;
+    return profiles.find((profile) => buildProfileSignature(profile) === personASignature) ?? null;
+  }, [personASignature, profiles]);
+
+  const existingProfileForPersonB = useMemo(() => {
+    if (!personBSignature) return null;
+    return profiles.find((profile) => buildProfileSignature(profile) === personBSignature) ?? null;
+  }, [personBSignature, profiles]);
 
   const frontStageResult = useMemo(() => {
     if (!result) return null;
@@ -2165,9 +2225,15 @@ export default function MathBrainPage() {
 
   const handleSaveCurrentProfile = useCallback(async (slot: 'A' | 'B', name: string) => {
     const person = slot === 'A' ? personA : personB;
-    
+    const existing = slot === 'A' ? existingProfileForPersonA : existingProfileForPersonB;
+
     if (!person.year || !person.month || !person.day) {
       alert('Please fill in birth date before saving');
+      return;
+    }
+
+    if (existing) {
+      alert(`This profile is already saved as "${existing.name}".`);
       return;
     }
 
@@ -2203,7 +2269,7 @@ export default function MathBrainPage() {
     } else {
       alert(`❌ Failed to save profile: ${profilesError || 'Unknown error'}`);
     }
-  }, [personA, personB, saveProfile, profilesError]);
+  }, [personA, personB, saveProfile, profilesError, existingProfileForPersonA, existingProfileForPersonB]);
 
   const handleDeleteProfile = useCallback(async (profileId: string) => {
     const success = await deleteProfile(profileId);
@@ -4769,6 +4835,8 @@ export default function MathBrainPage() {
             currentPersonA={personA}
             currentPersonB={personB}
             isAuthenticated={isAuthenticated}
+            existingProfileForPersonA={existingProfileForPersonA}
+            existingProfileForPersonB={existingProfileForPersonB}
           />
         </Section>
 
@@ -4800,22 +4868,31 @@ export default function MathBrainPage() {
             {/* Save Person A Profile Button */}
             {isAuthenticated && personA.year && personA.month && personA.day && (
               <div className="mt-4 pt-4 border-t border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const name = prompt('Enter a name for this profile:', personA.name || 'Person A');
-                    if (name) {
-                      handleSaveCurrentProfile('A', name);
-                    }
-                  }}
-                  className="w-full rounded-md bg-emerald-700/30 border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-700/40 transition-colors flex items-center justify-center gap-2"
-                >
-                  <span>💾</span>
-                  <span>Save Person A to Profile Database</span>
-                </button>
-                <p className="mt-2 text-xs text-slate-400 text-center">
-                  Save this person's birth data for quick loading later
-                </p>
+                {existingProfileForPersonA ? (
+                  <div className="rounded-md border border-emerald-700/60 bg-emerald-900/40 px-4 py-3 text-sm text-emerald-100 text-center">
+                    <p className="font-medium text-emerald-200">Already saved</p>
+                    <p className="text-xs text-emerald-100/80">{existingProfileForPersonA.name} is already in your saved roster with these details.</p>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const name = prompt('Enter a name for this profile:', personA.name || 'Person A');
+                        if (name) {
+                          handleSaveCurrentProfile('A', name);
+                        }
+                      }}
+                      className="w-full rounded-md bg-emerald-700/30 border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-700/40 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <span>💾</span>
+                      <span>Save Person A to Profile Database</span>
+                    </button>
+                    <p className="mt-2 text-xs text-slate-400 text-center">
+                      Save this person's birth data for quick loading later
+                    </p>
+                  </>
+                )}
               </div>
             )}
             
@@ -4887,22 +4964,31 @@ export default function MathBrainPage() {
               {/* Save Person B Profile Button */}
               {isAuthenticated && includePersonB && personB.year && personB.month && personB.day && (
                 <div className="mt-4 pt-4 border-t border-slate-700">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const name = prompt('Enter a name for this profile:', personB.name || 'Person B');
-                      if (name) {
-                        handleSaveCurrentProfile('B', name);
-                      }
-                    }}
-                    className="w-full rounded-md bg-emerald-700/30 border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-700/40 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <span>💾</span>
-                    <span>Save Person B to Profile Database</span>
-                  </button>
-                  <p className="mt-2 text-xs text-slate-400 text-center">
-                    Save this person's birth data for quick loading later
-                  </p>
+                  {existingProfileForPersonB ? (
+                    <div className="rounded-md border border-emerald-700/60 bg-emerald-900/40 px-4 py-3 text-sm text-emerald-100 text-center">
+                      <p className="font-medium text-emerald-200">Already saved</p>
+                      <p className="text-xs text-emerald-100/80">{existingProfileForPersonB.name} is already in your saved roster with these details.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const name = prompt('Enter a name for this profile:', personB.name || 'Person B');
+                          if (name) {
+                            handleSaveCurrentProfile('B', name);
+                          }
+                        }}
+                        className="w-full rounded-md bg-emerald-700/30 border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-700/40 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <span>💾</span>
+                        <span>Save Person B to Profile Database</span>
+                      </button>
+                      <p className="mt-2 text-xs text-slate-400 text-center">
+                        Save this person's birth data for quick loading later
+                      </p>
+                    </>
+                  )}
                 </div>
               )}
               
