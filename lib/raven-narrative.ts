@@ -270,7 +270,7 @@ export const buildNarrativeDraft = (
 
   if (!sections.length) {
     const fallbackText =
-      "I've logged this report and set it aside for interpretation. Let me know when you'd like me to mirror a pattern.";
+      "I'm Raven Calder. I've set your upload aside for interpretation, but I'm here for live dialogue too—ask a question or tell me what pattern to mirror.";
     return {
       html: `<p style="margin:0; line-height:1.6;">${escapeHtml(fallbackText)}</p>`,
       rawText: fallbackText,
