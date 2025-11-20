@@ -12,6 +12,8 @@ interface ProfileManagerProps {
   currentPersonA: any;
   currentPersonB: any;
   isAuthenticated: boolean;
+  existingProfileForPersonA?: BirthProfile | null;
+  existingProfileForPersonB?: BirthProfile | null;
 }
 
 export default function ProfileManager({
@@ -22,7 +24,9 @@ export default function ProfileManager({
   onDeleteProfile,
   currentPersonA,
   currentPersonB,
-  isAuthenticated
+  isAuthenticated,
+  existingProfileForPersonA,
+  existingProfileForPersonB
 }: ProfileManagerProps) {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveSlot, setSaveSlot] = useState<'A' | 'B'>('A');
@@ -88,33 +92,52 @@ export default function ProfileManager({
       {/* Save Current Profiles */}
       <div className="rounded-lg border border-emerald-700/50 bg-emerald-900/20 p-4">
         <h3 className="text-sm font-semibold text-emerald-200 mb-3">💾 Save Current Profiles</h3>
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleSaveClick('A')}
-            disabled={
-              loading ||
-              !currentPersonA?.year ||
-              !currentPersonA?.month ||
-              !currentPersonA?.day
-            }
-            className="flex-1 rounded-md border border-emerald-600 bg-emerald-700/30 px-3 py-2 text-sm text-white hover:bg-emerald-700/40 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            Save Person A
-            {currentPersonA?.name && <span className="block text-xs text-emerald-300 mt-1">{currentPersonA.name}</span>}
-          </button>
-          <button
-            onClick={() => handleSaveClick('B')}
-            disabled={
-              loading ||
-              !currentPersonB?.year ||
-              !currentPersonB?.month ||
-              !currentPersonB?.day
-            }
-            className="flex-1 rounded-md border border-emerald-600 bg-emerald-700/30 px-3 py-2 text-sm text-white hover:bg-emerald-700/40 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            Save Person B
-            {currentPersonB?.name && <span className="block text-xs text-emerald-300 mt-1">{currentPersonB.name}</span>}
-          </button>
+        <div className="flex gap-2 flex-col sm:flex-row">
+          {existingProfileForPersonA ? (
+            <div className="flex-1 rounded-md border border-emerald-700/60 bg-emerald-900/40 px-3 py-2 text-sm text-emerald-100">
+              <div className="font-semibold text-emerald-200">Person A already saved</div>
+              <div className="text-xs text-emerald-100/80">
+                {existingProfileForPersonA.name} is already in your roster with the same details.
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => handleSaveClick('A')}
+              disabled={
+                loading ||
+                !currentPersonA?.year ||
+                !currentPersonA?.month ||
+                !currentPersonA?.day
+              }
+              className="flex-1 rounded-md border border-emerald-600 bg-emerald-700/30 px-3 py-2 text-sm text-white hover:bg-emerald-700/40 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              Save Person A
+              {currentPersonA?.name && <span className="block text-xs text-emerald-300 mt-1">{currentPersonA.name}</span>}
+            </button>
+          )}
+
+          {existingProfileForPersonB ? (
+            <div className="flex-1 rounded-md border border-emerald-700/60 bg-emerald-900/40 px-3 py-2 text-sm text-emerald-100">
+              <div className="font-semibold text-emerald-200">Person B already saved</div>
+              <div className="text-xs text-emerald-100/80">
+                {existingProfileForPersonB.name} is already in your roster with the same details.
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => handleSaveClick('B')}
+              disabled={
+                loading ||
+                !currentPersonB?.year ||
+                !currentPersonB?.month ||
+                !currentPersonB?.day
+              }
+              className="flex-1 rounded-md border border-emerald-600 bg-emerald-700/30 px-3 py-2 text-sm text-white hover:bg-emerald-700/40 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              Save Person B
+              {currentPersonB?.name && <span className="block text-xs text-emerald-300 mt-1">{currentPersonB.name}</span>}
+            </button>
+          )}
         </div>
       </div>
 
