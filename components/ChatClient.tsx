@@ -454,13 +454,14 @@ export default function ChatClient() {
       const mirrorPlaceholder: Message = {
         id: mirrorPlaceholderId,
         role: "raven",
-        html: "",
-        climate: "",
-        hook: "",
+        html: `<p style="margin:0; line-height:1.65;">Opening the full Mirror Flow + Symbolic Weather reading now. I'll share the complete report as soon as it's ready.</p>`,
+        climate: "VOICE · Report Interpretation",
+        hook: "Auto · Mirror + Symbolic Weather",
         intent: undefined,
         probe: null,
         prov: null,
-        rawText: "",
+        rawText:
+          "Opening the full Mirror Flow + Symbolic Weather reading now. I'll share the complete report as soon as it's ready.",
         validationPoints: [],
         validationComplete: false,
       };
