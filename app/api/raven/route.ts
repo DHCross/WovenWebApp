@@ -43,16 +43,27 @@ function extractGeometryFromUploadedReport(contexts: Record<string, any>[]): any
     const parsed = JSON.parse(mirrorContext.content);
     // Check if this is a Math Brain v2 unified output with geometry
     if (parsed && typeof parsed === 'object') {
-      // Unwrap unified_output if present (Math Brain v2 format)
-      const unwrapped = parsed.unified_output || parsed;
-      
-      // PRIORITY 1: Check for Mirror + Symbolic Weather format (person_a.chart structure)
-      if (unwrapped.person_a?.chart && typeof unwrapped.person_a.chart === 'object') {
+      // Unwrap unified_output (snake_case) or unifiedOutput (camelCase) if present
+      const unwrapped = parsed.unified_output || parsed.unifiedOutput || parsed;
+
+      // PRIORITY 1: Check for Mirror + Symbolic Weather format (person_a/personA.chart structure)
+      const mirrorPayload =
+        (unwrapped.person_a && typeof unwrapped.person_a === 'object'
+          ? unwrapped.person_a
+          : unwrapped.personA && typeof unwrapped.personA === 'object'
+            ? unwrapped.personA
+            : null);
+      if (mirrorPayload?.chart && typeof mirrorPayload.chart === 'object') {
         return unwrapped; // Return the whole structure with person_a/person_b
       }
-      
+
       // PRIORITY 2: Look for geometry in various possible locations
-      const geo = unwrapped.geometry || unwrapped.chart || unwrapped.natal_chart || unwrapped;
+      const geo =
+        unwrapped.geometry ||
+        unwrapped.chart ||
+        unwrapped.natal_chart ||
+        unwrapped.natalChart ||
+        unwrapped;
       
       // Validate that we have the minimum required geometry fields
       if (geo && typeof geo === 'object') {
