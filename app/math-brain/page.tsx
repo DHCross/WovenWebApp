@@ -3628,11 +3628,16 @@ export default function MathBrainPage() {
         summarySource?.valence ??
         summarySource?.valence_mean,
     );
-    const volatility = toNumber(
-      (summarySource?.axes?.volatility ?? summarySource?.volatility) ??
-        summarySource?.coherence ??
+    const volatilityDirect = toNumber(
+      (summarySource?.axes?.volatility ?? summarySource?.volatility) ?? undefined,
+    );
+    const coherenceForVol = toNumber(
+      (summarySource?.axes?.coherence ?? summarySource?.coherence) ??
         summarySource?.coherence_value,
     );
+    const volatility = typeof volatilityDirect === 'number'
+      ? volatilityDirect
+      : (typeof coherenceForVol === 'number' ? Math.max(0, Math.min(5, 5 - coherenceForVol)) : undefined);
     const hasSummary =
       summarySource &&
       [magnitude, valence, volatility].some((value) => typeof value === 'number');
@@ -5599,7 +5604,13 @@ export default function MathBrainPage() {
                       date,
                       magnitude_0to5: seismo.magnitude ?? balance.magnitude ?? 0,
                       bias_signed_minus5to5: biasValue,
-                      coherence_0to5: seismo.volatility ?? 0,
+                      coherence_0to5: (() => {
+                        if (typeof seismo.coherence === 'number') return seismo.coherence;
+                        const vol = typeof seismo.volatility === 'number'
+                          ? seismo.volatility
+                          : (typeof seismo.axes?.volatility?.value === 'number' ? seismo.axes.volatility.value : 0);
+                        return Math.max(0, Math.min(5, 5 - vol));
+                      })(),
                       schema_version: 'BM-v3',
                       orbs_profile: displayResult?.provenance?.orbs_profile || 'wm-spec-2025-09',
                       house_frame: 'natal',

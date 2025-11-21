@@ -329,8 +329,6 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
     valenceHistory.push(biasSigned);
     if (valenceHistory.length > 7) valenceHistory.shift();
 
-    const volatilityInfo = classifyVolatility(dispersionVol);
-
     // Build compact drivers reflecting top hooks (already computed above)
     const driversCompact = (enriched.hooks || []).map(h => {
       const weightFinal = typeof h._weight === 'number' ? h._weight : weightAspect(h);
@@ -356,6 +354,11 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
     const magnitudeRaw = Number.isFinite(agg.rawMagnitude) ? agg.rawMagnitude : (agg.magnitude || 0);
     const biasRawSigned = Number.isFinite(agg.rawDirectionalBias) ? agg.rawDirectionalBias : (directionalScaling.value || 0);
     const volatilityScaled = Number.isFinite(agg.volatility_scaled) ? agg.volatility_scaled : Math.max(0, Math.min(5, dispersionVol));
+    const volatilityCanonical = Number.isFinite(agg.volatility) ? agg.volatility : volatilityScaled;
+    const coherenceValue = Number.isFinite(agg.coherence)
+      ? agg.coherence
+      : Math.max(0, Math.min(5, 5 - volatilityCanonical));
+    const volatilityInfo = classifyVolatility(volatilityCanonical);
     const saturation = magnitudeRaw >= 4.95;
 
     // The `graphRows` array is the direct source for the Balance Meter chart.
@@ -364,7 +367,7 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
       date: d,
       magnitude: magnitudeRaw, // Raw, unclamped magnitude
       bias_signed: biasRawSigned, // Raw, unclamped, signed bias
-      volatility: volatilityScaled, // Scaled volatility
+      volatility: volatilityCanonical, // Canonical scatter (0-5)
       saturation
     });
 
@@ -391,9 +394,12 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
           sign: directionalScaling.sign,
           method: biasMethod
         },
-        volatility: dispersionVol,
+        volatility: volatilityCanonical,
         volatility_label: volatilityInfo?.label || null,
         volatility_scaled: volatilityScaled,
+        coherence: coherenceValue,
+        coherence_scaled: agg.coherence_scaled ?? coherenceValue,
+        coherence_normalized: agg.coherence_normalized ?? Math.max(0, Math.min(1, coherenceValue / 5)),
         // --- RAW DATA FOR PLOTTING & ANALYSIS ---
         // These fields preserve the raw, unclamped values before any presentation-layer scaling.
         rawMagnitude: magnitudeRaw,
@@ -401,14 +407,16 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
         raw_axes: {
           magnitude: magnitudeRaw,
           bias_signed: biasRawSigned,
-          volatility: volatilityScaled
+          volatility: volatilityCanonical,
+          coherence: coherenceValue
         },
         // === CANONICAL/CALIBRATED AXES BLOCK ===
         // Use axes block directly from aggregator (contains canonical rounded values)
         axes: agg.axes || {
           magnitude: { value: magnitudeValue },
           directional_bias: { value: biasSigned },
-          volatility: { value: volatilityScaled }
+          volatility: { value: volatilityScaled },
+          coherence: { value: coherenceValue }
         },
         saturation,
         originalMagnitude: agg.originalMagnitude,
@@ -523,8 +531,9 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
     polarity: biasSummaryPolarity,
     thresholds: biasSeverityThresholds
   };
-  
+
   const volatilityAvg = Number(VI.toFixed(1));
+  const coherenceAvg = Number((5 - volatilityAvg).toFixed(1));
   const volatilityInfo = classifyVolatility(VI);
 
   const magnitudeAxisMeta = {
@@ -543,9 +552,9 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
 
   const coherenceAxisMeta = {
     sample_size: numDays,
-    aggregation: 'mean_daily_volatility',
+    aggregation: 'mean_daily_coherence',
     canonical_scalers_used: true,
-    transform_pipeline: ['daily_seismograph.volatility', 'mean']
+    transform_pipeline: ['daily_seismograph.coherence', 'mean']
   };
 
   const summaryAxes = {
@@ -570,11 +579,11 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
       severity: biasSeverity
     },
     coherence: {
-      value: volatilityAvg,
-      label: volatilityInfo?.label || null,
+      value: coherenceAvg,
+      label: null,
       range: [0, 5],
-      method: 'mean_daily_volatility',
-      clamped: volatilityAvg <= 0 || volatilityAvg >= 5,
+      method: '5_minus_mean_daily_volatility',
+      clamped: coherenceAvg <= 0 || coherenceAvg >= 5,
       meta: coherenceAxisMeta
     }
   };
@@ -583,14 +592,17 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
     magnitude: magnitudeAvg,
     directional_bias: biasAvg,
     volatility: volatilityAvg,
+    coherence: coherenceAvg,
     magnitude_label: magnitudeLabel,
     directional_bias_label: biasSummaryInfo?.label || null,
     volatility_label: volatilityInfo?.label || null,
+    coherence_label: null,
     axes: summaryAxes,
     range: {
       magnitude: [0, 5],
       directional_bias: [-5, 5],
-      volatility: [0, 5]
+      volatility: [0, 5],
+      coherence: [0, 5]
     }
   };
 
@@ -604,7 +616,7 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
     // Flat fields for compatibility with graphics/report consumers
     direction: biasAvg, // Numeric value, e.g. +3.0
     charge: magnitudeAvg,   // Alias for magnitude
-    coherence: volatilityAvg, // Alias for volatility
+    coherence: coherenceAvg, // Stability = 5 - volatility
     integration: 0, // Placeholder, update if needed
     directional_bias: {
       value: biasAvg,

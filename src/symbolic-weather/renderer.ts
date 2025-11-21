@@ -83,12 +83,7 @@ function transformAxis(kind: AxisKind, normalized: number | null): AxisTransform
 
   const normalizedClamped = Math.min(max, Math.max(min, numeric));
 
-  let scaled: number;
-  if (kind === 'coherence') {
-    scaled = clampMax - normalizedClamped * SCALE_FACTOR;
-  } else {
-    scaled = normalizedClamped * SCALE_FACTOR;
-  }
+  const scaled = normalizedClamped * SCALE_FACTOR;
 
   const [clamped, flags] = clamp(scaled, clampMin, clampMax);
   const rounded = roundHalfUp(clamped, 1);
@@ -303,8 +298,9 @@ export function renderSymbolicWeather(
   inputs: EngineDayInput[],
   config: Partial<RendererConfig> = {}
 ): RendererResult {
-  const coherenceFrom = config.coherenceFrom ?? 'volatility';
+  const coherenceFrom = config.coherenceFrom ?? 'coherence';
   const timezone = config.timezone ?? DEFAULT_TIMEZONE;
+  const defaultCoherenceInversion = coherenceFrom === 'volatility';
 
   const provenance: Provenance = {
     engine_build: config.provenance?.engine_build ?? 'unknown',
@@ -321,7 +317,7 @@ export function renderSymbolicWeather(
         scaling_mode: 'absolute',
         scale_factors: SCALE_FACTORS,
         coherence_from: coherenceFrom,
-        coherence_inversion: coherenceFrom === 'volatility',
+        coherence_inversion: defaultCoherenceInversion,
         pipeline: 'normalize → scale → clamp → round',
         weights_profile_version: 'tight_orbs_v1',
         conjunction_policy: 'neutral',
@@ -359,6 +355,7 @@ export function renderSymbolicWeather(
 
   const normalizedRecordsForHash: Array<Record<string, unknown>> = [];
   const alerts: string[] = [];
+  let coherenceComputedFromVolatility = defaultCoherenceInversion;
 
   const days: DayDisplay[] = inputs.map((input) => {
     const dayTimezone = input.timezone ?? timezone;
@@ -410,13 +407,21 @@ export function renderSymbolicWeather(
       transform: '×5, clamp [−5,5], round 1dp'
     });
 
-    // coherence (from volatility)
-    const coherenceKind: AxisKind = coherenceFrom === 'volatility' ? 'coherence' : 'unipolar';
-    const coherenceInput = coherenceFrom === 'volatility'
-      ? (typeof input.volatility === 'number' ? input.volatility : null)
-      : (typeof input.coherence === 'number' ? input.coherence : null);
-    const coherenceTrace = transformAxis(coherenceKind, coherenceInput);
-    assertNSCR('coherence', coherenceKind, coherenceTrace);
+    // coherence (stability): prefer precomputed coherence, otherwise derive once from volatility
+    const coherenceFromVolatility = coherenceFrom === 'volatility';
+    const coherenceInput =
+      !coherenceFromVolatility && typeof input.coherence === 'number'
+        ? clampValue(input.coherence, 0, 1)
+        : (typeof input.volatility === 'number'
+            ? clampValue(1 - clampValue(input.volatility, 0, 1), 0, 1)
+            : null);
+    const coherenceSource: AxisDisplay['source'] =
+      !coherenceFromVolatility && typeof input.coherence === 'number' ? 'engine' : 'computed';
+    if (coherenceSource === 'computed') {
+      coherenceComputedFromVolatility = true;
+    }
+    const coherenceTrace = transformAxis('coherence', coherenceInput);
+    assertNSCR('coherence', 'coherence', coherenceTrace);
     const coherenceNormalized = coherenceTrace.normalized ?? 0;
     const coherenceScaled = coherenceTrace.scaled ?? 0;
     const coherenceClamped = coherenceTrace.clamped ?? 0;
@@ -434,8 +439,8 @@ export function renderSymbolicWeather(
       scaled: coherenceScaled,
       clamped: coherenceClamped,
       rounded: coherenceRounded,
-      transform: coherenceFrom === 'volatility'
-        ? '5 − (volatility × 5), clamp [0,5], round 1dp'
+      transform: coherenceSource === 'computed'
+        ? 'coherence = 1 − volatility, ×5, clamp [0,5], round 1dp'
         : '×5, clamp [0,5], round 1dp'
     });
 
@@ -449,12 +454,7 @@ export function renderSymbolicWeather(
       magnitude: roundHalfUp(magnitudeNormalized, 6),
       directional_bias: roundHalfUp(directionalNormalized, 6),
       volatility: roundHalfUp(Number(input.volatility ?? 0), 6),
-      coherence: roundHalfUp(
-        coherenceFrom === 'volatility'
-          ? coherenceNormalized
-          : Number(input.coherence ?? 0),
-        6
-      ),
+      coherence: roundHalfUp(coherenceInput ?? 0, 6),
       coherence_from: coherenceFrom
     });
 
@@ -482,7 +482,7 @@ export function renderSymbolicWeather(
           value: coherenceRounded,
           display: coherenceDisplay,
           unit: '0–5',
-          source: coherenceFrom === 'volatility' ? 'computed' : 'engine',
+          source: coherenceSource,
           clampHit: coherenceClampHit,
           precision: 1
         }
@@ -523,7 +523,7 @@ export function renderSymbolicWeather(
       scaling_mode: 'absolute',
       scale_factors: SCALE_FACTORS,
       coherence_from: coherenceFrom,
-      coherence_inversion: coherenceFrom === 'volatility',
+      coherence_inversion: coherenceComputedFromVolatility,
       pipeline: 'normalize → scale → clamp → round',
       weights_profile_version: 'tight_orbs_v1',
       conjunction_policy: 'neutral',

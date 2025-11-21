@@ -20,7 +20,7 @@ export function WeatherProvenance({
   relocationMode,
   timezone,
   scaleMode = 'absolute_x5',
-  coherenceInversion = true,
+  coherenceInversion = false,
   hasTransits,
   driversCount,
   suppressReasons = [],

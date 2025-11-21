@@ -135,8 +135,8 @@
         "coherence_formula": {
           "type": "string",
           "description": "Formula for converting to coherence",
-          "default": "5 - (volatility * 50)",
-          "example": "5 - (volatility * 50)"
+          "default": "5 - volatility",
+          "example": "5 - volatility"
         },
         "labels": {
           "type": "object",

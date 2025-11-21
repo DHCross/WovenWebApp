@@ -246,7 +246,7 @@ function buildRendererResult(mathBrainResult: any, options: {
   });
 
   return renderSymbolicWeather(engineInputs, {
-    coherenceFrom: 'volatility',
+    coherenceFrom: 'coherence',
     timezone,
     provenance: {
       engine_build: provenance.math_brain_version || provenance.version || 'unknown',

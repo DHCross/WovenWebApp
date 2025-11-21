@@ -619,6 +619,12 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     0,
     Math.min(SCALE_FACTOR, VI_normalized * SCALE_FACTOR)
   );
+  // Canonical coherence (stability) is a pure function of volatility
+  const coherence_normalized = Math.max(0, Math.min(1, 1 - VI_normalized));
+  const coherence_scaled = Math.max(
+    0,
+    Math.min(SCALE_FACTOR, coherence_normalized * SCALE_FACTOR)
+  );
 
   // Transform trace for observability (v5.0 - two axes only)
   const transform_trace = {
@@ -642,6 +648,7 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
   const magnitudeRounded = round(magnitudeValue, 1);
   const directionalBiasRounded = round(directional_bias, 1);
   const volatilityRounded = round(volatility_scaled, 1);
+  const coherenceRounded = round(coherence_scaled, 1);
 
   const magnitudeLabel = getMagnitudeLabel(magnitudeValue) || null;
   const directionalBiasLabel = getDirectionalBiasLabel(directional_bias) || null;
@@ -663,7 +670,8 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     axes: {
       magnitude: { value: magnitudeRounded, normalized: magnitudeNormalized, scaled: magnitudeScaled.raw, raw: X_raw },
       directional_bias: { value: directionalBiasRounded, normalized: Y_normalized, scaled: biasScaled.raw, raw: Y_raw },
-      volatility: { value: volatilityRounded, normalized: VI_normalized, scaled: volatility_scaled, raw: VI }
+      volatility: { value: volatilityRounded, normalized: VI_normalized, scaled: volatility_scaled, raw: VI },
+      coherence: { value: coherenceRounded, normalized: coherence_normalized, scaled: coherence_scaled, raw: 5 - Math.min(SCALE_FACTOR, volatility_scaled) }
     },
 
     // === DIAGNOSTIC/INTERNAL (not public axes) ===
@@ -684,8 +692,11 @@ function aggregate(aspects = [], prevCtx = null, options = {}){
     rawMagnitude: magnitudeScaled.raw,
     rawDirectionalBias: biasScaled.raw,
     volatility: volatilityRounded,
+    coherence: coherenceRounded,
     volatility_label: volatilityLabel,
     volatility_scaled,
+    coherence_scaled,
+    coherence_normalized,
     rawValence: Y_raw,
     originalMagnitude: magnitudeValue,
     energyMagnitude: X_raw,
