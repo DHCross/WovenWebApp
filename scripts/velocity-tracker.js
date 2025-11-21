@@ -188,6 +188,115 @@ function getGitContext() {
   }
 }
 
+// -----------------------------
+// Local commit numstat helpers
+// -----------------------------
+function getCommitNumstatLocal(shas = []) {
+  const out = {};
+  for (const sha of shas) {
+    try {
+      const cmd = `git show --numstat --pretty=format:"" ${sha}`;
+      const raw = execSync(cmd, { encoding: 'utf8' }).trim();
+      if (!raw) { out[sha] = { added: 0, deleted: 0, files: {} }; continue; }
+      const lines = raw.split('\n').filter(Boolean);
+      let added = 0, deleted = 0; const files = {};
+      for (const l of lines) {
+        const parts = l.split(/\s+/);
+        // numstat outputs: <added> <deleted> <filename>
+        if (parts.length < 3) continue;
+        const a = parts[0] === '-' ? 0 : parseInt(parts[0], 10) || 0;
+        const d = parts[1] === '-' ? 0 : parseInt(parts[1], 10) || 0;
+        const file = parts.slice(2).join(' ');
+        added += a; deleted += d;
+        files[file] = { added: a, deleted: d };
+      }
+      out[sha] = { added, deleted, files };
+    } catch (err) {
+      out[sha] = { added: 0, deleted: 0, files: {} };
+    }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// AI survival helpers
+// For each AI-tagged commit SHA, compute how many of the lines it added
+// are still present in HEAD by using `git blame` on the touched files.
+// The result is appended to `.logs/ai-survival.jsonl` for later aggregation.
+// ---------------------------------------------------------------------------
+function computeAiSurvivalForCommits(shas = [], runId = null, runTimestamp = null) {
+  const out = [];
+  if (!shas || !shas.length) return out;
+  const numstatMap = getCommitNumstatLocal(shas);
+  for (const sha of shas) {
+    try {
+      const entry = { id: runId || null, runTimestamp: runTimestamp || new Date().toISOString(), repo: 'DHCross/WovenWebApp', commit: sha, measured_at: new Date().toISOString(), files: {}, lines_added: 0, lines_remaining: 0 };
+      const num = numstatMap[sha] || { added: 0, deleted: 0, files: {} };
+      entry.lines_added = Number.isFinite(num.added) ? num.added : 0;
+      // For each file touched by the commit, compute how many lines from that commit remain in HEAD
+      const files = Object.keys(num.files || {});
+      let totalRemaining = 0;
+      for (const file of files) {
+        try {
+          // Get added count for this file from numstat
+          const addedForFile = (num.files[file] && Number.isFinite(num.files[file].added)) ? num.files[file].added : 0;
+          // Run git blame to count lines in HEAD attributed to this commit
+          const blameCmd = `git blame --line-porcelain HEAD -- "${file.replace(/"/g, '\\"')}"`;
+          const raw = execSync(blameCmd, { encoding: 'utf8' });
+          const lines = raw.split('\n');
+          let remainingForFile = 0;
+          for (const l of lines) {
+            if (!l) continue;
+            // porcelain blame's first token of a group is the commit sha
+            const m = l.match(/^([0-9a-f]{7,40})\b/);
+            if (m) {
+              const blameSha = m[1];
+              if (blameSha === sha || blameSha.startsWith(sha.substring(0,7))) {
+                // next lines include "author" and then the source line; but counting the header occurrences approximates number of lines
+                remainingForFile += 1;
+              }
+            }
+          }
+          entry.files[file] = { added: addedForFile, remaining: remainingForFile };
+          totalRemaining += remainingForFile;
+        } catch (fe) {
+          // ignore per-file errors
+          entry.files[file] = { added: (num.files[file] && num.files[file].added) || 0, remaining: 0, error: String(fe && fe.message) };
+        }
+      }
+      entry.lines_remaining = totalRemaining;
+      out.push(entry);
+      // append to .logs/ai-survival.jsonl
+      try {
+        const survivalPath = path.resolve(process.cwd(), '.logs', 'ai-survival.jsonl');
+        ensureLogFileReady(survivalPath);
+        fs.appendFileSync(survivalPath, JSON.stringify(entry) + '\n', { encoding: 'utf8' });
+      } catch (le) {
+        console.warn('⚠️  Unable to write AI survival log:', le && le.message);
+      }
+    } catch (err) {
+      // keep going on error
+      console.warn('⚠️  computeAiSurvivalForCommits error for', sha, err && err.message);
+    }
+  }
+  return out;
+}
+
+function isLikelyAICommit(commit, prevCommit) {
+  if (!commit || !commit.subject) return false;
+  const s = String(commit.subject || '').toLowerCase();
+  if (s.includes('[ai:') || s.includes('[ai]') || /\b(copilot|chatgpt|gpt-|codex|copilot)\b/.test(s)) return true;
+  // Time-based heuristic: if commit added many lines very soon after previous one
+  const linesAdded = commit.linesAdded || commit.added || 0;
+  if (prevCommit && prevCommit.date && commit.date) {
+    const t0 = new Date(prevCommit.date).getTime();
+    const t1 = new Date(commit.date).getTime();
+    const delta = Math.abs((t1 - t0) / 1000);
+    if (linesAdded > 20 && delta < 60) return true;
+  }
+  return false;
+}
+
 // ============================================================================
 // GITHUB API FETCHING
 // ============================================================================
@@ -328,6 +437,18 @@ function fetchCommitData(repo, since) {
       const elapsedHours = elapsedMinutes / 60 || 1;
       const commitsPerHour = commits.length / elapsedHours;
 
+      const sampleSlice = commits.slice(0, 20);
+      const sampleShas = sampleSlice.map(c => c.sha);
+      const numstatMap = getCommitNumstatLocal(sampleShas);
+      const samples = sampleSlice.map(c => ({
+        sha: c.sha,
+        author: c.author,
+        date: c.date,
+        subject: c.subject,
+        linesAdded: (numstatMap[c.sha] && numstatMap[c.sha].added) || 0,
+        linesDeleted: (numstatMap[c.sha] && numstatMap[c.sha].deleted) || 0,
+        files: (numstatMap[c.sha] && numstatMap[c.sha].files) || {},
+      }));
       return {
         total_commits: commits.length,
         total_elapsed_minutes: elapsedMinutes,
@@ -335,7 +456,7 @@ function fetchCommitData(repo, since) {
         commits_per_hour: commitsPerHour,
         start: startDate.toISOString(),
         end: endDate.toISOString(),
-        samples: commits.slice(0, 20).map(c => ({ sha: c.sha, author: c.author, date: c.date, subject: c.subject })),
+        samples,
       };
     } catch (err) {
       throw new Error(`Local git log failed: ${err.message}`);
@@ -452,6 +573,59 @@ async function analyzeAndEstimate(isBlitz = false, forceLocal = false) {
     start: sessionData.start,
     end: sessionData.end,
   };
+  // Compute AI statistics for local samples (heuristic-based)
+  try {
+    let ai_commit_count = 0;
+    let ai_lines_added = 0;
+    let ai_lines_deleted = 0;
+    let ai_files_changed_count = 0;
+    let prev = null;
+    const aiShas = [];
+    if (sessionData && Array.isArray(sessionData.samples)) {
+      for (const s of sessionData.samples) {
+        if (isLikelyAICommit(s, prev)) {
+          ai_commit_count += 1;
+          ai_lines_added += Number.isFinite(s.linesAdded) ? s.linesAdded : 0;
+          ai_lines_deleted += Number.isFinite(s.linesDeleted) ? s.linesDeleted : 0;
+          ai_files_changed_count += s.files ? Object.keys(s.files).length : 0;
+          if (s.sha) aiShas.push(s.sha);
+        }
+        prev = s;
+      }
+    }
+    runLogEntry.ai_commit_count = ai_commit_count;
+    runLogEntry.ai_lines_added = ai_lines_added;
+    runLogEntry.ai_lines_deleted = ai_lines_deleted;
+    runLogEntry.ai_files_changed_count = ai_files_changed_count;
+    runLogEntry.ai_churn_estimate = ai_lines_added > 0 ? (ai_lines_deleted / ai_lines_added) : 0;
+    // Compute and persist AI survival snapshots for detected AI commits (best-effort)
+    try {
+      if (aiShas.length > 0) {
+        const survivalRecords = computeAiSurvivalForCommits(aiShas, runLogEntry.id, timestamp);
+        runLogEntry.ai_survival_sample_count = survivalRecords.length;
+        runLogEntry.ai_survival_lines_remaining = survivalRecords.reduce((acc, r) => acc + (r.lines_remaining || 0), 0);
+        runLogEntry.ai_survival_lines_added = survivalRecords.reduce((acc, r) => acc + (r.lines_added || 0), 0);
+        runLogEntry.ai_survival_summary = survivalRecords.map(r => ({ commit: r.commit, lines_added: r.lines_added, lines_remaining: r.lines_remaining }));
+      } else {
+        runLogEntry.ai_survival_sample_count = 0;
+        runLogEntry.ai_survival_lines_remaining = 0;
+        runLogEntry.ai_survival_lines_added = 0;
+        runLogEntry.ai_survival_summary = [];
+      }
+    } catch (survErr) {
+      runLogEntry.ai_survival_sample_count = 0;
+      runLogEntry.ai_survival_lines_remaining = 0;
+      runLogEntry.ai_survival_lines_added = 0;
+      runLogEntry.ai_survival_summary = [];
+    }
+  } catch (e) {
+    // Keep run log robust: don't fail when ai heuristic analysis fails
+    runLogEntry.ai_commit_count = 0;
+    runLogEntry.ai_lines_added = 0;
+    runLogEntry.ai_lines_deleted = 0;
+    runLogEntry.ai_files_changed_count = 0;
+    runLogEntry.ai_churn_estimate = 0;
+  }
   logRun(runLogEntry);
 
   // Read recent runs for rolling average and trend

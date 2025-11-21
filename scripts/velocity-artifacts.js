@@ -229,6 +229,32 @@ function readDebugSignals(){
   return entries;
 }
 
+function readAiSurvivalLog(){
+  try {
+    const preferred = path.join(process.cwd(), '.logs', 'ai-survival.jsonl');
+    if (!fs.existsSync(preferred)) return [];
+    const raw = fs.readFileSync(preferred, 'utf8').split(/\r?\n/).filter(Boolean);
+    const entries = raw.map(line => {
+      try { return JSON.parse(line); } catch { return null; }
+    }).filter(Boolean).map(e => {
+      const ts = e.measured_at || e.runTimestamp || e.timestamp || new Date().toISOString();
+      return { ...e, measured_at: ts, measured_at_ms: (new Date(ts)).getTime() };
+    });
+    return entries;
+  } catch (err) {
+    return [];
+  }
+}
+
+function aggregateSurvival(entries, anchorMs, windowMs){
+  if (!entries || !entries.length) return { lines_added:0, lines_remaining:0, survival_pct:0, commits:0 };
+  const startCut = anchorMs - windowMs;
+  const slice = entries.filter(e => e.measured_at_ms >= startCut && e.measured_at_ms <= anchorMs);
+  const added = slice.reduce((a,e)=>a + (Number.isFinite(e.lines_added) ? e.lines_added : 0), 0);
+  const remaining = slice.reduce((a,e)=>a + (Number.isFinite(e.lines_remaining) ? e.lines_remaining : 0), 0);
+  return { lines_added: added, lines_remaining: remaining, survival_pct: added > 0 ? (remaining / added) : 0, commits: slice.length };
+}
+
 function deriveWindow(entry){
   if (!entry) return null;
   const end = entry.end ? new Date(entry.end) : (entry.timestamp ? new Date(entry.timestamp) : new Date());
@@ -299,6 +325,63 @@ function summarizeSynergy(signals, latestEntry, gitSignals){
   };
 }
 
+/**
+ * Compute AI churn summary, given latest entry. If the latest entry includes
+ * ai_* fields, use them. Otherwise, attempt to compute a basic estimate from
+ * sample commits by running git show --numstat and looking for deletions in the
+ * 24 hours afterward for the same files.
+ */
+function computeAiChurn(latestEntry){
+  try{
+    if (!latestEntry) return null;
+    // If ai fields already present, use them
+    if (Number.isFinite(latestEntry.ai_lines_added)) {
+      const added = Number(latestEntry.ai_lines_added || 0);
+      const deleted = Number(latestEntry.ai_lines_deleted || 0);
+      const commits = Number(latestEntry.ai_commit_count || 0);
+      return {
+        ai_commit_count: commits,
+        ai_lines_added: added,
+        ai_lines_deleted: deleted,
+        ai_churn_ratio: added > 0 ? (deleted / added) : 0,
+      };
+    }
+
+    // Otherwise, compute naively from samples
+    const samples = latestEntry.samples || [];
+    if (!samples.length) return { ai_commit_count: 0, ai_lines_added: 0, ai_lines_deleted: 0, ai_churn_ratio: 0 };
+    const shas = samples.map(s => s.sha).filter(Boolean);
+    if (!shas.length) return { ai_commit_count: 0, ai_lines_added: 0, ai_lines_deleted: 0, ai_churn_ratio: 0 };
+    // compute using git numstat for sample shas
+    const results = {};
+    try{
+      const cmd = `git show --numstat --pretty=format:\"%H||%an||%ai||%s\" ${shas.join(' ')}`;
+      const out = execSync(cmd, { encoding: 'utf8' }).trim();
+      const lines = out.split('\n');
+      let curSha = null;
+      let added = 0, deleted = 0, commits = 0;
+      for (const line of lines) {
+        if (!line) continue;
+        if (line.includes('||')) { // commit meta
+          curSha = line.split('||')[0];
+          commits += 1;
+          continue;
+        }
+        const parts = line.split(/\s+/);
+        if (parts.length < 3) continue;
+        const a = parts[0] === '-' ? 0 : parseInt(parts[0],10) || 0;
+        const d = parts[1] === '-' ? 0 : parseInt(parts[1],10) || 0;
+        added += a; deleted += d;
+      }
+      return { ai_commit_count: commits, ai_lines_added: added, ai_lines_deleted: deleted, ai_churn_ratio: added > 0 ? (deleted/added) : 0 };
+    } catch(err){
+      return { ai_commit_count: 0, ai_lines_added: 0, ai_lines_deleted: 0, ai_churn_ratio: 0 };
+    }
+  } catch (e) {
+    return { ai_commit_count: 0, ai_lines_added: 0, ai_lines_deleted: 0, ai_churn_ratio: 0 };
+  }
+}
+
 function ensureDir(filePath){
   const dir = path.dirname(filePath);
   if (!fs.existsSync(dir)) {
@@ -340,6 +423,19 @@ function renderMarkdown({ nowISO, latest, rolling, parseErrors, args, synergy })
     ? latest.commitCount / (latest.totalDurationSeconds / 3600)
     : 0;
   const narrativeRate = rolling?.commitsPerHour ?? latestRate;
+  const aiChurn = computeAiChurn(latest);
+  const aiSurvivalEntries = readAiSurvivalLog();
+  const anchorMs = latest && latest.timestamp ? (new Date(latest.timestamp)).getTime() : Date.now();
+  const survival24 = aggregateSurvival(aiSurvivalEntries, anchorMs, 24 * 3600 * 1000);
+  const survival7d = aggregateSurvival(aiSurvivalEntries, anchorMs, 7 * 24 * 3600 * 1000);
+  const aiContributionPct = latest.commitCount > 0 && aiChurn ? ((aiChurn.ai_commit_count || 0) / latest.commitCount) * 100 : 0;
+  const survival24Line = survival24.commits > 0 ? `${Math.round(survival24.survival_pct * 1000)/10}% (${survival24.lines_remaining}/${survival24.lines_added} lines)` : 'No samples';
+  const survival7dLine = survival7d.commits > 0 ? `${Math.round(survival7d.survival_pct * 1000)/10}% (${survival7d.lines_remaining}/${survival7d.lines_added} lines)` : 'No samples';
+  const morningSummary = `**Morning Summary**  
+  - Velocity: ${narrativeRate.toFixed(2)} commits/hour; Rolling: ${rolling ? rolling.commitsPerHour.toFixed(2) : '—'} c/h  
+  - AI Contribution: ${aiChurn.ai_commit_count || 0} commits (${aiContributionPct.toFixed(1)}%); Churn: ${aiChurn.ai_churn_ratio.toFixed(2)}  
+  - AI Survival: 24h: ${survival24Line}; 7d: ${survival7dLine}  
+  - Regression / Alert: ${synergy && synergy.ai_induced_failures ? synergy.ai_induced_failures : (synergy && synergy.git_signals ? synergy.git_signals.failures : 0)} incidents detected`;
   const branchInfo = latest.branch ? `  \n**Branch:** ${latest.branch}` : '';
   const commitInfo = latest.commit ? `  \n**Commit:** ${latest.commit}` : '';
   let synergyBlock = 'No AI signal entries were logged within the latest velocity window.';
@@ -384,7 +480,7 @@ function renderMarkdown({ nowISO, latest, rolling, parseErrors, args, synergy })
     }
   }
 
-  return `# Velocity Forecast Summary\n\n**Generated:** ${nowISO}  \n**Snapshot Timestamp:** ${latest.timestamp}${branchInfo}${commitInfo}  \n**Subject:** Math Brain refactor velocity\n\n## What the data says\n\n- Latest run: **${latest.commitCount} commits** over **${formatDuration(latest.totalDurationSeconds)}** (${latestRate.toFixed(2)} commits/hour).\n- Rolling window (${args.limit}): ${rollingLine}.\n- Phases DONE: ${humanList(phase.done)}.  \n- Phases Pending: ${humanList(phase.pending)}.${estBlock}\n\n## Plain-English Outlook\n\n1. Current cadence suggests ~${narrativeRate.toFixed(2)} commits/hour is sustainable short‑term.  \n2. All done phases indicate remaining focus should shift to documentation, CI hardening, and post‑refactor cleanup.  \n3. Feed more runs via \`velocity-tracker.js --analyze\` to refine rolling accuracy and detect acceleration or decay.\n\n## Synergy Analysis (Speed + Quality)\n\n${synergyBlock}\n\n## Suggested pipeline hook\n\nAdd an npm script: \`velocity:report\` → \`node scripts/velocity-artifacts.js\` and invoke it in CI after merge to main. Commit the updated \`docs/velocity-forecast.md\` so stakeholders always see a fresh forecast.\n\n---\n_Parsed lines: ${(latest._index||0)+1}/${(latest._total||0)}. Parse errors: ${parseErrors}. Generated by velocity-artifacts.js v1.0.0._\n`;
+  return `# Velocity Forecast Summary\n\n**Generated:** ${nowISO}  \n\n${morningSummary}\n\n**Snapshot Timestamp:** ${latest.timestamp}${branchInfo}${commitInfo}  \n**Subject:** Math Brain refactor velocity\n\n## What the data says\n\n- Latest run: **${latest.commitCount} commits** over **${formatDuration(latest.totalDurationSeconds)}** (${latestRate.toFixed(2)} commits/hour).\n- Rolling window (${args.limit}): ${rollingLine}.\n- Phases DONE: ${humanList(phase.done)}.  \n- Phases Pending: ${humanList(phase.pending)}.${estBlock}\n\n## Plain-English Outlook\n\n1. Current cadence suggests ~${narrativeRate.toFixed(2)} commits/hour is sustainable short‑term.  \n2. All done phases indicate remaining focus should shift to documentation, CI hardening, and post‑refactor cleanup.  \n3. Feed more runs via \`velocity-tracker.js --analyze\` to refine rolling accuracy and detect acceleration or decay.\n\n## Synergy Analysis (Speed + Quality)\n\n${synergyBlock}\n\n## Suggested pipeline hook\n\nAdd an npm script: \`velocity:report\` → \`node scripts/velocity-artifacts.js\` and invoke it in CI after merge to main. Commit the updated \`docs/velocity-forecast.md\` so stakeholders always see a fresh forecast.\n\n---\n_Parsed lines: ${(latest._index||0)+1}/${(latest._total||0)}. Parse errors: ${parseErrors}. Generated by velocity-artifacts.js v1.0.0._\n`;
 }
 
 function main(){
