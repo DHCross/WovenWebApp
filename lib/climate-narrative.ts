@@ -291,7 +291,7 @@ function generateParadoxPoles(climate: ClimateData, isLatentField: boolean = fal
     // Active relationship - standard phrasing
     if (climate.magnitude >= 4) {
       magnitudeWB = 'Perfect conditions for breakthrough actions and significant decisions';
-      magnitudeABE = 'Risk of overwhelming your system or taking on too much at once';
+      magnitudeABE = 'Risk of experiencing intense structural pressure or taking on more than is sustainable at once';
     } else if (climate.magnitude >= 3) {
       magnitudeWB = 'Solid energy for making meaningful progress on important projects';
       magnitudeABE = 'May scatter attention across too many priorities';
@@ -336,7 +336,7 @@ function generateParadoxPoles(climate: ClimateData, isLatentField: boolean = fal
       valenceABE = 'Could lead to complacency or avoiding growth-edge challenges';
     } else if (valenceLevel.level <= -3) {
       valenceWB = 'Intense compression creates valuable transformation and clarity';
-      valenceABE = 'Pressure might feel overwhelming or trigger resistance patterns';
+      valenceABE = 'Structural pressure may be intense and could trigger resistance patterns';
     } else if (valenceLevel.level <= -1) {
       valenceWB = 'Moderate challenges strengthen skills and build resilience';
       valenceABE = 'Friction could accumulate into frustration if not addressed mindfully';

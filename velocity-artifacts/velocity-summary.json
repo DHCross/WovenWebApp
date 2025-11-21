@@ -1,83 +1,65 @@
 {
-  "generated_at": "2025-11-16T01:33:01.673Z",
+  "generated_at": "2025-11-21T15:31:44.478Z",
   "latest_run": {
-    "timestamp": "2025-11-16T01:32:48.209Z",
-    "commit_count": 91,
-    "total_duration_seconds": 572739,
-    "commits_per_hour": 0.5719882878588677
+    "timestamp": "2025-11-21T15:15:40.158Z",
+    "commit_count": 31,
+    "total_duration_seconds": 593773,
+    "commits_per_hour": 0.1879506141235792
   },
   "rolling_window_limit": 10,
   "synergy": {
-    "window_hours": 159.09416666666667,
-    "window_start": "2025-11-09T08:14:58.000Z",
-    "window_end": "2025-11-15T23:20:37.000Z",
-    "successful_ai_fixes": 2,
+    "window_hours": 164.93694444444444,
+    "window_start": "2025-11-14T18:14:12.000Z",
+    "window_end": "2025-11-21T15:10:25.000Z",
+    "successful_ai_fixes": 0,
     "ai_induced_failures": 0,
-    "signals_considered": 2,
-    "commits_per_hour": 0.5719882878588677,
-    "synergy_ratio": 0.02197802197802198,
+    "signals_considered": 0,
+    "commits_per_hour": 0.1879506141235792,
+    "synergy_ratio": 0,
     "regression_rate": 0,
     "failures_per_hour": 0,
-    "net_synergy_velocity": 0.5719882878588677,
+    "net_synergy_velocity": 0.1879506141235792,
     "git_signals": {
-      "found": 91,
-      "fixes": 15,
+      "found": 31,
+      "fixes": 6,
       "failures": 0,
       "reverts": 0,
       "samples": [
         {
-          "commit": "e85fcadf23eb0cd8458da0fa56d682a867d7874b",
-          "author": "google-labs-jules[bot]",
-          "date": "Thu Nov 13 21:41:52 2025 -0600",
-          "subject": "fix(build): Correct Uint8Array to Blob conversion for PDF export (#304)"
-        },
-        {
-          "commit": "fcf1bbb2ff62b0b1d0807173653c3227b546145e",
+          "commit": "b4a9b950ea51209c3341e508a0234bb6e6b1cff2",
           "author": "DHCross",
-          "date": "Thu Nov 13 15:09:38 2025 -0600",
-          "subject": "fix: gate playwright web server on CI (#303)"
+          "date": "Fri Nov 21 09:10:25 2025 -0600",
+          "subject": "fix: correct coherence calculation to use direct coherence values instead of inverted volatility"
         },
         {
-          "commit": "30aa19c9a07bf6ea58a6f061439f9a1e9ce59eb1",
+          "commit": "b087236dd18e57c760b979d64d07676ad84f630f",
           "author": "DHCross",
-          "date": "Thu Nov 13 14:38:51 2025 -0600",
-          "subject": "fix: import mandate diagnostic type (#264)"
+          "date": "Tue Nov 18 23:52:42 2025 -0600",
+          "subject": "fix: improve coordinate handling when loading profiles with proper type coercion and state updates"
         },
         {
-          "commit": "9a34ab781b46f3ba7700fddbda36471428897dc6",
+          "commit": "cc154ca8acad3e8c9d7698710c1dbefef898a308",
           "author": "DHCross",
-          "date": "Wed Nov 12 14:18:07 2025 -0600",
-          "subject": "Fix delete-old-branches counters"
+          "date": "Tue Nov 18 16:15:51 2025 -0600",
+          "subject": "Fix save profile buttons gating (#311)"
         },
         {
-          "commit": "ced2a302b41db79672ec779ae8b8c6c9fc073111",
-          "author": "Copilot",
-          "date": "Mon Nov 10 00:01:46 2025 -0600",
-          "subject": "Add API master reference, fix deprecated timezone format handling, and resolve Playwright CI port conflict (#289)"
-        },
-        {
-          "commit": "eede7c04f04f6cee6d6c73d9fad6d367b6de2999",
+          "commit": "d0b7875a47bee232d5283eded1864829d194f36b",
           "author": "DHCross",
-          "date": "Sun Nov 9 20:07:25 2025 -0600",
-          "subject": "[2025-11-09] CRITICAL FIX: RapidAPI v4 requires city+nation even with coordinates"
+          "date": "Tue Nov 18 11:48:30 2025 -0600",
+          "subject": "Fix profile coordinate persistence (#310)"
         },
         {
-          "commit": "83c9bec43cbc504b61bafa014543b028c120a5ce",
+          "commit": "b2cf6febb568f4c9c4f6e33a82869a06b2486035",
           "author": "DHCross",
-          "date": "Sun Nov 9 18:03:44 2025 -0600",
-          "subject": "[2025-11-09] FIX: Replace undefined relocationRaw with translocationRaw"
+          "date": "Mon Nov 17 19:54:53 2025 -0600",
+          "subject": "refactor: fix live status timing and add sessionId to Raven API requests"
         },
         {
-          "commit": "7537086d8df1af02fff5b4e2ebf5d5176b7bbea8",
+          "commit": "f2cdee4f05f62a0a948257155ff8b8f0c34ed80f",
           "author": "DHCross",
-          "date": "Sun Nov 9 17:34:18 2025 -0600",
-          "subject": "[2025-11-09] CRITICAL FIX: Complete circular dependency elimination using dynamic require"
-        },
-        {
-          "commit": "c9b46a69d6a98bf5a07a08f07efd6a3018a52d85",
-          "author": "DHCross",
-          "date": "Sun Nov 9 17:23:59 2025 -0600",
-          "subject": "[2025-11-09] DOCS: Comprehensive CHANGELOG entry for circular dependency fixes"
+          "date": "Mon Nov 17 19:53:22 2025 -0600",
+          "subject": "Fix command to count PRs needing review"
         }
       ],
       "model_counts": {}

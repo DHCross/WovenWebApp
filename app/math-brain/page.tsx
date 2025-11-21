@@ -5523,6 +5523,32 @@ export default function MathBrainPage() {
             const valenceLabel = summary.valence_label || (val > 0.5 ? 'Supportive' : val < -0.5 ? 'Challenging' : 'Mixed');
             const volatilityLabel = summary.volatility_label || (vol >= 3 ? 'Scattered' : vol >= 1 ? 'Variable' : 'Stable');
 
+            const symbolicDrivers = (() => {
+              const drivers = new Set<string>();
+
+              const addDrivers = (list: unknown) => {
+                if (!Array.isArray(list)) return;
+                list.forEach((item) => {
+                  if (typeof item === 'string' && item.trim()) {
+                    drivers.add(item.trim());
+                  }
+                });
+              };
+
+              addDrivers((summary as any)?.drivers);
+              addDrivers((summary as any)?.diagnostics?.drivers);
+
+              const daily = frontStageTransitsByDate || {};
+              Object.values(daily).forEach((dayData: any) => {
+                addDrivers(dayData?.balance?.drivers);
+                addDrivers(dayData?.drivers);
+                const overflowDetail = computeOverflowDetailFromDay(dayData);
+                addDrivers(overflowDetail?.drivers);
+              });
+
+              return Array.from(drivers).slice(0, 12);
+            })();
+
             return (
               <div ref={balanceGraphsRef} data-balance-export="true">
                 <Section title="Poetic Brain Reading Log">
@@ -5544,7 +5570,8 @@ export default function MathBrainPage() {
                   overallClimate={{
                     magnitude: mag,
                     valence: val,
-                    volatility: vol
+                    volatility: vol,
+                    ...(symbolicDrivers.length ? { drivers: symbolicDrivers } : {}),
                   }}
                   dailyRanges={{
                     biasMin,
@@ -5848,7 +5875,7 @@ export default function MathBrainPage() {
                       if (val >= 4) {
                         return {
                           wb: 'Liberation flow: peak openness creates breakthrough possibilities.',
-                          abe: 'Liberation overwhelm: infinite options can freeze momentum.',
+                          abe: 'Open-field sprawl: infinite options can stall momentum until you set constraints.',
                         };
                       }
                       if (val >= 3) {
@@ -5890,7 +5917,7 @@ export default function MathBrainPage() {
                       if (val >= -4) {
                         return {
                           wb: 'Grind stamina: disciplined effort builds staying power.',
-                          abe: 'Grind depletion: heavy resistance risks burnout.',
+                          abe: 'Grind depletion: sustained resistance can drain capacity unless paced.',
                         };
                       }
                       return {
