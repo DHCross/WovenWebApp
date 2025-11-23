@@ -32,6 +32,9 @@ jobs:
       - name: Generate Artifacts
         run: node scripts/velocity-artifacts.js
 
+      - name: Run Survival Analysis
+        run: node scripts/velocity-survival-runner.js
+
       - name: Append Recognition Provenance
         run: node scripts/append-recognition-provenance.js
 
@@ -62,6 +65,7 @@ jobs:
           git add velocity-artifacts/
           git add docs/velocity-forecast.md || true
           git add docs/RECOGNITION_EVENT_2025-11-11.md || true
+          git add -f .logs/velocity-survival-log.jsonl || true
           git diff --quiet && git diff --staged --quiet || git commit -m "[AUTO] Update velocity tracking data"
           git push origin telemetry
 

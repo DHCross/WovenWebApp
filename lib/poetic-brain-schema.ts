@@ -1,3 +1,60 @@
+// WOVEN MAP v6 modular schema (for solo, synastry, composite)
+const wovenMapV6ModuleSchema = z.object({
+  initial_summary: z.object({
+    lines: z.array(z.object({
+      text: z.string(),
+      notes: z.string().optional(),
+    })),
+  }),
+  behavioral_anchors: z.object({
+    bullets: z.array(z.object({
+      text: z.string(),
+      notes: z.string().optional(),
+    })),
+  }),
+  conditional_impulses: z.object({
+    bullets: z.array(z.object({
+      text: z.string(),
+      notes: z.string().optional(),
+    })),
+  }),
+  pressure_patterns: z.object({
+    patterns: z.array(z.object({
+      text: z.string(),
+      notes: z.string().optional(),
+    })),
+    socratic_question: z.string().optional(),
+  }),
+  polarity_snapshot: z.object({
+    polarities: z.array(z.object({
+      left: z.string(),
+      right: z.string(),
+      notes: z.string().optional(),
+    })),
+  }),
+  constitutional_blueprint: z.object({
+    intake_mode: z.string().optional(),
+    orientation_mode: z.string().optional(),
+    center_of_gravity: z.string().optional(),
+    regulation_bias: z.string().optional(),
+    counter_mode: z.string().optional(),
+    notes: z.string().optional(),
+  }),
+  mirror_voice: z.object({
+    lines: z.array(z.object({
+      text: z.string(),
+      notes: z.string().optional(),
+    })),
+  }),
+  feedback_invitation: z.object({
+    text: z.string(),
+    notes: z.string().optional(),
+  }),
+});
+
+// Synastry and composite map containers
+export const synastryMapV6Schema = wovenMapV6ModuleSchema;
+export const compositeMapV6Schema = wovenMapV6ModuleSchema;
 import { z } from 'zod';
 
 // Core numeric metric schema (value + optional confidence)
@@ -178,6 +235,10 @@ export const poeticBrainPayloadSchema = z.object({
   expressionContext: z.string().optional(), // Context about how tool is being used
   provenance: provenanceSchema.optional(),
   // Allow forward-compatible extras (namespaced preferred)
+  // Modular relational map containers (v6)
+  woven_map_v6: wovenMapV6ModuleSchema.optional(),
+  synastry_map_v6: synastryMapV6Schema.optional(),
+  composite_map_v6: compositeMapV6Schema.optional(),
 }).passthrough();
 
 export type PoeticBrainPayload = z.infer<typeof poeticBrainPayloadSchema>;

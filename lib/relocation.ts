@@ -1,4 +1,4 @@
-import * as runtime from './relocation.js';
+import * as runtime from './relocation-runtime.js';
 
 export type SubjectUI = {
   name?: string;
