@@ -847,6 +847,7 @@ export default function MathBrainPage() {
   }, [today, fmt]);
 
   const [personA, setPersonA] = useState<Subject>(() => createEmptySubject());
+  const [personB, setPersonB] = useState<Subject>(() => createEmptySubject());
 
   // Single-field coordinates (Person A)
   const [aCoordsInput, setACoordsInput] = useState<string>("");
@@ -1212,8 +1213,7 @@ export default function MathBrainPage() {
   const [providerCheckPending, setProviderCheckPending] = useState<boolean>(() => !PROVIDER_BYPASS);
   const canVisitPoetic = POETIC_BRAIN_ENABLED && providerHealth.poetic.ready;
 
-  // Person B subject state
-  const [personB, setPersonB] = useState<Subject>(() => createEmptySubject());
+  // Person B subject state (declared earlier near Person A)
   // Person B single-field coordinates
   const [bCoordsInput, setBCoordsInput] = useState<string>("");
   const [bCoordsError, setBCoordsError] = useState<string | null>(null);
