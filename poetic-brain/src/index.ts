@@ -220,6 +220,14 @@ export interface InputPayload {
     math_brain_version?: string;
     renderer_version?: string;
     semantic_profile?: string;
+    // Optional persona excerpt metadata (external corpus-derived)
+    persona_excerpt?: string;
+    persona_excerpt_source?: {
+      source?: string;
+      file?: string;
+      generated_at?: string;
+      version?: string;
+    };
   };
   // passthrough allowed
   [key: string]: any;
@@ -457,6 +465,17 @@ function buildProvenanceLine(provenance?: InputPayload['provenance']): string | 
 
   if (provenance.semantic_profile) {
     parts.push(`Semantic Profile: ${provenance.semantic_profile}`);
+  }
+
+  // Persona excerpt provenance (from external corpus)
+  if (provenance.persona_excerpt_source && typeof provenance.persona_excerpt_source === 'object') {
+    const src = provenance.persona_excerpt_source;
+    const pieces: string[] = [];
+    if (src.source) pieces.push(src.source);
+    if (src.file) pieces.push(src.file);
+    if (pieces.length) parts.push(`Persona Excerpt: ${pieces.join(' / ')}`);
+  } else if (provenance.persona_excerpt) {
+    parts.push('Persona Excerpt: included');
   }
 
   return parts.length > 0 ? `Provenance — ${parts.join(' · ')}` : null;
@@ -927,6 +946,22 @@ export function processMirrorDirective(payload: InputPayload): {
       narrative_sections: {},
       error: 'Invalid format: expected mirror_directive_json'
     };
+  }
+
+  // If a corpus-informed persona excerpt is preloaded at module init, stamp it into provenance for traceability
+  try {
+    const globalAny: any = global as any;
+    if (globalAny.__RAVEN_CALDER_PERSONA_EXCERPT__ && typeof globalAny.__RAVEN_CALDER_PERSONA_EXCERPT__ === 'string') {
+      payload.provenance = payload.provenance || {};
+      if (!payload.provenance.persona_excerpt) payload.provenance.persona_excerpt = globalAny.__RAVEN_CALDER_PERSONA_EXCERPT__;
+      payload.provenance.persona_excerpt_source = payload.provenance.persona_excerpt_source || {
+        source: 'RavenCalder_Corpus',
+        file: 'ravencalder-persona-excerpt.txt',
+        generated_at: new Date().toISOString(),
+      };
+    }
+  } catch (e) {
+    // noop — stamping provenance is best-effort
   }
 
   // Parse Mirror Directive

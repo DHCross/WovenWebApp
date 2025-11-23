@@ -46,6 +46,7 @@ Definitions for FAMILY and FRIEND/PROFESSIONAL types should be added here when a
 
 import { sanitizeForPDF, sanitizeReportForPDF } from '../../../src/pdf-sanitizer';
 import { renderShareableMirror } from '../../../lib/raven/render';
+import { personaExcerptSnippet } from '../../../lib/raven/provenance';
 import { isGeometryValidated, OPERATIONAL_FLOW } from '../../../lib/poetic-brain/runtime';
 import { generateDownloadReadme } from '../../../lib/download-readme-template';
 import type { ReportContractType } from '../types';
@@ -965,6 +966,9 @@ Start with the Solo Mirror(s), then ${
         timezone_db_version: prov.timezone_db_version || 'IANA-2025a',
         normalized_input_hash: prov.normalized_input_hash || prov.hash || null,
         engine_versions: prov.engine_versions || {},
+        // Include persona excerpt (corpus-derived) for directive payload so LLMs receive persona context
+        ...(prov.persona_excerpt ? { persona_excerpt: prov.persona_excerpt } : {}),
+        ...(prov.persona_excerpt_source ? { persona_excerpt_source: prov.persona_excerpt_source } : {}),
       } : null,
       narrative_sections: {
         solo_mirror_a: '',
@@ -1066,6 +1070,9 @@ Start with the Solo Mirror(s), then ${
         chart_basis,
         seismograph_chart,
         translocation_applied,
+        // Preserve persona excerpt provenance for audit and directive contexts
+        ...(prov?.persona_excerpt ? { persona_excerpt: prov.persona_excerpt } : {}),
+        ...(prov?.persona_excerpt_source ? { persona_excerpt_source: prov.persona_excerpt_source } : {}),
       };
     }
     if (relationshipContext) {
@@ -1748,6 +1755,13 @@ function formatProvenanceStamp(provenance: any): string {
   const normalizedHash = provenance.normalized_input_hash || provenance.hash;
   pushLine('Normalized Input Hash', normalizedHash);
   pushLine('Signed Map Package ID', normalizedHash || 'unavailable');
+  // Include a short persona excerpt snippet for human-readable exports (PDF)
+  try {
+    const snippet = personaExcerptSnippet(provenance.persona_excerpt, 280);
+    if (snippet) pushLine('Persona Excerpt (snippet)', snippet);
+  } catch (e) {
+    // noop - do not allow snippet generation to break provenance formatting
+  }
   if (lines.length === 0) {
     return 'Provenance stamp unavailable.';
   }

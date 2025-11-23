@@ -72,12 +72,35 @@ function extractGeometry(payload: any): any {
 function buildProvenance(options: Record<string, any>, payload: any): Record<string, any> {
   const fromPayload = payload?.provenance && typeof payload.provenance === 'object' ? payload.provenance : {};
   const reportType = options?.reportType || options?.report_type || 'unknown';
-  return {
+  const prov: Record<string, any> = {
     source: 'Math Brain API',
     report_type: reportType,
     api_version: payload?.provenance?.api_version || payload?.meta?.api_version || 'unversioned',
     ...fromPayload,
   };
+  // Best-effort: include corpus-informed persona excerpt if available at module/runtime
+  try {
+    const globalAny: any = global as any;
+    if (globalAny.__RAVEN_CALDER_PERSONA_EXCERPT__ && typeof globalAny.__RAVEN_CALDER_PERSONA_EXCERPT__ === 'string') {
+      prov.persona_excerpt = prov.persona_excerpt || String(globalAny.__RAVEN_CALDER_PERSONA_EXCERPT__).slice(0, 1200);
+      prov.persona_excerpt_source = prov.persona_excerpt_source || { source: 'RavenCalder_Corpus', file: 'ravencalder-persona-excerpt.txt' };
+    } else {
+      // Try reading file location as fallback (best-effort)
+      const fs = require('fs');
+      const path = require('path');
+      const excerptPath = path.resolve(process.cwd(), 'poetic-brain', 'ravencalder-persona-excerpt.txt');
+      if (fs.existsSync(excerptPath)) {
+        const raw = fs.readFileSync(excerptPath, 'utf8') || '';
+        if (raw.trim()) {
+          prov.persona_excerpt = prov.persona_excerpt || String(raw.trim()).slice(0, 1200);
+          prov.persona_excerpt_source = prov.persona_excerpt_source || { source: 'RavenCalder_Corpus', file: path.basename(excerptPath) };
+        }
+      }
+    }
+  } catch (e) {
+    // noop
+  }
+  return prov;
 }
 
 const REPORT_TYPE_ALIAS: Record<string, string> = {

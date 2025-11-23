@@ -43,3 +43,16 @@ export function stampProvenanceWithHouseContext(
 
   return baseProvenance;
 }
+
+/**
+ * Create a short, safe snippet from a persona excerpt for use in human-readable
+ * provenance displays (e.g., PDF footers). This intentionally truncates and
+ * normalizes whitespace to avoid leaking full corpus content in frontstage.
+ */
+export function personaExcerptSnippet(excerpt?: string | null, maxChars = 280): string | null {
+  if (!excerpt || typeof excerpt !== 'string') return null;
+  const clean = excerpt.replace(/\s+/g, ' ').trim();
+  if (clean.length === 0) return null;
+  if (clean.length <= maxChars) return clean;
+  return clean.slice(0, Math.max(0, maxChars - 1)).trim() + '…';
+}

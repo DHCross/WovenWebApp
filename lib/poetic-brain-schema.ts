@@ -198,6 +198,15 @@ const provenanceSchema = z.object({
   math_brain_version: z.string().optional(),
   renderer_version: z.string().optional(),
   semantic_profile: z.string().optional(),
+  // Persona excerpt information (optional): stores a short, sanitized excerpt
+  // derived from an external corpus that informs persona/tone for Poetic Brain.
+  persona_excerpt: z.string().optional(),
+  persona_excerpt_source: z.object({
+    source: z.string().optional(),
+    file: z.string().optional(),
+    generated_at: z.string().optional(),
+    version: z.string().optional(),
+  }).optional(),
 }).passthrough();
 
 // Payload schema (geometry-first, no hidden inference)

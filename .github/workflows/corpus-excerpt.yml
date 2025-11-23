@@ -1,0 +1,62 @@
+name: Corpus Excerpt CI
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 3 * * 1' # weekly Monday 03:00 UTC
+
+jobs:
+  generate-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          if [ -f package.json ]; then npm ci --prefer-offline --no-audit --progress=false; fi
+
+      - name: Register external corpus
+        run: |
+          node scripts/register-external-corpus.js || true
+
+      - name: Generate persona excerpt
+        run: |
+          node scripts/generate-persona-excerpts.js
+
+      - name: Validate excerpt and provenance
+        run: |
+          node -e "
+          const fs = require('fs'); const path = require('path');
+          const provPath = path.resolve(process.cwd(),'corpus_provenance.json');
+          const excerptPath = path.resolve(process.cwd(),'poetic-brain','ravencalder-persona-excerpt.txt');
+          let ok = true;
+          function fail(msg){ console.error('ERROR:',msg); ok=false; }
+          if (!fs.existsSync(excerptPath)) fail('Excerpt file not found: ' + excerptPath);
+          else {
+            const raw = fs.readFileSync(excerptPath,'utf8').trim();
+            const body = raw.replace(/^#.*$/m,'').trim();
+            const len = body.length;
+            if (len < 200) fail('Excerpt too short ('+len+' chars). Minimum 200.');
+            if (len > 1200) fail('Excerpt too long ('+len+' chars). Maximum 1200.');
+            if (/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(body)) fail('Excerpt contains an email address.');
+            if (/https?:\/\//i.test(body)) fail('Excerpt contains a URL.');
+            if (/\+?\d[\d\-() ]{6,}\d/.test(body)) fail('Excerpt contains phone-like numbers.');
+          }
+          if (!fs.existsSync(provPath)) fail('Provenance file not found: ' + provPath);
+          else {
+            try {
+              const prov = JSON.parse(fs.readFileSync(provPath,'utf8')) || {};
+              const rc = prov.raven_calder_corpus || {};
+              if (!rc.excerpt && !rc.excerpt_generated_at) fail('Provenance missing excerpt metadata (raven_calder_corpus.excerpt/excerpt_generated_at).');
+            } catch(e){ fail('Unable to parse corpus_provenance.json: '+e.message); }
+          }
+          if (!ok) process.exit(1);
+          console.log('Excerpt and provenance validation passed.');
+          "
