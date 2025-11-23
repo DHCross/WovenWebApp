@@ -14,14 +14,14 @@ function loadProvenance() {
 function buildExcerpt(corpusPath) {
   const combinedCandidates = ['RavenCalder_Corpus_TOP20 8.28.25.txt', 'RavenCalder_Corpus_Combined_2025-10-1.txt', 'RavenCalder_Corpus_Complete_9.25.25.md', 'RavenCalder_Corpus_Combined_2025-09-22.md'];
   const filenames = fs.readdirSync(corpusPath);
-  const candidate = combinedCandidates.map(n => filenames.find(f => f.trim() === n)).find(Boolean);
+  const candidate = combinedCandidates.map(n => filenames.find(f => f && f.trim() === n)).find(Boolean);
   if (!candidate) return null;
   const raw = fs.readFileSync(path.join(corpusPath, candidate), 'utf8');
   // Simple heuristic: take up to first 60 non-empty lines, then filter to best ~20
   const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean).slice(0, 60);
   const excerptLines = lines.filter(l => l.length > 10).slice(0, 20);
   const excerptRaw = excerptLines.join('\n');
-  return excerptRaw;
+  return { excerpt: excerptRaw, source: candidate };
 }
 
 function sanitizeExcerpt(text) {
@@ -50,13 +50,13 @@ function main() {
     console.error('Registered corpus path not found:', corpusPath);
     process.exit(1);
   }
-  const excerpt = buildExcerpt(corpusPath);
+  const excerptInfo = buildExcerpt(corpusPath);
   if (!excerpt) {
     console.error('No suitable excerpt found in corpus path:', corpusPath);
     process.exit(1);
   }
   // Sanitize and write to output path
-  const sanitized = sanitizeExcerpt(excerpt);
+  const sanitized = sanitizeExcerpt(excerptInfo.excerpt);
   const heading = `# Raven Calder Persona Excerpt (generated from: ${path.basename(corpusPath)})\n`;
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, heading + '\n' + sanitized + '\n', 'utf8');
@@ -68,7 +68,7 @@ function main() {
     prov.raven_calder_corpus = prov.raven_calder_corpus || {};
     prov.raven_calder_corpus.excerpt = sanitized;
     prov.raven_calder_corpus.excerpt_generated_at = new Date().toISOString();
-    prov.raven_calder_corpus.excerpt_source_file = path.basename(excerpt ? '' : '');
+    prov.raven_calder_corpus.excerpt_source_file = path.basename(excerptInfo.source || '');
     fs.writeFileSync(provPath, JSON.stringify(prov, null, 2), 'utf8');
     console.log('Updated provenance at', provPath);
   } catch (e) {

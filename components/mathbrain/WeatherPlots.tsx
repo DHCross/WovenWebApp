@@ -19,17 +19,10 @@ export function WeatherPlots({
   showScatter = true,
   enableUnified = true,
 }: WeatherPlotsProps) {
-  if (!data || data.length === 0) {
-    return (
-      <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-400">
-        No symbolic weather data available
-      </div>
-    );
-  }
-
   const canShowUnified = Boolean(result && enableUnified);
   const shouldShowScatter = showScatter !== false;
 
+  // Hooks must be called unconditionally at the top of the component
   const [viewMode, setViewMode] = useState<'unified' | 'scatter'>(
     canShowUnified ? 'unified' : 'scatter',
   );
@@ -48,6 +41,14 @@ export function WeatherPlots({
       return null;
     }
   }, [canShowUnified, result]);
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-400">
+        No symbolic weather data available
+      </div>
+    );
+  }
 
   if (!canShowUnified && !shouldShowScatter) {
     return (

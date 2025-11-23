@@ -17,6 +17,7 @@
  Requires: netlify dev running locally (http://localhost:8888)
 */
 
+/*
  Smoke test to ensure Raven API guard prevents mirrors without context.
  Requires: netlify dev running locally (http://localhost:8888)
  */
@@ -77,14 +78,6 @@ async function testRavenGuardWithoutContext() {
     throw new Error('Expected guard guidance missing export instructions for the AstroSeek JSON report');
   }
   return 'PASS: Raven guard enforced without chart context';
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    const msg = json?.error || text || `HTTP ${res.status}`;
-    throw new Error(`HTTP ${res.status} ${res.statusText}: ${msg}`);
-  }
-  return json;
 }
 
 /**
@@ -160,31 +153,20 @@ async function testRavenGuardBlocksPersonalMirror() {
     throw new Error('Guard error message did not mention missing chart/context.');
   }
 
-
   return 'PASS: Personal mirror blocked without chart context.';
-
-  return 'PASS: Raven guard withheld mirror without chart context';
-
-
 }
 
 // Run tests sequentially; fail fast with meaningful output.
 (async () => {
   try {
-
     const r1 = await testConversationGuard();
     console.log(r1);
 
     const r2 = await testRavenGuardBlocksPersonalMirror();
     console.log(r2);
 
-
-
-    const result = await testRavenGuardWithoutContext();
-
-    const result = await testRavenGuardBlocksPersonalMirror();
-
-    console.log(result);
+    const r3 = await testRavenGuardWithoutContext();
+    console.log(r3);
 
     process.exit(0);
   } catch (err) {

@@ -536,9 +536,9 @@ class DeploymentVerifier {
                 // Try to load the function
                 try {
                     delete require.cache[require.resolve(funcPath)];
-                    const module = require(funcPath);
+                    const funcModule = require(funcPath);
                     
-                    if (typeof module.handler === 'function') {
+                    if (typeof funcModule.handler === 'function') {
                         this.log(
                             'functions',
                             func,

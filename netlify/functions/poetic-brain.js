@@ -11,7 +11,14 @@ try {
   const excerptPath = path.resolve(process.cwd(), 'poetic-brain', 'ravencalder-persona-excerpt.txt');
   if (fs.existsSync(excerptPath)) {
     const ex = fs.readFileSync(excerptPath, 'utf8').trim();
-    if (ex) global.__RAVEN_CALDER_PERSONA_EXCERPT__ = ex;
+    if (ex) {
+      // Minimal sanitization: remove emails/URLs/phone-like numbers, collapse whitespace, truncate
+      let safe = String(ex).replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[redacted]');
+      safe = safe.replace(/https?:\/\/\S+/gi, '[redacted]');
+      safe = safe.replace(/\+?\d[\d\-() ]{6,}\d/g, '[redacted]');
+      safe = safe.split(/\r?\n/).map(l => l.trim()).filter(Boolean).join('\n');
+      global.__RAVEN_CALDER_PERSONA_EXCERPT__ = safe.slice(0, 1200);
+    }
   }
 } catch (e) {
   console.warn('Unable to preload Raven Calder persona excerpt:', e && e.message);
