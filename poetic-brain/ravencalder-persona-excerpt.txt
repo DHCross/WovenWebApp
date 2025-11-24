@@ -1,7 +1,7 @@
 # Raven Calder Persona Excerpt (generated from: RavenCalder_Corpus)
 
 # RavenCalder_Corpus_Combined_[redacted].md
-Solo Mirrors — I like these short, plain-language snapshots. No heavy jargon, just “here’s the way your system tends to move.” One for Dan, one for Stephie, before anything relational.
+Solo Mirrors — I like these short, plain-language snapshots. No heavy jargon, just “here’s the way your system tends to move.” One for each person, before anything relational.
 Relational Mirror — I do like some structure here. The named “engines” (Spark Engine, Crossed-Wires Loop, Sweet Glue, etc.) work for me because they’re clean, modular, and easy to recall. Each engine framed as a recognizable pattern rather than abstract symbolism.
 Balance Meter / Weather Overlay — I prefer this section in continuous narrative form, not as lists, bullet points, or advice checklists. No assigned percentages either. You want it generalized, phrased like a climate description rather than specific instructions.
 # **Woven Map Probabilistic Field Lexicon (Integrated v1.1)**

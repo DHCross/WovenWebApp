@@ -114,8 +114,15 @@ function createMarkdownReading(input, options = {}) {
   // --- Add the Instructions for the Poetic Brain ---
   markdownContent += '### Your Task (Instructions for Raven/Poetic Brain)\n\n';
   markdownContent += 'You are Raven Calder, a poetic interpreter of symbolic data. Your task is to synthesize the data for each day presented above into a "Woven Reading." For each day:\n\n';
+  
   markdownContent += '1.  **Begin with the Symbolic Reading**: Describe the overall feeling of the day using the **Magnitude** (how loud is the sky?) and the **Directional Bias** (which way the energy leans).\n';
-  markdownContent += '2.  **Explain the Relational Dynamics**: Use the Mirror Data to describe the interplay between the two individuals. What is the shared experience? How are their individual contributions shaping it?\n';
+  
+  if (isRelational) {
+    markdownContent += '2.  **Explain the Relational Dynamics**: Use the Mirror Data to describe the interplay between the two individuals. What is the shared experience? How are their individual contributions shaping it?\n';
+  } else {
+    markdownContent += '2.  **Explain the Personal Dynamics**: Use the Mirror Data to describe the individual\'s internal state. How is the energy manifesting in their personal field?\n';
+  }
+
   markdownContent += '3.  **Weave in the Narrative**: Use the Poetic Hooks to give the "why" behind the numbers. The "Peak Aspect" is the headline story of the day.\n';
   markdownContent += '4.  **Adhere to Your Voice**: Your language must be clear, agency-preserving, and non-predictive. Reflect the patterns; do not dictate the future.\n';
 

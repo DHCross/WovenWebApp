@@ -404,7 +404,7 @@ export async function POST(request: NextRequest) {
         personA: rawPayload.personA,
         personB: rawPayload.personB || null,
         translocation: rawPayload.translocation || 'BOTH_LOCAL',
-        reportStructure: rawPayload.personB ? 'synastry' : 'solo',
+        reportStructure: rawPayload.reportStructure || (rawPayload.personB ? 'synastry' : 'solo'),
         relationshipContext,
         context: rawPayload.context
       };
@@ -467,7 +467,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Generate Markdown and prepare response (no filesystem round-trip)
-      // Only generate markdown for relational reports with daily_entries
+      // Generate markdown for any report with daily_entries (Solo or Relational)
       let markdownContent = '';
       let markdownFilename = '';
       if (unifiedOutput?.daily_entries && Array.isArray(unifiedOutput.daily_entries) && unifiedOutput.daily_entries.length > 0) {
