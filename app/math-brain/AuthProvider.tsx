@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getRedirectUri, getAuthConnection, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from '../../lib/auth';
 import { isAuthEnabled, getMockUser } from '../../lib/devAuth';
+import { RedirectLoginResult } from '@auth0/auth0-spa-js';
 
 export interface AuthState {
   authReady: boolean;
@@ -150,7 +151,8 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
 
         const qs = window.location.search;
         if (qs.includes("code=") && qs.includes("state=")) {
-          const { appState } = await client.handleRedirectCallback();
+          const redirectResult = await client.handleRedirectCallback();
+          const appState = (redirectResult as RedirectLoginResult | void)?.appState;
           const url = new URL(window.location.href);
           url.search = "";
           window.history.replaceState({}, "", url.toString());
