@@ -8,7 +8,7 @@
     "npm": ">=9"
   },
   "scripts": {
-      "register:corpus": "node scripts/register-external-corpus.js '..\/RavenCalder_Corpus'",
+    "register:corpus": "node scripts/register-external-corpus.js '../RavenCalder_Corpus'",
     "build:css": "mkdir -p ./public/dist && tailwindcss -i ./src/input.css -o ./public/dist/output.css --minify",
     "build:offshoot": "tailwindcss -c tailwind.offshoot.config.js -i ./offshoot/offshoot.css -o ./offshoot/offshoot.min.css --minify",
     "dev:tailwind": "mkdir -p ./public/dist && tailwindcss -i ./src/input.css -o ./public/dist/output.css --watch",
@@ -90,6 +90,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@auth0/auth0-spa-js": "^2.9.1",
     "@babel/preset-env": "^7.28.3",
     "@netlify/plugin-nextjs": "^5.13.2",
     "@playwright/test": "^1.56.0",
