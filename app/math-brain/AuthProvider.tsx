@@ -46,6 +46,9 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
           redirect_uri: getRedirectUri(),
           ...(getAuthConnection() ? { connection: getAuthConnection()! } : {}),
         },
+        appState: {
+          returnTo: window.location.pathname,
+        },
       });
     } catch (e) {
       console.error("Login failed", e);
@@ -153,7 +156,9 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
           window.history.replaceState({}, "", url.toString());
           const nowAuthed = await client.isAuthenticated();
           if (nowAuthed) {
-            window.location.replace('/chat?from=math-brain');
+            const appState = client.appState; // Auth0 stores appState after handleRedirectCallback
+            const returnTo = appState?.returnTo || '/chat';
+            window.location.replace(returnTo + (returnTo.includes('?') ? '&' : '?') + 'from=math-brain');
             return;
           }
         }

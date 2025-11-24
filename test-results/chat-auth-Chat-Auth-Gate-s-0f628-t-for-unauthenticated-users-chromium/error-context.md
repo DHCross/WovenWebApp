@@ -1,0 +1,59 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]: Raven Calder · Poetic Brain
+          - heading "Raven Calder" [level=1] [ref=e7]
+          - paragraph [ref=e8]: Raven is already listening—share what is present, or upload your Astro Report JSON (Mirror + Symbolic Weather combined) when you are ready for a structured reading.
+          - paragraph [ref=e9]: "Raven's intuition: it notices when the chart's symbolic architecture seems to echo the movement of your inner life. It can describe those patterns and offer meaning, but it never claims law, cause, or certainty—what's real is what truly resonates in you."
+          - generic [ref=e12]: Connected
+        - generic [ref=e13]:
+          - generic [ref=e14]:
+            - generic [ref=e15]:
+              - generic [ref=e16]:
+                - generic [ref=e17]: Persona
+                - combobox [ref=e18]:
+                  - option "Plain · Technical"
+                  - option "Hybrid · Default" [selected]
+                  - option "Poetic · Lyrical"
+              - paragraph [ref=e19]: Hybrid · Default blends clarity with gentle lyrical framing for balanced guidance.
+            - button "📦 Upload Astro Report" [ref=e20] [cursor=pointer]
+            - button "Reset Session" [ref=e21] [cursor=pointer]
+          - generic [ref=e22]:
+            - paragraph [ref=e23]: 📦 Upload Astro Report hands Raven the combined Mirror + Symbolic Weather JSON export from Math Brain for immediate interpretation.
+            - paragraph [ref=e24]: ⏮️ Resume Math Brain restores the last archived session and flashes the button when it’s queued.
+    - generic [ref=e28]:
+      - paragraph [ref=e29]: Raven is listening
+      - paragraph [ref=e30]: Type below to start a Poetic Brain session or upload a report to auto-run it.
+    - generic [ref=e31]:
+      - heading "Drop in whenever you're ready" [level=2] [ref=e32]
+      - paragraph [ref=e33]: Raven is already listening. Begin typing below to share what's on your mind, or send a quick question to move straight into open dialogue.
+      - paragraph [ref=e34]: Uploading a Math Brain export (or resuming a saved chart) automatically opens a structured reading. Raven will announce the shift and the banner above will always tell you which lane you are in. End the session any time to clear the slate.
+      - button "Upload a Report" [ref=e36] [cursor=pointer]
+      - generic [ref=e37]:
+        - heading "Poetic Brain" [level=1] [ref=e38]
+        - link "Back to Math Brain" [ref=e39] [cursor=pointer]:
+          - /url: /math-brain
+          - img [ref=e40]
+          - text: Back to Math Brain
+    - main [ref=e42]:
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - generic [ref=e47]: Raven
+          - generic [ref=e48]: "Symbolic Climate: ⚡ 1 magnitude · 🌊🧘 = flow energy · ➿ 0 volatility"
+          - generic [ref=e49]: Session · Orientation
+        - generic [ref=e50]:
+          - paragraph [ref=e52]: I’m a clean mirror. Share whatever’s moving—type below to talk freely, or upload your Astro Report JSON (Mirror + Symbolic Weather combined) when you want the formal reading. I’ll keep you oriented either way.
+          - button "Copy" [ref=e53] [cursor=pointer]
+    - contentinfo [ref=e54]:
+      - generic [ref=e55]:
+        - textbox "Ask or paste here" [ref=e56]
+        - generic [ref=e57]:
+          - button "Send" [disabled] [ref=e59]
+          - generic [ref=e61]: Upload Math Brain exports, Mirror JSON, or AstroSeek charts using the controls near the top of the page.
+  - alert [ref=e62]
+```
