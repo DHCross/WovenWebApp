@@ -75,9 +75,9 @@ export function extractFieldData(
     let valence: number | null = null;
 
     if (meter) {
-      // v5.0 format: {mag_x10, bias_x10}
-      magnitude = meter.mag_x10 ? meter.mag_x10 / 10 : null;
-      valence = meter.bias_x10 ? meter.bias_x10 / 10 : null;
+      // v5.0 format: {mag_x10, bias_x10} OR {magnitude, directional_bias}
+      magnitude = typeof meter.magnitude === 'number' ? meter.magnitude : (meter.mag_x10 ? meter.mag_x10 / 10 : null);
+      valence = typeof meter.directional_bias === 'number' ? meter.directional_bias : (meter.bias_x10 ? meter.bias_x10 / 10 : null);
     } else if (seismograph) {
       // Legacy format
       magnitude = seismograph.magnitude ?? null;

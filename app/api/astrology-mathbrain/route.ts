@@ -15,6 +15,29 @@ const { sanitizeForFilename } = require('../../../src/utils/sanitizeFilename.js'
 
 const MAX_DAILY_TRANSIT_WINDOW_DAYS = 30;
 
+// Balance Meter Label Helpers (Raven Calder / Math Brain v5)
+function getMagnitudeLabel(value: number): string {
+  if (value >= 4) return 'High';
+  if (value >= 2) return 'Active';
+  if (value >= 1) return 'Murmur';
+  return 'Latent';
+}
+
+function getBiasLabel(value: number): string {
+  if (value >= 3) return 'Strong Outward';
+  if (value >= 1) return 'Mild Outward';
+  if (value >= -1) return 'Equilibrium';
+  if (value >= -3) return 'Mild Inward';
+  return 'Strong Inward';
+}
+
+function getVolatilityLabel(value: number): string {
+  if (value >= 4) return 'Very High';
+  if (value >= 2) return 'High';
+  if (value >= 1) return 'Moderate';
+  return 'Low';
+}
+
 const logger = {
   info: (message: string, context: Record<string, unknown> = {}) => {
     // eslint-disable-next-line no-console
@@ -436,17 +459,38 @@ export async function POST(request: NextRequest) {
             const sw = entry?.symbolic_weather || {};
             const mag = typeof sw.magnitude === 'number' ? sw.magnitude : null;
             const bias = typeof sw.directional_bias === 'number' ? sw.directional_bias : null;
+            const vol = typeof sw.volatility === 'number' ? sw.volatility : null;
+            const coh = typeof sw.coherence === 'number' ? sw.coherence : null;
+
             const meter =
               mag !== null || bias !== null
                 ? {
+                    // Raw system units (x10 integers)
                     mag_x10: mag !== null ? Math.round(mag * 10) : null,
                     bias_x10: bias !== null ? Math.round(bias * 10) : null,
+                    
+                    // Human-readable symbolic gradient (Balance Meter v5)
+                    magnitude: mag,
+                    directional_bias: bias,
+                    volatility: vol,
+                    coherence: coh,
+                    
+                    // Semantic labels
+                    magnitude_label: mag !== null ? getMagnitudeLabel(mag) : null,
+                    directional_bias_label: bias !== null ? getBiasLabel(bias) : null,
+                    volatility_label: vol !== null ? getVolatilityLabel(vol) : null,
                   }
                 : null;
 
             return {
               date,
               meter,
+              // Flattened accessors for easier consumption (Woven AI Packet / JSON exports)
+              magnitude: mag,
+              directional_bias: bias,
+              volatility: vol,
+              coherence: coh,
+              label: sw.label || null,
               status: null,
               as: [] as any[],
               tpos: [] as any[],

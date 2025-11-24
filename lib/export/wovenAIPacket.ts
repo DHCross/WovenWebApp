@@ -244,6 +244,63 @@ function extractHooks(unifiedOutput: any): string[] {
   return hooks;
 }
 
+function buildStructuralInstructions(unifiedOutput: any): string {
+  const isRelational = Boolean(unifiedOutput.person_b);
+  const hasTransits = Boolean(
+    (Array.isArray(unifiedOutput.daily_entries) && unifiedOutput.daily_entries.length > 0) ||
+      (Array.isArray(unifiedOutput.woven_map?.symbolic_weather) &&
+        unifiedOutput.woven_map.symbolic_weather.length > 0) ||
+      unifiedOutput.balance_meter ||
+      unifiedOutput.balance_meter_frontstage
+  );
+
+  let instructions = '';
+
+  if (!isRelational) {
+    instructions += `#### 1️⃣ SOLO MIRROR — Individual Foundation
+**Synthesize the natal chart into a conversational, plain-language snapshot:**
+- **"Here's how your system tends to move"** — behavioral anchors, not abstract symbolism
+- **Include:** Core drives, natural strengths, key tensions, constitutional patterns
+- **NO JARGON** — Conversational, testable against lived experience
+- **Frame as tendencies/probabilities**, not prescriptions or fixed fate
+- **Use ALL provided data:** planetary positions, aspects, house placements from tables below
+`;
+  } else {
+    instructions += `#### 1️⃣ SOLO MIRRORS — Individual Foundations (BOTH PEOPLE)
+**For EACH person, provide a separate solo mirror:**
+- **Synthesize their natal chart** into plain-language behavioral snapshot
+- **"Here's how [Name]'s system tends to move"** — specific, falsifiable patterns
+- **Include:** Core drives, strengths, tensions, how they process the world
+- **NO JARGON** — Conversational, grounded in lived experience
+- **Use ALL provided data** for each chart (positions, aspects, houses)
+**DO NOT SKIP INDIVIDUAL READINGS** — Even in relational reports, each person gets their own mirror first.
+
+#### 2️⃣ RELATIONAL ENGINES — Synastry Dynamics
+**After solo mirrors, synthesize how the charts interact:**
+- **Named patterns** (e.g., "Spark Engine," "Crossed-Wires Loop," "Sweet Glue")
+- **Mechanism + tendency** in plain language for each engine
+- **Clear list format** with engine names as headers
+- **Focus:** Where energies harmonize vs. where friction/growth pressure appears
+- **Use actual names** (e.g., "Person A's Mars squares Person B's Moon") — never "they" or generic pronouns
+`;
+  }
+
+  if (hasTransits) {
+    const stepNumber = isRelational ? '3️⃣' : '2️⃣';
+    instructions += `
+#### ${stepNumber} SYMBOLIC WEATHER — Transits (Current Symbolic Climate)
+**Layer current symbolic weather over the foundational patterns:**
+- **Continuous narrative form** (paragraphs, NOT bullet lists)
+- **Describe the climate** currently activating natal/relational foundations
+- **NO assigned percentages, NO prescriptive advice**
+- **Generalized atmosphere:** "What's stirring right now" — how transits light up the blueprint
+- **Ground in the data:** Reference specific transit aspects from tables below
+`;
+  }
+
+  return instructions;
+}
+
 function fillTemplate(template: string, unifiedOutput: any, options: WovenAIPacketOptions): string {
   const protocolVersion =
     options.protocolVersion || unifiedOutput.run_metadata?.protocol_version || unifiedOutput.math_brain_version || 'unknown';
@@ -255,6 +312,7 @@ function fillTemplate(template: string, unifiedOutput: any, options: WovenAIPack
   const climateLine = extractClimateLine(unifiedOutput);
   const hooks = extractHooks(unifiedOutput);
   const reportType = resolveReportType(unifiedOutput);
+  const structuralInstructions = buildStructuralInstructions(unifiedOutput);
 
   let content = template;
 
@@ -264,6 +322,9 @@ function fillTemplate(template: string, unifiedOutput: any, options: WovenAIPack
   const reportTypeLabel =
     reportType === 'mirror' ? 'Mirror Flow' : reportType === 'balance' ? 'Balance Meter' : 'Combined';
   content = content.replace('{{Mirror Flow | Balance Meter | Combined}}', reportTypeLabel);
+
+  // Structural Instructions
+  content = content.replace('{{structural_instructions}}', structuralInstructions);
 
   // Provenance substitutions
   content = content.replace('{{provenance.data_source}}', provenance.data_source);

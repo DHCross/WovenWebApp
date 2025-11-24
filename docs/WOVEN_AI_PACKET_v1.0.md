@@ -278,6 +278,10 @@ When generating reflection:
   - Acknowledge WB / ABE / OSR.  
   - Narrow or halt interpretation in line with Section 2.
 
+### 8.8 Structural Mandate (Dynamic)
+
+{{structural_instructions}}
+
 ---
 
 ## 9. Output Format Constraints

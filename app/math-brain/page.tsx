@@ -4284,13 +4284,14 @@ export default function MathBrainPage() {
   // Helper: Split date range into chunks to avoid API timeouts
   function splitDateRangeIntoChunks(start: string, end: string, maxDaysPerChunk: number = 6): Array<{start: string, end: string}> {
     const chunks: Array<{start: string, end: string}> = [];
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+    // Force UTC to avoid timezone shifts when calculating chunks
+    const startDate = new Date(start.includes('T') ? start : `${start}T00:00:00Z`);
+    const endDate = new Date(end.includes('T') ? end : `${end}T00:00:00Z`);
 
     let currentStart = new Date(startDate);
     while (currentStart <= endDate) {
       const currentEnd = new Date(currentStart);
-      currentEnd.setDate(currentEnd.getDate() + maxDaysPerChunk - 1);
+      currentEnd.setUTCDate(currentEnd.getUTCDate() + maxDaysPerChunk - 1);
 
       if (currentEnd > endDate) {
         chunks.push({
@@ -4303,7 +4304,8 @@ export default function MathBrainPage() {
           start: currentStart.toISOString().split('T')[0],
           end: currentEnd.toISOString().split('T')[0]
         });
-        currentStart.setDate(currentEnd.getDate() + 1);
+        // Advance to next day
+        currentStart.setUTCDate(currentEnd.getUTCDate() + 1);
       }
     }
 
@@ -4315,7 +4317,8 @@ export default function MathBrainPage() {
     if (results.length === 0) return null;
     if (results.length === 1) return results[0];
 
-    const merged = { ...results[0] };
+    // Deep copy first result as base
+    const merged = JSON.parse(JSON.stringify(results[0]));
 
     // Merge unified_output.daily_entries
     if (merged.unified_output?.daily_entries) {
@@ -4331,7 +4334,25 @@ export default function MathBrainPage() {
 
     // Merge markdown_reading (concatenate with separators)
     if (merged.markdown_reading) {
-      merged.markdown_reading = results.map(r => r.markdown_reading).join('\n\n---\n\n');
+      merged.markdown_reading = results.map(r => r.markdown_reading).filter(Boolean).join('\n\n---\n\n');
+    }
+
+    // Merge transitsByDate for Person A
+    if (merged.person_a?.chart?.transitsByDate) {
+      const allTransitsA = results.reduce((acc, r) => ({
+        ...acc,
+        ...(r.person_a?.chart?.transitsByDate || {})
+      }), {});
+      merged.person_a.chart.transitsByDate = allTransitsA;
+    }
+
+    // Merge transitsByDate for Person B
+    if (merged.person_b?.chart?.transitsByDate) {
+      const allTransitsB = results.reduce((acc, r) => ({
+        ...acc,
+        ...(r.person_b?.chart?.transitsByDate || {})
+      }), {});
+      merged.person_b.chart.transitsByDate = allTransitsB;
     }
 
     return merged;
