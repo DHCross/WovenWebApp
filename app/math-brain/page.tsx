@@ -1820,9 +1820,9 @@ export default function MathBrainPage() {
     B_NATAL: 'Birthplace (no relocation)',
     B_LOCAL: 'Person B – Current Location',
 
-    BOTH_LOCAL: 'Custom Location (manual lens)',
+    BOTH_LOCAL: isDyadMode ? 'Both Relocated (Custom Location)' : 'Custom Location (manual lens)',
     MIDPOINT: 'Midpoint (Composite only)'
-  }), []);
+  }), [isDyadMode]);
 
   const relocationModeCaption = useMemo(() => ({
     NONE: 'Relocation mode: None (natal locations)',
