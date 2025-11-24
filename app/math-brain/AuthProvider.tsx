@@ -150,13 +150,12 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
 
         const qs = window.location.search;
         if (qs.includes("code=") && qs.includes("state=")) {
-          await client.handleRedirectCallback();
+          const { appState } = await client.handleRedirectCallback();
           const url = new URL(window.location.href);
           url.search = "";
           window.history.replaceState({}, "", url.toString());
           const nowAuthed = await client.isAuthenticated();
           if (nowAuthed) {
-            const appState = client.appState; // Auth0 stores appState after handleRedirectCallback
             const returnTo = appState?.returnTo || '/chat';
             window.location.replace(returnTo + (returnTo.includes('?') ? '&' : '?') + 'from=math-brain');
             return;
