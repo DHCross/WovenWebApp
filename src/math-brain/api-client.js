@@ -17,16 +17,16 @@ const { buildWindowSamples } = require('../../lib/time-sampling');
 const API_BASE_URL = 'https://astrologer.p.rapidapi.com';
 
 const API_ENDPOINTS = {
-  BIRTH_CHART:        `${API_BASE_URL}/api/v4/birth-chart`,         // natal chart + aspects
+  BIRTH_CHART: `${API_BASE_URL}/api/v4/birth-chart`,         // natal chart + aspects
   NATAL_ASPECTS_DATA: `${API_BASE_URL}/api/v4/natal-aspects-data`,  // natal aspects only
-  SYNASTRY_CHART:     `${API_BASE_URL}/api/v4/synastry-chart`,       // A↔B + aspects
-  TRANSIT_CHART:      `${API_BASE_URL}/api/v4/transit-chart`,       // subject + aspects
-  TRANSIT_ASPECTS:    `${API_BASE_URL}/api/v4/transit-aspects-data`,// data-only
-  SYNASTRY_ASPECTS:   `${API_BASE_URL}/api/v4/synastry-aspects-data`,
-  BIRTH_DATA:         `${API_BASE_URL}/api/v4/birth-data`,
-  NOW:                `${API_BASE_URL}/api/v4/now`,
-  COMPOSITE_ASPECTS:  `${API_BASE_URL}/api/v4/composite-aspects-data`, // composite aspects only
-  COMPOSITE_CHART:    `${API_BASE_URL}/api/v4/composite-chart`,
+  SYNASTRY_CHART: `${API_BASE_URL}/api/v4/synastry-chart`,       // A↔B + aspects
+  TRANSIT_CHART: `${API_BASE_URL}/api/v4/transit-chart`,       // subject + aspects
+  TRANSIT_ASPECTS: `${API_BASE_URL}/api/v4/transit-aspects-data`,// data-only
+  SYNASTRY_ASPECTS: `${API_BASE_URL}/api/v4/synastry-aspects-data`,
+  BIRTH_DATA: `${API_BASE_URL}/api/v4/birth-data`,
+  NOW: `${API_BASE_URL}/api/v4/now`,
+  COMPOSITE_ASPECTS: `${API_BASE_URL}/api/v4/composite-aspects-data`, // composite aspects only
+  COMPOSITE_CHART: `${API_BASE_URL}/api/v4/composite-chart`,
 };
 
 let loggedMissingRapidApiKey = false;
@@ -46,9 +46,9 @@ function subjectToAPI(s = {}, pass = {}) {
   };
   const includeCoords = hasCoords && !pass.force_city_mode && !pass.suppress_coords;
   if (includeCoords) {
-    apiSubject.latitude = s.latitude ?? s.lat;
-    apiSubject.longitude = s.longitude ?? s.lon ?? s.lng;
-    apiSubject.timezone = tzNorm;
+    apiSubject.lat = s.latitude ?? s.lat;
+    apiSubject.lng = s.longitude ?? s.lon ?? s.lng;
+    apiSubject.tz_str = tzNorm;
   }
   const wantCity = hasCity && (pass.require_city || !includeCoords);
   if (wantCity) {
@@ -65,7 +65,7 @@ function subjectToAPI(s = {}, pass = {}) {
 
 function normalizeStep(step) {
   const s = String(step || '').toLowerCase();
-  if (['daily','weekly','monthly'].includes(s)) return s;
+  if (['daily', 'weekly', 'monthly'].includes(s)) return s;
   if (s === '1d') return 'daily';
   if (s === '7d') return 'weekly';
   if (s === '1m' || s === '1mo' || s === 'monthly') return 'monthly';
@@ -174,7 +174,9 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
 
   async function ensureCoords(s) {
     if (!s) return s;
-    const hasCoords = typeof s.latitude === 'number' && typeof s.longitude === 'number' && !!s.timezone;
+    const hasCoords = (typeof s.latitude === 'number' || typeof s.lat === 'number')
+      && (typeof s.longitude === 'number' || typeof s.lon === 'number' || typeof s.lng === 'number')
+      && !!(s.timezone || s.tz_str);
     if (hasCoords) return s;
     if (s.city && s.nation) {
       try {
@@ -333,7 +335,7 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
               endpoint = 'formation-switch';
               logger.info(`Formation switch: Trying alternate transit subject for ${dateString}`);
 
-              const alternateTransitSubject = await (async function (){
+              const alternateTransitSubject = await (async function () {
                 const base = {
                   year: localDate.year,
                   month: localDate.month,
@@ -386,7 +388,7 @@ async function getTransits(subject, transitParams, headers, pass = {}) {
 
             if (natalHouseCusps && resp.data && resp.data.transit_subject) {
               const ts = resp.data.transit_subject;
-              const planetNames = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','mean_node','chiron'];
+              const planetNames = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'mean_node', 'chiron'];
 
               for (const planetName of planetNames) {
                 const planetData = ts[planetName];
@@ -665,24 +667,24 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
           try {
             const j = JSON.parse(rawText);
             if (j.message) parsedMessage = j.message;
-          } catch(_) {/* keep rawText */}
+          } catch (_) {/* keep rawText */ }
           // Special handling for auth/subscription issues
-            if (status === 401 || status === 403) {
-              const hint = parsedMessage && /not subscribed|unauthorized|invalid api key|api key is invalid/i.test(parsedMessage)
-                ? 'Verify RAPIDAPI_KEY, subscription plan, and that the key matches this API.'
-                : 'Authentication / subscription issue likely.';
-              logger.error('RapidAPI auth/subscription error', { status, operation, parsedMessage, hint });
-              const err = new Error(`RapidAPI access denied (${status}): ${parsedMessage}. ${hint}`);
-              err.code = 'RAPIDAPI_SUBSCRIPTION';
-              err.status = status;
-              err.raw = rawText.slice(0,1200);
-              throw err;
-            }
-          logger.error('Client error (non-retryable)', { status, operation, url, body: rawText.slice(0,1200) });
+          if (status === 401 || status === 403) {
+            const hint = parsedMessage && /not subscribed|unauthorized|invalid api key|api key is invalid/i.test(parsedMessage)
+              ? 'Verify RAPIDAPI_KEY, subscription plan, and that the key matches this API.'
+              : 'Authentication / subscription issue likely.';
+            logger.error('RapidAPI auth/subscription error', { status, operation, parsedMessage, hint });
+            const err = new Error(`RapidAPI access denied (${status}): ${parsedMessage}. ${hint}`);
+            err.code = 'RAPIDAPI_SUBSCRIPTION';
+            err.status = status;
+            err.raw = rawText.slice(0, 1200);
+            throw err;
+          }
+          logger.error('Client error (non-retryable)', { status, operation, url, body: rawText.slice(0, 1200) });
           const err = new Error(`Client error ${status} for ${operation}`);
           err.code = 'CLIENT_ERROR';
           err.status = status;
-          err.raw = rawText.slice(0,1200);
+          err.raw = rawText.slice(0, 1200);
           throw err;
         }
         logger.warn(`API call failed with status ${response.status}. Retrying...`);
@@ -716,7 +718,7 @@ async function apiCallWithRetry(url, options, operation, maxRetries = 2) {
  */
 async function fetchNatalChartComplete(subject, headers, pass, subjectLabel, contextLabel) {
   logger.debug(`Fetching complete natal chart for ${subjectLabel} (${contextLabel})`);
-  
+
   // Always use BIRTH_CHART endpoint for complete data
   const natalResponse = await callNatal(
     API_ENDPOINTS.BIRTH_CHART,
@@ -725,7 +727,7 @@ async function fetchNatalChartComplete(subject, headers, pass, subjectLabel, con
     pass,
     `Birth chart (${subjectLabel}) - ${contextLabel}`
   );
-  
+
   // CRITICAL: Validate that we received actual chart data from the upstream API
   // RapidAPI payloads have evolved — planets may live directly on data.*, under data.planets,
   // data.person.planets, or data.chart.planets. Accept any of those footprints.
@@ -737,8 +739,8 @@ async function fetchNatalChartComplete(subject, headers, pass, subjectLabel, con
         ? natalResponse.data.chart.planets
         : null;
   const keyedPlanets = natalResponse?.data
-    ? ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto']
-        .filter(key => natalResponse.data[key] != null)
+    ? ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto']
+      .filter(key => natalResponse.data[key] != null)
     : [];
   const hasPlanets = Boolean(
     (keyedPlanets && keyedPlanets.length > 0) || (planetArray && planetArray.length > 0)
@@ -760,7 +762,7 @@ async function fetchNatalChartComplete(subject, headers, pass, subjectLabel, con
       })
       .filter(Boolean);
   })();
-  
+
   logger.info('Natal API response validation', {
     subject: subject.name,
     hasResponse: !!natalResponse,
@@ -770,10 +772,10 @@ async function fetchNatalChartComplete(subject, headers, pass, subjectLabel, con
     responseKeys: natalResponse ? Object.keys(natalResponse) : 'none',
     dataKeys: natalResponse?.data ? Object.keys(natalResponse.data) : 'none'
   });
-  
+
   if (!natalResponse || !natalResponse.data || !hasPlanets) {
-    logger.error('Incomplete natal chart data received from upstream API', { 
-      subject: subject.name, 
+    logger.error('Incomplete natal chart data received from upstream API', {
+      subject: subject.name,
       subjectLabel,
       contextLabel,
       hasResponse: !!natalResponse,
@@ -785,7 +787,7 @@ async function fetchNatalChartComplete(subject, headers, pass, subjectLabel, con
     // Return null to signal the failure - callers MUST handle this
     return null;
   }
-  
+
   // Sanitize and extract chart data
   const { sanitized: chartData, assets: chartAssets } = sanitizeChartPayload(natalResponse.data || {}, {
     subject: subjectLabel,
@@ -814,7 +816,7 @@ async function fetchNatalChartComplete(subject, headers, pass, subjectLabel, con
   if (!Array.isArray(chartData.aspects) || chartData.aspects.length === 0) {
     chartData.aspects = natalData.aspects;
   }
-  
+
   // Extract house cusps for transit-to-natal-house calculations
   if (natalResponse.data) {
     const houseCusps = extractHouseCusps(natalResponse.data);
@@ -825,10 +827,10 @@ async function fetchNatalChartComplete(subject, headers, pass, subjectLabel, con
       logger.warn(`Failed to extract house cusps from natal chart for ${subjectLabel}`);
     }
   }
-  
+
   // Attach chart assets
   const allAssets = [...chartAssets];
-  
+
   // Extract chart wheel SVG from top-level chart field
   if (natalResponse.chart) {
     const { assets: wheelAssets } = sanitizeChartPayload({ chart: natalResponse.chart }, {
@@ -838,14 +840,14 @@ async function fetchNatalChartComplete(subject, headers, pass, subjectLabel, con
     });
     allAssets.push(...wheelAssets);
   }
-  
+
   // Add all assets to natal data
   if (allAssets.length > 0) {
     natalData.assets = allAssets;
   }
-  
+
   logger.debug(`Natal chart complete for ${subjectLabel}: ${natalData.aspects.length} aspects, ${natalData.chart.house_cusps?.length || 0} house cusps`);
-  
+
   return natalData;
 }
 

@@ -52,7 +52,6 @@ function resolveChartPreferences(options = {}) {
     'sidereal_mode',
     'perspective_type',
     'wheel_only',
-    'wheel_format',
     'theme',
     'language',
     'active_points',

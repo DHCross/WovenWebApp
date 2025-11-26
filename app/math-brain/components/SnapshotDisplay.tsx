@@ -11,7 +11,7 @@ interface SnapshotDisplayProps {
 
 export default function SnapshotDisplay({ result, location, timestamp }: SnapshotDisplayProps) {
   console.log('[SnapshotDisplay] Rendering with result:', result);
-  
+
   const snapshot = createSnapshotDisplay(result, location, timestamp);
 
   // Check if this is a relational snapshot
@@ -49,22 +49,22 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
       typeof seismograph.magnitude === 'number'
         ? seismograph.magnitude
         : typeof seismograph.rawMagnitude === 'number'
-        ? seismograph.rawMagnitude
-        : undefined;
+          ? seismograph.rawMagnitude
+          : undefined;
 
     const biasCandidate =
       typeof seismograph.directional_bias?.value === 'number'
         ? seismograph.directional_bias.value
         : typeof seismograph.rawDirectionalBias === 'number'
-        ? seismograph.rawDirectionalBias
-        : undefined;
+          ? seismograph.rawDirectionalBias
+          : undefined;
 
     const volatilityCandidate =
       typeof seismograph.volatility === 'number'
         ? seismograph.volatility
         : typeof seismograph.volatility_scaled === 'number'
-        ? seismograph.volatility_scaled
-        : undefined;
+          ? seismograph.volatility_scaled
+          : undefined;
 
     if (
       magnitudeCandidate === undefined &&
@@ -134,23 +134,26 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
     shouldUseFallback(magnitudePrimary, fallbackFromDay?.magnitude) && fallbackFromDay
       ? fallbackFromDay.magnitude ?? null
       : typeof magnitudeResolved === 'number'
-      ? magnitudeResolved
-      : null;
+        ? magnitudeResolved
+        : null;
   const directionalBias =
     shouldUseFallback(biasPrimary, fallbackFromDay?.directionalBias) && fallbackFromDay
       ? fallbackFromDay.directionalBias ?? null
       : typeof directionalBiasResolved === 'number'
-      ? directionalBiasResolved
-      : null;
+        ? directionalBiasResolved
+        : null;
   const volatility =
     shouldUseFallback(volatilityPrimary, fallbackFromDay?.volatility) && fallbackFromDay
       ? fallbackFromDay.volatility ?? null
       : typeof volatilityResolved === 'number'
-      ? volatilityResolved
-      : null;
+        ? volatilityResolved
+        : null;
 
   // Extract chart assets for visualization
-  const chartAssets = result?.person_a?.chart_assets || [];
+  const chartAssets = [
+    ...(result?.person_a?.chart_assets || []),
+    ...(result?.synastry_chart_assets || [])
+  ];
 
   const selectWheelAsset = () => {
     if (!Array.isArray(chartAssets) || chartAssets.length === 0) return null;
@@ -195,7 +198,7 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
 
   const personBDomains = isRelational ? buildDomainsFromChart(result?.person_b?.chart) : [];
   const showPersonBDomains = isRelational && personBDomains.some((domain) => domain.planets.length > 0);
-  
+
   console.log('[SnapshotDisplay] Balance Meter metrics:', {
     magnitude,
     directionalBias,
@@ -233,9 +236,9 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
       {/* CHART WHEEL PLACEHOLDER (TOP HALF) */}
       {wheelChart?.url ? (
         <div className="mb-6 flex justify-center rounded border border-slate-700 bg-slate-900/50 p-4">
-          <img 
-            src={wheelChart.url} 
-            alt="Natal Chart" 
+          <img
+            src={wheelChart.url}
+            alt="Natal Chart"
             className="max-w-full h-auto"
             onError={(e) => {
               console.error('[SnapshotDisplay] Chart image failed to load');
@@ -281,7 +284,7 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
         <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-indigo-300">
           Balance Meter Snapshot
         </h4>
-        
+
         {/* Metrics Table */}
         <div className="rounded border border-slate-700 bg-slate-900/50 overflow-hidden">
           <table className="w-full text-sm">
@@ -302,10 +305,10 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
                   {typeof magnitude === 'number' && magnitude >= 4
                     ? 'Strong field activation'
                     : typeof magnitude === 'number' && magnitude >= 2
-                    ? 'Moderate activation'
-                    : typeof magnitude === 'number' && magnitude >= 1
-                    ? 'Light activation'
-                    : 'Latent field'}
+                      ? 'Moderate activation'
+                      : typeof magnitude === 'number' && magnitude >= 1
+                        ? 'Light activation'
+                        : 'Latent field'}
                 </td>
               </tr>
               <tr>
@@ -319,12 +322,12 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
                   {typeof directionalBias === 'number' && directionalBias >= 3
                     ? 'Strong expansion'
                     : typeof directionalBias === 'number' && directionalBias >= 1
-                    ? 'Moderate expansion'
-                    : typeof directionalBias === 'number' && directionalBias >= -1
-                    ? 'Equilibrium'
-                    : typeof directionalBias === 'number' && directionalBias >= -3
-                    ? 'Moderate contraction'
-                    : 'Strong contraction'}
+                      ? 'Moderate expansion'
+                      : typeof directionalBias === 'number' && directionalBias >= -1
+                        ? 'Equilibrium'
+                        : typeof directionalBias === 'number' && directionalBias >= -3
+                          ? 'Moderate contraction'
+                          : 'Strong contraction'}
                 </td>
               </tr>
               <tr>
@@ -336,10 +339,10 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
                   {typeof volatility === 'number' && volatility >= 4
                     ? 'Very high variability'
                     : typeof volatility === 'number' && volatility >= 2
-                    ? 'Moderate stability'
-                    : typeof volatility === 'number' && volatility >= 1
-                    ? 'High stability'
-                    : 'Very stable pattern'}
+                      ? 'Moderate stability'
+                      : typeof volatility === 'number' && volatility >= 1
+                        ? 'High stability'
+                        : 'Very stable pattern'}
                 </td>
               </tr>
             </tbody>
@@ -356,19 +359,19 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
               {typeof directionalBias === 'number' && directionalBias < -1
                 ? 'Contracting'
                 : typeof directionalBias === 'number' && directionalBias > 1
-                ? 'Expanding'
-                : 'Balanced'}{' '}
+                  ? 'Expanding'
+                  : 'Balanced'}{' '}
               {typeof magnitude === 'number' && magnitude >= 3
                 ? 'with strong activation'
                 : typeof magnitude === 'number' && magnitude >= 1
-                ? 'gently'
-                : 'subtly'}
+                  ? 'gently'
+                  : 'subtly'}
               ;
               {typeof volatility === 'number' && volatility < 2
                 ? ' coherence steady'
                 : typeof volatility === 'number' && volatility >= 4
-                ? ' high variability'
-                : ' moderate shifts'}
+                  ? ' high variability'
+                  : ' moderate shifts'}
               .
             </p>
           </div>
@@ -435,42 +438,42 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
               </div>
             ))}
           </div>
-          
-          {isRelational && (() => {
-          if (!showPersonBDomains) return null;
 
-          return (
-            <div className="mt-4 pt-4 border-t border-slate-700/50">
-              <h5 className="mb-3 text-xs font-medium text-indigo-400">Person B</h5>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {personBDomains.map((domain) => (
-                  <div
-                    key={domain.label}
-                    className="rounded border border-slate-700 bg-slate-800/50 p-3"
-                  >
-                    <h6 className="mb-2 text-xs font-medium text-slate-400">{domain.label}</h6>
-                    {domain.planets.length > 0 ? (
-                      <ul className="space-y-1 text-xs text-slate-400">
-                        {domain.planets.map((planet) => (
-                          <li
-                            key={`${planet.name}-${planet.sign}`}
-                            className="flex items-baseline justify-between gap-2"
-                          >
-                            <span className="text-indigo-300">{planet.name}</span>
-                            <span className="text-slate-500 font-mono text-[10px]">
-                              {planet.sign} {planet.degree.toFixed(1)}°
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-xs text-slate-500">—</p>
-                    )}
-                  </div>
-                ))}
+          {isRelational && (() => {
+            if (!showPersonBDomains) return null;
+
+            return (
+              <div className="mt-4 pt-4 border-t border-slate-700/50">
+                <h5 className="mb-3 text-xs font-medium text-indigo-400">Person B</h5>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {personBDomains.map((domain) => (
+                    <div
+                      key={domain.label}
+                      className="rounded border border-slate-700 bg-slate-800/50 p-3"
+                    >
+                      <h6 className="mb-2 text-xs font-medium text-slate-400">{domain.label}</h6>
+                      {domain.planets.length > 0 ? (
+                        <ul className="space-y-1 text-xs text-slate-400">
+                          {domain.planets.map((planet) => (
+                            <li
+                              key={`${planet.name}-${planet.sign}`}
+                              className="flex items-baseline justify-between gap-2"
+                            >
+                              <span className="text-indigo-300">{planet.name}</span>
+                              <span className="text-slate-500 font-mono text-[10px]">
+                                {planet.sign} {planet.degree.toFixed(1)}°
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-slate-500">—</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          );
+            );
           })()}
         </div>
       </details>

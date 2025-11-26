@@ -20,9 +20,19 @@ export interface AstroSeekAspect {
   raw?: string;
 }
 
+export interface AstroSeekLocation {
+  city: string;
+  country: string;
+  lat: number;
+  long: number;
+  raw: string;
+}
+
 export interface AstroSeekParseResult {
   placements: AstroSeekPlacement[];
   aspects: AstroSeekAspect[];
+  location?: AstroSeekLocation;
+  transitLocation?: AstroSeekLocation;
   snippet: string;
   raw: string;
 }
@@ -201,6 +211,66 @@ function toDecimal(degree?: number, minute?: number): number | undefined {
   return deg + minute / 60;
 }
 
+function parseCoordinate(coord: string): number | undefined {
+  // 40°1'N or 75°18'W
+  const match = coord.match(/(\d+)[°º](\d+)'([NSEW])/i);
+  if (!match) return undefined;
+  const deg = parseInt(match[1], 10);
+  const min = parseInt(match[2], 10);
+  const dir = match[3].toUpperCase();
+  let val = deg + min / 60;
+  if (dir === 'S' || dir === 'W') val = -val;
+  return val;
+}
+
+function extractLocationFromBlock(block: string): AstroSeekLocation | undefined {
+  // Latitude, Longitude:40°1'N, 75°18'W
+  const latLongMatch = block.match(/Latitude,\s*Longitude:\s*(\d+[°º]\d+'[NS]),\s*(\d+[°º]\d+'[EW])/i);
+
+  if (!latLongMatch) return undefined;
+
+  const lat = parseCoordinate(latLongMatch[1]);
+  const long = parseCoordinate(latLongMatch[2]);
+
+  if (lat === undefined || long === undefined) return undefined;
+
+  let city = 'Unknown';
+  let country = 'Unknown';
+
+  // Format 1: City (Country):United States Bryn Mawr (US), PA
+  const combinedMatch = block.match(/(?:City\s*\(Country\)|City,\s*Country):\s*([^(\n]+(?:\([^)]+\))?(?:,\s*\w+)?)/i);
+
+  if (combinedMatch) {
+    let fullCityRaw = combinedMatch[1].trim();
+    // Clean up city string if it has "United States" prefix often seen in AstroSeek
+    if (fullCityRaw.startsWith('United States ')) {
+      city = fullCityRaw.replace('United States ', '');
+      country = 'United States';
+    } else {
+      city = fullCityRaw;
+    }
+  } else {
+    // Format 2: City:Value \n Country:Value
+    const cityMatch = block.match(/City:\s*([^\n\r]+)/i);
+    const countryMatch = block.match(/Country:\s*([^\n\r]+)/i);
+
+    if (cityMatch) {
+      city = cityMatch[1].trim();
+    }
+    if (countryMatch) {
+      country = countryMatch[1].trim();
+    }
+  }
+
+  return {
+    city,
+    country,
+    lat,
+    long,
+    raw: block.trim()
+  };
+}
+
 /**
  * Parse an AstroSeek export blob into placements and aspects.
  */
@@ -208,6 +278,19 @@ export function parseAstroSeekBlob(textBlob: string): AstroSeekParseResult {
   const placements: AstroSeekPlacement[] = [];
   const seenBodies = new Set<string>();
   const lines = textBlob.split(/\r?\n/);
+
+  // Split into blocks to handle natal vs transit sections
+  // Transit charts usually start with "Transit chart" or similar
+  const transitIndex = lines.findIndex(l => /Transit chart/i.test(l));
+
+  const natalLines = transitIndex === -1 ? lines : lines.slice(0, transitIndex);
+  const transitLines = transitIndex === -1 ? [] : lines.slice(transitIndex);
+
+  const natalBlock = natalLines.join('\n');
+  const transitBlock = transitLines.join('\n');
+
+  const location = extractLocationFromBlock(natalBlock);
+  const transitLocation = extractLocationFromBlock(transitBlock);
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -255,6 +338,8 @@ export function parseAstroSeekBlob(textBlob: string): AstroSeekParseResult {
   return {
     placements,
     aspects,
+    location,
+    transitLocation,
     snippet: textBlob.trim().slice(0, 240),
     raw: textBlob,
   };
