@@ -113,7 +113,7 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
 
   const generateActorRoleReveal = async () => {
     setIsGenerating(true);
-    
+
     try {
       // Get session diagnostics from ping tracker
       const diagnostics = pingTracker.exportSessionDiagnostics(sessionId);
@@ -121,9 +121,9 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
 
       // Generate Actor/Role composite from session patterns
       const detector = ActorRoleDetector.getInstance();
-  const result = detector.generateComposite(diagnostics.patterns);
+      const result = detector.generateComposite(diagnostics.patterns);
       setComposite(result);
-      
+
     } catch (error) {
       console.error('Error generating Actor/Role reveal:', error);
     } finally {
@@ -165,7 +165,7 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
     setToast('Rubric skipped');
     setTimeout(() => setToast(null), 2000);
     logEvent('rubric_skipped', { sessionId: sessionId || pingTracker.getCurrentSessionId() });
-    
+
     // Close the WrapUpCard and return to main chat
     if (onClose) {
       onClose();
@@ -179,7 +179,7 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
     setToast('Rubric canceled');
     setTimeout(() => setToast(null), 2000);
     logEvent('rubric_cancelled', { sessionId: sessionId || pingTracker.getCurrentSessionId() });
-    
+
     // Close the WrapUpCard and return to main chat
     if (onClose) {
       onClose();
@@ -273,7 +273,7 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `raven-session-${diagnostics.sessionId.slice(-8)}-${new Date().toISOString().slice(0,10)}.csv`;
+      a.download = `raven-session-${diagnostics.sessionId.slice(-8)}-${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -291,32 +291,32 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
   };
 
   // Distinct PDF content creation for Mirror and Balance reports
-type PdfSection = {
-  title: string;
-  body: string;
-};
+  type PdfSection = {
+    title: string;
+    body: string;
+  };
 
-const cleanSectionText = (value: string): string =>
-  value
-    .replace(/\u00a0/g, ' ')
-    .replace(/\r\n/g, '\n')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+  const cleanSectionText = (value: string): string =>
+    value
+      .replace(/\u00a0/g, ' ')
+      .replace(/\r\n/g, '\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
 
-const extractPdfSections = (root: HTMLElement): PdfSection[] => {
-  const nodes = Array.from(root.querySelectorAll<HTMLElement>('[data-pdf-section]'));
-  if (nodes.length === 0) {
-    const fallback = cleanSectionText(root.innerText || '');
-    return fallback ? [{ title: 'Session Summary', body: fallback }] : [];
-  }
-  return nodes
-    .map((node) => ({
-      title: node.getAttribute('data-pdf-section') || 'Section',
-      body: cleanSectionText(node.innerText || ''),
-    }))
-    .filter((section) => section.body.length > 0);
-};
+  const extractPdfSections = (root: HTMLElement): PdfSection[] => {
+    const nodes = Array.from(root.querySelectorAll<HTMLElement>('[data-pdf-section]'));
+    if (nodes.length === 0) {
+      const fallback = cleanSectionText(root.innerText || '');
+      return fallback ? [{ title: 'Session Summary', body: fallback }] : [];
+    }
+    return nodes
+      .map((node) => ({
+        title: node.getAttribute('data-pdf-section') || 'Section',
+        body: cleanSectionText(node.innerText || ''),
+      }))
+      .filter((section) => section.body.length > 0);
+  };
 
   const createEnhancedPDFContent = (): HTMLElement => {
     const container = document.createElement('div');
@@ -363,21 +363,19 @@ const extractPdfSections = (root: HTMLElement): PdfSection[] => {
           <p><strong>Actor/Role Composite:</strong> ${safe(composite?.composite)}</p>
           <p><strong>Actor (Driver):</strong> ${safe(composite?.actor)}</p>
           <p><strong>Role (Style):</strong> ${safe(composite?.role)}</p>
-          <p><strong>Confidence:</strong> ${
-            composite
-              ? safe(`${Math.round(((composite.confidence ?? 0) * 100 + Number.EPSILON) * 10) / 10}% (${composite.confidenceBand ?? ''})`)
-              : safe(undefined)
-          }</p>
+          <p><strong>Confidence:</strong> ${composite
+        ? safe(`${Math.round(((composite.confidence ?? 0) * 100 + Number.EPSILON) * 10) / 10}% (${composite.confidenceBand ?? ''})`)
+        : safe(undefined)
+      }</p>
           <p><strong>Sample Size:</strong> ${safe(composite?.sampleSize)}</p>
-          ${
-            composite?.siderealDrift
-              ? `<p><strong>Sidereal Drift:</strong> ${safe(composite.driftBand)} (${safe(
-                  composite.driftIndex !== undefined
-                    ? `${Math.round(((composite.driftIndex ?? 0) * 100 + Number.EPSILON) * 10) / 10}%`
-                    : undefined
-                )})</p>`
-              : ''
-          }
+          ${composite?.siderealDrift
+        ? `<p><strong>Sidereal Drift:</strong> ${safe(composite.driftBand)} (${safe(
+          composite.driftIndex !== undefined
+            ? `${Math.round(((composite.driftIndex ?? 0) * 100 + Number.EPSILON) * 10) / 10}%`
+            : undefined
+        )})</p>`
+        : ''
+      }
         </div>
       </div>
     `;
@@ -388,17 +386,17 @@ const extractPdfSections = (root: HTMLElement): PdfSection[] => {
         <div style="background: #f8fafc; padding: 0.3in; border-radius: 8px;">
           <p><strong>Total Responses:</strong> ${safe((sessionStats as any)?.total)}</p>
           <p><strong>Accuracy Rate:</strong> ${safe(
-            (sessionStats as any)?.accuracyRate !== undefined
-              ? `${(sessionStats as any).accuracyRate}%`
-              : (sessionStats as any)?.resonanceFidelity !== undefined
-              ? `${(sessionStats as any).resonanceFidelity}%`
-              : undefined
-          )}</p>
+      (sessionStats as any)?.accuracyRate !== undefined
+        ? `${(sessionStats as any).accuracyRate}%`
+        : (sessionStats as any)?.resonanceFidelity !== undefined
+          ? `${(sessionStats as any).resonanceFidelity}%`
+          : undefined
+    )}</p>
           <p><strong>Clarity Rate:</strong> ${safe(
-            (sessionStats as any)?.clarityRate !== undefined
-              ? `${(sessionStats as any).clarityRate}%`
-              : undefined
-          )}</p>
+      (sessionStats as any)?.clarityRate !== undefined
+        ? `${(sessionStats as any).clarityRate}%`
+        : undefined
+    )}</p>
           <p><strong>Response Breakdown:</strong> ${safe(responseBreakdown)}</p>
         </div>
       </div>
@@ -549,7 +547,7 @@ const extractPdfSections = (root: HTMLElement): PdfSection[] => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `raven-session-${data.sessionId.slice(-8)}-${new Date().toISOString().slice(0,10)}.json`;
+        a.download = `raven-session-${data.sessionId.slice(-8)}-${new Date().toISOString().slice(0, 10)}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -791,7 +789,7 @@ const extractPdfSections = (root: HTMLElement): PdfSection[] => {
     );
   }
 
-  const getConfidenceColor = (band?: 'LOW'|'MODERATE'|'HIGH') => {
+  const getConfidenceColor = (band?: 'LOW' | 'MODERATE' | 'HIGH') => {
     if (band === 'HIGH') return '#22c55e';
     if (band === 'MODERATE') return '#f59e0b';
     return '#ef4444';
@@ -806,12 +804,14 @@ const extractPdfSections = (root: HTMLElement): PdfSection[] => {
     return glyphs[sign] || '●';
   };
 
+  const breakdown = (sessionStats?.breakdown as Record<string, number> | undefined) || {};
+
   return (
     <div className="wrap-up-card">
       {onClose && (
         <button className="close-button" onClick={onClose}>×</button>
       )}
-      
+
       <div className="card-header">
         <h3>🎭 Actor / Role Reveal</h3>
         <p className="subtitle">Raven's diagnostic guess, derived from your resonance pattern</p>
@@ -829,9 +829,9 @@ const extractPdfSections = (root: HTMLElement): PdfSection[] => {
           <div className="composite-title muted">Not enough data for a composite</div>
         )}
         {(composite.sampleSize || 0) > 0 && (
-          <div 
+          <div
             className="confidence-bar"
-            style={{ 
+            style={{
               background: `linear-gradient(90deg, ${getConfidenceColor(composite.confidenceBand)} ${Math.round((composite.confidence || 0) * 100)}%, rgba(255,255,255,0.1) ${Math.round((composite.confidence || 0) * 100)}%)`
             }}
           >
@@ -842,7 +842,7 @@ const extractPdfSections = (root: HTMLElement): PdfSection[] => {
         )}
       </div>
 
-  <div className="explanation">
+      <div className="explanation">
         <p>
           This blend comes from what landed (✅) and how your clarifications shaped the misses (❌). Raven tests patterns; you’re the validator.
           {composite.driftBand && composite.driftBand !== 'NONE' && (
@@ -859,7 +859,7 @@ const extractPdfSections = (root: HTMLElement): PdfSection[] => {
             </>
           )}
         </p>
-        <p style={{color:'#94a3b8', fontSize:12, marginTop:8}}>
+        <p style={{ color: '#94a3b8', fontSize: 12, marginTop: 8 }}>
           Method: weighted by what landed (WB) and probe clarifications on misses (OSR). Confidence: {(composite.confidenceBand || 'LOW').toLowerCase()}.
           {composite.tieBreak && <span> Tie-break favored {composite.tieBreak} evidence.</span>}
         </p>
@@ -933,46 +933,46 @@ const extractPdfSections = (root: HTMLElement): PdfSection[] => {
         </div>
       )}
 
-    <div className="glyph-trace">
+      <div className="glyph-trace">
         <div className="glyph-item">
-      <span className="glyph">☉{getGlyph(composite.actorSigns?.[0] || 'Sagittarius')}</span>
+          <span className="glyph">☉{getGlyph(composite.actorSigns?.[0] || 'Sagittarius')}</span>
           <span className="glyph-label">Actor (sidereal)</span>
         </div>
         <div className="glyph-item">
-      <span className="glyph">☿{getGlyph(composite.roleSigns?.[0] || 'Scorpio')}</span>
+          <span className="glyph">☿{getGlyph(composite.roleSigns?.[0] || 'Scorpio')}</span>
           <span className="glyph-label">Role (tropical)</span>
         </div>
       </div>
 
-  <div className="resonance-scorecard">
+      <div className="resonance-scorecard">
         <div className="scorecard-header">Resonance Scorecard</div>
         <div className="score-grid">
           <div className="score-item wb">
             <span className="score-icon">✅</span>
             <span className="score-label">WB mirrors</span>
-            <span className="score-count">{sessionStats.breakdown.yes}</span>
+            <span className="score-count">{breakdown.yes ?? 0}</span>
           </div>
           <div className="score-item abe">
             <span className="score-icon">🟡</span>
             <span className="score-label">ABE mirrors</span>
-            <span className="score-count">{sessionStats.breakdown.maybe}</span>
+            <span className="score-count">{breakdown.maybe ?? 0}</span>
           </div>
           <div className="score-item osr">
             <span className="score-icon">❌</span>
             <span className="score-label">OSR mirrors</span>
-            <span className="score-count">{sessionStats.breakdown.no + sessionStats.breakdown.unclear}</span>
+            <span className="score-count">{(breakdown.no ?? 0) + (breakdown.unclear ?? 0)}</span>
           </div>
         </div>
         <div className="scorecard-footer">
-          WB {sessionStats.breakdown.yes} · ABE {sessionStats.breakdown.maybe} · OSR {sessionStats.breakdown.no + sessionStats.breakdown.unclear}
-          {typeof sessionStats.breakdown.pending === 'number' && <span> · PENDING {sessionStats.breakdown.pending}</span>}
+          WB {breakdown.yes ?? 0} · ABE {breakdown.maybe ?? 0} · OSR {(breakdown.no ?? 0) + (breakdown.unclear ?? 0)}
+          {typeof breakdown.pending === 'number' && <span> · PENDING {breakdown.pending}</span>}
         </div>
       </div>
 
       <div className="closing-note">
         <p>
           <em>This is a mirror, not a label. It may shift as future sessions add more data.
-          You are the validator.</em>
+            You are the validator.</em>
         </p>
         {rubricSealedSessionId && (
           <p className="session-note">This reading is sealed. New messages start a fresh reading container.</p>

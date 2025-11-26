@@ -284,8 +284,8 @@ export const buildNarrativeDraft = (
 
   const provenanceHtml = provenanceText
     ? `<footer class="raven-provenance" style="margin-top:12px; font-size:11px; color:#94a3b8;">${escapeHtml(
-        provenanceText,
-      )}</footer>`
+      provenanceText,
+    )}</footer>`
     : "";
 
   const html = `
@@ -318,7 +318,14 @@ export const formatShareableDraft = (
   if (conversationText) {
     const cleanedText = conversationText.replace(/\s*\[\d+\]/g, "");
 
-    if (!hasStructuralScaffolding(cleanedText) && draft && Object.keys(draft).length > 0) {
+    const hasNarrativeKeys =
+      "picture" in draft ||
+      "feeling" in draft ||
+      "container" in draft ||
+      "option" in draft ||
+      "next_step" in draft;
+
+    if (!hasStructuralScaffolding(cleanedText) && hasNarrativeKeys) {
       return buildNarrativeDraft(draft, prov);
     }
 
@@ -334,8 +341,8 @@ export const formatShareableDraft = (
       .join('<div style="height:0.75rem;"></div>');
     const provenance = prov?.source
       ? `<div class="mirror-provenance" style="margin-top:12px; font-size:11px; color:#94a3b8;">Source · ${escapeHtml(
-          String(prov.source),
-        )}</div>`
+        String(prov.source),
+      )}</div>`
       : "";
 
     return {

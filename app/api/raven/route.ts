@@ -32,13 +32,13 @@ import { isGeometryValidated, OPERATIONAL_FLOW } from '@/lib/poetic-brain/runtim
  */
 function extractGeometryFromUploadedReport(contexts: Record<string, any>[]): any {
   if (!Array.isArray(contexts) || contexts.length === 0) return null;
-  
+
   const mirrorContext = [...contexts].reverse().find(
     (ctx) => ctx && ctx.type === 'mirror' && typeof ctx.content === 'string'
   );
-  
+
   if (!mirrorContext) return null;
-  
+
   try {
     const parsed = JSON.parse(mirrorContext.content);
     // Check if this is a Math Brain v2 unified output with geometry
@@ -64,13 +64,13 @@ function extractGeometryFromUploadedReport(contexts: Record<string, any>[]): any
         unwrapped.natal_chart ||
         unwrapped.natalChart ||
         unwrapped;
-      
+
       // Validate that we have the minimum required geometry fields
       if (geo && typeof geo === 'object') {
         const hasPersonA = geo.person_a && typeof geo.person_a === 'object';
         const hasChart = geo.chart && typeof geo.chart === 'object';
         const hasBasicData = geo.planets || geo.houses || geo.aspects;
-        
+
         if (hasPersonA || hasChart || hasBasicData) {
           return geo;
         }
@@ -80,7 +80,7 @@ function extractGeometryFromUploadedReport(contexts: Record<string, any>[]): any
     // Invalid JSON or missing geometry
     return null;
   }
-  
+
   return null;
 }
 
@@ -319,39 +319,39 @@ function resolveSubject(payload: any, key: 'person_a' | 'person_b'): any {
 
 function hasCompleteSubject(subject: any): boolean {
   if (!subject || typeof subject !== 'object') return false;
-  
+
   // Check for v2 schema first (unified_output.person_a.chart)
-  const v2Chart = subject.unified_output?.person_a?.chart || 
-                 subject.unified_output?.personA?.chart ||
-                 subject.unified_output?.chart;
-  
+  const v2Chart = subject.unified_output?.person_a?.chart ||
+    subject.unified_output?.personA?.chart ||
+    subject.unified_output?.chart;
+
   // Fall back to v1 schema
   const chart = v2Chart ||
     (subject.chart ??
-    subject.chart_natal ??
-    subject.chartNatal ??
-    subject.geometry ??
-    subject.natal_chart ??
-    subject.blueprint ??
-    null);
-    
+      subject.chart_natal ??
+      subject.chartNatal ??
+      subject.geometry ??
+      subject.natal_chart ??
+      subject.blueprint ??
+      null);
+
   // Check if we have valid chart data in either format
   const hasPlanets =
     Array.isArray(chart?.planets) && chart.planets.length > 0 ||
-    (chart && typeof chart === 'object' && 
-     (chart.planets || chart.planets === undefined) && // Allow missing planets if other data exists
-     Object.keys(chart).some(k => k !== 'planets'));
-     
-  const aspects = 
+    (chart && typeof chart === 'object' &&
+      (chart.planets || chart.planets === undefined) && // Allow missing planets if other data exists
+      Object.keys(chart).some(k => k !== 'planets'));
+
+  const aspects =
     Array.isArray(subject.aspects) && subject.aspects.length > 0 ||
     Array.isArray(chart?.aspects) && chart.aspects.length > 0;
-    
+
   const placements =
     Array.isArray(subject.placements) && subject.placements.length > 0;
-    
+
   // Also check for _natal_section in v2 schema
-  const hasNatalSection = 
-    subject._natal_section && 
+  const hasNatalSection =
+    subject._natal_section &&
     typeof subject._natal_section === 'object' &&
     Object.keys(subject._natal_section).length > 0;
 
@@ -499,12 +499,36 @@ function deriveAutoExecutionPlan(
 
   const personA = resolveWithCompanion(resolveSubject(payload, 'person_a'), 'person_a');
   const personB = resolveWithCompanion(resolveSubject(payload, 'person_b'), 'person_b');
+
+  console.log('[AutoPlan] Deriving plan for context:', mirrorContext.id);
+  console.log('[AutoPlan] Payload keys:', Object.keys(payload));
+  console.log('[AutoPlan] Person A found:', !!personA, 'Complete:', hasCompleteSubject(personA));
+  console.log('[AutoPlan] Person B found:', !!personB, 'Complete:', hasCompleteSubject(personB));
+
   if (!hasCompleteSubject(personA)) {
+    console.log('[AutoPlan] OSR: Missing Person A');
     return {
       status: 'osr',
       contextId: mirrorContext.id,
       contextName: mirrorContext.name,
       reason: 'missing_person_a',
+    };
+  }
+
+  const templateHint = typeof payload._template_hint === 'string' ? payload._template_hint : null;
+  const requiredSections = Array.isArray(payload._required_sections) ? payload._required_sections : [];
+
+  // Check for required Person B
+  if (
+    (requiredSections.includes('person_b') || requiredSections.includes('personB')) &&
+    !hasCompleteSubject(personB)
+  ) {
+    console.log('[AutoPlan] OSR: Missing required Person B for relational template');
+    return {
+      status: 'osr',
+      contextId: mirrorContext.id,
+      contextName: mirrorContext.name,
+      reason: 'missing_required_subject_b',
     };
   }
 
@@ -521,7 +545,8 @@ function deriveAutoExecutionPlan(
   const contractRelational =
     contract?.is_relational === true ||
     (typeof contract?.relational === 'boolean' && contract.relational) ||
-    (typeof reportKind === 'string' && /relational|synastry|composite/.test(reportKind));
+    (typeof reportKind === 'string' && /relational|synastry|composite/.test(reportKind)) ||
+    templateHint === 'relational_pair';
   const contractParallel =
     typeof contract?.mode === 'string' && /parallel/i.test(contract.mode) ||
     (typeof reportKind === 'string' && /parallel/.test(reportKind));
@@ -884,6 +909,7 @@ export async function POST(req: Request) {
         geo: relationalResponse.geometry,
         prov: relationalProv,
         options: relationalOptions,
+        mode: 'relational-mirror',
       });
       const relationalProbe = createProbe(relationalDraft?.next_step || 'Notice how the mirror moves between you two', randomUUID());
       sessionLog.probes.push(relationalProbe);
@@ -922,8 +948,9 @@ export async function POST(req: Request) {
         geo: parallelResponse.geometry,
         prov: parallelProv,
         options: parallelOptions,
+        mode: 'relational-balance', // Best fit for parallel/synastry if parallel-mirror not available
       });
-      const parallelProbe = createProbe(parallelDraft?.next_step || 'Check how each mirror lands individually', randomUUID());
+      const parallelProbe = createProbe(parallelDraft?.next_step || 'Check where the lines cross', randomUUID());
       sessionLog.probes.push(parallelProbe);
       return NextResponse.json({ intent, ok: true, draft: parallelDraft, prov: parallelProv, climate: parallelResponse.climate ?? null, sessionId: sid, probe: parallelProbe });
     }
@@ -980,10 +1007,10 @@ export async function POST(req: Request) {
 
     if (autoPlan.status === 'solo_auto') {
       wantsWeatherOnly = false;
-      
+
       // Try to extract geometry directly from uploaded report first
       const uploadedGeo = extractGeometryFromUploadedReport(normalizedContexts);
-      
+
       if (uploadedGeo) {
         // Use the uploaded geometry directly without calling Math Brain
         const soloProv = stampProvenance({ source: 'Math Brain (Uploaded Report)', timestamp: new Date().toISOString() });
@@ -997,12 +1024,13 @@ export async function POST(req: Request) {
           geo: uploadedGeo,
           prov: soloProv,
           options: soloOptions,
+          mode: 'natal-only',
         });
         const soloProbe = createProbe(soloDraft?.next_step || 'Notice where this pattern lands in your body', randomUUID());
         sessionLog.probes.push(soloProbe);
         return NextResponse.json({ intent, ok: true, draft: soloDraft, prov: soloProv, climate: null, sessionId: sid, probe: soloProbe });
       }
-      
+
       // Fallback: try to regenerate via Math Brain
       const soloResponse = await runMathBrain({
         ...resolvedOptions,
@@ -1034,6 +1062,7 @@ export async function POST(req: Request) {
         geo: soloResponse.geometry,
         prov: soloProv,
         options: soloOptions,
+        mode: 'natal-only',
       });
       const soloProbe = createProbe(soloDraft?.next_step || 'Notice where this pattern lands in your body', randomUUID());
       sessionLog.probes.push(soloProbe);

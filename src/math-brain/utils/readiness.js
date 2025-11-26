@@ -11,8 +11,8 @@ const logger = {
 };
 
 const GRAPHIC_KEYS = new Set([
-  'wheel','svg','chart','image','images','chart_image','graphical','png','jpg','jpeg','pdf',
-  'wheel_url','image_url','chartUrl','rendered_svg','rendered_png'
+  'wheel', 'svg', 'chart', 'image', 'images', 'chart_image', 'graphical', 'png', 'jpg', 'jpeg', 'pdf',
+  'wheel_url', 'image_url', 'chartUrl', 'rendered_svg', 'rendered_png'
 ]);
 
 function stripGraphicsDeep(obj, options = {}) {
@@ -114,24 +114,13 @@ function extractGraphicAssets(entry, context) {
     try {
       if (packet.buffer) {
         const { buffer, contentType, format } = packet;
-        const { id, expiresAt } = storeChartAsset(buffer, {
-          contentType,
-          ttl: context.ttlMs || DEFAULT_TTL_MS,
-          metadata: {
-            contentType,
-            format,
-            fieldPath: packet.path,
-            pathSegments: packet.pathSegments,
-            subject: context.subject || null,
-            chartType: context.chartType || null,
-            scope: context.scope || 'chart',
-            sourceKey: key,
-          },
-        });
+        // Use Data URI to avoid serverless cache issues
+        const base64 = buffer.toString('base64');
+        const dataUri = `data:${contentType};base64,${base64}`;
 
         assets.push({
-          id,
-          url: `/api/chart/${id}`,
+          id: `inline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          url: dataUri,
           contentType,
           format,
           fieldPath: packet.path,
@@ -141,8 +130,8 @@ function extractGraphicAssets(entry, context) {
           chartType: context.chartType || null,
           scope: context.scope || 'chart',
           size: buffer.length,
-          expiresAt,
-          external: false,
+          expiresAt: null,
+          external: true, // Treat as external/direct URL
         });
       } else if (packet.url) {
         const guessedFormat = packet.format || guessFormatFromUrl(packet.url);
