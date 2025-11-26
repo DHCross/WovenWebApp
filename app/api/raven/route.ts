@@ -469,6 +469,12 @@ function deriveAutoExecutionPlan(
     return { status: 'none' };
   }
 
+  // Check for failed contexts to prevent loops
+  if (sessionLog.failedContexts && sessionLog.failedContexts.has(mirrorContext.id)) {
+    console.log('[AutoPlan] Skipping failed context:', mirrorContext.id);
+    return { status: 'none' };
+  }
+
   const parsed = safeParseJSON(mirrorContext.content);
   if (!parsed.ok) {
     return {
@@ -885,6 +891,10 @@ export async function POST(req: Request) {
         autoMode: 'relational_auto',
       });
       if (!relationalResponse.success) {
+        // Record failure to prevent looping
+        if (!sessionLog.failedContexts) sessionLog.failedContexts = new Set();
+        sessionLog.failedContexts.add(autoPlan.contextId);
+
         const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'this report';
         const message = `I tried to regenerate a fresh relational Math Brain pass from ${contextName}, but the engine didn’t respond cleanly. Your uploaded report is still attached here—I can work directly with it. What would you like to explore first?`;
         appendHistoryEntry(sessionLog, 'raven', message);
@@ -924,6 +934,10 @@ export async function POST(req: Request) {
         autoMode: 'parallel_auto',
       });
       if (!parallelResponse.success) {
+        // Record failure to prevent looping
+        if (!sessionLog.failedContexts) sessionLog.failedContexts = new Set();
+        sessionLog.failedContexts.add(autoPlan.contextId);
+
         const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'this report';
         const message = `I tried to regenerate parallel mirrors from ${contextName}, but the Math Brain engine stalled. The report itself is still live here—tell me whose side you want to start with or what pattern you’d like to test.`;
         appendHistoryEntry(sessionLog, 'raven', message);
@@ -963,6 +977,10 @@ export async function POST(req: Request) {
         autoMode: 'contextual_auto',
       });
       if (!contextualResponse.success) {
+        // Record failure to prevent looping
+        if (!sessionLog.failedContexts) sessionLog.failedContexts = new Set();
+        sessionLog.failedContexts.add(autoPlan.contextId);
+
         const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'this report';
         const message = `I tried to weave in the extra context around ${contextName}, but the Math Brain engine didn’t complete a fresh run. The uploaded report is still present—describe the context you care about, and I’ll mirror it directly.`;
         appendHistoryEntry(sessionLog, 'raven', message);
@@ -988,6 +1006,7 @@ export async function POST(req: Request) {
         geo: contextualResponse.geometry,
         prov: contextualProv,
         options: contextualOptions,
+        mode: 'natal-only', // Fallback to natal-only as contextual-mirror is not a valid schema mode
       });
       const contextualProbe = createProbe(
         contextualDraft?.next_step || 'Let me know how that contextual mirror lands for you',
@@ -1120,10 +1139,16 @@ export async function POST(req: Request) {
         operationalFlow: OPERATIONAL_FLOW,
         operational_flow: OPERATIONAL_FLOW,
       };
+      const inferredMode = (resolvedOptions.mode as any) ||
+        (resolvedOptions.reportType === 'relational' || resolvedOptions.reportType === 'synastry' ? 'relational-mirror' :
+          resolvedOptions.reportType === 'parallel' ? 'relational-balance' :
+            'natal-only');
+
       const draft = await renderShareableMirror({
         geo: mb.geometry,
         prov,
         options: reportOptions,
+        mode: inferredMode,
       });
       const probe = createProbe(draft?.next_step || 'Note one actionable step', randomUUID());
       sessionLog.probes.push(probe);

@@ -1479,7 +1479,7 @@ export default function MathBrainPage() {
       } catch (e) {
         // Silently fail - not critical
       }
-    } catch {/* noop */}
+    } catch {/* noop */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1491,7 +1491,7 @@ export default function MathBrainPage() {
       const stored = window.localStorage.getItem('mb.saveInputsPreference');
       if (stored === 'false') return false;
       if (stored === 'true') return true;
-    } catch {/* ignore */}
+    } catch {/* ignore */ }
     return true;
   });
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -1507,23 +1507,23 @@ export default function MathBrainPage() {
     try {
       const saved = typeof window !== 'undefined' ? window.localStorage.getItem('mb.samplingFrequency') : null;
       if (saved === 'weekly' || saved === 'daily') return saved;
-    } catch {/* ignore */}
+    } catch {/* ignore */ }
     return 'weekly';
   });
   useEffect(() => {
     try {
       window.localStorage.setItem('weeklyAgg', weeklyAgg);
-    } catch {/* ignore */}
+    } catch {/* ignore */ }
   }, [weeklyAgg]);
   useEffect(() => {
     try {
       window.localStorage.setItem('mb.samplingFrequency', samplingFrequency);
-    } catch {/* ignore */}
+    } catch {/* ignore */ }
   }, [samplingFrequency]);
   useEffect(() => {
     try {
       window.localStorage.setItem('mb.layerVisibility', JSON.stringify(layerVisibility));
-    } catch {/* ignore */}
+    } catch {/* ignore */ }
   }, [layerVisibility]);
 
   // Check for saved inputs on mount
@@ -1539,7 +1539,7 @@ export default function MathBrainPage() {
   useEffect(() => {
     try {
       window.localStorage.setItem('mb.saveInputsPreference', String(saveForNextSession));
-    } catch {/* ignore */}
+    } catch {/* ignore */ }
   }, [saveForNextSession]);
 
   // Relational modes list used for UI guards
@@ -1619,7 +1619,7 @@ export default function MathBrainPage() {
 
   // Automatically enable includePersonB when a relationship type is selected
   useEffect(() => {
-      // Do not auto-enable Person B when relationshipType changes
+    // Do not auto-enable Person B when relationshipType changes
   }, [relationshipType]);
 
   useEffect(() => {
@@ -1863,8 +1863,8 @@ export default function MathBrainPage() {
         disabled: midpointDisabled,
         title: midpointDisabled
           ? (!includeTransits
-              ? 'Midpoint relocation is only supported in Relational Balance reports.'
-              : 'Midpoint relocation requires both Person A and Person B.')
+            ? 'Midpoint relocation is only supported in Relational Balance reports.'
+            : 'Midpoint relocation requires both Person A and Person B.')
           : 'Experimental — bond midpoint, not a physical place.',
       });
     }
@@ -2038,7 +2038,7 @@ export default function MathBrainPage() {
       window.localStorage.removeItem('mb.lastInputs');
       setHasSavedInputs(false);
       setSaveForNextSession(true);
-    } catch {/* noop */}
+    } catch {/* noop */ }
   }
 
   function resumeLastInputs() {
@@ -2098,7 +2098,7 @@ export default function MathBrainPage() {
 
       // Hide the resume prompt after successful load
       setHasSavedInputs(false);
-    } catch {/* noop */}
+    } catch {/* noop */ }
   }
 
   // Quick actions for Person B
@@ -2320,25 +2320,25 @@ export default function MathBrainPage() {
 
     const trimmedPayload = mirrorSymbolicWeather
       ? {
-          ...rawPayload,
-          payload: mirrorSymbolicWeather.payload,
-          payloadFormat: 'mirror-symbolic-weather-v1',
-          poeticBrainCompatible: mirrorSymbolicWeather.hasChartGeometry,
-        }
+        ...rawPayload,
+        payload: mirrorSymbolicWeather.payload,
+        payloadFormat: 'mirror-symbolic-weather-v1',
+        poeticBrainCompatible: mirrorSymbolicWeather.hasChartGeometry,
+      }
       : {
-          ...rawPayload,
-          payload: {
-            person_a: basePayload?.person_a
-              ? {
-                  name: basePayload.person_a.name,
-                  summary: basePayload.person_a.summary,
-                }
-              : undefined,
-            woven_map: basePayload?.woven_map,
-            _trimmed: true,
-            _note: 'Payload trimmed for localStorage; full data in session export',
-          },
-        };
+        ...rawPayload,
+        payload: {
+          person_a: basePayload?.person_a
+            ? {
+              name: basePayload.person_a.name,
+              summary: basePayload.person_a.summary,
+            }
+            : undefined,
+          woven_map: basePayload?.woven_map,
+          _trimmed: true,
+          _note: 'Payload trimmed for localStorage; full data in session export',
+        },
+      };
 
     try {
       window.localStorage.setItem('mb.lastPayload', JSON.stringify(trimmedPayload));
@@ -2385,20 +2385,28 @@ export default function MathBrainPage() {
         subjects: {
           personA: personA
             ? {
-                name: personA.name,
-                timezone: personA.timezone,
-                city: personA.city,
-                state: personA.state,
-              }
+              name: personA.name,
+              timezone: personA.timezone,
+              city: personA.city,
+              state: personA.state,
+            }
             : null,
           personB: personB
             ? {
-                name: personB.name,
-                timezone: personB.timezone,
-                city: personB.city,
-                state: personB.state,
-              }
+              name: personB.name,
+              timezone: personB.timezone,
+              city: personB.city,
+              state: personB.state,
+            }
             : null,
+        },
+        relationship: {
+          type: relationshipType,
+          intimacy_tier: relationshipType === 'PARTNER' ? relationshipTier || undefined : undefined,
+          role: relationshipType !== 'PARTNER' ? relationshipRole || undefined : undefined,
+          contact_state: contactState,
+          ex_estranged: relationshipType === 'FRIEND' ? undefined : exEstranged,
+          notes: relationshipNotes || undefined,
         },
         payload: result,
       };
@@ -2431,7 +2439,7 @@ export default function MathBrainPage() {
   };
 
   function handlePrint() {
-    try { window.print(); } catch {/* noop */}
+    try { window.print(); } catch {/* noop */ }
   }
 
 
@@ -2479,7 +2487,7 @@ export default function MathBrainPage() {
       if (reportType === 'balance') {
         markdown += `This Balance Meter report analyzes energetic patterns and trends using astrological calculations. `;
         markdown += `The data reveals the interplay between magnitude (intensity), valence (positive/negative tilt), `;
-  markdown += `volatility (instability).\n\n`;
+        markdown += `volatility (instability).\n\n`;
       } else {
         markdown += `This Mirror report provides insights into archetypal patterns and behavioral dynamics `;
         markdown += `through astrological analysis, revealing the Actor/Role composite and confidence metrics.\n\n`;
@@ -2836,7 +2844,7 @@ export default function MathBrainPage() {
         markdown += `- **Magnitude (0-5):** Overall intensity of energetic patterns\n`;
         markdown += `- **Valence (-5 to +5):** Positive (expansion/opportunity) vs Negative (contraction/challenge)\n`;
         markdown += `- **Volatility (0-5):** Instability and unpredictability level\n`;
-  // SFD deprecated and removed from exports
+        // SFD deprecated and removed from exports
 
         markdown += `### Valence Scale\n\n`;
         markdown += `- **+5 Liberation:** Peak openness, breakthroughs\n`;
@@ -2977,7 +2985,7 @@ export default function MathBrainPage() {
       if (dates.length > 0) {
         const barHeight = 40;
         const barY = visualY - barHeight;
-        
+
         // Background bar
         graphPage.drawRectangle({
           x: MARGIN,
@@ -3002,10 +3010,10 @@ export default function MathBrainPage() {
           const dayData = daily[date];
           const mag = Number(dayData?.seismograph?.magnitude ?? 0);
           const bias = extractBias(dayData);
-          
+
           const x = MARGIN + (i / Math.min(20, dates.length)) * leftColumnWidth;
           const y = barY + (mag / 5) * barHeight;
-          
+
           // Draw point
           graphPage.drawCircle({
             x,
@@ -3020,7 +3028,7 @@ export default function MathBrainPage() {
 
       // Right Column: Status Stamps
       let rightY = PAGE_HEIGHT - MARGIN - 60;
-      
+
       graphPage.drawText('STATUS', {
         x: rightColumnX,
         y: rightY,
@@ -3032,7 +3040,7 @@ export default function MathBrainPage() {
 
       const startDate = dates[0] ? new Date(dates[0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A';
       const endDate = dates[dates.length - 1] ? new Date(dates[dates.length - 1]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A';
-      
+
       graphPage.drawText(`START: ${startDate}`, {
         x: rightColumnX,
         y: rightY,
@@ -3052,9 +3060,9 @@ export default function MathBrainPage() {
       rightY -= 15;
 
       // Location stamp (if available)
-      const location = result?.provenance?.location || 
-                      result?.person_a?.details?.location?.label ||
-                      'Location not specified';
+      const location = result?.provenance?.location ||
+        result?.person_a?.details?.location?.label ||
+        'Location not specified';
       graphPage.drawText(`LOC: ${sanitizeForPDF(location.substring(0, 20))}`, {
         x: rightColumnX,
         y: rightY,
@@ -3618,22 +3626,22 @@ export default function MathBrainPage() {
 
     const magnitude = toNumber(
       (summarySource?.axes?.magnitude ?? summarySource?.magnitude) ??
-        summarySource?.magnitude_value,
+      summarySource?.magnitude_value,
     );
     const valence = toNumber(
       (summarySource?.axes?.directional_bias ??
         summarySource?.directional_bias ??
         summarySource?.bias_signed) ??
-        summarySource?.valence_bounded ??
-        summarySource?.valence ??
-        summarySource?.valence_mean,
+      summarySource?.valence_bounded ??
+      summarySource?.valence ??
+      summarySource?.valence_mean,
     );
     const volatilityDirect = toNumber(
       (summarySource?.axes?.volatility ?? summarySource?.volatility) ?? undefined,
     );
     const coherenceForVol = toNumber(
       (summarySource?.axes?.coherence ?? summarySource?.coherence) ??
-        summarySource?.coherence_value,
+      summarySource?.coherence_value,
     );
     const volatility = typeof volatilityDirect === 'number'
       ? volatilityDirect
@@ -3644,46 +3652,46 @@ export default function MathBrainPage() {
 
     const hasDailySeries = Boolean(
       data?.person_a?.chart?.transitsByDate &&
-        Object.keys(data.person_a.chart.transitsByDate || {}).length > 0,
+      Object.keys(data.person_a.chart.transitsByDate || {}).length > 0,
     );
 
     const summaryForResume = hasSummary && hasDailySeries
       ? {
-          magnitude: typeof magnitude === 'number' ? magnitude : 0,
-          valence: typeof valence === 'number' ? valence : 0,
-          volatility: typeof volatility === 'number' ? volatility : undefined,
-          magnitudeLabel:
-            summarySource?.labels?.magnitude ??
-            summarySource?.magnitude_label ??
-            (typeof magnitude === 'number'
-              ? magnitude >= 3
-                ? 'Surge'
-                : magnitude >= 1
-                  ? 'Active'
-                  : 'Calm'
-              : undefined),
-          valenceLabel:
-            summarySource?.labels?.directional_bias ??
-            summarySource?.valence_label ??
-            summarySource?.bias_label ??
-            (typeof valence === 'number'
-              ? valence > 0.5
-                ? 'Supportive'
-                : valence < -0.5
-                  ? 'Challenging'
-                  : 'Mixed'
-              : undefined),
-          volatilityLabel:
-            summarySource?.labels?.volatility ??
-            summarySource?.volatility_label ??
-            (typeof volatility === 'number'
-              ? volatility >= 3
-                ? 'Scattered'
-                : volatility >= 1
-                  ? 'Variable'
-                  : 'Stable'
-              : undefined),
-        }
+        magnitude: typeof magnitude === 'number' ? magnitude : 0,
+        valence: typeof valence === 'number' ? valence : 0,
+        volatility: typeof volatility === 'number' ? volatility : undefined,
+        magnitudeLabel:
+          summarySource?.labels?.magnitude ??
+          summarySource?.magnitude_label ??
+          (typeof magnitude === 'number'
+            ? magnitude >= 3
+              ? 'Surge'
+              : magnitude >= 1
+                ? 'Active'
+                : 'Calm'
+            : undefined),
+        valenceLabel:
+          summarySource?.labels?.directional_bias ??
+          summarySource?.valence_label ??
+          summarySource?.bias_label ??
+          (typeof valence === 'number'
+            ? valence > 0.5
+              ? 'Supportive'
+              : valence < -0.5
+                ? 'Challenging'
+                : 'Mixed'
+            : undefined),
+        volatilityLabel:
+          summarySource?.labels?.volatility ??
+          summarySource?.volatility_label ??
+          (typeof volatility === 'number'
+            ? volatility >= 3
+              ? 'Scattered'
+              : volatility >= 1
+                ? 'Variable'
+                : 'Stable'
+            : undefined),
+      }
       : undefined;
 
     try {
@@ -3717,14 +3725,14 @@ export default function MathBrainPage() {
           },
           ...(includePersonB
             ? {
-                personB: {
-                  name: personB.name,
-                  timezone: personB.timezone,
-                  city: personB.city,
-                  state: personB.state,
-                  nation: personB.nation || "US",
-                },
-              }
+              personB: {
+                name: personB.name,
+                timezone: personB.timezone,
+                city: personB.city,
+                state: personB.state,
+                nation: personB.nation || "US",
+              },
+            }
             : {}),
         },
         resultPreview: { hasDaily: hasDailySeries },
@@ -3758,11 +3766,11 @@ export default function MathBrainPage() {
           personB:
             includePersonB && personB
               ? {
-                  name: personB.name?.trim() || undefined,
-                  timezone: personB.timezone || undefined,
-                  city: personB.city || undefined,
-                  state: personB.state || undefined,
-                }
+                name: personB.name?.trim() || undefined,
+                timezone: personB.timezone || undefined,
+                city: personB.city || undefined,
+                state: personB.state || undefined,
+              }
               : undefined,
         },
         payload: data,
@@ -3831,6 +3839,14 @@ export default function MathBrainPage() {
           birthDate,
           birthTime,
           birthLocation,
+        },
+        relationship: {
+          type: relationshipType,
+          intimacy_tier: relationshipType === 'PARTNER' ? relationshipTier || undefined : undefined,
+          role: relationshipType !== 'PARTNER' ? relationshipRole || undefined : undefined,
+          contact_state: contactState,
+          ex_estranged: relationshipType === 'FRIEND' ? undefined : exEstranged,
+          notes: relationshipNotes || undefined,
         },
       };
       if (hasSummary) {
@@ -3959,7 +3975,7 @@ export default function MathBrainPage() {
             const writable = await handle.createWritable();
             await writable.write(blob);
             await writable.close();
-            try { setToast('Saved setup JSON'); setTimeout(()=>setToast(null), 1800); } catch {/* noop */}
+            try { setToast('Saved setup JSON'); setTimeout(() => setToast(null), 1800); } catch {/* noop */ }
           } catch (e) {
             // If user cancels or API fails, fall back to anchor method
             const url = URL.createObjectURL(blob);
@@ -3990,8 +4006,8 @@ export default function MathBrainPage() {
 
       // conservative cleanup to ensure download starts before revoke (Safari)
       setTimeout(() => {
-        try { document.body.removeChild(a); } catch {/* noop */}
-        try { URL.revokeObjectURL(url); } catch {/* noop */}
+        try { document.body.removeChild(a); } catch {/* noop */ }
+        try { URL.revokeObjectURL(url); } catch {/* noop */ }
         setToast('Setup JSON downloaded');
         setTimeout(() => setToast(null), 1800);
       }, 150);
@@ -4001,14 +4017,14 @@ export default function MathBrainPage() {
         // Last-resort clipboard fallback to ensure action does something
         navigator?.clipboard?.writeText?.(JSON.stringify({
           mode, step, startDate, endDate, includePersonB, translocation, personA, personB
-        }, null, 2)).then(()=>{
+        }, null, 2)).then(() => {
           setToast('Saved to clipboard (download blocked)');
-          setTimeout(()=>setToast(null), 2200);
-        }).catch(()=>{
+          setTimeout(() => setToast(null), 2200);
+        }).catch(() => {
           setToast('Save setup failed');
-          setTimeout(()=>setToast(null), 2200);
+          setTimeout(() => setToast(null), 2200);
         });
-      } catch {/* noop */}
+      } catch {/* noop */ }
     }
   }
 
@@ -4038,8 +4054,8 @@ export default function MathBrainPage() {
         const pA = data.personA || {};
         const coordsStr = pA.coords || '';
         const parsedA = coordsStr ? parseCoordinates(String(coordsStr), { rejectZeroZero: true }) : null;
-        const [yy, mm, dd] = String(pA.date || '').split('-').map((x:string)=>Number(x));
-        const [hh, min] = String(pA.time || '').split(':').map((x:string)=>Number(x));
+        const [yy, mm, dd] = String(pA.date || '').split('-').map((x: string) => Number(x));
+        const [hh, min] = String(pA.time || '').split(':').map((x: string) => Number(x));
         if (coordsStr && !parsedA) throw new Error('Invalid personA.coords');
         const nextA = { ...personA } as any;
         if (pA.name) nextA.name = String(pA.name);
@@ -4148,7 +4164,7 @@ export default function MathBrainPage() {
           setBCoordsValid(true);
         }
       }
-    } catch {/* noop */}
+    } catch {/* noop */ }
     // Reset input to allow re-upload same file
     if (e.currentTarget) e.currentTarget.value = '';
   }
@@ -4282,8 +4298,8 @@ export default function MathBrainPage() {
   }), [reportType, includeTransits, canSubmit, submitDisabled, aCoordsValid, bCoordsValid, includePersonB, timeUnknown, timeUnknownB, timePolicy, contactState, personA]);
 
   // Helper: Split date range into chunks to avoid API timeouts
-  function splitDateRangeIntoChunks(start: string, end: string, maxDaysPerChunk: number = 6): Array<{start: string, end: string}> {
-    const chunks: Array<{start: string, end: string}> = [];
+  function splitDateRangeIntoChunks(start: string, end: string, maxDaysPerChunk: number = 6): Array<{ start: string, end: string }> {
+    const chunks: Array<{ start: string, end: string }> = [];
     // Force UTC to avoid timezone shifts when calculating chunks
     const startDate = new Date(start.includes('T') ? start : `${start}T00:00:00Z`);
     const endDate = new Date(end.includes('T') ? end : `${end}T00:00:00Z`);
@@ -4364,7 +4380,7 @@ export default function MathBrainPage() {
     const locGate = needsLocation(reportType, includeTransits, personA);
     if (includeTransits && !locGate.hasLoc) {
       setToast('Transits need current location to place houses correctly. Add a location or switch to natal-only mode.');
-      setTimeout(()=>setToast(null), 2500);
+      setTimeout(() => setToast(null), 2500);
       return;
     }
     if (providerCheckPending) {
@@ -4551,10 +4567,10 @@ export default function MathBrainPage() {
         }
 
         if (!response.ok || parsed.parseError || !isRecord(finalData) || finalData.success === false) {
-          const errorDetail = finalData?.error || 
-                            parsed.parseError?.message || 
-                            response.statusText || 
-                            `Request failed with status ${response.status}`;
+          const errorDetail = finalData?.error ||
+            parsed.parseError?.message ||
+            response.statusText ||
+            `Request failed with status ${response.status}`;
           console.error('API Error:', {
             status: response.status,
             error: finalData?.error,
@@ -4600,7 +4616,7 @@ export default function MathBrainPage() {
           window.localStorage.setItem('mb.lastInputs', JSON.stringify(inputs));
           setHasSavedInputs(true);
         }
-      } catch {/* ignore */}
+      } catch {/* ignore */ }
 
       // Store result
       setResult(finalData);
@@ -4616,7 +4632,7 @@ export default function MathBrainPage() {
       }
     } catch (err: any) {
       setToast('Report preparation failed.');
-      setTimeout(()=>setToast(null), 2500);
+      setTimeout(() => setToast(null), 2500);
       setError(err?.message || "Unexpected error");
       if (process.env.NODE_ENV !== 'production') {
         console.error('[MB] Submit error:', err);
@@ -4658,11 +4674,10 @@ export default function MathBrainPage() {
               onClick={handleNavigateToPoetic}
               disabled={!canVisitPoetic}
               aria-disabled={!canVisitPoetic}
-              className={`inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold transition ${
-                canVisitPoetic
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900'
-                  : 'cursor-not-allowed border border-slate-700 bg-slate-800 text-slate-400'
-              }`}
+              className={`inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold transition ${canVisitPoetic
+                ? 'bg-emerald-600 text-white hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900'
+                : 'cursor-not-allowed border border-slate-700 bg-slate-800 text-slate-400'
+                }`}
             >
               Enter Poetic Brain
             </button>
@@ -4673,342 +4688,246 @@ export default function MathBrainPage() {
             </p>
           </div>
 
-        {/* Resume from Past Session Prompt */}
-        {showSessionResumePrompt && savedSession && (
-          <div
-            id="mb-resume-card"
-            className="mt-6 mx-auto max-w-2xl rounded-lg border border-indigo-500/30 bg-indigo-950/20 p-4"
-          >
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 mt-0.5">
-                <svg className="h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="flex-1 text-left">
-                <h3 className="text-sm font-medium text-indigo-200">Resume from past session?</h3>
-                <p className="mt-1 text-xs text-slate-300">
-                  Last session: {savedSession.createdAt ? new Date(savedSession.createdAt).toLocaleString() : 'Unknown date'}
-                  {savedSession.summary && typeof savedSession.summary === 'object' && (
-                    <span>
-                      {' • '}
-                      {savedSession.summary.magnitudeLabel || 'Activity'}: {savedSession.summary.valenceLabel || 'Mixed'}
-                    </span>
-                  )}
-                  {savedSession.summary && typeof savedSession.summary === 'string' && ` • ${savedSession.summary}`}
-                </p>
-                <div className="mt-3 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={loadSavedSession}
-                    className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-                  >
-                    Resume Session
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowSessionResumePrompt(false)}
-                    className="rounded-md border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-                  >
-                    Start Fresh
-                  </button>
+          {/* Resume from Past Session Prompt */}
+          {showSessionResumePrompt && savedSession && (
+            <div
+              id="mb-resume-card"
+              className="mt-6 mx-auto max-w-2xl rounded-lg border border-indigo-500/30 bg-indigo-950/20 p-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 mt-0.5">
+                  <svg className="h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1 text-left">
+                  <h3 className="text-sm font-medium text-indigo-200">Resume from past session?</h3>
+                  <p className="mt-1 text-xs text-slate-300">
+                    Last session: {savedSession.createdAt ? new Date(savedSession.createdAt).toLocaleString() : 'Unknown date'}
+                    {savedSession.summary && typeof savedSession.summary === 'object' && (
+                      <span>
+                        {' • '}
+                        {savedSession.summary.magnitudeLabel || 'Activity'}: {savedSession.summary.valenceLabel || 'Mixed'}
+                      </span>
+                    )}
+                    {savedSession.summary && typeof savedSession.summary === 'string' && ` • ${savedSession.summary}`}
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={loadSavedSession}
+                      className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                    >
+                      Resume Session
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowSessionResumePrompt(false)}
+                      className="rounded-md border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                    >
+                      Start Fresh
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Math Brain: FIELD Layer Only */}
-        <div className="mt-6 flex items-center justify-center gap-4 text-sm text-slate-400">
-          <div className="flex items-center gap-2">
-            <span className="rounded bg-amber-600 px-2 py-1 text-xs font-medium text-slate-100">FIELD</span>
-            <span className="text-xs">Geometric calculation engine</span>
+          {/* Math Brain: FIELD Layer Only */}
+          <div className="mt-6 flex items-center justify-center gap-4 text-sm text-slate-400">
+            <div className="flex items-center gap-2">
+              <span className="rounded bg-amber-600 px-2 py-1 text-xs font-medium text-slate-100">FIELD</span>
+              <span className="text-xs">Geometric calculation engine</span>
+            </div>
+            <span className="text-slate-600">→</span>
+            <div className="flex items-center gap-2 opacity-50">
+              <span className="rounded bg-slate-700 px-2 py-1 text-xs font-medium text-slate-400">MAP</span>
+              <span className="text-xs">Raven handles</span>
+            </div>
+            <span className="text-slate-600">→</span>
+            <div className="flex items-center gap-2 opacity-50">
+              <span className="rounded bg-slate-700 px-2 py-1 text-xs font-medium text-slate-400">VOICE</span>
+              <span className="text-xs">Raven handles</span>
+            </div>
           </div>
-          <span className="text-slate-600">→</span>
-          <div className="flex items-center gap-2 opacity-50">
-            <span className="rounded bg-slate-700 px-2 py-1 text-xs font-medium text-slate-400">MAP</span>
-            <span className="text-xs">Raven handles</span>
-          </div>
-          <span className="text-slate-600">→</span>
-          <div className="flex items-center gap-2 opacity-50">
-            <span className="rounded bg-slate-700 px-2 py-1 text-xs font-medium text-slate-400">VOICE</span>
-            <span className="text-xs">Raven handles</span>
+        </header>
+
+        {/* Lens stripe - exact microcopy per UI/UX contract */}
+        <div className="mt-6 mb-8 rounded-lg border border-slate-600 bg-slate-800/40 px-4 py-3 text-center print:hidden">
+          <div className="text-sm text-slate-200">
+            {lensStripeText}
           </div>
         </div>
-      </header>
-
-      {/* Lens stripe - exact microcopy per UI/UX contract */}
-      <div className="mt-6 mb-8 rounded-lg border border-slate-600 bg-slate-800/40 px-4 py-3 text-center print:hidden">
-        <div className="text-sm text-slate-200">
-          {lensStripeText}
-        </div>
-      </div>
 
 
-      <div className="mt-8 flex flex-wrap gap-3 justify-center print:hidden">
-        <a
-          href="/"
-          className="rounded-md border border-slate-700 bg-slate-800 px-4 py-2 text-slate-100 hover:bg-slate-700"
-        >
-          Back Home
-        </a>
-        {showLegacyLink && (
+        <div className="mt-8 flex flex-wrap gap-3 justify-center print:hidden">
           <a
-            href="/index.html"
-            className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-500"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/"
+            className="rounded-md border border-slate-700 bg-slate-800 px-4 py-2 text-slate-100 hover:bg-slate-700"
           >
-            Open Legacy Math Brain
+            Back Home
           </a>
-        )}
-      </div>
-
-      {hasSavedInputs && (
-        <div className="mt-6 flex items-center justify-center gap-3 print:hidden">
-          <div className="rounded-md border border-slate-700 bg-slate-800/60 px-3 py-2 text-slate-200 text-sm">
-            A previous session was found.
-          </div>
-          <button type="button" onClick={resumeLastInputs} className="rounded-md bg-indigo-600 px-3 py-2 text-white hover:bg-indigo-500 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">Resume inputs</button>
-          <button type="button" onClick={resetSessionMemory} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 hover:bg-slate-700 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">Reset</button>
-        </div>
-      )}
-
-      <form onSubmit={onSubmit} className="mt-10 print:hidden">
-        {debugMode && (
-          <div className="mb-4 rounded-md border border-slate-600 bg-slate-900/60 p-3 text-xs text-slate-200">
-            <div className="font-medium mb-2">Debug — gating state</div>
-            <pre className="whitespace-pre-wrap break-words text-[12px]">{JSON.stringify(debugInfo, null, 2)}</pre>
-          </div>
-        )}
-        {/* Session presets toolbar */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-700 bg-slate-900/50 p-3">
-          <label className="inline-flex items-center gap-2 text-sm text-slate-200">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
-              checked={saveForNextSession}
-              onChange={(e)=>setSaveForNextSession(e.target.checked)}
-            />
-            Save for next session
-          </label>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handleSaveSetupJSON()}
-              className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-              title="Save the current setup (people, dates, mode, relationship) to JSON"
-              aria-label="Save current setup to JSON"
+          {showLegacyLink && (
+            <a
+              href="/index.html"
+              className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-500"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              Save Setup
-            </button>
-            <label
-              htmlFor={setupUploadId}
-              className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-              role="button"
-              tabIndex={0}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  fileInputRef.current?.click();
-                }
-              }}
-            >
-              Load Setup…
-            </label>
-            <input
-              ref={fileInputRef}
-              id={setupUploadId}
-              type="file"
-              accept="application/json"
-              onChange={handleLoadSetupFromFile}
-              className="sr-only"
-              aria-label="Upload setup JSON file"
-            />
-          </div>
-          {loadError && (
-            <div className="mt-2 text-xs text-red-400">{loadError}</div>
+              Open Legacy Math Brain
+            </a>
           )}
         </div>
 
-        {/* Session framing copy replaces the old Mirror vs Balance fork */}
-        <section aria-labelledby="session-path-heading" className="mb-6 rounded-lg border border-slate-700 bg-slate-800/60 p-4">
-          <h3 id="session-path-heading" className="text-sm font-medium text-slate-200">Dynamic Report Flow</h3>
-          <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <p className="text-sm text-slate-300 md:max-w-xl">
-              Math Brain now runs a single dynamic report. Every session opens with a Mirror-first summary and then lets you reveal
-              Balance metrics, key geometries, and audits step-by-step after the geometry is ready.
-            </p>
-            <div className="flex flex-col gap-2 text-xs text-slate-400 md:text-right">
-              <div className="inline-flex items-center gap-2 self-start rounded-full border border-indigo-500/70 bg-indigo-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-indigo-200 md:self-end">
-                <span>Field → Map → Voice</span>
-              </div>
-              <span>
-                Toggle <strong>Include Transits</strong> on the right to add symbolic weather. Leave it off for natal baseline runs.
-              </span>
+        {hasSavedInputs && (
+          <div className="mt-6 flex items-center justify-center gap-3 print:hidden">
+            <div className="rounded-md border border-slate-700 bg-slate-800/60 px-3 py-2 text-slate-200 text-sm">
+              A previous session was found.
             </div>
+            <button type="button" onClick={resumeLastInputs} className="rounded-md bg-indigo-600 px-3 py-2 text-white hover:bg-indigo-500 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">Resume inputs</button>
+            <button type="button" onClick={resetSessionMemory} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 hover:bg-slate-700 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">Reset</button>
           </div>
-        </section>
+        )}
 
-        {/* Profile Manager */}
-        <Section title="📚 Saved Profiles">
-          <ProfileManager
-            profiles={profiles}
-            loading={profilesLoading}
-            onLoadProfile={handleLoadProfile}
-            onSaveCurrentProfile={handleSaveCurrentProfile}
-            onDeleteProfile={handleDeleteProfile}
-            currentPersonA={personA}
-            currentPersonB={personB}
-            isAuthenticated={isAuthenticated}
-            existingProfileForPersonA={existingProfileForPersonA}
-            existingProfileForPersonB={existingProfileForPersonB}
-          />
-        </Section>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
-          {/* Left column: Person A */}
-          <Section title="Person A (required)">
-            <PersonForm
-              idPrefix="a"
-              person={personA}
-              setPerson={setPersonA}
-              coordsInput={aCoordsInput}
-              setCoordsInput={setACoordsInput}
-              coordsError={aCoordsError}
-              setCoordsError={setACoordsError}
-              setCoordsValid={setACoordsValid}
-              timezoneOptions={tzOptions}
-              allowUnknownTime={allowUnknownA}
-              showTimePolicy={timeUnknown}
-              timePolicy={timePolicy}
-              onTimePolicyChange={setTimePolicy}
-              timePolicyScopeLabel={personA.name ? `${personA.name} (Person A)` : 'Person A'}
-              requireName
-              requireBirthDate
-              requireTime
-              requireLocation
-              requireTimezone
-            />
-            
-            {/* Save Person A Profile Button */}
-            {isAuthenticated && personA.year && personA.month && personA.day && (
-              <div className="mt-4 pt-4 border-t border-slate-700">
-                {existingProfileForPersonA ? (
-                  <div className="rounded-md border border-emerald-700/60 bg-emerald-900/40 px-4 py-3 text-sm text-emerald-100 text-center">
-                    <p className="font-medium text-emerald-200">Already saved</p>
-                    <p className="text-xs text-emerald-100/80">{existingProfileForPersonA.name} is already in your saved roster with these details.</p>
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const name = prompt('Enter a name for this profile:', personA.name || 'Person A');
-                        if (name) {
-                          handleSaveCurrentProfile('A', name);
-                        }
-                      }}
-                      className="w-full rounded-md bg-emerald-700/30 border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-700/40 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <span>💾</span>
-                      <span>Save Person A to Profile Database</span>
-                    </button>
-                    <p className="mt-2 text-xs text-slate-400 text-center">
-                      Save this person's birth data for quick loading later
-                    </p>
-                  </>
-                )}
-              </div>
+        <form onSubmit={onSubmit} className="mt-10 print:hidden">
+          {debugMode && (
+            <div className="mb-4 rounded-md border border-slate-600 bg-slate-900/60 p-3 text-xs text-slate-200">
+              <div className="font-medium mb-2">Debug — gating state</div>
+              <pre className="whitespace-pre-wrap break-words text-[12px]">{JSON.stringify(debugInfo, null, 2)}</pre>
+            </div>
+          )}
+          {/* Session presets toolbar */}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-700 bg-slate-900/50 p-3">
+            <label className="inline-flex items-center gap-2 text-sm text-slate-200">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
+                checked={saveForNextSession}
+                onChange={(e) => setSaveForNextSession(e.target.checked)}
+              />
+              Save for next session
+            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleSaveSetupJSON()}
+                className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                title="Save the current setup (people, dates, mode, relationship) to JSON"
+                aria-label="Save current setup to JSON"
+              >
+                Save Setup
+              </button>
+              <label
+                htmlFor={setupUploadId}
+                className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
+              >
+                Load Setup…
+              </label>
+              <input
+                ref={fileInputRef}
+                id={setupUploadId}
+                type="file"
+                accept="application/json"
+                onChange={handleLoadSetupFromFile}
+                className="sr-only"
+                aria-label="Upload setup JSON file"
+              />
+            </div>
+            {loadError && (
+              <div className="mt-2 text-xs text-red-400">{loadError}</div>
             )}
-            
-            {!isAuthenticated && personA.year && personA.month && personA.day && (
-              <div className="mt-4 pt-4 border-t border-slate-700">
-                <div className="rounded-md bg-amber-900/30 border border-amber-700 p-3 text-amber-200 text-sm">
-                  <p className="font-medium">Sign in to save profiles</p>
-                  <p className="text-xs mt-1 text-amber-300">
-                    Sign in with Google (top of page) to save Person A for later
-                  </p>
+          </div>
+
+          {/* Session framing copy replaces the old Mirror vs Balance fork */}
+          <section aria-labelledby="session-path-heading" className="mb-6 rounded-lg border border-slate-700 bg-slate-800/60 p-4">
+            <h3 id="session-path-heading" className="text-sm font-medium text-slate-200">Dynamic Report Flow</h3>
+            <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <p className="text-sm text-slate-300 md:max-w-xl">
+                Math Brain now runs a single dynamic report. Every session opens with a Mirror-first summary and then lets you reveal
+                Balance metrics, key geometries, and audits step-by-step after the geometry is ready.
+              </p>
+              <div className="flex flex-col gap-2 text-xs text-slate-400 md:text-right">
+                <div className="inline-flex items-center gap-2 self-start rounded-full border border-indigo-500/70 bg-indigo-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-indigo-200 md:self-end">
+                  <span>Field → Map → Voice</span>
                 </div>
+                <span>
+                  Toggle <strong>Include Transits</strong> on the right to add symbolic weather. Leave it off for natal baseline runs.
+                </span>
               </div>
-            )}
+            </div>
+          </section>
+
+          {/* Profile Manager */}
+          <Section title="📚 Saved Profiles">
+            <ProfileManager
+              profiles={profiles}
+              loading={profilesLoading}
+              onLoadProfile={handleLoadProfile}
+              onSaveCurrentProfile={handleSaveCurrentProfile}
+              onDeleteProfile={handleDeleteProfile}
+              currentPersonA={personA}
+              currentPersonB={personB}
+              isAuthenticated={isAuthenticated}
+              existingProfileForPersonA={existingProfileForPersonA}
+              existingProfileForPersonB={existingProfileForPersonB}
+            />
           </Section>
 
-
-          {/* Left column continues: Person B (optional for relational modes) */}
-          <Section title="Person B (optional for relational)">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-slate-400">Add a second person for synastry/composite modes.</p>
-              <div className="flex items-center gap-3">
-                <div className="inline-flex rounded-md border border-slate-700 bg-slate-800 p-1">
-                  <button type="button" onClick={copyAToB} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Copy Person A details to Person B (keeps B name)">Copy A→B</button>
-                  <div className="mx-1 h-5 w-px bg-slate-700" />
-                  <button type="button" onClick={swapAB} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Swap A/B (relationship settings unchanged)">Swap A/B</button>
-                  <div className="mx-1 h-5 w-px bg-slate-700" />
-                  <button type="button" onClick={clearB} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Clear all Person B fields">Clear B</button>
-                  <div className="mx-1 h-5 w-px bg-slate-700" />
-                  <button type="button" onClick={setBNowUTC} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Set Person B date/time to now (UTC)">Set B = Now (UTC)</button>
-                </div>
-                <label htmlFor="include-person-b" className="inline-flex items-center gap-2 text-sm text-slate-200 cursor-pointer">
-                  <input
-                    id="include-person-b"
-                    data-testid="include-person-b"
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
-                    checked={includePersonB}
-                    onChange={(e) => setIncludePersonB(e.target.checked)}
-                  />
-                  Include Person B
-                </label>
-              </div>
-            </div>
-
-            <div className={`mt-4 ${!includePersonB ? 'opacity-50' : ''}`}>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
+            {/* Left column: Person A */}
+            <Section title="Person A (required)">
               <PersonForm
-                idPrefix="b"
-                person={personB}
-                setPerson={setPersonB}
-                coordsInput={bCoordsInput}
-                setCoordsInput={setBCoordsInput}
-                coordsError={bCoordsError}
-                setCoordsError={setBCoordsError}
-                setCoordsValid={setBCoordsValid}
+                idPrefix="a"
+                person={personA}
+                setPerson={setPersonA}
+                coordsInput={aCoordsInput}
+                setCoordsInput={setACoordsInput}
+                coordsError={aCoordsError}
+                setCoordsError={setACoordsError}
+                setCoordsValid={setACoordsValid}
                 timezoneOptions={tzOptions}
-                allowUnknownTime={allowUnknownB}
-                showTimePolicy={includePersonB && timeUnknownB}
+                allowUnknownTime={allowUnknownA}
+                showTimePolicy={timeUnknown}
                 timePolicy={timePolicy}
                 onTimePolicyChange={setTimePolicy}
-                timePolicyScopeLabel={personB.name ? `${personB.name} (Person B)` : 'Person B'}
-                disabled={!includePersonB}
-                coordinateLabel="Birth Coordinates (B)"
-                coordinatePlaceholder="e.g., 34°03′S, 18°25′E or -34.0500, 18.4167"
-                normalizedFallback="—"
-                nameInputRef={bNameRef}
-                skipParseWhenDisabled
+                timePolicyScopeLabel={personA.name ? `${personA.name} (Person A)` : 'Person A'}
+                requireName
+                requireBirthDate
+                requireTime
+                requireLocation
+                requireTimezone
               />
-              
-              {/* Save Person B Profile Button */}
-              {isAuthenticated && includePersonB && personB.year && personB.month && personB.day && (
+
+              {/* Save Person A Profile Button */}
+              {isAuthenticated && personA.year && personA.month && personA.day && (
                 <div className="mt-4 pt-4 border-t border-slate-700">
-                  {existingProfileForPersonB ? (
+                  {existingProfileForPersonA ? (
                     <div className="rounded-md border border-emerald-700/60 bg-emerald-900/40 px-4 py-3 text-sm text-emerald-100 text-center">
                       <p className="font-medium text-emerald-200">Already saved</p>
-                      <p className="text-xs text-emerald-100/80">{existingProfileForPersonB.name} is already in your saved roster with these details.</p>
+                      <p className="text-xs text-emerald-100/80">{existingProfileForPersonA.name} is already in your saved roster with these details.</p>
                     </div>
                   ) : (
                     <>
                       <button
                         type="button"
                         onClick={() => {
-                          const name = prompt('Enter a name for this profile:', personB.name || 'Person B');
+                          const name = prompt('Enter a name for this profile:', personA.name || 'Person A');
                           if (name) {
-                            handleSaveCurrentProfile('B', name);
+                            handleSaveCurrentProfile('A', name);
                           }
                         }}
                         className="w-full rounded-md bg-emerald-700/30 border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-700/40 transition-colors flex items-center justify-center gap-2"
                       >
                         <span>💾</span>
-                        <span>Save Person B to Profile Database</span>
+                        <span>Save Person A to Profile Database</span>
                       </button>
                       <p className="mt-2 text-xs text-slate-400 text-center">
                         Save this person's birth data for quick loading later
@@ -5017,1130 +4936,1226 @@ export default function MathBrainPage() {
                   )}
                 </div>
               )}
-              
-              {!isAuthenticated && includePersonB && personB.year && personB.month && personB.day && (
+
+              {!isAuthenticated && personA.year && personA.month && personA.day && (
                 <div className="mt-4 pt-4 border-t border-slate-700">
                   <div className="rounded-md bg-amber-900/30 border border-amber-700 p-3 text-amber-200 text-sm">
                     <p className="font-medium">Sign in to save profiles</p>
                     <p className="text-xs mt-1 text-amber-300">
-                      Sign in with Google (top of page) to save Person B for later
+                      Sign in with Google (top of page) to save Person A for later
                     </p>
                   </div>
                 </div>
               )}
-            </div>
-          </Section>
-          {/* Relationship Context (only when Person B included) */}
-          <Section title="Relationship Context" className="md:-mt-4">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs text-slate-400">These fields unlock when Person B is included.</p>
-            </div>
-            <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${!includePersonB ? 'opacity-50' : ''}`}>
-              <div>
-                <label htmlFor="rel-type" className="block text-sm text-slate-300">Type</label>
-                <select
-                  id="rel-type"
-                  disabled={!includePersonB}
-                  className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
-                  value={relationshipType}
-                  onChange={(e)=>{ setRelationshipType(e.target.value); setRelationshipTier(""); setRelationshipRole(""); }}
-                >
-                  <option value="PARTNER">Partner</option>
-                  <option value="FRIEND">Friend / Acquaintance</option>
-                  <option value="FAMILY">Family Member</option>
-                </select>
-                <div className="mt-2 text-[11px] text-slate-400">
-                  <div className="font-medium text-slate-300">Primary Relational Tiers (scope):</div>
-                  <div>• Partner — full map access, including intimacy arcs & legacy patterns.</div>
-                  <div>• Friend / Acquaintance — emotional, behavioral, social dynamics; intimacy overlays de-emphasized.</div>
-                  <div>• Family Member — legacy patterns and behavioral overlays.
-                    {' '}Select the role to clarify Person B's relationship to Person A.</div>
-                </div>
-              </div>
-              {includePersonB && (
-                <div className="sm:col-span-2">
-                  <span className="block text-sm text-slate-300">Contact State</span>
-                  <div className="mt-2 inline-flex overflow-hidden rounded-md border border-slate-600 bg-slate-900/80">
-                    <button
-                      type="button"
-                      onClick={() => setContactState('ACTIVE')}
-                      className={`px-3 py-1.5 text-sm transition ${contactState === 'ACTIVE' ? 'bg-emerald-600 text-white' : 'text-slate-200 hover:bg-slate-800'}`}
-                      aria-pressed={contactState === 'ACTIVE'}
-                    >
-                      Active
-                    </button>
-                    <div className="h-6 w-px bg-slate-700 my-1" />
-                    <button
-                      type="button"
-                      onClick={() => setContactState('LATENT')}
-                      className={`px-3 py-1.5 text-sm transition ${contactState === 'LATENT' ? 'bg-indigo-600 text-white' : 'text-slate-200 hover:bg-slate-800'}`}
-                      aria-pressed={contactState === 'LATENT'}
-                    >
-                      Latent
-                    </button>
-                  </div>
-                  <p className="mt-2 text-xs text-slate-400">
-                    Active treats overlays as live contact pressure; Latent logs the geometry but marks it dormant until reactivation.
-                  </p>
-                </div>
-              )}
-              {relationshipType === 'PARTNER' && (
-                <div>
-                  <label htmlFor="rel-tier" className="block text-sm text-slate-300">Intimacy Tier</label>
-                  <select
-                    id="rel-tier"
-                    disabled={!includePersonB}
-                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
-                    value={relationshipTier}
-                    onChange={(e)=>setRelationshipTier(e.target.value)}
-                  >
-                    <option value="">Select…</option>
-                    <option value="P1">P1 — Platonic partners</option>
-                    <option value="P2">P2 — Friends-with-benefits</option>
-                    <option value="P3">P3 — Situationship (unclear/unstable)</option>
-                    <option value="P4">P4 — Low-commitment romantic or sexual</option>
-                    <option value="P5a">P5a — Committed romantic + sexual</option>
-                    <option value="P5b">P5b — Committed romantic, non-sexual</option>
-                  </select>
-                  {includePersonB && RELATIONAL_MODES.includes(mode) && !relationshipTier && (
-                    <p className="mt-1 text-xs text-amber-400">Partner relationships require an intimacy tier.</p>
-                  )}
-                </div>
-              )}
-              {relationshipType === 'FAMILY' && (
-                <div>
-                  <label htmlFor="rel-role" className="block text-sm text-slate-300">Role (Person B is…)</label>
-                  <select
-                    id="rel-role"
-                    disabled={!includePersonB}
-                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
-                    value={relationshipRole}
-                    onChange={(e)=>setRelationshipRole(e.target.value)}
-                  >
-                    <option value="">Select…</option>
-                    <option value="Parent">Parent</option>
-                    <option value="Offspring">Offspring</option>
-                    <option value="Sibling">Sibling</option>
-                    <option value="Cousin">Cousin</option>
-                    <option value="Extended">Extended</option>
-                    <option value="Guardian">Guardian</option>
-                    <option value="Mentor">Mentor</option>
-                    <option value="Other">Other</option>
-                    <option value="Custom">Custom</option>
-                  </select>
-                  {includePersonB && RELATIONAL_MODES.includes(mode) && !relationshipRole && (
-                    <p className="mt-1 text-xs text-amber-400">Family relationships require selecting a role.</p>
-                  )}
-                </div>
-              )}
-              {relationshipType === 'FRIEND' && (
-                <div>
-                  <label htmlFor="rel-role-f" className="block text-sm text-slate-300">Role (optional)</label>
-                  <select
-                    id="rel-role-f"
-                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
-                    value={relationshipRole}
-                    onChange={(e)=>setRelationshipRole(e.target.value)}
-                  >
-                    <option value="">—</option>
-                    <option value="Friend">Friend</option>
-                    <option value="Acquaintance">Acquaintance</option>
-                    <option value="Colleague">Colleague</option>
-                    <option value="Mentor">Mentor</option>
-                    <option value="Other">Other</option>
-                    <option value="Custom">Custom</option>
-                  </select>
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <input
-                  id="rel-ex"
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
-                  checked={exEstranged}
-                  onChange={(e)=>setExEstranged(e.target.checked)}
-                  disabled={!includePersonB || relationshipType==='FRIEND'}
-                />
-                <label htmlFor="rel-ex" className="text-sm text-slate-300">Ex / Estranged</label>
-              </div>
-              <div className="sm:col-span-2">
-                <label htmlFor="rel-notes" className="block text-sm text-slate-300">Notes</label>
-                <textarea
-                  id="rel-notes"
-                  disabled={!includePersonB}
-                  className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                  rows={3}
-                  placeholder="Optional context (max 500 chars)"
-                  value={relationshipNotes}
-                  onChange={(e)=>setRelationshipNotes(e.target.value.slice(0,500))}
-                />
-              </div>
-            </div>
-          </Section>
+            </Section>
 
-          {/* Right column: Transits + actions */}
-          <div className="space-y-6">
-            {/* Report Type Radio Group */}
-            <Section title="Report Type">
-              <div className="space-y-3">
-                <p className="text-xs text-slate-400">Choose the astrological report structure</p>
-                <div className="flex flex-col gap-2">
-                  {(['solo', 'synastry', 'composite'] as const).map((type) => (
-                    <label
-                      key={type}
-                      className="flex items-center gap-3 rounded-md border border-slate-700 bg-slate-800/60 px-3 py-2.5 cursor-pointer hover:bg-slate-800 transition"
-                    >
-                      <input
-                        type="radio"
-                        name="report-type"
-                        value={type}
-                        checked={reportStructure === type}
-                        onChange={(e) => {
-                          const newStructure = e.target.value as ReportStructure;
-                          setReportStructure(newStructure);
-                          // Automatically enable Person B for relational modes
-                            // Do not auto-enable Person B for relational modes
-                        }}
-                        className="h-4 w-4 border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <div>
-                        <span className="block text-sm font-medium text-slate-100 capitalize">{type}</span>
-                        <span className="block text-xs text-slate-400">
-                          {type === 'solo' && 'Individual natal chart analysis'}
-                          {type === 'synastry' && 'Relationship dynamics between two charts'}
-                          {type === 'composite' && 'Blended chart representing the relationship itself'}
-                        </span>
+
+            {/* Left column continues: Person B (optional for relational modes) */}
+            <Section title="Person B (optional for relational)">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-slate-400">Add a second person for synastry/composite modes.</p>
+                <div className="flex items-center gap-3">
+                  <div className="inline-flex rounded-md border border-slate-700 bg-slate-800 p-1">
+                    <button type="button" onClick={copyAToB} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Copy Person A details to Person B (keeps B name)">Copy A→B</button>
+                    <div className="mx-1 h-5 w-px bg-slate-700" />
+                    <button type="button" onClick={swapAB} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Swap A/B (relationship settings unchanged)">Swap A/B</button>
+                    <div className="mx-1 h-5 w-px bg-slate-700" />
+                    <button type="button" onClick={clearB} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Clear all Person B fields">Clear B</button>
+                    <div className="mx-1 h-5 w-px bg-slate-700" />
+                    <button type="button" onClick={setBNowUTC} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Set Person B date/time to now (UTC)">Set B = Now (UTC)</button>
+                  </div>
+                  <label htmlFor="include-person-b" className="inline-flex items-center gap-2 text-sm text-slate-200 cursor-pointer">
+                    <input
+                      id="include-person-b"
+                      data-testid="include-person-b"
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
+                      checked={includePersonB}
+                      onChange={(e) => setIncludePersonB(e.target.checked)}
+                    />
+                    Include Person B
+                  </label>
+                </div>
+              </div>
+
+              <div className={`mt-4 ${!includePersonB ? 'opacity-50' : ''}`}>
+                <PersonForm
+                  idPrefix="b"
+                  person={personB}
+                  setPerson={setPersonB}
+                  coordsInput={bCoordsInput}
+                  setCoordsInput={setBCoordsInput}
+                  coordsError={bCoordsError}
+                  setCoordsError={setBCoordsError}
+                  setCoordsValid={setBCoordsValid}
+                  timezoneOptions={tzOptions}
+                  allowUnknownTime={allowUnknownB}
+                  showTimePolicy={includePersonB && timeUnknownB}
+                  timePolicy={timePolicy}
+                  onTimePolicyChange={setTimePolicy}
+                  timePolicyScopeLabel={personB.name ? `${personB.name} (Person B)` : 'Person B'}
+                  disabled={!includePersonB}
+                  coordinateLabel="Birth Coordinates (B)"
+                  coordinatePlaceholder="e.g., 34°03′S, 18°25′E or -34.0500, 18.4167"
+                  normalizedFallback="—"
+                  nameInputRef={bNameRef}
+                  skipParseWhenDisabled
+                />
+
+                {/* Save Person B Profile Button */}
+                {isAuthenticated && includePersonB && personB.year && personB.month && personB.day && (
+                  <div className="mt-4 pt-4 border-t border-slate-700">
+                    {existingProfileForPersonB ? (
+                      <div className="rounded-md border border-emerald-700/60 bg-emerald-900/40 px-4 py-3 text-sm text-emerald-100 text-center">
+                        <p className="font-medium text-emerald-200">Already saved</p>
+                        <p className="text-xs text-emerald-100/80">{existingProfileForPersonB.name} is already in your saved roster with these details.</p>
                       </div>
-                    </label>
-                  ))}
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const name = prompt('Enter a name for this profile:', personB.name || 'Person B');
+                            if (name) {
+                              handleSaveCurrentProfile('B', name);
+                            }
+                          }}
+                          className="w-full rounded-md bg-emerald-700/30 border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-700/40 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <span>💾</span>
+                          <span>Save Person B to Profile Database</span>
+                        </button>
+                        <p className="mt-2 text-xs text-slate-400 text-center">
+                          Save this person's birth data for quick loading later
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {!isAuthenticated && includePersonB && personB.year && personB.month && personB.day && (
+                  <div className="mt-4 pt-4 border-t border-slate-700">
+                    <div className="rounded-md bg-amber-900/30 border border-amber-700 p-3 text-amber-200 text-sm">
+                      <p className="font-medium">Sign in to save profiles</p>
+                      <p className="text-xs mt-1 text-amber-300">
+                        Sign in with Google (top of page) to save Person B for later
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Section>
+            {/* Relationship Context (only when Person B included) */}
+            <Section title="Relationship Context" className="md:-mt-4">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs text-slate-400">These fields unlock when Person B is included.</p>
+              </div>
+              <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${!includePersonB ? 'opacity-50' : ''}`}>
+                <div>
+                  <label htmlFor="rel-type" className="block text-sm text-slate-300">Type</label>
+                  <select
+                    id="rel-type"
+                    disabled={!includePersonB}
+                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
+                    value={relationshipType}
+                    onChange={(e) => { setRelationshipType(e.target.value); setRelationshipTier(""); setRelationshipRole(""); }}
+                  >
+                    <option value="PARTNER">Partner</option>
+                    <option value="FRIEND">Friend / Acquaintance</option>
+                    <option value="FAMILY">Family Member</option>
+                  </select>
+                  <div className="mt-2 text-[11px] text-slate-400">
+                    <div className="font-medium text-slate-300">Primary Relational Tiers (scope):</div>
+                    <div>• Partner — full map access, including intimacy arcs & legacy patterns.</div>
+                    <div>• Friend / Acquaintance — emotional, behavioral, social dynamics; intimacy overlays de-emphasized.</div>
+                    <div>• Family Member — legacy patterns and behavioral overlays.
+                      {' '}Select the role to clarify Person B's relationship to Person A.</div>
+                  </div>
+                </div>
+                {includePersonB && (
+                  <div className="sm:col-span-2">
+                    <span className="block text-sm text-slate-300">Contact State</span>
+                    <div className="mt-2 inline-flex overflow-hidden rounded-md border border-slate-600 bg-slate-900/80">
+                      <button
+                        type="button"
+                        onClick={() => setContactState('ACTIVE')}
+                        className={`px-3 py-1.5 text-sm transition ${contactState === 'ACTIVE' ? 'bg-emerald-600 text-white' : 'text-slate-200 hover:bg-slate-800'}`}
+                        aria-pressed={contactState === 'ACTIVE'}
+                      >
+                        Active
+                      </button>
+                      <div className="h-6 w-px bg-slate-700 my-1" />
+                      <button
+                        type="button"
+                        onClick={() => setContactState('LATENT')}
+                        className={`px-3 py-1.5 text-sm transition ${contactState === 'LATENT' ? 'bg-indigo-600 text-white' : 'text-slate-200 hover:bg-slate-800'}`}
+                        aria-pressed={contactState === 'LATENT'}
+                      >
+                        Latent
+                      </button>
+                    </div>
+                    <p className="mt-2 text-xs text-slate-400">
+                      Active treats overlays as live contact pressure; Latent logs the geometry but marks it dormant until reactivation.
+                    </p>
+                  </div>
+                )}
+                {relationshipType === 'PARTNER' && (
+                  <div>
+                    <label htmlFor="rel-tier" className="block text-sm text-slate-300">Intimacy Tier</label>
+                    <select
+                      id="rel-tier"
+                      disabled={!includePersonB}
+                      className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
+                      value={relationshipTier}
+                      onChange={(e) => setRelationshipTier(e.target.value)}
+                    >
+                      <option value="">Select…</option>
+                      <option value="P1">P1 — Platonic partners</option>
+                      <option value="P2">P2 — Friends-with-benefits</option>
+                      <option value="P3">P3 — Situationship (unclear/unstable)</option>
+                      <option value="P4">P4 — Low-commitment romantic or sexual</option>
+                      <option value="P5a">P5a — Committed romantic + sexual</option>
+                      <option value="P5b">P5b — Committed romantic, non-sexual</option>
+                    </select>
+                    {includePersonB && RELATIONAL_MODES.includes(mode) && !relationshipTier && (
+                      <p className="mt-1 text-xs text-amber-400">Partner relationships require an intimacy tier.</p>
+                    )}
+                  </div>
+                )}
+                {relationshipType === 'FAMILY' && (
+                  <div>
+                    <label htmlFor="rel-role" className="block text-sm text-slate-300">Role (Person B is…)</label>
+                    <select
+                      id="rel-role"
+                      disabled={!includePersonB}
+                      className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
+                      value={relationshipRole}
+                      onChange={(e) => setRelationshipRole(e.target.value)}
+                    >
+                      <option value="">Select…</option>
+                      <option value="Parent">Parent</option>
+                      <option value="Offspring">Offspring</option>
+                      <option value="Sibling">Sibling</option>
+                      <option value="Cousin">Cousin</option>
+                      <option value="Extended">Extended</option>
+                      <option value="Guardian">Guardian</option>
+                      <option value="Mentor">Mentor</option>
+                      <option value="Other">Other</option>
+                      <option value="Custom">Custom</option>
+                    </select>
+                    {includePersonB && RELATIONAL_MODES.includes(mode) && !relationshipRole && (
+                      <p className="mt-1 text-xs text-amber-400">Family relationships require selecting a role.</p>
+                    )}
+                  </div>
+                )}
+                {relationshipType === 'FRIEND' && (
+                  <div>
+                    <label htmlFor="rel-role-f" className="block text-sm text-slate-300">Role (optional)</label>
+                    <select
+                      id="rel-role-f"
+                      className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
+                      value={relationshipRole}
+                      onChange={(e) => setRelationshipRole(e.target.value)}
+                    >
+                      <option value="">—</option>
+                      <option value="Friend">Friend</option>
+                      <option value="Acquaintance">Acquaintance</option>
+                      <option value="Colleague">Colleague</option>
+                      <option value="Mentor">Mentor</option>
+                      <option value="Other">Other</option>
+                      <option value="Custom">Custom</option>
+                    </select>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    id="rel-ex"
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
+                    checked={exEstranged}
+                    onChange={(e) => setExEstranged(e.target.checked)}
+                    disabled={!includePersonB || relationshipType === 'FRIEND'}
+                  />
+                  <label htmlFor="rel-ex" className="text-sm text-slate-300">Ex / Estranged</label>
+                </div>
+                <div className="sm:col-span-2">
+                  <label htmlFor="rel-notes" className="block text-sm text-slate-300">Notes</label>
+                  <textarea
+                    id="rel-notes"
+                    disabled={!includePersonB}
+                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    rows={3}
+                    placeholder="Optional context (max 500 chars)"
+                    value={relationshipNotes}
+                    onChange={(e) => setRelationshipNotes(e.target.value.slice(0, 500))}
+                  />
                 </div>
               </div>
             </Section>
 
-            <Section title="Symbolic Weather (Transits)">
-            <TransitControls
-              includeTransits={includeTransits}
-              onIncludeTransitsChange={setIncludeTransits}
-              startDate={startDate}
-              endDate={endDate}
-              onStartDateChange={setStartDate}
-              onEndDateChange={setEndDate}
-              onUserHasSetDatesChange={setUserHasSetDates}
-              onDateFocus={handleDateFocus}
-              onDateTouchStart={handleDateTouchStart}
-              step={step}
-              onStepChange={setStep}
-              mode={mode}
-              onModeChange={(value) => applyMode(normalizeReportMode(value))}
-              soloModeOption={soloModeOption}
-              relationalModeOptions={relationalModeOptions}
-              includePersonB={includePersonB}
-              isRelationalMode={RELATIONAL_MODES.includes(mode)}
-              translocation={translocation}
-              onTranslocationChange={(value) => setTranslocation(normalizeTranslocationOption(value))}
-              relocationOptions={relocationOptions}
-              relocationLabels={relocationSelectLabels}
-              relocationStatus={relocationStatus}
-              relocationModeCaption={relocationModeCaption}
-              relocInput={relocInput}
-              onRelocInputChange={setRelocInput}
-              relocCoords={relocCoords}
-              onRelocCoordsChange={setRelocCoords}
-              relocError={relocError}
-              onRelocErrorChange={setRelocError}
-              relocLabel={relocLabel}
-              onRelocLabelChange={setRelocLabel}
-              relocTz={relocTz}
-              onRelocTzChange={setRelocTz}
-              tzOptions={tzOptions}
-              weeklyAgg={weeklyAgg}
-              onWeeklyAggChange={setWeeklyAgg}
-              personATimezone={personA.timezone}
-            />
-          </Section>
-
-            {/* Snapshot Button */}
-            <div className="mb-4">
-              <SnapshotButton
-                personA={personA}
-                personB={includePersonB ? personB : undefined}
-                mode={mode}
-                isAuthenticated={isAuthenticated}
-                disabled={loading}
-                includePersonB={includePersonB}
-                includeTransits={includeTransits}
-                startDate={startDate}
-                endDate={endDate}
-                reportType={reportType}
-                onSnapshot={handleSnapshotCapture}
-                onAuthRequired={handleSnapshotAuthRequired}
-                onDateChange={(date) => {
-                  setStartDate(date);
-                  setEndDate(date);
-                }}
-              />
-              {snapshotResult && snapshotLocation && snapshotTimestamp && (
-                <div className="mt-4">
-                  <SnapshotDisplay
-                    result={snapshotResult}
-                    location={snapshotLocation}
-                    timestamp={snapshotTimestamp}
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-slate-500">
-          All processing is geometry-first and non-deterministic. Your data isn't stored.
-              </p>
-              <div className="mr-2 hidden sm:flex items-center gap-2 text-[11px] text-slate-400">
-                <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800 px-2 py-0.5">
-                  <span className="text-slate-300">Mode:</span>
-                  <span className="text-slate-100">{mode.replace(/_/g,' ')}</span>
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800 px-2 py-0.5">
-                  <span className="text-slate-300">Report:</span>
-                  <span className="text-slate-100 capitalize">{reportType}</span>
-                </span>
-              </div>
-              <button
-                type="submit"
-                disabled={submitDisabled}
-                className="inline-flex items-center rounded-md px-4 py-2 text-white disabled:opacity-50 bg-indigo-600 hover:bg-indigo-500"
-              >
-                {loading ? "Mapping geometry…" : (includeTransits ? 'Generate Report' : 'Prepare Mirror')}
-              </button>
-            </div>
-            {(RELATIONAL_MODES.includes(mode) && !includePersonB) && (
-              <p className="mt-2 text-xs text-amber-400">Hint: Toggle "Include Person B" and fill in required fields to enable relational modes.</p>
-            )}
-            {submitDisabled && !loading && (() => {
-              if (!PROVIDER_BYPASS && providerCheckPending) {
-                return <p className="mt-2 text-xs text-amber-400">⚠️ Checking provider readiness…</p>;
-              }
-              if (!PROVIDER_BYPASS && !providerHealth.astrology.ready) {
-                const outageMessage = providerHealth.astrology.message || 'Math Brain services are currently unavailable.';
-                return <p className="mt-2 text-xs text-amber-400">⚠️ {outageMessage}</p>;
-              }
-              const locGate = needsLocation(reportType, includeTransits, personA);
-              if (includeTransits && !locGate.hasLoc) {
-                return <p className="mt-2 text-xs text-amber-400">⚠️ Transits require location data. Please enter coordinates or city/state for Person A.</p>;
-              }
-              if (!aCoordsValid && (personA.latitude || personA.longitude)) {
-                return <p className="mt-2 text-xs text-amber-400">⚠️ Invalid coordinates for Person A. Please check latitude/longitude format.</p>;
-              }
-              if (includePersonB && !bCoordsValid && (personB.latitude || personB.longitude)) {
-                return <p className="mt-2 text-xs text-amber-400">⚠️ Invalid coordinates for Person B. Please check latitude/longitude format.</p>;
-              }
-              const missing: string[] = [];
-              if (!personA.name) missing.push('Name');
-              if (!personA.city) missing.push('City');
-              if (!personA.state) missing.push('State');
-              if (!personA.timezone) missing.push('Timezone');
-              if (missing.length > 0) {
-                return <p className="mt-2 text-xs text-amber-400">⚠️ Missing required fields for Person A: {missing.join(', ')}</p>;
-              }
-              return <p className="mt-2 text-xs text-amber-400">⚠️ Please complete all required fields to generate report.</p>;
-            })()}
-          </div>
-        </div>
-      </form>
-
-      {error && (
-        <div className="mt-6 rounded-md border border-red-700 bg-red-900/30 p-4 text-red-200">
-          <p className="font-medium">Error</p>
-          <p className="mt-1 text-sm">{error}</p>
-        </div>
-      )}
-
-      {loading && (
-        <div className="mt-8 grid grid-cols-1 gap-6 print:hidden">
-          <section className="rounded-lg border border-slate-700 bg-slate-800/60 p-4">
-            <div className="h-5 w-40 rounded bg-slate-700 animate-pulse" />
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              <div className="h-16 rounded bg-slate-700/70 animate-pulse" />
-              <div className="h-16 rounded bg-slate-700/70 animate-pulse" />
-              <div className="h-16 rounded bg-slate-700/70 animate-pulse" />
-            </div>
-          </section>
-          <section className="rounded-lg border border-slate-700 bg-slate-800/60 p-4">
-            <div className="h-5 w-56 rounded bg-slate-700 animate-pulse" />
-            <div className="mt-4 h-24 rounded bg-slate-700/60 animate-pulse" />
-          </section>
-        </div>
-      )}
-
-      {result && (
-        <div ref={reportRef} className="mt-8 grid grid-cols-1 gap-6">
-          {(() => {
-            const meta = (result as any)?.person_a?.meta || (result as any)?.provenance?.time_meta_a;
-            if (!meta) return null;
-            const suppressed = !!meta.houses_suppressed;
-            const precision = String(meta.time_precision || '');
-            const eff = meta.effective_time_used as string | undefined;
-            return (
-              <div className="flex flex-wrap items-center gap-2">
-                {suppressed && (
-                  <div className="rounded-md border border-slate-700 bg-slate-800/70 px-3 py-1 text-xs text-slate-200">
-                    Angles unavailable without birth time; houses suppressed.
-                  </div>
-                )}
-                {precision === 'unknown' && (timePolicy === 'planetary_only') && (
-                  <div className="rounded-md border border-amber-700 bg-amber-900/30 px-3 py-1 text-xs text-amber-200">
-                    Using planetary-only mode. You can run a sensitivity scan for house-dependent work.
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-          {/* Chart Wheels Section temporarily disabled due to unreliable upstream asset generation */}
-          {null}
-          {/* Layer progression + toggle controls */}
-          <div className="print:hidden">
-            <div className="flex flex-wrap items-center gap-2 rounded-md border border-slate-700 bg-slate-900/50 px-4 py-3 text-xs font-semibold uppercase tracking-wide">
-              <span className="text-indigo-200">Mirror Summary</span>
-              <span className="text-slate-600">→</span>
-              <span className={weather.hasWindow ? (layerVisibility.balance ? 'text-indigo-200' : 'text-slate-500') : 'text-slate-700'}>
-                Balance Metrics
-              </span>
-              <span className="text-slate-600">→</span>
-              <span className={layerVisibility.diagnostics ? 'text-indigo-200' : (includeTransits ? 'text-slate-500' : 'text-slate-700')}>
-                Full Diagnostics
-              </span>
-              <span className="text-slate-600">→</span>
-              {canVisitPoetic ? (
-                <a
-                  href="/chat"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    handleNavigateToPoetic();
-                  }}
-                  className="text-emerald-300 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 rounded-sm"
-                >
-                  Poetic Brain
-                </a>
-              ) : (
-                <span className="text-slate-500">Poetic Brain</span>
-              )}
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              {weather.hasWindow ? (
-                <button
-                  type="button"
-                  onClick={() => toggleLayerVisibility('balance')}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${layerVisibility.balance ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'border border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800'}`}
-                >
-                  {layerVisibility.balance ? 'Hide Balance Metrics' : 'Show Balance Metrics'}
-                </button>
-              ) : (
-                <div className="relative group">
-                  <button
-                    type="button"
-                    className="h-6 w-6 rounded-full border border-slate-600 text-xs text-slate-400 hover:bg-slate-700/60 cursor-help"
-                    aria-describedby="balance-info-tooltip"
-                    tabIndex={0}
-                  >
-                    i
-                  </button>
-                  <div
-                    id="balance-info-tooltip"
-                    className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white text-xs rounded-lg py-2 px-3 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-200 pointer-events-none border border-slate-700 shadow-lg z-50 whitespace-nowrap"
-                  >
-                    Add dates to see activations.
-                  </div>
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => includeTransits ? toggleLayerVisibility('diagnostics') : undefined}
-                disabled={!includeTransits}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${!includeTransits ? 'cursor-not-allowed border border-slate-700 bg-slate-800 text-slate-500' : layerVisibility.diagnostics ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'border border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800'}`}
-              >
-                {layerVisibility.diagnostics ? 'Hide Diagnostics' : 'Show Diagnostics'}
-              </button>
-            </div>
-          </div>
-
-          {/* Post-generation actions - Restructured for clarity */}
-          <DownloadControls
-            includeTransits={includeTransits}
-            pdfGenerating={pdfGenerating}
-            graphsPdfGenerating={graphsPdfGenerating}
-            astroFileJsonGenerating={astroFileJsonGenerating}
-            engineConfigGenerating={engineConfigGenerating}
-            cleanJsonGenerating={cleanJsonGenerating}
-            onDownloadPDF={downloadResultPDF}
-            onDownloadAstroFile={downloadAstroFileJSON}
-            onDownloadGraphsPDF={downloadGraphsPDF}
-            onDownloadEngineConfig={downloadBackstageJSON}
-            onDownloadCleanJSON={downloadResultJSON}
-            onDownloadMapFile={downloadMapFile}
-            onDownloadFieldFile={downloadFieldFile}
-            onDownloadWovenAIPacket={downloadWovenAIPacket}
-            seismographMap={seismographMap}
-            authReady={authReady}
-            isAuthenticated={isAuthenticated}
-            canVisitPoetic={canVisitPoetic}
-            onNavigateToPoetic={handleNavigateToPoetic}
-          />
-          {weather.hasWindow && layerVisibility.balance && (
-            <>
-          {(() => {
-            const daily = frontStageTransitsByDate;
-            const hasAny = Object.keys(daily).length > 0;
-            if (!hasAny) {
-              return (
-                <div className="rounded-md border border-amber-700 bg-amber-900/30 p-3 text-amber-200">
-                  <p className="text-sm">
-                    No daily series data returned. Double-check your dates, step, and inputs, then try again. If this persists, view the Raw Result (debug) below.
-                  </p>
-                </div>
-              );
-            }
-            return null;
-          })()}
-          {(() => {
-            const summary = frontStageResult?.person_a?.summary
-              ?? result?.person_a?.summary
-              ?? result?.person_a?.derived?.seismograph_summary;
-            if (!summary) return null;
-
-            const mag = Number(
-              summary.axes?.magnitude?.value ??
-              summary.magnitude_calibrated ??
-              summary.magnitude ??
-              0
-            );
-            const val = Number(
-              summary.axes?.directional_bias?.value ??
-              summary.valence_bounded ??
-              summary.valence ??
-              0
-            );
-            const vol = Number(summary.volatility ?? 0);
-
-            // Calculate daily ranges from transitsByDate
-            const transitsByDate = frontStageTransitsByDate;
-            const dailyBiasValues: number[] = [];
-            const dailyMagValues: number[] = [];
-
-            Object.values(transitsByDate).forEach((dayData: any) => {
-              const seismo = dayData?.seismograph || {};
-              const balance = dayData?.balance || {};
-              // v5.0: Use canonical directional_bias structure
-              const bias = Number(seismo.directional_bias?.value ?? seismo.bias_signed ?? balance.directional_bias?.value ?? balance.bias_signed ?? 0);
-              const dayMag = Number(seismo.magnitude ?? balance.magnitude ?? 0);
-              if (Number.isFinite(bias)) dailyBiasValues.push(bias);
-              if (Number.isFinite(dayMag)) dailyMagValues.push(dayMag);
-            });
-
-            const biasMin = dailyBiasValues.length > 0 ? Math.min(...dailyBiasValues) : val;
-            const biasMax = dailyBiasValues.length > 0 ? Math.max(...dailyBiasValues) : val;
-            const magMin = dailyMagValues.length > 0 ? Math.min(...dailyMagValues) : mag;
-            const magMax = dailyMagValues.length > 0 ? Math.max(...dailyMagValues) : mag;
-
-            const magnitudeLabel = summary.magnitude_label || (mag >= 3 ? 'Surge' : mag >= 1 ? 'Active' : 'Calm');
-            const valenceLabel = summary.valence_label || (val > 0.5 ? 'Supportive' : val < -0.5 ? 'Challenging' : 'Mixed');
-            const volatilityLabel = summary.volatility_label || (vol >= 3 ? 'Scattered' : vol >= 1 ? 'Variable' : 'Stable');
-
-            const symbolicDrivers = (() => {
-              const drivers = new Set<string>();
-
-              const addDrivers = (list: unknown) => {
-                if (!Array.isArray(list)) return;
-                list.forEach((item) => {
-                  if (typeof item === 'string' && item.trim()) {
-                    drivers.add(item.trim());
-                  }
-                });
-              };
-
-              addDrivers((summary as any)?.drivers);
-              addDrivers((summary as any)?.diagnostics?.drivers);
-
-              const daily = frontStageTransitsByDate || {};
-              Object.values(daily).forEach((dayData: any) => {
-                addDrivers(dayData?.balance?.drivers);
-                addDrivers(dayData?.drivers);
-                const overflowDetail = computeOverflowDetailFromDay(dayData);
-                addDrivers(overflowDetail?.drivers);
-              });
-
-              return Array.from(drivers).slice(0, 12);
-            })();
-
-            return (
-              <div ref={balanceGraphsRef} data-balance-export="true">
-                <Section title="Poetic Brain Reading Log">
-                {/* LAYER 1: SUMMARY VIEW (At a Glance) */}
-                <BalanceMeterSummary
-                  dateRange={{
-                    start: startDate || 'Unknown',
-                    end: endDate || 'Unknown'
-                  }}
-                  location={relocationStatus.effectiveMode !== 'NONE'
-                    ? (relocLabel || `${personA.city || 'Unknown'}, ${personA.state || 'Unknown'}`)
-                    : `${personA.city || 'Unknown'}, ${personA.state || 'Unknown'}`
-                  }
-                  mode={RELATIONAL_MODES.includes(mode) ? 'relational' : 'single'}
-                  names={RELATIONAL_MODES.includes(mode)
-                    ? [personA.name || 'Person A', personB.name || 'Person B']
-                    : undefined
-                  }
-                  overallClimate={{
-                    magnitude: mag,
-                    valence: val,
-                    volatility: vol,
-                    ...(symbolicDrivers.length ? { drivers: symbolicDrivers } : {}),
-                  }}
-                  dailyRanges={{
-                    biasMin,
-                    biasMax,
-                    magnitudeMin: magMin,
-                    magnitudeMax: magMax
-                  }}
-                  totalDays={(() => {
-                    const daily = frontStageTransitsByDate;
-                    return Object.keys(daily).filter(d => d && d.match(/^\d{4}-\d{2}-\d{2}$/)).length;
-                  })()}
-                  isLatentField={exEstranged}
-                />
-
-                {/* LAYER 2: SYMBOLIC SEISMOGRAPH (Plot Charts) */}
-                {(() => {
-                  const transitsByDate = frontStageTransitsByDate;
-                  const dates = Object.keys(transitsByDate).sort();
-                  const hasTransitData = dates.length > 0 && includeTransits;
-
-                  if (!hasTransitData) {
-                    return (
-                      <div className="mt-6 rounded-md border border-slate-600 bg-slate-900/40 p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-sm font-medium text-slate-300">Symbolic Plot Charts</h3>
-                            <p className="mt-1 text-xs text-slate-400">
-                              Not available - transits were not included in this report
-                            </p>
-                          </div>
-                          <span className="text-slate-600">📊</span>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  // Transform transitsByDate into SymbolicSeismograph data format
-                  const seismographData = dates.map(date => {
-                    const dayData = transitsByDate[date];
-                    const seismo = dayData?.seismograph || {};
-                    const balance = dayData?.balance || {};
-                    // SFD deprecated — no longer included in daily seismograph payload
-
-                    const biasValue = (() => {
-                      if (typeof seismo.directional_bias === 'number') return seismo.directional_bias;
-                      if (typeof seismo.directional_bias?.value === 'number') return seismo.directional_bias.value;
-                      if (typeof seismo.bias === 'number') return seismo.bias;
-                      if (typeof seismo.bias_signed === 'number') return seismo.bias_signed;
-                      if (typeof balance.bias_signed === 'number') return balance.bias_signed;
-                      if (typeof seismo.valence === 'number') return seismo.valence;
-                      if (typeof seismo.valence_bounded === 'number') return seismo.valence_bounded;
-                      if (typeof seismo.axes?.directional_bias?.value === 'number') return seismo.axes.directional_bias.value;
-                      return 0;
-                    })();
-
-                    return {
-                      date,
-                      magnitude_0to5: seismo.magnitude ?? balance.magnitude ?? 0,
-                      bias_signed_minus5to5: biasValue,
-                      coherence_0to5: (() => {
-                        if (typeof seismo.coherence === 'number') return seismo.coherence;
-                        const vol = typeof seismo.volatility === 'number'
-                          ? seismo.volatility
-                          : (typeof seismo.axes?.volatility?.value === 'number' ? seismo.axes.volatility.value : 0);
-                        return Math.max(0, Math.min(5, 5 - vol));
-                      })(),
-                      schema_version: 'BM-v3',
-                      orbs_profile: displayResult?.provenance?.orbs_profile || 'wm-spec-2025-09',
-                      house_frame: 'natal',
-                      relocation_supported: false,
-                      ...(relocationStatus.effectiveMode !== 'NONE' && {
-                        relocation_overlay: {
-                          user_place: relocLabel || `${personA.city || 'Unknown'}, ${personA.state || 'Unknown'}`,
-                          advisory: 'Same sky, natal rooms only. Local guidance is author-authored overlay, not computed houses.',
-                          confidence: 'author_note' as const,
-                          notes: [
-                            'Houses are derived from natal frame only.',
-                            'The API does not recalc for relocation.',
-                            'Any "place" guidance is human-authored overlay, not computed houses.'
-                          ]
-                        }
-                      }),
-                      provenance: {
-                        house_system: `${result?.provenance?.house_system || 'Placidus'} (natal)`,
-                        relocation_mode: 'not_applied',
-                        orbs_profile: result?.provenance?.orbs_profile || 'wm-spec-2025-09',
-                        math_brain_version: result?.provenance?.math_brain_version || '3.1.4',
-                        tz: result?.provenance?.tz || result?.provenance?.timezone || 'UTC',
-                        bias_method: seismo.bias_method || balance.bias_method || 'signed_z_to_[-5,5]',
-                        mag_method: seismo.magnitude_method || balance.magnitude_method || 'z_to_[0,5]'
-                      }
-                    };
-                  });
-
-                  return (
-                    <div className="my-6">
-                      <div className="mb-4 flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-slate-200">Symbolic Plot Charts</h3>
-                          <p className="text-xs text-slate-400 mt-1">
-                            Time-series visualization of daily symbolic weather patterns
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => setShowSeismographCharts((prev) => !prev)}
-                          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-colors flex items-center gap-2"
-                        >
-                          {showSeismographCharts ? '👁️ Hide Charts' : '📊 Reveal Plot Charts'}
-                          <span className="rounded-full bg-blue-400 px-2 py-0.5 text-xs">
-                            {dates.length} days
-                          </span>
-                        </button>
-                      </div>
-
-                      {showSeismographCharts && (
-                        <>
-                          <SymbolicSeismograph
-                            data={seismographData}
-                            showProvenance={true}
-                            className="symbolic-seismograph-section"
-                          />
-                          
-                          {/* Scatter Chart Visualization */}
-                          {(() => {
-                            try {
-                              const fieldFile =
-                                displayResult?.unified_output?._field_file ||
-                                displayResult?._field_file ||
-                                result?.unified_output?._field_file;
-
-                              let weatherRecords =
-                                (fieldFile?.daily && transformFieldFileDaily(fieldFile)) || {};
-
-                              if (!weatherRecords || Object.keys(weatherRecords).length === 0) {
-                                weatherRecords = transformTransitsByDate(transitsByDate);
-                              }
-
-                              const weatherDates = Object.keys(weatherRecords);
-                              if (weatherDates.length === 0) {
-                                return null;
-                              }
-
-                              const weatherArray = weatherDates
-                                .sort()
-                                .map((date) => ({
-                                  date,
-                                  weather: weatherRecords[date],
-                                }))
-                                .filter((entry) => entry.weather);
-
-                              if (!weatherArray.length) {
-                                return null;
-                              }
-                              return (
-                                <div className="mt-6">
-                                  <WeatherPlots
-                                    data={weatherArray}
-                                    result={result}
-                                    showScatter={true}
-                                    enableUnified={true}
-                                  />
-                                </div>
-                              );
-                            } catch (error) {
-                              console.warn('[MathBrain] Failed to transform weather data for scatter plots', error);
-                              return null;
-                            }
-                          })()}
-                        </>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {layerVisibility.diagnostics && (
-                  <div className="mb-6">
-                    <h3 className="text-sm font-medium text-slate-200 mb-3">Daily Symbolic Weather Cards</h3>
-                    {(() => {
-                    const daily = frontStageTransitsByDate;
-                    const dates = Object.keys(daily).sort();
-                    if (!dates.length) {
-                      return <div className="text-sm text-slate-500 p-4 border border-slate-700 rounded bg-slate-900/20">No daily data available</div>;
-                    }
-
-                    // State descriptor functions
-                    const getMagnitudeState = (mag: number) => {
-                      if (mag <= 1) return 'Latent';
-                      if (mag <= 2) return 'Murmur';
-                      if (mag <= 4) return 'Active';
-                      return 'Threshold';
-                    };
-
-                    const getValenceStyle = (valence: number, magnitude: number) => {
-                      const magLevel = magnitude <= 2 ? 'low' : 'high';
-
-                      if (valence >= 4.5) {
-                        const emojis = magLevel === 'low' ? ['🦋', '🌈'] : ['🦋', '🌈', '🔥'];
-                        return { emojis, descriptor: 'Liberation', anchor: '+5', pattern: 'peak openness; breakthroughs / big‑sky view' };
-                      } else if (valence >= 3.5) {
-                        const emojis = magLevel === 'low' ? ['💎', '🔥'] : ['💎', '🔥', '🦋'];
-                        return { emojis, descriptor: 'Expansion', anchor: '+4', pattern: 'widening opportunities; clear insight fuels growth' };
-                      } else if (valence >= 2.5) {
-                        const emojis = magLevel === 'low' ? ['🧘', '✨'] : ['🧘', '✨', '🌊'];
-                        return { emojis, descriptor: 'Harmony', anchor: '+3', pattern: 'coherent progress; both/and solutions' };
-                      } else if (valence >= 1.5) {
-                        const emojis = magLevel === 'low' ? ['🌊', '🧘'] : ['🌊', '🧘'];
-                        return { emojis, descriptor: 'Flow', anchor: '+2', pattern: 'smooth adaptability; things click' };
-                      } else if (valence >= 0.5) {
-                        const emojis = magLevel === 'low' ? ['🌱', '✨'] : ['🌱', '✨'];
-                        return { emojis, descriptor: 'Lift', anchor: '+1', pattern: 'gentle tailwind; beginnings sprout' };
-                      } else if (valence >= -0.5) {
-                        return { emojis: ['⚖️'], descriptor: 'Equilibrium', anchor: '0', pattern: 'net‑neutral tilt; forces cancel or diffuse' };
-                      } else if (valence >= -1.5) {
-                        const emojis = magLevel === 'low' ? ['🌪', '🌫'] : ['🌪', '🌫'];
-                        return { emojis, descriptor: 'Drag', anchor: '−1', pattern: 'subtle headwind; minor loops or haze' };
-                      } else if (valence >= -2.5) {
-                        const emojis = magLevel === 'low' ? ['🌫', '🧩'] : ['🌫', '🧩', '⬇️'];
-                        return { emojis, descriptor: 'Contraction', anchor: '−2', pattern: 'narrowing options; ambiguity or energy drain' };
-                      } else if (valence >= -3.5) {
-                        const emojis = magLevel === 'low' ? ['⚔️', '🌊'] : ['⚔️', '🌊', '🌫'];
-                        return { emojis, descriptor: 'Friction', anchor: '−3', pattern: 'conflicts or cross‑purposes slow motion' };
-                      } else if (valence >= -4.5) {
-                        const emojis = magLevel === 'low' ? ['🕰', '⚔️'] : ['🕰', '⚔️', '🌪'];
-                        return { emojis, descriptor: 'Grind', anchor: '−4', pattern: 'sustained resistance; heavy duty load' };
-                      } else {
-                        const emojis = magLevel === 'low' ? ['🌋', '🧩'] : ['🌋', '🧩', '⬇️'];
-                        return { emojis, descriptor: 'Compression', anchor: '−5', pattern: 'maximum restrictive tilt; deep inward compression' };
-                      }
-                    };
-
-                    const getVolatilityState = (vol: number) => {
-                      if (vol <= 2) return 'Coherent';
-                      if (vol <= 4) return 'Complex';
-                      return 'Dispersed';
-                    };
-
-                    // SFD state helper removed (deprecated)
-
-                    const classifyMagnitude = (mag: number) => {
-                      if (mag <= 2) {
-                        return { key: 'low' as const, label: 'Low', badge: 'Low Intensity' };
-                      }
-                      if (mag <= 4) {
-                        return { key: 'medium' as const, label: 'Medium', badge: 'Medium Intensity' };
-                      }
-                      return { key: 'high' as const, label: 'High', badge: 'High Intensity' };
-                    };
-
-                    const classifyValence = (val: number) => {
-                      if (val >= 1.5) {
-                        return {
-                          key: 'supportive' as const,
-                          label: 'Supportive',
-                          badge: 'Positive Tilt',
-                        };
-                      }
-                      if (val <= -1.5) {
-                        return {
-                          key: 'tense' as const,
-                          label: 'Tense',
-                          badge: 'Tense Tilt',
-                        };
-                      }
-                      return {
-                        key: 'mixed' as const,
-                        label: 'Mixed',
-                        badge: 'Mixed Tilt',
-                      };
-                    };
-
-                    const classifyVolatility = (vol: number) => {
-                      if (vol <= 2) {
-                        return { key: 'stable' as const, label: 'Stable', badge: 'Stable Distribution' };
-                      }
-                      if (vol <= 4) {
-                        return { key: 'variable' as const, label: 'Variable', badge: 'Variable Distribution' };
-                      }
-                      return { key: 'scattered' as const, label: 'Scattered', badge: 'Scattered Distribution' };
-                    };
-
-                    const magnitudeForkText = (mag: number) => {
-                      if (mag >= 4) {
-                        return {
-                          wb: 'Breakthrough wave: high charge favors bold moves and outreach.',
-                          abe: 'Overload wave: same charge can oversaturate the schedule or nervous system.',
-                        };
-                      }
-                      if (mag >= 2) {
-                        return {
-                          wb: 'Productive surge: solid momentum to advance priority work.',
-                          abe: 'Overextension risk: adding too much can fragment focus.',
-                        };
-                      }
-                      return {
-                        wb: 'Integration window: gentle charge supports rest or soft starts.',
-                        abe: 'Stagnation risk: low voltage may feel stuck without intentional sparks.',
-                      };
-                    };
-
-                    const valenceForkText = (val: number) => {
-                      if (val >= 4) {
-                        return {
-                          wb: 'Liberation flow: peak openness creates breakthrough possibilities.',
-                          abe: 'Open-field sprawl: infinite options can stall momentum until you set constraints.',
-                        };
-                      }
-                      if (val >= 3) {
-                        return {
-                          wb: 'Expansion clarity: widening opportunities land with clarity.',
-                          abe: 'Expansion overreach: ambition outruns capacity and scatters energy.',
-                        };
-                      }
-                      if (val >= 2) {
-                        return {
-                          wb: 'Harmony integration: both/and solutions emerge through coherent progress.',
-                          abe: 'Harmony avoidance: pleasing everyone delays necessary calls.',
-                        };
-                      }
-                      if (val >= 1) {
-                        return {
-                          wb: 'Lift momentum: gentle tailwinds back natural beginnings.',
-                          abe: 'Lift impatience: slow build can feel frustrating when you want speed.',
-                        };
-                      }
-                      if (val >= -1) {
-                        return {
-                          wb: 'Equilibrium balance: forces offset, leaving space for discernment.',
-                          abe: 'Equilibrium stall: neutrality can feel like treading water.',
-                        };
-                      }
-                      if (val >= -2) {
-                        return {
-                          wb: 'Contraction focus: narrowing options create useful boundaries.',
-                          abe: 'Contraction anxiety: tightening scope can spark scarcity thinking.',
-                        };
-                      }
-                      if (val >= -3) {
-                        return {
-                          wb: 'Friction catalyst: tension reveals truths that unlock progress.',
-                          abe: 'Friction exhaustion: unresolved cross-currents burn energy fast.',
-                        };
-                      }
-                      if (val >= -4) {
-                        return {
-                          wb: 'Grind stamina: disciplined effort builds staying power.',
-                          abe: 'Grind depletion: sustained resistance can drain capacity unless paced.',
-                        };
-                      }
-                      return {
-                        wb: 'Compression focus: maximum density creates clarity through constraint.',
-                        abe: 'Compression overload: extreme restriction can trigger shutdown.',
-                      };
-                    };
-
-                    return dates.map(date => { // Show all requested days
-                      const dayData = daily[date];
-                      const seismo = dayData?.seismograph || dayData;
-
-                      const overflowDetail = computeOverflowDetailFromDay(dayData);
-
-                      const mag = firstFinite(
-                        seismo?.magnitude,
-                        seismo?.axes?.magnitude?.value,
-                        seismo?.rawMagnitude,
-                      ) ?? 0;
-
-                      const val = firstFinite(
-                        seismo?.directional_bias,
-                        seismo?.directional_bias?.value,
-                        seismo?.bias,
-                        seismo?.bias_signed,
-                        seismo?.valence_bounded,
-                        seismo?.valence,
-                        seismo?.axes?.directional_bias?.value,
-                      ) ?? 0;
-
-                      const vol = firstFinite(
-                        seismo?.volatility,
-                        seismo?.axes?.volatility?.value,
-                      ) ?? 0;
-
-                      // SFD removed — use magnitude/valence/volatility for cards
-                      const valenceStyle = getValenceStyle(val, mag);
-
-                      const magnitudeClass = classifyMagnitude(mag);
-                      const valenceClass = classifyValence(val);
-                      const volatilityClass = classifyVolatility(vol);
-                      const magnitudeFork = magnitudeForkText(mag);
-                      const valenceFork = valenceForkText(val);
-                      const badgeLine = `${magnitudeClass.badge} / ${valenceClass.badge} / ${volatilityClass.badge}`;
-
-                      const dateLabel = new Date(date).toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        month: 'long',
-                        day: 'numeric',
-                      });
-
-                      const baseLocation = [personA.city, personA.state].filter(Boolean).join(', ') || personA.city || '';
-                      const locationLabel = relocationStatus.effectiveMode !== 'NONE'
-                        ? (relocLabel || baseLocation || 'Relocation lens active')
-                        : (baseLocation || 'Location not specified');
-
-                      const modeKind = RELATIONAL_MODES.includes(mode) ? 'relational' : 'single';
-                      const relationalNames: [string, string] | undefined = modeKind === 'relational'
-                        ? [personA.name || 'Person A', personB.name || 'Person B']
-                        : undefined;
-
-                      return (
-                        <EnhancedDailyClimateCard
-                          key={date}
-                          date={dateLabel}
-                          location={locationLabel}
-                          mode={modeKind}
-                          names={relationalNames}
-                          climate={{
-                            magnitude: mag,
-                            valence_bounded: val,
-                            volatility: vol,
-                            drivers: overflowDetail?.drivers,
+            {/* Right column: Transits + actions */}
+            <div className="space-y-6">
+              {/* Report Type Radio Group */}
+              <Section title="Report Type">
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-400">Choose the astrological report structure</p>
+                  <div className="flex flex-col gap-2">
+                    {(['solo', 'synastry', 'composite'] as const).map((type) => (
+                      <label
+                        key={type}
+                        className="flex items-center gap-3 rounded-md border border-slate-700 bg-slate-800/60 px-3 py-2.5 cursor-pointer hover:bg-slate-800 transition"
+                      >
+                        <input
+                          type="radio"
+                          name="report-type"
+                          value={type}
+                          checked={reportStructure === type}
+                          onChange={(e) => {
+                            const newStructure = e.target.value as ReportStructure;
+                            setReportStructure(newStructure);
+                            // Automatically enable Person B for relational modes
+                            // Do not auto-enable Person B for relational modes
                           }}
-                          overflowDetail={overflowDetail}
+                          className="h-4 w-4 border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
                         />
-                      );
-                    });
-                  })()}
-                  </div>
-                )}
-
-                {/* LAYER 3: FIELD CONTEXT (Simple Descriptive Language) */}
-                {layerVisibility.diagnostics && (
-                  <div className="mb-4">
-                    <h3 className="text-sm font-medium text-slate-200 mb-3">Field Context</h3>
-                    <div className="rounded border border-slate-700 bg-slate-900/40 p-4">
-                      <div className="text-sm text-slate-300 leading-relaxed">
-                        {(() => {
-                        // SFD deprecated and removed from summary — omitted
-                        const getMagnitudeState = (mag: number) => {
-                          if (mag <= 1) return 'latent';
-                          if (mag <= 2) return 'murmur-level';
-                          if (mag <= 4) return 'active';
-                          return 'threshold-level';
-                        };
-
-                        const getVolatilityState = (vol: number) => {
-                          if (vol <= 2) return 'coherent';
-                          if (vol <= 4) return 'complex';
-                          return 'dispersed';
-                        };
-
-                        const getValenceStyle = (valence: number, magnitude: number) => {
-                          const magLevel = magnitude <= 2 ? 'low' : 'high';
-                          if (valence >= 4.5) {
-                            const emojis = magLevel === 'low' ? ['🦋', '🌈'] : ['🦋', '🌈', '🔥'];
-                            return { emojis, descriptor: 'Liberation', anchor: '+5', pattern: 'peak openness; breakthroughs / big‑sky view' };
-                          } else if (valence >= 3.5) {
-                            const emojis = magLevel === 'low' ? ['💎', '🔥'] : ['💎', '🔥', '🦋'];
-                            return { emojis, descriptor: 'Expansion', anchor: '+4', pattern: 'widening opportunities; clear insight fuels growth' };
-                          } else if (valence >= 2.5) {
-                            const emojis = magLevel === 'low' ? ['🧘', '✨'] : ['🧘', '✨', '🌊'];
-                            return { emojis, descriptor: 'Harmony', anchor: '+3', pattern: 'coherent progress; both/and solutions' };
-                          } else if (valence >= 1.5) {
-                            const emojis = magLevel === 'low' ? ['🌊', '🧘'] : ['🌊', '🧘'];
-                            return { emojis, descriptor: 'Flow', anchor: '+2', pattern: 'smooth adaptability; things click' };
-                          } else if (valence >= 0.5) {
-                            const emojis = magLevel === 'low' ? ['🌱', '✨'] : ['🌱', '✨'];
-                            return { emojis, descriptor: 'Lift', anchor: '+1', pattern: 'gentle tailwind; beginnings sprout' };
-                          } else if (valence >= -0.5) {
-                            return { emojis: ['⚖️'], descriptor: 'Equilibrium', anchor: '0', pattern: 'net‑neutral tilt; forces cancel or diffuse' };
-                          } else if (valence >= -1.5) {
-                            const emojis = magLevel === 'low' ? ['🌪', '🌫'] : ['🌪', '🌫'];
-                            return { emojis, descriptor: 'Drag', anchor: '−1', pattern: 'subtle headwind; minor loops or haze' };
-                          } else if (valence >= -2.5) {
-                            const emojis = magLevel === 'low' ? ['🌫', '🧩'] : ['🌫', '🧩', '⬇️'];
-                            return { emojis, descriptor: 'Contraction', anchor: '−2', pattern: 'narrowing options; ambiguity or energy drain' };
-                          } else if (valence >= -3.5) {
-                            const emojis = magLevel === 'low' ? ['⚔️', '🌊'] : ['⚔️', '🌊', '🌫'];
-                            return { emojis, descriptor: 'Tension', anchor: '−3', pattern: 'hard choices; competing forces create friction' };
-                          } else if (valence >= -4.5) {
-                            const emojis = magLevel === 'low' ? ['🌊', '⚔️'] : ['🌊', '⚔️', '💥'];
-                            return { emojis, descriptor: 'Disruption', anchor: '−4', pattern: 'systemic challenges; breakdown precedes breakthrough' };
-                          } else {
-                            const emojis = magLevel === 'low' ? ['💥', '🌊'] : ['💥', '🌊', '⚔️'];
-                            return { emojis, descriptor: 'Compression', anchor: '−5', pattern: 'maximum restrictive tilt; deep inward compression' };
-                          }
-                        };
-
-                        const magState = getMagnitudeState(mag);
-                        const volState = getVolatilityState(vol);
-                        const valencePattern = getValenceStyle(val, mag);
-
-                        // Simple descriptive combinations using flavor patterns - NOT predictive
-                        let description = `The symbolic field shows ${magState} pressure with ${volState} patterns.`;
-
-                        // Add valence flavor pattern
-                        description += ` Valence signature: ${valencePattern.emojis.join('')} ${valencePattern.descriptor} (${valencePattern.anchor}) — ${valencePattern.pattern}.`;
-
-                        return description;
-                      })()}
-                      </div>
-                      <div className="mt-3 text-xs text-slate-500">
-                        Note: This describes the mathematical field state only. Pair it with your preferred narrative layer for lived interpretation.
-                      </div>
-                    </div>
-                  </div>
-                )}
-                </Section>
-              </div>
-            );
-          })()}
-          {(() => {
-            const cx = (result as any)?.context;
-            if (!cx?.translocation) return null;
-            const t = cx.translocation;
-            return (
-              <Section title="Translocation Context" className="print:hidden">
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-sm text-slate-300">
-                  <div>
-                    <div className="text-xs text-slate-400">Applies</div>
-                    <div className="text-slate-100">{t.applies ? 'Yes' : 'No'}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-400">Method</div>
-                    <div className="text-slate-100">{(() => {
-                      const m = String(t.method || 'Natal');
-                      if (/^A[_ ]?local$/i.test(m) || m === 'A_local') return 'Person A';
-                      if (/^B[_ ]?local$/i.test(m) || m === 'B_local') return 'Person B';
-                      if (/^midpoint$/i.test(m)) return 'Person A + B';
-                      if (/^natal$/i.test(m)) return 'None (Natal Base)';
-                      return m;
-                    })()}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-400">House System</div>
-                    <div className="text-slate-100">{t.house_system || 'Placidus'}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-400">TZ</div>
-                    <div className="text-slate-100">{t.tz || (personA?.timezone || '—')}</div>
+                        <div>
+                          <span className="block text-sm font-medium text-slate-100 capitalize">{type}</span>
+                          <span className="block text-xs text-slate-400">
+                            {type === 'solo' && 'Individual natal chart analysis'}
+                            {type === 'synastry' && 'Relationship dynamics between two charts'}
+                            {type === 'composite' && 'Blended chart representing the relationship itself'}
+                          </span>
+                        </div>
+                      </label>
+                    ))}
                   </div>
                 </div>
               </Section>
-            );
-          })()}
-            </>
-          )}
 
-        </div>
-      )}
+              <Section title="Symbolic Weather (Transits)">
+                <TransitControls
+                  includeTransits={includeTransits}
+                  onIncludeTransitsChange={setIncludeTransits}
+                  startDate={startDate}
+                  endDate={endDate}
+                  onStartDateChange={setStartDate}
+                  onEndDateChange={setEndDate}
+                  onUserHasSetDatesChange={setUserHasSetDates}
+                  onDateFocus={handleDateFocus}
+                  onDateTouchStart={handleDateTouchStart}
+                  step={step}
+                  onStepChange={setStep}
+                  mode={mode}
+                  onModeChange={(value) => applyMode(normalizeReportMode(value))}
+                  soloModeOption={soloModeOption}
+                  relationalModeOptions={relationalModeOptions}
+                  includePersonB={includePersonB}
+                  isRelationalMode={RELATIONAL_MODES.includes(mode)}
+                  translocation={translocation}
+                  onTranslocationChange={(value) => setTranslocation(normalizeTranslocationOption(value))}
+                  relocationOptions={relocationOptions}
+                  relocationLabels={relocationSelectLabels}
+                  relocationStatus={relocationStatus}
+                  relocationModeCaption={relocationModeCaption}
+                  relocInput={relocInput}
+                  onRelocInputChange={setRelocInput}
+                  relocCoords={relocCoords}
+                  onRelocCoordsChange={setRelocCoords}
+                  relocError={relocError}
+                  onRelocErrorChange={setRelocError}
+                  relocLabel={relocLabel}
+                  onRelocLabelChange={setRelocLabel}
+                  relocTz={relocTz}
+                  onRelocTzChange={setRelocTz}
+                  tzOptions={tzOptions}
+                  weeklyAgg={weeklyAgg}
+                  onWeeklyAggChange={setWeeklyAgg}
+                  personATimezone={personA.timezone}
+                />
+              </Section>
+
+              {/* Snapshot Button */}
+              <div className="mb-4">
+                <SnapshotButton
+                  personA={personA}
+                  personB={includePersonB ? personB : undefined}
+                  mode={mode}
+                  isAuthenticated={isAuthenticated}
+                  disabled={loading}
+                  includePersonB={includePersonB}
+                  includeTransits={includeTransits}
+                  startDate={startDate}
+                  endDate={endDate}
+                  reportType={reportType}
+                  onSnapshot={handleSnapshotCapture}
+                  onAuthRequired={handleSnapshotAuthRequired}
+                  onDateChange={(date) => {
+                    setStartDate(date);
+                    setEndDate(date);
+                  }}
+                />
+                {snapshotResult && snapshotLocation && snapshotTimestamp && (
+                  <div className="mt-4">
+                    <SnapshotDisplay
+                      result={snapshotResult}
+                      location={snapshotLocation}
+                      timestamp={snapshotTimestamp}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-slate-500">
+                  All processing is geometry-first and non-deterministic. Your data isn't stored.
+                </p>
+                <div className="mr-2 hidden sm:flex items-center gap-2 text-[11px] text-slate-400">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800 px-2 py-0.5">
+                    <span className="text-slate-300">Mode:</span>
+                    <span className="text-slate-100">{mode.replace(/_/g, ' ')}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800 px-2 py-0.5">
+                    <span className="text-slate-300">Report:</span>
+                    <span className="text-slate-100 capitalize">{reportType}</span>
+                  </span>
+                </div>
+                <button
+                  type="submit"
+                  disabled={submitDisabled}
+                  className="inline-flex items-center rounded-md px-4 py-2 text-white disabled:opacity-50 bg-indigo-600 hover:bg-indigo-500"
+                >
+                  {loading ? "Mapping geometry…" : (includeTransits ? 'Generate Report' : 'Prepare Mirror')}
+                </button>
+              </div>
+              {(RELATIONAL_MODES.includes(mode) && !includePersonB) && (
+                <p className="mt-2 text-xs text-amber-400">Hint: Toggle "Include Person B" and fill in required fields to enable relational modes.</p>
+              )}
+              {submitDisabled && !loading && (() => {
+                if (!PROVIDER_BYPASS && providerCheckPending) {
+                  return <p className="mt-2 text-xs text-amber-400">⚠️ Checking provider readiness…</p>;
+                }
+                if (!PROVIDER_BYPASS && !providerHealth.astrology.ready) {
+                  const outageMessage = providerHealth.astrology.message || 'Math Brain services are currently unavailable.';
+                  return <p className="mt-2 text-xs text-amber-400">⚠️ {outageMessage}</p>;
+                }
+                const locGate = needsLocation(reportType, includeTransits, personA);
+                if (includeTransits && !locGate.hasLoc) {
+                  return <p className="mt-2 text-xs text-amber-400">⚠️ Transits require location data. Please enter coordinates or city/state for Person A.</p>;
+                }
+                if (!aCoordsValid && (personA.latitude || personA.longitude)) {
+                  return <p className="mt-2 text-xs text-amber-400">⚠️ Invalid coordinates for Person A. Please check latitude/longitude format.</p>;
+                }
+                if (includePersonB && !bCoordsValid && (personB.latitude || personB.longitude)) {
+                  return <p className="mt-2 text-xs text-amber-400">⚠️ Invalid coordinates for Person B. Please check latitude/longitude format.</p>;
+                }
+                const missing: string[] = [];
+                if (!personA.name) missing.push('Name');
+                if (!personA.city) missing.push('City');
+                if (!personA.state) missing.push('State');
+                if (!personA.timezone) missing.push('Timezone');
+                if (missing.length > 0) {
+                  return <p className="mt-2 text-xs text-amber-400">⚠️ Missing required fields for Person A: {missing.join(', ')}</p>;
+                }
+                return <p className="mt-2 text-xs text-amber-400">⚠️ Please complete all required fields to generate report.</p>;
+              })()}
+            </div>
+          </div>
+        </form>
+
+        {error && (
+          <div className="mt-6 rounded-md border border-red-700 bg-red-900/30 p-4 text-red-200">
+            <p className="font-medium">Error</p>
+            <p className="mt-1 text-sm">{error}</p>
+          </div>
+        )}
+
+        {loading && (
+          <div className="mt-8 grid grid-cols-1 gap-6 print:hidden">
+            <section className="rounded-lg border border-slate-700 bg-slate-800/60 p-4">
+              <div className="h-5 w-40 rounded bg-slate-700 animate-pulse" />
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <div className="h-16 rounded bg-slate-700/70 animate-pulse" />
+                <div className="h-16 rounded bg-slate-700/70 animate-pulse" />
+                <div className="h-16 rounded bg-slate-700/70 animate-pulse" />
+              </div>
+            </section>
+            <section className="rounded-lg border border-slate-700 bg-slate-800/60 p-4">
+              <div className="h-5 w-56 rounded bg-slate-700 animate-pulse" />
+              <div className="mt-4 h-24 rounded bg-slate-700/60 animate-pulse" />
+            </section>
+          </div>
+        )}
+
+        {result && (
+          <div ref={reportRef} className="mt-8 grid grid-cols-1 gap-6">
+            {(() => {
+              const meta = (result as any)?.person_a?.meta || (result as any)?.provenance?.time_meta_a;
+              if (!meta) return null;
+              const suppressed = !!meta.houses_suppressed;
+              const precision = String(meta.time_precision || '');
+              const eff = meta.effective_time_used as string | undefined;
+              return (
+                <div className="flex flex-wrap items-center gap-2">
+                  {suppressed && (
+                    <div className="rounded-md border border-slate-700 bg-slate-800/70 px-3 py-1 text-xs text-slate-200">
+                      Angles unavailable without birth time; houses suppressed.
+                    </div>
+                  )}
+                  {precision === 'unknown' && (timePolicy === 'planetary_only') && (
+                    <div className="rounded-md border border-amber-700 bg-amber-900/30 px-3 py-1 text-xs text-amber-200">
+                      Using planetary-only mode. You can run a sensitivity scan for house-dependent work.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+            {/* Chart Wheels Section temporarily disabled due to unreliable upstream asset generation */}
+            {null}
+            {/* Layer progression + toggle controls */}
+            <div className="print:hidden">
+              <div className="flex flex-wrap items-center gap-2 rounded-md border border-slate-700 bg-slate-900/50 px-4 py-3 text-xs font-semibold uppercase tracking-wide">
+                <span className="text-indigo-200">Mirror Summary</span>
+                <span className="text-slate-600">→</span>
+                <span className={weather.hasWindow ? (layerVisibility.balance ? 'text-indigo-200' : 'text-slate-500') : 'text-slate-700'}>
+                  Balance Metrics
+                </span>
+                <span className="text-slate-600">→</span>
+                <span className={layerVisibility.diagnostics ? 'text-indigo-200' : (includeTransits ? 'text-slate-500' : 'text-slate-700')}>
+                  Full Diagnostics
+                </span>
+                <span className="text-slate-600">→</span>
+                {canVisitPoetic ? (
+                  <a
+                    href="/chat"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      handleNavigateToPoetic();
+                    }}
+                    className="text-emerald-300 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 rounded-sm"
+                  >
+                    Poetic Brain
+                  </a>
+                ) : (
+                  <span className="text-slate-500">Poetic Brain</span>
+                )}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {weather.hasWindow ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleLayerVisibility('balance')}
+                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${layerVisibility.balance ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'border border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800'}`}
+                  >
+                    {layerVisibility.balance ? 'Hide Balance Metrics' : 'Show Balance Metrics'}
+                  </button>
+                ) : (
+                  <div className="relative group">
+                    <button
+                      type="button"
+                      className="h-6 w-6 rounded-full border border-slate-600 text-xs text-slate-400 hover:bg-slate-700/60 cursor-help"
+                      aria-describedby="balance-info-tooltip"
+                      tabIndex={0}
+                    >
+                      i
+                    </button>
+                    <div
+                      id="balance-info-tooltip"
+                      className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white text-xs rounded-lg py-2 px-3 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-200 pointer-events-none border border-slate-700 shadow-lg z-50 whitespace-nowrap"
+                    >
+                      Add dates to see activations.
+                    </div>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => includeTransits ? toggleLayerVisibility('diagnostics') : undefined}
+                  disabled={!includeTransits}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${!includeTransits ? 'cursor-not-allowed border border-slate-700 bg-slate-800 text-slate-500' : layerVisibility.diagnostics ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'border border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800'}`}
+                >
+                  {layerVisibility.diagnostics ? 'Hide Diagnostics' : 'Show Diagnostics'}
+                </button>
+              </div>
+            </div>
+
+            {/* Post-generation actions - Restructured for clarity */}
+            <DownloadControls
+              includeTransits={includeTransits}
+              pdfGenerating={pdfGenerating}
+              graphsPdfGenerating={graphsPdfGenerating}
+              astroFileJsonGenerating={astroFileJsonGenerating}
+              engineConfigGenerating={engineConfigGenerating}
+              cleanJsonGenerating={cleanJsonGenerating}
+              onDownloadPDF={downloadResultPDF}
+              onDownloadAstroFile={downloadAstroFileJSON}
+              onDownloadGraphsPDF={downloadGraphsPDF}
+              onDownloadEngineConfig={downloadBackstageJSON}
+              onDownloadCleanJSON={downloadResultJSON}
+              onDownloadMapFile={downloadMapFile}
+              onDownloadFieldFile={downloadFieldFile}
+              onDownloadWovenAIPacket={downloadWovenAIPacket}
+              seismographMap={seismographMap}
+              authReady={authReady}
+              isAuthenticated={isAuthenticated}
+              canVisitPoetic={canVisitPoetic}
+              onNavigateToPoetic={handleNavigateToPoetic}
+            />
+            {weather.hasWindow && layerVisibility.balance && (
+              <>
+                {(() => {
+                  const daily = frontStageTransitsByDate;
+                  const hasAny = Object.keys(daily).length > 0;
+                  if (!hasAny) {
+                    return (
+                      <div className="rounded-md border border-amber-700 bg-amber-900/30 p-3 text-amber-200">
+                        <p className="text-sm">
+                          No daily series data returned. Double-check your dates, step, and inputs, then try again. If this persists, view the Raw Result (debug) below.
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+                {(() => {
+                  const summary = frontStageResult?.person_a?.summary
+                    ?? result?.person_a?.summary
+                    ?? result?.person_a?.derived?.seismograph_summary;
+                  if (!summary) return null;
+
+                  const mag = Number(
+                    summary.axes?.magnitude?.value ??
+                    summary.magnitude_calibrated ??
+                    summary.magnitude ??
+                    0
+                  );
+                  const val = Number(
+                    summary.axes?.directional_bias?.value ??
+                    summary.valence_bounded ??
+                    summary.valence ??
+                    0
+                  );
+                  const vol = Number(summary.volatility ?? 0);
+
+                  // Calculate daily ranges from transitsByDate
+                  const transitsByDate = frontStageTransitsByDate;
+                  const dailyBiasValues: number[] = [];
+                  const dailyMagValues: number[] = [];
+
+                  Object.values(transitsByDate).forEach((dayData: any) => {
+                    const seismo = dayData?.seismograph || {};
+                    const balance = dayData?.balance || {};
+                    // v5.0: Use canonical directional_bias structure
+                    const bias = Number(seismo.directional_bias?.value ?? seismo.bias_signed ?? balance.directional_bias?.value ?? balance.bias_signed ?? 0);
+                    const dayMag = Number(seismo.magnitude ?? balance.magnitude ?? 0);
+                    if (Number.isFinite(bias)) dailyBiasValues.push(bias);
+                    if (Number.isFinite(dayMag)) dailyMagValues.push(dayMag);
+                  });
+
+                  const biasMin = dailyBiasValues.length > 0 ? Math.min(...dailyBiasValues) : val;
+                  const biasMax = dailyBiasValues.length > 0 ? Math.max(...dailyBiasValues) : val;
+                  const magMin = dailyMagValues.length > 0 ? Math.min(...dailyMagValues) : mag;
+                  const magMax = dailyMagValues.length > 0 ? Math.max(...dailyMagValues) : mag;
+
+                  const magnitudeLabel = summary.magnitude_label || (mag >= 3 ? 'Surge' : mag >= 1 ? 'Active' : 'Calm');
+                  const valenceLabel = summary.valence_label || (val > 0.5 ? 'Supportive' : val < -0.5 ? 'Challenging' : 'Mixed');
+                  const volatilityLabel = summary.volatility_label || (vol >= 3 ? 'Scattered' : vol >= 1 ? 'Variable' : 'Stable');
+
+                  const symbolicDrivers = (() => {
+                    const drivers = new Set<string>();
+
+                    const addDrivers = (list: unknown) => {
+                      if (!Array.isArray(list)) return;
+                      list.forEach((item) => {
+                        if (typeof item === 'string' && item.trim()) {
+                          drivers.add(item.trim());
+                        }
+                      });
+                    };
+
+                    addDrivers((summary as any)?.drivers);
+                    addDrivers((summary as any)?.diagnostics?.drivers);
+
+                    const daily = frontStageTransitsByDate || {};
+                    Object.values(daily).forEach((dayData: any) => {
+                      addDrivers(dayData?.balance?.drivers);
+                      addDrivers(dayData?.drivers);
+                      const overflowDetail = computeOverflowDetailFromDay(dayData);
+                      addDrivers(overflowDetail?.drivers);
+                    });
+
+                    return Array.from(drivers).slice(0, 12);
+                  })();
+
+                  return (
+                    <div ref={balanceGraphsRef} data-balance-export="true">
+                      <Section title="Poetic Brain Reading Log">
+                        {/* LAYER 1: SUMMARY VIEW (At a Glance) */}
+                        <BalanceMeterSummary
+                          dateRange={{
+                            start: startDate || 'Unknown',
+                            end: endDate || 'Unknown'
+                          }}
+                          location={relocationStatus.effectiveMode !== 'NONE'
+                            ? (relocLabel || `${personA.city || 'Unknown'}, ${personA.state || 'Unknown'}`)
+                            : `${personA.city || 'Unknown'}, ${personA.state || 'Unknown'}`
+                          }
+                          mode={RELATIONAL_MODES.includes(mode) ? 'relational' : 'single'}
+                          names={RELATIONAL_MODES.includes(mode)
+                            ? [personA.name || 'Person A', personB.name || 'Person B']
+                            : undefined
+                          }
+                          overallClimate={{
+                            magnitude: mag,
+                            valence: val,
+                            volatility: vol,
+                            ...(symbolicDrivers.length ? { drivers: symbolicDrivers } : {}),
+                          }}
+                          dailyRanges={{
+                            biasMin,
+                            biasMax,
+                            magnitudeMin: magMin,
+                            magnitudeMax: magMax
+                          }}
+                          totalDays={(() => {
+                            const daily = frontStageTransitsByDate;
+                            return Object.keys(daily).filter(d => d && d.match(/^\d{4}-\d{2}-\d{2}$/)).length;
+                          })()}
+                          isLatentField={exEstranged}
+                        />
+
+                        {/* LAYER 2: SYMBOLIC SEISMOGRAPH (Plot Charts) */}
+                        {(() => {
+                          const transitsByDate = frontStageTransitsByDate;
+                          const dates = Object.keys(transitsByDate).sort();
+                          const hasTransitData = dates.length > 0 && includeTransits;
+
+                          if (!hasTransitData) {
+                            return (
+                              <div className="mt-6 rounded-md border border-slate-600 bg-slate-900/40 p-4">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <h3 className="text-sm font-medium text-slate-300">Symbolic Plot Charts</h3>
+                                    <p className="mt-1 text-xs text-slate-400">
+                                      Not available - transits were not included in this report
+                                    </p>
+                                  </div>
+                                  <span className="text-slate-600">📊</span>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          // Transform transitsByDate into SymbolicSeismograph data format
+                          const seismographData = dates.map(date => {
+                            const dayData = transitsByDate[date];
+                            const seismo = dayData?.seismograph || {};
+                            const balance = dayData?.balance || {};
+                            // SFD deprecated — no longer included in daily seismograph payload
+
+                            const biasValue = (() => {
+                              if (typeof seismo.directional_bias === 'number') return seismo.directional_bias;
+                              if (typeof seismo.directional_bias?.value === 'number') return seismo.directional_bias.value;
+                              if (typeof seismo.bias === 'number') return seismo.bias;
+                              if (typeof seismo.bias_signed === 'number') return seismo.bias_signed;
+                              if (typeof balance.bias_signed === 'number') return balance.bias_signed;
+                              if (typeof seismo.valence === 'number') return seismo.valence;
+                              if (typeof seismo.valence_bounded === 'number') return seismo.valence_bounded;
+                              if (typeof seismo.axes?.directional_bias?.value === 'number') return seismo.axes.directional_bias.value;
+                              return 0;
+                            })();
+
+                            return {
+                              date,
+                              magnitude_0to5: seismo.magnitude ?? balance.magnitude ?? 0,
+                              bias_signed_minus5to5: biasValue,
+                              coherence_0to5: (() => {
+                                if (typeof seismo.coherence === 'number') return seismo.coherence;
+                                const vol = typeof seismo.volatility === 'number'
+                                  ? seismo.volatility
+                                  : (typeof seismo.axes?.volatility?.value === 'number' ? seismo.axes.volatility.value : 0);
+                                return Math.max(0, Math.min(5, 5 - vol));
+                              })(),
+                              schema_version: 'BM-v3',
+                              orbs_profile: displayResult?.provenance?.orbs_profile || 'wm-spec-2025-09',
+                              house_frame: 'natal',
+                              relocation_supported: false,
+                              ...(relocationStatus.effectiveMode !== 'NONE' && {
+                                relocation_overlay: {
+                                  user_place: relocLabel || `${personA.city || 'Unknown'}, ${personA.state || 'Unknown'}`,
+                                  advisory: 'Same sky, natal rooms only. Local guidance is author-authored overlay, not computed houses.',
+                                  confidence: 'author_note' as const,
+                                  notes: [
+                                    'Houses are derived from natal frame only.',
+                                    'The API does not recalc for relocation.',
+                                    'Any "place" guidance is human-authored overlay, not computed houses.'
+                                  ]
+                                }
+                              }),
+                              provenance: {
+                                house_system: `${result?.provenance?.house_system || 'Placidus'} (natal)`,
+                                relocation_mode: 'not_applied',
+                                orbs_profile: result?.provenance?.orbs_profile || 'wm-spec-2025-09',
+                                math_brain_version: result?.provenance?.math_brain_version || '3.1.4',
+                                tz: result?.provenance?.tz || result?.provenance?.timezone || 'UTC',
+                                bias_method: seismo.bias_method || balance.bias_method || 'signed_z_to_[-5,5]',
+                                mag_method: seismo.magnitude_method || balance.magnitude_method || 'z_to_[0,5]'
+                              }
+                            };
+                          });
+
+                          return (
+                            <div className="my-6">
+                              <div className="mb-4 flex items-center justify-between">
+                                <div>
+                                  <h3 className="text-sm font-medium text-slate-200">Symbolic Plot Charts</h3>
+                                  <p className="text-xs text-slate-400 mt-1">
+                                    Time-series visualization of daily symbolic weather patterns
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={() => setShowSeismographCharts((prev) => !prev)}
+                                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-colors flex items-center gap-2"
+                                >
+                                  {showSeismographCharts ? '👁️ Hide Charts' : '📊 Reveal Plot Charts'}
+                                  <span className="rounded-full bg-blue-400 px-2 py-0.5 text-xs">
+                                    {dates.length} days
+                                  </span>
+                                </button>
+                              </div>
+
+                              {showSeismographCharts && (
+                                <>
+                                  <SymbolicSeismograph
+                                    data={seismographData}
+                                    showProvenance={true}
+                                    className="symbolic-seismograph-section"
+                                  />
+
+                                  {/* Scatter Chart Visualization */}
+                                  {(() => {
+                                    try {
+                                      const fieldFile =
+                                        displayResult?.unified_output?._field_file ||
+                                        displayResult?._field_file ||
+                                        result?.unified_output?._field_file;
+
+                                      let weatherRecords =
+                                        (fieldFile?.daily && transformFieldFileDaily(fieldFile)) || {};
+
+                                      if (!weatherRecords || Object.keys(weatherRecords).length === 0) {
+                                        weatherRecords = transformTransitsByDate(transitsByDate);
+                                      }
+
+                                      const weatherDates = Object.keys(weatherRecords);
+                                      if (weatherDates.length === 0) {
+                                        return null;
+                                      }
+
+                                      const weatherArray = weatherDates
+                                        .sort()
+                                        .map((date) => ({
+                                          date,
+                                          weather: weatherRecords[date],
+                                        }))
+                                        .filter((entry) => entry.weather);
+
+                                      if (!weatherArray.length) {
+                                        return null;
+                                      }
+                                      return (
+                                        <div className="mt-6">
+                                          <WeatherPlots
+                                            data={weatherArray}
+                                            result={result}
+                                            showScatter={true}
+                                            enableUnified={true}
+                                          />
+                                        </div>
+                                      );
+                                    } catch (error) {
+                                      console.warn('[MathBrain] Failed to transform weather data for scatter plots', error);
+                                      return null;
+                                    }
+                                  })()}
+                                </>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        {layerVisibility.diagnostics && (
+                          <div className="mb-6">
+                            <h3 className="text-sm font-medium text-slate-200 mb-3">Daily Symbolic Weather Cards</h3>
+                            {(() => {
+                              const daily = frontStageTransitsByDate;
+                              const dates = Object.keys(daily).sort();
+                              if (!dates.length) {
+                                return <div className="text-sm text-slate-500 p-4 border border-slate-700 rounded bg-slate-900/20">No daily data available</div>;
+                              }
+
+                              // State descriptor functions
+                              const getMagnitudeState = (mag: number) => {
+                                if (mag <= 1) return 'Latent';
+                                if (mag <= 2) return 'Murmur';
+                                if (mag <= 4) return 'Active';
+                                return 'Threshold';
+                              };
+
+                              const getValenceStyle = (valence: number, magnitude: number) => {
+                                const magLevel = magnitude <= 2 ? 'low' : 'high';
+
+                                if (valence >= 4.5) {
+                                  const emojis = magLevel === 'low' ? ['🦋', '🌈'] : ['🦋', '🌈', '🔥'];
+                                  return { emojis, descriptor: 'Liberation', anchor: '+5', pattern: 'peak openness; breakthroughs / big‑sky view' };
+                                } else if (valence >= 3.5) {
+                                  const emojis = magLevel === 'low' ? ['💎', '🔥'] : ['💎', '🔥', '🦋'];
+                                  return { emojis, descriptor: 'Expansion', anchor: '+4', pattern: 'widening opportunities; clear insight fuels growth' };
+                                } else if (valence >= 2.5) {
+                                  const emojis = magLevel === 'low' ? ['🧘', '✨'] : ['🧘', '✨', '🌊'];
+                                  return { emojis, descriptor: 'Harmony', anchor: '+3', pattern: 'coherent progress; both/and solutions' };
+                                } else if (valence >= 1.5) {
+                                  const emojis = magLevel === 'low' ? ['🌊', '🧘'] : ['🌊', '🧘'];
+                                  return { emojis, descriptor: 'Flow', anchor: '+2', pattern: 'smooth adaptability; things click' };
+                                } else if (valence >= 0.5) {
+                                  const emojis = magLevel === 'low' ? ['🌱', '✨'] : ['🌱', '✨'];
+                                  return { emojis, descriptor: 'Lift', anchor: '+1', pattern: 'gentle tailwind; beginnings sprout' };
+                                } else if (valence >= -0.5) {
+                                  return { emojis: ['⚖️'], descriptor: 'Equilibrium', anchor: '0', pattern: 'net‑neutral tilt; forces cancel or diffuse' };
+                                } else if (valence >= -1.5) {
+                                  const emojis = magLevel === 'low' ? ['🌪', '🌫'] : ['🌪', '🌫'];
+                                  return { emojis, descriptor: 'Drag', anchor: '−1', pattern: 'subtle headwind; minor loops or haze' };
+                                } else if (valence >= -2.5) {
+                                  const emojis = magLevel === 'low' ? ['🌫', '🧩'] : ['🌫', '🧩', '⬇️'];
+                                  return { emojis, descriptor: 'Contraction', anchor: '−2', pattern: 'narrowing options; ambiguity or energy drain' };
+                                } else if (valence >= -3.5) {
+                                  const emojis = magLevel === 'low' ? ['⚔️', '🌊'] : ['⚔️', '🌊', '🌫'];
+                                  return { emojis, descriptor: 'Friction', anchor: '−3', pattern: 'conflicts or cross‑purposes slow motion' };
+                                } else if (valence >= -4.5) {
+                                  const emojis = magLevel === 'low' ? ['🕰', '⚔️'] : ['🕰', '⚔️', '🌪'];
+                                  return { emojis, descriptor: 'Grind', anchor: '−4', pattern: 'sustained resistance; heavy duty load' };
+                                } else {
+                                  const emojis = magLevel === 'low' ? ['🌋', '🧩'] : ['🌋', '🧩', '⬇️'];
+                                  return { emojis, descriptor: 'Compression', anchor: '−5', pattern: 'maximum restrictive tilt; deep inward compression' };
+                                }
+                              };
+
+                              const getVolatilityState = (vol: number) => {
+                                if (vol <= 2) return 'Coherent';
+                                if (vol <= 4) return 'Complex';
+                                return 'Dispersed';
+                              };
+
+                              // SFD state helper removed (deprecated)
+
+                              const classifyMagnitude = (mag: number) => {
+                                if (mag <= 2) {
+                                  return { key: 'low' as const, label: 'Low', badge: 'Low Intensity' };
+                                }
+                                if (mag <= 4) {
+                                  return { key: 'medium' as const, label: 'Medium', badge: 'Medium Intensity' };
+                                }
+                                return { key: 'high' as const, label: 'High', badge: 'High Intensity' };
+                              };
+
+                              const classifyValence = (val: number) => {
+                                if (val >= 1.5) {
+                                  return {
+                                    key: 'supportive' as const,
+                                    label: 'Supportive',
+                                    badge: 'Positive Tilt',
+                                  };
+                                }
+                                if (val <= -1.5) {
+                                  return {
+                                    key: 'tense' as const,
+                                    label: 'Tense',
+                                    badge: 'Tense Tilt',
+                                  };
+                                }
+                                return {
+                                  key: 'mixed' as const,
+                                  label: 'Mixed',
+                                  badge: 'Mixed Tilt',
+                                };
+                              };
+
+                              const classifyVolatility = (vol: number) => {
+                                if (vol <= 2) {
+                                  return { key: 'stable' as const, label: 'Stable', badge: 'Stable Distribution' };
+                                }
+                                if (vol <= 4) {
+                                  return { key: 'variable' as const, label: 'Variable', badge: 'Variable Distribution' };
+                                }
+                                return { key: 'scattered' as const, label: 'Scattered', badge: 'Scattered Distribution' };
+                              };
+
+                              const magnitudeForkText = (mag: number) => {
+                                if (mag >= 4) {
+                                  return {
+                                    wb: 'Breakthrough wave: high charge favors bold moves and outreach.',
+                                    abe: 'Overload wave: same charge can oversaturate the schedule or nervous system.',
+                                  };
+                                }
+                                if (mag >= 2) {
+                                  return {
+                                    wb: 'Productive surge: solid momentum to advance priority work.',
+                                    abe: 'Overextension risk: adding too much can fragment focus.',
+                                  };
+                                }
+                                return {
+                                  wb: 'Integration window: gentle charge supports rest or soft starts.',
+                                  abe: 'Stagnation risk: low voltage may feel stuck without intentional sparks.',
+                                };
+                              };
+
+                              const valenceForkText = (val: number) => {
+                                if (val >= 4) {
+                                  return {
+                                    wb: 'Liberation flow: peak openness creates breakthrough possibilities.',
+                                    abe: 'Open-field sprawl: infinite options can stall momentum until you set constraints.',
+                                  };
+                                }
+                                if (val >= 3) {
+                                  return {
+                                    wb: 'Expansion clarity: widening opportunities land with clarity.',
+                                    abe: 'Expansion overreach: ambition outruns capacity and scatters energy.',
+                                  };
+                                }
+                                if (val >= 2) {
+                                  return {
+                                    wb: 'Harmony integration: both/and solutions emerge through coherent progress.',
+                                    abe: 'Harmony avoidance: pleasing everyone delays necessary calls.',
+                                  };
+                                }
+                                if (val >= 1) {
+                                  return {
+                                    wb: 'Lift momentum: gentle tailwinds back natural beginnings.',
+                                    abe: 'Lift impatience: slow build can feel frustrating when you want speed.',
+                                  };
+                                }
+                                if (val >= -1) {
+                                  return {
+                                    wb: 'Equilibrium balance: forces offset, leaving space for discernment.',
+                                    abe: 'Equilibrium stall: neutrality can feel like treading water.',
+                                  };
+                                }
+                                if (val >= -2) {
+                                  return {
+                                    wb: 'Contraction focus: narrowing options create useful boundaries.',
+                                    abe: 'Contraction anxiety: tightening scope can spark scarcity thinking.',
+                                  };
+                                }
+                                if (val >= -3) {
+                                  return {
+                                    wb: 'Friction catalyst: tension reveals truths that unlock progress.',
+                                    abe: 'Friction exhaustion: unresolved cross-currents burn energy fast.',
+                                  };
+                                }
+                                if (val >= -4) {
+                                  return {
+                                    wb: 'Grind stamina: disciplined effort builds staying power.',
+                                    abe: 'Grind depletion: sustained resistance can drain capacity unless paced.',
+                                  };
+                                }
+                                return {
+                                  wb: 'Compression focus: maximum density creates clarity through constraint.',
+                                  abe: 'Compression overload: extreme restriction can trigger shutdown.',
+                                };
+                              };
+
+                              return dates.map(date => { // Show all requested days
+                                const dayData = daily[date];
+                                const seismo = dayData?.seismograph || dayData;
+
+                                const overflowDetail = computeOverflowDetailFromDay(dayData);
+
+                                const mag = firstFinite(
+                                  seismo?.magnitude,
+                                  seismo?.axes?.magnitude?.value,
+                                  seismo?.rawMagnitude,
+                                ) ?? 0;
+
+                                const val = firstFinite(
+                                  seismo?.directional_bias,
+                                  seismo?.directional_bias?.value,
+                                  seismo?.bias,
+                                  seismo?.bias_signed,
+                                  seismo?.valence_bounded,
+                                  seismo?.valence,
+                                  seismo?.axes?.directional_bias?.value,
+                                ) ?? 0;
+
+                                const vol = firstFinite(
+                                  seismo?.volatility,
+                                  seismo?.axes?.volatility?.value,
+                                ) ?? 0;
+
+                                // SFD removed — use magnitude/valence/volatility for cards
+                                const valenceStyle = getValenceStyle(val, mag);
+
+                                const magnitudeClass = classifyMagnitude(mag);
+                                const valenceClass = classifyValence(val);
+                                const volatilityClass = classifyVolatility(vol);
+                                const magnitudeFork = magnitudeForkText(mag);
+                                const valenceFork = valenceForkText(val);
+                                const badgeLine = `${magnitudeClass.badge} / ${valenceClass.badge} / ${volatilityClass.badge}`;
+
+                                const dateLabel = new Date(date).toLocaleDateString('en-US', {
+                                  weekday: 'long',
+                                  month: 'long',
+                                  day: 'numeric',
+                                });
+
+                                const baseLocation = [personA.city, personA.state].filter(Boolean).join(', ') || personA.city || '';
+                                const locationLabel = relocationStatus.effectiveMode !== 'NONE'
+                                  ? (relocLabel || baseLocation || 'Relocation lens active')
+                                  : (baseLocation || 'Location not specified');
+
+                                const modeKind = RELATIONAL_MODES.includes(mode) ? 'relational' : 'single';
+                                const relationalNames: [string, string] | undefined = modeKind === 'relational'
+                                  ? [personA.name || 'Person A', personB.name || 'Person B']
+                                  : undefined;
+
+                                return (
+                                  <EnhancedDailyClimateCard
+                                    key={date}
+                                    date={dateLabel}
+                                    location={locationLabel}
+                                    mode={modeKind}
+                                    names={relationalNames}
+                                    climate={{
+                                      magnitude: mag,
+                                      valence_bounded: val,
+                                      volatility: vol,
+                                      drivers: overflowDetail?.drivers,
+                                    }}
+                                    overflowDetail={overflowDetail}
+                                  />
+                                );
+                              });
+                            })()}
+                          </div>
+                        )}
+
+                        {/* LAYER 3: FIELD CONTEXT (Simple Descriptive Language) */}
+                        {layerVisibility.diagnostics && (
+                          <div className="mb-4">
+                            <h3 className="text-sm font-medium text-slate-200 mb-3">Field Context</h3>
+                            <div className="rounded border border-slate-700 bg-slate-900/40 p-4">
+                              <div className="text-sm text-slate-300 leading-relaxed">
+                                {(() => {
+                                  // SFD deprecated and removed from summary — omitted
+                                  const getMagnitudeState = (mag: number) => {
+                                    if (mag <= 1) return 'latent';
+                                    if (mag <= 2) return 'murmur-level';
+                                    if (mag <= 4) return 'active';
+                                    return 'threshold-level';
+                                  };
+
+                                  const getVolatilityState = (vol: number) => {
+                                    if (vol <= 2) return 'coherent';
+                                    if (vol <= 4) return 'complex';
+                                    return 'dispersed';
+                                  };
+
+                                  const getValenceStyle = (valence: number, magnitude: number) => {
+                                    const magLevel = magnitude <= 2 ? 'low' : 'high';
+                                    if (valence >= 4.5) {
+                                      const emojis = magLevel === 'low' ? ['🦋', '🌈'] : ['🦋', '🌈', '🔥'];
+                                      return { emojis, descriptor: 'Liberation', anchor: '+5', pattern: 'peak openness; breakthroughs / big‑sky view' };
+                                    } else if (valence >= 3.5) {
+                                      const emojis = magLevel === 'low' ? ['💎', '🔥'] : ['💎', '🔥', '🦋'];
+                                      return { emojis, descriptor: 'Expansion', anchor: '+4', pattern: 'widening opportunities; clear insight fuels growth' };
+                                    } else if (valence >= 2.5) {
+                                      const emojis = magLevel === 'low' ? ['🧘', '✨'] : ['🧘', '✨', '🌊'];
+                                      return { emojis, descriptor: 'Harmony', anchor: '+3', pattern: 'coherent progress; both/and solutions' };
+                                    } else if (valence >= 1.5) {
+                                      const emojis = magLevel === 'low' ? ['🌊', '🧘'] : ['🌊', '🧘'];
+                                      return { emojis, descriptor: 'Flow', anchor: '+2', pattern: 'smooth adaptability; things click' };
+                                    } else if (valence >= 0.5) {
+                                      const emojis = magLevel === 'low' ? ['🌱', '✨'] : ['🌱', '✨'];
+                                      return { emojis, descriptor: 'Lift', anchor: '+1', pattern: 'gentle tailwind; beginnings sprout' };
+                                    } else if (valence >= -0.5) {
+                                      return { emojis: ['⚖️'], descriptor: 'Equilibrium', anchor: '0', pattern: 'net‑neutral tilt; forces cancel or diffuse' };
+                                    } else if (valence >= -1.5) {
+                                      const emojis = magLevel === 'low' ? ['🌪', '🌫'] : ['🌪', '🌫'];
+                                      return { emojis, descriptor: 'Drag', anchor: '−1', pattern: 'subtle headwind; minor loops or haze' };
+                                    } else if (valence >= -2.5) {
+                                      const emojis = magLevel === 'low' ? ['🌫', '🧩'] : ['🌫', '🧩', '⬇️'];
+                                      return { emojis, descriptor: 'Contraction', anchor: '−2', pattern: 'narrowing options; ambiguity or energy drain' };
+                                    } else if (valence >= -3.5) {
+                                      const emojis = magLevel === 'low' ? ['⚔️', '🌊'] : ['⚔️', '🌊', '🌫'];
+                                      return { emojis, descriptor: 'Tension', anchor: '−3', pattern: 'hard choices; competing forces create friction' };
+                                    } else if (valence >= -4.5) {
+                                      const emojis = magLevel === 'low' ? ['🌊', '⚔️'] : ['🌊', '⚔️', '💥'];
+                                      return { emojis, descriptor: 'Disruption', anchor: '−4', pattern: 'systemic challenges; breakdown precedes breakthrough' };
+                                    } else {
+                                      const emojis = magLevel === 'low' ? ['💥', '🌊'] : ['💥', '🌊', '⚔️'];
+                                      return { emojis, descriptor: 'Compression', anchor: '−5', pattern: 'maximum restrictive tilt; deep inward compression' };
+                                    }
+                                  };
+
+                                  const magState = getMagnitudeState(mag);
+                                  const volState = getVolatilityState(vol);
+                                  const valencePattern = getValenceStyle(val, mag);
+
+                                  // Simple descriptive combinations using flavor patterns - NOT predictive
+                                  let description = `The symbolic field shows ${magState} pressure with ${volState} patterns.`;
+
+                                  // Add valence flavor pattern
+                                  description += ` Valence signature: ${valencePattern.emojis.join('')} ${valencePattern.descriptor} (${valencePattern.anchor}) — ${valencePattern.pattern}.`;
+
+                                  return description;
+                                })()}
+                              </div>
+                              <div className="mt-3 text-xs text-slate-500">
+                                Note: This describes the mathematical field state only. Pair it with your preferred narrative layer for lived interpretation.
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </Section>
+                    </div>
+                  );
+                })()}
+                {(() => {
+                  const cx = (result as any)?.context;
+                  if (!cx?.translocation) return null;
+                  const t = cx.translocation;
+                  return (
+                    <Section title="Translocation Context" className="print:hidden">
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-sm text-slate-300">
+                        <div>
+                          <div className="text-xs text-slate-400">Applies</div>
+                          <div className="text-slate-100">{t.applies ? 'Yes' : 'No'}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-slate-400">Method</div>
+                          <div className="text-slate-100">{(() => {
+                            const m = String(t.method || 'Natal');
+                            if (/^A[_ ]?local$/i.test(m) || m === 'A_local') return 'Person A';
+                            if (/^B[_ ]?local$/i.test(m) || m === 'B_local') return 'Person B';
+                            if (/^midpoint$/i.test(m)) return 'Person A + B';
+                            if (/^natal$/i.test(m)) return 'None (Natal Base)';
+                            return m;
+                          })()}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-slate-400">House System</div>
+                          <div className="text-slate-100">{t.house_system || 'Placidus'}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-slate-400">TZ</div>
+                          <div className="text-slate-100">{t.tz || (personA?.timezone || '—')}</div>
+                        </div>
+                      </div>
+                    </Section>
+                  );
+                })()}
+              </>
+            )}
+
+          </div>
+        )}
       </div>
     </main>
   );
