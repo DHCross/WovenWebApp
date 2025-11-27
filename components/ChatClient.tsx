@@ -114,10 +114,8 @@ const formatLastActiveLabel = (timestamp: number | null): string => {
 const createInitialMessage = (): Message => ({
   id: generateId(),
   role: "raven",
-  html: `<p style="margin:0; line-height:1.65;">I’m a clean mirror. Share whatever’s moving—type below to talk freely, or upload your Astro Report JSON (Mirror + Symbolic Weather combined) when you want the formal reading. I’ll keep you oriented either way.</p>`,
-  climate: formatFullClimateDisplay({ magnitude: 1, valence: 2, volatility: 0 }),
-  hook: "Session · Orientation",
-  rawText: `I’m a clean mirror. Share whatever’s moving—type below to talk freely, or upload your Astro Report JSON (Mirror + Symbolic Weather combined) when you want the formal reading. I’ll keep you oriented either way.`,
+  html: `<p style="margin:0; line-height:1.65;">I'm a clean mirror. Share whatever's moving—type below to talk freely, or upload your Mirror Directive JSON when you want the formal reading. I'll keep you oriented either way.</p>`,
+  rawText: `I'm a clean mirror. Share whatever's moving—type below to talk freely, or upload your Mirror Directive JSON when you want the formal reading. I'll keep you oriented either way.`,
   validationPoints: [],
   validationComplete: true,
 });
@@ -349,7 +347,7 @@ export default function ChatClient() {
         return {
           label: 'Structured Reading',
           description:
-            'A combined report or upload opened a structured reading lane. Raven auto-runs the initial Mirror Flow + Symbolic Weather reading from the attached report and tracks resonance pings until you end the session.',
+            'A Mirror Directive report opened a structured reading lane. Raven auto-runs the initial Mirror reading from the attached report and tracks resonance pings until you end the session.',
           badgeClass: 'border-indigo-400/40 bg-indigo-500/20 text-indigo-200',
         };
       default:
@@ -418,14 +416,14 @@ export default function ChatClient() {
       const reportLabel = reportContext.name?.trim()
         ? `"${reportContext.name.trim()}"`
         : 'This report';
-      const hasCombinedAstroReport = metadata.hasMirrorDirective && metadata.hasSymbolicWeather;
+      const hasCombinedAstroReport = metadata.hasMirrorDirective;
 
       if (!hasCombinedAstroReport) {
         shiftSessionMode('idle');
         setSessionStarted(false);
-        setStatusMessage("Astro report incomplete—export the combined Mirror + Symbolic Weather JSON and upload again.");
+        setStatusMessage("Astro report incomplete—export the Mirror Directive JSON and upload again.");
         const prompt =
-          "I need the combined Astro Report JSON (Mirror + Symbolic Weather) to generate the full reading. Re-export from Math Brain or use Resume Math Brain to hand off the latest report, then drop it here and I'll begin automatically.";
+          "I need a Mirror Directive JSON (with or without Symbolic Weather) to generate the reading. Re-export from Math Brain or use Resume Math Brain to hand off the latest report, then drop it here and I'll begin automatically.";
         setMessages((prev) => [
           ...prev,
           {
@@ -439,14 +437,14 @@ export default function ChatClient() {
             validationComplete: true,
           },
         ]);
-        console.info('[Poetic Brain] Combined astro report required for auto-execution', {
+        console.info('[Poetic Brain] Mirror report detected for auto-execution', {
           contextId: reportContext.id,
           summary: reportContext.summary,
         });
         return;
       }
 
-      setStatusMessage("Astro report received. Generating Mirror Flow + Symbolic Weather reading...");
+      setStatusMessage("Astro report received. Generating Mirror reading...");
       setSessionMode('report');
       setSessionStarted(true);
 
@@ -454,14 +452,14 @@ export default function ChatClient() {
       const mirrorPlaceholder: Message = {
         id: mirrorPlaceholderId,
         role: "raven",
-        html: `<p style="margin:0; line-height:1.65;">Opening the full Mirror Flow + Symbolic Weather reading now. I'll share the complete report as soon as it's ready.</p>`,
+        html: `<p style="margin:0; line-height:1.65;">Opening the Mirror reading now. I'll share the complete report as soon as it's ready.</p>`,
         climate: "VOICE · Report Interpretation",
-        hook: "Auto · Mirror + Symbolic Weather",
+        hook: "Auto · Mirror Reading",
         intent: undefined,
         probe: null,
         prov: null,
         rawText:
-          "Opening the full Mirror Flow + Symbolic Weather reading now. I'll share the complete report as soon as it's ready.",
+          "Opening the Mirror reading now. I'll share the complete report as soon as it's ready.",
         validationPoints: [],
         validationComplete: false,
       };
@@ -498,7 +496,7 @@ export default function ChatClient() {
             },
           },
           mirrorPlaceholderId,
-          "Generating combined mirror flow report...",
+          "Generating mirror report...",
         );
         setStatusMessage(null);
       } catch (error) {
@@ -906,7 +904,7 @@ export default function ChatClient() {
             </div>
             <h1 className="text-2xl font-semibold text-slate-100">{APP_NAME}</h1>
             <p className="text-sm text-slate-400">
-              Raven is already listening—share what is present, or upload your Astro Report JSON (Mirror + Symbolic Weather combined) when you are ready for a structured reading.
+              Raven is already listening—share what is present, or upload your Mirror Directive JSON when you are ready for a structured reading.
             </p>
             <p className="max-w-md text-[11px] text-slate-500">
               Raven&apos;s intuition: it notices when the chart&apos;s symbolic architecture seems to echo the movement of your inner life. It can describe those patterns and offer meaning, but it never claims law, cause, or certainty—what&apos;s real is what truly resonates in you.
@@ -973,7 +971,7 @@ export default function ChatClient() {
             </div>
             <div className="text-xs text-slate-400 sm:flex sm:flex-wrap sm:gap-6">
               <p className="max-w-[220px]">
-                📦 Upload Astro Report hands Raven the combined Mirror + Symbolic Weather JSON export from Math Brain for immediate interpretation.
+                📦 Upload Astro Report hands Raven the Mirror Directive JSON export from Math Brain for immediate interpretation.
               </p>
               <p className="max-w-[220px]">
                 ⏮️ Resume Math Brain restores the last archived session and flashes the button when it’s queued.
@@ -1392,7 +1390,7 @@ export default function ChatClient() {
                 </div>
               </div>
               <div className="text-center text-xs text-slate-500">
-                Need to upload a Mirror + Symbolic Weather JSON? Use the Upload button near the top of this page.
+                Need to upload a Mirror Directive JSON? Use the Upload button near the top of this page.
               </div>
             </div>
           )}
