@@ -7,7 +7,8 @@ import { renderShareableMirror } from '@/lib/raven/render';
 import { stampProvenance } from '@/lib/raven/provenance';
 import { summariseUploadedReportJson } from '@/lib/raven/reportSummary';
 import { runMathBrain } from '@/lib/mathbrain/adapter';
-import { callPerplexity } from '@/lib/llm';
+import { generateStream } from '@/lib/llm';
+import { processMirrorDirective } from '@/poetic-brain/src/index';
 import {
   createProbe,
   commitProbe,
@@ -25,6 +26,16 @@ import { buildNoContextGuardCopy } from '@/lib/guard/no-context';
 import { RAVEN_PROMPT_ARCHITECTURE } from '@/lib/raven/prompt-architecture';
 import { requestsPersonalReading } from '@/lib/raven/personal-reading';
 import { isGeometryValidated, OPERATIONAL_FLOW } from '@/lib/poetic-brain/runtime';
+import { getSession, createSession, updateSession, deleteSession } from '@/lib/raven/session-store';
+import { naturalFollowUpFlow, type SessionContext } from '@/lib/natural-followup-flow';
+import { shapeVoice, pickClimate, resolvePersonaMode } from '@/lib/persona';
+import {
+  extractJSONFromUpload,
+  extractTextFromUpload,
+  isJSONReportUpload,
+  isJournalUpload,
+  isTimedInput,
+} from '@/lib/chat-pipeline/uploads';
 
 /**
  * Extract geometry directly from uploaded report JSON to bypass Math Brain regeneration.
@@ -239,7 +250,205 @@ function recordSuggestion(session: SessionSSTLog, text: string): void {
   }
 }
 
-const sessions = new Map<string, SessionSSTLog>();
+// Check if user message indicates OSR (signal void, non-ping, outside symbolic range)
+function checkForOSRIndicators(text: string): boolean {
+  const lower = text.toLowerCase();
+  const osrPhrases = [
+    'doesn\'t resonate',
+    'no resonance',
+    'signal void',
+    'non-ping',
+    'outside symbolic range',
+    'doesn\'t match lived experience',
+    'not recognizable in life',
+    'doesn\'t ring true',
+    'outside my experience',
+    'not grounded in reality',
+    'metaphor without lived grounding',
+    'symbolic speculation',
+    'no behavioral evidence',
+    'misses the mark entirely',
+    'no connection to actual life',
+    'unrecognizable patterns'
+  ];
+
+  return osrPhrases.some((phrase: string) => lower.includes(phrase));
+}
+
+// Generate validation probes for Mirror Directive responses
+function generateValidationProbe(narrative: string, mirrorContent: any): { question: string; type: string; options: string[] } | null {
+  // Extract key themes from the narrative to create targeted probes
+  const isRelational = mirrorContent.person_b || mirrorContent._required_sections?.includes('person_b');
+
+  const soloProbes = [
+    {
+      question: "Does what I've described about your core patterns resonate with your lived experience—does this feel Within Boundary (WB), or does it miss the mark entirely (OSR)?",
+      type: "sst_resonance",
+      options: ["Within Boundary (WB)", "At Boundary Edge (ABE)", "Outside Symbolic Range (OSR)"]
+    },
+    {
+      question: "When I describe these primary tensions, do you recognize them in your actual daily life, or does this feel like symbolic interpretation without lived grounding?",
+      type: "behavioral_check",
+      options: ["Recognizable in lived experience", "Partially recognizable", "Not recognizable in life"]
+    },
+    {
+      question: "Does this mapping of your blueprint to lived experience feel accurate, or are we drifting into metaphor without behavioral anchoring?",
+      type: "integrity_check",
+      options: ["Grounded in both geometry and behavior", "Straddling the line", "Drifting into metaphor"]
+    }
+  ];
+
+  const relationalProbes = [
+    {
+      question: "Does this description of your relational dynamics match what actually happens between you, or is this symbolic speculation without behavioral evidence?",
+      type: "relational_sst",
+      options: ["Matches lived relational patterns", "Partially matches", "Outside lived experience"]
+    },
+    {
+      question: "When I describe [specific dynamic], does that reflect observable behavior in your relationship, or is this ungrounded interpretation?",
+      type: "relational_behavioral",
+      options: ["Grounded in actual behavior", "Mixed", "Ungrounded interpretation"]
+    }
+  ];
+
+  const probes = isRelational ? [...soloProbes, ...relationalProbes] : soloProbes;
+
+  // Select a probe based on narrative content (simple rotation for now)
+  const probeIndex = narrative.length % probes.length;
+  return probes[probeIndex] || probes[0];
+}
+
+// Check if user is clearly affirming/confirming resonance (WB - Within Boundary)
+function checkForClearAffirmation(text: string): boolean {
+  const lower = text.toLowerCase();
+  const clearAffirmPhrases = [
+    'within boundary',
+    'wb',
+    'resonates with lived experience',
+    'recognizable in life',
+    'that\'s exactly what happens',
+    'matches my experience',
+    'grounded in reality',
+    'behavioral evidence',
+    'lived truth',
+    'that\'s me',
+    'yes it is',
+    'yes that is',
+    'that\'s right',
+    'correct',
+    'true'
+  ];
+
+  // Also check for simple "yes" at start of response
+  if (/^yes\b/i.test(text.trim())) return true;
+
+  return clearAffirmPhrases.some((phrase: string) => lower.includes(phrase));
+}
+
+// Check if user is requesting to start/continue the reading (not OSR)
+function checkForReadingStartRequest(text: string): boolean {
+  const startReadingPhrases = [
+    'give me the reading',
+    'start the reading',
+    'begin the reading',
+    'continue with the reading',
+    'show me the reading',
+    'start the mirror',
+    'give me the mirror',
+    'show me the mirror',
+    'start mirror flow',
+    'give me mirror flow',
+    'show me mirror flow',
+    'start symbolic weather',
+    'give me symbolic weather',
+    'show me symbolic weather',
+    'let\'s begin',
+    'let\'s start',
+    'please continue',
+    'go ahead',
+  ];
+
+  return startReadingPhrases.some((phrase: string) => text.toLowerCase().includes(phrase));
+}
+
+// Check if user is giving partial/uncertain confirmation
+function checkForPartialAffirmation(text: string): boolean {
+  const lower = text.toLowerCase();
+  const partialPhrases = [
+    'sort of',
+    'kind of',
+    'partly',
+    'somewhat',
+    'maybe',
+    'i think so',
+    'possibly',
+    'in a way',
+    'to some extent'
+  ];
+
+  return partialPhrases.some((phrase: string) => lower.includes(phrase));
+}
+
+// Enhanced response classification
+function classifyUserResponse(text: string): 'CLEAR_WB' | 'PARTIAL_ABE' | 'OSR' | 'UNCLEAR' {
+  // Check if user is requesting to start/continue the reading (treat as CLEAR_WB)
+  if (checkForReadingStartRequest(text)) return 'CLEAR_WB';
+  if (checkForClearAffirmation(text)) return 'CLEAR_WB';
+  if (checkForPartialAffirmation(text)) return 'PARTIAL_ABE';
+  if (checkForOSRIndicators(text)) return 'OSR';
+  return 'UNCLEAR';
+}
+
+// Detect meta-signal complaints about being asked again / repetition
+function isMetaSignalAboutRepetition(text: string): boolean {
+  const lower = text.toLowerCase();
+  const phrases = [
+    'you asked',
+    'you are asking again',
+    'why are you asking',
+    'i already said',
+    'i just said',
+    'as i said',
+    'what i had just explained',
+    'repeating myself',
+    'asked again',
+    'repeat the question',
+    'i literally just',
+    'already confirmed',
+    "i've already answered",
+    'well, yeah',
+  ];
+  return phrases.some((p: string) => lower.includes(p));
+}
+
+function pickHook(t:string){
+  // Check for JSON report uploads with specific conditions
+  if (t.includes('"balance_meter"') && t.includes('"magnitude"')) {
+    try {
+      const jsonMatch = t.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const data = JSON.parse(jsonMatch[0]);
+        const magnitude = data.balance_meter?.magnitude?.value;
+        const directionalBias = data.balance_meter?.directional_bias?.value ?? data.balance_meter?.directional_bias;
+
+        if (typeof magnitude === 'number' && typeof directionalBias === 'number') {
+          if (magnitude >= 4 && directionalBias <= -4) {
+            return 'Crisis & Structural Overload · Maximum Threshold';
+          } else if (magnitude >= 3 && directionalBias <= -3) {
+            return 'Pressure & Restriction · Compression Field';
+          }
+        }
+      }
+    } catch (e) {
+      // Fall through to text-based detection
+    }
+  }
+
+  if(/dream|sleep/i.test(t)) return 'Duty & Dreams · Saturn ↔ Neptune';
+  if(/private|depth|shadow/i.test(t)) return 'Private & Piercing · Mercury ↔ Pluto';
+  if(/restless|ground/i.test(t)) return 'Restless & Grounded · Pluto ↔ Moon';
+  return undefined;
+}
 
 function buildAstroSeekGuardDraft(): Record<string, string> {
   return {
@@ -720,13 +929,18 @@ export async function POST(req: Request) {
     if (!sid) {
       sid = randomUUID();
     }
-    if (!sessions.has(sid)) {
+
+    // Retrieve session from store
+    let sessionLog = getSession(sid);
+    if (!sessionLog) {
       if (requiresSession) {
         return NextResponse.json({ ok: false, error: 'Session not found' }, { status: 404 });
       }
-      sessions.set(sid, { probes: [], turnCount: 0, history: [] });
+      sessionLog = { probes: [], turnCount: 0, history: [] };
+      createSession(sid, sessionLog);
     }
-    const sessionLog = sessions.get(sid)! as SessionSSTLog & Record<string, any>;
+
+    // Session state normalization
     if (typeof sessionLog.turnCount !== 'number') sessionLog.turnCount = 0;
     if (!Array.isArray(sessionLog.history)) sessionLog.history = [];
     if (!sessionLog.relationalModes || typeof sessionLog.relationalModes !== 'object') {
@@ -739,6 +953,7 @@ export async function POST(req: Request) {
       if (idx === -1) return NextResponse.json({ ok: false, error: 'Probe not found' }, { status: 404 });
       sessionLog.probes[idx] = commitProbe(sessionLog.probes[idx], tag);
       const scores = scoreSession(sessionLog);
+      updateSession(sid, () => {}); // Persist change
       return NextResponse.json({ ok: true, sessionId: sid, scores, probe: sessionLog.probes[idx] });
     }
 
@@ -755,7 +970,7 @@ export async function POST(req: Request) {
     }
 
     if (action === 'close') {
-      sessions.delete(sid);
+      deleteSession(sid);
       return NextResponse.json({ ok: true, sessionId: sid });
     }
 
@@ -769,6 +984,7 @@ export async function POST(req: Request) {
         appendHistoryEntry(sessionLog, 'user', textInput);
         appendHistoryEntry(sessionLog, 'raven', reminder);
         sessionLog.turnCount = (sessionLog.turnCount ?? 0) + 1;
+        updateSession(sid, () => {}); // Persist
         const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Prompt)' });
         return NextResponse.json({
           intent: 'conversation',
@@ -784,6 +1000,7 @@ export async function POST(req: Request) {
         sessionLog.relationalModes = {};
       }
       sessionLog.relationalModes[pendingChoice.contextId] = decision;
+      updateSession(sid, () => {}); // Persist
     }
 
     // Default: generate (router)
@@ -816,6 +1033,7 @@ export async function POST(req: Request) {
       // create a probe entry from the draft next_step or a summary line
       const probe = createProbe(draft?.next_step || 'Reflect on the mirror', randomUUID());
       sessionLog.probes.push(probe);
+      updateSession(sid, () => {}); // Persist
       return NextResponse.json({ intent, ok: true, draft, prov, sessionId: sid, probe });
     }
 
@@ -832,6 +1050,89 @@ export async function POST(req: Request) {
         return next;
       })
       .filter((ctx): ctx is Record<string, any> => Boolean(ctx));
+
+    // Handle Mirror Directive JSON (formerly handled by chat/route.ts)
+    if (normalizedContexts.length > 0) {
+      const mirrorContext = normalizedContexts.find(rc => {
+        try {
+          const content = typeof rc.content === 'string' ? JSON.parse(rc.content) : rc.content;
+          return content._format === 'mirror_directive_json' || content._format === 'mirror-symbolic-weather-v1';
+        } catch {
+          return false;
+        }
+      });
+
+      if (mirrorContext) {
+        try {
+          const content = typeof mirrorContext.content === 'string' ? JSON.parse(mirrorContext.content) : mirrorContext.content;
+          const result = processMirrorDirective(content);
+
+          if (result.success && result.narrative_sections) {
+            let narrative = '';
+            if (result.narrative_sections.solo_mirror_a) narrative += result.narrative_sections.solo_mirror_a + '\n\n';
+            if (result.narrative_sections.relational_engine) narrative += result.narrative_sections.relational_engine + '\n\n';
+            if (result.narrative_sections.weather_overlay) narrative += result.narrative_sections.weather_overlay;
+
+            // Check for probes (similar logic to chat/route.ts)
+            let probeData = null;
+            const isFirstTurn = (sessionLog.turnCount ?? 0) <= 1;
+            const isOSRResponse = checkForOSRIndicators(textInput);
+            const isMetaIrritation = isMetaSignalAboutRepetition(textInput);
+            const shouldAddProbe = !isFirstTurn && !isOSRResponse && !isMetaIrritation;
+
+            if (narrative.trim()) {
+              if (shouldAddProbe) {
+                 probeData = generateValidationProbe(narrative, content);
+                 if (probeData?.question) {
+                   narrative += '\n\n' + probeData.question;
+                 }
+              }
+
+              // Update session logs
+              appendHistoryEntry(sessionLog, 'user', textInput || "Reading request");
+              appendHistoryEntry(sessionLog, 'raven', narrative);
+              updateSession(sid, () => {});
+
+              // Streaming logic
+              const encoder = new TextEncoder();
+              const responseStream = new ReadableStream({
+                async start(controller) {
+                  const send = (data: object) => {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+                  };
+
+                  // Initial metadata frame
+                  send({
+                    climate: "VOICE · Report Interpretation",
+                    hook: "Auto · Mirror Reading",
+                    sessionId: sid,
+                    ok: true,
+                    // Send probe data for UI
+                    ...(probeData && {
+                      probe: probeData,
+                      validationMode: 'resonance'
+                    })
+                  });
+
+                  send({ delta: narrative });
+                  controller.close();
+                }
+              });
+
+              return new Response(responseStream, {
+                headers: {
+                  'Content-Type': 'text/event-stream',
+                  'Cache-Control': 'no-cache',
+                  'Connection': 'keep-alive'
+                }
+              });
+            }
+          }
+        } catch (e) {
+          console.error("Mirror Directive processing failed", e);
+        }
+      }
+    }
 
     const hasReportContext =
       normalizedContexts.length > 0 ||
@@ -867,6 +1168,7 @@ export async function POST(req: Request) {
       const message = `I tried to open ${contextName}, but ${reason}.`;
 
       appendHistoryEntry(sessionLog, 'raven', message);
+      updateSession(sid, () => {});
 
       return NextResponse.json({
         ok: true,
@@ -878,11 +1180,11 @@ export async function POST(req: Request) {
           contextId: autoPlan.contextId,
           contextName: autoPlan.contextName,
         },
-        // Explicitly disable resonance probe for OSR responses
         probe: null,
       });
     }
 
+    // Auto-execution branches
     if (autoPlan.status === 'relational_auto') {
       wantsWeatherOnly = false;
       const relationalResponse = await runMathBrain({
@@ -891,13 +1193,13 @@ export async function POST(req: Request) {
         autoMode: 'relational_auto',
       });
       if (!relationalResponse.success) {
-        // Record failure to prevent looping
         if (!sessionLog.failedContexts) sessionLog.failedContexts = new Set();
         sessionLog.failedContexts.add(autoPlan.contextId);
 
         const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'this report';
         const message = `I tried to regenerate a fresh relational Math Brain pass from ${contextName}, but the engine didn’t respond cleanly. Your uploaded report is still attached here—I can work directly with it. What would you like to explore first?`;
         appendHistoryEntry(sessionLog, 'raven', message);
+        updateSession(sid, () => {});
         const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Fallback)' });
         return NextResponse.json({
           intent: 'conversation',
@@ -923,6 +1225,7 @@ export async function POST(req: Request) {
       });
       const relationalProbe = createProbe(relationalDraft?.next_step || 'Notice how the mirror moves between you two', randomUUID());
       sessionLog.probes.push(relationalProbe);
+      updateSession(sid, () => {});
       return NextResponse.json({ intent, ok: true, draft: relationalDraft, prov: relationalProv, climate: relationalResponse.climate ?? null, sessionId: sid, probe: relationalProbe });
     }
 
@@ -934,13 +1237,13 @@ export async function POST(req: Request) {
         autoMode: 'parallel_auto',
       });
       if (!parallelResponse.success) {
-        // Record failure to prevent looping
         if (!sessionLog.failedContexts) sessionLog.failedContexts = new Set();
         sessionLog.failedContexts.add(autoPlan.contextId);
 
         const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'this report';
         const message = `I tried to regenerate parallel mirrors from ${contextName}, but the Math Brain engine stalled. The report itself is still live here—tell me whose side you want to start with or what pattern you’d like to test.`;
         appendHistoryEntry(sessionLog, 'raven', message);
+        updateSession(sid, () => {});
         const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Fallback)' });
         return NextResponse.json({
           intent: 'conversation',
@@ -966,6 +1269,7 @@ export async function POST(req: Request) {
       });
       const parallelProbe = createProbe(parallelDraft?.next_step || 'Check where the lines cross', randomUUID());
       sessionLog.probes.push(parallelProbe);
+      updateSession(sid, () => {});
       return NextResponse.json({ intent, ok: true, draft: parallelDraft, prov: parallelProv, climate: parallelResponse.climate ?? null, sessionId: sid, probe: parallelProbe });
     }
 
@@ -977,13 +1281,13 @@ export async function POST(req: Request) {
         autoMode: 'contextual_auto',
       });
       if (!contextualResponse.success) {
-        // Record failure to prevent looping
         if (!sessionLog.failedContexts) sessionLog.failedContexts = new Set();
         sessionLog.failedContexts.add(autoPlan.contextId);
 
         const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'this report';
         const message = `I tried to weave in the extra context around ${contextName}, but the Math Brain engine didn’t complete a fresh run. The uploaded report is still present—describe the context you care about, and I’ll mirror it directly.`;
         appendHistoryEntry(sessionLog, 'raven', message);
+        updateSession(sid, () => {});
         const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Fallback)' });
         return NextResponse.json({
           intent: 'conversation',
@@ -1013,6 +1317,7 @@ export async function POST(req: Request) {
         randomUUID(),
       );
       sessionLog.probes.push(contextualProbe);
+      updateSession(sid, () => {});
       return NextResponse.json({
         intent,
         ok: true,
@@ -1027,11 +1332,9 @@ export async function POST(req: Request) {
     if (autoPlan.status === 'solo_auto') {
       wantsWeatherOnly = false;
 
-      // Try to extract geometry directly from uploaded report first
       const uploadedGeo = extractGeometryFromUploadedReport(normalizedContexts);
 
       if (uploadedGeo) {
-        // Use the uploaded geometry directly without calling Math Brain
         const soloProv = stampProvenance({ source: 'Math Brain (Uploaded Report)', timestamp: new Date().toISOString() });
         const soloOptions = {
           ...resolvedOptions,
@@ -1047,10 +1350,10 @@ export async function POST(req: Request) {
         });
         const soloProbe = createProbe(soloDraft?.next_step || 'Notice where this pattern lands in your body', randomUUID());
         sessionLog.probes.push(soloProbe);
+        updateSession(sid, () => {});
         return NextResponse.json({ intent, ok: true, draft: soloDraft, prov: soloProv, climate: null, sessionId: sid, probe: soloProbe });
       }
 
-      // Fallback: try to regenerate via Math Brain
       const soloResponse = await runMathBrain({
         ...resolvedOptions,
         reportType: 'mirror',
@@ -1060,6 +1363,7 @@ export async function POST(req: Request) {
         const contextName = autoPlan.contextName ? `"${autoPlan.contextName}"` : 'this report';
         const message = `I tried to auto-run a fresh solo mirror from ${contextName}, but the Math Brain engine didn't return a clean result. The report you uploaded is still in view—I can read directly from it. What would you like the first mirror to focus on?`;
         appendHistoryEntry(sessionLog, 'raven', message);
+        updateSession(sid, () => {});
         const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Fallback)' });
         return NextResponse.json({
           intent: 'conversation',
@@ -1085,6 +1389,7 @@ export async function POST(req: Request) {
       });
       const soloProbe = createProbe(soloDraft?.next_step || 'Notice where this pattern lands in your body', randomUUID());
       sessionLog.probes.push(soloProbe);
+      updateSession(sid, () => {});
       return NextResponse.json({ intent, ok: true, draft: soloDraft, prov: soloProv, climate: soloResponse.climate ?? null, sessionId: sid, probe: soloProbe });
     }
 
@@ -1095,6 +1400,7 @@ export async function POST(req: Request) {
       appendHistoryEntry(sessionLog, 'user', textInput);
       appendHistoryEntry(sessionLog, 'raven', question);
       sessionLog.turnCount = (sessionLog.turnCount ?? 0) + 1;
+      updateSession(sid, () => {});
       const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Prompt)' });
       return NextResponse.json({
         intent: 'conversation',
@@ -1152,6 +1458,7 @@ export async function POST(req: Request) {
       });
       const probe = createProbe(draft?.next_step || 'Note one actionable step', randomUUID());
       sessionLog.probes.push(probe);
+      updateSession(sid, () => {});
       return NextResponse.json({ intent, ok: true, draft, prov, climate: mb.climate ?? null, sessionId: sid, probe });
     }
 
@@ -1190,7 +1497,12 @@ export async function POST(req: Request) {
     }
     sessionLog.metaConversationMode = conversationMode;
 
-    const instructionLines: string[] = [
+    // INTELLIGENT PROMPT CONSTRUCTION (Ported from chat/route.ts)
+    // ----------------------------------------------------------------------
+    let instructionLines: string[] = [];
+
+    // Default instruction lines
+    const baseInstructionLines = [
       'STRUCTURE REQUIREMENT: Compose exactly three paragraphs labeled in-line as "FIELD LAYER:", "MAP LAYER:", and "VOICE LAYER:". Keep labels uppercase, followed by a colon, no markdown headings.',
       'FIELD LAYER must open with numeric coordinates — Magnitude, Directional Bias, and Coherence/Volatility — each with value and descriptive label before the sensory description. Name the polarity that is in tension.',
       'MAP LAYER links those observations to specific symbolic geometry (hooks, engines, or contracts). Reference the driving pattern and explain what it implies without giving directives.',
@@ -1199,9 +1511,48 @@ export async function POST(req: Request) {
       'Do NOT use markdown headings, bullet lists, or numbered sections beyond the required labels.',
       'Never mention being an AI. Do not describe chain-of-thought. Stay inside the Raven Calder persona.',
     ];
+
     if (autoPlan.instructions?.length) {
-      instructionLines.unshift(...autoPlan.instructions);
+      instructionLines = [...autoPlan.instructions, ...baseInstructionLines];
+    } else {
+      // Natural Follow-Up Logic (from chat/route.ts)
+      const skipOSRCheck = isFirstTurn && !checkForOSRIndicators(effectiveInput);
+      const responseType = skipOSRCheck ? 'CLEAR_WB' : classifyUserResponse(effectiveInput);
+
+      const mockSessionContext: SessionContext = {
+        wbHits: [], abeHits: [], osrMisses: [], actorWeighting: 0, roleWeighting: 0, driftIndex: 0, sessionActive: true
+      };
+
+      if (responseType === 'CLEAR_WB') {
+        const followUp = naturalFollowUpFlow.generateFollowUp({ type: 'AFFIRM', content: effectiveInput, originalMirror: effectiveInput }, mockSessionContext);
+        instructionLines.push(
+          `User confirmed resonance (WB). Acknowledge clearly: "Logged as WB: that resonance confirmed." Then pivot to depth exploration: "${followUp.question}"`
+        );
+      } else if (responseType === 'PARTIAL_ABE') {
+        instructionLines.push(
+          `User gave partial confirmation (ABE). Acknowledge: "Logging as ABE—partially resonant but needs fine-tuning." Ask for clarification: "What part lands, and what feels off?"`
+        );
+      } else if (responseType === 'OSR') {
+        const followUp = naturalFollowUpFlow.generateFollowUp({ type: 'OSR', content: effectiveInput, originalMirror: effectiveInput }, mockSessionContext);
+        instructionLines.push(
+          `User indicated miss (OSR). Acknowledge and probe: "${followUp.question}"`
+        );
+      } else if (effectiveInput.toLowerCase().includes('poetic card')) {
+        instructionLines.push(
+          `User requests a poetic card. Generate a visual card summary of resonance patterns (WB/ABE/OSR scores) and composite guess. No new poems.`
+        );
+      } else if (effectiveInput.toLowerCase().includes('done') || effectiveInput.toLowerCase().includes('finished')) {
+        const closure = naturalFollowUpFlow.generateSessionClosure();
+        instructionLines.push(
+          `User ending session. Respond with: "${closure.resetPrompt}". Offer continuation options.`
+        );
+      } else {
+        // Fallback or Probe Response logic
+        // We incorporate the base instructions but refine the closing
+        instructionLines = [...baseInstructionLines];
+      }
     }
+
     if (wantsWeatherOnly) {
       instructionLines.push('The user is asking for symbolic weather / current climate. Anchor your reflection in present-time field dynamics while staying grounded in their lived situation.');
     }
@@ -1220,12 +1571,9 @@ export async function POST(req: Request) {
       instructionLines.push(
         'The user is clarifying a previous mirror. Focus on restating the pattern plainly, integrating their language, and outlining the repair before asking the closing question.',
       );
-    } else {
-      instructionLines.push(
-        'You are primarily explaining the pattern. Keep the voice grounded, specific, and oriented to their lived moment.',
-      );
     }
 
+    // Force question logic from auto-plan or general flow
     const closingInstruction =
       conversationMode === 'meta_feedback'
         ? 'Do not ask a resonance question. Close by confirming the adjustment you will make or by asking for one concrete detail if required for a fix.'
@@ -1256,61 +1604,92 @@ export async function POST(req: Request) {
 
     const prompt = promptSections.filter(Boolean).join('\n\n');
 
-    try {
-      const reply = await callPerplexity(prompt, {
-        model: process.env.POETIC_BRAIN_MODEL || 'sonar-pro',
-        personaHook: RAVEN_PERSONA_HOOK,
-      });
-      const replyText = (reply || '').trim();
-      if (!replyText) {
-        throw new Error('Empty response from Perplexity API');
-      }
+    // STREAMING IMPLEMENTATION
+    const prov = stampProvenance({
+      source: wantsWeatherOnly ? 'Poetic Brain (Weather-only)' : 'Poetic Brain (Perplexity)',
+    });
 
-      const now = new Date().toISOString();
-      sessionLog.history!.push({ role: 'user', content: textInput, createdAt: now });
-      sessionLog.history!.push({ role: 'raven', content: replyText, createdAt: now });
-      if (sessionLog.history!.length > MAX_HISTORY_TURNS * 2) {
-        sessionLog.history = sessionLog.history!.slice(-MAX_HISTORY_TURNS * 2);
-      }
-      sessionLog.turnCount = (sessionLog.turnCount ?? 0) + 1;
-
-      const prov = stampProvenance({
-        source: wantsWeatherOnly ? 'Poetic Brain (Weather-only)' : 'Poetic Brain (Perplexity)',
-      });
-
-      const draft: Record<string, any> = { conversation: replyText };
-
-      if (conversationMode === 'suggestion') {
-        recordSuggestion(sessionLog, textInput);
-      }
-
-      let probe = null;
-      const shouldScoreSession =
-        !isFirstTurn &&
-        (hasReportContext || hasGeometryPayload) &&
-        conversationMode !== 'meta_feedback';
-      if (sessionLog.validationActive !== shouldScoreSession) {
-        console.info('[Raven] validation_state', { session: sid, active: shouldScoreSession });
-        sessionLog.validationActive = shouldScoreSession;
-      }
-      if (shouldScoreSession) {
-        const probeText =
-          extractProbeFromResponse(replyText) ??
-          FALLBACK_PROBE_BY_MODE[conversationMode];
-        probe = createProbe(probeText, randomUUID());
-        sessionLog.probes.push(probe);
-      }
-
-      return NextResponse.json({ intent, ok: true, draft, prov, sessionId: sid, probe: probe ?? null });
-    } catch (err: any) {
-      // eslint-disable-next-line no-console
-      console.error('Perplexity conversation error:', err);
-      return NextResponse.json({
-        ok: false,
-        error: err?.message || 'The poetic muse encountered an unexpected disturbance.',
-      }, { status: 500 });
+    if (conversationMode === 'suggestion') {
+      recordSuggestion(sessionLog, textInput);
     }
 
+    let probe = null;
+    const shouldScoreSession =
+      !isFirstTurn &&
+      (hasReportContext || hasGeometryPayload) &&
+      conversationMode !== 'meta_feedback';
+
+    if (sessionLog.validationActive !== shouldScoreSession) {
+      console.info('[Raven] validation_state', { session: sid, active: shouldScoreSession });
+      sessionLog.validationActive = shouldScoreSession;
+    }
+
+    // Record session data before streaming
+    appendHistoryEntry(sessionLog, 'user', textInput);
+
+    const encoder = new TextEncoder();
+    const stream = await generateStream(prompt, {
+      model: process.env.POETIC_BRAIN_MODEL || 'sonar-pro',
+      personaHook: RAVEN_PERSONA_HOOK,
+    });
+
+    const responseStream = new ReadableStream({
+      async start(controller) {
+        const send = (data: object) => {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+        };
+
+        // Initial metadata chunk
+        send({
+          intent,
+          ok: true,
+          prov,
+          sessionId: sid,
+        });
+
+        let fullReply = "";
+
+        try {
+          for await (const chunk of stream) {
+            if (chunk.delta) {
+              fullReply += chunk.delta;
+              send({ delta: chunk.delta });
+            }
+            if (chunk.error) {
+              send({ error: chunk.error });
+            }
+          }
+        } catch (err: any) {
+          send({ error: err?.message || 'Stream error' });
+        } finally {
+          // Post-stream processing
+          appendHistoryEntry(sessionLog, 'raven', fullReply);
+          sessionLog.turnCount = (sessionLog.turnCount ?? 0) + 1;
+
+          if (shouldScoreSession) {
+            const probeText =
+              extractProbeFromResponse(fullReply) ??
+              FALLBACK_PROBE_BY_MODE[conversationMode];
+            probe = createProbe(probeText, randomUUID());
+            sessionLog.probes.push(probe);
+
+            // Send the final probe to the client as a trailing metadata chunk
+            send({ probe });
+          }
+
+          updateSession(sid, () => {}); // Persist updates
+          controller.close();
+        }
+      }
+    });
+
+    return new Response(responseStream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
 
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -1326,26 +1705,12 @@ export async function POST(req: Request) {
       console.error('Error stack:', error.stack);
     }
 
-    // Log request details for debugging
-    try {
-      const url = new URL(req.url);
-      // eslint-disable-next-line no-console
-      console.error('Request URL:', url.pathname);
-      // eslint-disable-next-line no-console
-      console.error('Request method:', req.method);
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('Could not log request details:', e);
-    }
-
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    const errorDetails = error instanceof Error && error.stack ? error.stack.split('\n').slice(0, 3).join('\n') : errorMessage;
 
     return NextResponse.json({
       ok: false,
       error: 'Failed to process request',
       details: errorMessage,
-      stack: process.env.NODE_ENV === 'development' ? errorDetails : undefined
     }, { status: 500 });
   }
 }

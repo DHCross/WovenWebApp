@@ -18,7 +18,7 @@ export interface StreamOptions { model?: string; personaHook?: string; temperatu
 const MAX_RETRIES = 3;
 const INITIAL_BACKOFF_MS = 1000;
 const REQUEST_TIMEOUT_MS = 30000; // 30 second timeout
-const DEFAULT_MODEL = process.env.PERPLEXITY_DEFAULT_MODEL || 'sonar-pro';
+const DEFAULT_MODEL = process.env.POETIC_BRAIN_MODEL || process.env.PERPLEXITY_DEFAULT_MODEL || 'sonar-pro';
 const DEFAULT_TEMPERATURE = Number.isFinite(Number(process.env.PERPLEXITY_TEMPERATURE))
   ? Number(process.env.PERPLEXITY_TEMPERATURE)
   : 0.7;
@@ -48,17 +48,20 @@ function shouldRetry(errorType: ErrorType): boolean {
 
 function logRequest(method: string, data: any) {
   if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
     console.log(`[Perplexity] ${method}:`, { model: data.model, temperature: data.temperature });
   }
 }
 
 function logResponse(method: string, status: number, duration: number) {
   if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
     console.log(`[Perplexity] ${method} completed in ${duration}ms with status ${status}`);
   }
 }
 
 function logError(method: string, errorType: ErrorType, message: string) {
+  // eslint-disable-next-line no-console
   console.warn(`[Perplexity] ${method} error [${errorType}]: ${message}`);
 }
 
@@ -169,6 +172,12 @@ async function requestCompletion(prompt: string, opts: StreamOptions) {
   }
 }
 
+/**
+ * Generator that yields chunks of text from the LLM.
+ * Currently simulates streaming by yielding the full text at once because
+ * the Perplexity API call above is not using `stream: true`.
+ * TODO: Upgrade `requestCompletion` to use `stream: true` for true incremental delivery.
+ */
 export async function *generateStream(prompt: string, opts: StreamOptions = {}): AsyncGenerator<LLMChunk> {
   let lastError: any = null;
   let lastErrorType: ErrorType = 'unknown';
@@ -180,6 +189,8 @@ export async function *generateStream(prompt: string, opts: StreamOptions = {}):
       const text = extractText(choice);
 
       if (text) {
+        // Yield paragraphs or sentences to simulate flow if needed,
+        // or just yield the whole block. Yielding block for now.
         yield { delta: text };
         return;
       } else {
@@ -233,6 +244,7 @@ export async function generateText(prompt: string, opts: StreamOptions = {}): Pr
   for await (const chunk of generateStream(prompt, opts)) {
     if (chunk.error) {
       lastError = chunk.error;
+      // eslint-disable-next-line no-console
       console.error(chunk.error);
     }
     out += String(chunk.delta || '');
