@@ -34,11 +34,40 @@ export default function ProfileManager({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [expandedProfiles, setExpandedProfiles] = useState<Set<string>>(new Set());
   const [showProfilesList, setShowProfilesList] = useState(true);
+  const [sortBy, setSortBy] = useState<'name' | 'relationship'>('name');
 
-  const sortedProfiles = useMemo(
-    () => [...profiles].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })),
-    [profiles]
-  );
+  const sortedProfiles = useMemo(() => {
+    const sorted = [...profiles];
+
+    if (sortBy === 'relationship') {
+      // Define relationship type order
+      const relationshipOrder: Record<string, number> = {
+        'SELF': 0,
+        'ROMANTIC': 1,
+        'FAMILY': 2,
+        'FRIEND': 3,
+        'PROFESSIONAL': 4,
+        'OTHER': 5,
+        '': 6 // No relationship type specified
+      };
+
+      sorted.sort((a, b) => {
+        const orderA = relationshipOrder[a.relationship_type?.toUpperCase() || ''] ?? 6;
+        const orderB = relationshipOrder[b.relationship_type?.toUpperCase() || ''] ?? 6;
+
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+
+        // Secondary sort by name within same category
+        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+      });
+    } else {
+      sorted.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    }
+
+    return sorted;
+  }, [profiles, sortBy]);
 
   const toggleExpanded = (profileId: string) => {
     setExpandedProfiles(prev => {
@@ -147,20 +176,48 @@ export default function ProfileManager({
           <h3 className="text-sm font-semibold text-slate-200">
             📚 Saved Profiles ({profiles.length})
           </h3>
-          {profiles.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowProfilesList((prev) => !prev)}
-              className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-              aria-expanded={showProfilesList}
-              aria-label={showProfilesList ? 'Collapse saved profiles list' : 'Expand saved profiles list'}
-            >
-              <span>{showProfilesList ? 'Hide list' : 'Show list'}</span>
-              <span className={`text-[10px] transition-transform ${showProfilesList ? 'rotate-90' : ''}`}>
-                ▶
-              </span>
-            </button>
-          )}
+          <div className="flex gap-2">
+            {profiles.length > 1 && (
+              <div className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setSortBy('name')}
+                  className={`px-2 py-1 rounded-l transition ${sortBy === 'name'
+                    ? 'bg-blue-600/50 text-blue-100'
+                    : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  title="Sort alphabetically by name"
+                >
+                  A-Z
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSortBy('relationship')}
+                  className={`px-2 py-1 rounded-r transition ${sortBy === 'relationship'
+                    ? 'bg-blue-600/50 text-blue-100'
+                    : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  title="Sort by relationship category"
+                >
+                  👥
+                </button>
+              </div>
+            )}
+            {profiles.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowProfilesList((prev) => !prev)}
+                className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                aria-expanded={showProfilesList}
+                aria-label={showProfilesList ? 'Collapse saved profiles list' : 'Expand saved profiles list'}
+              >
+                <span>{showProfilesList ? 'Hide list' : 'Show list'}</span>
+                <span className={`text-[10px] transition-transform ${showProfilesList ? 'rotate-90' : ''}`}>
+                  ▶
+                </span>
+              </button>
+            )}
+          </div>
         </div>
 
         {showProfilesList && (
@@ -201,6 +258,11 @@ export default function ProfileManager({
                           <div className="text-xs text-slate-400 mt-1">
                             {profile.birthDate} {profile.birthTime && `• ${profile.birthTime}`}
                           </div>
+                          {sortBy === 'relationship' && profile.relationship_type && (
+                            <div className="text-[10px] text-blue-400 mt-1">
+                              {profile.relationship_type}
+                            </div>
+                          )}
                           {!isExpanded && (
                             <div className="text-[11px] text-slate-500 mt-0.5 truncate">
                               {profile.birthCity}{profile.birthState && `, ${profile.birthState}`}
@@ -234,6 +296,12 @@ export default function ProfileManager({
 
                       {isExpanded && (
                         <div className="mt-2 space-y-1 text-xs text-slate-400">
+                          {profile.relationship_type && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-500">Relationship:</span>
+                              <span className="text-blue-300">{profile.relationship_type}</span>
+                            </div>
+                          )}
                           <div className="flex items-center gap-2">
                             <span className="text-slate-500">Birthplace:</span>
                             <span className="truncate">

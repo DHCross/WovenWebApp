@@ -13,6 +13,7 @@ export interface BirthProfile {
   lng?: number;
   latitude?: number;
   longitude?: number;
+  relationship_type?: string;
   notes?: string;
 }
 
