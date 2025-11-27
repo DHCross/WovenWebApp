@@ -347,7 +347,7 @@ export default function ChatClient() {
         return {
           label: 'Structured Reading',
           description:
-            'A Mirror Directive report opened a structured reading lane. Raven auto-runs the initial Mirror reading from the attached report and tracks resonance pings until you end the session.',
+            'A Mirror Directive report opened a structured reading lane. Raven auto-runs the initial Mirror reading (solo or relational with bidirectional insights) from the attached report and tracks resonance pings until you end the session.',
           badgeClass: 'border-indigo-400/40 bg-indigo-500/20 text-indigo-200',
         };
       default:
@@ -417,6 +417,7 @@ export default function ChatClient() {
         ? `"${reportContext.name.trim()}"`
         : 'This report';
       const hasCombinedAstroReport = metadata.hasMirrorDirective;
+      const isRelational = metadata.isRelationalMirror;
 
       if (!hasCombinedAstroReport) {
         shiftSessionMode('idle');
@@ -440,11 +441,13 @@ export default function ChatClient() {
         console.info('[Poetic Brain] Mirror report detected for auto-execution', {
           contextId: reportContext.id,
           summary: reportContext.summary,
+          isRelational,
+          reportType: isRelational ? 'relational' : 'solo',
         });
         return;
       }
 
-      setStatusMessage("Astro report received. Generating Mirror reading...");
+      setStatusMessage(`Astro report received. Generating ${isRelational ? 'relational' : 'solo'} mirror reading...`);
       setSessionMode('report');
       setSessionStarted(true);
 
@@ -452,14 +455,14 @@ export default function ChatClient() {
       const mirrorPlaceholder: Message = {
         id: mirrorPlaceholderId,
         role: "raven",
-        html: `<p style="margin:0; line-height:1.65;">Opening the Mirror reading now. I'll share the complete report as soon as it's ready.</p>`,
+        html: `<p style="margin:0; line-height:1.65;">Opening the ${isRelational ? 'relational' : 'solo'} mirror reading now. I'll share the complete report with bidirectional insights as soon as it's ready.</p>`,
         climate: "VOICE · Report Interpretation",
-        hook: "Auto · Mirror Reading",
+        hook: `Auto · ${isRelational ? 'Relational' : 'Solo'} Mirror`,
         intent: undefined,
         probe: null,
         prov: null,
         rawText:
-          "Opening the Mirror reading now. I'll share the complete report as soon as it's ready.",
+          `Opening the ${isRelational ? 'relational' : 'solo'} mirror reading now. I'll share the complete report with bidirectional insights as soon as it's ready.`,
         validationPoints: [],
         validationComplete: false,
       };
@@ -496,7 +499,7 @@ export default function ChatClient() {
             },
           },
           mirrorPlaceholderId,
-          "Generating mirror report...",
+          `Generating ${isRelational ? 'relational' : 'solo'} mirror report...`,
         );
         setStatusMessage(null);
       } catch (error) {
