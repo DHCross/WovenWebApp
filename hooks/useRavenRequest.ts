@@ -274,6 +274,7 @@ export function useRavenRequest({
                 }
 
               } catch (e) {
+                // eslint-disable-next-line no-console
                 console.warn("Failed to parse stream chunk", e);
               }
             }
