@@ -85,10 +85,20 @@ export function useRavenRequest({
     [setMessages],
   );
 
+  const updateMessage = useCallback(
+    (messageId: string, updates: Partial<Message>) => {
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === messageId ? { ...msg, ...updates } : msg))
+      );
+    },
+    [setMessages]
+  );
+
   const applyRavenResponse = useCallback(
     (messageId: string, response: RavenDraftResponse, fallbackMessage: string) => {
       const guidance =
         typeof response?.guidance === "string" ? response.guidance.trim() : "";
+
       const { html: formattedHtml, rawText } = response?.draft
         ? formatShareableDraft(response.draft, response.prov ?? null)
         : guidance
@@ -111,6 +121,7 @@ export function useRavenRequest({
         response?.validation?.mode === "resonance";
       const shouldParseValidation =
         Boolean(response?.draft) && Boolean(rawText) && allowValidationMarkers;
+
       const existingPoints = validationMap[messageId] ?? [];
       const parsedPoints = shouldParseValidation
         ? parseValidationPoints(rawText, existingPoints, {
@@ -127,36 +138,26 @@ export function useRavenRequest({
         }
       }
 
-      setMessages((prev) =>
-        prev.map((msg) => {
-          if (msg.id !== messageId) return msg;
-          const next: Message = {
-            ...msg,
-            html: formattedHtml,
-            rawText: rawText || msg.rawText || "",
-            climate: climateDisplay ?? msg.climate,
-            hook: hook ?? msg.hook,
-            intent: response.intent ?? msg.intent,
-            probe: response.probe ?? msg.probe ?? null,
-            prov: response.prov ?? msg.prov ?? null,
-            validationMode: response.validation?.mode ?? msg.validationMode,
-          };
-
-          if (shouldParseValidation) {
-            next.validationPoints = parsedPoints;
-            next.validationComplete =
-              parsedPoints.length === 0 || !hasPendingValidations(parsedPoints);
-          }
-
-          return next;
-        }),
-      );
+      updateMessage(messageId, {
+        html: formattedHtml,
+        rawText: rawText || "",
+        climate: climateDisplay,
+        hook: hook,
+        intent: response.intent,
+        probe: response.probe ?? null,
+        prov: response.prov ?? null,
+        validationMode: response.validation?.mode,
+        ...(shouldParseValidation ? {
+          validationPoints: parsedPoints,
+          validationComplete: parsedPoints.length === 0 || !hasPendingValidations(parsedPoints),
+        } : {})
+      });
 
       if (response?.sessionId) {
         setSessionId(response.sessionId);
       }
     },
-    [setMessages, setSessionId, setValidationPoints, validationMap],
+    [setSessionId, setValidationPoints, validationMap, updateMessage],
   );
 
   const stop = useCallback(() => {
@@ -204,6 +205,97 @@ export function useRavenRequest({
         );
 
         const contentType = response.headers.get("content-type") ?? "";
+
+        // Handle Streaming Response (NDJSON or Server-Sent Events)
+        if (contentType.includes("text/event-stream") || contentType.includes("application/x-ndjson")) {
+          const reader = response.body?.getReader();
+          if (!reader) throw new Error("Response body is not readable");
+
+          const decoder = new TextDecoder();
+          let buffer = "";
+          let accumulatedDraft = "";
+          let finalResponseData: RavenDraftResponse | null = null;
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed) continue;
+
+              // Handle SSE "data: " prefix if present
+              const dataStr = trimmed.startsWith("data: ") ? trimmed.slice(6) : trimmed;
+
+              try {
+                const chunk = JSON.parse(dataStr);
+
+                if (chunk.delta) {
+                  accumulatedDraft += chunk.delta;
+                  // Real-time update using escaped HTML to prevent XSS during streaming
+                  // Note: This is a raw render; markdown formatting is applied at the end
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === placeholderId
+                        ? {
+                            ...msg,
+                            html: `<p>${escapeHtml(accumulatedDraft)}</p>`,
+                            rawText: accumulatedDraft
+                          }
+                        : msg
+                    )
+                  );
+                }
+
+                // Merge other metadata as it arrives
+                if (chunk.intent || chunk.climate || chunk.hook || chunk.probe || chunk.prov) {
+                   if (!finalResponseData) finalResponseData = { ok: true };
+                   Object.assign(finalResponseData, chunk);
+
+                   // Update metadata in UI immediately
+                   updateMessage(placeholderId, {
+                     climate: formatClimate(chunk.climate),
+                     hook: formatIntentHook(chunk.intent, chunk.prov),
+                     probe: chunk.probe,
+                     prov: chunk.prov
+                   });
+                }
+
+                if (chunk.sessionId) {
+                  setSessionId(chunk.sessionId);
+                }
+
+                if (chunk.error) {
+                   throw new Error(chunk.error);
+                }
+
+              } catch (e) {
+                // eslint-disable-next-line no-console
+                console.warn("Failed to parse stream chunk", e);
+              }
+            }
+          }
+
+          // Final pass to format the complete message properly with markdown/paragraphs
+          if (accumulatedDraft) {
+             const finalDraft = { conversation: accumulatedDraft };
+             const finalResponse: RavenDraftResponse = {
+                ok: true,
+                draft: finalDraft,
+                ...finalResponseData
+             };
+             applyRavenResponse(placeholderId, finalResponse, fallbackMessage);
+             return finalResponse;
+          }
+
+          return finalResponseData;
+        }
+
+        // Handle Legacy JSON Response
         if (!contentType.includes("application/json")) {
           const errorText = await response.text();
           throw new Error(
@@ -243,7 +335,7 @@ export function useRavenRequest({
         abortRef.current = null;
       }
     },
-    [applyRavenResponse, commitError, personaMode, sessionId],
+    [applyRavenResponse, commitError, personaMode, sessionId, setSessionId, updateMessage],
   );
 
   return {
