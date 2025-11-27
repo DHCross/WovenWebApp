@@ -4,6 +4,7 @@ import { generateStream } from '../../../lib/llm';
 import { canMakeRequest, trackRequest } from '../../../lib/usage-tracker';
 import { followUpGenerator, ChartContext } from '../../../lib/followup-generator';
 import { naturalFollowUpFlow, PingResponse, SessionContext } from '../../../lib/natural-followup-flow';
+import { processMirrorDirective } from '../../../poetic-brain/src/index';
 
 import {
   NO_CONTEXT_GUIDANCE,
@@ -30,48 +31,88 @@ function take(ip:string, max=10, windowMs=60_000){
   if(b.t<=0) return false; b.t--; return true;
 }
 
-// Check if user message indicates OSR (doesn't feel familiar/resonate)
+// Check if user message indicates OSR (signal void, non-ping, outside symbolic range)
 function checkForOSRIndicators(text: string): boolean {
   const lower = text.toLowerCase();
   const osrPhrases = [
-    'doesn\'t feel familiar',
     'doesn\'t resonate',
-    'not me',
-    'doesn\'t sound like me',
-    'not familiar',
+    'no resonance',
+    'signal void',
+    'non-ping',
+    'outside symbolic range',
+    'doesn\'t match lived experience',
+    'not recognizable in life',
     'doesn\'t ring true',
-    'not quite right',
-    'off the mark',
-    'doesn\'t match',
-    'not accurate',
-    'not really me'
+    'outside my experience',
+    'not grounded in reality',
+    'metaphor without lived grounding',
+    'symbolic speculation',
+    'no behavioral evidence',
+    'misses the mark entirely',
+    'no connection to actual life',
+    'unrecognizable patterns'
   ];
   
-  return osrPhrases.some(phrase => lower.includes(phrase));
+  return osrPhrases.some((phrase: string) => lower.includes(phrase));
 }
 
-// Check if user is clearly affirming/confirming resonance
+// Generate validation probes for Mirror Directive responses
+function generateValidationProbe(narrative: string, mirrorContent: any): { question: string; type: string; options: string[] } | null {
+  // Extract key themes from the narrative to create targeted probes
+  const isRelational = mirrorContent.person_b || mirrorContent._required_sections?.includes('person_b');
+  
+  const soloProbes = [
+    {
+      question: "Does what I've described about your core patterns resonate with your lived experience—does this feel Within Boundary (WB), or does it miss the mark entirely (OSR)?",
+      type: "sst_resonance",
+      options: ["Within Boundary (WB)", "At Boundary Edge (ABE)", "Outside Symbolic Range (OSR)"]
+    },
+    {
+      question: "When I describe these primary tensions, do you recognize them in your actual daily life, or does this feel like symbolic interpretation without lived grounding?",
+      type: "behavioral_check", 
+      options: ["Recognizable in lived experience", "Partially recognizable", "Not recognizable in life"]
+    },
+    {
+      question: "Does this mapping of your blueprint to lived experience feel accurate, or are we drifting into metaphor without behavioral anchoring?",
+      type: "integrity_check",
+      options: ["Grounded in both geometry and behavior", "Straddling the line", "Drifting into metaphor"]
+    }
+  ];
+  
+  const relationalProbes = [
+    {
+      question: "Does this description of your relational dynamics match what actually happens between you, or is this symbolic speculation without behavioral evidence?",
+      type: "relational_sst",
+      options: ["Matches lived relational patterns", "Partially matches", "Outside lived experience"]
+    },
+    {
+      question: "When I describe [specific dynamic], does that reflect observable behavior in your relationship, or is this ungrounded interpretation?",
+      type: "relational_behavioral",
+      options: ["Grounded in actual behavior", "Mixed", "Ungrounded interpretation"]
+    }
+  ];
+  
+  const probes = isRelational ? [...soloProbes, ...relationalProbes] : soloProbes;
+  
+  // Select a probe based on narrative content (simple rotation for now)
+  const probeIndex = narrative.length % probes.length;
+  return probes[probeIndex] || probes[0];
+}
+
+// Check if user is clearly affirming/confirming resonance (WB - Within Boundary)
 function checkForClearAffirmation(text: string): boolean {
   const lower = text.toLowerCase();
   const clearAffirmPhrases = [
-    'that\'s familiar',
-    'feels familiar',
-    'that resonates',
-    'resonates with me',
-    'exactly',
+    'within boundary',
+    'wb',
+    'resonates with lived experience',
+    'recognizable in life',
+    'that\'s exactly what happens',
+    'matches my experience',
+    'grounded in reality',
+    'behavioral evidence',
+    'lived truth',
     'that\'s me',
-    'spot on',
-    'that hits',
-    'so true',
-    'absolutely',
-    'definitely me',
-    'that\'s accurate',
-    'yes, that\'s right',
-    'that\'s it exactly',
-    'i just said it was', // Critical addition
-    'it was',
-    'it is',
-    'that is',
     'yes it is',
     'yes that is',
     'that\'s right',
@@ -82,12 +123,11 @@ function checkForClearAffirmation(text: string): boolean {
   // Also check for simple "yes" at start of response
   if (/^yes\b/i.test(text.trim())) return true;
   
-  return clearAffirmPhrases.some(phrase => lower.includes(phrase));
+  return clearAffirmPhrases.some((phrase: string) => lower.includes(phrase));
 }
 
 // Check if user is requesting to start/continue the reading (not OSR)
 function checkForReadingStartRequest(text: string): boolean {
-  const lower = text.toLowerCase();
   const startReadingPhrases = [
     'give me the reading',
     'start the reading',
@@ -107,10 +147,9 @@ function checkForReadingStartRequest(text: string): boolean {
     'let\'s start',
     'please continue',
     'go ahead',
-    'proceed'
   ];
   
-  return startReadingPhrases.some(phrase => lower.includes(phrase));
+  return startReadingPhrases.some((phrase: string) => text.toLowerCase().includes(phrase));
 }
 
 // Check if user is giving partial/uncertain confirmation
@@ -128,7 +167,7 @@ function checkForPartialAffirmation(text: string): boolean {
     'to some extent'
   ];
   
-  return partialPhrases.some(phrase => lower.includes(phrase));
+  return partialPhrases.some((phrase: string) => lower.includes(phrase));
 }
 
 const CHAT_CONTEXT_CHAR_LIMIT = 1800;
@@ -194,7 +233,7 @@ function isMetaSignalAboutRepetition(text: string): boolean {
     "i've already answered",
     'well, yeah',
   ];
-  return phrases.some(p => lower.includes(p));
+  return phrases.some((p: string) => lower.includes(p));
 }
 
 function pickHook(t:string){
@@ -254,6 +293,137 @@ export async function POST(req: NextRequest){
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
   if(!take(ip)){
     return new Response(JSON.stringify({error:'rate_limited', retry_in:'60s'}), {status:429, headers:{'Content-Type':'application/json'}});
+  }
+
+  // Check for Mirror Directive JSON in report contexts and auto-process
+  if (Array.isArray(reportContexts) && reportContexts.length > 0) {
+    const mirrorContext = reportContexts.find(rc => {
+      try {
+        const content = typeof rc.content === 'string' ? JSON.parse(rc.content) : rc.content;
+        return content._format === 'mirror_directive_json' || content._format === 'mirror-symbolic-weather-v1';
+      } catch {
+        return false;
+      }
+    });
+
+    if (mirrorContext) {
+      // Process Mirror Directive JSON for any turn when context is present
+      try {
+        const content = typeof mirrorContext.content === 'string' ? JSON.parse(mirrorContext.content) : mirrorContext.content;
+        
+        console.log('[API] Processing Mirror Directive JSON:', {
+          format: content._format,
+          hasWeatherData: content._contains_weather_data,
+          hasTransits: content._contains_transits,
+          isFirstTurn
+        });
+        
+        // For first turn, generate the full reading
+        if (isFirstTurn) {
+          const result = processMirrorDirective(content);
+          
+          if (result.success && result.narrative_sections) {
+            console.log('[API] Poetic Brain success, sections:', Object.keys(result.narrative_sections));
+            
+            // Build narrative from Poetic Brain output
+            let narrative = '';
+            if (result.narrative_sections.solo_mirror_a) narrative += result.narrative_sections.solo_mirror_a + '\n\n';
+            if (result.narrative_sections.relational_engine) narrative += result.narrative_sections.relational_engine + '\n\n';
+            if (result.narrative_sections.weather_overlay) narrative += result.narrative_sections.weather_overlay;
+            
+            if (narrative.trim()) {
+              // Respect the same timing rules as normal chat flow
+              // First turn: no probe (per First-turn rule)
+              // OSR responses: no probe (user already indicated miss)
+              // Meta-irritation: no probe (don't ask again)
+              // Otherwise: add validation probe
+              
+              const isOSRResponse = checkForOSRIndicators(text);
+              const isMetaIrritation = isMetaSignalAboutRepetition(text);
+              const shouldAddProbe = !isFirstTurn && !isOSRResponse && !isMetaIrritation;
+              
+              let finalNarrative = narrative.trim();
+              let probeData = null;
+              
+              if (shouldAddProbe) {
+                // Generate a validation probe for follow-up responses
+                probeData = generateValidationProbe(finalNarrative, content);
+                if (probeData?.question) {
+                  finalNarrative += '\n\n' + probeData.question;
+                }
+              }
+              
+              // Return the processed narrative with validation
+              const stream = generateStream(finalNarrative, { 
+                model: process.env.MODEL_PROVIDER, 
+                personaHook: "Auto · Mirror Reading" 
+              });
+              
+              trackRequest(finalNarrative.length);
+              
+              const responseBody = new ReadableStream({
+                async start(controller) {
+                  const encoder = new TextEncoder();
+                  const send = (data: object) => {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+                  };
+                  
+                  send({ 
+                    climate: "VOICE · Report Interpretation", 
+                    hook: "Auto · Mirror Reading",
+                    delta: finalNarrative,
+                    // Add probe and validation data for UI
+                    ...(probeData && {
+                      probe: probeData,
+                      validationMode: shouldAddProbe ? 'resonance' : 'none'
+                    })
+                  });
+                  
+                  try {
+                    for await (const chunk of stream) {
+                      if (chunk.delta) {
+                        send({ delta: chunk.delta });
+                      }
+                    }
+                  } catch (error) {
+                    console.error('[API] Error during Mirror Directive processing:', error);
+                    send({ error: 'Failed to process the Mirror Directive.' });
+                  } finally {
+                    controller.close();
+                  }
+                }
+              });
+              
+              return new Response(responseBody, {
+                headers: { 'Content-Type': 'text/event-stream' }
+              });
+            }
+          }
+        } else {
+          // For follow-up questions, enhance the prompt with Mirror Directive context
+          const result = processMirrorDirective(content);
+          
+          if (result.success && result.narrative_sections) {
+            // Add Mirror Directive context to the analysis prompt
+            const mirrorContext = `
+MIRROR DIRECTIVE CONTEXT:
+The user has provided their astrological blueprint. Key insights:
+${result.narrative_sections.solo_mirror_a ? 'SOLO MIRROR: ' + result.narrative_sections.solo_mirror_a.substring(0, 500) + '...' : ''}
+${result.narrative_sections.relational_engine ? 'RELATIONAL DYNAMICS: ' + result.narrative_sections.relational_engine.substring(0, 500) + '...' : ''}
+${result.narrative_sections.weather_overlay ? 'CURRENT ACTIVATIONS: ' + result.narrative_sections.weather_overlay.substring(0, 300) + '...' : ''}
+
+Use this blueprint context to inform your response to their question: "${text}"
+`;
+            analysisPrompt = mirrorContext + '\n\n' + text;
+          }
+        }
+      } catch (error) {
+        console.error('[API] Mirror Directive context error:', error);
+        // Fall through to normal processing
+      }
+    } else {
+      console.log('[API] No Mirror Directive context found, falling through to normal chat');
+    }
   }
 
   if (isTechnicalQuestion || isGreeting) {

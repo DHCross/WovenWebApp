@@ -901,18 +901,12 @@ export default function ChatClient() {
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-[#05060b] via-[#0c111e] to-[#010207] text-slate-100">
       <header className="border-b border-slate-800/60 bg-slate-900/70 backdrop-blur-sm">
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-6 py-6 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2">
+          <div className="space-y-1">
             <div className="text-xs uppercase tracking-[0.2em] text-slate-400">
               Raven Calder · Poetic Brain
             </div>
             <h1 className="text-2xl font-semibold text-slate-100">{APP_NAME}</h1>
-            <p className="text-sm text-slate-400">
-              Raven is already listening—share what is present, or upload your Mirror Directive JSON when you are ready for a structured reading.
-            </p>
-            <p className="max-w-md text-[11px] text-slate-500">
-              Raven&apos;s intuition: it notices when the chart&apos;s symbolic architecture seems to echo the movement of your inner life. It can describe those patterns and offer meaning, but it never claims law, cause, or certainty—what&apos;s real is what truly resonates in you.
-            </p>
-            <div className="mt-3 flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-emerald-300">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-emerald-300">
               <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
               <span>{STATUS_CONNECTED}</span>
             </div>
@@ -971,14 +965,6 @@ export default function ChatClient() {
               >
                 Reset Session
               </button>
-            </div>
-            <div className="text-xs text-slate-400 sm:flex sm:flex-wrap sm:gap-6">
-              <p className="max-w-[220px]">
-                📦 Upload Astro Report hands Raven the Mirror Directive JSON export from Math Brain for immediate interpretation.
-              </p>
-              <p className="max-w-[220px]">
-                ⏮️ Resume Math Brain restores the last archived session and flashes the button when it’s queued.
-              </p>
             </div>
           </div>
         </div>
