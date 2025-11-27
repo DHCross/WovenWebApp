@@ -14,6 +14,7 @@ export interface SnapshotDisplayData {
   houses?: {
     asc?: { sign: string; degree: number };
     mc?: { sign: string; degree: number };
+    [key: string]: { sign: string; degree: number } | undefined;
   };
   domains: {
     label: string;
@@ -269,10 +270,27 @@ export function extractSnapshotHouses(result: any) {
     return { sign, degree };
   };
 
-  return {
-    asc: toHouseEntry(ascPoint),
-    mc: toHouseEntry(mcPoint),
-  };
+  const houses: Record<string, { sign: string; degree: number } | undefined> = {};
+
+  // Extract angles
+  houses.asc = toHouseEntry(extractChartPoint(chart, 'Ascendant'));
+  houses.mc = toHouseEntry(extractChartPoint(chart, 'Medium_Coeli') || extractChartPoint(chart, 'Midheaven'));
+
+  // Extract all 12 cusps
+  const houseNames = [
+    'First_House', 'Second_House', 'Third_House', 'Fourth_House',
+    'Fifth_House', 'Sixth_House', 'Seventh_House', 'Eighth_House',
+    'Ninth_House', 'Tenth_House', 'Eleventh_House', 'Twelfth_House'
+  ];
+
+  houseNames.forEach((name, index) => {
+    const point = extractChartPoint(chart, name);
+    if (point) {
+      houses[`h${index + 1}`] = toHouseEntry(point);
+    }
+  });
+
+  return houses;
 }
 
 /**

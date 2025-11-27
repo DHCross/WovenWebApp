@@ -46,9 +46,9 @@ function subjectToAPI(s = {}, pass = {}) {
   };
   const includeCoords = hasCoords && !pass.force_city_mode && !pass.suppress_coords;
   if (includeCoords) {
-    apiSubject.lat = s.latitude ?? s.lat;
-    apiSubject.lng = s.longitude ?? s.lon ?? s.lng;
-    apiSubject.tz_str = tzNorm;
+    apiSubject.latitude = s.latitude ?? s.lat;
+    apiSubject.longitude = s.longitude ?? s.lon ?? s.lng;
+    apiSubject.timezone = tzNorm;
   }
   const wantCity = hasCity && (pass.require_city || !includeCoords);
   if (wantCity) {

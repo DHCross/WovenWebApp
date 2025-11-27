@@ -439,6 +439,29 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
             ))}
           </div>
 
+          {/* House Cusps */}
+          {snapshot.houses && (
+            <div className="mt-4 pt-4 border-t border-slate-700/50">
+              <h5 className="mb-3 text-xs font-medium text-slate-400">House Cusps</h5>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                {[...Array(12)].map((_, i) => {
+                  const num = i + 1;
+                  const key = `h${num}`;
+                  const house = snapshot.houses?.[key];
+                  if (!house) return null;
+                  return (
+                    <div key={key} className="rounded border border-slate-700 bg-slate-800/30 p-2 flex justify-between items-center">
+                      <span className="text-xs text-slate-500">H{num}</span>
+                      <span className="text-xs text-slate-300 font-mono">
+                        {house.sign} {house.degree.toFixed(1)}°
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {isRelational && (() => {
             if (!showPersonBDomains) return null;
 
