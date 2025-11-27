@@ -152,15 +152,19 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
   // Extract chart assets for visualization
   const chartAssets = [
     ...(result?.person_a?.chart_assets || []),
-    ...(result?.synastry_chart_assets || [])
+    ...(result?.synastry_chart_assets || []),
+    ...(result?.chart_assets || []) // Check top-level just in case
   ];
+
+  console.log('[SnapshotDisplay] Available chart assets:', chartAssets);
 
   const selectWheelAsset = () => {
     if (!Array.isArray(chartAssets) || chartAssets.length === 0) return null;
 
-    const priorityChartTypes = ['natal', 'transit', 'synastry', 'composite'];
-    const prioritySubjects = ['person_a', 'transit', 'synastry'];
+    const priorityChartTypes = ['natal', 'transit', 'synastry', 'composite', 'wheel'];
+    const prioritySubjects = ['person_a', 'transit', 'synastry', 'composite'];
 
+    // 1. Try exact chartType match
     for (const type of priorityChartTypes) {
       const match = chartAssets.find((asset: any) => {
         const chartType = typeof asset?.chartType === 'string' ? asset.chartType.toLowerCase() : '';
@@ -169,6 +173,7 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
       if (match?.url) return match;
     }
 
+    // 2. Try subject match
     for (const subject of prioritySubjects) {
       const match = chartAssets.find((asset: any) => {
         const subjectKey = typeof asset?.subject === 'string' ? asset.subject.toLowerCase() : '';
@@ -177,7 +182,13 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
       if (match?.url) return match;
     }
 
-    return chartAssets.find((asset: any) => asset?.url) || null;
+    // 3. Fallback: Find ANY asset that looks like an image/wheel
+    return chartAssets.find((asset: any) => {
+      if (!asset?.url) return false;
+      const url = asset.url.toLowerCase();
+      const isImage = url.match(/\.(png|jpg|jpeg|svg|gif)/) || url.startsWith('data:image');
+      return isImage;
+    }) || null;
   };
 
   const wheelChart = selectWheelAsset();
@@ -256,6 +267,12 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
             </div>
           </div>
           <p className="text-sm text-slate-400 mb-2">Chart Wheel</p>
+          {chartAssets.length === 0 && (
+             <p className="text-xs text-red-400 mb-2">No chart assets returned from API</p>
+          )}
+          {chartAssets.length > 0 && !wheelChart && (
+             <p className="text-xs text-yellow-400 mb-2">Assets found but no wheel matched ({chartAssets.length})</p>
+          )}
           {snapshot.houses && (snapshot.houses.asc || snapshot.houses.mc) && (
             <div className="flex justify-center gap-6 text-xs text-slate-400">
               {snapshot.houses.asc && (
