@@ -5792,6 +5792,10 @@ export default function MathBrainPage() {
                                 return <div className="text-sm text-slate-500 p-4 border border-slate-700 rounded bg-slate-900/20">No daily data available</div>;
                               }
 
+                              // Determine default expanded state (Today, or first day if today not present)
+                              const today = new Date().toISOString().split('T')[0];
+                              const hasToday = dates.includes(today);
+
                               // State descriptor functions
                               const getMagnitudeState = (mag: number) => {
                                 if (mag <= 1) return 'Latent';
@@ -6015,6 +6019,8 @@ export default function MathBrainPage() {
                                   ? [personA.name || 'Person A', personB.name || 'Person B']
                                   : undefined;
 
+                                const isDefaultExpanded = hasToday ? date === today : date === dates[0];
+
                                 return (
                                   <EnhancedDailyClimateCard
                                     key={date}
@@ -6029,6 +6035,7 @@ export default function MathBrainPage() {
                                       drivers: overflowDetail?.drivers,
                                     }}
                                     overflowDetail={overflowDetail}
+                                    defaultExpanded={isDefaultExpanded}
                                   />
                                 );
                               });
