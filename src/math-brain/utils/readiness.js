@@ -214,7 +214,7 @@ function parseGraphicString(raw) {
     };
   }
 
-  if (value.startsWith('<svg')) {
+  if (value.startsWith('<svg') || (value.startsWith('<?xml') && value.includes('<svg'))) {
     return { buffer: Buffer.from(value, 'utf8'), contentType: 'image/svg+xml', format: 'svg' };
   }
 
