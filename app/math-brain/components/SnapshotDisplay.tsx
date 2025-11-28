@@ -364,6 +364,15 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
   const personBDomains = isRelational ? buildDomainsFromChart(result?.person_b?.chart) : [];
   const showPersonBDomains = isRelational && personBDomains.some((domain) => domain.planets.length > 0);
 
+  // Get person names for display
+  const personAName = result?.person_a?.subject?.name || result?.person_a?.name || 'Person A';
+  const personBName = result?.person_b?.subject?.name || result?.person_b?.name || 'Person B';
+  
+  // Determine snapshot type label
+  const snapshotTypeLabel = isRelational 
+    ? `Synastry Transit: ${personAName} + ${personBName}`
+    : `${personAName}'s Transit Snapshot`;
+
   console.log('[SnapshotDisplay] Balance Meter metrics:', {
     magnitude,
     directionalBias,
@@ -377,22 +386,31 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
       {/* HEADER */}
       <div className="mb-6 flex items-start justify-between border-b border-purple-700/30 pb-4">
         <div className="w-full">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             <span className="inline-flex items-center gap-1 rounded-full border border-purple-600 bg-purple-700/20 px-2 py-0.5 text-xs text-purple-300">
               <span>⭐</span>
               <span>Symbolic Moment Snapshot</span>
             </span>
+            {isRelational && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-indigo-600 bg-indigo-700/20 px-2 py-0.5 text-xs text-indigo-300">
+                <span>👥</span>
+                <span>Synastry</span>
+              </span>
+            )}
           </div>
-          <h3 className="text-xl font-semibold text-purple-200 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-purple-200">
+            {snapshotTypeLabel}
+          </h3>
+          <p className="mt-1 text-sm text-slate-300 flex items-center gap-2">
             <span>🕐</span>
             <span>{snapshot.timestamp}</span>
-          </h3>
+          </p>
           <p className="mt-1 text-sm text-slate-300">
             📍 {snapshot.location.label}
           </p>
           {isRelational && (
             <p className="mt-1 text-xs text-purple-300">
-              ℹ️ Relational snapshot: Both charts relocated to current location
+              ℹ️ Both charts relocated to snapshot location
             </p>
           )}
         </div>

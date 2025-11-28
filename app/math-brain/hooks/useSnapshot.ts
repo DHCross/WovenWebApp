@@ -51,17 +51,18 @@ export function useSnapshot() {
     location: SnapshotLocation,
     personA: any,
     personB?: any,
-    mode: string = 'NATAL_TRANSITS'
+    mode: string = 'NATAL_TRANSITS',
+    customTimestamp?: Date
   ): Promise<{ result: any; timestamp: Date; location: SnapshotLocation } | null> => {
-    console.log('[Snapshot] Starting capture...', { location, personA, personB, mode });
+    const snapshotTime = customTimestamp || new Date();
+    console.log('[Snapshot] Starting capture...', { location, personA, personB, mode, snapshotTime: snapshotTime.toISOString() });
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      const now = new Date();
-      const todayStr = now.toISOString().slice(0, 10);
+      const dateStr = snapshotTime.toISOString().slice(0, 10);
       const timezone = getCurrentTimezone();
       const locationLabel = formatCoordinates(location.latitude, location.longitude);
-      console.log('[Snapshot] Building payload...', { todayStr, timezone, locationLabel });
+      console.log('[Snapshot] Building payload...', { dateStr, timezone, locationLabel });
 
       // Determine if this is relational (has Person B)
       const isRelational = personB && Object.keys(personB).length > 0;
@@ -111,10 +112,10 @@ export function useSnapshot() {
         mode: apiMode,
         personA: normalizedPersonA,
         // Transit window
-        window: { start: todayStr, end: todayStr, step: 'daily' },
-        transits: { from: todayStr, to: todayStr, step: 'daily' },
-        transitStartDate: todayStr,
-        transitEndDate: todayStr,
+        window: { start: dateStr, end: dateStr, step: 'daily' },
+        transits: { from: dateStr, to: dateStr, step: 'daily' },
+        transitStartDate: dateStr,
+        transitEndDate: dateStr,
         transitStep: 'daily',
         // Report type (Balance Meter for snapshots)
         report_type: isRelational ? 'relational_balance_meter' : 'solo_balance_meter',
@@ -136,7 +137,7 @@ export function useSnapshot() {
         },
         // Balance Meter specific fields
         indices: {
-          window: { start: todayStr, end: todayStr, step: 'daily' },
+          window: { start: dateStr, end: dateStr, step: 'daily' },
           request_daily: true
         },
         frontstage_policy: {
@@ -220,7 +221,7 @@ export function useSnapshot() {
       setState({
         result,
         location: locationWithLabel,
-        timestamp: now,
+        timestamp: snapshotTime,
         loading: false,
         error: null,
       });
@@ -228,7 +229,7 @@ export function useSnapshot() {
       console.log('[Snapshot] Capture complete!');
       return {
         result,
-        timestamp: now,
+        timestamp: snapshotTime,
         location: locationWithLabel,
       };
     } catch (err) {
