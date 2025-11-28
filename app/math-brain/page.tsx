@@ -4570,6 +4570,8 @@ export default function MathBrainPage() {
           const errorMessage = networkError instanceof Error ? networkError.message : String(networkError);
           setError(`Network error: ${errorMessage}`);
           setToast('Failed to connect to the server. Please check your connection.');
+          setTimeout(() => setToast(null), 2500);
+          setLoading(false);
           return;
         }
 
@@ -4582,6 +4584,8 @@ export default function MathBrainPage() {
           const parseMessage = parseError instanceof Error ? parseError.message : String(parseError);
           setError(`Invalid response from server: ${parseMessage}`);
           setToast('Failed to process server response.');
+          setTimeout(() => setToast(null), 2500);
+          setLoading(false);
           return;
         }
 
