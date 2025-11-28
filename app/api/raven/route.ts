@@ -17,6 +17,8 @@ import {
   type SSTTag,
   type SessionTurn,
   type SessionSuggestion,
+  type SSTProbe,
+  type ConversationMode,
 } from '@/lib/raven/sst';
 import {
   ASTROSEEK_REFERENCE_GUIDANCE,
@@ -158,7 +160,7 @@ function extractProbeFromResponse(responseText: string): string | null {
   return match ? match[1].trim() : null;
 }
 
-type ConversationMode = 'explanation' | 'clarification' | 'suggestion' | 'meta_feedback';
+
 
 const CLARIFICATION_PATTERNS: RegExp[] = [
   /\bcan you clarify\b/i,
@@ -421,7 +423,7 @@ function isMetaSignalAboutRepetition(text: string): boolean {
   return phrases.some((p: string) => lower.includes(p));
 }
 
-function pickHook(t:string){
+function pickHook(t: string) {
   // Check for JSON report uploads with specific conditions
   if (t.includes('"balance_meter"') && t.includes('"magnitude"')) {
     try {
@@ -444,9 +446,9 @@ function pickHook(t:string){
     }
   }
 
-  if(/dream|sleep/i.test(t)) return 'Duty & Dreams · Saturn ↔ Neptune';
-  if(/private|depth|shadow/i.test(t)) return 'Private & Piercing · Mercury ↔ Pluto';
-  if(/restless|ground/i.test(t)) return 'Restless & Grounded · Pluto ↔ Moon';
+  if (/dream|sleep/i.test(t)) return 'Duty & Dreams · Saturn ↔ Neptune';
+  if (/private|depth|shadow/i.test(t)) return 'Private & Piercing · Mercury ↔ Pluto';
+  if (/restless|ground/i.test(t)) return 'Restless & Grounded · Pluto ↔ Moon';
   return undefined;
 }
 
@@ -949,11 +951,11 @@ export async function POST(req: Request) {
 
     if (action === 'feedback') {
       const { probeId, tag } = resolvedOptions as { probeId: string; tag: SSTTag };
-      const idx = sessionLog.probes.findIndex(p => p.id === probeId);
+      const idx = sessionLog.probes.findIndex((p: SSTProbe) => p.id === probeId);
       if (idx === -1) return NextResponse.json({ ok: false, error: 'Probe not found' }, { status: 404 });
       sessionLog.probes[idx] = commitProbe(sessionLog.probes[idx], tag);
       const scores = scoreSession(sessionLog);
-      updateSession(sid, () => {}); // Persist change
+      updateSession(sid, () => { }); // Persist change
       return NextResponse.json({ ok: true, sessionId: sid, scores, probe: sessionLog.probes[idx] });
     }
 
@@ -984,7 +986,7 @@ export async function POST(req: Request) {
         appendHistoryEntry(sessionLog, 'user', textInput);
         appendHistoryEntry(sessionLog, 'raven', reminder);
         sessionLog.turnCount = (sessionLog.turnCount ?? 0) + 1;
-        updateSession(sid, () => {}); // Persist
+        updateSession(sid, () => { }); // Persist
         const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Prompt)' });
         return NextResponse.json({
           intent: 'conversation',
@@ -1000,7 +1002,7 @@ export async function POST(req: Request) {
         sessionLog.relationalModes = {};
       }
       sessionLog.relationalModes[pendingChoice.contextId] = decision;
-      updateSession(sid, () => {}); // Persist
+      updateSession(sid, () => { }); // Persist
     }
 
     // Default: generate (router)
@@ -1033,7 +1035,7 @@ export async function POST(req: Request) {
       // create a probe entry from the draft next_step or a summary line
       const probe = createProbe(draft?.next_step || 'Reflect on the mirror', randomUUID());
       sessionLog.probes.push(probe);
-      updateSession(sid, () => {}); // Persist
+      updateSession(sid, () => { }); // Persist
       return NextResponse.json({ intent, ok: true, draft, prov, sessionId: sid, probe });
     }
 
@@ -1074,7 +1076,7 @@ export async function POST(req: Request) {
             if (result.narrative_sections.weather_overlay) narrative += result.narrative_sections.weather_overlay;
 
             // Check for probes (similar logic to chat/route.ts)
-            let probeData = null;
+            let probeData: SSTProbe | { question: string; type: string; options: string[] } | null = null;
             const isFirstTurn = (sessionLog.turnCount ?? 0) <= 1;
             const isOSRResponse = checkForOSRIndicators(textInput);
             const isMetaIrritation = isMetaSignalAboutRepetition(textInput);
@@ -1082,16 +1084,16 @@ export async function POST(req: Request) {
 
             if (narrative.trim()) {
               if (shouldAddProbe) {
-                 probeData = generateValidationProbe(narrative, content);
-                 if (probeData?.question) {
-                   narrative += '\n\n' + probeData.question;
-                 }
+                probeData = generateValidationProbe(narrative, content);
+                if (probeData?.question) {
+                  narrative += '\n\n' + probeData.question;
+                }
               }
 
               // Update session logs
               appendHistoryEntry(sessionLog, 'user', textInput || "Reading request");
               appendHistoryEntry(sessionLog, 'raven', narrative);
-              updateSession(sid, () => {});
+              updateSession(sid, () => { });
 
               // Streaming logic
               const encoder = new TextEncoder();
@@ -1168,7 +1170,7 @@ export async function POST(req: Request) {
       const message = `I tried to open ${contextName}, but ${reason}.`;
 
       appendHistoryEntry(sessionLog, 'raven', message);
-      updateSession(sid, () => {});
+      updateSession(sid, () => { });
 
       return NextResponse.json({
         ok: true,
@@ -1194,12 +1196,14 @@ export async function POST(req: Request) {
       });
       if (!relationalResponse.success) {
         if (!sessionLog.failedContexts) sessionLog.failedContexts = new Set();
-        sessionLog.failedContexts.add(autoPlan.contextId);
+        if (autoPlan.contextId) {
+          sessionLog.failedContexts.add(autoPlan.contextId);
+        }
 
         const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'this report';
         const message = `I tried to regenerate a fresh relational Math Brain pass from ${contextName}, but the engine didn’t respond cleanly. Your uploaded report is still attached here—I can work directly with it. What would you like to explore first?`;
         appendHistoryEntry(sessionLog, 'raven', message);
-        updateSession(sid, () => {});
+        updateSession(sid, () => { });
         const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Fallback)' });
         return NextResponse.json({
           intent: 'conversation',
@@ -1225,7 +1229,7 @@ export async function POST(req: Request) {
       });
       const relationalProbe = createProbe(relationalDraft?.next_step || 'Notice how the mirror moves between you two', randomUUID());
       sessionLog.probes.push(relationalProbe);
-      updateSession(sid, () => {});
+      updateSession(sid, () => { });
       return NextResponse.json({ intent, ok: true, draft: relationalDraft, prov: relationalProv, climate: relationalResponse.climate ?? null, sessionId: sid, probe: relationalProbe });
     }
 
@@ -1238,12 +1242,14 @@ export async function POST(req: Request) {
       });
       if (!parallelResponse.success) {
         if (!sessionLog.failedContexts) sessionLog.failedContexts = new Set();
-        sessionLog.failedContexts.add(autoPlan.contextId);
+        if (autoPlan.contextId) {
+          sessionLog.failedContexts.add(autoPlan.contextId);
+        }
 
         const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'this report';
         const message = `I tried to regenerate parallel mirrors from ${contextName}, but the Math Brain engine stalled. The report itself is still live here—tell me whose side you want to start with or what pattern you’d like to test.`;
         appendHistoryEntry(sessionLog, 'raven', message);
-        updateSession(sid, () => {});
+        updateSession(sid, () => { });
         const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Fallback)' });
         return NextResponse.json({
           intent: 'conversation',
@@ -1269,7 +1275,7 @@ export async function POST(req: Request) {
       });
       const parallelProbe = createProbe(parallelDraft?.next_step || 'Check where the lines cross', randomUUID());
       sessionLog.probes.push(parallelProbe);
-      updateSession(sid, () => {});
+      updateSession(sid, () => { });
       return NextResponse.json({ intent, ok: true, draft: parallelDraft, prov: parallelProv, climate: parallelResponse.climate ?? null, sessionId: sid, probe: parallelProbe });
     }
 
@@ -1282,12 +1288,14 @@ export async function POST(req: Request) {
       });
       if (!contextualResponse.success) {
         if (!sessionLog.failedContexts) sessionLog.failedContexts = new Set();
-        sessionLog.failedContexts.add(autoPlan.contextId);
+        if (autoPlan.contextId) {
+          sessionLog.failedContexts.add(autoPlan.contextId);
+        }
 
         const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'this report';
         const message = `I tried to weave in the extra context around ${contextName}, but the Math Brain engine didn’t complete a fresh run. The uploaded report is still present—describe the context you care about, and I’ll mirror it directly.`;
         appendHistoryEntry(sessionLog, 'raven', message);
-        updateSession(sid, () => {});
+        updateSession(sid, () => { });
         const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Fallback)' });
         return NextResponse.json({
           intent: 'conversation',
@@ -1317,7 +1325,7 @@ export async function POST(req: Request) {
         randomUUID(),
       );
       sessionLog.probes.push(contextualProbe);
-      updateSession(sid, () => {});
+      updateSession(sid, () => { });
       return NextResponse.json({
         intent,
         ok: true,
@@ -1350,7 +1358,7 @@ export async function POST(req: Request) {
         });
         const soloProbe = createProbe(soloDraft?.next_step || 'Notice where this pattern lands in your body', randomUUID());
         sessionLog.probes.push(soloProbe);
-        updateSession(sid, () => {});
+        updateSession(sid, () => { });
         return NextResponse.json({ intent, ok: true, draft: soloDraft, prov: soloProv, climate: null, sessionId: sid, probe: soloProbe });
       }
 
@@ -1363,7 +1371,7 @@ export async function POST(req: Request) {
         const contextName = autoPlan.contextName ? `"${autoPlan.contextName}"` : 'this report';
         const message = `I tried to auto-run a fresh solo mirror from ${contextName}, but the Math Brain engine didn't return a clean result. The report you uploaded is still in view—I can read directly from it. What would you like the first mirror to focus on?`;
         appendHistoryEntry(sessionLog, 'raven', message);
-        updateSession(sid, () => {});
+        updateSession(sid, () => { });
         const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Fallback)' });
         return NextResponse.json({
           intent: 'conversation',
@@ -1389,7 +1397,7 @@ export async function POST(req: Request) {
       });
       const soloProbe = createProbe(soloDraft?.next_step || 'Notice where this pattern lands in your body', randomUUID());
       sessionLog.probes.push(soloProbe);
-      updateSession(sid, () => {});
+      updateSession(sid, () => { });
       return NextResponse.json({ intent, ok: true, draft: soloDraft, prov: soloProv, climate: soloResponse.climate ?? null, sessionId: sid, probe: soloProbe });
     }
 
@@ -1400,7 +1408,7 @@ export async function POST(req: Request) {
       appendHistoryEntry(sessionLog, 'user', textInput);
       appendHistoryEntry(sessionLog, 'raven', question);
       sessionLog.turnCount = (sessionLog.turnCount ?? 0) + 1;
-      updateSession(sid, () => {});
+      updateSession(sid, () => { });
       const prov = stampProvenance({ source: 'Poetic Brain (Auto-Execution Prompt)' });
       return NextResponse.json({
         intent: 'conversation',
@@ -1458,7 +1466,7 @@ export async function POST(req: Request) {
       });
       const probe = createProbe(draft?.next_step || 'Note one actionable step', randomUUID());
       sessionLog.probes.push(probe);
-      updateSession(sid, () => {});
+      updateSession(sid, () => { });
       return NextResponse.json({ intent, ok: true, draft, prov, climate: mb.climate ?? null, sessionId: sid, probe });
     }
 
@@ -1677,7 +1685,7 @@ export async function POST(req: Request) {
             send({ probe });
           }
 
-          updateSession(sid, () => {}); // Persist updates
+          updateSession(sid, () => { }); // Persist updates
           controller.close();
         }
       }

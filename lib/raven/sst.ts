@@ -21,11 +21,18 @@ export interface SessionSuggestion {
   createdAt: string;
 }
 
+export type ConversationMode = 'explanation' | 'clarification' | 'suggestion' | 'meta_feedback';
+
 export interface SessionSSTLog {
   probes: SSTProbe[];
   turnCount?: number;
   history?: SessionTurn[];
   suggestions?: SessionSuggestion[];
+  relationalModes?: Record<string, 'relational' | 'parallel'>;
+  pendingRelationalChoice?: { contextId: string;[key: string]: any };
+  failedContexts?: Set<string>;
+  metaConversationMode?: ConversationMode;
+  validationActive?: boolean;
 }
 
 export interface SessionScores {
