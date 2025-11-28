@@ -2033,11 +2033,19 @@ export default function MathBrainPage() {
 
   // Auth handled by AuthProvider; no inline initialization here to avoid hydration mismatches.
 
+  function clearReport() {
+    setResult(null);
+    setError(null);
+    setLoading(false);
+  }
+
   function resetSessionMemory() {
     try {
       window.localStorage.removeItem('mb.lastInputs');
       setHasSavedInputs(false);
       setSaveForNextSession(true);
+      // Also clear any existing report
+      clearReport();
     } catch {/* noop */ }
   }
 
@@ -5342,13 +5350,24 @@ export default function MathBrainPage() {
                     <span className="text-slate-100 capitalize">{reportType}</span>
                   </span>
                 </div>
-                <button
-                  type="submit"
-                  disabled={submitDisabled}
-                  className="inline-flex items-center rounded-md px-4 py-2 text-white disabled:opacity-50 bg-indigo-600 hover:bg-indigo-500"
-                >
-                  {loading ? "Mapping geometry…" : (includeTransits ? 'Generate Report' : 'Prepare Mirror')}
-                </button>
+                <div className="flex items-center gap-2">
+                  {(result || loading) && (
+                    <button
+                      type="button"
+                      onClick={clearReport}
+                      className="inline-flex items-center rounded-md px-3 py-2 text-sm text-slate-300 border border-slate-600 bg-slate-800 hover:bg-slate-700 hover:text-slate-100 transition"
+                    >
+                      {loading ? "Cancel" : "Clear Report"}
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={submitDisabled}
+                    className="inline-flex items-center rounded-md px-4 py-2 text-white disabled:opacity-50 bg-indigo-600 hover:bg-indigo-500"
+                  >
+                    {loading ? "Mapping geometry…" : (includeTransits ? 'Generate Report' : 'Prepare Mirror')}
+                  </button>
+                </div>
               </div>
               {(RELATIONAL_MODES.includes(mode) && !includePersonB) && (
                 <p className="mt-2 text-xs text-amber-400">Hint: Toggle "Include Person B" and fill in required fields to enable relational modes.</p>

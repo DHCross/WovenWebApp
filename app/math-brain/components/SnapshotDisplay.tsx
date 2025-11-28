@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 'use client';
 
+import { useCallback, useRef, useState } from 'react';
 import { buildDomainsFromChart, createSnapshotDisplay } from '../utils/snapshot';
 
 interface SnapshotDisplayProps {
@@ -10,6 +11,159 @@ interface SnapshotDisplayProps {
 }
 
 export default function SnapshotDisplay({ result, location, timestamp }: SnapshotDisplayProps) {
+  const chartImgRef = useRef<HTMLImageElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const downloadAsPng = useCallback(async () => {
+    const imgEl = chartImgRef.current;
+    if (!imgEl) return;
+
+    setIsDownloading(true);
+
+    try {
+      const imgSrc = imgEl.src;
+
+      // If it's an SVG (data URL or .svg file), we need special handling
+      const isSvg = imgSrc.startsWith('data:image/svg') || imgSrc.toLowerCase().endsWith('.svg');
+
+      // Target resolution for AI-readable charts (high res for text clarity)
+      const targetSize = 2400; // Large enough for AI to read planet positions clearly
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not get canvas context');
+
+      if (isSvg) {
+        // For SVG: Parse and render at high resolution
+        let svgText: string;
+
+        if (imgSrc.startsWith('data:image/svg+xml')) {
+          // Decode from data URL
+          if (imgSrc.includes('base64,')) {
+            const base64 = imgSrc.split('base64,')[1];
+            svgText = atob(base64);
+          } else {
+            const encoded = imgSrc.split(',')[1];
+            svgText = decodeURIComponent(encoded);
+          }
+        } else {
+          // Fetch from URL
+          const response = await fetch(imgSrc);
+          svgText = await response.text();
+        }
+
+        // Parse SVG to get/set dimensions
+        const parser = new DOMParser();
+        const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+        const svgEl = svgDoc.documentElement;
+
+        // Get original viewBox or dimensions
+        let viewBox = svgEl.getAttribute('viewBox');
+        const origWidth = parseFloat(svgEl.getAttribute('width') || '0');
+        const origHeight = parseFloat(svgEl.getAttribute('height') || '0');
+
+        // Determine aspect ratio
+        let aspectRatio = 1;
+        if (viewBox) {
+          const parts = viewBox.split(/\s+|,/).map(Number);
+          if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+            aspectRatio = parts[2] / parts[3];
+          }
+        } else if (origWidth > 0 && origHeight > 0) {
+          aspectRatio = origWidth / origHeight;
+          // Add viewBox if missing
+          svgEl.setAttribute('viewBox', `0 0 ${origWidth} ${origHeight}`);
+        }
+
+        // Calculate canvas size maintaining aspect ratio
+        let canvasWidth: number, canvasHeight: number;
+        if (aspectRatio >= 1) {
+          canvasWidth = targetSize;
+          canvasHeight = Math.round(targetSize / aspectRatio);
+        } else {
+          canvasHeight = targetSize;
+          canvasWidth = Math.round(targetSize * aspectRatio);
+        }
+
+        // Set explicit dimensions on SVG for rendering
+        svgEl.setAttribute('width', String(canvasWidth));
+        svgEl.setAttribute('height', String(canvasHeight));
+
+        // Serialize back to string
+        const serializer = new XMLSerializer();
+        const modifiedSvg = serializer.serializeToString(svgEl);
+
+        // Create blob URL for rendering
+        const blob = new Blob([modifiedSvg], { type: 'image/svg+xml;charset=utf-8' });
+        const blobUrl = URL.createObjectURL(blob);
+
+        // Render to canvas via Image
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => {
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+
+            // White background for better readability
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            // Draw the SVG
+            ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
+
+            URL.revokeObjectURL(blobUrl);
+            resolve();
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(blobUrl);
+            reject(new Error('Failed to load SVG for rendering'));
+          };
+          img.src = blobUrl;
+        });
+      } else {
+        // For raster images, scale up if needed
+        const origWidth = imgEl.naturalWidth || imgEl.width || 800;
+        const origHeight = imgEl.naturalHeight || imgEl.height || 800;
+        const aspectRatio = origWidth / origHeight;
+
+        let canvasWidth: number, canvasHeight: number;
+        if (aspectRatio >= 1) {
+          canvasWidth = Math.max(origWidth, targetSize);
+          canvasHeight = Math.round(canvasWidth / aspectRatio);
+        } else {
+          canvasHeight = Math.max(origHeight, targetSize);
+          canvasWidth = Math.round(canvasHeight * aspectRatio);
+        }
+
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+
+        // White background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+        // Enable image smoothing for upscaling
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        ctx.drawImage(imgEl, 0, 0, canvasWidth, canvasHeight);
+      }
+
+      // Convert to PNG and download
+      const pngDataUrl = canvas.toDataURL('image/png', 1.0);
+      const link = document.createElement('a');
+      link.download = `natal-chart-${new Date().toISOString().split('T')[0]}.png`;
+      link.href = pngDataUrl;
+      link.click();
+    } catch (error) {
+      console.error('[SnapshotDisplay] Failed to download PNG:', error);
+      alert('Failed to download image. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  }, []);
   console.log('[SnapshotDisplay] Rendering with result:', result);
 
   const snapshot = createSnapshotDisplay(result, location, timestamp);
@@ -244,18 +398,46 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
         </div>
       </div>
 
-      {/* CHART WHEEL PLACEHOLDER (TOP HALF) */}
+      {/* CHART WHEEL (TOP HALF) */}
       {wheelChart?.url ? (
-        <div className="mb-6 flex justify-center rounded border border-slate-700 bg-slate-900/50 p-4">
-          <img
-            src={wheelChart.url}
-            alt="Natal Chart"
-            className="max-w-full h-auto"
-            onError={(e) => {
-              console.error('[SnapshotDisplay] Chart image failed to load');
-              e.currentTarget.style.display = 'none';
-            }}
-          />
+        <div className="mb-6 rounded border border-slate-700 bg-slate-900/50 p-4">
+          <div className="flex justify-center">
+            <img
+              ref={chartImgRef}
+              src={wheelChart.url}
+              alt="Natal Chart"
+              className="w-full max-w-md md:max-w-lg lg:max-w-xl h-auto"
+              crossOrigin="anonymous"
+              onError={(e) => {
+                console.error('[SnapshotDisplay] Chart image failed to load');
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </div>
+          <div className="mt-3 flex justify-center">
+            <button
+              onClick={downloadAsPng}
+              disabled={isDownloading}
+              className="inline-flex items-center gap-2 rounded-md border border-purple-600 bg-purple-700/30 px-3 py-1.5 text-sm text-purple-200 hover:bg-purple-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isDownloading ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span>Converting...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  <span>Download PNG</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       ) : (
         <div className="mb-6 rounded border border-slate-700 bg-slate-900/50 p-8 text-center">
