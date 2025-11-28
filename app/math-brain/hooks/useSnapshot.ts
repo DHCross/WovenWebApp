@@ -71,7 +71,7 @@ export function useSnapshot() {
         if (!subject) return subject;
         const fallbackCity = subject.city?.trim()
           || subject.birth_city?.trim()
-          || 'Snapshot Location';
+          || 'Unknown City';
         const fallbackNation = subject.nation
           || subject.country
           || subject.country_code
@@ -82,6 +82,17 @@ export function useSnapshot() {
           || subject.province
           || subject.state_code
           || undefined;
+
+        // IMPORTANT: Preserve the original birth coordinates from the subject data.
+        // Do NOT overwrite with the current GPS location - that's for translocation only.
+        // The API needs correct birth coordinates for natal chart calculation.
+        const birthLat = subject.latitude ?? subject.birth_latitude ?? subject.lat;
+        const birthLng = subject.longitude ?? subject.birth_longitude ?? subject.lng ?? subject.lon;
+        const birthTz = subject.timezone ?? subject.birth_timezone ?? subject.tz;
+
+        if (typeof birthLat !== 'number' || typeof birthLng !== 'number') {
+          console.warn(`[Snapshot] Subject "${label}" missing birth coordinates:`, { birthLat, birthLng, subject });
+        }
 
         return {
           ...subject,
@@ -94,9 +105,10 @@ export function useSnapshot() {
           day: Number(subject.day),
           hour: Number(subject.hour),
           minute: Number(subject.minute),
-          latitude: location.latitude,
-          longitude: location.longitude,
-          timezone,
+          // Preserve birth coordinates - DO NOT use snapshot location here
+          latitude: birthLat,
+          longitude: birthLng,
+          timezone: birthTz,
           zodiac_type: subject.zodiac_type || subject.zodiac || 'Tropic',
         };
       };
