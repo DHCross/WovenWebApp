@@ -8,6 +8,7 @@ import {
   OVERFLOW_LIMIT,
   OVERFLOW_TOLERANCE,
 } from '../math-brain/overflow-detail';
+import { validateForExport } from '../validation/report-integrity-validator';
 
 type AxisKey = 'magnitude' | 'directional_bias' | 'volatility';
 
@@ -305,6 +306,27 @@ export function createMirrorSymbolicWeatherPayload(
 
   if (unifiedOutput?.woven_map?.symbolic_weather) {
     payload.symbolic_weather_context = unifiedOutput.woven_map.symbolic_weather;
+  }
+
+  // Validate the payload before export (Jules Constitution compliance)
+  const validationResult = validateForExport(payload, 'json', {
+    requestsSymbolicRead: true, // JSON exports may be used for Poetic Brain
+  });
+  
+  // Attach validation metadata to payload
+  if (validationResult.warnings.length > 0 || validationResult.errors.length > 0) {
+    payload._validation = {
+      valid: validationResult.valid,
+      errors: validationResult.errors,
+      warnings: validationResult.warnings,
+      forceGenericSymbolicRead: validationResult.forceGenericSymbolicRead,
+    };
+  }
+  
+  // Log validation issues but don't block export (warnings are informational)
+  if (validationResult.errors.length > 0) {
+    // eslint-disable-next-line no-console
+    console.warn('[MirrorSymbolicWeather] Validation errors:', validationResult.errors);
   }
 
   return {

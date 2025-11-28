@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import DOMPurify from "dompurify";
 import { generateId } from "../lib/id";
 import { formatFullClimateDisplay } from "../lib/climate-renderer";
+import { validateForExport } from "../lib/validation/report-integrity-validator";
 import type { RelocationSummary } from "../lib/relocation";
 import { type PingResponse } from "./PingFeedback";
 import { useFileUpload } from "@/hooks/useFileUpload";
@@ -865,6 +866,19 @@ export default function ChatClient() {
       const { generateClearMirrorPDF } = await import('@/lib/pdf/clear-mirror-pdf');
       
       const clearMirrorData = buildClearMirrorFromContexts(reportContexts, sessionDiagnostics);
+      
+      // Validate report integrity before PDF export (Jules Constitution compliance)
+      // Note: clearMirrorData is in Poetic Brain format, validate underlying source if present
+      if (clearMirrorData?.mathBrainSnapshot) {
+        const validation = validateForExport(clearMirrorData.mathBrainSnapshot, 'pdf', { requestsSymbolicRead: true });
+        if (validation.errors.length > 0) {
+          console.error('[Clear Mirror PDF] Validation errors:', validation.errors);
+        }
+        if (validation.warnings.length > 0) {
+          console.warn('[Clear Mirror PDF] Validation warnings:', validation.warnings);
+        }
+      }
+      
       await generateClearMirrorPDF(clearMirrorData);
       
       setStatusMessage('Clear Mirror PDF exported successfully.');

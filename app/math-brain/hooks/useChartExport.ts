@@ -64,6 +64,7 @@ import {
 } from '../utils/formatting';
 import { createMirrorSymbolicWeatherPayload } from '../../../lib/export/mirrorSymbolicWeather';
 import { getDirectivePrefix, getDirectiveSuffix } from '../../../lib/export/filename-utils';
+import { validateForExport } from '../../../lib/validation/report-integrity-validator';
 
 type FriendlyFilenameType =
   | 'directive'
@@ -251,6 +252,18 @@ export function useChartExport(options: UseChartExportOptions): UseChartExportRe
       pushToast('No report available to export', 2000);
       return;
     }
+    
+    // Validate report integrity before PDF export (Jules Constitution compliance)
+    const pdfValidation = validateForExport(result, 'pdf', { requestsSymbolicRead: true });
+    if (pdfValidation.errors.length > 0) {
+      console.error('[PDF Export] Validation errors:', pdfValidation.errors);
+      // Show first error to user but don't block - validation is informational
+      pushToast(`⚠️ Report validation: ${pdfValidation.errors[0]?.message || 'Issues detected'}`, 3000);
+    }
+    if (pdfValidation.warnings.length > 0) {
+      console.warn('[PDF Export] Validation warnings:', pdfValidation.warnings);
+    }
+    
     const transitDayCount = Object.keys(result?.person_a?.chart?.transitsByDate || {}).length;
     const isLargeTransitWindow = transitDayCount >= 35;
     setPdfGenerating(true);

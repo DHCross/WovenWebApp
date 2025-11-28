@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
+import { validateApiRequest, normalizeRelocationMode } from '../../../lib/validation/report-integrity-validator';
 // Configure route to allow longer execution time for complex calculations
 // Netlify Pro allows up to 26 seconds, free tier up to 10 seconds
 export const maxDuration = 26; // seconds
@@ -177,6 +178,79 @@ export async function POST(request: NextRequest) {
       logger.error('Invalid or empty JSON body received');
       return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
     }
+
+    // =========================================================================
+    // Jules Constitution Article IV: API Contract Validation
+    // STRUCTURAL INVARIANTS: kind + personB + relationship_context triple
+    // Stage 1b/1c: Detect kind from request
+    // Stage 2c: Extract/verify relationship_context
+    // Stage 6b/6c/6d: Assert triple consistency BEFORE 4e/5a see the data
+    // =========================================================================
+    const apiValidation = validateApiRequest(rawPayload);
+    
+    if (!apiValidation.valid) {
+      const firstError = apiValidation.errors[0];
+      logger.error('API request validation failed', {
+        errors: apiValidation.errors,
+        warnings: apiValidation.warnings,
+        summary: apiValidation.summary
+      });
+      return NextResponse.json({
+        success: false,
+        error: firstError?.message || 'Request validation failed',
+        code: firstError?.code || 'VALIDATION_ERROR',
+        validation_errors: apiValidation.errors,
+        validation_warnings: apiValidation.warnings,
+        hint: firstError?.code === 'RELATIONAL_MISSING_PERSON_B'
+          ? 'Relational reports require both personA and personB data.'
+          : firstError?.code === 'INVALID_RELOCATION_MODE'
+          ? 'Use one of: A_local, B_local, both_local, event, or none.'
+          : firstError?.code === 'RELATIONAL_INVARIANT_VIOLATION'
+          ? 'Relational reports require relationship_context. Provide { scope, type } or set math_only: true.'
+          : undefined
+      }, { status: 422 });
+    }
+    
+    // Handle explicit downgrade mode (structural invariant enforcement)
+    // System NEVER silently guesses - downgrades are always explicit
+    const explicitDowngradeMode = apiValidation.explicitDowngradeMode;
+    if (explicitDowngradeMode) {
+      logger.info('Explicit downgrade mode applied', {
+        downgradeMode: explicitDowngradeMode,
+        reason: apiValidation.infos.find(i => i.context?.downgradeMode)?.context?.reason || 'structural_invariant',
+        forceGenericSymbolicRead: apiValidation.forceGenericSymbolicRead
+      });
+    }
+    
+    // Log infos for traceability (downgrade notifications)
+    if (apiValidation.infos.length > 0) {
+      logger.info('API validation infos', {
+        infos: apiValidation.infos,
+        explicitDowngradeMode
+      });
+    }
+    
+    // Normalize relocation mode to canonical form if present
+    if (rawPayload.translocation) {
+      const mode = typeof rawPayload.translocation === 'string'
+        ? rawPayload.translocation
+        : rawPayload.translocation?.mode || rawPayload.translocation?.method;
+      const normalizedMode = normalizeRelocationMode(mode);
+      if (typeof rawPayload.translocation === 'string') {
+        rawPayload.translocation = normalizedMode || 'none';
+      } else if (rawPayload.translocation) {
+        rawPayload.translocation.mode = normalizedMode || 'none';
+      }
+    }
+    
+    // Attach validation metadata for downstream processing
+    // CRITICAL: explicitDowngradeMode tells consumers exactly what mode they're getting
+    rawPayload._validation = {
+      forceGenericSymbolicRead: apiValidation.forceGenericSymbolicRead,
+      explicitDowngradeMode: explicitDowngradeMode,
+      warnings: apiValidation.warnings,
+      infos: apiValidation.infos,
+    };
 
     const normalizeNumber = (value: unknown): number | null => {
       const coerced = typeof value === 'string' ? value.trim() : value;
@@ -418,6 +492,9 @@ export async function POST(request: NextRequest) {
           })()
         : null;
 
+      // Normalize translocation to canonical form (Jules Constitution Article I)
+      const normalizedTranslocation = normalizeRelocationMode(rawPayload.translocation) || 'both_local';
+      
       const v2Config = {
         schema: 'mb-1',
         mode: rawPayload.mode || rawPayload.context?.mode,
@@ -426,10 +503,12 @@ export async function POST(request: NextRequest) {
         endDate: rawPayload.window?.end,
         personA: rawPayload.personA,
         personB: rawPayload.personB || null,
-        translocation: rawPayload.translocation || 'BOTH_LOCAL',
+        translocation: normalizedTranslocation,
         reportStructure: rawPayload.reportStructure || (rawPayload.personB ? 'synastry' : 'solo'),
         relationshipContext,
-        context: rawPayload.context
+        context: rawPayload.context,
+        // Pass validation metadata for downstream symbolic read processing
+        _validation: rawPayload._validation || null,
       };
 
       // Run the v2 engine to format the final report
@@ -525,7 +604,7 @@ export async function POST(request: NextRequest) {
       const safePersonB = sanitizeForFilename(runMetadata?.person_b, runMetadata?.person_b ? 'PersonB' : 'Solo');
       const todayIso = new Date().toISOString().split('T')[0];
 
-      const responseBody = {
+      const responseBody: Record<string, any> = {
         ...chartData,
         success: chartData?.success ?? true,
         version: 'v2',
@@ -544,6 +623,29 @@ export async function POST(request: NextRequest) {
       if (relationshipContext) {
         responseBody.relationship_context = relationshipContext;
         responseBody.relationship = relationshipContext;
+      }
+      
+      // Include validation metadata in response (Jules Constitution compliance)
+      // EXPLICIT DOWNGRADE MODE: Never silently guess - consumers know exactly what mode they're getting
+      if (rawPayload._validation) {
+        const downgradeMode = rawPayload._validation.explicitDowngradeMode;
+        responseBody._validation = {
+          forceGenericSymbolicRead: rawPayload._validation.forceGenericSymbolicRead || false,
+          explicitDowngradeMode: downgradeMode || null,
+          warnings: rawPayload._validation.warnings || [],
+          infos: rawPayload._validation.infos || [],
+        };
+        
+        // Surface downgrade mode prominently so consumers know what they're getting
+        if (downgradeMode === 'math_only') {
+          responseBody._output_mode = 'math_only';
+          responseBody._output_mode_note = 'relationship_context not provided for relational report; returning numeric climate only (no symbolic read)';
+        } else if (downgradeMode === 'generic_symbolic') {
+          responseBody._output_mode = 'generic_symbolic';
+          responseBody._output_mode_note = 'relationship_context not provided for relational report; symbolic read uses generic voice (no role/obligation assumptions)';
+        } else {
+          responseBody._output_mode = 'full';
+        }
       }
 
       return NextResponse.json(responseBody, { status: 200 });
