@@ -8,6 +8,8 @@ import { stampProvenance } from '@/lib/raven/provenance';
 import { summariseUploadedReportJson } from '@/lib/raven/reportSummary';
 import { runMathBrain } from '@/lib/mathbrain/adapter';
 import { generateStream } from '@/lib/llm';
+import { verifyToken } from '@/lib/auth/jwt';
+import { checkAllowlist } from '@/lib/auth/allowlist';
 import { processMirrorDirective } from '@/poetic-brain/src/index';
 import {
   createProbe,
@@ -1634,6 +1636,22 @@ export async function POST(req: Request) {
 
     // Record session data before streaming
     appendHistoryEntry(sessionLog, 'user', textInput);
+
+    // === Auth: verify caller before invoking Perplexity ===
+    const authHeader = (req as any).headers?.get ? (req as any).headers.get('authorization') : undefined;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized. Missing Bearer token.' }, { status: 401 });
+    }
+    const token = authHeader.split(' ')[1];
+    try {
+      const decoded = await verifyToken(token);
+      const allow = checkAllowlist(decoded);
+      if (!allow.allowed) {
+        return NextResponse.json({ ok: false, error: 'Access denied', reason: allow.reason }, { status: 403 });
+      }
+    } catch (err: any) {
+      return NextResponse.json({ ok: false, error: 'Invalid token', detail: err?.message || String(err) }, { status: 401 });
+    }
 
     const encoder = new TextEncoder();
     const stream = await generateStream(prompt, {

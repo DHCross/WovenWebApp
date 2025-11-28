@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
+import { verifyToken } from '@/lib/auth/jwt';
+import { checkAllowlist } from '@/lib/auth/allowlist';
 
 export const runtime = 'nodejs';
 
@@ -41,6 +43,12 @@ export async function POST(req: Request) {
     }
     const token = authHeader.split(' ')[1];
     const decoded = await verifyToken(token);
+
+    // Server-side allowlist (defense-in-depth). If configured, deny non-allowed accounts.
+    const allow = checkAllowlist(decoded);
+    if (!allow.allowed) {
+      return NextResponse.json({ error: 'Access denied', reason: allow.reason }, { status: 403 });
+    }
 
     // Optional RBAC/scope gate for paywall-style access control
     // Disabled by default. Set POETIC_REQUIRED_SCOPE to enable (e.g., 'read:poetic_brain').

@@ -4720,8 +4720,8 @@ export default function MathBrainPage() {
             </p>
           </div>
 
-          {/* Resume from Past Session Prompt */}
-          {showSessionResumePrompt && savedSession && (
+          {/* Resume from Past Session Prompt — unified card (no redundant bottom toast) */}
+          {(showSessionResumePrompt && savedSession) || hasSavedInputs ? (
             <div
               id="mb-resume-card"
               className="mt-6 mx-auto max-w-2xl rounded-lg border border-indigo-500/30 bg-indigo-950/20 p-4"
@@ -4733,28 +4733,55 @@ export default function MathBrainPage() {
                   </svg>
                 </div>
                 <div className="flex-1 text-left">
-                  <h3 className="text-sm font-medium text-indigo-200">Resume from past session?</h3>
+                  <h3 className="text-sm font-medium text-indigo-200">
+                    {savedSession ? 'Resume from past session?' : 'Previous inputs found'}
+                  </h3>
                   <p className="mt-1 text-xs text-slate-300">
-                    Last session: {savedSession.createdAt ? new Date(savedSession.createdAt).toLocaleString() : 'Unknown date'}
-                    {savedSession.summary && typeof savedSession.summary === 'object' && (
-                      <span>
-                        {' • '}
-                        {savedSession.summary.magnitudeLabel || 'Activity'}: {savedSession.summary.valenceLabel || 'Mixed'}
-                      </span>
+                    {savedSession && (
+                      <>
+                        Last session: {savedSession.createdAt ? new Date(savedSession.createdAt).toLocaleString() : 'Unknown date'}
+                        {savedSession.summary && typeof savedSession.summary === 'object' && (
+                          <span>
+                            {' • '}
+                            {savedSession.summary.magnitudeLabel || 'Activity'}: {savedSession.summary.valenceLabel || 'Mixed'}
+                          </span>
+                        )}
+                        {savedSession.summary && typeof savedSession.summary === 'string' && ` • ${savedSession.summary}`}
+                      </>
                     )}
-                    {savedSession.summary && typeof savedSession.summary === 'string' && ` • ${savedSession.summary}`}
+                    {!savedSession && hasSavedInputs && 'Your previous form inputs are available to restore.'}
                   </p>
-                  <div className="mt-3 flex gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {/* Full session resume (includes result) */}
+                    {savedSession && (
+                      <button
+                        type="button"
+                        onClick={loadSavedSession}
+                        className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                      >
+                        Resume Session
+                      </button>
+                    )}
+                    {/* Inputs only (no result, just form values) */}
+                    {hasSavedInputs && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          resumeLastInputs();
+                          setShowSessionResumePrompt(false);
+                        }}
+                        className="rounded-md border border-indigo-500/50 bg-indigo-900/30 px-3 py-1.5 text-xs font-medium text-indigo-200 hover:bg-indigo-900/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                      >
+                        {savedSession ? 'Inputs Only' : 'Resume Inputs'}
+                      </button>
+                    )}
+                    {/* Start fresh / reset */}
                     <button
                       type="button"
-                      onClick={loadSavedSession}
-                      className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-                    >
-                      Resume Session
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowSessionResumePrompt(false)}
+                      onClick={() => {
+                        setShowSessionResumePrompt(false);
+                        resetSessionMemory();
+                      }}
                       className="rounded-md border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900"
                     >
                       Start Fresh
@@ -4763,7 +4790,7 @@ export default function MathBrainPage() {
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
 
           {/* Math Brain: FIELD Layer Only */}
           <div className="mt-6 flex items-center justify-center gap-4 text-sm text-slate-400">
@@ -4810,16 +4837,6 @@ export default function MathBrainPage() {
             </a>
           )}
         </div>
-
-        {hasSavedInputs && (
-          <div className="mt-6 flex items-center justify-center gap-3 print:hidden">
-            <div className="rounded-md border border-slate-700 bg-slate-800/60 px-3 py-2 text-slate-200 text-sm">
-              A previous session was found.
-            </div>
-            <button type="button" onClick={resumeLastInputs} className="rounded-md bg-indigo-600 px-3 py-2 text-white hover:bg-indigo-500 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">Resume inputs</button>
-            <button type="button" onClick={resetSessionMemory} className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 hover:bg-slate-700 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">Reset</button>
-          </div>
-        )}
 
         <form onSubmit={onSubmit} className="mt-10 print:hidden">
           {debugMode && (
