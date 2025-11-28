@@ -3,7 +3,27 @@
 
 export const APP_NAME = 'Raven Calder';
 export const STATUS_CONNECTED = 'Connected';
-export const INPUT_PLACEHOLDER = 'Ask or paste here';
+export const INPUT_PLACEHOLDER = 'Share what\'s moving in you, or drop a question...';
+
+// Session mode labels (user-facing, not technical)
+export const SESSION_MODE_LABELS = {
+  idle: 'Open Dialogue',
+  report: 'Mirror Reading',
+  weather: 'Symbolic Weather',
+  conversation: 'Conversation',
+} as const;
+
+// Status messages (softer, less technical)
+export const STATUS_MESSAGES = {
+  ravenReady: 'Raven is ready',
+  ravenListening: 'Listening...',
+  mirrorLoaded: 'Your Mirror Directive is loaded',
+  readyToInterpret: 'Ready to interpret',
+  reportReceived: 'Astro report received',
+  generatingMirror: 'Opening the mirror reading...',
+  generatingSolo: 'Opening solo reading...',
+  generatingRelational: 'Opening relational reading...',
+} as const;
 
 // GeoNames UI copy (drop-in)
 export const GEONAMES_COPY = {

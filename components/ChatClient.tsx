@@ -899,51 +899,63 @@ export default function ChatClient() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-[#05060b] via-[#0c111e] to-[#010207] text-slate-100">
-      <header className="border-b border-slate-800/60 bg-slate-900/70 backdrop-blur-sm">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-6 py-6 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-1">
-            <div className="text-xs uppercase tracking-[0.2em] text-slate-400">
-              Raven Calder · Poetic Brain
+      {/* Distinctive Raven Identity Header */}
+      <header className="relative border-b border-slate-800/60 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-emerald-950/30 backdrop-blur-sm">
+        {/* Subtle glyph/pattern overlay for brand identity */}
+        <div 
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5 L55 30 L30 55 L5 30 Z' fill='none' stroke='%2310b981' stroke-width='0.5'/%3E%3C/svg%3E")`,
+            backgroundSize: '60px 60px',
+          }}
+        />
+        <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4">
+            {/* Raven glyph/icon */}
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/20 to-slate-800/60 border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
+              <span className="text-2xl">🪶</span>
             </div>
-            <h1 className="text-2xl font-semibold text-slate-100">{APP_NAME}</h1>
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-emerald-300">
-              <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
-              <span>{STATUS_CONNECTED}</span>
+            <div className="space-y-0.5">
+              <h1 className="text-xl font-semibold text-slate-100 tracking-tight">{APP_NAME}</h1>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.9)] animate-pulse" />
+                <span className="text-xs text-emerald-300/90">{STATUS_CONNECTED}</span>
+              </div>
             </div>
           </div>
           <div className="flex flex-col gap-2 text-sm">
             <div className="flex flex-wrap gap-2">
               <div className="flex flex-col gap-1">
-                <div className="inline-flex items-center gap-2 rounded-lg border border-slate-600/60 bg-slate-800/60 px-3 py-2">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
-                    Persona
+                <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700/50 bg-slate-800/40 px-3 py-2">
+                  <span className="text-[10px] uppercase tracking-[0.15em] text-slate-500">
+                    Voice
                   </span>
                   <select
                     value={personaMode}
                     onChange={(event) => setPersonaMode(event.target.value as PersonaMode)}
-                    className="bg-transparent text-sm font-medium text-slate-100 focus:outline-none"
+                    className="bg-transparent text-sm font-medium text-slate-200 focus:outline-none cursor-pointer"
                   >
                     <option value="plain" className="bg-slate-900 text-slate-100">
-                      Plain · Technical
+                      Technical
                     </option>
                     <option value="hybrid" className="bg-slate-900 text-slate-100">
-                      Hybrid · Default
+                      Balanced
                     </option>
                     <option value="poetic" className="bg-slate-900 text-slate-100">
-                      Poetic · Lyrical
+                      Lyrical
                     </option>
                   </select>
                 </div>
-                <p className="max-w-[220px] text-[10px] text-slate-400">
+                <p className="max-w-[200px] text-[10px] text-slate-500 leading-relaxed">
                   {PERSONA_DESCRIPTIONS[personaMode]}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => handleUploadButton("mirror")}
-                className="rounded-lg border border-slate-600/60 bg-slate-800/60 px-4 py-2 font-medium text-slate-100 hover:border-slate-500 hover:bg-slate-800 transition"
+                className="rounded-lg border border-slate-700/50 bg-slate-800/40 px-4 py-2 font-medium text-slate-200 hover:border-emerald-500/40 hover:bg-slate-800/60 transition"
               >
-                📦 Upload Astro Report
+                Upload Report
               </button>
               {canRecoverStoredPayload && (
                 <button
@@ -952,62 +964,56 @@ export default function ChatClient() {
                   className={`rounded-lg border px-4 py-2 font-medium text-emerald-100 transition ${
                     resumeFlashActive
                       ? "border-emerald-400/80 bg-emerald-500/30 shadow-[0_0_18px_rgba(16,185,129,0.65)] ring-2 ring-emerald-300/90"
-                      : "border-emerald-500/50 bg-emerald-500/10 hover:bg-emerald-500/20"
+                      : "border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20"
                   }`}
                 >
-                  ⏮️ Resume Math Brain
+                  Resume Last Chart
                 </button>
               )}
               <button
                 type="button"
                 onClick={handleStartWrapUp}
-                className="rounded-lg border border-transparent px-4 py-2 text-slate-400 hover:text-slate-200 transition"
+                className="rounded-lg border border-transparent px-3 py-2 text-slate-500 hover:text-slate-300 transition text-sm"
               >
-                Reset Session
+                Reset
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="border-b border-slate-800/60 bg-slate-950/70">
-        <div className="mx-auto flex w-full max-w-5xl items-center gap-3 px-6 py-3">
-          <span
-            className={`inline-flex h-3 w-3 rounded-full ${
-              liveStatus.tone === "active"
-                ? "bg-emerald-300 animate-pulse"
-                : liveStatus.tone === "ready"
-                  ? "bg-emerald-400"
-                  : "bg-slate-500"
-            }`}
-            aria-hidden
-          />
-          <div className="flex flex-col">
-            <p className="text-sm font-semibold text-slate-100">{liveStatus.title}</p>
-            <p className="text-xs text-slate-400">{liveStatus.detail}</p>
+      {/* Simplified status indicator - only show when actively processing */}
+      {typing && (
+        <div className="border-b border-emerald-500/20 bg-emerald-950/30">
+          <div className="mx-auto flex w-full max-w-5xl items-center gap-3 px-6 py-2">
+            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden />
+            <p className="text-sm text-emerald-200/90">Raven is composing...</p>
           </div>
         </div>
-      </div>
+      )}
 
+      {/* Session mode indicator - animated when active */}
       {sessionStarted && (
-        <div className="border-b border-slate-800/60 bg-slate-900/60">
-          <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+        <div className="border-b border-slate-800/40 bg-gradient-to-r from-slate-900/80 to-emerald-950/20">
+          <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-6 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
               <span
-                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] ${sessionModeDescriptor.badgeClass}`}
+                className={`relative inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium tracking-wide ${sessionModeDescriptor.badgeClass}`}
               >
-                {sessionModeDescriptor.label}
+                {/* Animated ring for active reading */}
+                <span className="absolute inset-0 rounded-full animate-ping opacity-20 bg-emerald-400" style={{ animationDuration: '2s' }} />
+                <span className="relative">{sessionModeDescriptor.label}</span>
               </span>
-              <p className="mt-2 text-xs text-slate-300 sm:max-w-xl">
+              <p className="text-xs text-slate-400 sm:max-w-md">
                 {sessionModeDescriptor.description}
               </p>
             </div>
             <button
               type="button"
               onClick={handleStartWrapUp}
-              className="inline-flex items-center justify-center rounded-md border border-slate-700/60 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-800 transition"
+              className="inline-flex items-center justify-center rounded-md border border-slate-700/40 bg-slate-800/30 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800/50 hover:text-slate-100 transition"
             >
-              End Session
+              End Reading
             </button>
           </div>
         </div>
@@ -1245,46 +1251,57 @@ export default function ChatClient() {
               : null;
             const resonanceActive = msg.validationMode === 'resonance';
 
+            // Simplify hook display - hide technical internal states
+            const displayHook = msg.hook?.replace(/\s*\(.*?\)\s*/g, '').replace(/Auto-Execution.*$/i, '').trim() || null;
+
             return (
               <div
                 key={msg.id}
-                className={`flex ${isRaven ? "justify-start" : "justify-end"}`}
+                className={`group flex ${isRaven ? "justify-start" : "justify-end"}`}
               >
                 <div
-                  className={`max-w-full rounded-2xl border px-5 py-4 shadow-lg transition ${
+                  className={`relative max-w-full rounded-2xl px-5 py-4 transition ${
                     isRaven
-                      ? "bg-slate-900/70 border-slate-800/70 text-slate-100"
-                      : "bg-slate-800/80 border-slate-700/60 text-slate-100"
+                      ? "bg-gradient-to-br from-slate-900/80 to-slate-900/60 border border-slate-800/50 shadow-lg shadow-slate-950/50"
+                      : "bg-gradient-to-br from-emerald-950/40 to-slate-900/60 border border-emerald-800/30 shadow-md"
                   }`}
                   style={{ width: "100%" }}
                 >
-                  <div className="mb-3 flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.2em] text-slate-400">
-                    <span className="font-semibold text-slate-200">
+                  {/* Simplified header - cleaner hierarchy */}
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className={`text-sm font-medium ${isRaven ? "text-emerald-300/90" : "text-slate-300"}`}>
                       {isRaven ? "Raven" : "You"}
                     </span>
-                    {msg.climate && <span className="text-slate-400/80">{msg.climate}</span>}
-                    {msg.hook && <span className="text-slate-400/60">{msg.hook}</span>}
+                    {displayHook && (
+                      <span className="text-[11px] text-slate-500">· {displayHook}</span>
+                    )}
                     {resonanceActive && (
-                      <span className="inline-flex items-center rounded-full border border-emerald-400/40 px-2 py-0.5 text-[10px] font-semibold tracking-[0.2em] text-emerald-200">
+                      <span className="inline-flex items-center rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] text-emerald-300/80">
                         Resonance
                       </span>
                     )}
                   </div>
-                  <div className={showCopyButton ? "flex items-start gap-3" : undefined}>
+                  
+                  {/* Message content - flowing prose */}
+                  <div className="relative">
                     <div
-                      className={`${showCopyButton ? "flex-1" : ""} space-y-3 text-[15px] leading-relaxed text-slate-100`}
+                      className="prose-sm prose-slate prose-invert max-w-none text-[15px] leading-[1.7] text-slate-200"
                       dangerouslySetInnerHTML={{ __html: sanitizeHtml(msg.html) }}
                     />
+                    
+                    {/* Subtle copy button - appears on hover */}
                     {showCopyButton && (
                       <button
                         type="button"
                         onClick={() => handleCopyMessage(msg.id, msg.rawText ?? "")}
-                        className="shrink-0 rounded-md border border-slate-700/60 bg-slate-800/70 px-2 py-1 text-[11px] uppercase tracking-[0.2em] text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
+                        className="absolute -right-2 top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-md bg-slate-800/80 px-2 py-1 text-[10px] text-slate-400 hover:text-slate-200 hover:bg-slate-700/80"
+                        title="Copy to clipboard"
                       >
-                        {copiedMessageId === msg.id ? "Copied" : "Copy"}
+                        {copiedMessageId === msg.id ? "✓" : "Copy"}
                       </button>
                     )}
                   </div>
+                  
                   {isRaven && msg.probe && !msg.pingFeedbackRecorded && (
                     <div className="mt-4">
                       <MirrorResponseActions
@@ -1391,59 +1408,60 @@ export default function ChatClient() {
           onSubmit={handleSubmit}
           className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-6 py-6"
         >
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder={INPUT_PLACEHOLDER}
-            rows={3}
-            onKeyDown={(event) => {
-              if (
-                event.key === "Enter" &&
-                !event.shiftKey &&
-                !event.ctrlKey &&
-                !event.altKey &&
-                !event.metaKey
-              ) {
-                event.preventDefault();
-                sendCurrentInput();
-              }
-            }}
-            className="w-full rounded-xl border border-slate-700/60 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-slate-400 focus:ring-0"
-          />
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap gap-2 text-sm">
-              <button
-                type="submit"
-                disabled={!input.trim() || typing}
-                className="rounded-lg border border-emerald-500/60 bg-emerald-500/20 px-4 py-2 font-medium text-emerald-100 transition hover:bg-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Send
-              </button>
+          <div className="relative">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder={INPUT_PLACEHOLDER}
+              rows={2}
+              onKeyDown={(event) => {
+                if (
+                  event.key === "Enter" &&
+                  !event.shiftKey &&
+                  !event.ctrlKey &&
+                  !event.altKey &&
+                  !event.metaKey
+                ) {
+                  event.preventDefault();
+                  sendCurrentInput();
+                }
+              }}
+              className="w-full rounded-xl border border-slate-700/40 bg-slate-900/50 px-4 py-3 pr-24 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-emerald-500/40 focus:bg-slate-900/70 focus:ring-1 focus:ring-emerald-500/20 resize-none"
+            />
+            {/* Send button integrated into input */}
+            <button
+              type="submit"
+              disabled={!input.trim() || typing}
+              className="absolute right-2 bottom-2 rounded-lg bg-emerald-500/80 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-30 disabled:bg-slate-600"
+            >
+              {typing ? "..." : "Send"}
+            </button>
+          </div>
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <div className="flex items-center gap-3">
               {typing && (
                 <button
                   type="button"
                   onClick={stop}
-                  className="rounded-lg border border-slate-600/60 bg-slate-900/70 px-3 py-2 text-slate-200 transition hover:bg-slate-800"
+                  className="text-slate-400 hover:text-slate-200 transition"
                 >
-                  Stop
+                  Stop generating
                 </button>
               )}
-            </div>
-            <div className="flex flex-col items-start gap-2 text-xs text-slate-500 sm:items-end">
               {(sessionStarted || reportContexts.length > 0) && (
                 <button
                   type="button"
                   onClick={handleStartWrapUp}
-                  className="inline-flex items-center justify-center rounded-md border border-slate-600/70 bg-slate-900/70 px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-200 hover:border-slate-400 hover:bg-slate-800 transition"
+                  className="text-slate-500 hover:text-slate-300 transition"
                 >
-                  End Session Reading
+                  End reading
                 </button>
               )}
-              <div>
-                Upload Math Brain exports, Mirror JSON, or AstroSeek charts using the controls near the top of the page.
-              </div>
             </div>
+            <span className="hidden sm:inline text-slate-600">
+              Press Enter to send · Shift+Enter for new line
+            </span>
           </div>
         </form>
         <input
