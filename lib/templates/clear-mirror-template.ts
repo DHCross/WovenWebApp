@@ -136,6 +136,8 @@ export interface ClearMirrorData {
     innerConstitution?: Array<{ archetypal: string; geometry: string; expression: string; testMarker: string }>;
     mirrorVoice?: Array<{ insight: string; geometry: string; testPrompt: string }>;
   };
+  /** Optional Math Brain snapshot for validation (Jules Constitution compliance) */
+  mathBrainSnapshot?: Record<string, unknown>;
 }
 
 /**
