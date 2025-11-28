@@ -7,6 +7,20 @@ import { synthesizeLabel } from './voice/labels';
 import { assertApprovedLabel } from './voice/guard';
 import { clampValue } from './balance/scale';
 
+/**
+ * Relationship context for negative constraints.
+ * These values tell the generator what NOT to assume, not what to say.
+ * The Math Brain graphics describe weather; Raven chatbot handles nuance.
+ */
+export interface RelationshipContext {
+  /** Primary relationship type: PARTNER, FRIEND, or FAMILY */
+  type?: 'PARTNER' | 'FRIEND' | 'FAMILY';
+  /** For PARTNER: P1 (new), P2 (dating), P3 (situationship), P4 (casual), P5a (committed), P5b (non-romantic intimate) */
+  intimacy_tier?: 'P1' | 'P2' | 'P3' | 'P4' | 'P5a' | 'P5b';
+  /** Role within FAMILY: Parent, Offspring, Sibling, etc. */
+  role?: string;
+}
+
 export interface ClimatePattern {
   name: string;
   icon: string;
@@ -46,69 +60,70 @@ export interface ClimateNarrative {
 }
 
 // Climate patterns based on valence + volatility combinations
+// NOTE: "advice" is now environmental description, not behavioral instruction
 const CLIMATE_PATTERNS: Record<string, ClimatePattern> = {
   'favorable_wind': {
     name: 'Favorable Wind',
     icon: '🌊✨',
     description: 'High positive valence with low volatility',
     signature: 'Powerful, steady, constructive energy',
-    advice: 'Use this coherent energy for significant progress. The stability allows for bold moves.'
+    advice: 'The field feels coherent and expansive. Action taken now tends to land cleanly. Stillness remains equally valid.'
   },
   'surge_scatter': {
     name: 'Surge Scatter',
     icon: '🌀⚡',
     description: 'High positive valence with high volatility',
     signature: 'Immense power geared toward change, but scattered and chaotic',
-    advice: 'Harness the energy but be prepared for unpredictability. Focus on what you can control.'
+    advice: 'The field carries strong energy that shifts unpredictably. Some things may land; others may scatter.'
   },
   'diamond_pressure': {
     name: 'Diamond Pressure',
     icon: '💎⚔️',
     description: 'High negative valence with low volatility',
     signature: 'Intense, focused compression that transforms',
-    advice: 'This pressure is creating something valuable. Stay present and work with the process.'
+    advice: 'The field feels dense and inward-facing. Pressure shows up. What you do with it remains yours to choose.'
   },
   'storm_system': {
     name: 'Compression Field',
     icon: '⛈️🌪',
     description: 'High negative valence with high volatility',
     signature: 'Chaotic restrictive forces; breakdown before breakthrough',
-    advice: 'Focus on survival and protection. This is temporary but intense clearing weather.'
+    advice: 'The field feels turbulent and contracted. This weather pattern typically passes. No action required.'
   },
   'steady_flow': {
     name: 'Steady Flow',
     icon: '🌊🧘',
     description: 'Moderate positive valence with low volatility',
     signature: 'Reliable, gentle progress',
-    advice: 'Build on this stable foundation. Small, consistent actions will compound.'
+    advice: 'The field feels stable with a gentle forward lean. Things begun now tend to proceed without disruption.'
   },
   'choppy_waters': {
     name: 'Choppy Waters',
     icon: '🌊🔀',
     description: 'Moderate valence with high volatility',
     signature: 'Changing conditions requiring adaptation',
-    advice: 'Stay flexible and responsive. Ride the waves rather than fighting them.'
+    advice: 'The field feels variable—conditions shift. What works one hour may not work the next. The weather, not you.'
   },
   'gentle_pressure': {
     name: 'Gentle Pressure',
     icon: '🌫⚖️',
     description: 'Moderate negative valence with low volatility',
     signature: 'Consistent challenge that strengthens',
-    advice: 'Use this steady resistance as training. Small improvements will accumulate.'
+    advice: 'The field has a steady inward pull. Friction may be present without being urgent.'
   },
   'equilibrium': {
     name: 'Equilibrium',
     icon: '⚖️🕯️',
     description: 'Neutral valence with low volatility',
     signature: 'Balanced, stable conditions',
-    advice: 'Perfect time for reflection and planning. The calm allows for clear thinking.'
+    advice: 'The field feels quiet and balanced. Neither pushing nor pulling. A neutral canvas.'
   },
   'chaos_neutral': {
     name: 'Neutral Chaos',
     icon: '⚖️🌀',
     description: 'Neutral valence with high volatility',
     signature: 'Unpredictable but not directionally biased',
-    advice: 'Stay centered in the chaos. Opportunities and challenges are equally likely.'
+    advice: 'The field feels active but directionless. Unpredictability shows up as the weather pattern, not a problem to solve.'
   }
 };
 
@@ -196,12 +211,12 @@ function generateRelationalStory(
     : "Today's relational field";
 
   const magnitudeTone = climate.magnitude >= 4
-    ? 'peak compression'
+    ? 'peak activation'
     : climate.magnitude >= 3
-      ? 'noticeable pressure'
+      ? 'noticeable charge'
       : climate.magnitude >= 2
         ? 'steady background hum'
-        : 'soft, low-volume charge';
+        : 'soft, low-volume presence';
 
   const directionTone = valenceLevel.level <= -2
     ? 'an inward tilt'
@@ -209,17 +224,18 @@ function generateRelationalStory(
       ? 'an outward tilt'
       : 'a neutral tilt';
 
-  const nervousSystemLine = valenceLevel.level <= -2
-    ? 'Each nervous system is conserving energy internally, so subtle, low-demand contact lands best.'
+  // Environmental description only - no behavioral prescription
+  const fieldDescription = valenceLevel.level <= -2
+    ? 'The field tends toward conservation and inward focus.'
     : valenceLevel.level >= 2
-      ? 'Both nervous systems prefer motion and exchange, so collaborative gestures feel natural.'
-      : 'Either person can steer tone with gentle intent because the field sits close to equilibrium.';
+      ? 'The field tends toward motion and exchange.'
+      : 'The field sits near equilibrium, responsive to whoever moves first.';
 
-  const echoSensitivity = climate.magnitude >= 3
-    ? 'Small misreads echo louder than usual, so clarity matters more than volume.'
-    : 'The stakes are moderate, allowing room for softness and calibration.';
+  const sensitivityNote = climate.magnitude >= 3
+    ? 'At this volume, small signals carry farther than usual.'
+    : 'At this volume, there is room for recalibration without consequence.';
 
-  return `${timeFrame} between ${pairLabel} carries ${magnitudeTone} (${magnitudeLabel.toLowerCase()}) with ${directionTone}. ${nervousSystemLine} ${echoSensitivity}`;
+  return `${timeFrame} between ${pairLabel} carries ${magnitudeTone} (${magnitudeLabel.toLowerCase()}) with ${directionTone}. ${fieldDescription} ${sensitivityNote}`;
 }
 
 function generateStory(
@@ -268,81 +284,81 @@ function generateParadoxPoles(climate: ClimateData, isLatentField: boolean = fal
   const magnitudeLabel = getMagnitudeLabel(climate.magnitude);
   const valenceLevel = getValenceLevel(climate.valence_bounded ?? climate.valence ?? 0);
 
-  // Magnitude poles
+  // Magnitude poles - E-Prime compliant (no "is/are")
   let magnitudeWB = '';
   let magnitudeABE = '';
 
   if (isLatentField) {
     // Dormant/ex relationship - conditional phrasing
     if (climate.magnitude >= 4) {
-      magnitudeWB = 'If this field were re-engaged, it would carry breakthrough-level archetypal charge';
-      magnitudeABE = 'Awareness Note: High symbolic charge may tempt re-engagement without clear boundaries';
+      magnitudeWB = 'If this field were re-engaged, it would carry breakthrough-level archetypal charge.';
+      magnitudeABE = 'Awareness Note: High symbolic charge may surface as pull toward re-engagement.';
     } else if (climate.magnitude >= 3) {
-      magnitudeWB = 'If stirred, this dormant field would surface with solid energetic intensity';
-      magnitudeABE = 'Notice if symbolic flare-ups feel like invitations for action — they may simply dramatize closure';
+      magnitudeWB = 'If stirred, this dormant field would surface with solid energetic intensity.';
+      magnitudeABE = 'Symbolic flare-ups may dramatize closure; this does not require action.';
     } else if (climate.magnitude >= 2) {
-      magnitudeWB = 'Dormant field carries moderate potential if contact reopens';
-      magnitudeABE = 'Low enough charge that reactivation is unlikely unless deliberately pursued';
+      magnitudeWB = 'Dormant field carries moderate potential if contact reopens.';
+      magnitudeABE = 'Reactivation seems unlikely unless deliberately pursued.';
     } else {
-      magnitudeWB = 'Minimal symbolic charge in this dormant field — largely settled';
-      magnitudeABE = 'May still surface in dreams or peripheral awareness but carries little active pull';
+      magnitudeWB = 'Minimal symbolic charge appears in this dormant field—largely settled.';
+      magnitudeABE = 'May still surface in dreams or peripheral awareness; carries little active pull.';
     }
   } else {
-    // Active relationship - standard phrasing
+    // Active relationship - E-Prime compliant
     if (climate.magnitude >= 4) {
-      magnitudeWB = 'Perfect conditions for breakthrough actions and significant decisions';
-      magnitudeABE = 'Risk of experiencing intense structural pressure or taking on more than is sustainable at once';
+      magnitudeWB = 'The conditions support significant action. Breakthrough-level energy appears available.';
+      magnitudeABE = 'Intense structural pressure may show up. Capacity varies.';
     } else if (climate.magnitude >= 3) {
-      magnitudeWB = 'Solid energy for making meaningful progress on important projects';
-      magnitudeABE = 'May scatter attention across too many priorities';
+      magnitudeWB = 'Solid energy appears present. Things begun now tend to carry weight.';
+      magnitudeABE = 'Attention may scatter across priorities. The field, not failure.';
     } else if (climate.magnitude >= 2) {
-      magnitudeWB = 'Steady energy for consistent, incremental progress';
-      magnitudeABE = 'Might feel underwhelming if expecting major shifts';
+      magnitudeWB = 'Steady energy supports incremental progress.';
+      magnitudeABE = 'Major shifts seem unlikely in this weather. Not wrongness.';
     } else {
-      magnitudeWB = 'Perfect for reflection, planning, and gentle beginnings';
-      magnitudeABE = 'May feel sluggish or unproductive if forcing action';
+      magnitudeWB = 'Low-volume field. Space for reflection exists.';
+      magnitudeABE = 'Forcing action may meet resistance. Inaction remains valid.';
     }
   }
 
-  // Valence poles
+  // Valence poles - E-Prime compliant (no "is/are")
   let valenceWB = '';
   let valenceABE = '';
 
   if (isLatentField) {
     // Dormant/ex relationship - conditional phrasing
     if (valenceLevel.level >= 3) {
-      valenceWB = 'Liberation-tilted energy suggests renewed contact would surface themes of freedom and independence';
-      valenceABE = 'Symbolic harmony may romanticize what was actually a completed cycle';
+      valenceWB = 'Liberation-tilted energy; contact would surface themes of freedom and independence.';
+      valenceABE = 'Symbolic harmony may romanticize what completed as a cycle.';
     } else if (valenceLevel.level >= 1) {
-      valenceWB = 'Gentle supportive undertones in the dormant field — if re-engaged, may feel collaborative';
-      valenceABE = 'Ease could mask unresolved patterns that led to the original separation';
+      valenceWB = 'Gentle supportive undertones; if re-engaged, may feel collaborative.';
+      valenceABE = 'Ease could mask patterns that led to original separation.';
     } else if (valenceLevel.level <= -3) {
-      valenceWB = 'Compression-tilted energy signals that this field, if stirred, would highlight restriction themes';
-      valenceABE = 'Even dormant, intense friction patterns may surface in imagination or peripheral contact';
+      valenceWB = 'Compression-tilted energy; if stirred, would highlight restriction themes.';
+      valenceABE = 'Even dormant, friction patterns may surface in imagination.';
     } else if (valenceLevel.level <= -1) {
-      valenceWB = 'Moderate friction signals that reactivation would likely resurface familiar challenges';
-      valenceABE = 'Be mindful of interpreting symbolic tension as unfinished business requiring action';
+      valenceWB = 'Moderate friction signals; reactivation would resurface familiar challenges.';
+      valenceABE = 'Symbolic tension does not require resolution through action.';
     } else {
-      valenceWB = 'Neutral dormant field — neither pulling toward reconnection nor pushing away';
-      valenceABE = 'Balanced energy may simply reflect that the story is complete, with no charge either way';
+      valenceWB = 'Neutral dormant field—neither pulling toward reconnection nor pushing away.';
+      valenceABE = 'Balanced energy may reflect that the story completed.';
     }
   } else {
-    // Active relationship - standard phrasing
+    // Active relationship - E-Prime compliant
     if (valenceLevel.level >= 3) {
-      valenceWB = 'Harmonious energy supports both/and solutions and collaborative progress';
-      valenceABE = 'Harmony-seeking might avoid necessary direct conversations or tough decisions';
+      valenceWB = 'Harmonious energy appears present. Collaborative solutions tend to emerge.';
+      valenceABE = 'Ease may bypass necessary conversations. Information, not instruction.';
     } else if (valenceLevel.level >= 1) {
-      valenceWB = 'Gentle supportive flow that makes things feel easier and more natural';
-      valenceABE = 'Could lead to complacency or avoiding growth-edge challenges';
+      valenceWB = 'Gentle supportive flow. Things feel easier.';
+      valenceABE = 'Comfort may reduce urgency for growth-edge work. The weather.';
     } else if (valenceLevel.level <= -3) {
-      valenceWB = 'Intense compression creates valuable transformation and clarity';
-      valenceABE = 'Structural pressure may be intense and could trigger resistance patterns';
+      valenceWB = 'Intense compression appears present. Transformation energy seems available.';
+      valenceABE = 'Structural pressure may trigger resistance. Normal.';
     } else if (valenceLevel.level <= -1) {
-      valenceWB = 'Moderate challenges strengthen skills and build resilience';
-      valenceABE = 'Friction could accumulate into frustration if not addressed mindfully';
+      valenceWB = 'Moderate challenge appears present. Friction surfaces.';
+      valenceABE = 'Friction may accumulate if unacknowledged. Acknowledgment does not require action.';
     } else {
-      valenceWB = 'Balanced conditions allow for clear thinking and neutral assessment';
-      valenceABE = 'Lack of directional energy might feel stagnant or unclear';
+      valenceWB = 'Balanced conditions. Clear thinking available.';
+      valenceABE = 'Lack of directional pull may feel stagnant. The weather pattern.';
     }
   }
 
@@ -355,22 +371,84 @@ function generateParadoxPoles(climate: ClimateData, isLatentField: boolean = fal
 function generateRelationalGuidance(
   climate: ClimateData,
   valenceLevel: ValenceLevel,
-  names?: [string, string]
+  names?: [string, string],
+  relationshipContext?: RelationshipContext
 ): string {
   const pairLabel = formatRelationalPair(names);
-  const directional = valenceLevel.level <= -2
-    ? 'Keep contact light and clear; compression days reward steady presence more than initiatives.'
-    : valenceLevel.level >= 2
-      ? 'Share momentum cues and invite co-creation; outward tilt supports shared action.'
-      : 'Name what you notice and let the other person steer if they have more bandwidth.';
+  
+  /**
+   * NEGATIVE CONSTRAINTS ARCHITECTURE
+   * ─────────────────────────────────
+   * The Math Brain graphics describe weather ONLY. Relationship context acts
+   * as guardrails (what NOT to assume), not a steering wheel (what to say).
+   * 
+   * Key principle: We REMOVE inappropriate assumptions based on relationship
+   * type rather than ADD scripts for specific relationships. Raven chatbot
+   * handles full nuance; these cards stay generic and safe.
+   * 
+   * Constraints by relationship type:
+   * - FAMILY (high obligation): Don't say "if you skip contact, nothing breaks"
+   * - FRIEND (low obligation): Don't assume frequent contact - stay generic
+   * - PARTNER/P3 (situationship): Don't say "treat contact as optional" (matches their baseline)
+   * - PARTNER/P5a/P5b (committed): Don't give relationship work advice
+   */
 
-  const magnitudeNote = climate.magnitude >= 4
-    ? 'Treat every exchange like it echoes.'
-    : climate.magnitude >= 3
-      ? 'Expect small ripples to matter; clarity prevents misreads.'
-      : 'Use the lower volume to stay curious rather than corrective.';
+  // Default: most guarded phrasing (safe for any relationship)
+  let contactPhrase = 'The field registers between these charts.';
+  let actionPhrase = 'How you engage—or whether you engage—remains yours to determine.';
+  
+  // Only add "contact optional" language if we're NOT in a high-obligation or situationship context
+  // FAMILY: High obligation - don't imply skipping contact is fine
+  // P3 (situationship): Already treating contact as optional - don't state the obvious
+  const canDescribeContactOptional = 
+    !relationshipContext?.type || // No context = stay generic
+    (relationshipContext.type === 'FRIEND') || // Friends: contact genuinely optional
+    (relationshipContext.type === 'PARTNER' && relationshipContext.intimacy_tier === 'P4'); // P4 casual: low stakes
+  
+  // Don't give "momentum" or "shared action" advice to committed partners
+  // This could come across as "work on your relationship today" which is prescriptive
+  const canDescribeMomentum =
+    !relationshipContext?.type ||
+    relationshipContext.type !== 'PARTNER' ||
+    !['P5a', 'P5b'].includes(relationshipContext.intimacy_tier || '');
 
-  return `${pairLabel} benefit from clarity without demand today. ${directional} ${magnitudeNote}`;
+  // Don't tell FAMILY about "subtlety" in communication - could sound like walking on eggshells
+  const canDescribeSensitivity =
+    !relationshipContext?.type ||
+    relationshipContext.type !== 'FAMILY';
+
+  // Build field tendency based on valence, filtered by negative constraints
+  if (valenceLevel.level <= -2) {
+    contactPhrase = 'The field feels sensitive today.';
+    if (canDescribeSensitivity) {
+      contactPhrase += ' If contact happens, subtlety may land more easily than intensity.';
+    }
+    // DON'T add "if contact doesn't happen, nothing breaks" for high-obligation or situationship
+    if (canDescribeContactOptional) {
+      contactPhrase += ' If contact doesn\'t happen, nothing breaks.';
+    }
+  } else if (valenceLevel.level >= 2) {
+    contactPhrase = 'The field carries momentum today.';
+    // DON'T tell committed partners "shared action tends to flow" (prescriptive)
+    if (canDescribeMomentum) {
+      contactPhrase += ' Shared action tends to flow; solitary action also works.';
+    }
+  } else {
+    contactPhrase = 'The field sits near equilibrium.';
+    // Generic enough for any relationship
+  }
+
+  // Sensitivity description based on magnitude
+  let sensitivityNote = '';
+  if (climate.magnitude >= 4) {
+    sensitivityNote = 'At this volume, signals carry.';
+  } else if (climate.magnitude >= 3) {
+    sensitivityNote = 'At this volume, small signals may register more than usual.';
+  } else {
+    sensitivityNote = 'At this volume, room exists for imprecision without consequence.';
+  }
+
+  return `The relational field between ${pairLabel}: ${contactPhrase} ${sensitivityNote} ${actionPhrase}`;
 }
 
 export function generateClimateNarrative(
@@ -379,7 +457,8 @@ export function generateClimateNarrative(
   isRangeSummary: boolean = false,
   isLatentField: boolean = false,
   mode: 'single' | 'relational' = 'single',
-  names?: [string, string]
+  names?: [string, string],
+  relationshipContext?: RelationshipContext
 ): ClimateNarrative {
   const valence = climate.valence_bounded ?? climate.valence ?? 0;
   const pattern = determineClimatePattern(valence, climate.volatility, climate.magnitude);
@@ -404,7 +483,7 @@ export function generateClimateNarrative(
 
   const headline = periodLabel.title;
   const relationalAdvice = mode === 'relational'
-    ? generateRelationalGuidance(climate, valenceLevel, names)
+    ? generateRelationalGuidance(climate, valenceLevel, names, relationshipContext)
     : undefined;
   const patternForMode = relationalAdvice
     ? { ...pattern, advice: relationalAdvice }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { generateClimateNarrative } from "../../lib/climate-narrative";
+import { generateClimateNarrative, RelationshipContext } from "../../lib/climate-narrative";
 import { ClimateData } from "../../lib/climate-renderer";
 import {
   type OverflowDetail,
@@ -22,6 +22,8 @@ interface EnhancedDailyClimateCardProps {
   isRangeSummary?: boolean;
   dateRange?: { start: string; end: string };
   defaultExpanded?: boolean;
+  /** Relationship context for negative constraints (what NOT to assume) */
+  relationshipContext?: RelationshipContext;
 }
 
 function MagnitudeVisual({ value, className }: { value: number; className?: string }) {
@@ -74,9 +76,10 @@ export default function EnhancedDailyClimateCard({
   isRangeSummary = false,
   dateRange,
   defaultExpanded = true,
+  relationshipContext,
 }: EnhancedDailyClimateCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-  const narrative = generateClimateNarrative(climate, activatedHouses, isRangeSummary, false, mode, names);
+  const narrative = generateClimateNarrative(climate, activatedHouses, isRangeSummary, false, mode, names, relationshipContext);
 
   const hasOverflow = overflowDetail?.overflowRegistered === true;
 

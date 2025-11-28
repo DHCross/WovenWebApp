@@ -101,31 +101,31 @@ export function indicesToScenario(indices: DailyIndex[]): ScenarioResult {
 function buildTranslation(kind: 'openness' | 'support' | 'risk' | 'visibility', leaning: ScenarioAxis['leaning']): string {
   switch (kind) {
     case 'openness': {
-      const base = 'You may feel torn between sharing more of yourself and keeping things private. Openness can build trust but may also leave you exposed. Restriction safeguards your time and energy yet can create distance.';
-      const left = 'If conversations invite honesty or visibility, test what happens when you open the door a little wider.';
-      const right = 'If your day is already crowded or you sense pushback, try honoring a boundary and see whether relief arrives.';
-      const neutral = 'Track which side shows up as you move through the day—note when sharing lands well and when restraint keeps the field steady.';
+      const base = 'The field today may highlight the tension between openness and restriction. Openness can build connection but may also increase exposure. Restriction conserves energy but may create distance.';
+      const left = 'If the field leans toward openness, sharing may land more easily than usual. It may not. You choose.';
+      const right = 'If the field leans toward restriction, boundaries may feel more natural. Honoring them is one option.';
+      const neutral = 'The field is balanced. Both openness and restriction are available. Neither is correct.';
       return `${base} ${leaning === 'left' ? left : leaning === 'right' ? right : neutral}`;
     }
     case 'support': {
-      const base = 'Today may highlight the difference between moves that feel supported and those that instantly meet resistance. Supported choices tend to receive quick yeses or natural momentum, while unsanctioned choices bump into delays or conditions.';
-      const left = 'When doors open easily, consider leaning into that lane and gather data on what the field is endorsing.';
-      const right = 'If every attempt stalls or triggers friction, pause and log it as a signal: the system may be asking for a reroute or lighter touch.';
-      const neutral = 'Notice where things glide versus where they snag—the contrast itself is valuable data.';
+      const base = 'The field today may highlight which moves feel supported versus which meet friction. Supported choices tend to flow; unsanctioned choices tend to snag.';
+      const left = 'If doors open easily, that is the field endorsing a lane. You can take it or not.';
+      const right = 'If attempts stall, that is information about the field. Rerouting is one response; waiting is another.';
+      const neutral = 'The field is mixed. Some things glide; others snag. The contrast itself is data.';
       return `${base} ${leaning === 'left' ? left : leaning === 'right' ? right : neutral}`;
     }
     case 'risk': {
-      const base = 'You may feel pulled between taking a chance on something new and sticking with routines that keep you grounded. Risk can catalyze growth but may unsettle logistics. Stability protects existing structures yet can leave things feeling stagnant.';
-      const left = 'If sparks of excitement or urgency keep surfacing, experiment with one small, contained risk and track the fallout.';
-      const right = 'If fatigue is high or systems feel brittle, favor consolidation and watch whether steadiness restores capacity.';
-      const neutral = 'Check in moment to moment: when energy rises, note what a measured risk would look like; when overwhelm spikes, let stability take the lead.';
+      const base = 'The field today may surface the tension between risk and stability. Risk can catalyze growth but may unsettle logistics. Stability protects structures but may feel static.';
+      const left = 'If energy rises toward risk, that is the weather. A small experiment is one option. Waiting is another.';
+      const right = 'If the field leans toward stability, consolidation may feel more natural. Action is also valid.';
+      const neutral = 'The field is balanced between risk and stability. Both are available. Neither is required.';
       return `${base} ${leaning === 'left' ? left : leaning === 'right' ? right : neutral}`;
     }
     case 'visibility': {
-      const base = 'Situations may pivot between being seen and staying behind the scenes. Visibility helps your message land but also invites feedback. Working quietly preserves autonomy yet can keep progress hidden.';
-      const left = 'If invitations, questions, or spotlight moments appear, test what happens when you step forward and narrate the story yourself.';
-      const right = 'If you crave privacy or notice eyes elsewhere, treat the low profile as a window to refine things offstage.';
-      const neutral = 'Log which moments ask for voice versus which benefit from quiet build—the pattern will show you where the field is pointing.';
+      const base = 'The field today may highlight visibility versus working behind the scenes. Visibility invites feedback. Quiet work preserves autonomy.';
+      const left = 'If the field leans toward visibility, stepping forward may land. It may not. You choose.';
+      const right = 'If the field leans toward obscurity, working offstage may feel more natural. Visibility is also valid.';
+      const neutral = 'The field is balanced. Both visibility and quiet work are available. Neither is correct.';
       return `${base} ${leaning === 'left' ? left : leaning === 'right' ? right : neutral}`;
     }
   }

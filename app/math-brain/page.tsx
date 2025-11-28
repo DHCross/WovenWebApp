@@ -26,6 +26,7 @@ import type {
 import { ContractLinter } from "../../src/contract-linter";
 import { ReportHeader, Weather, Blueprint } from "../../lib/ui-types";
 import EnhancedDailyClimateCard from "../../components/mathbrain/EnhancedDailyClimateCard";
+import { RelationshipContext } from "../../lib/climate-narrative";
 import BalanceMeterSummary from "../../components/mathbrain/BalanceMeterSummary";
 import SymbolicSeismograph from "../components/SymbolicSeismograph";
 import WeatherPlots from "../../components/mathbrain/WeatherPlots";
@@ -5463,7 +5464,7 @@ export default function MathBrainPage() {
                 </span>
                 <span className="text-slate-600">→</span>
                 <span className={layerVisibility.diagnostics ? 'text-indigo-200' : (includeTransits ? 'text-slate-500' : 'text-slate-700')}>
-                  Full Diagnostics
+                  Daily Reads
                 </span>
                 <span className="text-slate-600">→</span>
                 {canVisitPoetic ? (
@@ -5514,7 +5515,7 @@ export default function MathBrainPage() {
                   disabled={!includeTransits}
                   className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${!includeTransits ? 'cursor-not-allowed border border-slate-700 bg-slate-800 text-slate-500' : layerVisibility.diagnostics ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'border border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800'}`}
                 >
-                  {layerVisibility.diagnostics ? 'Hide Diagnostics' : 'Show Diagnostics'}
+                  {layerVisibility.diagnostics ? 'Hide Daily Reads' : 'Show Daily Reads'}
                 </button>
               </div>
             </div>
@@ -6063,6 +6064,17 @@ export default function MathBrainPage() {
 
                                 const isDefaultExpanded = hasToday ? date === today : date === dates[0];
 
+                                // Build relationship context for negative constraints (what NOT to assume)
+                                const relationalCtx: RelationshipContext | undefined = modeKind === 'relational'
+                                  ? {
+                                      type: relationshipType as 'PARTNER' | 'FRIEND' | 'FAMILY' | undefined,
+                                      intimacy_tier: relationshipType === 'PARTNER' && relationshipTier
+                                        ? relationshipTier as 'P1' | 'P2' | 'P3' | 'P4' | 'P5a' | 'P5b'
+                                        : undefined,
+                                      role: relationshipType !== 'PARTNER' ? relationshipRole || undefined : undefined,
+                                    }
+                                  : undefined;
+
                                 return (
                                   <EnhancedDailyClimateCard
                                     key={date}
@@ -6078,6 +6090,7 @@ export default function MathBrainPage() {
                                     }}
                                     overflowDetail={overflowDetail}
                                     defaultExpanded={isDefaultExpanded}
+                                    relationshipContext={relationalCtx}
                                   />
                                 );
                               });

@@ -110,23 +110,23 @@ export function generatePolarityCards(mandates: MandateAspect[]): PolarityCard[]
     if (aspectType === 'conjunction') {
       activeSide = `Your ${archetypes.a.planet.toLowerCase()} and ${archetypes.b.planet.toLowerCase()} merge and intensify each other.`;
       reflectiveSide = `These energies blur together, making it hard to separate one from the other.`;
-      bothSides = `This fusion creates a unified force. You don't get one without the other—they're a single instrument.`;
+      bothSides = `This fusion creates a unified force. You don't get one without the other—they operate as a single instrument.`;
     } else if (aspectType === 'opposition') {
       activeSide = `Your ${archetypes.a.planet.toLowerCase()} pulls you one direction—${archetypes.a.essence}.`;
       reflectiveSide = `Your ${archetypes.b.planet.toLowerCase()} pulls the opposite way—${archetypes.b.essence}.`;
-      bothSides = `This isn't conflict—it's dynamic tension. You're learning to hold both, to let them negotiate in real time.`;
+      bothSides = `This reads as dynamic tension rather than conflict. The pattern involves holding both, letting them negotiate in real time.`;
     } else if (aspectType === 'square') {
       activeSide = `Your ${archetypes.a.planet.toLowerCase()} wants to express freely: ${archetypes.a.essence}.`;
       reflectiveSide = `Your ${archetypes.b.planet.toLowerCase()} creates friction: ${archetypes.b.essence}.`;
-      bothSides = `This friction is productive. It forces you to find creative solutions that honor both energies.`;
+      bothSides = `This friction often proves productive. It tends to force creative solutions that honor both energies.`;
     } else if (aspectType === 'trine') {
       activeSide = `Your ${archetypes.a.planet.toLowerCase()} flows naturally with your ${archetypes.b.planet.toLowerCase()}.`;
       reflectiveSide = `This ease can make you take this gift for granted or avoid growth edges.`;
-      bothSides = `This harmony is real, but don't coast. Use this natural flow to build something that matters.`;
+      bothSides = `This harmony feels real. The natural flow may support building something that matters, if you engage it.`;
     } else if (aspectType === 'sextile') {
       activeSide = `Your ${archetypes.a.planet.toLowerCase()} supports your ${archetypes.b.planet.toLowerCase()} when you reach for them.`;
-      reflectiveSide = `This support is available but not automatic—you have to engage it intentionally.`;
-      bothSides = `This is productive potential. The ease is there, but you need to activate it through conscious choice.`;
+      reflectiveSide = `This support appears available but not automatic—it seems to require intentional engagement.`;
+      bothSides = `This reads as productive potential. The ease sits there, available through conscious choice if you reach for it.`;
     } else {
       // Generic for other aspects
       activeSide = `Your ${archetypes.a.planet.toLowerCase()} expresses as: ${archetypes.a.essence}.`;
@@ -218,10 +218,10 @@ export function synthesizeMirrorVoice(
     lines.push(DIAGNOSTIC_MESSAGES.COMPRESSION_SYNTHESIS);
   }
   
-  // Closing synthesis
-  lines.push(`These aren't contradictions to resolve. They're the actual shape of how you're built. The work isn't to pick a side—it's to let both sides speak to each other.`);
-  lines.push(`When you can hold both, you become fluid. You can move when you need to move and stay when you need to stay. You can open and close. You can grow and consolidate. You can be yourself and be with others.`);
-  lines.push(`That's not a flaw in your chart. That's the whole point.`);
+  // Closing synthesis - E-Prime compliant
+  lines.push(`These read as structural patterns rather than contradictions to resolve. They describe the actual shape of how you seem to operate.`);
+  lines.push(`The work often involves letting both sides speak to each other rather than picking a side. When you can hold both, fluidity tends to emerge—moving when movement serves, staying when staying serves. Opening and closing. Growing and consolidating.`);
+  lines.push(`Not a flaw in your chart. The whole point.`);
   
   return lines.join('\n\n');
 }
