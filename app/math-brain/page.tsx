@@ -2315,7 +2315,10 @@ export default function MathBrainPage() {
 
     const mirrorSymbolicWeather =
       reportType && basePayload
-        ? createMirrorSymbolicWeatherPayload(basePayload, reportType)
+        ? createMirrorSymbolicWeatherPayload(basePayload, reportType, {
+          relationship: rawPayload?.relationship,
+          translocation: rawPayload?.translocation,
+        })
         : null;
 
     const trimmedPayload = mirrorSymbolicWeather
@@ -3773,6 +3776,22 @@ export default function MathBrainPage() {
               }
               : undefined,
         },
+        // Relationship context for Poetic Brain
+        relationship: includePersonB ? {
+          type: relationshipType,
+          intimacy_tier: relationshipType === 'PARTNER' ? relationshipTier || undefined : undefined,
+          role: relationshipType !== 'PARTNER' ? relationshipRole || undefined : undefined,
+          contact_state: contactState,
+          ex_estranged: relationshipType === 'FRIEND' ? undefined : exEstranged,
+          notes: relationshipNotes || undefined,
+        } : undefined,
+        // Relocation/translocation context for Poetic Brain
+        translocation: relocationStatus.effectiveMode !== 'NONE' ? {
+          mode: relocationStatus.effectiveMode,
+          label: relocLabel || undefined,
+          coordinates: relocCoords || undefined,
+          timezone: relocTz || undefined,
+        } : undefined,
         payload: data,
       };
 

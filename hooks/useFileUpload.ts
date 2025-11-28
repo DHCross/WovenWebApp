@@ -141,9 +141,23 @@ export function useFileUpload({
   const storedPayloadSummary = useMemo(() => {
     if (!storedPayload) return "";
     const parts: string[] = [];
-    const person = storedPayload.subjects?.personA?.name?.trim();
-    if (person) parts.push(person);
-    if (storedPayload.includeTransits) parts.push("Transits on");
+    const personA = storedPayload.subjects?.personA?.name?.trim();
+    const personB = storedPayload.subjects?.personB?.name?.trim();
+    
+    // Show both names for relational reports
+    if (personA && personB) {
+      parts.push(`${personA} ↔ ${personB}`);
+    } else if (personA) {
+      parts.push(personA);
+    }
+    
+    // Indicate report type
+    const reportType = storedPayload.reportType;
+    if (reportType === 'mirror') {
+      parts.push(personB ? 'Relational Mirror' : 'Solo Mirror');
+    }
+    
+    if (storedPayload.includeTransits) parts.push("+ Weather");
     const windowStart = storedPayload.window?.start;
     const windowEnd = storedPayload.window?.end;
     if (windowStart && windowEnd) {

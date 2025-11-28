@@ -201,13 +201,24 @@ export const parseReportContent = (
         )
       ) {
         inferredType = "mirror";
-        const personName =
+        const personAName =
           jsonData?.person_a?.name ||
           jsonData?.person_a?.details?.name ||
           jsonData?.personA?.name ||
           jsonData?.personA?.details?.name;
-        if (personName && !/Mirror Directive/.test(displayLabel)) {
-          displayLabel = `Mirror Directive for ${personName}`;
+        const personBName =
+          jsonData?.person_b?.name ||
+          jsonData?.person_b?.details?.name ||
+          jsonData?.personB?.name ||
+          jsonData?.personB?.details?.name;
+        const isRelational = Boolean(personBName);
+        
+        if (personAName && !/Mirror Directive/.test(displayLabel)) {
+          if (isRelational && personBName) {
+            displayLabel = `Relational Mirror: ${personAName} ↔ ${personBName}`;
+          } else {
+            displayLabel = `Mirror Directive for ${personAName}`;
+          }
         }
         if (jsonData._format) {
           summaryParts.push(String(jsonData._format));

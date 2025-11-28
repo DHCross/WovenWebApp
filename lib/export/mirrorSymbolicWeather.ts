@@ -51,9 +51,27 @@ export interface MirrorSymbolicWeatherResult {
   hasChartGeometry: boolean;
 }
 
+export interface AdditionalContext {
+  relationship?: {
+    type?: string;
+    intimacy_tier?: string;
+    role?: string;
+    contact_state?: string;
+    ex_estranged?: boolean;
+    notes?: string;
+  };
+  translocation?: {
+    mode?: string;
+    label?: string;
+    coordinates?: { lat?: number; lon?: number };
+    timezone?: string;
+  };
+}
+
 export function createMirrorSymbolicWeatherPayload(
   rawResult: any,
-  reportContractType: ReportContractType
+  reportContractType: ReportContractType,
+  additionalContext?: AdditionalContext
 ): MirrorSymbolicWeatherResult | null {
   if (!rawResult) return null;
 
@@ -136,6 +154,22 @@ export function createMirrorSymbolicWeatherPayload(
       : null,
     report_kind: formatReportKind(reportContractType),
     relationship_context: relationshipContext || null,
+    // User-entered relationship details from Math Brain
+    relationship_details: additionalContext?.relationship ? {
+      type: additionalContext.relationship.type || null,
+      intimacy_tier: additionalContext.relationship.intimacy_tier || null,
+      role: additionalContext.relationship.role || null,
+      contact_state: additionalContext.relationship.contact_state || null,
+      ex_estranged: additionalContext.relationship.ex_estranged ?? null,
+      notes: additionalContext.relationship.notes || null,
+    } : null,
+    // Relocation/translocation context
+    translocation_context: additionalContext?.translocation ? {
+      mode: additionalContext.translocation.mode || null,
+      label: additionalContext.translocation.label || null,
+      coordinates: additionalContext.translocation.coordinates || null,
+      timezone: additionalContext.translocation.timezone || null,
+    } : null,
     balance_meter_frontstage: null,
     daily_readings: [],
   };

@@ -15,3 +15,4 @@ Before I send, I run the midnight test: can a tired reader draw what I said, rep
 ⁴ Bidirectional logging: A→B and B→A captured separately; no moral load. (WB/ABE/OSR kept canonical.)
 ⁵ Edit checks enforce concreteness, brevity, and a single actionable step; climate notes optional and translated (“tilts heavy,” “too many tabs open”).
 retrofit the Shareable Mirror template so it outputs in this format by default. Done — the Shareable Mirror now always outputs in the Weight Belt format (picture → feeling → container → option → next step).
+
