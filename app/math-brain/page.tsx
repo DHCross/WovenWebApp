@@ -289,6 +289,66 @@ const toFiniteNumber = (value: unknown): number => {
   return Number.NaN;
 };
 
+const toOptionalNumber = (value: unknown): number | null => {
+  if (value == null) return null;
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed === '') {
+      return null;
+    }
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+type NormalizeSubjectOptions = {
+  allowUnknownTime?: boolean;
+};
+
+const normalizeSubjectPayload = (subject: Subject, options: NormalizeSubjectOptions = {}) => {
+  const allowUnknownTime = options.allowUnknownTime ?? false;
+  const normalized: Record<string, any> = {
+    name: subject.name?.trim() || undefined,
+    nation: subject.nation?.trim() || 'US',
+    city: subject.city?.trim() || undefined,
+    state: subject.state?.trim() || undefined,
+    timezone: subject.timezone?.trim() || undefined,
+    zodiac_type: subject.zodiac_type || 'Tropic',
+  };
+
+  const year = toOptionalNumber(subject.year);
+  if (year != null) normalized.year = year;
+  const month = toOptionalNumber(subject.month);
+  if (month != null) normalized.month = month;
+  const day = toOptionalNumber(subject.day);
+  if (day != null) normalized.day = day;
+
+  const parsedHour = toOptionalNumber(subject.hour);
+  const parsedMinute = toOptionalNumber(subject.minute);
+
+  if (parsedHour != null && parsedMinute != null) {
+    normalized.hour = parsedHour;
+    normalized.minute = parsedMinute;
+  } else if (allowUnknownTime) {
+    normalized.hour = null;
+    normalized.minute = null;
+  } else {
+    if (parsedHour != null) normalized.hour = parsedHour;
+    if (parsedMinute != null) normalized.minute = parsedMinute;
+  }
+
+  const latitude = toOptionalNumber(subject.latitude);
+  if (latitude != null) normalized.latitude = latitude;
+  const longitude = toOptionalNumber(subject.longitude);
+  if (longitude != null) normalized.longitude = longitude;
+
+  return normalized;
+};
+
 const POETIC_BRAIN_ENABLED = (() => {
   const raw = process.env.NEXT_PUBLIC_ENABLE_POETIC_BRAIN;
   if (typeof raw !== 'string') return true;
@@ -4482,21 +4542,14 @@ export default function MathBrainPage() {
       if (chunks && chunks.length > 1) {
         setToast(`Processing ${daysDiff} days in ${chunks.length} chunks...`);
       }
+      const allowUnknownA = timeUnknown && timePolicy !== 'user_provided';
+      const allowUnknownB = timeUnknownB && timePolicy !== 'user_provided';
+
       // Build unified request payload
       const payload: Record<string, any> = {
         mode,
-        personA: {
-          ...personA,
-          nation: personA.nation || "US",
-          year: Number(personA.year),
-          month: Number(personA.month),
-          day: Number(personA.day),
-          hour: Number(personA.hour),
-          minute: Number(personA.minute),
-          latitude: Number(personA.latitude),
-          longitude: Number(personA.longitude),
-        },
-        time_policy: timeUnknown ? timePolicy : 'user_provided',
+        personA: normalizeSubjectPayload(personA, { allowUnknownTime: allowUnknownA }),
+        time_policy: allowUnknownA ? timePolicy : 'user_provided',
         report_type: reportContractType,
         presentation_style: 'conversational',
         context: {
@@ -4538,17 +4591,7 @@ export default function MathBrainPage() {
 
       // Add Person B and relationship context for relational modes
       if (RELATIONAL_MODES.includes(mode) && includePersonB) {
-        payload.personB = {
-          ...personB,
-          nation: personB.nation || "US",
-          year: Number(personB.year),
-          month: Number(personB.month),
-          day: Number(personB.day),
-          hour: Number(personB.hour),
-          minute: Number(personB.minute),
-          latitude: Number(personB.latitude),
-          longitude: Number(personB.longitude),
-        };
+        payload.personB = normalizeSubjectPayload(personB, { allowUnknownTime: allowUnknownB });
         payload.relationship_context = {
           type: relationshipType,
           intimacy_tier: relationshipType === 'PARTNER' ? relationshipTier : undefined,
