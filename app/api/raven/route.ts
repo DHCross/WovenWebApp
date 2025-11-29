@@ -223,7 +223,7 @@ export async function POST(req: Request) {
     // ==========================================================================
     // CONTEXT GATE: Check if we need to identify the querent before proceeding
     // ==========================================================================
-    // Check if user is responding to a context gate question
+    // Check if user is responding to a context gate question; once confirmed, continue to auto-exec flows
     if (sessionLog.contextGate && sessionLog.contextGate.querentRole === 'unconfirmed' && textInput.trim()) {
       const identity = detectQuerentIdentity(textInput, sessionLog.contextGate.sessionSubjects);
       if (identity) {
@@ -233,33 +233,7 @@ export async function POST(req: Request) {
           textInput.trim()
         );
         updateSession(sid, () => { });
-        
-        // Acknowledge the identification and proceed
-        const voiceInstructions = getVoiceAdaptationInstructions(
-          identity.role,
-          sessionLog.contextGate.sessionSubjects
-        );
-        const acknowledgment = identity.role === 'observer'
-          ? `I understand—you're asking about ${sessionLog.contextGate.sessionSubjects.join(' and ')}'s chart rather than your own. I'll share patterns I observe, though confirmations from you will be logged as observer-rated (helpful for pattern refinement, but distinct from primary felt experience). What would you like to explore?`
-          : identity.role === 'both'
-            ? `Welcome, both of you. I'll speak to your shared dynamics and keep both perspectives equally visible. What would you like to explore together?`
-            : `Got it—I'm speaking with you directly. What would you like to explore in your chart?`;
-        
-        appendHistoryEntry(sessionLog, 'user', textInput);
-        appendHistoryEntry(sessionLog, 'raven', acknowledgment);
-        sessionLog.turnCount = (sessionLog.turnCount ?? 0) + 1;
-        updateSession(sid, () => { });
-        
-        const prov = stampProvenance({ source: 'Context Gate Confirmation' });
-        return NextResponse.json({
-          intent: 'conversation',
-          ok: true,
-          draft: { conversation: acknowledgment },
-          prov,
-          sessionId: sid,
-          probe: null,
-          contextGate: sessionLog.contextGate,
-        });
+        // Do NOT return a conversational prompt here; fall through to auto-execution below
       }
     }
 
