@@ -2236,6 +2236,10 @@ export default function MathBrainPage() {
 
   // Profile management functions
   const handleLoadProfile = useCallback((profile: BirthProfile, slot: 'A' | 'B') => {
+    // Clear any existing report when loading a new profile
+    setResult(null);
+    setError(null);
+
     const rawLat = profile.lat ?? (profile as any).latitude;
     const rawLng = profile.lng ?? (profile as any).longitude;
 
