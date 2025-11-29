@@ -1257,6 +1257,7 @@ Start with the Solo Mirror(s), then ${
 }
 
 export function createFrontStageResult(rawResult: any) {
+  const t0 = typeof performance !== 'undefined' ? performance.now() : 0;
   const toNumber = (
     value: any,
     axis?: AxisKey,
@@ -1350,11 +1351,32 @@ export function createFrontStageResult(rawResult: any) {
   if (hasTransitWindow && !hasProvenanceStamp) {
     frontStageWarnings.push('Balance Meter degraded: provenance stamp missing, reverting to baseline mirror.');
   }
+  // Fast path: if no balance pipeline, avoid deep copy churn
+  if (!allowBalancePipeline) {
+    const frontStageResult = {
+      ...rawResult,
+      _frontstage_notice:
+        'This export shows normalized Balance Meter values in the user-facing 0-5 scale range. Raw backstage calculations have been converted to frontstage presentation format.',
+      balance_meter: null,
+    };
+    if (frontStageWarnings.length) {
+      frontStageResult._frontstage_warnings = frontStageWarnings;
+    }
+    const t1 = typeof performance !== 'undefined' ? performance.now() : 0;
+    if (t1 - t0 > 100) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[MathBrain] createFrontStageResult fast-path took ${Math.round(t1 - t0)}ms - check payload size`,
+      );
+    }
+    return frontStageResult;
+  }
+
   const frontStageResult: any = {
     ...rawResult,
     _frontstage_notice:
       'This export shows normalized Balance Meter values in the user-facing 0-5 scale range. Raw backstage calculations have been converted to frontstage presentation format.',
-    balance_meter: allowBalancePipeline ? {} : null,
+    balance_meter: {},
   };
   if (allowBalancePipeline && rawResult?.person_a?.summary) {
     const summary = rawResult.person_a.summary;
@@ -1400,25 +1422,26 @@ export function createFrontStageResult(rawResult: any) {
           dayData.seismograph,
         );
         const rawVol = toNumber(dayData.seismograph.volatility, 'volatility', dayData.seismograph);
-        normalizedDaily[date] = {
-          ...dayData,
-          seismograph: {
-            ...dayData.seismograph,
-            magnitude:
-              rawMag !== undefined
-                ? normalizeToFrontStage(rawMag, 'magnitude')
-                : dayData.seismograph.magnitude,
-            directional_bias:
-              rawVal !== undefined
-                ? normalizeToFrontStage(rawVal, 'directional_bias')
-                : dayData.seismograph.directional_bias?.value,
-            volatility:
-              rawVol !== undefined
-                ? normalizeToFrontStage(rawVol, 'volatility')
-                : dayData.seismograph.volatility,
-          },
-        };
-        // If no drivers, prefer to leave seismograph normalized values only; SFD fields are removed
+        
+        // Shallow copy optimization: only copy/normalize what's needed
+        const normalizedSeismo = Object.assign({}, dayData.seismograph, {
+          magnitude:
+            rawMag !== undefined
+              ? normalizeToFrontStage(rawMag, 'magnitude')
+              : dayData.seismograph.magnitude,
+          directional_bias:
+            rawVal !== undefined
+              ? normalizeToFrontStage(rawVal, 'directional_bias')
+              : dayData.seismograph.directional_bias?.value,
+          volatility:
+            rawVol !== undefined
+              ? normalizeToFrontStage(rawVol, 'volatility')
+              : dayData.seismograph.volatility,
+        });
+        
+        normalizedDaily[date] = Object.assign({}, dayData, {
+          seismograph: normalizedSeismo
+        });
       } else {
         normalizedDaily[date] = dayData;
       }
@@ -1428,6 +1451,13 @@ export function createFrontStageResult(rawResult: any) {
   // Remove SFD fields from frontstage results entirely — consumers should use directional_bias/magnitude/volatility
   if (frontStageWarnings.length) {
     frontStageResult._frontstage_warnings = frontStageWarnings;
+  }
+  const t1 = typeof performance !== 'undefined' ? performance.now() : 0;
+  if (t1 - t0 > 100) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[MathBrain] createFrontStageResult took ${Math.round(t1 - t0)}ms - consider trimming transit window for large ranges`,
+    );
   }
   return frontStageResult;
 }

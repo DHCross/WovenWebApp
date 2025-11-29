@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import { generateClimateNarrative, RelationshipContext } from "../../lib/climate-narrative";
 import { ClimateData } from "../../lib/climate-renderer";
 import {
@@ -65,7 +65,7 @@ function BiasVisual({ value, className }: { value: number; className?: string })
   );
 }
 
-export default function EnhancedDailyClimateCard({
+export default memo(function EnhancedDailyClimateCard({
   date,
   location,
   mode,
@@ -371,4 +371,4 @@ export default function EnhancedDailyClimateCard({
       )}
     </section>
   );
-}
+});

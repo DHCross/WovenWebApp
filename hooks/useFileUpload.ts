@@ -21,9 +21,6 @@ import type {
   StoredMathBrainPayload,
 } from "@/lib/raven-client/types";
 
-const MB_LAST_PAYLOAD_KEY = "mb.lastPayload";
-const MB_LAST_PAYLOAD_ACK_KEY = "mb.lastPayloadAck";
-
 const MAX_PDF_SIZE = 50 * 1024 * 1024;
 const MAX_TEXT_SIZE = 10 * 1024 * 1024;
 
@@ -75,9 +72,45 @@ export function useFileUpload({
 }: UseFileUploadArgs): UseFileUploadResult {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const uploadTypeRef = useRef<ReportContextType | null>(null);
+  const [storageScope, setStorageScope] = useState<string>("anon");
   const [storedPayload, setStoredPayload] = useState<StoredMathBrainPayload | null>(null);
   const [hasSavedPayloadSnapshot, setHasSavedPayloadSnapshot] = useState<boolean>(false);
   const [resumeFlashToken, setResumeFlashToken] = useState(0);
+
+  const payloadKey = useMemo(
+    () => (storageScope ? `mb.lastPayload.${storageScope}` : "mb.lastPayload.anon"),
+    [storageScope],
+  );
+  const ackKey = useMemo(
+    () => (storageScope ? `mb.lastPayloadAck.${storageScope}` : "mb.lastPayloadAck.anon"),
+    [storageScope],
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const resolveScope = () => {
+      try {
+        const raw = window.localStorage.getItem("auth.status");
+        if (!raw) return "anon";
+        const parsed = JSON.parse(raw);
+        if (parsed?.userId && typeof parsed.userId === "string") {
+          return parsed.userId;
+        }
+      } catch {/* ignore parse errors */}
+      return "anon";
+    };
+
+    const applyScope = () => setStorageScope(resolveScope());
+    applyScope();
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === "auth.status") {
+        applyScope();
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   const acknowledgeStoredPayload = useCallback((timestamp?: string) => {
     if (typeof window === "undefined") return;
@@ -86,11 +119,11 @@ export function useFileUpload({
         typeof timestamp === "string" && timestamp
           ? timestamp
           : new Date().toISOString();
-      window.localStorage.setItem(MB_LAST_PAYLOAD_ACK_KEY, token);
+      window.localStorage.setItem(ackKey, token);
     } catch {
       // ignore storage quota failures
     }
-  }, []);
+  }, [ackKey]);
 
   const dismissStoredPayload = useCallback(
     (record?: StoredMathBrainPayload | null) => {
@@ -102,12 +135,23 @@ export function useFileUpload({
 
   const clearStoredPayload = useCallback(() => {
     setStoredPayload(null);
-  }, []);
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.removeItem(payloadKey);
+      window.localStorage.removeItem(ackKey);
+    } catch {/* ignore */}
+  }, [ackKey, payloadKey]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const raw = window.localStorage.getItem(MB_LAST_PAYLOAD_KEY);
+      // Remove any legacy unscoped payload to avoid cross-account leaks
+      try {
+        window.localStorage.removeItem("mb.lastPayload");
+        window.localStorage.removeItem("mb.lastPayloadAck");
+      } catch {/* ignore legacy cleanup errors */}
+
+      const raw = window.localStorage.getItem(payloadKey);
       if (!raw) {
         setHasSavedPayloadSnapshot(false);
         return;
@@ -123,14 +167,14 @@ export function useFileUpload({
           : new Date().toISOString();
       setHasSavedPayloadSnapshot(true);
 
-      const ack = window.localStorage.getItem(MB_LAST_PAYLOAD_ACK_KEY);
+      const ack = window.localStorage.getItem(ackKey);
       if (ack && ack === savedAt) return;
 
       setStoredPayload({ ...parsed, savedAt });
     } catch {
       setHasSavedPayloadSnapshot(false);
     }
-  }, []);
+  }, [ackKey, payloadKey]);
 
   useEffect(() => {
     if (reportContexts.length > 0 && storedPayload) {
@@ -287,7 +331,7 @@ export function useFileUpload({
     }
     if (typeof window === "undefined") return;
     try {
-      const raw = window.localStorage.getItem(MB_LAST_PAYLOAD_KEY);
+      const raw = window.localStorage.getItem(payloadKey);
       if (!raw) {
         setHasSavedPayloadSnapshot(false);
         setStatusMessage("No saved Math Brain export found.");
@@ -314,7 +358,7 @@ export function useFileUpload({
       console.error("Failed to recover stored payload:", error);
       setErrorMessage("Could not retrieve the saved Math Brain export.");
     }
-  }, [setErrorMessage, setResumeFlashToken, setStatusMessage, storedPayload]);
+  }, [payloadKey, setErrorMessage, setResumeFlashToken, setStatusMessage, storedPayload]);
 
   const applyStoredPayload = useCallback(
     async (record: StoredMathBrainPayload) => {

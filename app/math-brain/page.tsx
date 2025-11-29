@@ -162,6 +162,8 @@ const TRANSIT_MODES = new Set<ReportMode>([
   'SYNASTRY_TRANSITS',
   'COMPOSITE_TRANSITS',
 ]);
+const TRANSIT_WARN_DAYS = 14;
+const TRANSIT_HARD_CAP_DAYS = 28;
 
 type ParsedJsonResult<T> = {
   data: T | null;
@@ -897,12 +899,32 @@ export default function MathBrainPage() {
   }, [includePersonB, includeTransits]);
 
   const [step, setStep] = useState<string>("daily");
+  const transitDays = useMemo(() => {
+    if (!includeTransits || !startDate || !endDate) return null;
+    return (
+      Math.ceil(
+        (new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)
+      ) + 1
+    );
+  }, [includeTransits, startDate, endDate]);
+  const handoffTrimNotice = useMemo(() => {
+    if (!transitDays || transitDays <= TRANSIT_WARN_DAYS) return null;
+    return `Poetic Brain handoff will downsample this window (${transitDays} days) for stability. On-page charts still use the full window.`;
+  }, [transitDays]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResult>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(() => !AUTH_ENABLED);
   const [authReady, setAuthReady] = useState(() => !AUTH_ENABLED);
   const [userId, setUserId] = useState<string | null>(null);
+  const payloadStorageKey = useMemo(
+    () => (userId ? `mb.lastPayload.${userId}` : 'mb.lastPayload.anon'),
+    [userId]
+  );
+  const payloadAckKey = useMemo(
+    () => (userId ? `mb.lastPayloadAck.${userId}` : 'mb.lastPayloadAck.anon'),
+    [userId]
+  );
 
   // First-time user guide state
   const [showGettingStarted, setShowGettingStarted] = useState<boolean>(false);
@@ -965,7 +987,13 @@ export default function MathBrainPage() {
   const frontStageResult = useMemo(() => {
     if (!result) return null;
     try {
-      return createFrontStageResult(result);
+      const t0 = performance.now();
+      const frontStage = createFrontStageResult(result);
+      const t1 = performance.now();
+      if (t1 - t0 > 100) {
+        console.warn(`[MathBrain] createFrontStageResult took ${Math.round(t1 - t0)}ms - consider optimizing for longer date ranges`);
+      }
+      return frontStage;
     } catch (error) {
       console.warn('[MathBrain] Failed to create frontstage result', error);
       return null;
@@ -1422,6 +1450,23 @@ export default function MathBrainPage() {
   const balanceGraphsRef = useRef<HTMLDivElement | null>(null);
   const bNameRef = useRef<HTMLInputElement | null>(null);
   const lastSubmitRef = useRef<number>(0);
+  const previousUserIdRef = useRef<string | null>(null);
+  const clearStoredReportPayload = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const keys = [
+      'mb.lastPayload',
+      'mb.lastPayload.anon',
+      'mb.lastPayloadAck',
+      'mb.lastPayloadAck.anon',
+      payloadStorageKey,
+      payloadAckKey,
+    ];
+    keys.forEach((key) => {
+      try {
+        window.localStorage.removeItem(key);
+      } catch {/* ignore */}
+    });
+  }, [payloadAckKey, payloadStorageKey]);
   // Lightweight toast for ephemeral notices (e.g., Mirror failure)
   const [toast, setToast] = useState<string | null>(null);
   useEffect(() => {
@@ -1496,15 +1541,6 @@ export default function MathBrainPage() {
 
       // Initialize debug mode from URL
       setDebugMode(url.searchParams.get('debug') === '1');
-
-
-      // Load saved charts
-      try {
-        const charts = getSavedCharts(); // TODO: Pass userId when Auth0 is integrated
-        setSavedCharts(charts);
-      } catch (e) {
-        // Silently fail - not critical
-      }
     } catch {/* noop */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1541,6 +1577,22 @@ export default function MathBrainPage() {
       window.localStorage.setItem('mb.layerVisibility', JSON.stringify(layerVisibility));
     } catch {/* ignore */ }
   }, [layerVisibility]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Clear any stale cached payloads (legacy keys and scoped)
+    clearStoredReportPayload();
+
+    try {
+      const charts = getSavedCharts(userId);
+      setSavedCharts(charts);
+    } catch (e) {
+      setSavedCharts([]);
+    }
+
+    previousUserIdRef.current = userId;
+  }, [clearStoredReportPayload, userId]);
 
 
 
@@ -2258,6 +2310,26 @@ export default function MathBrainPage() {
     }));
   }
 
+  const MAX_PAYLOAD_BYTES = 500 * 1024; // ~500KB guard to avoid storage/perf issues
+
+  function trimTransitWindows(payload: any) {
+    if (!payload?.person_a?.chart?.transitsByDate) return payload;
+    try {
+      const entries = payload.person_a.chart.transitsByDate;
+      const dates = Object.keys(entries || {}).sort();
+      const keep = 14; // keep a small window to stay resumable
+      if (dates.length <= keep) return payload;
+      const trimmed: Record<string, any> = {};
+      const head = dates.slice(0, Math.ceil(keep / 2));
+      const tail = dates.slice(-Math.floor(keep / 2));
+      [...head, ...tail].forEach((d) => {
+        trimmed[d] = entries[d];
+      });
+      payload.person_a.chart.transitsByDate = trimmed;
+    } catch {/* ignore trim errors */}
+    return payload;
+  }
+
   function persistTrimmedLastPayload(rawPayload: any): 'success' | 'fallback' | 'error' {
     if (typeof window === 'undefined') {
       return 'error';
@@ -2281,7 +2353,7 @@ export default function MathBrainPage() {
         })
         : null;
 
-    const trimmedPayload = mirrorSymbolicWeather
+    let trimmedPayload: any = mirrorSymbolicWeather
       ? {
         ...rawPayload,
         payload: mirrorSymbolicWeather.payload,
@@ -2304,7 +2376,23 @@ export default function MathBrainPage() {
       };
 
     try {
-      window.localStorage.setItem('mb.lastPayload', JSON.stringify(trimmedPayload));
+      // Trim heavy transit windows before measuring size
+      trimmedPayload = trimTransitWindows(trimmedPayload);
+
+      let payloadString = JSON.stringify(trimmedPayload);
+      const payloadSizeBytes = payloadString.length;
+
+      if (payloadSizeBytes > MAX_PAYLOAD_BYTES) {
+        console.warn(`[MB] Large payload detected (${Math.round(payloadSizeBytes / 1024)}KB). Trimming transit window for handoff.`);
+        trimmedPayload = trimTransitWindows({ ...trimmedPayload });
+        payloadString = JSON.stringify(trimmedPayload);
+      }
+
+      if (payloadString.length > MAX_PAYLOAD_BYTES) {
+        throw new Error(`Payload still too large after trim (${Math.round(payloadString.length / 1024)}KB)`);
+      }
+
+      window.localStorage.setItem(payloadStorageKey, payloadString);
       return 'success';
     } catch (error: any) {
       const minimalPayload = {
@@ -2322,7 +2410,7 @@ export default function MathBrainPage() {
       }
 
       try {
-        window.localStorage.setItem('mb.lastPayload', JSON.stringify(minimalPayload));
+        window.localStorage.setItem(payloadStorageKey, JSON.stringify(minimalPayload));
         return 'fallback';
       } catch (fallbackError) {
         // eslint-disable-next-line no-console
@@ -4129,10 +4217,11 @@ export default function MathBrainPage() {
     if (!includePersonB) return false;
     const bRequired = [personB.name, personB.city, personB.state, personB.timezone, personB.zodiac_type];
     const allowUnknownB = timeUnknownB && timePolicy !== 'user_provided';
+    const requireCoordsB = includeTransits;
     const bNums = [
       toFiniteNumber(personB.year), toFiniteNumber(personB.month), toFiniteNumber(personB.day),
       ...(allowUnknownB ? [] as number[] : [toFiniteNumber(personB.hour), toFiniteNumber(personB.minute)]),
-      toFiniteNumber(personB.latitude), toFiniteNumber(personB.longitude)
+      ...(requireCoordsB ? [toFiniteNumber(personB.latitude), toFiniteNumber(personB.longitude)] : [])
     ];
     const bOk = bRequired.every(Boolean) && bNums.every((n) => !Number.isNaN(n)) && bCoordsValid;
 
@@ -4141,7 +4230,7 @@ export default function MathBrainPage() {
     if (relationshipType === 'PARTNER') relOk = !!relationshipTier;
     if (relationshipType === 'FAMILY') relOk = !!relationshipRole;
 
-    return allPresent && bOk && relOk && Boolean(startDate) && Boolean(endDate);
+    return allPresent && bOk && relOk && (includeTransits ? Boolean(startDate) && Boolean(endDate) : true);
   }, [personA, personB, includePersonB, relationshipType, relationshipTier, relationshipRole, mode, startDate, endDate, aCoordsValid, bCoordsValid, timeUnknown, timeUnknownB, timePolicy, includeTransits]);
   const submitDisabled = useMemo(() => {
     if (!PROVIDER_BYPASS && providerCheckPending) return true;
@@ -4274,6 +4363,22 @@ export default function MathBrainPage() {
     if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
       setError("Transit start date must be on or before the end date.");
       return;
+    }
+    let daysDiff = 0;
+    if (includeTransits && startDate && endDate) {
+      daysDiff =
+        Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      if (daysDiff > TRANSIT_HARD_CAP_DAYS) {
+        const message = `Transit window too large (${daysDiff} days). Please reduce to ${TRANSIT_HARD_CAP_DAYS} days or less.`;
+        setError(message);
+        setToast(message);
+        setTimeout(() => setToast(null), 3500);
+        return;
+      }
+      if (daysDiff > TRANSIT_WARN_DAYS) {
+        setToast(`Trimming/stitching long transit window (${daysDiff} days). Expect downsampled handoff to Poetic Brain.`);
+        setTimeout(() => setToast(null), 2200);
+      }
     }
     const nowTs = Date.now();
     if (nowTs - lastSubmitRef.current < 800) {
@@ -5225,7 +5330,7 @@ export default function MathBrainPage() {
                     <span className="text-slate-100 capitalize">{reportType}</span>
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
                   {(result || loading) && (
                     <button
                       type="button"
@@ -5245,6 +5350,11 @@ export default function MathBrainPage() {
                     </svg>
                     {loading ? "Mapping geometry…" : (includeTransits ? 'Generate Report' : 'Generate Report')}
                   </button>
+                  {handoffTrimNotice && (
+                    <p className="max-w-xs text-[11px] text-amber-300 text-right sm:text-left">
+                      {handoffTrimNotice}
+                    </p>
+                  )}
                 </div>
                 {!loading && !result && !submitDisabled && (
                   <p className="mt-2 text-xs text-emerald-400">✓ Ready to generate! Click the button above.</p>
@@ -5577,11 +5687,48 @@ export default function MathBrainPage() {
                           }
 
                           // Transform transitsByDate into SymbolicSeismograph data format
+                          // Use pre-computed seismographMap to avoid recalculating on every render
                           const seismographData = dates.map(date => {
+                            const cached = seismographMap[date];
+                            if (cached) {
+                              // Use cached seismograph data with minimal transformation
+                              return {
+                                date,
+                                magnitude_0to5: cached.magnitude ?? 0,
+                                bias_signed_minus5to5: cached.valence ?? cached.valence_bounded ?? 0,
+                                coherence_0to5: cached.coherence ?? Math.max(0, Math.min(5, 5 - (cached.volatility ?? 0))),
+                                schema_version: 'BM-v3',
+                                orbs_profile: displayResult?.provenance?.orbs_profile || 'wm-spec-2025-09',
+                                house_frame: 'natal',
+                                relocation_supported: false,
+                                ...(relocationStatus.effectiveMode !== 'NONE' && {
+                                  relocation_overlay: {
+                                    user_place: relocLabel || `${personA.city || 'Unknown'}, ${personA.state || 'Unknown'}`,
+                                    advisory: 'Same sky, natal rooms only. Local guidance is author-authored overlay, not computed houses.',
+                                    confidence: 'author_note' as const,
+                                    notes: [
+                                      'Houses are derived from natal frame only.',
+                                      'The API does not recalc for relocation.',
+                                      'Any "place" guidance is human-authored overlay, not computed houses.'
+                                    ]
+                                  }
+                                }),
+                                provenance: {
+                                  house_system: `${result?.provenance?.house_system || 'Placidus'} (natal)`,
+                                  relocation_mode: 'not_applied',
+                                  orbs_profile: result?.provenance?.orbs_profile || 'wm-spec-2025-09',
+                                  math_brain_version: result?.provenance?.math_brain_version || '3.1.4',
+                                  tz: result?.provenance?.tz || result?.provenance?.timezone || 'UTC',
+                                  bias_method: 'signed_z_to_[-5,5]',
+                                  mag_method: 'z_to_[0,5]'
+                                }
+                              };
+                            }
+                            
+                            // Fallback to original calculation if not in cache
                             const dayData = transitsByDate[date];
                             const seismo = dayData?.seismograph || {};
                             const balance = dayData?.balance || {};
-                            // SFD deprecated — no longer included in daily seismograph payload
 
                             const biasValue = (() => {
                               if (typeof seismo.directional_bias === 'number') return seismo.directional_bias;

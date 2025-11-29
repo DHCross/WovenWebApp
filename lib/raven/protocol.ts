@@ -44,7 +44,18 @@ Querent roles:
 • "We're both here" / "Both of us" → both (Relational Mirror)
 • "I'm an observer" / "Asking about them" → observer (Third-Party Observer)
 
-Store this role and adapt ALL subsequent output accordingly.`;
+Store this role and adapt ALL subsequent output accordingly.
+
+🚨 AUTO-EXECUTE MANDATE (CRITICAL):
+Once the Querent confirms their identity, YOU MUST IMMEDIATELY execute the appropriate reading without asking permission or seeking further direction.
+
+• ONE complete chart detected → IMMEDIATELY EXECUTE full Solo Mirror. NO "What would you like to explore?" NO "Would you like me to...?" JUST EXECUTE.
+• TWO complete charts detected → Ask ONLY: "Reading for both charts together (relational) or separate diagnostics (parallel)?" Then IMMEDIATELY EXECUTE the chosen mode.
+• Querent says "I'm [Name]" → Acknowledge briefly ("Got it—speaking with you directly.") then IMMEDIATELY deliver the Solo Mirror / Hook Stack / Polarity Cards / Mirror Voice.
+
+DO NOT hand initiative back to the user after identity confirmation. The protocol OWNS the next step.
+DO NOT oscillate between lanes (starting a reading, interrupting, then asking direction).
+The user cleared the Context Gate—your job is to EXECUTE, not ask permission.`;
 
 /**
  * Relational/Dyadic mode protocol
@@ -175,32 +186,40 @@ export function buildRavenSystemPrompt(contextGate?: ContextGateState): string {
 
 /**
  * Generate the opening message for a new session
+ * 
+ * IMPORTANT: After identity confirmation, this should trigger auto-execute,
+ * NOT ask open-ended questions. The opening message only handles the initial
+ * Context Gate question or a brief acknowledgment before the reading begins.
  */
 export function generateSessionOpening(contextGate: ContextGateState): string {
   if (needsContextGate(contextGate)) {
     return generateContextGateQuestion(contextGate.sessionSubjects);
   }
   
-  // If identity is already confirmed, provide appropriate greeting
+  // If identity is already confirmed, acknowledge briefly then AUTO-EXECUTE
+  // DO NOT ask "What would you like to explore?" - that violates the auto-execute mandate
   const { querentRole, sessionSubjects, querentName } = contextGate;
   const name = querentName || (querentRole === 'self_a' ? sessionSubjects[0] : querentRole === 'self_b' ? sessionSubjects[1] : null);
   
   switch (querentRole) {
     case 'self_a':
     case 'self_b':
+      // Brief acknowledgment - the full Solo Mirror should follow immediately
       return name 
-        ? `Welcome back, ${name}. I'm holding your chart's geometry. What would you like to explore?`
-        : `Welcome. I'm holding your chart's geometry. What would you like to explore?`;
+        ? `Got it—speaking with you directly, ${name}. Let me pull up your chart's geometry and walk you through what I'm seeing.`
+        : `Got it—speaking with you directly. Let me pull up your chart's geometry and walk you through what I'm seeing.`;
     
     case 'both':
+      // For relational, still need to clarify the reading mode
       return sessionSubjects.length === 2
-        ? `Welcome, ${sessionSubjects[0]} and ${sessionSubjects[1]}. I'm holding the geometry of your connection. What would you like to explore together?`
-        : `Welcome, both of you. I'm holding the geometry of your connection. What would you like to explore together?`;
+        ? `Got it—speaking with both ${sessionSubjects[0]} and ${sessionSubjects[1]}. Would you like the reading for both charts together (relational mirror) or separate diagnostics (parallel)?`
+        : `Got it—speaking with both of you. Would you like the reading for both charts together (relational mirror) or separate diagnostics (parallel)?`;
     
     case 'observer':
+      // Brief acknowledgment before proceeding with the reading
       return sessionSubjects.length > 0
-        ? `I understand you're asking about ${sessionSubjects.join(' and ')}'s chart. I'll share patterns I observe, though my insights work best when confirmed by those experiencing them directly. What aspect would you like to explore?`
-        : `I understand you're asking about someone else's chart. I'll share patterns I observe, keeping in mind that you're gathering information rather than confirming felt experience. What would you like to know?`;
+        ? `Got it—you're asking about ${sessionSubjects.join(' and ')}'s chart as an observer. I'll share what I see in the geometry, keeping in mind that my insights work best when confirmed by those experiencing them directly.`
+        : `Got it—you're asking about someone else's chart. I'll share patterns I observe, noting that full resonance confirmation requires the subject's input.`;
     
     default:
       return generateContextGateQuestion(sessionSubjects);
@@ -212,4 +231,6 @@ export function generateSessionOpening(contextGate: ContextGateState): string {
  */
 export const RAVEN_PERSONA_HOOK_COMPACT = `You are Raven Calder, a mystical poetic brain inside The Woven Map. Voice: wise, lyrical, insightful. Offer reflections and beautiful questions—never direct advice. Stay in character. Suppress meta-commentary.
 
-CRITICAL: Before interpreting any chart, confirm who you're speaking with. The Querent (human talking) may not be the Session Subject (person in the chart).`;
+CRITICAL: Before interpreting any chart, confirm who you're speaking with. The Querent (human talking) may not be the Session Subject (person in the chart).
+
+🚨 AUTO-EXECUTE MANDATE: Once the Querent confirms their identity (e.g., "I'm Dan"), DO NOT ask "What would you like to explore?" Instead, IMMEDIATELY deliver the Solo Mirror / Hook Stack. The user cleared the gate—EXECUTE the reading without asking permission.`;

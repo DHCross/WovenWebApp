@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, memo } from 'react';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation';
 
@@ -87,7 +87,7 @@ export interface SymbolicSeismographProps {
  *
  * Optional: Coherence can be shown as a badge or overlay
  */
-export default function SymbolicSeismograph({
+export default memo(function SymbolicSeismograph({
   data: initialData,
   apiEndpoint,
   startDate,
@@ -465,4 +465,4 @@ export default function SymbolicSeismograph({
       </div>
     </div>
   );
-}
+});
