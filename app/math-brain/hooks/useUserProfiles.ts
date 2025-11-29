@@ -194,9 +194,14 @@ export function useUserProfiles(userId: string | null): UseUserProfilesResult {
   }, [profiles, saveProfile]);
 
   // Load profiles when userId changes
+  // Using userId directly in dependency array ensures reload when auth completes
   useEffect(() => {
-    loadProfiles();
-  }, [loadProfiles]);
+    if (userId) {
+      loadProfiles();
+    } else {
+      setProfiles([]);
+    }
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps -- loadProfiles is stable per userId
 
   return {
     profiles,

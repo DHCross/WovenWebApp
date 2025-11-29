@@ -242,9 +242,14 @@ export default function HomeHero() {
   const logout = async () => {
     if (authDisabled || !clientRef.current) return;
     try {
+      // Auth0 requires the returnTo URL to exactly match an Allowed Logout URL
+      // Ensure trailing slash for consistency with Auth0 configuration
+      const returnTo = window.location.origin.endsWith('/') 
+        ? window.location.origin 
+        : `${window.location.origin}/`;
       await clientRef.current.logout?.({
         logoutParams: {
-          returnTo: window.location.origin
+          returnTo
         }
       });
       persistAuthState(false, null);

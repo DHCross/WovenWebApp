@@ -1261,8 +1261,7 @@ export default function MathBrainPage() {
   const [contactState, setContactState] = useState<"ACTIVE" | "LATENT">("LATENT");
   const [exEstranged, setExEstranged] = useState<boolean>(false);
   const [relationshipNotes, setRelationshipNotes] = useState<string>("");
-  const [savedSession, setSavedSession] = useState<any>(null);
-  const [showSessionResumePrompt, setShowSessionResumePrompt] = useState<boolean>(false);
+
   const [savedCharts, setSavedCharts] = useState<SavedChart[]>([]);
   const [showSaveChartModal, setShowSaveChartModal] = useState<boolean>(false);
   const [saveChartName, setSaveChartName] = useState<string>("");
@@ -1497,17 +1496,6 @@ export default function MathBrainPage() {
       // Initialize debug mode from URL
       setDebugMode(url.searchParams.get('debug') === '1');
 
-      // Check for saved session
-      try {
-        const savedSessionStr = window.localStorage.getItem('mb.lastSession');
-        if (savedSessionStr) {
-          const parsed = JSON.parse(savedSessionStr);
-          setSavedSession(parsed);
-          setShowSessionResumePrompt(true);
-        }
-      } catch (e) {
-        // Silently fail - not critical
-      }
 
       // Load saved charts
       try {
@@ -1520,17 +1508,7 @@ export default function MathBrainPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Session memory flags
-  const [hasSavedInputs, setHasSavedInputs] = useState<boolean>(false);
-  const [saveForNextSession, setSaveForNextSession] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    try {
-      const stored = window.localStorage.getItem('mb.saveInputsPreference');
-      if (stored === 'false') return false;
-      if (stored === 'true') return true;
-    } catch {/* ignore */ }
-    return true;
-  });
+
   const [loadError, setLoadError] = useState<string | null>(null);
   // Shared file input ref for bottom Session Presets box
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1563,21 +1541,7 @@ export default function MathBrainPage() {
     } catch {/* ignore */ }
   }, [layerVisibility]);
 
-  // Check for saved inputs on mount
-  useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem('mb.lastInputs');
-      setHasSavedInputs(!!saved);
-    } catch {
-      setHasSavedInputs(false);
-    }
-  }, []);
 
-  useEffect(() => {
-    try {
-      window.localStorage.setItem('mb.saveInputsPreference', String(saveForNextSession));
-    } catch {/* ignore */ }
-  }, [saveForNextSession]);
 
   // Relational modes list used for UI guards
   const isRelationalStructure = reportStructure !== 'solo';
@@ -2084,83 +2048,6 @@ export default function MathBrainPage() {
     setLoading(false);
   }
 
-  function resetSessionMemory() {
-    try {
-      window.localStorage.removeItem('mb.lastInputs');
-      setHasSavedInputs(false);
-      setSaveForNextSession(true);
-      // Reset form inputs
-      setPersonA(createEmptySubject());
-      setPersonB(createEmptySubject());
-      setIncludePersonB(false);
-      setACoordsInput('');
-      setBCoordsInput('');
-      setACoordsValid(true);
-      setBCoordsValid(true);
-      // Also clear any existing report
-      clearReport();
-    } catch {/* noop */ }
-  }
-
-  function resumeLastInputs() {
-    try {
-      const raw = window.localStorage.getItem('mb.lastInputs');
-      if (!raw) return;
-      const saved = JSON.parse(raw);
-      if (saved.personA) setPersonA(saved.personA);
-      if (saved.personB) setPersonB(saved.personB);
-      if (typeof saved.aCoordsInput === 'string') setACoordsInput(saved.aCoordsInput);
-      if (typeof saved.bCoordsInput === 'string') setBCoordsInput(saved.bCoordsInput);
-      if (typeof saved.includePersonB === 'boolean') setIncludePersonB(saved.includePersonB);
-      if (saved.mode) applyMode(normalizeReportMode(saved.mode));
-      if (saved.step) setStep(saved.step);
-      if (saved.startDate) {
-        setStartDate(saved.startDate);
-        setUserHasSetDates(true);
-      }
-      if (saved.endDate) {
-        setEndDate(saved.endDate);
-        setUserHasSetDates(true);
-      }
-      if (saved.relationshipType) setRelationshipType(saved.relationshipType);
-      if (typeof saved.exEstranged === 'boolean') setExEstranged(saved.exEstranged);
-      if (typeof saved.relationshipNotes === 'string') setRelationshipNotes(saved.relationshipNotes);
-      if (typeof saved.relationshipTier === 'string') setRelationshipTier(saved.relationshipTier);
-      if (typeof saved.relationshipRole === 'string') setRelationshipRole(saved.relationshipRole);
-
-      if (typeof saved.contactState === 'string') setContactState(saved.contactState.toUpperCase() === 'LATENT' ? 'LATENT' : 'ACTIVE');
-      if (saved.translocation) {
-        setTranslocation(normalizeTranslocationOption(saved.translocation));
-      }
-      if (typeof saved.includeTransits === 'boolean') {
-        setIncludeTransits(saved.includeTransits);
-      }
-      if (typeof saved.reportStructure === 'string' && ['solo', 'synastry', 'composite'].includes(saved.reportStructure)) {
-        setReportStructure(saved.reportStructure as ReportStructure);
-      }
-      if (typeof saved.relocInput === 'string') setRelocInput(saved.relocInput);
-      if (typeof saved.relocLabel === 'string') setRelocLabel(saved.relocLabel);
-      if (typeof saved.relocTz === 'string') setRelocTz(saved.relocTz);
-      if (saved.relocCoords && typeof saved.relocCoords === 'object') {
-        const { lat, lon } = saved.relocCoords as { lat?: unknown; lon?: unknown };
-        if (typeof lat === 'number' && typeof lon === 'number') {
-          setRelocCoords({ lat, lon });
-        }
-      }
-      if (typeof saved.timePolicy === 'string') {
-        const validPolicies: TimePolicyChoice[] = ['planetary_only', 'whole_sign', 'sensitivity_scan', 'user_provided'];
-        if ((validPolicies as string[]).includes(saved.timePolicy)) {
-          setTimePolicy(saved.timePolicy as TimePolicyChoice);
-        }
-      }
-      if (typeof saved.saveForNextSession === 'boolean') {
-        setSaveForNextSession(saved.saveForNextSession);
-      }
-
-      // Hide the resume prompt after successful load
-      setHasSavedInputs(false);
-    } catch {/* noop */ }
-  }
 
   // Quick actions for Person B
   function copyAToB() {
@@ -3763,59 +3650,6 @@ export default function MathBrainPage() {
       : undefined;
 
     try {
-      const sessionPayload: Record<string, any> = {
-        createdAt: new Date().toISOString(),
-        from: 'math-brain',
-        inputs: {
-          mode,
-          step,
-          reportType,
-          startDate,
-          endDate,
-          includePersonB,
-          includeTransits,
-          translocation,
-          contactState,
-          relationship: {
-            type: relationshipType,
-            intimacy_tier: relationshipType === 'PARTNER' ? relationshipTier || undefined : undefined,
-            role: relationshipType !== 'PARTNER' ? relationshipRole || undefined : undefined,
-            contact_state: contactState,
-            ex_estranged: relationshipType === 'FRIEND' ? undefined : exEstranged,
-            notes: relationshipNotes || undefined,
-          },
-          personA: {
-            name: personA.name,
-            timezone: personA.timezone,
-            city: personA.city,
-            state: personA.state,
-            nation: personA.nation || "US",
-          },
-          ...(includePersonB
-            ? {
-              personB: {
-                name: personB.name,
-                timezone: personB.timezone,
-                city: personB.city,
-                state: personB.state,
-                nation: personB.nation || "US",
-              },
-            }
-            : {}),
-        },
-        resultPreview: { hasDaily: hasDailySeries },
-      };
-      if (summaryForResume) {
-        sessionPayload.summary = summaryForResume;
-      }
-      window.localStorage.setItem('mb.lastSession', JSON.stringify(sessionPayload));
-      setSavedSession(sessionPayload);
-      setShowSessionResumePrompt(true);
-    } catch (error) {
-      console.error('Failed to persist Math Brain session resume data', error);
-    }
-
-    try {
       const lastPayload = {
         savedAt: new Date().toISOString(),
         from: 'math-brain',
@@ -4253,57 +4087,6 @@ export default function MathBrainPage() {
     if (e.currentTarget) e.currentTarget.value = '';
   }
 
-  const handleResumePrompt = useCallback(() => {
-    if (!savedSession) {
-      setToast('No saved session found yet. Run a report to create one.');
-      setTimeout(() => setToast(null), 2500);
-      return;
-    }
-    setShowSessionResumePrompt(true);
-    if (typeof window !== 'undefined') {
-      window.requestAnimationFrame?.(() => {
-        const el = document.getElementById('mb-resume-card');
-        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      });
-    }
-  }, [savedSession, setShowSessionResumePrompt, setToast]);
-
-  const loadSavedSession = () => {
-    if (!savedSession?.inputs) return;
-
-    const { inputs } = savedSession;
-    try {
-      if (inputs.mode) applyMode(normalizeReportMode(inputs.mode));
-      if (inputs.step) setStep(inputs.step);
-      if (inputs.startDate) setStartDate(inputs.startDate);
-      if (inputs.endDate) setEndDate(inputs.endDate);
-      if (typeof inputs.includePersonB === 'boolean') setIncludePersonB(inputs.includePersonB);
-      if (inputs.translocation) setTranslocation(normalizeTranslocationOption(inputs.translocation));
-      // ADDED: Restore report structure from session
-      if (typeof inputs.reportStructure === 'string' && ['solo', 'synastry', 'composite'].includes(inputs.reportStructure)) {
-        setReportStructure(inputs.reportStructure as ReportStructure);
-      }
-      // ADDED: Restore report format from session
-      // reportFormat removed - always conversational
-
-      if (inputs.relationship) {
-        const rel = inputs.relationship;
-        if (rel.type) setRelationshipType(rel.type);
-        if (rel.intimacy_tier) setRelationshipTier(rel.intimacy_tier);
-        if (rel.role) setRelationshipRole(rel.role);
-        if (typeof rel.ex_estranged === 'boolean') setExEstranged(rel.ex_estranged);
-        if (typeof rel.notes === 'string') setRelationshipNotes(rel.notes);
-        if (rel.contact_state) setContactState(rel.contact_state);
-      }
-
-      // Note: We don't restore full person data because session only saves partial data
-      // Users will need to re-enter birth details
-      setShowSessionResumePrompt(false);
-      setToast('Session settings restored! Please verify person details.');
-    } catch (e) {
-      setToast('Failed to restore session: ' + String(e));
-    }
-  };
 
   const canSubmit = useMemo(() => {
     // Basic local checks
@@ -4672,39 +4455,6 @@ export default function MathBrainPage() {
         }
       }
 
-      // Persist last inputs for resume (conditional)
-      try {
-        if (saveForNextSession) {
-          const inputs = {
-            mode,
-            step,
-            startDate,
-            endDate,
-            includePersonB,
-            includeTransits,
-            reportStructure,
-            translocation: relocationStatus.effectiveMode,
-            relationshipType,
-            relationshipTier,
-            relationshipRole,
-            contactState,
-            exEstranged,
-            relationshipNotes,
-            personA,
-            personB,
-            aCoordsInput,
-            bCoordsInput,
-            relocInput,
-            relocLabel,
-            relocTz,
-            relocCoords,
-            timePolicy,
-            saveForNextSession,
-          };
-          window.localStorage.setItem('mb.lastInputs', JSON.stringify(inputs));
-          setHasSavedInputs(true);
-        }
-      } catch {/* ignore */ }
 
       // Store result
       setResult(finalData);
@@ -4777,77 +4527,6 @@ export default function MathBrainPage() {
             </p>
           </div>
 
-          {/* Resume from Past Session Prompt — unified card (no redundant bottom toast) */}
-          {(showSessionResumePrompt && savedSession) || hasSavedInputs ? (
-            <div
-              id="mb-resume-card"
-              className="mt-6 mx-auto max-w-2xl rounded-lg border border-indigo-500/30 bg-indigo-950/20 p-4"
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 mt-0.5">
-                  <svg className="h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="flex-1 text-left">
-                  <h3 className="text-sm font-medium text-indigo-200">
-                    {savedSession ? 'Resume from past session?' : 'Previous inputs found'}
-                  </h3>
-                  <p className="mt-1 text-xs text-slate-300">
-                    {savedSession && (
-                      <>
-                        Last session: {savedSession.createdAt ? new Date(savedSession.createdAt).toLocaleString() : 'Unknown date'}
-                        {savedSession.summary && typeof savedSession.summary === 'object' && (
-                          <span>
-                            {' • '}
-                            {savedSession.summary.magnitudeLabel || 'Activity'}: {savedSession.summary.valenceLabel || 'Mixed'}
-                          </span>
-                        )}
-                        {savedSession.summary && typeof savedSession.summary === 'string' && ` • ${savedSession.summary}`}
-                      </>
-                    )}
-                    {!savedSession && hasSavedInputs && 'Your previous form inputs are available to restore.'}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {/* Full session resume (includes result) */}
-                    {savedSession && (
-                      <button
-                        type="button"
-                        onClick={loadSavedSession}
-                        className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-                      >
-                        Resume Session
-                      </button>
-                    )}
-                    {/* Inputs only (no result, just form values) */}
-                    {hasSavedInputs && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          resumeLastInputs();
-                          setShowSessionResumePrompt(false);
-                        }}
-                        className="rounded-md border border-indigo-500/50 bg-indigo-900/30 px-3 py-1.5 text-xs font-medium text-indigo-200 hover:bg-indigo-900/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-                      >
-                        {savedSession ? 'Inputs Only' : 'Resume Inputs'}
-                      </button>
-                    )}
-                    {/* Start fresh / reset */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowSessionResumePrompt(false);
-                        resetSessionMemory();
-                      }}
-                      className="rounded-md border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-                    >
-                      Start Fresh
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : null}
 
           {/* Math Brain: FIELD Layer Only */}
           <div className="mt-6 flex items-center justify-center gap-4 text-sm text-slate-400">
@@ -5025,16 +4704,7 @@ export default function MathBrainPage() {
             </div>
           )}
           {/* Session presets toolbar */}
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-700 bg-slate-900/50 p-3">
-            <label className="inline-flex items-center gap-2 text-sm text-slate-200">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
-                checked={saveForNextSession}
-                onChange={(e) => setSaveForNextSession(e.target.checked)}
-              />
-              Save for next session
-            </label>
+          <div className="mb-4 flex flex-wrap items-center justify-end gap-3 rounded-md border border-slate-700 bg-slate-900/50 p-3">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
