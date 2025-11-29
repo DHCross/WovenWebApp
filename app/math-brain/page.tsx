@@ -1599,7 +1599,6 @@ export default function MathBrainPage() {
     cleanJsonGenerating,
     engineConfigGenerating,
     astroFileJsonGenerating,
-    downloadWovenAIPacket,
   } = useChartExport({
     result,
     reportType,
@@ -5717,7 +5716,6 @@ export default function MathBrainPage() {
               onDownloadCleanJSON={downloadResultJSON}
               onDownloadMapFile={downloadMapFile}
               onDownloadFieldFile={downloadFieldFile}
-              onDownloadWovenAIPacket={downloadWovenAIPacket}
               seismographMap={seismographMap}
               authReady={authReady}
               isAuthenticated={isAuthenticated}

@@ -92,7 +92,6 @@ interface UseChartExportResult {
   downloadMirrorSymbolicWeatherJSON: () => void; // NEW: Consolidated Mirror + Weather
   downloadMirrorDirectiveJSON: () => void;
   downloadFieldMapFile: () => void; // NEW: Unified FIELD + MAP
-  downloadWovenAIPacket: () => void; // NEW: Woven AI Packet v1.0 (Markdown)
   // Backward compatibility (deprecated)
   downloadAstroFileJSON: () => void;
   downloadMapFile: () => void;
@@ -1230,57 +1229,6 @@ Start with the Solo Mirror(s), then ${
     }
   }, [buildFieldMapExport, pushToast, result, triggerDownload]);
 
-  const downloadWovenAIPacket = useCallback(async () => {
-    if (!result) {
-      pushToast('No report available to export', 2000);
-      return;
-    }
-
-    try {
-      const unifiedOutput = (result as any).unified_output || result;
-
-      const response = await fetch('/api/woven-packet', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          unifiedOutput,
-          options: { variant: 'compact' },
-        }),
-      });
-
-      if (!response.ok) {
-        console.error('Woven AI Packet API error', response.status, await response.text());
-        pushToast('Could not generate Woven AI Packet', 2000);
-        return;
-      }
-
-      const data = await response.json();
-      const packet = data?.packet;
-      if (!packet?.content || !packet?.filename) {
-        console.error('Invalid Woven AI Packet response', data);
-        pushToast('Could not generate Woven AI Packet', 2000);
-        return;
-      }
-
-      const blob = new Blob([packet.content], { type: 'text/markdown' });
-      const url = URL.createObjectURL(blob);
-      const filename = packet.filename;
-      const debug = typeof window !== 'undefined' && window.location?.search?.includes('mb_debug=1');
-      const triggerOk = triggerDownload(url, filename, debug);
-      if (!triggerOk) {
-        if (debug) console.warn('[Download] Failed to trigger download for Woven AI Packet');
-        pushToast('Could not download Woven AI Packet - try opening in a new tab', 2200);
-      }
-      pushToast('✅ Woven AI Packet (Markdown) downloaded', 2000);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('Woven AI Packet export failed', err);
-      pushToast('Could not generate Woven AI Packet', 2000);
-    }
-  }, [pushToast, result, triggerDownload]);
-
   // DEPRECATED: Separate MAP/FIELD exports replaced by unified wm-fieldmap-v1
   // Keeping for backward compatibility during transition
   const downloadMapFile = downloadFieldMapFile;
@@ -1296,7 +1244,6 @@ Start with the Solo Mirror(s), then ${
     downloadMirrorSymbolicWeatherJSON,
     downloadMirrorDirectiveJSON,
     downloadFieldMapFile,
-    downloadWovenAIPacket,
     // Backward compatibility aliases (deprecated)
     downloadAstroFileJSON,
     downloadMapFile,

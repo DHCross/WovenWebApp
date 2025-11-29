@@ -44,76 +44,54 @@ export interface RelationalMetadata {
 
 /**
  * Scan JSON structure for relational_type, relationship_type, or related metadata fields
+ * Optimized: single-pass property extraction with early returns
  */
 export function scanForRelationalMetadata(payload: any): RelationalMetadata {
+  // Fast path: invalid input
   if (!payload || typeof payload !== 'object') {
-    return {
-      scope: 'unknown',
-      baselineType: 'unknown',
-    };
+    return { scope: 'unknown', baselineType: 'unknown' };
   }
 
-  // Unwrap unified_output if present
-  const unwrapped = payload.unified_output || payload.unifiedOutput || payload;
-
-  // Check for explicit relational_type or relationship_type fields
+  // Single unwrap - cache the result
+  const unwrapped = payload.unified_output ?? payload.unifiedOutput ?? payload;
+  
+  // Cache nested objects (avoid repeated property access)
+  const ctx = unwrapped.context;
+  const contract = unwrapped.mirror_contract ?? unwrapped.mirrorContract;
+  const personA = unwrapped.person_a ?? unwrapped.personA;
+  const personB = unwrapped.person_b ?? unwrapped.personB;
+  
+  // Extract relationship type (check most common paths first)
   const relationshipTypeField =
-    unwrapped.relationship_type ||
-    unwrapped.relationshipType ||
-    unwrapped.context?.relationship_type ||
-    unwrapped.context?.relationshipType ||
-    unwrapped.mirror_contract?.relationship_type ||
-    unwrapped.mirrorContract?.relationshipType ||
+    unwrapped.relationship_type ??
+    unwrapped.relationshipType ??
+    contract?.relationship_type ??
+    ctx?.relationship_type ??
+    ctx?.relationshipType ??
+    contract?.relationshipType ??
     null;
 
-  // Check for scope indicators
+  // Extract scope (check most common paths first)
   const scopeField =
-    unwrapped.scope ||
-    unwrapped.reading_scope ||
-    unwrapped.readingScope ||
-    unwrapped.context?.scope ||
+    unwrapped.scope ??
+    unwrapped.reading_scope ??
+    unwrapped.readingScope ??
+    ctx?.scope ??
     null;
 
-  // Detect if we have person_a/person_b structure
-  const hasPersonA = !!(unwrapped.person_a || unwrapped.personA);
-  const hasPersonB = !!(unwrapped.person_b || unwrapped.personB);
+  // Person detection - use cached refs
+  const hasPersonA = !!personA;
+  const hasPersonB = !!personB;
   const hasBoth = hasPersonA && hasPersonB;
 
-  // Extract person names
-  const personA = unwrapped.person_a || unwrapped.personA || {};
-  const personB = unwrapped.person_b || unwrapped.personB || {};
-  const personAName =
-    personA.name ||
-    personA.full_name ||
-    personA.fullName ||
-    'Person A';
-  const personBName =
-    personB.name ||
-    personB.full_name ||
-    personB.fullName ||
-    'Person B';
+  // Extract names (with defaults)
+  const personAName = personA?.name ?? personA?.full_name ?? personA?.fullName ?? 'Person A';
+  const personBName = personB?.name ?? personB?.full_name ?? personB?.fullName ?? 'Person B';
 
-  // Check for specific chart types
-  const hasComposite = !!(
-    unwrapped.composite ||
-    unwrapped.compositeChart ||
-    personA.composite ||
-    personB.composite
-  );
-  const hasSynastry = !!(
-    unwrapped.synastry ||
-    unwrapped.synastryChart ||
-    unwrapped.overlay ||
-    personA.synastry ||
-    personB.synastry
-  );
-  const hasNatal = !!(
-    unwrapped.natal ||
-    unwrapped.natalChart ||
-    unwrapped.chart ||
-    personA.chart ||
-    personB.chart
-  );
+  // Chart type detection - check unwrapped first (most common), then persons
+  const hasComposite = !!(unwrapped.composite ?? unwrapped.compositeChart ?? personA?.composite ?? personB?.composite);
+  const hasSynastry = !!(unwrapped.synastry ?? unwrapped.synastryChart ?? unwrapped.overlay ?? personA?.synastry ?? personB?.synastry);
+  const hasNatal = !!(unwrapped.natal ?? unwrapped.natalChart ?? unwrapped.chart ?? personA?.chart ?? personB?.chart);
 
   // Determine scope
   let scope: RelationalScope = 'unknown';

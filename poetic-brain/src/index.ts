@@ -925,7 +925,7 @@ export function generateSection(sectionType: SectionType, inputPayload: InputPay
  * Process Mirror Directive JSON
  * Returns populated narrative_sections for all report types
  * 
- * This is the main entry point for Mirror Directive JSON uploads
+ * Optimized: lazy mandate generation, cached lookups, early exits
  */
 export function processMirrorDirective(payload: InputPayload): {
   success: boolean;
@@ -939,7 +939,7 @@ export function processMirrorDirective(payload: InputPayload): {
   report_kind?: string;
   error?: string;
 } {
-  // Validate format
+  // Fast path: validate format first
   if (payload._format !== 'mirror_directive_json') {
     return {
       success: false,
@@ -948,92 +948,90 @@ export function processMirrorDirective(payload: InputPayload): {
     };
   }
 
-  // If a corpus-informed persona excerpt is preloaded at module init, stamp it into provenance for traceability
+  // Stamp persona excerpt (best-effort, non-blocking)
   try {
-    const globalAny: any = global as any;
-    if (globalAny.__RAVEN_CALDER_PERSONA_EXCERPT__ && typeof globalAny.__RAVEN_CALDER_PERSONA_EXCERPT__ === 'string') {
-      payload.provenance = payload.provenance || {};
-      if (!payload.provenance.persona_excerpt) payload.provenance.persona_excerpt = globalAny.__RAVEN_CALDER_PERSONA_EXCERPT__;
-      payload.provenance.persona_excerpt_source = payload.provenance.persona_excerpt_source || {
+    const globalAny = global as any;
+    const excerpt = globalAny.__RAVEN_CALDER_PERSONA_EXCERPT__;
+    if (excerpt && typeof excerpt === 'string') {
+      payload.provenance ??= {};
+      payload.provenance.persona_excerpt ??= excerpt;
+      payload.provenance.persona_excerpt_source ??= {
         source: 'RavenCalder_Corpus',
         file: 'ravencalder-persona-excerpt.txt',
         generated_at: new Date().toISOString(),
       };
     }
-  } catch (e) {
-    // noop — stamping provenance is best-effort
+  } catch {
+    // noop
   }
 
-  // Parse Mirror Directive
+  // Parse directive once - cache results
   const directive = parseMirrorDirective(payload);
-  const calibration = calibrateForIntimacyTier(directive.intimacyTier);
+  const { isRelational, personA, personB, geometry, intimacyTier, reportKind } = directive;
+  const calibration = calibrateForIntimacyTier(intimacyTier);
+  
+  // Pre-compute names (used multiple times)
+  const nameA = personA?.name || 'Person A';
+  const nameB = personB?.name || 'Person B';
+  const chartA = geometry.chartA || {};
+  const chartB = geometry.chartB;
 
-  // Generate mandates for Person A
-  const mandatesA = buildMandatesForChart(
-    directive.personA?.name || 'Person A',
-    directive.geometry.chartA || {},
-    { limit: 5 }
-  );
+  // Build narratives object
+  const narratives: {
+    solo_mirror_a?: string;
+    solo_mirror_b?: string;
+    relational_engine?: string;
+    weather_overlay?: string;
+  } = {};
 
-  // Enhance base prompt with mandate data
-  let enhancedPrompt = enhancePromptWithMandates(
-    process.env.DEFAULT_PROMPT || '',
-    { name: directive.personA?.name || 'Person A', mandates: mandatesA.mandates }
-  );
+  // Generate mandates only when needed (lazy evaluation)
+  let mandatesA: ReturnType<typeof buildMandatesForChart> | null = null;
+  let mandatesB: ReturnType<typeof buildMandatesForChart> | null = null;
+  
+  const getMandatesA = () => {
+    if (!mandatesA) {
+      mandatesA = buildMandatesForChart(nameA, chartA, { limit: 5 });
+    }
+    return mandatesA;
+  };
+  
+  const getMandatesB = () => {
+    if (!mandatesB && chartB) {
+      mandatesB = buildMandatesForChart(nameB, chartB, { limit: 5 });
+    }
+    return mandatesB;
+  };
 
-  // Generate mandates for Person B if relational
-  const mandatesB = directive.isRelational && directive.geometry.chartB
-    ? buildMandatesForChart(
-        directive.personB?.name || 'Person B',
-        directive.geometry.chartB,
-        { limit: 5 }
-      )
-    : null;
-
-  // Enhance prompt with Person B's mandates if relational
-  if (directive.isRelational && mandatesB) {
-    enhancedPrompt = enhancePromptWithMandates(
-      enhancedPrompt,
-      { name: directive.personA?.name || 'Person A', mandates: mandatesA.mandates },
-      { name: directive.personB?.name || 'Person B', mandates: mandatesB.mandates }
-    );
-  }
-
-  // Generate narrative sections
-  const narratives: any = {};
-
-  // Always generate solo mirror for Person A
-  if (directive.personA) {
+  // Generate solo mirror for Person A (most common path)
+  if (personA) {
     narratives.solo_mirror_a = generateSoloMirror(
-      directive.personA,
-      directive.geometry.chartA,
+      personA,
+      chartA,
       calibration,
-      mandatesA.mandates
+      getMandatesA().mandates
     );
   }
 
-  // Generate solo mirror for Person B if relational
-  if (directive.isRelational && directive.personB) {
+  // Generate Person B content only if relational
+  if (isRelational && personB) {
+    const mandatesBResult = getMandatesB();
     narratives.solo_mirror_b = generateSoloMirror(
-      directive.personB,
-      directive.geometry.chartB,
+      personB,
+      chartB,
       calibration,
-      mandatesB?.mandates || []
+      mandatesBResult?.mandates || []
     );
-  }
 
-  // Generate relational engine if relational
-  if (directive.isRelational && directive.personB) {
     narratives.relational_engine = generateRelationalEngine(
-      directive.personA,
-      directive.personB,
-      directive.geometry,
+      personA,
+      personB,
+      geometry,
       calibration
     );
   }
 
-  // Generate weather overlay if seismograph data present
-  const weatherSource = payload.symbolic_weather_context || payload.seismograph;
+  // Weather overlay - only if data present
+  const weatherSource = payload.symbolic_weather_context ?? payload.seismograph;
   if (weatherSource) {
     narratives.weather_overlay = generateWeatherOverlay(weatherSource);
   }
@@ -1041,8 +1039,8 @@ export function processMirrorDirective(payload: InputPayload): {
   return {
     success: true,
     narrative_sections: narratives,
-    intimacy_tier: directive.intimacyTier,
-    report_kind: directive.reportKind,
+    intimacy_tier: intimacyTier,
+    report_kind: reportKind,
   };
 }
 

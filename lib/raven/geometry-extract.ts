@@ -23,78 +23,67 @@ export interface ExtractedGeometry {
  * Extract geometry directly from uploaded report JSON to bypass Math Brain regeneration.
  * Returns null if the JSON doesn't contain valid geometry.
  * 
- * NEW: Also extracts relational metadata and separates baseline from current field.
+ * Optimized: early returns, no array copy, cached property lookups.
  */
 export function extractGeometryFromUploadedReport(contexts: Record<string, any>[]): ExtractedGeometry | null {
+  // Fast path: empty or invalid input
   if (!Array.isArray(contexts) || contexts.length === 0) return null;
 
-  const mirrorContext = [...contexts].reverse().find(
-    (ctx) => ctx && ctx.type === 'mirror' && typeof ctx.content === 'string'
-  );
+  // Find mirror context (iterate backwards without creating a copy)
+  let mirrorContext: Record<string, any> | null = null;
+  for (let i = contexts.length - 1; i >= 0; i--) {
+    const ctx = contexts[i];
+    if (ctx && ctx.type === 'mirror' && typeof ctx.content === 'string') {
+      mirrorContext = ctx;
+      break;
+    }
+  }
 
   if (!mirrorContext) return null;
 
   try {
     const parsed = JSON.parse(mirrorContext.content);
-    // Check if this is a Math Brain v2 unified output with geometry
-    if (parsed && typeof parsed === 'object') {
-      // Unwrap unified_output (snake_case) or unifiedOutput (camelCase) if present
-      const unwrapped = parsed.unified_output || parsed.unifiedOutput || parsed;
+    if (!parsed || typeof parsed !== 'object') return null;
+    
+    // Single unwrap operation - cache result
+    const unwrapped = parsed.unified_output ?? parsed.unifiedOutput ?? parsed;
 
-      // PRIORITY 1: Check for Mirror + Symbolic Weather format (person_a/personA.chart structure)
-      const mirrorPayload =
-        (unwrapped.person_a && typeof unwrapped.person_a === 'object'
-          ? unwrapped.person_a
-          : unwrapped.personA && typeof unwrapped.personA === 'object'
-            ? unwrapped.personA
-            : null);
-      if (mirrorPayload?.chart && typeof mirrorPayload.chart === 'object') {
-        // Full structure with person_a/person_b
-        const metadata = scanForRelationalMetadata(unwrapped);
-        const baseline = extractBaselineGeometry(unwrapped, metadata.baselineType);
-        const field = extractFieldGeometry(unwrapped);
-        
+    // PRIORITY 1: Check for Mirror + Symbolic Weather format (person_a/personA.chart structure)
+    const personA = unwrapped.person_a ?? unwrapped.personA;
+    if (personA && typeof personA === 'object' && personA.chart && typeof personA.chart === 'object') {
+      // Full structure with person_a/person_b - fast path for most common case
+      const metadata = scanForRelationalMetadata(unwrapped);
+      return {
+        full: unwrapped,
+        baseline: extractBaselineGeometry(unwrapped, metadata.baselineType),
+        field: extractFieldGeometry(unwrapped),
+        metadata,
+        shouldUsePureField: shouldUsePureFieldMirror(unwrapped, metadata.baselineType),
+      };
+    }
+
+    // PRIORITY 2: Look for geometry in various possible locations
+    const geo = unwrapped.geometry ?? unwrapped.chart ?? unwrapped.natal_chart ?? unwrapped.natalChart ?? unwrapped;
+
+    // Validate minimum required geometry fields
+    if (geo && typeof geo === 'object') {
+      const hasValidGeo = (geo.person_a && typeof geo.person_a === 'object') ||
+                          (geo.chart && typeof geo.chart === 'object') ||
+                          geo.planets || geo.houses || geo.aspects;
+
+      if (hasValidGeo) {
+        const metadata = scanForRelationalMetadata(geo);
         return {
-          full: unwrapped,
-          baseline,
-          field,
+          full: geo,
+          baseline: extractBaselineGeometry(geo, metadata.baselineType),
+          field: extractFieldGeometry(geo),
           metadata,
-          shouldUsePureField: shouldUsePureFieldMirror(unwrapped, metadata.baselineType),
+          shouldUsePureField: shouldUsePureFieldMirror(geo, metadata.baselineType),
         };
       }
-
-      // PRIORITY 2: Look for geometry in various possible locations
-      const geo =
-        unwrapped.geometry ||
-        unwrapped.chart ||
-        unwrapped.natal_chart ||
-        unwrapped.natalChart ||
-        unwrapped;
-
-      // Validate that we have the minimum required geometry fields
-      if (geo && typeof geo === 'object') {
-        const hasPersonA = geo.person_a && typeof geo.person_a === 'object';
-        const hasChart = geo.chart && typeof geo.chart === 'object';
-        const hasBasicData = geo.planets || geo.houses || geo.aspects;
-
-        if (hasPersonA || hasChart || hasBasicData) {
-          // Extract metadata for context gating
-          const metadata = scanForRelationalMetadata(geo);
-          const baseline = extractBaselineGeometry(geo, metadata.baselineType);
-          const field = extractFieldGeometry(geo);
-
-          return {
-            full: geo,
-            baseline,
-            field,
-            metadata,
-            shouldUsePureField: shouldUsePureFieldMirror(geo, metadata.baselineType),
-          };
-        }
-      }
     }
-  } catch (e) {
-    // Invalid JSON or missing geometry
+  } catch {
+    // Invalid JSON or missing geometry - fast fail
     return null;
   }
 
