@@ -82,7 +82,12 @@ export default function DownloadControls({
         <p className="text-xs text-slate-400 -mt-1 mb-2">Download and use with any AI trained in astrology, or upload to Poetic Brain for the unique Raven Calder experience</p>
         <button
           type="button"
-          onClick={onDownloadAstroFile}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('[DownloadControls] Astro File button clicked');
+            onDownloadAstroFile();
+          }}
           disabled={astroFileJsonGenerating}
           className="w-full rounded-md border border-blue-600 bg-blue-700/30 px-4 py-3 text-left hover:bg-blue-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
           aria-label="Download Astro File JSON for AI analysis or Poetic Brain"

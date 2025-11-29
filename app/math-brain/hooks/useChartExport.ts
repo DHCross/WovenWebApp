@@ -247,6 +247,43 @@ export function useChartExport(options: UseChartExportOptions): UseChartExportRe
     [setToast],
   );
 
+  // Helper that tries to trigger a client download via anchor click, with window.open fallback.
+  const triggerDownload = useCallback((url: string, filename?: string, debug = false): boolean => {
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      if (filename) a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      try {
+        const mouseEvent = new MouseEvent('click', { view: window, bubbles: true, cancelable: true });
+        const dispatched = a.dispatchEvent(mouseEvent);
+        if (!dispatched) {
+          // Some browsers may not allow dispatchEvent; try native click
+          a.click();
+        }
+        return true;
+      } catch (err) {
+        if (debug) console.warn('[Download] Programmatic click dispatch failed:', err);
+        try {
+          window.open(url, '_blank');
+          return true;
+        } catch (err2) {
+          if (debug) console.error('[Download] window.open fallback failed:', err2);
+          return false;
+        }
+      } finally {
+        setTimeout(() => {
+          try { a.remove(); } catch { /* noop */ }
+          try { URL.revokeObjectURL(url); } catch { /* noop */ }
+        }, 300);
+      }
+    } catch (err) {
+      if (debug) console.error('[Download] triggerDownload top-level error', err);
+      return false;
+    }
+  }, []);
+
   const downloadResultPDF = useCallback(async () => {
     if (!result) {
       pushToast('No report available to export', 2000);
@@ -808,23 +845,13 @@ Start with the Solo Mirror(s), then ${
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${friendlyFilename('directive')}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(() => {
-        try {
-          document.body.removeChild(link);
-        } catch {
-          // noop
-        }
-        try {
-          URL.revokeObjectURL(url);
-        } catch {
-          // noop
-        }
-      }, 150);
+      const filename = `${friendlyFilename('directive')}.pdf`;
+      const debug = typeof window !== 'undefined' && window.location?.search?.includes('mb_debug=1');
+      const triggerOk = triggerDownload(url, filename, debug);
+      if (!triggerOk) {
+        if (debug) console.warn('[Download] Failed to trigger download for PDF');
+        pushToast('Could not download PDF - try opening in a new tab', 2200);
+      }
 
       // Validate Poetic Brain compatibility
       const validation = validatePoeticBrainCompatibility(result);
@@ -849,10 +876,11 @@ Start with the Solo Mirror(s), then ${
     reportType,
     result,
     setToast,
+    triggerDownload,
   ]);
 
   const downloadResultJSON = useCallback(() => {
-    if (!result) return;
+    if (!result) { pushToast('No report available to export', 2000); return; }
     setCleanJsonGenerating(true);
     try {
       const reportKind = formatReportKind(reportContractType);
@@ -861,41 +889,41 @@ Start with the Solo Mirror(s), then ${
         type: 'application/json',
       });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${filenameBase('mathbrain-result')}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      const filename = `${filenameBase('mathbrain-result')}.json`;
+      const debug = typeof window !== 'undefined' && window.location?.search?.includes('mb_debug=1');
+      const triggerOk = triggerDownload(url, filename, debug);
+      if (!triggerOk) {
+        if (debug) console.warn('[Download] Failed to trigger download for result JSON');
+        pushToast('Could not download JSON - try opening in a new tab', 2200);
+      }
       pushToast('Downloading result JSON with mirror contract', 1600);
     } catch {
       // noop
     } finally {
       setTimeout(() => setCleanJsonGenerating(false), 300);
     }
-  }, [filenameBase, pushToast, reportContractType, result]);
+  }, [filenameBase, pushToast, reportContractType, result, triggerDownload]);
 
   const downloadBackstageJSON = useCallback(() => {
-    if (!result) return;
+    if (!result) { pushToast('No report available to export', 2000); return; }
     setEngineConfigGenerating(true);
     try {
       const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${friendlyFilename('engine-config')}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      const filename = `${friendlyFilename('engine-config')}.json`;
+      const debug = typeof window !== 'undefined' && window.location?.search?.includes('mb_debug=1');
+      const triggerOk = triggerDownload(url, filename, debug);
+      if (!triggerOk) {
+        if (debug) console.warn('[Download] Failed to trigger download for backstage JSON');
+        pushToast('Could not download backstage JSON - try opening in a new tab', 2200);
+      }
       pushToast('Downloading backstage JSON for debugging', 1400);
     } catch {
       // noop
     } finally {
       setTimeout(() => setEngineConfigGenerating(false), 300);
     }
-  }, [friendlyFilename, pushToast, result]);
+  }, [friendlyFilename, pushToast, result, triggerDownload]);
 
   const buildMirrorSymbolicWeatherExport = useCallback((): MirrorSymbolicWeatherExport | null => {
     if (!result) return null;
@@ -1102,23 +1130,31 @@ Start with the Solo Mirror(s), then ${
   }, [friendlyFilename, result]);
 
   const downloadAstroFileJSON = useCallback(() => {
-    if (!result) return;
+    const debug = typeof window !== 'undefined' && window.location?.search?.includes('mb_debug=1');
+    if (debug) console.log('[Download] downloadAstroFileJSON called, result:', !!result);
+    if (!result) {
+      if (debug) console.warn('[Download] No result available, aborting download');
+      return;
+    }
     setAstroFileJsonGenerating(true);
     try {
       const exportBundle = buildMirrorSymbolicWeatherExport();
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[Download] exportBundle:', !!exportBundle, exportBundle?.filename);
+      }
       if (!exportBundle) {
         pushToast('Failed to build Astro File JSON', 2000);
         return;
       }
       const blob = new Blob([JSON.stringify(exportBundle.payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = exportBundle.filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      const filename = exportBundle.filename;
+      const debug = typeof window !== 'undefined' && window.location?.search?.includes('mb_debug=1');
+      const triggerOk = triggerDownload(url, filename, debug);
+      if (!triggerOk) {
+        if (debug) console.warn('[Download] Failed to trigger download for Astro File JSON');
+        pushToast('Could not download Astro File JSON - try opening in a new tab', 2200);
+      }
       if (!exportBundle.hasChartGeometry) {
         pushToast('⚠️ Chart geometry missing — export will not work with Poetic Brain. Try downloading the PDF instead.', 3000);
       } else if (exportBundle.hasWeather) {
@@ -1132,12 +1168,12 @@ Start with the Solo Mirror(s), then ${
     } finally {
       setTimeout(() => setAstroFileJsonGenerating(false), 300);
     }
-  }, [buildMirrorSymbolicWeatherExport, pushToast, result]);
+  }, [buildMirrorSymbolicWeatherExport, pushToast, result, triggerDownload]);
 
   const downloadMirrorSymbolicWeatherJSON = downloadAstroFileJSON;
 
   const downloadMirrorDirectiveJSON = useCallback(() => {
-    if (!result) return;
+    if (!result) { pushToast('No report available to export', 2000); return; }
     setCleanJsonGenerating(true);
     try {
       const exportBundle = buildMirrorDirectiveExport();
@@ -1149,13 +1185,13 @@ Start with the Solo Mirror(s), then ${
         type: 'application/json',
       });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = exportBundle.filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      const filename = exportBundle.filename;
+      const debug = typeof window !== 'undefined' && window.location?.search?.includes('mb_debug=1');
+      const triggerOk = triggerDownload(url, filename, debug);
+      if (!triggerOk) {
+        if (debug) console.warn('[Download] Failed to trigger download for Mirror Directive JSON');
+        pushToast('Could not download Mirror Directive JSON - try opening in a new tab', 2200);
+      }
       pushToast('✅ Mirror Directive JSON ready for Poetic Brain', 1600);
     } catch (err) {
       console.error('Mirror Directive JSON export failed', err);
@@ -1163,10 +1199,10 @@ Start with the Solo Mirror(s), then ${
     } finally {
       setTimeout(() => setCleanJsonGenerating(false), 300);
     }
-  }, [buildMirrorDirectiveExport, pushToast, result]);
+  }, [buildMirrorDirectiveExport, pushToast, result, triggerDownload]);
 
   const downloadFieldMapFile = useCallback(() => {
-    if (!result) return;
+    if (!result) { pushToast('No report available to export', 2000); return; }
     setCleanJsonGenerating(true);
     try {
       const exportBundle = buildFieldMapExport();
@@ -1178,13 +1214,13 @@ Start with the Solo Mirror(s), then ${
         type: 'application/json',
       });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = exportBundle.filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      const filename = exportBundle.filename;
+      const debug = typeof window !== 'undefined' && window.location?.search?.includes('mb_debug=1');
+      const triggerOk = triggerDownload(url, filename, debug);
+      if (!triggerOk) {
+        if (debug) console.warn('[Download] Failed to trigger download for Field/Map file');
+        pushToast('Could not download Field/Map file - try opening in a new tab', 2200);
+      }
       pushToast('✅ Unified FieldMap downloaded', 1600);
     } catch (err) {
       console.error('FieldMap export failed', err);
@@ -1192,7 +1228,7 @@ Start with the Solo Mirror(s), then ${
     } finally {
       setTimeout(() => setCleanJsonGenerating(false), 300);
     }
-  }, [buildFieldMapExport, pushToast, result]);
+  }, [buildFieldMapExport, pushToast, result, triggerDownload]);
 
   const downloadWovenAIPacket = useCallback(async () => {
     if (!result) {
@@ -1230,20 +1266,20 @@ Start with the Solo Mirror(s), then ${
 
       const blob = new Blob([packet.content], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = packet.filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      const filename = packet.filename;
+      const debug = typeof window !== 'undefined' && window.location?.search?.includes('mb_debug=1');
+      const triggerOk = triggerDownload(url, filename, debug);
+      if (!triggerOk) {
+        if (debug) console.warn('[Download] Failed to trigger download for Woven AI Packet');
+        pushToast('Could not download Woven AI Packet - try opening in a new tab', 2200);
+      }
       pushToast('✅ Woven AI Packet (Markdown) downloaded', 2000);
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('Woven AI Packet export failed', err);
       pushToast('Could not generate Woven AI Packet', 2000);
     }
-  }, [pushToast, result]);
+  }, [pushToast, result, triggerDownload]);
 
   // DEPRECATED: Separate MAP/FIELD exports replaced by unified wm-fieldmap-v1
   // Keeping for backward compatibility during transition

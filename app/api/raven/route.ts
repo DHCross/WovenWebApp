@@ -329,6 +329,10 @@ export async function POST(req: Request) {
           if (result.success && result.narrative_sections) {
             let narrative = '';
             if (result.narrative_sections.solo_mirror_a) narrative += result.narrative_sections.solo_mirror_a + '\n\n';
+            // CRITICAL FIX: Include Person B's solo mirror for relational reports
+            // Without this, Person B's patterns were only shown in relational_engine context,
+            // causing Person B's behaviors to appear fused onto Person A's reading
+            if (result.narrative_sections.solo_mirror_b) narrative += result.narrative_sections.solo_mirror_b + '\n\n';
             if (result.narrative_sections.relational_engine) narrative += result.narrative_sections.relational_engine + '\n\n';
             if (result.narrative_sections.weather_overlay) narrative += result.narrative_sections.weather_overlay;
 
