@@ -2080,6 +2080,14 @@ export default function MathBrainPage() {
       window.localStorage.removeItem('mb.lastInputs');
       setHasSavedInputs(false);
       setSaveForNextSession(true);
+      // Reset form inputs
+      setPersonA(createEmptySubject());
+      setPersonB(createEmptySubject());
+      setIncludePersonB(false);
+      setACoordsInput('');
+      setBCoordsInput('');
+      setACoordsValid(true);
+      setBCoordsValid(true);
       // Also clear any existing report
       clearReport();
     } catch {/* noop */ }
@@ -4446,12 +4454,12 @@ export default function MathBrainPage() {
       setTimeout(() => setToast(null), 2500);
       return;
     }
-    if (providerCheckPending) {
+    if (!PROVIDER_BYPASS && providerCheckPending) {
       setToast('Checking provider readiness…');
       setTimeout(() => setToast(null), 2500);
       return;
     }
-    if (!providerHealth.astrology.ready) {
+    if (!PROVIDER_BYPASS && !providerHealth.astrology.ready) {
       const outageMessage = providerHealth.astrology.message || 'Math Brain is currently unavailable.';
       setError(outageMessage);
       setToast(outageMessage);
@@ -4869,7 +4877,7 @@ export default function MathBrainPage() {
                 </svg>
               </button>
             </div>
-            
+
             <div className="mt-5 grid gap-4 md:grid-cols-3">
               <div className="rounded-lg border border-slate-700/50 bg-slate-800/50 p-4">
                 <div className="flex items-center gap-2 text-emerald-300">
@@ -4880,7 +4888,7 @@ export default function MathBrainPage() {
                   Scroll down to <strong className="text-slate-300">Person A</strong> and fill in your name, birth date, birth time, and birth location.
                 </p>
               </div>
-              
+
               <div className="rounded-lg border border-slate-700/50 bg-slate-800/50 p-4">
                 <div className="flex items-center gap-2 text-emerald-300">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-sm font-bold">2</span>
@@ -4890,7 +4898,7 @@ export default function MathBrainPage() {
                   Click the big <strong className="text-slate-300">Generate Report</strong> button at the bottom. Wait a few seconds for the geometry to calculate.
                 </p>
               </div>
-              
+
               <div className="rounded-lg border border-slate-700/50 bg-slate-800/50 p-4">
                 <div className="flex items-center gap-2 text-emerald-300">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-sm font-bold">3</span>
@@ -4930,7 +4938,7 @@ export default function MathBrainPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
-          
+
           {showHowItWorks && (
             <div className="mt-2 rounded-lg border border-slate-700/50 bg-slate-900/60 p-5 text-sm text-slate-300">
               <div className="space-y-4">
@@ -6247,12 +6255,12 @@ export default function MathBrainPage() {
                                 // Build relationship context for negative constraints (what NOT to assume)
                                 const relationalCtx: RelationshipContext | undefined = modeKind === 'relational'
                                   ? {
-                                      type: relationshipType as 'PARTNER' | 'FRIEND' | 'FAMILY' | undefined,
-                                      intimacy_tier: relationshipType === 'PARTNER' && relationshipTier
-                                        ? relationshipTier as 'P1' | 'P2' | 'P3' | 'P4' | 'P5a' | 'P5b'
-                                        : undefined,
-                                      role: relationshipType !== 'PARTNER' ? relationshipRole || undefined : undefined,
-                                    }
+                                    type: relationshipType as 'PARTNER' | 'FRIEND' | 'FAMILY' | undefined,
+                                    intimacy_tier: relationshipType === 'PARTNER' && relationshipTier
+                                      ? relationshipTier as 'P1' | 'P2' | 'P3' | 'P4' | 'P5a' | 'P5b'
+                                      : undefined,
+                                    role: relationshipType !== 'PARTNER' ? relationshipRole || undefined : undefined,
+                                  }
                                   : undefined;
 
                                 return (

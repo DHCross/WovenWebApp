@@ -35,7 +35,7 @@ interface UserProfiles {
 export async function GET(req: NextRequest) {
   try {
     const userId = req.nextUrl.searchParams.get('userId');
-    
+
     if (!userId) {
       return NextResponse.json(
         { success: false, error: 'userId required' },
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
     const store = getStore('user-profiles');
     const data = await store.get(`user_${userId}`);
-    
+
     if (!data) {
       logger.info('No profiles found for user', { userId });
       return NextResponse.json({
@@ -118,14 +118,25 @@ export async function POST(req: NextRequest) {
     }
 
     // Normalize coordinates to ensure lat/lng are persisted even if client sends latitude/longitude
+    // STRICT SANITIZATION: Only allow specific fields to prevent report data leakage
     const normalizedProfiles: BirthProfile[] = profiles.map((profile) => {
       const lat = profile.lat ?? (profile as any).latitude;
       const lng = profile.lng ?? (profile as any).longitude;
 
       return {
-        ...profile,
+        id: profile.id,
+        name: profile.name,
+        birthDate: profile.birthDate,
+        birthTime: profile.birthTime,
+        birthCity: profile.birthCity,
+        birthState: profile.birthState,
+        birthCountry: profile.birthCountry,
+        timezone: profile.timezone,
         lat: typeof lat === 'number' ? lat : lat != null ? Number(lat) : undefined,
         lng: typeof lng === 'number' ? lng : lng != null ? Number(lng) : undefined,
+        latitude: typeof lat === 'number' ? lat : lat != null ? Number(lat) : undefined,
+        longitude: typeof lng === 'number' ? lng : lng != null ? Number(lng) : undefined,
+        notes: profile.notes,
       } satisfies BirthProfile;
     });
 

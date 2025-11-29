@@ -88,15 +88,34 @@ export function useUserProfiles(userId: string | null): UseUserProfilesResult {
     try {
       // Check if profile already exists
       const existingIndex = profiles.findIndex(p => p.id === profile.id);
+
+      // STRICT SANITIZATION: Only allow specific fields to prevent report data leakage
+      const sanitizedProfile: BirthProfile = {
+        id: profile.id,
+        name: profile.name,
+        birthDate: profile.birthDate,
+        birthTime: profile.birthTime,
+        birthCity: profile.birthCity,
+        birthState: profile.birthState,
+        birthCountry: profile.birthCountry,
+        timezone: profile.timezone,
+        lat: profile.lat,
+        lng: profile.lng,
+        latitude: profile.latitude,
+        longitude: profile.longitude,
+        relationship_type: profile.relationship_type,
+        notes: profile.notes,
+      };
+
       let updatedProfiles: BirthProfile[];
 
       if (existingIndex >= 0) {
         // Update existing
         updatedProfiles = [...profiles];
-        updatedProfiles[existingIndex] = profile;
+        updatedProfiles[existingIndex] = sanitizedProfile;
       } else {
         // Add new
-        updatedProfiles = [...profiles, profile];
+        updatedProfiles = [...profiles, sanitizedProfile];
       }
 
       const res = await fetch('/api/user-profiles', {
