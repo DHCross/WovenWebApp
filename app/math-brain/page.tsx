@@ -973,6 +973,7 @@ export default function MathBrainPage() {
   }, [result]);
 
   const displayResult = frontStageResult ?? result;
+  const hasDisplayResult = Boolean(displayResult);
 
   const frontStageTransitsByDate = useMemo(() => {
     if (frontStageResult?.person_a?.chart?.transitsByDate) {
@@ -5400,26 +5401,36 @@ export default function MathBrainPage() {
             </div>
 
             {/* Post-generation actions - Restructured for clarity */}
-            <DownloadControls
-              includeTransits={includeTransits}
-              pdfGenerating={pdfGenerating}
-              graphsPdfGenerating={graphsPdfGenerating}
-              astroFileJsonGenerating={astroFileJsonGenerating}
-              engineConfigGenerating={engineConfigGenerating}
-              cleanJsonGenerating={cleanJsonGenerating}
-              onDownloadPDF={downloadResultPDF}
-              onDownloadAstroFile={downloadAstroFileJSON}
-              onDownloadGraphsPDF={downloadGraphsPDF}
-              onDownloadEngineConfig={downloadBackstageJSON}
-              onDownloadCleanJSON={downloadResultJSON}
-              onDownloadMapFile={downloadMapFile}
-              onDownloadFieldFile={downloadFieldFile}
-              seismographMap={seismographMap}
-              authReady={authReady}
-              isAuthenticated={isAuthenticated}
-              canVisitPoetic={canVisitPoetic}
-              onNavigateToPoetic={handleNavigateToPoetic}
-            />
+            {hasDisplayResult ? (
+              <DownloadControls
+                includeTransits={includeTransits}
+                pdfGenerating={pdfGenerating}
+                graphsPdfGenerating={graphsPdfGenerating}
+                astroFileJsonGenerating={astroFileJsonGenerating}
+                engineConfigGenerating={engineConfigGenerating}
+                cleanJsonGenerating={cleanJsonGenerating}
+                onDownloadPDF={downloadResultPDF}
+                onDownloadAstroFile={downloadAstroFileJSON}
+                onDownloadGraphsPDF={downloadGraphsPDF}
+                onDownloadEngineConfig={downloadBackstageJSON}
+                onDownloadCleanJSON={downloadResultJSON}
+                onDownloadMapFile={downloadMapFile}
+                onDownloadFieldFile={downloadFieldFile}
+                seismographMap={seismographMap}
+                authReady={authReady}
+                isAuthenticated={isAuthenticated}
+                canVisitPoetic={canVisitPoetic}
+                onNavigateToPoetic={handleNavigateToPoetic}
+              />
+            ) : (
+              <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-300">
+                <div className="font-semibold text-slate-100">Exports unlock after you generate a report</div>
+                <p className="mt-1 text-slate-400">
+                  Fill in the birth data above and click <span className="font-semibold text-slate-200">Generate Report</span>
+                  {' '}to create a fresh Astro file and other downloads.
+                </p>
+              </div>
+            )}
             {weather.hasWindow && layerVisibility.balance && (
               <>
                 {(() => {
