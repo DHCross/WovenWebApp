@@ -310,17 +310,17 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
   const tooltipContent = useMemo((): TooltipContent | null => {
     // Check for balance_tooltips in the result (from include_balance_tooltips flag)
     const balanceTooltips: BalanceTooltipEntry[] | null = result?.balance_tooltips ?? null;
-    
+
     if (!balanceTooltips || !Array.isArray(balanceTooltips) || balanceTooltips.length === 0) {
       return null;
     }
-    
+
     // Use the most recent entry (or first if only one)
     const latestEntry = balanceTooltips[balanceTooltips.length - 1];
     if (!latestEntry?.scored_aspects || latestEntry.scored_aspects.length === 0) {
       return null;
     }
-    
+
     return buildTooltipContent(latestEntry.scored_aspects, { maxDrivers: 3 });
   }, [result?.balance_tooltips]);
 
@@ -368,6 +368,16 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
 
   const wheelChart = selectWheelAsset();
 
+  // Safety check for massive data URIs that might freeze the main thread
+  const isSafeToRender = useMemo(() => {
+    if (!wheelChart?.url) return true;
+    if (wheelChart.url.startsWith('data:')) {
+      // Limit to approx 5MB to prevent main thread freeze
+      return wheelChart.url.length < 5 * 1024 * 1024;
+    }
+    return true;
+  }, [wheelChart]);
+
   // Extract provenance
   const houseSystem =
     result?.provenance?.house_system_name ||
@@ -388,9 +398,9 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
   // Get person names for display
   const personAName = result?.person_a?.subject?.name || result?.person_a?.name || 'Person A';
   const personBName = result?.person_b?.subject?.name || result?.person_b?.name || 'Person B';
-  
+
   // Determine snapshot type label
-  const snapshotTypeLabel = isRelational 
+  const snapshotTypeLabel = isRelational
     ? `Synastry Transit: ${personAName} + ${personBName}`
     : `${personAName}'s Transit Snapshot`;
 
@@ -438,7 +448,7 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
       </div>
 
       {/* CHART WHEEL (TOP HALF) */}
-      {wheelChart?.url ? (
+      {wheelChart?.url && isSafeToRender ? (
         <div className="mb-6 rounded border border-slate-700 bg-slate-900/50 p-4">
           <div className="flex justify-center">
             <img
@@ -447,6 +457,7 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
               alt="Natal Chart"
               className="w-full max-w-md md:max-w-lg lg:max-w-xl h-auto"
               crossOrigin="anonymous"
+              loading="lazy"
               onError={(e) => {
                 console.error('[SnapshotDisplay] Chart image failed to load');
                 e.currentTarget.style.display = 'none';
@@ -489,10 +500,13 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
           </div>
           <p className="text-sm text-slate-400 mb-2">Chart Wheel</p>
           {chartAssets.length === 0 && (
-             <p className="text-xs text-red-400 mb-2">No chart assets returned from API</p>
+            <p className="text-xs text-red-400 mb-2">No chart assets returned from API</p>
           )}
           {chartAssets.length > 0 && !wheelChart && (
-             <p className="text-xs text-yellow-400 mb-2">Assets found but no wheel matched ({chartAssets.length})</p>
+            <p className="text-xs text-yellow-400 mb-2">Assets found but no wheel matched ({chartAssets.length})</p>
+          )}
+          {wheelChart?.url && !isSafeToRender && (
+            <p className="text-xs text-red-400 mb-2">Chart image too large to render safely</p>
           )}
           {snapshot.houses && (snapshot.houses.asc || snapshot.houses.mc) && (
             <div className="flex justify-center gap-6 text-xs text-slate-400">
