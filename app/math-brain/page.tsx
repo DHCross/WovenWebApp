@@ -2099,6 +2099,10 @@ export default function MathBrainPage() {
     setResult(null);
     setError(null);
     setLoading(false);
+    // Also clear snapshot states
+    setSnapshotResult(null);
+    setSnapshotLocation(null);
+    setSnapshotTimestamp(null);
   }
 
 
@@ -2181,6 +2185,10 @@ export default function MathBrainPage() {
     setError(null);
     // Stop any pending loading state to allow immediate resubmission
     setLoading(false);
+    // Clear snapshot result as well to prevent showing stale report
+    setSnapshotResult(null);
+    setSnapshotLocation(null);
+    setSnapshotTimestamp(null);
     // If loading a profile into Person B, ensure relational mode is enabled
     if (slot === 'B') {
       setIncludePersonB(true);
