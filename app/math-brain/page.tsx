@@ -2335,8 +2335,78 @@ export default function MathBrainPage() {
       return 'error';
     }
 
+    // Lightweight sanitizer to strip bloat before handoff to Poetic Brain
+    const sanitizeForPoetic = (input: any) => {
+      try {
+        const payload = JSON.parse(JSON.stringify(input));
+
+        // Remove persona excerpt bloat
+        if (payload?.provenance) {
+          delete payload.provenance.persona_excerpt;
+          delete payload.provenance.persona_excerpt_source;
+        }
+        // Drop template/handoff hints that add noise
+        delete payload._poetic_brain_compatible;
+        delete payload._template_hint;
+
+        const stripPerson = (person: any) => {
+          if (!person) return;
+          if (Array.isArray(person.aspects)) delete person.aspects;
+          if (person.chart) {
+            if (Array.isArray(person.chart.aspects)) delete person.chart.aspects;
+            if (person.chart.transitsByDate && typeof person.chart.transitsByDate === 'object') {
+              Object.keys(person.chart.transitsByDate).forEach((date) => {
+                const day = person.chart.transitsByDate[date];
+                if (!day || typeof day !== 'object') return;
+                delete day.aspects;
+                delete day.filtered_aspects;
+                delete day.hooks;
+                delete day.drivers;
+                delete day.transit_table;
+                delete day.counts;
+                delete day.moon_phase_name;
+                delete day.moon_emoji;
+                delete day.narrative_line;
+                delete day.poetic_packet;
+                if (day.seismograph && typeof day.seismograph === 'object') {
+                  const { magnitude, directional_bias, volatility, coherence } = day.seismograph;
+                  day.seismograph = { magnitude, directional_bias, volatility, coherence };
+                }
+              });
+            }
+          }
+        };
+
+        stripPerson(payload.person_a);
+        stripPerson(payload.person_b);
+
+        // Clean symbolic weather context duplicates & labels
+        if (Array.isArray(payload.symbolic_weather_context)) {
+          payload.symbolic_weather_context = payload.symbolic_weather_context.map((entry: any) => {
+            if (!entry || typeof entry !== 'object') return entry;
+            const { date, meter } = entry;
+            const safeMeter = meter
+              ? {
+                magnitude: meter.magnitude,
+                directional_bias: meter.directional_bias,
+                magnitude_label: meter.magnitude_label,
+                directional_bias_label: meter.directional_bias_label,
+                volatility: meter.volatility,
+                coherence: meter.coherence,
+              }
+              : undefined;
+            return { date, meter: safeMeter };
+          });
+        }
+
+        return payload;
+      } catch {
+        return input;
+      }
+    };
+
     const reportType = rawPayload?.reportType as ReportContractType | undefined;
-    let basePayload = rawPayload?.payload;
+    let basePayload = sanitizeForPoetic(rawPayload?.payload ?? rawPayload);
     if (typeof basePayload === 'string') {
       try {
         basePayload = JSON.parse(basePayload);

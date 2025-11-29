@@ -63,6 +63,7 @@ import {
   extractAxisNumber,
 } from '../utils/formatting';
 import { createMirrorSymbolicWeatherPayload } from '../../../lib/export/mirrorSymbolicWeather';
+import { trimPayloadForPoeticBrain, estimatePayloadReduction } from '../../../lib/export/trimPayloadForPoeticBrain';
 import { getDirectivePrefix, getDirectiveSuffix } from '../../../lib/export/filename-utils';
 import { validateForExport } from '../../../lib/validation/report-integrity-validator';
 
@@ -924,7 +925,7 @@ Start with the Solo Mirror(s), then ${
     }
   }, [friendlyFilename, pushToast, result, triggerDownload]);
 
-  const buildMirrorSymbolicWeatherExport = useCallback((): MirrorSymbolicWeatherExport | null => {
+  const buildMirrorSymbolicWeatherExport = useCallback((options?: { trimForPoeticBrain?: boolean }): MirrorSymbolicWeatherExport | null => {
     if (!result) return null;
     const exportData = createMirrorSymbolicWeatherPayload(result, reportContractType);
     if (!exportData) return null;
@@ -933,9 +934,25 @@ Start with the Solo Mirror(s), then ${
     const hasWeather =
       Array.isArray(exportData.payload?.daily_readings) &&
       exportData.payload.daily_readings.length > 0;
+    
+    // Apply trimming for Poetic Brain by default (significantly reduces payload size)
+    // Set trimForPoeticBrain: false for full backstage export
+    const shouldTrim = options?.trimForPoeticBrain !== false;
+    let finalPayload = exportData.payload;
+    
+    if (shouldTrim) {
+      finalPayload = trimPayloadForPoeticBrain(exportData.payload);
+      
+      // Log size reduction in dev mode
+      if (process.env.NODE_ENV !== 'production') {
+        const stats = estimatePayloadReduction(exportData.payload, finalPayload);
+        console.log(`[Payload Trim] Reduced from ${(stats.originalSize / 1024).toFixed(1)}KB to ${(stats.trimmedSize / 1024).toFixed(1)}KB (${stats.reductionPercent} reduction)`);
+      }
+    }
+    
     return {
       filename: `${prefix}_${symbolicSuffix}.json`,
-      payload: exportData.payload,
+      payload: finalPayload,
       hasChartGeometry: exportData.hasChartGeometry,
       hasWeather,
     };
@@ -1006,9 +1023,8 @@ Start with the Solo Mirror(s), then ${
         timezone_db_version: prov.timezone_db_version || 'IANA-2025a',
         normalized_input_hash: prov.normalized_input_hash || prov.hash || null,
         engine_versions: prov.engine_versions || {},
-        // Include persona excerpt (corpus-derived) for directive payload so LLMs receive persona context
-        ...(prov.persona_excerpt ? { persona_excerpt: prov.persona_excerpt } : {}),
-        ...(prov.persona_excerpt_source ? { persona_excerpt_source: prov.persona_excerpt_source } : {}),
+        // REMOVED: persona_excerpt - Poetic Brain doesn't need this (massive token waste)
+        // Raven Calder already IS the persona; sending it back is redundant
       } : null,
       narrative_sections: {
         solo_mirror_a: '',
