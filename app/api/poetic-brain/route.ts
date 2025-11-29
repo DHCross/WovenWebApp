@@ -1,39 +1,8 @@
 import { NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
-import jwksClient from 'jwks-rsa';
 import { verifyToken } from '@/lib/auth/jwt';
 import { checkAllowlist } from '@/lib/auth/allowlist';
 
 export const runtime = 'nodejs';
-
-const client = jwksClient({
-  jwksUri: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`,
-});
-
-function getKey(header: any, callback: any) {
-  client.getSigningKey(header.kid, function (err, key) {
-    if (err) {
-      return callback(err);
-    }
-    const signingKey = (key as any).publicKey || (key as any).rsaPublicKey;
-    callback(null, signingKey);
-  });
-}
-
-const jwtVerifyOptions: jwt.VerifyOptions = {
-  audience: process.env.AUTH0_AUDIENCE,
-  issuer: `https://${process.env.AUTH0_DOMAIN}/`,
-  algorithms: ['RS256'],
-};
-
-async function verifyToken(token: string) {
-  return new Promise<any>((resolve, reject) => {
-    jwt.verify(token, getKey as any, jwtVerifyOptions, (err, decoded) => {
-      if (err) return reject(new Error('Token is not valid.'));
-      resolve(decoded as any);
-    });
-  });
-}
 
 export async function POST(req: Request) {
   try {

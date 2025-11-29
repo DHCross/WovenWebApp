@@ -1,7 +1,9 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { parseCoordinates, formatDecimal } from '@/src/coords';
 import type { Subject, TimePolicyChoice } from '../types';
 import { onlyDigits, clampNumber } from '../utils/validation';
+import { US_STATES, normalizeStateCode, getStateName } from '@/lib/geo/us-states';
 
 interface PersonFormProps {
   idPrefix: 'a' | 'b';
@@ -268,12 +270,11 @@ export function PersonForm({
       </div>
       <div>
         <label htmlFor={`${idPrefix}-state`} className="block text-[11px] uppercase tracking-wide text-slate-300">State / Province</label>
-        <input
+        <StateCombobox
           id={`${idPrefix}-state`}
-          disabled={disabled}
-          className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50"
           value={person.state}
-          onChange={(event) => updatePersonField('state', event.target.value)}
+          onChange={(val) => updatePersonField('state', val)}
+          disabled={disabled}
           required={requireLocation}
         />
         <p className="mt-1 text-[11px] text-slate-500">{infoNote}</p>
@@ -403,6 +404,130 @@ function TimePolicyOption({ label, description, value, active, onSelect, name }:
         <div className="text-slate-400">{description}</div>
       </div>
     </label>
+  );
+}
+
+// --- State Combobox: dropdown with filter + free-text fallback ---
+interface StateComboboxProps {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  required?: boolean;
+}
+
+function StateCombobox({ id, value, onChange, disabled, required }: StateComboboxProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [filter, setFilter] = useState('');
+  const [highlightIdx, setHighlightIdx] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Display value: show code if normalized, else raw
+  const displayValue = (() => {
+    const code = normalizeStateCode(value);
+    if (code) {
+      const name = getStateName(code);
+      return name ? `${code} — ${name}` : code;
+    }
+    return value;
+  })();
+
+  // Filter options based on input
+  const filteredOptions = US_STATES.filter((s) => {
+    const q = filter.toLowerCase();
+    return (
+      s.code.toLowerCase().includes(q) ||
+      s.name.toLowerCase().includes(q)
+    );
+  });
+
+  // Reset highlight when filter changes
+  useEffect(() => {
+    setHighlightIdx(0);
+  }, [filter]);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+        setFilter('');
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleSelect = (code: string) => {
+    onChange(code);
+    setIsOpen(false);
+    setFilter('');
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setFilter(val);
+    // Also update the actual value for free-text (international)
+    onChange(val);
+    if (!isOpen) setIsOpen(true);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightIdx((prev) => Math.min(prev + 1, filteredOptions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightIdx((prev) => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter' && isOpen && filteredOptions.length > 0) {
+      e.preventDefault();
+      handleSelect(filteredOptions[highlightIdx].code);
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
+      setFilter('');
+    }
+  };
+
+  return (
+    <div ref={containerRef} className="relative">
+      <input
+        ref={inputRef}
+        id={id}
+        type="text"
+        disabled={disabled}
+        required={required}
+        className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50"
+        value={isOpen ? filter : displayValue}
+        placeholder="FL or Florida"
+        onFocus={() => {
+          setIsOpen(true);
+          setFilter(value); // Start with current value so user can refine
+        }}
+        onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
+        autoComplete="off"
+      />
+      {isOpen && filteredOptions.length > 0 && (
+        <ul className="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-md border border-slate-600 bg-slate-900 shadow-lg">
+          {filteredOptions.map((opt, idx) => (
+            <li
+              key={opt.code}
+              className={`cursor-pointer px-3 py-2 text-sm ${
+                idx === highlightIdx
+                  ? 'bg-indigo-700 text-white'
+                  : 'text-slate-200 hover:bg-slate-800'
+              }`}
+              onMouseEnter={() => setHighlightIdx(idx)}
+              onMouseDown={() => handleSelect(opt.code)}
+            >
+              <span className="font-medium">{opt.code}</span>
+              <span className="ml-2 text-slate-400">— {opt.name}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
