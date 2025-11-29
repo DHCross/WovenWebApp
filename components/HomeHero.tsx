@@ -31,7 +31,7 @@ export default function HomeHero() {
   const [authed, setAuthed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
-  const [authCfg, setAuthCfg] = useState<{domain?: string; clientId?: string; audience?: string | null} | null>(null);
+  const [authCfg, setAuthCfg] = useState<{ domain?: string; clientId?: string; audience?: string | null } | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   // Tiny debug flags to surface why login might be inert
   const [sdkLoaded, setSdkLoaded] = useState(false);
@@ -177,7 +177,7 @@ export default function HomeHero() {
           try {
             const u = await client.getUser();
             name = u?.name || u?.email || null;
-          } catch {}
+          } catch { }
         }
 
         if (!cancelled) {
@@ -327,14 +327,14 @@ export default function HomeHero() {
           <p className="mt-2 text-[11px] text-slate-500">
             Auth init • sdk: <span className="text-slate-300">{String(sdkLoaded)}</span> • client: <span className="text-slate-300">{String(clientReady)}</span>
             {authCfg && (
-              <> • domain: <span className="text-slate-300">{authCfg.domain || '—'}</span> • client: <span className="text-slate-300">{authCfg.clientId ? String(authCfg.clientId).slice(0,4) + '…' : '—'}</span>{authCfg.audience ? <> • audience: <span className="text-slate-300">{authCfg.audience}</span></> : null}</>
+              <> • domain: <span className="text-slate-300">{authCfg.domain || '—'}</span> • client: <span className="text-slate-300">{authCfg.clientId ? String(authCfg.clientId).slice(0, 4) + '…' : '—'}</span>{authCfg.audience ? <> • audience: <span className="text-slate-300">{authCfg.audience}</span></> : null}</>
             )}
             {' '}• <a href="/debug-auth" className="underline hover:text-slate-300">debug-auth</a>
           </p>
         )}
         {enableDev && authCfg && (
           <p className="mt-2 text-[11px] text-slate-500">
-            Auth config • domain: <span className="text-slate-300">{authCfg.domain || '—'}</span> • client: <span className="text-slate-300">{authCfg.clientId ? String(authCfg.clientId).slice(0,4) + '…' : '—'}</span>{authCfg.audience ? <> • audience: <span className="text-slate-300">{authCfg.audience}</span></> : null}
+            Auth config • domain: <span className="text-slate-300">{authCfg.domain || '—'}</span> • client: <span className="text-slate-300">{authCfg.clientId ? String(authCfg.clientId).slice(0, 4) + '…' : '—'}</span>{authCfg.audience ? <> • audience: <span className="text-slate-300">{authCfg.audience}</span></> : null}
           </p>
         )}
       </div>

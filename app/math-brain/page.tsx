@@ -1769,6 +1769,15 @@ export default function MathBrainPage() {
           },
         });
 
+        // Handle callback if present (fixes data loss on redirect)
+        const qs = window.location.search;
+        if (qs.includes("code=") && qs.includes("state=")) {
+          await client.handleRedirectCallback();
+          const url = new URL(window.location.href);
+          url.search = "";
+          window.history.replaceState({}, "", url.toString());
+        }
+
         let authed = false;
         try {
           authed = await client.isAuthenticated();
