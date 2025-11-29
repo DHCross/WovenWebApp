@@ -11,10 +11,7 @@ test.describe('Regression Tests', () => {
     await submitTestChart(page);
     
     // Wait for results
-    await page.waitForSelector(
-      '[data-testid="chart-results"], text=/planetary architecture/i',
-      { timeout: 30000, state: 'visible' }
-    );
+    await page.locator('[data-testid="chart-results"]').filter({ hasText: /planetary architecture/i }).waitFor({ timeout: 30000 });
     
     // Extract displayed planetary positions if available
     const sunPosition = await page.locator('[data-planet="Sun"] .position, text=/Sun.*Leo/i').textContent()
@@ -165,18 +162,15 @@ test.describe('Regression Tests', () => {
 
 // Helper function
 async function submitTestChart(page) {
-  await page.locator('#a-name').fill('Test Subject');
-  await page.locator('#a-year').fill('1973');
-  await page.locator('#a-month').fill('07');
-  await page.locator('#a-day').fill('24');
-  await page.locator('#a-hour').fill('14');
-  await page.locator('#a-minute').fill('30');
-  await page.locator('#a-city').fill('Bryn Mawr');
-  
-  const stateInput = page.locator('#a-state');
-  if (await stateInput.count() > 0) {
-    await stateInput.fill('PA');
-  }
+  await page.fill('#a-name', 'Test Subject');
+  await page.fill('#a-year', '1973');
+  await page.fill('#a-month', '07');
+  await page.fill('#a-day', '24');
+  await page.fill('#a-hour', '14');
+  await page.fill('#a-minute', '30');
+  await page.fill('#a-city', 'Bryn Mawr');
+  await page.fill('#a-state', 'PA');
+  await page.selectOption('#a-tz', 'US/Eastern');
   
   await page.locator('button[type="submit"]').click();
 }

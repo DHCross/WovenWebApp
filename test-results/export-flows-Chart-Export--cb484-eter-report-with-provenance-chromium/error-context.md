@@ -23,87 +23,132 @@
           - generic [ref=e20]:
             - generic [ref=e21]: VOICE
             - generic [ref=e22]: Raven handles
-      - generic [ref=e24]: "Lens: Natal houses (no relocation)."
-      - link "Back Home" [ref=e26] [cursor=pointer]:
-        - /url: /
-      - generic [ref=e27]:
-        - generic [ref=e28]:
-          - generic [ref=e29]:
-            - checkbox "Save for next session" [checked] [ref=e30]
-            - text: Save for next session
-          - generic [ref=e31]:
-            - button "Save current setup to JSON" [ref=e32] [cursor=pointer]: Save Setup
-            - button "Load Setup…" [ref=e33] [cursor=pointer]
-            - button "Upload setup JSON file" [ref=e34]
-        - region "Dynamic Report Flow" [ref=e35]:
-          - heading "Dynamic Report Flow" [level=3] [ref=e36]
-          - generic [ref=e37]:
-            - paragraph [ref=e38]: Math Brain now runs a single dynamic report. Every session opens with a Mirror-first summary and then lets you reveal Balance metrics, key geometries, and audits step-by-step after the geometry is ready.
-            - generic [ref=e39]:
-              - generic [ref=e41]: Field → Map → Voice
-              - generic [ref=e42]:
-                - text: Toggle
-                - strong [ref=e43]: Include Transits
-                - text: on the right to add symbolic weather. Leave it off for natal baseline runs.
-        - generic [ref=e44]:
-          - heading "📚 Saved Profiles" [level=2] [ref=e45]
-          - generic [ref=e47]:
-            - generic [ref=e48]:
-              - heading "💾 Save Current Profiles" [level=3] [ref=e49]
-              - generic [ref=e50]:
-                - button "Save Person A Test Subject" [disabled] [ref=e51]:
-                  - text: Save Person A
-                  - generic [ref=e52]: Test Subject
-                - button "Save Person B" [disabled] [ref=e53]
-            - generic [ref=e54]:
-              - heading "📚 Saved Profiles (0)" [level=3] [ref=e56]
-              - generic [ref=e57]: No saved profiles yet. Save Person A or B above to get started!
+      - generic [ref=e23]:
+        - generic [ref=e24]:
+          - generic [ref=e25]:
+            - generic [ref=e26]: 🌟
+            - generic [ref=e27]:
+              - heading "First time here? Let's get you started!" [level=2] [ref=e28]
+              - paragraph [ref=e29]: Follow these steps to generate your first report
+          - button "Dismiss guide" [ref=e30] [cursor=pointer]:
+            - img [ref=e31]
+        - generic [ref=e33]:
+          - generic [ref=e34]:
+            - generic [ref=e35]:
+              - generic [ref=e36]: "1"
+              - generic [ref=e37]: Enter Your Info
+            - paragraph [ref=e38]:
+              - text: Scroll down to
+              - strong [ref=e39]: Person A
+              - text: and fill in your name, birth date, birth time, and birth location.
+          - generic [ref=e40]:
+            - generic [ref=e41]:
+              - generic [ref=e42]: "2"
+              - generic [ref=e43]: Generate Report
+            - paragraph [ref=e44]:
+              - text: Click the big
+              - strong [ref=e45]: Generate Report
+              - text: button at the bottom. Wait a few seconds for the geometry to calculate.
+          - generic [ref=e46]:
+            - generic [ref=e47]:
+              - generic [ref=e48]: "3"
+              - generic [ref=e49]: Visit Poetic Brain
+            - paragraph [ref=e50]:
+              - text: After generating, click
+              - strong [ref=e51]: Enter Poetic Brain
+              - text: above to get Raven's interpretation of your chart.
+        - paragraph [ref=e53]:
+          - strong [ref=e54]: Adding someone else?
+          - text: Check the
+          - emphasis [ref=e55]: "\"Include Person B\""
+          - text: box in the Person B section to add a partner, friend, or family member for a relationship reading.
+      - button "📖 How Math Brain Works" [ref=e57] [cursor=pointer]:
         - generic [ref=e58]:
-          - generic [ref=e59]:
-            - heading "Person A (required)" [level=2] [ref=e60]
-            - generic [ref=e62]:
-              - generic [ref=e63]:
-                - generic [ref=e64]: Name
-                - textbox "Name" [active] [ref=e65]:
+          - generic [ref=e59]: 📖
+          - text: How Math Brain Works
+        - img [ref=e60]
+      - generic [ref=e63]: "Lens: Natal houses (no relocation)."
+      - link "Back Home" [ref=e65] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e66]:
+        - generic [ref=e67]:
+          - generic [ref=e68]:
+            - checkbox "Save for next session" [checked] [ref=e69]
+            - text: Save for next session
+          - generic [ref=e70]:
+            - button "Save current setup to JSON" [ref=e71] [cursor=pointer]: Save Setup
+            - button "Load Setup…" [ref=e72] [cursor=pointer]
+            - button "Upload setup JSON file" [ref=e73]
+        - region "Dynamic Report Flow" [ref=e74]:
+          - heading "Dynamic Report Flow" [level=3] [ref=e75]
+          - generic [ref=e76]:
+            - paragraph [ref=e77]: Math Brain now runs a single dynamic report. Every session opens with a Mirror-first summary and then lets you reveal Balance metrics, key geometries, and audits step-by-step after the geometry is ready.
+            - generic [ref=e78]:
+              - generic [ref=e80]: Field → Map → Voice
+              - generic [ref=e81]:
+                - text: Toggle
+                - strong [ref=e82]: Include Transits
+                - text: on the right to add symbolic weather. Leave it off for natal baseline runs.
+        - generic [ref=e83]:
+          - heading "📚 Saved Profiles" [level=2] [ref=e84]
+          - generic [ref=e86]:
+            - generic [ref=e87]:
+              - heading "💾 Save Current Profiles" [level=3] [ref=e88]
+              - generic [ref=e89]:
+                - button "Save Person A Test Subject" [disabled] [ref=e90]:
+                  - text: Save Person A
+                  - generic [ref=e91]: Test Subject
+                - button "Save Person B" [disabled] [ref=e92]
+            - generic [ref=e93]:
+              - heading "📚 Saved Profiles (0)" [level=3] [ref=e95]
+              - generic [ref=e96]: No saved profiles yet. Save Person A or B above to get started!
+        - generic [ref=e97]:
+          - generic [ref=e98]:
+            - heading "Person A (required)" [level=2] [ref=e99]
+            - generic [ref=e101]:
+              - generic [ref=e102]:
+                - generic [ref=e103]: Name
+                - textbox "Name" [active] [ref=e104]:
                   - /placeholder: Your Name
                   - text: Test Subject
-              - generic [ref=e66]:
-                - generic [ref=e67]:
-                  - generic [ref=e68]: Year
-                  - textbox "Year" [ref=e69]:
+              - generic [ref=e105]:
+                - generic [ref=e106]:
+                  - generic [ref=e107]: Year
+                  - textbox "Year" [ref=e108]:
                     - /placeholder: YYYY
-                - generic [ref=e70]:
-                  - generic [ref=e71]: Month
-                  - textbox "Month" [ref=e72]:
+                - generic [ref=e109]:
+                  - generic [ref=e110]: Month
+                  - textbox "Month" [ref=e111]:
                     - /placeholder: MM
-                - generic [ref=e73]:
-                  - generic [ref=e74]: Day
-                  - textbox "Day" [ref=e75]:
+                - generic [ref=e112]:
+                  - generic [ref=e113]: Day
+                  - textbox "Day" [ref=e114]:
                     - /placeholder: DD
-                - generic [ref=e76]:
-                  - generic [ref=e77]: Hour
-                  - textbox "Hour" [ref=e78]:
+                - generic [ref=e115]:
+                  - generic [ref=e116]: Hour
+                  - textbox "Hour" [ref=e117]:
                     - /placeholder: HH
-                - generic [ref=e79]:
-                  - generic [ref=e80]: Minute
-                  - textbox "Minute" [ref=e81]:
+                - generic [ref=e118]:
+                  - generic [ref=e119]: Minute
+                  - textbox "Minute" [ref=e120]:
                     - /placeholder: MM
-              - generic [ref=e82]:
-                - generic [ref=e83]: City
-                - textbox "City" [ref=e84]
-              - generic [ref=e85]:
-                - generic [ref=e86]: State / Province
-                - textbox "State / Province" [ref=e87]
-                - paragraph [ref=e88]: Nation assumed “US” for API compatibility.
-              - generic [ref=e89]:
-                - generic [ref=e90]: Birth Coordinates
-                - textbox "Birth Coordinates" [ref=e91]:
+              - generic [ref=e121]:
+                - generic [ref=e122]: City
+                - textbox "City" [ref=e123]
+              - generic [ref=e124]:
+                - generic [ref=e125]: State / Province
+                - textbox "State / Province" [ref=e127]:
+                  - /placeholder: FL or Florida
+                - paragraph [ref=e128]: Nation assumed “US” for API compatibility.
+              - generic [ref=e129]:
+                - generic [ref=e130]: Birth Coordinates
+                - textbox "Birth Coordinates" [ref=e131]:
                   - /placeholder: e.g., 40°42′N, 74°0′W or 40.7128, -74.006
-                - paragraph [ref=e92]: "Examples: 40°42′N, 74°0′W · 34°3′S, 18°25′E · 40.7128, -74.006"
-                - paragraph [ref=e93]: "Normalized: 0.000000, 0.000000"
-              - generic [ref=e94]:
-                - generic [ref=e95]: Timezone
-                - combobox "Timezone" [ref=e96]:
+                - paragraph [ref=e132]: "Examples: 40°42′N, 74°0′W · 34°3′S, 18°25′E · 40.7128, -74.006"
+                - paragraph [ref=e133]: "Normalized: 0.000000, 0.000000"
+              - generic [ref=e134]:
+                - generic [ref=e135]: Timezone
+                - combobox "Timezone" [ref=e136]:
                   - option "GMT" [selected]
                   - option "UTC"
                   - option "US/Eastern"
@@ -112,86 +157,87 @@
                   - option "US/Pacific"
                   - option "US/Alaska"
                   - option "US/Hawaii"
-              - generic [ref=e97]:
-                - generic [ref=e98]: Zodiac Type
-                - combobox "Zodiac Type" [ref=e99]:
+              - generic [ref=e137]:
+                - generic [ref=e138]: Zodiac Type
+                - combobox "Zodiac Type" [ref=e139]:
                   - option "Tropic" [selected]
                   - option "Sidereal"
-              - group "Birth time policy" [ref=e101]:
-                - generic [ref=e102]: Birth time policy
-                - paragraph [ref=e103]: Applies to Test Subject (Person A). Choose how Math Brain should treat houses/angles when an exact birth time is missing.
-                - generic [ref=e104]:
-                  - generic [ref=e105] [cursor=pointer]:
-                    - radio "Planetary-only No houses/angles; tightest, falsifiable geometry" [checked] [ref=e106]
-                    - generic [ref=e107]:
-                      - generic [ref=e108]: Planetary-only
-                      - generic [ref=e109]: No houses/angles; tightest, falsifiable geometry
-                  - generic [ref=e110] [cursor=pointer]:
-                    - radio "Whole-sign houses House semantics without exact time; angles still suppressed" [ref=e111]
-                    - generic [ref=e112]:
-                      - generic [ref=e113]: Whole-sign houses
-                      - generic [ref=e114]: House semantics without exact time; angles still suppressed
-                  - generic [ref=e115] [cursor=pointer]:
-                    - radio "Sensitivity scan Test a window of possible times; house-dependent insights flagged" [ref=e116]
-                    - generic [ref=e117]:
-                      - generic [ref=e118]: Sensitivity scan
-                      - generic [ref=e119]: Test a window of possible times; house-dependent insights flagged
-          - generic [ref=e120]:
-            - heading "Person B (optional for relational)" [level=2] [ref=e121]
-            - generic [ref=e122]:
-              - generic [ref=e123]:
-                - paragraph [ref=e124]: Add a second person for synastry/composite modes.
-                - generic [ref=e125]:
-                  - generic [ref=e126]:
-                    - button "Copy A→B" [disabled] [ref=e127]
-                    - button "Swap A/B" [disabled] [ref=e129]
-                    - button "Clear B" [disabled] [ref=e131]
-                    - button "Set B = Now (UTC)" [disabled] [ref=e133]
-                  - generic [ref=e134] [cursor=pointer]:
-                    - checkbox "Include Person B" [ref=e135]
+              - group "Birth time policy" [ref=e141]:
+                - generic [ref=e142]: Birth time policy
+                - paragraph [ref=e143]: Applies to Test Subject (Person A). Choose how Math Brain should treat houses/angles when an exact birth time is missing.
+                - generic [ref=e144]:
+                  - generic [ref=e145] [cursor=pointer]:
+                    - radio "Planetary-only No houses/angles; tightest, falsifiable geometry" [checked] [ref=e146]
+                    - generic [ref=e147]:
+                      - generic [ref=e148]: Planetary-only
+                      - generic [ref=e149]: No houses/angles; tightest, falsifiable geometry
+                  - generic [ref=e150] [cursor=pointer]:
+                    - radio "Whole-sign houses House semantics without exact time; angles still suppressed" [ref=e151]
+                    - generic [ref=e152]:
+                      - generic [ref=e153]: Whole-sign houses
+                      - generic [ref=e154]: House semantics without exact time; angles still suppressed
+                  - generic [ref=e155] [cursor=pointer]:
+                    - radio "Sensitivity scan Test a window of possible times; house-dependent insights flagged" [ref=e156]
+                    - generic [ref=e157]:
+                      - generic [ref=e158]: Sensitivity scan
+                      - generic [ref=e159]: Test a window of possible times; house-dependent insights flagged
+          - generic [ref=e160]:
+            - heading "Person B (optional for relational)" [level=2] [ref=e161]
+            - generic [ref=e162]:
+              - generic [ref=e163]:
+                - paragraph [ref=e164]: Add a second person for synastry/composite modes.
+                - generic [ref=e165]:
+                  - generic [ref=e166]:
+                    - button "Copy A→B" [disabled] [ref=e167]
+                    - button "Swap A/B" [disabled] [ref=e169]
+                    - button "Clear B" [disabled] [ref=e171]
+                    - button "Set B = Now (UTC)" [disabled] [ref=e173]
+                  - generic [ref=e174] [cursor=pointer]:
+                    - checkbox "Include Person B" [ref=e175]
                     - text: Include Person B
-              - generic [ref=e137]:
-                - generic [ref=e138]:
-                  - generic [ref=e139]: Name
-                  - textbox "Name" [disabled] [ref=e140]:
+              - generic [ref=e177]:
+                - generic [ref=e178]:
+                  - generic [ref=e179]: Name
+                  - textbox "Name" [disabled] [ref=e180]:
                     - /placeholder: Their Name
-                - generic [ref=e141]:
-                  - generic [ref=e142]:
-                    - generic [ref=e143]: Year
-                    - textbox "Year" [disabled] [ref=e144]:
+                - generic [ref=e181]:
+                  - generic [ref=e182]:
+                    - generic [ref=e183]: Year
+                    - textbox "Year" [disabled] [ref=e184]:
                       - /placeholder: YYYY
-                  - generic [ref=e145]:
-                    - generic [ref=e146]: Month
-                    - textbox "Month" [disabled] [ref=e147]:
+                  - generic [ref=e185]:
+                    - generic [ref=e186]: Month
+                    - textbox "Month" [disabled] [ref=e187]:
                       - /placeholder: MM
-                  - generic [ref=e148]:
-                    - generic [ref=e149]: Day
-                    - textbox "Day" [disabled] [ref=e150]:
+                  - generic [ref=e188]:
+                    - generic [ref=e189]: Day
+                    - textbox "Day" [disabled] [ref=e190]:
                       - /placeholder: DD
-                  - generic [ref=e151]:
-                    - generic [ref=e152]: Hour
-                    - textbox "Hour" [disabled] [ref=e153]:
+                  - generic [ref=e191]:
+                    - generic [ref=e192]: Hour
+                    - textbox "Hour" [disabled] [ref=e193]:
                       - /placeholder: HH
-                  - generic [ref=e154]:
-                    - generic [ref=e155]: Minute
-                    - textbox "Minute" [disabled] [ref=e156]:
+                  - generic [ref=e194]:
+                    - generic [ref=e195]: Minute
+                    - textbox "Minute" [disabled] [ref=e196]:
                       - /placeholder: MM
-                - generic [ref=e157]:
-                  - generic [ref=e158]: City
-                  - textbox "City" [disabled] [ref=e159]
-                - generic [ref=e160]:
-                  - generic [ref=e161]: State / Province
-                  - textbox "State / Province" [disabled] [ref=e162]
-                  - paragraph [ref=e163]: Nation assumed “US” for API compatibility.
-                - generic [ref=e164]:
-                  - generic [ref=e165]: Birth Coordinates (B)
-                  - textbox "Birth Coordinates (B)" [disabled] [ref=e166]:
+                - generic [ref=e197]:
+                  - generic [ref=e198]: City
+                  - textbox "City" [disabled] [ref=e199]
+                - generic [ref=e200]:
+                  - generic [ref=e201]: State / Province
+                  - textbox "State / Province" [disabled] [ref=e203]:
+                    - /placeholder: FL or Florida
+                  - paragraph [ref=e204]: Nation assumed “US” for API compatibility.
+                - generic [ref=e205]:
+                  - generic [ref=e206]: Birth Coordinates (B)
+                  - textbox "Birth Coordinates (B)" [disabled] [ref=e207]:
                     - /placeholder: e.g., 34°03′S, 18°25′E or -34.0500, 18.4167
-                  - paragraph [ref=e167]: "Examples: 40°42′N, 74°0′W · 34°3′S, 18°25′E · 40.7128, -74.006"
-                  - paragraph [ref=e168]: "Normalized: 0.000000, 0.000000"
-                - generic [ref=e169]:
-                  - generic [ref=e170]: Timezone
-                  - combobox "Timezone" [disabled] [ref=e171]:
+                  - paragraph [ref=e208]: "Examples: 40°42′N, 74°0′W · 34°3′S, 18°25′E · 40.7128, -74.006"
+                  - paragraph [ref=e209]: "Normalized: 0.000000, 0.000000"
+                - generic [ref=e210]:
+                  - generic [ref=e211]: Timezone
+                  - combobox "Timezone" [disabled] [ref=e212]:
                     - option "GMT" [selected]
                     - option "UTC"
                     - option "US/Eastern"
@@ -200,30 +246,30 @@
                     - option "US/Pacific"
                     - option "US/Alaska"
                     - option "US/Hawaii"
-                - generic [ref=e172]:
-                  - generic [ref=e173]: Zodiac Type
-                  - combobox "Zodiac Type" [disabled] [ref=e174]:
+                - generic [ref=e213]:
+                  - generic [ref=e214]: Zodiac Type
+                  - combobox "Zodiac Type" [disabled] [ref=e215]:
                     - option "Tropic" [selected]
                     - option "Sidereal"
-          - generic [ref=e175]:
-            - heading "Relationship Context" [level=2] [ref=e176]
-            - generic [ref=e177]:
-              - paragraph [ref=e179]: These fields unlock when Person B is included.
-              - generic [ref=e180]:
-                - generic [ref=e181]:
-                  - generic [ref=e182]: Type
-                  - combobox "Type" [disabled] [ref=e183]:
+          - generic [ref=e216]:
+            - heading "Relationship Context" [level=2] [ref=e217]
+            - generic [ref=e218]:
+              - paragraph [ref=e220]: These fields unlock when Person B is included.
+              - generic [ref=e221]:
+                - generic [ref=e222]:
+                  - generic [ref=e223]: Type
+                  - combobox "Type" [disabled] [ref=e224]:
                     - option "Partner" [selected]
                     - option "Friend / Acquaintance"
                     - option "Family Member"
-                  - generic [ref=e184]:
-                    - generic [ref=e185]: "Primary Relational Tiers (scope):"
-                    - generic [ref=e186]: • Partner — full map access, including intimacy arcs & legacy patterns.
-                    - generic [ref=e187]: • Friend / Acquaintance — emotional, behavioral, social dynamics; intimacy overlays de-emphasized.
-                    - generic [ref=e188]: • Family Member — legacy patterns and behavioral overlays. Select the role to clarify Person B's relationship to Person A.
-                - generic [ref=e189]:
-                  - generic [ref=e190]: Intimacy Tier
-                  - combobox "Intimacy Tier" [disabled] [ref=e191]:
+                  - generic [ref=e225]:
+                    - generic [ref=e226]: "Primary Relational Tiers (scope):"
+                    - generic [ref=e227]: • Partner — full map access, including intimacy arcs & legacy patterns.
+                    - generic [ref=e228]: • Friend / Acquaintance — emotional, behavioral, social dynamics; intimacy overlays de-emphasized.
+                    - generic [ref=e229]: • Family Member — legacy patterns and behavioral overlays. Select the role to clarify Person B's relationship to Person A.
+                - generic [ref=e230]:
+                  - generic [ref=e231]: Intimacy Tier
+                  - combobox "Intimacy Tier" [disabled] [ref=e232]:
                     - option "Select…" [selected]
                     - option "P1 — Platonic partners"
                     - option "P2 — Friends-with-benefits"
@@ -231,77 +277,77 @@
                     - option "P4 — Low-commitment romantic or sexual"
                     - option "P5a — Committed romantic + sexual"
                     - option "P5b — Committed romantic, non-sexual"
-                - generic [ref=e192]:
-                  - checkbox "Ex / Estranged" [disabled] [ref=e193]
-                  - generic [ref=e194]: Ex / Estranged
-                - generic [ref=e195]:
-                  - generic [ref=e196]: Notes
-                  - textbox "Notes" [disabled] [ref=e197]:
+                - generic [ref=e233]:
+                  - checkbox "Ex / Estranged" [disabled] [ref=e234]
+                  - generic [ref=e235]: Ex / Estranged
+                - generic [ref=e236]:
+                  - generic [ref=e237]: Notes
+                  - textbox "Notes" [disabled] [ref=e238]:
                     - /placeholder: Optional context (max 500 chars)
-          - generic [ref=e198]:
-            - generic [ref=e199]:
-              - heading "Report Type" [level=2] [ref=e200]
-              - generic [ref=e202]:
-                - paragraph [ref=e203]: Choose the astrological report structure
-                - generic [ref=e204]:
-                  - generic [ref=e205] [cursor=pointer]:
-                    - radio "solo Individual natal chart analysis" [checked] [ref=e206]
-                    - generic [ref=e207]:
-                      - generic [ref=e208]: solo
-                      - generic [ref=e209]: Individual natal chart analysis
-                  - generic [ref=e210] [cursor=pointer]:
-                    - radio "synastry Relationship dynamics between two charts" [ref=e211]
-                    - generic [ref=e212]:
-                      - generic [ref=e213]: synastry
-                      - generic [ref=e214]: Relationship dynamics between two charts
-                  - generic [ref=e215] [cursor=pointer]:
-                    - radio "composite Blended chart representing the relationship itself" [ref=e216]
-                    - generic [ref=e217]:
-                      - generic [ref=e218]: composite
-                      - generic [ref=e219]: Blended chart representing the relationship itself
-            - generic [ref=e220]:
-              - heading "Symbolic Weather (Transits)" [level=2] [ref=e221]
-              - generic [ref=e222]:
-                - generic [ref=e223]:
-                  - generic [ref=e224]:
-                    - checkbox "Include Transits" [ref=e225]
-                    - generic [ref=e226]:
-                      - generic [ref=e227]: Include Transits
-                      - paragraph [ref=e228]: Layer symbolic weather over your chosen report type (Mirror → Balance Meter).
-                  - generic [ref=e229]:
-                    - generic [ref=e230]:
-                      - generic [ref=e231]: Mode
-                      - combobox "Mode" [ref=e232]:
+          - generic [ref=e239]:
+            - generic [ref=e240]:
+              - heading "Report Type" [level=2] [ref=e241]
+              - generic [ref=e243]:
+                - paragraph [ref=e244]: Choose the astrological report structure
+                - generic [ref=e245]:
+                  - generic [ref=e246] [cursor=pointer]:
+                    - radio "solo Individual natal chart analysis" [checked] [ref=e247]
+                    - generic [ref=e248]:
+                      - generic [ref=e249]: solo
+                      - generic [ref=e250]: Individual natal chart analysis
+                  - generic [ref=e251] [cursor=pointer]:
+                    - radio "synastry Relationship dynamics between two charts" [ref=e252]
+                    - generic [ref=e253]:
+                      - generic [ref=e254]: synastry
+                      - generic [ref=e255]: Relationship dynamics between two charts
+                  - generic [ref=e256] [cursor=pointer]:
+                    - radio "composite Blended chart representing the relationship itself" [ref=e257]
+                    - generic [ref=e258]:
+                      - generic [ref=e259]: composite
+                      - generic [ref=e260]: Blended chart representing the relationship itself
+            - generic [ref=e261]:
+              - heading "Symbolic Weather (Transits)" [level=2] [ref=e262]
+              - generic [ref=e263]:
+                - generic [ref=e264]:
+                  - generic [ref=e265]:
+                    - checkbox "Include Transits" [ref=e266]
+                    - generic [ref=e267]:
+                      - generic [ref=e268]: Include Transits
+                      - paragraph [ref=e269]: Layer symbolic weather over your chosen report type (Mirror → Balance Meter).
+                  - generic [ref=e270]:
+                    - generic [ref=e271]:
+                      - generic [ref=e272]: Mode
+                      - combobox "Mode" [ref=e273]:
                         - option "Natal Only" [selected]
-                      - paragraph [ref=e233]: Enable “Include Person B” to unlock synastry or composite modes.
-                    - generic [ref=e234]:
-                      - generic [ref=e235]: Relocation (angles/houses)
-                      - combobox "Relocation (angles/houses)" [ref=e236]:
+                      - paragraph [ref=e274]: Enable “Include Person B” to unlock synastry or composite modes.
+                    - generic [ref=e275]:
+                      - generic [ref=e276]: Relocation (angles/houses)
+                      - combobox "Relocation (angles/houses)" [ref=e277]:
                         - option "Birthplace (no relocation)"
                         - option "Person A – Current Location" [selected]
                         - option "Person B – Current Location" [disabled]
                         - option "Custom Location (manual lens)"
-                      - paragraph [ref=e237]: Relocation remaps houses/angles only; planets stay fixed. Choose the lens that fits this report.
-                      - paragraph [ref=e238]: You can stage the lens now—enable transits later without losing this selection.
-                      - generic [ref=e239]:
-                        - generic [ref=e241]: "Relocation mode: A_local (houses recalculated)"
-                        - generic [ref=e242]: "Lens: Panama City, FL"
-                        - generic [ref=e243]: (US/Central)
-                - generic [ref=e244]:
-                  - generic [ref=e245]: Relocation Coordinates
-                  - textbox "Relocation Coordinates" [ref=e246]:
+                      - paragraph [ref=e278]: Relocation remaps houses/angles only; planets stay fixed. Choose the lens that fits this report.
+                      - paragraph [ref=e279]: You can stage the lens now—enable transits later without losing this selection.
+                      - generic [ref=e280]:
+                        - generic [ref=e282]: "Relocation mode: A_local (houses recalculated)"
+                        - generic [ref=e283]: "Lens: Panama City, FL"
+                        - generic [ref=e284]: (US/Central)
+                - generic [ref=e285]:
+                  - generic [ref=e286]: Relocation Coordinates
+                  - textbox "Relocation Coordinates" [ref=e287]:
                     - /placeholder: e.g., 30°10′N, 85°40′W
                     - text: 30°10'N, 85°40'W
-                  - paragraph [ref=e247]: "Default: 30°10′N, 85°40′W · Normalized: 30.166667, -85.666667"
-                  - generic [ref=e248]:
-                    - generic [ref=e249]:
-                      - generic [ref=e250]: Relocation Label
-                      - textbox "Relocation Label" [ref=e251]:
+                  - paragraph [ref=e288]: "Default: 30°10′N, 85°40′W · Normalized: 30.166667, -85.666667"
+                  - generic [ref=e289]:
+                    - generic [ref=e290]:
+                      - generic [ref=e291]: Relocation Label
+                      - textbox "Relocation Label" [ref=e292]:
                         - /placeholder: e.g., Panama City, FL
                         - text: Panama City, FL
-                    - generic [ref=e252]:
-                      - generic [ref=e253]: Relocation Timezone
-                      - combobox "Relocation Timezone" [ref=e254]:
+                    - generic [ref=e293]:
+                      - generic [ref=e294]: Relocation Timezone
+                      - combobox "Relocation Timezone" [ref=e295]:
                         - option "GMT"
                         - option "UTC"
                         - option "US/Eastern"
@@ -310,24 +356,30 @@
                         - option "US/Pacific"
                         - option "US/Alaska"
                         - option "US/Hawaii"
-            - generic [ref=e256]:
-              - generic [ref=e258]:
-                - generic [ref=e259]: ✨
-                - generic [ref=e260]: Solo Mirror Snapshot
-              - button "⭐ Snapshot this Symbolic Moment" [disabled] [ref=e262]:
-                - generic [ref=e263]: ⭐
-                - generic [ref=e264]: Snapshot this Symbolic Moment
-              - paragraph [ref=e265]: ⚠️ Transits must be enabled to capture a Symbolic Moment snapshot. Toggle "Include Transits" above.
-            - generic [ref=e266]:
-              - paragraph [ref=e267]: All processing is geometry-first and non-deterministic. Your data isn't stored.
-              - generic [ref=e268]:
-                - generic [ref=e269]:
-                  - generic [ref=e270]: "Mode:"
-                  - generic [ref=e271]: NATAL ONLY
-                - generic [ref=e272]:
-                  - generic [ref=e273]: "Report:"
-                  - generic [ref=e274]: mirror
-              - button "Prepare Mirror" [disabled] [ref=e275]
-            - paragraph [ref=e276]: "⚠️ Missing required fields for Person A: City, State, Timezone"
-  - alert [ref=e277]
+            - generic [ref=e297]:
+              - generic [ref=e299]:
+                - generic [ref=e300]: ✨
+                - generic [ref=e301]: Test Subject Solo Snapshot
+              - generic [ref=e302]:
+                - button "⭐ Snapshot NOW" [disabled] [ref=e303]:
+                  - generic [ref=e304]: ⭐
+                  - generic [ref=e305]: Snapshot NOW
+                - button "🕐 Custom Time" [disabled] [ref=e306]:
+                  - generic [ref=e307]: 🕐
+                  - generic [ref=e308]: Custom Time
+              - paragraph [ref=e309]: ⚠️ Transits must be enabled to capture a Symbolic Moment snapshot. Toggle "Include Transits" above.
+            - generic [ref=e310]:
+              - paragraph [ref=e311]: All processing is geometry-first and non-deterministic. Your data isn't stored.
+              - generic [ref=e312]:
+                - generic [ref=e313]:
+                  - generic [ref=e314]: "Mode:"
+                  - generic [ref=e315]: NATAL ONLY
+                - generic [ref=e316]:
+                  - generic [ref=e317]: "Report:"
+                  - generic [ref=e318]: mirror
+              - button "Generate Report" [disabled] [ref=e320]:
+                - img [ref=e321]
+                - text: Generate Report
+            - paragraph [ref=e323]: "⚠️ Missing required fields for Person A: City, State, Timezone"
+  - alert [ref=e324]
 ```

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildNoContextGuardCopy, type NoContextGuardCopy } from '@/lib/guard/no-context';
 import * as guardModule from '@/lib/guard/no-context';
 import { POST as ravenPost } from '@/app/api/raven/route';
-import { POST as chatPost } from '@/app/api/chat/route';
+// NOTE: chat/route was removed; tests using chatPost are commented out or removed
 
 function makeGuard(label: string): NoContextGuardCopy {
   const feeling = `${label} feeling about context.`;
@@ -77,7 +77,8 @@ describe('Raven API guard response', () => {
   });
 });
 
-describe('Chat API guard response', () => {
+describe.skip('Chat API guard response', () => {
+  // SKIPPED: chat/route was removed; chatPost no longer exists
   afterEach(() => {
     vi.restoreAllMocks();
   });

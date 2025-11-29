@@ -136,31 +136,33 @@ test.describe('Chart Export Flows', () => {
   test('should export Mirror Directive JSON with complete natal data for Person A and B', async ({ page }) => {
     await page.goto('/math-brain');
     
-    // Fill Person A
-    await page.locator('input[name*="name"]').first().fill('Dan');
-    await page.locator('input[type="date"]').first().fill('1973-07-24');
-    await page.locator('input[type="time"]').first().fill('14:30');
-    await page.locator('input[name*="city"]').first().fill('Bryn Mawr');
-    const stateInputA = page.locator('input[name*="state"]').first();
-    if (await stateInputA.count() > 0) {
-      await stateInputA.fill('PA');
+    // Fill Person A using current form selectors
+    await page.fill('#a-name', 'Dan');
+    await page.fill('#a-year', '1973');
+    await page.fill('#a-month', '07');
+    await page.fill('#a-day', '24');
+    await page.fill('#a-hour', '14');
+    await page.fill('#a-minute', '30');
+    await page.fill('#a-city', 'Bryn Mawr');
+    await page.fill('#a-state', 'PA');
+    await page.selectOption('#a-tz', 'US/Eastern');
+    
+    // Enable Person B checkbox
+    const personBCheckbox = page.locator('label:has-text("Include Person B") input[type="checkbox"]');
+    if (await personBCheckbox.count() > 0) {
+      await personBCheckbox.first().check();
     }
     
-    // Enable Person B (relational mode)
-    const personBToggle = page.locator('input[name*="includePersonB"], button:has-text("Add Person B")');
-    if (await personBToggle.count() > 0) {
-      await personBToggle.first().click();
-      
-      // Fill Person B
-      await page.locator('input[name*="personB"][name*="name"]').fill('Stephie');
-      await page.locator('input[name*="personB"] + input[type="date"]').fill('1968-04-16');
-      await page.locator('input[name*="personB"] + input[type="time"]').fill('18:37');
-      await page.locator('input[name*="personB"][name*="city"]').fill('Albany');
-      const stateInputB = page.locator('input[name*="personB"][name*="state"]');
-      if (await stateInputB.count() > 0) {
-        await stateInputB.fill('GA');
-      }
-    }
+    // Fill Person B
+    await page.fill('#b-name', 'Stephie');
+    await page.fill('#b-year', '1968');
+    await page.fill('#b-month', '04');
+    await page.fill('#b-day', '16');
+    await page.fill('#b-hour', '18');
+    await page.fill('#b-minute', '37');
+    await page.fill('#b-city', 'Albany');
+    await page.fill('#b-state', 'GA');
+    await page.selectOption('#b-tz', 'US/Eastern');
     
     // Submit
     await page.locator('button[type="submit"]').click();
@@ -233,45 +235,38 @@ test.describe('Chart Export Flows', () => {
   test('should export Symbolic Weather JSON with chart geometry and transits', async ({ page }) => {
     await page.goto('/math-brain');
     
-    // Fill Person A
-    await page.locator('input[name*="name"]').first().fill('Dan');
-    await page.locator('input[type="date"]').first().fill('1973-07-24');
-    await page.locator('input[type="time"]').first().fill('14:30');
-    await page.locator('input[name*="city"]').first().fill('Bryn Mawr');
-    const stateInputA = page.locator('input[name*="state"]').first();
-    if (await stateInputA.count() > 0) {
-      await stateInputA.fill('PA');
+    // Fill Person A using current form selectors
+    await page.fill('#a-name', 'Dan');
+    await page.fill('#a-year', '1973');
+    await page.fill('#a-month', '07');
+    await page.fill('#a-day', '24');
+    await page.fill('#a-hour', '14');
+    await page.fill('#a-minute', '30');
+    await page.fill('#a-city', 'Bryn Mawr');
+    await page.fill('#a-state', 'PA');
+    await page.selectOption('#a-tz', 'US/Eastern');
+    
+    // Enable Person B checkbox
+    const personBCheckbox = page.locator('label:has-text("Include Person B") input[type="checkbox"]');
+    if (await personBCheckbox.count() > 0) {
+      await personBCheckbox.first().check();
     }
     
-    // Enable Person B
-    const personBToggle = page.locator('input[name*="includePersonB"], button:has-text("Add Person B")');
-    if (await personBToggle.count() > 0) {
-      await personBToggle.first().click();
-      
-      await page.locator('input[name*="personB"][name*="name"]').fill('Stephie');
-      await page.locator('input[name*="personB"] + input[type="date"]').fill('1968-04-16');
-      await page.locator('input[name*="personB"] + input[type="time"]').fill('18:37');
-      await page.locator('input[name*="personB"][name*="city"]').fill('Albany');
-      const stateInputB = page.locator('input[name*="personB"][name*="state"]');
-      if (await stateInputB.count() > 0) {
-        await stateInputB.fill('GA');
-      }
-    }
+    // Fill Person B
+    await page.fill('#b-name', 'Stephie');
+    await page.fill('#b-year', '1968');
+    await page.fill('#b-month', '04');
+    await page.fill('#b-day', '16');
+    await page.fill('#b-hour', '18');
+    await page.fill('#b-minute', '37');
+    await page.fill('#b-city', 'Albany');
+    await page.fill('#b-state', 'GA');
+    await page.selectOption('#b-tz', 'US/Eastern');
     
-    // Enable transits
-    const transitToggle = page.locator('input[name*="includeTransits"], input[type="checkbox"]');
-    if (await transitToggle.count() > 0) {
-      await transitToggle.first().check();
-      
-      const transitFromInput = page.locator('input[name*="startDate"], input[name*="from"]');
-      if (await transitFromInput.count() > 0) {
-        await transitFromInput.first().fill('2025-10-19');
-      }
-      
-      const transitToInput = page.locator('input[name*="endDate"], input[name*="to"]');
-      if (await transitToInput.count() > 0) {
-        await transitToInput.first().fill('2025-10-25');
-      }
+    // Enable transits checkbox
+    const transitCheckbox = page.locator('label:has-text("Include Transits") input[type="checkbox"]');
+    if (await transitCheckbox.count() > 0) {
+      await transitCheckbox.first().check();
     }
     
     // Submit
@@ -346,15 +341,15 @@ test.describe('Chart Export Flows', () => {
 
 // Helper function
 async function submitTestChart(page) {
-  await page.locator('input[name*="name"], input[id*="name"]').first().fill('Test Subject');
-  await page.locator('input[type="date"]').first().fill('1973-07-24');
-  await page.locator('input[type="time"]').first().fill('14:30');
-  await page.locator('input[name*="city"]').first().fill('Bryn Mawr');
-  
-  const stateInput = page.locator('input[name*="state"]');
-  if (await stateInput.count() > 0) {
-    await stateInput.first().fill('PA');
-  }
+  await page.fill('#a-name', 'Test Subject');
+  await page.fill('#a-year', '1973');
+  await page.fill('#a-month', '07');
+  await page.fill('#a-day', '24');
+  await page.fill('#a-hour', '14');
+  await page.fill('#a-minute', '30');
+  await page.fill('#a-city', 'Bryn Mawr');
+  await page.fill('#a-state', 'PA');
+  await page.selectOption('#a-tz', 'US/Eastern');
   
   await page.locator('button[type="submit"]').click();
 }

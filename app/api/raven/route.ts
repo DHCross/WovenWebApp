@@ -13,6 +13,7 @@ import { generateStream } from '@/lib/llm';
 import { verifyToken } from '@/lib/auth/jwt';
 import { checkAllowlist } from '@/lib/auth/allowlist';
 import { processMirrorDirective } from '@/poetic-brain/src/index';
+import { sanitizeDirectiveForMode } from '@/lib/raven/sanitizeDirectiveForMode';
 import {
   createProbe,
   commitProbe,
@@ -321,10 +322,13 @@ export async function POST(req: Request) {
         }
       });
 
-      if (mirrorContext) {
+          if (mirrorContext) {
         try {
           const content = typeof mirrorContext.content === 'string' ? JSON.parse(mirrorContext.content) : mirrorContext.content;
-          const result = processMirrorDirective(content);
+              // If caller explicitly requested Solo mode, sanitize the directive to remove person_b
+              const sanitized = sanitizeDirectiveForMode(content, resolvedOptions);
+              const usedContent = sanitized.content;
+              const result = processMirrorDirective(usedContent);
 
           if (result.success && result.narrative_sections) {
             let narrative = '';

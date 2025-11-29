@@ -9,33 +9,39 @@ async function fillForm(page: any) {
   // Wait for page to load
   await page.waitForLoadState('networkidle');
   
-  // Fill Person A
-  await page.fill('input[name="name_a"]', 'Dan');
-  await page.fill('input[type="date"]', '1973-07-24');
-  await page.fill('input[type="time"]', '14:30');
-  await page.fill('input[name="city_a"]', 'Bryn Mawr');
+  // Fill Person A using current form selectors
+  await page.fill('#a-name', 'Dan');
+  await page.fill('#a-year', '1973');
+  await page.fill('#a-month', '07');
+  await page.fill('#a-day', '24');
+  await page.fill('#a-hour', '14');
+  await page.fill('#a-minute', '30');
+  await page.fill('#a-city', 'Bryn Mawr');
+  await page.fill('#a-state', 'PA');
+  await page.selectOption('#a-tz', 'US/Eastern');
   
-  // Enable Person B
-  const personBToggle = await page.locator('input#toggle-include-b-a');
-  if (!(await personBToggle.isChecked())) {
-    await personBToggle.click();
+  // Enable Person B checkbox
+  const personBCheckbox = page.locator('input[type="checkbox"]').filter({ hasText: /Include Person B/i }).or(page.locator('label:has-text("Include Person B") input[type="checkbox"]'));
+  if (await personBCheckbox.count() > 0) {
+    await personBCheckbox.first().check();
   }
   
   // Fill Person B
-  await page.fill('input[name="name_b"]', 'Stephie');
-  await page.locator('input[type="date"]').nth(1).fill('1968-04-16');
-  await page.locator('input[type="time"]').nth(1).fill('18:37');
-  await page.fill('input[name="city_b"]', 'Albany');
+  await page.fill('#b-name', 'Stephie');
+  await page.fill('#b-year', '1968');
+  await page.fill('#b-month', '04');
+  await page.fill('#b-day', '16');
+  await page.fill('#b-hour', '18');
+  await page.fill('#b-minute', '37');
+  await page.fill('#b-city', 'Albany');
+  await page.fill('#b-state', 'GA');
+  await page.selectOption('#b-tz', 'US/Eastern');
   
-  // Enable date range for transits
-  const dateRangeToggle = await page.locator('input#toggle-calculate-transits');
-  if (!(await dateRangeToggle.isChecked())) {
-    await dateRangeToggle.click();
+  // Enable transits checkbox if available
+  const transitCheckbox = page.locator('label:has-text("Include Transits") input[type="checkbox"]').or(page.locator('input[type="checkbox"]').filter({ hasText: /Include Transits/i }));
+  if (await transitCheckbox.count() > 0) {
+    await transitCheckbox.first().check();
   }
-  
-  // Fill date range
-  await page.fill('input[name="start_date"]', '2025-10-12');
-  await page.fill('input[name="end_date"]', '2025-10-17');
 }
 
 test.describe('Natal Aspects Refactor Verification', () => {

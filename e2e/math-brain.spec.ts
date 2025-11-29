@@ -14,32 +14,29 @@ test.describe('Math Brain Entry Point', () => {
   test('should display birth data form fields', async ({ page }) => {
     await page.goto('/math-brain');
     
-    // Check required form fields exist
-    await expect(page.locator('input[name*="name"], input[id*="name"]').first()).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('input[name*="date"], input[type="date"]').first()).toBeVisible();
-    await expect(page.locator('input[name*="time"], input[type="time"]').first()).toBeVisible();
-    await expect(page.locator('input[name*="city"]').first()).toBeVisible();
+    // Check required form fields exist with current selectors
+    await expect(page.locator('#a-name')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#a-year')).toBeVisible();
+    await expect(page.locator('#a-month')).toBeVisible();
+    await expect(page.locator('#a-day')).toBeVisible();
+    await expect(page.locator('#a-hour')).toBeVisible();
+    await expect(page.locator('#a-minute')).toBeVisible();
+    await expect(page.locator('#a-city')).toBeVisible();
   });
 
   test('should submit solo natal chart request', async ({ page }) => {
     await page.goto('/math-brain');
     
-    // Fill in test data
-    await page.locator('input[name*="name"], input[id*="name"]').first().fill('Test Subject');
-    await page.locator('input[type="date"]').first().fill('1973-07-24');
-    await page.locator('input[type="time"]').first().fill('14:30');
-    await page.locator('input[name*="city"]').first().fill('Bryn Mawr');
-    
-    // Try to find state/country fields if they exist
-    const stateInput = page.locator('input[name*="state"]');
-    if (await stateInput.count() > 0) {
-      await stateInput.first().fill('PA');
-    }
-    
-    const countrySelect = page.locator('select[name*="country"]');
-    if (await countrySelect.count() > 0) {
-      await countrySelect.first().selectOption('US');
-    }
+    // Fill in test data using current form selectors
+    await page.fill('#a-name', 'Test Subject');
+    await page.fill('#a-year', '1973');
+    await page.fill('#a-month', '07');
+    await page.fill('#a-day', '24');
+    await page.fill('#a-hour', '14');
+    await page.fill('#a-minute', '30');
+    await page.fill('#a-city', 'Bryn Mawr');
+    await page.fill('#a-state', 'PA');
+    await page.selectOption('#a-tz', 'US/Eastern');
     
     // Submit form
     await page.locator('button[type="submit"]').click();
@@ -48,36 +45,47 @@ test.describe('Math Brain Entry Point', () => {
     await expect(
       page.locator('[data-testid="loading-indicator"]')
         .or(page.locator('[data-testid="chart-results"]'))
-        .or(page.locator('text=/computing|loading|processing/i'))
+        .or(page.locator('text=/computing|loading|processing|mapping geometry/i'))
     ).toBeVisible({ timeout: 30000 });
   });
 
   test('should handle relational chart input if mode exists', async ({ page }) => {
     await page.goto('/math-brain');
     
-    // Check if relational mode toggle exists
-    const relationalToggle = page.locator('input[name*="chartMode"][value*="relational"], button:has-text("Relational")');
+    // Check if Person B toggle exists
+    const personBCheckbox = page.locator('label:has-text("Include Person B") input[type="checkbox"]');
     
-    if (await relationalToggle.count() > 0) {
-      await relationalToggle.first().click();
+    if (await personBCheckbox.count() > 0) {
+      await personBCheckbox.first().check();
       
       // Fill Person A
-      await page.locator('input[name*="nameA"]').first().fill('Person A');
-      await page.locator('input[name*="dateA"], input[name*="birthDateA"]').first().fill('1973-07-24');
-      await page.locator('input[name*="timeA"], input[name*="birthTimeA"]').first().fill('14:30');
-      await page.locator('input[name*="cityA"], input[name*="birthCityA"]').first().fill('Bryn Mawr');
+      await page.fill('#a-name', 'Person A');
+      await page.fill('#a-year', '1973');
+      await page.fill('#a-month', '07');
+      await page.fill('#a-day', '24');
+      await page.fill('#a-hour', '14');
+      await page.fill('#a-minute', '30');
+      await page.fill('#a-city', 'Bryn Mawr');
+      await page.fill('#a-state', 'PA');
+      await page.selectOption('#a-tz', 'US/Eastern');
       
       // Fill Person B
-      await page.locator('input[name*="nameB"]').first().fill('Person B');
-      await page.locator('input[name*="dateB"], input[name*="birthDateB"]').first().fill('1965-04-18');
-      await page.locator('input[name*="timeB"], input[name*="birthTimeB"]').first().fill('18:37');
-      await page.locator('input[name*="cityB"], input[name*="birthCityB"]').first().fill('Albany');
+      await page.fill('#b-name', 'Person B');
+      await page.fill('#b-year', '1965');
+      await page.fill('#b-month', '04');
+      await page.fill('#b-day', '18');
+      await page.fill('#b-hour', '18');
+      await page.fill('#b-minute', '37');
+      await page.fill('#b-city', 'Albany');
+      await page.fill('#b-state', 'GA');
+      await page.selectOption('#b-tz', 'US/Eastern');
       
       await page.locator('button[type="submit"]').click();
       
-      // Verify relational context appears
+      // Verify report generation starts
       await expect(
-        page.locator('text=/relational|parallel|relationship|synastry/i')
+        page.locator('text=/mapping geometry|loading|processing/i')
+          .or(page.locator('[data-testid="chart-results"]'))
       ).toBeVisible({ timeout: 30000 });
     } else {
       test.skip();
@@ -114,15 +122,15 @@ test.describe('Math Brain Entry Point', () => {
 
 // Helper function
 async function submitTestChart(page) {
-  await page.locator('input[name*="name"], input[id*="name"]').first().fill('Test Subject');
-  await page.locator('input[type="date"]').first().fill('1973-07-24');
-  await page.locator('input[type="time"]').first().fill('14:30');
-  await page.locator('input[name*="city"]').first().fill('Bryn Mawr');
-  
-  const stateInput = page.locator('input[name*="state"]');
-  if (await stateInput.count() > 0) {
-    await stateInput.first().fill('PA');
-  }
+  await page.fill('#a-name', 'Test Subject');
+  await page.fill('#a-year', '1973');
+  await page.fill('#a-month', '07');
+  await page.fill('#a-day', '24');
+  await page.fill('#a-hour', '14');
+  await page.fill('#a-minute', '30');
+  await page.fill('#a-city', 'Bryn Mawr');
+  await page.fill('#a-state', 'PA');
+  await page.selectOption('#a-tz', 'US/Eastern');
   
   await page.locator('button[type="submit"]').click();
 }

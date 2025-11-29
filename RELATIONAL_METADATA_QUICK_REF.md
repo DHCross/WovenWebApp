@@ -1,4 +1,5 @@
 # Relational Metadata Quick Reference Card
+_Last updated: 2025-11-29_
 
 ## For Developers
 
@@ -10,6 +11,23 @@ The system now automatically:
 3. **Maps baseline type** → natal | composite | synastry | radix
 4. **Initializes Context Gate** (no extra confirmation needed for deterministic roles)
 5. **Builds multi-layer reading** (baseline + current field)
+
+### Developer Git Identity (new)
+
+Please ensure contributors have configured a Git identity before committing. CI and tooling assume an author identity is present.
+
+```bash
+# Set globally for your machine
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+
+# Or override per-repo
+git -C /path/to/repo config user.name "Your Name"
+git -C /path/to/repo config user.email "you@example.com"
+```
+
+Tip: Replacing these values with a GitHub no-reply address keeps email private in public repos.
+
 
 ### Using the New System
 
@@ -38,6 +56,7 @@ if (extractedGeo) {
 
 **In tests or scripts:**
 ```typescript
+// Note: adjust the import path if you don't use absolute imports in your project
 import { scanForRelationalMetadata, mapScopeToQuerentRole } from '@/lib/raven/relational-metadata';
 
 const metadata = scanForRelationalMetadata(jsonPayload);
@@ -175,7 +194,23 @@ if (metadata.scope === 'observer') {
 }
 ```
 
-### Use Pure Field
+### Use Pure Field (pattern)
+Small pattern: when the engine determines a pure field (no baseline), prefer using the `field` geometry and skip the synergy opening. This helps keep UI/readings focused on the current energetic field rather than trying to force a baseline.
+## Solo Mode Override (Explicit)
+
+If the user explicitly requests Solo mode (for example, they check the UI option "Solo" while two charts are present), the system will honor this choice and exclude `person_b` from the live input to the Poetic Brain while preserving the data in provenance for audit/troubleshooting.
+
+Server-side implementation notes:
+
+- When `resolvedOptions.mode === 'solo'` (or `resolvedOptions.forceMode === 'solo'`), the route handler will remove `person_b` from the Mirror Directive content before passing it to the Poetic Brain; the raw `person_b` will be preserved in `_backstage_person_b` for auditing.
+- `mirror_contract.is_relational` will be set to `false` in the sanitized content and `_template_hint` set to `solo_mirror`.
+- This maintains user intent and prevents accidental exposure of Person B's narrative while allowing audits and provenance.
+
+UI guidelines:
+
+- If a user has uploaded two charts but selects Solo, show a clear confirmation in the UI: “You uploaded two charts but selected Solo — Person B will not be included in this reading.”
+- Provide a “Include Person B” toggle in the UI flow if they change their mind later.
+
 ```typescript
 if (extractedGeo.shouldUsePureFieldMirror) {
   // No baseline available, render weather only
@@ -235,6 +270,10 @@ const extracted = extractGeometryFromUploadedReport(contexts);
 console.log('Detected scope:', extracted?.metadata.scope);
 console.log('Baseline type:', extracted?.metadata.baselineType);
 console.log('Should use pure field:', extracted?.shouldUsePureField);
+
+// Troubleshooting tip: if `extracted` is null or `shouldUsePureField` is set unexpectedly, double-check whether
+// `person_a` / `person_b` fields are present in the payload and whether a baseline geometry (composite/synastry/natal)
+// was actually included in the uploaded report.
 ```
 
 ### Verify context gate initialization

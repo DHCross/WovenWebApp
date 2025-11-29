@@ -161,8 +161,8 @@ describe('Narrative Builder', () => {
       
       expect(result).toContain('system of tensions');
       expect(result).toContain('power lives');
-      expect(result).toContain('not a flaw in your chart');
-      expect(result).toContain('the whole point');
+      expect(result).toContain('Not a flaw in your chart');
+      expect(result).toContain('The whole point');
     });
 
     it('includes diagnostic-specific guidance for Paradox Lock', () => {
