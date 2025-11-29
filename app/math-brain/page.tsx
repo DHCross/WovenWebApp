@@ -2272,22 +2272,22 @@ export default function MathBrainPage() {
       longitude: lng,
     };
 
-    const success = await saveProfile(profile);
-    if (success) {
+    const result = await saveProfile(profile);
+    if (result.success) {
       alert(`✅ Profile "${name}" saved successfully!`);
     } else {
-      alert(`❌ Failed to save profile: ${profilesError || 'Unknown error'}`);
+      alert(`❌ Failed to save profile: ${result.error || 'Unknown error'}`);
     }
-  }, [personA, personB, saveProfile, profilesError, existingProfileForPersonA, existingProfileForPersonB]);
+  }, [personA, personB, saveProfile, existingProfileForPersonA, existingProfileForPersonB]);
 
   const handleDeleteProfile = useCallback(async (profileId: string) => {
-    const success = await deleteProfile(profileId);
-    if (success) {
+    const result = await deleteProfile(profileId);
+    if (result.success) {
       alert('✅ Profile deleted successfully');
     } else {
-      alert(`❌ Failed to delete profile: ${profilesError || 'Unknown error'}`);
+      alert(`❌ Failed to delete profile: ${result.error || 'Unknown error'}`);
     }
-  }, [deleteProfile, profilesError]);
+  }, [deleteProfile]);
 
   function setBNowUTC() {
     if (!includePersonB) return;

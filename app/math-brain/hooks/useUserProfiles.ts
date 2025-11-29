@@ -17,14 +17,19 @@ export interface BirthProfile {
   notes?: string;
 }
 
+export interface SaveResult {
+  success: boolean;
+  error?: string;
+}
+
 interface UseUserProfilesResult {
   profiles: BirthProfile[];
   loading: boolean;
   error: string | null;
-  saveProfile: (profile: BirthProfile) => Promise<boolean>;
-  deleteProfile: (profileId: string) => Promise<boolean>;
+  saveProfile: (profile: BirthProfile) => Promise<SaveResult>;
+  deleteProfile: (profileId: string) => Promise<SaveResult>;
   loadProfiles: () => Promise<void>;
-  updateProfile: (profileId: string, updates: Partial<BirthProfile>) => Promise<boolean>;
+  updateProfile: (profileId: string, updates: Partial<BirthProfile>) => Promise<SaveResult>;
 }
 
 export function useUserProfiles(userId: string | null): UseUserProfilesResult {
@@ -70,10 +75,11 @@ export function useUserProfiles(userId: string | null): UseUserProfilesResult {
     }
   }, [userId]);
 
-  const saveProfile = useCallback(async (profile: BirthProfile): Promise<boolean> => {
+  const saveProfile = useCallback(async (profile: BirthProfile): Promise<SaveResult> => {
     if (!userId) {
-      setError('User not authenticated');
-      return false;
+      const err = 'User not authenticated';
+      setError(err);
+      return { success: false, error: err };
     }
 
     setLoading(true);
@@ -104,25 +110,28 @@ export function useUserProfiles(userId: string | null): UseUserProfilesResult {
 
       const data = await res.json();
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to save profile');
+      if (!res.ok || !data.success) {
+        const errMsg = data.error || `HTTP ${res.status}: ${res.statusText}`;
+        throw new Error(errMsg);
       }
 
       setProfiles(updatedProfiles);
-      return true;
+      return { success: true };
     } catch (err: any) {
       console.error('[useUserProfiles] Save failed:', err);
-      setError(err.message || 'Failed to save profile');
-      return false;
+      const errMsg = err.message || 'Failed to save profile';
+      setError(errMsg);
+      return { success: false, error: errMsg };
     } finally {
       setLoading(false);
     }
   }, [userId, profiles]);
 
-  const deleteProfile = useCallback(async (profileId: string): Promise<boolean> => {
+  const deleteProfile = useCallback(async (profileId: string): Promise<SaveResult> => {
     if (!userId) {
-      setError('User not authenticated');
-      return false;
+      const err = 'User not authenticated';
+      setError(err);
+      return { success: false, error: err };
     }
 
     setLoading(true);
@@ -136,26 +145,29 @@ export function useUserProfiles(userId: string | null): UseUserProfilesResult {
 
       const data = await res.json();
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to delete profile');
+      if (!res.ok || !data.success) {
+        const errMsg = data.error || `HTTP ${res.status}: ${res.statusText}`;
+        throw new Error(errMsg);
       }
 
       setProfiles(prev => prev.filter(p => p.id !== profileId));
-      return true;
+      return { success: true };
     } catch (err: any) {
       console.error('[useUserProfiles] Delete failed:', err);
-      setError(err.message || 'Failed to delete profile');
-      return false;
+      const errMsg = err.message || 'Failed to delete profile';
+      setError(errMsg);
+      return { success: false, error: errMsg };
     } finally {
       setLoading(false);
     }
   }, [userId]);
 
-  const updateProfile = useCallback(async (profileId: string, updates: Partial<BirthProfile>): Promise<boolean> => {
+  const updateProfile = useCallback(async (profileId: string, updates: Partial<BirthProfile>): Promise<SaveResult> => {
     const profile = profiles.find(p => p.id === profileId);
     if (!profile) {
-      setError('Profile not found');
-      return false;
+      const err = 'Profile not found';
+      setError(err);
+      return { success: false, error: err };
     }
 
     const updatedProfile = { ...profile, ...updates };
