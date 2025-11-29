@@ -69,6 +69,15 @@ function extractGeometry(payload: any): any {
   return payload.geometry || payload.raw_geometry || payload.report?.geometry || null;
 }
 
+function extractBalanceTooltips(payload: any): any[] | null {
+  if (!payload || typeof payload !== 'object') return null;
+  // balance_tooltips is returned when include_balance_tooltips: true
+  if (Array.isArray(payload.balance_tooltips)) {
+    return payload.balance_tooltips;
+  }
+  return null;
+}
+
 function buildProvenance(options: Record<string, any>, payload: any): Record<string, any> {
   const fromPayload = payload?.provenance && typeof payload.provenance === 'object' ? payload.provenance : {};
   const reportType = options?.reportType || options?.report_type || 'unknown';
@@ -186,6 +195,7 @@ export async function runMathBrain(options: Record<string, any>): Promise<Record
       provenance: buildProvenance(payloadOptions, payload),
       geometry: extractGeometry(payload),
       climate: extractClimate(payload),
+      balanceTooltips: extractBalanceTooltips(payload),
       data: payload,
     };
   } catch (error: any) {

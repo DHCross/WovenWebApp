@@ -2,13 +2,30 @@
  * Geometry Extraction from Uploaded Reports
  * 
  * Functions for extracting geometry data from uploaded report JSON.
+ * Supports both single-layer and baseline + field geometry reading.
  */
+
+import { scanForRelationalMetadata, extractBaselineGeometry, extractFieldGeometry, shouldUsePureFieldMirror } from './relational-metadata';
+
+/**
+ * Extract full geometry structure from uploaded report JSON
+ * This includes baseline geometry, field geometry, and relational metadata
+ */
+export interface ExtractedGeometry {
+  full: any;                      // The complete payload
+  baseline: any | null;           // Natal/composite/synastry to read first
+  field: any | null;              // Current field to layer on top
+  metadata: any;                  // Relational metadata
+  shouldUsePureField: boolean;    // Whether to fall back to pure field mirror
+}
 
 /**
  * Extract geometry directly from uploaded report JSON to bypass Math Brain regeneration.
  * Returns null if the JSON doesn't contain valid geometry.
+ * 
+ * NEW: Also extracts relational metadata and separates baseline from current field.
  */
-export function extractGeometryFromUploadedReport(contexts: Record<string, any>[]): any {
+export function extractGeometryFromUploadedReport(contexts: Record<string, any>[]): ExtractedGeometry | null {
   if (!Array.isArray(contexts) || contexts.length === 0) return null;
 
   const mirrorContext = [...contexts].reverse().find(
@@ -32,7 +49,18 @@ export function extractGeometryFromUploadedReport(contexts: Record<string, any>[
             ? unwrapped.personA
             : null);
       if (mirrorPayload?.chart && typeof mirrorPayload.chart === 'object') {
-        return unwrapped; // Return the whole structure with person_a/person_b
+        // Full structure with person_a/person_b
+        const metadata = scanForRelationalMetadata(unwrapped);
+        const baseline = extractBaselineGeometry(unwrapped, metadata.baselineType);
+        const field = extractFieldGeometry(unwrapped);
+        
+        return {
+          full: unwrapped,
+          baseline,
+          field,
+          metadata,
+          shouldUsePureField: shouldUsePureFieldMirror(unwrapped, metadata.baselineType),
+        };
       }
 
       // PRIORITY 2: Look for geometry in various possible locations
@@ -50,7 +78,18 @@ export function extractGeometryFromUploadedReport(contexts: Record<string, any>[
         const hasBasicData = geo.planets || geo.houses || geo.aspects;
 
         if (hasPersonA || hasChart || hasBasicData) {
-          return geo;
+          // Extract metadata for context gating
+          const metadata = scanForRelationalMetadata(geo);
+          const baseline = extractBaselineGeometry(geo, metadata.baselineType);
+          const field = extractFieldGeometry(geo);
+
+          return {
+            full: geo,
+            baseline,
+            field,
+            metadata,
+            shouldUsePureField: shouldUsePureFieldMirror(geo, metadata.baselineType),
+          };
         }
       }
     }
@@ -60,4 +99,13 @@ export function extractGeometryFromUploadedReport(contexts: Record<string, any>[
   }
 
   return null;
+}
+
+/**
+ * DEPRECATED: Use extractGeometryFromUploadedReport which returns ExtractedGeometry
+ * Kept for backwards compatibility, wraps the full structure
+ */
+export function extractGeometryLegacy(contexts: Record<string, any>[]): any {
+  const result = extractGeometryFromUploadedReport(contexts);
+  return result ? result.full : null;
 }

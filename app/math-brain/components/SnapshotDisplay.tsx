@@ -1,8 +1,11 @@
 /* eslint-disable no-console */
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useMemo } from 'react';
 import { buildDomainsFromChart, createSnapshotDisplay } from '../utils/snapshot';
+import { BalanceMeterPopover } from '@/components/BalanceMeterPopover';
+import { buildTooltipContent, type TooltipContent } from '@/lib/raven/tooltip-context';
+import type { BalanceTooltipEntry } from '@/lib/raven/balance-tooltip-types';
 
 interface SnapshotDisplayProps {
   result: any;
@@ -303,6 +306,24 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
         ? volatilityResolved
         : null;
 
+  // Build tooltip content from balance_tooltips if available
+  const tooltipContent = useMemo((): TooltipContent | null => {
+    // Check for balance_tooltips in the result (from include_balance_tooltips flag)
+    const balanceTooltips: BalanceTooltipEntry[] | null = result?.balance_tooltips ?? null;
+    
+    if (!balanceTooltips || !Array.isArray(balanceTooltips) || balanceTooltips.length === 0) {
+      return null;
+    }
+    
+    // Use the most recent entry (or first if only one)
+    const latestEntry = balanceTooltips[balanceTooltips.length - 1];
+    if (!latestEntry?.scored_aspects || latestEntry.scored_aspects.length === 0) {
+      return null;
+    }
+    
+    return buildTooltipContent(latestEntry.scored_aspects, { maxDrivers: 3 });
+  }, [result?.balance_tooltips]);
+
   // Extract chart assets for visualization
   const chartAssets = [
     ...(result?.person_a?.chart_assets || []),
@@ -516,7 +537,11 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
               <tr>
                 <td className="px-3 py-2 text-slate-300">Magnitude</td>
                 <td className="px-3 py-2 text-right font-mono text-indigo-300">
-                  {typeof magnitude === 'number' ? magnitude.toFixed(1) : '—'}
+                  <BalanceMeterPopover content={tooltipContent} side="left" disabled={!tooltipContent}>
+                    <span className="inline-flex items-center gap-1">
+                      {typeof magnitude === 'number' ? magnitude.toFixed(1) : '—'}
+                    </span>
+                  </BalanceMeterPopover>
                 </td>
                 <td className="px-3 py-2 text-xs text-slate-400">
                   {typeof magnitude === 'number' && magnitude >= 4
@@ -531,9 +556,13 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
               <tr>
                 <td className="px-3 py-2 text-slate-300">Directional Bias</td>
                 <td className="px-3 py-2 text-right font-mono text-indigo-300">
-                  {typeof directionalBias === 'number'
-                    ? `${directionalBias > 0 ? '+' : ''}${directionalBias.toFixed(1)}`
-                    : '—'}
+                  <BalanceMeterPopover content={tooltipContent} side="left" disabled={!tooltipContent}>
+                    <span className="inline-flex items-center gap-1">
+                      {typeof directionalBias === 'number'
+                        ? `${directionalBias > 0 ? '+' : ''}${directionalBias.toFixed(1)}`
+                        : '—'}
+                    </span>
+                  </BalanceMeterPopover>
                 </td>
                 <td className="px-3 py-2 text-xs text-slate-400">
                   {typeof directionalBias === 'number' && directionalBias >= 3

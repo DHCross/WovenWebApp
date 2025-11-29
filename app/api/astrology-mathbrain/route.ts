@@ -16,6 +16,28 @@ const { sanitizeForFilename } = require('../../../src/utils/sanitizeFilename.js'
 
 const MAX_DAILY_TRANSIT_WINDOW_DAYS = 30;
 
+// Balance Meter Tooltip Types (Mandate 2 - Phase 1)
+interface ScoredAspect {
+  transit: { body: string; retrograde: boolean };
+  natal: { body: string };
+  type: string;
+  orbDeg: number;
+  S: number;
+  _amplification?: { before: number; after: number; factor: number };
+}
+
+interface BalanceTooltipContext {
+  date: string;
+  scored_aspects: ScoredAspect[];
+  aspect_count: number;
+  score_summary: {
+    positive_count: number;
+    negative_count: number;
+    total_positive_S: number;
+    total_negative_S: number;
+  };
+}
+
 // Balance Meter Label Helpers (Raven Calder / Math Brain v5)
 function getMagnitudeLabel(value: number): string {
   if (value >= 4) return 'High';
@@ -495,6 +517,9 @@ export async function POST(request: NextRequest) {
       // Normalize translocation to canonical form (Jules Constitution Article I)
       const normalizedTranslocation = normalizeRelocationMode(rawPayload.translocation) || 'both_local';
       
+      // Balance Meter Tooltips opt-in flag (Mandate 2 - Phase 1)
+      const includeBalanceTooltips = rawPayload.include_balance_tooltips === true;
+      
       const v2Config = {
         schema: 'mb-1',
         mode: rawPayload.mode || rawPayload.context?.mode,
@@ -509,6 +534,8 @@ export async function POST(request: NextRequest) {
         context: rawPayload.context,
         // Pass validation metadata for downstream symbolic read processing
         _validation: rawPayload._validation || null,
+        // Balance Meter Tooltips flag
+        includeBalanceTooltips,
       };
 
       // Run the v2 engine to format the final report
@@ -589,6 +616,57 @@ export async function POST(request: NextRequest) {
         logger.warn('Unified output enrichment failed', { error: (enrichError as any)?.message });
       }
 
+      // Balance Meter Tooltips: Extract scored aspects when flag is enabled (Mandate 2 - Phase 1)
+      let balanceTooltips: BalanceTooltipContext[] | null = null;
+      if (includeBalanceTooltips) {
+        try {
+          const dailyEntries = Array.isArray((unifiedOutput as any)?.daily_entries)
+            ? (unifiedOutput as any).daily_entries as any[]
+            : [];
+
+          if (dailyEntries.length > 0) {
+            balanceTooltips = dailyEntries.map((entry: any) => {
+              const date = entry?.date ?? null;
+              const sw = entry?.symbolic_weather || {};
+              const aggregateResult = sw._aggregateResult || {};
+              const scored: ScoredAspect[] = Array.isArray(aggregateResult.scored)
+                ? aggregateResult.scored
+                : [];
+
+              // Calculate score summary for transparency
+              let positiveCount = 0;
+              let negativeCount = 0;
+              let totalPositiveS = 0;
+              let totalNegativeS = 0;
+
+              scored.forEach((aspect: ScoredAspect) => {
+                if (aspect.S > 0) {
+                  positiveCount++;
+                  totalPositiveS += aspect.S;
+                } else if (aspect.S < 0) {
+                  negativeCount++;
+                  totalNegativeS += aspect.S;
+                }
+              });
+
+              return {
+                date,
+                scored_aspects: scored,
+                aspect_count: scored.length,
+                score_summary: {
+                  positive_count: positiveCount,
+                  negative_count: negativeCount,
+                  total_positive_S: Math.round(totalPositiveS * 1000) / 1000,
+                  total_negative_S: Math.round(totalNegativeS * 1000) / 1000,
+                },
+              };
+            });
+          }
+        } catch (tooltipError) {
+          logger.warn('Balance tooltip extraction failed', { error: (tooltipError as any)?.message });
+        }
+      }
+
       // Generate Markdown and prepare response (no filesystem round-trip)
       // Generate markdown for any report with daily_entries (Solo or Relational)
       let markdownContent = '';
@@ -623,6 +701,11 @@ export async function POST(request: NextRequest) {
       if (relationshipContext) {
         responseBody.relationship_context = relationshipContext;
         responseBody.relationship = relationshipContext;
+      }
+
+      // Balance Meter Tooltips: Include in response only when requested (Mandate 2 - Phase 1)
+      if (includeBalanceTooltips && balanceTooltips) {
+        responseBody.balance_tooltips = balanceTooltips;
       }
       
       // Include validation metadata in response (Jules Constitution compliance)

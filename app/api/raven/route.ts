@@ -6,6 +6,8 @@ import { normalizeGeometry } from '@/lib/raven/normalize';
 import { renderShareableMirror } from '@/lib/raven/render';
 import { stampProvenance } from '@/lib/raven/provenance';
 import { summariseUploadedReportJson } from '@/lib/raven/reportSummary';
+import { generateHousesMarkdownTable, generateHousesTextLegend, getHousesQuickList } from '@/lib/raven/houses-legend';
+import { generateAspectsMarkdownTable, generateAspectsTextLegend, getAspectsQuickList, getAspectDefinition } from '@/lib/raven/aspects-legend';
 import { runMathBrain } from '@/lib/mathbrain/adapter';
 import { generateStream } from '@/lib/llm';
 import { verifyToken } from '@/lib/auth/jwt';
@@ -31,6 +33,7 @@ import {
   createContextGateState,
   confirmQuerentIdentity,
   detectSubjectConflict,
+  initializeContextGateFromMetadata,
   type QuerentRole,
   type ContextGateState,
 } from '@/lib/raven/context-gate';
@@ -95,7 +98,16 @@ import {
   type AutoExecutionPlan,
   type AutoExecutionStatus,
 } from '@/lib/raven/auto-execution';
-import { extractGeometryFromUploadedReport } from '@/lib/raven/geometry-extract';
+import { extractGeometryFromUploadedReport, type ExtractedGeometry } from '@/lib/raven/geometry-extract';
+import {
+  scanForRelationalMetadata,
+  mapScopeToQuerentRole,
+  buildSynergyOpening,
+  extractBaselineGeometry,
+  extractFieldGeometry,
+  shouldUsePureFieldMirror,
+  type RelationalMetadata,
+} from '@/lib/raven/relational-metadata';
 
 // Minimal in-memory session store (dev only). For prod, persist per-user.
 const RAVEN_PERSONA_HOOK = "You are Raven Calder, a mystical poetic brain. Your voice is wise, lyrical, and insightful. You do not give direct advice, but rather offer reflections, metaphors, and beautiful questions. You see the cosmos in a grain of sand. Respond to the user's prompt with this persona. CRITICAL: Do NOT break character. Do not mention you are an AI or a language model. Suppress all chain-of-thought or meta-commentary.";
@@ -503,6 +515,7 @@ export async function POST(req: Request) {
         ...resolvedOptions,
         reportType: 'relational',
         autoMode: 'relational_auto',
+        include_balance_tooltips: true,
       });
       if (!relationalResponse.success) {
         if (!sessionLog.failedContexts) sessionLog.failedContexts = new Set();
@@ -540,7 +553,7 @@ export async function POST(req: Request) {
       const relationalProbe = createProbe(relationalDraft?.next_step || 'Notice how the mirror moves between you two', randomUUID());
       sessionLog.probes.push(relationalProbe);
       updateSession(sid, () => { });
-      return NextResponse.json({ intent, ok: true, draft: relationalDraft, prov: relationalProv, climate: relationalResponse.climate ?? null, sessionId: sid, probe: relationalProbe });
+      return NextResponse.json({ intent, ok: true, draft: relationalDraft, prov: relationalProv, climate: relationalResponse.climate ?? null, balanceTooltips: relationalResponse.balanceTooltips ?? null, sessionId: sid, probe: relationalProbe });
     }
 
     if (autoPlan.status === 'parallel_auto') {
@@ -549,6 +562,7 @@ export async function POST(req: Request) {
         ...resolvedOptions,
         reportType: 'parallel',
         autoMode: 'parallel_auto',
+        include_balance_tooltips: true,
       });
       if (!parallelResponse.success) {
         if (!sessionLog.failedContexts) sessionLog.failedContexts = new Set();
@@ -586,7 +600,7 @@ export async function POST(req: Request) {
       const parallelProbe = createProbe(parallelDraft?.next_step || 'Check where the lines cross', randomUUID());
       sessionLog.probes.push(parallelProbe);
       updateSession(sid, () => { });
-      return NextResponse.json({ intent, ok: true, draft: parallelDraft, prov: parallelProv, climate: parallelResponse.climate ?? null, sessionId: sid, probe: parallelProbe });
+      return NextResponse.json({ intent, ok: true, draft: parallelDraft, prov: parallelProv, climate: parallelResponse.climate ?? null, balanceTooltips: parallelResponse.balanceTooltips ?? null, sessionId: sid, probe: parallelProbe });
     }
 
     if (autoPlan.status === 'contextual_auto') {
@@ -595,6 +609,7 @@ export async function POST(req: Request) {
         ...resolvedOptions,
         reportType: resolvedOptions.reportType ?? 'mirror',
         autoMode: 'contextual_auto',
+        include_balance_tooltips: true,
       });
       if (!contextualResponse.success) {
         if (!sessionLog.failedContexts) sessionLog.failedContexts = new Set();
@@ -642,6 +657,7 @@ export async function POST(req: Request) {
         draft: contextualDraft,
         prov: contextualProv,
         climate: contextualResponse.climate ?? null,
+        balanceTooltips: contextualResponse.balanceTooltips ?? null,
         sessionId: sid,
         probe: contextualProbe,
       });
@@ -650,22 +666,49 @@ export async function POST(req: Request) {
     if (autoPlan.status === 'solo_auto') {
       wantsWeatherOnly = false;
 
-      const uploadedGeo = extractGeometryFromUploadedReport(normalizedContexts);
+      const extractedGeo = extractGeometryFromUploadedReport(normalizedContexts);
 
-      if (uploadedGeo) {
-        const soloProv = stampProvenance({ source: 'Math Brain (Uploaded Report)', timestamp: new Date().toISOString() });
+      if (extractedGeo) {
+        // NEW: Extract relational metadata and initialize context gate
+        const metadata = extractedGeo.metadata;
+        if (metadata && !sessionLog.contextGate?.querentRole) {
+          sessionLog.contextGate = initializeContextGateFromMetadata(metadata, sessionLog.contextGate);
+        }
+
+        // NEW: Use multi-layer approach (baseline + field)
+        let renderGeo = extractedGeo.full;
+        let synergyContext = '';
+
+        if (!extractedGeo.shouldUsePureField && extractedGeo.baseline) {
+          // We have a baseline - render baseline first, then layer current field
+          renderGeo = extractedGeo.baseline;
+          synergyContext = buildSynergyOpening(metadata, extractedGeo.field ? 'current Symbolic Weather' : undefined);
+        }
+
+        const soloProv = stampProvenance({ 
+          source: 'Math Brain (Uploaded Report)',
+          baseline_type: metadata.baselineType,
+          relational_scope: metadata.scope,
+          timestamp: new Date().toISOString() 
+        });
         const soloOptions = {
           ...resolvedOptions,
-          geometryValidated: isGeometryValidated(uploadedGeo),
+          geometryValidated: isGeometryValidated(renderGeo),
           operationalFlow: OPERATIONAL_FLOW,
           operational_flow: OPERATIONAL_FLOW,
         };
         const soloDraft = await renderShareableMirror({
-          geo: uploadedGeo,
+          geo: renderGeo,
           prov: soloProv,
           options: soloOptions,
           mode: 'natal-only',
         });
+
+        // NEW: Prepend synergy context to draft
+        if (synergyContext && soloDraft?.conversation) {
+          soloDraft.conversation = `${synergyContext}\n\n${soloDraft.conversation}`;
+        }
+
         const soloProbe = createProbe(soloDraft?.next_step || 'Notice where this pattern lands in your body', randomUUID());
         sessionLog.probes.push(soloProbe);
         updateSession(sid, () => { });
@@ -676,6 +719,7 @@ export async function POST(req: Request) {
         ...resolvedOptions,
         reportType: 'mirror',
         autoMode: 'solo_auto',
+        include_balance_tooltips: true,
       });
       if (!soloResponse.success) {
         const contextName = autoPlan.contextName ? `"${autoPlan.contextName}"` : 'this report';
@@ -708,7 +752,7 @@ export async function POST(req: Request) {
       const soloProbe = createProbe(soloDraft?.next_step || 'Notice where this pattern lands in your body', randomUUID());
       sessionLog.probes.push(soloProbe);
       updateSession(sid, () => { });
-      return NextResponse.json({ intent, ok: true, draft: soloDraft, prov: soloProv, climate: soloResponse.climate ?? null, sessionId: sid, probe: soloProbe });
+      return NextResponse.json({ intent, ok: true, draft: soloDraft, prov: soloProv, climate: soloResponse.climate ?? null, balanceTooltips: soloResponse.balanceTooltips ?? null, sessionId: sid, probe: soloProbe });
     }
 
     if (autoPlan.status === 'relational_choice') {
@@ -752,7 +796,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ intent, ok: true, sessionId: sid, ...guardPayload });
       }
       // Map options.reportType → Math Brain payload
-      const mb = await runMathBrain(resolvedOptions);
+      const mb = await runMathBrain({ ...resolvedOptions, include_balance_tooltips: true });
       if (!mb.success) {
         return NextResponse.json({ intent, ok: false, error: 'Math Brain failed', details: mb });
       }
@@ -777,7 +821,7 @@ export async function POST(req: Request) {
       const probe = createProbe(draft?.next_step || 'Note one actionable step', randomUUID());
       sessionLog.probes.push(probe);
       updateSession(sid, () => { });
-      return NextResponse.json({ intent, ok: true, draft, prov, climate: mb.climate ?? null, sessionId: sid, probe });
+      return NextResponse.json({ intent, ok: true, draft, prov, climate: mb.climate ?? null, balanceTooltips: mb.balanceTooltips ?? null, sessionId: sid, probe });
     }
 
     // conversation

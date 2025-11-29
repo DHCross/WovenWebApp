@@ -216,3 +216,40 @@ export function detectSubjectConflict(
   
   return { hasConflict: false };
 }
+
+/**
+ * Initialize Context Gate from relational metadata
+ * Used when uploading a new report with relational_type information
+ */
+export function initializeContextGateFromMetadata(
+  metadata: any,  // RelationalMetadata from relational-metadata.ts
+  currentGate?: ContextGateState
+): ContextGateState {
+  // Extract subject names from metadata
+  const subjects = [];
+  if (metadata.personAName) subjects.push(metadata.personAName);
+  if (metadata.personBName && metadata.personBName !== metadata.personAName) {
+    subjects.push(metadata.personBName);
+  }
+
+  // Take on faith: default to likely querent role without requiring confirmation
+  let initialRole: QuerentRole = currentGate?.querentRole || 'unconfirmed';
+  
+  if (!currentGate || currentGate.querentRole === 'unconfirmed') {
+    // Map from scope to likely querent role and assume it
+    if (metadata.scope === 'solo') {
+      initialRole = 'self_a';  // Reading your own chart
+    } else if (metadata.scope === 'dyadic') {
+      initialRole = 'both';    // Both present
+    } else if (metadata.scope === 'observer') {
+      initialRole = 'observer'; // Third party
+    }
+  }
+
+  return {
+    querentRole: initialRole,
+    sessionSubjects: subjects.length > 0 ? subjects : currentGate?.sessionSubjects || [],
+    relationshipTier: metadata.relationshipType,
+    consentStatus: metadata.scope === 'observer' ? 'anonymized' : undefined,
+  };
+}
