@@ -91,6 +91,19 @@ function setupTestEnvironment() {
     if (url.includes('synastry-aspects-data') || url.includes('synastry-chart')) {
         return { ok: true, json: async () => MOCK_SYNASTRY_RESPONSE };
     }
+    if (url.includes('composite-chart')) {
+      return {
+        ok: true,
+        json: async () => ({
+          status: "OK",
+          data: {
+            composite_subject: { name: "Composite" },
+            chart: { aspects: MOCK_COMPOSITE_RESPONSE.data.aspects || [] },
+          },
+          chart: { svg: '<svg>composite</svg>' }
+        })
+      };
+    }
     if (url.includes('composite-aspects-data')) {
         return { ok: true, json: async () => ({ data: MOCK_COMPOSITE_RESPONSE.data }) };
     }
