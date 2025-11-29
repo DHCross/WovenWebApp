@@ -852,6 +852,26 @@ export default function MathBrainPage() {
   const [personA, setPersonA] = useState<Subject>(() => createEmptySubject());
   const [personB, setPersonB] = useState<Subject>(() => createEmptySubject());
 
+  // Track if user has manually entered data to prevent showing stale reports
+  const [hasUserEnteredData, setHasUserEnteredData] = useState(false);
+
+  // Clear result when user starts typing manually (not from profile load)
+  useEffect(() => {
+    // Only clear if user hasn't already entered data and result exists
+    if (result && !hasUserEnteredData && personA.name && !loading) {
+      // Check if this looks like manual typing (name changed but other fields are empty)
+      const isManualTyping = !personA.year || !personA.month || !personA.day || !personA.city;
+      if (isManualTyping) {
+        setResult(null);
+        setError(null);
+        setSnapshotResult(null);
+        setSnapshotLocation(null);
+        setSnapshotTimestamp(null);
+        setHasUserEnteredData(true);
+      }
+    }
+  }, [personA.name, result, hasUserEnteredData, loading, personA.year, personA.month, personA.day, personA.city]);
+
   // Single-field coordinates (Person A)
   const [aCoordsInput, setACoordsInput] = useState<string>("");
   const [aCoordsError, setACoordsError] = useState<string | null>(null);
@@ -1591,6 +1611,7 @@ export default function MathBrainPage() {
     setSnapshotResult(null);
     setSnapshotLocation(null);
     setSnapshotTimestamp(null);
+    setHasUserEnteredData(false);
 
     try {
       const charts = getSavedCharts(userId);
@@ -2111,6 +2132,8 @@ export default function MathBrainPage() {
     setSnapshotResult(null);
     setSnapshotLocation(null);
     setSnapshotTimestamp(null);
+    // Reset user data entry flag
+    setHasUserEnteredData(false);
   }
 
 
@@ -2197,6 +2220,8 @@ export default function MathBrainPage() {
     setSnapshotResult(null);
     setSnapshotLocation(null);
     setSnapshotTimestamp(null);
+    // Reset user data entry flag since this is a profile load, not manual entry
+    setHasUserEnteredData(false);
     // If loading a profile into Person B, ensure relational mode is enabled
     if (slot === 'B') {
       setIncludePersonB(true);
