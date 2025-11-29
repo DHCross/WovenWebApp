@@ -178,7 +178,7 @@ describe('Mandate 2 Phase 1: Balance Tooltips Flag', () => {
     });
 
     it('should default to not including tooltips when flag is undefined', () => {
-      const rawPayload = { personA: { name: 'Test' } };
+      const rawPayload: any = { personA: { name: 'Test' } };
       const includeBalanceTooltips = rawPayload.include_balance_tooltips === true;
       
       expect(includeBalanceTooltips).toBe(false);

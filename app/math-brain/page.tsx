@@ -2126,6 +2126,13 @@ export default function MathBrainPage() {
     // Clear any existing report when loading a new profile
     setResult(null);
     setError(null);
+    // Stop any pending loading state to allow immediate resubmission
+    setLoading(false);
+    // If loading a profile into Person B, ensure relational mode is enabled
+    if (slot === 'B') {
+      setIncludePersonB(true);
+      setToast('Loaded Person B: relational mode enabled');
+    }
 
     const rawLat = profile.lat ?? (profile as any).latitude;
     const rawLng = profile.lng ?? (profile as any).longitude;
@@ -2173,7 +2180,7 @@ export default function MathBrainPage() {
         setBCoordsValid(true);
       }
     }
-  }, []);
+  }, [setIncludePersonB, setLoading]);
 
   const handleSaveCurrentProfile = useCallback(async (slot: 'A' | 'B', name: string) => {
     const person = slot === 'A' ? personA : personB;

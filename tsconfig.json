@@ -41,6 +41,8 @@
     "lib/**/*.tsx",
     "types/**/*.d.ts",
     "poetic-brain/src/**/*.ts",
+    "__tests__/**/*.ts",
+    "__tests__/**/*.tsx",
     "next-env.d.ts",
     ".next/types/**/*.ts"
   ],

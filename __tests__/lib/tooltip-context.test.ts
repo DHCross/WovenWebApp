@@ -116,7 +116,7 @@ describe('buildTooltipContent', () => {
         mockHarmoniousAspect,
       ]);
       
-      const directions = result.drivers.map(d => d.direction);
+      const directions = result.drivers.map((d: any) => d.direction);
       expect(directions).toContain('friction');
       expect(directions).toContain('flow');
     });
@@ -215,7 +215,7 @@ describe('buildTooltipContent', () => {
         mockHarmoniousAspect,
       ]);
       
-      result.drivers.forEach(driver => {
+      result.drivers.forEach((driver: any) => {
         const desc = driver.description.toLowerCase();
         expect(desc).not.toContain('square');
         expect(desc).not.toContain('trine');

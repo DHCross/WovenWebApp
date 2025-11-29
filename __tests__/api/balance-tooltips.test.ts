@@ -145,7 +145,7 @@ describe('Balance Tooltips API Flag', () => {
         },
       };
 
-      const scoredAspects = dailyEntry.symbolic_weather?._aggregateResult?.scored || [];
+      const scoredAspects = (dailyEntry.symbolic_weather as any)?._aggregateResult?.scored || [];
       expect(scoredAspects).toEqual([]);
     });
   });
