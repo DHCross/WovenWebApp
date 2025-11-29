@@ -98,6 +98,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { userId, profiles } = body;
 
+    logger.info('POST request received', { userId, profileCount: profiles?.length });
+
     if (!userId || !Array.isArray(profiles)) {
       return NextResponse.json(
         { success: false, error: 'userId and profiles array required' },
@@ -133,7 +135,9 @@ export async function POST(req: NextRequest) {
       lastUpdated: new Date().toISOString()
     };
 
+    logger.info('Attempting to get store...');
     const store = getStore('user-profiles');
+    logger.info('Store acquired, saving...');
     await store.set(`user_${userId}`, JSON.stringify(userProfiles));
 
     logger.info('Profiles saved', { userId, count: profiles.length });
@@ -145,9 +149,9 @@ export async function POST(req: NextRequest) {
       lastUpdated: userProfiles.lastUpdated
     });
   } catch (error: any) {
-    logger.error('POST failed', { error: error.message });
+    logger.error('POST failed', { error: error.message, stack: error.stack });
     return NextResponse.json(
-      { success: false, error: 'Failed to save profiles' },
+      { success: false, error: error.message || 'Failed to save profiles' },
       { status: 500 }
     );
   }
