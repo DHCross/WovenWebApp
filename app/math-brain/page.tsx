@@ -1583,6 +1583,14 @@ export default function MathBrainPage() {
 
     // Clear any stale cached payloads (legacy keys and scoped)
     clearStoredReportPayload();
+    
+    // Clear any stale result state on component mount to prevent showing old reports
+    setResult(null);
+    setError(null);
+    setLoading(false);
+    setSnapshotResult(null);
+    setSnapshotLocation(null);
+    setSnapshotTimestamp(null);
 
     try {
       const charts = getSavedCharts(userId);
