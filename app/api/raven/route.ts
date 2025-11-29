@@ -15,6 +15,7 @@ import {
   createProbe,
   commitProbe,
   scoreSession,
+  getSSTSource,
   type SessionSSTLog,
   type SSTTag,
   type SessionTurn,
@@ -23,8 +24,26 @@ import {
   type ConversationMode,
 } from '@/lib/raven/sst';
 import {
+  detectQuerentIdentity,
+  generateContextGateQuestion,
+  getVoiceAdaptationInstructions,
+  needsContextGate,
+  createContextGateState,
+  confirmQuerentIdentity,
+  detectSubjectConflict,
+  type QuerentRole,
+  type ContextGateState,
+} from '@/lib/raven/context-gate';
+import {
+  buildRavenSystemPrompt,
+  RAVEN_PERSONA_HOOK_COMPACT,
+} from '@/lib/raven/protocol';
+import {
   ASTROSEEK_REFERENCE_GUIDANCE,
-  referencesAstroSeekWithoutGeometry
+  referencesAstroSeekWithoutGeometry,
+  pickHook,
+  buildAstroSeekGuardDraft,
+  createGuardPayload,
 } from '@/lib/raven/guards';
 import { buildNoContextGuardCopy } from '@/lib/guard/no-context';
 import { RAVEN_PROMPT_ARCHITECTURE } from '@/lib/raven/prompt-architecture';
@@ -41,866 +60,45 @@ import {
   isTimedInput,
 } from '@/lib/chat-pipeline/uploads';
 
-/**
- * Extract geometry directly from uploaded report JSON to bypass Math Brain regeneration.
- * Returns null if the JSON doesn't contain valid geometry.
- */
-function extractGeometryFromUploadedReport(contexts: Record<string, any>[]): any {
-  if (!Array.isArray(contexts) || contexts.length === 0) return null;
-
-  const mirrorContext = [...contexts].reverse().find(
-    (ctx) => ctx && ctx.type === 'mirror' && typeof ctx.content === 'string'
-  );
-
-  if (!mirrorContext) return null;
-
-  try {
-    const parsed = JSON.parse(mirrorContext.content);
-    // Check if this is a Math Brain v2 unified output with geometry
-    if (parsed && typeof parsed === 'object') {
-      // Unwrap unified_output (snake_case) or unifiedOutput (camelCase) if present
-      const unwrapped = parsed.unified_output || parsed.unifiedOutput || parsed;
-
-      // PRIORITY 1: Check for Mirror + Symbolic Weather format (person_a/personA.chart structure)
-      const mirrorPayload =
-        (unwrapped.person_a && typeof unwrapped.person_a === 'object'
-          ? unwrapped.person_a
-          : unwrapped.personA && typeof unwrapped.personA === 'object'
-            ? unwrapped.personA
-            : null);
-      if (mirrorPayload?.chart && typeof mirrorPayload.chart === 'object') {
-        return unwrapped; // Return the whole structure with person_a/person_b
-      }
-
-      // PRIORITY 2: Look for geometry in various possible locations
-      const geo =
-        unwrapped.geometry ||
-        unwrapped.chart ||
-        unwrapped.natal_chart ||
-        unwrapped.natalChart ||
-        unwrapped;
-
-      // Validate that we have the minimum required geometry fields
-      if (geo && typeof geo === 'object') {
-        const hasPersonA = geo.person_a && typeof geo.person_a === 'object';
-        const hasChart = geo.chart && typeof geo.chart === 'object';
-        const hasBasicData = geo.planets || geo.houses || geo.aspects;
-
-        if (hasPersonA || hasChart || hasBasicData) {
-          return geo;
-        }
-      }
-    }
-  } catch (e) {
-    // Invalid JSON or missing geometry
-    return null;
-  }
-
-  return null;
-}
+// Import extracted modules
+import {
+  truncateContextContent,
+  formatReportContextsForPrompt,
+  formatHistoryForPrompt,
+  extractProbeFromResponse,
+  safeParseJSON,
+  MAX_CONTEXT_CHARS,
+  MAX_HISTORY_TURNS,
+} from '@/lib/raven/helpers';
+import {
+  checkForOSRIndicators,
+  checkForClearAffirmation,
+  checkForReadingStartRequest,
+  checkForPartialAffirmation,
+  classifyUserResponse,
+  isMetaSignalAboutRepetition,
+} from '@/lib/raven/user-response';
+import {
+  detectConversationMode,
+  recordSuggestion,
+  generateValidationProbe,
+  FALLBACK_PROBE_BY_MODE,
+} from '@/lib/raven/validation-probes';
+import {
+  deriveAutoExecutionPlan,
+  parseRelationalChoiceAnswer,
+  resolveSubject,
+  hasCompleteSubject,
+  extractSubjectName,
+  detectContextLayers,
+  extractMirrorContract,
+  type AutoExecutionPlan,
+  type AutoExecutionStatus,
+} from '@/lib/raven/auto-execution';
+import { extractGeometryFromUploadedReport } from '@/lib/raven/geometry-extract';
 
 // Minimal in-memory session store (dev only). For prod, persist per-user.
 const RAVEN_PERSONA_HOOK = "You are Raven Calder, a mystical poetic brain. Your voice is wise, lyrical, and insightful. You do not give direct advice, but rather offer reflections, metaphors, and beautiful questions. You see the cosmos in a grain of sand. Respond to the user's prompt with this persona. CRITICAL: Do NOT break character. Do not mention you are an AI or a language model. Suppress all chain-of-thought or meta-commentary.";
-const MAX_CONTEXT_CHARS = 1800;
-const MAX_HISTORY_TURNS = 6;
-
-function truncateContextContent(content: string, limit: number = MAX_CONTEXT_CHARS): string {
-  if (content.length <= limit) return content;
-  return content.slice(0, limit).trimEnd() + ' …';
-}
-
-function formatReportContextsForPrompt(contexts: Record<string, any>[]): string {
-  if (!Array.isArray(contexts) || contexts.length === 0) return '';
-  return contexts
-    .slice(-3)
-    .map((ctx, idx) => {
-      const name = typeof ctx.name === 'string' && ctx.name.trim() ? ctx.name.trim() : `Report ${idx + 1}`;
-      const typeLabel = typeof ctx.type === 'string' && ctx.type.trim() ? ctx.type.trim().toUpperCase() : 'UNKNOWN';
-      const summary = typeof ctx.summary === 'string' ? ctx.summary.trim() : '';
-      const relocationText = ctx.relocation?.label ? `Relocation: ${ctx.relocation.label}` : '';
-      const rawContent = typeof ctx.content === 'string' ? ctx.content.trim() : '';
-      let snippet = rawContent ? truncateContextContent(rawContent) : '';
-      if (snippet) {
-        const looksJson = /^[\s\r\n]*[{[]/.test(snippet);
-        snippet = looksJson ? `\`\`\`json\n${snippet}\n\`\`\`` : snippet;
-      }
-      return [
-        `Report ${idx + 1} · ${typeLabel} · ${name}`,
-        summary ? `Summary: ${summary}` : '',
-        relocationText,
-        snippet,
-      ]
-        .filter(Boolean)
-        .join('\n');
-    })
-    .join('\n\n');
-}
-
-function formatHistoryForPrompt(history?: SessionTurn[]): string {
-  if (!history || history.length === 0) return '';
-  const recent = history.slice(-MAX_HISTORY_TURNS);
-  return recent
-    .map((turn) => {
-      const speaker = turn.role === 'raven' ? 'Raven' : 'User';
-      return `${speaker}: ${turn.content}`;
-    })
-    .join('\n');
-}
-
-function extractProbeFromResponse(responseText: string): string | null {
-  const lines = responseText
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-  for (let i = lines.length - 1; i >= 0; i -= 1) {
-    const line = lines[i];
-    if (line.endsWith('?') && line.length <= 200) {
-      return line;
-    }
-  }
-  const match = responseText.match(/([^.?!\n]{3,200}\?)(?!.*\?)/s);
-  return match ? match[1].trim() : null;
-}
-
-
-
-const CLARIFICATION_PATTERNS: RegExp[] = [
-  /\bcan you clarify\b/i,
-  /\bcan you explain\b/i,
-  /\bwhat do you mean\b/i,
-  /\bi don't (quite\s+)?understand\b/i,
-  /\bthat (doesn't|does not) (fit|land|make sense)\b/i,
-  /\bhelp me understand\b/i,
-  /\bso you're saying\b/i,
-  /\bdoes that mean\b/i,
-];
-
-const SUGGESTION_PATTERNS: RegExp[] = [
-  /\b(feature|product|app) suggestion\b/i,
-  /\bhere'?s an idea\b/i,
-  /\bmaybe you could\b/i,
-  /\bi (recommend|suggest)\b/i,
-  /\bit would help if\b/i,
-  /\bcan you (add|change|update|adjust|stop)\b/i,
-  /\bshould (we|you)\b.*\b(instead|maybe)\b/i,
-  /\bwould it be possible to\b/i,
-];
-
-const META_FEEDBACK_PATTERNS: RegExp[] = [
-  /\b(this|your)\s+(system|app|build|code|program|programming)\b.*\b(broken|bug|issue|problem|stuck|loop|failing)\b/i,
-  /\bpoetic brain\b.*\b(stuck|loop|broken)\b/i,
-  /\bperplexity\b.*\b(issue|problem|bug)\b/i,
-  /\bnetlify\b.*\b(error|fail|deploy)\b/i,
-  /\bresonance check\b.*\b(stop|turn off|stuck)\b/i,
-  /\b(stop|quit)\b.*\b(poetry|metaphor|lyric)\b/i,
-  /\brespond\b.*\bplain(ly)?\b/i,
-  /\bno more\b.*\b(poetry|metaphor)\b/i,
-  /\bfrustrated\b.*\bwith\b.*\byou\b/i,
-  /\bwhy are you\b.*\bdoing\b.*(this|that)\b/i,
-  /\byour programming\b/i,
-  /\bthis feels like a loop\b/i,
-  /\bmeta feedback\b/i,
-  /\bdebug\b/i,
-];
-
-const FALLBACK_PROBE_BY_MODE: Record<ConversationMode, string> = {
-  explanation: 'Where do you feel this pattern pressing most in your day right now?',
-  clarification: 'What would help me restate this so it feels truer to your lived experience?',
-  suggestion: 'How should we carry this suggestion forward so it genuinely supports you?',
-  meta_feedback: 'What specific adjustment would make this feel more useful right now?',
-};
-
-function detectConversationMode(text: string, session: SessionSSTLog): ConversationMode {
-  const input = text.trim();
-  if (!input) return 'explanation';
-
-  if (META_FEEDBACK_PATTERNS.some((pattern) => pattern.test(input))) {
-    return 'meta_feedback';
-  }
-
-  if (SUGGESTION_PATTERNS.some((pattern) => pattern.test(input))) {
-    return 'suggestion';
-  }
-
-  const looksLikeClarification =
-    CLARIFICATION_PATTERNS.some((pattern) => pattern.test(input)) ||
-    /\b(resonate|land|fit|accurate|familiar)\b/i.test(input);
-
-  if (looksLikeClarification) {
-    const lastProbe = [...(session.probes || [])].reverse().find((probe) => !probe.committed);
-    if (lastProbe) {
-      return 'clarification';
-    }
-  }
-
-  return 'explanation';
-}
-
-function recordSuggestion(session: SessionSSTLog, text: string): void {
-  const normalized = text.trim();
-  if (!normalized) return;
-  if (!Array.isArray(session.suggestions)) {
-    session.suggestions = [] as SessionSuggestion[];
-  }
-  const alreadyStored = session.suggestions.some(
-    (entry) => entry.text === normalized,
-  );
-  if (!alreadyStored) {
-    session.suggestions.push({
-      text: normalized,
-      acknowledged: true,
-      createdAt: new Date().toISOString(),
-    });
-  }
-}
-
-// Check if user message indicates OSR (signal void, non-ping, outside symbolic range)
-function checkForOSRIndicators(text: string): boolean {
-  const lower = text.toLowerCase();
-  const osrPhrases = [
-    'doesn\'t resonate',
-    'no resonance',
-    'signal void',
-    'non-ping',
-    'outside symbolic range',
-    'doesn\'t match lived experience',
-    'not recognizable in life',
-    'doesn\'t ring true',
-    'outside my experience',
-    'not grounded in reality',
-    'metaphor without lived grounding',
-    'symbolic speculation',
-    'no behavioral evidence',
-    'misses the mark entirely',
-    'no connection to actual life',
-    'unrecognizable patterns'
-  ];
-
-  return osrPhrases.some((phrase: string) => lower.includes(phrase));
-}
-
-// Generate validation probes for Mirror Directive responses
-function generateValidationProbe(narrative: string, mirrorContent: any): { question: string; type: string; options: string[] } | null {
-  // Extract key themes from the narrative to create targeted probes
-  const isRelational = mirrorContent.person_b || mirrorContent._required_sections?.includes('person_b');
-
-  const soloProbes = [
-    {
-      question: "Does what I've described about your core patterns resonate with your lived experience—does this feel Within Boundary (WB), or does it miss the mark entirely (OSR)?",
-      type: "sst_resonance",
-      options: ["Within Boundary (WB)", "At Boundary Edge (ABE)", "Outside Symbolic Range (OSR)"]
-    },
-    {
-      question: "When I describe these primary tensions, do you recognize them in your actual daily life, or does this feel like symbolic interpretation without lived grounding?",
-      type: "behavioral_check",
-      options: ["Recognizable in lived experience", "Partially recognizable", "Not recognizable in life"]
-    },
-    {
-      question: "Does this mapping of your blueprint to lived experience feel accurate, or are we drifting into metaphor without behavioral anchoring?",
-      type: "integrity_check",
-      options: ["Grounded in both geometry and behavior", "Straddling the line", "Drifting into metaphor"]
-    }
-  ];
-
-  const relationalProbes = [
-    {
-      question: "Does this description of your relational dynamics match what actually happens between you, or is this symbolic speculation without behavioral evidence?",
-      type: "relational_sst",
-      options: ["Matches lived relational patterns", "Partially matches", "Outside lived experience"]
-    },
-    {
-      question: "When I describe [specific dynamic], does that reflect observable behavior in your relationship, or is this ungrounded interpretation?",
-      type: "relational_behavioral",
-      options: ["Grounded in actual behavior", "Mixed", "Ungrounded interpretation"]
-    }
-  ];
-
-  const probes = isRelational ? [...soloProbes, ...relationalProbes] : soloProbes;
-
-  // Select a probe based on narrative content (simple rotation for now)
-  const probeIndex = narrative.length % probes.length;
-  return probes[probeIndex] || probes[0];
-}
-
-// Check if user is clearly affirming/confirming resonance (WB - Within Boundary)
-function checkForClearAffirmation(text: string): boolean {
-  const lower = text.toLowerCase();
-  const clearAffirmPhrases = [
-    'within boundary',
-    'wb',
-    'resonates with lived experience',
-    'recognizable in life',
-    'that\'s exactly what happens',
-    'matches my experience',
-    'grounded in reality',
-    'behavioral evidence',
-    'lived truth',
-    'that\'s me',
-    'yes it is',
-    'yes that is',
-    'that\'s right',
-    'correct',
-    'true'
-  ];
-
-  // Also check for simple "yes" at start of response
-  if (/^yes\b/i.test(text.trim())) return true;
-
-  return clearAffirmPhrases.some((phrase: string) => lower.includes(phrase));
-}
-
-// Check if user is requesting to start/continue the reading (not OSR)
-function checkForReadingStartRequest(text: string): boolean {
-  const startReadingPhrases = [
-    'give me the reading',
-    'start the reading',
-    'begin the reading',
-    'continue with the reading',
-    'show me the reading',
-    'start the mirror',
-    'give me the mirror',
-    'show me the mirror',
-    'start mirror flow',
-    'give me mirror flow',
-    'show me mirror flow',
-    'start symbolic weather',
-    'give me symbolic weather',
-    'show me symbolic weather',
-    'let\'s begin',
-    'let\'s start',
-    'please continue',
-    'go ahead',
-  ];
-
-  return startReadingPhrases.some((phrase: string) => text.toLowerCase().includes(phrase));
-}
-
-// Check if user is giving partial/uncertain confirmation
-function checkForPartialAffirmation(text: string): boolean {
-  const lower = text.toLowerCase();
-  const partialPhrases = [
-    'sort of',
-    'kind of',
-    'partly',
-    'somewhat',
-    'maybe',
-    'i think so',
-    'possibly',
-    'in a way',
-    'to some extent'
-  ];
-
-  return partialPhrases.some((phrase: string) => lower.includes(phrase));
-}
-
-// Enhanced response classification
-function classifyUserResponse(text: string): 'CLEAR_WB' | 'PARTIAL_ABE' | 'OSR' | 'UNCLEAR' {
-  // Check if user is requesting to start/continue the reading (treat as CLEAR_WB)
-  if (checkForReadingStartRequest(text)) return 'CLEAR_WB';
-  if (checkForClearAffirmation(text)) return 'CLEAR_WB';
-  if (checkForPartialAffirmation(text)) return 'PARTIAL_ABE';
-  if (checkForOSRIndicators(text)) return 'OSR';
-  return 'UNCLEAR';
-}
-
-// Detect meta-signal complaints about being asked again / repetition
-function isMetaSignalAboutRepetition(text: string): boolean {
-  const lower = text.toLowerCase();
-  const phrases = [
-    'you asked',
-    'you are asking again',
-    'why are you asking',
-    'i already said',
-    'i just said',
-    'as i said',
-    'what i had just explained',
-    'repeating myself',
-    'asked again',
-    'repeat the question',
-    'i literally just',
-    'already confirmed',
-    "i've already answered",
-    'well, yeah',
-  ];
-  return phrases.some((p: string) => lower.includes(p));
-}
-
-function pickHook(t: string) {
-  // Check for JSON report uploads with specific conditions
-  if (t.includes('"balance_meter"') && t.includes('"magnitude"')) {
-    try {
-      const jsonMatch = t.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const data = JSON.parse(jsonMatch[0]);
-        const magnitude = data.balance_meter?.magnitude?.value;
-        const directionalBias = data.balance_meter?.directional_bias?.value ?? data.balance_meter?.directional_bias;
-
-        if (typeof magnitude === 'number' && typeof directionalBias === 'number') {
-          if (magnitude >= 4 && directionalBias <= -4) {
-            return 'Crisis & Structural Overload · Maximum Threshold';
-          } else if (magnitude >= 3 && directionalBias <= -3) {
-            return 'Pressure & Restriction · Compression Field';
-          }
-        }
-      }
-    } catch (e) {
-      // Fall through to text-based detection
-    }
-  }
-
-  if (/dream|sleep/i.test(t)) return 'Duty & Dreams · Saturn ↔ Neptune';
-  if (/private|depth|shadow/i.test(t)) return 'Private & Piercing · Mercury ↔ Pluto';
-  if (/restless|ground/i.test(t)) return 'Restless & Grounded · Pluto ↔ Moon';
-  return undefined;
-}
-
-function buildAstroSeekGuardDraft(): Record<string, string> {
-  return {
-    picture: 'Got your AstroSeek mention—one more step.',
-    feeling: 'I need the actual export contents to mirror accurately.',
-    container: 'Option 1 · Click "Upload report" and drop the AstroSeek download (JSON or text).',
-    option: 'Option 2 · Open the export and paste the full table or text here.',
-    next_step: 'Once the geometry is included, I can read you in detail.'
-  };
-}
-
-function createGuardPayload(
-  source: string,
-  guidance: string,
-  draft: Record<string, any>
-): { guard: true; guidance: string; draft: Record<string, any>; prov: Record<string, any> } {
-  const prov = stampProvenance({ source });
-  return {
-    guard: true as const,
-    guidance,
-    draft,
-    prov
-  };
-}
-
-function safeParseJSON(value: string): { ok: boolean; data: any | null } {
-  if (typeof value !== 'string') return { ok: false, data: null };
-  try {
-    return { ok: true, data: JSON.parse(value) };
-  } catch {
-    return { ok: false, data: null };
-  }
-}
-
-function resolveSubject(payload: any, key: 'person_a' | 'person_b'): any {
-  if (!payload || typeof payload !== 'object') return null;
-  const camelKey = key === 'person_a' ? 'personA' : 'personB';
-
-  const sources: Array<any> = [];
-  if (payload.unified_output && typeof payload.unified_output === 'object') {
-    sources.push(payload.unified_output);
-  }
-  sources.push(payload);
-
-  if (payload.context && typeof payload.context === 'object') {
-    sources.push(payload.context);
-    if (payload.context.unified_output && typeof payload.context.unified_output === 'object') {
-      sources.push(payload.context.unified_output);
-    }
-    if (payload.context.subjects && typeof payload.context.subjects === 'object') {
-      sources.push(payload.context.subjects);
-    }
-  }
-
-  if (payload.subjects && typeof payload.subjects === 'object') {
-    sources.push(payload.subjects);
-  }
-
-  if (payload.profiles && typeof payload.profiles === 'object') {
-    sources.push(payload.profiles);
-  }
-
-  if (payload.people && typeof payload.people === 'object') {
-    sources.push(payload.people);
-  }
-
-  for (const source of sources) {
-    if (!source || typeof source !== 'object') continue;
-    const candidate = source[key] ?? source[camelKey];
-    if (candidate && typeof candidate === 'object') {
-      return candidate;
-    }
-  }
-
-  return null;
-}
-
-function hasCompleteSubject(subject: any): boolean {
-  if (!subject || typeof subject !== 'object') return false;
-
-  // Check for v2 schema first (unified_output.person_a.chart)
-  const v2Chart = subject.unified_output?.person_a?.chart ||
-    subject.unified_output?.personA?.chart ||
-    subject.unified_output?.chart;
-
-  // Fall back to v1 schema
-  const chart = v2Chart ||
-    (subject.chart ??
-      subject.chart_natal ??
-      subject.chartNatal ??
-      subject.geometry ??
-      subject.natal_chart ??
-      subject.blueprint ??
-      null);
-
-  // Check if we have valid chart data in either format
-  const hasPlanets =
-    Array.isArray(chart?.planets) && chart.planets.length > 0 ||
-    (chart && typeof chart === 'object' &&
-      (chart.planets || chart.planets === undefined) && // Allow missing planets if other data exists
-      Object.keys(chart).some(k => k !== 'planets'));
-
-  const aspects =
-    Array.isArray(subject.aspects) && subject.aspects.length > 0 ||
-    Array.isArray(chart?.aspects) && chart.aspects.length > 0;
-
-  const placements =
-    Array.isArray(subject.placements) && subject.placements.length > 0;
-
-  // Also check for _natal_section in v2 schema
-  const hasNatalSection =
-    subject._natal_section &&
-    typeof subject._natal_section === 'object' &&
-    Object.keys(subject._natal_section).length > 0;
-
-  return Boolean(hasPlanets || aspects || placements || hasNatalSection);
-}
-
-function extractSubjectName(subject: any, fallback: string): string {
-  if (!subject || typeof subject !== 'object') return fallback;
-  const name =
-    subject.name ??
-    subject.details?.name ??
-    subject.profile?.name ??
-    subject.meta?.name ??
-    subject.identity?.name ??
-    subject.person?.name;
-  return typeof name === 'string' && name.trim() ? name.trim() : fallback;
-}
-
-function detectContextLayers(payload: any): string[] {
-  if (!payload || typeof payload !== 'object') return [];
-  const layers = new Set<string>();
-  const targets = [payload, payload.context, payload.metadata, payload.meta].filter(
-    (entry): entry is Record<string, any> => Boolean(entry && typeof entry === 'object')
-  );
-  for (const entry of targets) {
-    if (
-      'relationship_context' in entry ||
-      'relationship' in entry ||
-      'relationship_scope' in entry ||
-      'relationship_profile' in entry ||
-      'mirror_contract' in entry && entry.mirror_contract?.relationship_type
-    ) {
-      layers.add('relationship');
-    }
-    if ('dream' in entry || 'dream_context' in entry || 'dream_log' in entry) {
-      layers.add('dream');
-    }
-    if (
-      'field' in entry ||
-      'field_context' in entry ||
-      'fieldmap' in entry ||
-      'wm_fieldmap' in entry ||
-      'field_map' in entry
-    ) {
-      layers.add('field');
-    }
-    if (
-      'symbolic_weather' in entry ||
-      'symbolic_weather_context' in entry ||
-      'weather_overlay' in entry ||
-      'transit_context' in entry ||
-      'symbolic_weather_package' in entry ||
-      'weather_package' in entry
-    ) {
-      layers.add('symbolic_weather');
-    }
-  }
-  return Array.from(layers);
-}
-
-function extractMirrorContract(payload: any): Record<string, any> | null {
-  if (!payload || typeof payload !== 'object') return null;
-  if (payload.mirror_contract && typeof payload.mirror_contract === 'object') {
-    return payload.mirror_contract;
-  }
-  if (payload.contract && typeof payload.contract === 'object') {
-    return payload.contract;
-  }
-  if (payload.context && typeof payload.context === 'object') {
-    const ctx = payload.context;
-    if (ctx.mirror_contract && typeof ctx.mirror_contract === 'object') {
-      return ctx.mirror_contract;
-    }
-    if (ctx.contract && typeof ctx.contract === 'object') {
-      return ctx.contract;
-    }
-  }
-  return null;
-}
-
-type AutoExecutionStatus =
-  | 'none'
-  | 'solo_auto'
-  | 'relational_auto'
-  | 'parallel_auto'
-  | 'relational_choice'
-  | 'contextual_auto'
-  | 'osr';
-
-type AutoExecutionPlan = {
-  status: AutoExecutionStatus;
-  contextId?: string;
-  contextName?: string;
-  instructions?: string[];
-  forceQuestion?: boolean;
-  personAName?: string;
-  personBName?: string;
-  contextLayers?: string[];
-  reason?: string;
-};
-
-function deriveAutoExecutionPlan(
-  contexts: Record<string, any>[],
-  sessionLog: SessionSSTLog & Record<string, any>
-): AutoExecutionPlan {
-  if (!Array.isArray(contexts) || contexts.length === 0) {
-    return { status: 'none' };
-  }
-
-  const mirrorContext =
-    [...contexts].reverse().find((ctx) => ctx && ctx.type === 'mirror' && typeof ctx.content === 'string') ??
-    (typeof contexts[contexts.length - 1]?.content === 'string' ? contexts[contexts.length - 1] : null);
-
-  if (!mirrorContext || typeof mirrorContext.content !== 'string') {
-    return { status: 'none' };
-  }
-
-  // Check for failed contexts to prevent loops
-  if (sessionLog.failedContexts && sessionLog.failedContexts.has(mirrorContext.id)) {
-    console.log('[AutoPlan] Skipping failed context:', mirrorContext.id);
-    return { status: 'none' };
-  }
-
-  const parsed = safeParseJSON(mirrorContext.content);
-  if (!parsed.ok) {
-    return {
-      status: 'osr',
-      contextId: mirrorContext.id,
-      contextName: mirrorContext.name,
-      reason: 'invalid_json',
-    };
-  }
-
-  const payload = parsed.data || {};
-  const companionContexts = contexts.filter((ctx) => ctx && ctx !== mirrorContext && typeof ctx.content === 'string');
-  const resolveWithCompanion = (
-    subject: any,
-    key: 'person_a' | 'person_b'
-  ): any => {
-    if (hasCompleteSubject(subject)) return subject;
-    for (const ctx of companionContexts) {
-      const companionParsed = safeParseJSON(String(ctx.content));
-      if (!companionParsed.ok) continue;
-      const candidate = resolveSubject(companionParsed.data, key);
-      if (hasCompleteSubject(candidate)) {
-        return candidate;
-      }
-    }
-    return subject;
-  };
-
-  const personA = resolveWithCompanion(resolveSubject(payload, 'person_a'), 'person_a');
-  const personB = resolveWithCompanion(resolveSubject(payload, 'person_b'), 'person_b');
-
-  console.log('[AutoPlan] Deriving plan for context:', mirrorContext.id);
-  console.log('[AutoPlan] Payload keys:', Object.keys(payload));
-  console.log('[AutoPlan] Person A found:', !!personA, 'Complete:', hasCompleteSubject(personA));
-  console.log('[AutoPlan] Person B found:', !!personB, 'Complete:', hasCompleteSubject(personB));
-
-  if (!hasCompleteSubject(personA)) {
-    console.log('[AutoPlan] OSR: Missing Person A');
-    return {
-      status: 'osr',
-      contextId: mirrorContext.id,
-      contextName: mirrorContext.name,
-      reason: 'missing_person_a',
-    };
-  }
-
-  const templateHint = typeof payload._template_hint === 'string' ? payload._template_hint : null;
-  const requiredSections = Array.isArray(payload._required_sections) ? payload._required_sections : [];
-
-  // Check for required Person B
-  if (
-    (requiredSections.includes('person_b') || requiredSections.includes('personB')) &&
-    !hasCompleteSubject(personB)
-  ) {
-    console.log('[AutoPlan] OSR: Missing required Person B for relational template');
-    return {
-      status: 'osr',
-      contextId: mirrorContext.id,
-      contextName: mirrorContext.name,
-      reason: 'missing_required_subject_b',
-    };
-  }
-
-  const contract = extractMirrorContract(payload);
-  const reportKindRaw: string | null = (() => {
-    if (typeof contract?.report_kind === 'string') return contract.report_kind;
-    if (typeof payload?.report_kind === 'string') return payload.report_kind;
-    if (typeof payload?.report?.kind === 'string') return payload.report.kind;
-    if (typeof payload?.context?.report_kind === 'string') return payload.context.report_kind;
-    return null;
-  })();
-
-  const reportKind = reportKindRaw ? reportKindRaw.toLowerCase() : null;
-  const contractRelational =
-    contract?.is_relational === true ||
-    (typeof contract?.relational === 'boolean' && contract.relational) ||
-    (typeof reportKind === 'string' && /relational|synastry|composite/.test(reportKind)) ||
-    templateHint === 'relational_pair';
-  const contractParallel =
-    typeof contract?.mode === 'string' && /parallel/i.test(contract.mode) ||
-    (typeof reportKind === 'string' && /parallel/.test(reportKind));
-
-  const personAName = extractSubjectName(personA, 'Person A');
-  const personBName = hasCompleteSubject(personB)
-    ? extractSubjectName(personB, 'Person B')
-    : undefined;
-  const contextLayers = detectContextLayers(payload);
-
-  if (hasCompleteSubject(personB)) {
-    const relationalModes = (sessionLog.relationalModes || {}) as Record<string, 'relational' | 'parallel'>;
-    const storedMode = relationalModes[mirrorContext.id];
-    const resolvedMode: 'relational' | 'parallel' | null =
-      storedMode ??
-      (contractRelational ? 'relational' : contractParallel ? 'parallel' : null);
-
-    if (resolvedMode === 'relational') {
-      return {
-        status: 'relational_auto',
-        contextId: mirrorContext.id,
-        contextName: mirrorContext.name,
-        personAName,
-        personBName,
-        instructions: [
-          `AUTO-EXECUTION: Relational mirror in progress for ${personAName} and ${personBName}.`,
-          'STRUCTURE: Generate Clear Mirror format with explicit sections:',
-          '1. Hook Stack (4 items): **[Number]. [Headline]** + lived example + geometry footnote',
-          '2. Frontstage: Numeric coordinates (Magnitude/Bias/Coherence) + sensory description with inline footnotes',
-          '3. Polarity Cards (2-4): **Card [N] — [Title]** + reflection + geometry',
-          '4. Mirror Voice: Direct "you" reflection with conditional inference + resonance question',
-          '5. Socratic Closure: WB/ABE/OSR marking instructions',
-          'Begin immediately. Use both names directly. Keep voice lyrical but falsifiable.',
-        ],
-        forceQuestion: true,
-      };
-    }
-
-    if (resolvedMode === 'parallel') {
-      return {
-        status: 'parallel_auto',
-        contextId: mirrorContext.id,
-        contextName: mirrorContext.name,
-        personAName,
-        personBName,
-        instructions: [
-          `AUTO-EXECUTION: Parallel diagnostics for ${personAName} and ${personBName}.`,
-          'STRUCTURE: Generate Clear Mirror format for EACH chart separately:',
-          '1. Hook Stack (4 items per person)',
-          '2. Frontstage (separate for A and B)',
-          '3. Polarity Cards (2-4 per person)',
-          '4. Mirror Voice (separate reflections)',
-          '5. Socratic Closure (shared)',
-          'Execute immediately. Keep them distinct—no relational synthesis until end.',
-        ],
-        forceQuestion: true,
-      };
-    }
-
-    return {
-      status: 'relational_choice',
-      contextId: mirrorContext.id,
-      contextName: mirrorContext.name,
-      personAName,
-      personBName,
-    };
-  }
-
-  if (contextLayers.length > 0) {
-    const layerLabel = contextLayers
-      .map((layer) => {
-        switch (layer) {
-          case 'relationship':
-            return 'relationship context';
-          case 'dream':
-            return 'dream payload';
-          case 'field':
-            return 'field map';
-          case 'symbolic_weather':
-            return 'symbolic weather overlay';
-          default:
-            return layer;
-        }
-      })
-      .join(', ');
-    return {
-      status: 'contextual_auto',
-      contextId: mirrorContext.id,
-      contextName: mirrorContext.name,
-      personAName,
-      contextLayers,
-      instructions: [
-        `AUTO-EXECUTION: Contextual mirror for ${personAName}.`,
-        `STRUCTURE: Generate Clear Mirror format integrating ${layerLabel}:`,
-        '1. Hook Stack (4 items): Include contextual layer influences',
-        '2. Frontstage: FIELD LAYER + contextual coordinates',
-        '3. Polarity Cards (2-4): Context-informed tensions',
-        '4. Mirror Voice: Weave contextual insights into narrative',
-        '5. Socratic Closure: Context-aware resonance question',
-        'Execute immediately. Integrate layers seamlessly—no permission gates.',
-      ],
-      forceQuestion: true,
-    };
-  }
-
-  return {
-    status: 'solo_auto',
-    contextId: mirrorContext.id,
-    contextName: mirrorContext.name,
-    personAName,
-    instructions: [
-      `AUTO-EXECUTION: Solo diagnostic for ${personAName}.`,
-      'STRUCTURE: Generate Clear Mirror format with explicit sections:',
-      '1. Hook Stack (4 items): Numbered, bolded headlines with inline geometry footnotes',
-      '2. Frontstage: FIELD LAYER coordinates (date/time/location), planetary geometry summary',
-      '3. Polarity Cards (2-4): Tension/contradiction pairs with titles',
-      '4. Mirror Voice: VOICE LAYER narrative with embedded Socratic question',
-      '5. Socratic Closure: Optional custom reflection or standard closure',
-      'Execute immediately. Use section headings (### Hook Stack, etc.). E-Prime language throughout.',
-    ],
-    forceQuestion: true,
-  };
-}
-
-function parseRelationalChoiceAnswer(text: string): 'relational' | 'parallel' | null {
-  const input = (text || '').trim().toLowerCase();
-  if (!input) return null;
-  if (/(relational|together|both|synastry|relationship|combined|shared)/i.test(input)) {
-    return 'relational';
-  }
-  if (/(parallel|separate|individual|solo|each|individually)/i.test(input)) {
-    return 'parallel';
-  }
-  return null;
-}
 
 function appendHistoryEntry(
   sessionLog: SessionSSTLog,
@@ -955,7 +153,9 @@ export async function POST(req: Request) {
       const { probeId, tag } = resolvedOptions as { probeId: string; tag: SSTTag };
       const idx = sessionLog.probes.findIndex((p: SSTProbe) => p.id === probeId);
       if (idx === -1) return NextResponse.json({ ok: false, error: 'Probe not found' }, { status: 404 });
-      sessionLog.probes[idx] = commitProbe(sessionLog.probes[idx], tag);
+      // Use SST source based on querent role (observer confirmations are secondary data)
+      const source = getSSTSource(sessionLog.contextGate?.querentRole);
+      sessionLog.probes[idx] = commitProbe(sessionLog.probes[idx], tag, source);
       const scores = scoreSession(sessionLog);
       updateSession(sid, () => { }); // Persist change
       return NextResponse.json({ ok: true, sessionId: sid, scores, probe: sessionLog.probes[idx] });
@@ -1005,6 +205,49 @@ export async function POST(req: Request) {
       }
       sessionLog.relationalModes[pendingChoice.contextId] = decision;
       updateSession(sid, () => { }); // Persist
+    }
+
+    // ==========================================================================
+    // CONTEXT GATE: Check if we need to identify the querent before proceeding
+    // ==========================================================================
+    // Check if user is responding to a context gate question
+    if (sessionLog.contextGate && sessionLog.contextGate.querentRole === 'unconfirmed' && textInput.trim()) {
+      const identity = detectQuerentIdentity(textInput, sessionLog.contextGate.sessionSubjects);
+      if (identity) {
+        sessionLog.contextGate = confirmQuerentIdentity(
+          sessionLog.contextGate,
+          identity.role,
+          textInput.trim()
+        );
+        updateSession(sid, () => { });
+        
+        // Acknowledge the identification and proceed
+        const voiceInstructions = getVoiceAdaptationInstructions(
+          identity.role,
+          sessionLog.contextGate.sessionSubjects
+        );
+        const acknowledgment = identity.role === 'observer'
+          ? `I understand—you're asking about ${sessionLog.contextGate.sessionSubjects.join(' and ')}'s chart rather than your own. I'll share patterns I observe, though confirmations from you will be logged as observer-rated (helpful for pattern refinement, but distinct from primary felt experience). What would you like to explore?`
+          : identity.role === 'both'
+            ? `Welcome, both of you. I'll speak to your shared dynamics and keep both perspectives equally visible. What would you like to explore together?`
+            : `Got it—I'm speaking with you directly. What would you like to explore in your chart?`;
+        
+        appendHistoryEntry(sessionLog, 'user', textInput);
+        appendHistoryEntry(sessionLog, 'raven', acknowledgment);
+        sessionLog.turnCount = (sessionLog.turnCount ?? 0) + 1;
+        updateSession(sid, () => { });
+        
+        const prov = stampProvenance({ source: 'Context Gate Confirmation' });
+        return NextResponse.json({
+          intent: 'conversation',
+          ok: true,
+          draft: { conversation: acknowledgment },
+          prov,
+          sessionId: sid,
+          probe: null,
+          contextGate: sessionLog.contextGate,
+        });
+      }
     }
 
     // Default: generate (router)
@@ -1163,6 +406,71 @@ export async function POST(req: Request) {
     const effectiveInput = requestsAutoStart ? '' : textInput;
 
     const autoPlan = deriveAutoExecutionPlan(normalizedContexts, sessionLog);
+    
+    // ==========================================================================
+    // CONTEXT GATE: Initialize with subject names if we have them
+    // ==========================================================================
+    if (!sessionLog.contextGate && (autoPlan.personAName || autoPlan.personBName)) {
+      const subjects: string[] = [];
+      if (autoPlan.personAName) subjects.push(autoPlan.personAName);
+      if (autoPlan.personBName) subjects.push(autoPlan.personBName);
+      sessionLog.contextGate = createContextGateState(subjects);
+      updateSession(sid, () => { });
+    }
+    
+    // Check for subject conflicts on new uploads
+    if (sessionLog.contextGate && autoPlan.personAName) {
+      const newSubjects: string[] = [];
+      if (autoPlan.personAName) newSubjects.push(autoPlan.personAName);
+      if (autoPlan.personBName) newSubjects.push(autoPlan.personBName);
+      
+      const conflict = detectSubjectConflict(sessionLog.contextGate.sessionSubjects, newSubjects);
+      if (conflict.hasConflict && conflict.message) {
+        // Update context gate with new subjects but mark as needing re-confirmation
+        sessionLog.contextGate = {
+          ...sessionLog.contextGate,
+          sessionSubjects: newSubjects,
+          querentRole: 'unconfirmed', // Force re-confirmation
+          confirmedAt: undefined,
+        };
+        
+        appendHistoryEntry(sessionLog, 'raven', conflict.message);
+        updateSession(sid, () => { });
+        
+        const prov = stampProvenance({ source: 'Context Gate (Subject Conflict)' });
+        return NextResponse.json({
+          intent: 'conversation',
+          ok: true,
+          draft: { conversation: conflict.message },
+          prov,
+          sessionId: sid,
+          probe: null,
+          contextGate: sessionLog.contextGate,
+        });
+      }
+    }
+    
+    // If context gate is unconfirmed and this is the first turn with context, ask who's speaking
+    const isFirstTurnWithContext = (sessionLog.turnCount ?? 0) === 0 && normalizedContexts.length > 0;
+    if (isFirstTurnWithContext && sessionLog.contextGate && needsContextGate(sessionLog.contextGate)) {
+      const gateQuestion = generateContextGateQuestion(sessionLog.contextGate.sessionSubjects);
+      
+      appendHistoryEntry(sessionLog, 'raven', gateQuestion);
+      sessionLog.turnCount = 1;
+      updateSession(sid, () => { });
+      
+      const prov = stampProvenance({ source: 'Context Gate' });
+      return NextResponse.json({
+        intent: 'conversation',
+        ok: true,
+        draft: { conversation: gateQuestion },
+        prov,
+        sessionId: sid,
+        probe: null,
+        contextGate: sessionLog.contextGate,
+      });
+    }
+    
     if (autoPlan.status === 'osr') {
       const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'that upload';
       const reason =

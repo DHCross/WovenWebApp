@@ -1,4 +1,9 @@
+import type { QuerentRole, ContextGateState } from './context-gate';
+
 export type SSTTag = 'WB' | 'ABE' | 'OSR';
+
+/** Source of resonance confirmation for data provenance */
+export type SSTSource = 'self' | 'observer';
 
 export interface SSTProbe {
   id: string;           // unique id for the probe (e.g., uuid or hash)
@@ -7,6 +12,7 @@ export interface SSTProbe {
   committed?: boolean;  // true when confirmed by user
   createdAt: string;    // ISO timestamp
   committedAt?: string; // ISO timestamp when committed
+  source?: SSTSource;   // who confirmed: self (subject) or observer (third party)
 }
 
 export interface SessionTurn {
@@ -33,6 +39,8 @@ export interface SessionSSTLog {
   failedContexts?: Set<string>;
   metaConversationMode?: ConversationMode;
   validationActive?: boolean;
+  /** Context Gate state - tracks querent identity and role */
+  contextGate?: ContextGateState;
 }
 
 export interface SessionScores {
@@ -46,8 +54,15 @@ export function createProbe(text: string, id: string): SSTProbe {
   return { id, text, createdAt: new Date().toISOString() };
 }
 
-export function commitProbe(probe: SSTProbe, tag: SSTTag): SSTProbe {
-  return { ...probe, tag, committed: true, committedAt: new Date().toISOString() };
+export function commitProbe(probe: SSTProbe, tag: SSTTag, source?: SSTSource): SSTProbe {
+  return { ...probe, tag, committed: true, committedAt: new Date().toISOString(), source };
+}
+
+/** Determine SST source based on querent role */
+export function getSSTSource(querentRole?: QuerentRole): SSTSource {
+  if (!querentRole || querentRole === 'unconfirmed') return 'self'; // default assumption
+  if (querentRole === 'observer') return 'observer';
+  return 'self'; // self_a, self_b, both are all primary sources
 }
 
 export function scoreSession(log: SessionSSTLog): SessionScores {

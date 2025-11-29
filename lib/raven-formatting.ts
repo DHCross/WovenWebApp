@@ -39,8 +39,31 @@ export const formatFriendlyErrorMessage = (rawMessage: string): string => {
   if (/failed to reach raven api/i.test(text) || /request failed/i.test(text)) {
     return "I'm having trouble reaching my poetic voice right now. Give me a moment and try again, or upload another chart for me to hold.";
   }
+  // Try to detect structured server responses (e.g. { error, reason })
+  try {
+    const parsed = JSON.parse(text);
+    const reason = parsed?.reason || parsed?.error || parsed?.detail || '';
+    const status = parsed?.status || parsed?.code || undefined;
+    if (reason) {
+      const r = String(reason).toLowerCase();
+      if (r.includes('email_not_in_allowlist')) {
+        return "Access blocked: your account isn't on the project's allowlist. Ask the project owner to add your email, then sign out and sign back in.";
+      }
+      if (r.includes('domain_mismatch')) {
+        return "Access blocked: your account's email domain isn't allowed. Ask the project owner to update the allowlist or use an approved email.";
+      }
+      if (/missing|invalid token|invalid token/i.test(r) || status === 401) {
+        return "Authentication failed: your session token is invalid or expired. Please sign out and sign back in, then try again.";
+      }
+      // Fallthrough to include the reason text when it's informative
+      return `I'm having trouble responding: ${String(parsed.error || parsed.detail || parsed.reason)}`;
+    }
+  } catch (e) {
+    // Not JSON — continue to legacy text checks
+  }
+
   if (/401/.test(text) || /auth/i.test(text)) {
-    return "I couldn't authenticate with the Perplexity wellspring. Double-check the key, then invite me again.";
+    return "Authentication failed: please sign out and sign back in, then try again. If the problem persists, ask the project owner to check the allowlist and keys.";
   }
   if (/math brain failed/i.test(text) || /mirror.?data is not defined/i.test(text)) {
     return "Math Brain stumbled on that pass, but the uploaded report is still ready. Ask again or tap “Generate again” if you truly need a fresh run.";

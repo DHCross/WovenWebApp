@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import DOMPurify from "dompurify";
 import { generateId } from "../lib/id";
 import { formatFullClimateDisplay } from "../lib/climate-renderer";
@@ -136,6 +137,39 @@ export default function ChatClient() {
   const [resumeFlashActive, setResumeFlashActive] = useState(false);
   const [lastActiveAt, setLastActiveAt] = useState<number | null>(null);
   const copyResetRef = useRef<number | null>(null);
+
+  // Track whether user has Math Brain data available (for guided UX)
+  const [hasMathBrainSession, setHasMathBrainSession] = useState<boolean | null>(null);
+
+  // Check localStorage for mb.lastSession on mount and when tab regains focus
+  useEffect(() => {
+    const checkForMathBrainSession = () => {
+      try {
+        const stored = localStorage.getItem('mb.lastSession');
+        setHasMathBrainSession(Boolean(stored));
+      } catch {
+        setHasMathBrainSession(false);
+      }
+    };
+
+    // Initial check
+    checkForMathBrainSession();
+
+    // Re-check when user returns to tab (e.g., after visiting Math Brain)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkForMathBrainSession();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', checkForMathBrainSession);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', checkForMathBrainSession);
+    };
+  }, []);
 
   const { validationMap, setValidationPoints, updateValidationNote } = useValidation({
     sessionId,
@@ -1134,48 +1168,107 @@ export default function ChatClient() {
       )}
 
       {!sessionStarted && !storedPayload && reportContexts.length === 0 && (
-        <section className="mx-auto mt-8 w-full max-w-3xl rounded-xl border border-emerald-500/40 bg-slate-900/60 px-6 py-5 text-slate-100 shadow-lg">
-          <h2 className="text-lg font-semibold text-emerald-200">Drop in whenever you&apos;re ready</h2>
-          <p className="mt-3 text-sm text-slate-300">
-            Raven is already listening. Begin typing below to share what&apos;s on your mind, or send a quick
-            question to move straight into open dialogue.
-          </p>
-          <p className="mt-3 text-xs text-slate-400">
-            Uploading a Math Brain export (or resuming a saved chart) automatically opens a structured
-            reading. Raven will announce the shift and the banner above will always tell you which lane
-            you are in. End the session any time to clear the slate.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => handleUploadButton("mirror")}
-              className="rounded-lg border border-slate-600/60 bg-slate-800/70 px-4 py-2 text-sm text-slate-100 transition hover:border-slate-500 hover:bg-slate-800"
-            >
-              Upload a Report
-            </button>
-            {canRecoverStoredPayload && (
+        <section className="mx-auto mt-8 w-full max-w-3xl rounded-xl border border-emerald-500/40 bg-slate-900/60 px-6 py-6 text-slate-100 shadow-lg">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/20 to-slate-800/60 border border-emerald-500/30">
+              <span className="text-2xl">🪶</span>
+            </div>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-emerald-200">Welcome to Raven&apos;s Chamber</h2>
+              <p className="mt-2 text-sm text-slate-300 leading-relaxed">
+                I&apos;m here to translate your chart geometry into plain-language reflections. 
+                Feel free to ask about the Woven Map system, how readings work, or what any of the terminology means.
+              </p>
+            </div>
+          </div>
+
+          {/* Conditional guidance based on whether they have Math Brain data */}
+          {hasMathBrainSession === false && (
+            <div className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-4">
+              <div className="flex items-start gap-3">
+                <span className="text-lg">✨</span>
+                <div>
+                  <p className="text-sm font-medium text-amber-200">
+                    For a personal reading, I&apos;ll need your chart geometry first
+                  </p>
+                  <p className="mt-1 text-xs text-amber-200/80">
+                    Head to Math Brain to generate a Solo or Relational report with your birth data, 
+                    then return here—I&apos;ll automatically detect it and we can begin the structured reading.
+                  </p>
+                  <Link
+                    href="/math-brain"
+                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/20 px-4 py-2 text-sm font-medium text-amber-100 transition hover:bg-amber-500/30"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Go to Math Brain
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {hasMathBrainSession === true && (
+            <div className="mt-5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-4">
+              <div className="flex items-start gap-3">
+                <span className="text-lg">🪞</span>
+                <div>
+                  <p className="text-sm font-medium text-emerald-200">
+                    I see you have chart data ready
+                  </p>
+                  <p className="mt-1 text-xs text-emerald-200/80">
+                    Click below to load your last Math Brain session and begin a structured reading, 
+                    or keep chatting freely about concepts and questions.
+                  </p>
+                  {canRecoverStoredPayload && (
+                    <button
+                      type="button"
+                      onClick={recoverLastStoredPayload}
+                      className="mt-3 inline-flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-100 transition hover:bg-emerald-500/30"
+                    >
+                      <span>📊</span>
+                      Load Math Brain Session
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Always available actions */}
+          <div className="mt-5 border-t border-slate-700/50 pt-5">
+            <p className="text-xs text-slate-400 mb-3">Or explore without chart data:</p>
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={recoverLastStoredPayload}
-                className="rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-100 transition hover:bg-emerald-500/20"
+                onClick={() => setInput("What is the Woven Map system?")}
+                className="rounded-lg border border-slate-700/50 bg-slate-800/50 px-3 py-1.5 text-xs text-slate-300 transition hover:border-slate-600 hover:bg-slate-800"
               >
-                Resume last Math Brain export
+                What is Woven Map?
               </button>
-            )}
-          </div>
-          <div className="flex justify-between items-center p-2 border-b border-gray-700">
-            <div></div> {/* Empty div for flex spacing */}
-            <h1 className="text-xl font-semibold">Poetic Brain</h1>
-            <a
-              href="/math-brain"
-              className="text-sm text-blue-400 hover:text-blue-300 flex items-center"
-              title="Return to Math Brain"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Back to Math Brain
-            </a>
+              <button
+                type="button"
+                onClick={() => setInput("How do Balance Meter readings work?")}
+                className="rounded-lg border border-slate-700/50 bg-slate-800/50 px-3 py-1.5 text-xs text-slate-300 transition hover:border-slate-600 hover:bg-slate-800"
+              >
+                How do readings work?
+              </button>
+              <button
+                type="button"
+                onClick={() => setInput("What does Directional Bias mean?")}
+                className="rounded-lg border border-slate-700/50 bg-slate-800/50 px-3 py-1.5 text-xs text-slate-300 transition hover:border-slate-600 hover:bg-slate-800"
+              >
+                What is Directional Bias?
+              </button>
+              <button
+                type="button"
+                onClick={() => handleUploadButton("mirror")}
+                className="rounded-lg border border-slate-700/50 bg-slate-800/50 px-3 py-1.5 text-xs text-slate-300 transition hover:border-slate-600 hover:bg-slate-800"
+              >
+                Upload a JSON export
+              </button>
+            </div>
           </div>
         </section>
       )}

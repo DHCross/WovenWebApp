@@ -904,6 +904,42 @@ export default function MathBrainPage() {
   const [authReady, setAuthReady] = useState(() => !AUTH_ENABLED);
   const [userId, setUserId] = useState<string | null>(null);
 
+  // First-time user guide state
+  const [showGettingStarted, setShowGettingStarted] = useState<boolean>(false);
+  const [showHowItWorks, setShowHowItWorks] = useState<boolean>(false);
+
+  // Check if user is first-time (never generated a report)
+  useEffect(() => {
+    try {
+      const hasGeneratedReport = localStorage.getItem('mb.hasGeneratedReport');
+      const guideDismissed = localStorage.getItem('mb.gettingStartedDismissed');
+      // Show getting started if never generated AND not dismissed
+      setShowGettingStarted(!hasGeneratedReport && !guideDismissed);
+    } catch {
+      setShowGettingStarted(false);
+    }
+  }, []);
+
+  // Mark that user has generated a report (called after successful generation)
+  const markReportGenerated = useCallback(() => {
+    try {
+      localStorage.setItem('mb.hasGeneratedReport', 'true');
+      setShowGettingStarted(false);
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, []);
+
+  // Dismiss the getting started guide
+  const dismissGettingStarted = useCallback(() => {
+    try {
+      localStorage.setItem('mb.gettingStartedDismissed', 'true');
+      setShowGettingStarted(false);
+    } catch {
+      setShowGettingStarted(false);
+    }
+  }, []);
+
   // User profiles hook
   const {
     profiles,
@@ -4655,6 +4691,7 @@ export default function MathBrainPage() {
       setLayerVisibility({ ...DEFAULT_LAYER_VISIBILITY });
       persistSessionArtifacts(finalData);
       setToast(includeTransits ? 'Report with transits complete!' : 'Report complete!');
+      markReportGenerated(); // Track that user has successfully generated a report
 
       // Telemetry (dev only)
       if (process.env.NODE_ENV !== 'production') {
@@ -4810,6 +4847,128 @@ export default function MathBrainPage() {
             </div>
           </div>
         </header>
+
+        {/* Getting Started Guide - shown for first-time users */}
+        {showGettingStarted && (
+          <div className="mt-6 mx-auto max-w-3xl rounded-xl border-2 border-emerald-500/50 bg-gradient-to-br from-emerald-950/40 to-slate-900/60 p-6 shadow-lg shadow-emerald-500/10">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🌟</span>
+                <div>
+                  <h2 className="text-lg font-semibold text-emerald-200">First time here? Let&apos;s get you started!</h2>
+                  <p className="text-sm text-slate-300">Follow these steps to generate your first report</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={dismissGettingStarted}
+                className="text-slate-400 hover:text-slate-200 transition"
+                aria-label="Dismiss guide"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <div className="rounded-lg border border-slate-700/50 bg-slate-800/50 p-4">
+                <div className="flex items-center gap-2 text-emerald-300">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-sm font-bold">1</span>
+                  <span className="font-medium">Enter Your Info</span>
+                </div>
+                <p className="mt-2 text-xs text-slate-400">
+                  Scroll down to <strong className="text-slate-300">Person A</strong> and fill in your name, birth date, birth time, and birth location.
+                </p>
+              </div>
+              
+              <div className="rounded-lg border border-slate-700/50 bg-slate-800/50 p-4">
+                <div className="flex items-center gap-2 text-emerald-300">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-sm font-bold">2</span>
+                  <span className="font-medium">Generate Report</span>
+                </div>
+                <p className="mt-2 text-xs text-slate-400">
+                  Click the big <strong className="text-slate-300">Generate Report</strong> button at the bottom. Wait a few seconds for the geometry to calculate.
+                </p>
+              </div>
+              
+              <div className="rounded-lg border border-slate-700/50 bg-slate-800/50 p-4">
+                <div className="flex items-center gap-2 text-emerald-300">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-sm font-bold">3</span>
+                  <span className="font-medium">Visit Poetic Brain</span>
+                </div>
+                <p className="mt-2 text-xs text-slate-400">
+                  After generating, click <strong className="text-slate-300">Enter Poetic Brain</strong> above to get Raven&apos;s interpretation of your chart.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+              <p className="text-xs text-amber-200">
+                <strong>Adding someone else?</strong> Check the <em>&quot;Include Person B&quot;</em> box in the Person B section to add a partner, friend, or family member for a relationship reading.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* How It Works - always available, collapsible */}
+        <div className="mt-4 mx-auto max-w-3xl">
+          <button
+            type="button"
+            onClick={() => setShowHowItWorks(!showHowItWorks)}
+            className="flex w-full items-center justify-between rounded-lg border border-slate-700/50 bg-slate-800/40 px-4 py-3 text-left transition hover:bg-slate-800/60"
+          >
+            <span className="flex items-center gap-2 text-sm font-medium text-slate-200">
+              <span>📖</span>
+              How Math Brain Works
+            </span>
+            <svg
+              className={`h-5 w-5 text-slate-400 transition-transform ${showHowItWorks ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          {showHowItWorks && (
+            <div className="mt-2 rounded-lg border border-slate-700/50 bg-slate-900/60 p-5 text-sm text-slate-300">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-slate-100">What is Math Brain?</h4>
+                  <p className="mt-1 text-slate-400">
+                    Math Brain calculates precise astrological geometry from your birth data — planetary positions, aspects, houses, and their mathematical relationships. It&apos;s the &quot;silent architect&quot; that does the calculations.
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-medium text-slate-100">What is Poetic Brain?</h4>
+                  <p className="mt-1 text-slate-400">
+                    Poetic Brain (Raven Calder) translates the geometry into plain-language reflections. It takes Math Brain&apos;s data and gives you an interpretation you can actually use.
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-medium text-slate-100">The Workflow</h4>
+                  <ol className="mt-2 space-y-1 text-slate-400 list-decimal list-inside">
+                    <li>Enter birth info in Math Brain</li>
+                    <li>Generate the geometry report</li>
+                    <li>Go to Poetic Brain for Raven&apos;s reading</li>
+                    <li>Chat with Raven about what resonates</li>
+                  </ol>
+                </div>
+                <div>
+                  <h4 className="font-medium text-slate-100">Report Types</h4>
+                  <ul className="mt-2 space-y-1 text-slate-400 list-disc list-inside">
+                    <li><strong className="text-slate-300">Solo</strong> — Just your natal chart</li>
+                    <li><strong className="text-slate-300">With Transits</strong> — Your chart + current planetary weather</li>
+                    <li><strong className="text-slate-300">Synastry</strong> — How two people&apos;s charts interact</li>
+                    <li><strong className="text-slate-300">Composite</strong> — A combined chart representing the relationship itself</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Lens stripe - exact microcopy per UI/UX contract */}
         <div className="mt-6 mb-8 rounded-lg border border-slate-600 bg-slate-800/40 px-4 py-3 text-center print:hidden">
@@ -5381,11 +5540,17 @@ export default function MathBrainPage() {
                   <button
                     type="submit"
                     disabled={submitDisabled}
-                    className="inline-flex items-center rounded-md px-4 py-2 text-white disabled:opacity-50 bg-indigo-600 hover:bg-indigo-500"
+                    className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-base font-semibold text-white shadow-lg disabled:opacity-50 disabled:shadow-none bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                   >
-                    {loading ? "Mapping geometry…" : (includeTransits ? 'Generate Report' : 'Prepare Mirror')}
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    {loading ? "Mapping geometry…" : (includeTransits ? 'Generate Report' : 'Generate Report')}
                   </button>
                 </div>
+                {!loading && !result && !submitDisabled && (
+                  <p className="mt-2 text-xs text-emerald-400">✓ Ready to generate! Click the button above.</p>
+                )}
               </div>
               {(RELATIONAL_MODES.includes(mode) && !includePersonB) && (
                 <p className="mt-2 text-xs text-amber-400">Hint: Toggle "Include Person B" and fill in required fields to enable relational modes.</p>
