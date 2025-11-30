@@ -4587,10 +4587,12 @@ export default function MathBrainPage() {
   }
 
   async function onSubmit(e?: any) {
+    console.log('[onSubmit] Called', { submitDisabled, canSubmit, loading, providerCheckPending });
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault();
     }
     if (submitDisabled) {
+      console.log('[onSubmit] Blocked: submitDisabled=true');
       setToast('Complete the required fields to generate a report.');
       setTimeout(() => setToast(null), 2200);
       return;
@@ -4598,23 +4600,31 @@ export default function MathBrainPage() {
     // Frontend relocation gate for Balance Meter
     const locGate = needsLocation(reportType, includeTransits, personA);
     if (includeTransits && !locGate.hasLoc) {
+      console.log('[onSubmit] Blocked: location required for transits');
       setToast('Transits need current location to place houses correctly. Add a location or switch to natal-only mode.');
       setTimeout(() => setToast(null), 2500);
       return;
     }
     if (!PROVIDER_BYPASS && providerCheckPending) {
+      console.log('[onSubmit] Blocked: provider check still pending');
       setToast('Checking provider readiness…');
       setTimeout(() => setToast(null), 2500);
       return;
     }
     if (!PROVIDER_BYPASS && !providerHealth.astrology.ready) {
+      console.log('[onSubmit] Blocked: astrology provider not ready');
       const outageMessage = providerHealth.astrology.message || 'Math Brain is currently unavailable.';
       setError(outageMessage);
       setToast(outageMessage);
       setTimeout(() => setToast(null), 3500);
       return;
     }
-    if (!canSubmit) return;
+    if (!canSubmit) {
+      console.log('[onSubmit] Blocked: canSubmit=false', { personA, includeTransits, startDate, endDate });
+      setToast('Please fill in all required fields.');
+      setTimeout(() => setToast(null), 2200);
+      return;
+    }
     if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
       setError("Transit start date must be on or before the end date.");
       return;
