@@ -558,7 +558,7 @@ function extractReportHeader(
   };
 }
 
-function extractWeather(startDate: string, endDate: string, result: any): Weather {
+function extractWeather(startDate: string, endDate: string, reportData: any): Weather {
   // hasWindow computed once: valid start+end+step
   const hasWindow = !!(
     startDate &&
@@ -630,14 +630,14 @@ function extractWeather(startDate: string, endDate: string, result: any): Weathe
   };
 
   const summary =
-    result?.balance_meter ??
-    result?.person_a?.summary ??
-    result?.person_a?.balance_meter ??
-    result?.person_a?.derived?.balance_meter ??
-    result?.person_a?.derived?.seismograph_summary;
+    reportData?.balance_meter ??
+    reportData?.person_a?.summary ??
+    reportData?.person_a?.balance_meter ??
+    reportData?.person_a?.derived?.balance_meter ??
+    reportData?.person_a?.derived?.seismograph_summary;
 
   // Calculate daily ranges to show texture (not just averages)
-  const transitsByDate = result?.person_a?.chart?.transitsByDate || {};
+  const transitsByDate = reportData?.person_a?.chart?.transitsByDate || {};
   const dailyBiasValues: number[] = [];
   const dailyMagnitudeValues: number[] = [];
   const dailyVolatilityValues: number[] = [];
@@ -705,7 +705,7 @@ function extractWeather(startDate: string, endDate: string, result: any): Weathe
 
   // Extract tier-1 hooks with plain language explanations (no bare counts)
   const tier1Hooks: Weather['tier1Hooks'] = [];
-  const wovenMap = result?.person_a?.derived?.woven_map ?? (result as any)?.woven_map ?? null;
+  const wovenMap = reportData?.person_a?.derived?.woven_map ?? (reportData as any)?.woven_map ?? null;
   const hooks = wovenMap?.hook_stack?.hooks || [];
 
   const pushHook = (hook: any) => {
@@ -736,9 +736,9 @@ function extractWeather(startDate: string, endDate: string, result: any): Weathe
   };
 }
 
-function extractBlueprint(result: any): Blueprint {
+function extractBlueprint(reportData: any): Blueprint {
   // Extract thesis - must be non-empty per contract
-  const wovenMap = result?.person_a?.derived?.woven_map ?? (result as any)?.woven_map ?? null;
+  const wovenMap = reportData?.person_a?.derived?.woven_map ?? (reportData as any)?.woven_map ?? null;
   const voice = wovenMap?.voice;
   const tier1Count = wovenMap?.hook_stack?.tier_1_orbs || 0;
 
