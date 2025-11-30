@@ -4651,6 +4651,7 @@ export default function MathBrainPage() {
     }
     lastSubmitRef.current = nowTs;
     const t0 = typeof performance !== 'undefined' ? performance.now() : 0;
+    console.log('[onSubmit] Passed all gates, starting API call...');
     setToast(includeTransits ? 'Starting transit report...' : 'Starting report...');
     setTimeout(() => setToast(null), 1500);
     setLoading(true);
