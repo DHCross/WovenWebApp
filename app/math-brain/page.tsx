@@ -855,23 +855,6 @@ export default function MathBrainPage() {
   // Track if user has manually entered data to prevent showing stale reports
   const [hasUserEnteredData, setHasUserEnteredData] = useState(false);
 
-  // Clear result when user starts typing manually (not from profile load)
-  useEffect(() => {
-    // Only clear if user hasn't already entered data and result exists
-    if (result && !hasUserEnteredData && personA.name && !loading) {
-      // Check if this looks like manual typing (name changed but other fields are empty)
-      const isManualTyping = !personA.year || !personA.month || !personA.day || !personA.city;
-      if (isManualTyping) {
-        setResult(null);
-        setError(null);
-        setSnapshotResult(null);
-        setSnapshotLocation(null);
-        setSnapshotTimestamp(null);
-        setHasUserEnteredData(true);
-      }
-    }
-  }, [personA.name, result, hasUserEnteredData, loading, personA.year, personA.month, personA.day, personA.city]);
-
   // Single-field coordinates (Person A)
   const [aCoordsInput, setACoordsInput] = useState<string>("");
   const [aCoordsError, setACoordsError] = useState<string | null>(null);
@@ -937,6 +920,23 @@ export default function MathBrainPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => !AUTH_ENABLED);
   const [authReady, setAuthReady] = useState(() => !AUTH_ENABLED);
   const [userId, setUserId] = useState<string | null>(null);
+
+  // Clear result when user starts typing manually (not from profile load)
+  useEffect(() => {
+    // Only clear if user hasn't already entered data and result exists
+    if (result && !hasUserEnteredData && personA.name && !loading) {
+      // Check if this looks like manual typing (name changed but other fields are empty)
+      const isManualTyping = !personA.year || !personA.month || !personA.day || !personA.city;
+      if (isManualTyping) {
+        setResult(null);
+        setError(null);
+        setSnapshotResult(null);
+        setSnapshotLocation(null);
+        setSnapshotTimestamp(null);
+        setHasUserEnteredData(true);
+      }
+    }
+  }, [personA.name, result, hasUserEnteredData, loading, personA.year, personA.month, personA.day, personA.city]);
   const payloadStorageKey = useMemo(
     () => (userId ? `mb.lastPayload.${userId}` : 'mb.lastPayload.anon'),
     [userId]
