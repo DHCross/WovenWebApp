@@ -19,6 +19,9 @@ interface BirthProfile {
   lng?: number;
   latitude?: number;
   longitude?: number;
+  relationship_type?: 'PARTNER' | 'FAMILY' | 'FRIEND';
+  intimacy_tier?: string;
+  relationship_role?: string;
   notes?: string;
 }
 
@@ -136,6 +139,9 @@ export async function POST(req: NextRequest) {
         lng: typeof lng === 'number' ? lng : lng != null ? Number(lng) : undefined,
         latitude: typeof lat === 'number' ? lat : lat != null ? Number(lat) : undefined,
         longitude: typeof lng === 'number' ? lng : lng != null ? Number(lng) : undefined,
+        relationship_type: profile.relationship_type,
+        intimacy_tier: profile.intimacy_tier,
+        relationship_role: profile.relationship_role,
         notes: profile.notes,
       } satisfies BirthProfile;
     });
