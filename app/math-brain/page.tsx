@@ -336,6 +336,11 @@ const toFiniteNumber = (value: unknown): number => {
   return Number.NaN;
 };
 
+const normalizeReportNumber = (value: unknown): number | null => {
+  const num = toFiniteNumber(value);
+  return Number.isNaN(num) ? null : num;
+};
+
 const POETIC_BRAIN_ENABLED = (() => {
   const raw = process.env.NEXT_PUBLIC_ENABLE_POETIC_BRAIN;
   if (typeof raw !== 'string') return true;
@@ -4619,19 +4624,21 @@ export default function MathBrainPage() {
         setToast(`Processing ${daysDiff} days in ${chunks.length} chunks...`);
       }
       // Build unified request payload
+      const normalizedPersonA = {
+        ...personA,
+        nation: personA.nation || "US",
+        year: normalizeReportNumber(personA.year),
+        month: normalizeReportNumber(personA.month),
+        day: normalizeReportNumber(personA.day),
+        hour: timeUnknown ? null : normalizeReportNumber(personA.hour),
+        minute: timeUnknown ? null : normalizeReportNumber(personA.minute),
+        latitude: normalizeReportNumber(personA.latitude),
+        longitude: normalizeReportNumber(personA.longitude),
+      };
+
       const payload: Record<string, any> = {
         mode,
-        personA: {
-          ...personA,
-          nation: personA.nation || "US",
-          year: Number(personA.year),
-          month: Number(personA.month),
-          day: Number(personA.day),
-          hour: Number(personA.hour),
-          minute: Number(personA.minute),
-          latitude: Number(personA.latitude),
-          longitude: Number(personA.longitude),
-        },
+        personA: normalizedPersonA,
         time_policy: timeUnknown ? timePolicy : 'user_provided',
         report_type: reportContractType,
         presentation_style: 'conversational',
@@ -4677,13 +4684,13 @@ export default function MathBrainPage() {
         payload.personB = {
           ...personB,
           nation: personB.nation || "US",
-          year: Number(personB.year),
-          month: Number(personB.month),
-          day: Number(personB.day),
-          hour: Number(personB.hour),
-          minute: Number(personB.minute),
-          latitude: Number(personB.latitude),
-          longitude: Number(personB.longitude),
+          year: normalizeReportNumber(personB.year),
+          month: normalizeReportNumber(personB.month),
+          day: normalizeReportNumber(personB.day),
+          hour: timeUnknownB ? null : normalizeReportNumber(personB.hour),
+          minute: timeUnknownB ? null : normalizeReportNumber(personB.minute),
+          latitude: normalizeReportNumber(personB.latitude),
+          longitude: normalizeReportNumber(personB.longitude),
         };
         payload.relationship_context = {
           type: relationshipType,
