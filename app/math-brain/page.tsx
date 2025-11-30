@@ -923,26 +923,18 @@ export default function MathBrainPage() {
 
   // Clear result when user starts typing manually (not from profile load)
   useEffect(() => {
-    // Debug: Log when this effect runs
-    console.log('[Debug] Person A name changed:', {
-      hasResult: !!result,
-      name: personA.name,
-      hasUserEnteredData,
-      loading
-    });
-    
-    // Clear any existing report whenever user types in Person A name field
-    // This prevents stale reports from showing when starting to enter new data
-    if (result && personA.name && !loading && !hasUserEnteredData) {
-      console.log('[Debug] Clearing stale report on manual typing');
-      setResult(null);
-      setError(null);
-      setSnapshotResult(null);
-      setSnapshotLocation(null);
-      setSnapshotTimestamp(null);
-      setHasUserEnteredData(true);
+    if (result && !hasUserEnteredData && personA.name && !loading) {
+      const isManualTyping = !personA.year || !personA.month || !personA.day || !personA.city;
+      if (isManualTyping) {
+        setResult(null);
+        setError(null);
+        setSnapshotResult(null);
+        setSnapshotLocation(null);
+        setSnapshotTimestamp(null);
+        setHasUserEnteredData(true);
+      }
     }
-  }, [personA.name, result, hasUserEnteredData, loading]);
+  }, [personA.name, personA.year, personA.month, personA.day, personA.city, result, hasUserEnteredData, loading]);
   const payloadStorageKey = useMemo(
     () => (userId ? `mb.lastPayload.${userId}` : 'mb.lastPayload.anon'),
     [userId]
@@ -2215,19 +2207,6 @@ export default function MathBrainPage() {
       zodiac_type: "Tropic",
     });
   }
-
-  const handlePersonANameFocus = useCallback(() => {
-  // Clear any existing report when user focuses on Person A name field
-  if (result && !loading) {
-    console.log('[Debug] Person A name focused - clearing stale report');
-    setResult(null);
-    setError(null);
-    setSnapshotResult(null);
-    setSnapshotLocation(null);
-    setSnapshotTimestamp(null);
-    setHasUserEnteredData(true);
-  }
-}, [result, loading]);
 
   // Profile management functions
   const handleLoadProfile = useCallback((profile: BirthProfile, slot: 'A' | 'B') => {
