@@ -852,8 +852,8 @@ export default function MathBrainPage() {
   const [personA, setPersonA] = useState<Subject>(() => createEmptySubject());
   const [personB, setPersonB] = useState<Subject>(() => createEmptySubject());
 
-  // Track if user has manually entered data to prevent showing stale reports
-  const [hasUserEnteredData, setHasUserEnteredData] = useState(false);
+  // Track whether the current result was generated in this session
+  const [hasFreshResult, setHasFreshResult] = useState(false);
 
   // Single-field coordinates (Person A)
   const [aCoordsInput, setACoordsInput] = useState<string>("");
@@ -920,21 +920,6 @@ export default function MathBrainPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => !AUTH_ENABLED);
   const [authReady, setAuthReady] = useState(() => !AUTH_ENABLED);
   const [userId, setUserId] = useState<string | null>(null);
-
-  // Clear result when user starts typing manually (not from profile load)
-  useEffect(() => {
-    if (result && !hasUserEnteredData && personA.name && !loading) {
-      const isManualTyping = !personA.year || !personA.month || !personA.day || !personA.city;
-      if (isManualTyping) {
-        setResult(null);
-        setError(null);
-        setSnapshotResult(null);
-        setSnapshotLocation(null);
-        setSnapshotTimestamp(null);
-        setHasUserEnteredData(true);
-      }
-    }
-  }, [personA.name, personA.year, personA.month, personA.day, personA.city, result, hasUserEnteredData, loading]);
   const payloadStorageKey = useMemo(
     () => (userId ? `mb.lastPayload.${userId}` : 'mb.lastPayload.anon'),
     [userId]
@@ -1020,6 +1005,7 @@ export default function MathBrainPage() {
 
   const displayResult = frontStageResult ?? result;
   const hasDisplayResult = Boolean(displayResult);
+  const hasFreshDisplayResult = Boolean(displayResult && hasFreshResult);
 
   const frontStageTransitsByDate = useMemo(() => {
     if (frontStageResult?.person_a?.chart?.transitsByDate) {
@@ -1610,7 +1596,7 @@ export default function MathBrainPage() {
     setSnapshotResult(null);
     setSnapshotLocation(null);
     setSnapshotTimestamp(null);
-    setHasUserEnteredData(false);
+    setHasFreshResult(false);
 
     try {
       const charts = getSavedCharts(userId);
@@ -2131,8 +2117,8 @@ export default function MathBrainPage() {
     setSnapshotResult(null);
     setSnapshotLocation(null);
     setSnapshotTimestamp(null);
-    // Reset user data entry flag
-    setHasUserEnteredData(false);
+    // Reset fresh result flag
+    setHasFreshResult(false);
   }
 
 
@@ -2219,8 +2205,8 @@ export default function MathBrainPage() {
     setSnapshotResult(null);
     setSnapshotLocation(null);
     setSnapshotTimestamp(null);
-    // Reset user data entry flag since this is a profile load, not manual entry
-    setHasUserEnteredData(false);
+    // Reset fresh result flag since this is a profile load, not manual entry
+    setHasFreshResult(false);
     // If loading a profile into Person B, ensure relational mode is enabled
     if (slot === 'B') {
       setIncludePersonB(true);
@@ -5025,7 +5011,6 @@ export default function MathBrainPage() {
                 requireTime
                 requireLocation
                 requireTimezone
-                onNameFocus={handlePersonANameFocus}
               />
 
               {/* Save Person A Profile Button */}
@@ -5622,7 +5607,7 @@ export default function MathBrainPage() {
             </div>
 
             {/* Post-generation actions - Restructured for clarity */}
-            {hasDisplayResult ? (
+            {hasFreshDisplayResult ? (
               <DownloadControls
                 includeTransits={includeTransits}
                 pdfGenerating={pdfGenerating}
