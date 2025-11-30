@@ -1533,20 +1533,32 @@ export default function MathBrainPage() {
   const previousUserIdRef = useRef<string | null>(null);
   const clearStoredReportPayload = useCallback(() => {
     if (typeof window === 'undefined') return;
-    const keys = [
+
+    const baseKeys = [
       'mb.lastPayload',
       'mb.lastPayload.anon',
       'mb.lastPayloadAck',
       'mb.lastPayloadAck.anon',
-      payloadStorageKey,
-      payloadAckKey,
     ];
+
+    const scopedKeys = (() => {
+      try {
+        return Object.keys(window.localStorage).filter((key) =>
+          key.startsWith('mb.lastPayload.') || key.startsWith('mb.lastPayloadAck.')
+        );
+      } catch {
+        return [];
+      }
+    })();
+
+    const keys = [...new Set([...baseKeys, ...scopedKeys])];
+
     keys.forEach((key) => {
       try {
         window.localStorage.removeItem(key);
       } catch {/* ignore */}
     });
-  }, [payloadAckKey, payloadStorageKey]);
+  }, []);
   // Lightweight toast for ephemeral notices (e.g., Mirror failure)
   const [toast, setToast] = useState<string | null>(null);
   useEffect(() => {
@@ -1675,16 +1687,17 @@ export default function MathBrainPage() {
     setHasFreshResult(false);
 
     try {
-      const charts = getSavedCharts(userId);
+      const charts = getSavedCharts(null);
       setSavedCharts(charts);
-      console.log('[Debug] Loaded saved charts:', charts.length, 'charts for userId:', userId);
+      console.log('[Debug] Loaded saved charts:', charts.length);
     } catch (e) {
       console.error('[Debug] Failed to load saved charts:', e);
       setSavedCharts([]);
     }
 
-    previousUserIdRef.current = userId;
-  }, [clearStoredReportPayload, userId]);
+    previousUserIdRef.current = null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Additional effect to reload charts when userId changes from null to a value
   useEffect(() => {
