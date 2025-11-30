@@ -4553,6 +4553,11 @@ export default function MathBrainPage() {
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault();
     }
+    if (submitDisabled) {
+      setToast('Complete the required fields to generate a report.');
+      setTimeout(() => setToast(null), 2200);
+      return;
+    }
     // Frontend relocation gate for Balance Meter
     const locGate = needsLocation(reportType, includeTransits, personA);
     if (includeTransits && !locGate.hasLoc) {
@@ -4599,6 +4604,8 @@ export default function MathBrainPage() {
     }
     lastSubmitRef.current = nowTs;
     const t0 = typeof performance !== 'undefined' ? performance.now() : 0;
+    setToast(includeTransits ? 'Starting transit report...' : 'Starting report...');
+    setTimeout(() => setToast(null), 1500);
     setLoading(true);
     setError(null);
     setResult(null);
@@ -5554,36 +5561,38 @@ export default function MathBrainPage() {
                     <span className="text-slate-100 capitalize">{reportType}</span>
                   </span>
                 </div>
-                <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
-                  {(result || loading) && (
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 sm:justify-end">
+                  <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
+                    {(result || loading) && (
+                      <button
+                        type="button"
+                        onClick={clearReport}
+                        className="inline-flex items-center rounded-md px-3 py-2 text-sm text-slate-300 border border-slate-600 bg-slate-800 hover:bg-slate-700 hover:text-slate-100 transition"
+                      >
+                        {loading ? "Cancel" : "Clear Report"}
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={clearReport}
-                      className="inline-flex items-center rounded-md px-3 py-2 text-sm text-slate-300 border border-slate-600 bg-slate-800 hover:bg-slate-700 hover:text-slate-100 transition"
+                      onClick={onSubmit}
+                      disabled={submitDisabled}
+                      className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-base font-semibold text-white shadow-lg disabled:opacity-50 disabled:shadow-none bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                     >
-                      {loading ? "Cancel" : "Clear Report"}
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                      </svg>
+                      {loading ? "Mapping geometry…" : (includeTransits ? 'Generate Report' : 'Generate Report')}
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={onSubmit}
-                    disabled={submitDisabled}
-                    className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-base font-semibold text-white shadow-lg disabled:opacity-50 disabled:shadow-none bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                    </svg>
-                    {loading ? "Mapping geometry…" : (includeTransits ? 'Generate Report' : 'Generate Report')}
-                  </button>
+                  </div>
                   {handoffTrimNotice && (
                     <p className="max-w-xs text-[11px] text-amber-300 text-right sm:text-left">
                       {handoffTrimNotice}
                     </p>
                   )}
+                  {!loading && !result && !submitDisabled && (
+                    <p className="text-xs text-emerald-400 sm:ml-1">✓ Ready to generate! Click the button above.</p>
+                  )}
                 </div>
-                {!loading && !result && !submitDisabled && (
-                  <p className="mt-2 text-xs text-emerald-400">✓ Ready to generate! Click the button above.</p>
-                )}
               </div>
               {(RELATIONAL_MODES.includes(mode) && !includePersonB) && (
                 <p className="mt-2 text-xs text-amber-400">Hint: Toggle "Include Person B" and fill in required fields to enable relational modes.</p>

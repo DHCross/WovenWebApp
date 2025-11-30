@@ -190,10 +190,11 @@ export default function SnapshotButton({
             <button
               type="button"
               onClick={() => setSnapshotSubject('A')}
+              aria-pressed={snapshotSubject === 'A'}
               className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
                 snapshotSubject === 'A'
                   ? 'border-purple-500 bg-purple-600/30 text-purple-200'
-                  : 'border-slate-600 bg-slate-800/50 text-slate-400 hover:border-slate-500'
+                  : 'border-slate-500 bg-slate-800/50 text-slate-200 hover:border-slate-400'
               }`}
             >
               {personAName} only
@@ -201,10 +202,11 @@ export default function SnapshotButton({
             <button
               type="button"
               onClick={() => setSnapshotSubject('B')}
+              aria-pressed={snapshotSubject === 'B'}
               className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
                 snapshotSubject === 'B'
                   ? 'border-purple-500 bg-purple-600/30 text-purple-200'
-                  : 'border-slate-600 bg-slate-800/50 text-slate-400 hover:border-slate-500'
+                  : 'border-slate-500 bg-slate-800/50 text-slate-200 hover:border-slate-400'
               }`}
             >
               {personBName} only
@@ -212,10 +214,11 @@ export default function SnapshotButton({
             <button
               type="button"
               onClick={() => setSnapshotSubject('BOTH')}
+              aria-pressed={snapshotSubject === 'BOTH'}
               className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
                 snapshotSubject === 'BOTH'
                   ? 'border-indigo-500 bg-indigo-600/30 text-indigo-200'
-                  : 'border-slate-600 bg-slate-800/50 text-slate-400 hover:border-slate-500'
+                  : 'border-slate-500 bg-slate-800/50 text-slate-200 hover:border-slate-400'
               }`}
             >
               Both (Synastry)
