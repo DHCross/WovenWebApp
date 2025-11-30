@@ -13,7 +13,9 @@ export interface BirthProfile {
   lng?: number;
   latitude?: number;
   longitude?: number;
-  relationship_type?: string;
+  relationship_type?: 'PARTNER' | 'FAMILY' | 'FRIEND';
+  intimacy_tier?: string;
+  relationship_role?: string;
   notes?: string;
 }
 
@@ -104,6 +106,8 @@ export function useUserProfiles(userId: string | null): UseUserProfilesResult {
         latitude: profile.latitude,
         longitude: profile.longitude,
         relationship_type: profile.relationship_type,
+        intimacy_tier: profile.intimacy_tier,
+        relationship_role: profile.relationship_role,
         notes: profile.notes,
       };
 

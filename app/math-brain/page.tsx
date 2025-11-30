@@ -2331,6 +2331,26 @@ export default function MathBrainPage() {
     if (slot === 'B') {
       setIncludePersonB(true);
       setToast('Loaded Person B: relational mode enabled');
+
+      // Auto-hydrate relationship context from the profile when present so the
+      // Generate Report button isn't blocked by an empty intimacy tier.
+      const normalizedType = profile.relationship_type || relationshipType;
+      if (normalizedType) {
+        setRelationshipType(normalizedType);
+        if (normalizedType === 'PARTNER') {
+          const tierFromProfile = profile.intimacy_tier || relationshipTier || 'P3';
+          setRelationshipTier(tierFromProfile);
+          setRelationshipRole('');
+        } else if (normalizedType === 'FAMILY') {
+          const roleFromProfile = profile.relationship_role || relationshipRole || '';
+          setRelationshipRole(roleFromProfile);
+          setRelationshipTier('');
+        } else {
+          // FRIEND or undefined
+          setRelationshipTier('');
+          setRelationshipRole('');
+        }
+      }
     }
 
     const rawLat = profile.lat ?? (profile as any).latitude;
@@ -2379,7 +2399,7 @@ export default function MathBrainPage() {
         setBCoordsValid(true);
       }
     }
-  }, [setIncludePersonB, setLoading]);
+  }, [relationshipRole, relationshipTier, relationshipType, setIncludePersonB, setLoading]);
 
   const handleSaveCurrentProfile = useCallback(async (slot: 'A' | 'B', name: string) => {
     const person = slot === 'A' ? personA : personB;
@@ -2419,6 +2439,9 @@ export default function MathBrainPage() {
       lng,
       latitude: lat,
       longitude: lng,
+      relationship_type: slot === 'B' ? relationshipType as BirthProfile['relationship_type'] : undefined,
+      intimacy_tier: slot === 'B' && relationshipType === 'PARTNER' ? relationshipTier || undefined : undefined,
+      relationship_role: slot === 'B' && relationshipType !== 'PARTNER' ? relationshipRole || undefined : undefined,
     };
 
     const result = await saveProfile(profile);
@@ -2427,7 +2450,16 @@ export default function MathBrainPage() {
     } else {
       alert(`❌ Failed to save profile: ${result.error || 'Unknown error'}`);
     }
-  }, [personA, personB, saveProfile, existingProfileForPersonA, existingProfileForPersonB]);
+  }, [
+    existingProfileForPersonA,
+    existingProfileForPersonB,
+    personA,
+    personB,
+    relationshipRole,
+    relationshipTier,
+    relationshipType,
+    saveProfile
+  ]);
 
   const handleDeleteProfile = useCallback(async (profileId: string) => {
     const result = await deleteProfile(profileId);
