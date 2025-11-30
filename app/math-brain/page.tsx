@@ -127,6 +127,51 @@ const formatReportKind = (contractType: ReportContractType): string => {
   }
 };
 
+// Lightweight signature of the current report inputs to detect when a result becomes stale
+const buildQuerySignature = (
+  personA: Subject,
+  personB: Subject,
+  includePersonB: boolean,
+  includeTransits: boolean,
+  startDate: string | null | undefined,
+  endDate: string | null | undefined,
+  mode: ReportMode,
+): string => {
+  const a = [
+    personA.name,
+    personA.year,
+    personA.month,
+    personA.day,
+    personA.hour,
+    personA.minute,
+    personA.city,
+    personA.state,
+    personA.timezone,
+    personA.latitude,
+    personA.longitude,
+  ].join('|');
+
+  const b = includePersonB
+    ? [
+      personB.name,
+      personB.year,
+      personB.month,
+      personB.day,
+      personB.hour,
+      personB.minute,
+      personB.city,
+      personB.state,
+      personB.timezone,
+      personB.latitude,
+      personB.longitude,
+    ].join('|')
+    : '';
+
+  const windowSig = includeTransits ? `${startDate || ''}->${endDate || ''}` : '';
+
+  return [mode, a, b, includeTransits ? 'T' : 'F', windowSig].join('::');
+};
+
 const determineReportContract = (
   structure: ReportStructure,
   includeTransits: boolean
@@ -854,6 +899,7 @@ export default function MathBrainPage() {
 
   // Track whether the current result was generated in this session
   const [hasFreshResult, setHasFreshResult] = useState(false);
+  const [lastQuerySignature, setLastQuerySignature] = useState<string | null>(null);
 
   // Single-field coordinates (Person A)
   const [aCoordsInput, setACoordsInput] = useState<string>("");
@@ -986,6 +1032,36 @@ export default function MathBrainPage() {
     if (!personBSignature) return null;
     return profiles.find((profile) => buildProfileSignature(profile) === personBSignature) ?? null;
   }, [personBSignature, profiles]);
+
+  // When the user edits inputs after a successful generation, mark the current result as stale
+  useEffect(() => {
+    if (!hasFreshResult || !lastQuerySignature) return;
+
+    const currentSignature = buildQuerySignature(
+      personA,
+      personB,
+      includePersonB,
+      includeTransits,
+      startDate,
+      endDate,
+      mode,
+    );
+
+    if (currentSignature !== lastQuerySignature) {
+      console.log('[Debug] Inputs changed after generation - marking result as stale');
+      setHasFreshResult(false);
+    }
+  }, [
+    hasFreshResult,
+    lastQuerySignature,
+    personA,
+    personB,
+    includePersonB,
+    includeTransits,
+    startDate,
+    endDate,
+    mode,
+  ]);
 
   const frontStageResult = useMemo(() => {
     if (!result) return null;
@@ -4434,8 +4510,10 @@ export default function MathBrainPage() {
     return merged;
   }
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function onSubmit(e?: any) {
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
     // Frontend relocation gate for Balance Meter
     const locGate = needsLocation(reportType, includeTransits, personA);
     if (includeTransits && !locGate.hasLoc) {
@@ -4666,8 +4744,18 @@ export default function MathBrainPage() {
 
 
       // Store result
+      const signature = buildQuerySignature(
+        personA,
+        personB,
+        includePersonB,
+        includeTransits,
+        startDate,
+        endDate,
+        mode,
+      );
       setResult(finalData);
       setHasFreshResult(true); // Mark that this result was freshly generated in this session
+      setLastQuerySignature(signature);
       setLayerVisibility({ ...DEFAULT_LAYER_VISIBILITY });
       persistSessionArtifacts(finalData);
       setToast(includeTransits ? 'Report with transits complete!' : 'Report complete!');
@@ -4906,7 +4994,7 @@ export default function MathBrainPage() {
           )}
         </div>
 
-        <form onSubmit={onSubmit} className="mt-10 print:hidden">
+        <form onSubmit={(e) => e.preventDefault()} className="mt-10 print:hidden">
           {debugMode && (
             <div className="mb-4 rounded-md border border-slate-600 bg-slate-900/60 p-3 text-xs text-slate-200">
               <div className="font-medium mb-2">Debug — gating state</div>
@@ -5438,7 +5526,8 @@ export default function MathBrainPage() {
                     </button>
                   )}
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={onSubmit}
                     disabled={submitDisabled}
                     className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-base font-semibold text-white shadow-lg disabled:opacity-50 disabled:shadow-none bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                   >
@@ -5516,7 +5605,7 @@ export default function MathBrainPage() {
           </div>
         )}
 
-        {result && (
+        {hasFreshDisplayResult && result && (
           <div ref={reportRef} className="mt-8 grid grid-cols-1 gap-6">
             {(() => {
               const meta = (result as any)?.person_a?.meta || (result as any)?.provenance?.time_meta_a;
