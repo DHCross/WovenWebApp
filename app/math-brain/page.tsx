@@ -4667,6 +4667,7 @@ export default function MathBrainPage() {
 
       // Store result
       setResult(finalData);
+      setHasFreshResult(true); // Mark that this result was freshly generated in this session
       setLayerVisibility({ ...DEFAULT_LAYER_VISIBILITY });
       persistSessionArtifacts(finalData);
       setToast(includeTransits ? 'Report with transits complete!' : 'Report complete!');
