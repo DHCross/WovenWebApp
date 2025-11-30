@@ -1677,12 +1677,38 @@ export default function MathBrainPage() {
     try {
       const charts = getSavedCharts(userId);
       setSavedCharts(charts);
+      console.log('[Debug] Loaded saved charts:', charts.length, 'charts for userId:', userId);
     } catch (e) {
+      console.error('[Debug] Failed to load saved charts:', e);
       setSavedCharts([]);
     }
 
     previousUserIdRef.current = userId;
   }, [clearStoredReportPayload, userId]);
+
+  // Additional effect to reload charts when userId changes from null to a value
+  useEffect(() => {
+    if (userId === null) {
+      previousUserIdRef.current = null;
+      return;
+    }
+
+    if (previousUserIdRef.current === null) {
+      console.log('[Debug] userId changed from null to:', userId, ' - reloading saved charts');
+      try {
+        const charts = getSavedCharts(userId);
+        setSavedCharts(charts);
+        console.log('[Debug] Reloaded saved charts after auth:', charts.length, 'charts');
+      } catch (e) {
+        console.error('[Debug] Failed to reload saved charts after auth:', e);
+        setSavedCharts([]);
+      } finally {
+        previousUserIdRef.current = userId;
+      }
+    } else {
+      previousUserIdRef.current = userId;
+    }
+  }, [userId]);
 
 
 
