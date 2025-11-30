@@ -923,20 +923,26 @@ export default function MathBrainPage() {
 
   // Clear result when user starts typing manually (not from profile load)
   useEffect(() => {
-    // Only clear if user hasn't already entered data and result exists
-    if (result && !hasUserEnteredData && personA.name && !loading) {
-      // Check if this looks like manual typing (name changed but other fields are empty)
-      const isManualTyping = !personA.year || !personA.month || !personA.day || !personA.city;
-      if (isManualTyping) {
-        setResult(null);
-        setError(null);
-        setSnapshotResult(null);
-        setSnapshotLocation(null);
-        setSnapshotTimestamp(null);
-        setHasUserEnteredData(true);
-      }
+    // Debug: Log when this effect runs
+    console.log('[Debug] Person A name changed:', {
+      hasResult: !!result,
+      name: personA.name,
+      hasUserEnteredData,
+      loading
+    });
+    
+    // Clear any existing report whenever user types in Person A name field
+    // This prevents stale reports from showing when starting to enter new data
+    if (result && personA.name && !loading && !hasUserEnteredData) {
+      console.log('[Debug] Clearing stale report on manual typing');
+      setResult(null);
+      setError(null);
+      setSnapshotResult(null);
+      setSnapshotLocation(null);
+      setSnapshotTimestamp(null);
+      setHasUserEnteredData(true);
     }
-  }, [personA.name, result, hasUserEnteredData, loading, personA.year, personA.month, personA.day, personA.city]);
+  }, [personA.name, result, hasUserEnteredData, loading]);
   const payloadStorageKey = useMemo(
     () => (userId ? `mb.lastPayload.${userId}` : 'mb.lastPayload.anon'),
     [userId]
@@ -1605,6 +1611,7 @@ export default function MathBrainPage() {
     clearStoredReportPayload();
     
     // Clear any stale result state on component mount to prevent showing old reports
+    console.log('[Debug] Component mount - clearing all states');
     setResult(null);
     setError(null);
     setLoading(false);
@@ -2208,6 +2215,19 @@ export default function MathBrainPage() {
       zodiac_type: "Tropic",
     });
   }
+
+  const handlePersonANameFocus = useCallback(() => {
+  // Clear any existing report when user focuses on Person A name field
+  if (result && !loading) {
+    console.log('[Debug] Person A name focused - clearing stale report');
+    setResult(null);
+    setError(null);
+    setSnapshotResult(null);
+    setSnapshotLocation(null);
+    setSnapshotTimestamp(null);
+    setHasUserEnteredData(true);
+  }
+}, [result, loading]);
 
   // Profile management functions
   const handleLoadProfile = useCallback((profile: BirthProfile, slot: 'A' | 'B') => {
@@ -5026,6 +5046,7 @@ export default function MathBrainPage() {
                 requireTime
                 requireLocation
                 requireTimezone
+                onNameFocus={handlePersonANameFocus}
               />
 
               {/* Save Person A Profile Button */}

@@ -32,6 +32,7 @@ interface PersonFormProps {
   nameInputRef?: RefObject<HTMLInputElement>;
   infoNote?: string;
   skipParseWhenDisabled?: boolean;
+  onNameFocus?: () => void; // New prop for handling name field focus
 }
 
 const padTwo = (value: number): string => {
@@ -65,6 +66,7 @@ export function PersonForm({
   nameInputRef,
   infoNote = 'Nation assumed “US” for API compatibility.',
   skipParseWhenDisabled = false,
+  onNameFocus,
 }: PersonFormProps) {
   const updatePersonField = (field: keyof Subject, value: string | number) => {
     setPerson((prev) => ({
@@ -136,6 +138,7 @@ export function PersonForm({
           className="mt-1 w-full h-10 rounded-md border border-slate-600 bg-slate-900 px-3 text-center text-slate-100 placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50"
           value={person.name}
           onChange={(event) => updatePersonField('name', event.target.value)}
+          onFocus={onNameFocus}
           required={requireName}
         />
       </div>
