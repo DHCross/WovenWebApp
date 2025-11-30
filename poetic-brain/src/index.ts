@@ -623,6 +623,20 @@ function extractSynastryAspects(payload: InputPayload): any[] {
  */
 function parseMirrorDirective(payload: InputPayload): MirrorDirectiveParsed {
   const contract = payload.mirror_contract || {};
+  
+  // Get base chart objects
+  const baseChartA = payload.person_a?.chart || {};
+  const baseChartB = payload.person_b?.chart || null;
+  
+  // Aspects can be at person.aspects OR person.chart.aspects - normalize to chart.aspects
+  // buildMandatesForChart expects chart.aspects to exist
+  const aspectsA = payload.person_a?.aspects || baseChartA.aspects || [];
+  const aspectsB = payload.person_b?.aspects || baseChartB?.aspects || [];
+  
+  // Attach aspects to chart objects so buildMandatesForChart can find them
+  const chartA = { ...baseChartA, aspects: aspectsA };
+  const chartB = baseChartB ? { ...baseChartB, aspects: aspectsB } : null;
+  
   return {
     reportKind: contract.report_kind || 'mirror',
     intimacyTier: contract.intimacy_tier || null,
@@ -630,10 +644,10 @@ function parseMirrorDirective(payload: InputPayload): MirrorDirectiveParsed {
     personA: payload.person_a || {},
     personB: payload.person_b || null,
     geometry: {
-      chartA: payload.person_a?.chart || {},
-      chartB: payload.person_b?.chart || null,
-      aspectsA: payload.person_a?.aspects || [],
-      aspectsB: payload.person_b?.aspects || [],
+      chartA,
+      chartB,
+      aspectsA,
+      aspectsB,
       synastryAspects: extractSynastryAspects(payload),
     }
   };
@@ -694,8 +708,8 @@ function extractGeometrySummary(chart: any): string {
     return 'Chart geometry unavailable.';
   }
   
-  // Try to extract planets
-  const planets = chart.planets || chart.planetary_positions || {};
+  // Try to extract planets - check multiple possible keys
+  const planets = chart.positions || chart.planets || chart.planetary_positions || {};
   const planetCount = Object.keys(planets).length;
   
   // Try to extract aspects
@@ -940,11 +954,13 @@ export function processMirrorDirective(payload: InputPayload): {
   error?: string;
 } {
   // Fast path: validate format first
-  if (payload._format !== 'mirror_directive_json') {
+  // Accept both 'mirror_directive_json' and 'mirror-symbolic-weather-v1' formats
+  const validFormats = ['mirror_directive_json', 'mirror-symbolic-weather-v1'];
+  if (!validFormats.includes(payload._format)) {
     return {
       success: false,
       narrative_sections: {},
-      error: 'Invalid format: expected mirror_directive_json'
+      error: `Invalid format: expected one of ${validFormats.join(', ')}, got ${payload._format}`
     };
   }
 

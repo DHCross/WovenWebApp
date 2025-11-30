@@ -1100,16 +1100,20 @@ export default function MathBrainPage() {
   const [snapshotLocation, setSnapshotLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [snapshotTimestamp, setSnapshotTimestamp] = useState<Date | null>(null);
 
-  const broadcastAuthStatus = useCallback((authedValue: boolean) => {
+  const broadcastAuthStatus = useCallback((authedValue: boolean, userIdValue?: string | null) => {
     if (typeof window === 'undefined') {
       return;
     }
 
     try {
-      const payload = {
+      const payload: { authed: boolean; updatedAt: number; userId?: string } = {
         authed: authedValue,
         updatedAt: Date.now(),
       };
+      // Include userId if provided so Poetic Brain can find the correct payload key
+      if (userIdValue) {
+        payload.userId = userIdValue;
+      }
       window.localStorage.setItem(AUTH_STATUS_STORAGE_KEY, JSON.stringify(payload));
       window.dispatchEvent(new CustomEvent(AUTH_STATUS_EVENT, { detail: payload }));
     } catch (err) {
@@ -1946,24 +1950,28 @@ export default function MathBrainPage() {
 
         setIsAuthenticated(authed);
         setAuthReady(true);
-        broadcastAuthStatus(authed);
 
         if (authed) {
           try {
             const user = await client.getUser();
             if (!cancelled) {
               setIsAdmin(user?.email === 'nathal@gmail.com');
-              setUserId(user?.sub || null);
+              const userSub = user?.sub || null;
+              setUserId(userSub);
+              // Broadcast with userId so Poetic Brain can find the payload
+              broadcastAuthStatus(authed, userSub);
             }
           } catch {
             if (!cancelled) {
               setIsAdmin(false);
               setUserId(null);
+              broadcastAuthStatus(authed);
             }
           }
         } else {
           setIsAdmin(false);
           setUserId(null);
+          broadcastAuthStatus(authed);
         }
       } catch (err) {
         if (!cancelled) {

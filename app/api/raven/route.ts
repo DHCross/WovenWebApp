@@ -234,6 +234,32 @@ export async function POST(req: Request) {
         );
         updateSession(sid, () => { });
         // Do NOT return a conversational prompt here; fall through to auto-execution below
+      } else {
+        // Identity detection failed - provide helpful guidance
+        const subjects = sessionLog.contextGate.sessionSubjects;
+        let helpMessage: string;
+        if (subjects.length === 2) {
+          helpMessage = `I didn't quite catch that. To help me tailor the reading correctly, could you let me know: are you ${subjects[0]}, ${subjects[1]}, or both of you together? (You can also say "observer" if you're asking about someone else's chart.)`;
+        } else if (subjects.length === 1) {
+          helpMessage = `I didn't quite catch that. Are you ${subjects[0]}, or are you asking about their chart as a third party?`;
+        } else {
+          helpMessage = `I didn't quite catch that. Could you tell me who I'm speaking with?`;
+        }
+        
+        appendHistoryEntry(sessionLog, 'raven', helpMessage);
+        updateSession(sid, () => { });
+        
+        const prov = stampProvenance({ source: 'Getting Started' });
+        return NextResponse.json({
+          intent: 'conversation',
+          ok: true,
+          draft: { conversation: helpMessage },
+          prov,
+          sessionId: sid,
+          probe: null,
+          hook: 'Getting Started',
+          contextGate: sessionLog.contextGate,
+        });
       }
     }
 
@@ -453,7 +479,9 @@ export async function POST(req: Request) {
       sessionLog.turnCount = 1;
       updateSession(sid, () => { });
       
-      const prov = stampProvenance({ source: 'Context Gate' });
+      // Use 'Getting Started' instead of 'Context Gate' for a cleaner user experience
+      // This is just a clarifying question, not a technical checkpoint
+      const prov = stampProvenance({ source: 'Getting Started' });
       return NextResponse.json({
         intent: 'conversation',
         ok: true,
@@ -461,6 +489,7 @@ export async function POST(req: Request) {
         prov,
         sessionId: sid,
         probe: null,
+        hook: 'Getting Started',  // Clean hook for display
         contextGate: sessionLog.contextGate,
       });
     }

@@ -1,0 +1,538 @@
+{
+  "_format": "mirror-symbolic-weather-v1",
+  "_version": "1.0",
+  "_contains_transits": true,
+  "_contains_weather_data": true,
+  "_range_dates": [
+    "2025-11-30",
+    "2025-11-30"
+  ],
+  "_transit_days": 1,
+  "_natal_sections": 2,
+  "_required_sections": [
+    "person_a",
+    "person_b"
+  ],
+  "generated_at": "2025-11-30T10:36:48.693Z",
+  "_natal_section": {
+    "mirror_source": "integrated",
+    "note": "Natal geometry integrated with symbolic weather in single file",
+    "relationship_context": {
+      "type": "PARTNER",
+      "intimacy_tier": "P3",
+      "contact_state": "ACTIVE",
+      "ex_estranged": false
+    }
+  },
+  "person_a": {
+    "name": "Dan Cross",
+    "birth_data": {
+      "name": "Dan Cross",
+      "zodiac_type": "Tropic",
+      "year": 1973,
+      "month": 7,
+      "day": 24,
+      "hour": 14,
+      "minute": 30,
+      "city": "Bryn Mawr",
+      "nation": "US",
+      "latitude": 40.016666666666666,
+      "longitude": -75.3,
+      "timezone": "America/New_York"
+    },
+    "chart": {
+      "lng": -122.24092,
+      "lat": 47.4943,
+      "tz_str": "America/Los_Angeles",
+      "zodiac_type": "Tropic",
+      "sidereal_mode": null,
+      "houses_system_identifier": "P",
+      "houses_system_name": "Placidus",
+      "iso_formatted_local_datetime": "1973-07-24T14:30:00-07:00",
+      "iso_formatted_utc_datetime": "1973-07-24T21:30:00+00:00",
+      "julian_day": 2441888.3958333335,
+      "house_cusps": [
+        218.7940211559376,
+        247.48863442760194,
+        282.5063259333297,
+        320.31417226805996,
+        353.1476358114961,
+        18.77287973878299,
+        38.79402115593757,
+        67.48863442760194,
+        102.50632593332972,
+        140.31417226805996,
+        173.14763581149614,
+        198.77287973878302
+      ],
+      "angle_signs": {
+        "ascendant": "Sco",
+        "mc": "Leo",
+        "descendant": "Tau",
+        "ic": "Aqu"
+      },
+      "positions": {
+        "sun": {
+          "abs_pos": 121.81370154653372,
+          "retrograde": false,
+          "house": "Ninth_House",
+          "sign": "Leo",
+          "sign_num": 4
+        },
+        "moon": {
+          "abs_pos": 54.35321446213625,
+          "retrograde": false,
+          "house": "Seventh_House",
+          "sign": "Tau",
+          "sign_num": 1
+        },
+        "mercury": {
+          "abs_pos": 114.51702407111286,
+          "retrograde": true,
+          "house": "Ninth_House",
+          "sign": "Can",
+          "sign_num": 3
+        },
+        "venus": {
+          "abs_pos": 149.7625936013906,
+          "retrograde": false,
+          "house": "Tenth_House",
+          "sign": "Leo",
+          "sign_num": 4
+        },
+        "mars": {
+          "abs_pos": 20.741098399324027,
+          "retrograde": false,
+          "house": "Sixth_House",
+          "sign": "Ari",
+          "sign_num": 0
+        },
+        "jupiter": {
+          "abs_pos": 307.9337149298199,
+          "retrograde": true,
+          "house": "Third_House",
+          "sign": "Aqu",
+          "sign_num": 10
+        },
+        "saturn": {
+          "abs_pos": 89.0855695441636,
+          "retrograde": false,
+          "house": "Eighth_House",
+          "sign": "Gem",
+          "sign_num": 2
+        },
+        "uranus": {
+          "abs_pos": 199.27838000890378,
+          "retrograde": false,
+          "house": "Twelfth_House",
+          "sign": "Lib",
+          "sign_num": 6
+        },
+        "neptune": {
+          "abs_pos": 244.8021531006372,
+          "retrograde": true,
+          "house": "First_House",
+          "sign": "Sag",
+          "sign_num": 8
+        },
+        "pluto": {
+          "abs_pos": 182.16848985492157,
+          "retrograde": false,
+          "house": "Eleventh_House",
+          "sign": "Lib",
+          "sign_num": 6
+        },
+        "chiron": {
+          "abs_pos": 20.90700459216467,
+          "retrograde": true,
+          "house": "Sixth_House",
+          "sign": "Ari",
+          "sign_num": 0
+        },
+        "mean_lilith": {
+          "abs_pos": 267.612850028345,
+          "retrograde": false,
+          "house": "Second_House",
+          "sign": "Sag",
+          "sign_num": 8
+        },
+        "mean_node": {
+          "abs_pos": 276.40319608528324,
+          "retrograde": true,
+          "house": "Second_House",
+          "sign": "Cap",
+          "sign_num": 9
+        },
+        "true_node": {
+          "abs_pos": 277.4811041265903,
+          "retrograde": false,
+          "house": "Second_House",
+          "sign": "Cap",
+          "sign_num": 9
+        },
+        "mean_south_node": {
+          "abs_pos": 96.40319608528324,
+          "retrograde": true,
+          "house": "Eighth_House",
+          "sign": "Can",
+          "sign_num": 3
+        },
+        "true_south_node": {
+          "abs_pos": 97.48110412659031,
+          "retrograde": false,
+          "house": "Eighth_House",
+          "sign": "Can",
+          "sign_num": 3
+        },
+        "ascendant": {
+          "abs_pos": 218.7940211559376,
+          "retrograde": false,
+          "house": "First_House",
+          "sign": "Sco",
+          "sign_num": 7
+        },
+        "descendant": {
+          "abs_pos": 38.79402115593757,
+          "retrograde": false,
+          "house": "Seventh_House",
+          "sign": "Tau",
+          "sign_num": 1
+        },
+        "medium_coeli": {
+          "abs_pos": 140.31417226805996,
+          "retrograde": false,
+          "house": "Tenth_House",
+          "sign": "Leo",
+          "sign_num": 4
+        },
+        "imum_coeli": {
+          "abs_pos": 320.31417226805996,
+          "retrograde": false,
+          "house": "Fourth_House",
+          "sign": "Aqu",
+          "sign_num": 10
+        }
+      },
+      "transitsByDate": {
+        "2025-11-30": {
+          "seismograph": {
+            "magnitude": 3.3,
+            "directional_bias": -3,
+            "volatility": 0,
+            "magnitude_label": "Surge",
+            "directional_bias_label": "Strong Inward",
+            "volatility_label": "Aligned Flow"
+          }
+        }
+      }
+    }
+  },
+  "person_b": {
+    "name": "Stephie",
+    "birth_data": {
+      "name": "Stephie",
+      "zodiac_type": "Tropic",
+      "year": 1968,
+      "month": 4,
+      "day": 16,
+      "hour": 18,
+      "minute": 37,
+      "city": "Albany",
+      "nation": "US",
+      "latitude": 31.583333333333332,
+      "longitude": -84.15,
+      "timezone": "America/New_York"
+    },
+    "chart": {
+      "lng": -84.15,
+      "lat": 31.583333333333332,
+      "tz_str": "America/New_York",
+      "zodiac_type": "Tropic",
+      "sidereal_mode": null,
+      "houses_system_identifier": "P",
+      "houses_system_name": "Placidus",
+      "iso_formatted_local_datetime": "1968-04-16T18:37:00-05:00",
+      "iso_formatted_utc_datetime": "1968-04-16T23:37:00+00:00",
+      "julian_day": 2439963.484027778,
+      "house_cusps": [
+        201.67021829712974,
+        230.1322539754825,
+        260.9868929646815,
+        293.41506572794566,
+        325.71794981493343,
+        355.62180569623007,
+        21.670218297129736,
+        50.13225397548251,
+        80.98689296468149,
+        113.41506572794567,
+        145.71794981493343,
+        175.62180569623007
+      ],
+      "angle_signs": {
+        "ascendant": "Lib",
+        "mc": "Can",
+        "descendant": "Ari",
+        "ic": "Cap"
+      },
+      "positions": {
+        "sun": {
+          "abs_pos": 27.0261709129263,
+          "retrograde": false,
+          "house": "Seventh_House",
+          "sign": "Ari",
+          "sign_num": 0
+        },
+        "moon": {
+          "abs_pos": 259.8782725351949,
+          "retrograde": false,
+          "house": "Second_House",
+          "sign": "Sag",
+          "sign_num": 8
+        },
+        "mercury": {
+          "abs_pos": 18.380976831294177,
+          "retrograde": false,
+          "house": "Sixth_House",
+          "sign": "Ari",
+          "sign_num": 0
+        },
+        "venus": {
+          "abs_pos": 9.940887717058539,
+          "retrograde": false,
+          "house": "Sixth_House",
+          "sign": "Ari",
+          "sign_num": 0
+        },
+        "mars": {
+          "abs_pos": 44.593908932821606,
+          "retrograde": false,
+          "house": "Seventh_House",
+          "sign": "Tau",
+          "sign_num": 1
+        },
+        "jupiter": {
+          "abs_pos": 145.868089294842,
+          "retrograde": true,
+          "house": "Eleventh_House",
+          "sign": "Leo",
+          "sign_num": 4
+        },
+        "saturn": {
+          "abs_pos": 16.85470739432297,
+          "retrograde": false,
+          "house": "Sixth_House",
+          "sign": "Ari",
+          "sign_num": 0
+        },
+        "uranus": {
+          "abs_pos": 175.94781530945957,
+          "retrograde": true,
+          "house": "Twelfth_House",
+          "sign": "Vir",
+          "sign_num": 5
+        },
+        "neptune": {
+          "abs_pos": 235.9087712373738,
+          "retrograde": true,
+          "house": "Second_House",
+          "sign": "Sco",
+          "sign_num": 7
+        },
+        "pluto": {
+          "abs_pos": 170.65483000289404,
+          "retrograde": true,
+          "house": "Eleventh_House",
+          "sign": "Vir",
+          "sign_num": 5
+        },
+        "chiron": {
+          "abs_pos": 0.8902403239254653,
+          "retrograde": false,
+          "house": "Sixth_House",
+          "sign": "Ari",
+          "sign_num": 0
+        },
+        "mean_lilith": {
+          "abs_pos": 53.020525727473796,
+          "retrograde": false,
+          "house": "Eighth_House",
+          "sign": "Tau",
+          "sign_num": 1
+        },
+        "mean_node": {
+          "abs_pos": 18.327894731344724,
+          "retrograde": true,
+          "house": "Sixth_House",
+          "sign": "Ari",
+          "sign_num": 0
+        },
+        "true_node": {
+          "abs_pos": 18.693004788156436,
+          "retrograde": true,
+          "house": "Sixth_House",
+          "sign": "Ari",
+          "sign_num": 0
+        },
+        "mean_south_node": {
+          "abs_pos": 198.3278947313447,
+          "retrograde": true,
+          "house": "Twelfth_House",
+          "sign": "Lib",
+          "sign_num": 6
+        },
+        "true_south_node": {
+          "abs_pos": 198.69300478815643,
+          "retrograde": true,
+          "house": "Twelfth_House",
+          "sign": "Lib",
+          "sign_num": 6
+        },
+        "ascendant": {
+          "abs_pos": 201.67021829712974,
+          "retrograde": false,
+          "house": "First_House",
+          "sign": "Lib",
+          "sign_num": 6
+        },
+        "descendant": {
+          "abs_pos": 21.670218297129736,
+          "retrograde": false,
+          "house": "Seventh_House",
+          "sign": "Ari",
+          "sign_num": 0
+        },
+        "medium_coeli": {
+          "abs_pos": 113.41506572794567,
+          "retrograde": false,
+          "house": "Tenth_House",
+          "sign": "Can",
+          "sign_num": 3
+        },
+        "imum_coeli": {
+          "abs_pos": 293.41506572794566,
+          "retrograde": false,
+          "house": "Fourth_House",
+          "sign": "Cap",
+          "sign_num": 9
+        }
+      },
+      "transitsByDate": {
+        "2025-11-30": {
+          "seismograph": {
+            "magnitude": 5,
+            "directional_bias": -3.8,
+            "volatility": 0,
+            "magnitude_label": "Threshold",
+            "directional_bias_label": "Strong Inward",
+            "volatility_label": "Aligned Flow"
+          }
+        }
+      }
+    }
+  },
+  "report_kind": "Relational Balance Meter",
+  "relationship_context": {
+    "contact_state": "ACTIVE",
+    "type": "PARTNER",
+    "intimacy_tier": "P3",
+    "ex_estranged": false,
+    "scope": "PARTNER",
+    "scope_label": "Partner",
+    "role": null
+  },
+  "daily_readings": [
+    {
+      "date": "2025-11-30",
+      "magnitude": 3.3,
+      "directional_bias": -3,
+      "volatility": 0,
+      "coherence": 5
+    }
+  ],
+  "reading_count": 1,
+  "provenance": {
+    "math_brain_version": "1.0.0",
+    "ephemeris_source": "AstrologerAPI-v4",
+    "build_ts": "2025-11-30T10:36:32.763Z",
+    "timezone": "America/Chicago",
+    "tz_authority": "relocation_block",
+    "house_system": "Placidus",
+    "orbs_profile": "default_v5",
+    "timezone_db_version": "IANA (system)",
+    "relocation_applied": true,
+    "relocation_mode": "both_local",
+    "relocation_summary": {
+      "relocation_mode": "both_local",
+      "relocation_label": "Panama City, FL",
+      "coords": {
+        "latitude": 30.166666666666668,
+        "longitude": -85.66666666666667,
+        "timezone": "US/Central"
+      },
+      "tz": "US/Central",
+      "natal_tz": "America/New_York",
+      "house_system": null,
+      "zodiac_type": null,
+      "engine_versions": {
+        "seismograph": "v5.0",
+        "balance": "v5.0"
+      },
+      "confidence": "normal"
+    },
+    "time_meta_a": {
+      "birth_time_known": true,
+      "time_precision": "exact",
+      "effective_time_used": "14:30"
+    },
+    "time_meta_b": {
+      "birth_time_known": true,
+      "time_precision": "exact",
+      "effective_time_used": "18:37"
+    },
+    "tz_conflict": false,
+    "geometry_ready": true,
+    "calibration_boundary": "2025-09-05",
+    "engine_versions": {
+      "kerykeion": "4.0.0"
+    }
+  },
+  "_validation": {
+    "valid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "code": "COORDS_MISMATCH",
+        "message": "person_a birth latitude (40.016666666666666) differs from chart latitude (47.4943)",
+        "severity": "warning",
+        "path": "person_a.chart.latitude",
+        "context": {
+          "birth": 40.016666666666666,
+          "chart": 47.4943,
+          "tolerance": 0.1
+        }
+      },
+      {
+        "code": "COORDS_MISMATCH",
+        "message": "person_a birth longitude (-75.3) differs from chart longitude (-122.24092)",
+        "severity": "warning",
+        "path": "person_a.chart.longitude",
+        "context": {
+          "birth": -75.3,
+          "chart": -122.24092,
+          "tolerance": 0.1
+        }
+      },
+      {
+        "code": "TIMEZONE_MISMATCH",
+        "message": "person_a birth timezone (America/New_York) differs from chart timezone (America/Los_Angeles)",
+        "severity": "warning",
+        "path": "person_a.chart.tz_str",
+        "context": {
+          "birth": "America/New_York",
+          "chart": "America/Los_Angeles"
+        }
+      }
+    ],
+    "forceGenericSymbolicRead": false
+  }
+}

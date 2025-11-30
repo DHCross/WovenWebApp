@@ -274,7 +274,13 @@ export function summariseUploadedReportJson(raw: string): {
   if (!trimmed.startsWith('{') || trimmed.length < 20) {
     return null;
   }
+  // BYPASS: mirror_directive_json - complete directive, use processMirrorDirective instead
   if (trimmed.includes('"_format"') && /"mirror_directive_json"/i.test(trimmed)) {
+    return null;
+  }
+  // BYPASS: mirror-symbolic-weather-v1 - complete packet with geometry + weather
+  // These files should go directly to processMirrorDirective, not be summarized
+  if (trimmed.includes('"_format"') && /"mirror-symbolic-weather-v1"/i.test(trimmed)) {
     return null;
   }
   if (/"schema"\s*:\s*"wm-fieldmap-v1"/i.test(trimmed)) {

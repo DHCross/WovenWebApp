@@ -153,6 +153,14 @@ export function createMirrorSymbolicWeatherPayload(
           summary: unifiedOutput?.person_b?.summary || null,
         }
       : null,
+    // ⭐ CRITICAL: mirror_contract tells Poetic Brain whether to generate relational content
+    mirror_contract: {
+      report_kind: formatReportKind(reportContractType),
+      is_relational: isRelational,
+      intimacy_tier: relationshipContext?.intimacy_tier || null,
+      relationship_type: relationshipContext?.type || null,
+      contact_state: relationshipContext?.contact_state || 'ACTIVE',
+    },
     report_kind: formatReportKind(reportContractType),
     relationship_context: relationshipContext || null,
     // User-entered relationship details from Math Brain

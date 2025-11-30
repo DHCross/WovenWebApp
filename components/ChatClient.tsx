@@ -141,12 +141,31 @@ export default function ChatClient() {
   // Track whether user has Math Brain data available (for guided UX)
   const [hasMathBrainSession, setHasMathBrainSession] = useState<boolean | null>(null);
 
-  // Check localStorage for mb.lastSession on mount and when tab regains focus
+  // Check localStorage for Math Brain payload on mount and when tab regains focus
+  // Math Brain saves to mb.lastPayload.{userId} or mb.lastPayload.anon
   useEffect(() => {
     const checkForMathBrainSession = () => {
       try {
-        const stored = localStorage.getItem('mb.lastSession');
-        setHasMathBrainSession(Boolean(stored));
+        // Resolve userId from auth.status (same logic as useFileUpload)
+        let scope = 'anon';
+        try {
+          const authRaw = localStorage.getItem('auth.status');
+          if (authRaw) {
+            const auth = JSON.parse(authRaw);
+            if (auth?.userId && typeof auth.userId === 'string') {
+              scope = auth.userId;
+            }
+          }
+        } catch { /* ignore parse errors */ }
+
+        // Check the correct key that Math Brain saves to
+        const payloadKey = `mb.lastPayload.${scope}`;
+        const stored = localStorage.getItem(payloadKey);
+        
+        // Also check legacy mb.lastSession for backward compatibility
+        const legacyStored = localStorage.getItem('mb.lastSession');
+        
+        setHasMathBrainSession(Boolean(stored) || Boolean(legacyStored));
       } catch {
         setHasMathBrainSession(false);
       }
@@ -162,12 +181,21 @@ export default function ChatClient() {
       }
     };
 
+    // Also listen for storage changes (in case Math Brain saves while chat is open in another tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key?.startsWith('mb.lastPayload') || e.key === 'mb.lastSession' || e.key === 'auth.status') {
+        checkForMathBrainSession();
+      }
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', checkForMathBrainSession);
+    window.addEventListener('storage', handleStorageChange);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', checkForMathBrainSession);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
@@ -483,8 +511,9 @@ export default function ChatClient() {
       }
 
       setStatusMessage(`Astro report received. Generating ${isRelational ? 'relational' : 'solo'} mirror reading...`);
-      setSessionMode('report');
-      setSessionStarted(true);
+      // Use shiftSessionMode with empty message to suppress the default 'Structured reading engaged' announcement
+      // The placeholder message below already communicates what's happening
+      shiftSessionMode('report', { message: '' });
 
       const mirrorPlaceholderId = generateId();
       const mirrorPlaceholder: Message = {

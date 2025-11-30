@@ -100,7 +100,7 @@ const CHART_DROP_FIELDS = new Set([
   'local_time',                // Redundant with ISO timestamps
   'planets_names_list',        // Useless list
   'axial_cusps_names_list',    // Useless list
-  'aspects',                   // Pre-calculated - Poetic Brain computes its own
+  // NOTE: aspects are KEPT - Poetic Brain's buildMandatesForChart needs them!
 ]);
 
 /** Chart-level fields to keep */
@@ -237,6 +237,11 @@ function trimChartObject(chart: any): any {
   // Keep transitsByDate but trim each day's data
   if (chart.transitsByDate && typeof chart.transitsByDate === 'object') {
     trimmed.transitsByDate = trimTransitsByDate(chart.transitsByDate);
+  }
+  
+  // KEEP aspects at chart level - buildMandatesForChart expects chart.aspects
+  if (Array.isArray(chart.aspects) && chart.aspects.length > 0) {
+    trimmed.aspects = chart.aspects;
   }
   
   return trimmed;
@@ -377,7 +382,12 @@ function trimPersonObject(person: any): any {
     trimmed.chart = trimChartObject(person.chart);
   }
   
-  // DROP: aspects (Poetic Brain computes its own)
+  // KEEP aspects - Poetic Brain's buildMandatesForChart needs them!
+  // Without natal aspects, mandate generation returns empty results
+  if (Array.isArray(person.aspects) && person.aspects.length > 0) {
+    trimmed.aspects = person.aspects;
+  }
+  
   // DROP: summary (can be derived from chart)
   
   return trimmed;
@@ -479,6 +489,12 @@ export function trimPayloadForPoeticBrain(payload: any): any {
   
   // Keep report_kind
   if (payload.report_kind) trimmed.report_kind = payload.report_kind;
+  
+  // ⭐ CRITICAL: Keep mirror_contract (contains is_relational flag for Poetic Brain)
+  // Without this, Poetic Brain won't know to generate solo_mirror_b or relational_engine
+  if (payload.mirror_contract) {
+    trimmed.mirror_contract = payload.mirror_contract;
+  }
   
   // Keep relationship_context (small, essential for relational reads)
   if (payload.relationship_context) {

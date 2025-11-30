@@ -114,7 +114,8 @@ export function useRavenRequest({
             };
 
       const climateDisplay = formatClimate(response?.climate ?? undefined);
-      const hook = formatIntentHook(response?.intent, response?.prov ?? null);
+      // Prefer explicit hook from response, fall back to formatted intent
+      const hook = response?.hook ?? formatIntentHook(response?.intent, response?.prov ?? null);
 
       const allowValidationMarkers =
         containsResonanceMarkers(rawText) ||

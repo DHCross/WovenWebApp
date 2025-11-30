@@ -46,39 +46,84 @@ export function detectQuerentIdentity(
   sessionSubjects: string[]
 ): { role: QuerentRole; confidence: 'high' | 'medium' | 'low' } | null {
   const trimmed = input.trim();
+  const lowerInput = trimmed.toLowerCase();
   
-  // Check direct patterns first
+  // Check direct patterns first (Person A, Person B, both, observer)
   for (const { pattern, role } of IDENTITY_PATTERNS) {
     if (pattern.test(trimmed)) {
       return { role, confidence: 'high' };
     }
   }
   
-  // Check if user says their name matches a subject
-  const lowerInput = trimmed.toLowerCase();
-  for (let i = 0; i < sessionSubjects.length; i++) {
-    const subjectName = sessionSubjects[i]?.toLowerCase();
-    if (!subjectName) continue;
-    
-    // "I'm [name]" or "This is [name]" or just "[name]" as a response
-    const namePatterns = [
-      new RegExp(`^i'?m\\s+${escapeRegex(subjectName)}\\b`, 'i'),
-      new RegExp(`^this\\s+is\\s+${escapeRegex(subjectName)}\\b`, 'i'),
-      new RegExp(`^${escapeRegex(subjectName)}$`, 'i'),
-      new RegExp(`^${escapeRegex(subjectName)}\\s+here`, 'i'),
-    ];
-    
-    for (const p of namePatterns) {
-      if (p.test(trimmed)) {
-        return { role: i === 0 ? 'self_a' : 'self_b', confidence: 'high' };
+  // Build name variants for each subject (full name + first name)
+  const subjectVariants: Array<{ names: string[]; index: number }> = sessionSubjects.map((fullName, index) => {
+    const names: string[] = [];
+    if (fullName) {
+      names.push(fullName.toLowerCase());
+      // Extract first name (before first space)
+      const firstName = fullName.split(/\s+/)[0];
+      if (firstName && firstName.toLowerCase() !== fullName.toLowerCase()) {
+        names.push(firstName.toLowerCase());
+      }
+    }
+    return { names, index };
+  });
+  
+  // Check if user says their name matches a subject (full name or first name)
+  for (const { names, index } of subjectVariants) {
+    for (const name of names) {
+      if (!name) continue;
+      const escapedName = escapeRegex(name);
+      
+      // Various patterns people use to identify themselves
+      const namePatterns = [
+        // "I'm [name]" or "I am [name]"
+        new RegExp(`^i'?m\\s+${escapedName}\\b`, 'i'),
+        new RegExp(`^i\\s+am\\s+${escapedName}\\b`, 'i'),
+        // "This is [name]"
+        new RegExp(`^this\\s+is\\s+${escapedName}\\b`, 'i'),
+        // Just "[name]" as a response
+        new RegExp(`^${escapedName}$`, 'i'),
+        // "[name] here"
+        new RegExp(`^${escapedName}\\s+here`, 'i'),
+        // "It's [name]" or "It is [name]"
+        new RegExp(`^it'?s\\s+${escapedName}\\b`, 'i'),
+        new RegExp(`^it\\s+is\\s+${escapedName}\\b`, 'i'),
+        // "[name] speaking" or "Speaking as [name]"
+        new RegExp(`^${escapedName}\\s+speaking\\b`, 'i'),
+        new RegExp(`^speaking\\s+(as\\s+)?${escapedName}\\b`, 'i'),
+        // "Yes, [name]" or "Yes I'm [name]"
+        new RegExp(`^yes,?\\s+${escapedName}\\b`, 'i'),
+        new RegExp(`^yes,?\\s+i'?m\\s+${escapedName}\\b`, 'i'),
+        // "Hello, I'm [name]" or "Hi, I'm [name]"  
+        new RegExp(`^(hi|hello|hey),?\\s+i'?m\\s+${escapedName}\\b`, 'i'),
+      ];
+      
+      for (const p of namePatterns) {
+        if (p.test(trimmed)) {
+          return { role: index === 0 ? 'self_a' : 'self_b', confidence: 'high' };
+        }
+      }
+      
+      // Check if name appears anywhere in short response (high confidence for short responses)
+      if (trimmed.length < 50 && lowerInput.includes(name)) {
+        // If the response contains the name and is short, likely identifying
+        return { role: index === 0 ? 'self_a' : 'self_b', confidence: 'medium' };
       }
     }
   }
   
   // Fuzzy detection for "it's me" type responses when there's only one subject
   if (sessionSubjects.length === 1) {
-    if (/^(it'?s\s+me|that'?s\s+me|yes,?\s+(it'?s|that'?s)\s+me)$/i.test(trimmed)) {
+    if (/^(it'?s\s+me|that'?s\s+me|yes,?\s+(it'?s|that'?s)\s+me|me|yes|yep|yeah)$/i.test(trimmed)) {
       return { role: 'self_a', confidence: 'medium' };
+    }
+  }
+  
+  // Check for "both" indicators in relational context
+  if (sessionSubjects.length === 2) {
+    if (/^(both|we|us|together|both of us|we'?re (both )?here)$/i.test(trimmed)) {
+      return { role: 'both', confidence: 'high' };
     }
   }
   
