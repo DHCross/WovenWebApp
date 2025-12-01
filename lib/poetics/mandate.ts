@@ -194,8 +194,12 @@ function calcWeight(orb?: number, provided?: number): number {
 }
 
 function normalizeAspect(aspect: RawAspect): MandateAspect['geometry'] {
-  const aspectType = aspect.type ?? 'aspect';
-  const orbDegrees = Math.abs(aspect.orb ?? 0);
+  // Handle multiple naming conventions for aspect type
+  const rawType = aspect.type || aspect.aspect || aspect.aspect_type || 'aspect';
+  const aspectType = String(rawType).toLowerCase().trim() as AspectType;
+  // Handle multiple naming conventions for orb
+  const rawOrb = aspect.orb ?? aspect.orbit ?? aspect.orbDegrees ?? aspect.orb_degrees ?? 0;
+  const orbDegrees = Math.abs(typeof rawOrb === 'number' ? rawOrb : 0);
   const applying = aspect.applying !== false;
   const weight = calcWeight(aspect.orb, aspect.weight);
   const geometry: MandateAspect['geometry'] = {

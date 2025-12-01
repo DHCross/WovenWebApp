@@ -728,6 +728,76 @@ function extractGeometrySummary(chart: any): string {
 }
 
 /**
+ * Extract chart signature (Sun, Moon, Rising) for narrative use
+ */
+function extractChartSignature(chart: any): { sun?: string; moon?: string; rising?: string; summary: string } {
+  if (!chart || typeof chart !== 'object') {
+    return { summary: 'chart signature unavailable' };
+  }
+  
+  const planets = chart.positions || chart.planets || chart.planetary_positions || {};
+  const getSign = (planetName: string): string | undefined => {
+    const planet = planets[planetName] || planets[planetName.toLowerCase()];
+    if (!planet) return undefined;
+    return planet.sign || planet.signName || planet.zodiac_sign;
+  };
+  
+  const sun = getSign('Sun');
+  const moon = getSign('Moon');
+  // Rising can be at ASC, Ascendant, or in a separate angles object
+  const rising = getSign('ASC') || getSign('Ascendant') || chart.angles?.ascendant?.sign;
+  
+  const parts: string[] = [];
+  if (sun) parts.push(`${sun} Sun`);
+  if (rising) parts.push(`${rising} rising`);
+  if (moon) parts.push(`${moon} Moon`);
+  
+  return {
+    sun,
+    moon,
+    rising,
+    summary: parts.length > 0 ? parts.join(', ') : 'chart signature present but unparsed'
+  };
+}
+
+/**
+ * Generate element summary from chart
+ */
+function summarizeElementBalance(chart: any): string {
+  const sig = extractChartSignature(chart);
+  const elements: Record<string, string[]> = {
+    fire: ['Aries', 'Leo', 'Sagittarius'],
+    earth: ['Taurus', 'Virgo', 'Capricorn'],
+    air: ['Gemini', 'Libra', 'Aquarius'],
+    water: ['Cancer', 'Scorpio', 'Pisces']
+  };
+  
+  const getElement = (sign?: string): string | undefined => {
+    if (!sign) return undefined;
+    for (const [element, signs] of Object.entries(elements)) {
+      if (signs.some(s => sign.toLowerCase().includes(s.toLowerCase()))) {
+        return element;
+      }
+    }
+    return undefined;
+  };
+  
+  const sunEl = getElement(sig.sun);
+  const moonEl = getElement(sig.moon);
+  const risingEl = getElement(sig.rising);
+  
+  const counts: Record<string, number> = { fire: 0, earth: 0, air: 0, water: 0 };
+  if (sunEl) counts[sunEl]++;
+  if (moonEl) counts[moonEl]++;
+  if (risingEl) counts[risingEl]++;
+  
+  const dominant = Object.entries(counts).sort((a, b) => b[1] - a[1]).filter(([, c]) => c > 0);
+  if (dominant.length === 0) return '';
+  
+  return dominant.map(([el]) => el).join(' and ');
+}
+
+/**
  * Generate solo mirror narrative
  * Uses natal chart geometry for single person
  */
@@ -793,7 +863,6 @@ function renderSynastryMandatesSection(nameA: string, nameB: string, mandates: M
 
 function generateSoloMirror(person: any, chart: any, calibration: IntimacyCalibration, mandates: MandateAspect[]): string {
   const name = person.name || 'Person';
-  const geometrySummary = extractGeometrySummary(chart);
 
   // Use narrative builder for structured mirror generation
   const chartMandates = {
@@ -801,62 +870,179 @@ function generateSoloMirror(person: any, chart: any, calibration: IntimacyCalibr
     mandates: mandates
   };
   
-  const narrative = generateSoloMirrorNarrative(chartMandates, { includeHeading: false });
+  // Generate the narrative content (includes polarity cards and mirror voice)
+  const narrative = generateSoloMirrorNarrative(chartMandates, { 
+    includeHeading: true,
+    includeHookStack: true,
+    includePolarityCards: true,
+    includeMandateHighlights: mandates.length > 0,
+    includeMirrorVoice: true,
+  });
 
-  // Prepend calibration and geometry context
+  // Build output with conversational framing (no scaffolding metadata)
   const lines: string[] = [];
-  lines.push(`# Solo Mirror: ${name}`);
-  lines.push('');
-  lines.push(`Boundary Mode — ${calibration.boundaryMode}`);
-  lines.push(`Narrative Tone — ${calibration.toneDescriptor}`);
-  lines.push(`Disclosure Level — ${calibration.disclosureLevel}`);
-  lines.push('');
-  lines.push(`Geometry — ${geometrySummary}`);
-  lines.push('');
-  lines.push('Blueprint — Natal pattern reflects constitutional climate. This is the baseline geometry before any transits or activations.');
-  lines.push('');
   
-  // Append the generated narrative
-  lines.push(narrative.fullNarrative);
+  // If we have valid mandates, use the full narrative
+  if (mandates.length > 0) {
+    lines.push(narrative.fullNarrative);
+  } else {
+    // Fallback when no aspect data available
+    lines.push(`## Solo Mirror: ${name}`);
+    lines.push('');
+    lines.push(`I have your chart geometry loaded, but the aspect data couldn't be parsed into the mandate format. This might mean the chart export used a different structure than expected.`);
+    lines.push('');
+    lines.push(`What I can say: your natal pattern is present. The specific tensions and polarities that drive your experience are there in the geometry—I just need the aspect data in a format I can translate.`);
+    lines.push('');
+    lines.push(`If you're seeing this, try re-exporting your Math Brain report, or ask me directly about specific planetary placements you'd like to explore.`);
+  }
+  
   lines.push('');
-  lines.push('Reflection — Map, not mandate: Integrate what resonates with current reality and log evidence for or against each pattern.');
+  lines.push('---');
+  lines.push('');
+  lines.push('*Map, not mandate: integrate what resonates with your lived experience and set aside the rest.*');
 
   return lines.join('\n');
 }
 
 /**
  * Generate relational engine narrative
- * Uses both natal charts for relationship dynamics
+ * Uses Four Report Types architecture with bidirectional attribution
+ * Language follows E-Prime (conditional, testable phrasing)
  */
 function generateRelationalEngine(personA: any, personB: any, geometry: any, calibration: IntimacyCalibration): string {
   const nameA = personA.name || 'Person A';
   const nameB = personB?.name || 'Person B';
-  const geoA = extractGeometrySummary(geometry.chartA);
-  const geoB = extractGeometrySummary(geometry.chartB);
   const synastrySource = geometry?.synastryAspects || [];
-  const synastryMandates = buildSynastryMandates(nameA, nameB, synastrySource, { limit: 4 });
+  const synastryMandates = buildSynastryMandates(nameA, nameB, synastrySource, { limit: 5 });
+  
+  // Extract chart signatures for both people
+  const sigA = extractChartSignature(geometry.chartA);
+  const sigB = extractChartSignature(geometry.chartB);
+  const elementsA = summarizeElementBalance(geometry.chartA);
+  const elementsB = summarizeElementBalance(geometry.chartB);
   
   const lines: string[] = [];
-  lines.push(`# Relational Engine: ${nameA} & ${nameB}`);
+  lines.push(`## Relational Mirror: ${nameA} ↔ ${nameB}`);
   lines.push('');
-  lines.push(`${nameA} Geometry — ${geoA}`);
-  lines.push(`${nameB} Geometry — ${geoB}`);
+  
+  // ============================================
+  // SECTION 1: FIELD OVERVIEW
+  // ============================================
+  lines.push(`### 1. Field Overview`);
   lines.push('');
-  lines.push(`Intimacy Tier — ${calibration.toneDescriptor}`);
-  lines.push(`Disclosure Level — ${calibration.disclosureLevel}`);
-  lines.push('');
-  if (synastryMandates.mandates.length) {
-    lines.push(`Relational Field — ${synastryMandates.mandates.length} high-charge synastry aspects describe how your baselines meet in real time.`);
-  } else {
-    lines.push('Relational Field — Synastry aspects not supplied; referencing baseline geometries for directional guidance.');
-  }
-  const synastrySection = renderSynastryMandatesSection(nameA, nameB, synastryMandates.mandates);
-  if (synastrySection.length) {
+  
+  if (sigA.summary !== 'chart signature unavailable' || sigB.summary !== 'chart signature unavailable') {
+    // Describe the joint field using both charts
+    const aDesc = sigA.summary !== 'chart signature unavailable' 
+      ? `${nameA} arrives as ${sigA.summary}` 
+      : `${nameA}'s chart signature`;
+    const bDesc = sigB.summary !== 'chart signature unavailable'
+      ? `${nameB} arrives as ${sigB.summary}`
+      : `${nameB}'s chart signature`;
+    
+    lines.push(`${aDesc}. ${bDesc}.`);
     lines.push('');
-    lines.push(...synastrySection);
+    
+    // Element interplay
+    if (elementsA && elementsB) {
+      lines.push(`The joint field may carry ${elementsA} tones from ${nameA} meeting ${elementsB} tones from ${nameB}. This combination often creates a particular rhythm—neither person's pattern dominates; instead, they tend to weave together.`);
+    } else if (elementsA || elementsB) {
+      const who = elementsA ? nameA : nameB;
+      const elem = elementsA || elementsB;
+      lines.push(`${who}'s ${elem} emphasis may set a particular tone in the shared space.`);
+    }
+    lines.push('');
+  } else {
+    lines.push(`Both charts are present, though the core signatures (Sun, Moon, Rising) could not be parsed directly. The relational field exists in the geometry—the pattern recognition below still applies.`);
+    lines.push('');
+  }
+  
+  // ============================================
+  // SECTION 2: POLARITY MAPPING (Bidirectional)
+  // ============================================
+  lines.push(`### 2. Polarity Mapping`);
+  lines.push('');
+  
+  // A → B perspective
+  lines.push(`**${nameA} → ${nameB}**`);
+  lines.push('');
+  if (sigA.summary !== 'chart signature unavailable') {
+    lines.push(`From ${nameB}'s perspective, ${nameA} may present as ${sigA.summary.toLowerCase()}. This often reads as a particular quality—${sigA.sun ? `the ${sigA.sun} core` : 'the core pattern'} filtered through ${sigA.rising ? `${sigA.rising} presentation` : 'the rising sign'}. ${nameB} might experience ${nameA} as someone who ${sigA.sun === 'Leo' || sigA.sun === 'Aries' || sigA.sun === 'Sagittarius' ? 'carries noticeable presence when engaged' : sigA.sun === 'Cancer' || sigA.sun === 'Scorpio' || sigA.sun === 'Pisces' ? 'holds depth beneath the surface' : sigA.sun === 'Taurus' || sigA.sun === 'Virgo' || sigA.sun === 'Capricorn' ? 'moves with deliberate intention' : 'navigates through responsive awareness'}.`);
+  } else {
+    lines.push(`${nameA}'s pattern, as ${nameB} may encounter it, carries its own rhythm and timing. The specific quality depends on how the natal geometry expresses in practice.`);
   }
   lines.push('');
-  lines.push('Reflection — Relational mirrors show how individual geometries meet, blend, or clash. This is not prediction—it\'s pattern recognition.');
+  
+  // B → A perspective
+  lines.push(`**${nameB} → ${nameA}**`);
+  lines.push('');
+  if (sigB.summary !== 'chart signature unavailable') {
+    lines.push(`From ${nameA}'s perspective, ${nameB} may present as ${sigB.summary.toLowerCase()}. ${nameA} might experience ${nameB} as someone who ${sigB.sun === 'Leo' || sigB.sun === 'Aries' || sigB.sun === 'Sagittarius' ? 'brings initiating energy when activated' : sigB.sun === 'Cancer' || sigB.sun === 'Scorpio' || sigB.sun === 'Pisces' ? 'tracks emotional undercurrents' : sigB.sun === 'Taurus' || sigB.sun === 'Virgo' || sigB.sun === 'Capricorn' ? 'grounds through practical presence' : 'reads the relational space before moving'}. ${sigB.moon ? `The ${sigB.moon} Moon may add ${sigB.moon === 'Sagittarius' || sigB.moon === 'Gemini' || sigB.moon === 'Aquarius' ? 'a restless, exploratory quality to emotional expression' : sigB.moon === 'Cancer' || sigB.moon === 'Taurus' || sigB.moon === 'Pisces' ? 'a need for emotional security and continuity' : 'its own emotional coloring'}.` : ''}`);
+  } else {
+    lines.push(`${nameB}'s pattern, as ${nameA} may encounter it, carries its own distinct signature. The specific quality emerges through repeated interaction.`);
+  }
+  lines.push('');
+  
+  // ============================================
+  // SECTION 3: TENSION ARCHITECTURE
+  // ============================================
+  lines.push(`### 3. Tension Architecture`);
+  lines.push('');
+  
+  if (synastryMandates.mandates.length > 0) {
+    lines.push(`The following high-charge aspects describe where the two patterns tend to activate each other. These represent pressure lines—not problems, but areas where energy concentrates.`);
+    lines.push('');
+    
+    synastryMandates.mandates.forEach((mandate, index) => {
+      const ownerA = mandate.archetypes.a.owner || nameA;
+      const ownerB = mandate.archetypes.b.owner || nameB;
+      const orb = mandate.geometry.orbDegrees.toFixed(1);
+      const aspectType = mandate.geometry.aspectType;
+      
+      lines.push(`**${String.fromCharCode(97 + index)}) ${ownerA}'s ${mandate.archetypes.a.planet} ${aspectType} ${ownerB}'s ${mandate.archetypes.b.planet}** *(${orb}° orb)*`);
+      lines.push('');
+      // Use conditional language
+      const pressureDesc = mandate.fieldPressure.replace(/\. This is/g, '. This often reads as').replace(/This creates/g, 'This may create');
+      lines.push(pressureDesc);
+      lines.push('');
+      // Use conditional language for map translation
+      const mapDesc = mandate.mapTranslation.replace(/You /g, 'The pattern suggests ').replace(/they /g, 'they may ');
+      lines.push(mapDesc);
+      lines.push('');
+    });
+  } else {
+    lines.push(`Synastry aspects could not be parsed from the provided geometry. The tension architecture between ${nameA} and ${nameB} exists in the cross-chart data, but I cannot translate it into specific pressure lines without aspect information.`);
+    lines.push('');
+    lines.push(`The individual patterns above still apply. For the relational dynamics, you might explore how ${nameA}'s ${sigA.sun || 'Sun'} energy meets ${nameB}'s ${sigB.sun || 'Sun'} energy in practice—where does activation occur? Where does friction surface?`);
+    lines.push('');
+  }
+  
+  // ============================================
+  // SECTION 4: INTEGRATION BLUEPRINT
+  // ============================================
+  lines.push(`### 4. Integration Blueprint`);
+  lines.push('');
+  
+  lines.push(`**${nameA}'s position in this field:**`);
+  if (sigA.summary !== 'chart signature unavailable') {
+    lines.push(`${nameA}'s pattern (${sigA.summary}) may function as ${sigA.rising === 'Scorpio' || sigA.rising === 'Capricorn' || sigA.rising === 'Virgo' ? 'a container—someone who holds and processes before revealing' : sigA.rising === 'Aries' || sigA.rising === 'Leo' || sigA.rising === 'Sagittarius' ? 'an initiator—someone who often moves first and adjusts later' : sigA.rising === 'Libra' || sigA.rising === 'Gemini' || sigA.rising === 'Aquarius' ? 'a reader—someone who scans the field before committing' : 'a stabilizer—someone who seeks consistent ground'}. Growth edges in this relational field may involve ${sigA.sun === 'Leo' || sigA.sun === 'Aries' ? 'allowing vulnerability to surface earlier rather than waiting for perfect conditions' : sigA.sun === 'Scorpio' || sigA.sun === 'Cancer' ? 'experimenting with transparency when the protective instinct wants to close' : 'noticing where habitual patterns might be updated through this connection'}.`);
+  } else {
+    lines.push(`${nameA}'s growth edges in this field may involve noticing which habitual patterns serve the connection and which might be ready for updating.`);
+  }
+  lines.push('');
+  
+  lines.push(`**${nameB}'s position in this field:**`);
+  if (sigB.summary !== 'chart signature unavailable') {
+    lines.push(`${nameB}'s pattern (${sigB.summary}) may function as ${sigB.rising === 'Libra' || sigB.rising === 'Gemini' || sigB.rising === 'Aquarius' ? 'a mirror—someone who reflects the relational space clearly' : sigB.rising === 'Aries' || sigB.rising === 'Leo' || sigB.rising === 'Sagittarius' ? 'a catalyst—someone who tends to accelerate movement' : sigB.rising === 'Cancer' || sigB.rising === 'Pisces' || sigB.rising === 'Scorpio' ? 'a depth-seeker—someone who tracks what lies beneath the surface' : 'a grounding presence—someone who values consistency'}. Growth edges may involve ${sigB.sun === 'Aries' || sigB.sun === 'Sagittarius' ? 'honoring how much the other person values depth and continuity—slowing pace when needed' : sigB.sun === 'Cancer' || sigB.sun === 'Pisces' ? "allowing the other person's timing without interpreting distance as rejection" : 'finding the rhythm that serves both patterns rather than defaulting to familiar habits'}.`);
+  } else {
+    lines.push(`${nameB}'s growth edges in this field may involve discovering which aspects of their pattern meet ${nameA}'s pattern productively and where adjustment serves.`);
+  }
+  lines.push('');
+  
+  // Closing
+  lines.push('---');
+  lines.push('');
+  lines.push(`*This mirror reflects pattern, not prediction. The geometry describes tendencies that may or may not express in your actual experience. Track how these dynamics actually play out—your lived evidence calibrates the map.*`);
   
   return lines.join('\n');
 }

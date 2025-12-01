@@ -337,37 +337,77 @@ export async function POST(req: Request) {
               const result = processMirrorDirective(usedContent);
 
           if (result.success && result.narrative_sections) {
-            let narrative = '';
-            if (result.narrative_sections.solo_mirror_a) narrative += result.narrative_sections.solo_mirror_a + '\n\n';
+            // Assemble structured narrative from Poetic Brain
+            let structuredNarrative = '';
+            if (result.narrative_sections.solo_mirror_a) structuredNarrative += result.narrative_sections.solo_mirror_a + '\n\n';
             // CRITICAL FIX: Include Person B's solo mirror for relational reports
             // Without this, Person B's patterns were only shown in relational_engine context,
             // causing Person B's behaviors to appear fused onto Person A's reading
-            if (result.narrative_sections.solo_mirror_b) narrative += result.narrative_sections.solo_mirror_b + '\n\n';
-            if (result.narrative_sections.relational_engine) narrative += result.narrative_sections.relational_engine + '\n\n';
-            if (result.narrative_sections.weather_overlay) narrative += result.narrative_sections.weather_overlay;
+            if (result.narrative_sections.solo_mirror_b) structuredNarrative += result.narrative_sections.solo_mirror_b + '\n\n';
+            if (result.narrative_sections.relational_engine) structuredNarrative += result.narrative_sections.relational_engine + '\n\n';
+            if (result.narrative_sections.weather_overlay) structuredNarrative += result.narrative_sections.weather_overlay;
 
-            // Check for probes (similar logic to chat/route.ts)
-            let probeData: SSTProbe | { question: string; type: string; options: string[] } | null = null;
-            const isFirstTurn = (sessionLog.turnCount ?? 0) <= 1;
-            const isOSRResponse = checkForOSRIndicators(textInput);
-            const isMetaIrritation = isMetaSignalAboutRepetition(textInput);
-            const shouldAddProbe = !isFirstTurn && !isOSRResponse && !isMetaIrritation;
-
-            if (narrative.trim()) {
-              if (shouldAddProbe) {
-                probeData = generateValidationProbe(narrative, content);
-                if (probeData?.question) {
-                  narrative += '\n\n' + probeData.question;
-                }
+            if (structuredNarrative.trim()) {
+              // === Auth check before LLM call ===
+              const authHeader = (req as any).headers?.get ? (req as any).headers.get('authorization') : undefined;
+              if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return NextResponse.json({ ok: false, error: 'Unauthorized. Missing Bearer token.' }, { status: 401 });
               }
+              const token = authHeader.split(' ')[1];
+              try {
+                const decoded = await verifyToken(token);
+                const allow = checkAllowlist(decoded);
+                if (!allow.allowed) {
+                  return NextResponse.json({ ok: false, error: 'Access denied', reason: allow.reason }, { status: 403 });
+                }
+              } catch (err: any) {
+                return NextResponse.json({ ok: false, error: 'Invalid token', detail: err?.message || String(err) }, { status: 401 });
+              }
+
+              // Extract names for personalization
+              const personAName = usedContent?.person_a?.name || 'the querent';
+              const personBName = usedContent?.person_b?.name;
+              const isRelational = !!personBName;
+              const intimacyTier = result.intimacy_tier || usedContent?.mirror_contract?.intimacy_tier || 'P3';
+
+              // Build voice transformation prompt
+              const voicePrompt = `You are Raven Calder, delivering a mirror reading. Below is structured chart geometry and pattern analysis. Your task is to VOICE this material—transform it into your natural, conversational style while preserving all the geometric insights.
+
+VOICING INSTRUCTIONS:
+- Speak directly to ${personAName}${isRelational ? ` about their connection with ${personBName}` : ''}
+- Use your wise, lyrical voice—not clinical or template-like
+- Preserve ALL the geometric patterns and insights from the structured data
+- Use conditional, E-Prime-aligned language ("this pattern suggests...", "you may notice...")
+- Flow naturally between sections without mechanical headers
+- End with one reflective question that invites them to test this in their lived experience
+- Intimacy tier: ${intimacyTier} — calibrate disclosure and directness accordingly
+
+STRUCTURED READING TO VOICE:
+${structuredNarrative}
+
+Now deliver this reading in your authentic Raven Calder voice. Speak as if they're sitting across from you. No headers like "Field Overview" or "Tension Architecture"—just flow.`;
+
+              // Check for probes
+              let probeData: SSTProbe | { question: string; type: string; options: string[] } | null = null;
+              const isFirstTurn = (sessionLog.turnCount ?? 0) <= 1;
+              const isOSRResponse = checkForOSRIndicators(textInput);
+              const isMetaIrritation = isMetaSignalAboutRepetition(textInput);
+              const shouldAddProbe = !isFirstTurn && !isOSRResponse && !isMetaIrritation;
 
               // Update session logs
               appendHistoryEntry(sessionLog, 'user', textInput || "Reading request");
-              appendHistoryEntry(sessionLog, 'raven', narrative);
+              sessionLog.turnCount = (sessionLog.turnCount ?? 0) + 1;
               updateSession(sid, () => { });
 
-              // Streaming logic
+              const prov = stampProvenance({ source: 'Poetic Brain (Voiced Mirror)' });
+
+              // Stream through LLM for Raven's voice
               const encoder = new TextEncoder();
+              const llmStream = await generateStream(voicePrompt, {
+                model: process.env.POETIC_BRAIN_MODEL || 'sonar-pro',
+                personaHook: RAVEN_PERSONA_HOOK,
+              });
+
               const responseStream = new ReadableStream({
                 async start(controller) {
                   const send = (data: object) => {
@@ -376,18 +416,49 @@ export async function POST(req: Request) {
 
                   // Initial metadata frame
                   send({
-                    climate: "VOICE · Report Interpretation",
-                    hook: "Auto · Mirror Reading",
+                    climate: "VOICE · Mirror Reading",
+                    hook: "Raven · Voiced",
                     sessionId: sid,
                     ok: true,
-                    // Send probe data for UI
+                    prov,
                     ...(probeData && {
                       probe: probeData,
                       validationMode: 'resonance'
                     })
                   });
 
-                  send({ delta: narrative });
+                  let fullReply = '';
+                  try {
+                    for await (const chunk of llmStream) {
+                      if (chunk.delta) {
+                        fullReply += chunk.delta;
+                        send({ delta: chunk.delta });
+                      }
+                    }
+
+                    // Add validation probe if needed (after LLM response)
+                    if (shouldAddProbe && fullReply) {
+                      probeData = generateValidationProbe(fullReply, content);
+                      if (probeData?.question) {
+                        const probeText = '\n\n' + probeData.question;
+                        fullReply += probeText;
+                        send({ delta: probeText });
+                        send({ probe: probeData, validationMode: 'resonance' });
+                      }
+                    }
+
+                    // Log the voiced response
+                    appendHistoryEntry(sessionLog, 'raven', fullReply);
+                    updateSession(sid, () => { });
+
+                  } catch (streamError) {
+                    console.error('[Raven] LLM stream error:', streamError);
+                    // Fallback to structured narrative if LLM fails
+                    send({ delta: structuredNarrative });
+                    appendHistoryEntry(sessionLog, 'raven', structuredNarrative);
+                    updateSession(sid, () => { });
+                  }
+
                   controller.close();
                 }
               });
