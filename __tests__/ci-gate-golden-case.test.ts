@@ -10,10 +10,7 @@
 import { describe, test, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Node test environment exposes __dirname; avoid import.meta to keep tsconfig happy
 
 describe('CI Gate: Golden Case & Pipeline Order (v5.0)', () => {
   
@@ -31,7 +28,7 @@ describe('CI Gate: Golden Case & Pipeline Order (v5.0)', () => {
   test('BIAS_DIVISOR must be 10 for full amplitude', async () => {
     // Critical: BIAS_DIVISOR=100 caps magnitude at ~3.1
     // BIAS_DIVISOR=10 allows full 5.0 reach
-    const amplifiers = await import('../lib/balance/amplifiers.js');
+    const amplifiers = await import('../lib/balance/amplifiers');
     const { BIAS_DIVISOR } = amplifiers;
     expect(BIAS_DIVISOR).toBe(10);
   });

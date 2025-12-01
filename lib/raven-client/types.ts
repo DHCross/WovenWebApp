@@ -10,6 +10,7 @@ export type RavenDraftResponse = {
   draft?: Record<string, any> | null;
   prov?: Record<string, any> | null;
   climate?: string | ClimateData | null;
+  hook?: string;
   sessionId?: string;
   probe?: SSTProbe | null;
   guard?: boolean;

@@ -956,7 +956,8 @@ export function processMirrorDirective(payload: InputPayload): {
   // Fast path: validate format first
   // Accept both 'mirror_directive_json' and 'mirror-symbolic-weather-v1' formats
   const validFormats = ['mirror_directive_json', 'mirror-symbolic-weather-v1'];
-  if (!validFormats.includes(payload._format)) {
+  const payloadFormat = typeof payload._format === 'string' ? payload._format : 'mirror_directive_json';
+  if (!validFormats.includes(payloadFormat)) {
     return {
       success: false,
       narrative_sections: {},

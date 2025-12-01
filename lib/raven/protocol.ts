@@ -102,6 +102,31 @@ VOICE LAYER:
 • End with one falsifiable question`;
 
 /**
+ * Invisible structure version - hides internal architecture labels
+ */
+export const FIELD_MAP_VOICE_PROTOCOL_INVISIBLE = `NARRATIVE STRUCTURE PROTOCOL:
+Structure your response in three seamless movements:
+
+OPENING OBSERVATION:
+• Begin with neutral sensory description of the pattern
+• Examples: "compression," "volatility in timing," "alternating engagement and withdrawal"
+• No interpretation yet—just observation
+• Open with numeric coordinates: Magnitude, Directional Bias, and Coherence/Volatility
+• Name the polarity in tension
+
+MEANING EXPLORATION:
+• Offer conditional symbolic meaning linking geometry to possible lived themes
+• Example: "this might correlate with feeling pressure to hold everything together"
+• Reference driving patterns (hooks, engines, contracts)
+• Explain implications without giving directives
+
+REFLECTIVE MIRROR:
+• Address the Querent directly with reflective language
+• Use conditional, non-prescriptive phrasing
+• State conditional inference and resonance classification (WB / ABE / OSR)
+• End with one falsifiable question`;
+
+/**
  * SST/Falsifiability protocol - THE EPISTEMOLOGICAL BACKBONE
  */
 export const SST_PROTOCOL = `SST / FALSIFIABILITY PROTOCOL:
@@ -177,7 +202,13 @@ export function buildRavenSystemPrompt(contextGate?: ContextGateState): string {
     }
   }
   
-  sections.push(FIELD_MAP_VOICE_PROTOCOL);
+  // Use invisible structure for relational mode, otherwise show full pipeline
+  if (contextGate && (contextGate.querentRole === 'both' || contextGate.sessionSubjects.length === 2)) {
+    sections.push(FIELD_MAP_VOICE_PROTOCOL_INVISIBLE);
+  } else {
+    sections.push(FIELD_MAP_VOICE_PROTOCOL);
+  }
+  
   sections.push(SST_PROTOCOL);
   sections.push(CONDITIONAL_LANGUAGE_PROTOCOL);
   

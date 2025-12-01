@@ -1,10 +1,17 @@
 // Persona + FIELD → MAP → VOICE shaping utilities.
 // Ensures conditional, falsifiable language with persona-specific tone controls.
 
+import { enforceRelationalMirrorTone } from './poetic-brain/runtime';
+
 export type PersonaMode = 'plain' | 'hybrid' | 'poetic';
 
 export interface PersonaConfig {
   mode?: PersonaMode;
+}
+
+function scrubRelationalLeadership(text: string, ctx: RavenDeltaContext): string {
+  if (ctx.section !== 'mirror') return text;
+  return text.replace(/leadership/gi, 'steady presence');
 }
 
 export interface RavenDeltaContext {
@@ -67,6 +74,14 @@ export function shapeVoice(raw: string, ctx: RavenDeltaContext, config?: Persona
   let out = typeof raw === 'string' ? raw : '';
   out = out || 'Listening.';
 
+  // Apply relational guardrails for mirror sections
+  if (ctx.section === 'mirror') {
+    const relationalResult = enforceRelationalMirrorTone(out);
+    out = relationalResult.text;
+    // Note: relationalResult.relational flag available for future conditional logic
+  }
+
+  out = scrubRelationalLeadership(out, ctx);
   out = enforceConditionalLanguage(out);
   out = guardCausality(out);
   out = tidyWhitespace(out);

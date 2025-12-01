@@ -14,6 +14,7 @@ import { verifyToken } from '@/lib/auth/jwt';
 import { checkAllowlist } from '@/lib/auth/allowlist';
 import { processMirrorDirective } from '@/poetic-brain/src/index';
 import { sanitizeDirectiveForMode } from '@/lib/raven/sanitizeDirectiveForMode';
+import { enforceRelationalMirrorTone } from '@/lib/poetic-brain/runtime';
 import {
   createProbe,
   commitProbe,
@@ -134,7 +135,12 @@ function appendHistoryEntry(
 export async function POST(req: Request) {
   try {
     const { action = 'generate', input, options = {}, sessionId } = await req.json();
-    const textInput = typeof input === 'string' ? input : '';
+    let textInput = typeof input === 'string' ? input : '';
+    
+    // Apply relational guardrails to user input as soft guidance
+    const relationalResult = enforceRelationalMirrorTone(textInput);
+    textInput = relationalResult.text;
+    
     const resolvedOptions = (typeof options === 'object' && options !== null) ? options as Record<string, any> : {};
     let sid = typeof sessionId === 'string' && sessionId.trim() ? String(sessionId) : undefined;
     const requiresSession = action === 'export' || action === 'close' || action === 'feedback';

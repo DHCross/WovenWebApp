@@ -4772,11 +4772,39 @@ export default function MathBrainPage() {
             transitEndDate: chunk.end,
           };
 
-          const response = await fetch("/api/astrology-mathbrain", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(chunkPayload),
-          });
+          let response: Response;
+          try {
+            const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+            const timeoutMs = 25000;
+            const timeoutId = controller ? window.setTimeout(() => controller.abort(), timeoutMs) : null;
+            try {
+              response = await fetch("/api/astrology-mathbrain", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(chunkPayload),
+                signal: controller ? controller.signal : undefined,
+              });
+            } finally {
+              if (timeoutId !== null) {
+                clearTimeout(timeoutId);
+              }
+            }
+          } catch (networkError: any) {
+            const isAbortError = Boolean(networkError && (networkError as any).name === "AbortError");
+            if (isAbortError) {
+              const timeoutMessage = `Chunk ${i + 1} timed out. Math Brain took too long to respond. Please try again or shorten the date range.`;
+              setError(timeoutMessage);
+              setToast(timeoutMessage);
+            } else {
+              const errorMessage = networkError instanceof Error ? networkError.message : String(networkError);
+              const wrapped = `Network error during chunk ${i + 1}: ${errorMessage}`;
+              setError(wrapped);
+              setToast(wrapped);
+            }
+            setTimeout(() => setToast(null), 2500);
+            setLoading(false);
+            return;
+          }
 
           const parsed = await parseJsonSafely<Record<string, any>>(response);
           const chunkData = parsed.data;
@@ -4799,16 +4827,32 @@ export default function MathBrainPage() {
         setToast(includeTransits ? 'Generating report with transits...' : 'Generating report...');
         let response;
         try {
-          response = await fetch("/api/astrology-mathbrain", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
+          const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+          const timeoutMs = 25000;
+          const timeoutId = controller ? window.setTimeout(() => controller.abort(), timeoutMs) : null;
+          try {
+            response = await fetch("/api/astrology-mathbrain", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+              signal: controller ? controller.signal : undefined,
+            });
+          } finally {
+            if (timeoutId !== null) {
+              clearTimeout(timeoutId);
+            }
+          }
         } catch (networkError) {
           console.error('Network error during API request:', networkError);
-          const errorMessage = networkError instanceof Error ? networkError.message : String(networkError);
-          setError(`Network error: ${errorMessage}`);
-          setToast('Failed to connect to the server. Please check your connection.');
+          const isAbortError = Boolean(networkError && (networkError as any).name === "AbortError");
+          if (isAbortError) {
+            setError('Math Brain request timed out. Please try again with the same settings.');
+            setToast('Math Brain took too long to respond. Please try again.');
+          } else {
+            const errorMessage = networkError instanceof Error ? networkError.message : String(networkError);
+            setError(`Network error: ${errorMessage}`);
+            setToast('Failed to connect to the server. Please check your connection.');
+          }
           setTimeout(() => setToast(null), 2500);
           setLoading(false);
           return;

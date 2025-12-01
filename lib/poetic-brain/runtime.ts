@@ -25,6 +25,11 @@ export function classifyResonance(ping: unknown): ResonanceTier {
 }
 
 const DIAGNOSTIC_WORDS = /\b(cause|causes|causing|caused|fate|fated|destiny|destined)\b/gi;
+// Tighter patterns - only catch clearly charged questions (no global flag to avoid stateful .test)
+const RELATIONAL_QUESTION_PATTERN = /\b(?:why|what)\s+(?:does|did|is|was)\s+(?:she|he|they)\s+(?:think|feel|want|hate|love|avoid|reject|abandon)\b/i;
+const RELATIONAL_PRONOUNS = /\b(she|her|hers|he|him|his|they|them|their|theirs)\b/gi;
+// Stronger emotional charge words - only clear distress signals
+const EMOTIONAL_CHARGE_WORDS = /\b(grief|hurt|betrayal|heartbreak|silent treatment|stonewall|ghost|withdraw|abandon|reject|rage|resent|panic|devastated)\b/i;
 
 /**
  * Replace deterministic language with conditional phrasing.
@@ -38,6 +43,81 @@ export function replaceWithConditional(input: string): string {
     if (lower.startsWith('fate')) return 'tends to lean';
     return 'may influence';
   });
+}
+
+export interface RelationalCharge {
+  charged: boolean;
+  reframed?: string;
+}
+
+/**
+ * Detect relationally charged questions ("Why does she...?", etc.) and
+ * rewrite them to describe the space between people rather than motives.
+ */
+export function softReframeRelationalQuestion(input: string): RelationalCharge {
+  if (typeof input !== 'string' || input.trim().length === 0) {
+    return { charged: false };
+  }
+
+  const trimmed = input.trim();
+  const hasDirectQuestion = RELATIONAL_QUESTION_PATTERN.test(trimmed);
+  const hasChargeWords = EMOTIONAL_CHARGE_WORDS.test(trimmed);
+
+  // Only intervene with clear emotional charge + direct question about motives
+  if (!hasDirectQuestion || !hasChargeWords) {
+    return { charged: false };
+  }
+
+  let reframed = trimmed
+    .replace(/\bwhy\s+does\s+(?:she|he|they)\s+(?:think|feel)\b/gi, 'what shifts between you when')
+    .replace(/\bwhat\s+is\s+(?:she|he|they)\s+(?:thinking|feeling)\b/gi, 'what kind of pressure you notice in the space between you');
+
+  reframed = reframed.replace(RELATIONAL_PRONOUNS, (match) => {
+    const lower = match.toLowerCase();
+    if (lower === 'she' || lower === 'he' || lower === 'they') {
+      return 'the other person';
+    }
+    if (lower === 'her' || lower === 'him' || lower === 'them') {
+      return 'the other person';
+    }
+    if (lower === 'hers' || lower === 'his' || lower === 'theirs') {
+      return 'the other person\'s';
+    }
+    if (lower === 'their') {
+      return 'the other person\'s';
+    }
+    return match;
+  });
+
+  return { charged: true, reframed };
+}
+
+/**
+ * Ensure every charged reflection invites user resonance instead of assuming correctness.
+ */
+export function ensureResonanceInvitation(input: string): string {
+  if (typeof input !== 'string' || input.trim().length === 0) return input;
+  const normalized = input.trim();
+  const alreadyInvites = /does that (feel|line up)|is that close|resonate|track/i.test(normalized);
+  if (alreadyInvites) return normalized;
+  
+  // Only add resonance invitation for clearly reflective statements
+  const hasReflectiveContent = /\b(might|could|may|tend|often|sometimes|usually)\b/i.test(normalized);
+  if (!hasReflectiveContent) return normalized;
+  
+  return `${normalized}\n\nDoes that feel close to what you're living, or is it off in an important way?`;
+}
+
+/**
+ * Apply the relational reframing + resonance guard when text is charged.
+ */
+export function enforceRelationalMirrorTone(input: string): { text: string; relational: boolean } {
+  const { charged, reframed } = softReframeRelationalQuestion(input);
+  if (!charged) {
+    return { text: input, relational: false };
+  }
+  const reframedText = reframed ?? input;
+  return { text: ensureResonanceInvitation(reframedText), relational: true };
 }
 
 /**
