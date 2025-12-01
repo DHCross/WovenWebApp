@@ -336,8 +336,12 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
   const selectWheelAsset = () => {
     if (!Array.isArray(chartAssets) || chartAssets.length === 0) return null;
 
-    const priorityChartTypes = ['natal', 'transit', 'synastry', 'composite', 'wheel'];
-    const prioritySubjects = ['person_a', 'transit', 'synastry', 'composite'];
+    const priorityChartTypes = isRelational
+      ? ['synastry', 'composite', 'natal', 'transit', 'wheel']
+      : ['natal', 'transit', 'synastry', 'composite', 'wheel'];
+    const prioritySubjects = isRelational
+      ? ['synastry', 'person_a', 'composite', 'transit']
+      : ['person_a', 'transit', 'synastry', 'composite'];
 
     // 1. Try exact chartType match
     for (const type of priorityChartTypes) {
@@ -454,7 +458,7 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
             <img
               ref={chartImgRef}
               src={wheelChart.url}
-              alt="Natal Chart"
+              alt={isRelational ? 'Synastry Chart' : 'Natal Chart'}
               className="w-full max-w-md md:max-w-lg lg:max-w-xl h-auto"
               crossOrigin="anonymous"
               loading="lazy"
