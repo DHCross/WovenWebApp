@@ -871,7 +871,6 @@ export default function MathBrainPage() {
     if (isIOS) {
       return;
     }
-    event.currentTarget.showPicker?.();
   }, [isIOS]);
 
   const handleDateTouchStart = useCallback((event: TouchEvent<HTMLInputElement>) => {
@@ -880,8 +879,13 @@ export default function MathBrainPage() {
     }
     event.preventDefault();
     const input = event.currentTarget;
-    input.focus();
-    input.showPicker?.();
+    try {
+      input.focus();
+      input.showPicker?.();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Date picker could not be opened programmatically', error);
+    }
   }, [isIOS]);
 
   const today = useMemo(() => new Date(), []);
@@ -4046,7 +4050,14 @@ export default function MathBrainPage() {
         payload: data,
       };
 
-      persistTrimmedLastPayload(lastPayload);
+      const status = persistTrimmedLastPayload(lastPayload);
+      if (status === 'fallback') {
+        setToast('Report generated, but Poetic Brain quick-load was trimmed due to size. Use downloads if anything seems missing.');
+        setTimeout(() => setToast(null), 3500);
+      } else if (status === 'error') {
+        setToast('Report generated, but could not save handoff for Poetic Brain due to storage limits. Use the download/export buttons instead.');
+        setTimeout(() => setToast(null), 4000);
+      }
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to persist Math Brain payload for Poetic Brain reuse', error);
