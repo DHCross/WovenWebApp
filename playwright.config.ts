@@ -10,7 +10,8 @@ const resolvedBaseURL =
  * Tests Math Brain, Poetic Brain (auth-gated), API endpoints, and export flows
  */
 export default defineConfig({
-  testDir: './e2e',
+  testDir: '.',
+  testMatch: ['e2e/**/*.spec.ts', 'tests/business-logic/**/*.spec.ts'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
