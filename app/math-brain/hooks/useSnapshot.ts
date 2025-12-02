@@ -86,12 +86,16 @@ export function useSnapshot() {
         // IMPORTANT: Preserve the original birth coordinates from the subject data.
         // Do NOT overwrite with the current GPS location - that's for translocation only.
         // The API needs correct birth coordinates for natal chart calculation.
-        const birthLat = subject.latitude ?? subject.birth_latitude ?? subject.lat;
-        const birthLng = subject.longitude ?? subject.birth_longitude ?? subject.lng ?? subject.lon;
+        // Handle string or number inputs for coordinates
+        const rawLat = subject.latitude ?? subject.birth_latitude ?? subject.lat;
+        const rawLng = subject.longitude ?? subject.birth_longitude ?? subject.lng ?? subject.lon;
+
+        const birthLat = typeof rawLat === 'string' ? parseFloat(rawLat) : Number(rawLat);
+        const birthLng = typeof rawLng === 'string' ? parseFloat(rawLng) : Number(rawLng);
         const birthTz = subject.timezone ?? subject.birth_timezone ?? subject.tz;
 
-        if (typeof birthLat !== 'number' || typeof birthLng !== 'number' || !Number.isFinite(birthLat) || !Number.isFinite(birthLng)) {
-          console.warn(`[Snapshot] Subject "${label}" missing or invalid birth coordinates:`, { birthLat, birthLng, subject });
+        if (!Number.isFinite(birthLat) || !Number.isFinite(birthLng)) {
+          console.warn(`[Snapshot] Subject "${label}" missing or invalid birth coordinates:`, { rawLat, rawLng, birthLat, birthLng, subject });
         }
 
         return {
@@ -106,8 +110,8 @@ export function useSnapshot() {
           hour: Number(subject.hour),
           minute: Number(subject.minute),
           // Preserve birth coordinates - DO NOT use snapshot location here
-          latitude: birthLat,
-          longitude: birthLng,
+          latitude: Number.isFinite(birthLat) ? birthLat : undefined,
+          longitude: Number.isFinite(birthLng) ? birthLng : undefined,
           timezone: birthTz,
           zodiac_type: subject.zodiac_type || subject.zodiac || 'Tropic',
         };
@@ -116,10 +120,13 @@ export function useSnapshot() {
       // Client-side validation for subject data - ensure numeric and required fields present
       const validateSubjectForSnapshot = (s: any) => {
         if (!s) return { valid: false, message: 'Subject data missing' };
-        const requiredNumeric = ['year','month','day','hour','minute'];
+        const requiredNumeric = ['year', 'month', 'day', 'hour', 'minute'];
         const missingNumeric = requiredNumeric.filter(k => s[k] === undefined || s[k] === null || s[k] === '' || !Number.isFinite(Number(s[k])));
+
+        // Coordinates must be numbers now (after ensureSubject parsing)
         const hasCoords = typeof s.latitude === 'number' && typeof s.longitude === 'number' && s.timezone;
         const hasCity = !!s.city && !!s.nation;
+
         if (missingNumeric.length) return { valid: false, message: `Missing/invalid date/time fields: ${missingNumeric.join(', ')}` };
         if (!hasCoords && !hasCity) return { valid: false, message: 'Missing location: provide latitude/longitude/timezone or city & nation' };
         return { valid: true, message: 'ok' };
@@ -200,7 +207,7 @@ export function useSnapshot() {
       }
 
       console.log('[Snapshot] Sending API request...', { endpoint: '/api/astrology-mathbrain', payload });
-      
+
       const response = await fetch('/api/astrology-mathbrain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
